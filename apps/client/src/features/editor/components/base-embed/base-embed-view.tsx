@@ -24,6 +24,7 @@ function findWiderAncestor(el: HTMLElement): HTMLElement | null {
 
 function applyExtension(wrapper: HTMLDivElement) {
   const wrapperRect = wrapper.getBoundingClientRect();
+  if (wrapperRect.width === 0) return;
   const wider = findWiderAncestor(wrapper);
   if (!wider) {
     wrapper.style.setProperty("--embed-shift", "0px");
@@ -45,6 +46,7 @@ function applyExtension(wrapper: HTMLDivElement) {
 export function BaseEmbedView({ node }: NodeViewProps) {
   const pageId = node.attrs.pageId as string | null;
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const { isLoading, isError } = useBaseQuery(pageId ?? "");
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -63,44 +65,35 @@ export function BaseEmbedView({ node }: NodeViewProps) {
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [isLoading, isError, pageId]);
 
+  let content: React.ReactNode;
   if (!pageId) {
-    return (
-      <NodeViewWrapper>
-        <Box p="md">
-          <Text c="red">Invalid base embed (missing page id)</Text>
-        </Box>
-      </NodeViewWrapper>
+    content = (
+      <Box p="md">
+        <Text c="red">Invalid base embed (missing page id)</Text>
+      </Box>
     );
-  }
-
-  const { isLoading, isError } = useBaseQuery(pageId);
-
-  if (isLoading) {
-    return (
-      <NodeViewWrapper>
-        <Box p="md">
-          <Text c="dimmed">Loading...</Text>
-        </Box>
-      </NodeViewWrapper>
+  } else if (isLoading) {
+    content = (
+      <Box p="md">
+        <Text c="dimmed">Loading...</Text>
+      </Box>
     );
-  }
-
-  if (isError) {
-    return (
-      <NodeViewWrapper>
-        <Box p="md" bg="gray.0" style={{ borderRadius: 8 }}>
-          <Text c="dimmed">You don't have access to this database.</Text>
-        </Box>
-      </NodeViewWrapper>
+  } else if (isError) {
+    content = (
+      <Box p="md" bg="gray.0" style={{ borderRadius: 8 }}>
+        <Text c="dimmed">You don't have access to this database.</Text>
+      </Box>
     );
+  } else {
+    content = <BaseTable pageId={pageId} embedded />;
   }
 
   return (
     <NodeViewWrapper>
       <div ref={wrapperRef} style={{ minHeight: 200 }}>
-        <BaseTable pageId={pageId} embedded />
+        {content}
       </div>
     </NodeViewWrapper>
   );
