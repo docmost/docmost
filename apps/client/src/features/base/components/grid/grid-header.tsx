@@ -7,7 +7,7 @@ import classes from "@/features/base/styles/grid.module.css";
 
 type GridHeaderProps = {
   table: Table<IBaseRow>;
-  baseId?: string;
+  pageId?: string;
   // Passed explicitly to break memo when columns change
   // (table ref is stable from useReactTable, so memo won't fire without these)
   columnOrder: ColumnOrderState;
@@ -19,7 +19,7 @@ type GridHeaderProps = {
 
 export const GridHeader = memo(function GridHeader({
   table,
-  baseId,
+  pageId,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   columnOrder: _columnOrder,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,9 +45,9 @@ export const GridHeader = memo(function GridHeader({
           loadedRowIds={loadedRowIds}
         />
       ))}
-      {baseId && (
+      {pageId && (
         <CreatePropertyPopover
-          baseId={baseId}
+          pageId={pageId}
           properties={properties}
           onPropertyCreated={onPropertyCreated}
         />

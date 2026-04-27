@@ -37,7 +37,7 @@ type GridContainerProps = {
   properties: IBaseProperty[];
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   onAddRow?: () => void;
-  baseId?: string;
+  pageId?: string;
   onColumnReorder?: (columnId: string, overColumnId: string) => void;
   onResizeEnd?: () => void;
   onRowReorder?: (rowId: string, targetRowId: string, position: "above" | "below") => void;
@@ -51,7 +51,7 @@ export function GridContainer({
   properties,
   onCellUpdate,
   onAddRow,
-  baseId,
+  pageId,
   onColumnReorder,
   onResizeEnd,
   onRowReorder,
@@ -72,7 +72,7 @@ export function GridContainer({
   const closeRequestCounterRef = useRef(0);
 
   const { selectionCount, clear: clearSelection } = useRowSelection();
-  const { deleteSelected } = useDeleteSelectedRows(baseId ?? "");
+  const { deleteSelected } = useDeleteSelectedRows(pageId ?? "");
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -134,7 +134,7 @@ export function GridContainer({
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !baseId) return;
+    if (!el || !pageId) return;
     const handler = (e: KeyboardEvent) => {
       if (editingCell) return;
       const active = document.activeElement as HTMLElement | null;
@@ -154,13 +154,13 @@ export function GridContainer({
     };
     el.addEventListener("keydown", handler);
     return () => el.removeEventListener("keydown", handler);
-  }, [editingCell, selectionCount, clearSelection, deleteSelected, baseId]);
+  }, [editingCell, selectionCount, clearSelection, deleteSelected, pageId]);
 
   const gridTemplateColumns = useMemo(() => {
     const visibleColumns = table.getVisibleLeafColumns();
     const columnWidths = visibleColumns.map((col) => `${col.getSize()}px`);
-    return columnWidths.join(" ") + (baseId ? " 40px" : "");
-  }, [table, table.getState().columnSizing, table.getState().columnVisibility, table.getState().columnOrder, baseId]);
+    return columnWidths.join(" ") + (pageId ? " 40px" : "");
+  }, [table, table.getState().columnSizing, table.getState().columnVisibility, table.getState().columnOrder, pageId]);
 
   const totalHeight = virtualizer.getTotalSize();
 
@@ -252,7 +252,7 @@ export function GridContainer({
           >
             <GridHeader
               table={table}
-              baseId={baseId}
+              pageId={pageId}
               columnOrder={table.getState().columnOrder}
               columnVisibility={table.getState().columnVisibility}
               properties={properties}
@@ -298,7 +298,7 @@ export function GridContainer({
           )}
 
           <AddRowButton onClick={handleAddRow} />
-          {baseId && <SelectionActionBar baseId={baseId} />}
+          {pageId && <SelectionActionBar pageId={pageId} />}
         </div>
       </div>
     </DndContext>

@@ -163,7 +163,7 @@ export function BaseToolbar({
       <ViewTabs
         views={views}
         activeViewId={activeView?.id}
-        baseId={base.id}
+        pageId={base.id}
         onViewChange={onViewChange}
         onAddView={onAddView}
       />

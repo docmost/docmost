@@ -42,15 +42,15 @@ import { BaseTableSkeleton } from "@/features/base/components/base-table-skeleto
 import classes from "@/features/base/styles/grid.module.css";
 
 type BaseTableProps = {
-  baseId: string;
+  pageId: string;
 };
 
-export function BaseTable({ baseId }: BaseTableProps) {
+export function BaseTable({ pageId }: BaseTableProps) {
   const { t } = useTranslation();
   // Subscribe to the base's realtime room so other clients' edits,
   // schema changes, and async-job completions reconcile into our cache.
-  useBaseSocket(baseId);
-  const { data: base, isLoading: baseLoading, error: baseError } = useBaseQuery(baseId);
+  useBaseSocket(pageId);
+  const { data: base, isLoading: baseLoading, error: baseError } = useBaseQuery(pageId);
 
   const [activeViewId, setActiveViewId] = useAtom(activeViewIdAtom) as unknown as [string | null, (val: string | null) => void];
 
@@ -72,7 +72,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
     buildPromotedConfig,
   } = useViewDraft({
     userId: currentUser?.user.id,
-    baseId,
+    pageId,
     viewId: activeView?.id,
     baselineFilter: activeView?.config?.filter,
     baselineSorts: activeView?.config?.sorts,
@@ -119,7 +119,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
   // active view's config resolves — doubling network traffic on every
   // base open for any view that has sort or filter.
   const { data: rowsData, isLoading: rowsLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useBaseRowsQuery(base ? baseId : undefined, activeFilter, activeSorts);
+    useBaseRowsQuery(base ? pageId : undefined, activeFilter, activeSorts);
 
   // Fire the count request alongside the rows query. Not rendered yet —
   // this mounts the query so its cache is warm for when the toolbar
@@ -129,7 +129,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
   // filter and fire with baseline-only (or nothing).
   const canFetchCount = !!base && !!currentUser;
   useBaseRowsCountQuery(
-    canFetchCount ? baseId : undefined,
+    canFetchCount ? pageId : undefined,
     activeFilter,
   );
 
@@ -148,7 +148,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
   const { clear: clearSelection } = useRowSelection();
   useEffect(() => {
     clearSelection();
-  }, [baseId, activeView?.id, clearSelection]);
+  }, [pageId, activeView?.id, clearSelection]);
 
   const rows = useMemo(() => {
     const flat = flattenRows(rowsData);
@@ -175,16 +175,16 @@ export function BaseTable({ baseId }: BaseTableProps) {
     (rowId: string, propertyId: string, value: unknown) => {
       updateRowMutation.mutate({
         rowId,
-        baseId,
+        pageId,
         cells: { [propertyId]: value },
       });
     },
-    [baseId, updateRowMutation],
+    [pageId, updateRowMutation],
   );
 
   const handleAddRow = useCallback(() => {
-    createRowMutation.mutate({ baseId });
-  }, [baseId, createRowMutation]);
+    createRowMutation.mutate({ pageId });
+  }, [pageId, createRowMutation]);
 
   const handleViewChange = useCallback(
     (viewId: string) => {
@@ -195,11 +195,11 @@ export function BaseTable({ baseId }: BaseTableProps) {
 
   const handleAddView = useCallback(() => {
     createViewMutation.mutate({
-      baseId,
+      pageId,
       name: t("New view"),
       type: "table",
     });
-  }, [baseId, createViewMutation, t]);
+  }, [pageId, createViewMutation, t]);
 
   const handleColumnReorder = useCallback(
     (activeId: string, overId: string) => {
@@ -242,7 +242,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
     try {
       await updateViewMutation.mutateAsync({
         viewId: activeView.id,
-        baseId: base.id,
+        pageId: base.id,
         config,
       });
       resetDraft();
@@ -288,14 +288,14 @@ export function BaseTable({ baseId }: BaseTableProps) {
 
         reorderRowMutation.mutate({
           rowId,
-          baseId,
+          pageId,
           position: newPosition,
         });
       } catch {
         // Position computation failed — skip silently
       }
     },
-    [rows, baseId, reorderRowMutation],
+    [rows, pageId, reorderRowMutation],
   );
 
   if (baseLoading || rowsLoading) {
@@ -338,7 +338,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
         properties={base.properties}
         onCellUpdate={handleCellUpdate}
         onAddRow={handleAddRow}
-        baseId={baseId}
+        pageId={pageId}
         onColumnReorder={handleColumnReorder}
         onResizeEnd={handleResizeEnd}
         onRowReorder={handleRowReorder}

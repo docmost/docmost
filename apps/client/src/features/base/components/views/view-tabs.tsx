@@ -22,7 +22,7 @@ import cellClasses from "@/features/base/styles/cells.module.css";
 type ViewTabsProps = {
   views: IBaseView[];
   activeViewId: string | undefined;
-  baseId: string;
+  pageId: string;
   onViewChange: (viewId: string) => void;
   onAddView?: () => void;
 };
@@ -30,7 +30,7 @@ type ViewTabsProps = {
 export function ViewTabs({
   views,
   activeViewId,
-  baseId,
+  pageId,
   onViewChange,
   onAddView,
 }: ViewTabsProps) {
@@ -56,12 +56,12 @@ export function ViewTabs({
     if (trimmed && view && trimmed !== view.name) {
       updateViewMutation.mutate({
         viewId: editingViewId,
-        baseId,
+        pageId,
         name: trimmed,
       });
     }
     setEditingViewId(null);
-  }, [editingViewId, editingName, views, baseId, updateViewMutation]);
+  }, [editingViewId, editingName, views, pageId, updateViewMutation]);
 
   const handleRenameKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -80,13 +80,13 @@ export function ViewTabs({
   const handleDelete = useCallback(
     (viewId: string) => {
       if (views.length <= 1) return;
-      deleteViewMutation.mutate({ viewId, baseId });
+      deleteViewMutation.mutate({ viewId, pageId });
       if (viewId === activeViewId && views.length > 1) {
         const remaining = views.filter((v) => v.id !== viewId);
         onViewChange(remaining[0].id);
       }
     },
-    [views, baseId, activeViewId, deleteViewMutation, onViewChange],
+    [views, pageId, activeViewId, deleteViewMutation, onViewChange],
   );
 
   return (

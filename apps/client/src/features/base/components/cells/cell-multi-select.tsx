@@ -105,7 +105,7 @@ export function CellMultiSelect({
     const newChoices = [...choices, newChoice];
     updatePropertyMutation.mutate({
       propertyId: property.id,
-      baseId: property.baseId,
+      pageId: property.pageId,
       typeOptions: {
         ...typeOptions,
         choices: newChoices,

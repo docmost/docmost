@@ -72,7 +72,7 @@ export function CellFile({
         try {
           const formData = new FormData();
           formData.append("file", file);
-          formData.append("baseId", property.baseId);
+          formData.append("pageId", property.pageId);
 
           const res = await api.post<FileValue>(
             "/bases/files/upload",
@@ -98,7 +98,7 @@ export function CellFile({
       setUploading(false);
       onCommit(newFiles.length > 0 ? newFiles : null);
     },
-    [files, property.baseId, onCommit],
+    [files, property.pageId, onCommit],
   );
 
   const handleKeyDown = useCallback(

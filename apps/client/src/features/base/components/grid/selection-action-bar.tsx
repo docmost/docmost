@@ -7,15 +7,15 @@ import { useDeleteSelectedRows } from "@/features/base/hooks/use-delete-selected
 import classes from "@/features/base/styles/grid.module.css";
 
 type SelectionActionBarProps = {
-  baseId: string;
+  pageId: string;
 };
 
 export const SelectionActionBar = memo(function SelectionActionBar({
-  baseId,
+  pageId,
 }: SelectionActionBarProps) {
   const { t } = useTranslation();
   const { selectionCount, clear } = useRowSelection();
-  const { deleteSelected, isPending } = useDeleteSelectedRows(baseId);
+  const { deleteSelected, isPending } = useDeleteSelectedRows(pageId);
 
   const isOpen = selectionCount > 0;
 

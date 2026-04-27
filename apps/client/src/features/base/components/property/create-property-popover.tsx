@@ -25,7 +25,7 @@ import { FormulaEditor } from "../formula/formula-editor";
 import classes from "@/features/base/styles/grid.module.css";
 
 type CreatePropertyPopoverProps = {
-  baseId: string;
+  pageId: string;
   properties?: IBaseProperty[];
   onPropertyCreated?: () => void;
 };
@@ -44,7 +44,7 @@ const typesWithOptions = new Set<BasePropertyType>([
   "person",
 ]);
 
-export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }: CreatePropertyPopoverProps) {
+export function CreatePropertyPopover({ pageId, properties, onPropertyCreated }: CreatePropertyPopoverProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
   const [panel, setPanel] = useState<Panel>("typePicker");
@@ -141,7 +141,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
     const finalName = name.trim() || fallbackName;
     createPropertyMutation.mutate(
       {
-        baseId,
+        pageId,
         name: finalName,
         type: selectedType,
         typeOptions: Object.keys(typeOptions).length > 0
@@ -155,7 +155,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
       },
     );
     handleClose();
-  }, [selectedType, nameTaken, name, fallbackName, typeOptions, baseId, createPropertyMutation, handleClose, onPropertyCreated]);
+  }, [selectedType, nameTaken, name, fallbackName, typeOptions, pageId, createPropertyMutation, handleClose, onPropertyCreated]);
 
   const handleBackToTypePicker = useCallback(() => {
     setPanel("typePicker");
@@ -198,7 +198,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
 
   const syntheticProperty: IBaseProperty = useMemo(() => ({
     id: "",
-    baseId,
+    pageId,
     name: name || "",
     type: selectedType ?? "text",
     position: "",
@@ -207,7 +207,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
     workspaceId: "",
     createdAt: "",
     updatedAt: "",
-  }), [baseId, name, selectedType, typeOptions]);
+  }), [pageId, name, selectedType, typeOptions]);
 
   const TypeIcon = selectedTypeIcon;
   const showOptions = selectedType && typesWithOptions.has(selectedType);
@@ -279,7 +279,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
                   if (nameTaken) return;
                   createPropertyMutation.mutate(
                     {
-                      baseId,
+                      pageId,
                       name: name.trim() || fallbackName,
                       type: "formula",
                       typeOptions: {

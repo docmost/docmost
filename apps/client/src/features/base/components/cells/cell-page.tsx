@@ -44,7 +44,7 @@ export function CellPage({
   onCancel,
 }: CellPageProps) {
   const pageId = parsePageId(value);
-  const { data: base } = useBaseQuery(property.baseId);
+  const { data: base } = useBaseQuery(property.pageId);
 
   const ids = useMemo(() => (pageId ? [pageId] : []), [pageId]);
   const { pages } = useResolvedPages(ids);

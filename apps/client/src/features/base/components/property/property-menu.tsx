@@ -94,7 +94,7 @@ export function PropertyMenuContent({
     if (trimmed && trimmed !== property.name) {
       updatePropertyMutation.mutate({
         propertyId: property.id,
-        baseId: property.baseId,
+        pageId: property.pageId,
         name: trimmed,
       });
     }
@@ -138,7 +138,7 @@ export function PropertyMenuContent({
     (typeOptions: Record<string, unknown>) => {
       updatePropertyMutation.mutate({
         propertyId: property.id,
-        baseId: property.baseId,
+        pageId: property.pageId,
         typeOptions,
       });
       setOptionsDirty(false);
@@ -149,7 +149,7 @@ export function PropertyMenuContent({
   const handleDelete = useCallback(() => {
     deletePropertyMutation.mutate({
       propertyId: property.id,
-      baseId: property.baseId,
+      pageId: property.pageId,
     });
     onClose();
   }, [property, deletePropertyMutation, onClose]);
