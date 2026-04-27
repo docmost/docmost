@@ -5,6 +5,9 @@
   flex: 1;
   min-height: 0;
   padding-left: 6px;
+  /* Reserve space below the AddRowButton so the horizontal scrollbar
+   * doesn't overlap it. */
+  padding-bottom: 6px;
 }
 
 .grid {
@@ -239,24 +242,25 @@
 }
 
 .addRowButton {
-  display: flex;
+  /* Inline-flex + width:max-content so the button only takes the space
+   * it needs and stays anchored to the page-content edge during the
+   * horizontal scroll, instead of riding along with the grid as a
+   * full-row item. --embed-grid-pad-left is the leftward extension
+   * distance in embed mode (sticks at page-content-left), 0 in
+   * standalone (sticks at gridWrapper's natural left). */
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
-  padding: 0 8px;
+  width: max-content;
+  height: 32px;
+  margin: 4px 0 4px;
+  padding: 0 10px;
   font-size: var(--mantine-font-size-sm);
   color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
-  border-top: 1px dashed
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
   cursor: pointer;
   user-select: none;
+  border-radius: 4px;
   transition: background-color 150ms ease;
-  grid-column: 1 / -1;
-  /* Stick to the page-content edge during horizontal scroll so the
-   * "New row" affordance is always reachable, just like the toolbar.
-   * In embed mode --embed-grid-pad-left is the offset that maps to
-   * page-content-left; in standalone mode the var is 0 so the button
-   * sticks at the grid's natural left edge. */
   position: sticky;
   inset-inline-start: var(--embed-grid-pad-left, 0);
   background-color: light-dark(

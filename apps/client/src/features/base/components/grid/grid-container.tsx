@@ -296,10 +296,9 @@ export function GridContainer({
           {paddingBottom > 0 && (
             <div style={{ height: paddingBottom, gridColumn: "1 / -1" }} />
           )}
-
-          <AddRowButton onClick={handleAddRow} />
-          {pageId && <SelectionActionBar pageId={pageId} />}
         </div>
+        <AddRowButton onClick={handleAddRow} />
+        {pageId && <SelectionActionBar pageId={pageId} />}
       </div>
     </DndContext>
   );
