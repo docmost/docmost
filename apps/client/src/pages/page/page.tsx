@@ -13,6 +13,7 @@ import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
+import { BaseTable } from "@/features/base/components/base-table";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
 const MemoizedHistoryModal = React.memo(HistoryModal);
@@ -88,6 +89,18 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
   if (!space) {
     return <></>;
+  }
+
+  if (page?.isBase) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <Helmet>
+          <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
+        </Helmet>
+        <MemoizedPageHeader readOnly={!canEdit} />
+        <BaseTable pageId={page.id} />
+      </div>
+    );
   }
 
   return (
