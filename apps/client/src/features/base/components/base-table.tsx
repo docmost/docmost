@@ -43,9 +43,10 @@ import classes from "@/features/base/styles/grid.module.css";
 
 type BaseTableProps = {
   pageId: string;
+  embedded?: boolean;
 };
 
-export function BaseTable({ pageId }: BaseTableProps) {
+export function BaseTable({ pageId, embedded }: BaseTableProps) {
   const { t } = useTranslation();
   // Subscribe to the base's realtime room so other clients' edits,
   // schema changes, and async-job completions reconcile into our cache.
@@ -313,39 +314,75 @@ export function BaseTable({ pageId }: BaseTableProps) {
 
   if (!base) return null;
 
+  // When the table is embedded inline in a doc page, the parent
+  // <NodeViewWrapper> measures the available area and exposes
+  // --embed-width / --embed-shift / --embed-pad. We extend the
+  // toolbar and grid sections out to the full available width via
+  // those vars, then re-pad the inner content so it visually aligns
+  // with page text. Sticky inset-inline-start keeps the toolbar
+  // pinned to the page-content edge during horizontal scroll.
+  const extendStyle = embedded
+    ? ({
+        position: "relative",
+        width: "var(--embed-width, 100%)",
+        insetInlineStart: "var(--embed-shift, 0px)",
+        paddingInline: "var(--embed-pad, 0px)",
+      } as const)
+    : undefined;
+
+  const stickyToolbarStyle = embedded
+    ? ({
+        position: "sticky",
+        insetInlineStart: 0,
+        zIndex: 4,
+      } as const)
+    : undefined;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <BaseViewDraftBanner
-        isDirty={isDirty}
-        canSave={canSave}
-        onReset={resetDraft}
-        onSave={handleSaveDraft}
-        saving={updateViewMutation.isPending}
-      />
-      <BaseToolbar
-        base={base}
-        activeView={effectiveView}
-        views={views}
-        table={table}
-        onViewChange={handleViewChange}
-        onAddView={handleAddView}
-        onPersistViewConfig={persistViewConfig}
-        onDraftSortsChange={handleDraftSortsChange}
-        onDraftFiltersChange={handleDraftFiltersChange}
-      />
-      <GridContainer
-        table={table}
-        properties={base.properties}
-        onCellUpdate={handleCellUpdate}
-        onAddRow={handleAddRow}
-        pageId={pageId}
-        onColumnReorder={handleColumnReorder}
-        onResizeEnd={handleResizeEnd}
-        onRowReorder={handleRowReorder}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        onFetchNextPage={fetchNextPage}
-      />
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: embedded ? "auto" : "100%",
+      }}
+    >
+      <div style={extendStyle}>
+        <BaseViewDraftBanner
+          isDirty={isDirty}
+          canSave={canSave}
+          onReset={resetDraft}
+          onSave={handleSaveDraft}
+          saving={updateViewMutation.isPending}
+        />
+        <div style={stickyToolbarStyle}>
+          <BaseToolbar
+            base={base}
+            activeView={effectiveView}
+            views={views}
+            table={table}
+            onViewChange={handleViewChange}
+            onAddView={handleAddView}
+            onPersistViewConfig={persistViewConfig}
+            onDraftSortsChange={handleDraftSortsChange}
+            onDraftFiltersChange={handleDraftFiltersChange}
+          />
+        </div>
+      </div>
+      <div style={extendStyle}>
+        <GridContainer
+          table={table}
+          properties={base.properties}
+          onCellUpdate={handleCellUpdate}
+          onAddRow={handleAddRow}
+          pageId={pageId}
+          onColumnReorder={handleColumnReorder}
+          onResizeEnd={handleResizeEnd}
+          onRowReorder={handleRowReorder}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onFetchNextPage={fetchNextPage}
+        />
+      </div>
     </div>
   );
 }
