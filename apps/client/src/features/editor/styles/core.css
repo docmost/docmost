@@ -1,3 +1,11 @@
+:root {
+  /* Height of the fixed PageHeader at the top of every page. Used by
+   * standalone base layout (paddingTop) and by sticky bands inside
+   * inline base embeds (top offset). One source of truth; if the
+   * page header ever changes height, edit only this. */
+  --page-header-height: 45px;
+}
+
 .ProseMirror {
   background-color: light-dark(
     var(--mantine-color-white),
