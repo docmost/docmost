@@ -315,14 +315,14 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
   if (!base) return null;
 
   // When embedded inline in a doc page, the parent <NodeViewWrapper>
-  // exposes --embed-extend-l / --embed-extend-r (positive px values).
-  // We pull the grid's left/right edges outward via negative margin —
-  // box-model: width: auto becomes parent_width + extend, so the box
-  // physically grows past its parent's bounds. The toolbar keeps the
-  // parent-constrained width so it stays in line with the page text.
+  // exposes --embed-extend-r (positive px). We pull the grid's right
+  // edge outward via negative margin-right — box-model: width: auto
+  // becomes parent_width + |margin|, so the box physically grows past
+  // its parent's bounds. Left edge stays at the wrapper's natural
+  // (page-content) position so the table aligns with page text on
+  // load. Toolbar is unchanged.
   const gridExtendStyle = embedded
     ? ({
-        marginLeft: "calc(-1 * var(--embed-extend-l, 0px))",
         marginRight: "calc(-1 * var(--embed-extend-r, 0px))",
       } as const)
     : undefined;

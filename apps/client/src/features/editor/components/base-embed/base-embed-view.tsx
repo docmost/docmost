@@ -6,26 +6,22 @@ import { useBaseQuery } from "@/features/base/queries/base-query";
 
 const SIDE_GUTTER = 8;
 
-// Anchor directly to AppShell.Main (the <main> tag) for both sides.
-// This is the layout container that already accounts for the navbar's
-// width and sidebar collapse state — its left/right edges are exactly
-// where the embed should extend to.
+// Extend the grid only to the right — toward AppShell.Main's right
+// edge. The left edge stays at the wrapper's natural (page-content)
+// position so the table is visually aligned with the page text on
+// load, matching Notion. Leftward scroll-viewport extension is only
+// meaningful once we add frozen columns that need to lock at the
+// sidebar edge; deferred until then.
 function applyExtension(wrapper: HTMLDivElement) {
   const rect = wrapper.getBoundingClientRect();
   if (rect.width === 0) return;
 
   const main = wrapper.closest("main") as HTMLElement | null;
-  const mainRect = main?.getBoundingClientRect();
-
-  const targetLeft = (mainRect?.left ?? 0) + SIDE_GUTTER;
-  const targetRight = mainRect
-    ? mainRect.right - SIDE_GUTTER
+  const targetRight = main
+    ? main.getBoundingClientRect().right - SIDE_GUTTER
     : window.innerWidth - SIDE_GUTTER;
 
-  const extendLeft = Math.max(0, rect.left - targetLeft);
   const extendRight = Math.max(0, targetRight - rect.right);
-
-  wrapper.style.setProperty("--embed-extend-l", `${extendLeft}px`);
   wrapper.style.setProperty("--embed-extend-r", `${extendRight}px`);
 }
 
