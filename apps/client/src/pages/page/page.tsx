@@ -118,7 +118,10 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
             paddingInline: 24,
           }}
         >
-          <div style={{ paddingTop: 32, paddingBottom: 12 }}>
+          <div
+            className="base-page-title"
+            style={{ paddingTop: 32, paddingBottom: 12 }}
+          >
             <MemoizedTitleEditor
               pageId={page.id}
               slugId={page.slugId}
