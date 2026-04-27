@@ -100,9 +100,10 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          // PageHeader is position: fixed (45px tall) — without this
-          // padding the BaseToolbar would render under it.
-          paddingTop: 45,
+          // PageHeader is position: fixed (its height is --page-header-height,
+          // declared on :root in editor/styles/core.css); without this padding
+          // the BaseToolbar would render under it.
+          paddingTop: "var(--page-header-height)",
         }}
       >
         <Helmet>
