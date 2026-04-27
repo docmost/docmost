@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { NodeSelection } from '@tiptap/pm/state';
 
 export interface BaseEmbedOptions {
   HTMLAttributes: Record<string, any>;
@@ -56,6 +57,26 @@ export const BaseEmbed = Node.create<BaseEmbedOptions>({
             type: this.name,
             attrs,
           }),
+    };
+  },
+
+  addKeyboardShortcuts() {
+    // Block Backspace / Delete when the base embed itself is the
+    // current selection — that's the "click on the embed and hit
+    // delete" accidental-delete path. Returning true tells TipTap
+    // we've handled the key, preventing the default removal.
+    // Other deletion paths (range selections covering the node,
+    // programmatic transactions) still go through.
+    const isThisNodeSelected = (): boolean => {
+      const { selection } = this.editor.state;
+      return (
+        selection instanceof NodeSelection &&
+        selection.node.type.name === this.name
+      );
+    };
+    return {
+      Backspace: () => isThisNodeSelected(),
+      Delete: () => isThisNodeSelected(),
     };
   },
 });
