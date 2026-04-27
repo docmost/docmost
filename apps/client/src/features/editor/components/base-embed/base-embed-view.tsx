@@ -4,43 +4,40 @@ import { useEffect, useRef } from "react";
 import { BaseTable } from "@/features/base/components/base-table";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 
-const SIDE_GUTTER = 8;
+const RIGHT_GUTTER = 16;
+const LEFT_GUTTER = 8;
 
-// Walk up from `el` to find the closest ancestor that's meaningfully
-// wider than `el` itself. That ancestor is the available drawing area
-// our embed should expand into (e.g. AppShell.Main when the page sits
-// inside a 900px Mantine Container). Returns null if no such ancestor
-// exists — the embed then renders without extension.
-function findWiderAncestor(el: HTMLElement): HTMLElement | null {
-  const baseWidth = el.getBoundingClientRect().width;
-  let cur: HTMLElement | null = el.parentElement;
+// Measure how far we can extend the grid past the wrapper's natural
+// (parent-constrained) bounds, and write the values as CSS vars on the
+// wrapper so the descendant grid can consume them via margin.
+function applyExtension(wrapper: HTMLDivElement) {
+  const rect = wrapper.getBoundingClientRect();
+  if (rect.width === 0) return;
+
+  const extendRight = Math.max(
+    0,
+    window.innerWidth - rect.right - RIGHT_GUTTER,
+  );
+
+  // Find the leftmost the grid can reach: walk up the ancestor chain
+  // for the closest element wider than the wrapper. That ancestor's
+  // left edge (plus a small gutter) is our left target. This handles
+  // the sidebar-collapsed case naturally — the wider ancestor is
+  // AppShell.Main, whose left edge moves when the sidebar toggles.
+  let targetLeft = rect.left;
+  let cur: HTMLElement | null = wrapper.parentElement;
   while (cur && cur !== document.body) {
-    const w = cur.getBoundingClientRect().width;
-    if (w > baseWidth + 32) return cur;
+    const r = cur.getBoundingClientRect();
+    if (r.width > rect.width + 32) {
+      targetLeft = r.left + LEFT_GUTTER;
+      break;
+    }
     cur = cur.parentElement;
   }
-  return null;
-}
+  const extendLeft = Math.max(0, rect.left - targetLeft);
 
-function applyExtension(wrapper: HTMLDivElement) {
-  const wrapperRect = wrapper.getBoundingClientRect();
-  if (wrapperRect.width === 0) return;
-  const wider = findWiderAncestor(wrapper);
-  if (!wider) {
-    wrapper.style.setProperty("--embed-shift", "0px");
-    wrapper.style.setProperty("--embed-width", "100%");
-    wrapper.style.setProperty("--embed-pad", "0px");
-    return;
-  }
-  const widerRect = wider.getBoundingClientRect();
-  const targetLeft = widerRect.left + SIDE_GUTTER;
-  const targetWidth = widerRect.width - SIDE_GUTTER * 2;
-  const shift = targetLeft - wrapperRect.left;
-  wrapper.style.setProperty("--embed-shift", `${shift}px`);
-  wrapper.style.setProperty("--embed-width", `${targetWidth}px`);
-  // Re-pad inner content back to the original wrapper bounds so
-  // toolbar buttons / first column visually align with page text.
-  wrapper.style.setProperty("--embed-pad", `${-shift}px`);
+  wrapper.style.setProperty("--embed-extend-r", `${extendRight}px`);
+  wrapper.style.setProperty("--embed-extend-l", `${extendLeft}px`);
 }
 
 export function BaseEmbedView({ node }: NodeViewProps) {
@@ -57,8 +54,17 @@ export function BaseEmbedView({ node }: NodeViewProps) {
 
     const ro = new ResizeObserver(update);
     ro.observe(wrapper);
-    const wider = findWiderAncestor(wrapper);
-    if (wider) ro.observe(wider);
+    // Also observe an ancestor so sidebar collapse / window changes
+    // propagate even when the wrapper itself doesn't resize.
+    let cur: HTMLElement | null = wrapper.parentElement;
+    while (cur && cur !== document.body) {
+      const r = cur.getBoundingClientRect();
+      if (r.width > wrapper.getBoundingClientRect().width + 32) {
+        ro.observe(cur);
+        break;
+      }
+      cur = cur.parentElement;
+    }
 
     window.addEventListener("resize", update);
     return () => {

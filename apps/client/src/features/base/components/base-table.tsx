@@ -314,27 +314,16 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
 
   if (!base) return null;
 
-  // When the table is embedded inline in a doc page, the parent
-  // <NodeViewWrapper> measures the available area and exposes
-  // --embed-width / --embed-shift / --embed-pad. We extend the
-  // toolbar and grid sections out to the full available width via
-  // those vars, then re-pad the inner content so it visually aligns
-  // with page text. Sticky inset-inline-start keeps the toolbar
-  // pinned to the page-content edge during horizontal scroll.
-  const extendStyle = embedded
+  // When embedded inline in a doc page, the parent <NodeViewWrapper>
+  // exposes --embed-extend-l / --embed-extend-r (positive px values).
+  // We pull the grid's left/right edges outward via negative margin —
+  // box-model: width: auto becomes parent_width + extend, so the box
+  // physically grows past its parent's bounds. The toolbar keeps the
+  // parent-constrained width so it stays in line with the page text.
+  const gridExtendStyle = embedded
     ? ({
-        position: "relative",
-        width: "var(--embed-width, 100%)",
-        insetInlineStart: "var(--embed-shift, 0px)",
-        paddingInline: "var(--embed-pad, 0px)",
-      } as const)
-    : undefined;
-
-  const stickyToolbarStyle = embedded
-    ? ({
-        position: "sticky",
-        insetInlineStart: 0,
-        zIndex: 4,
+        marginLeft: "calc(-1 * var(--embed-extend-l, 0px))",
+        marginRight: "calc(-1 * var(--embed-extend-r, 0px))",
       } as const)
     : undefined;
 
@@ -346,29 +335,25 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
         height: embedded ? "auto" : "100%",
       }}
     >
-      <div style={extendStyle}>
-        <BaseViewDraftBanner
-          isDirty={isDirty}
-          canSave={canSave}
-          onReset={resetDraft}
-          onSave={handleSaveDraft}
-          saving={updateViewMutation.isPending}
-        />
-        <div style={stickyToolbarStyle}>
-          <BaseToolbar
-            base={base}
-            activeView={effectiveView}
-            views={views}
-            table={table}
-            onViewChange={handleViewChange}
-            onAddView={handleAddView}
-            onPersistViewConfig={persistViewConfig}
-            onDraftSortsChange={handleDraftSortsChange}
-            onDraftFiltersChange={handleDraftFiltersChange}
-          />
-        </div>
-      </div>
-      <div style={extendStyle}>
+      <BaseViewDraftBanner
+        isDirty={isDirty}
+        canSave={canSave}
+        onReset={resetDraft}
+        onSave={handleSaveDraft}
+        saving={updateViewMutation.isPending}
+      />
+      <BaseToolbar
+        base={base}
+        activeView={effectiveView}
+        views={views}
+        table={table}
+        onViewChange={handleViewChange}
+        onAddView={handleAddView}
+        onPersistViewConfig={persistViewConfig}
+        onDraftSortsChange={handleDraftSortsChange}
+        onDraftFiltersChange={handleDraftFiltersChange}
+      />
+      <div style={gridExtendStyle}>
         <GridContainer
           table={table}
           properties={base.properties}
