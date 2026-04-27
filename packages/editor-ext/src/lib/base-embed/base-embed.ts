@@ -8,7 +8,10 @@ export interface BaseEmbedOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     baseEmbed: {
-      insertBaseEmbed: (attrs: { pageId: string }) => ReturnType;
+      insertBaseEmbed: (attrs: {
+        pageId: string | null;
+        pendingKey?: string | null;
+      }) => ReturnType;
     };
   }
 }
@@ -31,6 +34,16 @@ export const BaseEmbed = Node.create<BaseEmbedOptions>({
         parseHTML: (el) => el.getAttribute('data-page-id'),
         renderHTML: (attrs) =>
           attrs.pageId ? { 'data-page-id': attrs.pageId } : {},
+      },
+      // Transient marker set when the slash command inserts the embed
+      // before the server has assigned a pageId. The view renders a
+      // skeleton in this state. Cleared once the API responds and the
+      // real pageId is patched in. Not serialized — embeds saved with
+      // a pendingKey would orphan if the page were closed mid-request.
+      pendingKey: {
+        default: null,
+        parseHTML: () => null,
+        renderHTML: () => ({}),
       },
     };
   },

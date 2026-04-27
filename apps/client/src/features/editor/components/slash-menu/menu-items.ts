@@ -53,6 +53,30 @@ import {
   YoutubeIcon,
 } from "@/components/icons";
 import api from "@/lib/api-client";
+import { notifications } from "@mantine/notifications";
+import type { Editor } from "@tiptap/core";
+
+// Resolve the position of a baseEmbed placeholder by its pendingKey.
+// Used by the Database slash command to patch in the real pageId once
+// the create-base API responds — positions may have shifted in the
+// interim from collab edits, undo/redo, or concurrent slash commands.
+function findBaseEmbedPlaceholderPos(
+  editor: Editor,
+  pendingKey: string,
+): number | null {
+  let foundPos: number | null = null;
+  editor.state.doc.descendants((node, pos) => {
+    if (
+      node.type.name === "baseEmbed" &&
+      node.attrs.pendingKey === pendingKey
+    ) {
+      foundPos = pos;
+      return false;
+    }
+    return true;
+  });
+  return foundPos;
+}
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -488,13 +512,57 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         const parentPageId = editor.storage?.pageId as string | undefined;
         if (!parentPageId) return;
 
-        editor.chain().focus().deleteRange(range).run();
+        // Insert a placeholder embed at the slash position synchronously
+        // so (a) the position is established before any focus/selection
+        // drift during the await, and (b) the user sees a skeleton in
+        // the document instead of an empty gap. The API call then patches
+        // the real pageId into this exact node, identified by pendingKey.
+        const pendingKey =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`;
 
-        const res = await api.post<{ id: string }>("/bases/inline-embed", {
-          parentPageId,
-        });
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertBaseEmbed({ pageId: null, pendingKey })
+          .run();
 
-        editor.commands.insertBaseEmbed({ pageId: res.data.id });
+        try {
+          const res = await api.post<{ id: string }>("/bases/inline-embed", {
+            parentPageId,
+          });
+
+          const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
+          if (pos === null) return;
+          editor
+            .chain()
+            .command(({ tr }) => {
+              tr.setNodeMarkup(pos, undefined, {
+                pageId: res.data.id,
+                pendingKey: null,
+              });
+              return true;
+            })
+            .run();
+        } catch {
+          const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
+          if (pos !== null) {
+            editor
+              .chain()
+              .command(({ tr }) => {
+                const node = tr.doc.nodeAt(pos);
+                if (node) tr.delete(pos, pos + node.nodeSize);
+                return true;
+              })
+              .run();
+          }
+          notifications.show({
+            message: "Failed to create database",
+            color: "red",
+          });
+        }
       },
     },
     {

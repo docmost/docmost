@@ -2,6 +2,7 @@ import { NodeViewWrapper, NodeViewProps } from "@tiptap/react";
 import { Box, Text } from "@mantine/core";
 import { useEffect, useRef } from "react";
 import { BaseTable } from "@/features/base/components/base-table";
+import { BaseTableSkeleton } from "@/features/base/components/base-table-skeleton";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 
 const SIDE_GUTTER = 8;
@@ -42,8 +43,12 @@ function applyExtension(wrapper: HTMLDivElement) {
 
 export function BaseEmbedView({ node }: NodeViewProps) {
   const pageId = node.attrs.pageId as string | null;
+  const pendingKey = node.attrs.pendingKey as string | null;
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const { isLoading, isError } = useBaseQuery(pageId ?? "");
+  // Suppress the query while the slash command is still waiting for the
+  // server to assign a pageId — useBaseQuery would otherwise fire with
+  // an empty key and surface a transient error.
+  const { isLoading, isError } = useBaseQuery(pendingKey ? "" : pageId ?? "");
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -67,7 +72,12 @@ export function BaseEmbedView({ node }: NodeViewProps) {
   }, [isLoading, isError, pageId]);
 
   let content: React.ReactNode;
-  if (!pageId) {
+  if (pendingKey) {
+    // Slash command inserted the embed and is awaiting the server's
+    // assigned pageId — render the same skeleton BaseTable shows on
+    // its own initial load so the swap is visually a no-op.
+    content = <BaseTableSkeleton />;
+  } else if (!pageId) {
     content = (
       <Box p="md">
         <Text c="red">Invalid base embed (missing page id)</Text>
