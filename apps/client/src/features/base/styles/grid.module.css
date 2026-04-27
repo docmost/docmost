@@ -29,6 +29,10 @@
    * scrollable region — the user can pan left into it. Standalone
    * full-page bases never set the var, so it's a no-op there. */
   padding-left: var(--embed-grid-pad-left, 0);
+  /* Symmetric right-side padding lets the user scroll past the last
+   * column into empty space, so wide tables don't end abruptly at
+   * the viewport edge. */
+  padding-right: var(--embed-grid-pad-right, 0);
 }
 
 .headerRow {
