@@ -315,14 +315,16 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
   if (!base) return null;
 
   // When embedded inline in a doc page, the parent <NodeViewWrapper>
-  // exposes --embed-extend-r (positive px). We pull the grid's right
-  // edge outward via negative margin-right — box-model: width: auto
-  // becomes parent_width + |margin|, so the box physically grows past
-  // its parent's bounds. Left edge stays at the wrapper's natural
-  // (page-content) position so the table aligns with page text on
-  // load. Toolbar is unchanged.
+  // exposes --embed-extend-l / --embed-extend-r (positive px). We
+  // pull both edges outward via negative margin so the scroll viewport
+  // grows toward AppShell.Main's edges. Initial visual alignment with
+  // page text is preserved by --embed-grid-pad-left, applied to the
+  // .grid in grid.module.css — that padding makes the first cell sit
+  // at page-content-left on load while still letting the user pan
+  // left into the extended viewport. Toolbar is unchanged.
   const gridExtendStyle = embedded
     ? ({
+        marginLeft: "calc(-1 * var(--embed-extend-l, 0px))",
         marginRight: "calc(-1 * var(--embed-extend-r, 0px))",
       } as const)
     : undefined;

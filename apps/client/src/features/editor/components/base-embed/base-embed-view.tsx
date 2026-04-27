@@ -6,23 +6,28 @@ import { useBaseQuery } from "@/features/base/queries/base-query";
 
 const SIDE_GUTTER = 8;
 
-// Extend the grid only to the right — toward AppShell.Main's right
-// edge. The left edge stays at the wrapper's natural (page-content)
-// position so the table is visually aligned with the page text on
-// load, matching Notion. Leftward scroll-viewport extension is only
-// meaningful once we add frozen columns that need to lock at the
-// sidebar edge; deferred until then.
+// Extend the scroll viewport on both sides (toward AppShell.Main's
+// edges), but offset the grid content with padding-left = extendLeft
+// so the first cell still lines up with page-content on load. The
+// extra leftward area becomes scrollable empty space the user can
+// pan into — same behavior as Notion's inline databases.
 function applyExtension(wrapper: HTMLDivElement) {
   const rect = wrapper.getBoundingClientRect();
   if (rect.width === 0) return;
 
   const main = wrapper.closest("main") as HTMLElement | null;
-  const targetRight = main
-    ? main.getBoundingClientRect().right - SIDE_GUTTER
+  const mainRect = main?.getBoundingClientRect();
+  const targetLeft = (mainRect?.left ?? 0) + SIDE_GUTTER;
+  const targetRight = mainRect
+    ? mainRect.right - SIDE_GUTTER
     : window.innerWidth - SIDE_GUTTER;
 
+  const extendLeft = Math.max(0, rect.left - targetLeft);
   const extendRight = Math.max(0, targetRight - rect.right);
+
+  wrapper.style.setProperty("--embed-extend-l", `${extendLeft}px`);
   wrapper.style.setProperty("--embed-extend-r", `${extendRight}px`);
+  wrapper.style.setProperty("--embed-grid-pad-left", `${extendLeft}px`);
 }
 
 export function BaseEmbedView({ node }: NodeViewProps) {
