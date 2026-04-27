@@ -7,7 +7,7 @@ import {
   IBaseRow,
   IBaseView,
 } from "@/features/base/types/base.types";
-import { selectedRowIdsAtom } from "@/features/base/atoms/base-atoms";
+import { selectedRowIdsAtomFamily } from "@/features/base/atoms/base-atoms";
 import { formulaRecomputeAtom } from "@/features/base/atoms/formula-recompute-atom";
 import { IPagination } from "@/lib/types";
 
@@ -211,11 +211,12 @@ export function useBaseSocket(pageId: string | undefined): void {
                   },
           );
           const store = getDefaultStore();
-          const current = store.get(selectedRowIdsAtom);
+          const selectedIdsAtom = selectedRowIdsAtomFamily(pageId);
+          const current = store.get(selectedIdsAtom);
           if (current.has(e.rowId)) {
             const next = new Set(current);
             next.delete(e.rowId);
-            store.set(selectedRowIdsAtom, next);
+            store.set(selectedIdsAtom, next);
           }
           break;
         }
@@ -236,14 +237,15 @@ export function useBaseSocket(pageId: string | undefined): void {
             },
           );
           const store = getDefaultStore();
-          const current = store.get(selectedRowIdsAtom);
+          const selectedIdsAtom = selectedRowIdsAtomFamily(pageId);
+          const current = store.get(selectedIdsAtom);
           if (current.size > 0) {
             let changed = false;
             const next = new Set(current);
             for (const id of e.rowIds) {
               if (next.delete(id)) changed = true;
             }
-            if (changed) store.set(selectedRowIdsAtom, next);
+            if (changed) store.set(selectedIdsAtom, next);
           }
           break;
         }

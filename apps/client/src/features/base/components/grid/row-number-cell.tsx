@@ -16,6 +16,7 @@ type RowNumberCellProps = {
   isPinned: boolean;
   pinOffset?: number;
   rowDragProps?: RowDragProps;
+  pageId: string;
 };
 
 export const RowNumberCell = memo(function RowNumberCell({
@@ -25,8 +26,9 @@ export const RowNumberCell = memo(function RowNumberCell({
   isPinned,
   pinOffset,
   rowDragProps,
+  pageId,
 }: RowNumberCellProps) {
-  const { isSelected, toggle } = useRowSelection();
+  const { isSelected, toggle } = useRowSelection(pageId);
   const selected = isSelected(rowId);
 
   const handleCheckboxChange = useCallback(

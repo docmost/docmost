@@ -2,7 +2,7 @@ import { memo, useCallback } from "react";
 import { Cell } from "@tanstack/react-table";
 import { useAtom } from "jotai";
 import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
-import { editingCellAtom } from "@/features/base/atoms/base-atoms";
+import { editingCellAtomFamily } from "@/features/base/atoms/base-atoms";
 import { isSystemPropertyType } from "@/features/base/hooks/use-base-table";
 import { CellText } from "@/features/base/components/cells/cell-text";
 import { CellNumber } from "@/features/base/components/cells/cell-number";
@@ -65,6 +65,7 @@ type GridCellProps = {
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   rowDragProps?: RowDragProps;
   orderedRowIds?: string[];
+  pageId: string;
 };
 
 export const GridCell = memo(function GridCell({
@@ -73,13 +74,14 @@ export const GridCell = memo(function GridCell({
   onCellUpdate,
   rowDragProps,
   orderedRowIds,
+  pageId,
 }: GridCellProps) {
   const property = cell.column.columnDef.meta?.property;
   const isRowNumber = cell.column.id === "__row_number";
   const isPinned = cell.column.getIsPinned();
   const pinOffset = isPinned ? cell.column.getStart("left") : undefined;
 
-  const [editingCell, setEditingCell] = useAtom(editingCellAtom) as unknown as [EditingCell, (val: EditingCell) => void];
+  const [editingCell, setEditingCell] = useAtom(editingCellAtomFamily(pageId)) as unknown as [EditingCell, (val: EditingCell) => void];
 
   const rowId = cell.row.id;
   const isEditing =
@@ -121,6 +123,7 @@ export const GridCell = memo(function GridCell({
         isPinned={Boolean(isPinned)}
         pinOffset={pinOffset}
         rowDragProps={rowDragProps}
+        pageId={pageId}
       />
     );
   }

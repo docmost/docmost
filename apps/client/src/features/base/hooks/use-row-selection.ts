@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { useAtom } from "jotai";
 import {
-  selectedRowIdsAtom,
-  lastToggledRowIndexAtom,
+  selectedRowIdsAtomFamily,
+  lastToggledRowIndexAtomFamily,
 } from "@/features/base/atoms/base-atoms";
 
 type ToggleOpts = {
@@ -11,13 +11,15 @@ type ToggleOpts = {
   orderedRowIds: string[];
 };
 
-export function useRowSelection() {
-  const [selectedIds, setSelectedIds] = useAtom(selectedRowIdsAtom) as unknown as [
+export function useRowSelection(pageId: string) {
+  const [selectedIds, setSelectedIds] = useAtom(
+    selectedRowIdsAtomFamily(pageId),
+  ) as unknown as [
     Set<string>,
     (val: Set<string> | ((prev: Set<string>) => Set<string>)) => void,
   ];
   const [lastToggledIndex, setLastToggledIndex] = useAtom(
-    lastToggledRowIndexAtom,
+    lastToggledRowIndexAtomFamily(pageId),
   ) as unknown as [number | null, (val: number | null) => void];
 
   const isSelected = useCallback(

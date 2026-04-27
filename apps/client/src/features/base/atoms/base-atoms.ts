@@ -1,15 +1,38 @@
 import { atom } from "jotai";
+import { atomFamily } from "jotai/utils";
 import { EditingCell } from "@/features/base/types/base.types";
 
-export const activeViewIdAtom = atom<string | null>(null);
+// Atoms are scoped per-base via `pageId` so that two BaseTable instances
+// rendered on the same page (e.g. multiple base embeds inside one
+// document) don't share UI state. A global atom would otherwise cause
+// each instance's `useEffect` writers to clobber the other's value
+// every render — pinning React into a "Maximum update depth exceeded"
+// loop.
 
-export const editingCellAtom = atom<EditingCell>(null);
+export const activeViewIdAtomFamily = atomFamily((_pageId: string) =>
+  atom<string | null>(null),
+);
 
-export const activePropertyMenuAtom = atom<string | null>(null);
+export const editingCellAtomFamily = atomFamily((_pageId: string) =>
+  atom<EditingCell>(null),
+);
 
-export const propertyMenuDirtyAtom = atom<boolean>(false);
+export const activePropertyMenuAtomFamily = atomFamily((_pageId: string) =>
+  atom<string | null>(null),
+);
 
-export const propertyMenuCloseRequestAtom = atom<number>(0);
+export const propertyMenuDirtyAtomFamily = atomFamily((_pageId: string) =>
+  atom<boolean>(false),
+);
 
-export const selectedRowIdsAtom = atom<Set<string>>(new Set<string>());
-export const lastToggledRowIndexAtom = atom<number | null>(null);
+export const propertyMenuCloseRequestAtomFamily = atomFamily((_pageId: string) =>
+  atom<number>(0),
+);
+
+export const selectedRowIdsAtomFamily = atomFamily((_pageId: string) =>
+  atom<Set<string>>(new Set<string>()),
+);
+
+export const lastToggledRowIndexAtomFamily = atomFamily((_pageId: string) =>
+  atom<number | null>(null),
+);

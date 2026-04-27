@@ -22,7 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
-import { editingCellAtom, activePropertyMenuAtom, propertyMenuDirtyAtom, propertyMenuCloseRequestAtom } from "@/features/base/atoms/base-atoms";
+import { editingCellAtomFamily, activePropertyMenuAtomFamily, propertyMenuDirtyAtomFamily, propertyMenuCloseRequestAtomFamily } from "@/features/base/atoms/base-atoms";
 import { useColumnResize } from "@/features/base/hooks/use-column-resize";
 import { useGridKeyboardNav } from "@/features/base/hooks/use-grid-keyboard-nav";
 import { useRowDrag } from "@/features/base/hooks/use-row-drag";
@@ -53,7 +53,7 @@ type GridContainerProps = {
   properties: IBaseProperty[];
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   onAddRow?: () => void;
-  pageId?: string;
+  pageId: string;
   onColumnReorder?: (columnId: string, overColumnId: string) => void;
   onResizeEnd?: () => void;
   onRowReorder?: (rowId: string, targetRowId: string, position: "above" | "below") => void;
@@ -96,16 +96,16 @@ export function GridContainer({
   const lastTriggeredRowsLenRef = useRef(0);
   const rows = table.getRowModel().rows;
 
-  const [editingCell, setEditingCell] = useAtom(editingCellAtom) as unknown as [EditingCell, (val: EditingCell) => void];
-  const [, setActivePropertyMenu] = useAtom(activePropertyMenuAtom) as unknown as [string | null, (val: string | null) => void];
-  const [propertyMenuDirty] = useAtom(propertyMenuDirtyAtom) as unknown as [boolean];
-  const [, setCloseRequest] = useAtom(propertyMenuCloseRequestAtom) as unknown as [number, (val: number) => void];
+  const [editingCell, setEditingCell] = useAtom(editingCellAtomFamily(pageId)) as unknown as [EditingCell, (val: EditingCell) => void];
+  const [, setActivePropertyMenu] = useAtom(activePropertyMenuAtomFamily(pageId)) as unknown as [string | null, (val: string | null) => void];
+  const [propertyMenuDirty] = useAtom(propertyMenuDirtyAtomFamily(pageId)) as unknown as [boolean];
+  const [, setCloseRequest] = useAtom(propertyMenuCloseRequestAtomFamily(pageId)) as unknown as [number, (val: number) => void];
   const propertyMenuDirtyRef = useRef(propertyMenuDirty);
   propertyMenuDirtyRef.current = propertyMenuDirty;
   const closeRequestCounterRef = useRef(0);
 
-  const { selectionCount, clear: clearSelection } = useRowSelection();
-  const { deleteSelected } = useDeleteSelectedRows(pageId ?? "");
+  const { selectionCount, clear: clearSelection } = useRowSelection(pageId);
+  const { deleteSelected } = useDeleteSelectedRows(pageId);
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -366,6 +366,7 @@ export function GridContainer({
                 onCellUpdate={onCellUpdate}
                 orderedRowIds={rowIds}
                 columnVisibility={table.getState().columnVisibility}
+                pageId={pageId}
                 dragHandlers={
                   onRowReorder
                     ? {

@@ -18,7 +18,7 @@ import {
 } from "@tabler/icons-react";
 import { IBaseProperty } from "@/features/base/types/base.types";
 import { useAtom } from "jotai";
-import { propertyMenuCloseRequestAtom } from "@/features/base/atoms/base-atoms";
+import { propertyMenuCloseRequestAtomFamily } from "@/features/base/atoms/base-atoms";
 import {
   useUpdatePropertyMutation,
   useDeletePropertyMutation,
@@ -34,6 +34,7 @@ type PropertyMenuContentProps = {
   opened: boolean;
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  pageId: string;
 };
 
 type MenuPanel = "main" | "rename" | "options" | "confirmDelete" | "confirmDiscard";
@@ -43,6 +44,7 @@ export function PropertyMenuContent({
   opened,
   onClose,
   onDirtyChange,
+  pageId,
 }: PropertyMenuContentProps) {
   const { t } = useTranslation();
   const [panel, setPanel] = useState<MenuPanel>("main");
@@ -51,7 +53,7 @@ export function PropertyMenuContent({
   const [optionsDirty, setOptionsDirty] = useState(false);
   const pendingActionRef = useRef<"back" | "close" | null>(null);
   const sourcePanelRef = useRef<"rename" | "options" | null>(null);
-  const [closeRequest] = useAtom(propertyMenuCloseRequestAtom) as unknown as [number];
+  const [closeRequest] = useAtom(propertyMenuCloseRequestAtomFamily(pageId)) as unknown as [number];
   const closeRequestRef = useRef(closeRequest);
 
   const renameDirty = renameValue !== property.name;
@@ -79,7 +81,7 @@ export function PropertyMenuContent({
 
   // Single dirty signal to the outside — reflects whichever panel is
   // currently accumulating unsaved work. Keeps rename and options in
-  // lockstep with the `propertyMenuDirtyAtom` so the grid-container's
+  // lockstep with the `propertyMenuDirtyAtomFamily` so the grid-container's
   // outside-click handler and the header's ESC handler both prompt
   // "Unsaved changes" consistently.
   useEffect(() => {

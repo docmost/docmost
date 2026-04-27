@@ -5,12 +5,14 @@ import classes from "@/features/base/styles/grid.module.css";
 
 type RowNumberHeaderCellProps = {
   loadedRowIds: string[];
+  pageId: string;
 };
 
 export const RowNumberHeaderCell = memo(function RowNumberHeaderCell({
   loadedRowIds,
+  pageId,
 }: RowNumberHeaderCellProps) {
-  const { selectedIds, toggleAll } = useRowSelection();
+  const { selectedIds, toggleAll } = useRowSelection(pageId);
 
   const { checked, indeterminate } = useMemo(() => {
     if (loadedRowIds.length === 0) {

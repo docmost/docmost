@@ -22,6 +22,7 @@ type GridRowProps = {
   dragHandlers?: RowDragHandlers;
   orderedRowIds: string[];
   columnVisibility: VisibilityState;
+  pageId: string;
 };
 
 export const GridRow = memo(function GridRow({
@@ -32,8 +33,9 @@ export const GridRow = memo(function GridRow({
   orderedRowIds,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   columnVisibility: _columnVisibility,
+  pageId,
 }: GridRowProps) {
-  const isSelected = useRowSelection().isSelected(row.id);
+  const isSelected = useRowSelection(pageId).isSelected(row.id);
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
       e.dataTransfer.effectAllowed = "move";
@@ -76,6 +78,7 @@ export const GridRow = memo(function GridRow({
             rowIndex={rowIndex}
             onCellUpdate={onCellUpdate}
             orderedRowIds={orderedRowIds}
+            pageId={pageId}
             rowDragProps={
               isRowNumber && dragHandlers
                 ? {

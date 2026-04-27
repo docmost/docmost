@@ -14,7 +14,7 @@ export const SelectionActionBar = memo(function SelectionActionBar({
   pageId,
 }: SelectionActionBarProps) {
   const { t } = useTranslation();
-  const { selectionCount, clear } = useRowSelection();
+  const { selectionCount, clear } = useRowSelection(pageId);
   const { deleteSelected, isPending } = useDeleteSelectedRows(pageId);
 
   const isOpen = selectionCount > 0;

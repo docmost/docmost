@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Popover } from "@mantine/core";
 import { useAtom } from "jotai";
 import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
-import { activePropertyMenuAtom, propertyMenuDirtyAtom, propertyMenuCloseRequestAtom, editingCellAtom } from "@/features/base/atoms/base-atoms";
+import { activePropertyMenuAtomFamily, propertyMenuDirtyAtomFamily, propertyMenuCloseRequestAtomFamily, editingCellAtomFamily } from "@/features/base/atoms/base-atoms";
 import {
   IconLetterT,
   IconHash,
@@ -48,25 +48,27 @@ type GridHeaderCellProps = {
   header: Header<IBaseRow, unknown>;
   property: IBaseProperty | undefined;
   loadedRowIds: string[];
+  pageId: string;
 };
 
 export const GridHeaderCell = memo(function GridHeaderCell({
   header,
   property,
   loadedRowIds,
+  pageId,
 }: GridHeaderCellProps) {
   const isRowNumber = header.column.id === "__row_number";
   const isPinned = header.column.getIsPinned();
   const pinOffset = isPinned ? header.column.getStart("left") : undefined;
-  const { selectionCount } = useRowSelection();
+  const { selectionCount } = useRowSelection(pageId);
   const hasSelection = selectionCount > 0;
 
-  const [activePropertyMenu, setActivePropertyMenu] = useAtom(activePropertyMenuAtom) as unknown as [string | null, (val: string | null) => void];
+  const [activePropertyMenu, setActivePropertyMenu] = useAtom(activePropertyMenuAtomFamily(pageId)) as unknown as [string | null, (val: string | null) => void];
   const menuOpened = activePropertyMenu === header.column.id;
   const cellRef = useRef<HTMLDivElement>(null);
-  const [propertyMenuDirty, setPropertyMenuDirty] = useAtom(propertyMenuDirtyAtom) as unknown as [boolean, (val: boolean) => void];
-  const [closeRequest, setCloseRequest] = useAtom(propertyMenuCloseRequestAtom) as unknown as [number, (val: number) => void];
-  const [, setEditingCell] = useAtom(editingCellAtom) as unknown as [EditingCell, (val: EditingCell) => void];
+  const [propertyMenuDirty, setPropertyMenuDirty] = useAtom(propertyMenuDirtyAtomFamily(pageId)) as unknown as [boolean, (val: boolean) => void];
+  const [closeRequest, setCloseRequest] = useAtom(propertyMenuCloseRequestAtomFamily(pageId)) as unknown as [number, (val: number) => void];
+  const [, setEditingCell] = useAtom(editingCellAtomFamily(pageId)) as unknown as [EditingCell, (val: EditingCell) => void];
 
   const handleDirtyChange = useCallback((dirty: boolean) => {
     setPropertyMenuDirty(dirty);
@@ -109,7 +111,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   // Mantine's built-in `closeOnEscape` only fires when focus is inside the
   // dropdown, but opening the property menu (clicking the header) leaves
   // focus on the header itself. Mirror the click-outside path: when dirty,
-  // bump `propertyMenuCloseRequestAtom` so property-menu shows its
+  // bump `propertyMenuCloseRequestAtomFamily` so property-menu shows its
   // "Unsaved changes" confirmation panel; otherwise close directly.
   useEffect(() => {
     if (!menuOpened) return;
@@ -156,7 +158,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
       {...(isSortableDisabled ? {} : listeners)}
     >
       {isRowNumber ? (
-        <RowNumberHeaderCell loadedRowIds={loadedRowIds} />
+        <RowNumberHeaderCell loadedRowIds={loadedRowIds} pageId={pageId} />
       ) : (
         <div className={classes.headerCellContent}>
           {TypeIcon && (
@@ -207,6 +209,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
               opened={menuOpened}
               onClose={handleMenuClose}
               onDirtyChange={handleDirtyChange}
+              pageId={pageId}
             />
           </Popover.Dropdown>
         </Popover>

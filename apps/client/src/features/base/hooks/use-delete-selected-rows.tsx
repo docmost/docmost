@@ -10,7 +10,7 @@ const BATCH_SIZE = 500;
 
 export function useDeleteSelectedRows(pageId: string) {
   const { t } = useTranslation();
-  const { selectedIds, clear } = useRowSelection();
+  const { selectedIds, clear } = useRowSelection(pageId);
   const mutation = useDeleteRowsMutation();
 
   const runDelete = useCallback(

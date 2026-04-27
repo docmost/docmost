@@ -24,7 +24,7 @@ import {
   useCreateViewMutation,
   useUpdateViewMutation,
 } from "@/features/base/queries/base-view-query";
-import { activeViewIdAtom } from "@/features/base/atoms/base-atoms";
+import { activeViewIdAtomFamily } from "@/features/base/atoms/base-atoms";
 import { useBaseTable } from "@/features/base/hooks/use-base-table";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import useCurrentUser from "@/features/user/hooks/use-current-user";
@@ -53,7 +53,7 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
   useBaseSocket(pageId);
   const { data: base, isLoading: baseLoading, error: baseError } = useBaseQuery(pageId);
 
-  const [activeViewId, setActiveViewId] = useAtom(activeViewIdAtom) as unknown as [string | null, (val: string | null) => void];
+  const [activeViewId, setActiveViewId] = useAtom(activeViewIdAtomFamily(pageId)) as unknown as [string | null, (val: string | null) => void];
 
   const views = base?.views ?? [];
   const activeView = useMemo(() => {
@@ -146,7 +146,7 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
     }
   }, [activeView, activeViewId, setActiveViewId]);
 
-  const { clear: clearSelection } = useRowSelection();
+  const { clear: clearSelection } = useRowSelection(pageId);
   useEffect(() => {
     clearSelection();
   }, [pageId, activeView?.id, clearSelection]);
