@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import React from "react";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
-import { Button, Container } from "@mantine/core";
+import { Button } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 import { BaseTable } from "@/features/base/components/base-table";
@@ -109,7 +109,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
         <MemoizedPageHeader readOnly={!canEdit} />
-        <Container size={900} pt={32} pb="sm" w="100%">
+        <div style={{ padding: "32px 8px 8px" }}>
           <MemoizedTitleEditor
             pageId={page.id}
             slugId={page.slugId}
@@ -117,7 +117,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
             spaceSlug={page.space?.slug ?? ""}
             editable={canEdit}
           />
-        </Container>
+        </div>
         <div
           style={{
             flex: 1,
