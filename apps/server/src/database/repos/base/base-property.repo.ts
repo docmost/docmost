@@ -27,28 +27,28 @@ export class BasePropertyRepo {
   }
 
   async findByBaseId(
-    baseId: string,
+    pageId: string,
     opts?: { trx?: KyselyTransaction },
   ): Promise<BaseProperty[]> {
     const db = dbOrTx(this.db, opts?.trx);
     return db
       .selectFrom('baseProperties')
       .selectAll()
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .where('deletedAt', 'is', null)
       .orderBy('position', 'asc')
       .execute() as Promise<BaseProperty[]>;
   }
 
   async getLastPosition(
-    baseId: string,
+    pageId: string,
     trx?: KyselyTransaction,
   ): Promise<string | null> {
     const db = dbOrTx(this.db, trx);
     const result = await db
       .selectFrom('baseProperties')
       .select('position')
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .orderBy(sql`position COLLATE "C"`, 'desc')
       .limit(1)
       .executeTakeFirst();
