@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  ForbiddenException,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -17,11 +16,7 @@ import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
-import {
-  SpaceCaslAction,
-  SpaceCaslSubject,
-} from '../../casl/interfaces/space-ability.type';
-import SpaceAbilityFactory from '../../casl/abilities/space-ability.factory';
+import { PageAccessService } from '../../page/page-access/page-access.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('bases/views')
@@ -29,7 +24,7 @@ export class BaseViewController {
   constructor(
     private readonly baseViewService: BaseViewService,
     private readonly baseRepo: BaseRepo,
-    private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -39,15 +34,12 @@ export class BaseViewController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const base = await this.baseRepo.findById(dto.baseId);
+    const base = await this.baseRepo.findById(dto.pageId);
     if (!base) {
       throw new NotFoundException('Base not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanEdit(base, user);
 
     return this.baseViewService.create(user.id, workspace.id, dto);
   }
@@ -59,15 +51,12 @@ export class BaseViewController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const base = await this.baseRepo.findById(dto.baseId);
+    const base = await this.baseRepo.findById(dto.pageId);
     if (!base) {
       throw new NotFoundException('Base not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanEdit(base, user);
 
     return this.baseViewService.update(dto, workspace.id, user.id);
   }
@@ -79,15 +68,12 @@ export class BaseViewController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const base = await this.baseRepo.findById(dto.baseId);
+    const base = await this.baseRepo.findById(dto.pageId);
     if (!base) {
       throw new NotFoundException('Base not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanEdit(base, user);
 
     await this.baseViewService.delete(dto, workspace.id, user.id);
   }
@@ -99,16 +85,13 @@ export class BaseViewController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const base = await this.baseRepo.findById(dto.baseId);
+    const base = await this.baseRepo.findById(dto.pageId);
     if (!base) {
       throw new NotFoundException('Base not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Base)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanView(base, user);
 
-    return this.baseViewService.listByBaseId(dto.baseId, workspace.id);
+    return this.baseViewService.listByBaseId(dto.pageId, workspace.id);
   }
 }
