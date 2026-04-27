@@ -19,6 +19,7 @@ import { UpdateBaseDto } from '../dto/update-base.dto';
 import { BaseIdDto } from '../dto/base.dto';
 import { ExportBaseCsvDto } from '../dto/export-base.dto';
 import { ResolvePagesDto } from '../dto/resolve-pages.dto';
+import { InlineEmbedBaseDto } from '../dto/inline-embed-base.dto';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -32,6 +33,7 @@ import SpaceAbilityFactory from '../../casl/abilities/space-ability.factory';
 import { SpaceIdDto } from '../../space/dto/space-id.dto';
 import { PageAccessService } from '../../page/page-access/page-access.service';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('bases')
@@ -44,6 +46,7 @@ export class BaseController {
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly pageAccessService: PageAccessService,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly pageRepo: PageRepo,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -159,5 +162,25 @@ export class BaseController {
       user.id,
     );
     return { items };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('inline-embed')
+  async createInlineEmbed(
+    @Body() dto: InlineEmbedBaseDto,
+    @AuthUser() user: User,
+  ) {
+    const parent = await this.pageRepo.findById(dto.parentPageId);
+    if (!parent) {
+      throw new NotFoundException('Parent page not found');
+    }
+
+    await this.pageAccessService.validateCanEdit(parent, user);
+
+    return this.baseService.create(user.id, parent.workspaceId, {
+      spaceId: parent.spaceId,
+      parentPageId: dto.parentPageId,
+      name: 'Untitled',
+    });
   }
 }
