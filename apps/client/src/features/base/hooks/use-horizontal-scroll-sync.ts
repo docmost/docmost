@@ -42,11 +42,16 @@ export function useHorizontalScrollSync<
       // scrollLeft. Convert vertical wheel ticks into horizontal pan.
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (e.deltaY === 0) return;
+      // Suppress the browser's default vertical scroll on the page
+      // (or the standalone scrollport) — we're consuming this wheel
+      // event as a horizontal pan, not a vertical scroll. Requires a
+      // non-passive listener (configured below).
+      e.preventDefault();
       body.scrollLeft += e.deltaY;
     };
 
     body.addEventListener("scroll", onBodyScroll, { passive: true });
-    header.addEventListener("wheel", onHeaderWheel, { passive: true });
+    header.addEventListener("wheel", onHeaderWheel, { passive: false });
 
     // Initial sync — covers the case where body is already scrolled
     // when the hook mounts (e.g. after a route change).

@@ -135,9 +135,11 @@ export const GridCell = memo(function GridCell({
   return (
     <div
       className={`${classes.cell} ${isPinned ? classes.cellPinned : ""} ${isEditing ? classes.cellEditing : ""} ${property.isPrimary ? classes.primaryCell : ""}`}
-      style={{
-        ...(isPinned ? { left: pinOffset } : {}),
-      }}
+      style={
+        isPinned
+          ? ({ "--pin-offset": `${pinOffset}px` } as React.CSSProperties)
+          : undefined
+      }
       onDoubleClick={handleDoubleClick}
     >
       <CellComponent

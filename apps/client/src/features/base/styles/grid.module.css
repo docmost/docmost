@@ -24,14 +24,18 @@
    * .tableScrollport in standalone, to the page in inline. The
    * --sticky-band-top var is set on inline embed wrappers to clear
    * the fixed PageHeader; standalone leaves it unset (resolves to 0
-   * relative to the scrollport). */
+   * relative to the scrollport).
+   *
+   * Background uses --mantine-color-body (the doc bg) rather than the
+   * gray-0 token. The headers themselves carry their own gray bg via
+   * .headerCell, so the band looks like: doc-color strip behind
+   * banner+toolbar (matches the surrounding doc in inline mode), gray
+   * row at the headers. The band still needs its own bg so rows don't
+   * show through the 1-px gaps between header cells when scrolling. */
   position: sticky;
   top: var(--sticky-band-top, 0);
   z-index: 10;
-  background-color: light-dark(
-    var(--mantine-color-gray-0),
-    var(--mantine-color-dark-6)
-  );
+  background-color: var(--mantine-color-body);
   border-bottom: 1px solid
     light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
 }
@@ -44,6 +48,13 @@
    * by useHorizontalScrollSync to mirror the body. Inline embeds extend
    * the visible width into the AppShell margins via --embed-extend-*;
    * standalone leaves those vars unset (calc resolves to 0). */
+  /* No `min-width: max-content`: this element IS the horizontal
+   * scrollport (overflow-x: hidden, scrollLeft mirrored via JS), so we
+   * want its own width to follow the parent. If `min-width: max-content`
+   * were set here, the grid box itself would grow to fit all tracks
+   * and propagate width up to AppShell, triggering page-level
+   * horizontal scroll. Tracks wider than the box are handled by the
+   * grid's own overflow-x. */
   display: grid;
   overflow-x: hidden;
   margin-left: calc(-1 * var(--embed-extend-l, 0px));
@@ -56,74 +67,29 @@
   /* Same shape as .headerGrid, but overflow-x: auto so the horizontal
    * scrollbar lives here. Vertical scroll is owned by .tableScrollport
    * (standalone) or the page (inline) — there's no internal vertical
-   * scroll on .bodyGrid in either mode. */
+   * scroll on .bodyGrid in either mode. Same `min-width` argument
+   * applies as in .headerGrid: leave it unset so this element's box
+   * matches its parent and tracks-overflow is contained by the grid's
+   * own overflow-x: auto. */
   display: grid;
   overflow-x: auto;
   margin-left: calc(-1 * var(--embed-extend-l, 0px));
   margin-right: calc(-1 * var(--embed-extend-r, 0px));
   padding-left: var(--embed-grid-pad-left, 0);
   padding-right: var(--embed-grid-pad-right, 0);
-  /* Match the existing .gridWrapper bottom-padding so the AddRowButton
-   * keeps clear of the horizontal scrollbar. */
+  /* Bottom-padding so the AddRowButton keeps clear of the horizontal
+   * scrollbar that lives on this element. */
   padding-bottom: 6px;
-}
-
-.gridWrapper {
-  position: relative;
-  overflow: auto;
-  overflow-anchor: none;
-  flex: 1;
-  min-height: 0;
-  padding-left: 6px;
-  /* Reserve space below the AddRowButton so the horizontal scrollbar
-   * doesn't overlap it. */
-  padding-bottom: 6px;
-}
-
-.grid {
-  display: grid;
-  min-width: max-content;
-  /* Outer border + radius is the panel-style framing for the standalone
-   * full-page base. Inline embeds override these vars to drop the outer
-   * frame so the table reads as part of the document — cell-level
-   * borders below still provide the gridline separators. */
-  border: var(
-    --grid-outer-border,
-    1px solid
-      light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))
-  );
-  border-radius: var(--grid-outer-radius, var(--mantine-radius-sm));
-  /* When the embed wrapper extends the scroll viewport leftward, this
-   * padding pushes the first cell back to page-content alignment so
-   * the table looks aligned on load. The padded area is part of the
-   * scrollable region — the user can pan left into it. Standalone
-   * full-page bases never set the var, so it's a no-op there. */
-  padding-left: var(--embed-grid-pad-left, 0);
-  /* Symmetric right-side padding lets the user scroll past the last
-   * column into empty space, so wide tables don't end abruptly at
-   * the viewport edge. */
-  padding-right: var(--embed-grid-pad-right, 0);
 }
 
 .headerRow {
   /* `display: contents` removes the wrapper from layout while keeping the
-   * `role="row"` for accessibility. Header cells become direct grid items
-   * of `.grid`, so their containing block is the full-height table — a
-   * prerequisite for `position: sticky` on `.headerCell` to actually
-   * travel the length of the scroll. With a subgrid wrapper here, sticky
-   * was constrained to the 34px header row and scrolled away. */
+   * `role="row"` for accessibility. Header cells become direct grid
+   * items of `.headerGrid`, so they pick up its column tracks. */
   display: contents;
 }
 
 .headerCell {
-  /* Sticky to the top of the gridWrapper scroll viewport so the column
-   * header row stays visible while the user scrolls rows underneath.
-   * z-index 2 lifts it above non-pinned body cells (default 0); the
-   * pinned variant below bumps to 3 so the corner cell stays above
-   * pinned body cells (z-index 1) at the top-left intersection. */
-  position: sticky;
-  top: 0;
-  z-index: 2;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -136,8 +102,6 @@
     var(--mantine-color-gray-0),
     var(--mantine-color-dark-6)
   );
-  border-bottom: 1px solid
-    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
   border-right: 1px solid
     light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
   user-select: none;
@@ -152,11 +116,28 @@
 }
 
 .headerCellPinned {
-  /* Sticks both vertically (inherited top: 0) and horizontally (left
-   * offset set inline by tanstack-table's column-pinning), so the row-
-   * number / primary-property column stays visible at the top-left
-   * corner regardless of scroll axis. */
-  z-index: 3;
+  /* Pinned header cells stick within .headerGrid's scrollport. The
+   * `left` value is the sticky anchor relative to the scrollport's
+   * content edge.
+   *
+   * Match Notion's freeze behavior: at scrollLeft=0, the pinned column
+   * sits at its natural position (the page-content edge); as the user
+   * scrolls horizontally, the column scrolls along with the rest of
+   * the grid; once it reaches the AppShell-margin edge (the scrollport
+   * padding edge) it stops and stays there while non-pinned columns
+   * keep scrolling past behind it.
+   *
+   * To make the column travel that --embed-grid-pad-left distance
+   * before sticking, we anchor at `-padding-left` from the natural
+   * sticky position. In standalone the var is unset → calc collapses
+   * to `var(--pin-offset, 0px)` and the column sticks immediately at
+   * its track position, which is what standalone wants since there's
+   * no extension to travel through. --pin-offset is set inline by
+   * GridHeaderCell from TanStack's column.getStart("left"), giving
+   * each pinned column its accumulated-width offset. */
+  position: sticky;
+  left: calc(-1 * var(--embed-grid-pad-left, 0px) + var(--pin-offset, 0px));
+  z-index: 2;
   background-color: light-dark(
     var(--mantine-color-gray-0),
     var(--mantine-color-dark-6)
@@ -259,7 +240,11 @@
 }
 
 .cellPinned {
+  /* See .headerCellPinned for the rationale on the negative pad-left
+   * — both grids share the same anchor calculation so header and body
+   * cells freeze in lockstep. */
   position: sticky;
+  left: calc(-1 * var(--embed-grid-pad-left, 0px) + var(--pin-offset, 0px));
   z-index: 1;
   background-color: light-dark(
     var(--mantine-color-white),
@@ -316,12 +301,17 @@
 }
 
 .addRowButton {
-  /* Inline-flex + width:max-content so the button only takes the space
-   * it needs and stays anchored to the page-content edge during the
-   * horizontal scroll, instead of riding along with the grid as a
-   * full-row item. --embed-grid-pad-left is the leftward extension
-   * distance in embed mode (sticks at page-content-left), 0 in
-   * standalone (sticks at gridWrapper's natural left). */
+  /* AddRowButton is a child of .bodyGrid (which is a CSS grid). Without
+   * `grid-column: 1 / -1` it would auto-place into track 1 of a new
+   * grid row, leaving phantom empty cells in the remaining tracks of
+   * that row. Spanning all tracks gives it a single full-row grid area
+   * while inline-flex + width:max-content + sticky-left keeps the
+   * visible button shrunk to its content and anchored to the page-
+   * content edge during horizontal scroll. --embed-grid-pad-left is
+   * the leftward extension distance in embed mode (sticks at page-
+   * content-left), 0 in standalone (sticks at .bodyGrid's natural
+   * left). */
+  grid-column: 1 / -1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -353,12 +343,6 @@
 }
 
 .addColumnButton {
-  /* Sits at the trailing edge of the header row — match the sticky-top
-   * behaviour of `.headerCell` so it doesn't drift away when the grid
-   * scrolls vertically. */
-  position: sticky;
-  top: 0;
-  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;

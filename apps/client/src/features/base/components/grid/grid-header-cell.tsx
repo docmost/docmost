@@ -145,7 +145,9 @@ export const GridHeaderCell = memo(function GridHeaderCell({
       ref={combinedRef}
       className={`${classes.headerCell} ${isPinned ? classes.headerCellPinned : ""} ${hasSelection ? classes.hasSelection : ""}`}
       style={{
-        ...(isPinned ? { left: pinOffset } : {}),
+        ...(isPinned
+          ? ({ "--pin-offset": `${pinOffset}px` } as React.CSSProperties)
+          : {}),
         ...(isRowNumber ? {} : { cursor: "pointer" }),
         ...sortableStyle,
       }}

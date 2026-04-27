@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Text, Stack } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useAtom } from "jotai";
@@ -150,6 +150,8 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
   useEffect(() => {
     clearSelection();
   }, [pageId, activeView?.id, clearSelection]);
+
+  const scrollportRef = useRef<HTMLDivElement>(null);
 
   const rows = useMemo(() => {
     const flat = flattenRows(rowsData);
@@ -314,61 +316,76 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
 
   if (!base) return null;
 
-  // When embedded inline in a doc page, the parent <NodeViewWrapper>
-  // exposes --embed-extend-l / --embed-extend-r (positive px). We
-  // pull both edges outward via negative margin so the scroll viewport
-  // grows toward AppShell.Main's edges. Initial visual alignment with
-  // page text is preserved by --embed-grid-pad-left, applied to the
-  // .grid in grid.module.css — that padding makes the first cell sit
-  // at page-content-left on load while still letting the user pan
-  // left into the extended viewport. Toolbar is unchanged.
-  const gridExtendStyle = embedded
-    ? ({
-        marginLeft: "calc(-1 * var(--embed-extend-l, 0px))",
-        marginRight: "calc(-1 * var(--embed-extend-r, 0px))",
-      } as const)
-    : undefined;
+  const banner = (
+    <BaseViewDraftBanner
+      isDirty={isDirty}
+      canSave={canSave}
+      onReset={resetDraft}
+      onSave={handleSaveDraft}
+      saving={updateViewMutation.isPending}
+    />
+  );
 
+  const toolbar = (
+    <BaseToolbar
+      base={base}
+      activeView={effectiveView}
+      views={views}
+      table={table}
+      onViewChange={handleViewChange}
+      onAddView={handleAddView}
+      onPersistViewConfig={persistViewConfig}
+      onDraftSortsChange={handleDraftSortsChange}
+      onDraftFiltersChange={handleDraftFiltersChange}
+    />
+  );
+
+  const grid = (
+    <GridContainer
+      table={table}
+      properties={base.properties}
+      onCellUpdate={handleCellUpdate}
+      onAddRow={handleAddRow}
+      pageId={pageId}
+      onColumnReorder={handleColumnReorder}
+      onResizeEnd={handleResizeEnd}
+      onRowReorder={handleRowReorder}
+      hasNextPage={hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
+      onFetchNextPage={fetchNextPage}
+      scrollElement={embedded ? window : scrollportRef.current}
+      stickyBandPrelude={
+        embedded ? (
+          <>
+            {banner}
+            {toolbar}
+          </>
+        ) : null
+      }
+    />
+  );
+
+  if (embedded) {
+    // Inline: banner + toolbar live inside the StickyBand (passed via
+    // stickyBandPrelude). The page is the vertical scroll container.
+    return grid;
+  }
+
+  // Standalone: banner + toolbar sit above the .tableScrollport, which
+  // is the vertical scroll container. StickyBand inside contains only
+  // the column-header row.
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        height: embedded ? "auto" : "100%",
+        height: "100%",
       }}
     >
-      <BaseViewDraftBanner
-        isDirty={isDirty}
-        canSave={canSave}
-        onReset={resetDraft}
-        onSave={handleSaveDraft}
-        saving={updateViewMutation.isPending}
-      />
-      <BaseToolbar
-        base={base}
-        activeView={effectiveView}
-        views={views}
-        table={table}
-        onViewChange={handleViewChange}
-        onAddView={handleAddView}
-        onPersistViewConfig={persistViewConfig}
-        onDraftSortsChange={handleDraftSortsChange}
-        onDraftFiltersChange={handleDraftFiltersChange}
-      />
-      <div style={gridExtendStyle}>
-        <GridContainer
-          table={table}
-          properties={base.properties}
-          onCellUpdate={handleCellUpdate}
-          onAddRow={handleAddRow}
-          pageId={pageId}
-          onColumnReorder={handleColumnReorder}
-          onResizeEnd={handleResizeEnd}
-          onRowReorder={handleRowReorder}
-          hasNextPage={hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          onFetchNextPage={fetchNextPage}
-        />
+      {banner}
+      {toolbar}
+      <div className={classes.tableScrollport} ref={scrollportRef}>
+        {grid}
       </div>
     </div>
   );

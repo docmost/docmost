@@ -1,6 +1,11 @@
-import { useRef, useMemo, useCallback, useEffect } from "react";
+import { useRef, useMemo, useCallback, useEffect, useState, useLayoutEffect } from "react";
 import { Table } from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  observeWindowOffset,
+  observeWindowRect,
+  useVirtualizer,
+  windowScroll,
+} from "@tanstack/react-virtual";
 import { useAtom } from "jotai";
 import {
   DndContext,
@@ -23,6 +28,7 @@ import { useGridKeyboardNav } from "@/features/base/hooks/use-grid-keyboard-nav"
 import { useRowDrag } from "@/features/base/hooks/use-row-drag";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import { useDeleteSelectedRows } from "@/features/base/hooks/use-delete-selected-rows";
+import { useHorizontalScrollSync } from "@/features/base/hooks/use-horizontal-scroll-sync";
 import { GridHeader } from "./grid-header";
 import { GridRow } from "./grid-row";
 import { AddRowButton } from "./add-row-button";
@@ -31,6 +37,16 @@ import classes from "@/features/base/styles/grid.module.css";
 
 const ROW_HEIGHT = 36;
 const OVERSCAN = 10;
+
+// Hoisted to module scope so we don't allocate a fresh options object
+// every GridContainer render — the function refs from virtual-core are
+// stable, only the wrapper object identity matters for downstream
+// memoization inside useVirtualizer.
+const WINDOW_SCROLL_OPTIONS = {
+  observeElementRect: observeWindowRect as never,
+  observeElementOffset: observeWindowOffset as never,
+  scrollToFn: windowScroll as never,
+} as const;
 
 type GridContainerProps = {
   table: Table<IBaseRow>;
@@ -44,6 +60,19 @@ type GridContainerProps = {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onFetchNextPage?: () => void;
+  /**
+   * What the virtualizer measures and what the StickyBand sticks to.
+   * Standalone passes a ref into the .tableScrollport wrapper; inline
+   * passes `window` since the page itself is the scroll container.
+   */
+  scrollElement: HTMLElement | Window | null;
+  /**
+   * Rendered above the column-header row inside the StickyBand. In
+   * inline mode BaseTable injects banner + toolbar here so they stick
+   * alongside the headers; in standalone this is null (banner +
+   * toolbar render outside the scrollport).
+   */
+  stickyBandPrelude?: React.ReactNode;
 };
 
 export function GridContainer({
@@ -58,8 +87,12 @@ export function GridContainer({
   hasNextPage,
   isFetchingNextPage,
   onFetchNextPage,
+  scrollElement,
+  stickyBandPrelude,
 }: GridContainerProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useHorizontalScrollSync(bodyRef, headerRef);
   const lastTriggeredRowsLenRef = useRef(0);
   const rows = table.getRowModel().rows;
 
@@ -100,14 +133,55 @@ export function GridContainer({
     table,
     editingCell,
     setEditingCell,
-    containerRef: scrollRef,
+    containerRef: bodyRef,
   });
+
+  // When the scroll container is the window (inline embed mode),
+  // useVirtualizer's default Element-mode observers read scrollTop /
+  // scrollLeft — properties Window doesn't have. Swap in the Window-
+  // mode observers so the virtualizer reads scrollY / scrollX instead.
+  // The Element-narrowed type signature is satisfied by an upcast on
+  // getScrollElement: virtual-core's runtime accepts Window when the
+  // observers do.
+  const isWindowScroll =
+    typeof window !== "undefined" && scrollElement === window;
+  const windowScrollOptions = isWindowScroll ? WINDOW_SCROLL_OPTIONS : {};
+
+  // Window-mode virtualizer reads window.scrollY as offset, but rows
+  // are positioned within .bodyGrid which sits at some non-zero Y in
+  // the document (below banner/toolbar/upstream page content). Pass
+  // scrollMargin = bodyGrid's document-relative top so the virtualizer
+  // indexes correctly. Re-measure on resize via ResizeObserver — the
+  // embed extension logic in BaseEmbedView already triggers layout
+  // changes that we need to react to.
+  const [scrollMargin, setScrollMargin] = useState(0);
+  useLayoutEffect(() => {
+    if (!isWindowScroll) return;
+    const el = bodyRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setScrollMargin(rect.top + window.scrollY);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    // Outer page reflows (sidebar collapse, viewport resize) move the
+    // embed without resizing it — listen to window resize too.
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [isWindowScroll]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => scrollElement as Element | null,
     estimateSize: () => ROW_HEIGHT,
     overscan: OVERSCAN,
+    scrollMargin,
+    ...windowScrollOptions,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -133,7 +207,7 @@ export function GridContainer({
   }, [rows.length]);
 
   useEffect(() => {
-    const el = scrollRef.current;
+    const el = bodyRef.current;
     if (!el || !pageId) return;
     const handler = (e: KeyboardEvent) => {
       if (editingCell) return;
@@ -164,8 +238,18 @@ export function GridContainer({
 
   const totalHeight = virtualizer.getTotalSize();
 
+  // virtual-core bakes `scrollMargin` into both `start`/`end` and
+  // `getTotalSize()`. We render padding spacers inside .bodyGrid to
+  // position rows in the grid flow, so paddingTop must be relative to
+  // .bodyGrid's own top — subtract scrollMargin out of items[0].start
+  // (which would otherwise push the first row down by the full embed
+  // offset, leaving a giant blank gap above the data). totalHeight
+  // already includes scrollMargin, so paddingBottom needs no
+  // adjustment.
   const paddingTop =
-    virtualItems.length > 0 ? virtualItems[0]?.start ?? 0 : 0;
+    virtualItems.length > 0
+      ? Math.max(0, (virtualItems[0]?.start ?? 0) - scrollMargin)
+      : 0;
   const paddingBottom =
     virtualItems.length > 0
       ? totalHeight - (virtualItems[virtualItems.length - 1]?.end ?? 0)
@@ -196,8 +280,8 @@ export function GridContainer({
     // Wait for React to re-render with the new column, then scroll to it
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({
-          left: scrollRef.current.scrollWidth,
+        bodyRef.current?.scrollTo({
+          left: bodyRef.current.scrollWidth,
           behavior: "smooth",
         });
       });
@@ -236,35 +320,41 @@ export function GridContainer({
       onDragEnd={handleDragEnd}
       modifiers={modifiers}
     >
-      <div
-        className={classes.gridWrapper}
-        ref={scrollRef}
-        tabIndex={0}
-      >
-        <div
-          className={classes.grid}
-          style={{ gridTemplateColumns }}
-          role="grid"
-        >
-          <SortableContext
-            items={sortableColumnIds}
-            strategy={horizontalListSortingStrategy}
+      <div role="grid">
+        <div className={classes.stickyBand}>
+          {stickyBandPrelude}
+          <div
+            className={classes.headerGrid}
+            ref={headerRef}
+            style={{ gridTemplateColumns }}
+            role="row"
           >
-            <GridHeader
-              table={table}
-              pageId={pageId}
-              columnOrder={table.getState().columnOrder}
-              columnVisibility={table.getState().columnVisibility}
-              properties={properties}
-              loadedRowIds={rowIds}
-              onPropertyCreated={handlePropertyCreated}
-            />
-          </SortableContext>
-
+            <SortableContext
+              items={sortableColumnIds}
+              strategy={horizontalListSortingStrategy}
+            >
+              <GridHeader
+                table={table}
+                pageId={pageId}
+                columnOrder={table.getState().columnOrder}
+                columnVisibility={table.getState().columnVisibility}
+                properties={properties}
+                loadedRowIds={rowIds}
+                onPropertyCreated={handlePropertyCreated}
+              />
+            </SortableContext>
+          </div>
+        </div>
+        <div
+          className={classes.bodyGrid}
+          ref={bodyRef}
+          tabIndex={0}
+          style={{ gridTemplateColumns }}
+          role="rowgroup"
+        >
           {paddingTop > 0 && (
             <div style={{ height: paddingTop, gridColumn: "1 / -1" }} />
           )}
-
           {virtualItems.map((virtualRow) => {
             const row = rows[virtualRow.index];
             if (!row) return null;
@@ -292,13 +382,12 @@ export function GridContainer({
               />
             );
           })}
-
           {paddingBottom > 0 && (
             <div style={{ height: paddingBottom, gridColumn: "1 / -1" }} />
           )}
+          <AddRowButton onClick={handleAddRow} />
+          {pageId && <SelectionActionBar pageId={pageId} />}
         </div>
-        <AddRowButton onClick={handleAddRow} />
-        {pageId && <SelectionActionBar pageId={pageId} />}
       </div>
     </DndContext>
   );

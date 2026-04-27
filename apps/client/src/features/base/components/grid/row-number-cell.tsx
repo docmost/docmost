@@ -44,7 +44,11 @@ export const RowNumberCell = memo(function RowNumberCell({
   return (
     <div
       className={`${classes.cell} ${classes.rowNumberCell} ${isPinned ? classes.cellPinned : ""}`}
-      style={isPinned ? { left: pinOffset } : undefined}
+      style={
+        isPinned
+          ? ({ "--pin-offset": `${pinOffset ?? 0}px` } as React.CSSProperties)
+          : undefined
+      }
     >
       <div className={classes.rowNumberCellInner}>
         <span
