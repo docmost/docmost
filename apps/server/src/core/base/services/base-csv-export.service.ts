@@ -40,9 +40,9 @@ export class BaseCsvExportService {
       throw new NotFoundException('Base not found');
     }
 
-    const properties = await this.basePropertyRepo.findByBaseId(baseId);
+    const properties = await this.basePropertyRepo.findByPageId(baseId);
 
-    const fileName = sanitize(base.name || 'base') + '.csv';
+    const fileName = sanitize(base.title || 'base') + '.csv';
 
     const stringifier = stringify({
       header: true,
@@ -85,7 +85,7 @@ export class BaseCsvExportService {
     });
 
     try {
-      for await (const chunk of this.baseRowRepo.streamByBaseId(baseId, {
+      for await (const chunk of this.baseRowRepo.streamByPageId(baseId, {
         workspaceId,
         chunkSize: CHUNK_SIZE,
       })) {
