@@ -370,7 +370,7 @@
   "Write anything. Enter \"/\" for commands": "Schreiben Sie irgendetwas. Geben Sie \"/\" für Befehle ein",
   "Write...": "\"Schreiben...\"",
   "Column count": "Spaltenanzahl",
-  "{{count}} Columns": "{count, plural, one {# Spalte} other {# Spalten}}",
+  "{{count}} Columns": "{{count}} Spalten",
   "Equal columns": "Gleich breite Spalten",
   "Left sidebar": "Linke Seitenleiste",
   "Right sidebar": "Rechte Seitenleiste",
