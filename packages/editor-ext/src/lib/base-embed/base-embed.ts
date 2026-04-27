@@ -1,5 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { NodeSelection } from '@tiptap/pm/state';
+import { EditorState, NodeSelection, Plugin } from '@tiptap/pm/state';
 
 export interface BaseEmbedOptions {
   HTMLAttributes: Record<string, any>;
@@ -62,11 +62,11 @@ export const BaseEmbed = Node.create<BaseEmbedOptions>({
 
   addKeyboardShortcuts() {
     // Block Backspace / Delete when the base embed itself is the
-    // current selection — that's the "click on the embed and hit
-    // delete" accidental-delete path. Returning true tells TipTap
-    // we've handled the key, preventing the default removal.
-    // Other deletion paths (range selections covering the node,
-    // programmatic transactions) still go through.
+    // current selection — the "click on the embed and hit delete"
+    // accidental-delete path. Returning true tells TipTap we've
+    // handled the key, preventing the default removal. Range
+    // selections covering the node and programmatic deletes still
+    // work normally.
     const isThisNodeSelected = (): boolean => {
       const { selection } = this.editor.state;
       return (
@@ -78,5 +78,29 @@ export const BaseEmbed = Node.create<BaseEmbedOptions>({
       Backspace: () => isThisNodeSelected(),
       Delete: () => isThisNodeSelected(),
     };
+  },
+
+  addProseMirrorPlugins() {
+    // Same idea as the Backspace/Delete shortcuts above, but for the
+    // other accidental-delete path: when the embed is the selection,
+    // a typed character or paste would replace the whole node. These
+    // hooks return true (handled, no-op) so the node stays put. The
+    // user can still press an arrow key to deselect and then type.
+    const nodeName = this.name;
+    const isThisNodeSelected = (state: EditorState): boolean => {
+      const { selection } = state;
+      return (
+        selection instanceof NodeSelection &&
+        selection.node.type.name === nodeName
+      );
+    };
+    return [
+      new Plugin({
+        props: {
+          handleTextInput: (view) => isThisNodeSelected(view.state),
+          handlePaste: (view) => isThisNodeSelected(view.state),
+        },
+      }),
+    ];
   },
 });
