@@ -415,7 +415,7 @@ importers:
         version: 18.3.1
       '@vitejs/plugin-react':
         specifier: ^6.0.1
-        version: 6.0.1(vite@8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.8))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 6.0.1(vite@8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.12))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3))
       eslint:
         specifier: ^9.28.0
         version: 9.39.4(jiti@2.4.2)
@@ -435,14 +435,14 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       postcss:
-        specifier: ^8.5.8
-        version: 8.5.8
+        specifier: ^8.5.12
+        version: 8.5.12
       postcss-preset-mantine:
         specifier: ^1.18.0
-        version: 1.18.0(postcss@8.5.8)
+        version: 1.18.0(postcss@8.5.12)
       postcss-simple-vars:
         specifier: ^7.0.1
-        version: 7.0.1(postcss@8.5.8)
+        version: 7.0.1(postcss@8.5.12)
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
@@ -454,7 +454,7 @@ importers:
         version: 8.57.1(eslint@9.39.4(jiti@2.4.2))(typescript@5.9.3)
       vite:
         specifier: 8.0.5
-        version: 8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.8))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3)
+        version: 8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.12))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3)
 
   apps/server:
     dependencies:
@@ -9016,8 +9016,8 @@ packages:
     peerDependencies:
       postcss: ^8.2.1
 
-  postcss@8.5.8:
-    resolution: {integrity: sha512-OW/rX8O/jXnm82Ey1k44pObPtdblfiuWnrd8X7GJ7emImCOstunGbXUpp7HdBrFQX6rJzn3sPT397Wp5aCwCHg==}
+  postcss@8.5.12:
+    resolution: {integrity: sha512-W62t/Se6rA0Az3DfCL0AqJwXuKwBeYg6nOaIgzP+xZ7N5BFCI7DYi1qs6ygUYT6rvfi6t9k65UMLJC+PHZpDAA==}
     engines: {node: ^10 || ^12 || >=14}
 
   postgres-array@2.0.0:
@@ -15963,10 +15963,10 @@ snapshots:
 
   '@vercel/oidc@3.1.0': {}
 
-  '@vitejs/plugin-react@6.0.1(vite@8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.8))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3))':
+  '@vitejs/plugin-react@6.0.1(vite@8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.12))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.7
-      vite: 8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.8))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3)
+      vite: 8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.12))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3)
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:
@@ -20140,40 +20140,40 @@ snapshots:
 
   possible-typed-array-names@1.0.0: {}
 
-  postcss-js@4.0.1(postcss@8.5.8):
+  postcss-js@4.0.1(postcss@8.5.12):
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.5.8
+      postcss: 8.5.12
 
-  postcss-mixins@12.1.2(postcss@8.5.8):
+  postcss-mixins@12.1.2(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.8
-      postcss-js: 4.0.1(postcss@8.5.8)
-      postcss-simple-vars: 7.0.1(postcss@8.5.8)
-      sugarss: 5.0.1(postcss@8.5.8)
+      postcss: 8.5.12
+      postcss-js: 4.0.1(postcss@8.5.12)
+      postcss-simple-vars: 7.0.1(postcss@8.5.12)
+      sugarss: 5.0.1(postcss@8.5.12)
       tinyglobby: 0.2.15
 
-  postcss-nested@7.0.2(postcss@8.5.8):
+  postcss-nested@7.0.2(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.8
+      postcss: 8.5.12
       postcss-selector-parser: 7.1.1
 
-  postcss-preset-mantine@1.18.0(postcss@8.5.8):
+  postcss-preset-mantine@1.18.0(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.8
-      postcss-mixins: 12.1.2(postcss@8.5.8)
-      postcss-nested: 7.0.2(postcss@8.5.8)
+      postcss: 8.5.12
+      postcss-mixins: 12.1.2(postcss@8.5.12)
+      postcss-nested: 7.0.2(postcss@8.5.12)
 
   postcss-selector-parser@7.1.1:
     dependencies:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
 
-  postcss-simple-vars@7.0.1(postcss@8.5.8):
+  postcss-simple-vars@7.0.1(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.8
+      postcss: 8.5.12
 
-  postcss@8.5.8:
+  postcss@8.5.12:
     dependencies:
       nanoid: 3.3.8
       picocolors: 1.1.1
@@ -21271,9 +21271,9 @@ snapshots:
 
   stylis@4.3.6: {}
 
-  sugarss@5.0.1(postcss@8.5.8):
+  sugarss@5.0.1(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.8
+      postcss: 8.5.12
 
   superagent@10.3.0:
     dependencies:
@@ -21756,11 +21756,11 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite@8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.8))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3):
+  vite@8.0.5(@types/node@22.19.1)(esbuild@0.27.4)(jiti@2.4.2)(less@4.2.0)(sugarss@5.0.1(postcss@8.5.12))(terser@5.39.0)(tsx@4.21.0)(yaml@2.8.3):
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
-      postcss: 8.5.8
+      postcss: 8.5.12
       rolldown: 1.0.0-rc.12
       tinyglobby: 0.2.15
     optionalDependencies:
@@ -21769,7 +21769,7 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.4.2
       less: 4.2.0
-      sugarss: 5.0.1(postcss@8.5.8)
+      sugarss: 5.0.1(postcss@8.5.12)
       terser: 5.39.0
       tsx: 4.21.0
       yaml: 2.8.3
