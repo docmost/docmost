@@ -59,7 +59,7 @@ function newRequestId(): string {
 }
 
 export function useBaseRowsQuery(
-  baseId: string | undefined,
+  pageId: string | undefined,
   filter?: FilterNode,
   sorts?: ViewSortConfig[],
   search?: SearchSpec,
@@ -69,16 +69,16 @@ export function useBaseRowsQuery(
   const activeSearch = search?.query ? search : undefined;
 
   return useInfiniteQuery({
-    queryKey: ["base-rows", baseId, activeFilter, activeSorts, activeSearch],
+    queryKey: ["base-rows", pageId, activeFilter, activeSorts, activeSearch],
     queryFn: ({ pageParam }) =>
-      listRows(baseId!, {
+      listRows(pageId!, {
         cursor: pageParam,
         limit: 100,
         filter: activeFilter,
         sorts: activeSorts,
         search: activeSearch,
       }),
-    enabled: !!baseId,
+    enabled: !!pageId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: IPagination<IBaseRow>) =>
       lastPage.meta?.nextCursor ?? undefined,
@@ -99,7 +99,7 @@ export function useCreateRowMutation() {
     mutationFn: (data) => createRow({ ...data, requestId: newRequestId() }),
     onSuccess: (newRow) => {
       queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-        { queryKey: ["base-rows", newRow.baseId] },
+        { queryKey: ["base-rows", newRow.pageId] },
         (old) => {
           if (!old) return old;
           const lastPageIndex = old.pages.length - 1;
@@ -130,15 +130,15 @@ export function useUpdateRowMutation() {
     mutationFn: (data) => updateRow({ ...data, requestId: newRequestId() }),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.baseId],
+        queryKey: ["base-rows", variables.pageId],
       });
 
       const snapshots = queryClient.getQueriesData<
         InfiniteData<IPagination<IBaseRow>>
-      >({ queryKey: ["base-rows", variables.baseId] });
+      >({ queryKey: ["base-rows", variables.pageId] });
 
       queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-        { queryKey: ["base-rows", variables.baseId] },
+        { queryKey: ["base-rows", variables.pageId] },
         (old) => {
           if (!old) return old;
           return {
@@ -173,7 +173,7 @@ export function useUpdateRowMutation() {
     },
     onSuccess: (updatedRow) => {
       queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-        { queryKey: ["base-rows", updatedRow.baseId] },
+        { queryKey: ["base-rows", updatedRow.pageId] },
         (old) => {
           if (!old) return old;
           return {
@@ -199,15 +199,15 @@ export function useDeleteRowMutation() {
     mutationFn: (data) => deleteRow({ ...data, requestId: newRequestId() }),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.baseId],
+        queryKey: ["base-rows", variables.pageId],
       });
 
       const snapshots = queryClient.getQueriesData<
         InfiniteData<IPagination<IBaseRow>>
-      >({ queryKey: ["base-rows", variables.baseId] });
+      >({ queryKey: ["base-rows", variables.pageId] });
 
       queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-        { queryKey: ["base-rows", variables.baseId] },
+        { queryKey: ["base-rows", variables.pageId] },
         (old) => {
           if (!old) return old;
           return {
@@ -242,16 +242,16 @@ export function useDeleteRowsMutation() {
     mutationFn: (data) => deleteRows({ ...data, requestId: newRequestId() }),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.baseId],
+        queryKey: ["base-rows", variables.pageId],
       });
 
       const snapshots = queryClient.getQueriesData<
         InfiniteData<IPagination<IBaseRow>>
-      >({ queryKey: ["base-rows", variables.baseId] });
+      >({ queryKey: ["base-rows", variables.pageId] });
 
       const removeSet = new Set(variables.rowIds);
       queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-        { queryKey: ["base-rows", variables.baseId] },
+        { queryKey: ["base-rows", variables.pageId] },
         (old) => {
           if (!old) return old;
           return {
@@ -287,7 +287,7 @@ export function useDeleteRowsMutation() {
  * of the key so a "show exact" toggle doesn't clobber the estimate cache.
  */
 export function useBaseRowsCountQuery(
-  baseId: string | undefined,
+  pageId: string | undefined,
   filter?: FilterNode,
   search?: SearchSpec,
   exact = false,
@@ -296,15 +296,15 @@ export function useBaseRowsCountQuery(
   const activeSearch = search?.query ? search : undefined;
 
   return useQuery<CountRowsResult>({
-    queryKey: ["base-rows-count", baseId, activeFilter, activeSearch, exact],
+    queryKey: ["base-rows-count", pageId, activeFilter, activeSearch, exact],
     queryFn: () =>
       countRows({
-        baseId: baseId!,
+        pageId: pageId!,
         filter: activeFilter,
         search: activeSearch,
         exact,
       }),
-    enabled: !!baseId,
+    enabled: !!pageId,
     staleTime: 30 * 1000,
   });
 }
@@ -315,15 +315,15 @@ export function useReorderRowMutation() {
     mutationFn: (data) => reorderRow({ ...data, requestId: newRequestId() }),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.baseId],
+        queryKey: ["base-rows", variables.pageId],
       });
 
       const snapshots = queryClient.getQueriesData<
         InfiniteData<IPagination<IBaseRow>>
-      >({ queryKey: ["base-rows", variables.baseId] });
+      >({ queryKey: ["base-rows", variables.pageId] });
 
       queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-        { queryKey: ["base-rows", variables.baseId] },
+        { queryKey: ["base-rows", variables.pageId] },
         (old) => {
           if (!old) return old;
           return {

@@ -21,7 +21,7 @@ export function useCreateViewMutation() {
     mutationFn: (data) => createView(data),
     onSuccess: (newView) => {
       queryClient.setQueryData<IBase>(
-        ["bases", newView.baseId],
+        ["bases", newView.pageId],
         (old) => {
           if (!old) return old;
           return {
@@ -46,16 +46,16 @@ export function useUpdateViewMutation() {
     mutationFn: (data) => updateView(data),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({
-        queryKey: ["bases", variables.baseId],
+        queryKey: ["bases", variables.pageId],
       });
 
       const previous = queryClient.getQueryData<IBase>([
         "bases",
-        variables.baseId,
+        variables.pageId,
       ]);
 
       queryClient.setQueryData<IBase>(
-        ["bases", variables.baseId],
+        ["bases", variables.pageId],
         (old) => {
           if (!old) return old;
           return {
@@ -85,7 +85,7 @@ export function useUpdateViewMutation() {
     onError: (_, variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(
-          ["bases", variables.baseId],
+          ["bases", variables.pageId],
           context.previous,
         );
       }
@@ -96,7 +96,7 @@ export function useUpdateViewMutation() {
     },
     onSuccess: (updatedView) => {
       queryClient.setQueryData<IBase>(
-        ["bases", updatedView.baseId],
+        ["bases", updatedView.pageId],
         (old) => {
           if (!old) return old;
           return {
@@ -117,7 +117,7 @@ export function useDeleteViewMutation() {
     mutationFn: (data) => deleteView(data),
     onSuccess: (_, variables) => {
       queryClient.setQueryData<IBase>(
-        ["bases", variables.baseId],
+        ["bases", variables.pageId],
         (old) => {
           if (!old) return old;
           return {

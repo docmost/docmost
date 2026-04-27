@@ -19,12 +19,12 @@ import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
 
 export function useBaseQuery(
-  baseId: string | undefined,
+  pageId: string | undefined,
 ): UseQueryResult<IBase, Error> {
   return useQuery({
-    queryKey: ["bases", baseId],
-    queryFn: () => getBaseInfo(baseId!),
-    enabled: !!baseId,
+    queryKey: ["bases", pageId],
+    queryFn: () => getBaseInfo(pageId!),
+    enabled: !!pageId,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -68,10 +68,10 @@ export function useUpdateBaseMutation() {
 
 export function useDeleteBaseMutation() {
   const { t } = useTranslation();
-  return useMutation<void, Error, { baseId: string; spaceId: string }>({
-    mutationFn: ({ baseId }) => deleteBase(baseId),
-    onSuccess: (_, { baseId, spaceId }) => {
-      queryClient.removeQueries({ queryKey: ["bases", baseId] });
+  return useMutation<void, Error, { pageId: string; spaceId: string }>({
+    mutationFn: ({ pageId }) => deleteBase(pageId),
+    onSuccess: (_, { pageId, spaceId }) => {
+      queryClient.removeQueries({ queryKey: ["bases", pageId] });
       queryClient.invalidateQueries({
         queryKey: ["bases", "list", spaceId],
       });

@@ -35,8 +35,8 @@ export async function createBase(data: CreateBaseInput): Promise<IBase> {
   return req.data;
 }
 
-export async function getBaseInfo(baseId: string): Promise<IBase> {
-  const req = await api.post<IBase>("/bases/info", { baseId });
+export async function getBaseInfo(pageId: string): Promise<IBase> {
+  const req = await api.post<IBase>("/bases/info", { pageId });
   return req.data;
 }
 
@@ -45,14 +45,14 @@ export async function updateBase(data: UpdateBaseInput): Promise<IBase> {
   return req.data;
 }
 
-export async function deleteBase(baseId: string): Promise<void> {
-  await api.post("/bases/delete", { baseId });
+export async function deleteBase(pageId: string): Promise<void> {
+  await api.post("/bases/delete", { pageId });
 }
 
-export async function exportBaseToCsv(baseId: string): Promise<void> {
+export async function exportBaseToCsv(pageId: string): Promise<void> {
   const req = await api.post(
     "/bases/export-csv",
-    { baseId },
+    { pageId },
     { responseType: "blob" },
   );
 
@@ -115,9 +115,9 @@ export async function createRow(data: CreateRowInput): Promise<IBaseRow> {
 
 export async function getRowInfo(
   rowId: string,
-  baseId: string,
+  pageId: string,
 ): Promise<IBaseRow> {
-  const req = await api.post<IBaseRow>("/bases/rows/info", { rowId, baseId });
+  const req = await api.post<IBaseRow>("/bases/rows/info", { rowId, pageId });
   return req.data;
 }
 
@@ -135,7 +135,7 @@ export async function deleteRows(data: DeleteRowsInput): Promise<void> {
 }
 
 export async function listRows(
-  baseId: string,
+  pageId: string,
   params?: {
     viewId?: string;
     cursor?: string;
@@ -145,7 +145,7 @@ export async function listRows(
     search?: SearchSpec;
   },
 ): Promise<IPagination<IBaseRow>> {
-  const req = await api.post("/bases/rows", { baseId, ...params });
+  const req = await api.post("/bases/rows", { pageId, ...params });
   return req.data;
 }
 
@@ -176,7 +176,7 @@ export async function deleteView(data: DeleteViewInput): Promise<void> {
   await api.post("/bases/views/delete", data);
 }
 
-export async function listViews(baseId: string): Promise<IBaseView[]> {
-  const req = await api.post<IBaseView[]>("/bases/views", { baseId });
+export async function listViews(pageId: string): Promise<IBaseView[]> {
+  const req = await api.post<IBaseView[]>("/bases/views", { pageId });
   return req.data;
 }
