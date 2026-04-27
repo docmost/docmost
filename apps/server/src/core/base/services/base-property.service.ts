@@ -96,7 +96,7 @@ export class BasePropertyService {
       if (typeof sourceCandidate !== 'string') {
         throw new BadRequestException('formula.source is required');
       }
-      const existing = await this.basePropertyRepo.findByBaseId(dto.baseId);
+      const existing = await this.basePropertyRepo.findByPageId(dto.baseId);
       const compiled = this.formulaService.compile(sourceCandidate, existing);
       const candidate = {
         id: 'pending',
@@ -120,7 +120,7 @@ export class BasePropertyService {
     const created = await executeTx(this.db, async (trx) => {
       const row = await this.basePropertyRepo.insertProperty(
         {
-          baseId: dto.baseId,
+          pageId: dto.baseId,
           name: dto.name,
           type: dto.type,
           position,
@@ -144,7 +144,7 @@ export class BasePropertyService {
 
     if (created.type === 'formula') {
       await this.formulaService.enqueueRecompute({
-        baseId: created.baseId,
+        baseId: created.pageId,
         workspaceId,
         propertyIds: [created.id],
         reason: 'formula_created',
@@ -190,7 +190,7 @@ export class BasePropertyService {
       throw new NotFoundException('Property not found');
     }
 
-    if (property.baseId !== dto.baseId) {
+    if (property.pageId !== dto.baseId) {
       throw new BadRequestException('Property does not belong to this base');
     }
 
@@ -227,7 +227,7 @@ export class BasePropertyService {
       if (typeof sourceCandidate !== 'string') {
         throw new BadRequestException('formula.source is required');
       }
-      const allProps = await this.basePropertyRepo.findByBaseId(dto.baseId);
+      const allProps = await this.basePropertyRepo.findByPageId(dto.baseId);
       const compiled = this.formulaService.compile(sourceCandidate, allProps);
       const candidate = {
         id: property.id,
@@ -287,7 +287,7 @@ export class BasePropertyService {
       }
 
       if (isTypeChange && newType !== 'formula') {
-        const allProps = await this.basePropertyRepo.findByBaseId(dto.baseId);
+        const allProps = await this.basePropertyRepo.findByPageId(dto.baseId);
         const graph = new BaseFormulaGraph(allProps);
         const affected = graph.affectedFormulas([dto.propertyId]);
         if (affected.length > 0) {
@@ -425,13 +425,13 @@ export class BasePropertyService {
    * never race ahead of visibility.
    */
   private async ensureNameUnique(
-    baseId: string,
+    pageId: string,
     candidate: string,
     excludePropertyId?: string,
   ): Promise<void> {
     const trimmed = candidate.trim();
     if (!trimmed) return;
-    const existing = await this.basePropertyRepo.findByBaseId(baseId);
+    const existing = await this.basePropertyRepo.findByPageId(pageId);
     const lower = trimmed.toLowerCase();
     const clash = existing.find(
       (p) =>
@@ -467,14 +467,14 @@ export class BasePropertyService {
   }
 
   private async countRowsToConvert(
-    baseId: string,
+    pageId: string,
     workspaceId: string,
     propertyId: string,
   ): Promise<number> {
     const row = await this.db
       .selectFrom('baseRows')
       .select(sql<string>`count(*)`.as('n'))
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .where('workspaceId', '=', workspaceId)
       .where('deletedAt', 'is', null)
       .where(sql<SqlBool>`cells ? ${propertyId}`)
@@ -492,7 +492,7 @@ export class BasePropertyService {
       throw new NotFoundException('Property not found');
     }
 
-    if (property.baseId !== dto.baseId) {
+    if (property.pageId !== dto.baseId) {
       throw new BadRequestException('Property does not belong to this base');
     }
 
@@ -502,7 +502,7 @@ export class BasePropertyService {
 
     // Compute dependents BEFORE the delete — once soft-deleted the graph
     // wouldn't include them.
-    const allProps = await this.basePropertyRepo.findByBaseId(dto.baseId);
+    const allProps = await this.basePropertyRepo.findByPageId(dto.baseId);
     const graph = new BaseFormulaGraph(allProps);
     const affected = graph.affectedFormulas([dto.propertyId]);
 
@@ -571,7 +571,7 @@ export class BasePropertyService {
       throw new NotFoundException('Property not found');
     }
 
-    if (property.baseId !== dto.baseId) {
+    if (property.pageId !== dto.baseId) {
       throw new BadRequestException('Property does not belong to this base');
     }
 

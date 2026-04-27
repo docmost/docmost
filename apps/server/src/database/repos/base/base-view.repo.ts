@@ -29,7 +29,7 @@ export class BaseViewRepo {
       .executeTakeFirst() as Promise<BaseView | undefined>;
   }
 
-  async findByBaseId(
+  async findByPageId(
     pageId: string,
     opts: WorkspaceOpts,
   ): Promise<BaseView[]> {
@@ -43,7 +43,7 @@ export class BaseViewRepo {
       .execute() as Promise<BaseView[]>;
   }
 
-  async countByBaseId(
+  async countByPageId(
     pageId: string,
     opts: WorkspaceOpts,
   ): Promise<number> {

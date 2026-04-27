@@ -26,7 +26,7 @@ export class BasePropertyRepo {
     return qb.executeTakeFirst() as Promise<BaseProperty | undefined>;
   }
 
-  async findByBaseId(
+  async findByPageId(
     pageId: string,
     opts?: { trx?: KyselyTransaction },
   ): Promise<BaseProperty[]> {

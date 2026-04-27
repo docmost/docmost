@@ -383,7 +383,7 @@ export class BaseRowRepo {
    * that top-level key. Type-conversion callers pass the property ID so
    * we don't drag 100k empty rows through Node just to rewrite a dozen.
    */
-  async *streamByBaseId(
+  async *streamByPageId(
     pageId: string,
     opts: {
       workspaceId: string;
