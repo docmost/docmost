@@ -1,61 +1,50 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { sql, ExpressionBuilder } from 'kysely';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
+
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { dbOrTx } from '../../utils';
-import {
-  Base,
-  InsertableBase,
-  UpdatableBase,
-} from '@docmost/db/types/entity.types';
+import { DB } from '@docmost/db/types/db';
+import { Page } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { ExpressionBuilder, sql } from 'kysely';
-import { DB } from '@docmost/db/types/db';
-import { jsonArrayFrom } from 'kysely/helpers/postgres';
+
+export type BasePage = Page & {
+  properties?: unknown[];
+  views?: unknown[];
+};
 
 @Injectable()
 export class BaseRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  private baseFields: Array<keyof Base> = [
-    'id',
-    'name',
-    'description',
-    'icon',
-    'pageId',
-    'spaceId',
-    'workspaceId',
-    'creatorId',
-    'createdAt',
-    'updatedAt',
-    'deletedAt',
-  ];
-
+  // The "base id" is the page id of an is_base=true page.
   async findById(
-    baseId: string,
+    pageId: string,
     opts?: {
       includeProperties?: boolean;
       includeViews?: boolean;
       trx?: KyselyTransaction;
     },
-  ): Promise<Base | undefined> {
+  ): Promise<BasePage | undefined> {
     const db = dbOrTx(this.db, opts?.trx);
 
     let query = db
-      .selectFrom('bases')
-      .select(this.baseFields)
-      .where('id', '=', baseId)
+      .selectFrom('pages')
+      .selectAll('pages')
+      .where('id', '=', pageId)
+      .where('isBase', '=', true)
       .where('deletedAt', 'is', null);
 
     if (opts?.includeProperties) {
       query = query.select((eb) => this.withProperties(eb));
     }
-
     if (opts?.includeViews) {
       query = query.select((eb) => this.withViews(eb));
     }
 
-    return query.executeTakeFirst() as Promise<Base | undefined>;
+    return query.executeTakeFirst() as Promise<BasePage | undefined>;
   }
 
   async findBySpaceId(
@@ -66,9 +55,10 @@ export class BaseRepo {
     const db = dbOrTx(this.db, opts?.trx);
 
     const query = db
-      .selectFrom('bases')
-      .select(this.baseFields)
+      .selectFrom('pages')
+      .selectAll('pages')
       .where('spaceId', '=', spaceId)
+      .where('isBase', '=', true)
       .where('deletedAt', 'is', null);
 
     return executeWithCursorPagination(query, {
@@ -86,74 +76,51 @@ export class BaseRepo {
     });
   }
 
-  async insertBase(
-    base: InsertableBase,
-    trx?: KyselyTransaction,
-  ): Promise<Base> {
-    const db = dbOrTx(this.db, trx);
-    return db
-      .insertInto('bases')
-      .values(base)
-      .returningAll()
-      .executeTakeFirstOrThrow() as Promise<Base>;
-  }
-
-  async updateBase(
-    baseId: string,
-    data: UpdatableBase,
-    trx?: KyselyTransaction,
-  ): Promise<void> {
+  async softDelete(pageId: string, trx?: KyselyTransaction): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db
-      .updateTable('bases')
-      .set({ ...data, updatedAt: new Date() })
-      .where('id', '=', baseId)
-      .execute();
-  }
-
-  async softDelete(baseId: string, trx?: KyselyTransaction): Promise<void> {
-    const db = dbOrTx(this.db, trx);
-    await db
-      .updateTable('bases')
+      .updateTable('pages')
       .set({ deletedAt: new Date() })
-      .where('id', '=', baseId)
+      .where('id', '=', pageId)
+      .where('isBase', '=', true)
       .execute();
   }
 
   async bumpSchemaVersion(
-    baseId: string,
+    pageId: string,
     trx?: KyselyTransaction,
   ): Promise<number> {
     const db = dbOrTx(this.db, trx);
     const result = await db
-      .updateTable('bases')
+      .updateTable('pages')
       .set({
-        schemaVersion: sql`schema_version + 1`,
+        baseSchemaVersion: sql`base_schema_version + 1`,
         updatedAt: new Date(),
       })
-      .where('id', '=', baseId)
-      .returning('schemaVersion')
+      .where('id', '=', pageId)
+      .where('isBase', '=', true)
+      .returning('baseSchemaVersion')
       .executeTakeFirst();
-    return result?.schemaVersion ?? 0;
+    return result?.baseSchemaVersion ?? 0;
   }
 
-  private withProperties(eb: ExpressionBuilder<DB, 'bases'>) {
+  private withProperties(eb: ExpressionBuilder<DB, 'pages'>) {
     return jsonArrayFrom(
       eb
         .selectFrom('baseProperties')
         .selectAll('baseProperties')
-        .whereRef('baseProperties.baseId', '=', 'bases.id')
+        .whereRef('baseProperties.pageId', '=', 'pages.id')
         .where('baseProperties.deletedAt', 'is', null)
         .orderBy('baseProperties.position', 'asc'),
     ).as('properties');
   }
 
-  private withViews(eb: ExpressionBuilder<DB, 'bases'>) {
+  private withViews(eb: ExpressionBuilder<DB, 'pages'>) {
     return jsonArrayFrom(
       eb
         .selectFrom('baseViews')
         .selectAll('baseViews')
-        .whereRef('baseViews.baseId', '=', 'bases.id')
+        .whereRef('baseViews.pageId', '=', 'pages.id')
         .orderBy('baseViews.position', 'asc'),
     ).as('views');
   }
