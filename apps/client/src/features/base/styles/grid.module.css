@@ -252,6 +252,18 @@
   user-select: none;
   transition: background-color 150ms ease;
   grid-column: 1 / -1;
+  /* Stick to the page-content edge during horizontal scroll so the
+   * "New row" affordance is always reachable, just like the toolbar.
+   * In embed mode --embed-grid-pad-left is the offset that maps to
+   * page-content-left; in standalone mode the var is 0 so the button
+   * sticks at the grid's natural left edge. */
+  position: sticky;
+  inset-inline-start: var(--embed-grid-pad-left, 0);
+  background-color: light-dark(
+    var(--mantine-color-body),
+    var(--mantine-color-dark-7)
+  );
+  z-index: 4;
 }
 
 .addRowButton:hover {
