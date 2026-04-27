@@ -6,7 +6,6 @@ import {
   BaseProperties,
   BaseRows,
   BaseViews,
-  Bases,
   Comments,
   Groups,
   Notifications,
@@ -211,11 +210,6 @@ export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
 export type Template = Selectable<Templates>;
 export type InsertableTemplate = Insertable<Templates>;
 export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;
-
-// Base
-export type Base = Selectable<Bases>;
-export type InsertableBase = Insertable<Bases>;
-export type UpdatableBase = Updateable<Omit<Bases, 'id'>>;
 
 // Base Property
 export type BaseProperty = Selectable<BaseProperties>;
