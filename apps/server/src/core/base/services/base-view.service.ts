@@ -42,7 +42,7 @@ export class BaseViewService {
     const position = generateJitteredKeyBetween(lastPosition, null);
 
     const created = await this.baseViewRepo.insertView({
-      baseId: dto.baseId,
+      pageId: dto.baseId,
       name: dto.name,
       type: dto.type ?? 'table',
       position,
@@ -69,7 +69,7 @@ export class BaseViewService {
       throw new NotFoundException('View not found');
     }
 
-    if (view.baseId !== dto.baseId) {
+    if (view.pageId !== dto.baseId) {
       throw new BadRequestException('View does not belong to this base');
     }
 
@@ -119,11 +119,11 @@ export class BaseViewService {
       throw new NotFoundException('View not found');
     }
 
-    if (view.baseId !== dto.baseId) {
+    if (view.pageId !== dto.baseId) {
       throw new BadRequestException('View does not belong to this base');
     }
 
-    const viewCount = await this.baseViewRepo.countByBaseId(dto.baseId, {
+    const viewCount = await this.baseViewRepo.countByPageId(dto.baseId, {
       workspaceId,
     });
     if (viewCount <= 1) {
@@ -142,7 +142,7 @@ export class BaseViewService {
     this.eventEmitter.emit(EventName.BASE_VIEW_DELETED, event);
   }
 
-  async listByBaseId(baseId: string, workspaceId: string) {
-    return this.baseViewRepo.findByBaseId(baseId, { workspaceId });
+  async listByBaseId(pageId: string, workspaceId: string) {
+    return this.baseViewRepo.findByPageId(pageId, { workspaceId });
   }
 }
