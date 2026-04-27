@@ -10,9 +10,16 @@
 .grid {
   display: grid;
   min-width: max-content;
-  border: 1px solid
-    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
-  border-radius: var(--mantine-radius-sm);
+  /* Outer border + radius is the panel-style framing for the standalone
+   * full-page base. Inline embeds override these vars to drop the outer
+   * frame so the table reads as part of the document — cell-level
+   * borders below still provide the gridline separators. */
+  border: var(
+    --grid-outer-border,
+    1px solid
+      light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))
+  );
+  border-radius: var(--grid-outer-radius, var(--mantine-radius-sm));
   /* When the embed wrapper extends the scroll viewport leftward, this
    * padding pushes the first cell back to page-content alignment so
    * the table looks aligned on load. The padded area is part of the

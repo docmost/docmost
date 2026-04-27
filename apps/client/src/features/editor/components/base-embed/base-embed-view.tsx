@@ -28,6 +28,10 @@ function applyExtension(wrapper: HTMLDivElement) {
   wrapper.style.setProperty("--embed-extend-l", `${extendLeft}px`);
   wrapper.style.setProperty("--embed-extend-r", `${extendRight}px`);
   wrapper.style.setProperty("--embed-grid-pad-left", `${extendLeft}px`);
+  // Drop the standalone "panel" frame: inline databases read as part
+  // of the document, with only cell separators as gridlines.
+  wrapper.style.setProperty("--grid-outer-border", "none");
+  wrapper.style.setProperty("--grid-outer-radius", "0");
 }
 
 export function BaseEmbedView({ node }: NodeViewProps) {
