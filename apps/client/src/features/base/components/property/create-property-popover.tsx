@@ -231,7 +231,6 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated }:
         onClose={noop}
         position="bottom-start"
         shadow="md"
-        width={selectedType === "formula" ? 460 : 320}
         withinPortal
       >
         <Popover.Target>
@@ -248,14 +247,24 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated }:
           p={0}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={handleKeyDown}
-          style={{ zIndex: 300 }}
+          style={{
+            zIndex: 300,
+            minWidth: selectedType === "formula" ? 460 : 320,
+            maxWidth: "calc(100vw - 32px)",
+          }}
         >
           {panel === "typePicker" && (
             <Stack gap={0} p={4}>
-              <PropertyTypePicker
-                onSelect={handleTypeSelect}
-                showSearch
-              />
+              <ScrollArea.Autosize
+                mah="min(60vh, 400px)"
+                scrollbarSize={6}
+                offsetScrollbars
+              >
+                <PropertyTypePicker
+                  onSelect={handleTypeSelect}
+                  showSearch
+                />
+              </ScrollArea.Autosize>
             </Stack>
           )}
           {panel === "configure" && selectedType === "formula" && (
