@@ -53,7 +53,6 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
-import { sanitize } from 'sanitize-filename-ts';
 import { AttachmentInfoDto, RemoveIconDto } from './dto/attachment.dto';
 import { PageAccessService } from '../page/page-access/page-access.service';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
@@ -357,13 +356,19 @@ export class AttachmentController {
       throw new BadRequestException('Invalid image attachment type');
     }
 
-    if (!fileName || sanitize(fileName) !== fileName) {
+    if (!fileName) {
       throw new BadRequestException('Invalid file name');
     }
 
-    const filenameWithoutExt = path.basename(fileName, path.extname(fileName));
-    if (!isValidUUID(filenameWithoutExt)) {
-      throw new BadRequestException('Invalid file id');
+    const ext = path.extname(fileName);
+    const filenameWithoutExt = path.basename(fileName, ext);
+
+    if (
+      !ext ||
+      !isValidUUID(filenameWithoutExt) ||
+      `${filenameWithoutExt}${ext}` !== fileName
+    ) {
+      throw new BadRequestException('Invalid file name');
     }
 
     const filePath = `${getAttachmentFolderPath(attachmentType, workspace.id)}/${fileName}`;

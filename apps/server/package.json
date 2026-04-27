@@ -110,7 +110,7 @@
     "react": "^18.3.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "sanitize-filename-ts": "1.0.2",
+    "sanitize-filename": "1.6.3",
     "socket.io": "^4.8.3",
     "stripe": "^17.7.0",
     "tlds": "^1.261.0",
@@ -165,6 +165,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(\\.pnpm/)?(nanoid|uuid|image-dimensions|marked)(@|/))"
+    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
