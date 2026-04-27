@@ -52,6 +52,7 @@ import {
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import api from "@/lib/api-client";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -475,6 +476,25 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconSitemap,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
+      },
+    },
+    {
+      title: "Database",
+      description: "Insert an inline database on this page",
+      searchTerms: ["database", "base", "table", "grid", "spreadsheet"],
+      icon: IconTable,
+      command: async ({ editor, range }: CommandProps) => {
+        // @ts-ignore
+        const parentPageId = editor.storage?.pageId as string | undefined;
+        if (!parentPageId) return;
+
+        editor.chain().focus().deleteRange(range).run();
+
+        const res = await api.post<{ id: string }>("/bases/inline-embed", {
+          parentPageId,
+        });
+
+        editor.commands.insertBaseEmbed({ pageId: res.data.id });
       },
     },
     {

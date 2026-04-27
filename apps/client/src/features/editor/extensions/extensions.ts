@@ -52,6 +52,7 @@ import {
   Columns,
   Column,
   Status,
+  BaseEmbed as BaseEmbedNode,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -80,6 +81,7 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -350,6 +352,11 @@ export const mainExtensions = [
   }),
   Status.configure({
     view: StatusView,
+  }),
+  BaseEmbedNode.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(BaseEmbedView);
+    },
   }),
   MarkdownClipboard.configure({
     transformPastedText: true,
