@@ -31,7 +31,7 @@ export async function processBaseFormulaRecompute(
   },
 ): Promise<{ processed: number; errored: number }> {
   const { baseId, workspaceId, propertyIds, rowIds } = data;
-  const properties = await basePropertyRepo.findByBaseId(baseId);
+  const properties = await basePropertyRepo.findByPageId(baseId);
   const targets = properties.filter(
     (p) => p.type === "formula" && propertyIds.includes(p.id),
   );
@@ -46,7 +46,7 @@ export async function processBaseFormulaRecompute(
   let processed = 0;
   let errored = 0;
 
-  for await (const chunk of baseRowRepo.streamByBaseId(baseId, {
+  for await (const chunk of baseRowRepo.streamByPageId(baseId, {
     workspaceId,
     chunkSize: CHUNK_SIZE,
     trx: opts?.trx,
@@ -90,7 +90,7 @@ export async function processBaseFormulaRecompute(
       // so passing actorId: undefined preserves last_updated_by_id while still
       // bumping updated_at — matches spec "only lastEditedAt moves".
       await baseRowRepo.batchUpdateCells(updates, {
-        baseId,
+        pageId: baseId,
         workspaceId,
         actorId: undefined,
         trx: opts?.trx,

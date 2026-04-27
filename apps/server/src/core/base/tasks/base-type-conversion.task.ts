@@ -59,7 +59,7 @@ export async function processBaseTypeConversion(
   // rewriting — everything else is already consistent with the new type
   // (empty value → empty value). Skips the full-table scan on bases
   // where the property was only ever set on a few rows.
-  for await (const chunk of baseRowRepo.streamByBaseId(baseId, {
+  for await (const chunk of baseRowRepo.streamByPageId(baseId, {
     workspaceId,
     chunkSize: CHUNK_SIZE,
     trx,
@@ -105,7 +105,7 @@ export async function processBaseTypeConversion(
 
     if (updates.length > 0) {
       await baseRowRepo.batchUpdateCells(updates, {
-        baseId,
+        pageId: baseId,
         workspaceId,
         actorId,
         trx,
