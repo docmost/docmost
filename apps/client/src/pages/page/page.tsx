@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { FullEditor } from "@/features/editor/full-editor";
+import { TitleEditor } from "@/features/editor/title-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
 import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
@@ -10,11 +11,12 @@ import { useTranslation } from "react-i18next";
 import React from "react";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
-import { Button } from "@mantine/core";
+import { Button, Container } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 import { BaseTable } from "@/features/base/components/base-table";
 const MemoizedFullEditor = React.memo(FullEditor);
+const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
 const MemoizedHistoryModal = React.memo(HistoryModal);
 
@@ -93,12 +95,39 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
   if (page?.isBase) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          // PageHeader is position: fixed (45px tall) — without this
+          // padding the BaseToolbar would render under it.
+          paddingTop: 45,
+        }}
+      >
         <Helmet>
           <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
         <MemoizedPageHeader readOnly={!canEdit} />
-        <BaseTable pageId={page.id} />
+        <Container size={900} pt={32} pb="sm" w="100%">
+          <MemoizedTitleEditor
+            pageId={page.id}
+            slugId={page.slugId}
+            title={page.title}
+            spaceSlug={page.space?.slug ?? ""}
+            editable={canEdit}
+          />
+        </Container>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <BaseTable pageId={page.id} />
+        </div>
       </div>
     );
   }
