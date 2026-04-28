@@ -4,18 +4,31 @@ import classes from "@/features/base/styles/base-table-skeleton.module.css";
 
 const ROW_NUMBER_WIDTH = 64;
 const COLUMN_WIDTH = 180;
-const COLUMN_COUNT = 6;
-const ROW_COUNT = 10;
+const DEFAULT_COLUMN_COUNT = 6;
+const DEFAULT_ROW_COUNT = 10;
 
 // Deterministic per-cell widths so the skeleton doesn't flicker between
 // renders. Values are rough normal distribution around 55-85 % of cell.
 const CELL_WIDTH_RATIOS = [0.78, 0.62, 0.84, 0.55, 0.71, 0.66];
 const HEADER_WIDTH_RATIOS = [0.42, 0.58, 0.5, 0.64, 0.46, 0.54];
 
-export function BaseTableSkeleton() {
+type BaseTableSkeletonProps = {
+  // Override the rendered shape to match what the eventual content
+  // will be — the inline-embed placeholder passes rows=1, columns=3
+  // (matching the seeded Title + Text 1 + Text 2 with one default
+  // row) so the swap from skeleton to real table doesn't visibly
+  // collapse a large fake table down to a small empty one.
+  rows?: number;
+  columns?: number;
+};
+
+export function BaseTableSkeleton({
+  rows = DEFAULT_ROW_COUNT,
+  columns = DEFAULT_COLUMN_COUNT,
+}: BaseTableSkeletonProps = {}) {
   const gridTemplateColumns = [
     `${ROW_NUMBER_WIDTH}px`,
-    ...Array.from({ length: COLUMN_COUNT }, () => `${COLUMN_WIDTH}px`),
+    ...Array.from({ length: columns }, () => `${COLUMN_WIDTH}px`),
   ].join(" ");
 
   return (
@@ -41,27 +54,27 @@ export function BaseTableSkeleton() {
               <Skeleton height={14} width={14} circle />
             </div>
           </div>
-          {Array.from({ length: COLUMN_COUNT }).map((_, colIndex) => (
+          {Array.from({ length: columns }).map((_, colIndex) => (
             <div key={`h-${colIndex}`} className={gridClasses.headerCell}>
               <div className={classes.headerCellInner}>
                 <Skeleton height={14} width={14} circle />
                 <Skeleton
                   height={10}
-                  width={`${HEADER_WIDTH_RATIOS[colIndex] * 100}%`}
+                  width={`${HEADER_WIDTH_RATIOS[colIndex % HEADER_WIDTH_RATIOS.length] * 100}%`}
                   radius="sm"
                 />
               </div>
             </div>
           ))}
 
-          {Array.from({ length: ROW_COUNT }).map((_, rowIndex) => (
+          {Array.from({ length: rows }).map((_, rowIndex) => (
             <div key={`row-${rowIndex}`} style={{ display: "contents" }}>
               <div className={gridClasses.cell}>
                 <div className={classes.cellInner}>
                   <Skeleton height={10} width={18} radius="sm" />
                 </div>
               </div>
-              {Array.from({ length: COLUMN_COUNT }).map((_, colIndex) => (
+              {Array.from({ length: columns }).map((_, colIndex) => (
                 <div
                   key={`cell-${rowIndex}-${colIndex}`}
                   className={gridClasses.cell}

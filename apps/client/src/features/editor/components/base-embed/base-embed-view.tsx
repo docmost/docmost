@@ -74,9 +74,12 @@ export function BaseEmbedView({ node }: NodeViewProps) {
   let content: React.ReactNode;
   if (pendingKey) {
     // Slash command inserted the embed and is awaiting the server's
-    // assigned pageId — render the same skeleton BaseTable shows
-    // during its own initial load so the swap is visually a no-op.
-    content = <BaseTableSkeleton />;
+    // assigned pageId. Match the shape the create endpoint will
+    // return for an inline-embed (Title + Text 1 + Text 2, one
+    // empty row — see BaseService.create's `defaults`) so the swap
+    // to the real table doesn't visibly collapse a large fake table
+    // down to a small empty one.
+    content = <BaseTableSkeleton rows={1} columns={3} />;
   } else if (!pageId) {
     content = (
       <Box p="md">
