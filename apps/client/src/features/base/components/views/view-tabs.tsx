@@ -6,9 +6,7 @@ import {
   ActionIcon,
   Tooltip,
   TextInput,
-  Popover,
-  Stack,
-  Divider,
+  Menu,
 } from "@mantine/core";
 import { IconPlus, IconPencil, IconTrash, IconTable } from "@tabler/icons-react";
 import { IBaseView } from "@/features/base/types/base.types";
@@ -17,7 +15,6 @@ import {
   useDeleteViewMutation,
 } from "@/features/base/queries/base-view-query";
 import { useTranslation } from "react-i18next";
-import cellClasses from "@/features/base/styles/cells.module.css";
 
 type ViewTabsProps = {
   views: IBaseView[];
@@ -166,15 +163,19 @@ function ViewTab({
   }
 
   return (
-    <Popover
+    <Menu
       opened={menuOpened}
-      onClose={() => setMenuOpened(false)}
+      onChange={setMenuOpened}
       position="bottom-start"
       shadow="md"
       width={180}
       withinPortal
+      // Default Menu behavior: closeOnClickOutside, closeOnEscape, and
+      // closeOnItemClick all true — replaces the manual setMenuOpened
+      // calls and gives the popover the same outside-click / Esc
+      // semantics every other Mantine menu in the app has.
     >
-      <Popover.Target>
+      <Menu.Target>
         <UnstyledButton
           onClick={onClick}
           onContextMenu={(e) => {
@@ -197,41 +198,27 @@ function ViewTab({
             </Text>
           </Group>
         </UnstyledButton>
-      </Popover.Target>
-      <Popover.Dropdown p={4}>
-        <Stack gap={0}>
-          <UnstyledButton
-            className={cellClasses.menuItem}
-            onClick={() => {
-              setMenuOpened(false);
-              onRenameStart();
-            }}
-          >
-            <Group gap={8} wrap="nowrap">
-              <IconPencil size={14} />
-              <Text size="sm">{t("Rename")}</Text>
-            </Group>
-          </UnstyledButton>
-          {canDelete && (
-            <>
-              <Divider my={4} />
-              <UnstyledButton
-                className={cellClasses.menuItem}
-                onClick={() => {
-                  setMenuOpened(false);
-                  onDelete();
-                }}
-                style={{ color: "var(--mantine-color-red-6)" }}
-              >
-                <Group gap={8} wrap="nowrap">
-                  <IconTrash size={14} />
-                  <Text size="sm">{t("Delete view")}</Text>
-                </Group>
-              </UnstyledButton>
-            </>
-          )}
-        </Stack>
-      </Popover.Dropdown>
-    </Popover>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item
+          leftSection={<IconPencil size={14} />}
+          onClick={onRenameStart}
+        >
+          {t("Rename")}
+        </Menu.Item>
+        {canDelete && (
+          <>
+            <Menu.Divider />
+            <Menu.Item
+              leftSection={<IconTrash size={14} />}
+              onClick={onDelete}
+              color="red"
+            >
+              {t("Delete view")}
+            </Menu.Item>
+          </>
+        )}
+      </Menu.Dropdown>
+    </Menu>
   );
 }
