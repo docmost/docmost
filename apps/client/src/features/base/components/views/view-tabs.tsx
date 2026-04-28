@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Group,
   UnstyledButton,
@@ -6,7 +6,9 @@ import {
   ActionIcon,
   Tooltip,
   TextInput,
-  Menu,
+  Popover,
+  Stack,
+  Divider,
 } from "@mantine/core";
 import { IconPlus, IconPencil, IconTrash, IconTable } from "@tabler/icons-react";
 import { IBaseView } from "@/features/base/types/base.types";
@@ -15,6 +17,7 @@ import {
   useDeleteViewMutation,
 } from "@/features/base/queries/base-view-query";
 import { useTranslation } from "react-i18next";
+import cellClasses from "@/features/base/styles/cells.module.css";
 
 type ViewTabsProps = {
   views: IBaseView[];
@@ -147,6 +150,34 @@ function ViewTab({
 }) {
   const { t } = useTranslation();
   const [menuOpened, setMenuOpened] = useState(false);
+  const targetRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Mantine Popover's built-in closeOnClickOutside / closeOnEscape
+  // only fire when focus is inside the dropdown — but the menu opens
+  // via right-click (focus stays on body), so neither ever triggers.
+  // Wire the close paths ourselves while the menu is open. Capture
+  // phase mousedown so we run before grid-container's outside-click
+  // logic (which would otherwise blur the focused element first and
+  // cause weirdness).
+  useEffect(() => {
+    if (!menuOpened) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (dropdownRef.current?.contains(target)) return;
+      if (targetRef.current?.contains(target)) return;
+      setMenuOpened(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpened(false);
+    };
+    document.addEventListener("mousedown", onMouseDown, true);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown, true);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpened]);
 
   if (isEditing) {
     return (
@@ -162,22 +193,27 @@ function ViewTab({
     );
   }
 
+  const handleTabClick = useCallback(() => {
+    // Left-click on the tab is "switch view"; if the menu happens to
+    // be open from a prior right-click, dismiss it as part of the
+    // same gesture so the user doesn't have to click twice.
+    if (menuOpened) setMenuOpened(false);
+    onClick();
+  }, [menuOpened, onClick]);
+
   return (
-    <Menu
+    <Popover
       opened={menuOpened}
-      onChange={setMenuOpened}
+      onClose={() => setMenuOpened(false)}
       position="bottom-start"
       shadow="md"
       width={180}
       withinPortal
-      // Default Menu behavior: closeOnClickOutside, closeOnEscape, and
-      // closeOnItemClick all true — replaces the manual setMenuOpened
-      // calls and gives the popover the same outside-click / Esc
-      // semantics every other Mantine menu in the app has.
     >
-      <Menu.Target>
+      <Popover.Target>
         <UnstyledButton
-          onClick={onClick}
+          ref={targetRef}
+          onClick={handleTabClick}
           onContextMenu={(e) => {
             e.preventDefault();
             setMenuOpened(true);
@@ -198,27 +234,41 @@ function ViewTab({
             </Text>
           </Group>
         </UnstyledButton>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Item
-          leftSection={<IconPencil size={14} />}
-          onClick={onRenameStart}
-        >
-          {t("Rename")}
-        </Menu.Item>
-        {canDelete && (
-          <>
-            <Menu.Divider />
-            <Menu.Item
-              leftSection={<IconTrash size={14} />}
-              onClick={onDelete}
-              color="red"
-            >
-              {t("Delete view")}
-            </Menu.Item>
-          </>
-        )}
-      </Menu.Dropdown>
-    </Menu>
+      </Popover.Target>
+      <Popover.Dropdown ref={dropdownRef} p={4}>
+        <Stack gap={0}>
+          <UnstyledButton
+            className={cellClasses.menuItem}
+            onClick={() => {
+              setMenuOpened(false);
+              onRenameStart();
+            }}
+          >
+            <Group gap={8} wrap="nowrap">
+              <IconPencil size={14} />
+              <Text size="sm">{t("Rename")}</Text>
+            </Group>
+          </UnstyledButton>
+          {canDelete && (
+            <>
+              <Divider my={4} />
+              <UnstyledButton
+                className={cellClasses.menuItem}
+                onClick={() => {
+                  setMenuOpened(false);
+                  onDelete();
+                }}
+                style={{ color: "var(--mantine-color-red-6)" }}
+              >
+                <Group gap={8} wrap="nowrap">
+                  <IconTrash size={14} />
+                  <Text size="sm">{t("Delete view")}</Text>
+                </Group>
+              </UnstyledButton>
+            </>
+          )}
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
   );
 }
