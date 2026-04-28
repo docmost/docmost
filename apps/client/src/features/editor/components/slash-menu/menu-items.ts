@@ -55,13 +55,6 @@ import {
 import api from "@/lib/api-client";
 import { notifications } from "@mantine/notifications";
 import type { Editor } from "@tiptap/core";
-import type { InfiniteData } from "@tanstack/react-query";
-import { queryClient } from "@/main";
-import type {
-  IBase,
-  IBaseRow,
-} from "@/features/base/types/base.types";
-import type { IPagination } from "@/lib/types";
 
 // Resolve the position of a baseEmbed placeholder by its pendingKey.
 // Used by the Database slash command to patch in the real pageId once
@@ -520,10 +513,9 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         if (!parentPageId) return;
 
         // Insert a placeholder embed at the slash position synchronously
-        // so (a) the position is established before any focus/selection
-        // drift during the await, and (b) the user sees a skeleton in
-        // the document instead of an empty gap. The API call then patches
-        // the real pageId into this exact node, identified by pendingKey.
+        // so the user sees a skeleton immediately while we wait on the
+        // create-base API. Once the response lands we look the
+        // placeholder up by its pendingKey and patch in the real pageId.
         const pendingKey =
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? crypto.randomUUID()
@@ -537,39 +529,9 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run();
 
         try {
-          // The create endpoint returns the full base (properties +
-          // views), not just an id — see base.service.ts `create`. Type
-          // it as IBase so we can seed the React Query cache below.
-          const res = await api.post<IBase>("/bases/inline-embed", {
+          const res = await api.post<{ id: string }>("/bases/inline-embed", {
             parentPageId,
           });
-
-          // Seed the caches BaseTable will read on mount so it doesn't
-          // render its own (10-row) skeleton between our placeholder
-          // and the actual content. Without this seeding the wrapper
-          // would grow to ~436px during BaseTable's load and shrink to
-          // ~112px once the rows resolve — on a short doc the shrink
-          // pushes scrollY past the new doc bottom and the browser
-          // clamps to 0, which is the "jump to top" the user reported.
-          queryClient.setQueryData<IBase>(["bases", res.data.id], res.data);
-          queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
-            ["base-rows", res.data.id, undefined, undefined, undefined],
-            {
-              pages: [
-                {
-                  items: [],
-                  meta: {
-                    limit: 100,
-                    hasNextPage: false,
-                    hasPrevPage: false,
-                    nextCursor: null,
-                    prevCursor: null,
-                  },
-                },
-              ],
-              pageParams: [undefined],
-            },
-          );
 
           const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
           if (pos === null) return;
