@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import type { Server, Socket } from 'socket.io';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
-import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { getBaseRoomName } from '../../../ws/ws.utils';
 import { BasePresenceService, PresenceEntry } from './base-presence.service';
+import { PageAccessService } from '../../page/page-access/page-access.service';
 
 /*
  * Inbound shapes from untrusted socket clients. Zod-validated at the
@@ -52,7 +52,8 @@ export class BaseWsService {
 
   constructor(
     private readonly baseRepo: BaseRepo,
-    private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly userRepo: UserRepo,
+    private readonly pageAccessService: PageAccessService,
     private readonly presence: BasePresenceService,
   ) {}
 
@@ -121,7 +122,8 @@ export class BaseWsService {
 
   private async subscribe(client: Socket, pageId: string): Promise<void> {
     const userId = client.data?.userId as string | undefined;
-    if (!userId) {
+    const workspaceId = client.data?.workspaceId as string | undefined;
+    if (!userId || !workspaceId) {
       client.emit('message', {
         operation: 'base:subscribe:error',
         pageId,
@@ -140,7 +142,7 @@ export class BaseWsService {
       return;
     }
 
-    const canRead = await this.canReadBaseSpace(userId, base.spaceId);
+    const canRead = await this.canReadBase(userId, workspaceId, base);
     if (!canRead) {
       client.emit('message', {
         operation: 'base:subscribe:error',
@@ -215,12 +217,28 @@ export class BaseWsService {
     });
   }
 
-  private async canReadBaseSpace(
+  // Bases are pages — gate the WS subscribe through the same
+  // pageAccessService.validateCanView check the rest of the base
+  // surface (HTTP endpoints, page collab) uses, so per-page
+  // restrictions / sharing rules apply uniformly. This used to do a
+  // bare "is the user a member of the space at all" check, which let
+  // a user with a per-base restriction stream live updates for a
+  // base they couldn't otherwise read.
+  private async canReadBase(
     userId: string,
-    spaceId: string,
+    workspaceId: string,
+    base: { id: string; spaceId: string },
   ): Promise<boolean> {
-    const roles = await this.spaceMemberRepo.getUserSpaceRoles(userId, spaceId);
-    return !!findHighestUserSpaceRole(roles);
+    const user = await this.userRepo.findById(userId, workspaceId);
+    if (!user) return false;
+    try {
+      // Pass the base as a Page — same shape (isBase=true), and
+      // validateCanView only reads `id` + `spaceId` off it.
+      await this.pageAccessService.validateCanView(base as any, user);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private subscriptionsFor(client: Socket): Set<string> {
