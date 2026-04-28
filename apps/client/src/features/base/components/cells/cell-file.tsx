@@ -8,7 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { IBaseProperty } from "@/features/base/types/base.types";
 import cellClasses from "@/features/base/styles/cells.module.css";
-import api from "@/lib/api-client";
+import { uploadFile } from "@/features/page/services/page-service";
 
 export type FileValue = {
   id: string;
@@ -68,21 +68,15 @@ export function CellFile({
 
       const newFiles: FileValue[] = [...files];
 
+      // Reuse the page-attachment upload pipeline. A base IS a page
+      // (isBase=true) — the server's /files/upload endpoint accepts the
+      // base's pageId, runs the standard pageAccessService.validateCanEdit
+      // check (which lines up with Base edit at the space-role level per
+      // the casl rules), and stores the attachment via the same flow as
+      // any other page attachment.
       for (const file of Array.from(fileList)) {
         try {
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("pageId", property.pageId);
-
-          const res = await api.post<FileValue>(
-            "/bases/files/upload",
-            formData,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-            },
-          );
-
-          const attachment = res as unknown as FileValue;
+          const attachment = await uploadFile(file, property.pageId);
           newFiles.push({
             id: attachment.id,
             fileName: attachment.fileName,
