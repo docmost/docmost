@@ -529,7 +529,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run();
 
         try {
-          const res = await api.post<{ id: string }>("/bases/inline-embed", {
+          const res = await api.post<{ id: string }>("/bases/create", {
             parentPageId,
           });
 

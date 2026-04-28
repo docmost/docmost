@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -19,7 +20,6 @@ import { UpdateBaseDto } from '../dto/update-base.dto';
 import { BaseIdDto } from '../dto/base.dto';
 import { ExportBaseCsvDto } from '../dto/export-base.dto';
 import { ResolvePagesDto } from '../dto/resolve-pages.dto';
-import { InlineEmbedBaseDto } from '../dto/inline-embed-base.dto';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -56,9 +56,38 @@ export class BaseController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    // Bases are pages — use the same SpaceCaslSubject.Page check the
-    // page controller uses for its own create endpoint, so a single
-    // role definition (admin/writer/reader) governs both.
+    // One endpoint, two modes:
+    //   - parentPageId set → inline embed inside that page. Derive
+    //     spaceId/workspaceId from the parent and gate on Edit access
+    //     to the parent (same check the editor uses for any other
+    //     content the user adds while editing). Seed two extra text
+    //     columns + one row so the freshly-inserted base looks like
+    //     a typical database on first paint.
+    //   - parentPageId unset → standalone base. Gate on space-level
+    //     Create, Page (the same check the page controller uses for
+    //     its own create endpoint).
+    if (dto.parentPageId) {
+      const parent = await this.pageRepo.findById(dto.parentPageId);
+      if (!parent) {
+        throw new NotFoundException('Parent page not found');
+      }
+      await this.pageAccessService.validateCanEdit(parent, user);
+
+      return this.baseService.create(
+        user.id,
+        parent.workspaceId,
+        {
+          ...dto,
+          spaceId: parent.spaceId,
+        },
+        { extraTextProperties: 2, defaultRows: 1 },
+      );
+    }
+
+    if (!dto.spaceId) {
+      throw new BadRequestException('spaceId or parentPageId is required');
+    }
+
     const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
     if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
@@ -169,33 +198,4 @@ export class BaseController {
     return { items };
   }
 
-  @HttpCode(HttpStatus.OK)
-  @Post('inline-embed')
-  async createInlineEmbed(
-    @Body() dto: InlineEmbedBaseDto,
-    @AuthUser() user: User,
-  ) {
-    const parent = await this.pageRepo.findById(dto.parentPageId);
-    if (!parent) {
-      throw new NotFoundException('Parent page not found');
-    }
-
-    await this.pageAccessService.validateCanEdit(parent, user);
-
-    // Inline embeds land mid-document and need to be visually meaningful
-    // on first paint — a single "Title" column with no rows looks broken.
-    // Seed two extra text columns and one empty row so the freshly-
-    // created base looks like a typical database (Title + Text 1 + Text 2,
-    // one ready-to-fill row).
-    return this.baseService.create(
-      user.id,
-      parent.workspaceId,
-      {
-        spaceId: parent.spaceId,
-        parentPageId: dto.parentPageId,
-        name: 'Untitled',
-      },
-      { extraTextProperties: 2, defaultRows: 1 },
-    );
-  }
 }
