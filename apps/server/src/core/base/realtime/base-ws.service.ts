@@ -118,8 +118,6 @@ export class BaseWsService {
     subs.clear();
   }
 
-  // --- private -------------------------------------------------------
-
   private async subscribe(client: Socket, pageId: string): Promise<void> {
     const userId = client.data?.userId as string | undefined;
     const workspaceId = client.data?.workspaceId as string | undefined;
