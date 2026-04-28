@@ -177,10 +177,20 @@ export class BaseController {
 
     await this.pageAccessService.validateCanEdit(parent, user);
 
-    return this.baseService.create(user.id, parent.workspaceId, {
-      spaceId: parent.spaceId,
-      parentPageId: dto.parentPageId,
-      name: 'Untitled',
-    });
+    // Inline embeds land mid-document and need to be visually meaningful
+    // on first paint — a single "Title" column with no rows looks broken.
+    // Seed two extra text columns and one empty row so the freshly-
+    // created base looks like a typical database (Title + Text 1 + Text 2,
+    // one ready-to-fill row).
+    return this.baseService.create(
+      user.id,
+      parent.workspaceId,
+      {
+        spaceId: parent.spaceId,
+        parentPageId: dto.parentPageId,
+        name: 'Untitled',
+      },
+      { extraTextProperties: 2, defaultRows: 1 },
+    );
   }
 }
