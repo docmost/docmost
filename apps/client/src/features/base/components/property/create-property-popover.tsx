@@ -104,9 +104,13 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated }:
   }, [resetState]);
 
   const handleClose = useCallback(() => {
+    // Don't reset panel/selectedType/etc. here — the popover's close
+    // transition is still rendering the dropdown for a frame, and
+    // resetting `panel` to "typePicker" mid-close flashes the type
+    // picker after the user clicks "Create field". `handleOpen`
+    // resets state on the next open instead.
     setOpened(false);
-    resetState();
-  }, [resetState]);
+  }, []);
 
   const attemptClose = useCallback(() => {
     if (panel === "configure" && hasContent) {
