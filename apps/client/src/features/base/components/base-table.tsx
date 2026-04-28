@@ -109,9 +109,11 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
   // use-history-restore.tsx for the same pattern.
   const { data: space } = useSpaceQuery(base?.spaceId ?? "");
   const spaceAbility = useSpaceAbility(space?.membership?.permissions);
+  // Bases are pages — gate save on the same Page subject the rest of
+  // the app uses; the dedicated Base subject was redundant.
   const canSave = spaceAbility.can(
     SpaceCaslAction.Edit,
-    SpaceCaslSubject.Base,
+    SpaceCaslSubject.Page,
   );
 
   // Hold the rows query until `base` has loaded. Otherwise the query

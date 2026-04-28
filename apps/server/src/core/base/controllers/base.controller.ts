@@ -56,8 +56,11 @@ export class BaseController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    // Bases are pages — use the same SpaceCaslSubject.Page check the
+    // page controller uses for its own create endpoint, so a single
+    // role definition (admin/writer/reader) governs both.
     const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
-    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Base)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -110,8 +113,10 @@ export class BaseController {
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
+    // Same Page-subject check the page controller's list-equivalents
+    // use; a base is a page (isBase=true) so reader access aligns.
     const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Base)) {
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
