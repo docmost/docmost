@@ -9,14 +9,25 @@ import {
 import { IBaseProperty } from "@/features/base/types/base.types";
 import cellClasses from "@/features/base/styles/cells.module.css";
 import { uploadFile } from "@/features/page/services/page-service";
+import { getFileUrl } from "@/lib/config";
 
 export type FileValue = {
   id: string;
   fileName: string;
   mimeType?: string;
   fileSize?: number;
-  filePath?: string;
+  // `/api/files/{id}/{fileName}` — same shape the editor's attachment
+  // node view uses. `getFileUrl` strips the `/api/` prefix and
+  // prepends the backend host to produce a fetchable URL. Stored on
+  // upload so the original filename round-trips even if the cell
+  // value is moved to a row where the file's storage path no longer
+  // resolves from the cell's pageId.
+  url?: string;
 };
+
+function buildFileUrl(file: Pick<FileValue, "id" | "fileName" | "url">): string {
+  return file.url ?? `/api/files/${file.id}/${encodeURIComponent(file.fileName)}`;
+}
 
 type CellFileProps = {
   value: unknown;
@@ -82,7 +93,7 @@ export function CellFile({
             fileName: attachment.fileName,
             mimeType: attachment.mimeType,
             fileSize: attachment.fileSize,
-            filePath: attachment.filePath,
+            url: `/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`,
           });
         } catch (err) {
           console.error("File upload failed:", err);
@@ -147,7 +158,17 @@ export function CellFile({
                   color: "var(--mantine-color-gray-6)",
                 }}
               />
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <a
+                href={getFileUrl(buildFileUrl(file))}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  textDecoration: "none",
+                  color: "inherit",
+                }}
+              >
                 <Text size="xs" truncate="end" fw={500}>
                   {file.fileName}
                 </Text>
@@ -156,7 +177,7 @@ export function CellFile({
                     {formatFileSize(file.fileSize)}
                   </Text>
                 )}
-              </div>
+              </a>
               <ActionIcon
                 variant="subtle"
                 color="gray"
