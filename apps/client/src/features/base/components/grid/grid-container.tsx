@@ -182,6 +182,19 @@ export function GridContainer({
     overscan: OVERSCAN,
     scrollMargin,
     ...windowScrollOptions,
+    // virtual-core bug: when the scroll element first attaches in
+    // _willUpdate, it calls _scrollToOffset(getScrollOffset()). With
+    // no initialOffset provided, getScrollOffset() returns undefined,
+    // and windowScroll/elementScroll computes `undefined + 0 = NaN`
+    // for the scroll target. Browsers coerce that to 0, so
+    // scrollY/scrollTop snaps to 0 the moment a fresh BaseTable
+    // mounts mid-page — manifests as "page jumps to top of editor"
+    // when an inline-embed lands. Seed initialOffset to the current
+    // scroll position so the first _scrollToOffset is a no-op.
+    initialOffset: isWindowScroll
+      ? () => window.scrollY
+      : () =>
+          scrollElement instanceof HTMLElement ? scrollElement.scrollTop : 0,
   });
 
   const virtualItems = virtualizer.getVirtualItems();
