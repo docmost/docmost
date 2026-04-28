@@ -121,6 +121,19 @@ export function GridContainer({
       } else {
         setActivePropertyMenu(null);
       }
+      // Blur the focused element BEFORE clearing editingCell. Cell
+      // editors (CellNumber, CellText, CellEmail, CellUrl) commit
+      // their draft via onBlur — if we set editingCell to null first,
+      // React unmounts the input before the native blur event reaches
+      // its onBlur listener, so the user's edit is silently dropped
+      // (and pressing Enter is the only way to save). Triggering blur
+      // here lets the cell's onBlur run, commit, and clear editingCell
+      // itself; the setEditingCell(null) below is a no-op safety net
+      // for cases where the active element wasn't a cell editor.
+      const active = document.activeElement as HTMLElement | null;
+      if (active && active !== document.body && typeof active.blur === "function") {
+        active.blur();
+      }
       setEditingCell(null);
     };
     document.addEventListener("mousedown", handleMouseDown);
