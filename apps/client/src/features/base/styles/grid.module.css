@@ -305,13 +305,18 @@
    * `grid-column: 1 / -1` it would auto-place into track 1 of a new
    * grid row, leaving phantom empty cells in the remaining tracks of
    * that row. Spanning all tracks gives it a single full-row grid area
-   * while inline-flex + width:max-content + sticky-left keeps the
-   * visible button shrunk to its content and anchored to the page-
-   * content edge during horizontal scroll. --embed-grid-pad-left is
-   * the leftward extension distance in embed mode (sticks at page-
-   * content-left), 0 in standalone (sticks at .bodyGrid's natural
-   * left). */
+   * while inline-flex + width:max-content keeps the visible button
+   * shrunk to its content. `justify-self: start` pins it to the
+   * inline-start of that grid area (a max-content grid item with
+   * `justify-self: stretch` — the default — has surprising placement
+   * across engines, so be explicit). `inset-inline-start: 0` keeps
+   * the button at the scroll-port's start during horizontal scroll;
+   * scroll-port = bodyGrid's content area = the page-content edge in
+   * both standalone and embed modes (the bodyGrid's negative margins
+   * and equal padding cancel out, so x=0 of the content area is
+   * already the page-content-left). */
   grid-column: 1 / -1;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -326,7 +331,7 @@
   border-radius: 4px;
   transition: background-color 150ms ease;
   position: sticky;
-  inset-inline-start: var(--embed-grid-pad-left, 0);
+  inset-inline-start: 0;
   background-color: light-dark(
     var(--mantine-color-body),
     var(--mantine-color-dark-7)
