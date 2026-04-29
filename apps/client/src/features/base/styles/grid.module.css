@@ -118,6 +118,16 @@
 }
 
 .headerCell {
+  /* Containing block for absolutely-positioned children: the
+   * .resizeHandle (right: 0) at the cell edge, and the Popover.Target
+   * (inset: 0) used to anchor the property menu. Without this, both
+   * resolve up to .stickyBand and (a) all the resize handles stack at
+   * the band's right edge with only one visible, (b) every property
+   * menu opens at the same band-relative spot regardless of which
+   * column was clicked. .headerCellPinned overrides with position:
+   * sticky which also establishes a containing block, so pinned cells
+   * (e.g. the primary Title) kept working without this rule. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
