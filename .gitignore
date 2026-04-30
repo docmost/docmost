@@ -1,6 +1,9 @@
+# local environment files
 .env
+.env.local
 .env.dev
 .env.prod
+.env.*.local
 .env.development.local
 data
 # compiled output
