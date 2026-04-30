@@ -29,6 +29,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
+import { load } from 'cheerio';
+import { normalizeImportHtml } from '../utils/import-formatter';
 
 @Injectable()
 export class ImportService {
@@ -136,7 +138,9 @@ export class ImportService {
 
   async processHTML(htmlInput: string): Promise<any> {
     try {
-      return htmlToJson(htmlInput);
+      const $ = load(htmlInput);
+      normalizeImportHtml($, $.root());
+      return htmlToJson($.html() || '');
     } catch (err) {
       throw err;
     }

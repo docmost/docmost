@@ -5,6 +5,7 @@ import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import slugify from '@sindresorhus/slugify';
+import { normalizeTableColumnWidths } from './table-utils';
 
 // Check if text contains Unicode characters (for emojis/icons)
 function isUnicodeCharacter(text: string): boolean {
@@ -51,9 +52,7 @@ export async function formatImportHtml(opts: {
     }
   }
 
-  notionFormatter($, $root);
-  xwikiFormatter($, $root);
-  defaultHtmlFormatter($, $root);
+  normalizeImportHtml($, $root);
 
   const backlinks = await rewriteInternalLinksToMentionHtml(
     $,
@@ -73,6 +72,23 @@ export async function formatImportHtml(opts: {
   };
 }
 
+/**
+ * Contextless HTML cleanup shared by every import path.
+ * - notionFormatter: no-op on non-Notion HTML (class-selector-based).
+ * - xwikiFormatter: no-op on non-XWiki HTML (looks for #xwikicontent).
+ * - defaultHtmlFormatter: table column widths + provider auto-embeds.
+ *
+ * Does NOT run rewriteInternalLinksToMentionHtml — that requires zip context.
+ */
+export function normalizeImportHtml(
+  $: CheerioAPI,
+  $root: Cheerio<any>,
+): void {
+  notionFormatter($, $root);
+  xwikiFormatter($, $root);
+  defaultHtmlFormatter($, $root);
+}
+
 export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
   const $content = $root.find('#xwikicontent');
   if ($content.length) {
@@ -82,6 +98,8 @@ export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
 }
 
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
+  normalizeTableColumnWidths($, $root);
+
   $root.find('a[href]').each((_, el) => {
     const $el = $(el);
     const url = $el.attr('href')!;
