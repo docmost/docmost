@@ -53,7 +53,7 @@ export class ImportController {
   ) {
     const validFileExtensions = ['.md', '.html', '.docx', '.pdf'];
 
-    const maxFileSize = bytes('20mb');
+    const maxFileSize = bytes('30mb');
 
     let file = null;
     try {
