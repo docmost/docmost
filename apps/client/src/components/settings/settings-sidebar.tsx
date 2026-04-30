@@ -291,7 +291,9 @@ export default function SettingsSidebar() {
         <Text fw={500}>{t("Settings")}</Text>
       </Group>
 
-      <ScrollArea w="100%">{menuItems}</ScrollArea>
+      <ScrollArea w="100%" className={classes.linksArea}>
+        {menuItems}
+      </ScrollArea>
 
       {!isCloud() && <AppVersion />}
 

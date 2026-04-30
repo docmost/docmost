@@ -45,6 +45,10 @@ export class EnvironmentService {
     return this.configService.get<string>('APP_SECRET');
   }
 
+  getAppReleaseVersion(): string | undefined {
+    return this.configService.get<string>('APP_RELEASE_VERSION');
+  }
+
   getDatabaseURL(): string {
     return this.configService.get<string>('DATABASE_URL');
   }

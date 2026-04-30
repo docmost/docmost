@@ -153,12 +153,19 @@ export class AttachmentController {
 
       return res.send(fileResponse);
     } catch (err: any) {
+      const error = err as Error;
+      this.logger.error(
+        `Error processing file upload: ${error.message}`,
+        error.stack,
+      );
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
       if (err?.statusCode === 413) {
         const errMessage = `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`;
         this.logger.error(errMessage);
         throw new BadRequestException(errMessage);
       }
-      this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
     }
   }
@@ -337,7 +344,14 @@ export class AttachmentController {
 
       return res.send(fileResponse);
     } catch (err: any) {
-      this.logger.error(err);
+      const error = err as Error;
+      this.logger.error(
+        `Error processing image upload: ${error.message}`,
+        error.stack,
+      );
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
       throw new BadRequestException('Error processing file upload.');
     }
   }

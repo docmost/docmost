@@ -45,6 +45,10 @@ export class EnvironmentVariables {
   APP_SECRET: string;
 
   @IsOptional()
+  @IsString()
+  APP_RELEASE_VERSION: string;
+
+  @IsOptional()
   @IsIn(['smtp', 'postmark'])
   MAIL_DRIVER: string;
 
