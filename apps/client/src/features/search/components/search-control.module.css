@@ -29,6 +29,8 @@
     border-radius: var(--mantine-radius-sm);
     border: 1px solid;
     font-weight: bold;
+    white-space: nowrap;
+    flex-shrink: 0;
 
     @mixin light {
         color: var(--mantine-color-gray-7);

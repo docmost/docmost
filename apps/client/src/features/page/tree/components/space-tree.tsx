@@ -28,6 +28,8 @@ import {
   IconLink,
   IconPlus,
   IconPointFilled,
+  IconStar,
+  IconStarFilled,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -69,6 +71,7 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
+import { useFavoriteIds, useAddFavoriteMutation, useRemoveFavoriteMutation } from "@/features/favorite/queries/favorite-query";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -506,6 +509,10 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
     copyPageModalOpened,
     { open: openCopyPageModal, close: closeCopySpaceModal },
   ] = useDisclosure(false);
+  const favoriteIds = useFavoriteIds("page", spaceId);
+  const addFavorite = useAddFavoriteMutation();
+  const removeFavorite = useRemoveFavoriteMutation();
+  const isFavorited = favoriteIds.has(node.data.id);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -606,6 +613,21 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
             }}
           >
             {t("Copy link")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={isFavorited ? <IconStarFilled size={16} /> : <IconStar size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isFavorited) {
+                removeFavorite.mutate({ type: "page", pageId: node.data.id });
+              } else {
+                addFavorite.mutate({ type: "page", pageId: node.data.id });
+              }
+            }}
+          >
+            {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
           </Menu.Item>
 
           <Menu.Item

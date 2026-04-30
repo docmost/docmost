@@ -27,6 +27,9 @@ import { extractPageSlugId } from "@/lib";
 import { useTranslation } from "react-i18next";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { IconArrowUp, IconMessageOff } from "@tabler/icons-react";
+import { useAtom } from "jotai";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 
 function CommentListWithTabs() {
   const { t } = useTranslation();
@@ -41,7 +44,9 @@ function CommentListWithTabs() {
   const [isLoading, setIsLoading] = useState(false);
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const canComment = page?.permissions?.canEdit ?? false;
+  const canComment =
+    (page?.permissions?.canEdit ?? false) ||
+    (space?.settings?.comments?.allowViewerComments === true);
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
@@ -150,7 +155,7 @@ function CommentListWithTabs() {
         )}
       </Paper>
     ),
-    [comments, handleAddReply, isLoading, space?.membership?.role],
+    [comments, handleAddReply, isLoading, space?.membership?.role, canComment],
   );
 
   if (isCommentsLoading) {
@@ -345,6 +350,7 @@ const PageCommentInput = ({ onSave, isLoading }) => {
   const [content, setContent] = useState("");
   const { ref, focused } = useFocusWithin();
   const commentEditorRef = useRef(null);
+  const [currentUser] = useAtom(currentUserAtom);
 
   const handleSave = useCallback(() => {
     onSave(null, content);
@@ -363,19 +369,30 @@ const PageCommentInput = ({ onSave, isLoading }) => {
         position: "relative",
       }}
     >
-      <CommentEditor
-        ref={commentEditorRef}
-        onUpdate={setContent}
-        onSave={handleSave}
-        editable={true}
-        placeholder={t("Add a comment...")}
-      />
+      <Group wrap="nowrap" align="flex-start" gap="xs">
+        <CustomAvatar
+          size="sm"
+          avatarUrl={currentUser?.user?.avatarUrl}
+          name={currentUser?.user?.name}
+          style={{ flexShrink: 0, marginTop: 10 }}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <CommentEditor
+            ref={commentEditorRef}
+            onUpdate={setContent}
+            onSave={handleSave}
+            editable={true}
+            placeholder={t("Add a comment...")}
+          />
+        </div>
+      </Group>
       {focused && (
         <ActionIcon
           variant="filled"
           radius="xl"
           size="sm"
           onClick={handleSave}
+          onMouseDown={(e) => e.preventDefault()}
           loading={isLoading}
           style={{ position: "absolute", right: 8, bottom: 30 }}
         >

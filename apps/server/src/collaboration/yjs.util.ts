@@ -1,7 +1,7 @@
 import {
   initProseMirrorDoc,
   relativePositionToAbsolutePosition,
-} from 'y-prosemirror';
+} from '@tiptap/y-tiptap';
 import * as Y from 'yjs';
 import { Document } from '@hocuspocus/server';
 import { getSchema } from '@tiptap/core';

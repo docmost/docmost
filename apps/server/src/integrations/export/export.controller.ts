@@ -23,9 +23,12 @@ import {
   SpaceCaslSubject,
 } from '../../core/casl/interfaces/space-ability.type';
 import { FastifyReply } from 'fastify';
-import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
-import { getMimeType, getPageTitle } from '../../common/helpers';
+import {
+  getMimeType,
+  getPageTitle,
+  sanitizeFileName,
+} from '../../common/helpers';
 import * as path from 'path';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import {
@@ -61,7 +64,7 @@ export class ExportController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    const zipFileStream = await this.exportService.exportPages(
+    const result = await this.exportService.exportPages(
       dto.pageId,
       dto.format,
       dto.includeAttachments,
@@ -83,15 +86,33 @@ export class ExportController {
       },
     });
 
-    const fileName = sanitize(page.title || 'untitled') + '.zip';
+    if (result.type === 'file') {
+      const ext = getExportExtension(dto.format);
+      const fileName =
+        sanitizeFileName(page.title || 'untitled', { preserveSpaces: true }) +
+        ext;
+      const contentType = getMimeType(path.extname(fileName));
 
-    res.headers({
-      'Content-Type': 'application/zip',
-      'Content-Disposition':
-        'attachment; filename="' + encodeURIComponent(fileName) + '"',
-    });
+      res.headers({
+        'Content-Type': contentType,
+        'Content-Disposition':
+          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+      });
 
-    res.send(zipFileStream);
+      res.send(result.content);
+    } else {
+      const fileName =
+        sanitizeFileName(page.title || 'untitled', { preserveSpaces: true }) +
+        '.zip';
+
+      res.headers({
+        'Content-Type': 'application/zip',
+        'Content-Disposition':
+          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+      });
+
+      res.send(result.stream);
+    }
   }
 
   @UseGuards(JwtAuthGuard)
@@ -130,7 +151,9 @@ export class ExportController {
       'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' +
-        encodeURIComponent(sanitize(exportFile.fileName)) +
+        encodeURIComponent(
+          sanitizeFileName(exportFile.fileName, { preserveSpaces: true }),
+        ) +
         '"',
     });
 

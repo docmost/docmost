@@ -47,6 +47,10 @@ import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import {
+  INTERNAL_LINK_REGEX,
+  extractPageSlugId,
+} from '../../../integrations/export/utils';
 import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
@@ -296,7 +300,7 @@ export class PageService {
     }
 
     const result = await executeWithCursorPagination(query, {
-      perPage: 200,
+      perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
@@ -448,6 +452,20 @@ export class PageService {
           .where('pageId', 'in', pageIdsToMove)
           .execute();
 
+        // Update page verifications
+        await trx
+          .updateTable('pageVerifications')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIdsToMove)
+          .execute();
+
+        // Update notifications — access follows the page after a move
+        await trx
+          .updateTable('notifications')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIdsToMove)
+          .execute();
+
         // Update attachments
         await this.attachmentRepo.updateAttachmentsByPageId(
           { spaceId },
@@ -509,6 +527,11 @@ export class PageService {
         oldSlugId: page.slugId,
       });
     });
+
+    const slugIdMap = new Map<string, CopyPageMapEntry>();
+    for (const [, entry] of pageMap) {
+      slugIdMap.set(entry.oldSlugId, entry);
+    }
 
     const attachmentMap = new Map<string, ICopyPageAttachment>();
 
@@ -574,6 +597,28 @@ export class PageService {
               node.attrs.entityId = mappedPage.newPageId;
               //@ts-ignore
               node.attrs.slugId = mappedPage.newSlugId;
+            }
+          }
+
+          // Update internal page links in link marks
+          for (const mark of node.marks) {
+            if (
+              mark.type.name === 'link' &&
+              mark.attrs.internal &&
+              mark.attrs.href
+            ) {
+              const match = mark.attrs.href.match(INTERNAL_LINK_REGEX);
+              if (match) {
+                const slugId = extractPageSlugId(match[5]);
+                if (slugId && slugIdMap.has(slugId)) {
+                  const mappedPage = slugIdMap.get(slugId);
+                  //@ts-ignore
+                  mark.attrs.href = mark.attrs.href.replace(
+                    slugId,
+                    mappedPage.newSlugId,
+                  );
+                }
+              }
             }
           }
         });
@@ -817,6 +862,33 @@ export class PageService {
         await this.pagePermissionRepo.filterAccessiblePageIds({
           pageIds,
           userId,
+        });
+      const accessibleSet = new Set(accessibleIds);
+      result.items = result.items.filter((p) => accessibleSet.has(p.id));
+    }
+
+    return result;
+  }
+
+  async getCreatedByPages(
+    creatorId: string,
+    requestingUserId: string,
+    pagination: PaginationOptions,
+    spaceId?: string,
+  ): Promise<CursorPaginationResult<Page>> {
+    const result = await this.pageRepo.getCreatedByPages(
+      creatorId,
+      requestingUserId,
+      pagination,
+      spaceId,
+    );
+
+    if (result.items.length > 0) {
+      const pageIds = result.items.map((p) => p.id);
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds,
+          userId: requestingUserId,
         });
       const accessibleSet = new Set(accessibleIds);
       result.items = result.items.filter((p) => accessibleSet.has(p.id));

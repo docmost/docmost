@@ -2,14 +2,15 @@ import { Group, List, Stack, Table, Text, ThemeIcon } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 
 const enterpriseFeatures = [
-  "SSO (SAML, OIDC, LDAP)",
-  "AI Integration (Search & Assistant)",
-  "Page-level Permissions",
-  "Audit Logs",
-  "API Keys",
+  "AI Integration (Chat, Search & Assistant)",
   "MCP Support",
+  "SSO (SAML, OIDC, LDAP)",
   "Multi-factor Authentication (2FA)",
+  "Page-level Permissions",
+  "Page verification & approval workflow",
+  "Audit Logs",
   "Enterprise Controls",
+  "API Keys",
   "Advanced Search Engine Support",
   "Full-text Search in Attachments (PDF, DOCX)",
   "Resolve Comments",
@@ -68,7 +69,31 @@ export default function OssDetails() {
         </List>
 
         <Text size="sm" c="dimmed">
-          Contact <a href="mailto:sales@docmost.com?subject=Enterprise%20License%20Inquiry">sales@docmost.com </a> to purchase an enterprise license.
+          Get an enterprise trial key at{" "}
+          <a
+            href="https://customers.docmost.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            customers.docmost.com
+          </a>
+          .
+        </Text>
+
+        <Text size="sm" c="dimmed">
+          Visit{" "}
+          <a
+            href="https://docmost.com/pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            docmost.com/pricing
+          </a>{" "}
+          to purchase an enterprise license.
+        </Text>
+        <Text size="sm" c="dimmed">
+          For inquiries, contact{" "}
+          <a href="mailto:sales@docmost.com">sales@docmost.com</a>
         </Text>
       </Stack>
     </Stack>

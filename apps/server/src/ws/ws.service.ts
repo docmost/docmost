@@ -27,6 +27,15 @@ export class WsService {
   async handleTreeEvent(client: Socket, data: any): Promise<void> {
     const room = getSpaceRoomName(data.spaceId);
 
+    if (!client.rooms.has(room)) {
+      return;
+    }
+
+    if (data.operation === 'refetchRootTreeNodeEvent') {
+      client.broadcast.to(room).emit('message', data);
+      return;
+    }
+
     const hasRestrictions = await this.spaceHasRestrictions(data.spaceId);
     if (!hasRestrictions) {
       client.broadcast.to(room).emit('message', data);

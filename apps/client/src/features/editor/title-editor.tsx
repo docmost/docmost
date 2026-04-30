@@ -27,6 +27,7 @@ import localEmitter from "@/lib/local-emitter.ts";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
+import { platformModifierKey } from "@/lib";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -90,11 +91,11 @@ export function TitleEditor({
     editorProps: {
       handleDOMEvents: {
         keydown: (_view, event) => {
-          if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
+          if (platformModifierKey(event) && event.code === "KeyS") {
             event.preventDefault();
             return true;
           }
-          if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
+          if (platformModifierKey(event) && event.code === "KeyK") {
             searchSpotlight.open();
             return true;
           }

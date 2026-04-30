@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
+import { UserRole } from '../../../common/helpers/types/permission';
 
 export class UpdateWorkspaceUserRoleDto {
   @IsNotEmpty()
@@ -6,6 +7,6 @@ export class UpdateWorkspaceUserRoleDto {
   userId: string;
 
   @IsNotEmpty()
-  @IsString()
+  @IsEnum(UserRole)
   role: string;
 }
