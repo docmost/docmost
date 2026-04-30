@@ -388,6 +388,7 @@ export class AuthService {
     userMissingMessage: string;
   }) {
     let user = await this.userRepo.findByEmail(opts.email, opts.workspaceId);
+    const avatarUrl = this.normalizeExternalAvatarUrl(opts.avatarUrl);
 
     if (!user) {
       if (!opts.autoProvision) {
@@ -398,7 +399,7 @@ export class AuthService {
         {
           email: opts.email,
           name: opts.name?.trim() || opts.email.split('@')[0],
-          avatarUrl: opts.avatarUrl,
+          avatarUrl,
           password: randomBytes(48).toString('base64url'),
           emailVerifiedAt: new Date(),
           role: UserRole.MEMBER,
@@ -407,13 +408,9 @@ export class AuthService {
       );
     }
 
-    if (opts.avatarUrl && user.avatarUrl !== opts.avatarUrl) {
-      await this.userRepo.updateUser(
-        { avatarUrl: opts.avatarUrl },
-        user.id,
-        opts.workspaceId,
-      );
-      user.avatarUrl = opts.avatarUrl;
+    if (avatarUrl && user.avatarUrl !== avatarUrl) {
+      await this.userRepo.updateUser({ avatarUrl }, user.id, opts.workspaceId);
+      user.avatarUrl = avatarUrl;
     }
 
     if (isUserDisabled(user)) {
@@ -430,5 +427,14 @@ export class AuthService {
     });
 
     return this.sessionService.createSessionAndToken(user);
+  }
+
+  private normalizeExternalAvatarUrl(avatarUrl?: string): string | undefined {
+    const value = avatarUrl?.trim();
+    if (!value || ['null', 'undefined'].includes(value.toLowerCase())) {
+      return undefined;
+    }
+
+    return value;
   }
 }

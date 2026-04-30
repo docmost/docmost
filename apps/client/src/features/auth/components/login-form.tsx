@@ -11,6 +11,7 @@ import {
   Box,
   Anchor,
   Group,
+  rem,
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
@@ -23,13 +24,31 @@ import { Error404 } from "@/components/ui/error-404.tsx";
 import React from "react";
 import { AuthLayout } from "./auth-layout.tsx";
 import { getOAuthProviders, isOAuthEnabled } from "@/lib/config.ts";
-import { IconBrandAzure, IconBrandGit } from "@tabler/icons-react";
+import { IconBrandGit } from "@tabler/icons-react";
 
 const formSchema = z.object({
   email: z.email().min(1, { message: "email is required" }),
   password: z.string().min(1, { message: "Password is required" }),
 });
 type FormValues = z.infer<typeof formSchema>;
+
+function MicrosoftIcon({ size = 16 }: { size?: number }) {
+  const iconSize = rem(size);
+
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 23 23"
+      style={{ width: iconSize, height: iconSize }}
+    >
+      <path fill="#f25022" d="M1 1h10v10H1z" />
+      <path fill="#7fba00" d="M12 1h10v10H12z" />
+      <path fill="#00a4ef" d="M1 12h10v10H1z" />
+      <path fill="#ffb900" d="M12 12h10v10H12z" />
+    </svg>
+  );
+}
 
 export function LoginForm() {
   const { t } = useTranslation();
@@ -64,7 +83,7 @@ export function LoginForm() {
   const oauthProviders = {
     azure: {
       label: "Microsoft Azure",
-      icon: <IconBrandAzure size={16} />,
+      icon: <MicrosoftIcon size={16} />,
     },
     gitea: {
       label: "Gitea",
@@ -97,23 +116,6 @@ export function LoginForm() {
           </Title>
 
           <SsoLogin />
-
-          {enabledOAuthProviders.map(({ provider, config }, index) => (
-            <Button
-              key={provider}
-              onClick={() => onOAuthLogin(provider)}
-              leftSection={config.icon}
-              variant="default"
-              fullWidth
-              mb={
-                data?.enforceSso && index === enabledOAuthProviders.length - 1
-                  ? 0
-                  : "md"
-              }
-            >
-              Continue with {config.label}
-            </Button>
-          ))}
 
           {!data?.enforceSso && (
             <>
@@ -152,6 +154,19 @@ export function LoginForm() {
               </form>
             </>
           )}
+
+          {enabledOAuthProviders.map(({ provider, config }, index) => (
+            <Button
+              key={provider}
+              onClick={() => onOAuthLogin(provider)}
+              leftSection={config.icon}
+              variant="default"
+              fullWidth
+              mt={data?.enforceSso && index === 0 ? 0 : "md"}
+            >
+              Continue with {config.label}
+            </Button>
+          ))}
         </Box>
       </Container>
     </AuthLayout>
