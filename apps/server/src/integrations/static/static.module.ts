@@ -45,8 +45,8 @@ export class StaticModule implements OnModuleInit {
           : undefined,
         COLLAB_URL: this.environmentService.getCollabUrl(),
         OAUTH_ENABLED: this.environmentService.isOAuthEnabled(),
-        OAUTH_PROVIDER: this.environmentService.isOAuthEnabled()
-          ? this.environmentService.getOAuthProvider()
+        OAUTH_PROVIDERS: this.environmentService.isOAuthEnabled()
+          ? this.environmentService.getOAuthProviders().join(',')
           : undefined,
         FORWARD_AUTH_ENABLED: this.environmentService.isForwardAuthEnabled(),
         BILLING_TRIAL_DAYS: this.environmentService.isCloud()

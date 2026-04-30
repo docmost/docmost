@@ -22,8 +22,8 @@ import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/worksp
 import { Error404 } from "@/components/ui/error-404.tsx";
 import React from "react";
 import { AuthLayout } from "./auth-layout.tsx";
-import { getOAuthProvider, isOAuthEnabled } from "@/lib/config.ts";
-import { IconBrandGit } from "@tabler/icons-react";
+import { getOAuthProviders, isOAuthEnabled } from "@/lib/config.ts";
+import { IconBrandAzure, IconBrandGit } from "@tabler/icons-react";
 
 const formSchema = z.object({
   email: z.email().min(1, { message: "email is required" }),
@@ -54,15 +54,31 @@ export function LoginForm() {
     await signIn(data);
   }
 
-  function onOAuthLogin() {
+  function onOAuthLogin(provider: string) {
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get("redirect") || "/home";
     const loginParams = new URLSearchParams({ redirect });
-    window.location.href = `/api/auth/oauth/login?${loginParams.toString()}`;
+    window.location.href = `/api/auth/oauth/${provider}/login?${loginParams.toString()}`;
   }
 
-  const oauthProvider = getOAuthProvider();
-  const isGiteaOauthEnabled = isOAuthEnabled() && oauthProvider === "gitea";
+  const oauthProviders = {
+    azure: {
+      label: "Microsoft Azure",
+      icon: <IconBrandAzure size={16} />,
+    },
+    gitea: {
+      label: "Gitea",
+      icon: <IconBrandGit size={16} />,
+    },
+  };
+  const enabledOAuthProviders = isOAuthEnabled()
+    ? getOAuthProviders()
+        .map((provider) => ({
+          provider,
+          config: oauthProviders[provider as keyof typeof oauthProviders],
+        }))
+        .filter(({ config }) => Boolean(config))
+    : [];
 
   if (isDataLoading) {
     return null;
@@ -82,17 +98,22 @@ export function LoginForm() {
 
           <SsoLogin />
 
-          {isGiteaOauthEnabled && (
+          {enabledOAuthProviders.map(({ provider, config }, index) => (
             <Button
-              onClick={onOAuthLogin}
-              leftSection={<IconBrandGit size={16} />}
+              key={provider}
+              onClick={() => onOAuthLogin(provider)}
+              leftSection={config.icon}
               variant="default"
               fullWidth
-              mb={data?.enforceSso ? 0 : "md"}
+              mb={
+                data?.enforceSso && index === enabledOAuthProviders.length - 1
+                  ? 0
+                  : "md"
+              }
             >
-              Continue with Gitea
+              Continue with {config.label}
             </Button>
-          )}
+          ))}
 
           {!data?.enforceSso && (
             <>

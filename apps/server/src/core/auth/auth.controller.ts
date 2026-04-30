@@ -12,6 +12,7 @@ import {
   UseGuards,
   Logger,
   UnauthorizedException,
+  Param,
 } from '@nestjs/common';
 import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import {
@@ -139,10 +140,24 @@ export class AuthController {
   }
 
   @Get('oauth/login')
-  async oauthLoginRedirect(
+  async oauthLoginRedirectLegacy(
     @Res() res: FastifyReply,
     @Query('redirect') redirect?: string,
   ) {
+    return this.oauthLoginRedirect(
+      this.environmentService.getOAuthProvider(),
+      res,
+      redirect,
+    );
+  }
+
+  @Get('oauth/:provider/login')
+  async oauthLoginRedirect(
+    @Param('provider') provider: string,
+    @Res() res: FastifyReply,
+    @Query('redirect') redirect?: string,
+  ) {
+    provider = this.normalizeOAuthProvider(provider);
     if (!this.environmentService.isOAuthEnabled()) {
       throw new UnauthorizedException();
     }
@@ -151,16 +166,29 @@ export class AuthController {
     const nonce = crypto.randomUUID();
     const codeVerifier = this.oauthService.generatePkceCodeVerifier();
 
-    this.setTemporaryCookie(res, this.oauthStateCookieName, state);
-    this.setTemporaryCookie(res, this.oauthNonceCookieName, nonce);
-    this.setTemporaryCookie(res, this.oauthPkceCookieName, codeVerifier);
     this.setTemporaryCookie(
       res,
-      this.oauthRedirectCookieName,
+      this.getOAuthCookieName(this.oauthStateCookieName, provider),
+      state,
+    );
+    this.setTemporaryCookie(
+      res,
+      this.getOAuthCookieName(this.oauthNonceCookieName, provider),
+      nonce,
+    );
+    this.setTemporaryCookie(
+      res,
+      this.getOAuthCookieName(this.oauthPkceCookieName, provider),
+      codeVerifier,
+    );
+    this.setTemporaryCookie(
+      res,
+      this.getOAuthCookieName(this.oauthRedirectCookieName, provider),
       this.getSafeRedirectPath(redirect),
     );
 
     const authorizationUrl = await this.oauthService.buildLoginUrl(
+      provider,
       state,
       nonce,
       codeVerifier,
@@ -169,19 +197,47 @@ export class AuthController {
   }
 
   @Get('oauth/callback')
-  async oauthCallback(
+  async oauthCallbackLegacy(
     @AuthWorkspace() workspace: Workspace,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
   ) {
+    return this.oauthCallback(
+      this.environmentService.getOAuthProvider(),
+      workspace,
+      req,
+      res,
+    );
+  }
+
+  @Get('oauth/:provider/callback')
+  async oauthCallback(
+    @Param('provider') provider: string,
+    @AuthWorkspace() workspace: Workspace,
+    @Req() req: FastifyRequest,
+    @Res() res: FastifyReply,
+  ) {
+    provider = this.normalizeOAuthProvider(provider);
     if (!this.environmentService.isOAuthEnabled()) {
       throw new UnauthorizedException();
     }
 
-    const state = req.cookies?.[this.oauthStateCookieName];
-    const nonce = req.cookies?.[this.oauthNonceCookieName];
-    const codeVerifier = req.cookies?.[this.oauthPkceCookieName];
-    const redirect = req.cookies?.[this.oauthRedirectCookieName];
+    const state =
+      req.cookies?.[
+        this.getOAuthCookieName(this.oauthStateCookieName, provider)
+      ];
+    const nonce =
+      req.cookies?.[
+        this.getOAuthCookieName(this.oauthNonceCookieName, provider)
+      ];
+    const codeVerifier =
+      req.cookies?.[
+        this.getOAuthCookieName(this.oauthPkceCookieName, provider)
+      ];
+    const redirect =
+      req.cookies?.[
+        this.getOAuthCookieName(this.oauthRedirectCookieName, provider)
+      ];
 
     if (!state || !nonce || !codeVerifier) {
       throw new UnauthorizedException(
@@ -196,16 +252,29 @@ export class AuthController {
     }
 
     const profile = await this.oauthService.getProfileFromCallback(
+      provider,
       req,
       state,
       nonce,
       codeVerifier,
     );
 
-    this.clearTemporaryCookie(res, this.oauthStateCookieName);
-    this.clearTemporaryCookie(res, this.oauthNonceCookieName);
-    this.clearTemporaryCookie(res, this.oauthPkceCookieName);
-    this.clearTemporaryCookie(res, this.oauthRedirectCookieName);
+    this.clearTemporaryCookie(
+      res,
+      this.getOAuthCookieName(this.oauthStateCookieName, provider),
+    );
+    this.clearTemporaryCookie(
+      res,
+      this.getOAuthCookieName(this.oauthNonceCookieName, provider),
+    );
+    this.clearTemporaryCookie(
+      res,
+      this.getOAuthCookieName(this.oauthPkceCookieName, provider),
+    );
+    this.clearTemporaryCookie(
+      res,
+      this.getOAuthCookieName(this.oauthRedirectCookieName, provider),
+    );
 
     const authToken = await this.authService.oauthLogin({
       email: profile.email,
@@ -413,5 +482,18 @@ export class AuthController {
     }
 
     return redirect;
+  }
+
+  private normalizeOAuthProvider(provider: string): string {
+    provider = provider.toLowerCase();
+    if (!this.environmentService.isOAuthProviderEnabled(provider)) {
+      throw new UnauthorizedException();
+    }
+
+    return provider;
+  }
+
+  private getOAuthCookieName(name: string, provider: string): string {
+    return `${name}.${provider}`;
   }
 }

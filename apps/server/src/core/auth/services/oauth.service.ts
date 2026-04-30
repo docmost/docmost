@@ -13,8 +13,13 @@ type OAuthProfile = {
 
 @Injectable()
 export class OauthService {
-  private oidcConfigPromise?: Promise<oidc.Configuration>;
-  private oidcConfigExpiresAt = 0;
+  private oidcConfigByProvider = new Map<
+    string,
+    {
+      promise: Promise<oidc.Configuration>;
+      expiresAt: number;
+    }
+  >();
 
   constructor(private readonly environmentService: EnvironmentService) {}
 
@@ -22,14 +27,19 @@ export class OauthService {
     return oidc.randomPKCECodeVerifier();
   }
 
-  async buildLoginUrl(state: string, nonce: string, codeVerifier: string) {
-    const config = await this.getOidcConfig();
+  async buildLoginUrl(
+    provider: string,
+    state: string,
+    nonce: string,
+    codeVerifier: string,
+  ) {
+    const config = await this.getOidcConfig(provider);
     const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier);
 
     return oidc.buildAuthorizationUrl(config, {
-      redirect_uri: this.environmentService.getOAuthCallbackUrl(),
+      redirect_uri: this.environmentService.getOAuthCallbackUrl(provider),
       response_type: 'code',
-      scope: this.environmentService.getOAuthScopes(),
+      scope: this.environmentService.getOAuthScopes(provider),
       state,
       nonce,
       code_challenge: codeChallenge,
@@ -38,12 +48,13 @@ export class OauthService {
   }
 
   async getProfileFromCallback(
+    provider: string,
     req: FastifyRequest,
     expectedState: string,
     expectedNonce: string,
     pkceCodeVerifier: string,
   ): Promise<OAuthProfile> {
-    const config = await this.getOidcConfig();
+    const config = await this.getOidcConfig(provider);
     const currentUrl = this.getCurrentUrl(req);
 
     const tokens = await oidc.authorizationCodeGrant(config, currentUrl, {
@@ -68,9 +79,7 @@ export class OauthService {
       }
     }
 
-    const email =
-      this.getClaimValue(userInfo?.email) ??
-      this.getClaimValue(idTokenClaims?.email);
+    const email = this.getEmail(provider, userInfo, idTokenClaims);
     if (!email) {
       throw new UnauthorizedException(
         'OAuth provider did not return an email address',
@@ -93,40 +102,49 @@ export class OauthService {
     };
   }
 
-  private async getOidcConfig() {
-    if (this.oidcConfigPromise && this.oidcConfigExpiresAt > Date.now()) {
-      return this.oidcConfigPromise;
+  private async getOidcConfig(provider: string) {
+    const cachedConfig = this.oidcConfigByProvider.get(provider);
+    if (cachedConfig && cachedConfig.expiresAt > Date.now()) {
+      return cachedConfig.promise;
     }
 
-    this.oidcConfigPromise = oidc.discovery(
-      new URL(this.environmentService.getOAuthIssuerUrl()),
-      this.environmentService.getOAuthClientId(),
+    const configPromise = oidc.discovery(
+      new URL(this.environmentService.getOAuthIssuerUrl(provider)),
+      this.environmentService.getOAuthClientId(provider),
       {
-        redirect_uris: [this.environmentService.getOAuthCallbackUrl()],
+        redirect_uris: [this.environmentService.getOAuthCallbackUrl(provider)],
         response_types: ['code'],
       },
-      oidc.ClientSecretPost(this.environmentService.getOAuthClientSecret()),
+      oidc.ClientSecretPost(
+        this.environmentService.getOAuthClientSecret(provider),
+      ),
       {
-        execute: this.shouldAllowInsecureRequests()
+        execute: this.shouldAllowInsecureRequests(provider)
           ? [oidc.allowInsecureRequests]
           : undefined,
       },
     );
-    this.oidcConfigExpiresAt = Date.now() + OAUTH_CONFIG_TTL_MS;
+    this.oidcConfigByProvider.set(provider, {
+      promise: configPromise,
+      expiresAt: Date.now() + OAUTH_CONFIG_TTL_MS,
+    });
 
     try {
-      return await this.oidcConfigPromise;
+      return await configPromise;
     } catch (error) {
-      this.oidcConfigPromise = undefined;
-      this.oidcConfigExpiresAt = 0;
+      this.oidcConfigByProvider.delete(provider);
       throw error;
     }
   }
 
-  private shouldAllowInsecureRequests() {
+  private shouldAllowInsecureRequests(provider: string) {
     return (
-      this.environmentService.getOAuthIssuerUrl()?.startsWith('http://') ||
-      this.environmentService.getOAuthCallbackUrl()?.startsWith('http://')
+      this.environmentService
+        .getOAuthIssuerUrl(provider)
+        ?.startsWith('http://') ||
+      this.environmentService
+        .getOAuthCallbackUrl(provider)
+        ?.startsWith('http://')
     );
   }
 
@@ -136,5 +154,26 @@ export class OauthService {
 
   private getClaimValue(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  }
+
+  private getEmail(
+    provider: string,
+    userInfo?: oidc.UserInfoResponse,
+    idTokenClaims?: oidc.IDToken,
+  ) {
+    const email =
+      this.getClaimValue(userInfo?.email) ??
+      this.getClaimValue(idTokenClaims?.email);
+
+    if (email || provider !== 'azure') {
+      return email;
+    }
+
+    return (
+      this.getClaimValue(userInfo?.preferred_username) ??
+      this.getClaimValue(userInfo?.upn) ??
+      this.getClaimValue(idTokenClaims?.preferred_username) ??
+      this.getClaimValue(idTokenClaims?.upn)
+    );
   }
 }

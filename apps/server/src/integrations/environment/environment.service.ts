@@ -88,20 +88,39 @@ export class EnvironmentService {
       .toLowerCase();
   }
 
-  getOAuthClientId(): string {
-    return this.configService.get<string>('OAUTH_CLIENT_ID');
+  getOAuthProviders(): string[] {
+    const providers = this.configService.get<string>('OAUTH_PROVIDERS');
+    if (!providers) {
+      return [this.getOAuthProvider()];
+    }
+
+    return providers
+      .split(',')
+      .map((provider) => provider.trim().toLowerCase())
+      .filter(Boolean);
   }
 
-  getOAuthClientSecret(): string {
-    return this.configService.get<string>('OAUTH_CLIENT_SECRET');
+  isOAuthProviderEnabled(provider: string): boolean {
+    return this.getOAuthProviders().includes(provider.toLowerCase());
   }
 
-  getOAuthIssuerUrl(): string {
-    return this.configService.get<string>('OAUTH_ISSUER_URL');
+  getOAuthClientId(provider = this.getOAuthProvider()): string {
+    return this.getOAuthProviderConfig(provider, 'CLIENT_ID');
   }
 
-  getOAuthCallbackUrl(): string {
-    return this.configService.get<string>('OAUTH_CALLBACK_URL');
+  getOAuthClientSecret(provider = this.getOAuthProvider()): string {
+    return this.getOAuthProviderConfig(provider, 'CLIENT_SECRET');
+  }
+
+  getOAuthIssuerUrl(provider = this.getOAuthProvider()): string {
+    return this.getOAuthProviderConfig(provider, 'ISSUER_URL');
+  }
+
+  getOAuthCallbackUrl(provider = this.getOAuthProvider()): string {
+    return (
+      this.getOAuthProviderConfig(provider, 'CALLBACK_URL', false) ||
+      `${this.getAppUrl()}/api/auth/oauth/${provider}/callback`
+    );
   }
 
   isOAuthAutoProvisionEnabled(): boolean {
@@ -160,8 +179,40 @@ export class EnvironmentService {
     );
   }
 
-  getOAuthScopes(): string {
-    return 'openid profile email';
+  getOAuthScopes(provider = this.getOAuthProvider()): string {
+    return (
+      this.getOAuthProviderConfig(provider, 'SCOPES', false) ||
+      this.configService.get<string>('OAUTH_SCOPES') ||
+      'openid profile email'
+    );
+  }
+
+  private getOAuthProviderConfig(
+    provider: string,
+    key: string,
+    required = true,
+  ): string {
+    const normalizedProvider = provider.toUpperCase();
+    const providerValue =
+      this.configService.get<string>(`${normalizedProvider}_OAUTH_${key}`) ||
+      this.configService.get<string>(`OAUTH_${normalizedProvider}_${key}`);
+
+    if (providerValue) {
+      return providerValue;
+    }
+
+    if (provider.toLowerCase() === this.getOAuthProvider()) {
+      const legacyValue = this.configService.get<string>(`OAUTH_${key}`);
+      if (legacyValue) {
+        return legacyValue;
+      }
+    }
+
+    if (required) {
+      throw new Error(`Missing OAuth config for ${provider}: ${key}`);
+    }
+
+    return undefined;
   }
 
   getGotenbergUrl(): string | undefined {

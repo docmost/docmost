@@ -72,31 +72,85 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
-  @IsIn(['gitea'])
+  @IsIn(['gitea', 'azure'])
   @IsString()
   OAUTH_PROVIDER: string;
 
   @IsOptional()
-  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @IsString()
+  OAUTH_PROVIDERS: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true' && !obj.OAUTH_PROVIDERS)
   @IsString()
   @IsNotEmpty()
   OAUTH_CLIENT_ID: string;
 
   @IsOptional()
-  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true' && !obj.OAUTH_PROVIDERS)
   @IsString()
   @IsNotEmpty()
   OAUTH_CLIENT_SECRET: string;
 
   @IsOptional()
-  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true' && !obj.OAUTH_PROVIDERS)
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   OAUTH_ISSUER_URL: string;
 
   @IsOptional()
-  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true' && !obj.OAUTH_PROVIDERS)
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   OAUTH_CALLBACK_URL: string;
+
+  @IsOptional()
+  @IsString()
+  GITEA_OAUTH_CLIENT_ID: string;
+
+  @IsOptional()
+  @IsString()
+  GITEA_OAUTH_CLIENT_SECRET: string;
+
+  @IsOptional()
+  @ValidateIf(
+    (obj) =>
+      obj.GITEA_OAUTH_ISSUER_URL != '' && obj.GITEA_OAUTH_ISSUER_URL != null,
+  )
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  GITEA_OAUTH_ISSUER_URL: string;
+
+  @IsOptional()
+  @ValidateIf(
+    (obj) =>
+      obj.GITEA_OAUTH_CALLBACK_URL != '' &&
+      obj.GITEA_OAUTH_CALLBACK_URL != null,
+  )
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  GITEA_OAUTH_CALLBACK_URL: string;
+
+  @IsOptional()
+  @IsString()
+  AZURE_OAUTH_CLIENT_ID: string;
+
+  @IsOptional()
+  @IsString()
+  AZURE_OAUTH_CLIENT_SECRET: string;
+
+  @IsOptional()
+  @ValidateIf(
+    (obj) =>
+      obj.AZURE_OAUTH_ISSUER_URL != '' && obj.AZURE_OAUTH_ISSUER_URL != null,
+  )
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  AZURE_OAUTH_ISSUER_URL: string;
+
+  @IsOptional()
+  @ValidateIf(
+    (obj) =>
+      obj.AZURE_OAUTH_CALLBACK_URL != '' &&
+      obj.AZURE_OAUTH_CALLBACK_URL != null,
+  )
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  AZURE_OAUTH_CALLBACK_URL: string;
 
   @IsOptional()
   @IsIn(['true', 'false'])

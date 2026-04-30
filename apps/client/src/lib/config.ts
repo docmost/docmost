@@ -48,7 +48,19 @@ export function isOAuthEnabled(): boolean {
 }
 
 export function getOAuthProvider(): string {
-  return getConfigValue("OAUTH_PROVIDER", "gitea");
+  return getConfigValue("OAUTH_PROVIDER", "gitea").toLowerCase();
+}
+
+export function getOAuthProviders(): string[] {
+  const providers = getConfigValue("OAUTH_PROVIDERS");
+  if (!providers) {
+    return [getOAuthProvider()];
+  }
+
+  return providers
+    .split(",")
+    .map((provider) => provider.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 export function isForwardAuthEnabled(): boolean {
