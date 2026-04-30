@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
-import { sanitize } from 'sanitize-filename-ts';
+import sanitize = require('sanitize-filename');
 import { FastifyRequest } from 'fastify';
 import { Readable, Transform } from 'stream';
 
@@ -72,11 +72,33 @@ export function extractDateFromUuid7(uuid7: string) {
   return new Date(timestamp);
 }
 
-export function sanitizeFileName(fileName: string): string {
-  const sanitizedFilename = sanitize(fileName)
-    .replace(/ /g, '_')
-    .replace(/#/g, '_');
-  return sanitizedFilename.slice(0, 255);
+export type SanitizeFileNameOptions = {
+  /** Keep spaces and `#` instead of replacing them with `_`. Useful for
+   * download filenames where readability matters. Defaults to false. */
+  preserveSpaces?: boolean;
+};
+
+export function sanitizeFileName(
+  fileName: string,
+  options: SanitizeFileNameOptions = {},
+): string {
+  // Decode percent-encoded sequences so that bypasses like "..%2F" reach
+  // sanitize() as literal "../" and get stripped. sanitize-filename only
+  // strips literal characters and won't catch encoded path separators
+  // on its own.
+  const decoded = fileName.replace(/%[0-9a-fA-F]{2}/g, (m) => {
+    try {
+      return decodeURIComponent(m);
+    } catch {
+      return m;
+    }
+  });
+
+  const sanitized = sanitize(decoded);
+  if (options.preserveSpaces) {
+    return sanitized;
+  }
+  return sanitized.replace(/ /g, '_').replace(/#/g, '_');
 }
 
 export function removeAccent(str: string): string {

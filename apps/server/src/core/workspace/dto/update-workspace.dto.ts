@@ -5,15 +5,10 @@ import {
   IsBoolean,
   IsInt,
   IsOptional,
-  IsString,
   Min,
 } from 'class-validator';
 
 export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
-  @IsOptional()
-  @IsString()
-  logo: string;
-
   @IsOptional()
   @IsArray()
   emailDomains: string[];
