@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { UseOAuthAvatarDto } from './dto/use-oauth-avatar.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
@@ -50,5 +51,15 @@ export class UserController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     return this.userService.update(updateUserDto, user.id, workspace);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('use-oauth-avatar')
+  async useOAuthAvatar(
+    @Body() dto: UseOAuthAvatarDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.userService.useOAuthAvatar(dto.provider, user, workspace);
   }
 }

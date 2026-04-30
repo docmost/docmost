@@ -10,3 +10,10 @@ export async function updateUser(data: Partial<IUser>): Promise<IUser> {
   const req = await api.post<IUser>("/users/update", data);
   return req.data as IUser;
 }
+
+export async function useOAuthAvatar(
+  provider: "gitea" | "azure",
+): Promise<IUser> {
+  const req = await api.post<IUser>("/users/use-oauth-avatar", { provider });
+  return req.data as IUser;
+}

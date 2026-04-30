@@ -34,6 +34,10 @@ export interface ICurrentUser {
 }
 
 export interface IUserSettings {
+  oauthAvatars?: {
+    gitea?: string;
+    azure?: string;
+  };
   preferences: {
     fullPageWidth: boolean;
     pageEditMode: string;

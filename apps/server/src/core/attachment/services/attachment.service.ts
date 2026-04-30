@@ -244,7 +244,11 @@ export class AttachmentService {
     try {
       await this.storageService.upload(filePath, fileContent);
     } catch (err) {
-      this.logger.error('Error uploading file to drive:', err);
+      const error = err as Error;
+      this.logger.error(
+        `Error uploading file to drive: ${error.message}`,
+        error.stack,
+      );
       throw new BadRequestException('Error uploading file to drive');
     }
   }

@@ -148,6 +148,7 @@ export class AuthService {
       workspaceId: opts.workspaceId,
       autoProvision: this.environmentService.isOAuthAutoProvisionEnabled(),
       source: `oauth:${opts.provider}`,
+      oauthProvider: opts.provider,
       userMissingMessage: 'OAuth user does not exist in this workspace',
     });
   }
@@ -385,6 +386,7 @@ export class AuthService {
     workspaceId: string;
     autoProvision: boolean;
     source: string;
+    oauthProvider?: string;
     userMissingMessage: string;
   }) {
     let user = await this.userRepo.findByEmail(opts.email, opts.workspaceId);
@@ -408,7 +410,16 @@ export class AuthService {
       );
     }
 
-    if (avatarUrl && user.avatarUrl !== avatarUrl) {
+    if (opts.oauthProvider && avatarUrl) {
+      await this.userRepo.updateOAuthAvatar(
+        user.id,
+        opts.workspaceId,
+        opts.oauthProvider,
+        avatarUrl,
+      );
+    }
+
+    if (!user.avatarUrl && avatarUrl) {
       await this.userRepo.updateUser({ avatarUrl }, user.id, opts.workspaceId);
       user.avatarUrl = avatarUrl;
     }

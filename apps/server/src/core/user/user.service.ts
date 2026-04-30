@@ -8,8 +8,11 @@ import {
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationSettingKey } from '../notification/notification.constants';
-import { comparePasswordHash, diffAuditTrackedFields } from 'src/common/helpers/utils';
-import { Workspace } from '@docmost/db/types/entity.types';
+import {
+  comparePasswordHash,
+  diffAuditTrackedFields,
+} from 'src/common/helpers/utils';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 import { validateSsoEnforcement } from '../auth/auth.util';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import {
@@ -79,7 +82,11 @@ export class UserService {
       }
     }
 
-    const userBefore = { name: user.name, email: user.email, locale: user.locale };
+    const userBefore = {
+      name: user.name,
+      email: user.email,
+      locale: user.locale,
+    };
 
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
@@ -100,7 +107,9 @@ export class UserService {
       );
 
       if (!isPasswordMatch) {
-        throw new BadRequestException('You must provide the correct password to change your email');
+        throw new BadRequestException(
+          'You must provide the correct password to change your email',
+        );
       }
 
       if (await this.userRepo.findByEmail(updateUserDto.email, workspace.id)) {
@@ -139,5 +148,31 @@ export class UserService {
     }
 
     return user;
+  }
+
+  async useOAuthAvatar(provider: string, user: User, workspace: Workspace) {
+    const settings =
+      user.settings &&
+      typeof user.settings === 'object' &&
+      !Array.isArray(user.settings)
+        ? user.settings
+        : undefined;
+    const oauthAvatars = settings?.oauthAvatars;
+    const avatarUrl =
+      oauthAvatars && typeof oauthAvatars === 'object'
+        ? oauthAvatars[provider]
+        : undefined;
+
+    if (typeof avatarUrl !== 'string' || !avatarUrl.trim()) {
+      throw new BadRequestException('OAuth avatar is not available');
+    }
+
+    await this.userRepo.updateUser(
+      { avatarUrl: avatarUrl.trim() },
+      user.id,
+      workspace.id,
+    );
+
+    return this.userRepo.findById(user.id, workspace.id);
   }
 }

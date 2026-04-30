@@ -105,6 +105,25 @@ export class UserRepo {
       .execute();
   }
 
+  async updateOAuthAvatar(
+    userId: string,
+    workspaceId: string,
+    provider: string,
+    avatarUrl: string,
+  ) {
+    return await this.db
+      .updateTable('users')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('oauthAvatars', COALESCE(settings->'oauthAvatars', '{}'::jsonb)
+                || jsonb_build_object(${sql.lit(provider)}, ${sql.lit(avatarUrl)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', userId)
+      .where('workspaceId', '=', workspaceId)
+      .execute();
+  }
+
   async insertUser(
     insertableUser: InsertableUser,
     trx?: KyselyTransaction,
