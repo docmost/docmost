@@ -357,9 +357,19 @@ export class AttachmentController {
       throw new BadRequestException('Invalid image attachment type');
     }
 
-    const filenameWithoutExt = path.basename(fileName, path.extname(fileName));
-    if (!isValidUUID(filenameWithoutExt)) {
-      throw new BadRequestException('Invalid file id');
+    if (!fileName) {
+      throw new BadRequestException('Invalid file name');
+    }
+
+    const ext = path.extname(fileName);
+    const filenameWithoutExt = path.basename(fileName, ext);
+
+    if (
+      !ext ||
+      !isValidUUID(filenameWithoutExt) ||
+      `${filenameWithoutExt}${ext}` !== fileName
+    ) {
+      throw new BadRequestException('Invalid file name');
     }
 
     const filePath = `${getAttachmentFolderPath(attachmentType, workspace.id)}/${fileName}`;

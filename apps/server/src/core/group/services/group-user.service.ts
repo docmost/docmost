@@ -14,6 +14,7 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { executeTx } from '@docmost/db/utils';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
 import {
   AUDIT_SERVICE,
@@ -29,6 +30,7 @@ export class GroupUserService {
     @Inject(forwardRef(() => GroupService))
     private groupService: GroupService,
     private readonly watcherRepo: WatcherRepo,
+    private readonly favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -133,6 +135,12 @@ export class GroupUserService {
 
       for (const spaceId of spaceIds) {
         await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+          [userId],
+          spaceId,
+          { trx },
+        );
+
+        await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
           [userId],
           spaceId,
           { trx },

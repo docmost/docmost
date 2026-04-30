@@ -5,6 +5,7 @@ import {
   Badge,
   Table,
   ActionIcon,
+  Button,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
 import PageListSkeleton from "@/components/ui/page-list-skeleton.tsx";
@@ -23,7 +24,8 @@ interface Props {
 
 export default function RecentChanges({ spaceId }: Props) {
   const { t } = useTranslation();
-  const { data: pages, isLoading, isError } = useRecentChangesQuery(spaceId);
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } = useRecentChangesQuery(spaceId);
+  const pages = data?.pages.flatMap((p) => p.items) ?? [];
 
   if (isLoading) {
     return <PageListSkeleton />;
@@ -33,58 +35,72 @@ export default function RecentChanges({ spaceId }: Props) {
     return <Text>{t("Failed to fetch recent pages")}</Text>;
   }
 
-  return pages && pages.items.length > 0 ? (
-    <Table.ScrollContainer minWidth={500}>
-      <Table highlightOnHover verticalSpacing="sm">
-        <Table.Tbody>
-          {pages.items.map((page) => (
-            <Table.Tr key={page.id}>
-              <Table.Td>
-                <UnstyledButton
-                  component={Link}
-                  to={buildPageUrl(page?.space.slug, page.slugId, page.title)}
-                >
-                  <Group wrap="nowrap">
-                    {page.icon || (
-                      <ActionIcon variant="transparent" color="gray" size={18}>
-                        <IconFileDescription size={18} />
-                      </ActionIcon>
-                    )}
-
-                    <Text fw={500} size="md" lineClamp={1}>
-                      {page.title || t("Untitled")}
-                    </Text>
-                  </Group>
-                </UnstyledButton>
-              </Table.Td>
-              {!spaceId && (
+  return pages.length > 0 ? (
+    <>
+      <Table.ScrollContainer minWidth={500}>
+        <Table highlightOnHover verticalSpacing="sm">
+          <Table.Tbody>
+            {pages.map((page) => (
+              <Table.Tr key={page.id}>
                 <Table.Td>
-                  <Badge
-                    color={getInitialsColor(page?.space.name)}
-                    variant="light"
+                  <UnstyledButton
                     component={Link}
-                    to={getSpaceUrl(page?.space.slug)}
-                    style={{ cursor: "pointer" }}
+                    to={buildPageUrl(page?.space.slug, page.slugId, page.title)}
                   >
-                    {page?.space.name}
-                  </Badge>
+                    <Group wrap="nowrap">
+                      {page.icon || (
+                        <ActionIcon variant="transparent" color="gray" size={18}>
+                          <IconFileDescription size={18} />
+                        </ActionIcon>
+                      )}
+
+                      <Text fw={500} size="md" lineClamp={1}>
+                        {page.title || t("Untitled")}
+                      </Text>
+                    </Group>
+                  </UnstyledButton>
                 </Table.Td>
-              )}
-              <Table.Td>
-                <Text
-                  c="dimmed"
-                  style={{ whiteSpace: "nowrap" }}
-                  size="xs"
-                  fw={500}
-                >
-                  {formattedDate(page.updatedAt)}
-                </Text>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Table.ScrollContainer>
+                {!spaceId && (
+                  <Table.Td>
+                    <Badge
+                      color={getInitialsColor(page?.space.name)}
+                      variant="light"
+                      component={Link}
+                      to={getSpaceUrl(page?.space.slug)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {page?.space.name}
+                    </Badge>
+                  </Table.Td>
+                )}
+                <Table.Td>
+                  <Text
+                    c="dimmed"
+                    style={{ whiteSpace: "nowrap" }}
+                    size="xs"
+                    fw={500}
+                  >
+                    {formattedDate(page.updatedAt)}
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+      {hasNextPage && (
+        <Button
+          variant="subtle"
+          fullWidth
+          mt="sm"
+          mb="xl"
+          onClick={() => fetchNextPage()}
+          loading={isFetchingNextPage}
+        >
+          {t("Load more")}
+        </Button>
+      )}
+    </>
   ) : (
     <EmptyState
       icon={IconFiles}

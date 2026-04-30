@@ -75,6 +75,10 @@ export class EnvironmentService {
     return new Date(Date.now() + msUntilExpiry);
   }
 
+  getGotenbergUrl(): string | undefined {
+    return this.configService.get<string>('GOTENBERG_URL');
+  }
+
   getStorageDriver(): string {
     return this.configService.get<string>('STORAGE_DRIVER', 'local');
   }

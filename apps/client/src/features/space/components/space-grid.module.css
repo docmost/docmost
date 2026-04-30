@@ -7,7 +7,24 @@
 }
 
 .cardSection {
+    position: relative;
     background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+.starButton {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    opacity: 0;
+    transition: opacity 150ms ease;
+}
+
+.starButton[data-favorited="true"] {
+    opacity: 1;
+}
+
+.card:hover .starButton {
+    opacity: 1;
 }
 
 .title {

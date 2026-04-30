@@ -12,6 +12,8 @@ import {
   IconMarkdown,
   IconMessage,
   IconPrinter,
+  IconStar,
+  IconStarFilled,
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
@@ -42,6 +44,15 @@ import { PageStateSegmentedControl } from "@/features/user/components/page-state
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
+import {
+  PageVerificationMenuItem,
+  PageVerificationModal,
+} from "@/ee/page-verification";
+import {
+  useFavoriteIds,
+  useAddFavoriteMutation,
+  useRemoveFavoriteMutation,
+} from "@/features/favorite/queries/favorite-query";
 import {
   useWatchStatusQuery,
   useWatchPageMutation,
@@ -128,8 +139,16 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     movePageModalOpened,
     { open: openMovePageModal, close: closeMoveSpaceModal },
   ] = useDisclosure(false);
+  const [
+    verificationOpened,
+    { open: openVerificationModal, close: closeVerificationModal },
+  ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
+  const favoriteIds = useFavoriteIds("page", page?.spaceId);
+  const addFavoriteMutation = useAddFavoriteMutation();
+  const removeFavoriteMutation = useRemoveFavoriteMutation();
+  const isFavorited = page?.id ? favoriteIds.has(page.id) : false;
   const { data: watchStatus } = useWatchStatusQuery(page?.id);
   const watchPage = useWatchPageMutation();
   const unwatchPage = useUnwatchPageMutation();
@@ -165,6 +184,16 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     openDeleteModal({ onConfirm: () => tree?.delete(page.id) });
   };
 
+  const handleToggleFavorite = () => {
+    if (!page?.id) return;
+    const params = { type: "page" as const, pageId: page.id };
+    if (isFavorited) {
+      removeFavoriteMutation.mutate(params);
+    } else {
+      addFavoriteMutation.mutate(params);
+    }
+  };
+
   return (
     <>
       <Menu
@@ -194,6 +223,19 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             onClick={handleCopyAsMarkdown}
           >
             {t("Copy as Markdown")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={
+              isFavorited ? (
+                <IconStarFilled size={16} color="var(--mantine-color-yellow-5)" />
+              ) : (
+                <IconStar size={16} />
+              )
+            }
+            onClick={handleToggleFavorite}
+          >
+            {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
           </Menu.Item>
 
           {watchStatus?.watching ? (
@@ -226,6 +268,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           >
             {t("Page history")}
           </Menu.Item>
+
+          {!readOnly && (
+            <PageVerificationMenuItem
+              pageId={page?.id}
+              onClick={openVerificationModal}
+            />
+          )}
 
           <Menu.Divider />
 
@@ -315,6 +364,12 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         currentSpaceSlug={spaceSlug}
         onClose={closeMoveSpaceModal}
         open={movePageModalOpened}
+      />
+
+      <PageVerificationModal
+        pageId={page.id}
+        opened={verificationOpened}
+        onClose={closeVerificationModal}
       />
     </>
   );
