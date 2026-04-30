@@ -126,6 +126,7 @@ export class AuthService {
   }
 
   async oauthLogin(opts: {
+    provider: string;
     email: string;
     name?: string;
     avatarUrl?: string;
@@ -146,7 +147,7 @@ export class AuthService {
       avatarUrl: opts.avatarUrl,
       workspaceId: opts.workspaceId,
       autoProvision: this.environmentService.isOAuthAutoProvisionEnabled(),
-      source: `oauth:${this.environmentService.getOAuthProvider()}`,
+      source: `oauth:${opts.provider}`,
       userMissingMessage: 'OAuth user does not exist in this workspace',
     });
   }

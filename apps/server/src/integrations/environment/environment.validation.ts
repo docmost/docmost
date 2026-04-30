@@ -298,8 +298,9 @@ export function validate(config: Record<string, any>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config);
 
   const errors = validateSync(validatedConfig);
+  const oauthErrors = validateOAuthProviders(config);
 
-  if (errors.length > 0) {
+  if (errors.length > 0 || oauthErrors.length > 0) {
     console.error(
       'The Environment variables has failed the following validations:',
     );
@@ -307,6 +308,7 @@ export function validate(config: Record<string, any>) {
     errors.map((error) => {
       console.error(JSON.stringify(error.constraints));
     });
+    oauthErrors.map((error) => console.error(error));
 
     console.error(
       'Please fix the environment variables and try again. Exiting program...',
@@ -315,4 +317,42 @@ export function validate(config: Record<string, any>) {
   }
 
   return validatedConfig;
+}
+
+function validateOAuthProviders(config: Record<string, any>) {
+  if (config.OAUTH_ENABLED !== 'true' || !config.OAUTH_PROVIDERS) {
+    return [];
+  }
+
+  const supportedProviders = ['gitea', 'azure'];
+  const providers = String(config.OAUTH_PROVIDERS)
+    .split(',')
+    .map((provider) => provider.trim().toLowerCase())
+    .filter(Boolean);
+
+  const errors: string[] = [];
+  for (const provider of providers) {
+    if (!supportedProviders.includes(provider)) {
+      errors.push(
+        `OAUTH_PROVIDERS contains unsupported provider "${provider}". Supported providers: ${supportedProviders.join(', ')}`,
+      );
+      continue;
+    }
+
+    const prefix = provider.toUpperCase();
+    const missingKeys = ['CLIENT_ID', 'CLIENT_SECRET', 'ISSUER_URL'].filter(
+      (key) =>
+        !config[`${prefix}_OAUTH_${key}`] && !config[`OAUTH_${prefix}_${key}`],
+    );
+
+    if (missingKeys.length > 0) {
+      errors.push(
+        `${prefix} OAuth config is incomplete. Missing: ${missingKeys
+          .map((key) => `${prefix}_OAUTH_${key}`)
+          .join(', ')}`,
+      );
+    }
+  }
+
+  return errors;
 }

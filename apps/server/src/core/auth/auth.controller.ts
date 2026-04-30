@@ -277,6 +277,7 @@ export class AuthController {
     );
 
     const authToken = await this.authService.oauthLogin({
+      provider,
       email: profile.email,
       name: profile.name,
       avatarUrl: profile.avatarUrl,
