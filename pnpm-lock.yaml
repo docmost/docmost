@@ -479,6 +479,9 @@ importers:
       '@clickhouse/client':
         specifier: ^1.18.2
         version: 1.18.2
+      '@docmost/pdf-inspector':
+        specifier: ^1.9.3
+        version: 1.9.3
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.0.2
@@ -599,9 +602,6 @@ importers:
       fastify-ip:
         specifier: ^2.0.0
         version: 2.0.0
-      firecrawl-pdf-inspector:
-        specifier: https://github.com/Philipinho/pdf-inspector/releases/download/v1.9.1/pdf-inspector-prebuilt.tar.gz
-        version: https://release-assets.githubusercontent.com/github-production-release-asset/1211993441/40300090-741e-49e3-9861-3c704a1da840?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-04-30T02%3A23%3A47Z&rscd=attachment%3B+filename%3Dpdf-inspector-prebuilt.tar.gz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-04-30T01%3A23%3A11Z&ske=2026-04-30T02%3A23%3A47Z&sks=b&skv=2018-11-09&sig=c2w2vWR6MuUSsneux7kI6G2weoR3Ox0ZWvNX0l9AEHM%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc3NzUxMzk0NiwibmJmIjoxNzc3NTEzNjQ2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.dVVqhbrQRMC6qsX0IfScKUfckEMp71MMcRHIS8u53jI&response-content-disposition=attachment%3B%20filename%3Dpdf-inspector-prebuilt.tar.gz&response-content-type=application%2Foctet-stream
       fs-extra:
         specifier: ^11.3.4
         version: 11.3.4
@@ -1819,6 +1819,9 @@ packages:
   '@csstools/css-tokenizer@3.0.3':
     resolution: {integrity: sha512-UJnjoFsmxfKUdNYdWgOB0mWUypuLvAfQPH1+pyvRJs6euowbFkFC6P13w1l8mJyi3vxYMxc9kld5jZEGRQs6bw==}
     engines: {node: '>=18'}
+
+  '@docmost/pdf-inspector@1.9.3':
+    resolution: {integrity: sha512-s1B+vgyvfSMb/GBnfq48iLVY59oBl2deso1byIwoL3iJHUuxrhwJkUzSTvLt1/OwHn/i14jyCe17HYEWpnZgbg==}
 
   '@emnapi/core@1.8.1':
     resolution: {integrity: sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==}
@@ -6926,10 +6929,6 @@ packages:
     resolution: {integrity: sha512-78/PXT1wlLLDgTzDs7sjq9hzz0vXD+zn+7wypEe4fXQxCmdmqfGsEPQxmiCSQI3ajFV91bVSsvNtrJRiW6nGng==}
     engines: {node: '>=10'}
 
-  firecrawl-pdf-inspector@https://release-assets.githubusercontent.com/github-production-release-asset/1211993441/40300090-741e-49e3-9861-3c704a1da840?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-04-30T02%3A23%3A47Z&rscd=attachment%3B+filename%3Dpdf-inspector-prebuilt.tar.gz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-04-30T01%3A23%3A11Z&ske=2026-04-30T02%3A23%3A47Z&sks=b&skv=2018-11-09&sig=c2w2vWR6MuUSsneux7kI6G2weoR3Ox0ZWvNX0l9AEHM%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc3NzUxMzk0NiwibmJmIjoxNzc3NTEzNjQ2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.dVVqhbrQRMC6qsX0IfScKUfckEMp71MMcRHIS8u53jI&response-content-disposition=attachment%3B%20filename%3Dpdf-inspector-prebuilt.tar.gz&response-content-type=application%2Foctet-stream:
-    resolution: {tarball: https://release-assets.githubusercontent.com/github-production-release-asset/1211993441/40300090-741e-49e3-9861-3c704a1da840?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-04-30T02%3A23%3A47Z&rscd=attachment%3B+filename%3Dpdf-inspector-prebuilt.tar.gz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-04-30T01%3A23%3A11Z&ske=2026-04-30T02%3A23%3A47Z&sks=b&skv=2018-11-09&sig=c2w2vWR6MuUSsneux7kI6G2weoR3Ox0ZWvNX0l9AEHM%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc3NzUxMzk0NiwibmJmIjoxNzc3NTEzNjQ2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.dVVqhbrQRMC6qsX0IfScKUfckEMp71MMcRHIS8u53jI&response-content-disposition=attachment%3B%20filename%3Dpdf-inspector-prebuilt.tar.gz&response-content-type=application%2Foctet-stream}
-    version: 1.9.1
-
   flat-cache@4.0.1:
     resolution: {integrity: sha512-f7ccFPK3SXFHpx15UIGyRJ/FJQctuKZ0zVuN3frBo4HnK3cay9VEW0R6yPYFHC0AgqhukPzKjq22t5DmAyqGyw==}
     engines: {node: '>=16'}
@@ -10245,6 +10244,7 @@ packages:
 
   uuid@10.0.0:
     resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@11.1.0:
@@ -12109,6 +12109,8 @@ snapshots:
       '@csstools/css-tokenizer': 3.0.3
 
   '@csstools/css-tokenizer@3.0.3': {}
+
+  '@docmost/pdf-inspector@1.9.3': {}
 
   '@emnapi/core@1.8.1':
     dependencies:
@@ -17823,8 +17825,6 @@ snapshots:
     dependencies:
       locate-path: 6.0.0
       path-exists: 4.0.0
-
-  firecrawl-pdf-inspector@https://release-assets.githubusercontent.com/github-production-release-asset/1211993441/40300090-741e-49e3-9861-3c704a1da840?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-04-30T02%3A23%3A47Z&rscd=attachment%3B+filename%3Dpdf-inspector-prebuilt.tar.gz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-04-30T01%3A23%3A11Z&ske=2026-04-30T02%3A23%3A47Z&sks=b&skv=2018-11-09&sig=c2w2vWR6MuUSsneux7kI6G2weoR3Ox0ZWvNX0l9AEHM%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc3NzUxMzk0NiwibmJmIjoxNzc3NTEzNjQ2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.dVVqhbrQRMC6qsX0IfScKUfckEMp71MMcRHIS8u53jI&response-content-disposition=attachment%3B%20filename%3Dpdf-inspector-prebuilt.tar.gz&response-content-type=application%2Foctet-stream: {}
 
   flat-cache@4.0.1:
     dependencies:
