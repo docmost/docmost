@@ -212,11 +212,33 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     fetchData();
   }, [isDataLoaded, currentPage?.id]);
 
+  const [, appendChildren] = useAtom(appendNodeChildrenAtom);
+
   useEffect(() => {
     if (currentPage?.id) {
-      setTimeout(() => {
+      setTimeout(async () => {
         // focus on node and open all parents
         treeApiRef.current?.select(currentPage.id, { align: "auto" });
+
+        // auto-expand current page to show its children
+        const node = treeApiRef.current?.get(currentPage.id);
+        if (node && node.data.hasChildren && node.isClosed) {
+          try {
+            const childrenTree = await fetchAllAncestorChildren({
+              pageId: node.data.id,
+              spaceId: node.data.spaceId,
+            });
+            appendChildren({
+              parentId: node.data.id,
+              children: childrenTree,
+            });
+            setTimeout(() => {
+              node.open();
+            }, 100);
+          } catch (error) {
+            console.error("Failed to auto-expand current page:", error);
+          }
+        }
       }, 200);
     } else {
       treeApiRef.current?.deselectAll();
