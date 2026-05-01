@@ -27,12 +27,14 @@ export function RevokeScimTokenModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("Revoke SCIM token")}
+      title={t("Revoke {{credential}}", { credential: t("SCIM token") })}
       size="md"
     >
       <Stack gap="md">
         <Text>
-          {t("Are you sure you want to revoke this SCIM token")}{" "}
+          {t("Are you sure you want to revoke this {{credential}}", {
+            credential: t("SCIM token"),
+          })}{" "}
           <strong>{scimToken?.name}</strong>?
         </Text>
         <Text size="sm" c="dimmed">

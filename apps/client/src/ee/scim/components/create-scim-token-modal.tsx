@@ -50,7 +50,7 @@ export function CreateScimTokenModal({
     <Modal
       opened={opened}
       onClose={handleClose}
-      title={t("Create SCIM token")}
+      title={t("Create {{credential}}", { credential: t("SCIM token") })}
       size="md"
     >
       <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>

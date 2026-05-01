@@ -119,7 +119,9 @@ export default function Security() {
               <Group justify="space-between" mb="md">
                 <Title order={5}>{t("SCIM tokens")}</Title>
                 <Button onClick={() => setCreateOpen(true)}>
-                  {t("Create SCIM token")}
+                  {t("Create {{credential}}", {
+                    credential: t("SCIM token"),
+                  })}
                 </Button>
               </Group>
 

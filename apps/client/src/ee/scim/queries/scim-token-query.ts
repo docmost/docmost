@@ -38,7 +38,11 @@ export function useCreateScimTokenMutation() {
   return useMutation<IScimToken, Error, ICreateScimTokenRequest>({
     mutationFn: (data) => createScimToken(data),
     onSuccess: () => {
-      notifications.show({ message: t("SCIM token created successfully") });
+      notifications.show({
+        message: t("{{credential}} created successfully", {
+          credential: t("SCIM token"),
+        }),
+      });
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["scim-token-list"].includes(item.queryKey[0] as string),

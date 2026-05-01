@@ -31,7 +31,7 @@ export function ApiKeyCreatedModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("API key created")}
+      title={t("{{credential}} created", { credential: t("API key") })}
       size="lg"
     >
       <Stack gap="md">
@@ -41,7 +41,8 @@ export function ApiKeyCreatedModal({
           color="red"
         >
           {t(
-            "Make sure to copy your API key now. You won't be able to see it again!",
+            "Make sure to copy your {{credential}} now. You won't be able to see it again!",
+            { credential: t("API key") },
           )}
         </Alert>
 
@@ -64,7 +65,7 @@ export function ApiKeyCreatedModal({
         </div>
 
         <Button fullWidth onClick={onClose} mt="md">
-          {t("I've saved my API key")}
+          {t("I've saved my {{credential}}", { credential: t("API key") })}
         </Button>
       </Stack>
     </Modal>

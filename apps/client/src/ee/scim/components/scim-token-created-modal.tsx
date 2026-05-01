@@ -27,7 +27,12 @@ export function ScimTokenCreatedModal({
   if (!scimToken) return null;
 
   return (
-    <Modal opened={opened} onClose={onClose} title={t("SCIM token created")} size="lg">
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={t("{{credential}} created", { credential: t("SCIM token") })}
+      size="lg"
+    >
       <Stack gap="md">
         <Alert
           icon={<IconAlertTriangle size={16} />}
@@ -35,7 +40,8 @@ export function ScimTokenCreatedModal({
           color="red"
         >
           {t(
-            "Make sure to copy your SCIM token now. You won't be able to see it again!",
+            "Make sure to copy your {{credential}} now. You won't be able to see it again!",
+            { credential: t("SCIM token") },
           )}
         </Alert>
 
@@ -55,7 +61,7 @@ export function ScimTokenCreatedModal({
         </div>
 
         <Button fullWidth onClick={onClose} mt="md">
-          {t("I've saved my SCIM token")}
+          {t("I've saved my {{credential}}", { credential: t("SCIM token") })}
         </Button>
       </Stack>
     </Modal>
