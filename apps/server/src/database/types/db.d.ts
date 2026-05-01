@@ -46,6 +46,7 @@ export interface Attachments {
   aiChatId: string | null;
   createdAt: Generated<Timestamp>;
   creatorId: string;
+  cropMetadata: Json | null;
   deletedAt: Timestamp | null;
   fileExt: string;
   fileName: string;

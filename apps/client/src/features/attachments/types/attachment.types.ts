@@ -13,6 +13,12 @@ export interface IAttachment {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  cropMetadata?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 export enum AvatarIconType {

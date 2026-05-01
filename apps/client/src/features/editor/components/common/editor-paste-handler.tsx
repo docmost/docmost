@@ -4,6 +4,7 @@ import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
 import { uploadPdfAction } from "../pdf/upload-pdf-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
+import { getEmbedUrlAndProvider } from "@docmost/editor-ext";
 import { Editor } from "@tiptap/core";
 import {
   getAttachmentInfo,
@@ -57,6 +58,44 @@ export const handlePaste = (
     return true;
   }
 
+  // Detect YouTube or other embed URLs
+  const trimmedClipboardData = clipboardData.trim();
+  if (
+    trimmedClipboardData.startsWith("http://") ||
+    trimmedClipboardData.startsWith("https://") ||
+    trimmedClipboardData.startsWith("www.")
+  ) {
+    const urlToCheck = trimmedClipboardData.startsWith("www.")
+      ? `https://${trimmedClipboardData}`
+      : trimmedClipboardData;
+
+    const embedResult = getEmbedUrlAndProvider(urlToCheck);
+    // Check if it's a YouTube or Vimeo URL (provider detection)
+    const isYouTube = ["youtube", "youtu"].includes(embedResult.provider.toLowerCase());
+    const isVimeo = embedResult.provider.toLowerCase() === "vimeo";
+
+    if (isYouTube || isVimeo) {
+      event.preventDefault();
+      const { from: pos } = editor.state.selection;
+
+      editor
+        .chain()
+        .focus()
+        .command(({ commands }) => {
+          return commands.insertContent({
+            type: "embed",
+            attrs: {
+              src: embedResult.embedUrl,
+              provider: embedResult.provider,
+            },
+          });
+        })
+        .run();
+
+      return true;
+    }
+  }
+
   const htmlData = event.clipboardData?.getData("text/html");
   const hasHtmlTable = htmlData && /<table[\s>]/i.test(htmlData);
 
@@ -70,6 +109,25 @@ export const handlePaste = (
       uploadAttachmentAction(file, editor, pos, pageId);
     }
     return true;
+  }
+
+  // Handle clipboard image data (e.g., from screenshot or copy-paste)
+  if (event.clipboardData?.items && !hasHtmlTable) {
+    let hasImage = false;
+    for (const item of event.clipboardData.items) {
+      if (item.type.startsWith("image/")) {
+        hasImage = true;
+        const file = item.getAsFile();
+        if (file) {
+          event.preventDefault();
+          const pos = editor.state.selection.from;
+          uploadImageAction(file, editor, pos, pageId);
+        }
+      }
+    }
+    if (hasImage) {
+      return true;
+    }
   }
 
   if (htmlData && ATTACHMENT_URL_RE.test(htmlData)) {

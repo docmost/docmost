@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { AuditModule } from '../integrations/audit/audit.module';
 import { WorkspaceModule } from './workspace/workspace.module';
 import { PageModule } from './page/page.module';
 import { AttachmentModule } from './attachment/attachment.module';
@@ -26,6 +27,7 @@ import { ClsMiddleware } from 'nestjs-cls';
 
 @Module({
   imports: [
+    AuditModule,
     UserModule,
     AuthModule,
     WorkspaceModule,
