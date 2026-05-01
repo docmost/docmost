@@ -29,12 +29,14 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('idx_scim_tokens_token_hash')
+    .ifNotExists()
     .on('scim_tokens')
     .column('token_hash')
     .execute();
 
   await db.schema
     .createIndex('idx_scim_tokens_workspace_id')
+    .ifNotExists()
     .on('scim_tokens')
     .column('workspace_id')
     .execute();
@@ -46,6 +48,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('idx_users_workspace_scim_external_id')
+    .ifNotExists()
     .on('users')
     .columns(['workspace_id', 'scim_external_id'])
     .where('scim_external_id', 'is not', null)
@@ -59,6 +62,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('idx_groups_workspace_scim_external_id')
+    .ifNotExists()
     .on('groups')
     .columns(['workspace_id', 'scim_external_id'])
     .where('scim_external_id', 'is not', null)
