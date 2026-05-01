@@ -9,7 +9,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('name', 'varchar', (col) => col.notNull())
     .addColumn('token_hash', 'varchar', (col) => col.notNull())
     .addColumn('token_last_four', 'varchar(4)', (col) => col.notNull())
-    .addColumn('expires_at', 'timestamptz')
     .addColumn('last_used_at', 'timestamptz')
     .addColumn('is_enabled', 'boolean', (col) => col.notNull().defaultTo(true))
     .addColumn('creator_id', 'uuid', (col) =>

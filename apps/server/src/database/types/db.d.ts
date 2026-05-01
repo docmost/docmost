@@ -417,7 +417,6 @@ export interface Notifications {
 export interface ScimTokens {
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
-  expiresAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
   lastUsedAt: Timestamp | null;

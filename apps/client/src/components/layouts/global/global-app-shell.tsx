@@ -116,7 +116,9 @@ export default function GlobalAppShell({
       </AppShell.Navbar>
       <AppShell.Main>
         {isSettingsRoute ? (
-          <Container size={900}>{children}</Container>
+          <Container size={900} pb={80}>
+            {children}
+          </Container>
         ) : (
           children
         )}
