@@ -195,6 +195,7 @@ export function HistoryEditor({
       {editor && (
         <EditorContent
           editor={editor}
+          translate="yes"
           className={historyClasses.historyEditor}
         />
       )}
