@@ -252,7 +252,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                         width: rem(28),
                         height: rem(28),
                         borderRadius: rem(4),
-                        backgroundColor: color || "var(--mantine-color-gray-2)",
+                        backgroundColor: color || "#faf594",
                         border: "1px solid var(--mantine-color-gray-4)",
                         cursor: "pointer",
                         position: "relative",
