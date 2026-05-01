@@ -17,6 +17,11 @@ export interface ICreateScimTokenRequest {
   name: string;
 }
 
+export interface IUpdateScimTokenRequest {
+  tokenId: string;
+  name: string;
+}
+
 export interface IRevokeScimTokenRequest {
   tokenId: string;
 }

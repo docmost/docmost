@@ -10,11 +10,13 @@ import {
   createScimToken,
   getScimTokens,
   revokeScimToken,
+  updateScimToken,
 } from "@/ee/scim/services/scim-token-service";
 import {
   IScimToken,
   ICreateScimTokenRequest,
   IRevokeScimTokenRequest,
+  IUpdateScimTokenRequest,
 } from "@/ee/scim/types/scim-token.types";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -25,8 +27,6 @@ export function useGetScimTokensQuery(
   return useQuery({
     queryKey: ["scim-token-list", params],
     queryFn: () => getScimTokens(params),
-    staleTime: 0,
-    gcTime: 0,
     placeholderData: keepPreviousData,
   });
 }
@@ -43,6 +43,26 @@ export function useCreateScimTokenMutation() {
           credential: t("SCIM token"),
         }),
       });
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["scim-token-list"].includes(item.queryKey[0] as string),
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
+  });
+}
+
+export function useUpdateScimTokenMutation() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation<void, Error, IUpdateScimTokenRequest>({
+    mutationFn: (data) => updateScimToken(data),
+    onSuccess: () => {
+      notifications.show({ message: t("Updated successfully") });
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["scim-token-list"].includes(item.queryKey[0] as string),

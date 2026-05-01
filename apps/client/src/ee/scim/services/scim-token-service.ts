@@ -3,6 +3,7 @@ import {
   IScimToken,
   ICreateScimTokenRequest,
   IRevokeScimTokenRequest,
+  IUpdateScimTokenRequest,
 } from "@/ee/scim/types/scim-token.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 
@@ -18,6 +19,12 @@ export async function createScimToken(
 ): Promise<IScimToken> {
   const req = await api.post<IScimToken>("/scim-tokens/create", data);
   return req.data;
+}
+
+export async function updateScimToken(
+  data: IUpdateScimTokenRequest,
+): Promise<void> {
+  await api.post("/scim-tokens/update", data);
 }
 
 export async function revokeScimToken(

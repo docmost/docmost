@@ -1,7 +1,16 @@
 import { Helmet } from "react-helmet-async";
 import { getAppName, isCloud } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
-import { Alert, Button, Card, Divider, Group, Space, Title } from "@mantine/core";
+import {
+  Alert,
+  Button,
+  Card,
+  Divider,
+  Group,
+  Space,
+  Title,
+  Tooltip,
+} from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import React, { useState } from "react";
 import useUserRole from "@/hooks/use-user-role.tsx";
@@ -23,10 +32,13 @@ import { ScimTokenTable } from "@/ee/scim/components/scim-token-table";
 import { CreateScimTokenModal } from "@/ee/scim/components/create-scim-token-modal";
 import { ScimTokenCreatedModal } from "@/ee/scim/components/scim-token-created-modal";
 import { RevokeScimTokenModal } from "@/ee/scim/components/revoke-scim-token-modal";
+import { UpdateScimTokenModal } from "@/ee/scim/components/update-scim-token-modal";
 import EnableScim from "@/ee/scim/components/enable-scim";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import Paginate from "@/components/common/paginate";
 import { IScimToken } from "@/ee/scim/types/scim-token.types";
+
+const SCIM_TOKEN_LIMIT = 5;
 
 export default function Security() {
   const { t } = useTranslation();
@@ -43,6 +55,7 @@ export default function Security() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createdToken, setCreatedToken] = useState<IScimToken | null>(null);
+  const [updateTarget, setUpdateTarget] = useState<IScimToken | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<IScimToken | null>(null);
 
   if (!isAdmin) {
@@ -118,17 +131,30 @@ export default function Security() {
 
               <Group justify="space-between" mb="md">
                 <Title order={5}>{t("SCIM tokens")}</Title>
-                <Button onClick={() => setCreateOpen(true)}>
-                  {t("Create {{credential}}", {
-                    credential: t("SCIM token"),
-                  })}
-                </Button>
+                <Tooltip
+                  label={t(
+                    "You have reached the maximum of {{max}} SCIM tokens. Delete an existing token to create a new one.",
+                    { max: SCIM_TOKEN_LIMIT },
+                  )}
+                  disabled={(scimData?.items.length ?? 0) < SCIM_TOKEN_LIMIT}
+                  refProp="rootRef"
+                >
+                  <Button
+                    onClick={() => setCreateOpen(true)}
+                    disabled={(scimData?.items.length ?? 0) >= SCIM_TOKEN_LIMIT}
+                  >
+                    {t("Create {{credential}}", {
+                      credential: t("SCIM token"),
+                    })}
+                  </Button>
+                </Tooltip>
               </Group>
 
               <Card shadow="sm" radius="sm">
                 <ScimTokenTable
                   tokens={scimData?.items}
                   isLoading={scimLoading}
+                  onUpdate={setUpdateTarget}
                   onRevoke={setRevokeTarget}
                 />
               </Card>
@@ -154,6 +180,12 @@ export default function Security() {
                 opened={!!createdToken}
                 onClose={() => setCreatedToken(null)}
                 scimToken={createdToken}
+              />
+
+              <UpdateScimTokenModal
+                opened={!!updateTarget}
+                onClose={() => setUpdateTarget(null)}
+                scimToken={updateTarget}
               />
 
               <RevokeScimTokenModal

@@ -1,5 +1,5 @@
 import { ActionIcon, Group, Menu, Table, Text } from "@mantine/core";
-import { IconDots, IconTrash } from "@tabler/icons-react";
+import { IconDots, IconEdit, IconTrash } from "@tabler/icons-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -10,12 +10,14 @@ import { IScimToken } from "@/ee/scim/types/scim-token.types";
 interface ScimTokenTableProps {
   tokens: IScimToken[];
   isLoading?: boolean;
+  onUpdate?: (token: IScimToken) => void;
   onRevoke?: (token: IScimToken) => void;
 }
 
 export function ScimTokenTable({
   tokens,
   isLoading,
+  onUpdate,
   onRevoke,
 }: ScimTokenTableProps) {
   const { t } = useTranslation();
@@ -96,6 +98,14 @@ export function ScimTokenTable({
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
+                      {onUpdate && (
+                        <Menu.Item
+                          leftSection={<IconEdit size={16} />}
+                          onClick={() => onUpdate(token)}
+                        >
+                          {t("Rename")}
+                        </Menu.Item>
+                      )}
                       {onRevoke && (
                         <Menu.Item
                           leftSection={<IconTrash size={16} />}

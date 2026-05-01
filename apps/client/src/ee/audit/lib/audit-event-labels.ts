@@ -34,6 +34,7 @@ export const auditEventLabels: Record<string, string> = {
   "api_key.deleted": "Deleted API key",
 
   "scim_token.created": "Created SCIM token",
+  "scim_token.updated": "Updated SCIM token",
   "scim_token.deleted": "Deleted SCIM token",
 
   "space.created": "Created space",
@@ -181,6 +182,7 @@ export const eventFilterOptions: EventGroup[] = [
     group: "SCIM token",
     items: [
       { value: "scim_token.created", label: "Created SCIM token" },
+      { value: "scim_token.updated", label: "Updated SCIM token" },
       { value: "scim_token.deleted", label: "Deleted SCIM token" },
     ],
   },

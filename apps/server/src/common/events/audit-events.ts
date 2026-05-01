@@ -25,6 +25,7 @@ export const AuditEvent = {
 
   // SCIM Tokens
   SCIM_TOKEN_CREATED: 'scim_token.created',
+  SCIM_TOKEN_UPDATED: 'scim_token.updated',
   SCIM_TOKEN_DELETED: 'scim_token.deleted',
 
   // Space
