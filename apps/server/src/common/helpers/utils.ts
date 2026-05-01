@@ -110,7 +110,7 @@ export function extractBearerTokenFromHeader(
   request: FastifyRequest,
 ): string | undefined {
   const [type, token] = request.headers.authorization?.split(' ') ?? [];
-  return type === 'Bearer' ? token : undefined;
+  return type?.toLowerCase() === 'bearer' ? token : undefined;
 }
 
 /**

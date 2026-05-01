@@ -3,49 +3,46 @@ import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { z } from "zod/v4";
 import { useTranslation } from "react-i18next";
-import { useUpdateApiKeyMutation } from "@/ee/api-key/queries/api-key-query";
-import { IApiKey } from "@/ee/api-key";
 import { useEffect } from "react";
+import { useUpdateScimTokenMutation } from "@/ee/scim/queries/scim-token-query";
+import { IScimToken } from "@/ee/scim/types/scim-token.types";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
 });
 type FormValues = z.infer<typeof formSchema>;
 
-interface UpdateApiKeyModalProps {
+interface UpdateScimTokenModalProps {
   opened: boolean;
   onClose: () => void;
-  apiKey: IApiKey | null;
+  scimToken: IScimToken | null;
 }
 
-export function UpdateApiKeyModal({
+export function UpdateScimTokenModal({
   opened,
   onClose,
-  apiKey,
-}: UpdateApiKeyModalProps) {
+  scimToken,
+}: UpdateScimTokenModalProps) {
   const { t } = useTranslation();
-  const updateApiKeyMutation = useUpdateApiKeyMutation();
+  const updateMutation = useUpdateScimTokenMutation();
 
   const form = useForm<FormValues>({
     validate: zod4Resolver(formSchema),
-    initialValues: {
-      name: "",
-    },
+    initialValues: { name: "" },
   });
 
   useEffect(() => {
-    if (opened && apiKey) {
-      form.setValues({ name: apiKey.name });
+    if (opened && scimToken) {
+      form.setValues({ name: scimToken.name });
     }
-  }, [opened, apiKey]);
+  }, [opened, scimToken]);
 
-  const handleSubmit = async (data: { name?: string }) => {
-    const apiKeyData = {
-      apiKeyId: apiKey.id,
+  const handleSubmit = async (data: FormValues) => {
+    if (!scimToken) return;
+    await updateMutation.mutateAsync({
+      tokenId: scimToken.id,
       name: data.name,
-    };
-
-    await updateApiKeyMutation.mutateAsync(apiKeyData);
+    });
     onClose();
   };
 
@@ -53,14 +50,14 @@ export function UpdateApiKeyModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("Update {{credential}}", { credential: t("API key") })}
+      title={t("Update {{credential}}", { credential: t("SCIM token") })}
       size="md"
     >
       <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>
         <Stack gap="md">
           <TextInput
             label={t("Name")}
-            placeholder={t("Enter a descriptive token name")}
+            placeholder={t("Enter a descriptive name")}
             required
             {...form.getInputProps("name")}
           />
@@ -69,7 +66,7 @@ export function UpdateApiKeyModal({
             <Button variant="default" onClick={onClose}>
               {t("Cancel")}
             </Button>
-            <Button type="submit" loading={updateApiKeyMutation.isPending}>
+            <Button type="submit" loading={updateMutation.isPending}>
               {t("Update")}
             </Button>
           </Group>

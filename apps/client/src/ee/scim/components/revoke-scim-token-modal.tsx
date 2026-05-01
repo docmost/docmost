@@ -1,28 +1,25 @@
 import { Modal, Text, Button, Group, Stack } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { useRevokeScimTokenMutation } from "@/ee/scim/queries/scim-token-query";
+import { IScimToken } from "@/ee/scim/types/scim-token.types";
 
-import { useRevokeApiKeyMutation } from "@/ee/api-key/queries/api-key-query.ts";
-import { IApiKey } from "@/ee/api-key";
-
-interface RevokeApiKeyModalProps {
+interface RevokeScimTokenModalProps {
   opened: boolean;
   onClose: () => void;
-  apiKey: IApiKey | null;
+  scimToken: IScimToken | null;
 }
 
-export function RevokeApiKeyModal({
+export function RevokeScimTokenModal({
   opened,
   onClose,
-  apiKey,
-}: RevokeApiKeyModalProps) {
+  scimToken,
+}: RevokeScimTokenModalProps) {
   const { t } = useTranslation();
-  const revokeApiKeyMutation = useRevokeApiKeyMutation();
+  const revokeMutation = useRevokeScimTokenMutation();
 
   const handleRevoke = async () => {
-    if (!apiKey) return;
-    await revokeApiKeyMutation.mutateAsync({
-      apiKeyId: apiKey.id,
-    });
+    if (!scimToken) return;
+    await revokeMutation.mutateAsync({ tokenId: scimToken.id });
     onClose();
   };
 
@@ -30,19 +27,19 @@ export function RevokeApiKeyModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("Revoke {{credential}}", { credential: t("API key") })}
+      title={t("Revoke {{credential}}", { credential: t("SCIM token") })}
       size="md"
     >
       <Stack gap="md">
         <Text>
           {t("Are you sure you want to revoke this {{credential}}", {
-            credential: t("API key"),
+            credential: t("SCIM token"),
           })}{" "}
-          <strong>{apiKey?.name}</strong>?
+          <strong>{scimToken?.name}</strong>?
         </Text>
         <Text size="sm" c="dimmed">
           {t(
-            "This action cannot be undone. Any applications using this API key will stop working.",
+            "This action cannot be undone. Your identity provider will stop syncing immediately.",
           )}
         </Text>
 
@@ -53,7 +50,7 @@ export function RevokeApiKeyModal({
           <Button
             color="red"
             onClick={handleRevoke}
-            loading={revokeApiKeyMutation.isPending}
+            loading={revokeMutation.isPending}
           >
             {t("Revoke")}
           </Button>

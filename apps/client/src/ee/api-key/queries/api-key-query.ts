@@ -63,7 +63,11 @@ export function useCreateApiKeyMutation() {
   return useMutation<IApiKey, Error, ICreateApiKeyRequest>({
     mutationFn: (data) => createApiKey(data),
     onSuccess: () => {
-      notifications.show({ message: t("API key created successfully") });
+      notifications.show({
+        message: t("{{credential}} created successfully", {
+          credential: t("API key"),
+        }),
+      });
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["api-key-list"].includes(item.queryKey[0] as string),

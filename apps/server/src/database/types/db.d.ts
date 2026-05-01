@@ -213,7 +213,9 @@ export interface Groups {
   description: string | null;
   id: Generated<string>;
   isDefault: boolean;
+  isExternal: Generated<boolean>;
   name: string;
+  scimExternalId: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
@@ -338,6 +340,7 @@ export interface Users {
   name: string | null;
   password: string | null;
   role: string | null;
+  scimExternalId: string | null;
   settings: Json | null;
   timezone: string | null;
   updatedAt: Generated<Timestamp>;
@@ -381,6 +384,7 @@ export interface Workspaces {
   enforceMfa: Generated<boolean | null>;
   enforceSso: Generated<boolean>;
   hostname: string | null;
+  isScimEnabled: Generated<boolean>;
   id: Generated<string>;
   licenseKey: string | null;
   logo: string | null;
@@ -408,6 +412,20 @@ export interface Notifications {
   emailedAt: Timestamp | null;
   archivedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
+}
+
+export interface ScimTokens {
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  isEnabled: Generated<boolean>;
+  lastUsedAt: Timestamp | null;
+  name: string;
+  tokenHash: string;
+  tokenLastFour: string;
+  creatorId: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
 }
 
 export interface Watchers {
@@ -558,6 +576,7 @@ export interface DB {
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
   pages: Pages;
+  scimTokens: ScimTokens;
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;

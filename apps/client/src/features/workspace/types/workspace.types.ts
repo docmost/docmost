@@ -28,6 +28,7 @@ export interface IWorkspace {
   trashRetentionDays?: number;
   restrictApiToAdmins?: boolean;
   allowMemberTemplates?: boolean;
+  isScimEnabled?: boolean;
 }
 
 export interface IWorkspaceSettings {
