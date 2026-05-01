@@ -23,6 +23,10 @@ export const AuditEvent = {
   API_KEY_UPDATED: 'api_key.updated',
   API_KEY_DELETED: 'api_key.deleted',
 
+  // SCIM Tokens
+  SCIM_TOKEN_CREATED: 'scim_token.created',
+  SCIM_TOKEN_DELETED: 'scim_token.deleted',
+
   // Space
   SPACE_CREATED: 'space.created',
   SPACE_UPDATED: 'space.updated',
@@ -119,6 +123,7 @@ export const AuditResource = {
   COMMENT: 'comment',
   SHARE: 'share',
   API_KEY: 'api_key',
+  SCIM_TOKEN: 'scim_token',
   SSO_PROVIDER: 'sso_provider',
   WORKSPACE_INVITATION: 'workspace_invitation',
   ATTACHMENT: 'attachment',
