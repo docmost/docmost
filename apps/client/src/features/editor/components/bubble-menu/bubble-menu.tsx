@@ -26,7 +26,7 @@ import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
-import { showAiMenuAtom } from "@/features/editor/atoms/editor-atoms";
+import { showAiMenuAtom, showLinkMenuAtom } from "@/features/editor/atoms/editor-atoms";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 
 export interface BubbleMenuItem {
@@ -49,6 +49,8 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const showCommentPopupRef = useRef(showCommentPopup);
   const showAiMenuRef = useRef(showAiMenu);
+  const [showLinkMenu] = useAtom(showLinkMenuAtom);
+  const showLinkMenuRef = useRef(showLinkMenu);
 
   useEffect(() => {
     showCommentPopupRef.current = showCommentPopup;
@@ -57,6 +59,10 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   useEffect(() => {
     showAiMenuRef.current = showAiMenu;
   }, [showAiMenu]);
+
+  useEffect(() => {
+    showLinkMenuRef.current = showLinkMenu;
+  }, [showLinkMenu]);
 
   const editorState = useEditorState({
     editor: props.editor,
@@ -135,6 +141,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         isNodeSelection(selection) ||
         isCellSelection(selection) ||
         showAiMenuRef.current ||
+        showLinkMenuRef.current ||
         showCommentPopupRef?.current
       ) {
         return false;
@@ -147,7 +154,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       onHide: () => {
         setIsNodeSelectorOpen(false);
         setIsTextAlignmentOpen(false);
-        setIsLinkSelectorOpen(false);
         setIsColorSelectorOpen(false);
       },
     },
@@ -155,16 +161,15 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
   const [isTextAlignmentSelectorOpen, setIsTextAlignmentOpen] = useState(false);
-  const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
 
   // Hide the bubble menu immediately when AI menu is shown
-  if (showAiMenu) return;
+  if (showAiMenu || showLinkMenu) return;
 
   return (
     <BubbleMenu
       {...bubbleMenuProps}
-      style={{ zIndex: 200, position: "relative" }}
+      style={{ zIndex: 199, position: "relative" }}
     >
       <div className={classes.bubbleMenu}>
         {isGenerativeAiEnabled && (
@@ -189,7 +194,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsOpen={() => {
             setIsNodeSelectorOpen(!isNodeSelectorOpen);
             setIsTextAlignmentOpen(false);
-            setIsLinkSelectorOpen(false);
             setIsColorSelectorOpen(false);
           }}
         />
@@ -200,7 +204,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsOpen={() => {
             setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
             setIsNodeSelectorOpen(false);
-            setIsLinkSelectorOpen(false);
             setIsColorSelectorOpen(false);
           }}
         />
@@ -224,16 +227,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           ))}
         </ActionIcon.Group>
 
-        <LinkSelector
-          editor={props.editor}
-          isOpen={isLinkSelectorOpen}
-          setIsOpen={(value) => {
-            setIsLinkSelectorOpen(value);
-            setIsNodeSelectorOpen(false);
-            setIsTextAlignmentOpen(false);
-            setIsColorSelectorOpen(false);
-          }}
-        />
+        <LinkSelector />
 
         <ColorSelector
           editor={props.editor}
@@ -242,7 +236,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsColorSelectorOpen(!isColorSelectorOpen);
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
-            setIsLinkSelectorOpen(false);
           }}
         />
 

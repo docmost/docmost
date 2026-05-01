@@ -6,6 +6,8 @@ import {
   activeCommentIdAtom,
   draftCommentIdAtom,
   showCommentPopupAtom,
+  showReadOnlyCommentPopupAtom,
+  readOnlyCommentDataAtom,
 } from "@/features/comment/atoms/comment-atom";
 import CommentEditor from "@/features/comment/components/comment-editor";
 import CommentActions from "@/features/comment/components/comment-actions";
@@ -15,17 +17,19 @@ import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-
 import { useEditor } from "@tiptap/react";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { useTranslation } from "react-i18next";
-import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 interface CommentDialogProps {
   editor: ReturnType<typeof useEditor>;
   pageId: string;
+  readOnly?: boolean;
 }
 
-function CommentDialog({ editor, pageId }: CommentDialogProps) {
+function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
   const { t } = useTranslation();
   const [comment, setComment] = useState("");
   const [, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const [, setShowReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
+  const [readOnlyCommentData, setReadOnlyCommentData] = useAtom(readOnlyCommentDataAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [draftCommentId, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const [currentUser] = useAtom(currentUserAtom);
@@ -35,13 +39,17 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
     handleDialogClose();
   });
   const createCommentMutation = useCreateCommentMutation();
-  const { isPending } = createCommentMutation;
-
-  const emit = useQueryEmit();
+  const isPending = createCommentMutation.isPending;
 
   const handleDialogClose = () => {
-    setShowCommentPopup(false);
-    editor.chain().focus().unsetCommentDecoration().run();
+    if (readOnly) {
+      setShowReadOnlyCommentPopup(false);
+      // @ts-ignore
+      setReadOnlyCommentData(null);
+    } else {
+      setShowCommentPopup(false);
+      editor.chain().focus().unsetCommentDecoration().run();
+    }
   };
 
   const getSelectedText = () => {
@@ -50,12 +58,18 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
   };
 
   const handleAddComment = async () => {
+    if (readOnly) {
+      await handleAddReadOnlyComment();
+      return;
+    }
+
     try {
       const selectedText = getSelectedText();
       const commentData = {
         pageId: pageId,
         content: JSON.stringify(comment),
         selection: selectedText,
+        type: "inline",
       };
 
       const createdComment =
@@ -67,7 +81,6 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         .run();
       setActiveCommentId(createdComment.id);
 
-      //unselect text to close bubble menu
       editor.commands.setTextSelection({ from: editor.view.state.selection.from, to: editor.view.state.selection.from });
 
       setAsideState({ tab: "comments", isAsideOpen: true });
@@ -81,13 +94,36 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         );
       }, 400);
 
-      emit({
-        operation: "invalidateComment",
-        pageId: pageId,
-      });
     } finally {
       setShowCommentPopup(false);
       setDraftCommentId("");
+    }
+  };
+
+  const handleAddReadOnlyComment = async () => {
+    if (!readOnlyCommentData) return;
+
+    try {
+      const createdComment = await createCommentMutation.mutateAsync({
+        pageId,
+        content: JSON.stringify(comment),
+        selection: readOnlyCommentData.selectedText,
+        type: "inline",
+        yjsSelection: readOnlyCommentData.yjsSelection,
+      });
+
+      setActiveCommentId(createdComment.id);
+      setAsideState({ tab: "comments", isAsideOpen: true });
+
+      setTimeout(() => {
+        const selector = `div[data-comment-id="${createdComment.id}"]`;
+        const commentElement = document.querySelector(selector);
+        commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 400);
+    } finally {
+      setShowReadOnlyCommentPopup(false);
+      // @ts-ignore
+      setReadOnlyCommentData(null);
     }
   };
 
@@ -103,6 +139,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
       size="lg"
       radius="md"
       w={300}
+      zIndex={180}
       position={{ bottom: 500, right: 50 }}
       withCloseButton
       withBorder

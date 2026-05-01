@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { Space, User } from '@docmost/db/types/entity.types';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
+import { Feature } from '../../../common/features';
 import { SpaceMemberService } from './space-member.service';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
@@ -21,6 +23,12 @@ import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { diffAuditTrackedFields } from '../../../common/helpers';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class SpaceService {
@@ -32,6 +40,7 @@ export class SpaceService {
     private licenseCheckService: LicenseCheckService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async createSpace(
@@ -62,6 +71,19 @@ export class SpaceService {
       },
       trx,
     );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_CREATED,
+      resourceType: AuditResource.SPACE,
+      resourceId: space.id,
+      spaceId: space.id,
+      changes: {
+        after: {
+          name: space.name,
+          slug: space.slug,
+        },
+      },
+    });
 
     return { ...space, memberCount: 1 };
   }
@@ -112,40 +134,119 @@ export class SpaceService {
       }
     }
 
-    if (typeof updateSpaceDto.disablePublicSharing !== 'undefined') {
+    if (
+      typeof updateSpaceDto.disablePublicSharing !== 'undefined' ||
+      typeof updateSpaceDto.allowViewerComments !== 'undefined'
+    ) {
       const workspace = await this.workspaceRepo.findById(workspaceId, {
         withLicenseKey: true,
       });
 
       if (
-        !this.licenseCheckService.isValidEELicense(workspace.licenseKey)
+        typeof updateSpaceDto.disablePublicSharing !== 'undefined' &&
+        !this.licenseCheckService.hasFeature(
+          workspace.licenseKey,
+          Feature.SECURITY_SETTINGS,
+          workspace.plan,
+        )
       ) {
-        throw new ForbiddenException(
-          'This feature requires a valid enterprise license',
-        );
+        throw new ForbiddenException('This feature requires a valid license');
       }
 
-      await this.spaceRepo.updateSharingSettings(
-        updateSpaceDto.spaceId,
-        workspaceId,
-        'disabled',
-        updateSpaceDto.disablePublicSharing,
-      );
-
-      if (updateSpaceDto.disablePublicSharing) {
-        await this.shareRepo.deleteBySpaceId(updateSpaceDto.spaceId);
+      if (
+        typeof updateSpaceDto.allowViewerComments !== 'undefined' &&
+        !this.licenseCheckService.hasFeature(
+          workspace.licenseKey,
+          Feature.VIEWER_COMMENTS,
+          workspace.plan,
+        )
+      ) {
+        throw new ForbiddenException('This feature requires a valid license');
       }
     }
 
-    return await this.spaceRepo.updateSpace(
-      {
-        name: updateSpaceDto.name,
-        description: updateSpaceDto.description,
-        slug: updateSpaceDto.slug,
-      },
+    const spaceBefore = await this.spaceRepo.findById(
       updateSpaceDto.spaceId,
       workspaceId,
     );
+    const settingsBefore = (spaceBefore?.settings ?? {}) as Record<string, any>;
+
+    const before: Record<string, any> = {};
+    const after: Record<string, any> = {};
+
+    let updatedSpace: Space;
+
+    await executeTx(this.db, async (trx) => {
+      if (typeof updateSpaceDto.disablePublicSharing !== 'undefined') {
+        const prev = settingsBefore?.sharing?.disabled ?? false;
+        if (prev !== updateSpaceDto.disablePublicSharing) {
+          before.disablePublicSharing = prev;
+          after.disablePublicSharing = updateSpaceDto.disablePublicSharing;
+        }
+
+        await this.spaceRepo.updateSharingSettings(
+          updateSpaceDto.spaceId,
+          workspaceId,
+          'disabled',
+          updateSpaceDto.disablePublicSharing,
+          trx,
+        );
+
+        if (updateSpaceDto.disablePublicSharing) {
+          await this.shareRepo.deleteBySpaceId(updateSpaceDto.spaceId, trx);
+        }
+      }
+
+      if (typeof updateSpaceDto.allowViewerComments !== 'undefined') {
+        const prev = settingsBefore?.comments?.allowViewerComments ?? false;
+        if (prev !== updateSpaceDto.allowViewerComments) {
+          before.allowViewerComments = prev;
+          after.allowViewerComments = updateSpaceDto.allowViewerComments;
+        }
+
+        await this.spaceRepo.updateCommentSettings(
+          updateSpaceDto.spaceId,
+          workspaceId,
+          'allowViewerComments',
+          updateSpaceDto.allowViewerComments,
+          trx,
+        );
+      }
+
+      updatedSpace = await this.spaceRepo.updateSpace(
+        {
+          name: updateSpaceDto.name,
+          description: updateSpaceDto.description,
+          slug: updateSpaceDto.slug,
+        },
+        updateSpaceDto.spaceId,
+        workspaceId,
+        trx,
+      );
+    });
+
+    const columnChanges = diffAuditTrackedFields(
+      ['name', 'slug', 'description'],
+      updateSpaceDto,
+      spaceBefore,
+      updatedSpace,
+    );
+    if (columnChanges) {
+      Object.assign(before, columnChanges.before);
+      Object.assign(after, columnChanges.after);
+    }
+
+    if (Object.keys(after).length > 0) {
+      this.auditService.log({
+        event: AuditEvent.SPACE_UPDATED,
+        resourceType: AuditResource.SPACE,
+        resourceId: updateSpaceDto.spaceId,
+        spaceId: updateSpaceDto.spaceId,
+        changes: { before, after },
+      });
+    }
+
+    return updatedSpace;
   }
 
   async getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space> {
@@ -174,5 +275,19 @@ export class SpaceService {
 
     await this.spaceRepo.deleteSpace(spaceId, workspaceId);
     await this.attachmentQueue.add(QueueJob.DELETE_SPACE_ATTACHMENTS, space);
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_DELETED,
+      resourceType: AuditResource.SPACE,
+      resourceId: spaceId,
+      spaceId: spaceId,
+      changes: {
+        before: {
+          name: space.name,
+          slug: space.slug,
+          description: space.description,
+        },
+      },
+    });
   }
 }

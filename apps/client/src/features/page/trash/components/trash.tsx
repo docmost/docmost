@@ -31,9 +31,12 @@ import TrashPageContentModal from "@/features/page/trash/components/trash-page-c
 import { UserInfo } from "@/components/common/user-info.tsx";
 import Paginate from "@/components/common/paginate.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
+import { useAtom } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 export default function Trash() {
   const { t } = useTranslation();
+  const [workspace] = useAtom(workspaceAtom);
   const { spaceSlug } = useParams();
   const { cursor, goNext, goPrev } = useCursorPaginate();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
@@ -108,7 +111,7 @@ export default function Trash() {
 
         <Alert icon={<IconInfoCircle size={16} />} variant="light" color="red">
           <Text size="sm">
-            {t("Pages in trash will be permanently deleted after 30 days.")}
+            {t("Pages in trash will be permanently deleted after {{count}} days.", { count: workspace?.trashRetentionDays ?? 30 })}
           </Text>
         </Alert>
 

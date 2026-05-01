@@ -2,11 +2,11 @@ import { Group, Box, Button, TextInput, Stack, Textarea } from "@mantine/core";
 import React, { useState } from "react";
 import { useCreateGroupMutation } from "@/features/group/queries/group-query.ts";
 import { useForm } from "@mantine/form";
-import * as z from "zod";
+import { z } from "zod/v4";
 import { useNavigate } from "react-router-dom";
 import { MultiUserSelect } from "@/features/group/components/multi-user-select.tsx";
 import { useTranslation } from "react-i18next";
-import { zodResolver } from 'mantine-form-zod-resolver';
+import { zod4Resolver } from 'mantine-form-zod-resolver';
 
 const formSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -22,7 +22,7 @@ export function CreateGroupForm() {
   const navigate = useNavigate();
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       name: "",
       description: "",

@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { MultipartFile } from '@fastify/multipart';
-import { sanitize } from 'sanitize-filename-ts';
 import * as path from 'path';
 import {
   htmlToJson,
@@ -30,6 +29,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
+import { load } from 'cheerio';
+import { normalizeImportHtml } from '../utils/import-formatter';
 
 @Injectable()
 export class ImportService {
@@ -49,12 +50,12 @@ export class ImportService {
     userId: string,
     spaceId: string,
     workspaceId: string,
-  ): Promise<void> {
+  ) {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();
-    const fileName = sanitize(
-      path.basename(file.filename, fileExtension).slice(0, 255),
+    const fileName = sanitizeFileName(
+      path.basename(file.filename, fileExtension),
     );
     const fileContent = fileBuffer.toString();
 
@@ -137,7 +138,9 @@ export class ImportService {
 
   async processHTML(htmlInput: string): Promise<any> {
     try {
-      return htmlToJson(htmlInput);
+      const $ = load(htmlInput);
+      normalizeImportHtml($, $.root());
+      return htmlToJson($.html() || '');
     } catch (err) {
       throw err;
     }

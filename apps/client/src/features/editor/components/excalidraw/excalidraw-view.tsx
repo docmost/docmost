@@ -4,28 +4,32 @@ import {
   Button,
   Card,
   Group,
-  Image,
   Text,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
-import { getFileUrl } from "@/lib/config.ts";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
 import ReactClearModal from "react-clear-modal";
 import clsx from "clsx";
 import { IconEdit } from "@tabler/icons-react";
-import { lazy } from "react";
-import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
+import { modals } from "@mantine/modals";
 
-const Excalidraw = lazy(() =>
+const ExcalidrawComponent = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
     default: module.Excalidraw,
   })),
@@ -34,7 +38,7 @@ const Excalidraw = lazy(() =>
 export default function ExcalidrawView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, updateAttributes, editor, selected } = props;
-  const { src, title, width, attachmentId } = node.attrs;
+  const { attachmentId } = node.attrs;
 
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI>(null);
@@ -46,77 +50,125 @@ export default function ExcalidrawView(props: NodeViewProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
 
+  const isDirtyRef = useRef(false);
+  const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isInitialLoadRef = useRef(true);
+  const lastFingerprintRef = useRef("");
+
   const handleOpen = async () => {
     if (!editor.isEditable) {
       return;
     }
-
-    try {
-      if (src) {
-        const url = getFileUrl(src);
-        const request = await fetch(url, {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        const { loadFromBlob } = await import("@excalidraw/excalidraw");
-
-        const data = await loadFromBlob(await request.blob(), null, null);
-        setExcalidrawData(data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      open();
-    }
+    isDirtyRef.current = false;
+    isInitialLoadRef.current = true;
+    open();
   };
 
-  const handleSave = async () => {
-    if (!excalidrawAPI) {
+  const saveData = useCallback(async (updateSrc = true) => {
+    if (!excalidrawAPI || isSavingRef.current) {
       return;
     }
 
-    const { exportToSvg } = await import("@excalidraw/excalidraw");
+    isSavingRef.current = true;
+    setIsSaving(true);
 
-    const svg = await exportToSvg({
-      elements: excalidrawAPI?.getSceneElements(),
-      appState: {
-        exportEmbedScene: true,
-        exportWithDarkMode: false,
-      },
-      files: excalidrawAPI?.getFiles(),
-    });
+    try {
+      const { exportToSvg } = await import("@excalidraw/excalidraw");
 
-    const serializer = new XMLSerializer();
-    let svgString = serializer.serializeToString(svg);
+      const svg = await exportToSvg({
+        elements: excalidrawAPI?.getSceneElements(),
+        appState: {
+          exportEmbedScene: true,
+          exportWithDarkMode: false,
+        },
+        files: excalidrawAPI?.getFiles(),
+      });
 
-    svgString = svgString.replace(
-      /https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g,
-      "https://unpkg.com/@excalidraw/excalidraw@latest",
-    );
+      const serializer = new XMLSerializer();
+      let svgString = serializer.serializeToString(svg);
 
-    const fileName = "diagram.excalidraw.svg";
-    const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
+      svgString = svgString.replace(
+        /https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g,
+        "https://unpkg.com/@excalidraw/excalidraw@latest",
+      );
 
-    // @ts-ignore
-    const pageId = editor.storage?.pageId;
+      const fileName = "diagram.excalidraw.svg";
+      const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
-    let attachment: IAttachment = null;
-    if (attachmentId) {
-      attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
-    } else {
-      attachment = await uploadFile(excalidrawSvgFile, pageId);
+      // @ts-ignore
+      const pageId = editor.storage?.pageId;
+
+      let attachment: IAttachment = null;
+      if (attachmentId) {
+        attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
+      } else {
+        attachment = await uploadFile(excalidrawSvgFile, pageId);
+      }
+
+      if (updateSrc) {
+        updateAttributes({
+          src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+          title: attachment.fileName,
+          size: attachment.fileSize,
+          attachmentId: attachment.id,
+        });
+      } else {
+        updateAttributes({
+          attachmentId: attachment.id,
+        });
+      }
+
+      isDirtyRef.current = false;
+    } finally {
+      isSavingRef.current = false;
+      setIsSaving(false);
+    }
+  }, [excalidrawAPI, editor, attachmentId, updateAttributes]);
+
+  const handleSaveAndExit = useCallback(async () => {
+    try {
+      await saveData();
+      close();
+    } catch {
+      /* empty */
+    }
+  }, [saveData, close]);
+
+  const handleClose = useCallback(() => {
+    if (!isDirtyRef.current) {
+      close();
+      return;
     }
 
-    updateAttributes({
-      src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-      title: attachment.fileName,
-      size: attachment.fileSize,
-      attachmentId: attachment.id,
+    modals.openConfirmModal({
+      title: t("Unsaved changes"),
+      children: (
+        <Text size="sm">
+          {t("You have unsaved changes that will be lost.")}
+        </Text>
+      ),
+      centered: true,
+      labels: { confirm: t("Discard"), cancel: t("Cancel") },
+      confirmProps: { color: "red" },
+      onConfirm: () => {
+        isDirtyRef.current = false;
+        close();
+      },
     });
+  }, [close, t]);
 
-    close();
-  };
+  useEffect(() => {
+    if (!opened) return;
+
+    const interval = setInterval(() => {
+      if (isDirtyRef.current && !isSavingRef.current) {
+        saveData(false).catch(() => {});
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [opened, saveData]);
 
   return (
     <NodeViewWrapper data-drag-handle>
@@ -127,7 +179,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
           zIndex: 200,
         }}
         isOpen={opened}
-        onRequestClose={close}
+        onRequestClose={handleClose}
         disableCloseOnBgClick={true}
         contentProps={{
           style: {
@@ -142,17 +194,29 @@ export default function ExcalidrawView(props: NodeViewProps) {
           bg="var(--mantine-color-body)"
           p="xs"
         >
-          <Button onClick={handleSave} size={"compact-sm"}>
+          <Button onClick={handleSaveAndExit} size={"compact-sm"} loading={isSaving}>
             {t("Save & Exit")}
           </Button>
-          <Button onClick={close} color="red" size={"compact-sm"}>
+          <Button onClick={handleClose} color="red" size={"compact-sm"}>
             {t("Exit")}
           </Button>
         </Group>
         <div style={{ height: "90vh" }}>
           <Suspense fallback={null}>
-            <Excalidraw
+            <ExcalidrawComponent
               excalidrawAPI={(api) => setExcalidrawAPI(api)}
+              onChange={(elements, _appState, files) => {
+                const fingerprint = `${elements.length}:${elements.reduce((s, e) => s + (e.version || 0), 0)}:${Object.keys(files).length}`;
+                if (isInitialLoadRef.current) {
+                  lastFingerprintRef.current = fingerprint;
+                  isInitialLoadRef.current = false;
+                  return;
+                }
+                if (fingerprint !== lastFingerprintRef.current) {
+                  lastFingerprintRef.current = fingerprint;
+                  isDirtyRef.current = true;
+                }
+              }}
               initialData={{
                 ...excalidrawData,
                 scrollToContent: true,
@@ -163,62 +227,28 @@ export default function ExcalidrawView(props: NodeViewProps) {
         </div>
       </ReactClearModal>
 
-      {src ? (
-        <div style={{ position: "relative" }}>
-          <Image
-            onClick={(e) => e.detail === 2 && handleOpen()}
-            radius="md"
-            fit="contain"
-            w={width}
-            src={getFileUrl(src)}
-            alt={title}
-            className={clsx(
-              selected ? "ProseMirror-selectednode" : "",
-              "alignCenter",
-            )}
-          />
+      <Card
+        radius="md"
+        onClick={(e) => e.detail === 2 && handleOpen()}
+        p="xs"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        withBorder
+        className={clsx(selected ? "ProseMirror-selectednode" : "")}
+      >
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <ActionIcon variant="transparent" color="gray">
+            <IconEdit size={18} />
+          </ActionIcon>
 
-          {selected && editor.isEditable && (
-            <ActionIcon
-              onClick={handleOpen}
-              variant="default"
-              color="gray"
-              mx="xs"
-              className="print-hide"
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-              }}
-            >
-              <IconEdit size={18} />
-            </ActionIcon>
-          )}
+          <Text component="span" size="lg" c="dimmed">
+            {t("Double-click to edit Excalidraw diagram")}
+          </Text>
         </div>
-      ) : (
-        <Card
-          radius="md"
-          onClick={(e) => e.detail === 2 && handleOpen()}
-          p="xs"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          withBorder
-          className={clsx(selected ? "ProseMirror-selectednode" : "")}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <ActionIcon variant="transparent" color="gray">
-              <IconEdit size={18} />
-            </ActionIcon>
-
-            <Text component="span" size="lg" c="dimmed">
-              {t("Double-click to edit Excalidraw diagram")}
-            </Text>
-          </div>
-        </Card>
-      )}
+      </Card>
     </NodeViewWrapper>
   );
 }

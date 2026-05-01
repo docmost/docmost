@@ -66,12 +66,14 @@ export default function ReadonlyPageEditor({
 
   return (
     <>
-      <EditorProvider
-        editable={false}
-        immediatelyRender={true}
-        extensions={titleExtensions}
-        content={title}
-      ></EditorProvider>
+      <div className="page-title">
+        <EditorProvider
+          editable={false}
+          immediatelyRender={true}
+          extensions={titleExtensions}
+          content={title}
+        ></EditorProvider>
+      </div>
 
       <EditorProvider
         editable={false}

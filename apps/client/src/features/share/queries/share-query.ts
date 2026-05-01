@@ -90,7 +90,10 @@ export function useCreateShareMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: t("Failed to share page"), color: "red" });
+      notifications.show({
+        message: error?.["response"]?.data?.message || t("Failed to share page"),
+        color: "red",
+      });
     },
   });
 }

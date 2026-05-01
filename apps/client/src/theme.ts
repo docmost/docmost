@@ -2,6 +2,7 @@ import {
   createTheme,
   CSSVariablesResolver,
   MantineColorsTuple,
+  Tabs,
 } from "@mantine/core";
 
 const blue: MantineColorsTuple = [
@@ -35,6 +36,17 @@ export const theme = createTheme({
     blue,
     red,
   },
+  components: {
+    Tabs: Tabs.extend({
+      vars: (theme, props) => ({
+        root: {
+          ...(props.color === "dark" && {
+            "--tabs-color": "var(--mantine-color-dark-default)",
+          }),
+        },
+      }),
+    }),
+  },
   /***
   components: {
     ActionIcon: ActionIcon.extend({
@@ -59,6 +71,7 @@ export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
     "--input-error-size": theme.fontSizes.sm,
   },
   light: {
+    "--mantine-color-dimmed": "#6b7280",
     "--mantine-color-dark-light-color": "#4e5359",
     "--mantine-color-dark-light-hover": "var(--mantine-color-gray-light-hover)",
   },

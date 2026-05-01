@@ -11,6 +11,7 @@ export * from "./lib/media-utils";
 export * from "./lib/link";
 export * from "./lib/selection";
 export * from "./lib/attachment";
+export * from "./lib/audio";
 export * from "./lib/custom-code-block";
 export * from "./lib/drawio";
 export * from "./lib/excalidraw";
@@ -25,3 +26,8 @@ export * from "./lib/heading/heading";
 export * from "./lib/unique-id";
 export * from "./lib/shared-storage";
 export * from "./lib/recreate-transform";
+export * from "./lib/columns";
+export * from "./lib/status";
+export * from "./lib/pdf";
+export * from "./lib/resizable-nodeview";
+

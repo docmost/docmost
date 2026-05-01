@@ -75,6 +75,10 @@ export class EnvironmentService {
     return new Date(Date.now() + msUntilExpiry);
   }
 
+  getGotenbergUrl(): string | undefined {
+    return this.configService.get<string>('GOTENBERG_URL');
+  }
+
   getStorageDriver(): string {
     return this.configService.get<string>('STORAGE_DRIVER', 'local');
   }
@@ -252,11 +256,24 @@ export class EnvironmentService {
     return this.configService.get<string>('AI_COMPLETION_MODEL');
   }
 
+  getAiChatModel(): string {
+    return (
+      this.configService.get<string>('AI_CHAT_MODEL') ||
+      this.configService.get<string>('AI_COMPLETION_MODEL')
+    );
+  }
+
   getAiEmbeddingDimension(): number {
     return parseInt(
       this.configService.get<string>('AI_EMBEDDING_DIMENSION'),
       10,
     );
+  }
+
+  getAiEmbeddingSupportsMrl(): boolean | undefined {
+    const val = this.configService.get<string>('AI_EMBEDDING_SUPPORTS_MRL');
+    if (val === undefined || val === null || val === '') return undefined;
+    return val === 'true';
   }
 
   getOpenAiApiKey(): string {
@@ -276,5 +293,22 @@ export class EnvironmentService {
       'OLLAMA_API_URL',
       'http://localhost:11434',
     );
+  }
+
+  getEventStoreDriver(): string {
+    return this.configService
+      .get<string>('EVENT_STORE_DRIVER', 'postgres')
+      .toLowerCase();
+  }
+
+  getClickHouseUrl(): string {
+    return this.configService.get<string>('CLICKHOUSE_URL');
+  }
+
+  getSamlDisableRequestedAuthnContext(): boolean {
+    const disabled = this.configService
+      .get<string>('SAML_DISABLE_REQUESTED_AUTHN_CONTEXT', 'false')
+      .toLowerCase();
+    return disabled === 'true';
   }
 }

@@ -28,6 +28,8 @@ import {
   IconLink,
   IconPlus,
   IconPointFilled,
+  IconStar,
+  IconStarFilled,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -53,11 +55,7 @@ import {
 import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
-import {
-  useDisclosure,
-  useElementSize,
-  useMergedRef,
-} from "@mantine/hooks";
+import { useDisclosure, useElementSize, useMergedRef } from "@mantine/hooks";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { dfs } from "react-arborist/dist/module/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
@@ -73,6 +71,7 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
+import { useFavoriteIds, useAddFavoriteMutation, useRemoveFavoriteMutation } from "@/features/favorite/queries/favorite-query";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -244,9 +243,19 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
       {isRootReady && rootElement.current && (
         <Tree
           data={filteredData}
-          disableDrag={readOnly}
-          disableDrop={readOnly}
-          disableEdit={readOnly}
+          disableDrag={
+            readOnly
+              ? true
+              : (data) => {
+                  return data.canEdit === false;
+                }
+          }
+          disableDrop={
+            readOnly
+              ? true
+              : ({ parentNode }) => parentNode?.data?.canEdit === false
+          }
+          disableEdit={readOnly ? true : (data) => data.canEdit === false}
           {...controllers}
           width={width}
           height={rootElement.current.clientHeight}
@@ -417,7 +426,9 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
                 <IconFileDescription size="18" />
               )
             }
-            readOnly={tree.props.disableEdit as boolean}
+            readOnly={
+              tree.props.disableEdit === true || node.data.canEdit === false
+            }
             removeEmojiAction={handleRemoveEmoji}
           />
         </div>
@@ -427,7 +438,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         <div className={classes.actions}>
           <NodeMenu node={node} treeApi={tree} spaceId={node.data.spaceId} />
 
-          {!tree.props.disableEdit && (
+          {tree.props.disableEdit !== true && node.data.canEdit !== false && (
             <CreateNode
               node={node}
               treeApi={tree}
@@ -498,6 +509,10 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
     copyPageModalOpened,
     { open: openCopyPageModal, close: closeCopySpaceModal },
   ] = useDisclosure(false);
+  const favoriteIds = useFavoriteIds("page", spaceId);
+  const addFavorite = useAddFavoriteMutation();
+  const removeFavorite = useRemoveFavoriteMutation();
+  const isFavorited = favoriteIds.has(node.data.id);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -532,6 +547,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         parentPageId: duplicatedPage.parentPageId,
         icon: duplicatedPage.icon,
         hasChildren: duplicatedPage.hasChildren,
+        canEdit: true,
         children: [],
       };
 
@@ -600,6 +616,21 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
           </Menu.Item>
 
           <Menu.Item
+            leftSection={isFavorited ? <IconStarFilled size={16} /> : <IconStar size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isFavorited) {
+                removeFavorite.mutate({ type: "page", pageId: node.data.id });
+              } else {
+                addFavorite.mutate({ type: "page", pageId: node.data.id });
+              }
+            }}
+          >
+            {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
+          </Menu.Item>
+
+          <Menu.Item
             leftSection={<IconFileExport size={16} />}
             onClick={(e) => {
               e.preventDefault();
@@ -610,55 +641,56 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
             {t("Export page")}
           </Menu.Item>
 
-          {!(treeApi.props.disableEdit as boolean) && (
-            <>
-              <Menu.Item
-                leftSection={<IconCopy size={16} />}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleDuplicatePage();
-                }}
-              >
-                {t("Duplicate")}
-              </Menu.Item>
+          {treeApi.props.disableEdit !== true &&
+            node.data.canEdit !== false && (
+              <>
+                <Menu.Item
+                  leftSection={<IconCopy size={16} />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDuplicatePage();
+                  }}
+                >
+                  {t("Duplicate")}
+                </Menu.Item>
 
-              <Menu.Item
-                leftSection={<IconArrowRight size={16} />}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openMovePageModal();
-                }}
-              >
-                {t("Move")}
-              </Menu.Item>
+                <Menu.Item
+                  leftSection={<IconArrowRight size={16} />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openMovePageModal();
+                  }}
+                >
+                  {t("Move")}
+                </Menu.Item>
 
-              <Menu.Item
-                leftSection={<IconCopy size={16} />}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openCopyPageModal();
-                }}
-              >
-                {t("Copy to space")}
-              </Menu.Item>
+                <Menu.Item
+                  leftSection={<IconCopy size={16} />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openCopyPageModal();
+                  }}
+                >
+                  {t("Copy to space")}
+                </Menu.Item>
 
-              <Menu.Divider />
-              <Menu.Item
-                c="red"
-                leftSection={<IconTrash size={16} />}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
-                }}
-              >
-                {t("Move to trash")}
-              </Menu.Item>
-            </>
-          )}
+                <Menu.Divider />
+                <Menu.Item
+                  c="red"
+                  leftSection={<IconTrash size={16} />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
+                  }}
+                >
+                  {t("Move to trash")}
+                </Menu.Item>
+              </>
+            )}
         </Menu.Dropdown>
       </Menu>
 

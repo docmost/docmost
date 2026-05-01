@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -21,6 +22,7 @@ import InvitationEmail from '@docmost/transactional/emails/invitation-email';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
 import { TokenService } from '../../auth/services/token.service';
+import { SessionService } from '../../session/session.service';
 import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
@@ -33,6 +35,11 @@ import {
   validateAllowedEmail,
   validateSsoEnforcement,
 } from '../../auth/auth.util';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -43,9 +50,11 @@ export class WorkspaceInvitationService {
     private mailService: MailService,
     private domainService: DomainService,
     private tokenService: TokenService,
+    private sessionService: SessionService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     private readonly environmentService: EnvironmentService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
@@ -180,6 +189,24 @@ export class WorkspaceInvitationService {
           workspace.hostname,
         );
       });
+
+      // Audit log for each invitation created
+      for (const invitation of invites) {
+        this.auditService.log({
+          event: AuditEvent.WORKSPACE_INVITE_CREATED,
+          resourceType: AuditResource.WORKSPACE_INVITATION,
+          resourceId: invitation.id,
+          changes: {
+            after: {
+              email: invitation.email,
+              role: invitation.role,
+            },
+          },
+          metadata: {
+            groupIds: invitation.groupIds,
+          },
+        });
+      }
     }
   }
 
@@ -296,6 +323,23 @@ export class WorkspaceInvitationService {
       });
     }
 
+    this.auditService.log({
+      event: AuditEvent.USER_CREATED,
+      resourceType: AuditResource.USER,
+      resourceId: newUser.id,
+      changes: {
+        after: {
+          name: newUser.name,
+          email: newUser.email,
+          role: invitation.role,
+        },
+      },
+      metadata: {
+        source: 'invitation',
+        invitationId: invitation.id,
+      },
+    });
+
     if (this.environmentService.isCloud()) {
       await this.billingQueue.add(QueueJob.STRIPE_SEATS_SYNC, {
         workspaceId: workspace.id,
@@ -308,7 +352,7 @@ export class WorkspaceInvitationService {
       };
     }
 
-    const authToken = await this.tokenService.generateAccessToken(newUser);
+    const authToken = await this.sessionService.createSessionAndToken(newUser);
     return { authToken };
   }
 
@@ -339,17 +383,48 @@ export class WorkspaceInvitationService {
       invitedByUser.name,
       workspace.hostname,
     );
+
+    this.auditService.log({
+      event: AuditEvent.WORKSPACE_INVITE_RESENT,
+      resourceType: AuditResource.WORKSPACE_INVITATION,
+      resourceId: invitation.id,
+      metadata: {
+        email: invitation.email,
+        role: invitation.role,
+      },
+    });
   }
 
   async revokeInvitation(
     invitationId: string,
     workspaceId: string,
   ): Promise<void> {
+    const invitation = await this.db
+      .selectFrom('workspaceInvitations')
+      .select(['id', 'email', 'role'])
+      .where('id', '=', invitationId)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+
     await this.db
       .deleteFrom('workspaceInvitations')
       .where('id', '=', invitationId)
       .where('workspaceId', '=', workspaceId)
       .execute();
+
+    if (invitation) {
+      this.auditService.log({
+        event: AuditEvent.WORKSPACE_INVITE_REVOKED,
+        resourceType: AuditResource.WORKSPACE_INVITATION,
+        resourceId: invitation.id,
+        changes: {
+          before: {
+            email: invitation.email,
+            role: invitation.role,
+          },
+        },
+      });
+    }
   }
 
   async getInvitationLinkById(

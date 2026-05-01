@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
@@ -10,6 +10,11 @@ import { InjectKysely } from 'nestjs-kysely';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { UserRole } from '../../../common/helpers/types/permission';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class SignupService {
@@ -18,6 +23,7 @@ export class SignupService {
     private workspaceService: WorkspaceService,
     private groupUserRepo: GroupUserRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async signup(
@@ -36,7 +42,7 @@ export class SignupService {
       );
     }
 
-    return await executeTx(
+    const user = await executeTx(
       this.db,
       async (trx) => {
         // create user
@@ -66,6 +72,24 @@ export class SignupService {
       },
       trx,
     );
+
+    this.auditService.log({
+      event: AuditEvent.USER_CREATED,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      changes: {
+        after: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      },
+      metadata: {
+        source: 'signup',
+      },
+    });
+
+    return user;
   }
 
   async initialSetup(

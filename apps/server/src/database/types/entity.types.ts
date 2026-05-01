@@ -1,9 +1,15 @@
 import { Insertable, Selectable, Updateable } from 'kysely';
 import {
+  AiChats,
+  AiChatMessages,
   Attachments,
   Comments,
   Groups,
   Notifications,
+  PageAccess as _PageAccess,
+  PagePermissions as _PagePermissions,
+  PageVerifications as _PageVerifications,
+  PageVerifiers as _PageVerifiers,
   Pages,
   Spaces,
   Users,
@@ -18,13 +24,32 @@ import {
   AuthProviders,
   AuthAccounts,
   Shares,
+  Favorites,
   FileTasks,
   UserMfa as _UserMFA,
+  UserSessions,
   ApiKeys,
   ScimTokens,
   Watchers,
+  Audit as _Audit,
+  Templates,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
+
+// AI Chat
+export type AiChat = Selectable<AiChats>;
+export type InsertableAiChat = Insertable<AiChats>;
+export type UpdatableAiChat = Updateable<Omit<AiChats, 'id'>>;
+
+// AI Chat Message
+// `tsv` is an internal tsvector column maintained by a trigger for
+// full-text search. It is omitted from the public type so it never leaks
+// into HTTP responses or the chat history fed to the language model.
+export type AiChatMessage = Omit<Selectable<AiChatMessages>, 'tsv'>;
+export type InsertableAiChatMessage = Omit<
+  Insertable<AiChatMessages>,
+  'tsv'
+>;
 
 // Workspace
 export type Workspace = Selectable<Workspaces>;
@@ -115,6 +140,11 @@ export type Share = Selectable<Shares>;
 export type InsertableShare = Insertable<Shares>;
 export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
 
+// Favorite
+export type Favorite = Selectable<Favorites>;
+export type InsertableFavorite = Insertable<Favorites>;
+export type UpdatableFavorite = Updateable<Omit<Favorites, 'id'>>;
+
 // File Task
 export type FileTask = Selectable<FileTasks>;
 export type InsertableFileTask = Insertable<FileTasks>;
@@ -149,3 +179,37 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Page Access
+export type PageAccess = Selectable<_PageAccess>;
+export type InsertablePageAccess = Insertable<_PageAccess>;
+export type UpdatablePageAccess = Updateable<Omit<_PageAccess, 'id'>>;
+
+// Page Permission
+export type PagePermission = Selectable<_PagePermissions>;
+export type InsertablePagePermission = Insertable<_PagePermissions>;
+export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
+
+// Page Verification
+export type PageVerification = Selectable<_PageVerifications>;
+export type InsertablePageVerification = Insertable<_PageVerifications>;
+export type UpdatablePageVerification = Updateable<Omit<_PageVerifications, 'id'>>;
+
+// Page Verifier
+export type PageVerifier = Selectable<_PageVerifiers>;
+export type InsertablePageVerifier = Insertable<_PageVerifiers>;
+
+// User Session
+export type UserSession = Selectable<UserSessions>;
+export type InsertableUserSession = Insertable<UserSessions>;
+export type UpdatableUserSession = Updateable<Omit<UserSessions, 'id'>>;
+
+// Audit
+export type Audit = Selectable<_Audit>;
+export type InsertableAudit = Insertable<_Audit>;
+export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
+
+// Template
+export type Template = Selectable<Templates>;
+export type InsertableTemplate = Insertable<Templates>;
+export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;

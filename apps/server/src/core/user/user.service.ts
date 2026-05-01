@@ -1,18 +1,28 @@
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { comparePasswordHash } from 'src/common/helpers/utils';
+import { NotificationSettingKey } from '../notification/notification.constants';
+import { comparePasswordHash, diffAuditTrackedFields } from 'src/common/helpers/utils';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { validateSsoEnforcement } from '../auth/auth.util';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepo: UserRepo) {}
+  constructor(
+    private userRepo: UserRepo,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+  ) {}
 
   async findById(userId: string, workspaceId: string) {
     return this.userRepo.findById(userId, workspaceId);
@@ -51,6 +61,26 @@ export class UserService {
       );
     }
 
+    const notificationSettings: Record<string, NotificationSettingKey> = {
+      notificationPageUpdates: 'page.updated',
+      notificationPageUserMention: 'page.userMention',
+      notificationCommentUserMention: 'comment.userMention',
+      notificationCommentCreated: 'comment.created',
+      notificationCommentResolved: 'comment.resolved',
+    };
+
+    for (const [dtoField, settingKey] of Object.entries(notificationSettings)) {
+      if (typeof updateUserDto[dtoField] !== 'undefined') {
+        return this.userRepo.updateNotificationSetting(
+          userId,
+          settingKey,
+          updateUserDto[dtoField],
+        );
+      }
+    }
+
+    const userBefore = { name: user.name, email: user.email, locale: user.locale };
+
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
     }
@@ -80,10 +110,6 @@ export class UserService {
       user.email = updateUserDto.email;
     }
 
-    if (updateUserDto.avatarUrl) {
-      user.avatarUrl = updateUserDto.avatarUrl;
-    }
-
     if (updateUserDto.locale) {
       user.locale = updateUserDto.locale;
     }
@@ -91,6 +117,23 @@ export class UserService {
     delete updateUserDto.confirmPassword;
 
     await this.userRepo.updateUser(updateUserDto, userId, workspace.id);
+
+    const changes = diffAuditTrackedFields(
+      ['name', 'email'],
+      updateUserDto,
+      userBefore,
+      user,
+    );
+
+    if (changes) {
+      this.auditService.log({
+        event: AuditEvent.USER_UPDATED,
+        resourceType: AuditResource.USER,
+        resourceId: userId,
+        changes,
+      });
+    }
+
     return user;
   }
 }

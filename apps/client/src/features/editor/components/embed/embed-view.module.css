@@ -1,3 +1,12 @@
+:global(.ProseMirror .node-embed.ProseMirror-selectednode) {
+  outline: none;
+}
+
+.embedContainer {
+  display: flex;
+  justify-content: center;
+}
+
 .embedWrapper {
   @mixin light {
     background-color: var(--mantine-color-gray-0);

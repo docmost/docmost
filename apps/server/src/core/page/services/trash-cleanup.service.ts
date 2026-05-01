@@ -6,10 +6,11 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 
+const DEFAULT_RETENTION_DAYS = 30;
+
 @Injectable()
 export class TrashCleanupService {
   private readonly logger = new Logger(TrashCleanupService.name);
-  private readonly RETENTION_DAYS = 30;
 
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
@@ -21,36 +22,46 @@ export class TrashCleanupService {
     try {
       this.logger.debug('Starting trash cleanup job');
 
-      const retentionDate = new Date();
-      retentionDate.setDate(retentionDate.getDate() - this.RETENTION_DAYS);
-
-      // Get all pages that were deleted more than 30 days ago
-      const oldDeletedPages = await this.db
-        .selectFrom('pages')
-        .select(['id', 'spaceId', 'workspaceId'])
-        .where('deletedAt', '<', retentionDate)
+      const workspaces = await this.db
+        .selectFrom('workspaces')
+        .select(['id', 'trashRetentionDays'])
+        .where('deletedAt', 'is', null)
         .execute();
 
-      if (oldDeletedPages.length === 0) {
-        this.logger.debug('No old trash items to clean up');
-        return;
-      }
+      let totalCleaned = 0;
 
-      this.logger.debug(`Found ${oldDeletedPages.length} pages to clean up`);
+      for (const workspace of workspaces) {
+        const retentionDays =
+          workspace.trashRetentionDays ?? DEFAULT_RETENTION_DAYS;
 
-      // Process each page
-      for (const page of oldDeletedPages) {
-        try {
-          await this.cleanupPage(page.id);
-        } catch (error) {
-          this.logger.error(
-            `Failed to cleanup page ${page.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            error instanceof Error ? error.stack : undefined,
-          );
+        const retentionDate = new Date();
+        retentionDate.setDate(retentionDate.getDate() - retentionDays);
+
+        const oldDeletedPages = await this.db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('workspaceId', '=', workspace.id)
+          .where('deletedAt', '<', retentionDate)
+          .execute();
+
+        for (const page of oldDeletedPages) {
+          try {
+            await this.cleanupPage(page.id);
+            totalCleaned++;
+          } catch (error) {
+            this.logger.error(
+              `Failed to cleanup page ${page.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              error instanceof Error ? error.stack : undefined,
+            );
+          }
         }
       }
 
-      this.logger.debug('Trash cleanup job completed');
+      this.logger.debug(
+        totalCleaned > 0
+          ? `Trash cleanup completed: ${totalCleaned} pages cleaned`
+          : 'No old trash items to clean up',
+      );
     } catch (error) {
       this.logger.error(
         'Trash cleanup job failed',

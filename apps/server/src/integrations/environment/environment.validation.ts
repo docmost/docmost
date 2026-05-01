@@ -10,7 +10,7 @@ import {
   validateSync,
 } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { IsISO6391 } from '../../common/validator/is-iso6391';
+import { IsISO6391 } from '../../common/validators/is-iso6391';
 
 export class EnvironmentVariables {
   @IsNotEmpty()
@@ -117,6 +117,12 @@ export class EnvironmentVariables {
   @IsString()
   AI_EMBEDDING_DIMENSION: string;
 
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_EMBEDDING_SUPPORTS_MRL)
+  @IsIn(['true', 'false'])
+  @IsString()
+  AI_EMBEDDING_SUPPORTS_MRL: string;
+
   @ValidateIf((obj) => obj.AI_DRIVER)
   @IsString()
   @IsNotEmpty()
@@ -148,6 +154,22 @@ export class EnvironmentVariables {
   @ValidateIf((obj) => obj.AI_DRIVER && obj.AI_DRIVER === 'ollama')
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   OLLAMA_API_URL: string;
+
+  @IsOptional()
+  @IsIn(['postgres', 'clickhouse'])
+  @IsString()
+  EVENT_STORE_DRIVER: string;
+
+  @ValidateIf((obj) => obj.EVENT_STORE_DRIVER === 'clickhouse')
+  @IsNotEmpty()
+  @IsUrl(
+    { protocols: ['http', 'https'], require_tld: false },
+    {
+      message:
+        'CLICKHOUSE_URL must be a valid URL e.g http://user:password@localhost:8123/docmost',
+    },
+  )
+  CLICKHOUSE_URL: string;
 }
 
 export function validate(config: Record<string, any>) {

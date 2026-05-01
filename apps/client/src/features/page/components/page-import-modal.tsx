@@ -28,12 +28,15 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfluenceIcon } from "@/components/icons/confluence-icon.tsx";
-import { getFileImportSizeLimit, isCloud } from "@/lib/config.ts";
+import { getFileImportSizeLimit } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { getFileTaskById } from "@/features/file-task/services/file-task-service.ts";
 import { queryClient } from "@/main.tsx";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import bytes from "bytes";
 
 interface PageImportModalProps {
   spaceId: string;
@@ -81,7 +84,6 @@ interface ImportFormatSelection {
 function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   const { t } = useTranslation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
-  const [workspace] = useAtom(workspaceAtom);
   const [fileTaskId, setFileTaskId] = useState<string | null>(null);
   const emit = useQueryEmit();
 
@@ -92,11 +94,23 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   const confluenceFileRef = useRef<() => void>(null);
   const zipFileRef = useRef<() => void>(null);
 
-  const canUseConfluence = isCloud() || workspace?.hasLicenseKey;
-  const canUseDocx = isCloud() || workspace?.hasLicenseKey;
+  const canUseConfluence = useHasFeature(Feature.CONFLUENCE_IMPORT);
+  const canUseDocx = useHasFeature(Feature.DOCX_IMPORT);
+  const upgradeLabel = useUpgradeLabel();
 
   const handleZipUpload = async (selectedFile: File, source: string) => {
     if (!selectedFile) {
+      return;
+    }
+
+    const maxSize = getFileImportSizeLimit();
+    if (selectedFile.size > maxSize) {
+      notifications.show({
+        color: "red",
+        message: t("File exceeds the {{limit}} import limit", {
+          limit: formatBytes(maxSize),
+        }),
+      });
       return;
     }
 
@@ -230,8 +244,23 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     }, 3000);
   }, [fileTaskId]);
 
+  const maxSingleFileSize = bytes("20mb");
+
   const handleFileUpload = async (selectedFiles: File[]) => {
     if (!selectedFiles) {
+      return;
+    }
+
+    const oversizedFiles = selectedFiles.filter(
+      (f) => f.size > maxSingleFileSize,
+    );
+    if (oversizedFiles.length > 0) {
+      notifications.show({
+        color: "red",
+        message: t("File exceeds the {{limit}} import limit", {
+          limit: formatBytes(maxSingleFileSize),
+        }),
+      });
       return;
     }
 
@@ -333,7 +362,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         >
           {(props) => (
             <Tooltip
-              label={t("Available in enterprise edition")}
+              label={upgradeLabel}
               disabled={canUseDocx}
             >
               <Button
@@ -372,7 +401,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         >
           {(props) => (
             <Tooltip
-              label={t("Available in enterprise edition")}
+              label={upgradeLabel}
               disabled={canUseConfluence}
             >
               <Button

@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Logger,
   NotFoundException,
   Param,
@@ -52,7 +53,13 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
-import { RemoveIconDto } from './dto/attachment.dto';
+import { AttachmentInfoDto, RemoveIconDto } from './dto/attachment.dto';
+import { PageAccessService } from '../page/page-access/page-access.service';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Controller()
 export class AttachmentController {
@@ -67,6 +74,8 @@ export class AttachmentController {
     private readonly attachmentRepo: AttachmentRepo,
     private readonly environmentService: EnvironmentService,
     private readonly tokenService: TokenService,
+    private readonly pageAccessService: PageAccessService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -111,13 +120,7 @@ export class AttachmentController {
       throw new NotFoundException('Page not found');
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      page.spaceId,
-    );
-    if (spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanEdit(page, user);
 
     const spaceId = page.spaceId;
 
@@ -134,6 +137,18 @@ export class AttachmentController {
         userId: user.id,
         workspaceId: workspace.id,
         attachmentId: attachmentId,
+      });
+
+      this.auditService.log({
+        event: AuditEvent.ATTACHMENT_UPLOADED,
+        resourceType: AuditResource.ATTACHMENT,
+        resourceId: fileResponse?.id ?? attachmentId,
+        spaceId,
+        metadata: {
+          fileName: fileResponse?.fileName,
+          pageId,
+          spaceId,
+        },
       });
 
       return res.send(fileResponse);
@@ -163,22 +178,28 @@ export class AttachmentController {
     }
 
     const attachment = await this.attachmentRepo.findById(fileId);
-    if (
-      !attachment ||
-      attachment.workspaceId !== workspace.id ||
-      !attachment.pageId ||
-      !attachment.spaceId
-    ) {
+    if (!attachment || attachment.workspaceId !== workspace.id) {
       throw new NotFoundException();
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      attachment.spaceId,
-    );
+    if (attachment.aiChatId) {
+      // Chat-owned attachment: only the user who uploaded (and therefore
+      // owns the chat, per AttachmentRepo.claimAttachmentsForChat) can
+      // read it back.
+      if (attachment.creatorId !== user.id) {
+        throw new NotFoundException();
+      }
+    } else {
+      if (!attachment.pageId || !attachment.spaceId) {
+        throw new NotFoundException();
+      }
 
-    if (spaceAbility.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
+      const page = await this.pageRepo.findById(attachment.pageId);
+      if (!page) {
+        throw new NotFoundException();
+      }
+
+      await this.pageAccessService.validateCanView(page, user);
     }
 
     try {
@@ -335,9 +356,19 @@ export class AttachmentController {
       throw new BadRequestException('Invalid image attachment type');
     }
 
-    const filenameWithoutExt = path.basename(fileName, path.extname(fileName));
-    if (!isValidUUID(filenameWithoutExt)) {
-      throw new BadRequestException('Invalid file id');
+    if (!fileName) {
+      throw new BadRequestException('Invalid file name');
+    }
+
+    const ext = path.extname(fileName);
+    const filenameWithoutExt = path.basename(fileName, ext);
+
+    if (
+      !ext ||
+      !isValidUUID(filenameWithoutExt) ||
+      `${filenameWithoutExt}${ext}` !== fileName
+    ) {
+      throw new BadRequestException('Invalid file name');
     }
 
     const filePath = `${getAttachmentFolderPath(attachmentType, workspace.id)}/${fileName}`;
@@ -353,6 +384,34 @@ export class AttachmentController {
       // this.logger.error(err);
       throw new NotFoundException('File not found');
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('files/info')
+  async getAttachmentInfo(
+    @Body() dto: AttachmentInfoDto,
+    @AuthWorkspace() workspace: Workspace,
+    @AuthUser() user: User,
+  ) {
+    const attachment = await this.attachmentRepo.findById(dto.attachmentId);
+    if (
+      !attachment ||
+      !attachment.pageId ||
+      attachment.workspaceId !== workspace.id ||
+      attachment.type !== AttachmentType.File
+    ) {
+      throw new NotFoundException('File not found');
+    }
+
+    const page = await this.pageRepo.findById(attachment.pageId);
+    if (!page) {
+      throw new NotFoundException('File not found');
+    }
+
+    await this.pageAccessService.validateCanView(page, user);
+
+    return attachment;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -416,6 +475,10 @@ export class AttachmentController {
     const rangeHeader = req.headers.range;
 
     res.header('Accept-Ranges', 'bytes');
+    res.header(
+      'Content-Security-Policy',
+      "base-uri 'none'; object-src 'self'; default-src 'self';",
+    );
 
     if (!inlineFileExtensions.includes(attachment.fileExt)) {
       res.header(

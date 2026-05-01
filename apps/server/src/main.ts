@@ -10,6 +10,7 @@ import { TransformHttpResponseInterceptor } from './common/interceptors/http-res
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
+import fastifyIp from 'fastify-ip';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
 
 async function bootstrap() {
@@ -36,7 +37,7 @@ async function bootstrap() {
   app.useLogger(app.get(PinoLogger));
 
   app.setGlobalPrefix('api', {
-    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug'],
+    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug', 'mcp'],
   });
 
   const reflector = app.get(Reflector);
@@ -45,6 +46,7 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(redisIoAdapter);
 
+  await app.register(fastifyIp);
   await app.register(fastifyMultipart);
   await app.register(fastifyCookie);
 
@@ -83,6 +85,7 @@ async function bootstrap() {
         '/api/sso/google',
         '/api/workspace/create',
         '/api/workspace/joined',
+        '/api/workspace/find-by-email',
       ];
 
       if (
