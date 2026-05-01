@@ -24,15 +24,18 @@ export function extractPageSlugId(slug: string): string {
 }
 
 export const computeSpaceSlug = (name: string) => {
-  const alphanumericName = name.replace(/[^a-zA-Z0-9\s]/g, "");
-  if (alphanumericName.includes(" ")) {
-    return alphanumericName
-      .split(" ")
+  const cleaned = name.replace(/[^a-zA-Z0-9_\-\s]/g, "");
+  let slug: string;
+  if (/\s/.test(cleaned.trim())) {
+    slug = cleaned
+      .split(/\s+/)
+      .filter(Boolean)
       .map((word) => word.charAt(0).toUpperCase())
       .join("");
   } else {
-    return alphanumericName.toLowerCase();
+    slug = cleaned.toLowerCase();
   }
+  return slug.replace(/^[-_]+|[-_]+$/g, "");
 };
 
 export const formatBytes = (bytes: number): string => {
