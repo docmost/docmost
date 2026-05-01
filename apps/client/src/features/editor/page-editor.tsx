@@ -236,6 +236,14 @@ export default function PageEditor({
               event.preventDefault();
               return true;
             }
+            if (event.key === "Tab") {
+                const editor = editorRef.current;
+                if (!editor) return false;
+                event.preventDefault();
+                return editor.view.someProp("handleKeyDown", (f) =>
+                  f(editor.view, event)
+                );
+            }
             if (platformModifierKey(event) && event.code === "KeyK") {
               searchSpotlight.open();
               return true;
