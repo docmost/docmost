@@ -63,7 +63,10 @@ export class ImportService {
     let createdPage = null;
 
     // For DOCX, we need the page ID upfront so images can reference it
-    const pageId = fileExtension === '.docx' ? uuid7() : undefined;
+    const pageId =
+      fileExtension === '.docx' || fileExtension === '.pdf'
+        ? uuid7()
+        : undefined;
 
     try {
       if (fileExtension.endsWith('.md')) {
@@ -72,6 +75,14 @@ export class ImportService {
         prosemirrorState = await this.processHTML(fileContent);
       } else if (fileExtension.endsWith('.docx')) {
         prosemirrorState = await this.processDocx(
+          fileBuffer,
+          workspaceId,
+          spaceId,
+          pageId,
+          userId,
+        );
+      } else if (fileExtension.endsWith('.pdf')) {
+        prosemirrorState = await this.processPdf(
           fileBuffer,
           workspaceId,
           spaceId,
@@ -156,7 +167,7 @@ export class ImportService {
     let DocxImportModule: any;
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      DocxImportModule = require('./../../../ee/docx-import/docx-import.service');
+      DocxImportModule = require('./../../../ee/document-import/docx-import.service');
     } catch (err) {
       this.logger.error(
         'DOCX import requested but EE module not bundled in this build',
@@ -172,6 +183,42 @@ export class ImportService {
     );
 
     const html = await docxImportService.convertDocxToHtml(
+      fileBuffer,
+      workspaceId,
+      spaceId,
+      pageId,
+      userId,
+    );
+
+    return this.processHTML(html);
+  }
+
+  async processPdf(
+    fileBuffer: Buffer,
+    workspaceId: string,
+    spaceId: string,
+    pageId: string,
+    userId: string,
+  ): Promise<any> {
+    let PdfImportModule: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      PdfImportModule = require('./../../../ee/document-import/pdf-import.service');
+    } catch (err) {
+      this.logger.error(
+        'PDF import requested but EE module not bundled in this build',
+      );
+      throw new BadRequestException(
+        'This feature requires a valid enterprise license.',
+      );
+    }
+
+    const pdfImportService = this.moduleRef.get(
+      PdfImportModule.PdfImportService,
+      { strict: false },
+    );
+
+    const html = await pdfImportService.convertPdfToHtml(
       fileBuffer,
       workspaceId,
       spaceId,
