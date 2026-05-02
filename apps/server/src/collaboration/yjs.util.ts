@@ -62,14 +62,14 @@ function applyMarkToYFragment(
 ) {
   let pos = 0;
 
-  const processItem = (item: any): boolean => {
+  const processItem = (item: any, parentNodeName?: string): boolean => {
     if (pos >= to) return false;
 
     if (item instanceof Y.XmlText) {
       const textLength = item.length;
       const itemEnd = pos + textLength;
 
-      if (itemEnd > from && pos < to) {
+      if (itemEnd > from && pos < to && parentNodeName !== 'codeBlock') {
         const formatFrom = Math.max(0, from - pos);
         const formatTo = Math.min(textLength, to - pos);
         const formatLength = formatTo - formatFrom;
@@ -82,7 +82,7 @@ function applyMarkToYFragment(
     } else if (item instanceof Y.XmlElement) {
       pos++; // Opening tag
       for (let i = 0; i < item.length; i++) {
-        if (!processItem(item.get(i))) return false;
+        if (!processItem(item.get(i), item.nodeName)) return false;
       }
       pos++; // Closing tag
     }
