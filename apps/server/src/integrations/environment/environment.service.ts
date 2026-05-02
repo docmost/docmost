@@ -112,7 +112,10 @@ export class EnvironmentService {
   }
 
   getAwsS3ForcePathStyle(): boolean {
-    return this.configService.get<boolean>('AWS_S3_FORCE_PATH_STYLE');
+    const forcePathStyle = this.configService
+      .get<string>('AWS_S3_FORCE_PATH_STYLE', 'false')
+      .toLowerCase();
+    return forcePathStyle === 'true';
   }
 
   getAwsS3Url(): string {
