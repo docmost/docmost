@@ -44,7 +44,7 @@ export function ApiKeyTable({
             <Table.Th>{t("Last used")}</Table.Th>
             <Table.Th>{t("Expires")}</Table.Th>
             <Table.Th>{t("Created")}</Table.Th>
-            <Table.Th></Table.Th>
+            <Table.Th aria-label={t("Action")} />
           </Table.Tr>
         </Table.Thead>
 

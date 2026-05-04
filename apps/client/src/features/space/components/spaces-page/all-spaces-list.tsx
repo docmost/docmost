@@ -111,7 +111,7 @@ export default function AllSpacesList({
             <Table.Tr>
               <Table.Th>{t("Space")}</Table.Th>
               <Table.Th>{t("Members")}</Table.Th>
-              <Table.Th w={130}></Table.Th>
+              <Table.Th w={130} aria-label={t("Action")} />
             </Table.Tr>
           </Table.Thead>
 
