@@ -49,15 +49,15 @@ function WatchButton({ spaceId, watchedIds, size = 16 }: { spaceId: string; watc
     }
   };
 
+  const label = isWatching ? t("Stop watching space") : t("Watch space");
+
   return (
-    <Tooltip
-      label={isWatching ? t("Stop watching space") : t("Watch space")}
-      openDelay={250}
-      withArrow
-    >
+    <Tooltip label={label} openDelay={250} withArrow>
       <ActionIcon
         variant="subtle"
         color={isWatching ? "blue" : "gray"}
+        aria-label={label}
+        aria-pressed={isWatching}
         onClick={handleToggle}
         loading={isPending}
       >

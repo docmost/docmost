@@ -58,6 +58,9 @@ export function NotificationPopover() {
             variant="subtle"
             color="dark"
             size="sm"
+            aria-label={t("Notifications")}
+            aria-haspopup="dialog"
+            aria-expanded={opened}
             onClick={() => setOpened((o) => !o)}
           >
             <Indicator
