@@ -228,6 +228,25 @@ export interface GroupUsers {
   userId: string;
 }
 
+export interface PageTransclusionReferences {
+  createdAt: Generated<Timestamp>;
+  transclusionId: string;
+  referencePageId: string;
+  containingTransclusionId: string | null;
+  id: Generated<string>;
+  sourcePageId: string;
+}
+
+export interface PageTransclusions {
+  content: Json;
+  createdAt: Generated<Timestamp>;
+  transclusionId: string;
+  id: Generated<string>;
+  name: string | null;
+  pageId: string;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface PageHistory {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
@@ -571,6 +590,8 @@ export interface DB {
   groupUsers: GroupUsers;
   notifications: Notifications;
   pageAccess: PageAccess;
+  pageTransclusionReferences: PageTransclusionReferences;
+  pageTransclusions: PageTransclusions;
   pagePermissions: PagePermissions;
   pageHistory: PageHistory;
   pageVerifications: PageVerifications;

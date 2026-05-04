@@ -900,5 +900,17 @@
   "SCIM tokens": "SCIM tokens",
   "This action cannot be undone. Your identity provider will stop syncing immediately.": "This action cannot be undone. Your identity provider will stop syncing immediately.",
   "Toggle SCIM provisioning": "Toggle SCIM provisioning",
-  "Token": "Token"
+  "Token": "Token",
+  "Sync block": "Sync block",
+  "Create a block that stays in sync across pages.": "Create a block that stays in sync across pages.",
+  "Sync block name": "Sync block name",
+  "Editing original": "Editing original",
+  "Copy synced block": "Copy synced block",
+  "Unsync": "Unsync",
+  "Delete sync block": "Delete sync block",
+  "Synced to {{count}} other page_one": "Synced to {{count}} other page",
+  "Synced to {{count}} other page_other": "Synced to {{count}} other pages",
+  "ORIGINAL": "ORIGINAL",
+  "THIS PAGE": "THIS PAGE",
+  "No pages": "No pages"
 }

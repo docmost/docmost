@@ -12,6 +12,7 @@ import {
   IconInfoCircle,
   IconList,
   IconListNumbers,
+  IconQuote,
   IconTypography,
 } from "@tabler/icons-react";
 import { Popover, Button, ScrollArea, Tooltip } from "@mantine/core";
@@ -59,6 +60,7 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
         isCodeBlock: ctx.editor.isActive("codeBlock"),
         isCallout: ctx.editor.isActive("callout"),
         isDetails: ctx.editor.isActive("details"),
+        isTransclusion: ctx.editor.isActive("transclusion"),
       };
     },
   });
@@ -139,6 +141,12 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
       icon: IconCaretRightFilled,
       command: () => editor.chain().focus().setDetails().run(),
       isActive: () => editorState?.isDetails,
+    },
+    {
+      name: "Sync block",
+      icon: IconQuote,
+      command: () => editor.chain().focus().toggleTransclusion().run(),
+      isActive: () => editorState?.isTransclusion,
     },
   ];
 

@@ -7,6 +7,8 @@ import {
   Groups,
   Notifications,
   PageAccess as _PageAccess,
+  PageTransclusions,
+  PageTransclusionReferences,
   PagePermissions as _PagePermissions,
   PageVerifications as _PageVerifications,
   PageVerifiers as _PageVerifiers,
@@ -144,6 +146,18 @@ export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
 export type Favorite = Selectable<Favorites>;
 export type InsertableFavorite = Insertable<Favorites>;
 export type UpdatableFavorite = Updateable<Omit<Favorites, 'id'>>;
+
+// Page Transclusion
+export type PageTransclusion = Selectable<PageTransclusions>;
+export type InsertablePageTransclusion = Insertable<PageTransclusions>;
+export type UpdatablePageTransclusion = Updateable<Omit<PageTransclusions, 'id'>>;
+
+// Page Transclusion Reference
+export type PageTransclusionReference = Selectable<PageTransclusionReferences>;
+export type InsertablePageTransclusionReference = Insertable<PageTransclusionReferences>;
+export type UpdatablePageTransclusionReference = Updateable<
+  Omit<PageTransclusionReferences, 'id'>
+>;
 
 // File Task
 export type FileTask = Selectable<FileTasks>;

@@ -9,6 +9,7 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtom } from "jotai";
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
+import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 
 interface PageEditorProps {
   title: string;
@@ -65,7 +66,7 @@ export default function ReadonlyPageEditor({
   ];
 
   return (
-    <>
+    <TransclusionLookupProvider hostPageId={pageId ?? "anonymous"}>
       <div className="page-title">
         <EditorProvider
           editable={false}
@@ -95,6 +96,6 @@ export default function ReadonlyPageEditor({
         }}
       ></EditorProvider>
       <div style={{ paddingBottom: "20vh" }}></div>
-    </>
+    </TransclusionLookupProvider>
   );
 }
