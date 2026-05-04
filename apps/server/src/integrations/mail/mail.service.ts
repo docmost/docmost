@@ -6,7 +6,7 @@ import { EnvironmentService } from '../environment/environment.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueName, QueueJob } from '../queue/constants';
 import { Queue } from 'bullmq';
-import { render } from '@react-email/render';
+import { render } from 'react-email';
 
 @Injectable()
 export class MailService {
