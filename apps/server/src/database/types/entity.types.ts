@@ -29,6 +29,7 @@ import {
   UserMfa as _UserMFA,
   UserSessions,
   ApiKeys,
+  ScimTokens,
   Watchers,
   Audit as _Audit,
   Templates,
@@ -158,6 +159,11 @@ export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;
 export type ApiKey = Selectable<ApiKeys>;
 export type InsertableApiKey = Insertable<ApiKeys>;
 export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
+
+// Scim Tokens
+export type ScimToken = Selectable<ScimTokens>;
+export type InsertableScimToken = Insertable<ScimTokens>;
+export type UpdatableScimToken = Updateable<Omit<ScimTokens, 'id'>>;
 
 // Page Embedding
 export type PageEmbedding = Selectable<PageEmbeddings>;

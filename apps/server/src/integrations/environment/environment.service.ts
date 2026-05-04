@@ -304,4 +304,11 @@ export class EnvironmentService {
   getClickHouseUrl(): string {
     return this.configService.get<string>('CLICKHOUSE_URL');
   }
+
+  getSamlDisableRequestedAuthnContext(): boolean {
+    const disabled = this.configService
+      .get<string>('SAML_DISABLE_REQUESTED_AUTHN_CONTEXT', 'false')
+      .toLowerCase();
+    return disabled === 'true';
+  }
 }

@@ -110,10 +110,6 @@ export class UserService {
       user.email = updateUserDto.email;
     }
 
-    if (updateUserDto.avatarUrl) {
-      user.avatarUrl = updateUserDto.avatarUrl;
-    }
-
     if (updateUserDto.locale) {
       user.locale = updateUserDto.locale;
     }

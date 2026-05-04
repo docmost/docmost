@@ -69,8 +69,8 @@ export default function SsoProviderList() {
   return (
     <>
       <Card shadow="sm" radius="sm">
-        <Table.ScrollContainer minWidth={600}>
-          <Table verticalSpacing="sm">
+        <Table.ScrollContainer minWidth={600} maxHeight={400}>
+          <Table verticalSpacing="sm" stickyHeader>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t("Name")}</Table.Th>

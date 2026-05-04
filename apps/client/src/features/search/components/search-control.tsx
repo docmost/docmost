@@ -13,6 +13,7 @@ import {
 import classes from "./search-control.module.css";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { platformModifierLabel } from "@/lib";
 
 interface SearchControlProps extends BoxProps, ElementProps<"button"> {}
 
@@ -27,7 +28,7 @@ export function SearchControl({ className, ...others }: SearchControlProps) {
           {t("Search")}
         </Text>
         <Text fw={700} className={classes.shortcut}>
-          Ctrl + K
+          {platformModifierLabel} + K
         </Text>
       </Group>
     </UnstyledButton>

@@ -31,6 +31,7 @@ import {
   prefetchBilling,
   prefetchGroups,
   prefetchLicense,
+  prefetchScimTokens,
   prefetchShares,
   prefetchSpaces,
   prefetchSsoProviders,
@@ -204,7 +205,10 @@ export default function SettingsSidebar() {
               }
               break;
             case "Security & SSO":
-              prefetchHandler = prefetchSsoProviders;
+              prefetchHandler = () => {
+                prefetchSsoProviders();
+                prefetchScimTokens();
+              };
               break;
             case "Public sharing":
               prefetchHandler = prefetchShares;

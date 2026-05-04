@@ -30,12 +30,14 @@ export function RevokeApiKeyModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("Revoke API key")}
+      title={t("Revoke {{credential}}", { credential: t("API key") })}
       size="md"
     >
       <Stack gap="md">
         <Text>
-          {t("Are you sure you want to revoke this API key")}{" "}
+          {t("Are you sure you want to revoke this {{credential}}", {
+            credential: t("API key"),
+          })}{" "}
           <strong>{apiKey?.name}</strong>?
         </Text>
         <Text size="sm" c="dimmed">
