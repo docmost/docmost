@@ -30,6 +30,7 @@ import {
   UserSessions,
   ApiKeys,
   ScimTokens,
+  IntegrationOauthTokens,
   Watchers,
   Audit as _Audit,
   Templates,
@@ -164,6 +165,13 @@ export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 export type ScimToken = Selectable<ScimTokens>;
 export type InsertableScimToken = Insertable<ScimTokens>;
 export type UpdatableScimToken = Updateable<Omit<ScimTokens, 'id'>>;
+
+// Integration OAuth Tokens
+export type IntegrationOauthToken = Selectable<IntegrationOauthTokens>;
+export type InsertableIntegrationOauthToken = Insertable<IntegrationOauthTokens>;
+export type UpdatableIntegrationOauthToken = Updateable<
+  Omit<IntegrationOauthTokens, 'id'>
+>;
 
 // Page Embedding
 export type PageEmbedding = Selectable<PageEmbeddings>;
