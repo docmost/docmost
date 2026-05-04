@@ -416,6 +416,7 @@
   "{{latestVersion}} is available": "{{latestVersion}} is available",
   "Default page edit mode": "Default page edit mode",
   "Choose your preferred page edit mode. Avoid accidental edits.": "Choose your preferred page edit mode. Avoid accidental edits.",
+  "Choose {{format}} file": "Choose {{format}} file",
   "Reading": "Reading",
   "Delete member": "Delete member",
   "Member deleted successfully": "Member deleted successfully",
