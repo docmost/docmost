@@ -2,7 +2,8 @@ import api from "@/lib/api-client";
 import { IntegrationListItem } from "@/features/integrations/types/integration.types";
 
 export async function listIntegrations(): Promise<IntegrationListItem[]> {
-  return api.get<unknown, IntegrationListItem[]>("/integrations/oauth");
+  const req = await api.get<IntegrationListItem[]>("/integrations/oauth");
+  return req.data;
 }
 
 export async function disconnectIntegration(
