@@ -1,9 +1,10 @@
-.menuBtn {
+.menuItem {
+  padding: 6px 10px;
   border-radius: var(--mantine-radius-sm);
 
   &:hover {
     @mixin light {
-      background: var(--mantine-color-gray-2);
+      background: var(--mantine-color-gray-1);
     }
 
     @mixin dark {

@@ -1,23 +1,14 @@
-import {
-  ActionIcon,
-  Loader,
-  Paper,
-  ScrollArea,
-  SimpleGrid,
-  Text,
-} from "@mantine/core";
+import { Group, Loader, Paper, ScrollArea, Text, UnstyledButton } from "@mantine/core";
 import { EmojiMenuItemType } from "./types";
 import clsx from "clsx";
 import classes from "./emoji-menu.module.css";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GRID_COLUMNS, incrementEmojiUsage } from "./utils";
+import { incrementEmojiUsage } from "./utils";
 
 const EmojiList = ({
   items,
   isLoading,
   command,
-  editor,
-  range,
 }: {
   items: EmojiMenuItemType[];
   isLoading: boolean;
@@ -36,65 +27,31 @@ const EmojiList = ({
         incrementEmojiUsage(item.id);
       }
     },
-    [command, items]
+    [command, items],
   );
 
   useEffect(() => {
-    const navigationKeys = [
-      "ArrowRight",
-      "ArrowLeft",
-      "ArrowUp",
-      "ArrowDown",
-      "Enter",
-    ];
     const onKeyDown = (e: KeyboardEvent) => {
-      if (navigationKeys.includes(e.key)) {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
-
-        if (e.key === "ArrowRight") {
-          setSelectedIndex(
-            selectedIndex + 1 < items.length ? selectedIndex + 1 : selectedIndex
-          );
-          return true;
-        }
-
-        if (e.key === "ArrowLeft") {
-          setSelectedIndex(
-            selectedIndex - 1 >= 0 ? selectedIndex - 1 : selectedIndex
-          );
-          return true;
-        }
-
-        if (e.key === "ArrowUp") {
-          setSelectedIndex(
-            selectedIndex - GRID_COLUMNS >= 0
-              ? selectedIndex - GRID_COLUMNS
-              : selectedIndex
-          );
-          return true;
-        }
-
-        if (e.key === "ArrowDown") {
-          setSelectedIndex(
-            selectedIndex + GRID_COLUMNS < items.length
-              ? selectedIndex + GRID_COLUMNS
-              : selectedIndex
-          );
-          return true;
-        }
-
-        if (e.key === "Enter") {
-          selectItem(selectedIndex);
-          return true;
-        }
-        return false;
+        setSelectedIndex((prev) => (prev + 1 < items.length ? prev + 1 : prev));
+        return true;
       }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev - 1 >= 0 ? prev - 1 : prev));
+        return true;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        selectItem(selectedIndex);
+        return true;
+      }
+      return false;
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [items, selectedIndex, setSelectedIndex]);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [items, selectedIndex, selectItem]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -106,12 +63,15 @@ const EmojiList = ({
       ?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  return items.length > 0 || isLoading ? (
+  if (!items.length && !isLoading) return null;
+
+  return (
     <Paper
       id="emoji-command"
       p="0"
       shadow="md"
       withBorder
+      style={{ minWidth: 200 }}
       role="listbox"
       aria-label="Emoji results"
       aria-activedescendant={
@@ -120,35 +80,36 @@ const EmojiList = ({
     >
       {isLoading && <Loader m="xs" color="blue" type="dots" />}
       {items.length > 0 && (
-        <ScrollArea.Autosize
-          viewportRef={viewportRef}
-          mah={250}
-          scrollbarSize={8}
-          pr="5"
-        >
-          <SimpleGrid cols={GRID_COLUMNS} p="xs" spacing="xs">
-            {items.map((item, index: number) => (
-              <ActionIcon
+        <ScrollArea.Autosize viewportRef={viewportRef} mah={300} scrollbarSize={6}>
+          <div style={{ padding: "4px" }}>
+            {items.map((item, index) => (
+              <UnstyledButton
                 data-item-index={index}
                 id={`emoji-command-option-${index}`}
                 role="option"
                 aria-selected={index === selectedIndex}
-                aria-label={item.id}
-                variant="transparent"
                 key={item.id}
-                className={clsx(classes.menuBtn, {
+                w="100%"
+                className={clsx(classes.menuItem, {
                   [classes.selectedItem]: index === selectedIndex,
                 })}
                 onClick={() => selectItem(index)}
               >
-                <Text size="xl">{item.emoji}</Text>
-              </ActionIcon>
+                <Group gap="sm" wrap="nowrap">
+                  <Text size="xl" style={{ lineHeight: 1, minWidth: 28 }}>
+                    {item.emoji}
+                  </Text>
+                  <Text size="sm" c="dimmed" ff="monospace">
+                    :{item.id}:
+                  </Text>
+                </Group>
+              </UnstyledButton>
             ))}
-          </SimpleGrid>
+          </div>
         </ScrollArea.Autosize>
       )}
     </Paper>
-  ) : null;
+  );
 };
 
 export default EmojiList;
