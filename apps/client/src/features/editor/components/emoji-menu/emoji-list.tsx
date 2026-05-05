@@ -1,6 +1,7 @@
 import { Loader, Paper, ScrollArea, Text, UnstyledButton } from "@mantine/core";
 import clsx from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { EmojiMenuItemType } from "./types";
 import {
   EmojiCategory,
@@ -38,6 +39,7 @@ function EmojiList({
   range: any;
   query?: string;
 }) {
+  const { t } = useTranslation();
   const [idx, setIdx] = useState(0);
   const [cats, setCats] = useState<EmojiCategory[]>([]);
   const [activeCat, setActiveCat] = useState("");
@@ -45,6 +47,7 @@ function EmojiList({
   const gridViewport = useRef<HTMLDivElement>(null);
 
   const searching = query.length > 0;
+  const browseLoading = !searching && cats.length === 0;
   const gridItems = cats.find((c) => c.id === activeCat)?.emojis ?? [];
 
   useEffect(() => {
@@ -106,7 +109,7 @@ function EmojiList({
       withBorder
       style={{ width: 280 }}
       role="listbox"
-      aria-label="Emoji picker"
+      aria-label={t("Emoji picker")}
     >
       {searching ? (
         <>
@@ -114,7 +117,7 @@ function EmojiList({
           <ScrollArea.Autosize mah={260} scrollbarSize={6} viewportRef={listViewport}>
             <div style={{ padding: 4 }}>
               {items.length === 0 && !isLoading ? (
-                <Text size="sm" c="dimmed" p="xs">No results</Text>
+                <Text size="sm" c="dimmed" p="xs">{t("No results")}</Text>
               ) : items.map((item, i) => (
                 <UnstyledButton
                   key={item.id}
@@ -133,6 +136,8 @@ function EmojiList({
             </div>
           </ScrollArea.Autosize>
         </>
+      ) : browseLoading ? (
+        <Loader m="xs" size="xs" color="blue" type="dots" />
       ) : (
         <>
           <div className={classes.catBar} role="tablist">
