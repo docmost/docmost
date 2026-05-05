@@ -66,3 +66,25 @@ export const getFrequentlyUsedEmoji = (): EmojiMartFrequentlyType => {
     localStorage.getItem(LOCAL_STORAGE_FREQUENT_KEY) || DEFAULT_FREQUENTLY_USED_EMOJI_MART,
   );
 };
+
+export type EmojiCategory = { id: string; emojis: EmojiIndexEntry[] };
+
+let _cats: EmojiCategory[] | null = null;
+
+export const getEmojiCategories = async (): Promise<EmojiCategory[]> => {
+  if (_cats) return _cats;
+  const [{ default: data }, index] = await Promise.all([
+    import("@emoji-mart/data"),
+    buildEmojiIndex(),
+  ]);
+  const byId = new Map(index.map((e) => [e.id, e]));
+  _cats = ((data as any).categories as { id: string; emojis: string[] }[])
+    .map((cat) => ({
+      id: cat.id,
+      emojis: cat.emojis
+        .map((id) => byId.get(id))
+        .filter((e): e is EmojiIndexEntry => !!e),
+    }))
+    .filter((c) => c.emojis.length > 0);
+  return _cats;
+};
