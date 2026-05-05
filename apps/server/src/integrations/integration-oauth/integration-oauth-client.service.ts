@@ -39,19 +39,10 @@ interface CacheEntry {
 }
 
 /**
- * Per-user authenticated outbound HTTP client for third-party integrations.
- *
- * - Resolves the user's stored OAuth tokens (decrypted in-memory only).
- * - Refreshes once on a 401 from the provider; on a second 401 marks the
- *   connection `needs_reconnect` and throws `IntegrationReconnectRequiredError`.
- * - Per-`(user, integration)` mutex around refresh prevents a herd of in-flight
- *   requests racing to refresh and rotating each other's tokens out from
- *   under each other.
- * - 30-second in-memory LRU cache absorbs the thundering herd when a wiki page
- *   has many embeds asking for the same item.
- *
- * Returns the parsed JSON body. Callers that need the response object should
- * extend this surface; the wiki-embed proxy use case only needs JSON.
+ * Per-user authenticated outbound HTTP. Refreshes the access token on a
+ * 401 (once); per-(user, integration) mutex prevents concurrent refreshes
+ * racing each other. 30s in-memory LRU on GETs absorbs the herd when a
+ * page has many embeds. Returns the parsed JSON body.
  */
 @Injectable()
 export class IntegrationOAuthClientService {
@@ -89,9 +80,6 @@ export class IntegrationOAuthClientService {
 
     let resp = await this.send(manifest, path, method, tokens.accessToken, options);
     if (resp.status === 401) {
-      // Try once with a refreshed token. Concurrent requests funnel through
-      // a single refresh promise per (user, integration) to avoid rotation
-      // races.
       tokens = await this.refreshOnce(integrationId, userId);
       resp = await this.send(manifest, path, method, tokens.accessToken, options);
       if (resp.status === 401) {
@@ -139,8 +127,7 @@ export class IntegrationOAuthClientService {
     if (tokens.needsReconnect) {
       throw new IntegrationReconnectRequiredError(integrationId);
     }
-    // If we know the access token has expired and we have a refresh token,
-    // refresh proactively before issuing the request — saves a guaranteed 401.
+    // Proactive refresh saves a guaranteed 401 round-trip.
     if (tokens.expiresAt && tokens.expiresAt.getTime() <= Date.now() && tokens.refreshToken) {
       return this.refreshOnce(integrationId, userId);
     }

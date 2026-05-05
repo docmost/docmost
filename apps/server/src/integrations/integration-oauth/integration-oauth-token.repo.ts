@@ -8,11 +8,8 @@ import {
 } from '@docmost/db/types/entity.types';
 
 /**
- * Read/write access for the per-user OAuth token vault.
- *
- * Keyed `(user_id, integration_id)` — single-instance v1: one token row per
- * user per integration. Tokens are stored encrypted at rest; this repo deals
- * exclusively in already-encrypted blobs and never sees plaintext.
+ * Token vault keyed `(user_id, integration_id)` — one row per user per
+ * integration. Deals only in already-encrypted blobs; never sees plaintext.
  */
 @Injectable()
 export class IntegrationOAuthTokenRepo {
@@ -39,12 +36,7 @@ export class IntegrationOAuthTokenRepo {
       .execute();
   }
 
-  /**
-   * Upsert by `(user_id, integration_id)` — used both on initial connect and
-   * after a refresh-token rotation. `updatedAt` is bumped server-side and
-   * `needsReconnect` is reset, since a successful upsert means we got a
-   * working token.
-   */
+  /** Used both on initial connect and after refresh-token rotation. */
   async upsert(row: InsertableIntegrationOauthToken): Promise<IntegrationOauthToken> {
     return this.db
       .insertInto('integrationOauthTokens')

@@ -1,25 +1,22 @@
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
 
 /**
- * AES-256-GCM symmetric encryption keyed off a caller-supplied secret (e.g.
- * `APP_SECRET`). Used for at-rest encryption of OAuth refresh + access tokens
- * so a snapshot of the database alone can't impersonate users against
- * third-party providers.
+ * AES-256-GCM symmetric encryption keyed off a caller-supplied secret. Used
+ * for at-rest encryption of OAuth tokens.
  *
- * The wire format is `v1:<iv>:<tag>:<ciphertext>` (all hex). The `v1:` prefix
- * leaves room to rotate KDF or cipher choice without a destructive migration.
+ * Wire format: `v1:<iv>:<tag>:<ciphertext>` (hex). The version prefix leaves
+ * room to rotate KDF or cipher without a destructive migration.
  *
- * `info` is mixed into HKDF to domain-separate this key from any other use of
- * the same secret (HMAC email signatures, JWT signing). Callers should pick a
- * stable info string per use case and never reuse it for a different purpose.
+ * `info` is mixed into HKDF for domain separation — callers must pick a
+ * stable, per-use-case string so this key can't be confused with any other
+ * derivation of the same secret (JWT signing, HMAC, etc).
  */
 
 const VERSION = 'v1';
-const KEY_LENGTH = 32; // 256 bits for AES-256-GCM
-const IV_LENGTH = 12; // 96 bits — recommended for GCM
-const TAG_LENGTH = 16; // 128-bit auth tag
-
-const HKDF_SALT = Buffer.alloc(0); // empty salt is fine when info is unique per use case
+const KEY_LENGTH = 32;
+const IV_LENGTH = 12;
+const TAG_LENGTH = 16;
+const HKDF_SALT = Buffer.alloc(0);
 
 function deriveKey(secret: string, info: string): Buffer {
   if (!secret) {

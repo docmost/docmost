@@ -54,12 +54,7 @@ export class IntegrationOAuthService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  /**
-   * Build the authorize redirect URL and persist short-lived state. The state
-   * token is what the provider echoes back at callback time; we use it as a
-   * one-time key into the cached `OAuthState` to recover the user, integration,
-   * and PKCE verifier.
-   */
+  /** Builds the authorize redirect URL and stashes one-shot state in Redis. */
   async startAuthorize(args: {
     integrationId: string;
     userId: string;
@@ -98,11 +93,7 @@ export class IntegrationOAuthService {
     return { url };
   }
 
-  /**
-   * Validates and consumes the state token, exchanges the code for tokens,
-   * and persists encrypted tokens to the vault. Returns the resolved state so
-   * the caller can redirect to `returnTo`.
-   */
+  /** Validates+consumes the state token, exchanges the code, persists tokens. */
   async completeCallback(args: {
     integrationId: string;
     code: string;
@@ -126,10 +117,7 @@ export class IntegrationOAuthService {
     return { userId: state.userId, returnTo: state.returnTo };
   }
 
-  /**
-   * Returns the user's current decrypted tokens for an integration, or null if
-   * they haven't connected. The outbound client uses this on every call.
-   */
+  /** Decrypted tokens for the user/integration pair, or null if not connected. */
   async getTokens(userId: string, integrationId: string): Promise<DecryptedTokens | null> {
     const row = await this.tokenRepo.findByUserAndIntegration(userId, integrationId);
     if (!row) return null;
@@ -145,11 +133,7 @@ export class IntegrationOAuthService {
     };
   }
 
-  /**
-   * Exchange the user's refresh token for a fresh access token and persist
-   * the rotated values. Throws if the provider rejects the refresh — the
-   * caller should mark the connection as needs-reconnect.
-   */
+  /** RFC 6749 refresh-token grant. Throws on rejection — caller marks needs-reconnect. */
   async refreshTokens(userId: string, integrationId: string): Promise<DecryptedTokens> {
     const current = await this.getTokens(userId, integrationId);
     if (!current?.refreshToken) {
@@ -233,10 +217,9 @@ export class IntegrationOAuthService {
       throw new Error('Token response missing access_token');
     }
     const secret = this.environmentService.getAppSecret();
-    // Some providers (windshift's RFC 6749 refresh-token rotation) always
-    // return a new refresh_token; others (Google with a hot refresh) only
-    // send one on the *first* exchange. Fall back to the existing one when
-    // missing, otherwise we'd lock the user out on the next refresh.
+    // Providers that don't rotate (e.g. Google) only return a refresh token
+    // on the first exchange. Fall back to the existing one to avoid
+    // locking the user out on the next refresh.
     const refreshToken = tokens.refresh_token ?? fallbackRefreshToken;
     const expiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000)

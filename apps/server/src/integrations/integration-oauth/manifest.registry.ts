@@ -2,14 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { IntegrationManifest } from './manifest.types';
 
 /**
- * In-memory registry of third-party integration manifests. Each integration
- * NestJS module calls `register()` from its constructor (or `onModuleInit`),
- * and the framework's controllers / outbound client look manifests up by id.
- *
- * No DB persistence — manifests are code-defined and shipped with the
- * deployment. Storing them in the DB would make them mutable at runtime,
- * which we don't want: a manifest mismatch with the deployed code would let
- * an admin redirect tokens to a different provider.
+ * In-memory registry of integration manifests. Consumer modules call
+ * `register()` at boot. Manifests are code-defined and shipped with the
+ * deployment — DB persistence would let an admin redirect tokens to a
+ * different provider at runtime.
  */
 @Injectable()
 export class IntegrationOAuthRegistry {

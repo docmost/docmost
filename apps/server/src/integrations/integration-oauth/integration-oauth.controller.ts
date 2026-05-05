@@ -44,7 +44,7 @@ export class IntegrationOAuthController {
     private readonly environmentService: EnvironmentService,
   ) {}
 
-  /** GET /api/integrations/oauth — list manifests + per-user connection state. */
+  /** Manifests + per-user connection state for the settings UI. */
   @Get()
   async list(@AuthUser() user: User): Promise<IntegrationListItem[]> {
     const tokens = await this.tokenRepo.listByUser(user.id);
@@ -65,7 +65,7 @@ export class IntegrationOAuthController {
     });
   }
 
-  /** GET /api/integrations/oauth/:integrationId/authorize — start the flow. */
+  /** Starts the OAuth flow. */
   @Get(':integrationId/authorize')
   async authorize(
     @AuthUser() user: User,
@@ -76,10 +76,11 @@ export class IntegrationOAuthController {
     if (!this.registry.get(integrationId)) {
       throw new NotFoundException(`Unknown integration: ${integrationId}`);
     }
-    // Only accept relative paths for returnTo to avoid open-redirect.
-    const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
-      ? returnTo
-      : undefined;
+    // Relative paths only — guards against open-redirect via returnTo.
+    const safeReturnTo =
+      returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
+        ? returnTo
+        : undefined;
     const { url } = await this.oauthService.startAuthorize({
       integrationId,
       userId: user.id,
@@ -88,7 +89,7 @@ export class IntegrationOAuthController {
     reply.redirect(url);
   }
 
-  /** GET /api/integrations/oauth/:integrationId/callback — finish the flow. */
+  /** Provider redirects here after the user approves or denies. */
   @Get(':integrationId/callback')
   async callback(
     @Param('integrationId') integrationId: string,
@@ -102,7 +103,6 @@ export class IntegrationOAuthController {
       throw new NotFoundException(`Unknown integration: ${integrationId}`);
     }
     if (error) {
-      // Provider denied or errored — bounce back to settings with the reason.
       const reason = encodeURIComponent(errorDescription ?? error);
       reply.redirect(
         `${this.environmentService.getAppUrl()}/settings/integrations/${integrationId}?error=${reason}`,
@@ -131,7 +131,7 @@ export class IntegrationOAuthController {
     }
   }
 
-  /** DELETE /api/integrations/oauth/:integrationId/connection — disconnect. */
+  /** Revoke the user's connection — deletes the token row. */
   @Delete(':integrationId/connection')
   async disconnect(
     @AuthUser() user: User,

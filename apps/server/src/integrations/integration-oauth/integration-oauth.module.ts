@@ -8,21 +8,9 @@ import { IntegrationOAuthClientService } from './integration-oauth-client.servic
 import { IntegrationOAuthController } from './integration-oauth.controller';
 
 /**
- * Generic third-party-OAuth integration framework.
- *
- * Consumer modules (e.g. the windshift integration that follows in a sibling
- * PR) declare an `IntegrationManifest` and call `IntegrationOAuthRegistry
- * .register()` from their constructor or `onModuleInit`. The framework
- * supplies:
- *
- *   - `IntegrationOAuthService` — start/finish OAuth flows, refresh tokens,
- *     read decrypted tokens.
- *   - `IntegrationOAuthClientService` — per-user authenticated outbound HTTP
- *     client with refresh-on-401, refresh mutex, and a 30s LRU response cache.
- *   - `IntegrationOAuthTokenRepo` — Kysely repo over `integration_oauth_tokens`.
- *   - `IntegrationOAuthRegistry` — code-defined manifest registry.
- *
- * Marked @Global so consumer modules don't need to re-import this everywhere.
+ * Generic third-party-OAuth framework. Consumer modules declare an
+ * IntegrationManifest and call IntegrationOAuthRegistry.register() at boot.
+ * @Global so consumers don't have to re-import this everywhere.
  */
 @Global()
 @Module({

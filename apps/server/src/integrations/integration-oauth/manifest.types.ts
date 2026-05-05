@@ -1,59 +1,33 @@
 /**
- * Schema for a third-party integration's OAuth + identity contract.
- *
- * Borrowed from the omni connector platform's `OAuthManifestConfig`
- * (web/src/lib/server/oauth/connectorOAuth.ts) — that pattern is battle-tested
- * across Google / Microsoft / Atlassian / Linear / Notion / Slack and we get
- * its semantics for free if we adopt the same fields.
- *
- * Each integration ships exactly one of these from its NestJS module and
- * registers it into IntegrationOAuthRegistry at boot. A single-callback
- * controller dispatches by the `id` carried in the OAuth state token.
+ * OAuth + identity contract for a third-party integration. Each consumer
+ * module declares one of these and registers it with IntegrationOAuthRegistry
+ * at boot.
  */
 export interface IntegrationManifest {
-  /** Stable identifier — used in URLs, the token table's integration_id column, env vars. */
+  /** Stable identifier — used in URLs, env vars, and the token table. */
   id: string;
-
-  /** Human-readable name for the settings UI. */
+  /** Display name for the settings UI. */
   name: string;
-
-  /** Short description rendered on the connection card. */
   description?: string;
-
-  /** Provider base URL (e.g. https://windshift.example.com). May resolve at request time. */
+  /** Provider base URL. A thunk lets env-driven values resolve at request time. */
   baseUrl: string | (() => string);
-
-  /** Path under baseUrl for the authorization endpoint (e.g. /oauth/authorize). */
+  /** e.g. /oauth/authorize */
   authorizePath: string;
-
-  /** Path under baseUrl for the token endpoint (e.g. /api/oauth/token). */
+  /** e.g. /api/oauth/token */
   tokenPath: string;
-
-  /** Optional userinfo endpoint for principal-email enrichment. */
   userinfoPath?: string;
-
-  /** Field name on the userinfo response that contains the user's email. */
   userinfoEmailField?: string;
-
-  /** Scopes requested at authorize time. */
   scopes: string[];
-
-  /** Scope separator on the wire (typically ' '; some providers use ','). */
+  /** Defaults to ' '. Some providers use ','. */
   scopeSeparator?: string;
-
-  /** Extra params appended to the authorize URL (e.g. prompt=consent). */
+  /** Extra authorize-URL params (e.g. prompt=consent). */
   extraAuthParams?: Record<string, string>;
-
-  /** Whether to send PKCE (S256). Required for public clients; recommended for confidential. */
+  /** PKCE S256. Required for public clients; recommended for confidential. */
   pkce?: boolean;
-
-  /** Env var name for the OAuth client_id. */
+  /** Env var holding the OAuth client_id. */
   clientIdEnv: string;
-
-  /** Env var name for the OAuth client_secret (omit for public clients). */
+  /** Env var holding the OAuth client_secret (omit for public clients). */
   clientSecretEnv?: string;
-
-  /** Optional icon URL or data URL. */
   icon?: string;
 }
 
