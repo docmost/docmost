@@ -1,0 +1,168 @@
+DOCMOST BUGS - Ordered by difficulty (easiest first)
+====================================================
+Repo: https://github.com/docmost/docmost
+Generated: 2026-05-06
+
+==============================================================================
+EASY (CSS / i18n / config changes - 5-30 min each)
+==============================================================================
+
+1. #2028 - Default highlight color shown as gray instead of white
+   File: apps/client/src/features/editor/components/highlight/
+   Fix: Update the "default" color swatch in the highlight picker dialog
+        to show white instead of light gray.
+   Why easy: Pure CSS/component prop change, no logic involved.
+
+2. #1815 - Hamburger menu broken on Firefox for Android
+   File: apps/client/src/components/ (likely navbar)
+   Fix: CSS compatibility fix for Firefox Android (likely -moz- prefix
+        or display: flex compatibility issue).
+   Why easy: One-browser CSS fix, can test via dev tools.
+
+3. #1837 - Code text always red (inline code color)
+   File: apps/client/src/features/editor/styles/
+   Fix: CSS specificity issue - inline code color is overridden by a
+        global rule. Add proper selector scoping.
+   Why easy: Pure CSS fix, inspect element shows the override.
+
+4. #1713 - Workspace description truncated at 150 chars instead of 250
+   File: apps/client/src/features/space/components/ (SpaceOverview)
+   Fix: CSS change (line-clamp or overflow) in the display component.
+   Why easy: Single CSS property change.
+
+5. #1894 - Print PDF broken with Chinese characters
+   File: apps/server/src/pdf/ (PDF generation)
+   Fix: Add Chinese font to the PDF renderer's font configuration.
+   Why easy: Add font asset + config line.
+
+6. #2153 - Inline comments inside code blocks not highlighting
+   File: apps/server/src/ (applyMarkToYFragment in comment service)
+   Fix: Follow same pattern as PR #2146 - skip mark application when
+        parent is codeBlock OR apply a visual indicator anyway.
+   Why easy: Same fix pattern as already-merged PR #2146.
+
+==============================================================================
+EASY-MEDIUM (TipTap extension / event handler fixes - 30 min - 1 hr each)
+==============================================================================
+
+7. #1930 - Cursor cannot be placed between diagrams or at page start
+   File: packages/editor-ext/src/lib/ (Mermaid/Diagram node spec)
+   Fix: Add `selectable: true` and `draggable: true` to diagram node,
+        or add a TrailingNode-like extension for leading paragraph.
+   Why easy-medium: TipTap node spec change, 1-2 properties.
+
+8. #1886 - Cmd+A selects all and opens math formula editors
+   File: apps/client/src/features/editor/extensions/math/
+   Fix: Add keyboard handler in MathInline/MathBlock view that ignores
+        Cmd+A propagation, or use editor.isSelectingAll check.
+   Why easy-medium: Single event handler guard.
+
+9. #1818 - Macro dialog broken after typing "("
+   File: apps/client/src/features/editor/extensions/slash-command/
+   Fix: The slash command/macro regex likely doesn't handle "(" as a
+        boundary character. Adjust the trigger regex.
+   Why easy-medium: Regex fix in slash command suggestion plugin.
+
+10. #1728 - Changing text color in a list item changes ALL items
+    File: packages/editor-ext/src/lib/ (text-color extension)
+    Fix: Text color mark needs `inclusive: false` or the command needs
+         to target only the selected text, not the entire node.
+    Why easy-medium: TipTap mark extension config change.
+
+==============================================================================
+MEDIUM (Backend logic / API fixes - 1-2 hrs each)
+==============================================================================
+
+11. #2086 - Duplicating a page with a self-link renames the link
+    File: apps/server/src/page/page.service.ts (duplicatePage)
+    Fix: When replacing IDs in duplicated content, skip links that
+         point to the original page (they should keep pointing there).
+    Why medium: Backend logic in page duplication, needs care with
+         content traversal.
+
+12. #1693 - "Default page edit mode" setting not working
+    File: apps/client/src/features/editor/ (editor initialization)
+    File: apps/server/src/page/ (page settings API)
+    Fix: The user preference for edit/view mode isn't applied on page
+         load. Check the flow from settings → page render.
+    Why medium: Cross-cutting (frontend + backend state).
+
+13. #1819 - Backspace creates new lines on mobile near titles
+    File: packages/editor-ext/src/lib/heading.ts (or keyboard handler)
+    Fix: Heading node's backspace handler on mobile fires the wrong
+         branch. Likely need to check `isMobile` or fix the delete
+         handler order.
+    Why medium: Platform-specific TipTap input handler debugging.
+
+14. #2033 - Recently updated pages broken after PG restore
+    File: apps/server/src/database/ or apps/server/src/page/
+    Fix: The "recently updated" query likely uses a wrong column after
+         schema changes. Check the ordering/filter query.
+    Why medium: SQL/query debugging, may need migration fix.
+
+==============================================================================
+MEDIUM-HARD (Multiple files / complex logic - 2-3 hrs each)
+==============================================================================
+
+15. #1839 - Admin users can't see all spaces in permission editor
+    File: apps/server/src/space/space.service.ts
+    File: apps/client/src/features/admin/ (admin spaces UI)
+    Fix: Space listing for admin permission editor doesn't return all
+         spaces. Likely missing a role bypass in the query.
+    Why medium-hard: Backend query logic + frontend state.
+
+16. #2010 - Duplicate page fails with non-ASCII filenames
+    File: apps/server/src/page/page.service.ts
+    File: apps/server/src/storage/ (storage service)
+    Fix: `fs.copy()` fails on non-ASCII paths. URL-encode the filename
+         or use Buffer for path construction.
+    Why medium-hard: Filesystem encoding issue across container layers.
+
+==============================================================================
+HARD (Infra / cross-cutting / requires deep knowledge - 3-8 hrs each)
+==============================================================================
+
+17. #1957 - Keyboard shortcuts broken on Windows Swiss keyboard
+    File: apps/client/src/features/editor/extensions/ (keyboard shortcuts)
+    Fix: KeyboardEvent.key vs .code mismatch. Swiss layout sends
+        different key values. Need layout-agnostic key handling.
+    Why hard: Keyboard layout testing is tedious, needs mapping table.
+
+18. #1745 - Constant disk writes (high IO)
+    File: apps/server/src/ (likely Yjs/CRDT persistence)
+    Fix: The collaboration layer writes to disk on every change.
+         Need batching, debouncing, or in-memory buffer.
+    Why hard: Performance optimization, needs profiling.
+
+19. #1737 - White screen when switching pages on shared links
+    File: apps/client/src/ (router/collaboration provider)
+    Fix: Shared link page crashes on navigation. Likely Hocuspocus
+        provider disconnect/reconnect race condition.
+    Why hard: Race condition in WebSocket lifecycle.
+
+20. #1690 - Zombie Node.js processes in Docker
+    File: Dockerfile, docker-entrypoint.sh
+    Fix: Node.js child processes aren't reaped. Need `dumb-init` or
+        `tini` as PID 1 in the container.
+    Why hard: Docker/init system expertise required.
+
+21. #1825 - WebSocket instability behind load balancer
+    File: docker-compose.yml, NGINX config
+    Fix: WebSocket connections drop behind LB. Need sticky sessions
+        or proper WS proxy config.
+    Why hard: Environment-specific, hard to reproduce locally.
+
+22. #1700 - SAML requests 'Password, ProtectedTransport' auth method
+    File: apps/server/src/auth/saml/ (SAML strategy)
+    Fix: The SAML authn request includes unsupported auth methods.
+         Need to configure SAML library to request only 'Password'.
+    Why hard: SAML protocol debugging, needs IDP setup.
+
+==============================================================================
+SUMMARY BY AREA
+==============================================================================
+  CSS/UI only:         #2028, #1815, #1837, #1713, #1894
+  TipTap extension:    #1930, #1886, #1818, #1728, #1819
+  Backend logic:       #2086, #2010, #1693, #2033, #1839
+  Infrastructure:      #1745, #1690, #1825, #1700
+  WebSocket/routing:   #1737, #1957
