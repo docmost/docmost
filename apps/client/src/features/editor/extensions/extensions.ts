@@ -10,6 +10,7 @@ import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
+import { PreventScrollOnDrag } from "./prevent-scroll-on-drag";
 import { Youtube } from "@tiptap/extension-youtube";
 import SlashCommand, { SlashCommandExtension as Command } from "@/features/editor/extensions/slash-command";
 import renderItems from "@/features/editor/components/slash-menu/render-items";
@@ -216,6 +217,7 @@ export const mainExtensions = [
   Typography,
   TrailingNode,
   GlobalDragHandle,
+  PreventScrollOnDrag,
   TextStyle,
   Color,
   SlashCommand,
