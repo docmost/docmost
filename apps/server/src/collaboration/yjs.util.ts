@@ -69,7 +69,7 @@ function applyMarkToYFragment(
       const textLength = item.length;
       const itemEnd = pos + textLength;
 
-      if (itemEnd > from && pos < to && parentNodeName !== 'codeBlock') {
+      if (itemEnd > from && pos < to) {
         const formatFrom = Math.max(0, from - pos);
         const formatTo = Math.min(textLength, to - pos);
         const formatLength = formatTo - formatFrom;
