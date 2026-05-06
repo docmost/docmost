@@ -1,4 +1,12 @@
 @media print {
+  body {
+    font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+  }
+
+  pre, code, :not(pre) > code {
+    font-family: "JetBrainsMono", "Noto Sans Mono CJK SC", "Microsoft YaHei Mono", monospace;
+  }
+
   .mantine-AppShell-header,
   .mantine-AppShell-navbar,
   .mantine-AppShell-aside,

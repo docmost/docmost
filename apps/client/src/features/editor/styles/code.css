@@ -96,7 +96,7 @@
   }
 
   :not(pre) > code {
-    font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
+    font-family: "JetBrainsMono", var(--mantine-font-family-monospace), "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", sans-serif;
     line-height: var(--mantine-line-height);
     padding: 2px calc(var(--mantine-spacing-xs) / 2);
     border-radius: var(--mantine-radius-sm);
