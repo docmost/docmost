@@ -21,6 +21,7 @@ import {
   SharePageIdDto,
   UpdateShareDto,
 } from './dto/share.dto';
+import { ShareTransclusionLookupDto } from './dto/share-transclusion-lookup.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { PageAccessService } from '../page/page-access/page-access.service';
@@ -108,6 +109,20 @@ export class ShareController {
     }
 
     return share;
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/transclusion/lookup')
+  async transclusionLookup(
+    @Body() dto: ShareTransclusionLookupDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.shareService.lookupTransclusionForShare(
+      dto.shareId,
+      dto.references,
+      workspace.id,
+    );
   }
 
   @HttpCode(HttpStatus.OK)

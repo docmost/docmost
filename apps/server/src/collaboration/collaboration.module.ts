@@ -18,6 +18,7 @@ import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
 import { CollabHistoryService } from './services/collab-history.service';
 import { WatcherModule } from '../core/watcher/watcher.module';
+import { TransclusionService } from '../core/page/transclusion/transclusion.service';
 
 @Module({
   providers: [
@@ -28,6 +29,7 @@ import { WatcherModule } from '../core/watcher/watcher.module';
     HistoryProcessor,
     CollabHistoryService,
     CollaborationHandler,
+    TransclusionService,
   ],
   exports: [CollaborationGateway],
   imports: [TokenModule, WatcherModule],

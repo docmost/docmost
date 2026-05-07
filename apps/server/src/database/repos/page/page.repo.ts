@@ -100,6 +100,22 @@ export class PageRepo {
     return query.executeTakeFirst();
   }
 
+  async findManyByIds(
+    pageIds: string[],
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Page[]> {
+    if (pageIds.length === 0) return [];
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .where('id', 'in', pageIds)
+      .execute();
+  }
+
   async updatePage(
     updatablePage: UpdatablePage,
     pageId: string,

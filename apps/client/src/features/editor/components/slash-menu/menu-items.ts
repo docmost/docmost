@@ -25,6 +25,7 @@ import {
   IconColumns3,
   IconColumns2,
   IconTag,
+  IconRotate2,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -231,7 +232,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Audio",
       description: "Upload any audio from your device.",
-      searchTerms: ["audio", "music", "sound", "mp3", "media", "file", "attachment"],
+      searchTerms: [
+        "audio",
+        "music",
+        "sound",
+        "mp3",
+        "media",
+        "file",
+        "attachment",
+      ],
       icon: IconMusic,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -475,6 +484,28 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconSitemap,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
+      },
+    },
+    {
+      title: "Synced block",
+      description: "Create a block that stays in sync across pages.",
+      searchTerms: [
+        "sync",
+        "synced",
+        "synced block",
+        "excerpt",
+        "transclusion",
+        "reusable",
+        "snippet",
+      ],
+      icon: IconRotate2,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertTransclusionSource()
+          .run();
       },
     },
     {

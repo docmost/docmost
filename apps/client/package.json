@@ -54,7 +54,6 @@
     "react-router-dom": "^7.13.1",
     "semver": "^7.7.4",
     "socket.io-client": "^4.8.3",
-    "tiptap-extension-global-drag-handle": "^0.1.18",
     "zod": "^4.3.6"
   },
   "devDependencies": {
