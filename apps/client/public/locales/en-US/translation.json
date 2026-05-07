@@ -903,7 +903,6 @@
   "Token": "Token",
   "Synced block": "Synced block",
   "Create a block that stays in sync across pages.": "Create a block that stays in sync across pages.",
-  "Synced block name": "Synced block name",
   "Editing original": "Editing original",
   "Copy synced block": "Copy synced block",
   "Unsync": "Unsync",
@@ -912,5 +911,8 @@
   "Synced to {{count}} other page_other": "Synced to {{count}} other pages",
   "ORIGINAL": "ORIGINAL",
   "THIS PAGE": "THIS PAGE",
-  "No pages": "No pages"
+  "No pages": "No pages",
+  "The original synced block no longer exists": "The original synced block no longer exists",
+  "You don't have access to this synced block": "You don't have access to this synced block",
+  "Failed to load this synced block": "Failed to load this synced block"
 }

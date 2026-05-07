@@ -7,16 +7,11 @@ export default function ErrorPlaceholder() {
   return (
     <div className={classes.placeholder}>
       <IconAlertTriangle
-        size={20}
-        stroke={1.5}
+        size={18}
+        stroke={1.6}
         className={classes.placeholderIcon}
       />
-      <div className={classes.placeholderTitle}>
-        {t("Failed to load transclusion")}
-      </div>
-      <div className={classes.placeholderSubtext}>
-        {t("An error occurred while rendering this reference")}
-      </div>
+      <span>{t("Failed to load this synced block")}</span>
     </div>
   );
 }
