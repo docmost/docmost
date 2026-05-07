@@ -132,7 +132,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Numbered list",
       description: "Create a list with numbering.",
-      searchTerms: ["numbered", "ordered", "list"],
+      searchTerms: ["numbered", "ordered", "list", "ol"],
       icon: IconListNumbers,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).toggleOrderedList().run();
@@ -471,7 +471,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Subpages (Child pages)",
       description: "List all subpages of the current page",
-      searchTerms: ["subpages", "child", "children", "nested", "hierarchy"],
+      searchTerms: [
+        "subpages",
+        "child",
+        "children",
+        "nested",
+        "hierarchy",
+        "toc",
+      ],
       icon: IconSitemap,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
