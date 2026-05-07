@@ -10,7 +10,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().references('pages.id').onDelete('cascade'),
     )
     .addColumn('transclusion_id', 'varchar', (col) => col.notNull())
-    .addColumn('name', 'text')
     .addColumn('content', 'jsonb', (col) => col.notNull())
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),

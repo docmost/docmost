@@ -9,7 +9,6 @@ export interface TransclusionSourceOptions {
 
 export interface TransclusionSourceAttributes {
   id?: string | null;
-  name?: string | null;
 }
 
 declare module "@tiptap/core" {
@@ -18,7 +17,6 @@ declare module "@tiptap/core" {
       insertTransclusionSource: (
         attributes?: TransclusionSourceAttributes,
       ) => ReturnType;
-      setTransclusionSourceName: (name: string | null) => ReturnType;
       toggleTransclusionSource: () => ReturnType;
       unsyncTransclusionSource: () => ReturnType;
     };
@@ -47,12 +45,6 @@ export const TransclusionSource = Node.create<TransclusionSourceOptions>({
         parseHTML: (el) => el.getAttribute("data-id"),
         renderHTML: (attrs) =>
           attrs.id ? { "data-id": attrs.id } : {},
-      },
-      name: {
-        default: null,
-        parseHTML: (el) => el.getAttribute("data-name"),
-        renderHTML: (attrs) =>
-          attrs.name ? { "data-name": attrs.name } : {},
       },
     };
   },
@@ -104,10 +96,6 @@ export const TransclusionSource = Node.create<TransclusionSourceOptions>({
 
           return commands.insertContent(node);
         },
-      setTransclusionSourceName:
-        (name) =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { name }),
       toggleTransclusionSource:
         () =>
         ({ commands }) =>

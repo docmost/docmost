@@ -242,7 +242,6 @@ export interface PageTransclusions {
   createdAt: Generated<Timestamp>;
   transclusionId: string;
   id: Generated<string>;
-  name: string | null;
   pageId: string;
   updatedAt: Generated<Timestamp>;
 }

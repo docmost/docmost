@@ -42,7 +42,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
       content: [
         {
           type: 'transclusionSource',
-          attrs: { id: 'a', name: 'Hello' },
+          attrs: { id: 'a' },
           content: [{ type: 'paragraph' }],
         },
       ],
@@ -56,7 +56,6 @@ describe('TransclusionService.syncPageTransclusions', () => {
       expect.objectContaining({
         pageId,
         transclusionId: 'a',
-        name: 'Hello',
       }),
       undefined,
     );
@@ -64,27 +63,30 @@ describe('TransclusionService.syncPageTransclusions', () => {
     expect(repo.deleteByPageAndTransclusionIds).not.toHaveBeenCalled();
   });
 
-  it('updates transclusions whose name or content changed', async () => {
+  it('updates transclusions whose content changed', async () => {
     repo.findByPageId.mockResolvedValue([
       {
         id: 'row1',
         pageId,
         transclusionId: 'a',
-        name: 'Old',
         content: { type: 'doc', content: [{ type: 'paragraph' }] },
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any,
     ]);
+    const newContent = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'X' }] },
+      ],
+    };
     const pm = {
       type: 'doc',
       content: [
         {
           type: 'transclusionSource',
-          attrs: { id: 'a', name: 'New' },
-          content: [
-            { type: 'paragraph', content: [{ type: 'text', text: 'X' }] },
-          ],
+          attrs: { id: 'a' },
+          content: newContent.content,
         },
       ],
     };
@@ -95,12 +97,12 @@ describe('TransclusionService.syncPageTransclusions', () => {
     expect(repo.update).toHaveBeenCalledWith(
       pageId,
       'a',
-      expect.objectContaining({ name: 'New' }),
+      expect.objectContaining({ content: newContent }),
       undefined,
     );
   });
 
-  it('skips update when name and content are unchanged', async () => {
+  it('skips update when content is unchanged', async () => {
     const sameContent = {
       type: 'doc',
       content: [{ type: 'paragraph' }],
@@ -110,7 +112,6 @@ describe('TransclusionService.syncPageTransclusions', () => {
         id: 'row1',
         pageId,
         transclusionId: 'a',
-        name: 'Same',
         content: sameContent,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -121,7 +122,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
       content: [
         {
           type: 'transclusionSource',
-          attrs: { id: 'a', name: 'Same' },
+          attrs: { id: 'a' },
           content: sameContent.content,
         },
       ],
@@ -139,7 +140,6 @@ describe('TransclusionService.syncPageTransclusions', () => {
         id: 'r',
         pageId,
         transclusionId: 'gone',
-        name: null,
         content: { type: 'doc', content: [] },
         createdAt: new Date(),
         updatedAt: new Date(),

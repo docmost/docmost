@@ -7,7 +7,6 @@ import {
   PageTransclusion,
   UpdatablePageTransclusion,
 } from '@docmost/db/types/entity.types';
-import { sql } from 'kysely';
 
 @Injectable()
 export class PageTransclusionsRepo {
@@ -21,7 +20,6 @@ export class PageTransclusionsRepo {
       .selectFrom('pageTransclusions')
       .selectAll()
       .where('pageId', '=', pageId)
-      .orderBy(sql`name asc nulls last`)
       .orderBy('createdAt', 'asc')
       .execute();
   }

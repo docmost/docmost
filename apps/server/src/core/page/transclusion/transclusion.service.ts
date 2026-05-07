@@ -65,7 +65,6 @@ export class TransclusionService {
           {
             pageId,
             transclusionId: d.transclusionId,
-            name: d.name,
             content: d.content as any,
           },
           trx,
@@ -74,13 +73,12 @@ export class TransclusionService {
         continue;
       }
 
-      const nameChanged = prev.name !== d.name;
       const contentChanged = !isDeepStrictEqual(prev.content, d.content);
-      if (nameChanged || contentChanged) {
+      if (contentChanged) {
         await this.pageTransclusionsRepo.update(
           pageId,
           d.transclusionId,
-          { name: d.name, content: d.content as any },
+          { content: d.content as any },
           trx,
         );
         updated += 1;
@@ -226,7 +224,6 @@ export class TransclusionService {
         rows.push({
           pageId: page.id,
           transclusionId: s.transclusionId,
-          name: s.name,
           content: s.content as any,
         });
       }

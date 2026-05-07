@@ -17,13 +17,13 @@ describe('collectTransclusionsFromPmJson', () => {
     expect(collectTransclusionsFromPmJson(doc)).toEqual([]);
   });
 
-  it('extracts a top-level transclusion with id, name and content', () => {
+  it('extracts a top-level transclusion with id and content', () => {
     const doc = {
       type: 'doc',
       content: [
         {
           type: 'transclusionSource',
-          attrs: { id: 'abc123', name: 'Pricing' },
+          attrs: { id: 'abc123' },
           content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }],
         },
       ],
@@ -31,7 +31,6 @@ describe('collectTransclusionsFromPmJson', () => {
     const got = collectTransclusionsFromPmJson(doc);
     expect(got).toHaveLength(1);
     expect(got[0].transclusionId).toBe('abc123');
-    expect(got[0].name).toBe('Pricing');
     expect(got[0].content).toEqual({
       type: 'doc',
       content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }],
@@ -53,7 +52,7 @@ describe('collectTransclusionsFromPmJson', () => {
       type: 'doc',
       content: [
         { type: 'transclusionSource', attrs: { id: 'a' }, content: [{ type: 'paragraph' }] },
-        { type: 'transclusionSource', attrs: { id: 'b', name: 'Two' }, content: [{ type: 'paragraph' }] },
+        { type: 'transclusionSource', attrs: { id: 'b' }, content: [{ type: 'paragraph' }] },
       ],
     };
     const got = collectTransclusionsFromPmJson(doc);
@@ -102,13 +101,24 @@ describe('collectTransclusionsFromPmJson', () => {
     const doc = {
       type: 'doc',
       content: [
-        { type: 'transclusionSource', attrs: { id: 'dup', name: 'first' }, content: [{ type: 'paragraph' }] },
-        { type: 'transclusionSource', attrs: { id: 'dup', name: 'second' }, content: [{ type: 'paragraph' }] },
+        {
+          type: 'transclusionSource',
+          attrs: { id: 'dup' },
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'first' }] }],
+        },
+        {
+          type: 'transclusionSource',
+          attrs: { id: 'dup' },
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'second' }] }],
+        },
       ],
     };
     const got = collectTransclusionsFromPmJson(doc);
     expect(got).toHaveLength(1);
-    expect(got[0].name).toBe('second');
+    expect(got[0].content).toEqual({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'second' }] }],
+    });
   });
 });
 

@@ -10,6 +10,5 @@ export type TransclusionLookup =
 
 export type TransclusionNodeSnapshot = {
   transclusionId: string;
-  name: string | null;
   content: unknown;
 };

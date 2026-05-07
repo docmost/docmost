@@ -34,13 +34,8 @@ export function collectTransclusionsFromPmJson(
     if (node.type === TRANSCLUSION_TYPE) {
       const id = node.attrs?.id;
       if (typeof id === 'string' && id.length > 0) {
-        const name =
-          typeof node.attrs?.name === 'string' && node.attrs.name.length > 0
-            ? node.attrs.name
-            : null;
         byId.set(id, {
           transclusionId: id,
-          name,
           content: { type: 'doc', content: node.content ?? [] },
         });
       }
