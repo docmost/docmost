@@ -72,6 +72,7 @@ export default function ReadonlyPageEditor({
           immediatelyRender={true}
           extensions={titleExtensions}
           content={title}
+          editorProps={{ attributes: { translate: "yes" } }}
         ></EditorProvider>
       </div>
 
@@ -80,6 +81,7 @@ export default function ReadonlyPageEditor({
         immediatelyRender={true}
         extensions={extensions}
         content={content}
+        editorProps={{ attributes: { translate: "yes" } }}
         onCreate={({ editor }) => {
           if (editor) {
             if (pageId) {
