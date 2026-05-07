@@ -4,12 +4,6 @@ const TRANSCLUSION_TYPE = 'transclusionSource';
 const REFERENCE_TYPE = 'transclusionReference';
 
 export type TransclusionReferenceSnapshot = {
-  /**
-   * Id of the `transclusion` (source) node whose content holds this reference,
-   * or `null` if the reference is loose on the page (not nested inside a source).
-   * Used by the cycle-detection CTE to walk source-to-source edges.
-   */
-  containingTransclusionId: string | null;
   sourcePageId: string;
   transclusionId: string;
 };
@@ -53,9 +47,9 @@ export function collectTransclusionsFromPmJson(
 
 /**
  * Walks a ProseMirror JSON document and returns one snapshot per unique
- * `(containingTransclusionId, sourcePageId, transclusionId)` triple found on
- * `transclusionReference` nodes. Recurses into every container, including
- * `transclusion` (a source node may contain a reference to another source).
+ * `(sourcePageId, transclusionId)` pair found on `transclusionReference`
+ * nodes. The schema forbids references inside a `transclusionSource` so this
+ * walk stops at source boundaries — references can only appear at page level.
  * Order preserved by first-seen.
  */
 export function collectReferencesFromPmJson(
@@ -66,7 +60,7 @@ export function collectReferencesFromPmJson(
   const seen = new Set<string>();
   const out: TransclusionReferenceSnapshot[] = [];
 
-  const visit = (node: any, containingTransclusionId: string | null): void => {
+  const visit = (node: any): void => {
     if (!node || typeof node !== 'object') return;
 
     if (node.type === REFERENCE_TYPE) {
@@ -78,29 +72,24 @@ export function collectReferencesFromPmJson(
         typeof transclusionId === 'string' &&
         transclusionId.length > 0
       ) {
-        const key = `${containingTransclusionId ?? ''}::${sourcePageId}::${transclusionId}`;
+        const key = `${sourcePageId}::${transclusionId}`;
         if (!seen.has(key)) {
           seen.add(key);
-          out.push({
-            containingTransclusionId,
-            sourcePageId,
-            transclusionId,
-          });
+          out.push({ sourcePageId, transclusionId });
         }
       }
       return; // atom node - no children
     }
 
-    const nextContainer =
-      node.type === TRANSCLUSION_TYPE && typeof node.attrs?.id === 'string'
-        ? node.attrs.id
-        : containingTransclusionId;
+    // References cannot live inside a source (schema-enforced); skip recursing
+    // so a malformed inbound doc can't sneak in a nested reference here.
+    if (node.type === TRANSCLUSION_TYPE) return;
 
     if (Array.isArray(node.content)) {
-      for (const child of node.content) visit(child, nextContainer);
+      for (const child of node.content) visit(child);
     }
   };
 
-  visit(doc, null);
+  visit(doc);
   return out;
 }

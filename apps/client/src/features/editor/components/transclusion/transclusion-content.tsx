@@ -2,7 +2,6 @@ import { EditorProvider } from "@tiptap/react";
 import { useMemo } from "react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { UniqueID } from "@docmost/editor-ext";
-import { TransclusionLookupProvider } from "./transclusion-lookup-context";
 
 type Props = {
   content: unknown;
@@ -31,21 +30,19 @@ export default function TransclusionContent({ content }: Props) {
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
-    <TransclusionLookupProvider>
-      <div
-        onMouseDown={stop}
-        onClick={stop}
-        onDragStart={stop}
-        onDragOver={stop}
-        onDrop={stop}
-      >
-        <EditorProvider
-          editable={false}
-          immediatelyRender={true}
-          extensions={extensions}
-          content={content as any}
-        />
-      </div>
-    </TransclusionLookupProvider>
+    <div
+      onMouseDown={stop}
+      onClick={stop}
+      onDragStart={stop}
+      onDragOver={stop}
+      onDrop={stop}
+    >
+      <EditorProvider
+        editable={false}
+        immediatelyRender={true}
+        extensions={extensions}
+        content={content as any}
+      />
+    </div>
   );
 }

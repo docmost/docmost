@@ -107,11 +107,9 @@ export class TransclusionService {
   ): Promise<{ inserted: number; deleted: number }> {
     const desired = collectReferencesFromPmJson(pmJson);
     const keyOf = (s: {
-      containingTransclusionId: string | null;
       sourcePageId: string;
       transclusionId: string;
-    }) =>
-      `${s.containingTransclusionId ?? ''}::${s.sourcePageId}::${s.transclusionId}`;
+    }) => `${s.sourcePageId}::${s.transclusionId}`;
     const desiredKeys = new Set(desired.map(keyOf));
 
     const existing = await this.pageTransclusionReferencesRepo.findByReferencePageId(
@@ -124,7 +122,6 @@ export class TransclusionService {
       .filter((d) => !existingKeys.has(keyOf(d)))
       .map((d) => ({
         referencePageId,
-        containingTransclusionId: d.containingTransclusionId,
         sourcePageId: d.sourcePageId,
         transclusionId: d.transclusionId,
       }));
@@ -132,7 +129,6 @@ export class TransclusionService {
     const toDelete = existing
       .filter((e) => !desiredKeys.has(keyOf(e)))
       .map((e) => ({
-        containingTransclusionId: e.containingTransclusionId,
         sourcePageId: e.sourcePageId,
         transclusionId: e.transclusionId,
       }));
@@ -148,64 +144,10 @@ export class TransclusionService {
       );
     }
 
-    const removedCount = await this.removeCyclicEdgesIntroducedBy(
-      toInsert,
-      trx,
-    );
-
     return {
-      inserted: toInsert.length - removedCount,
+      inserted: toInsert.length,
       deleted: toDelete.length,
     };
-  }
-
-  /**
-   * Run cycle detection rooted at each newly-introduced edge's target and
-   * delete any closing edge that belongs to a cycle. Lookups for those rows
-   * then return `not_found`, which the editor renders as the cycle-aware
-   * placeholder. Returns the count of rows removed.
-   */
-  private async removeCyclicEdgesIntroducedBy(
-    candidates: ReadonlyArray<{
-      referencePageId: string;
-      containingTransclusionId: string | null;
-      sourcePageId: string;
-      transclusionId: string;
-    }>,
-    trx?: KyselyTransaction,
-  ): Promise<number> {
-    const seedKeys = new Set<string>();
-    const seeds: Array<{ sourcePageId: string; transclusionId: string }> = [];
-    for (const c of candidates) {
-      if (c.containingTransclusionId === null) continue;
-      const key = `${c.sourcePageId}::${c.transclusionId}`;
-      if (seedKeys.has(key)) continue;
-      seedKeys.add(key);
-      seeds.push({
-        sourcePageId: c.sourcePageId,
-        transclusionId: c.transclusionId,
-      });
-    }
-    if (seeds.length === 0) return 0;
-
-    const offendingIds = new Set<string>();
-    for (const seed of seeds) {
-      const cyclicEdges =
-        await this.pageTransclusionReferencesRepo.findCyclicEdgesForSource(
-          seed.sourcePageId,
-          seed.transclusionId,
-          trx,
-        );
-      for (const edge of cyclicEdges) offendingIds.add(edge.id);
-    }
-
-    if (offendingIds.size === 0) return 0;
-
-    await this.pageTransclusionReferencesRepo.deleteByIds(
-      Array.from(offendingIds),
-      trx,
-    );
-    return offendingIds.size;
   }
 
   /**
@@ -235,12 +177,8 @@ export class TransclusionService {
 
   /**
    * Walk each page's PM JSON for `transclusionReference` nodes and bulk-insert
-   * one row per `(containing, source, target)` triple. For brand-new pages
+   * one row per `(referencePage, source, target)`. For brand-new pages
    * (duplication, import) where there is nothing to diff against.
-   *
-   * Cycle detection runs once per distinct seed source after the bulk insert;
-   * any closing edges are removed so lookups return `not_found` and the
-   * editor renders the cycle-aware placeholder.
    */
   async insertReferencesForPages(
     pages: Array<{ id: string; content: unknown }>,
@@ -248,7 +186,6 @@ export class TransclusionService {
   ): Promise<{ inserted: number }> {
     const rows: Array<{
       referencePageId: string;
-      containingTransclusionId: string | null;
       sourcePageId: string;
       transclusionId: string;
     }> = [];
@@ -257,7 +194,6 @@ export class TransclusionService {
       for (const r of refs) {
         rows.push({
           referencePageId: page.id,
-          containingTransclusionId: r.containingTransclusionId,
           sourcePageId: r.sourcePageId,
           transclusionId: r.transclusionId,
         });
@@ -265,9 +201,7 @@ export class TransclusionService {
     }
     if (rows.length === 0) return { inserted: 0 };
     await this.pageTransclusionReferencesRepo.insertMany(rows, trx);
-
-    const removedCount = await this.removeCyclicEdgesIntroducedBy(rows, trx);
-    return { inserted: rows.length - removedCount };
+    return { inserted: rows.length };
   }
 
   async lookup(

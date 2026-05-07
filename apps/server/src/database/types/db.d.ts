@@ -232,7 +232,6 @@ export interface PageTransclusionReferences {
   createdAt: Generated<Timestamp>;
   transclusionId: string;
   referencePageId: string;
-  containingTransclusionId: string | null;
   id: Generated<string>;
   sourcePageId: string;
 }

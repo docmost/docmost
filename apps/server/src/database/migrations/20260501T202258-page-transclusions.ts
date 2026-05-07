@@ -31,7 +31,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('reference_page_id', 'uuid', (col) =>
       col.notNull().references('pages.id').onDelete('cascade'),
     )
-    .addColumn('containing_transclusion_id', 'varchar')
     .addColumn('source_page_id', 'uuid', (col) =>
       col.notNull().references('pages.id').onDelete('cascade'),
     )
@@ -41,7 +40,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addUniqueConstraint('page_transclusion_references_unique', [
       'reference_page_id',
-      'containing_transclusion_id',
       'source_page_id',
       'transclusion_id',
     ])
@@ -51,12 +49,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .createIndex('idx_page_transclusion_references_source')
     .on('page_transclusion_references')
     .columns(['source_page_id', 'transclusion_id'])
-    .execute();
-
-  await db.schema
-    .createIndex('idx_page_transclusion_references_container')
-    .on('page_transclusion_references')
-    .columns(['reference_page_id', 'containing_transclusion_id'])
     .execute();
 }
 

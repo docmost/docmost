@@ -255,14 +255,17 @@ export class PersistenceExtension implements Extension {
     try {
       await this.transclusionService.syncPageTransclusions(pageId, tiptapJson);
     } catch (err) {
-      this.logger.error(`Failed to sync transclusions for page ${pageId}`, err);
+      this.logger.error(
+        { err, pageId },
+        'Failed to sync transclusions for page',
+      );
     }
     try {
       await this.transclusionService.syncPageReferences(pageId, tiptapJson);
     } catch (err) {
       this.logger.error(
-        `Failed to sync transclusion references for page ${pageId}`,
-        err,
+        { err, pageId },
+        'Failed to sync transclusion references for page',
       );
     }
   }

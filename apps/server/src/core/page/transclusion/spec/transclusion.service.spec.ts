@@ -177,8 +177,6 @@ describe('TransclusionService.syncPageReferences', () => {
       findByReferencePageId: jest.fn(),
       insertMany: jest.fn(),
       deleteByReferenceAndKeys: jest.fn(),
-      findCyclicEdgesForSource: jest.fn().mockResolvedValue([]),
-      deleteByIds: jest.fn(),
     };
     const module = await Test.createTestingModule({
       providers: [
@@ -220,13 +218,11 @@ describe('TransclusionService.syncPageReferences', () => {
       [
         {
           referencePageId,
-          containingTransclusionId: null,
           sourcePageId: 'p1',
           transclusionId: 'e1',
         },
         {
           referencePageId,
-          containingTransclusionId: null,
           sourcePageId: 'p2',
           transclusionId: 'e2',
         },
@@ -234,61 +230,10 @@ describe('TransclusionService.syncPageReferences', () => {
       undefined,
     );
     expect(refRepo.deleteByReferenceAndKeys).not.toHaveBeenCalled();
-    // Loose references never seed cycle detection.
-    expect(refRepo.findCyclicEdgesForSource).not.toHaveBeenCalled();
   });
 
-  it('records the containing transclusion when references nest in a source', async () => {
+  it('ignores references nested inside a source (schema-forbidden)', async () => {
     refRepo.findByReferencePageId.mockResolvedValue([]);
-    const pm = {
-      type: 'doc',
-      content: [
-        {
-          type: 'transclusionSource',
-          attrs: { id: 's1' },
-          content: [
-            {
-              type: 'transclusionReference',
-              attrs: { sourcePageId: 'p2', transclusionId: 'e2' },
-            },
-          ],
-        },
-      ],
-    };
-
-    const result = await service.syncPageReferences(referencePageId, pm);
-
-    expect(result).toEqual({ inserted: 1, deleted: 0 });
-    expect(refRepo.insertMany).toHaveBeenCalledWith(
-      [
-        {
-          referencePageId,
-          containingTransclusionId: 's1',
-          sourcePageId: 'p2',
-          transclusionId: 'e2',
-        },
-      ],
-      undefined,
-    );
-    expect(refRepo.findCyclicEdgesForSource).toHaveBeenCalledWith(
-      'p2',
-      'e2',
-      undefined,
-    );
-  });
-
-  it('deletes edges that close a cycle and excludes them from the inserted count', async () => {
-    refRepo.findByReferencePageId.mockResolvedValue([]);
-    refRepo.findCyclicEdgesForSource.mockResolvedValue([
-      {
-        id: 'closing-edge-id',
-        referencePageId,
-        containingTransclusionId: 's1',
-        sourcePageId: 'p2',
-        transclusionId: 'e2',
-        createdAt: new Date(),
-      } as any,
-    ]);
     const pm = {
       type: 'doc',
       content: [
@@ -308,10 +253,7 @@ describe('TransclusionService.syncPageReferences', () => {
     const result = await service.syncPageReferences(referencePageId, pm);
 
     expect(result).toEqual({ inserted: 0, deleted: 0 });
-    expect(refRepo.deleteByIds).toHaveBeenCalledWith(
-      ['closing-edge-id'],
-      undefined,
-    );
+    expect(refRepo.insertMany).not.toHaveBeenCalled();
   });
 
   it('deletes references that no longer appear', async () => {
@@ -319,7 +261,6 @@ describe('TransclusionService.syncPageReferences', () => {
       {
         id: 'r1',
         referencePageId,
-        containingTransclusionId: null,
         sourcePageId: 'p1',
         transclusionId: 'e1',
         createdAt: new Date(),
@@ -334,7 +275,6 @@ describe('TransclusionService.syncPageReferences', () => {
       referencePageId,
       [
         {
-          containingTransclusionId: null,
           sourcePageId: 'p1',
           transclusionId: 'e1',
         },
@@ -349,7 +289,6 @@ describe('TransclusionService.syncPageReferences', () => {
       {
         id: 'r',
         referencePageId,
-        containingTransclusionId: null,
         sourcePageId: 'p1',
         transclusionId: 'e1',
         createdAt: new Date(),

@@ -1,6 +1,6 @@
 import { mergeAttributes, Node } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { TRANSCLUSION_SOURCE_CONTENT_EXPRESSION } from "./constants";
 
 export interface TransclusionSourceOptions {
   HTMLAttributes: Record<string, any>;
@@ -34,7 +34,8 @@ export const TransclusionSource = Node.create<TransclusionSourceOptions>({
   },
 
   group: "block",
-  content: "block+",
+  // Schema-enforced allow-list. Excludes `transclusionSource` (no nesting)
+  content: TRANSCLUSION_SOURCE_CONTENT_EXPRESSION,
   defining: true,
   isolating: true,
 
@@ -129,31 +130,5 @@ export const TransclusionSource = Node.create<TransclusionSourceOptions>({
     // Force the react node view to render immediately using flush sync
     this.editor.isInitialized = true;
     return ReactNodeViewRenderer(this.options.view);
-  },
-
-  addProseMirrorPlugins() {
-    const typeName = this.name;
-    return [
-      new Plugin({
-        key: new PluginKey(`${typeName}-noNesting`),
-        filterTransaction: (tr) => {
-          if (!tr.docChanged) return true;
-          let nested = false;
-          tr.doc.descendants((node, pos) => {
-            if (nested) return false;
-            if (node.type.name !== typeName) return true;
-            const $pos = tr.doc.resolve(pos);
-            for (let depth = $pos.depth; depth > 0; depth -= 1) {
-              if ($pos.node(depth).type.name === typeName) {
-                nested = true;
-                return false;
-              }
-            }
-            return false;
-          });
-          return !nested;
-        },
-      }),
-    ];
   },
 });

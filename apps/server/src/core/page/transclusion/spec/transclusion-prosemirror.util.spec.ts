@@ -149,7 +149,7 @@ describe('collectReferencesFromPmJson', () => {
       ],
     };
     expect(collectReferencesFromPmJson(doc)).toEqual([
-      { containingTransclusionId: null, sourcePageId: 'p1', transclusionId: 'e1' },
+      { sourcePageId: 'p1', transclusionId: 'e1' },
     ]);
   });
 
@@ -190,12 +190,12 @@ describe('collectReferencesFromPmJson', () => {
       ],
     };
     expect(collectReferencesFromPmJson(doc)).toEqual([
-      { containingTransclusionId: null, sourcePageId: 'p1', transclusionId: 'e1' },
-      { containingTransclusionId: null, sourcePageId: 'p2', transclusionId: 'e2' },
+      { sourcePageId: 'p1', transclusionId: 'e1' },
+      { sourcePageId: 'p2', transclusionId: 'e2' },
     ]);
   });
 
-  it('also finds references nested inside a transclusion (source) node', () => {
+  it('does not recurse into a transclusion source (schema forbids references inside)', () => {
     const doc = {
       type: 'doc',
       content: [
@@ -211,12 +211,10 @@ describe('collectReferencesFromPmJson', () => {
         },
       ],
     };
-    expect(collectReferencesFromPmJson(doc)).toEqual([
-      { containingTransclusionId: 'src1', sourcePageId: 'p1', transclusionId: 'e1' },
-    ]);
+    expect(collectReferencesFromPmJson(doc)).toEqual([]);
   });
 
-  it('dedupes identical (containingTransclusionId, sourcePageId, transclusionId) triples', () => {
+  it('dedupes identical (sourcePageId, transclusionId) pairs', () => {
     const doc = {
       type: 'doc',
       content: [
@@ -235,8 +233,8 @@ describe('collectReferencesFromPmJson', () => {
       ],
     };
     expect(collectReferencesFromPmJson(doc)).toEqual([
-      { containingTransclusionId: null, sourcePageId: 'p1', transclusionId: 'e1' },
-      { containingTransclusionId: null, sourcePageId: 'p2', transclusionId: 'e2' },
+      { sourcePageId: 'p1', transclusionId: 'e1' },
+      { sourcePageId: 'p2', transclusionId: 'e2' },
     ]);
   });
 });
