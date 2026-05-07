@@ -53,15 +53,17 @@ export default function StarButton(props: StarButtonProps) {
     }
   };
 
+  const label = isFavorited
+    ? t("Remove from favorites")
+    : t("Add to favorites");
+
   return (
-    <Tooltip
-      label={isFavorited ? t("Remove from favorites") : t("Add to favorites")}
-      openDelay={250}
-      withArrow
-    >
+    <Tooltip label={label} openDelay={250} withArrow>
       <ActionIcon
         variant="subtle"
         color={isFavorited ? "yellow" : "gray"}
+        aria-label={label}
+        aria-pressed={isFavorited}
         onClick={handleToggle}
         loading={isPending}
       >

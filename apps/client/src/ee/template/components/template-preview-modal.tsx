@@ -24,7 +24,7 @@ export default function TemplatePreviewModal({
   const title = template?.title || t("Untitled");
 
   return (
-    <Modal.Root size={1200} opened={opened} onClose={onClose}>
+    <Modal.Root size={1200} opened={opened} onClose={onClose} aria-label={title}>
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header>

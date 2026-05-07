@@ -29,7 +29,7 @@ export default function AppVersion() {
       >
         <Indicator
           label={t("New update")}
-          color="gray"
+          color="dark"
           inline
           size={16}
           position="middle-end"

@@ -137,7 +137,13 @@ export default function DrawioView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle>
-      <Modal.Root opened={opened} onClose={handleClose} fullScreen closeOnEscape={false}>
+      <Modal.Root
+        opened={opened}
+        onClose={handleClose}
+        fullScreen
+        closeOnEscape={false}
+        aria-label={t("Diagram editor")}
+      >
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>
           <Modal.Body pos="relative">

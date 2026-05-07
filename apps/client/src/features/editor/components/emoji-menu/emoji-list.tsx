@@ -107,7 +107,17 @@ const EmojiList = ({
   }, [selectedIndex]);
 
   return items.length > 0 || isLoading ? (
-    <Paper id="emoji-command" p="0" shadow="md" withBorder>
+    <Paper
+      id="emoji-command"
+      p="0"
+      shadow="md"
+      withBorder
+      role="listbox"
+      aria-label="Emoji results"
+      aria-activedescendant={
+        items.length > 0 ? `emoji-command-option-${selectedIndex}` : undefined
+      }
+    >
       {isLoading && <Loader m="xs" color="blue" type="dots" />}
       {items.length > 0 && (
         <ScrollArea.Autosize
@@ -120,6 +130,10 @@ const EmojiList = ({
             {items.map((item, index: number) => (
               <ActionIcon
                 data-item-index={index}
+                id={`emoji-command-option-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
+                aria-label={item.id}
                 variant="transparent"
                 key={item.id}
                 className={clsx(classes.menuBtn, {

@@ -67,7 +67,7 @@ export default function PageImportModal({
         <Modal.Content style={{ overflow: "hidden" }}>
           <Modal.Header py={0}>
             <Modal.Title fw={500}>{t("Import pages")}</Modal.Title>
-            <Modal.CloseButton />
+            <Modal.CloseButton aria-label={t("Close")} />
           </Modal.Header>
           <Modal.Body>
             <ImportFormatSelection spaceId={spaceId} onClose={onClose} />
@@ -332,7 +332,15 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   return (
     <>
       <SimpleGrid cols={2}>
-        <FileButton onChange={handleFileUpload} accept=".md" multiple resetRef={markdownFileRef}>
+        <FileButton
+          onChange={handleFileUpload}
+          accept=".md"
+          multiple
+          resetRef={markdownFileRef}
+          inputProps={{
+            "aria-label": t("Choose {{format}} file", { format: "Markdown" }),
+          }}
+        >
           {(props) => (
             <Button
               justify="start"
@@ -345,7 +353,15 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           )}
         </FileButton>
 
-        <FileButton onChange={handleFileUpload} accept="text/html" multiple resetRef={htmlFileRef}>
+        <FileButton
+          onChange={handleFileUpload}
+          accept="text/html"
+          multiple
+          resetRef={htmlFileRef}
+          inputProps={{
+            "aria-label": t("Choose {{format}} file", { format: "HTML" }),
+          }}
+        >
           {(props) => (
             <Button
               justify="start"
@@ -363,6 +379,9 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           accept=".docx"
           multiple
           resetRef={docxFileRef}
+          inputProps={{
+            "aria-label": t("Choose {{format}} file", { format: "Word (DOCX)" }),
+          }}
         >
           {(props) => (
             <Tooltip
@@ -387,6 +406,9 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           accept=".pdf"
           multiple
           resetRef={pdfFileRef}
+          inputProps={{
+            "aria-label": t("Choose {{format}} file", { format: "PDF" }),
+          }}
         >
           {(props) => (
             <Tooltip
@@ -410,6 +432,9 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           onChange={(file) => handleZipUpload(file, "notion")}
           accept="application/zip"
           resetRef={notionFileRef}
+          inputProps={{
+            "aria-label": t("Choose {{format}} file", { format: "Notion" }),
+          }}
         >
           {(props) => (
             <Button
@@ -426,6 +451,9 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           onChange={(file) => handleZipUpload(file, "confluence")}
           accept="application/zip"
           resetRef={confluenceFileRef}
+          inputProps={{
+            "aria-label": t("Choose {{format}} file", { format: "Confluence" }),
+          }}
         >
           {(props) => (
             <Tooltip
@@ -463,6 +491,9 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             onChange={(file) => handleZipUpload(file, "generic")}
             accept="application/zip"
             resetRef={zipFileRef}
+            inputProps={{
+              "aria-label": t("Choose {{format}} file", { format: "ZIP" }),
+            }}
           >
             {(props) => (
               <Group justify="center">

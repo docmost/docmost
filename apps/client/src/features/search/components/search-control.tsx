@@ -47,6 +47,7 @@ export function SearchMobileControl({ onSearch }: SearchMobileControlProps) {
       <ActionIcon
         variant="subtle"
         color="dark"
+        aria-label={t("Search")}
         onClick={onSearch}
         size="sm"
       >

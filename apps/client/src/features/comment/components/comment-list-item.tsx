@@ -173,6 +173,15 @@ function CommentListItem({
           <Box
             className={classes.textSelection}
             onClick={() => handleCommentClick(comment)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleCommentClick(comment);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={t("Jump to comment selection")}
           >
             <Text size="sm">{comment?.selection}</Text>
           </Box>

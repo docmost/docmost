@@ -37,7 +37,7 @@ export function ScimTokenTable({
             <Table.Th>{t("Created by")}</Table.Th>
             <Table.Th>{t("Last used")}</Table.Th>
             <Table.Th>{t("Created")}</Table.Th>
-            <Table.Th></Table.Th>
+            <Table.Th aria-label={t("Action")} />
           </Table.Tr>
         </Table.Thead>
 

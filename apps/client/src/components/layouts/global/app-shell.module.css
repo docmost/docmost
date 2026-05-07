@@ -28,4 +28,22 @@
   }
 }
 
+.skipLink {
+  position: fixed;
+  left: 8px;
+  top: 8px;
+  padding: 8px 12px;
+  background: var(--mantine-color-blue-6);
+  color: #fff;
+  border-radius: 4px;
+  text-decoration: none;
+  z-index: 1000;
+  transform: translateY(-150%);
+
+  &:focus {
+    transform: translateY(0);
+    outline: 2px solid var(--mantine-color-blue-3);
+  }
+}
+
 

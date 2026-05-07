@@ -4,7 +4,7 @@ import {
   UnstyledButton,
   Badge,
   Table,
-  ActionIcon,
+  ThemeIcon,
   Button,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
@@ -62,13 +62,13 @@ export default function FavoritesPages({ spaceId }: Props) {
                     >
                       <Group wrap="nowrap">
                         {fav.page.icon || (
-                          <ActionIcon
+                          <ThemeIcon
                             variant="transparent"
                             color="gray"
                             size={18}
                           >
                             <IconFileDescription size={18} />
-                          </ActionIcon>
+                          </ThemeIcon>
                         )}
                         <Text fw={500} size="md" lineClamp={1}>
                           {fav.page.title || t("Untitled")}

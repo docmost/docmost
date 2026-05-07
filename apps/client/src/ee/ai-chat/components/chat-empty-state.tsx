@@ -65,7 +65,7 @@ export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
           isStreaming={isStreaming}
           onSend={onSend}
           onStop={onStop}
-          placeholder="Ask anything... Use @ to mention pages"
+          placeholder={t("Ask anything... Use @ to mention pages")}
           autofocus
         />
       </div>

@@ -458,6 +458,8 @@ interface CreateNodeProps {
 }
 
 function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
+  const { t } = useTranslation();
+
   function handleCreate() {
     if (node.data.hasChildren && node.children.length === 0) {
       node.toggle();
@@ -475,6 +477,7 @@ function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
     <ActionIcon
       variant="transparent"
       c="gray"
+      aria-label={t("Create page")}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -591,6 +594,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
           <ActionIcon
             variant="transparent"
             c="gray"
+            aria-label={t("Page menu")}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -725,6 +729,8 @@ interface PageArrowProps {
 }
 
 function PageArrow({ node, onExpandTree }: PageArrowProps) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (node.isOpen) {
       onExpandTree();
@@ -736,6 +742,8 @@ function PageArrow({ node, onExpandTree }: PageArrowProps) {
       size={20}
       variant="subtle"
       c="gray"
+      aria-label={node.isOpen ? t("Collapse") : t("Expand")}
+      aria-expanded={node.isInternal ? node.isOpen : undefined}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
