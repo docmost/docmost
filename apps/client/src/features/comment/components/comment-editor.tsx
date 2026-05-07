@@ -134,6 +134,7 @@ const CommentEditor = forwardRef(
       >
         <EditorContent
           editor={commentEditor}
+          translate="yes"
           className={clsx(classes.ProseMirror, { [classes.focused]: focused })}
         />
       </div>
