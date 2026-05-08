@@ -73,6 +73,11 @@
   }
 }
 
+.catTabFocused {
+  outline: 1px solid var(--mantine-color-blue-filled);
+  outline-offset: -1px;
+}
+
 .grid {
   display: grid;
   gap: 1px;

@@ -43,8 +43,10 @@ function EmojiList({
   const [idx, setIdx] = useState(0);
   const [cats, setCats] = useState<EmojiCategory[]>([]);
   const [activeCat, setActiveCat] = useState("");
+  const [focusZone, setFocusZone] = useState<"grid" | "tabs">("grid");
   const listViewport = useRef<HTMLDivElement>(null);
   const gridViewport = useRef<HTMLDivElement>(null);
+  const catBar = useRef<HTMLDivElement>(null);
 
   const searching = query.length > 0;
   const browseLoading = !searching && cats.length === 0;
@@ -59,10 +61,18 @@ function EmojiList({
 
   useEffect(() => { setIdx(0); }, [query, activeCat]);
 
+  useEffect(() => { if (searching) setFocusZone("grid"); }, [searching]);
+
   useEffect(() => {
+    if (focusZone !== "tabs") return;
+    catBar.current?.querySelector<HTMLElement>(`[data-cat="${activeCat}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeCat, focusZone]);
+
+  useEffect(() => {
+    if (focusZone === "tabs") return;
     const vp = searching ? listViewport.current : gridViewport.current;
     vp?.querySelector<HTMLElement>(`[data-i="${idx}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [idx, searching]);
+  }, [idx, searching, focusZone]);
 
   const pickSearchItem = useCallback(
     (i: number) => {
@@ -88,18 +98,28 @@ function EmojiList({
         if      (e.key === "ArrowDown") { e.preventDefault(); setIdx((i) => Math.min(i + 1, items.length - 1)); }
         else if (e.key === "ArrowUp")   { e.preventDefault(); setIdx((i) => Math.max(i - 1, 0)); }
         else if (e.key === "Enter")     { e.preventDefault(); pickSearchItem(idx); }
+      } else if (focusZone === "tabs") {
+        const catIdx = cats.findIndex((c) => c.id === activeCat);
+        if      (e.key === "ArrowRight") { e.preventDefault(); const next = cats[Math.min(catIdx + 1, cats.length - 1)]; if (next) setActiveCat(next.id); }
+        else if (e.key === "ArrowLeft")  { e.preventDefault(); const prev = cats[Math.max(catIdx - 1, 0)]; if (prev) setActiveCat(prev.id); }
+        else if (e.key === "ArrowDown" || e.key === "Enter") { e.preventDefault(); setFocusZone("grid"); }
+        else if (e.key === "ArrowUp")    { e.preventDefault(); }
       } else {
         const total = gridItems.length;
         if      (e.key === "ArrowRight") { e.preventDefault(); setIdx((i) => Math.min(i + 1, total - 1)); }
         else if (e.key === "ArrowLeft")  { e.preventDefault(); setIdx((i) => Math.max(i - 1, 0)); }
         else if (e.key === "ArrowDown")  { e.preventDefault(); setIdx((i) => Math.min(i + COLS, total - 1)); }
-        else if (e.key === "ArrowUp")    { e.preventDefault(); setIdx((i) => Math.max(i - COLS, 0)); }
+        else if (e.key === "ArrowUp")    {
+          e.preventDefault();
+          if (idx < COLS) setFocusZone("tabs");
+          else            setIdx((i) => Math.max(i - COLS, 0));
+        }
         else if (e.key === "Enter")      { e.preventDefault(); if (gridItems[idx]) pickGridItem(gridItems[idx]); }
       }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [searching, items, idx, gridItems, pickSearchItem, pickGridItem]);
+  }, [searching, items, idx, gridItems, pickSearchItem, pickGridItem, focusZone, cats, activeCat]);
 
   return (
     <Paper
@@ -140,19 +160,28 @@ function EmojiList({
         <Loader m="xs" size="xs" color="blue" type="dots" />
       ) : (
         <>
-          <div className={classes.catBar} role="tablist">
-            {cats.map((c) => (
-              <button
-                key={c.id}
-                title={c.id}
-                role="tab"
-                aria-selected={c.id === activeCat}
-                className={clsx(classes.catTab, { [classes.catTabActive]: c.id === activeCat })}
-                onClick={() => setActiveCat(c.id)}
-              >
-                {CAT_ICONS[c.id] ?? "🔣"}
-              </button>
-            ))}
+          <div className={classes.catBar} role="tablist" ref={catBar}>
+            {cats.map((c) => {
+              const isActive = c.id === activeCat;
+              const isFocused = isActive && focusZone === "tabs";
+              return (
+                <button
+                  key={c.id}
+                  data-cat={c.id}
+                  title={c.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={clsx(classes.catTab, {
+                    [classes.catTabActive]: isActive,
+                    [classes.catTabFocused]: isFocused,
+                  })}
+                  onClick={() => { setActiveCat(c.id); setFocusZone("grid"); }}
+                  onMouseEnter={() => setFocusZone("grid")}
+                >
+                  {CAT_ICONS[c.id] ?? "🔣"}
+                </button>
+              );
+            })}
           </div>
           <ScrollArea.Autosize mah={220} scrollbarSize={6} viewportRef={gridViewport}>
             <div className={classes.grid} style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}>
