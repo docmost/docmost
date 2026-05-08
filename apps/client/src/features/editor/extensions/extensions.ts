@@ -311,6 +311,8 @@ export const mainExtensions = [
     view: CodeBlockView,
     //@ts-ignore
     lowlight,
+    enableTabIndentation: true,
+    tabSize: 2,
     HTMLAttributes: {
       spellcheck: false,
     },
