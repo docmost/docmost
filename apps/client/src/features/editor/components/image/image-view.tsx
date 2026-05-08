@@ -1,6 +1,6 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { Group, Image, Loader, Text } from "@mantine/core";
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import clsx from "clsx";
 import classes from "./image-view.module.css";
@@ -8,14 +8,18 @@ import { useTranslation } from "react-i18next";
 
 export default function ImageView(props: NodeViewProps) {
   const { t } = useTranslation();
-  const { editor, node, selected } = props;
-  const { src, width, align, title, aspectRatio, placeholder } = node.attrs;
+  const { editor, node, selected, updateAttributes } = props;
+  const { src, width, align, alt, caption, aspectRatio, placeholder } =
+    node.attrs;
+  const captionRef = useRef<HTMLInputElement>(null);
+
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
     if (align === "right") return "alignRight";
     if (align === "center") return "alignCenter";
     return "alignCenter";
   }, [align]);
+
   const previewSrc = useMemo(() => {
     editor.storage.shared.imagePreviews =
       editor.storage.shared.imagePreviews || {};
@@ -26,6 +30,23 @@ export default function ImageView(props: NodeViewProps) {
 
     return null;
   }, [placeholder, editor]);
+
+  const handleCaptionChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateAttributes({ caption: e.target.value });
+    },
+    [updateAttributes],
+  );
+
+  const handleCaptionKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        editor.commands.focus();
+      }
+    },
+    [editor],
+  );
 
   return (
     <NodeViewWrapper data-drag-handle>
@@ -42,7 +63,7 @@ export default function ImageView(props: NodeViewProps) {
         }}
       >
         {src && (
-          <Image radius="md" fit="contain" src={getFileUrl(src)} alt={title} />
+          <Image radius="md" fit="contain" src={getFileUrl(src)} alt={alt} />
         )}
         {!src && previewSrc && (
           <Group pos="relative" h="100%" w="100%">
@@ -66,6 +87,17 @@ export default function ImageView(props: NodeViewProps) {
           </Group>
         )}
       </div>
+      {src && caption != null && (
+        <input
+          ref={captionRef}
+          className={classes.caption}
+          type="text"
+          value={caption || ""}
+          onChange={handleCaptionChange}
+          onKeyDown={handleCaptionKeyDown}
+          placeholder={t("Add a caption")}
+        />
+      )}
     </NodeViewWrapper>
   );
 }

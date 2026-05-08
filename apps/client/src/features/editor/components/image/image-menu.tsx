@@ -9,6 +9,7 @@ import {
 import { ActionIcon, Tooltip } from "@mantine/core";
 import clsx from "clsx";
 import {
+  IconTextCaption,
   IconLayoutAlignCenter,
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
@@ -40,6 +41,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         isAlignCenter: ctx.editor.isActive("image", { align: "center" }),
         isAlignRight: ctx.editor.isActive("image", { align: "right" }),
         src: imageAttrs?.src || null,
+        caption: imageAttrs?.caption,
       };
     },
   });
@@ -135,6 +137,17 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     editor.commands.deleteSelection();
   }, [editor]);
 
+  const handleCaptionToggle = useCallback(() => {
+    const currentCaption = editor.getAttributes("image").caption;
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .updateAttributes("image", {
+        caption: currentCaption != null ? null : "",
+      })
+      .run();
+  }, [editor]);
+
   return (
     <BaseBubbleMenu
       editor={editor}
@@ -187,6 +200,22 @@ export function ImageMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
+        <Tooltip position="top" label={t("Caption")} withinPortal={false}>
+          <ActionIcon
+            onClick={handleCaptionToggle}
+            size="lg"
+            aria-label={t("Caption")}
+            variant="subtle"
+            className={clsx({
+              [classes.active]: editorState?.caption != null,
+            })}
+          >
+            <IconTextCaption size={18} />
+          </ActionIcon>
+        </Tooltip>
+
+        <div className={classes.divider} />
+
         <Tooltip position="top" label={t("Download")} withinPortal={false}>
           <ActionIcon
             onClick={handleDownload}
@@ -220,6 +249,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
       </div>
+
 
       <input
         ref={fileInputRef}

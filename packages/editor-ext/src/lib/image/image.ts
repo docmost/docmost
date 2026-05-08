@@ -32,6 +32,7 @@ export interface ImageOptions extends DefaultImageOptions {
 export interface ImageAttributes {
   src?: string;
   alt?: string;
+  caption?: string;
   align?: string;
   attachmentId?: string;
   size?: number;
@@ -120,7 +121,14 @@ export const TiptapImage = Image.extend<ImageOptions>({
         default: undefined,
         parseHTML: (element) => element.getAttribute("alt"),
         renderHTML: (attributes: ImageAttributes) => ({
-          alt: attributes.alt,
+          alt: attributes.caption || attributes.alt,
+        }),
+      },
+      caption: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-caption"),
+        renderHTML: (attributes: ImageAttributes) => ({
+          "data-caption": attributes.caption,
         }),
       },
       attachmentId: {
@@ -331,17 +339,17 @@ export const TiptapImage = Image.extend<ImageOptions>({
         },
       });
 
-      const dom = nodeView.dom as HTMLElement;
+      const resizableDom = nodeView.dom as HTMLElement;
 
       // Apply initial alignment
-      applyAlignment(dom, node.attrs.align || "center");
+      applyAlignment(resizableDom, node.attrs.align || "center");
 
       // Handle percentage width backward compat
       const widthAttr = node.attrs.width;
       if (typeof widthAttr === "string" && widthAttr.endsWith("%")) {
         // Defer conversion until we can measure the container
         requestAnimationFrame(() => {
-          const parentEl = dom.parentElement;
+          const parentEl = resizableDom.parentElement;
           if (parentEl) {
             const containerWidth = parentEl.clientWidth;
             const pctValue = parseInt(widthAttr, 10);
@@ -355,21 +363,78 @@ export const TiptapImage = Image.extend<ImageOptions>({
               }
             }
           }
-          dom.style.visibility = "";
-          dom.style.pointerEvents = "";
+          resizableDom.style.visibility = "";
+          resizableDom.style.pointerEvents = "";
         });
       }
 
       // Show skeleton background while image loads from server
-      dom.style.pointerEvents = "none";
+      resizableDom.style.pointerEvents = "none";
       el.classList.add("media-pulse");
 
       el.onload = () => {
-        dom.style.pointerEvents = "";
+        resizableDom.style.pointerEvents = "";
         el.classList.remove("media-pulse");
       };
 
-      return nodeView;
+      // Caption support: wrap resizable view + caption input in outer container
+      const wrapper = document.createElement("div");
+      wrapper.append(resizableDom);
+
+      const captionInput = document.createElement("input");
+      captionInput.type = "text";
+      captionInput.placeholder = "Add a caption";
+      captionInput.style.cssText =
+        "display:none;width:100%;margin-top:6px;padding:2px 0;border:none;outline:none;background:transparent;text-align:center;font-size:14px;color:var(--mantine-color-dimmed)";
+
+      const updateCaptionVisibility = (caption: string | null | undefined) => {
+        if (caption != null) {
+          captionInput.style.display = "block";
+          captionInput.value = caption || "";
+        } else {
+          captionInput.style.display = "none";
+          captionInput.value = "";
+        }
+      };
+
+      updateCaptionVisibility(node.attrs.caption);
+
+      captionInput.addEventListener("input", () => {
+        const pos = getPos();
+        if (pos === undefined) return;
+        editor.commands.updateAttributes("image", {
+          caption: captionInput.value,
+        });
+      });
+
+      captionInput.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          e.preventDefault();
+          editor.commands.focus();
+        }
+      });
+
+      wrapper.append(captionInput);
+
+      // Override nodeView to use our wrapper as dom
+      const originalUpdate = nodeView.update?.bind(nodeView);
+      return {
+        dom: wrapper,
+        update: (updatedNode: any, decorations: any, innerDecorations: any) => {
+          if (originalUpdate?.(updatedNode, decorations, innerDecorations) === false) {
+            return false;
+          }
+          updateCaptionVisibility(updatedNode.attrs.caption);
+          return true;
+        },
+        stopEvent: (event: Event) => {
+          return captionInput.contains(event.target as Node);
+        },
+        selectNode: nodeView.selectNode?.bind(nodeView),
+        deselectNode: nodeView.deselectNode?.bind(nodeView),
+        destroy: nodeView.destroy?.bind(nodeView),
+      };
     };
   },
 });
