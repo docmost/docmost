@@ -192,7 +192,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                 {TEXT_COLORS.map(({ name, color }, index) => {
                   const applyTextColor = () => {
                     if (name === "Default") {
-                      editor.commands.unsetColor();
+                      editor.chain().focus().unsetColor().run();
                     } else {
                       editor
                         .chain()
@@ -311,8 +311,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
               variant="default"
               fullWidth
               onClick={() => {
-                editor.commands.unsetColor();
-                editor.commands.unsetHighlight();
+                editor.chain().focus().unsetColor().unsetHighlight().run();
                 setIsOpen(false);
               }}
             >
