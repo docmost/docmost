@@ -32,6 +32,7 @@ import {
   HISTORY_FAST_THRESHOLD,
   HISTORY_INTERVAL,
 } from '../constants';
+import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -45,6 +46,7 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.HISTORY_QUEUE) private historyQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     private readonly collabHistory: CollabHistoryService,
+    private readonly transclusionService: TransclusionService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -134,7 +136,11 @@ export class PersistenceExtension implements Extension {
         try {
           const existingContributors = page.contributorIds || [];
           contributorIds = Array.from(
-            new Set([...existingContributors, ...editingUserIds, page.creatorId]),
+            new Set([
+              ...existingContributors,
+              ...editingUserIds,
+              page.creatorId,
+            ]),
           );
         } catch (err) {
           //this.logger.debug('Contributors error:' + err?.['message']);
@@ -159,13 +165,19 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
+      await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
+    }
+
+    if (page) {
       await this.collabHistory.addContributors(pageId, editingUserIds);
 
       const mentions = extractMentions(tiptapJson);
 
       const userMentions = extractUserMentions(mentions);
       const oldMentions = page.content ? extractMentions(page.content) : [];
-      const oldMentionedUserIds = extractUserMentions(oldMentions).map((m) => m.entityId);
+      const oldMentionedUserIds = extractUserMentions(oldMentions).map(
+        (m) => m.entityId,
+      );
 
       if (userMentions.length > 0) {
         await this.notificationQueue.add(QueueJob.PAGE_MENTION_NOTIFICATION, {
@@ -228,5 +240,42 @@ export class PersistenceExtension implements Extension {
       { pageId: page.id } as IPageHistoryJob,
       { jobId: page.id, delay },
     );
+  }
+
+  /**
+   * Refresh `page_transclusions` and `page_transclusion_references` to match
+   * the page's current content. Runs outside the page-write transaction and
+   * isolates each call so a failure here cannot affect the page save itself.
+   * The diff is idempotent — the next save converges if a round drops anything.
+   */
+  private async syncTransclusion(
+    pageId: string,
+    workspaceId: string,
+    tiptapJson: unknown,
+  ): Promise<void> {
+    try {
+      await this.transclusionService.syncPageTransclusions(
+        pageId,
+        workspaceId,
+        tiptapJson,
+      );
+    } catch (err) {
+      this.logger.error(
+        { err, pageId },
+        'Failed to sync transclusions for page',
+      );
+    }
+    try {
+      await this.transclusionService.syncPageReferences(
+        pageId,
+        workspaceId,
+        tiptapJson,
+      );
+    } catch (err) {
+      this.logger.error(
+        { err, pageId },
+        'Failed to sync transclusion references for page',
+      );
+    }
   }
 }

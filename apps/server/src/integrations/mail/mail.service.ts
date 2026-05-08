@@ -17,6 +17,10 @@ export class MailService {
   ) {}
 
   async sendEmail(message: MailMessage): Promise<void> {
+    if (this.isRecipientBlocked(message.to)) {
+      return;
+    }
+
     if (message.template) {
       // in case this method is used directly. we do not send the tsx template from queue
       message.html = await render(message.template, {
@@ -35,6 +39,10 @@ export class MailService {
   }
 
   async sendToQueue(message: MailMessage): Promise<void> {
+    if (this.isRecipientBlocked(message.to)) {
+      return;
+    }
+
     if (message.template) {
       // transform the React object because it gets lost when sent via the queue
       message.html = await render(message.template, {
@@ -46,5 +54,12 @@ export class MailService {
       delete message.template;
     }
     await this.emailQueue.add(QueueJob.SEND_EMAIL, message);
+  }
+
+  private isRecipientBlocked(to: string): boolean {
+    const blocked = this.environmentService.getMailBlockedRecipientDomains();
+    if (blocked.length === 0) return false;
+    const domain = to?.split('@')[1]?.toLowerCase();
+    return !!domain && blocked.includes(domain);
   }
 }

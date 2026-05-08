@@ -200,7 +200,7 @@ export default function ChatInput({
         link: false,
       }),
       Placeholder.configure({
-        placeholder: placeholder || "Ask anything... Use @ to mention pages",
+        placeholder: placeholder || t("Ask anything... Use @ to mention pages"),
       }),
       CharacterCount.configure({
         limit: 50000,

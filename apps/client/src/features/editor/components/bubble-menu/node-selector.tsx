@@ -12,6 +12,7 @@ import {
   IconInfoCircle,
   IconList,
   IconListNumbers,
+  IconQuote,
   IconTypography,
 } from "@tabler/icons-react";
 import { Popover, Button, ScrollArea, Tooltip } from "@mantine/core";
@@ -59,6 +60,7 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
         isCodeBlock: ctx.editor.isActive("codeBlock"),
         isCallout: ctx.editor.isActive("callout"),
         isDetails: ctx.editor.isActive("details"),
+        isTransclusionSource: ctx.editor.isActive("transclusionSource"),
       };
     },
   });
@@ -123,6 +125,12 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
       isActive: () => editorState?.isBlockquote,
     },
     {
+      name: "Synced block",
+      icon: IconQuote,
+      command: () => editor.chain().focus().toggleTransclusionSource().run(),
+      isActive: () => editorState?.isTransclusionSource,
+    },
+    {
       name: "Code",
       icon: IconCode,
       command: () => editor.chain().focus().toggleCodeBlock().run(),
@@ -149,7 +157,12 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
   return (
     <Popover opened={isOpen} withArrow>
       <Popover.Target>
-        <Tooltip label={t("Turn into")} withArrow withinPortal={false} disabled={isOpen}>
+        <Tooltip
+          label={t("Turn into")}
+          withArrow
+          withinPortal={false}
+          disabled={isOpen}
+        >
           <Button
             className={classes.buttonRoot}
             variant="default"

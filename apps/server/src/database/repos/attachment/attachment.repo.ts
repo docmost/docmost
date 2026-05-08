@@ -89,6 +89,22 @@ export class AttachmentRepo {
       .execute();
   }
 
+  async findByIds(
+    ids: string[],
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment[]> {
+    if (ids.length === 0) return [];
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('attachments')
+      .select(this.baseFields)
+      .where('id', 'in', ids)
+      .execute();
+  }
+
   async findByAiChatId(
     aiChatId: string,
     opts?: {

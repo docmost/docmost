@@ -382,9 +382,6 @@ importers:
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
-      tiptap-extension-global-drag-handle:
-        specifier: ^0.1.18
-        version: 0.1.18
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -9690,9 +9687,6 @@ packages:
   tinyglobby@0.2.15:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}
     engines: {node: '>=12.0.0'}
-
-  tiptap-extension-global-drag-handle@0.1.18:
-    resolution: {integrity: sha512-jwFuy1K8DP3a4bFy76Hpc63w1Sil0B7uZ3mvhQomVvUFCU787Lg2FowNhn7NFzeyok761qY2VG+PZ/FDthWUdg==}
 
   tlds@1.261.0:
     resolution: {integrity: sha512-QXqwfEl9ddlGBaRFXIvNKK6OhipSiLXuRuLJX5DErz0o0Q0rYxulWLdFryTkV5PkdZct5iMInwYEGe/eR++1AA==}
@@ -20881,8 +20875,6 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
-
-  tiptap-extension-global-drag-handle@0.1.18: {}
 
   tlds@1.261.0: {}
 
