@@ -15,7 +15,7 @@ type AsideStateType = {
   isAsideOpen: boolean;
 };
 
-export const asideStateAtom = atom<AsideStateType>({
+export const asideStateAtom = atomWithWebStorage<AsideStateType>("aSide",{
   tab: "",
   isAsideOpen: false,
 });

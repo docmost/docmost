@@ -1,17 +1,31 @@
 import { atom } from "jotai";
 
 export function atomWithWebStorage<Value>(key: string, initialValue: Value, storage = localStorage) {
-  const storedValue = localStorage.getItem(key);
-  const isStringOrInt = typeof initialValue === "string" || typeof initialValue === "number";
+  const storedValue = storage.getItem(key);
 
-  const storageValue = storedValue ? isStringOrInt ? storedValue : storedValue === "true" : undefined;
+  let parsedValue: Value | undefined;
 
-  const baseAtom = atom(storageValue ?? initialValue);
+  try {
+    if (storedValue !== null) {
+      parsedValue = JSON.parse(storedValue);
+    }
+  } catch {
+    parsedValue = undefined;
+  }
+
+  const baseAtom = atom<Value>(parsedValue ?? initialValue);
+
   return atom(
     get => get(baseAtom) as Value,
     (_get, set, nextValue: Value) => {
       set(baseAtom, nextValue);
-      storage.setItem(key, nextValue!.toString());
+
+      try {
+        const stringified = JSON.stringify(nextValue);
+        storage.setItem(key, stringified);
+      } catch {
+        console.error("Unable to stringify value for storage");
+      }
     },
   );
 }
