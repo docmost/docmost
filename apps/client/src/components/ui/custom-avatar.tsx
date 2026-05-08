@@ -42,6 +42,11 @@ function pickInitialsColor(name: string) {
   return SAFE_INITIALS_COLORS[hashName(name) % SAFE_INITIALS_COLORS.length];
 }
 
+function sanitizeInitialsSource(name: string) {
+  const sanitized = name.replace(/[^\p{L}\p{N}\s]/gu, " ").trim();
+  return sanitized || name;
+}
+
 export const CustomAvatar = React.forwardRef<
   HTMLInputElement,
   CustomAvatarProps
@@ -49,12 +54,13 @@ export const CustomAvatar = React.forwardRef<
   const avatarLink = getAvatarUrl(avatarUrl, type);
   const resolvedColor =
     !color || color === "initials" ? pickInitialsColor(name ?? "") : color;
+  const initialsSource = sanitizeInitialsSource(name ?? "");
 
   return (
     <Avatar
       ref={ref}
       src={avatarLink}
-      name={name}
+      name={initialsSource}
       alt={name}
       color={resolvedColor}
       {...props}
