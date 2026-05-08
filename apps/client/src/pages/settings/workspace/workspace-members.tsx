@@ -57,7 +57,14 @@ export default function WorkspaceMembers() {
               label: t("Members") + ` (${workspace?.memberCount})`,
               value: "members",
             },
-            { label: t("Pending"), value: "invites" },
+            {
+              label:
+                t("Pending") +
+                (workspace?.invitationCount
+                  ? ` (${workspace.invitationCount})`
+                  : ""),
+              value: "invites",
+            },
           ]}
           withItemsBorders={false}
         />
