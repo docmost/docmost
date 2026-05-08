@@ -677,7 +677,11 @@ export class PageService {
     // pages never have prior rows so we can skip the diff and just bulk-insert.
     try {
       await this.transclusionService.insertTransclusionsForPages(
-        insertablePages.map((p) => ({ id: p.id, content: p.content })),
+        insertablePages.map((p) => ({
+          id: p.id,
+          workspaceId: p.workspaceId,
+          content: p.content,
+        })),
       );
     } catch (err) {
       this.logger.error(
@@ -688,7 +692,11 @@ export class PageService {
 
     try {
       await this.transclusionService.insertReferencesForPages(
-        insertablePages.map((p) => ({ id: p.id, content: p.content })),
+        insertablePages.map((p) => ({
+          id: p.id,
+          workspaceId: p.workspaceId,
+          content: p.content,
+        })),
       );
     } catch (err) {
       this.logger.error(

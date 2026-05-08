@@ -19,7 +19,8 @@ import {
 } from './utils/transclusion-prosemirror.util';
 import { rewriteAttachmentsForUnsync } from './utils/transclusion-unsync.util';
 import { TransclusionLookup } from './transclusion.types';
-import { Page } from '@docmost/db/types/entity.types';
+import { Page, User } from '@docmost/db/types/entity.types';
+import { PageAccessService } from '../page-access/page-access.service';
 
 type ReferencingPageInfo = {
   id: string;
@@ -41,10 +42,12 @@ export class TransclusionService {
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly attachmentRepo: AttachmentRepo,
     private readonly storageService: StorageService,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   async syncPageTransclusions(
     pageId: string,
+    workspaceId: string,
     pmJson: unknown,
     trx?: KyselyTransaction,
   ): Promise<{ inserted: number; updated: number; deleted: number }> {
@@ -63,6 +66,7 @@ export class TransclusionService {
       if (!prev) {
         await this.pageTransclusionsRepo.insert(
           {
+            workspaceId,
             pageId,
             transclusionId: d.transclusionId,
             content: d.content as any,
@@ -102,6 +106,7 @@ export class TransclusionService {
 
   async syncPageReferences(
     referencePageId: string,
+    workspaceId: string,
     pmJson: unknown,
     trx?: KyselyTransaction,
   ): Promise<{ inserted: number; deleted: number }> {
@@ -121,6 +126,7 @@ export class TransclusionService {
     const toInsert = desired
       .filter((d) => !existingKeys.has(keyOf(d)))
       .map((d) => ({
+        workspaceId,
         referencePageId,
         sourcePageId: d.sourcePageId,
         transclusionId: d.transclusionId,
@@ -156,7 +162,7 @@ export class TransclusionService {
    * (e.g. duplication, import) where there is nothing to diff against.
    */
   async insertTransclusionsForPages(
-    pages: Array<{ id: string; content: unknown }>,
+    pages: Array<{ id: string; workspaceId: string; content: unknown }>,
     trx?: KyselyTransaction,
   ): Promise<{ inserted: number }> {
     const rows: Parameters<PageTransclusionsRepo['insertMany']>[0] = [];
@@ -164,6 +170,7 @@ export class TransclusionService {
       const snapshots = collectTransclusionsFromPmJson(page.content);
       for (const s of snapshots) {
         rows.push({
+          workspaceId: page.workspaceId,
           pageId: page.id,
           transclusionId: s.transclusionId,
           content: s.content as any,
@@ -181,10 +188,11 @@ export class TransclusionService {
    * (duplication, import) where there is nothing to diff against.
    */
   async insertReferencesForPages(
-    pages: Array<{ id: string; content: unknown }>,
+    pages: Array<{ id: string; workspaceId: string; content: unknown }>,
     trx?: KyselyTransaction,
   ): Promise<{ inserted: number }> {
     const rows: Array<{
+      workspaceId: string;
       referencePageId: string;
       sourcePageId: string;
       transclusionId: string;
@@ -193,6 +201,7 @@ export class TransclusionService {
       const refs = collectReferencesFromPmJson(page.content);
       for (const r of refs) {
         rows.push({
+          workspaceId: page.workspaceId,
           referencePageId: page.id,
           sourcePageId: r.sourcePageId,
           transclusionId: r.transclusionId,
@@ -206,23 +215,22 @@ export class TransclusionService {
 
   async lookup(
     references: Array<{ sourcePageId: string; transclusionId: string }>,
-    viewerUserId: string | null,
+    viewerUserId: string,
+    workspaceId: string,
   ): Promise<{ items: TransclusionLookup[] }> {
     if (references.length === 0) return { items: [] };
 
     const candidatePageIds = Array.from(
       new Set(references.map((r) => r.sourcePageId)),
     );
-    const accessibleSet = viewerUserId
-      ? new Set(
-          await this.pagePermissionRepo.filterAccessiblePageIds({
-            pageIds: candidatePageIds,
-            userId: viewerUserId,
-          }),
-        )
-      : new Set<string>();
+    const accessibleSet = new Set(
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds: candidatePageIds,
+        userId: viewerUserId,
+      }),
+    );
 
-    return this.lookupWithAccessSet(references, accessibleSet);
+    return this.lookupWithAccessSet(references, accessibleSet, workspaceId);
   }
 
   /**
@@ -234,6 +242,7 @@ export class TransclusionService {
   async lookupWithAccessSet(
     references: Array<{ sourcePageId: string; transclusionId: string }>,
     accessibleSet: Set<string>,
+    workspaceId: string,
   ): Promise<{ items: TransclusionLookup[] }> {
     if (references.length === 0) return { items: [] };
 
@@ -248,6 +257,7 @@ export class TransclusionService {
         pageId: references[i].sourcePageId,
         transclusionId: references[i].transclusionId,
       })),
+      workspaceId,
     );
     const rowKey = (r: { pageId: string; transclusionId: string }) =>
       `${r.pageId}::${r.transclusionId}`;
@@ -256,10 +266,12 @@ export class TransclusionService {
     const accessiblePageIds = Array.from(
       new Set(accessiblePending.map((i) => references[i].sourcePageId)),
     );
-    const pages = await this.pageRepo.findManyByIds(accessiblePageIds);
+    const pages = await this.pageRepo.findManyByIds(accessiblePageIds, {
+      workspaceId,
+    });
     const pageMeta = new Map<string, Date>();
     for (const p of pages) {
-      if (!p.deletedAt) pageMeta.set(p.id, p.updatedAt);
+      pageMeta.set(p.id, p.updatedAt);
     }
 
     for (const i of pendingIdx) {
@@ -306,16 +318,18 @@ export class TransclusionService {
     sourcePageId: string;
     transclusionId: string;
     viewerUserId: string;
+    workspaceId: string;
   }): Promise<{
     source: ReferencingPageInfo | null;
     references: ReferencingPageInfo[];
   }> {
-    const { sourcePageId, transclusionId, viewerUserId } = opts;
+    const { sourcePageId, transclusionId, viewerUserId, workspaceId } = opts;
 
     const referencePageIds =
       await this.pageTransclusionReferencesRepo.findReferencePageIdsByTransclusion(
         sourcePageId,
         transclusionId,
+        workspaceId,
       );
 
     const candidatePageIds = Array.from(
@@ -342,7 +356,7 @@ export class TransclusionService {
     );
     const byId = new Map<string, ReferencingPageInfo>();
     for (const p of rows) {
-      if (!p || p.deletedAt) continue;
+      if (!p || p.deletedAt || p.workspaceId !== workspaceId) continue;
       const space = (p as Page & { space?: { slug?: string } }).space;
       byId.set(p.id, {
         id: p.id,
@@ -376,7 +390,7 @@ export class TransclusionService {
     referencePageId: string,
     sourcePageId: string,
     transclusionId: string,
-    viewerUserId: string,
+    user: User,
   ): Promise<{ content: unknown }> {
     const referencePage = await this.pageRepo.findById(referencePageId);
     if (!referencePage || referencePage.deletedAt) {
@@ -388,15 +402,15 @@ export class TransclusionService {
       throw new NotFoundException('Source page not found');
     }
 
-    const accessible = new Set(
-      await this.pagePermissionRepo.filterAccessiblePageIds({
-        pageIds: [referencePageId, sourcePageId],
-        userId: viewerUserId,
-      }),
-    );
-    if (!accessible.has(referencePageId) || !accessible.has(sourcePageId)) {
+    if (
+      referencePage.workspaceId !== user.workspaceId ||
+      sourcePage.workspaceId !== user.workspaceId
+    ) {
       throw new ForbiddenException();
     }
+
+    await this.pageAccessService.validateCanEdit(referencePage, user);
+    await this.pageAccessService.validateCanView(sourcePage, user);
 
     const transclusion =
       await this.pageTransclusionsRepo.findByPageAndTransclusion(
@@ -445,7 +459,7 @@ export class TransclusionService {
           fileSize: old.fileSize,
           mimeType: old.mimeType,
           fileExt: old.fileExt,
-          creatorId: viewerUserId,
+          creatorId: user.id,
           workspaceId: referencePage.workspaceId,
           pageId: referencePageId,
           spaceId: referencePage.spaceId,

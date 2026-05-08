@@ -357,6 +357,7 @@ export class ShareService {
     const { items } = await this.transclusionService.lookupWithAccessSet(
       references,
       accessibleSet,
+      workspaceId,
     );
 
     // Sanitize each item's content for public delivery

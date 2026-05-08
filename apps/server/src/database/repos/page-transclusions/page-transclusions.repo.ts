@@ -39,12 +39,14 @@ export class PageTransclusionsRepo {
 
   async findManyByPageAndTransclusion(
     keys: Array<{ pageId: string; transclusionId: string }>,
+    workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<PageTransclusion[]> {
     if (keys.length === 0) return [];
     return dbOrTx(this.db, trx)
       .selectFrom('pageTransclusions')
       .selectAll()
+      .where('workspaceId', '=', workspaceId)
       .where((eb) =>
         eb.or(
           keys.map((k) =>

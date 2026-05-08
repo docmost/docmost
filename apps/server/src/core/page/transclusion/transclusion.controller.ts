@@ -24,7 +24,8 @@ export class TransclusionController {
   async lookup(@Body() dto: LookupDto, @AuthUser() user: User) {
     return this.transclusionService.lookup(
       dto.references,
-      user?.id ?? null,
+      user.id,
+      user.workspaceId,
     );
   }
 
@@ -38,6 +39,7 @@ export class TransclusionController {
       sourcePageId: dto.sourcePageId,
       transclusionId: dto.transclusionId,
       viewerUserId: user.id,
+      workspaceId: user.workspaceId,
     });
   }
 
@@ -51,7 +53,7 @@ export class TransclusionController {
       dto.referencePageId,
       dto.sourcePageId,
       dto.transclusionId,
-      user.id,
+      user,
     );
   }
 }

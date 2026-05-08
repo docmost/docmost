@@ -165,7 +165,7 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
-      await this.syncTransclusion(pageId, tiptapJson);
+      await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
     }
 
     if (page) {
@@ -250,10 +250,15 @@ export class PersistenceExtension implements Extension {
    */
   private async syncTransclusion(
     pageId: string,
+    workspaceId: string,
     tiptapJson: unknown,
   ): Promise<void> {
     try {
-      await this.transclusionService.syncPageTransclusions(pageId, tiptapJson);
+      await this.transclusionService.syncPageTransclusions(
+        pageId,
+        workspaceId,
+        tiptapJson,
+      );
     } catch (err) {
       this.logger.error(
         { err, pageId },
@@ -261,7 +266,11 @@ export class PersistenceExtension implements Extension {
       );
     }
     try {
-      await this.transclusionService.syncPageReferences(pageId, tiptapJson);
+      await this.transclusionService.syncPageReferences(
+        pageId,
+        workspaceId,
+        tiptapJson,
+      );
     } catch (err) {
       this.logger.error(
         { err, pageId },

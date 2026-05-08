@@ -6,6 +6,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { StorageService } from '../../../../integrations/storage/storage.service';
+import { PageAccessService } from '../../page-access/page-access.service';
 
 describe('TransclusionService.syncPageTransclusions', () => {
   let service: TransclusionService;
@@ -27,6 +28,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
         { provide: PagePermissionRepo, useValue: {} },
         { provide: AttachmentRepo, useValue: {} },
         { provide: StorageService, useValue: {} },
+        { provide: PageAccessService, useValue: {} },
       ],
     }).compile();
     service = module.get(TransclusionService);
@@ -34,6 +36,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
   });
 
   const pageId = '00000000-0000-0000-0000-000000000001';
+  const workspaceId = '00000000-0000-0000-0000-000000000099';
 
   it('inserts new transclusions that did not exist before', async () => {
     repo.findByPageId.mockResolvedValue([]);
@@ -48,7 +51,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
       ],
     };
 
-    const result = await service.syncPageTransclusions(pageId, pm);
+    const result = await service.syncPageTransclusions(pageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 1, updated: 0, deleted: 0 });
     expect(repo.insert).toHaveBeenCalledTimes(1);
@@ -91,7 +94,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
       ],
     };
 
-    const result = await service.syncPageTransclusions(pageId, pm);
+    const result = await service.syncPageTransclusions(pageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 0, updated: 1, deleted: 0 });
     expect(repo.update).toHaveBeenCalledWith(
@@ -128,7 +131,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
       ],
     };
 
-    const result = await service.syncPageTransclusions(pageId, pm);
+    const result = await service.syncPageTransclusions(pageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 0, updated: 0, deleted: 0 });
     expect(repo.update).not.toHaveBeenCalled();
@@ -147,7 +150,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
     ]);
     const pm = { type: 'doc', content: [{ type: 'paragraph' }] };
 
-    const result = await service.syncPageTransclusions(pageId, pm);
+    const result = await service.syncPageTransclusions(pageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 0, updated: 0, deleted: 1 });
     expect(repo.deleteByPageAndTransclusionIds).toHaveBeenCalledWith(
@@ -159,7 +162,7 @@ describe('TransclusionService.syncPageTransclusions', () => {
 
   it('handles empty doc → noop', async () => {
     repo.findByPageId.mockResolvedValue([]);
-    const result = await service.syncPageTransclusions(pageId, null);
+    const result = await service.syncPageTransclusions(pageId, workspaceId, null);
     expect(result).toEqual({ inserted: 0, updated: 0, deleted: 0 });
     expect(repo.insert).not.toHaveBeenCalled();
     expect(repo.update).not.toHaveBeenCalled();
@@ -187,6 +190,7 @@ describe('TransclusionService.syncPageReferences', () => {
         { provide: PagePermissionRepo, useValue: {} },
         { provide: AttachmentRepo, useValue: {} },
         { provide: StorageService, useValue: {} },
+        { provide: PageAccessService, useValue: {} },
       ],
     }).compile();
     service = module.get(TransclusionService);
@@ -194,6 +198,7 @@ describe('TransclusionService.syncPageReferences', () => {
   });
 
   const referencePageId = '00000000-0000-0000-0000-000000000001';
+  const workspaceId = '00000000-0000-0000-0000-000000000099';
 
   it('inserts new loose references, no deletes when none existed', async () => {
     refRepo.findByReferencePageId.mockResolvedValue([]);
@@ -211,17 +216,19 @@ describe('TransclusionService.syncPageReferences', () => {
       ],
     };
 
-    const result = await service.syncPageReferences(referencePageId, pm);
+    const result = await service.syncPageReferences(referencePageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 2, deleted: 0 });
     expect(refRepo.insertMany).toHaveBeenCalledWith(
       [
         {
+          workspaceId,
           referencePageId,
           sourcePageId: 'p1',
           transclusionId: 'e1',
         },
         {
+          workspaceId,
           referencePageId,
           sourcePageId: 'p2',
           transclusionId: 'e2',
@@ -250,7 +257,7 @@ describe('TransclusionService.syncPageReferences', () => {
       ],
     };
 
-    const result = await service.syncPageReferences(referencePageId, pm);
+    const result = await service.syncPageReferences(referencePageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 0, deleted: 0 });
     expect(refRepo.insertMany).not.toHaveBeenCalled();
@@ -268,7 +275,7 @@ describe('TransclusionService.syncPageReferences', () => {
     ]);
     const pm = { type: 'doc', content: [{ type: 'paragraph' }] };
 
-    const result = await service.syncPageReferences(referencePageId, pm);
+    const result = await service.syncPageReferences(referencePageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 0, deleted: 1 });
     expect(refRepo.deleteByReferenceAndKeys).toHaveBeenCalledWith(
@@ -304,7 +311,7 @@ describe('TransclusionService.syncPageReferences', () => {
       ],
     };
 
-    const result = await service.syncPageReferences(referencePageId, pm);
+    const result = await service.syncPageReferences(referencePageId, workspaceId, pm);
 
     expect(result).toEqual({ inserted: 0, deleted: 0 });
     expect(refRepo.insertMany).not.toHaveBeenCalled();

@@ -234,6 +234,7 @@ export interface PageTransclusionReferences {
   referencePageId: string;
   id: Generated<string>;
   sourcePageId: string;
+  workspaceId: string;
 }
 
 export interface PageTransclusions {
@@ -243,6 +244,7 @@ export interface PageTransclusions {
   id: Generated<string>;
   pageId: string;
   updatedAt: Generated<Timestamp>;
+  workspaceId: string;
 }
 
 export interface PageHistory {

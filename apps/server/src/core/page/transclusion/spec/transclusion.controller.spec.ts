@@ -25,10 +25,10 @@ describe('TransclusionController.lookup', () => {
     controller = module.get(TransclusionController);
   });
 
-  const user = { id: 'u1' } as any;
+  const user = { id: 'u1', workspaceId: 'w1' } as any;
   const ref = { sourcePageId: 'p1', transclusionId: 'e1' };
 
-  it('passes the references and viewer id through to the service and returns its result', async () => {
+  it('passes the references, viewer id and workspace id through to the service and returns its result', async () => {
     service.lookup.mockResolvedValue({
       items: [
         {
@@ -43,6 +43,6 @@ describe('TransclusionController.lookup', () => {
     const out = await controller.lookup({ references: [ref] } as any, user);
     expect(out.items[0]).not.toHaveProperty('status');
     expect((out.items[0] as any).content).toEqual({ type: 'doc' });
-    expect(service.lookup).toHaveBeenCalledWith([ref], 'u1');
+    expect(service.lookup).toHaveBeenCalledWith([ref], 'u1', 'w1');
   });
 });

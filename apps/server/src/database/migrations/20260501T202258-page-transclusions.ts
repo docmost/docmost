@@ -6,6 +6,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
+    .addColumn('workspace_id', 'uuid', (col) =>
+      col.notNull().references('workspaces.id').onDelete('cascade'),
+    )
     .addColumn('page_id', 'uuid', (col) =>
       col.notNull().references('pages.id').onDelete('cascade'),
     )
@@ -24,9 +27,18 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
+    .createIndex('idx_page_transclusions_workspace')
+    .on('page_transclusions')
+    .column('workspace_id')
+    .execute();
+
+  await db.schema
     .createTable('page_transclusion_references')
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
+    )
+    .addColumn('workspace_id', 'uuid', (col) =>
+      col.notNull().references('workspaces.id').onDelete('cascade'),
     )
     .addColumn('reference_page_id', 'uuid', (col) =>
       col.notNull().references('pages.id').onDelete('cascade'),
@@ -49,6 +61,12 @@ export async function up(db: Kysely<any>): Promise<void> {
     .createIndex('idx_page_transclusion_references_source')
     .on('page_transclusion_references')
     .columns(['source_page_id', 'transclusion_id'])
+    .execute();
+
+  await db.schema
+    .createIndex('idx_page_transclusion_references_workspace')
+    .on('page_transclusion_references')
+    .column('workspace_id')
     .execute();
 }
 

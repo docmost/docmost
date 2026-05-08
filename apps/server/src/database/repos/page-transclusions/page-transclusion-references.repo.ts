@@ -30,12 +30,14 @@ export class PageTransclusionReferencesRepo {
   async findReferencePageIdsByTransclusion(
     sourcePageId: string,
     transclusionId: string,
+    workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<string[]> {
     const rows = await dbOrTx(this.db, trx)
       .selectFrom('pageTransclusionReferences')
       .select('referencePageId')
       .distinct()
+      .where('workspaceId', '=', workspaceId)
       .where('sourcePageId', '=', sourcePageId)
       .where('transclusionId', '=', transclusionId)
       .execute();
