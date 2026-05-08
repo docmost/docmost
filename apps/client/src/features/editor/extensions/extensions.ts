@@ -10,7 +10,9 @@ import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { Youtube } from "@tiptap/extension-youtube";
-import SlashCommand, { SlashCommandExtension as Command } from "@/features/editor/extensions/slash-command";
+import SlashCommand, {
+  SlashCommandExtension as Command,
+} from "@/features/editor/extensions/slash-command";
 import renderItems from "@/features/editor/components/slash-menu/render-items";
 import getSuggestionItems from "@/features/editor/components/slash-menu/menu-items";
 import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
@@ -46,6 +48,7 @@ import {
   Subpages,
   Heading,
   Highlight,
+  Indent,
   UniqueID,
   SharedStorage,
   Columns,
@@ -201,6 +204,7 @@ export const mainExtensions = [
     showOnlyWhenEditable: true,
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
+  Indent,
   TaskList,
   TaskItem.configure({
     nested: true,
@@ -407,7 +411,10 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
 const TemplateSlashCommand = Command.configure({
   suggestion: {
     items: ({ query }: { query: string }) =>
-      getSuggestionItems({ query, excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS }),
+      getSuggestionItems({
+        query,
+        excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS,
+      }),
     render: renderItems,
   },
 });

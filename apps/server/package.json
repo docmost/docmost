@@ -163,10 +163,11 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
+      "happy-dom.+\\.js$": ["babel-jest", { "presets": [["@babel/preset-env", { "targets": { "node": "current" } }]] }],
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "transformIgnorePatterns": [
-      "/node_modules/(?!(\\.pnpm/)?(nanoid|uuid|image-dimensions|marked)(@|/))"
+      "/node_modules/(?!(\\.pnpm/)?(nanoid|uuid|image-dimensions|marked|happy-dom)(@|/))"
     ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
