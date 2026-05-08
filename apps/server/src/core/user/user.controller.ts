@@ -34,8 +34,13 @@ export class UserController {
 
     const { licenseKey, ...rest } = workspace;
 
+    const settings = rest.settings || {} as any;
+    if (!settings.ai) settings.ai = {};
+    if (!settings.ai.chat) settings.ai.chat = true;
+
     const workspaceInfo = {
       ...rest,
+      settings,
       memberCount,
     };
 

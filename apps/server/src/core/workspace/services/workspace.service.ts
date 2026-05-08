@@ -84,6 +84,18 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
+    if (!workspace.settings) {
+      (workspace as any).settings = {};
+    }
+
+    if (!workspace.settings['ai']) {
+      workspace.settings['ai'] = {};
+    }
+
+    if (!workspace.settings['ai']['chat']) {
+      workspace.settings['ai']['chat'] = true;
+    }
+
     return workspace;
   }
 
