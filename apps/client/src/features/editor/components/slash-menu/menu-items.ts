@@ -25,6 +25,7 @@ import {
   IconColumns3,
   IconColumns2,
   IconTag,
+  IconMoodSmile,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -466,6 +467,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .setStatus({ text: "", color: "gray" })
           .run();
+      },
+    },
+    {
+      title: "Emoji",
+      description: "Insert emoji.",
+      searchTerms: ["emoji", "icon", "smiley", "emoticon", "symbol", "reaction"],
+      icon: IconMoodSmile,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).insertContent(":").run();
       },
     },
     {
