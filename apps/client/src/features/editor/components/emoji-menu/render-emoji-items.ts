@@ -1,6 +1,5 @@
 import { ReactRenderer, useEditor } from "@tiptap/react";
 import EmojiList from "./emoji-list";
-import { init } from "emoji-mart";
 import {
   autoUpdate,
   computePosition,
@@ -37,10 +36,6 @@ const renderEmojiItems = () => {
       editor: ReturnType<typeof useEditor>;
       clientRect: () => DOMRect;
     }) => {
-      init({
-        data: async () => (await import("@emoji-mart/data")).default,
-      });
-
       component = new ReactRenderer(EmojiList, {
         props: { isLoading: true, items: [] },
         editor: props.editor,

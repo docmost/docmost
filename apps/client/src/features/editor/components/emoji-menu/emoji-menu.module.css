@@ -1,9 +1,13 @@
-.menuBtn {
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
   border-radius: var(--mantine-radius-sm);
 
   &:hover {
     @mixin light {
-      background: var(--mantine-color-gray-2);
+      background: var(--mantine-color-gray-1);
     }
 
     @mixin dark {
@@ -12,7 +16,7 @@
   }
 }
 
-.selectedItem {
+.active {
   @mixin light {
     background: var(--mantine-color-gray-2);
   }
@@ -21,3 +25,83 @@
     background: var(--mantine-color-gray-light);
   }
 }
+
+.catBar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  @mixin light {
+    border-bottom: 1px solid var(--mantine-color-gray-2);
+  }
+
+  @mixin dark {
+    border-bottom: 1px solid var(--mantine-color-dark-4);
+  }
+}
+
+.catTab {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 5px;
+  border-radius: var(--mantine-radius-sm);
+  flex-shrink: 0;
+
+  &:hover {
+    @mixin light {
+      background: var(--mantine-color-gray-1);
+    }
+
+    @mixin dark {
+      background: var(--mantine-color-gray-light);
+    }
+  }
+}
+
+.catTabActive {
+  @mixin light {
+    background: var(--mantine-color-gray-2);
+  }
+
+  @mixin dark {
+    background: var(--mantine-color-gray-light);
+  }
+}
+
+.catTabFocused {
+  outline: 1px solid var(--mantine-color-blue-filled);
+  outline-offset: -1px;
+}
+
+.grid {
+  display: grid;
+  gap: 1px;
+  padding: 6px;
+}
+
+.emojiBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 3px;
+  border-radius: var(--mantine-radius-sm);
+  aspect-ratio: 1 / 1;
+
+  &:hover {
+    @mixin light {
+      background: var(--mantine-color-gray-1);
+    }
+
+    @mixin dark {
+      background: var(--mantine-color-gray-light);
+    }
+  }
+}
+

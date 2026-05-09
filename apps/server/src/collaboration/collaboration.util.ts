@@ -34,12 +34,15 @@ import {
   Mention,
   Subpages,
   Highlight,
+  Indent,
   UniqueID,
   Columns,
   Column,
   Status,
   addUniqueIdsToDoc,
   htmlToMarkdown,
+  TransclusionSource,
+  TransclusionReference,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -60,10 +63,11 @@ export const tiptapExtensions = [
   }),
   Heading,
   UniqueID.configure({
-    types: ['heading', 'paragraph'],
+    types: ['heading', 'paragraph', 'transclusionSource'],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Indent,
   TaskList,
   TaskItem.configure({
     nested: true,
@@ -101,6 +105,8 @@ export const tiptapExtensions = [
   Columns,
   Column,
   Status,
+  TransclusionSource,
+  TransclusionReference,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

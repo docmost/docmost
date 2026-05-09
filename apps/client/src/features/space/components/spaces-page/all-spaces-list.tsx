@@ -49,15 +49,15 @@ function WatchButton({ spaceId, watchedIds, size = 16 }: { spaceId: string; watc
     }
   };
 
+  const label = isWatching ? t("Stop watching space") : t("Watch space");
+
   return (
-    <Tooltip
-      label={isWatching ? t("Stop watching space") : t("Watch space")}
-      openDelay={250}
-      withArrow
-    >
+    <Tooltip label={label} openDelay={250} withArrow>
       <ActionIcon
         variant="subtle"
         color={isWatching ? "blue" : "gray"}
+        aria-label={label}
+        aria-pressed={isWatching}
         onClick={handleToggle}
         loading={isPending}
       >
@@ -111,7 +111,7 @@ export default function AllSpacesList({
             <Table.Tr>
               <Table.Th>{t("Space")}</Table.Th>
               <Table.Th>{t("Members")}</Table.Th>
-              <Table.Th w={130}></Table.Th>
+              <Table.Th w={130} aria-label={t("Action")} />
             </Table.Tr>
           </Table.Thead>
 
@@ -168,7 +168,11 @@ export default function AllSpacesList({
                       <WatchButton spaceId={space.id} watchedIds={watchedIds} size={16} />
                       <Menu position="bottom-end">
                         <Menu.Target>
-                          <ActionIcon variant="subtle" color="gray">
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            aria-label={t("Space menu")}
+                          >
                             <IconDots size={16} />
                           </ActionIcon>
                         </Menu.Target>

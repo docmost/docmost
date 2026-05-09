@@ -100,6 +100,30 @@ export class PageRepo {
     return query.executeTakeFirst();
   }
 
+  async findManyByIds(
+    pageIds: string[],
+    opts?: {
+      trx?: KyselyTransaction;
+      workspaceId?: string;
+    },
+  ): Promise<Page[]> {
+    if (pageIds.length === 0) return [];
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .where('id', 'in', pageIds);
+
+    if (opts?.workspaceId) {
+      query = query
+        .where('workspaceId', '=', opts.workspaceId)
+        .where('deletedAt', 'is', null);
+    }
+
+    return query.execute();
+  }
+
   async updatePage(
     updatablePage: UpdatablePage,
     pageId: string,

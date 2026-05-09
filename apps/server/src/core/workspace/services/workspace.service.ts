@@ -331,7 +331,8 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
       typeof updateWorkspaceDto.mcpEnabled !== 'undefined' ||
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
-      typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined'
+      typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
+      typeof updateWorkspaceDto.isScimEnabled !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -345,6 +346,14 @@ export class WorkspaceService {
 
       if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
         if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'mcp', ws.plan)) {
+          throw new ForbiddenException(
+            'This feature requires a valid license',
+          );
+        }
+      }
+
+      if (typeof updateWorkspaceDto.isScimEnabled !== 'undefined') {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, Feature.SCIM, ws.plan)) {
           throw new ForbiddenException(
             'This feature requires a valid license',
           );
@@ -535,6 +544,7 @@ export class WorkspaceService {
         'enforceSso',
         'enforceMfa',
         'emailDomains',
+        'isScimEnabled',
       ],
       updateWorkspaceDto,
       workspaceBefore,

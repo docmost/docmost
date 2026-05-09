@@ -70,11 +70,14 @@ function EmojiPicker({
       closeOnEscape={true}
     >
       <Popover.Target ref={setTarget}>
-        <ActionIcon 
-          c={actionIconProps?.c || "gray"} 
-          variant={actionIconProps?.variant || "transparent"} 
+        <ActionIcon
+          c={actionIconProps?.c || "gray"}
+          variant={actionIconProps?.variant || "transparent"}
           size={actionIconProps?.size}
           onClick={handlers.toggle}
+          aria-label={t("Pick emoji")}
+          aria-haspopup="dialog"
+          aria-expanded={opened}
         >
           {icon}
         </ActionIcon>

@@ -54,6 +54,7 @@ import {
 import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
+import { TransclusionService } from '../transclusion/transclusion.service';
 
 @Injectable()
 export class PageService {
@@ -71,6 +72,7 @@ export class PageService {
     private eventEmitter: EventEmitter2,
     private collaborationGateway: CollaborationGateway,
     private readonly watcherService: WatcherService,
+    private readonly transclusionService: TransclusionService,
   ) {}
 
   async findById(
@@ -600,6 +602,17 @@ export class PageService {
             }
           }
 
+          // Remap transclusion-reference source pages to their copies when
+          // the source page is also being duplicated in the same operation.
+          if (node.type.name === 'transclusionReference') {
+            const sourcePageId = node.attrs.sourcePageId;
+            if (sourcePageId && pageMap.has(sourcePageId)) {
+              const mappedPage = pageMap.get(sourcePageId);
+              //@ts-ignore
+              node.attrs.sourcePageId = mappedPage.newPageId;
+            }
+          }
+
           // Update internal page links in link marks
           for (const mark of node.marks) {
             if (
@@ -658,6 +671,39 @@ export class PageService {
     );
 
     await this.db.insertInto('pages').values(insertablePages).execute();
+
+    // Extract transclusions from every duplicated page and persist them in
+    // one statement. Duplication bypasses Yjs onStoreDocument; brand-new
+    // pages never have prior rows so we can skip the diff and just bulk-insert.
+    try {
+      await this.transclusionService.insertTransclusionsForPages(
+        insertablePages.map((p) => ({
+          id: p.id,
+          workspaceId: p.workspaceId,
+          content: p.content,
+        })),
+      );
+    } catch (err) {
+      this.logger.error(
+        'Failed to insert transclusions for duplicated pages',
+        err,
+      );
+    }
+
+    try {
+      await this.transclusionService.insertReferencesForPages(
+        insertablePages.map((p) => ({
+          id: p.id,
+          workspaceId: p.workspaceId,
+          content: p.content,
+        })),
+      );
+    } catch (err) {
+      this.logger.error(
+        'Failed to insert transclusion references for duplicated pages',
+        err,
+      );
+    }
 
     const insertedPageIds = insertablePages.map((page) => page.id);
     this.eventEmitter.emit(EventName.PAGE_CREATED, {

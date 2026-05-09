@@ -4,7 +4,7 @@ import {
   UnstyledButton,
   Badge,
   Table,
-  ActionIcon,
+  ThemeIcon,
   Button,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
@@ -49,9 +49,9 @@ export default function RecentChanges({ spaceId }: Props) {
                   >
                     <Group wrap="nowrap">
                       {page.icon || (
-                        <ActionIcon variant="transparent" color="gray" size={18}>
+                        <ThemeIcon variant="transparent" color="gray" size={18}>
                           <IconFileDescription size={18} />
-                        </ActionIcon>
+                        </ThemeIcon>
                       )}
 
                       <Text fw={500} size="md" lineClamp={1}>

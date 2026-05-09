@@ -53,7 +53,7 @@ export default function GroupActionMenu() {
             arrowPosition="center"
           >
             <Menu.Target>
-              <ActionIcon variant="light">
+              <ActionIcon variant="light" aria-label={t("Group menu")}>
                 <IconDots size={20} stroke={2} />
               </ActionIcon>
             </Menu.Target>

@@ -23,9 +23,12 @@ import {
   SpaceCaslSubject,
 } from '../../core/casl/interfaces/space-ability.type';
 import { FastifyReply } from 'fastify';
-import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
-import { getMimeType, getPageTitle } from '../../common/helpers';
+import {
+  getMimeType,
+  getPageTitle,
+  sanitizeFileName,
+} from '../../common/helpers';
 import * as path from 'path';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import {
@@ -85,7 +88,9 @@ export class ExportController {
 
     if (result.type === 'file') {
       const ext = getExportExtension(dto.format);
-      const fileName = sanitize(page.title || 'untitled') + ext;
+      const fileName =
+        sanitizeFileName(page.title || 'untitled', { preserveSpaces: true }) +
+        ext;
       const contentType = getMimeType(path.extname(fileName));
 
       res.headers({
@@ -96,7 +101,9 @@ export class ExportController {
 
       res.send(result.content);
     } else {
-      const fileName = sanitize(page.title || 'untitled') + '.zip';
+      const fileName =
+        sanitizeFileName(page.title || 'untitled', { preserveSpaces: true }) +
+        '.zip';
 
       res.headers({
         'Content-Type': 'application/zip',
@@ -144,7 +151,9 @@ export class ExportController {
       'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' +
-        encodeURIComponent(sanitize(exportFile.fileName)) +
+        encodeURIComponent(
+          sanitizeFileName(exportFile.fileName, { preserveSpaces: true }),
+        ) +
         '"',
     });
 

@@ -36,6 +36,7 @@ export default function AudioView(props: NodeViewProps) {
             preload="metadata"
             controls
             src={safeSrc}
+            aria-label={placeholder?.name || t("Audio")}
           />
         )}
         {!safeSrc && previewSrc && (
@@ -45,6 +46,7 @@ export default function AudioView(props: NodeViewProps) {
               preload="metadata"
               controls
               src={previewSrc}
+              aria-label={placeholder?.name || t("Audio")}
             />
             <Loader size={20} pos="absolute" top={6} right={6} />
           </Group>
@@ -60,7 +62,7 @@ export default function AudioView(props: NodeViewProps) {
           </Group>
         )}
         {!safeSrc && !previewSrc && !placeholder && (
-          <audio className={classes.audio} controls />
+          <audio className={classes.audio} controls aria-label={t("Audio")} />
         )}
       </div>
     </NodeViewWrapper>

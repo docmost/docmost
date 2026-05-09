@@ -61,6 +61,7 @@ export default function WorkspaceMembersTable() {
               <Table.Th>{t("User")}</Table.Th>
               <Table.Th>{t("Status")}</Table.Th>
               <Table.Th>{t("Role")}</Table.Th>
+              <Table.Th aria-label={t("Action")} />
             </Table.Tr>
           </Table.Thead>
 
