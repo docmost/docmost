@@ -23,6 +23,10 @@ export class UpdateUserDto extends PartialType(
   pageEditMode: string;
 
   @IsOptional()
+  @IsBoolean()
+  editorToolbar: boolean;
+
+  @IsOptional()
   @IsString()
   locale: string;
 

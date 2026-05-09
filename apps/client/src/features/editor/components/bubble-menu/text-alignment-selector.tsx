@@ -7,7 +7,7 @@ import {
   IconCheck,
   IconChevronDown,
 } from "@tabler/icons-react";
-import { Popover, Button, ScrollArea, Tooltip, rem } from "@mantine/core";
+import { Menu, Button, Tooltip, rem } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
@@ -82,15 +82,22 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
   const activeItem = items.filter((item) => item.isActive()).pop() ?? items[0];
 
   return (
-    <Popover opened={isOpen} withArrow>
-      <Popover.Target>
-        <Tooltip label={t("Text align")} withArrow withinPortal={false} disabled={isOpen}>
+    <Menu
+      shadow="md"
+      position="bottom-start"
+      withArrow={false}
+      opened={isOpen}
+      onChange={setIsOpen}
+    >
+      <Menu.Target>
+        <Tooltip label={t("Text align")} withArrow disabled={isOpen}>
           <Button
             variant="default"
             style={{ border: "none", height: "34px" }}
             px="5"
             radius="0"
             rightSection={<IconChevronDown size={16} />}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => setIsOpen(!isOpen)}
             aria-label={t("Text align")}
             aria-haspopup="menu"
@@ -99,33 +106,25 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
             <activeItem.icon style={{ width: rem(16) }} stroke={2} />
           </Button>
         </Tooltip>
-      </Popover.Target>
+      </Menu.Target>
 
-      <Popover.Dropdown>
-        <ScrollArea.Autosize type="scroll" mah={400}>
-          <Button.Group orientation="vertical">
-            {items.map((item, index) => (
-              <Button
-                key={index}
-                variant="default"
-                leftSection={<item.icon size={16} />}
-                rightSection={
-                  activeItem.name === item.name && <IconCheck size={16} />
-                }
-                justify="left"
-                fullWidth
-                onClick={() => {
-                  item.command();
-                  setIsOpen(false);
-                }}
-                style={{ border: "none" }}
-              >
-                {t(item.name)}
-              </Button>
-            ))}
-          </Button.Group>
-        </ScrollArea.Autosize>
-      </Popover.Dropdown>
-    </Popover>
+      <Menu.Dropdown>
+        {items.map((item, index) => (
+          <Menu.Item
+            key={index}
+            leftSection={<item.icon size={16} />}
+            rightSection={
+              activeItem.name === item.name ? <IconCheck size={16} /> : null
+            }
+            onClick={() => {
+              item.command();
+              setIsOpen(false);
+            }}
+          >
+            {t(item.name)}
+          </Menu.Item>
+        ))}
+      </Menu.Dropdown>
+    </Menu>
   );
 };
