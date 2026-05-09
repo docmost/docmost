@@ -58,7 +58,7 @@ export default function Security() {
   const [updateTarget, setUpdateTarget] = useState<IScimToken | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<IScimToken | null>(null);
 
-  if (!isAdmin) {
+  if (!isAdmin || !hasLicenseKey) {
     return null;
   }
 
