@@ -33,6 +33,7 @@ export default function ImageView(props: NodeViewProps) {
         className={clsx(
           selected && "ProseMirror-selectednode",
           classes.imageWrapper,
+          !src && placeholder && classes.skeleton,
           alignClass,
         )}
         style={{
@@ -54,7 +55,7 @@ export default function ImageView(props: NodeViewProps) {
             <Loader size={20} pos="absolute" bottom={6} right={6} />
           </Group>
         )}
-        {!src && !previewSrc && (
+        {!src && !previewSrc && placeholder && (
           <Group justify="center" wrap="nowrap" gap="xs" maw="100%" px="md">
             <Loader size={20} style={{ flexShrink: 0 }} />
             <Text component="span" size="sm" truncate="end">

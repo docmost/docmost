@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import { sanitizeUrl } from "../utils";
 
 export interface AttachmentOptions {
   HTMLAttributes: Record<string, any>;
@@ -42,9 +43,12 @@ export const Attachment = Node.create<AttachmentOptions>({
     return {
       url: {
         default: "",
-        parseHTML: (element) => element.getAttribute("data-attachment-url"),
+        parseHTML: (element) => {
+          const url = element.getAttribute("data-attachment-url");
+          return sanitizeUrl(url);
+        },
         renderHTML: (attributes) => ({
-          "data-attachment-url": attributes.url,
+          "data-attachment-url": sanitizeUrl(attributes.url),
         }),
       },
       name: {
@@ -101,7 +105,7 @@ export const Attachment = Node.create<AttachmentOptions>({
       [
         "a",
         {
-          href: HTMLAttributes["data-attachment-url"],
+          href: sanitizeUrl(HTMLAttributes["data-attachment-url"]),
           class: "attachment",
           target: "blank",
         },

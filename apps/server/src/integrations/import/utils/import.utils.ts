@@ -41,6 +41,15 @@ export function resolveRelativeAttachmentPath(
       'ImportUtils',
     );
   }
+
+  // Confluence Server uses "/download/attachments/..." in HTML but the ZIP
+  // stores files under "attachments/...". Strip the "download/" prefix so
+  // the path can match candidates from the archive.
+  const confluenceStripped = mainRel.replace(
+    /^download\/attachments\//,
+    'attachments/',
+  );
+
   const fallback = path
     .normalize(path.join(pageDir, mainRel))
     .split(path.sep)
@@ -49,9 +58,13 @@ export function resolveRelativeAttachmentPath(
   if (attachmentCandidates.has(mainRel)) {
     return mainRel;
   }
+  if (confluenceStripped !== mainRel && attachmentCandidates.has(confluenceStripped)) {
+    return confluenceStripped;
+  }
   if (attachmentCandidates.has(fallback)) {
     return fallback;
   }
+
   return null;
 }
 
@@ -81,7 +94,25 @@ export async function collectMarkdownAndHtmlFiles(
 export function stripNotionID(fileName: string): string {
   // Handle optional separator (space or dash) + 32 alphanumeric chars at end
   const notionIdPattern = /[ -]?[a-z0-9]{32}$/i;
-  return fileName.replace(notionIdPattern, '').trim();
+  // Handle partial UUID format used for duplicate names: "Name abcd-ef12"
+  const partialIdPattern = / [a-f0-9]{4}-[a-f0-9]{4}$/i;
+  return fileName
+    .replace(notionIdPattern, '')
+    .replace(partialIdPattern, '')
+    .trim();
+}
+
+/**
+ * Extract a partial Notion UUID suffix from a folder name.
+ * Notion adds "{first4}-{last4}" when multiple pages share the same title.
+ * e.g. "Cool 324d-35ab" → { prefix: "324d", suffix: "35ab" }
+ */
+export function extractNotionPartialId(
+  folderName: string,
+): { prefix: string; suffix: string } | null {
+  const match = folderName.match(/ ([a-f0-9]{4})-([a-f0-9]{4})$/i);
+  if (!match) return null;
+  return { prefix: match[1].toLowerCase(), suffix: match[2].toLowerCase() };
 }
 
 export function encodeFilePath(filePath: string): string {

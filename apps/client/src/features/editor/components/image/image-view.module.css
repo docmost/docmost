@@ -2,8 +2,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.skeleton {
   animation: pulse 1.2s ease-in-out infinite;
 
   @mixin light {

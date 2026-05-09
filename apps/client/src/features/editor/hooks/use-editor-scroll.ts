@@ -42,7 +42,7 @@ export const useEditorScroll = ({
         return;
       }
 
-      const dom = editor.view.dom.querySelector(`[id="${targetId}"]`);
+      const dom = editor.view.dom.querySelector(`[id="${targetId}"], [data-id="${targetId}"]`);
       if (dom) {
         dom.scrollIntoView({ behavior: 'smooth', block: 'start' });
         resolve(true);

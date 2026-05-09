@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Inject,
   NotFoundException,
   Post,
   Res,
@@ -16,15 +17,24 @@ import { User } from '@docmost/db/types/entity.types';
 import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageAccessService } from '../../core/page/page-access/page-access.service';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../../core/casl/interfaces/space-ability.type';
 import { FastifyReply } from 'fastify';
-import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
-import { getMimeType } from '../../common/helpers';
+import {
+  getMimeType,
+  getPageTitle,
+  sanitizeFileName,
+} from '../../common/helpers';
 import * as path from 'path';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Controller()
 export class ExportController {
@@ -32,6 +42,8 @@ export class ExportController {
     private readonly exportService: ExportService,
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pageAccessService: PageAccessService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -50,27 +62,57 @@ export class ExportController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanView(page, user);
 
-    const zipFileStream = await this.exportService.exportPages(
+    const result = await this.exportService.exportPages(
       dto.pageId,
       dto.format,
       dto.includeAttachments,
       dto.includeChildren,
+      user.id,
     );
 
-    const fileName = sanitize(page.title || 'untitled') + '.zip';
-
-    res.headers({
-      'Content-Type': 'application/zip',
-      'Content-Disposition':
-        'attachment; filename="' + encodeURIComponent(fileName) + '"',
+    this.auditService.log({
+      event: AuditEvent.PAGE_EXPORTED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      metadata: {
+        title: getPageTitle(page.title),
+        format: dto.format,
+        includeChildren: dto.includeChildren,
+        includeAttachments: dto.includeAttachments,
+        spaceId: page.spaceId,
+      },
     });
 
-    res.send(zipFileStream);
+    if (result.type === 'file') {
+      const ext = getExportExtension(dto.format);
+      const fileName =
+        sanitizeFileName(page.title || 'untitled', { preserveSpaces: true }) +
+        ext;
+      const contentType = getMimeType(path.extname(fileName));
+
+      res.headers({
+        'Content-Type': contentType,
+        'Content-Disposition':
+          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+      });
+
+      res.send(result.content);
+    } else {
+      const fileName =
+        sanitizeFileName(page.title || 'untitled', { preserveSpaces: true }) +
+        '.zip';
+
+      res.headers({
+        'Content-Type': 'application/zip',
+        'Content-Disposition':
+          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+      });
+
+      res.send(result.stream);
+    }
   }
 
   @UseGuards(JwtAuthGuard)
@@ -82,7 +124,7 @@ export class ExportController {
     @Res() res: FastifyReply,
   ) {
     const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
 
@@ -90,13 +132,28 @@ export class ExportController {
       dto.spaceId,
       dto.format,
       dto.includeAttachments,
+      user.id,
     );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_EXPORTED,
+      resourceType: AuditResource.SPACE,
+      resourceId: dto.spaceId,
+      spaceId: dto.spaceId,
+      metadata: {
+        format: dto.format,
+        includeAttachments: dto.includeAttachments ?? false,
+        spaceName: exportFile.spaceName,
+      },
+    });
 
     res.headers({
       'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' +
-        encodeURIComponent(sanitize(exportFile.fileName)) +
+        encodeURIComponent(
+          sanitizeFileName(exportFile.fileName, { preserveSpaces: true }),
+        ) +
         '"',
     });
 

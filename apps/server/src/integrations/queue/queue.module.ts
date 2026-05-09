@@ -84,6 +84,14 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
     BullModule.registerQueue({
       name: QueueName.NOTIFICATION_QUEUE,
     }),
+    BullModule.registerQueue({
+      name: QueueName.AUDIT_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+        attempts: 3,
+      },
+    }),
   ],
   exports: [BullModule],
   providers: [GeneralQueueProcessor],

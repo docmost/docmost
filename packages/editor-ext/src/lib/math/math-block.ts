@@ -24,6 +24,7 @@ export const MathBlock = Node.create({
   name: "mathBlock",
   group: "block",
   atom: true,
+  isolating: true,
 
   addOptions() {
     return {

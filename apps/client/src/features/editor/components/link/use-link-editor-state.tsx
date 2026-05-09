@@ -13,11 +13,16 @@ export const useLinkEditorState = ({
 
   const isValidUrl = useMemo(() => /^(\S+):(\/\/)?\S+$/.test(url), [url]);
 
+  const isSearchQuery = useMemo(
+    () => url.length > 0 && !isValidUrl,
+    [url, isValidUrl],
+  );
+
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       if (isValidUrl) {
-        onSetLink(url);
+        onSetLink(url, false);
       }
     },
     [url, isValidUrl, onSetLink],
@@ -29,5 +34,6 @@ export const useLinkEditorState = ({
     onChange,
     handleSubmit,
     isValidUrl,
+    isSearchQuery,
   };
 };

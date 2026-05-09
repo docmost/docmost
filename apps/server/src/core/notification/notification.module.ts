@@ -4,16 +4,19 @@ import { NotificationController } from './notification.controller';
 import { NotificationProcessor } from './notification.processor';
 import { CommentNotificationService } from './services/comment.notification';
 import { PageNotificationService } from './services/page.notification';
-import { WsModule } from '../../ws/ws.module';
+import { VerificationNotificationService } from './services/verification.notification';
+import { PageUpdateEmailRateLimiter } from './services/page-update-email-rate-limiter';
 
 @Module({
-  imports: [WsModule],
+  imports: [],
   controllers: [NotificationController],
   providers: [
     NotificationService,
     NotificationProcessor,
     CommentNotificationService,
     PageNotificationService,
+    VerificationNotificationService,
+    PageUpdateEmailRateLimiter,
   ],
   exports: [NotificationService],
 })

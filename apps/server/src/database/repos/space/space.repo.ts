@@ -94,12 +94,36 @@ export class SpaceRepo {
     workspaceId: string,
     prefKey: string,
     prefValue: string | boolean,
+    trx?: KyselyTransaction,
   ) {
-    return this.db
+    const db = dbOrTx(this.db, trx);
+    return db
       .updateTable('spaces')
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
           || jsonb_build_object('sharing', COALESCE(settings->'sharing', '{}'::jsonb)
+          || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', spaceId)
+      .where('workspaceId', '=', workspaceId)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  async updateCommentSettings(
+    spaceId: string,
+    workspaceId: string,
+    prefKey: string,
+    prefValue: string | boolean,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('spaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+          || jsonb_build_object('comments', COALESCE(settings->'comments', '{}'::jsonb)
           || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
         updatedAt: new Date(),
       })
@@ -150,8 +174,11 @@ export class SpaceRepo {
       perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
-      fields: [{ expression: 'id', direction: 'asc' }],
-      parseCursor: (cursor) => ({ id: cursor.id }),
+      fields: [
+        { expression: 'name', direction: 'asc' },
+        { expression: 'id', direction: 'asc' },
+      ],
+      parseCursor: (cursor) => ({ name: cursor.name, id: cursor.id }),
     });
   }
 

@@ -8,7 +8,7 @@
     }
   }
 
-  .node-image, .node-video, .node-excalidraw, .node-drawio {
+  .node-image, .node-video, .node-pdf, .node-excalidraw, .node-drawio {
     &.ProseMirror-selectednode {
       outline: none;
     }
@@ -36,6 +36,29 @@
   .uploading-text {
     font-size: var(--mantine-font-size-md);
     line-height: var(--mantine-line-height-md);
+  }
+
+  .media-pulse {
+    animation: media-pulse 1.2s ease-in-out infinite;
+
+    @mixin light {
+      background: linear-gradient(-90deg, var(--mantine-color-gray-3) 0%, var(--mantine-color-gray-1) 50%, var(--mantine-color-gray-3) 100%);
+      background-size: 400% 400%;
+    }
+
+    @mixin dark {
+      background: linear-gradient(-90deg, var(--mantine-color-dark-6) 0%, var(--mantine-color-dark-5) 50%, var(--mantine-color-dark-6) 100%);
+      background-size: 400% 400%;
+    }
+
+    @keyframes media-pulse {
+      0% {
+        background-position: 0% 0%;
+      }
+      100% {
+        background-position: -135% 0%;
+      }
+    }
   }
 }
 

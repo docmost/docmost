@@ -1,9 +1,10 @@
 import { Button, Group, Text, Modal, PasswordInput } from "@mantine/core";
-import * as z from "zod";
+import { z } from "zod/v4";
 import { useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import * as React from "react";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { changePassword } from "@/features/auth/services/auth-service.ts";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -42,9 +43,9 @@ export default function ChangePassword() {
 
 const formSchema = z.object({
   oldPassword: z
-    .string({ required_error: "your current password is required" })
+    .string({ error: "your current password is required" })
     .min(8),
-  newPassword: z.string({ required_error: "New password is required" }).min(8),
+  newPassword: z.string({ error: "New password is required" }).min(8),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -57,7 +58,7 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       oldPassword: "",
       newPassword: "",

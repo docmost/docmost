@@ -71,7 +71,10 @@ export class StaticModule implements OnModuleInit {
 
       app.get(RENDER_PATH, (req: any, res: any) => {
         const stream = fs.createReadStream(indexFilePath);
-        res.type('text/html').send(stream);
+        res
+          .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+          .type('text/html')
+          .send(stream);
       });
     }
   }

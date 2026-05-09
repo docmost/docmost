@@ -34,6 +34,7 @@ export function AutoTooltipText({
       disabled={!isTruncated || !label}
       multiline
       withArrow
+      withinPortal={false}
       {...tooltipProps}
     >
       <Text

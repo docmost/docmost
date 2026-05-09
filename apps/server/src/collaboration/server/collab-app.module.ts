@@ -11,12 +11,14 @@ import { CollaborationController } from './collaboration.controller';
 import { LoggerModule } from '../../common/logger/logger.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from '../../integrations/redis/redis-config.service';
+import { CaslModule } from '../../core/casl/casl.module';
 
 @Module({
   imports: [
     LoggerModule,
     DatabaseModule,
     EnvironmentModule,
+    CaslModule,
     CollaborationModule,
     QueueModule,
     HealthModule,

@@ -53,6 +53,7 @@ export const Callout = Node.create<CalloutOptions>({
   content: "block+",
   group: "block",
   defining: true,
+  isolating: true,
 
   addAttributes() {
     return {

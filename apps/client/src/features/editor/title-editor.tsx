@@ -27,6 +27,7 @@ import localEmitter from "@/lib/local-emitter.ts";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
+import { platformModifierKey } from "@/lib";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -90,11 +91,11 @@ export function TitleEditor({
     editorProps: {
       handleDOMEvents: {
         keydown: (_view, event) => {
-          if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
+          if (platformModifierKey(event) && event.code === "KeyS") {
             event.preventDefault();
             return true;
           }
-          if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
+          if (platformModifierKey(event) && event.code === "KeyK") {
             searchSpotlight.open();
             return true;
           }
@@ -171,11 +172,14 @@ export function TitleEditor({
   }, [pageId]);
 
   useEffect(() => {
-    // honor user default page edit mode preference
-    if (userPageEditMode && titleEditor && editable) {
-      if (userPageEditMode === PageEditMode.Edit) {
-        titleEditor.setEditable(true);
-      } else if (userPageEditMode === PageEditMode.Read) {
+    if (titleEditor) {
+      if (userPageEditMode && editable) {
+        if (userPageEditMode === PageEditMode.Edit) {
+          titleEditor.setEditable(true);
+        } else if (userPageEditMode === PageEditMode.Read) {
+          titleEditor.setEditable(false);
+        }
+      } else {
         titleEditor.setEditable(false);
       }
     }
@@ -241,15 +245,17 @@ export function TitleEditor({
   }
 
   return (
-    <EditorContent
-      editor={titleEditor}
-      onKeyDown={(event) => {
-        // First handle the search hotkey
-        getHotkeyHandler([["mod+F", openSearchDialog]])(event);
+    <div className="page-title">
+      <EditorContent
+        editor={titleEditor}
+        onKeyDown={(event) => {
+          // First handle the search hotkey
+          getHotkeyHandler([["mod+F", openSearchDialog]])(event);
 
-        // Then handle other key events
-        handleTitleKeyDown(event);
-      }}
-    />
+          // Then handle other key events
+          handleTitleKeyDown(event);
+        }}
+      />
+    </div>
   );
 }

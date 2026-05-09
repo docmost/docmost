@@ -11,6 +11,10 @@ import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import {
+  NotificationTab,
+  NotificationType,
+} from '../../../core/notification/notification.constants';
 
 @Injectable()
 export class NotificationRepo {
@@ -27,8 +31,12 @@ export class NotificationRepo {
       .executeTakeFirst();
   }
 
-  async findByUserId(userId: string, pagination: PaginationOptions) {
-    const query = this.db
+  async findByUserId(
+    userId: string,
+    pagination: PaginationOptions,
+    type: NotificationTab = 'all',
+  ) {
+    let query = this.db
       .selectFrom('notifications')
       .selectAll('notifications')
       .select((eb) => this.withActor(eb))
@@ -38,9 +46,19 @@ export class NotificationRepo {
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+          eb(
+            'spaceId',
+            'in',
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+          ),
         ]),
       );
+
+    if (type === 'direct') {
+      query = query.where('type', '!=', NotificationType.PAGE_UPDATED);
+    } else if (type === 'updates') {
+      query = query.where('type', '=', NotificationType.PAGE_UPDATED);
+    }
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
@@ -49,6 +67,14 @@ export class NotificationRepo {
       fields: [{ expression: 'id', direction: 'desc' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
     });
+  }
+
+  async insert(notification: InsertableNotification): Promise<Notification> {
+    return this.db
+      .insertInto('notifications')
+      .values(notification)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async getUnreadCount(userId: string): Promise<number> {
@@ -60,20 +86,16 @@ export class NotificationRepo {
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+          eb(
+            'spaceId',
+            'in',
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+          ),
         ]),
       )
       .executeTakeFirst();
 
     return Number(result?.count ?? 0);
-  }
-
-  async insert(notification: InsertableNotification): Promise<Notification> {
-    return this.db
-      .insertInto('notifications')
-      .values(notification)
-      .returningAll()
-      .executeTakeFirst();
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<void> {
@@ -83,12 +105,6 @@ export class NotificationRepo {
       .where('id', '=', notificationId)
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
-      .where((eb) =>
-        eb.or([
-          eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
-        ]),
-      )
       .execute();
   }
 
@@ -105,12 +121,15 @@ export class NotificationRepo {
       .where('id', 'in', notificationIds)
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
-      .where((eb) =>
-        eb.or([
-          eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
-        ]),
-      )
+      .execute();
+  }
+
+  async markAllAsRead(userId: string): Promise<void> {
+    await this.db
+      .updateTable('notifications')
+      .set({ readAt: new Date() })
+      .where('userId', '=', userId)
+      .where('readAt', 'is', null)
       .execute();
   }
 
@@ -123,19 +142,27 @@ export class NotificationRepo {
       .execute();
   }
 
-  async markAllAsRead(userId: string): Promise<void> {
-    await this.db
-      .updateTable('notifications')
-      .set({ readAt: new Date() })
-      .where('userId', '=', userId)
-      .where('readAt', 'is', null)
-      .where((eb) =>
-        eb.or([
-          eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
-        ]),
-      )
+  async getRecentlyNotifiedUserIds(
+    userIds: string[],
+    pageId: string,
+    type: string,
+    withinHours: number,
+  ): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+
+    const cutoff = new Date(Date.now() - withinHours * 60 * 60 * 1000);
+
+    const rows = await this.db
+      .selectFrom('notifications')
+      .select('userId')
+      .where('userId', 'in', userIds)
+      .where('pageId', '=', pageId)
+      .where('type', '=', type)
+      .where('createdAt', '>', cutoff)
+      .groupBy('userId')
       .execute();
+
+    return new Set(rows.map((r) => r.userId));
   }
 
   withActor(eb: ExpressionBuilder<DB, 'notifications'>) {

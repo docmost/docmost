@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { StringValue } from 'ms';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
   JwtApiKeyPayload,
@@ -12,9 +13,12 @@ import {
   JwtExchangePayload,
   JwtMfaTokenPayload,
   JwtPayload,
+  JwtPdfExportDownloadPayload,
+  JwtPdfRenderPayload,
   JwtType,
 } from '../dto/jwt-payload';
 import { User } from '@docmost/db/types/entity.types';
+import { isUserDisabled } from '../../../common/helpers';
 
 @Injectable()
 export class TokenService {
@@ -23,8 +27,8 @@ export class TokenService {
     private environmentService: EnvironmentService,
   ) {}
 
-  async generateAccessToken(user: User): Promise<string> {
-    if (user.deactivatedAt || user.deletedAt) {
+  async generateAccessToken(user: User, sessionId: string): Promise<string> {
+    if (isUserDisabled(user)) {
       throw new ForbiddenException();
     }
 
@@ -33,12 +37,13 @@ export class TokenService {
       email: user.email,
       workspaceId: user.workspaceId,
       type: JwtType.ACCESS,
+      sessionId,
     };
     return this.jwtService.sign(payload);
   }
 
   async generateCollabToken(user: User, workspaceId: string): Promise<string> {
-    if (user.deactivatedAt || user.deletedAt) {
+    if (isUserDisabled(user)) {
       throw new ForbiddenException();
     }
 
@@ -79,7 +84,7 @@ export class TokenService {
   }
 
   async generateMfaToken(user: User, workspaceId: string): Promise<string> {
-    if (user.deactivatedAt || user.deletedAt) {
+    if (isUserDisabled(user)) {
       throw new ForbiddenException();
     }
 
@@ -95,10 +100,10 @@ export class TokenService {
     apiKeyId: string;
     user: User;
     workspaceId: string;
-    expiresIn?: string | number;
+    expiresIn?: StringValue | number;
   }): Promise<string> {
     const { apiKeyId, user, workspaceId, expiresIn } = opts;
-    if (user.deactivatedAt || user.deletedAt) {
+    if (isUserDisabled(user)) {
       throw new ForbiddenException();
     }
 
@@ -110,6 +115,30 @@ export class TokenService {
     };
 
     return this.jwtService.sign(payload, expiresIn ? { expiresIn } : {});
+  }
+
+  async generatePdfRenderToken(
+    pageId: string,
+    workspaceId: string,
+  ): Promise<string> {
+    const payload: JwtPdfRenderPayload = {
+      pageId,
+      workspaceId,
+      type: JwtType.PDF_RENDER,
+    };
+    return this.jwtService.sign(payload, { expiresIn: '60s' });
+  }
+
+  async generatePdfExportDownloadToken(
+    fileTaskId: string,
+    workspaceId: string,
+  ): Promise<string> {
+    const payload: JwtPdfExportDownloadPayload = {
+      fileTaskId,
+      workspaceId,
+      type: JwtType.PDF_EXPORT_DOWNLOAD,
+    };
+    return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
   async verifyJwt(token: string, tokenType: string) {

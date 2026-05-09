@@ -18,8 +18,9 @@ import {
   IconTrashX,
 } from "@tabler/icons-react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { isCellSelection } from "@docmost/editor-ext";
+import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
+import classes from "../common/toolbar-menu.module.css";
 
 export const TableMenu = React.memo(
   ({ editor }: EditorMenuProps): JSX.Element => {
@@ -30,9 +31,10 @@ export const TableMenu = React.memo(
           return false;
         }
 
+        if (isTextSelected(editor)) return false;
         return editor.isActive("table") && !isCellSelection(state.selection);
       },
-      [editor]
+      [editor],
     );
 
     const getReferencedVirtualElement = useCallback(() => {
@@ -118,11 +120,15 @@ export const TableMenu = React.memo(
         }}
         shouldShow={shouldShow}
       >
-        <ActionIcon.Group>
-          <Tooltip position="top" label={t("Add left column")}>
+        <div className={classes.toolbar}>
+          <Tooltip
+            position="top"
+            label={t("Add left column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addColumnLeft}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Add left column")}
             >
@@ -130,10 +136,14 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Add right column")}>
+          <Tooltip
+            position="top"
+            label={t("Add right column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addColumnRight}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Add right column")}
             >
@@ -141,10 +151,14 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Delete column")}>
+          <Tooltip
+            position="top"
+            label={t("Delete column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={deleteColumn}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Delete column")}
             >
@@ -152,10 +166,16 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Add row above")}>
+          <div className={classes.divider} />
+
+          <Tooltip
+            position="top"
+            label={t("Add row above")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addRowAbove}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Add row above")}
             >
@@ -163,10 +183,14 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Add row below")}>
+          <Tooltip
+            position="top"
+            label={t("Add row below")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addRowBelow}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Add row below")}
             >
@@ -174,10 +198,10 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Delete row")}>
+          <Tooltip position="top" label={t("Delete row")} withinPortal={false}>
             <ActionIcon
               onClick={deleteRow}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Delete row")}
             >
@@ -185,10 +209,16 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Toggle header row")}>
+          <div className={classes.divider} />
+
+          <Tooltip
+            position="top"
+            label={t("Toggle header row")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={toggleHeaderRow}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Toggle header row")}
             >
@@ -196,10 +226,14 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Toggle header column")}>
+          <Tooltip
+            position="top"
+            label={t("Toggle header column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={toggleHeaderColumn}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Toggle header column")}
             >
@@ -207,21 +241,26 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Delete table")}>
+          <div className={classes.divider} />
+
+          <Tooltip
+            position="top"
+            label={t("Delete table")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={deleteTable}
-              variant="default"
+              variant="subtle"
               size="lg"
-              color="red"
               aria-label={t("Delete table")}
             >
               <IconTrashX size={18} />
             </ActionIcon>
           </Tooltip>
-        </ActionIcon.Group>
+        </div>
       </BubbleMenu>
     );
-  }
+  },
 );
 
 export default TableMenu;

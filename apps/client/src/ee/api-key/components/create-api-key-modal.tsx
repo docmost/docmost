@@ -1,8 +1,8 @@
 import { lazy, Suspense, useState } from "react";
 import { Modal, TextInput, Button, Group, Stack, Select } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
-import { z } from "zod";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { z } from "zod/v4";
 import { useTranslation } from "react-i18next";
 import { useCreateApiKeyMutation } from "@/ee/api-key/queries/api-key-query";
 import { IconCalendar } from "@tabler/icons-react";
@@ -36,7 +36,7 @@ export function CreateApiKeyModal({
   const createApiKeyMutation = useCreateApiKeyMutation();
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       name: "",
       expiresAt: "",
@@ -105,7 +105,7 @@ export function CreateApiKeyModal({
     <Modal
       opened={opened}
       onClose={handleClose}
-      title={t("Create API Key")}
+      title={t("Create {{credential}}", { credential: t("API key") })}
       size="md"
     >
       <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>

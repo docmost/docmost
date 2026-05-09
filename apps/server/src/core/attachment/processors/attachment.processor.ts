@@ -28,6 +28,11 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
           job.data.pageId,
         );
       }
+      if (job.name === QueueJob.DELETE_AI_CHAT_ATTACHMENTS) {
+        await this.attachmentService.handleDeleteAiChatAttachments(
+          job.data.aiChatId,
+        );
+      }
       if (
         job.name === QueueJob.ATTACHMENT_INDEX_CONTENT ||
         job.name === QueueJob.ATTACHMENT_INDEXING

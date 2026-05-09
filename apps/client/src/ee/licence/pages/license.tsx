@@ -8,10 +8,11 @@ import ActivateLicenseForm from "@/ee/licence/components/activate-license-modal.
 import InstallationDetails from "@/ee/licence/components/installation-details.tsx";
 import OssDetails from "@/ee/licence/components/oss-details.tsx";
 import { useAtom } from "jotai/index";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 
 export default function License() {
-  const [workspace] = useAtom(workspaceAtom);
+  const [entitlements] = useAtom(entitlementAtom);
+  const hasLicense = entitlements != null && entitlements.tier !== "free";
   const { isAdmin } = useUserRole();
 
   if (!isAdmin) {
@@ -29,7 +30,7 @@ export default function License() {
 
       <InstallationDetails />
 
-      {workspace?.hasLicenseKey ? <LicenseDetails /> : <OssDetails />}
+      {hasLicense ? <LicenseDetails /> : <OssDetails />}
     </>
   );
 }

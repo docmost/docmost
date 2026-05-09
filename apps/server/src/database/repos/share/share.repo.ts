@@ -136,15 +136,23 @@ export class ShareRepo {
     await query.execute();
   }
 
-  async deleteBySpaceId(spaceId: string): Promise<void> {
-    await this.db
+  async deleteBySpaceId(
+    spaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
       .deleteFrom('shares')
       .where('spaceId', '=', spaceId)
       .execute();
   }
 
-  async deleteByWorkspaceId(workspaceId: string): Promise<void> {
-    await this.db
+  async deleteByWorkspaceId(
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
       .deleteFrom('shares')
       .where('workspaceId', '=', workspaceId)
       .execute();

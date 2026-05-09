@@ -26,7 +26,9 @@ export default function InviteActionMenu({ invitationId }: Props) {
   const handleCopyLink = async (invitationId: string) => {
     try {
       const link = await getInviteLink({ invitationId });
-      clipboard.copy(link.inviteLink);
+      const url = new URL(link.inviteLink);
+      const inviteLink = `${window.location.origin}${url.pathname}${url.search}`;
+      clipboard.copy(inviteLink);
       notifications.show({ message: t("Link copied") });
     } catch (err) {
       notifications.show({

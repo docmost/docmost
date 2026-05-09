@@ -1,0 +1,72 @@
+.fixedToolbar {
+  position: fixed;
+  top: calc(var(--app-shell-header-offset, 0rem) + 45px);
+  inset-inline-start: var(--app-shell-navbar-offset, 0rem);
+  inset-inline-end: var(--app-shell-aside-offset, 0rem);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  background: var(--mantine-color-body);
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  overflow-x: auto;
+}
+
+.fixedToolbar::-webkit-scrollbar {
+  height: 2px;
+}
+
+.fixedToolbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fixedToolbar::-webkit-scrollbar-thumb {
+  background: light-dark(
+    var(--mantine-color-gray-4),
+    var(--mantine-color-dark-3)
+  );
+  border-radius: 1px;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 4px 8px;
+  margin-inline: auto;
+}
+
+.inner > * {
+  flex-shrink: 0;
+}
+
+.spacer {
+  height: 45px;
+}
+
+.divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: light-dark(
+    var(--mantine-color-gray-3),
+    var(--mantine-color-dark-4)
+  );
+}
+
+.active,
+.active:hover {
+  color: var(--mantine-color-blue-6);
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+}
+
+@media print {
+  .fixedToolbar {
+    display: none;
+  }
+}

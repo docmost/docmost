@@ -7,11 +7,13 @@ import {
 } from 'class-validator';
 import { CreateUserDto } from './create-user.dto';
 import { Transform, TransformFnParams } from 'class-transformer';
+import { NoUrls } from '../../../common/validators/no-urls.validator';
 
 export class CreateAdminUserDto extends CreateUserDto {
   @IsNotEmpty()
   @MinLength(1)
   @MaxLength(50)
+  @NoUrls()
   @Transform(({ value }: TransformFnParams) => value?.trim())
   name: string;
 

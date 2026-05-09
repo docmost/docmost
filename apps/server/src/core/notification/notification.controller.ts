@@ -9,9 +9,8 @@ import {
 import { NotificationService } from './notification.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { User } from '@docmost/db/types/entity.types';
-import { MarkNotificationsReadDto } from './dto/notification.dto';
+import { ListNotificationsDto, MarkNotificationsReadDto } from './dto/notification.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
@@ -21,10 +20,10 @@ export class NotificationController {
   @HttpCode(HttpStatus.OK)
   @Post('/')
   async getNotifications(
-    @Body() pagination: PaginationOptions,
+    @Body() dto: ListNotificationsDto,
     @AuthUser() user: User,
   ) {
-    return this.notificationService.findByUserId(user.id, pagination);
+    return this.notificationService.findByUserId(user.id, dto, dto.type);
   }
 
   @HttpCode(HttpStatus.OK)

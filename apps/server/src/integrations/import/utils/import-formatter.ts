@@ -4,6 +4,8 @@ import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
+import slugify from '@sindresorhus/slugify';
+import { normalizeTableColumnWidths } from './table-utils';
 
 // Check if text contains Unicode characters (for emojis/icons)
 function isUnicodeCharacter(text: string): boolean {
@@ -22,6 +24,7 @@ export async function formatImportHtml(opts: {
   workspaceId: string;
   pageDir?: string;
   attachmentCandidates?: string[];
+  spaceSlug?: string;
 }): Promise<{
   html: string;
   backlinks: InsertableBacklink[];
@@ -49,8 +52,7 @@ export async function formatImportHtml(opts: {
     }
   }
 
-  notionFormatter($, $root);
-  defaultHtmlFormatter($, $root);
+  normalizeImportHtml($, $root);
 
   const backlinks = await rewriteInternalLinksToMentionHtml(
     $,
@@ -60,6 +62,7 @@ export async function formatImportHtml(opts: {
     creatorId,
     sourcePageId,
     workspaceId,
+    opts.spaceSlug,
   );
 
   return {
@@ -69,7 +72,34 @@ export async function formatImportHtml(opts: {
   };
 }
 
+/**
+ * Contextless HTML cleanup shared by every import path.
+ * - notionFormatter: no-op on non-Notion HTML (class-selector-based).
+ * - xwikiFormatter: no-op on non-XWiki HTML (looks for #xwikicontent).
+ * - defaultHtmlFormatter: table column widths + provider auto-embeds.
+ *
+ * Does NOT run rewriteInternalLinksToMentionHtml — that requires zip context.
+ */
+export function normalizeImportHtml(
+  $: CheerioAPI,
+  $root: Cheerio<any>,
+): void {
+  notionFormatter($, $root);
+  xwikiFormatter($, $root);
+  defaultHtmlFormatter($, $root);
+}
+
+export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
+  const $content = $root.find('#xwikicontent');
+  if ($content.length) {
+    $root.children().remove();
+    $root.append($content.contents());
+  }
+}
+
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
+  normalizeTableColumnWidths($, $root);
+
   $root.find('a[href]').each((_, el) => {
     const $el = $(el);
     const url = $el.attr('href')!;
@@ -90,6 +120,15 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
   });
 }
 
+const COLUMN_LAYOUTS = [
+  '',
+  '',
+  'two_equal',
+  'three_equal',
+  'four_equal',
+  'five_equal',
+] as const;
+
 export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
   // remove page header icon and cover image
   $root.find('.page-header-icon').remove();
@@ -98,6 +137,31 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
   // remove empty description paragraphs
   $root.find('p.page-description').each((_, el) => {
     if (!$(el).text().trim()) $(el).remove();
+  });
+
+  // columns
+  $root.find('div.column-list').each((_, el) => {
+    const $list = $(el);
+    const $cols = $list.find('div.column');
+
+    if ($cols.length <= 1) {
+      $list.replaceWith($cols.html() || '');
+      return;
+    }
+
+    const layout = COLUMN_LAYOUTS[$cols.length] ?? 'two_equal';
+    let cells = '';
+    $cols.each((_, col) => {
+      const $col = $(col);
+      $col.children('div[style*="display:contents"]').each((_, wrapper) => {
+        $(wrapper).replaceWith($(wrapper).html() || '');
+      });
+      cells += `<div data-type="column">${$col.html()}</div>`;
+    });
+
+    $list.replaceWith(
+      `<div data-type="columns" data-layout="${layout}">${cells}</div>`,
+    );
   });
 
   // block math → mathBlock
@@ -273,6 +337,7 @@ export async function rewriteInternalLinksToMentionHtml(
   creatorId: string,
   sourcePageId: string,
   workspaceId: string,
+  spaceSlug?: string,
 ): Promise<InsertableBacklink[]> {
   const normalize = (p: string) => p.replace(/\\/g, '/');
   const backlinks: InsertableBacklink[] = [];
@@ -296,19 +361,37 @@ export async function rewriteInternalLinksToMentionHtml(
     );
     const meta = filePathToPageMetaMap.get(resolved);
     if (!meta) return;
-    const mentionId = v7();
-    const $mention = $('<span>')
-      .attr({
-        'data-type': 'mention',
-        'data-id': mentionId,
-        'data-entity-type': 'page',
-        'data-entity-id': meta.id,
-        'data-label': meta.title,
-        'data-slug-id': meta.slugId,
-        'data-creator-id': creatorId,
-      })
-      .text(meta.title);
-    $a.replaceWith($mention);
+
+    const linkText = $a.text().trim();
+    const titleMatch =
+      linkText === meta.title ||
+      linkText === meta.title?.trim();
+
+    if (titleMatch) {
+      const mentionId = v7();
+      const $mention = $('<span>')
+        .attr({
+          'data-type': 'mention',
+          'data-id': mentionId,
+          'data-entity-type': 'page',
+          'data-entity-id': meta.id,
+          'data-label': meta.title,
+          'data-slug-id': meta.slugId,
+          'data-creator-id': creatorId,
+        })
+        .text(meta.title);
+      $a.replaceWith($mention);
+    } else {
+      const titleSlug = slugify(meta.title?.substring(0, 70) || 'untitled');
+      const pageSlug = `${titleSlug}-${meta.slugId}`;
+      const internalHref = spaceSlug
+        ? `/s/${spaceSlug}/p/${pageSlug}`
+        : `/p/${pageSlug}`;
+
+      $a.attr('href', internalHref);
+      $a.attr('data-internal', 'true');
+    }
+
     backlinks.push({ sourcePageId, targetPageId: meta.id, workspaceId });
   });
 

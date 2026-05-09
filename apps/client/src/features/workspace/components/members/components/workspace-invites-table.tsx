@@ -34,6 +34,7 @@ export default function WorkspaceInvitesTable() {
               <Table.Th>{t("Email")}</Table.Th>
               <Table.Th>{t("Role")}</Table.Th>
               <Table.Th>{t("Date")}</Table.Th>
+              <Table.Th aria-label={t("Action")} />
             </Table.Tr>
           </Table.Thead>
 

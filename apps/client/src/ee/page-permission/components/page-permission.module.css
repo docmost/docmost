@@ -1,0 +1,128 @@
+.generalAccessBox {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-xs) 0;
+}
+
+.generalAccessIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--mantine-radius-sm);
+
+  @mixin light {
+    background-color: var(--mantine-color-gray-1);
+  }
+  @mixin dark {
+    background-color: var(--mantine-color-dark-5);
+  }
+}
+
+.generalAccessIconRestricted {
+  @mixin light {
+    background-color: var(--mantine-color-red-0);
+    color: var(--mantine-color-red-6);
+  }
+  @mixin dark {
+    background-color: rgba(250, 82, 82, 0.1);
+    color: var(--mantine-color-red-5);
+  }
+}
+
+.permissionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--mantine-spacing-xs) 0;
+  gap: var(--mantine-spacing-sm);
+}
+
+.permissionItemInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.permissionItemDetails {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.permissionItemRole {
+  flex-shrink: 0;
+}
+
+.avatarStack {
+  display: flex;
+  align-items: center;
+}
+
+.avatarStackItem {
+  margin-left: -8px;
+  border: 2px solid var(--mantine-color-body);
+  border-radius: 50%;
+}
+
+.avatarStackItem:first-child {
+  margin-left: 0;
+}
+
+.specificAccessHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  margin-top: var(--mantine-spacing-md);
+  margin-bottom: var(--mantine-spacing-xs);
+}
+
+.removeAllLink {
+  cursor: pointer;
+  font-size: var(--mantine-font-size-sm);
+
+  @mixin light {
+    color: var(--mantine-color-gray-6);
+  }
+  @mixin dark {
+    color: var(--mantine-color-dark-2);
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.inheritedInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+  margin-bottom: var(--mantine-spacing-sm);
+
+  @mixin light {
+    background-color: var(--mantine-color-gray-0);
+  }
+  @mixin dark {
+    background-color: var(--mantine-color-dark-6);
+  }
+}
+
+.inheritedSection {
+  @mixin light {
+    background-color: var(--mantine-color-orange-0);
+    border: 1px solid var(--mantine-color-orange-2);
+  }
+  @mixin dark {
+    background-color: rgba(255, 146, 43, 0.08);
+    border: 1px solid rgba(255, 146, 43, 0.2);
+  }
+}

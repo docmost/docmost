@@ -1,4 +1,4 @@
-import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   searchAttachments,
   searchPage,
@@ -32,6 +32,7 @@ export function useSearchSuggestionsQuery(
     staleTime: 60 * 1000, // 1min
     queryFn: () => searchSuggestions(queryParams),
     enabled: preload || !!params.query,
+    placeholderData: keepPreviousData,
   });
 }
 

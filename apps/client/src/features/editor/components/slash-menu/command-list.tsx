@@ -86,27 +86,46 @@ const CommandList = ({
   }, [selectedIndex]);
 
   return flatItems.length > 0 ? (
-    <Paper id="slash-command" shadow="md" p="xs" withBorder>
-      <ScrollArea viewportRef={viewportRef} h={350} w={270} scrollbarSize={8}>
-        {Object.entries(items).map(([category, categoryItems]) => (
-          <div key={category}>
+    <Paper
+      id="slash-command"
+      shadow="md"
+      p="xs"
+      withBorder
+      role="listbox"
+      aria-label={t("Slash commands")}
+      aria-activedescendant={`slash-command-option-${selectedIndex}`}
+    >
+      <ScrollArea
+        viewportRef={viewportRef}
+        h={350}
+        w={270}
+        scrollbarSize={8}
+        overscrollBehavior="contain"
+      >
+        {(() => {
+          let flatIndex = -1;
+          return Object.entries(items).map(([category, categoryItems]) => (
+          <div key={category} role="group" aria-label={category}>
             <Text c="dimmed" mb={4} fw={500} tt="capitalize">
               {category}
             </Text>
-            {categoryItems.map((item: SlashMenuItemType, index: number) => (
+            {categoryItems.map((item: SlashMenuItemType) => {
+              flatIndex += 1;
+              const itemIndex = flatIndex;
+              return (
               <UnstyledButton
-                data-item-index={index}
-                key={index}
-                onClick={() => selectItem(index)}
+                data-item-index={itemIndex}
+                key={itemIndex}
+                id={`slash-command-option-${itemIndex}`}
+                role="option"
+                aria-selected={itemIndex === selectedIndex}
+                onClick={() => selectItem(itemIndex)}
                 className={clsx(classes.menuBtn, {
-                  [classes.selectedItem]: index === selectedIndex,
+                  [classes.selectedItem]: itemIndex === selectedIndex,
                 })}
               >
                 <Group>
-                  <ActionIcon
-                    variant="default"
-                    component="div"
-                  >
+                  <ActionIcon variant="default" component="div" aria-hidden="true">
                     <item.icon size={18} />
                   </ActionIcon>
 
@@ -121,9 +140,11 @@ const CommandList = ({
                   </div>
                 </Group>
               </UnstyledButton>
-            ))}
+              );
+            })}
           </div>
-        ))}
+          ));
+        })()}
       </ScrollArea>
     </Paper>
   ) : null;

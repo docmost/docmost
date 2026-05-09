@@ -31,7 +31,8 @@ export default function LicenseDetails() {
           <Table.Tr>
             <Table.Th w={160}>Edition</Table.Th>
             <Table.Td>
-              Enterprise {license.trial && <Badge color="green">Trial</Badge>}
+              {license.licenseType === "business" ? "Business" : "Enterprise"}{" "}
+              {license.trial && <Badge color="green">Trial</Badge>}
             </Table.Td>
           </Table.Tr>
 

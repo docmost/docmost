@@ -33,6 +33,7 @@ export default function VideoView(props: NodeViewProps) {
         className={clsx(
           selected && "ProseMirror-selectednode",
           classes.videoWrapper,
+          !src && placeholder && classes.skeleton,
           alignClass,
         )}
         style={{
@@ -46,6 +47,7 @@ export default function VideoView(props: NodeViewProps) {
             preload="metadata"
             controls
             src={getFileUrl(src)}
+            aria-label={placeholder?.name || t("Video")}
           />
         )}
         {!src && previewSrc && (
@@ -55,11 +57,12 @@ export default function VideoView(props: NodeViewProps) {
               preload="metadata"
               controls
               src={previewSrc}
+              aria-label={placeholder?.name || t("Video")}
             />
             <Loader size={20} pos="absolute" top={6} right={6} />
           </Group>
         )}
-        {!src && !previewSrc && (
+        {!src && !previewSrc && placeholder && (
           <Group justify="center" wrap="nowrap" gap="xs" maw="100%" px="md">
             <Loader size={20} style={{ flexShrink: 0 }} />
             <Text component="span" size="sm" truncate="end">
@@ -68,6 +71,9 @@ export default function VideoView(props: NodeViewProps) {
                 : t("Uploading file")}
             </Text>
           </Group>
+        )}
+        {!src && !previewSrc && !placeholder && (
+          <video className={classes.video} controls aria-label={t("Video")} />
         )}
       </div>
     </NodeViewWrapper>

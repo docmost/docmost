@@ -382,6 +382,12 @@ export function sanitizeUrl(url: string | undefined): string {
   return sanitized === "about:blank" ? "" : sanitized;
 }
 
+export function isInternalFileUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  const normalized = url.trim();
+  return normalized.startsWith("/api/files/") || normalized.startsWith("/files/");
+}
+
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 export const generateNodeId = customAlphabet(alphabet, 12);
 

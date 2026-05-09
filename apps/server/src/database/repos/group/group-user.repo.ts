@@ -175,4 +175,14 @@ export class GroupUserRepo {
       .where('groupId', '=', groupId)
       .execute();
   }
+
+  async getUserGroupIds(userId: string): Promise<string[]> {
+    const results = await this.db
+      .selectFrom('groupUsers')
+      .select('groupId')
+      .where('userId', '=', userId)
+      .execute();
+
+    return results.map((r) => r.groupId);
+  }
 }

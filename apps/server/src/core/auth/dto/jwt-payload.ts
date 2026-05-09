@@ -5,12 +5,15 @@ export enum JwtType {
   ATTACHMENT = 'attachment',
   MFA_TOKEN = 'mfa_token',
   API_KEY = 'api_key',
+  PDF_RENDER = 'pdf_render',
+  PDF_EXPORT_DOWNLOAD = 'pdf_export_download',
 }
 export type JwtPayload = {
   sub: string;
   email: string;
   workspaceId: string;
   type: 'access';
+  sessionId?: string;
 };
 
 export type JwtCollabPayload = {
@@ -43,4 +46,16 @@ export type JwtApiKeyPayload = {
   workspaceId: string;
   apiKeyId: string;
   type: 'api_key';
+};
+
+export type JwtPdfRenderPayload = {
+  pageId: string;
+  workspaceId: string;
+  type: 'pdf_render';
+};
+
+export type JwtPdfExportDownloadPayload = {
+  fileTaskId: string;
+  workspaceId: string;
+  type: 'pdf_export_download';
 };

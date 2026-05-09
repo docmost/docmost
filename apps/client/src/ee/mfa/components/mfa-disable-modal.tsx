@@ -9,11 +9,11 @@ import {
 } from "@mantine/core";
 import { IconShieldOff, IconAlertTriangle } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useMutation } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { disableMfa } from "@/ee/mfa";
 import useCurrentUser from "@/features/user/hooks/use-current-user";
 
@@ -41,7 +41,7 @@ export function MfaDisableModal({
       });
 
   const form = useForm({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       confirmPassword: "",
     },
@@ -63,7 +63,7 @@ export function MfaDisableModal({
 
   const handleSubmit = async (values: { confirmPassword?: string }) => {
     // Only send confirmPassword if it's required (non-SSO users)
-    const payload = requiresPassword 
+    const payload = requiresPassword
       ? { confirmPassword: values.confirmPassword }
       : {};
     await disableMutation.mutateAsync(payload);

@@ -6,21 +6,23 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
-import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label.ts";
 
 export default function DisablePublicSharing() {
   const { t } = useTranslation();
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
-        <div>
-          <Text size="md">{t("Disable public sharing")}</Text>
-          <Text size="sm" c="dimmed">
-            {t("Prevent members from sharing pages publicly.")}
-          </Text>
-        </div>
+      <div>
+        <Text size="md">{t("Disable public sharing")}</Text>
+        <Text size="sm" c="dimmed">
+          {t("Prevent members from sharing pages publicly.")}
+        </Text>
+      </div>
 
-        <DisablePublicSharingToggle />
+      <DisablePublicSharingToggle />
     </Group>
   );
 }
@@ -31,7 +33,8 @@ function DisablePublicSharingToggle() {
   const [checked, setChecked] = useState(
     workspace?.settings?.sharing?.disabled === true,
   );
-  const hasAccess = useEnterpriseAccess();
+  const hasSharingControls = useHasFeature(Feature.SHARING_CONTROLS);
+  const upgradeLabel = useUpgradeLabel();
 
   const applyChange = async (value: boolean) => {
     try {
@@ -72,15 +75,11 @@ function DisablePublicSharingToggle() {
   };
 
   return (
-    <Tooltip
-      label={t("Requires an enterprise license")}
-      disabled={hasAccess}
-      refProp="rootRef"
-    >
+    <Tooltip label={upgradeLabel} disabled={hasSharingControls} refProp="rootRef">
       <Switch
         checked={checked}
         onChange={handleChange}
-        disabled={!hasAccess}
+        disabled={!hasSharingControls}
         aria-label={t("Toggle public sharing")}
       />
     </Tooltip>

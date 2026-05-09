@@ -37,7 +37,6 @@ export class UserController {
     const workspaceInfo = {
       ...rest,
       memberCount,
-      hasLicenseKey: Boolean(licenseKey),
     };
 
     return { user: authUser, workspace: workspaceInfo };

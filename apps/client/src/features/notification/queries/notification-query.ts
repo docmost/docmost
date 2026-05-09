@@ -15,10 +15,10 @@ import {
 export const NOTIFICATION_KEY = ["notifications"];
 export const UNREAD_COUNT_KEY = ["notifications", "unread-count"];
 
-export function useNotificationsQuery() {
+export function useNotificationsQuery(type?: string) {
   return useInfiniteQuery({
-    queryKey: NOTIFICATION_KEY,
-    queryFn: ({ pageParam }) => getNotifications({ cursor: pageParam }),
+    queryKey: [...NOTIFICATION_KEY, type],
+    queryFn: ({ pageParam }) => getNotifications({ cursor: pageParam, type }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,

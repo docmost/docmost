@@ -8,6 +8,9 @@ import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import ShareBranding from "@/features/share/components/share-branding.tsx";
+import { useAtomValue } from "jotai";
+import { sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom.ts";
+import { isPageInTree } from "@/features/share/utils.ts";
 
 export default function SharedPage() {
   const { t } = useTranslation();
@@ -19,13 +22,22 @@ export default function SharedPage() {
     pageId: extractPageSlugId(pageSlug),
   });
 
+  const sharedTreeData = useAtomValue(sharedTreeDataAtom);
+
   useEffect(() => {
     if (shareId && data) {
       if (data.share.key !== shareId) {
-        navigate(`/share/${data.share.key}/p/${pageSlug}`, { replace: true });
+
+        // Check if the current page is part of the active sharing tree (sidebar) - If we are part of it, we will not redirect, keeping the sidebar visible.
+        const isPartOfTree =
+          sharedTreeData && isPageInTree(sharedTreeData, data.page.slugId);
+
+        if (!isPartOfTree) {
+          navigate(`/share/${data.share.key}/p/${pageSlug}`, { replace: true });
+        }
       }
     }
-  }, [shareId, data]);
+  }, [shareId, data, sharedTreeData]);
 
   if (isLoading) {
     return <></>;
@@ -53,10 +65,11 @@ export default function SharedPage() {
           title={data.page.title}
           content={data.page.content}
           pageId={data.page.id}
+          shareId={data.share.id}
         />
       </Container>
 
-      {data && !shareId && !data.hasLicenseKey && <ShareBranding />}
+      {data && !shareId && !(data.features?.length > 0) && <ShareBranding />}
     </div>
   );
 }

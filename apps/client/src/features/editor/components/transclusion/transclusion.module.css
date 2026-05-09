@@ -1,0 +1,209 @@
+.placeholder {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--mantine-radius-md);
+  background: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  font-size: var(--mantine-font-size-sm);
+  user-select: none;
+}
+
+.placeholderIcon {
+  flex: none;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.transclusionBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  background: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  border-radius: var(--mantine-radius-sm);
+  margin-bottom: 4px;
+}
+
+.transclusionWrap {
+  position: relative;
+  margin-left: -3rem;
+  margin-right: -3rem;
+  width: calc(100% + 6rem);
+  padding: 0.5em 3rem;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: border 0.3s;
+}
+
+.transclusionWrap:hover,
+.transclusionWrap:focus-within {
+  border: 2px solid
+    light-dark(
+      var(--mantine-color-orange-2),
+      color-mix(in srgb, var(--mantine-color-orange-9), transparent 55%)
+    );
+}
+
+.transclusionControls {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+}
+
+/* Hover bridge: keeps :hover on the wrap while the cursor crosses the
+   8px gap between wrap and floating chrome, so the menu doesn't fade out
+   on the way to it. */
+.transclusionControls::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.transclusionWrap:hover .transclusionControls,
+.transclusionWrap:focus-within .transclusionControls,
+.transclusionWrap[data-menu-open="true"] .transclusionControls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.controlsDivider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: var(--mantine-color-default-border);
+}
+
+.transclusionControls a[href],
+.includeControls a[href] {
+  color: var(--ai-color);
+  border-bottom: none;
+  font-weight: inherit;
+}
+
+.includeWrap {
+  position: relative;
+  margin-left: -3rem;
+  margin-right: -3rem;
+  width: calc(100% + 6rem);
+  padding: 0.5em 0;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: border 0.3s;
+}
+
+.includeWrap:hover,
+.includeWrap[data-focused="true"],
+.includeWrap[data-menu-open="true"] {
+  border: 2px solid
+    light-dark(
+      var(--mantine-color-orange-2),
+      color-mix(in srgb, var(--mantine-color-orange-9), transparent 55%)
+    );
+}
+
+.includeControls {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+}
+
+/* Hover bridge: keeps :hover on the wrap while the cursor crosses the
+   8px gap between wrap and floating chrome, so the menu doesn't fade out
+   on the way to it. */
+.includeControls::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.includeWrap:hover .includeControls,
+.includeWrap:focus-within .includeControls,
+.includeWrap[data-focused="true"] .includeControls,
+.includeWrap[data-menu-open="true"] .includeControls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+:global(.react-renderer.node-transclusionSource.ProseMirror-selectednode),
+:global(.react-renderer.node-transclusionReference.ProseMirror-selectednode) {
+  outline: none;
+}
+
+@media (max-width: 48em) {
+  .transclusionWrap,
+  .includeWrap {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    width: calc(100% + 2rem);
+  }
+
+  .transclusionWrap {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media print {
+  .transclusionControls,
+  .includeControls {
+    display: none !important;
+  }
+  .transclusionWrap,
+  .includeWrap {
+    border: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+}
+
+.editingOriginalTag {
+  display: inline-block;
+  padding: 0 6px;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  color: var(--mantine-color-blue-7);
+  background: light-dark(
+    var(--mantine-color-blue-0),
+    var(--mantine-color-blue-9)
+  );
+  border-radius: var(--mantine-radius-sm);
+}

@@ -23,11 +23,11 @@ import {
   acceptInvitation,
   createWorkspace,
 } from "@/features/workspace/services/workspace-service.ts";
-import APP_ROUTE from "@/lib/app-route.ts";
+import APP_ROUTE, { getPostLoginRedirect } from "@/lib/app-route.ts";
 import { RESET } from "jotai/utils";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
-import { exchangeTokenRedirectUrl } from "@/ee/utils.ts";
+import { exchangeTokenRedirectUrl, getHostnameUrl } from "@/ee/utils.ts";
 
 export default function useAuth() {
   const { t } = useTranslation();
@@ -44,17 +44,26 @@ export default function useAuth() {
 
       // Check if MFA is required
       if (response?.userHasMfa) {
-        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE);
+        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE + window.location.search);
       } else if (response?.requiresMfaSetup) {
-        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED);
+        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED + window.location.search);
       } else {
-        navigate(APP_ROUTE.HOME);
+        navigate(getPostLoginRedirect());
       }
     } catch (err) {
       setIsLoading(false);
-      console.log(err);
+
+      const message = err.response?.data?.message;
+      if (isCloud() && message?.includes("verify your email")) {
+        const sig = err.response?.data?.emailSignature;
+        navigate(
+          `${APP_ROUTE.AUTH.VERIFY_EMAIL}?email=${encodeURIComponent(data.email)}${sig ? `&sig=${sig}` : ""}`,
+        );
+        return;
+      }
+
       notifications.show({
-        message: err.response?.data.message,
+        message,
         color: "red",
       });
     }
@@ -92,6 +101,17 @@ export default function useAuth() {
     try {
       if (isCloud()) {
         const res = await createWorkspace(data);
+
+        if (res?.requiresEmailVerification) {
+          const hostname = res?.workspace?.hostname;
+          if (hostname) {
+            window.location.href =
+              getHostnameUrl(hostname) +
+              `/verify-email?email=${encodeURIComponent(data.email)}&sig=${res.emailSignature}`;
+          }
+          return;
+        }
+
         const hostname = res?.workspace?.hostname;
         const exchangeToken = res?.exchangeToken;
         if (hostname && exchangeToken) {

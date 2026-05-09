@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import useCurrentUser from "@/features/user/hooks/use-current-user.ts";
-import APP_ROUTE from "@/lib/app-route.ts";
+import { getPostLoginRedirect } from "@/lib/app-route.ts";
 import { useNavigate } from "react-router-dom";
 
 export function useRedirectIfAuthenticated() {
@@ -9,7 +9,7 @@ export function useRedirectIfAuthenticated() {
 
   useEffect(() => {
     if (data && data?.user) {
-      navigate(APP_ROUTE.HOME);
+      navigate(getPostLoginRedirect());
     }
   }, [isLoading, data]);
 }

@@ -3,17 +3,23 @@ import { IconBellOff } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useRef } from "react";
 import { NotificationItem } from "./notification-item";
-import { INotification, NotificationFilter } from "../types/notification.types";
+import {
+  INotification,
+  NotificationFilter,
+  NotificationTab,
+} from "../types/notification.types";
 import { groupNotificationsByTime } from "../notification.utils";
 import { useNotificationsQuery } from "../queries/notification-query";
 import classes from "../notification.module.css";
 
 type NotificationListProps = {
+  tab: NotificationTab;
   filter: NotificationFilter;
   onNavigate: () => void;
 };
 
 export function NotificationList({
+  tab,
   filter,
   onNavigate,
 }: NotificationListProps) {
@@ -24,7 +30,7 @@ export function NotificationList({
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
-  } = useNotificationsQuery();
+  } = useNotificationsQuery(tab as string);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 

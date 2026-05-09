@@ -1,6 +1,7 @@
 import React from "react";
-import { z } from "zod";
-import { useForm, zodResolver } from "@mantine/form";
+import { z } from "zod/v4";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { Box, Button, Group, Stack, Switch, TextInput } from "@mantine/core";
 import { buildCallbackUrl } from "@/ee/security/sso.utils.ts";
 import classes from "@/ee/security/components/sso.module.css";
@@ -39,7 +40,7 @@ export function SsoOIDCForm({ provider, onClose }: SsoFormProps) {
       allowSignup: provider.allowSignup,
       groupSync: provider.groupSync || false,
     },
-    validate: zodResolver(ssoSchema),
+    validate: zod4Resolver(ssoSchema),
   });
 
   const callbackUrl = buildCallbackUrl({

@@ -1,5 +1,6 @@
-import * as z from "zod";
-import { useForm, zodResolver } from "@mantine/form";
+import { z } from "zod/v4";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
   Container,
   Title,
@@ -19,20 +20,35 @@ import APP_ROUTE from "@/lib/app-route.ts";
 import { useTranslation } from "react-i18next";
 import JoinedWorkspaces from "@/ee/components/joined-workspaces.tsx";
 import { useJoinedWorkspacesQuery } from "@/ee/cloud/query/cloud-query.ts";
+import { findWorkspacesByEmail } from "@/ee/cloud/service/cloud-service.ts";
+import { AuthLayout } from "@/features/auth/components/auth-layout.tsx";
 
 const formSchema = z.object({
   hostname: z.string().min(1, { message: "subdomain is required" }),
 });
 
+const findWorkspaceSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email" }),
+});
+
 export function CloudLoginForm() {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isFindLoading, setIsFindLoading] = useState<boolean>(false);
+  const [findEmailSent, setFindEmailSent] = useState<boolean>(false);
   const { data: joinedWorkspaces } = useJoinedWorkspacesQuery();
 
   const form = useForm<any>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       hostname: "",
+    },
+  });
+
+  const findForm = useForm<any>({
+    validate: zod4Resolver(findWorkspaceSchema),
+    initialValues: {
+      email: "",
     },
   });
 
@@ -53,8 +69,21 @@ export function CloudLoginForm() {
     setIsLoading(false);
   }
 
+  async function onFindSubmit(data: { email: string }) {
+    setIsFindLoading(true);
+
+    try {
+      await findWorkspacesByEmail(data.email);
+      setFindEmailSent(true);
+    } catch {
+      findForm.setFieldError("email", "An error occurred. Please try again.");
+    }
+
+    setIsFindLoading(false);
+  }
+
   return (
-    <div>
+    <AuthLayout>
       <Container size={420} className={classes.container}>
         <Box p="xl" className={classes.containerBox}>
           <Title order={2} ta="center" fw={500} mb="md">
@@ -82,15 +111,47 @@ export function CloudLoginForm() {
               {t("Continue")}
             </Button>
           </form>
+
+          <Divider my="lg" label="or" labelPosition="center" />
+
+          {findEmailSent ? (
+            <Text ta="center" size="sm" c="dimmed">
+              {t("We've sent you an email with your associated workspaces.")}
+            </Text>
+          ) : (
+            <form onSubmit={findForm.onSubmit(onFindSubmit)}>
+              <Text fw={600} mb="xs">
+                {t("Find your workspaces")}
+              </Text>
+              <TextInput
+                type="email"
+                placeholder="name@company.com"
+                description={t(
+                  "We'll send a list of your workspaces to this email.",
+                )}
+                withErrorStyles={false}
+                {...findForm.getInputProps("email")}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                mt="md"
+                variant="light"
+                loading={isFindLoading}
+              >
+                {t("Send")}
+              </Button>
+            </form>
+          )}
         </Box>
       </Container>
 
-      <Text ta="center">
+      <Text ta="center" mb="xl">
         {t("Don't have a workspace?")}{" "}
         <Anchor component={Link} to={APP_ROUTE.AUTH.CREATE_WORKSPACE} fw={500}>
           {t("Create new workspace")}
         </Anchor>
       </Text>
-    </div>
+    </AuthLayout>
   );
 }

@@ -1,6 +1,7 @@
 const APP_ROUTE = {
   HOME: "/home",
   SPACES: "/spaces",
+  FAVORITES: "/favorites",
   SEARCH: "/search",
   AUTH: {
     LOGIN: "/login",
@@ -12,6 +13,7 @@ const APP_ROUTE = {
     SELECT_WORKSPACE: "/select",
     MFA_CHALLENGE: "/login/mfa",
     MFA_SETUP_REQUIRED: "/login/mfa/setup",
+    VERIFY_EMAIL: "/verify-email",
   },
   SETTINGS: {
     ACCOUNT: {
@@ -28,5 +30,21 @@ const APP_ROUTE = {
     },
   },
 };
+
+export function getPostLoginRedirect(): string {
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get("redirect");
+  if (redirect) {
+    try {
+      const resolved = new URL(redirect, window.location.origin);
+      if (resolved.origin === window.location.origin) {
+        return resolved.pathname + resolved.search + resolved.hash;
+      }
+    } catch {
+      // malformed URL, fall through to default
+    }
+  }
+  return APP_ROUTE.HOME;
+}
 
 export default APP_ROUTE;

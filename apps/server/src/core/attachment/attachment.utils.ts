@@ -2,6 +2,7 @@ import { MultipartFile } from '@fastify/multipart';
 import * as path from 'path';
 import { AttachmentType } from './attachment.constants';
 import { sanitizeFileName } from '../../common/helpers';
+import { getMimeType } from '../../common/helpers';
 
 export interface PreparedFile {
   buffer?: Buffer;
@@ -40,7 +41,7 @@ export async function prepareFile(
       fileName,
       fileSize,
       fileExtension,
-      mimeType: file.mimetype,
+      mimeType: getMimeType(file.filename),
       multiPartFile: file,
     };
   } catch (error) {
@@ -70,6 +71,8 @@ export function getAttachmentFolderPath(
       return `${workspaceId}/space-logos`;
     case AttachmentType.File:
       return `${workspaceId}/files`;
+    case AttachmentType.Chat:
+      return `${workspaceId}/chat-files`;
     default:
       return `${workspaceId}/files`;
   }

@@ -1,7 +1,7 @@
 import React from "react";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
   Box,
   Button,
@@ -49,7 +49,7 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
       allowSignup: provider.allowSignup,
       groupSync: provider.groupSync || false,
     },
-    validate: zodResolver(ssoSchema),
+    validate: zod4Resolver(ssoSchema),
   });
 
   const callbackUrl = buildCallbackUrl({

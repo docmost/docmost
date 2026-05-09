@@ -24,7 +24,12 @@ function CommentActions({
         </Button>
       )}
 
-      <Button size="compact-sm" loading={isLoading} onClick={onSave}>
+      <Button
+        size="compact-sm"
+        loading={isLoading}
+        onClick={onSave}
+        onMouseDown={(e) => e.preventDefault()}
+      >
         {t("Save")}
       </Button>
     </Group>
