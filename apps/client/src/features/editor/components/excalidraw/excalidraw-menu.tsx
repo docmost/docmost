@@ -191,7 +191,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         elements: excalidrawAPI?.getSceneElements(),
         appState: {
           exportEmbedScene: true,
-          exportWithDarkMode: false,
+          exportWithDarkMode: computedColorScheme === 'dark',
         },
         files: excalidrawAPI?.getFiles(),
       });
