@@ -970,5 +970,18 @@
   "Experimental": "Experimental",
   "Strikethrough": "Strikethrough",
   "Undo": "Undo",
-  "Redo": "Redo"
+  "Redo": "Redo",
+  "Backlinks": "Backlinks",
+  "Last updated by": "Last updated by",
+  "Last updated": "Last updated",
+  "Stats": "Stats",
+  "Word count": "Word count",
+  "Characters": "Characters",
+  "Incoming links": "Incoming links",
+  "Outgoing links": "Outgoing links",
+  "Incoming links ({{count}})": "Incoming links ({{count}})",
+  "Outgoing links ({{count}})": "Outgoing links ({{count}})",
+  "No pages link here yet.": "No pages link here yet.",
+  "This page doesn't link to other pages yet.": "This page doesn't link to other pages yet.",
+  "Verified until {{date}}": "Verified until {{date}}"
 }
