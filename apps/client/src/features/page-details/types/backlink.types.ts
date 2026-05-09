@@ -11,8 +11,7 @@ export interface IBacklinkPageItem {
   title: string | null;
   icon: string | null;
   spaceId: string;
-  spaceSlug: string | null;
-  spaceName: string | null;
+  space: { id: string; slug: string; name: string } | null;
   updatedAt: string;
 }
 

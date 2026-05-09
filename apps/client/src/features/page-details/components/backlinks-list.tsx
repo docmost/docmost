@@ -71,9 +71,9 @@ export function BacklinksList({
           key={item.id}
           component={Link}
           to={
-            item.spaceSlug
+            item.space?.slug
               ? buildPageUrl(
-                  item.spaceSlug,
+                  item.space.slug,
                   item.slugId,
                   item.title ?? undefined,
                 )
@@ -88,9 +88,9 @@ export function BacklinksList({
               <Text size="sm" fw={500} lineClamp={1}>
                 {item.title || t("Untitled")}
               </Text>
-              {item.spaceName && (
+              {item.space?.name && (
                 <Text size="xs" c="dimmed" lineClamp={1}>
-                  {item.spaceName}
+                  {item.space.name}
                 </Text>
               )}
             </Stack>

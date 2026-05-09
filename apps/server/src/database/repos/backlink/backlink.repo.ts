@@ -13,6 +13,7 @@ import {
   emptyCursorPaginationResult,
 } from '@docmost/db/pagination/cursor-pagination';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
 @Injectable()
 export class BacklinkRepo {
@@ -121,23 +122,25 @@ export class BacklinkRepo {
         icon: string | null;
         spaceId: string;
         updatedAt: Date;
-        spaceSlug: string | null;
-        spaceName: string | null;
+        space: { id: string; slug: string; name: string } | null;
       }>(pagination.limit);
     }
 
     const query = this.db
       .selectFrom('pages')
-      .leftJoin('spaces', 'spaces.id', 'pages.spaceId')
-      .select([
+      .select((eb) => [
         'pages.id',
         'pages.slugId',
         'pages.title',
         'pages.icon',
         'pages.spaceId',
         'pages.updatedAt',
-        'spaces.slug as spaceSlug',
-        'spaces.name as spaceName',
+        jsonObjectFrom(
+          eb
+            .selectFrom('spaces')
+            .select(['spaces.id', 'spaces.slug', 'spaces.name'])
+            .whereRef('spaces.id', '=', 'pages.spaceId'),
+        ).as('space'),
       ])
       .where('pages.deletedAt', 'is', null)
       .where('pages.id', 'in', pageIds);
