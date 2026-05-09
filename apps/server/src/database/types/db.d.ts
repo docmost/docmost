@@ -390,6 +390,22 @@ export interface Watchers {
   createdAt: Generated<Timestamp>;
 }
 
+export interface Labels {
+  id: Generated<string>;
+  name: string;
+  type: Generated<string>;
+  workspaceId: string;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface PageLabels {
+  id: Generated<string>;
+  pageId: string;
+  labelId: string;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -401,8 +417,10 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  labels: Labels;
   notifications: Notifications;
   pageHistory: PageHistory;
+  pageLabels: PageLabels;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;

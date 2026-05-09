@@ -48,6 +48,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
 import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
+import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 
 @Injectable()
 export class PageService {
@@ -64,6 +65,7 @@ export class PageService {
     private eventEmitter: EventEmitter2,
     private collaborationGateway: CollaborationGateway,
     private readonly watcherService: WatcherService,
+    private readonly labelRepo: LabelRepo,
   ) {}
 
   async findById(
@@ -729,11 +731,18 @@ export class PageService {
     }
 
     if (pageIds.length > 0) {
+      const affectedLabelIds =
+        await this.labelRepo.findLabelIdsByPageIds(pageIds);
+
       await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
       this.eventEmitter.emit(EventName.PAGE_DELETED, {
         pageIds: pageIds,
         workspaceId,
       });
+
+      if (affectedLabelIds.length > 0) {
+        await this.labelRepo.deleteOrphanedLabels(affectedLabelIds);
+      }
     }
   }
 

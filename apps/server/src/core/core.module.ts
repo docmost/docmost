@@ -16,6 +16,7 @@ import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 import { ShareModule } from './share/share.module';
+import { LabelModule } from './label/label.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
 
@@ -32,6 +33,7 @@ import { WatcherModule } from './watcher/watcher.module';
     GroupModule,
     CaslModule,
     ShareModule,
+    LabelModule,
     NotificationModule,
     WatcherModule,
   ],

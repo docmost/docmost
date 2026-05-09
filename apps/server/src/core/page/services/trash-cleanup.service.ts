@@ -5,6 +5,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 
 @Injectable()
 export class TrashCleanupService {
@@ -14,6 +15,7 @@ export class TrashCleanupService {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    private readonly labelRepo: LabelRepo,
   ) {}
 
   @Interval('trash-cleanup', 24 * 60 * 60 * 1000) // every 24 hours
@@ -104,7 +106,14 @@ export class TrashCleanupService {
 
     try {
       if (pageIds.length > 0) {
+        const affectedLabelIds =
+          await this.labelRepo.findLabelIdsByPageIds(pageIds);
+
         await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
+
+        if (affectedLabelIds.length > 0) {
+          await this.labelRepo.deleteOrphanedLabels(affectedLabelIds);
+        }
       }
     } catch (error) {
       // Log but don't throw - pages might have been deleted by another node

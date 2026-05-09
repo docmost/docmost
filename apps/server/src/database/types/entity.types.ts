@@ -3,7 +3,9 @@ import {
   Attachments,
   Comments,
   Groups,
+  Labels,
   Notifications,
+  PageLabels,
   Pages,
   Spaces,
   Users,
@@ -143,3 +145,12 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Label
+export type Label = Selectable<Labels>;
+export type InsertableLabel = Insertable<Labels>;
+export type UpdatableLabel = Updateable<Omit<Labels, 'id'>>;
+
+// PageLabel
+export type PageLabel = Selectable<PageLabels>;
+export type InsertablePageLabel = Insertable<PageLabels>;
