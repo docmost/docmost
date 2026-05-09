@@ -131,7 +131,7 @@
       "brace-expansion@^5": "5.0.5",
       "@xmldom/xmldom": "0.8.13",
       "handlebars": "4.7.9",
-      "axios": "1.15.0",
+      "axios": "1.16.0",
       "langsmith": "0.5.19",
       "follow-redirects": "1.16.0",
       "protobufjs":  "7.5.5"
