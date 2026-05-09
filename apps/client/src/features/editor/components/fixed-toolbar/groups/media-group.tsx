@@ -102,7 +102,7 @@ export const MediaGroup: FC<Props> = ({ editor }) => {
             pickFile(editor, "application/pdf", false, uploadPdfAction)
           }
         >
-          {t("PDF")}
+          PDF
         </Menu.Item>
         <Menu.Item
           leftSection={<IconPaperclip size={16} />}

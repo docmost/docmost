@@ -119,13 +119,13 @@ export const MoreInsertsGroup: FC<Props> = ({ editor }) => {
           leftSection={<IconDrawio size={16} />}
           onClick={() => editor.chain().focus().setDrawio().run()}
         >
-          {t("Draw.io")}
+          Draw.io
         </Menu.Item>
         <Menu.Item
           leftSection={<IconExcalidraw size={16} />}
           onClick={() => editor.chain().focus().setExcalidraw().run()}
         >
-          {t("Excalidraw")}
+          Excalidraw
         </Menu.Item>
 
         <Menu.Divider />
@@ -134,61 +134,61 @@ export const MoreInsertsGroup: FC<Props> = ({ editor }) => {
           leftSection={<IconAppWindow size={16} />}
           onClick={() => setEmbed("iframe")}
         >
-          {t("Iframe")}
+          Iframe
         </Menu.Item>
         <Menu.Item
           leftSection={<YoutubeIcon size={16} />}
           onClick={() => setEmbed("youtube")}
         >
-          {t("YouTube")}
+          YouTube
         </Menu.Item>
         <Menu.Item
           leftSection={<VimeoIcon size={16} />}
           onClick={() => setEmbed("vimeo")}
         >
-          {t("Vimeo")}
+          Vimeo
         </Menu.Item>
         <Menu.Item leftSection={<LoomIcon size={16} />} onClick={() => setEmbed("loom")}>
-          {t("Loom")}
+          Loom
         </Menu.Item>
         <Menu.Item
           leftSection={<FigmaIcon size={16} />}
           onClick={() => setEmbed("figma")}
         >
-          {t("Figma")}
+          Figma
         </Menu.Item>
         <Menu.Item
           leftSection={<AirtableIcon size={16} />}
           onClick={() => setEmbed("airtable")}
         >
-          {t("Airtable")}
+          Airtable
         </Menu.Item>
         <Menu.Item
           leftSection={<TypeformIcon size={16} />}
           onClick={() => setEmbed("typeform")}
         >
-          {t("Typeform")}
+          Typeform
         </Menu.Item>
         <Menu.Item leftSection={<MiroIcon size={16} />} onClick={() => setEmbed("miro")}>
-          {t("Miro")}
+          Miro
         </Menu.Item>
         <Menu.Item
           leftSection={<FramerIcon size={16} />}
           onClick={() => setEmbed("framer")}
         >
-          {t("Framer")}
+          Framer
         </Menu.Item>
         <Menu.Item
           leftSection={<GoogleDriveIcon size={16} />}
           onClick={() => setEmbed("gdrive")}
         >
-          {t("Google Drive")}
+          Google Drive
         </Menu.Item>
         <Menu.Item
           leftSection={<GoogleSheetsIcon size={16} />}
           onClick={() => setEmbed("gsheets")}
         >
-          {t("Google Sheets")}
+          Google Sheets
         </Menu.Item>
 
         <Menu.Divider />

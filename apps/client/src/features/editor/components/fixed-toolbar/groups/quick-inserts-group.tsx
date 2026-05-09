@@ -63,7 +63,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
               editor.chain().focus().insertColumns({ layout: "two_equal" }).run()
             }
           >
-            {t("2 columns")}
+            {t("{{count}} Columns", { count: 2 })}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconColumns3 size={16} />}
@@ -75,7 +75,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
                 .run()
             }
           >
-            {t("3 columns")}
+            {t("{{count}} Columns", { count: 3 })}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconColumns4 size={16} />}
@@ -83,7 +83,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
               editor.chain().focus().insertColumns({ layout: "four_equal" }).run()
             }
           >
-            {t("4 columns")}
+            {t("{{count}} Columns", { count: 4 })}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconColumns5 size={16} />}
@@ -91,7 +91,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
               editor.chain().focus().insertColumns({ layout: "five_equal" }).run()
             }
           >
-            {t("5 columns")}
+            {t("{{count}} Columns", { count: 5 })}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
