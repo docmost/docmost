@@ -3,14 +3,17 @@ import React from "react";
 import { TitleEditor } from "@/features/editor/title-editor";
 import PageEditor from "@/features/editor/page-editor";
 import {
+  ActionIcon,
   Container,
   Divider,
   Group,
   Popover,
   Stack,
   Text,
+  Tooltip,
   UnstyledButton,
 } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -19,6 +22,8 @@ import { useTranslation } from "react-i18next";
 import { IContributor } from "@/features/page/types/page.types.ts";
 import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
+import useToggleAside from "@/hooks/use-toggle-aside.tsx";
+import clsx from "clsx";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -101,6 +106,7 @@ function PageByline({
   readOnly,
 }: PageBylineProps) {
   const { t } = useTranslation();
+  const toggleAside = useToggleAside();
 
   const otherContributors = (contributors ?? []).filter(
     (c) => c.id !== creator?.id,
@@ -110,8 +116,8 @@ function PageByline({
     <Group
       gap="sm"
       mb="md"
-      className="print-hide"
-      style={{ marginTop: "-0.5em", paddingLeft: "3rem" }}
+      className={clsx("print-hide", classes.byline)}
+      style={{ marginTop: "-0.5em" }}
     >
       {creator && (
         <Popover position="bottom-start" shadow="md" width={280} withArrow>
@@ -173,6 +179,17 @@ function PageByline({
           </Popover.Dropdown>
         </Popover>
       )}
+      <Tooltip label={t("Details")} withArrow openDelay={250}>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          aria-label={t("Details")}
+          onClick={() => toggleAside("details")}
+        >
+          <IconInfoCircle size={20} stroke={1.5} />
+        </ActionIcon>
+      </Tooltip>
+
       <PageVerificationBadge readOnly={readOnly} />
     </Group>
   );

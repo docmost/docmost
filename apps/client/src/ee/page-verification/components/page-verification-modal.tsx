@@ -118,10 +118,20 @@ export function PageVerificationBadge({
 
   if (status === "none" && readOnly) return null;
 
+  const tooltipLabel =
+    status === "verified" && verificationInfo?.expiresAt
+      ? t("Verified until {{date}}", {
+          date: new Date(verificationInfo.expiresAt).toLocaleDateString(
+            undefined,
+            { month: "long", day: "numeric", year: "numeric" },
+          ),
+        })
+      : getStatusLabel(status, t);
+
   return (
     <>
       {status !== "none" ? (
-        <Tooltip label={getStatusLabel(status, t)} withArrow openDelay={250}>
+        <Tooltip label={tooltipLabel} withArrow openDelay={250}>
           <Group
             gap={4}
             onClick={open}

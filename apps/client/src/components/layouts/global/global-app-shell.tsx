@@ -147,7 +147,9 @@ export default function GlobalAppShell({
                 ? t("Table of contents")
                 : asideTab === "chat"
                   ? t("AI Chat")
-                  : undefined
+                  : asideTab === "details"
+                    ? t("Details")
+                    : undefined
           }
         >
           <Aside />
