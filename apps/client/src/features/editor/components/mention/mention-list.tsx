@@ -287,7 +287,16 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   );
 
   return (
-    <Paper id="mention" shadow="md" withBorder radius="md" py={6}>
+    <Paper
+      id="mention"
+      shadow="md"
+      withBorder
+      radius="md"
+      py={6}
+      role="listbox"
+      aria-label={t("Mention suggestions")}
+      aria-activedescendant={`mention-option-${selectedIndex}`}
+    >
       <ScrollArea.Autosize
         viewportRef={viewportRef}
         mah={350}
@@ -301,7 +310,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           if (item.entityType === "header") {
             const isFirst = index === 0;
             return (
-              <div key={`${item.label}-${index}`}>
+              <div key={`${item.label}-${index}`} role="presentation">
                 {!isFirst && <Divider my={6} />}
                 <Text
                   c="dimmed"
@@ -322,6 +331,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
               <UnstyledButton
                 data-item-index={index}
                 key={index}
+                id={`mention-option-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
                 onClick={() => selectItem(index)}
                 className={clsx(classes.menuBtn, {
                   [classes.selectedItem]: index === selectedIndex,
@@ -348,6 +360,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
               <UnstyledButton
                 data-item-index={index}
                 key={index}
+                id={`mention-option-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
                 onClick={() => selectItem(index)}
                 className={clsx(classes.menuBtn, {
                   [classes.selectedItem]: index === selectedIndex,
@@ -358,7 +373,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                   <ActionIcon
                     variant="subtle"
                     component="div"
-                    aria-label={item.label}
+                    aria-hidden="true"
                     color="gray"
                     size="sm"
                   >
@@ -390,6 +405,11 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             {(hasUsers || hasPages) && <Divider my={6} />}
             <UnstyledButton
               data-item-index={renderItems.indexOf(createPageItemData)}
+              id={`mention-option-${renderItems.indexOf(createPageItemData)}`}
+              role="option"
+              aria-selected={
+                renderItems.indexOf(createPageItemData) === selectedIndex
+              }
               onClick={() =>
                 selectItem(renderItems.indexOf(createPageItemData))
               }
@@ -405,6 +425,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                   component="div"
                   color="gray"
                   size="sm"
+                  aria-hidden="true"
                 >
                   <IconPlus size={16} stroke={1.5} />
                 </ActionIcon>

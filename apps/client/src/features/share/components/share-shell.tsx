@@ -148,6 +148,7 @@ export default function ShareShell({
                   onClick={toggleTocMobile}
                   hiddenFrom="sm"
                   size="sm"
+                  aria-label={t("Table of contents")}
                 >
                   <IconList size={20} stroke={2} />
                 </ActionIcon>
@@ -157,6 +158,7 @@ export default function ShareShell({
                 <ActionIcon
                   variant="default"
                   style={{ border: "none" }}
+                  aria-label={t("Table of contents")}
                   onClick={toggleToc}
                   visibleFrom="sm"
                   size="sm"

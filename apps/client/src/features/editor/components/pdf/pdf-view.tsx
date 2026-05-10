@@ -92,7 +92,20 @@ export default function PdfView(props: NodeViewProps) {
   if (hasError) {
     return (
       <NodeViewWrapper data-drag-handle>
-        <div data-pdf-error className={clsx(classes.pdfError, { "ProseMirror-selectednode": selected })} onClick={handleSelect}>
+        <div
+          data-pdf-error
+          className={clsx(classes.pdfError, { "ProseMirror-selectednode": selected })}
+          onClick={handleSelect}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleSelect();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={t("Failed to load PDF")}
+        >
           <IconFileTypePdf size={32} stroke={1.5} />
           <Text size="sm" c="dimmed">
             {t("Failed to load PDF")}

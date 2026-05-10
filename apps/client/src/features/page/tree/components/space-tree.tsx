@@ -28,6 +28,8 @@ import {
   IconLink,
   IconPlus,
   IconPointFilled,
+  IconStar,
+  IconStarFilled,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -69,6 +71,7 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
+import { useFavoriteIds, useAddFavoriteMutation, useRemoveFavoriteMutation } from "@/features/favorite/queries/favorite-query";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -455,6 +458,8 @@ interface CreateNodeProps {
 }
 
 function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
+  const { t } = useTranslation();
+
   function handleCreate() {
     if (node.data.hasChildren && node.children.length === 0) {
       node.toggle();
@@ -472,6 +477,7 @@ function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
     <ActionIcon
       variant="transparent"
       c="gray"
+      aria-label={t("Create page")}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -506,6 +512,10 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
     copyPageModalOpened,
     { open: openCopyPageModal, close: closeCopySpaceModal },
   ] = useDisclosure(false);
+  const favoriteIds = useFavoriteIds("page", spaceId);
+  const addFavorite = useAddFavoriteMutation();
+  const removeFavorite = useRemoveFavoriteMutation();
+  const isFavorited = favoriteIds.has(node.data.id);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -584,6 +594,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
           <ActionIcon
             variant="transparent"
             c="gray"
+            aria-label={t("Page menu")}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -606,6 +617,21 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
             }}
           >
             {t("Copy link")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={isFavorited ? <IconStarFilled size={16} /> : <IconStar size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isFavorited) {
+                removeFavorite.mutate({ type: "page", pageId: node.data.id });
+              } else {
+                addFavorite.mutate({ type: "page", pageId: node.data.id });
+              }
+            }}
+          >
+            {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
           </Menu.Item>
 
           <Menu.Item
@@ -703,6 +729,8 @@ interface PageArrowProps {
 }
 
 function PageArrow({ node, onExpandTree }: PageArrowProps) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (node.isOpen) {
       onExpandTree();
@@ -714,6 +742,8 @@ function PageArrow({ node, onExpandTree }: PageArrowProps) {
       size={20}
       variant="subtle"
       c="gray"
+      aria-label={node.isOpen ? t("Collapse") : t("Expand")}
+      aria-expanded={node.isInternal ? node.isOpen : undefined}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();

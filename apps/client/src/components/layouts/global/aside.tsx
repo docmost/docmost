@@ -8,6 +8,7 @@ import { TableOfContents } from "@/features/editor/components/table-of-contents/
 import { useAtomValue } from "jotai";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import AsideChatPanel from "@/ee/ai-chat/components/aside-chat-panel";
+import { PageDetailsAside } from "@/features/page-details/components/page-details-aside.tsx";
 
 export default function Aside() {
   const [{ tab }] = useAtom(asideStateAtom);
@@ -29,6 +30,10 @@ export default function Aside() {
     case "chat":
       component = <AsideChatPanel />;
       title = "AI Chat";
+      break;
+    case "details":
+      component = <PageDetailsAside />;
+      title = "Details";
       break;
     default:
       component = null;

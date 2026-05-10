@@ -187,12 +187,14 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
       position={{ top: 90, right: 50 }}
       withBorder
       transitionProps={{ transition: "slide-down" }}
+      aria-label={t("Find and replace")}
     >
       <Stack gap="xs">
         <Flex align="center" gap="xs">
           <Input
             ref={inputRef}
             placeholder={t("Find")}
+            aria-label={t("Find")}
             leftSection={<IconSearch size={16} />}
             rightSection={
               <Text size="xs" ta="right">
@@ -217,7 +219,12 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
 
           <ActionIcon.Group>
             <Tooltip label={t("Previous match (Shift+Enter)")}>
-              <ActionIcon variant="subtle" color="gray" onClick={previous}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={previous}
+                aria-label={t("Previous match (Shift+Enter)")}
+              >
                 <IconArrowNarrowUp
                   style={{ width: "70%", height: "70%" }}
                   stroke={1.5}
@@ -225,7 +232,12 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
               </ActionIcon>
             </Tooltip>
             <Tooltip label={t("Next match (Enter)")}>
-              <ActionIcon variant="subtle" color="gray" onClick={next}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={next}
+                aria-label={t("Next match (Enter)")}
+              >
                 <IconArrowNarrowDown
                   style={{ width: "70%", height: "70%" }}
                   stroke={1.5}
@@ -237,6 +249,8 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
                 variant="subtle"
                 color={caseSensitive.color}
                 onClick={() => caseSensitiveToggle()}
+                aria-label={t("Match case (Alt+C)")}
+                aria-pressed={caseSensitive.isCaseSensitive}
               >
                 <IconLetterCase
                   style={{ width: "70%", height: "70%" }}
@@ -250,6 +264,8 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
                   variant="subtle"
                   color={replaceButton.color}
                   onClick={() => replaceButtonToggle()}
+                  aria-label={t("Replace")}
+                  aria-pressed={replaceButton.isReplaceShow}
                 >
                   <IconReplace
                     style={{ width: "70%", height: "70%" }}
@@ -259,7 +275,12 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
               </Tooltip>
             )}
             <Tooltip label={t("Close (Escape)")}>
-              <ActionIcon variant="subtle" color="gray" onClick={closeDialog}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={closeDialog}
+                aria-label={t("Close (Escape)")}
+              >
                 <IconX style={{ width: "70%", height: "70%" }} stroke={1.5} />
               </ActionIcon>
             </Tooltip>
@@ -269,6 +290,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
           <Flex align="center" gap="xs">
             <Input
               placeholder={t("Replace")}
+              aria-label={t("Replace")}
               leftSection={<IconReplace size={16} />}
               rightSection={<div></div>}
               rightSectionPointerEvents="all"

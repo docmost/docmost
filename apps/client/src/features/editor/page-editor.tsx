@@ -64,7 +64,7 @@ import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams } from "react-router-dom";
-import { extractPageSlugId } from "@/lib";
+import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
@@ -73,6 +73,7 @@ import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
+import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 
 interface PageEditorProps {
   pageId: string;
@@ -234,11 +235,19 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
-            if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
+            if (platformModifierKey(event) && event.code === "KeyS") {
               event.preventDefault();
               return true;
             }
-            if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
+            if (event.key === "Tab") {
+                const editor = editorRef.current;
+                if (!editor) return false;
+                event.preventDefault();
+                return editor.view.someProp("handleKeyDown", (f) =>
+                  f(editor.view, event)
+                );
+            }
+            if (platformModifierKey(event) && event.code === "KeyK") {
               searchSpotlight.open();
               return true;
             }
@@ -393,27 +402,25 @@ export default function PageEditor({
     }
   }, [yjsConnectionStatus, isSynced]);
 
-  if (showStatic) {
-    return (
-      <EditorProvider
-        editable={false}
-        immediatelyRender={true}
-        extensions={mainExtensions}
-        content={content}
-      />
-    );
-  }
-
   return (
-    <div className="editor-container" style={{ position: "relative" }}>
-      <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
+    <TransclusionLookupProvider>
+      {showStatic ? (
+        <EditorProvider
+          editable={false}
+          immediatelyRender={true}
+          extensions={mainExtensions}
+          content={content}
+        />
+      ) : (
+        <div className="editor-container" style={{ position: "relative" }}>
+          <div ref={menuContainerRef}>
+            <EditorContent editor={editor} />
 
-        {editor && (
-          <SearchAndReplaceDialog editor={editor} editable={editable} />
-        )}
+            {editor && (
+              <SearchAndReplaceDialog editor={editor} editable={editable} />
+            )}
 
-        {editor && editorIsEditable && (
+{editor && editorIsEditable && (
           <div>
             <EditorAiMenu editor={editor} />
             <EditorLinkMenu editor={editor} />
@@ -431,18 +438,25 @@ export default function PageEditor({
             <ColumnsMenu editor={editor} />
           </div>
         )}
-        {editor && !editorIsEditable && (editable || canComment) && providersRef.current && (
-          <ReadonlyBubbleMenu editor={editor} />
+        {editor &&
+          !editorIsEditable &&
+          (editable || canComment) &&
+          providersRef.current && (
+            <ReadonlyBubbleMenu editor={editor} />
+          )}
+        {showCommentPopup && (
+          <CommentDialog editor={editor} pageId={pageId} />
         )}
-        {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
         {showReadOnlyCommentPopup && (
           <CommentDialog editor={editor} pageId={pageId} readOnly />
         )}
-      </div>
-      <div
-        onClick={() => editor.commands.focus("end")}
-        style={{ paddingBottom: "20vh" }}
-      ></div>
-    </div>
+          </div>
+          <div
+            onClick={() => editor.commands.focus("end")}
+            style={{ paddingBottom: "20vh" }}
+          ></div>
+        </div>
+      )}
+    </TransclusionLookupProvider>
   );
 }

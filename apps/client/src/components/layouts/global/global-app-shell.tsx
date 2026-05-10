@@ -1,6 +1,7 @@
 import { AppShell, Container } from "@mantine/core";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import SettingsSidebar from "@/components/settings/settings-sidebar.tsx";
 import { useAtom } from "jotai";
 import {
@@ -16,17 +17,19 @@ import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
 import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import GlobalSidebar from "@/components/layouts/global/global-sidebar.tsx";
 
 export default function GlobalAppShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   useTrialEndAction();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);
-  const [{ isAsideOpen }] = useAtom(asideStateAtom);
+  const [{ isAsideOpen, tab: asideTab }] = useAtom(asideStateAtom);
   const [sidebarWidth, setSidebarWidth] = useAtom(sidebarWidthAtom);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef(null);
@@ -74,24 +77,20 @@ export default function GlobalAppShell({
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const isSpaceRoute = location.pathname.startsWith("/s/");
   const isAiRoute = location.pathname.startsWith("/ai");
-  const isHomeRoute = location.pathname.startsWith("/home");
-  const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
-  const hideSidebar = isHomeRoute || isSpacesRoute;
+  const showGlobalSidebar = !isSpaceRoute && !isSettingsRoute && !isAiRoute;
 
   return (
     <AppShell
       header={{ height: 45 }}
-      navbar={
-        !hideSidebar && {
-          width: isSpaceRoute ? sidebarWidth : 300,
-          breakpoint: "sm",
-          collapsed: {
-            mobile: !mobileOpened,
-            desktop: !desktopOpened,
-          },
-        }
-      }
+      navbar={{
+        width: isSpaceRoute ? sidebarWidth : 300,
+        breakpoint: "sm",
+        collapsed: {
+          mobile: !mobileOpened,
+          desktop: !desktopOpened,
+        },
+      }}
       aside={
         isPageRoute && {
           width: 350,
@@ -104,28 +103,55 @@ export default function GlobalAppShell({
       <AppShell.Header px="md" className={classes.header}>
         <AppHeader />
       </AppShell.Header>
-      {!hideSidebar && (
-        <AppShell.Navbar
-          className={classes.navbar}
-          withBorder={false}
-          ref={sidebarRef}
-        >
-          {!isAiRoute && <div className={classes.resizeHandle} onMouseDown={startResizing} />}
-          {isSpaceRoute && <SpaceSidebar />}
-          {isSettingsRoute && <SettingsSidebar />}
-          {isAiRoute && <AiChatSidebar />}
-        </AppShell.Navbar>
-      )}
-      <AppShell.Main>
+      <AppShell.Navbar
+        className={classes.navbar}
+        withBorder={false}
+        ref={sidebarRef}
+        aria-label={
+          isSpaceRoute
+            ? t("Space navigation")
+            : isSettingsRoute
+              ? t("Settings navigation")
+              : isAiRoute
+                ? t("AI navigation")
+                : t("Main navigation")
+        }
+      >
+        {isSpaceRoute && (
+          <div className={classes.resizeHandle} onMouseDown={startResizing} />
+        )}
+        {isSpaceRoute && <SpaceSidebar />}
+        {isSettingsRoute && <SettingsSidebar />}
+        {isAiRoute && <AiChatSidebar />}
+        {showGlobalSidebar && <GlobalSidebar />}
+      </AppShell.Navbar>
+      <AppShell.Main id="main-content">
         {isSettingsRoute ? (
-          <Container size={850}>{children}</Container>
+          <Container size={900} pb={80}>
+            {children}
+          </Container>
         ) : (
           children
         )}
       </AppShell.Main>
 
       {isPageRoute && (
-        <AppShell.Aside className={classes.aside} p="md" withBorder={false}>
+        <AppShell.Aside
+          className={classes.aside}
+          p="md"
+          withBorder={false}
+          aria-label={
+            asideTab === "comments"
+              ? t("Comments")
+              : asideTab === "toc"
+                ? t("Table of contents")
+                : asideTab === "chat"
+                  ? t("AI Chat")
+                  : asideTab === "details"
+                    ? t("Details")
+                    : undefined
+          }
+        >
           <Aside />
         </AppShell.Aside>
       )}

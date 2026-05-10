@@ -157,6 +157,11 @@ export const useQuerySubscription = () => {
           });
           break;
         }
+        case "verificationUpdated":
+          queryClient.invalidateQueries({
+            queryKey: ["page-verification-info", data.pageId],
+          });
+          break;
       }
     });
   }, [queryClient, socket]);

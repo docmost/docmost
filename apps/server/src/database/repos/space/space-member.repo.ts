@@ -290,6 +290,32 @@ export class SpaceMemberRepo {
     return membership.map((space) => space.id);
   }
 
+  async getUserRolesForSpaces(
+    userId: string,
+    spaceIds: string[],
+  ): Promise<{ spaceId: string; role: string }[]> {
+    if (spaceIds.length === 0) return [];
+
+    return this.db
+      .selectFrom('spaceMembers')
+      .select(['spaceId', 'role'])
+      .where('userId', '=', userId)
+      .where('spaceId', 'in', spaceIds)
+      .unionAll(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin(
+            'groupUsers',
+            'groupUsers.groupId',
+            'spaceMembers.groupId',
+          )
+          .select(['spaceMembers.spaceId', 'spaceMembers.role'])
+          .where('groupUsers.userId', '=', userId)
+          .where('spaceMembers.spaceId', 'in', spaceIds),
+      )
+      .execute();
+  }
+
   async getUserSpaces(userId: string, pagination: PaginationOptions) {
     let query = this.db
       .selectFrom('spaces')

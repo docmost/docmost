@@ -25,6 +25,8 @@ import {
   IconColumns3,
   IconColumns2,
   IconTag,
+  IconMoodSmile,
+  IconRotate2,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -132,7 +134,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Numbered list",
       description: "Create a list with numbering.",
-      searchTerms: ["numbered", "ordered", "list"],
+      searchTerms: ["numbered", "ordered", "list", "ol"],
       icon: IconListNumbers,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).toggleOrderedList().run();
@@ -231,7 +233,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Audio",
       description: "Upload any audio from your device.",
-      searchTerms: ["audio", "music", "sound", "mp3", "media", "file", "attachment"],
+      searchTerms: [
+        "audio",
+        "music",
+        "sound",
+        "mp3",
+        "media",
+        "file",
+        "attachment",
+      ],
       icon: IconMusic,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -419,7 +429,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run(),
     },
     {
-      title: "Draw.io (diagrams.net) ",
+      title: "Draw.io (diagrams.net)",
       description: "Insert and design Drawio diagrams",
       searchTerms: ["drawio", "diagrams", "charts", "uml", "whiteboard"],
       icon: IconDrawio,
@@ -469,12 +479,50 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
+      title: "Emoji",
+      description: "Insert emoji.",
+      searchTerms: ["emoji", "icon", "smiley", "emoticon", "symbol", "reaction"],
+      icon: IconMoodSmile,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).insertContent(":").run();
+      },
+    },
+    {
       title: "Subpages (Child pages)",
       description: "List all subpages of the current page",
-      searchTerms: ["subpages", "child", "children", "nested", "hierarchy"],
+      searchTerms: [
+        "subpages",
+        "child",
+        "children",
+        "nested",
+        "hierarchy",
+        "toc",
+      ],
       icon: IconSitemap,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
+      },
+    },
+    {
+      title: "Synced block",
+      description: "Create a block that stays in sync across pages.",
+      searchTerms: [
+        "sync",
+        "synced",
+        "synced block",
+        "excerpt",
+        "transclusion",
+        "reusable",
+        "snippet",
+      ],
+      icon: IconRotate2,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertTransclusionSource()
+          .run();
       },
     },
     {
@@ -688,8 +736,10 @@ const CommandGroups: SlashMenuGroupedItemsType = {
 
 export const getSuggestionItems = ({
   query,
+  excludeItems,
 }: {
   query: string;
+  excludeItems?: Set<string>;
 }): SlashMenuGroupedItemsType => {
   const search = query.toLowerCase();
   const filteredGroups: SlashMenuGroupedItemsType = {};
@@ -706,6 +756,7 @@ export const getSuggestionItems = ({
 
   for (const [group, items] of Object.entries(CommandGroups)) {
     const filteredItems = items.filter((item) => {
+      if (excludeItems?.has(item.title)) return false;
       return (
         fuzzyMatch(search, item.title) ||
         item.description.toLowerCase().includes(search) ||

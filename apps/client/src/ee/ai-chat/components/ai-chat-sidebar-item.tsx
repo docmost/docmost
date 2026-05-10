@@ -9,7 +9,7 @@ import classes from "../styles/chat-sidebar.module.css";
 type Props = {
   chat: AiChat;
   isActive: boolean;
-  onDelete: (chatId: string) => void;
+  onDelete: (chatId: string, title: string | null) => void;
   onRename: (chatId: string, title: string) => void;
 };
 
@@ -132,6 +132,7 @@ export default function AiChatSidebarItem({
               size="xs"
               color="gray"
               onClick={(e) => e.preventDefault()}
+              aria-label={t("Chat menu")}
             >
               <IconDots size={14} />
             </ActionIcon>
@@ -153,7 +154,7 @@ export default function AiChatSidebarItem({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onDelete(chat.id);
+                onDelete(chat.id, chat.title);
               }}
             >
               {t("Delete")}

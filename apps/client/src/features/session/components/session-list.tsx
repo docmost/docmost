@@ -37,7 +37,7 @@ export default function SessionList() {
           <Table.Tr>
             <Table.Th>{t("Device Name")}</Table.Th>
             <Table.Th>{t("Last Active")}</Table.Th>
-            <Table.Th />
+            <Table.Th aria-label={t("Action")} />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -94,7 +94,7 @@ export default function SessionList() {
           <Table.Tr>
             <Table.Th>{t("Device Name")}</Table.Th>
             <Table.Th>{t("Last Active")}</Table.Th>
-            {otherSessions.length > 0 && <Table.Th />}
+            {otherSessions.length > 0 && <Table.Th aria-label={t("Action")} />}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>

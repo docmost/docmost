@@ -100,6 +100,30 @@ export class PageRepo {
     return query.executeTakeFirst();
   }
 
+  async findManyByIds(
+    pageIds: string[],
+    opts?: {
+      trx?: KyselyTransaction;
+      workspaceId?: string;
+    },
+  ): Promise<Page[]> {
+    if (pageIds.length === 0) return [];
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .where('id', 'in', pageIds);
+
+    if (opts?.workspaceId) {
+      query = query
+        .where('workspaceId', '=', opts.workspaceId)
+        .where('deletedAt', 'is', null);
+    }
+
+    return query.execute();
+  }
+
   async updatePage(
     updatablePage: UpdatablePage,
     pageId: string,
@@ -308,6 +332,35 @@ export class PageRepo {
       .select((eb) => this.withSpace(eb))
       .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
       .where('deletedAt', 'is', null);
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'updatedAt', direction: 'desc' },
+        { expression: 'id', direction: 'desc' },
+      ],
+      parseCursor: (cursor) => ({
+        updatedAt: new Date(cursor.updatedAt),
+        id: cursor.id,
+      }),
+    });
+  }
+
+  async getCreatedByPages(creatorId: string, requestingUserId: string, pagination: PaginationOptions, spaceId?: string) {
+    let query = this.db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .select((eb) => this.withSpace(eb))
+      .where('creatorId', '=', creatorId)
+      .where('deletedAt', 'is', null);
+
+    if (spaceId) {
+      query = query.where('spaceId', '=', spaceId);
+    } else {
+      query = query.where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId));
+    }
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,

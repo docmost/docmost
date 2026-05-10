@@ -1,8 +1,8 @@
-import type { CodeBlockOptions } from "@tiptap/extension-code-block";
-import CodeBlock from "@tiptap/extension-code-block";
+import type { CodeBlockOptions } from '@tiptap/extension-code-block';
+import CodeBlock from '@tiptap/extension-code-block';
 
-import { LowlightPlugin } from "./lowlight-plugin.js";
-import { ReactNodeViewRenderer } from "@tiptap/react";
+import { LowlightPlugin } from './lowlight-plugin.js';
+import { ReactNodeViewRenderer } from '@tiptap/react';
 
 export interface CodeBlockLowlightOptions extends CodeBlockOptions {
   /**
@@ -12,7 +12,7 @@ export interface CodeBlockLowlightOptions extends CodeBlockOptions {
   view: any;
 }
 
-const TAB_CHAR = "\u00A0\u00A0";
+const TAB_CHAR = '\u00A0\u00A0';
 
 /**
  * This extension allows you to highlight code blocks with lowlight.
@@ -25,7 +25,7 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
     return {
       ...this.parent?.(),
       lowlight: {},
-      languageClassPrefix: "language-",
+      languageClassPrefix: 'language-',
       exitOnTripleEnter: true,
       exitOnArrowDown: true,
       defaultLanguage: null,
@@ -37,20 +37,8 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
   addKeyboardShortcuts() {
     return {
       ...this.parent?.(),
-      Tab: () => {
-        if (this.editor.isActive("codeBlock")) {
-          this.editor
-            .chain()
-            .command(({ tr }) => {
-              tr.insertText(TAB_CHAR);
-              return true;
-            })
-            .run();
-          return true;
-        }
-      },
-      "Mod-a": () => {
-        if (this.editor.isActive("codeBlock")) {
+      'Mod-a': () => {
+        if (this.editor.isActive('codeBlock')) {
           const { state } = this.editor;
           const { $from } = state.selection;
 
@@ -60,7 +48,7 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
 
           for (depth = $from.depth; depth > 0; depth--) {
             const node = $from.node(depth);
-            if (node.type.name === "codeBlock") {
+            if (node.type.name === 'codeBlock') {
               codeBlockNode = node;
               codeBlockPos = $from.start(depth) - 1;
               break;

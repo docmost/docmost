@@ -16,6 +16,7 @@ import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { GroupUserService } from './group-user.service';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -34,6 +35,7 @@ export class GroupService {
     @Inject(forwardRef(() => GroupUserService))
     private groupUserService: GroupUserService,
     private readonly watcherRepo: WatcherRepo,
+    private readonly favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -189,6 +191,12 @@ export class GroupService {
           spaceId,
           { trx },
         );
+
+        await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
+          userIds,
+          spaceId,
+          { trx },
+        );
       }
     });
 
@@ -208,8 +216,11 @@ export class GroupService {
   async findAndValidateGroup(
     groupId: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ): Promise<Group> {
-    const group = await this.groupRepo.findById(groupId, workspaceId);
+    const group = await this.groupRepo.findById(groupId, workspaceId, {
+      trx,
+    });
     if (!group) {
       throw new NotFoundException('Group not found');
     }

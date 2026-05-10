@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Menu, Text, ThemeIcon, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
   IconArrowsHorizontal,
@@ -12,6 +12,8 @@ import {
   IconMarkdown,
   IconMessage,
   IconPrinter,
+  IconStar,
+  IconStarFilled,
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
@@ -42,6 +44,15 @@ import { PageStateSegmentedControl } from "@/features/user/components/page-state
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
+import {
+  PageVerificationMenuItem,
+  PageVerificationModal,
+} from "@/ee/page-verification";
+import {
+  useFavoriteIds,
+  useAddFavoriteMutation,
+  useRemoveFavoriteMutation,
+} from "@/features/favorite/queries/favorite-query";
 import {
   useWatchStatusQuery,
   useWatchPageMutation,
@@ -88,6 +99,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         <ActionIcon
           variant="subtle"
           color="dark"
+          aria-label={t("Comments")}
           onClick={() => toggleAside("comments")}
         >
           <IconMessage size={20} stroke={2} />
@@ -98,6 +110,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         <ActionIcon
           variant="subtle"
           color="dark"
+          aria-label={t("Table of contents")}
           onClick={() => toggleAside("toc")}
         >
           <IconList size={20} stroke={2} />
@@ -128,8 +141,16 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     movePageModalOpened,
     { open: openMovePageModal, close: closeMoveSpaceModal },
   ] = useDisclosure(false);
+  const [
+    verificationOpened,
+    { open: openVerificationModal, close: closeVerificationModal },
+  ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
+  const favoriteIds = useFavoriteIds("page", page?.spaceId);
+  const addFavoriteMutation = useAddFavoriteMutation();
+  const removeFavoriteMutation = useRemoveFavoriteMutation();
+  const isFavorited = page?.id ? favoriteIds.has(page.id) : false;
   const { data: watchStatus } = useWatchStatusQuery(page?.id);
   const watchPage = useWatchPageMutation();
   const unwatchPage = useUnwatchPageMutation();
@@ -165,6 +186,16 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     openDeleteModal({ onConfirm: () => tree?.delete(page.id) });
   };
 
+  const handleToggleFavorite = () => {
+    if (!page?.id) return;
+    const params = { type: "page" as const, pageId: page.id };
+    if (isFavorited) {
+      removeFavoriteMutation.mutate(params);
+    } else {
+      addFavoriteMutation.mutate(params);
+    }
+  };
+
   return (
     <>
       <Menu
@@ -176,7 +207,11 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         arrowPosition="center"
       >
         <Menu.Target>
-          <ActionIcon variant="subtle" color="dark">
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            aria-label={t("Page actions")}
+          >
             <IconDots size={20} />
           </ActionIcon>
         </Menu.Target>
@@ -194,6 +229,19 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             onClick={handleCopyAsMarkdown}
           >
             {t("Copy as Markdown")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={
+              isFavorited ? (
+                <IconStarFilled size={16} color="var(--mantine-color-yellow-5)" />
+              ) : (
+                <IconStar size={16} />
+              )
+            }
+            onClick={handleToggleFavorite}
+          >
+            {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
           </Menu.Item>
 
           {watchStatus?.watching ? (
@@ -226,6 +274,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           >
             {t("Page history")}
           </Menu.Item>
+
+          {!readOnly && (
+            <PageVerificationMenuItem
+              pageId={page?.id}
+              onClick={openVerificationModal}
+            />
+          )}
 
           <Menu.Divider />
 
@@ -316,6 +371,12 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         onClose={closeMoveSpaceModal}
         open={movePageModalOpened}
       />
+
+      <PageVerificationModal
+        pageId={page.id}
+        opened={verificationOpened}
+        onClose={closeVerificationModal}
+      />
     </>
   );
 }
@@ -361,9 +422,15 @@ function ConnectionWarning() {
       openDelay={250}
       withArrow
     >
-      <ActionIcon variant="default" c="red" style={{ border: "none" }}>
+      <ThemeIcon
+        variant="default"
+        c="red"
+        role="status"
+        aria-label={t("Real-time editor connection lost. Retrying...")}
+        style={{ border: "none" }}
+      >
         <IconWifiOff size={20} stroke={2} />
-      </ActionIcon>
+      </ThemeIcon>
     </Tooltip>
   );
 }

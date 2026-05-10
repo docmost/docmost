@@ -33,6 +33,10 @@ export const auditEventLabels: Record<string, string> = {
   "api_key.updated": "Updated API key",
   "api_key.deleted": "Deleted API key",
 
+  "scim_token.created": "Created SCIM token",
+  "scim_token.updated": "Updated SCIM token",
+  "scim_token.deleted": "Deleted SCIM token",
+
   "space.created": "Created space",
   "space.updated": "Updated space",
   "space.deleted": "Deleted space",
@@ -58,6 +62,13 @@ export const auditEventLabels: Record<string, string> = {
   "page.restriction_removed": "Removed page restriction",
   "page.permission_added": "Added page permission",
   "page.permission_removed": "Removed page permission",
+  "page.verification_created": "Created page verification",
+  "page.verification_updated": "Updated page verification",
+  "page.verification_removed": "Removed page verification",
+  "page.verified": "Verified page",
+  "page.approval_requested": "Requested page approval",
+  "page.approval_rejected": "Rejected page approval",
+  "page.marked_obsolete": "Marked page as obsolete",
 
   "share.created": "Created share link",
   "share.deleted": "Deleted share link",
@@ -136,6 +147,13 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "page.restriction_removed", label: "Removed page restriction" },
       { value: "page.permission_added", label: "Added page permission" },
       { value: "page.permission_removed", label: "Removed page permission" },
+      { value: "page.verification_created", label: "Created page verification" },
+      { value: "page.verification_updated", label: "Updated page verification" },
+      { value: "page.verification_removed", label: "Removed page verification" },
+      { value: "page.verified", label: "Verified page" },
+      { value: "page.approval_requested", label: "Requested page approval" },
+      { value: "page.approval_rejected", label: "Rejected page approval" },
+      { value: "page.marked_obsolete", label: "Marked page as obsolete" },
     ],
   },
   {
@@ -158,6 +176,14 @@ export const eventFilterOptions: EventGroup[] = [
     items: [
       { value: "api_key.created", label: "Created API key" },
       { value: "api_key.deleted", label: "Deleted API key" },
+    ],
+  },
+  {
+    group: "SCIM token",
+    items: [
+      { value: "scim_token.created", label: "Created SCIM token" },
+      { value: "scim_token.updated", label: "Updated SCIM token" },
+      { value: "scim_token.deleted", label: "Deleted SCIM token" },
     ],
   },
   {
