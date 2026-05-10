@@ -53,6 +53,8 @@ import {
   handleFileDrop,
   handlePaste,
 } from "@/features/editor/components/common/editor-paste-handler.tsx";
+import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
+import EmbedMenu from "@/features/editor/components/embed/embed-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
@@ -418,35 +420,36 @@ export default function PageEditor({
               <SearchAndReplaceDialog editor={editor} editable={editable} />
             )}
 
-            {editor && editorIsEditable && (
-              <div>
-                <EditorAiMenu editor={editor} />
-                <EditorLinkMenu editor={editor} />
-                <EditorBubbleMenu editor={editor} />
-                <TableMenu editor={editor} />
-                <TableCellMenu editor={editor} appendTo={menuContainerRef} />
-                <ImageMenu editor={editor} />
-                <VideoMenu editor={editor} />
-                <PdfMenu editor={editor} />
-                <CalloutMenu editor={editor} />
-                <SubpagesMenu editor={editor} />
-                <ExcalidrawMenu editor={editor} />
-                <DrawioMenu editor={editor} />
-                <ColumnsMenu editor={editor} />
-              </div>
-            )}
-            {editor &&
-              !editorIsEditable &&
-              (editable || canComment) &&
-              providersRef.current && (
-                <ReadonlyBubbleMenu editor={editor} />
-              )}
-            {showCommentPopup && (
-              <CommentDialog editor={editor} pageId={pageId} />
-            )}
-            {showReadOnlyCommentPopup && (
-              <CommentDialog editor={editor} pageId={pageId} readOnly />
-            )}
+{editor && editorIsEditable && (
+          <div>
+            <EditorAiMenu editor={editor} />
+            <EditorLinkMenu editor={editor} />
+            <EditorBubbleMenu editor={editor} />
+            <TableMenu editor={editor} />
+            <TableCellMenu editor={editor} appendTo={menuContainerRef} />
+            <ImageMenu editor={editor} />
+            <VideoMenu editor={editor} />
+            <PdfMenu editor={editor} />
+            <CalloutMenu editor={editor} />
+            <SubpagesMenu editor={editor} />
+            <EmbedMenu editor={editor} />
+            <ExcalidrawMenu editor={editor} />
+            <DrawioMenu editor={editor} />
+            <ColumnsMenu editor={editor} />
+          </div>
+        )}
+        {editor &&
+          !editorIsEditable &&
+          (editable || canComment) &&
+          providersRef.current && (
+            <ReadonlyBubbleMenu editor={editor} />
+          )}
+        {showCommentPopup && (
+          <CommentDialog editor={editor} pageId={pageId} />
+        )}
+        {showReadOnlyCommentPopup && (
+          <CommentDialog editor={editor} pageId={pageId} readOnly />
+        )}
           </div>
           <div
             onClick={() => editor.commands.focus("end")}

@@ -1,6 +1,6 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
@@ -15,15 +15,18 @@ import {
   IconDownload,
   IconRefresh,
   IconTrash,
+  IconCrop,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
+import ImageCropModal from "./image-crop-modal.tsx";
 import classes from "../common/toolbar-menu.module.css";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cropModalOpened, setCropModalOpened] = useState(false);
 
   const editorState = useEditorState({
     editor,
@@ -40,6 +43,8 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         isAlignCenter: ctx.editor.isActive("image", { align: "center" }),
         isAlignRight: ctx.editor.isActive("image", { align: "right" }),
         src: imageAttrs?.src || null,
+        attachmentId: imageAttrs?.attachmentId || null,
+        cropMetadata: imageAttrs?.cropMetadata || null,
       };
     },
   });
@@ -135,6 +140,16 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     editor.commands.deleteSelection();
   }, [editor]);
 
+  const handleCrop = useCallback(() => {
+    setCropModalOpened(true);
+  }, []);
+
+  const handleCropApplied = useCallback(() => {
+    // Refresh the editor to show the cropped image
+    editor.commands.updateAttributes("image", { updatedAt: Date.now() });
+    editor.commands.focus();
+  }, [editor]);
+
   return (
     <BaseBubbleMenu
       editor={editor}
@@ -187,6 +202,18 @@ export function ImageMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
+        <Tooltip position="top" label={t("Crop image")} withinPortal={false}>
+          <ActionIcon
+            onClick={handleCrop}
+            size="lg"
+            aria-label={t("Crop image")}
+            variant="subtle"
+            disabled={!editorState?.attachmentId}
+          >
+            <IconCrop size={18} />
+          </ActionIcon>
+        </Tooltip>
+
         <Tooltip position="top" label={t("Download")} withinPortal={false}>
           <ActionIcon
             onClick={handleDownload}
@@ -227,6 +254,16 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         accept="image/*"
         style={{ display: "none" }}
         onChange={handleFileChange}
+      />
+
+      <ImageCropModal
+        opened={cropModalOpened}
+        onClose={() => setCropModalOpened(false)}
+        attachmentId={editorState?.attachmentId || ""}
+        src={editorState?.src || ""}
+        initialCropData={editorState?.cropMetadata}
+        onCropApplied={handleCropApplied}
+        editor={editor}
       />
     </BaseBubbleMenu>
   );
