@@ -56,6 +56,7 @@ import {
   Status,
   TransclusionSource,
   TransclusionReference,
+  TableView,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -259,6 +260,7 @@ export const mainExtensions = [
     resizable: true,
     lastColumnResizable: true,
     allowTableNodeSelection: true,
+    View: TableView,
   }),
   TableRow,
   TableCell,

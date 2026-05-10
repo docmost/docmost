@@ -32,6 +32,7 @@ function handleListOutdent(editor: Editor): boolean {
 }
 
 export const CustomTable = Table.extend({
+
   addKeyboardShortcuts() {
     return {
       ...this.parent?.(),
