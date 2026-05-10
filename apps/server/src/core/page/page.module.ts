@@ -8,6 +8,7 @@ import { StorageModule } from '../../integrations/storage/storage.module';
 import { CollaborationModule } from '../../collaboration/collaboration.module';
 import { WatcherModule } from '../watcher/watcher.module';
 import { TransclusionModule } from './transclusion/transclusion.module';
+import { LabelModule } from '../label/label.module';
 
 @Module({
   controllers: [PageController],
@@ -23,6 +24,7 @@ import { TransclusionModule } from './transclusion/transclusion.module';
     CollaborationModule,
     WatcherModule,
     TransclusionModule,
+    LabelModule,
   ],
 })
 export class PageModule {}

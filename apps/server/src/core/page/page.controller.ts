@@ -40,6 +40,8 @@ import { CreatedByUserDto } from './dto/created-by-user.dto';
 import { DuplicatePageDto } from './dto/duplicate-page.dto';
 import { DeletedPageDto } from './dto/deleted-page.dto';
 import { BacklinksListDto } from './dto/backlink.dto';
+import { LabelService } from '../label/label.service';
+import { AddLabelsDto, RemoveLabelDto } from '../label/dto/label.dto';
 import {
   jsonToHtml,
   jsonToMarkdown,
@@ -61,6 +63,7 @@ export class PageController {
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly pageAccessService: PageAccessService,
     private readonly backlinkService: BacklinkService,
+    private readonly labelService: LabelService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
@@ -97,6 +100,64 @@ export class PageController {
     }
 
     return { ...page, permissions };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('labels')
+  async getPageLabels(
+    @Body() dto: PageIdDto,
+    @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    await this.pageAccessService.validateCanView(page, user);
+
+    return this.labelService.getPageLabels(page.id, pagination);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('labels/add')
+  async addPageLabels(
+    @Body() dto: AddLabelsDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    return this.labelService.addLabelsToPage(
+      page.id,
+      dto.names,
+      workspace.id,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('labels/remove')
+  async removePageLabel(
+    @Body() dto: RemoveLabelDto,
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    await this.labelService.removeLabelFromPage(
+      page.id,
+      dto.labelId,
+      page.workspaceId,
+    );
   }
 
   @HttpCode(HttpStatus.OK)

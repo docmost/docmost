@@ -6,6 +6,8 @@ import { dbOrTx } from '@docmost/db/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { normalizeLabelName } from '../../../core/label/utils';
 
 export const LabelType = {
   PAGE: 'page',
@@ -43,7 +45,7 @@ export class LabelRepo {
     return db
       .selectFrom('labels')
       .selectAll()
-      .where('name', '=', name.toLowerCase())
+      .where('name', '=', normalizeLabelName(name))
       .where('type', '=', type)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -56,22 +58,21 @@ export class LabelRepo {
     trx?: KyselyTransaction,
   ): Promise<Label> {
     const db = dbOrTx(this.db, trx);
-    const normalizedName = name.trim().toLowerCase();
+    const normalizedName = normalizeLabelName(name);
 
-    const result = await db
+    // DO UPDATE (rather than DO NOTHING) so RETURNING always emits a row,
+    // even on conflict. Avoids a race where a follow-up SELECT could miss a
+    // row inserted by a concurrent transaction. The set is a no-op write.
+    return db
       .insertInto('labels')
       .values({ name: normalizedName, type, workspaceId })
       .onConflict((oc) =>
-        oc.columns(['name', 'type', 'workspaceId']).doNothing(),
+        oc
+          .columns(['name', 'type', 'workspaceId'])
+          .doUpdateSet({ name: normalizedName }),
       )
       .returningAll()
-      .executeTakeFirst();
-
-    if (result) {
-      return result;
-    }
-
-    return this.findByNameAndWorkspace(normalizedName, workspaceId, type, trx);
+      .executeTakeFirstOrThrow();
   }
 
   async findLabelsByPageId(pageId: string, pagination: PaginationOptions) {
@@ -85,35 +86,59 @@ export class LabelRepo {
         'labels.createdAt',
         'labels.updatedAt',
         'labels.workspaceId',
+        'pageLabels.id as joinId',
       ])
       .where('pageLabels.pageId', '=', pageId)
       .where('labels.type', '=', LabelType.PAGE);
 
-    return executeWithCursorPagination(query, {
+    const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
-        { expression: 'labels.name', direction: 'asc', key: 'name' },
-        { expression: 'labels.id', direction: 'asc', key: 'id' },
+        { expression: 'pageLabels.id', direction: 'asc', key: 'joinId' },
       ],
       parseCursor: (cursor) => ({
-        name: cursor.name,
-        id: cursor.id,
+        joinId: cursor.joinId,
       }),
     });
+
+    // joinId is an internal pagination cursor; don't leak it to callers.
+    return {
+      ...result,
+      items: result.items.map(({ joinId: _joinId, ...rest }) => rest),
+    };
   }
 
   async findLabels(
     workspaceId: string,
+    userId: string,
     type: LabelType,
     pagination: PaginationOptions,
   ) {
+    // Label visibility is scoped to space membership: a label surfaces if it
+    // is attached to any non-deleted page in a space the user belongs to.
+    // Per-page permission restrictions intentionally do not narrow this
+    // further — labels are a space-level concept, not a page-level one.
     let query = this.db
       .selectFrom('labels')
       .select(['id', 'name', 'type', 'createdAt', 'updatedAt', 'workspaceId'])
       .where('workspaceId', '=', workspaceId)
-      .where('type', '=', type);
+      .where('type', '=', type)
+      .where(
+        'id',
+        'in',
+        this.db
+          .selectFrom('pageLabels')
+          .innerJoin('pages', 'pages.id', 'pageLabels.pageId')
+          .select('pageLabels.labelId')
+          .where('pages.deletedAt', 'is', null)
+          .where(
+            'pages.spaceId',
+            'in',
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+          ),
+      );
 
     if (pagination.query) {
       query = query.where(
@@ -154,6 +179,7 @@ export class LabelRepo {
   async removeLabelFromPage(
     pageId: string,
     labelId: string,
+    workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
@@ -161,6 +187,15 @@ export class LabelRepo {
       .deleteFrom('pageLabels')
       .where('pageId', '=', pageId)
       .where('labelId', '=', labelId)
+      .where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('labels')
+            .select('id')
+            .whereRef('labels.id', '=', 'pageLabels.labelId')
+            .where('labels.workspaceId', '=', workspaceId),
+        ),
+      )
       .execute();
   }
 
@@ -180,13 +215,16 @@ export class LabelRepo {
 
   async getLabelPageCount(
     labelId: string,
+    workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<number> {
     const db = dbOrTx(this.db, trx);
     const result = await db
       .selectFrom('pageLabels')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where('labelId', '=', labelId)
+      .innerJoin('labels', 'labels.id', 'pageLabels.labelId')
+      .select((eb) => eb.fn.count('pageLabels.id').as('count'))
+      .where('pageLabels.labelId', '=', labelId)
+      .where('labels.workspaceId', '=', workspaceId)
       .executeTakeFirst();
 
     return Number(result?.count ?? 0);
@@ -194,49 +232,30 @@ export class LabelRepo {
 
   async deleteLabel(
     labelId: string,
+    workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db
       .deleteFrom('labels')
       .where('id', '=', labelId)
+      .where('workspaceId', '=', workspaceId)
       .execute();
-  }
-
-  async deleteOrphanedLabels(
-    labelIds: string[],
-    trx?: KyselyTransaction,
-  ): Promise<void> {
-    if (labelIds.length === 0) return;
-    const db = dbOrTx(this.db, trx);
-
-    const labelsWithPages = await db
-      .selectFrom('pageLabels')
-      .select('labelId')
-      .where('labelId', 'in', labelIds)
-      .groupBy('labelId')
-      .execute();
-
-    const labelsStillInUse = new Set(labelsWithPages.map((r) => r.labelId));
-    const orphanedIds = labelIds.filter((id) => !labelsStillInUse.has(id));
-
-    if (orphanedIds.length > 0) {
-      await db
-        .deleteFrom('labels')
-        .where('id', 'in', orphanedIds)
-        .execute();
-    }
   }
 
   async findPagesByLabelId(
     labelId: string,
     userId: string,
-    opts?: { spaceId?: string },
+    opts: {
+      spaceId?: string;
+      query?: string;
+      pagination: PaginationOptions;
+    },
   ) {
     let query = this.db
       .selectFrom('pages')
       .innerJoin('pageLabels', 'pageLabels.pageId', 'pages.id')
-      .select([
+      .select((eb) => [
         'pages.id',
         'pages.slugId',
         'pages.title',
@@ -244,11 +263,32 @@ export class LabelRepo {
         'pages.spaceId',
         'pages.createdAt',
         'pages.updatedAt',
+        jsonObjectFrom(
+          eb
+            .selectFrom('spaces')
+            .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+            .whereRef('spaces.id', '=', 'pages.spaceId'),
+        ).as('space'),
+        jsonObjectFrom(
+          eb
+            .selectFrom('users')
+            .select(['users.id', 'users.name', 'users.avatarUrl'])
+            .whereRef('users.id', '=', 'pages.creatorId'),
+        ).as('creator'),
+        jsonArrayFrom(
+          eb
+            .selectFrom('labels')
+            .innerJoin('pageLabels as pl', 'pl.labelId', 'labels.id')
+            .select(['labels.id', 'labels.name'])
+            .whereRef('pl.pageId', '=', 'pages.id')
+            .where('labels.type', '=', LabelType.PAGE)
+            .orderBy('pl.id', 'asc'),
+        ).as('labels'),
       ])
       .where('pageLabels.labelId', '=', labelId)
       .where('pages.deletedAt', 'is', null);
 
-    if (opts?.spaceId) {
+    if (opts.spaceId) {
       query = query.where('pages.spaceId', '=', opts.spaceId);
     } else {
       query = query.where(
@@ -258,22 +298,48 @@ export class LabelRepo {
       );
     }
 
-    return query.orderBy('pages.updatedAt', 'desc').execute();
+    if (opts.query) {
+      query = query.where('pages.title', 'ilike', `%${opts.query}%`);
+    }
+
+    return executeWithCursorPagination(query, {
+      perPage: opts.pagination.limit,
+      cursor: opts.pagination.cursor,
+      beforeCursor: opts.pagination.beforeCursor,
+      fields: [
+        { expression: 'pages.updatedAt', direction: 'desc', key: 'updatedAt' },
+        { expression: 'pages.id', direction: 'desc', key: 'id' },
+      ],
+      parseCursor: (cursor) => ({
+        updatedAt: new Date(cursor.updatedAt),
+        id: cursor.id,
+      }),
+    });
   }
 
-  async findLabelIdsByPageIds(
-    pageIds: string[],
-    trx?: KyselyTransaction,
-  ): Promise<string[]> {
-    if (pageIds.length === 0) return [];
-    const db = dbOrTx(this.db, trx);
-    const results = await db
+  async getLabelPageCountForUser(
+    labelId: string,
+    userId: string,
+    spaceId?: string,
+  ): Promise<number> {
+    let query = this.db
       .selectFrom('pageLabels')
-      .select('labelId')
-      .where('pageId', 'in', pageIds)
-      .groupBy('labelId')
-      .execute();
+      .innerJoin('pages', 'pages.id', 'pageLabels.pageId')
+      .select((eb) => eb.fn.count('pageLabels.id').as('count'))
+      .where('pageLabels.labelId', '=', labelId)
+      .where('pages.deletedAt', 'is', null);
 
-    return results.map((r) => r.labelId);
+    if (spaceId) {
+      query = query.where('pages.spaceId', '=', spaceId);
+    } else {
+      query = query.where(
+        'pages.spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+      );
+    }
+
+    const result = await query.executeTakeFirst();
+    return Number(result?.count ?? 0);
   }
 }

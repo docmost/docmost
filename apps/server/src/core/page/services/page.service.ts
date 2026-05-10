@@ -53,7 +53,6 @@ import {
 } from '../../../integrations/export/utils';
 import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
-import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
 
@@ -73,7 +72,6 @@ export class PageService {
     private eventEmitter: EventEmitter2,
     private collaborationGateway: CollaborationGateway,
     private readonly watcherService: WatcherService,
-    private readonly labelRepo: LabelRepo,
     private readonly transclusionService: TransclusionService,
   ) {}
 
@@ -427,11 +425,7 @@ export class PageService {
 
       if (pageIdsToMove.length > 1) {
         // Update sub pages (all accessible pages except root)
-        await this.pageRepo.updatePages(
-          { spaceId },
-          childPageIds,
-          trx,
-        );
+        await this.pageRepo.updatePages({ spaceId }, childPageIds, trx);
       }
 
       if (pageIdsToMove.length > 0) {
@@ -478,9 +472,13 @@ export class PageService {
         );
 
         // Update watchers and remove those without access to new space
-        await this.watcherService.movePageWatchersToSpace(pageIdsToMove, spaceId, {
-          trx,
-        });
+        await this.watcherService.movePageWatchersToSpace(
+          pageIdsToMove,
+          spaceId,
+          {
+            trx,
+          },
+        );
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
           pageId: pageIdsToMove,
@@ -860,13 +858,15 @@ export class PageService {
       .selectFrom('page_ancestors')
       .selectAll('page_ancestors')
       .select((eb) =>
-        eb.exists(
-          eb
-            .selectFrom('pages as child')
-            .select(sql`1`.as('one'))
-            .whereRef('child.parentPageId', '=', 'page_ancestors.id')
-            .where('child.deletedAt', 'is', null),
-        ).as('hasChildren'),
+        eb
+          .exists(
+            eb
+              .selectFrom('pages as child')
+              .select(sql`1`.as('one'))
+              .whereRef('child.parentPageId', '=', 'page_ancestors.id')
+              .where('child.deletedAt', 'is', null),
+          )
+          .as('hasChildren'),
       )
       .execute();
 
@@ -1010,18 +1010,11 @@ export class PageService {
     }
 
     if (pageIds.length > 0) {
-      const affectedLabelIds =
-        await this.labelRepo.findLabelIdsByPageIds(pageIds);
-
       await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
       this.eventEmitter.emit(EventName.PAGE_DELETED, {
         pageIds: pageIds,
         workspaceId,
       });
-
-      if (affectedLabelIds.length > 0) {
-        await this.labelRepo.deleteOrphanedLabels(affectedLabelIds);
-      }
     }
   }
 

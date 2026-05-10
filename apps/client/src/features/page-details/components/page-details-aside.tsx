@@ -18,6 +18,7 @@ import { useBacklinksCountQuery } from "@/features/page-details/queries/backlink
 import { BacklinksModal } from "./backlinks-modal";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { LabelsSection } from "@/features/label/components/labels-section.tsx";
 
 export function PageDetailsAside() {
   const { pageSlug } = useParams();
@@ -60,6 +61,11 @@ export function PageDetailsAside() {
           outgoingCount={counts?.outgoing ?? 0}
           isLoading={countsLoading}
           onClick={openModal}
+        />
+
+        <LabelsSection
+          pageId={page.id}
+          canEdit={page.permissions?.canEdit ?? false}
         />
       </Stack>
 
