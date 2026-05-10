@@ -983,5 +983,19 @@
   "Outgoing links ({{count}})": "Outgoing links ({{count}})",
   "No pages link here yet.": "No pages link here yet.",
   "This page doesn't link to other pages yet.": "This page doesn't link to other pages yet.",
-  "Verified until {{date}}": "Verified until {{date}}"
+  "Verified until {{date}}": "Verified until {{date}}",
+  "Labels": "Labels",
+  "Add label": "Add label",
+  "No labels yet": "No labels yet",
+  "Already added": "Already added",
+  "Invalid label name": "Invalid label name",
+  "No matches": "No matches",
+  "Search or create…": "Search or create…",
+  "Remove label {{name}}": "Remove label {{name}}",
+  "Failed to add label": "Failed to add label",
+  "Failed to remove label": "Failed to remove label",
+  "No pages with this label": "No pages with this label",
+  "Pages tagged with this label will appear here.": "Pages tagged with this label will appear here.",
+  "No pages match your search.": "No pages match your search.",
+  "Updated {{date}}": "Updated {{date}}"
 }
