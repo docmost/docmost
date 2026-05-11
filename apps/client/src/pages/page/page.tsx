@@ -52,7 +52,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const canEdit = page?.permissions?.canEdit ?? false;
+  const canEdit = !page?.deletedAt && (page?.permissions?.canEdit ?? false);
   const canComment =
     canEdit ||
     (space?.settings?.comments?.allowViewerComments === true);
@@ -110,6 +110,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           creator={page.creator}
           contributors={page.contributors}
           canComment={canComment}
+          isDeleted={!!page.deletedAt}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

@@ -23,6 +23,7 @@ import { IContributor } from "@/features/page/types/page.types.ts";
 import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
+import { TrashBanner } from "@/features/page/trash/components/trash-banner.tsx";
 import clsx from "clsx";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
@@ -44,6 +45,7 @@ export interface FullEditorProps {
   creator?: PageCreator;
   contributors?: IContributor[];
   canComment?: boolean;
+  isDeleted?: boolean;
 }
 
 export function FullEditor({
@@ -56,6 +58,7 @@ export function FullEditor({
   creator,
   contributors,
   canComment,
+  isDeleted,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
@@ -72,6 +75,7 @@ export function FullEditor({
       className={classes.editor}
     >
       {editorToolbarEnabled && editable && isEditMode && <FixedToolbar />}
+      {isDeleted && <TrashBanner />}
       <MemoizedTitleEditor
         pageId={pageId}
         slugId={slugId}
