@@ -59,7 +59,7 @@ export default function SharedPage() {
         )}
       </Helmet>
 
-      <Container size={900} p={0}>
+      <Container fluid p={0}>
         <ReadonlyPageEditor
           key={data.page.id}
           title={data.page.title}
