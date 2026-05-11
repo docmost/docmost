@@ -16,6 +16,8 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconSortAZ,
+  IconSortZA,
   IconStar,
   IconStarFilled,
   IconTrash,
@@ -29,6 +31,7 @@ import classes from "./space-sidebar.module.css";
 import React from "react";
 import { useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
@@ -53,6 +56,9 @@ import {
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
+import { sortPages } from "@/features/page/services/page-service.ts";
+import { notifications } from "@mantine/notifications";
+import { SpaceTreeNode } from "@/features/page/tree/types";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -242,6 +248,7 @@ function SpaceMenu({
 }: SpaceMenuProps) {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
+  const [, setTreeData] = useAtom(treeDataAtom);
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
@@ -271,6 +278,30 @@ function SpaceMenu({
       unwatchMutation.mutate(spaceId);
     } else {
       watchMutation.mutate(spaceId);
+    }
+  };
+
+  const handleSortRootPages = async (direction: 'asc' | 'desc') => {
+    try {
+      const sorted = await sortPages({ spaceId, parentPageId: null, direction });
+      const positionMap = new Map(sorted.map((p) => [p.id, p.position]));
+      setTreeData((prev) => {
+        const reordered = [...prev].sort((a, b) => {
+          const nameA = (a.name || '').toLowerCase();
+          const nameB = (b.name || '').toLowerCase();
+          const cmp = nameA.localeCompare(nameB);
+          return direction === 'asc' ? cmp : -cmp;
+        });
+        return reordered.map((node) => ({
+          ...node,
+          position: positionMap.get(node.id) ?? node.position,
+        })) as SpaceTreeNode[];
+      });
+    } catch (err) {
+      notifications.show({
+        message: err.response?.data?.message || t("Failed to sort pages"),
+        color: "red",
+      });
     }
   };
 
@@ -317,6 +348,22 @@ function SpaceMenu({
 
           {canManagePages && (
             <>
+              <Menu.Divider />
+
+              <Menu.Item
+                onClick={() => handleSortRootPages('asc')}
+                leftSection={<IconSortAZ size={16} />}
+              >
+                {t("Sort pages A→Z")}
+              </Menu.Item>
+
+              <Menu.Item
+                onClick={() => handleSortRootPages('desc')}
+                leftSection={<IconSortZA size={16} />}
+              >
+                {t("Sort pages Z→A")}
+              </Menu.Item>
+
               <Menu.Divider />
 
               <Menu.Item

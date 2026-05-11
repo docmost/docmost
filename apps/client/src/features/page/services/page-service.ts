@@ -53,6 +53,18 @@ export async function movePage(data: IMovePage): Promise<void> {
   await api.post<void>("/pages/move", data);
 }
 
+export async function sortPages(data: {
+  spaceId: string;
+  parentPageId?: string | null;
+  direction: 'asc' | 'desc';
+}): Promise<{ id: string; position: string }[]> {
+  const req = await api.post<{ id: string; position: string }[]>(
+    "/pages/sort-children",
+    data,
+  );
+  return req.data;
+}
+
 export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {
   await api.post<void>("/pages/move-to-space", data);
 }

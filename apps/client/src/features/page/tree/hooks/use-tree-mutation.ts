@@ -23,6 +23,7 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { queryClient } from "@/main.tsx";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -194,6 +195,12 @@ export function useTreeMutation<T>(spaceId: string) {
       await movePageMutation.mutateAsync(payload);
 
       updateCacheOnMovePage(spaceId, draggedNodeId, oldParentId, args.parentId, pageData);
+
+      // Invalidate subpages queries for affected parents so any open Subpages block reflects the new order
+      const affectedParents = new Set([oldParentId, args.parentId].filter(Boolean));
+      affectedParents.forEach((parentId) => {
+        queryClient.invalidateQueries({ queryKey: ["sidebar-pages", { pageId: parentId }] });
+      });
 
       setTimeout(() => {
         emit({
