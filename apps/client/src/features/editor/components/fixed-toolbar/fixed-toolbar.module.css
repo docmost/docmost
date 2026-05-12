@@ -3,7 +3,7 @@
   top: calc(var(--app-shell-header-offset, 0rem) + 45px);
   inset-inline-start: var(--app-shell-navbar-offset, 0rem);
   inset-inline-end: var(--app-shell-aside-offset, 0rem);
-  z-index: 50;
+  z-index: 99;
   display: flex;
   align-items: center;
   background: var(--mantine-color-body);

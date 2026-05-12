@@ -10,6 +10,8 @@
     "format": "prettier --write \"src/**/*.tsx\" \"src/**/*.ts\""
   },
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
+    "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "^2.1.5",
     "@casl/react": "^5.0.1",
     "@docmost/editor-ext": "workspace:*",
     "@emoji-mart/data": "^1.2.1",

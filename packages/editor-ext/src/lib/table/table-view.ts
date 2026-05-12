@@ -4,7 +4,7 @@ import { getColStyleDeclaration } from './utils/col-style';
 
 export function updateColumns(
   node: ProseMirrorNode,
-  colgroup: HTMLTableColElement, // <colgroup> has the same prototype as <col>
+  colgroup: HTMLElement,
   table: HTMLTableElement,
   cellMinWidth: number,
   overrideCol?: number,
@@ -69,7 +69,6 @@ export function updateColumns(
     nextDOM = after;
   }
 
-  // Check if user has set a width style on the table node
   const hasUserWidth =
     node.attrs.style &&
     typeof node.attrs.style === 'string' &&
@@ -104,7 +103,6 @@ export class TableView implements NodeView {
     this.dom.className = 'tableWrapper';
     this.table = this.dom.appendChild(document.createElement('table'));
 
-    // Apply user styles to the table element
     if (node.attrs.style) {
       this.table.style.cssText = node.attrs.style;
     }
@@ -115,9 +113,7 @@ export class TableView implements NodeView {
   }
 
   update(node: ProseMirrorNode) {
-    if (node.type !== this.node.type) {
-      return false;
-    }
+    if (node.type !== this.node.type) return false;
 
     this.node = node;
     updateColumns(node, this.colgroup, this.table, this.cellMinWidth);
@@ -135,6 +131,23 @@ export class TableView implements NodeView {
         mutation.type === 'attributes' ||
         mutation.type === 'childList' ||
         mutation.type === 'characterData'
+      ) {
+        return true;
+      }
+    }
+
+    // Chevron span (.tableReadonlySortChevron) added/removed by sort plugin.
+    if (mutation.type === 'childList') {
+      const nodes = [
+        ...Array.from(mutation.addedNodes),
+        ...Array.from(mutation.removedNodes),
+      ];
+      if (
+        nodes.some(
+          (n) =>
+            n instanceof Element &&
+            n.classList.contains('tableReadonlySortChevron'),
+        )
       ) {
         return true;
       }

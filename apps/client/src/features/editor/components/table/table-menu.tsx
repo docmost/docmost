@@ -104,12 +104,12 @@ export const TableMenu = React.memo(
           element.style.zIndex = "99";
         }}
         options={{
-          placement: "top",
+          placement: "bottom",
           offset: {
             mainAxis: 15,
           },
           flip: {
-            fallbackPlacements: ["top", "bottom"],
+            fallbackPlacements: ["bottom", "top"],
             padding: { top: 35 + 15, left: 8, right: 8, bottom: -Infinity },
             boundary: editor.options.element as HTMLElement,
           },
