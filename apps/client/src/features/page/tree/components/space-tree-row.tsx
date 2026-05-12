@@ -4,11 +4,8 @@ import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { ActionIcon, rem } from "@mantine/core";
 import {
-  IconChevronDown,
-  IconChevronRight,
   IconFileDescription,
   IconPlus,
-  IconPointFilled,
   IconTable,
 } from "@tabler/icons-react";
 
@@ -31,11 +28,14 @@ import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import type { RenderRowProps } from "./doc-tree";
 import { NodeMenu } from "./space-tree-node-menu";
+import { PageArrow } from "./page-arrow";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { updateTreeNodeIcon } from "@/features/page/tree/utils/utils.ts";
 
 type SpaceTreeRowProps = RenderRowProps<SpaceTreeNode> & {
   readOnly: boolean;
+  dataAtom?: typeof treeDataAtom;
+  hideCreateButton?: boolean;
 };
 
 export function SpaceTreeRow({
@@ -47,11 +47,13 @@ export function SpaceTreeRow({
   tabIndex,
   treeItemProps,
   readOnly,
+  dataAtom = treeDataAtom,
+  hideCreateButton = false,
 }: SpaceTreeRowProps) {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const updatePageMutation = useUpdatePageMutation();
-  const [, setTreeData] = useAtom(treeDataAtom);
+  const [, setTreeData] = useAtom(dataAtom);
   const emit = useQueryEmit();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
@@ -182,7 +184,7 @@ export function SpaceTreeRow({
       <div className={classes.actions}>
         <NodeMenu node={node} canEdit={canEdit} />
 
-        {canEdit && (
+        {canEdit && !hideCreateButton && (
           <CreateNode
             node={node}
             isOpen={isOpen}
@@ -193,58 +195,6 @@ export function SpaceTreeRow({
         )}
       </div>
     </Link>
-  );
-}
-
-interface PageArrowProps {
-  isOpen: boolean;
-  hasChildren: boolean;
-  onToggle: () => void;
-}
-
-function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
-  const { t } = useTranslation();
-
-  if (!hasChildren) {
-    return (
-      <span
-        aria-hidden
-        className={classes.actionIcon}
-        style={{
-          width: 20,
-          height: 20,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <IconPointFilled size={8} />
-      </span>
-    );
-  }
-
-  return (
-    <ActionIcon
-      size={20}
-      variant="subtle"
-      color="gray"
-      className={classes.actionIcon}
-      aria-label={isOpen ? t("Collapse") : t("Expand")}
-      aria-expanded={isOpen}
-      tabIndex={-1}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onToggle();
-      }}
-    >
-      {isOpen ? (
-        <IconChevronDown stroke={2} size={18} />
-      ) : (
-        <IconChevronRight stroke={2} size={18} />
-      )}
-    </ActionIcon>
   );
 }
 

@@ -37,6 +37,7 @@ import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
+import { FavoriteSpaceTree } from "@/features/page/tree/components/favorite-space-tree.tsx";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
   SpaceCaslAction,
@@ -180,6 +181,13 @@ export function SpaceSidebar() {
             )}
           </div>
         </div>
+
+        <FavoriteSpaceTree
+          spaceId={space.id}
+          sectionClassName={clsx(classes.section, classes.sectionStarred)}
+          headerClassName={classes.pagesHeader}
+          treeClassName={classes.starredPages}
+        />
 
         <div className={clsx(classes.section, classes.sectionPages)}>
           <Group className={classes.pagesHeader} justify="space-between">

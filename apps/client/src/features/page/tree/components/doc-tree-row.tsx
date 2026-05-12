@@ -35,6 +35,11 @@ type Props<T extends object> = {
   node: TreeNode<T>;
   level: number;
   isLastSibling: boolean;
+  // Ancestor-id chain down to and including this node — lets a duplicate id
+  // (keyByPath trees) be unambiguously targeted when toggling/registering.
+  path: string[];
+  // This row's bookkeeping identity — node.id unless the tree is keyByPath.
+  rowKey: string;
   openIds: ReadonlySet<string>;
   selectedId?: string;
   // Roving tabindex: the single row that currently carries tabIndex={0}.
@@ -42,13 +47,18 @@ type Props<T extends object> = {
   renderRow: (props: RenderRowProps<T>) => ReactNode;
   indentPerLevel: number;
   onMove: (sourceId: string, op: DropOp) => void | Promise<void>;
-  onToggle: (id: string, isOpen: boolean) => void;
+  onToggle: (
+    id: string,
+    isOpen: boolean,
+    node: TreeNode<T>,
+    path: string[],
+  ) => void;
   readOnly: boolean;
   disableDrag?: (node: TreeNode<T>) => boolean;
   disableDrop?: (node: TreeNode<T>) => boolean;
   getDragLabel: (node: TreeNode<T>) => string;
   contextId: symbol;
-  registerRowElement: (id: string, el: HTMLElement | null) => void;
+  registerRowElement: (key: string, el: HTMLElement | null) => void;
   // Stable accessor — calling it returns the latest tree. Avoids passing the
   // tree itself as a prop (which would break memo and re-run every row's DnD
   // useEffect on every mutation).
@@ -63,6 +73,8 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     node,
     level,
     isLastSibling,
+    path,
+    rowKey,
     openIds,
     selectedId,
     activeId,
@@ -79,7 +91,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     getRootData,
   } = props;
 
-  const isOpen = openIds.has(node.id);
+  const isOpen = openIds.has(rowKey);
   // "Has children" includes both already-loaded children AND the consumer's
   // own server-side flag (`hasChildren` is a docmost convention on
   // SpaceTreeNode / SharedPageTreeNode). The flag lets the chevron and the
@@ -104,13 +116,13 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
   }, []);
 
   const toggleOpen = useCallback(() => {
-    onToggle(node.id, !isOpen);
-  }, [onToggle, node.id, isOpen]);
+    onToggle(node.id, !isOpen, node, path);
+  }, [onToggle, node, isOpen, path]);
 
   useEffect(() => {
-    registerRowElement(node.id, rowRef.current);
-    return () => registerRowElement(node.id, null);
-  }, [registerRowElement, node.id]);
+    registerRowElement(rowKey, rowRef.current);
+    return () => registerRowElement(rowKey, null);
+  }, [registerRowElement, rowKey]);
 
   // Restore lazy-loaded children when the row mounts open but its children
   // aren't loaded (e.g. cross-space page move drops a node into a new tree
@@ -118,9 +130,9 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
   // idempotent for open state and triggers the consumer's lazy-load.
   useEffect(() => {
     if (isOpen && declaredHasChildren && !hasLoadedChildren) {
-      onToggle(node.id, true);
+      onToggle(node.id, true, node, path);
     }
-  }, [isOpen, declaredHasChildren, hasLoadedChildren, node.id, onToggle]);
+  }, [isOpen, declaredHasChildren, hasLoadedChildren, node, path, onToggle]);
 
   useEffect(() => {
     const el = rowRef.current;
@@ -216,7 +228,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
               !autoExpandTimerRef.current
             ) {
               autoExpandTimerRef.current = setTimeout(() => {
-                onToggle(node.id, true);
+                onToggle(node.id, true, node, path);
                 autoExpandTimerRef.current = null;
               }, AUTO_EXPAND_MS);
             }
@@ -262,8 +274,17 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
             // just-dropped child — especially important when the row had no
             // children before (chevron just appeared) so the drop would
             // otherwise be invisible.
-            if (op.kind === 'make-child') onToggle(node.id, true);
-            if (source.data.isOpenOnDragStart) onToggle(sourceId, true);
+            if (op.kind === 'make-child') onToggle(node.id, true, node, path);
+            // The dragged node's own path isn't known from this row's
+            // context (it may have originated anywhere in the tree) — falls
+            // back to id-only semantics, exact for normal trees. In a
+            // keyByPath tree where sourceId also occupies another row, this
+            // may reopen the wrong occurrence — a narrow edge case for this
+            // "stay open after a same-tree drag" convenience.
+            if (source.data.isOpenOnDragStart) {
+              const sourceNode = treeModel.find(getRootData(), sourceId);
+              if (sourceNode) onToggle(sourceId, true, sourceNode, [sourceId]);
+            }
           },
         }),
       );
@@ -276,6 +297,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     isOpen,
     hasChildren,
     isLastSibling,
+    path,
     readOnly,
     disableDrag,
     disableDrop,
@@ -315,6 +337,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     'aria-current': isSelected ? ('page' as const) : undefined,
     'aria-label': getDragLabel(node),
     'data-row-id': node.id,
+    'data-row-key': rowKey,
   };
 
   return (
@@ -343,7 +366,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
           isDragging,
           isReceivingDrop: receivingDrop,
           rowRef,
-          tabIndex: activeId === node.id ? 0 : -1,
+          tabIndex: activeId === rowKey ? 0 : -1,
           treeItemProps,
           toggleOpen,
         })}
@@ -373,6 +396,9 @@ function arePropsEqual<T extends object>(
   if (prev.node !== next.node) return false;
   if (prev.level !== next.level) return false;
   if (prev.isLastSibling !== next.isLastSibling) return false;
+  // rowKey is derived from path — a change here implies path changed too
+  // (e.g. this occurrence was reparented), so it stands in for both.
+  if (prev.rowKey !== next.rowKey) return false;
   if (prev.readOnly !== next.readOnly) return false;
   if (prev.contextId !== next.contextId) return false;
   if (prev.indentPerLevel !== next.indentPerLevel) return false;
@@ -386,16 +412,20 @@ function arePropsEqual<T extends object>(
   if (prev.getRootData !== next.getRootData) return false;
 
   const id = next.node.id;
-  // openIds: only this row's own membership matters.
-  if (prev.openIds.has(id) !== next.openIds.has(id)) return false;
-  // selectedId: re-render only the rows whose isSelected actually flipped.
+  const key = next.rowKey;
+  // openIds/activeId: keyed by this row's position (rowKey), not node.id —
+  // with keyByPath, the same id can occupy more than one row, each with
+  // independent open/focus state.
+  if (prev.openIds.has(key) !== next.openIds.has(key)) return false;
+  // selectedId: keyed by the real page id — every row showing the currently
+  // open page should be marked selected, even if it also appears elsewhere.
   const wasSelected = prev.selectedId === id;
   const isSelected = next.selectedId === id;
   if (wasSelected !== isSelected) return false;
   // activeId: same trick — only the outgoing and incoming active rows
   // re-render when the user moves focus through the tree.
-  const wasActive = prev.activeId === id;
-  const isActive = next.activeId === id;
+  const wasActive = prev.activeId === key;
+  const isActive = next.activeId === key;
   if (wasActive !== isActive) return false;
 
   return true;

@@ -28,10 +28,13 @@ export type UseTreeMutation = {
   handleDelete: (id: string) => Promise<void>;
 };
 
-export function useTreeMutation(spaceId: string): UseTreeMutation {
+export function useTreeMutation(
+  spaceId: string,
+  dataAtom = treeDataAtom,
+): UseTreeMutation {
   const { t } = useTranslation();
-  const [, setData] = useAtom(treeDataAtom);
-  // `store` reads the *current* treeDataAtom imperatively in handlers — avoids
+  const [, setData] = useAtom(dataAtom);
+  // `store` reads the *current* dataAtom imperatively in handlers — avoids
   // stale-closure issues when the caller updates the tree (e.g. lazy-load
   // children) and then immediately invokes a handler.
   const store = useStore();
@@ -45,7 +48,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
 
   const handleMove = useCallback(
     async (sourceId: string, op: DropOp) => {
-      const before = store.get(treeDataAtom);
+      const before = store.get(dataAtom);
       const { tree: after, result } = treeModel.move(before, sourceId, op);
       if (after === before) return;
 
@@ -157,7 +160,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
       // tree (e.g. lazy-load children on expand) immediately before calling
       // handleCreate hit a stale closure and compute lastIndex against the
       // pre-load tree, requiring a setTimeout-based wait at the call site.
-      const current = store.get(treeDataAtom);
+      const current = store.get(dataAtom);
       let lastIndex: number;
       if (parentId === null) {
         lastIndex = current.length;
@@ -207,7 +210,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
   const handleDelete = useCallback(
     async (id: string) => {
       const node = treeModel.find(
-        store.get(treeDataAtom),
+        store.get(dataAtom),
         id,
       ) as SpaceTreeNode | null;
       const parentPageId = node?.parentPageId ?? null;
