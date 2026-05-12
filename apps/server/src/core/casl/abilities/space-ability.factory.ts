@@ -13,10 +13,12 @@ import {
   SpaceCaslSubject,
 } from '../interfaces/space-ability.type';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
+import { LogTiming } from '../../../common/helpers/log-timing';
 
 @Injectable()
 export default class SpaceAbilityFactory {
   constructor(private readonly spaceMemberRepo: SpaceMemberRepo) {}
+  @LogTiming()
   async createForUser(user: User, spaceId: string) {
     const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
       user.id,
