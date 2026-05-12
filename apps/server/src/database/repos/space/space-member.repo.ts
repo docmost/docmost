@@ -1,4 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
@@ -13,6 +15,11 @@ import { MemberInfo, UserSpaceRole } from './types';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { withCache } from '../../../common/helpers/with-cache';
+import {
+  CacheKey,
+  PERMISSION_CACHE_TTL_MS,
+} from '../../../common/helpers/cache-keys';
 
 @Injectable()
 export class SpaceMemberRepo {
@@ -20,6 +27,7 @@ export class SpaceMemberRepo {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly groupRepo: GroupRepo,
     private readonly spaceRepo: SpaceRepo,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   async insertSpaceMember(
@@ -214,25 +222,36 @@ export class SpaceMemberRepo {
     userId: string,
     spaceId: string,
   ): Promise<UserSpaceRole[]> {
-    const roles = await this.db
-      .selectFrom('spaceMembers')
-      .select(['userId', 'role'])
-      .where('userId', '=', userId)
-      .where('spaceId', '=', spaceId)
-      .unionAll(
-        this.db
+    return withCache(
+      this.cacheManager,
+      CacheKey.SPACE_ROLES(userId, spaceId),
+      PERMISSION_CACHE_TTL_MS,
+      async () => {
+        const roles = await this.db
           .selectFrom('spaceMembers')
-          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
-          .select(['groupUsers.userId', 'spaceMembers.role'])
-          .where('groupUsers.userId', '=', userId)
-          .where('spaceMembers.spaceId', '=', spaceId),
-      )
-      .execute();
+          .select(['userId', 'role'])
+          .where('userId', '=', userId)
+          .where('spaceId', '=', spaceId)
+          .unionAll(
+            this.db
+              .selectFrom('spaceMembers')
+              .innerJoin(
+                'groupUsers',
+                'groupUsers.groupId',
+                'spaceMembers.groupId',
+              )
+              .select(['groupUsers.userId', 'spaceMembers.role'])
+              .where('groupUsers.userId', '=', userId)
+              .where('spaceMembers.spaceId', '=', spaceId),
+          )
+          .execute();
 
-    if (!roles || roles.length === 0) {
-      return undefined;
-    }
-    return roles;
+        if (!roles || roles.length === 0) {
+          return undefined;
+        }
+        return roles;
+      },
+    );
   }
 
   async getUserIdsWithSpaceAccess(
