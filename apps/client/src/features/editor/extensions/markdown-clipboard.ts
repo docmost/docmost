@@ -81,6 +81,7 @@ export const MarkdownClipboard = Extension.create({
 
             const parsed = markdownToHtml(text.replace(/\n+$/, ""));
             const body = elementFromString(parsed);
+            stripBlockLevelWhitespaceNodes(body);
             normalizeTableColumnWidths(body);
 
             const contentNodes = DOMParser.fromSchema(
@@ -91,7 +92,7 @@ export const MarkdownClipboard = Extension.create({
 
             tr.replaceRange(from, to, contentNodes);
             const insertEnd = tr.mapping.map(from, 1);
-            tr.setSelection(TextSelection.near(tr.doc.resolve(Math.max(from, insertEnd - 2)), -1));
+            tr.setSelection(TextSelection.near(tr.doc.resolve(insertEnd), -1));
             tr.setMeta('paste', true)
             view.dispatch(tr);
             return true;
@@ -104,21 +105,28 @@ export const MarkdownClipboard = Extension.create({
           transformPasted: (slice) => {
             let { content, openStart, openEnd } = slice;
 
-            // Remove trailing paragraphs that contain only whitespace
-            while (content.childCount > 1) {
-              const lastChild = content.lastChild;
-              if (
-                lastChild?.type.name === "paragraph" &&
-                lastChild.textContent.trim() === ""
-              ) {
-                const children = [];
-                for (let i = 0; i < content.childCount - 1; i++) {
-                  children.push(content.child(i));
-                }
-                content = Fragment.from(children);
-              } else {
-                break;
+            const isTrailingNoise = (node: any) => {
+              if (!node) return false;
+              if (node.type.name === "hardBreak") return true;
+              if (node.isText && (node.text ?? "").trim() === "") return true;
+              if (node.type.name === "paragraph") {
+                let onlyNoise = true;
+                node.content.forEach((c: any) => {
+                  if (c.type.name === "hardBreak") return;
+                  if (c.isText && (c.text ?? "").trim() === "") return;
+                  onlyNoise = false;
+                });
+                return onlyNoise;
               }
+              return false;
+            };
+
+            while (content.childCount > 1 && isTrailingNoise(content.lastChild)) {
+              const children = [];
+              for (let i = 0; i < content.childCount - 1; i++) {
+                children.push(content.child(i));
+              }
+              content = Fragment.from(children);
             }
 
             if (content !== slice.content) {
@@ -138,6 +146,21 @@ function elementFromString(value) {
   const wrappedValue = `<body>${value}</body>`;
 
   return new window.DOMParser().parseFromString(wrappedValue, "text/html").body;
+}
+
+// marked.parse() emits "<p>...</p>\n<p>...</p>\n" — those literal newlines
+// become whitespace text nodes that parseSlice (preserveWhitespace: true)
+// converts into spurious empty paragraphs at the insertion site. Inside a
+// list item the trailing one prevents Enter from exiting the list.
+function stripBlockLevelWhitespaceNodes(body: HTMLElement): void {
+  Array.from(body.childNodes).forEach((node) => {
+    if (
+      node.nodeType === 3 /* TEXT_NODE */ &&
+      (node.textContent ?? "").trim() === ""
+    ) {
+      body.removeChild(node);
+    }
+  });
 }
 
 const DEFAULT_PASTE_COL_WIDTH_PX = 150;
