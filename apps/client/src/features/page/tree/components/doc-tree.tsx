@@ -115,6 +115,9 @@ function DocTreeInner<T extends object>(
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowElementsRef = useRef<RowElementMap>(new Map());
+  // Set by the keyboard handler when the navigation target hasn't been
+  // virtualized yet. Consumed by registerRowElement when the row mounts.
+  const pendingFocusIdRef = useRef<string | null>(null);
   const contextId = useMemo(
     () => uniqueContextId ?? Symbol('doc-tree'),
     [uniqueContextId],
@@ -122,8 +125,17 @@ function DocTreeInner<T extends object>(
 
   const registerRowElement = useCallback(
     (id: string, el: HTMLElement | null) => {
-      if (el) rowElementsRef.current.set(id, el);
-      else rowElementsRef.current.delete(id);
+      if (el) {
+        rowElementsRef.current.set(id, el);
+        if (pendingFocusIdRef.current === id) {
+          pendingFocusIdRef.current = null;
+          // rAF lets the virtualizer settle layout/transform before focus,
+          // so the freshly-scrolled-in row is actually painted in view.
+          requestAnimationFrame(() => el.focus());
+        }
+      } else {
+        rowElementsRef.current.delete(id);
+      }
     },
     [],
   );
@@ -215,6 +227,96 @@ function DocTreeInner<T extends object>(
     lastScrolledIdRef.current = selectedId;
   }, [selectedId, flat, virtualizer]);
 
+  // Keyboard navigation handler — single delegated listener on the <ul role="tree">.
+  // The focused row is identified by walking up the DOM to the nearest element
+  // carrying data-row-id, so this works whether the user has focused the row
+  // itself or one of its inner buttons (chevron, +). No per-row re-renders;
+  // focus is moved via .focus() on the registered element, with a pending-id
+  // hand-off when the target row is currently virtualized out of view.
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLUListElement>) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (
+        e.key !== 'ArrowDown' &&
+        e.key !== 'ArrowUp' &&
+        e.key !== 'ArrowLeft' &&
+        e.key !== 'ArrowRight'
+      ) {
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+      if (target.matches('input, textarea, [contenteditable="true"]')) return;
+      const rowEl = target.closest('[data-row-id]');
+      if (!rowEl) return;
+      const id = rowEl.getAttribute('data-row-id');
+      if (!id) return;
+
+      const idx = flat.findIndex((r) => r.node.id === id);
+      if (idx < 0) return;
+
+      const focusByIndex = (targetIdx: number) => {
+        if (targetIdx < 0 || targetIdx >= flat.length) return;
+        const targetId = flat[targetIdx].node.id;
+        const existing = rowElementsRef.current.get(targetId);
+        if (existing) {
+          existing.focus();
+        } else {
+          pendingFocusIdRef.current = targetId;
+          virtualizer.scrollToIndex(targetIdx, { align: 'auto' });
+        }
+      };
+
+      const row = flat[idx];
+      const hasChildren =
+        (row.node.children && row.node.children.length > 0) ||
+        (row.node as { hasChildren?: boolean }).hasChildren === true;
+      const isOpen = openIds.has(row.node.id);
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          focusByIndex(idx + 1);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          focusByIndex(idx - 1);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (hasChildren && !isOpen) {
+            onToggle(row.node.id, true);
+          } else if (
+            isOpen &&
+            row.node.children &&
+            row.node.children.length > 0
+          ) {
+            focusByIndex(idx + 1);
+          }
+          break;
+        case 'ArrowLeft': {
+          e.preventDefault();
+          if (isOpen && hasChildren) {
+            onToggle(row.node.id, false);
+          } else {
+            // Move to parent — first preceding row with smaller level.
+            // Bounded by sibling-count to parent in the flat list; tree depth
+            // and sibling counts are small in practice.
+            const currentLevel = row.level;
+            for (let i = idx - 1; i >= 0; i--) {
+              if (flat[i].level < currentLevel) {
+                focusByIndex(i);
+                break;
+              }
+            }
+          }
+          break;
+        }
+      }
+    },
+    [flat, openIds, onToggle, virtualizer],
+  );
+
   if (data.length === 0 && emptyState) {
     return <div className={styles.treeContainer}>{emptyState}</div>;
   }
@@ -226,6 +328,7 @@ function DocTreeInner<T extends object>(
     <div ref={scrollRef} className={styles.treeContainer}>
       <ul
         role="tree"
+        onKeyDown={handleKeyDown}
         style={{
           position: 'relative',
           height: totalSize,
@@ -241,6 +344,7 @@ function DocTreeInner<T extends object>(
               key={row.node.id}
               role="treeitem"
               aria-level={row.level + 1}
+              data-row-id={row.node.id}
               style={{
                 position: 'absolute',
                 top: 0,
