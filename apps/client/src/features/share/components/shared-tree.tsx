@@ -117,6 +117,7 @@ function SharedTreeRow({
   isSelected,
   rowRef,
   tabIndex,
+  treeItemProps,
   toggleOpen,
 }: RenderRowProps<SharedPageTreeNode>) {
   const { shareId } = useParams();
@@ -133,6 +134,7 @@ function SharedTreeRow({
     <Box
       ref={rowRef as React.Ref<HTMLAnchorElement>}
       tabIndex={tabIndex}
+      {...treeItemProps}
       data-selected={isSelected || undefined}
       className={clsx(classes.node, styles.treeNode)}
       component={Link}

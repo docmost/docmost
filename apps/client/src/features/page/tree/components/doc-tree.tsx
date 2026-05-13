@@ -30,6 +30,20 @@ export type RenderRowProps<T extends object> = {
   // active row); every other row gets tabIndex={-1}. Consumers must spread
   // this onto the same element they wire rowRef to.
   tabIndex: 0 | -1;
+  // Treeitem semantics for the row's focusable element. Consumers MUST spread
+  // these onto the same element rowRef points at, so the focused element IS
+  // the treeitem. This makes screen readers announce "treeitem" (not "link")
+  // and replaces the descendant-text accname with the row's label, so action
+  // button labels inside the row don't get concatenated.
+  treeItemProps: {
+    role: 'treeitem';
+    'aria-level': number;
+    'aria-expanded'?: boolean;
+    'aria-selected'?: true;
+    'aria-current'?: 'page';
+    'aria-label': string;
+    'data-row-id': string;
+  };
   toggleOpen: () => void;
 };
 
@@ -480,23 +494,13 @@ function DocTreeInner<T extends object>(
       >
         {virtualItems.map((virtualItem) => {
           const row = flat[virtualItem.index];
-          // aria-expanded belongs on the treeitem itself per the WAI-ARIA
-          // pattern. Omitted entirely for leaf rows so screen readers don't
-          // announce expand state for nodes that have no children.
-          const nodeHasChildren =
-            (row.node.children && row.node.children.length > 0) ||
-            (row.node as { hasChildren?: boolean }).hasChildren === true;
-          const ariaExpanded = nodeHasChildren
-            ? openIds.has(row.node.id)
-            : undefined;
           return (
             <li
               key={row.node.id}
-              role="treeitem"
-              aria-level={row.level + 1}
-              aria-expanded={ariaExpanded}
-              aria-selected={row.node.id === selectedId ? true : undefined}
-              data-row-id={row.node.id}
+              // role="none" — the treeitem role lives on the focusable child
+              // (the row's <a>), so screen readers announce "treeitem" on
+              // navigation. The <li> is just layout glue.
+              role="none"
               style={{
                 position: 'absolute',
                 top: 0,

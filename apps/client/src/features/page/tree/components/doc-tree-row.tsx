@@ -294,10 +294,20 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     return null;
   })();
 
-  // The <li role="treeitem"> wrapper and recursion are owned by DocTree's
-  // virtualizer now; this component renders only the row's body. ARIA state
-  // (aria-expanded, aria-selected, aria-level) is set on the <li> itself —
-  // the inner interactive element doesn't carry it.
+  // Treeitem semantics ride on the row's focusable element (the consumer's
+  // <a>). The outer <li> is presentational layout. aria-label uses the row's
+  // label so the SR's accessible name is just the page title, not the
+  // concatenation of inner action-button aria-labels.
+  const treeItemProps = {
+    role: 'treeitem' as const,
+    'aria-level': level + 1,
+    'aria-expanded': hasChildren ? isOpen : undefined,
+    'aria-selected': isSelected ? (true as const) : undefined,
+    'aria-current': isSelected ? ('page' as const) : undefined,
+    'aria-label': getDragLabel(node),
+    'data-row-id': node.id,
+  };
+
   return (
     <div
       className={styles.rowWrapper}
@@ -325,6 +335,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
           isReceivingDrop: receivingDrop,
           rowRef,
           tabIndex: activeId === node.id ? 0 : -1,
+          treeItemProps,
           toggleOpen,
         })}
       </div>
