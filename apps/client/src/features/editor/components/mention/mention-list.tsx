@@ -3,7 +3,6 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -36,7 +35,7 @@ import {
   usePageQuery,
 } from "@/features/page/queries/page-query";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
+import { treeModel } from "@/features/page/tree/model/tree-model";
 import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
@@ -53,7 +52,6 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
   const { t } = useTranslation();
   const [data, setData] = useAtom(treeDataAtom);
-  const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const emit = useQueryEmit();
   const isInCommentContext = props.isInCommentContext ?? false;
@@ -220,20 +218,20 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     try {
       createdPage = await createPageMutation.mutateAsync(payload);
       const parentId = page.id || null;
-      const data = {
+      const newNode: SpaceTreeNode = {
         id: createdPage.id,
         slugId: createdPage.slugId,
         name: createdPage.title,
         position: createdPage.position,
         spaceId: createdPage.spaceId,
         parentPageId: createdPage.parentPageId,
+        hasChildren: false,
         children: [],
-      } as any;
+      };
 
-      const lastIndex = tree.data.length;
+      const lastIndex = data.length;
 
-      tree.create({ parentId, index: lastIndex, data });
-      setData(tree.data);
+      setData(treeModel.insert(data, parentId, newNode, lastIndex));
 
       props.command({
         id: uuid7(),
@@ -251,7 +249,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           payload: {
             parentId,
             index: lastIndex,
-            data,
+            data: newNode,
           },
         });
       }, 50);
