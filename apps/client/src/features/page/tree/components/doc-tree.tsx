@@ -118,6 +118,10 @@ function DocTreeInner<T extends object>(
   // Set by the keyboard handler when the navigation target hasn't been
   // virtualized yet. Consumed by registerRowElement when the row mounts.
   const pendingFocusIdRef = useRef<string | null>(null);
+  // Typeahead state: accumulated buffer, plus the timer that clears it after
+  // ~500ms of no typing. Refs only — no re-render needed per keystroke.
+  const typeaheadBufferRef = useRef('');
+  const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contextId = useMemo(
     () => uniqueContextId ?? Symbol('doc-tree'),
     [uniqueContextId],
@@ -235,15 +239,21 @@ function DocTreeInner<T extends object>(
   // hand-off when the target row is currently virtualized out of view.
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLUListElement>) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-      if (
-        e.key !== 'ArrowDown' &&
-        e.key !== 'ArrowUp' &&
-        e.key !== 'ArrowLeft' &&
-        e.key !== 'ArrowRight'
-      ) {
-        return;
-      }
+      // Ctrl/Alt/Meta are reserved for browser/OS shortcuts; bail out.
+      // Shift is allowed through so typeahead can match capital letters.
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const isNavKey =
+        !e.shiftKey &&
+        (e.key === 'ArrowDown' ||
+          e.key === 'ArrowUp' ||
+          e.key === 'ArrowLeft' ||
+          e.key === 'ArrowRight' ||
+          e.key === 'Home' ||
+          e.key === 'End');
+      // Single printable character → typeahead. e.key.length === 1 excludes
+      // multi-char names like "ArrowDown", "Enter", "Tab", etc.
+      const isTypeahead = e.key.length === 1 && !isNavKey;
+      if (!isNavKey && !isTypeahead) return;
 
       const target = e.target as HTMLElement;
       if (target.matches('input, textarea, [contenteditable="true"]')) return;
@@ -266,6 +276,38 @@ function DocTreeInner<T extends object>(
           virtualizer.scrollToIndex(targetIdx, { align: 'auto' });
         }
       };
+
+      // Typeahead: accumulate printable chars, jump to next row whose label
+      // starts with the buffer. Same-letter presses cycle through matches; a
+      // multi-char buffer searches from the current row so the user can
+      // refine the prefix. Buffer resets after ~500ms of no typing.
+      if (isTypeahead) {
+        e.preventDefault();
+        const wasEmpty = typeaheadBufferRef.current.length === 0;
+        typeaheadBufferRef.current = (
+          typeaheadBufferRef.current + e.key
+        ).toLowerCase();
+        const buffer = typeaheadBufferRef.current;
+        if (typeaheadTimerRef.current) {
+          clearTimeout(typeaheadTimerRef.current);
+        }
+        typeaheadTimerRef.current = setTimeout(() => {
+          typeaheadBufferRef.current = '';
+          typeaheadTimerRef.current = null;
+        }, 500);
+        // Single-char buffer cycles to the next match (start at idx + 1);
+        // multi-char buffer can keep matching the current row.
+        const startIdx = wasEmpty ? (idx + 1) % flat.length : idx;
+        for (let i = 0; i < flat.length; i++) {
+          const probeIdx = (startIdx + i) % flat.length;
+          const label = getDragLabel(flat[probeIdx].node).toLowerCase();
+          if (label.startsWith(buffer)) {
+            focusByIndex(probeIdx);
+            break;
+          }
+        }
+        return;
+      }
 
       const row = flat[idx];
       const hasChildren =
@@ -312,9 +354,25 @@ function DocTreeInner<T extends object>(
           }
           break;
         }
+        case 'Home':
+          e.preventDefault();
+          focusByIndex(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          focusByIndex(flat.length - 1);
+          break;
       }
     },
-    [flat, openIds, onToggle, virtualizer],
+    [flat, openIds, onToggle, virtualizer, getDragLabel],
+  );
+
+  // Clear the typeahead timer if the component unmounts mid-buffer.
+  useEffect(
+    () => () => {
+      if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
+    },
+    [],
   );
 
   if (data.length === 0 && emptyState) {
