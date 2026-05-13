@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { useFloating, offset, autoUpdate, hide } from "@floating-ui/react";
@@ -53,7 +53,10 @@ export const RowHandle = React.memo(function RowHandle({
   }, [cellDom, refs]);
 
   const wrapper = cellDom?.closest<HTMLElement>(".tableWrapper") ?? null;
-  useTableHandleDrag(editor, "row", handleEl, wrapper);
+
+  const [menuOpened, setMenuOpened] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpened(false), []);
+  useTableHandleDrag(editor, "row", handleEl, wrapper, closeMenu);
 
   const { onOpen, onClose } = useColumnRowMenuLifecycle({
     editor,
@@ -67,6 +70,8 @@ export const RowHandle = React.memo(function RowHandle({
 
   return (
     <Menu
+      opened={menuOpened}
+      onChange={setMenuOpened}
       position="right-start"
       onOpen={onOpen}
       onClose={onClose}

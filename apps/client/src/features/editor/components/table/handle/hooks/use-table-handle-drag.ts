@@ -16,6 +16,7 @@ export function useTableHandleDrag(
   orientation: "col" | "row",
   element: HTMLElement | null,
   wrapper: HTMLElement | null,
+  onDragStart?: () => void,
 ) {
   useEffect(() => {
     if (!element) return;
@@ -30,6 +31,9 @@ export function useTableHandleDrag(
           disableNativeDragPreview({ nativeSetDragImage });
         },
         onDragStart: ({ location }) => {
+          // The menu (if open from a prior click on the handle) won't dismiss
+          // on its own — pragmatic-dnd swallows the events Mantine listens for.
+          onDragStart?.();
           const spec = getTableHandlePluginSpec(editor);
           if (!spec) return;
           const { clientX, clientY } = location.initial.input;
@@ -71,5 +75,5 @@ export function useTableHandleDrag(
         : () => {},
       autoScrollWindowForElements({ getAllowedAxis: () => "vertical" }),
     );
-  }, [editor, orientation, element, wrapper]);
+  }, [editor, orientation, element, wrapper, onDragStart]);
 }
