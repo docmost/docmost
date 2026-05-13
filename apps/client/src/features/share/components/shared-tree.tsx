@@ -115,6 +115,7 @@ function SharedTreeRow({
   isSelected,
   rowRef,
   ariaProps,
+  tabIndex,
   toggleOpen,
 }: RenderRowProps<SharedPageTreeNode>) {
   const { shareId } = useParams();
@@ -131,6 +132,7 @@ function SharedTreeRow({
     <Box
       ref={rowRef as React.Ref<HTMLAnchorElement>}
       {...ariaProps}
+      tabIndex={tabIndex}
       data-selected={isSelected || undefined}
       className={clsx(classes.node, styles.treeNode)}
       component={Link}
@@ -156,6 +158,7 @@ function SharedTreeRow({
           }
           readOnly={true}
           removeEmojiAction={() => {}}
+          actionIconProps={{ tabIndex: -1 }}
         />
       </div>
       <span className={classes.text}>{node.name || t("untitled")}</span>
@@ -198,6 +201,7 @@ function SharedPageArrow({
       size={20}
       variant="subtle"
       c="gray"
+      tabIndex={-1}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();

@@ -36,6 +36,8 @@ type Props<T extends object> = {
   isLastSibling: boolean;
   openIds: ReadonlySet<string>;
   selectedId?: string;
+  // Roving tabindex: the single row that currently carries tabIndex={0}.
+  activeId?: string;
   renderRow: (props: RenderRowProps<T>) => ReactNode;
   indentPerLevel: number;
   onMove: (sourceId: string, op: DropOp) => void | Promise<void>;
@@ -62,6 +64,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     isLastSibling,
     openIds,
     selectedId,
+    activeId,
     renderRow,
     indentPerLevel,
     onMove,
@@ -326,6 +329,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
           isReceivingDrop: receivingDrop,
           rowRef,
           ariaProps,
+          tabIndex: activeId === node.id ? 0 : -1,
           toggleOpen,
         })}
       </div>
@@ -373,6 +377,11 @@ function arePropsEqual<T extends object>(
   const wasSelected = prev.selectedId === id;
   const isSelected = next.selectedId === id;
   if (wasSelected !== isSelected) return false;
+  // activeId: same trick — only the outgoing and incoming active rows
+  // re-render when the user moves focus through the tree.
+  const wasActive = prev.activeId === id;
+  const isActive = next.activeId === id;
+  if (wasActive !== isActive) return false;
 
   return true;
 }

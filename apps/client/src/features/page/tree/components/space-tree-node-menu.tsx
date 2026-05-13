@@ -126,6 +126,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
             variant="transparent"
             c="gray"
             aria-label={t("Page menu")}
+            tabIndex={-1}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

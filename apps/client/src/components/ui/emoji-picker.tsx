@@ -34,6 +34,7 @@ export interface EmojiPickerInterface {
     size?: string;
     variant?: string;
     c?: string;
+    tabIndex?: number;
   };
 }
 
@@ -121,6 +122,7 @@ function EmojiPicker({
           c={actionIconProps?.c || "gray"}
           variant={actionIconProps?.variant || "transparent"}
           size={actionIconProps?.size}
+          tabIndex={actionIconProps?.tabIndex}
           onClick={handlers.toggle}
           aria-label={t("Pick emoji")}
           aria-haspopup="dialog"

@@ -5,12 +5,14 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
   type Ref,
 } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
 import type { TreeNode, DropOp } from '../model/tree-model.types';
+import { treeModel } from '../model/tree-model';
 import { DocTreeRow } from './doc-tree-row';
 import styles from '../styles/tree.module.css';
 
@@ -28,6 +30,10 @@ export type RenderRowProps<T extends object> = {
     'aria-expanded'?: boolean;
     'aria-controls'?: string;
   };
+  // Roving tabindex: exactly one row in the tree carries tabIndex={0} (the
+  // active row); every other row gets tabIndex={-1}. Consumers must spread
+  // this onto the same element they wire rowRef to.
+  tabIndex: 0 | -1;
   toggleOpen: () => void;
 };
 
@@ -122,6 +128,10 @@ function DocTreeInner<T extends object>(
   // ~500ms of no typing. Refs only — no re-render needed per keystroke.
   const typeaheadBufferRef = useRef('');
   const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Roving tabindex: the row most-recently focused by the user. Falls back
+  // to selectedId, then to the first visible row, when the tracked id is
+  // gone from the flat list (e.g. its branch was collapsed).
+  const [activeId, setActiveId] = useState<string | undefined>(undefined);
   const contextId = useMemo(
     () => uniqueContextId ?? Symbol('doc-tree'),
     [uniqueContextId],
@@ -156,6 +166,20 @@ function DocTreeInner<T extends object>(
     () => flattenVisible(data, openIds),
     [data, openIds],
   );
+
+  // Membership lookup for the flat list. Used to validate activeId/selectedId
+  // before promoting them to the effective active row.
+  const flatIds = useMemo(() => new Set(flat.map((r) => r.node.id)), [flat]);
+
+  // Effective active row for tabindex purposes. Prefers user-focused row,
+  // then the currently selected page, then the first visible row. The user's
+  // arrow / Home / End / typeahead navigation updates activeId via the focus
+  // event delegated on the <ul>; explicit clicks also flow through focus.
+  const effectiveActiveId = useMemo(() => {
+    if (activeId && flatIds.has(activeId)) return activeId;
+    if (selectedId && flatIds.has(selectedId)) return selectedId;
+    return flat[0]?.node.id;
+  }, [activeId, selectedId, flatIds, flat]);
 
   const virtualizer = useVirtualizer({
     count: flat.length,
@@ -250,10 +274,14 @@ function DocTreeInner<T extends object>(
           e.key === 'ArrowRight' ||
           e.key === 'Home' ||
           e.key === 'End');
+      // Star expands all sibling subtrees of the focused row (WAI-ARIA tree
+      // pattern). Allowed with Shift since on most keyboards Shift+8 is how
+      // "*" is produced. Handled separately from typeahead.
+      const isStarKey = e.key === '*';
       // Single printable character → typeahead. e.key.length === 1 excludes
       // multi-char names like "ArrowDown", "Enter", "Tab", etc.
-      const isTypeahead = e.key.length === 1 && !isNavKey;
-      if (!isNavKey && !isTypeahead) return;
+      const isTypeahead = e.key.length === 1 && !isNavKey && !isStarKey;
+      if (!isNavKey && !isTypeahead && !isStarKey) return;
 
       const target = e.target as HTMLElement;
       if (target.matches('input, textarea, [contenteditable="true"]')) return;
@@ -315,6 +343,26 @@ function DocTreeInner<T extends object>(
         (row.node as { hasChildren?: boolean }).hasChildren === true;
       const isOpen = openIds.has(row.node.id);
 
+      // Asterisk: expand every sibling subtree at the focused row's level.
+      // Walks the authoritative tree (not flat, which only carries visible
+      // rows) so we also expand siblings whose own subtree is currently
+      // collapsed. Focus and selection stay put per the WAI-ARIA pattern.
+      if (isStarKey) {
+        e.preventDefault();
+        const info = treeModel.siblingsOf(rootDataRef.current, row.node.id);
+        if (info) {
+          for (const sib of info.siblings) {
+            const sibHasChildren =
+              (sib.children && sib.children.length > 0) ||
+              (sib as { hasChildren?: boolean }).hasChildren === true;
+            if (sibHasChildren && !openIds.has(sib.id)) {
+              onToggle(sib.id, true);
+            }
+          }
+        }
+        return;
+      }
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
@@ -375,6 +423,19 @@ function DocTreeInner<T extends object>(
     [],
   );
 
+  // Event-delegated focus tracking — when any descendant (a row's Link, or an
+  // inner action button) gains focus, mark the enclosing row as active. Keeps
+  // tabIndex aligned with the user's current position whether they got there
+  // by click, arrow nav, or focusByIndex's programmatic .focus() call.
+  const handleFocusIn = useCallback(
+    (e: React.FocusEvent<HTMLUListElement>) => {
+      const rowEl = (e.target as HTMLElement).closest('[data-row-id]');
+      const id = rowEl?.getAttribute('data-row-id');
+      if (id) setActiveId(id);
+    },
+    [],
+  );
+
   if (data.length === 0 && emptyState) {
     return <div className={styles.treeContainer}>{emptyState}</div>;
   }
@@ -387,6 +448,7 @@ function DocTreeInner<T extends object>(
       <ul
         role="tree"
         onKeyDown={handleKeyDown}
+        onFocus={handleFocusIn}
         style={{
           position: 'relative',
           height: totalSize,
@@ -417,6 +479,7 @@ function DocTreeInner<T extends object>(
                 isLastSibling={row.isLastSibling}
                 openIds={openIds}
                 selectedId={selectedId}
+                activeId={effectiveActiveId}
                 renderRow={renderRow}
                 indentPerLevel={indentPerLevel}
                 onMove={onMove}

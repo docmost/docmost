@@ -43,6 +43,7 @@ export function SpaceTreeRow({
   toggleOpen,
   rowRef,
   ariaProps,
+  tabIndex,
   readOnly,
 }: SpaceTreeRowProps) {
   const { t } = useTranslation();
@@ -140,6 +141,7 @@ export function SpaceTreeRow({
       ref={rowRef as React.Ref<HTMLAnchorElement>}
       to={pageUrl}
       className={classes.node}
+      tabIndex={tabIndex}
       {...ariaProps}
       onClick={() => {
         if (mobileSidebarOpened) {
@@ -163,6 +165,7 @@ export function SpaceTreeRow({
           }
           readOnly={!canEdit}
           removeEmojiAction={handleRemoveEmoji}
+          actionIconProps={{ tabIndex: -1 }}
         />
       </div>
 
@@ -220,6 +223,7 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
       c="gray"
       aria-label={isOpen ? t("Collapse") : t("Expand")}
       aria-expanded={isOpen}
+      tabIndex={-1}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -271,6 +275,7 @@ function CreateNode({
       variant="transparent"
       c="gray"
       aria-label={t("Create page")}
+      tabIndex={-1}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
