@@ -268,12 +268,6 @@ importers:
       '@docmost/editor-ext':
         specifier: workspace:*
         version: link:../../packages/editor-ext
-      '@emoji-mart/data':
-        specifier: ^1.2.1
-        version: 1.2.1
-      '@emoji-mart/react':
-        specifier: ^1.1.1
-        version: 1.1.1(emoji-mart@5.6.0)(react@18.3.1)
       '@excalidraw/excalidraw':
         specifier: 0.18.0-3a5ef40
         version: 0.18.0-3a5ef40(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -298,6 +292,15 @@ importers:
       '@mantine/spotlight':
         specifier: ^8.3.18
         version: 8.3.18(@mantine/core@8.3.18(@mantine/hooks@8.3.18(react@18.3.1))(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mantine/hooks@8.3.18(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@slidoapp/emoji-mart':
+        specifier: ^5.8.7
+        version: 5.8.7
+      '@slidoapp/emoji-mart-data':
+        specifier: ^1.2.4
+        version: 1.2.4
+      '@slidoapp/emoji-mart-react':
+        specifier: ^1.1.5
+        version: 1.1.5(@slidoapp/emoji-mart@5.8.7)(react@18.3.1)
       '@tabler/icons-react':
         specifier: ^3.40.0
         version: 3.40.0(react@18.3.1)
@@ -319,9 +322,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      emoji-mart:
-        specifier: ^5.6.0
-        version: 5.6.0
       file-saver:
         specifier: ^2.0.5
         version: 2.0.5
@@ -1911,15 +1911,6 @@ packages:
 
   '@emnapi/wasi-threads@1.1.0':
     resolution: {integrity: sha512-WI0DdZ8xFSbgMjR1sFsKABJ/C5OnRrjT06JXbZKexJGrDuPTzZdDYfFlsgcCXCyf+suG5QU2e/y1Wo2V/OapLQ==}
-
-  '@emoji-mart/data@1.2.1':
-    resolution: {integrity: sha512-no2pQMWiBy6gpBEiqGeU77/bFejDqUTRY7KX+0+iur13op3bqUsXdnwoZs6Xb1zbv0gAj5VvS1PWoUUckSr5Dw==}
-
-  '@emoji-mart/react@1.1.1':
-    resolution: {integrity: sha512-NMlFNeWgv1//uPsvLxvGQoIerPuVdXwK/EUek8OOkJ6wVOWPUizRBJU0hDqWZCOROVpfBgCemaC3m6jDOXi03g==}
-    peerDependencies:
-      emoji-mart: ^5.2
-      react: ^16.8 || ^17 || ^18
 
   '@epic-web/invariant@1.0.0':
     resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
@@ -4112,6 +4103,18 @@ packages:
 
   '@sinonjs/fake-timers@15.1.1':
     resolution: {integrity: sha512-cO5W33JgAPbOh07tvZjUOJ7oWhtaqGHiZw+11DPbyqh2kHTBc3eF/CjJDeQ4205RLQsX6rxCuYOroFQwl7JDRw==}
+
+  '@slidoapp/emoji-mart-data@1.2.4':
+    resolution: {integrity: sha512-wyZjYb0Q/Cxgq+90G9Bs8Ynvaed3WMgXhkKs/7LOFd5XWfdQ5XQEPeiv52xp8zuNHjCQK964JiK/YP0g0bpQsQ==}
+
+  '@slidoapp/emoji-mart-react@1.1.5':
+    resolution: {integrity: sha512-I0FPvnxazx8AjiWXvU3KcusZ0Aw+FpC57ikyXyeHi9aMUUSYZbXkiaIumKmYtAPWP/9S+q3cCWXnECFHokOV1A==}
+    peerDependencies:
+      '@slidoapp/emoji-mart': ^5.6
+      react: ^16.8 || ^17 || ^18 || ^19
+
+  '@slidoapp/emoji-mart@5.8.7':
+    resolution: {integrity: sha512-zn8CBoZRFY0M0Tps0rFgcbu1nhQDmnSoD8CqkTVobI9k3MK2WHIYRp50DXhMxRoQnoct4nomrVaY9kU01ARDTQ==}
 
   '@smithy/chunked-blob-reader-native@4.2.3':
     resolution: {integrity: sha512-jA5k5Udn7Y5717L86h4EIv06wIr3xn8GM1qHRi/Nf31annXcXHJjBKvgztnbn2TxH3xWrPBfgwHsOwZf0UmQWw==}
@@ -6543,9 +6546,6 @@ packages:
   emittery@0.13.1:
     resolution: {integrity: sha512-DeWwawk6r5yR9jFgnDKYt4sLS0LmHJJi3ZOnb5/JdbYwj3nW+FxQnHIjhBKz8YLC7oRNPVM9NQ47I3CVx34eqQ==}
     engines: {node: '>=12'}
-
-  emoji-mart@5.6.0:
-    resolution: {integrity: sha512-eJp3QRe79pjwa+duv+n7+5YsNhRcMl812EcFVwrnRvYKoNPoQb5qxU8DG6Bgwji0akHdp6D4Ln6tYLG58MFSow==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -12272,13 +12272,6 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@emoji-mart/data@1.2.1': {}
-
-  '@emoji-mart/react@1.1.1(emoji-mart@5.6.0)(react@18.3.1)':
-    dependencies:
-      emoji-mart: 5.6.0
-      react: 18.3.1
-
   '@epic-web/invariant@1.0.0': {}
 
   '@esbuild/aix-ppc64@0.27.4':
@@ -14561,6 +14554,15 @@ snapshots:
   '@sinonjs/fake-timers@15.1.1':
     dependencies:
       '@sinonjs/commons': 3.0.1
+
+  '@slidoapp/emoji-mart-data@1.2.4': {}
+
+  '@slidoapp/emoji-mart-react@1.1.5(@slidoapp/emoji-mart@5.8.7)(react@18.3.1)':
+    dependencies:
+      '@slidoapp/emoji-mart': 5.8.7
+      react: 18.3.1
+
+  '@slidoapp/emoji-mart@5.8.7': {}
 
   '@smithy/chunked-blob-reader-native@4.2.3':
     dependencies:
@@ -17293,8 +17295,6 @@ snapshots:
   electron-to-chromium@1.5.286: {}
 
   emittery@0.13.1: {}
-
-  emoji-mart@5.6.0: {}
 
   emoji-regex@8.0.0: {}
 
