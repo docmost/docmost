@@ -10,7 +10,7 @@ import {
 import { getTableHandlePluginSpec } from "@docmost/editor-ext";
 
 // Uses pragmatic-drag-and-drop instead of native HTML5 DnD because the native
-// dragstart→dragover→drop lifecycle was being silently cancelled in this app.
+// dragstart→dragover→drop lifecycle was being silently cancelled
 export function useTableHandleDrag(
   editor: Editor,
   orientation: "col" | "row",
