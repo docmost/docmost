@@ -29,7 +29,7 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 import { Trans, useTranslation } from "react-i18next";
@@ -134,7 +134,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     pageId: extractPageSlugId(pageSlug),
   });
   const { openDeleteModal } = useDeletePageModal();
-  const [tree] = useAtom(treeApiAtom);
+  const { handleDelete } = useTreeMutation(page?.spaceId ?? "");
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [
@@ -183,7 +183,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   };
 
   const handleDeletePage = () => {
-    openDeleteModal({ onConfirm: () => tree?.delete(page.id) });
+    openDeleteModal({ onConfirm: () => handleDelete(page.id) });
   };
 
   const handleToggleFavorite = () => {
