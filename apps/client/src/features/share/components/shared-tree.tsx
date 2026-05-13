@@ -33,6 +33,7 @@ interface SharedTreeProps {
 }
 
 export default function SharedTree({ sharedPageTree }: SharedTreeProps) {
+  const { t } = useTranslation();
   const treeRef = useRef<DocTreeApi | null>(null);
   const { pageSlug } = useParams();
   const [openTreeNodes, setOpenTreeNodes] = useAtom(openSharedTreeNodesAtom);
@@ -100,6 +101,7 @@ export default function SharedTree({ sharedPageTree }: SharedTreeProps) {
         onMove={noopMove}
         onToggle={handleToggle}
         getDragLabel={getDragLabel}
+        aria-label={t("Pages")}
       />
     </div>
   );
@@ -114,7 +116,6 @@ function SharedTreeRow({
   hasChildren,
   isSelected,
   rowRef,
-  ariaProps,
   tabIndex,
   toggleOpen,
 }: RenderRowProps<SharedPageTreeNode>) {
@@ -131,7 +132,6 @@ function SharedTreeRow({
   return (
     <Box
       ref={rowRef as React.Ref<HTMLAnchorElement>}
-      {...ariaProps}
       tabIndex={tabIndex}
       data-selected={isSelected || undefined}
       className={clsx(classes.node, styles.treeNode)}

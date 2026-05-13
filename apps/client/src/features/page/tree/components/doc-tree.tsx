@@ -26,10 +26,6 @@ export type RenderRowProps<T extends object> = {
   isReceivingDrop: 'before' | 'after' | 'make-child' | null;
 
   rowRef: Ref<HTMLElement>;
-  ariaProps: {
-    'aria-expanded'?: boolean;
-    'aria-controls'?: string;
-  };
   // Roving tabindex: exactly one row in the tree carries tabIndex={0} (the
   // active row); every other row gets tabIndex={-1}. Consumers must spread
   // this onto the same element they wire rowRef to.
@@ -57,6 +53,11 @@ export type DocTreeProps<T extends object> = {
 
   getDragLabel: (node: TreeNode<T>) => string;
   uniqueContextId?: symbol;
+
+  // Accessible name for the tree itself (e.g. "Pages"). Rendered as
+  // aria-label on the <ul role="tree"> so screen readers announce what
+  // collection of items the user has entered.
+  'aria-label'?: string;
 };
 
 export type DocTreeApi = {
@@ -117,6 +118,7 @@ function DocTreeInner<T extends object>(
     getDragLabel,
     uniqueContextId,
     emptyState,
+    'aria-label': ariaLabel,
   } = props;
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -278,10 +280,15 @@ function DocTreeInner<T extends object>(
       // pattern). Allowed with Shift since on most keyboards Shift+8 is how
       // "*" is produced. Handled separately from typeahead.
       const isStarKey = e.key === '*';
+      // Space activates the focused row — same effect as clicking it. Native
+      // <a> doesn't get this for free (only <button> does), so we wire it up
+      // explicitly to satisfy the WAI-ARIA tree pattern.
+      const isActivateKey = e.key === ' ';
       // Single printable character → typeahead. e.key.length === 1 excludes
       // multi-char names like "ArrowDown", "Enter", "Tab", etc.
-      const isTypeahead = e.key.length === 1 && !isNavKey && !isStarKey;
-      if (!isNavKey && !isTypeahead && !isStarKey) return;
+      const isTypeahead =
+        e.key.length === 1 && !isNavKey && !isStarKey && !isActivateKey;
+      if (!isNavKey && !isTypeahead && !isStarKey && !isActivateKey) return;
 
       const target = e.target as HTMLElement;
       if (target.matches('input, textarea, [contenteditable="true"]')) return;
@@ -304,6 +311,19 @@ function DocTreeInner<T extends object>(
           virtualizer.scrollToIndex(targetIdx, { align: 'auto' });
         }
       };
+
+      // Space activates the focused row by synthesizing a click on the
+      // registered row element (its <a> Link). Skip if focus is on an inner
+      // button (chevron, +, menu) — those handle Space via native button
+      // semantics, and intercepting here would block their default behavior.
+      if (isActivateKey) {
+        const registered = rowElementsRef.current.get(id);
+        if (target === registered) {
+          e.preventDefault();
+          registered.click();
+        }
+        return;
+      }
 
       // Typeahead: accumulate printable chars, jump to next row whose label
       // starts with the buffer. Same-letter presses cycle through matches; a
@@ -447,6 +467,7 @@ function DocTreeInner<T extends object>(
     <div ref={scrollRef} className={styles.treeContainer}>
       <ul
         role="tree"
+        aria-label={ariaLabel}
         onKeyDown={handleKeyDown}
         onFocus={handleFocusIn}
         style={{
@@ -459,11 +480,22 @@ function DocTreeInner<T extends object>(
       >
         {virtualItems.map((virtualItem) => {
           const row = flat[virtualItem.index];
+          // aria-expanded belongs on the treeitem itself per the WAI-ARIA
+          // pattern. Omitted entirely for leaf rows so screen readers don't
+          // announce expand state for nodes that have no children.
+          const nodeHasChildren =
+            (row.node.children && row.node.children.length > 0) ||
+            (row.node as { hasChildren?: boolean }).hasChildren === true;
+          const ariaExpanded = nodeHasChildren
+            ? openIds.has(row.node.id)
+            : undefined;
           return (
             <li
               key={row.node.id}
               role="treeitem"
               aria-level={row.level + 1}
+              aria-expanded={ariaExpanded}
+              aria-selected={row.node.id === selectedId ? true : undefined}
               data-row-id={row.node.id}
               style={{
                 position: 'absolute',

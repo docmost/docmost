@@ -223,6 +223,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           disableDrag={disableDragDrop}
           disableDrop={disableDragDrop}
           getDragLabel={getDragLabel}
+          aria-label={t("Pages")}
         />
       )}
     </div>

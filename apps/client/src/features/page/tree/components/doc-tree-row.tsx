@@ -294,14 +294,10 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     return null;
   })();
 
-  // aria-expanded on the consumer's interactive element is enough; we drop
-  // aria-controls since the virtualized children no longer live inside a
-  // dedicated <ul role="group"> with a stable id (children are siblings in the
-  // flat virtualized list, not a DOM subtree).
-  const ariaProps = hasChildren ? { 'aria-expanded': isOpen } : {};
-
   // The <li role="treeitem"> wrapper and recursion are owned by DocTree's
-  // virtualizer now; this component renders only the row's body.
+  // virtualizer now; this component renders only the row's body. ARIA state
+  // (aria-expanded, aria-selected, aria-level) is set on the <li> itself —
+  // the inner interactive element doesn't carry it.
   return (
     <div
       className={styles.rowWrapper}
@@ -328,7 +324,6 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
           isDragging,
           isReceivingDrop: receivingDrop,
           rowRef,
-          ariaProps,
           tabIndex: activeId === node.id ? 0 : -1,
           toggleOpen,
         })}

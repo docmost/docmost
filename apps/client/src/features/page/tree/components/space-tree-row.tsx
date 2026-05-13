@@ -42,7 +42,6 @@ export function SpaceTreeRow({
   hasChildren,
   toggleOpen,
   rowRef,
-  ariaProps,
   tabIndex,
   readOnly,
 }: SpaceTreeRowProps) {
@@ -142,7 +141,6 @@ export function SpaceTreeRow({
       to={pageUrl}
       className={classes.node}
       tabIndex={tabIndex}
-      {...ariaProps}
       onClick={() => {
         if (mobileSidebarOpened) {
           toggleMobileSidebar();
