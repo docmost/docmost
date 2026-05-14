@@ -102,7 +102,7 @@ export class SpaceRepo {
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
           || jsonb_build_object('sharing', COALESCE(settings->'sharing', '{}'::jsonb)
-          || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+          || jsonb_build_object(${sql.lit(prefKey)}, ${sql.lit(prefValue)}))`,
         updatedAt: new Date(),
       })
       .where('id', '=', spaceId)
@@ -124,7 +124,7 @@ export class SpaceRepo {
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
           || jsonb_build_object('comments', COALESCE(settings->'comments', '{}'::jsonb)
-          || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+          || jsonb_build_object(${sql.lit(prefKey)}, ${sql.lit(prefValue)}))`,
         updatedAt: new Date(),
       })
       .where('id', '=', spaceId)
