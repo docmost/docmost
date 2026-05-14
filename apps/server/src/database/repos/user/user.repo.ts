@@ -187,8 +187,8 @@ export class UserRepo {
       .updateTable('users')
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
-                || jsonb_build_object('preferences', COALESCE(settings->'preferences', '{}'::jsonb) 
-                || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+                || jsonb_build_object('preferences', COALESCE(settings->'preferences', '{}'::jsonb)
+                || jsonb_build_object(${sql.lit(prefKey)}, ${sql.lit(prefValue)}))`,
         updatedAt: new Date(),
       })
       .where('id', '=', userId)
