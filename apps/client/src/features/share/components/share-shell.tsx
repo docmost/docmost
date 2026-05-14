@@ -14,7 +14,11 @@ import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useAtom } from "jotai";
-import { sharedPageTreeAtom, sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom";
+import {
+  sharedPageFullWidthAtom,
+  sharedPageTreeAtom,
+  sharedTreeDataAtom,
+} from "@/features/share/atoms/shared-page-atom";
 import { buildSharedPageTree } from "@/features/share/utils";
 import {
   desktopSidebarAtom,
@@ -27,7 +31,7 @@ import {
   mobileTableOfContentAsideAtom,
   tableOfContentAsideAtom,
 } from "@/features/share/atoms/sidebar-atom.ts";
-import { IconList } from "@tabler/icons-react";
+import { IconArrowsHorizontal, IconList } from "@tabler/icons-react";
 import { useToggleToc } from "@/features/share/hooks/use-toggle-toc.ts";
 import classes from "./share.module.css";
 import {
@@ -55,6 +59,7 @@ export default function ShareShell({
   const [mobileTocOpened] = useAtom(mobileTableOfContentAsideAtom);
   const toggleTocMobile = useToggleToc(mobileTableOfContentAsideAtom);
   const toggleToc = useToggleToc(tableOfContentAsideAtom);
+  const [fullWidth, setFullWidth] = useAtom(sharedPageFullWidthAtom);
 
   const { shareId } = useParams();
   const { data } = useGetSharedPageTreeQuery(shareId);
@@ -164,6 +169,20 @@ export default function ShareShell({
                   size="sm"
                 >
                   <IconList size={20} stroke={2} />
+                </ActionIcon>
+              </Tooltip>
+
+              <Tooltip label={t("Full width")} withArrow>
+                <ActionIcon
+                  variant={fullWidth ? "light" : "default"}
+                  style={fullWidth ? undefined : { border: "none" }}
+                  aria-label={t("Full width")}
+                  aria-pressed={fullWidth}
+                  onClick={() => setFullWidth((v) => !v)}
+                  visibleFrom="sm"
+                  size="sm"
+                >
+                  <IconArrowsHorizontal size={20} stroke={2} />
                 </ActionIcon>
               </Tooltip>
             </>
