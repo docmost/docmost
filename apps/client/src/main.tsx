@@ -3,6 +3,18 @@ import "@mantine/spotlight/styles.css";
 import "@mantine/notifications/styles.css";
 import '@mantine/dates/styles.css';
 
+// Polyfill URL.canParse for older browsers (required by mermaid v11)
+if (typeof URL.canParse !== "function") {
+  URL.canParse = function (url: string, base?: string): boolean {
+    try {
+      new URL(url, base);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+}
+
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import { mantineCssResolver, theme } from "@/theme";
