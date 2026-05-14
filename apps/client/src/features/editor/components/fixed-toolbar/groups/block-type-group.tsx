@@ -10,6 +10,7 @@ import {
   IconH2,
   IconH3,
   IconMenu4,
+  IconPageBreak,
   IconTypography,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -101,6 +102,12 @@ export const BlockTypeGroup: FC<Props> = ({ editor }) => {
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
         >
           {t("Divider")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconPageBreak size={16} />}
+          onClick={() => editor.chain().focus().setPageBreak().run()}
+        >
+          {t("Page break")}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

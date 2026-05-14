@@ -19,6 +19,7 @@ import {
   IconTable,
   IconTypography,
   IconMenu4,
+  IconPageBreak,
   IconCalendar,
   IconAppWindow,
   IconSitemap,
@@ -163,6 +164,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconMenu4,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+    },
+    {
+      title: "Page break",
+      description: "Insert a page break for printing.",
+      searchTerms: ["page", "break", "pagebreak", "print"],
+      icon: IconPageBreak,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).setPageBreak().run(),
     },
     {
       title: "Image",
