@@ -19,7 +19,7 @@ import {
   IconCopy,
   IconTrash,
 } from "@tabler/icons-react";
-import { isTextSelected } from "@docmost/editor-ext";
+import { isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import type { WidthMode, ColumnsLayout } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
@@ -82,7 +82,7 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
 
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
-      if (!state) return false;
+      if (!state || !isEditorReady(editor)) return false;
       if (!editor.isActive("columns")) return false;
       if (isTextSelected(editor)) return false;
       if (nodesWithMenus.some((name) => editor.isActive(name))) return false;
@@ -121,7 +121,7 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
   });
 
   const getReferencedVirtualElement = useCallback(() => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "columns";
     const parent = findParentNode(predicate)(selection);

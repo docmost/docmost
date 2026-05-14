@@ -18,7 +18,7 @@ import {
   IconTrashX,
 } from "@tabler/icons-react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
+import { isCellSelection, isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
 
@@ -38,6 +38,7 @@ export const TableMenu = React.memo(
     );
 
     const getReferencedVirtualElement = useCallback(() => {
+      if (!isEditorReady(editor)) return;
       const { selection } = editor.state;
       const predicate = (node: PMNode) => node.type.name === "table";
       const parent = findParentNode(predicate)(selection);
