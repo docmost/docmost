@@ -138,7 +138,7 @@ export function useRemovePageMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: "Failed to delete page", color: "red" });
+      notifications.show({ message: t("Failed to delete page"), color: "red" });
     },
   });
 }
@@ -252,7 +252,7 @@ export function useRestorePageMutation() {
       queryClient.setQueryData<IPage>(["pages", restoredPage.slugId], merge);
     },
     onError: (error) => {
-      notifications.show({ message: "Failed to restore page", color: "red" });
+      notifications.show({ message: t("Failed to restore page"), color: "red" });
     },
   });
 }

@@ -23,13 +23,15 @@ import { IContributor } from "@/features/page/types/page.types.ts";
 import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
-import { TrashBanner } from "@/features/page/trash/components/trash-banner.tsx";
+import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
 import clsx from "clsx";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
+const MemoizedFixedToolbar = React.memo(FixedToolbar);
+const MemoizedDeletedPageBanner = React.memo(DeletedPageBanner);
 
-type PageCreator = {
+type PageUser = {
   id: string;
   name: string;
   avatarUrl: string;
@@ -42,10 +44,9 @@ export interface FullEditorProps {
   content: string;
   spaceSlug: string;
   editable: boolean;
-  creator?: PageCreator;
+  creator?: PageUser;
   contributors?: IContributor[];
   canComment?: boolean;
-  isDeleted?: boolean;
 }
 
 export function FullEditor({
@@ -58,7 +59,6 @@ export function FullEditor({
   creator,
   contributors,
   canComment,
-  isDeleted,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
@@ -74,8 +74,8 @@ export function FullEditor({
       size={!fullPageWidth && 900}
       className={classes.editor}
     >
-      {editorToolbarEnabled && editable && isEditMode && <FixedToolbar />}
-      {isDeleted && <TrashBanner />}
+      {editorToolbarEnabled && editable && isEditMode && <MemoizedFixedToolbar />}
+      <MemoizedDeletedPageBanner slugId={slugId} />
       <MemoizedTitleEditor
         pageId={pageId}
         slugId={slugId}
@@ -99,7 +99,7 @@ export function FullEditor({
 }
 
 type PageBylineProps = {
-  creator?: PageCreator;
+  creator?: PageUser;
   contributors?: IContributor[];
   readOnly?: boolean;
 };

@@ -12,7 +12,6 @@ import {
   IconMarkdown,
   IconMessage,
   IconPrinter,
-  IconRestore,
   IconStar,
   IconStarFilled,
   IconTrash,
@@ -32,8 +31,6 @@ import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
-import { useRestorePageModal } from "@/features/page/hooks/use-restore-page-modal.tsx";
-import { useRestorePageMutation } from "@/features/page/queries/page-query.ts";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 import { Trans, useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
@@ -68,6 +65,11 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
+  const { pageSlug } = useParams();
+  const { data: page } = usePageQuery({
+    pageId: extractPageSlugId(pageSlug),
+  });
+  const isDeleted = !!page?.deletedAt;
 
   useHotkeys(
     [
@@ -89,6 +91,10 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     ],
     [],
   );
+
+  if (isDeleted) {
+    return null;
+  }
 
   return (
     <>
@@ -137,7 +143,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     pageId: extractPageSlugId(pageSlug),
   });
   const { openDeleteModal } = useDeletePageModal();
-  const { openRestoreModal } = useRestorePageModal();
   const [tree] = useAtom(treeApiAtom);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
@@ -158,8 +163,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const { data: watchStatus } = useWatchStatusQuery(page?.id);
   const watchPage = useWatchPageMutation();
   const unwatchPage = useUnwatchPageMutation();
-  const restorePageMutation = useRestorePageMutation();
-  const isDeleted = !!page?.deletedAt;
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -190,13 +193,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
 
   const handleDeletePage = () => {
     openDeleteModal({ onConfirm: () => tree?.delete(page.id) });
-  };
-
-  const handleRestorePage = () => {
-    openRestoreModal({
-      title: page?.title,
-      onConfirm: () => restorePageMutation.mutate(page.id),
-    });
   };
 
   const handleToggleFavorite = () => {
@@ -320,25 +316,16 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             {t("Print PDF")}
           </Menu.Item>
 
-          {page?.permissions?.canEdit && (
+          {!readOnly && (
             <>
               <Menu.Divider />
-              {isDeleted ? (
-                <Menu.Item
-                  leftSection={<IconRestore size={16} />}
-                  onClick={handleRestorePage}
-                >
-                  {t("Restore")}
-                </Menu.Item>
-              ) : (
-                <Menu.Item
-                  color="red"
-                  leftSection={<IconTrash size={16} />}
-                  onClick={handleDeletePage}
-                >
-                  {t("Move to trash")}
-                </Menu.Item>
-              )}
+              <Menu.Item
+                color={"red"}
+                leftSection={<IconTrash size={16} />}
+                onClick={handleDeletePage}
+              >
+                {t("Move to trash")}
+              </Menu.Item>
             </>
           )}
 

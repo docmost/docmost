@@ -110,7 +110,6 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           creator={page.creator}
           contributors={page.contributors}
           canComment={canComment}
-          isDeleted={!!page.deletedAt}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>
