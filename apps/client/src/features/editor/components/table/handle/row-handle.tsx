@@ -29,7 +29,12 @@ export const RowHandle = React.memo(function RowHandle({
   // See ColumnHandle for the rationale: keep the last valid cell DOM cached
   // so the handle div stays mounted across stale-anchor renders, otherwise
   // pragmatic-dnd silently aborts an in-flight drag.
-  const lookupCellDom = editor.view.nodeDOM(anchorPos) as HTMLElement | null;
+  // `nodeDOM` is typed as `Node | null` — when `anchorPos` goes stale (e.g.
+  // an external drop reflows the doc before the plugin re-emits
+  // hoveringCell), it can resolve to a Text node, on which `.closest` is
+  // undefined. Filter to HTMLElement so downstream consumers stay safe.
+  const lookupDom = editor.view.nodeDOM(anchorPos);
+  const lookupCellDom = lookupDom instanceof HTMLElement ? lookupDom : null;
   const [cellDom, setCellDom] = useState<HTMLElement | null>(lookupCellDom);
   const lastCellDomRef = useRef<HTMLElement | null>(lookupCellDom);
   useEffect(() => {

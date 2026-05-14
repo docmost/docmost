@@ -31,7 +31,12 @@ export const ColumnHandle = React.memo(function ColumnHandle({
   // (the plugin re-emits `hoveringCell` with the mapped pos a tick later);
   // unmounting the source element here would make pragmatic-dnd silently
   // abort the active drag.
-  const lookupCellDom = editor.view.nodeDOM(anchorPos) as HTMLElement | null;
+  // `nodeDOM` is typed as `Node | null` — when `anchorPos` goes stale (e.g.
+  // an external drop reflows the doc before the plugin re-emits
+  // hoveringCell), it can resolve to a Text node, on which `.closest` is
+  // undefined. Filter to HTMLElement so downstream consumers stay safe.
+  const lookupDom = editor.view.nodeDOM(anchorPos);
+  const lookupCellDom = lookupDom instanceof HTMLElement ? lookupDom : null;
   const [cellDom, setCellDom] = useState<HTMLElement | null>(lookupCellDom);
   const lastCellDomRef = useRef<HTMLElement | null>(lookupCellDom);
   useEffect(() => {
