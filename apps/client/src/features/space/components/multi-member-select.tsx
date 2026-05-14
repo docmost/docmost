@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 interface MultiMemberSelectProps {
   value?: string[];
   onChange: (value: string[]) => void;
+  excludeIds?: string[];
 }
 
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
@@ -34,7 +35,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   </Group>
 );
 
-export function MultiMemberSelect({ value, onChange }: MultiMemberSelectProps) {
+export function MultiMemberSelect({ value, onChange, excludeIds = [] }: MultiMemberSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
@@ -62,20 +63,27 @@ export function MultiMemberSelect({ value, onChange }: MultiMemberSelectProps) {
         type: "group",
       }));
 
-      // Create fresh data structure based on current search results
+      // Create fresh data structure based on current search results, excluding existing members
+      const filteredUserItems = userItems
+        ? userItems.filter((u) => !excludeIds.includes(u.value))
+        : [];
+      const filteredGroupItems = groupItems
+        ? groupItems.filter((g) => !excludeIds.includes(g.value))
+        : [];
+
       const newData = [];
       
-      if (userItems && userItems.length > 0) {
+      if (filteredUserItems.length > 0) {
         newData.push({
           group: t("Select a user"),
-          items: userItems,
+          items: filteredUserItems,
         });
       }
       
-      if (groupItems && groupItems.length > 0) {
+      if (filteredGroupItems.length > 0) {
         newData.push({
           group: t("Select a group"),
-          items: groupItems,
+          items: filteredGroupItems,
         });
       }
 
