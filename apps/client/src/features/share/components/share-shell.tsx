@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionIcon,
   AppShell,
@@ -14,11 +14,16 @@ import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useAtom } from "jotai";
-import { sharedPageTreeAtom, sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom";
+import {
+  sharedPageFullWidthAtom,
+  sharedPageTreeAtom,
+  sharedTreeDataAtom,
+} from "@/features/share/atoms/shared-page-atom";
 import { buildSharedPageTree } from "@/features/share/utils";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
+  sidebarWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
@@ -27,7 +32,7 @@ import {
   mobileTableOfContentAsideAtom,
   tableOfContentAsideAtom,
 } from "@/features/share/atoms/sidebar-atom.ts";
-import { IconList } from "@tabler/icons-react";
+import { IconArrowsHorizontal, IconList } from "@tabler/icons-react";
 import { useToggleToc } from "@/features/share/hooks/use-toggle-toc.ts";
 import classes from "./share.module.css";
 import {
@@ -55,6 +60,46 @@ export default function ShareShell({
   const [mobileTocOpened] = useAtom(mobileTableOfContentAsideAtom);
   const toggleTocMobile = useToggleToc(mobileTableOfContentAsideAtom);
   const toggleToc = useToggleToc(tableOfContentAsideAtom);
+  const [fullWidth, setFullWidth] = useAtom(sharedPageFullWidthAtom);
+  const [sidebarWidth, setSidebarWidth] = useAtom(sidebarWidthAtom);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing || !sidebarRef.current) return;
+      const newWidth =
+        e.clientX - sidebarRef.current.getBoundingClientRect().left;
+      if (newWidth < 220) {
+        setSidebarWidth(220);
+        return;
+      }
+      if (newWidth > 600) {
+        setSidebarWidth(600);
+        return;
+      }
+      setSidebarWidth(newWidth);
+    },
+    [isResizing, setSidebarWidth],
+  );
+
+  useEffect(() => {
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResizing);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [resize, stopResizing]);
 
   const { shareId } = useParams();
   const { data } = useGetSharedPageTreeQuery(shareId);
@@ -81,7 +126,7 @@ export default function ShareShell({
       header={{ height: 50 }}
       {...(data?.pageTree?.length > 1 && {
         navbar: {
-          width: 300,
+          width: sidebarWidth,
           breakpoint: "sm",
           collapsed: {
             mobile: !mobileOpened,
@@ -166,6 +211,20 @@ export default function ShareShell({
                   <IconList size={20} stroke={2} />
                 </ActionIcon>
               </Tooltip>
+
+              <Tooltip label={t("Full width")} withArrow>
+                <ActionIcon
+                  variant={fullWidth ? "light" : "default"}
+                  style={fullWidth ? undefined : { border: "none" }}
+                  aria-label={t("Full width")}
+                  aria-pressed={fullWidth}
+                  onClick={() => setFullWidth((v) => !v)}
+                  visibleFrom="sm"
+                  size="sm"
+                >
+                  <IconArrowsHorizontal size={20} stroke={2} />
+                </ActionIcon>
+              </Tooltip>
             </>
 
             <ThemeToggle />
@@ -174,7 +233,11 @@ export default function ShareShell({
       </AppShell.Header>
 
       {data?.pageTree?.length > 1 && (
-        <AppShell.Navbar p="md" className={classes.navbar}>
+        <AppShell.Navbar p="md" className={classes.navbar} ref={sidebarRef}>
+          <div
+            className={classes.resizeHandle}
+            onMouseDown={startResizing}
+          />
           <MemoizedSharedTree sharedPageTree={data} />
         </AppShell.Navbar>
       )}

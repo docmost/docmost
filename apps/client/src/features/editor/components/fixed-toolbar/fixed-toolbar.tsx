@@ -28,6 +28,7 @@ export const FixedToolbar: FC = () => {
     <>
       <div
         className={classes.fixedToolbar}
+        data-fixed-toolbar="true"
         role="toolbar"
         aria-label="Editor toolbar"
         onMouseDown={(e) => e.preventDefault()}
