@@ -38,6 +38,9 @@ export class ShareSeoController {
       workspace = await this.workspaceRepo.findFirst();
     } else {
       const header = req.raw.headers.host;
+      if (!header) {
+        return this.sendIndex(indexFilePath, res);
+      }
       const subdomain = header.split('.')[0];
       workspace = await this.workspaceRepo.findByHostname(subdomain);
     }
