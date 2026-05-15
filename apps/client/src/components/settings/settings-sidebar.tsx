@@ -15,6 +15,7 @@ import {
   IconSparkles,
   IconHistory,
   IconShieldCheck,
+  IconWebhook,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -38,6 +39,7 @@ import {
   prefetchWorkspaceMembers,
   prefetchAuditLogs,
   prefetchVerifiedPages,
+  prefetchWebhooks,
 } from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
@@ -124,6 +126,13 @@ const groupedData: DataGroup[] = [
         feature: Feature.AUDIT_LOGS,
         role: "owner",
         env: "selfhosted",
+      },
+      {
+        label: "Webhooks",
+        icon: IconWebhook,
+        path: "/settings/webhooks",
+        feature: Feature.WEBHOOKS,
+        role: "admin",
       },
     ],
   },
@@ -221,6 +230,9 @@ export default function SettingsSidebar() {
               break;
             case "Audit log":
               prefetchHandler = prefetchAuditLogs;
+              break;
+            case "Webhooks":
+              prefetchHandler = prefetchWebhooks;
               break;
             case "Verified pages":
               prefetchHandler = prefetchVerifiedPages;

@@ -14,6 +14,7 @@ import { getApiKeys } from "@/ee/api-key";
 import { getAuditLogs } from "@/ee/audit/services/audit-service";
 import { getVerificationList } from "@/ee/page-verification/services/page-verification-service";
 import { getScimTokens } from "@/ee/scim/services/scim-token-service";
+import { getWebhooks } from "@/ee/webhook/services/webhook-service";
 
 export const prefetchWorkspaceMembers = () => {
   const params: QueryParams = { limit: 100, query: "" };
@@ -104,5 +105,13 @@ export const prefetchScimTokens = () => {
   queryClient.prefetchQuery({
     queryKey: ["scim-token-list", { cursor: undefined }],
     queryFn: () => getScimTokens({}),
+  });
+};
+
+export const prefetchWebhooks = () => {
+  const params = { limit: 50 };
+  queryClient.prefetchQuery({
+    queryKey: ["webhook-list", params],
+    queryFn: () => getWebhooks(params),
   });
 };
