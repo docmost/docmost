@@ -52,6 +52,8 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 import { getPageTitle } from '../../common/helpers';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -65,6 +67,7 @@ export class PageController {
     private readonly backlinkService: BacklinkService,
     private readonly labelService: LabelService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -366,6 +369,18 @@ export class PageController {
           },
         },
       });
+
+      this.webhookDispatcher.dispatch(
+        workspace.id,
+        WebhookEvent.PageDeleted,
+        {
+          id: page.id,
+          slugId: page.slugId,
+          title: page.title,
+          spaceId: page.spaceId,
+          workspaceId: workspace.id,
+        },
+      );
     }
   }
 
@@ -405,6 +420,18 @@ export class PageController {
         },
       },
     });
+
+    this.webhookDispatcher.dispatch(
+      workspace.id,
+      WebhookEvent.PageRestored,
+      {
+        id: page.id,
+        slugId: page.slugId,
+        title: page.title,
+        spaceId: page.spaceId,
+        workspaceId: workspace.id,
+      },
+    );
 
     return this.pageRepo.findById(pageIdDto.pageId, {
       includeHasChildren: true,

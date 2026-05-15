@@ -33,6 +33,8 @@ import {
   HISTORY_INTERVAL,
 } from '../constants';
 import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -47,6 +49,7 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     private readonly collabHistory: CollabHistoryService,
     private readonly transclusionService: TransclusionService,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -199,6 +202,19 @@ export class PersistenceExtension implements Extension {
       });
 
       await this.enqueuePageHistory(page);
+
+      this.webhookDispatcher.dispatch(
+        page.workspaceId,
+        WebhookEvent.PageUpdated,
+        {
+          id: page.id,
+          slugId: page.slugId,
+          title: page.title,
+          spaceId: page.spaceId,
+          workspaceId: page.workspaceId,
+          updatedAt: page.updatedAt,
+        },
+      );
     }
   }
 

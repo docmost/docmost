@@ -29,6 +29,8 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @Injectable()
 export class SpaceService {
@@ -41,6 +43,7 @@ export class SpaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   async createSpace(
@@ -84,6 +87,17 @@ export class SpaceService {
         },
       },
     });
+
+    this.webhookDispatcher.dispatch(
+      workspaceId,
+      WebhookEvent.SpaceCreated,
+      {
+        id: space.id,
+        name: space.name,
+        slug: space.slug,
+        workspaceId,
+      },
+    );
 
     return { ...space, memberCount: 1 };
   }
@@ -244,6 +258,17 @@ export class SpaceService {
         spaceId: updateSpaceDto.spaceId,
         changes: { before, after },
       });
+
+      this.webhookDispatcher.dispatch(
+        workspaceId,
+        WebhookEvent.SpaceUpdated,
+        {
+          id: updatedSpace.id,
+          name: updatedSpace.name,
+          slug: updatedSpace.slug,
+          workspaceId,
+        },
+      );
     }
 
     return updatedSpace;
@@ -289,5 +314,15 @@ export class SpaceService {
         },
       },
     });
+
+    this.webhookDispatcher.dispatch(
+      workspaceId,
+      WebhookEvent.SpaceDeleted,
+      {
+        id: spaceId,
+        name: space.name,
+        workspaceId,
+      },
+    );
   }
 }

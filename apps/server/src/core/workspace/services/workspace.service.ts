@@ -48,6 +48,8 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @Injectable()
 export class WorkspaceService {
@@ -72,6 +74,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private userSessionRepo: UserSessionRepo,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   async findById(workspaceId: string) {
@@ -736,6 +739,17 @@ export class WorkspaceService {
         },
       },
     });
+
+    this.webhookDispatcher.dispatch(
+      workspaceId,
+      WebhookEvent.UserDeactivated,
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        workspaceId,
+      },
+    );
   }
 
   async activateUser(

@@ -32,6 +32,8 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 import { WsService } from '../../ws/ws.service';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -44,6 +46,7 @@ export class CommentController {
     private readonly pageAccessService: PageAccessService,
     private readonly wsService: WsService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -192,5 +195,16 @@ export class CommentController {
         },
       },
     });
+
+    this.webhookDispatcher.dispatch(
+      comment.workspaceId,
+      WebhookEvent.CommentDeleted,
+      {
+        id: comment.id,
+        pageId: comment.pageId,
+        spaceId: comment.spaceId,
+        workspaceId: comment.workspaceId,
+      },
+    );
   }
 }

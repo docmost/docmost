@@ -40,6 +40,8 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -55,6 +57,7 @@ export class WorkspaceInvitationService {
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     private readonly environmentService: EnvironmentService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
@@ -303,6 +306,18 @@ export class WorkspaceInvitationService {
     if (!newUser) {
       return;
     }
+
+    this.webhookDispatcher.dispatch(
+      workspace.id,
+      WebhookEvent.UserCreated,
+      {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        workspaceId: workspace.id,
+      },
+    );
 
     // notify the inviter
     const invitedByUser = await this.userRepo.findById(

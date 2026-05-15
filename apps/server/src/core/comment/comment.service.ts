@@ -19,6 +19,8 @@ import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
 import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
 import { WsService } from '../../ws/ws.service';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @Injectable()
 export class CommentService {
@@ -33,6 +35,7 @@ export class CommentService {
     private generalQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
     private notificationQueue: Queue,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   async findById(commentId: string) {
@@ -142,6 +145,21 @@ export class CommentService {
       comment,
     });
 
+    this.webhookDispatcher.dispatch(
+      workspaceId,
+      WebhookEvent.CommentCreated,
+      {
+        id: comment.id,
+        pageId: comment.pageId,
+        spaceId: comment.spaceId,
+        workspaceId: comment.workspaceId,
+        type: comment.type,
+        content: comment.content,
+        creatorId: comment.creatorId,
+        createdAt: comment.createdAt,
+      },
+    );
+
     return comment;
   }
 
@@ -202,6 +220,22 @@ export class CommentService {
       pageId: comment.pageId,
       comment,
     });
+
+    this.webhookDispatcher.dispatch(
+      comment.workspaceId,
+      WebhookEvent.CommentUpdated,
+      {
+        id: comment.id,
+        pageId: comment.pageId,
+        spaceId: comment.spaceId,
+        workspaceId: comment.workspaceId,
+        type: comment.type,
+        content: comment.content,
+        creatorId: comment.creatorId,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+      },
+    );
 
     return comment;
   }

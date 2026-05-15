@@ -27,6 +27,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { createByteCountingStream } from '../../../common/helpers/utils';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @Injectable()
 export class AttachmentService {
@@ -39,6 +41,7 @@ export class AttachmentService {
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   async uploadFile(opts: {
@@ -271,7 +274,7 @@ export class AttachmentService {
       spaceId,
       trx,
     } = opts;
-    return this.attachmentRepo.insertAttachment(
+    const attachment = await this.attachmentRepo.insertAttachment(
       {
         id: attachmentId,
         type: type,
@@ -287,6 +290,23 @@ export class AttachmentService {
       },
       trx,
     );
+
+    this.webhookDispatcher.dispatch(
+      workspaceId,
+      WebhookEvent.AttachmentUploaded,
+      {
+        id: attachment.id,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+        fileSize: attachment.fileSize,
+        pageId: attachment.pageId,
+        spaceId: attachment.spaceId,
+        workspaceId: attachment.workspaceId,
+        creatorId: attachment.creatorId,
+      },
+    );
+
+    return attachment;
   }
 
   async handleDeleteAiChatAttachments(aiChatId: string) {

@@ -55,6 +55,8 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
+import { WebhookDispatcher } from '@docmost/ee/webhook/services/webhook-dispatcher.service';
+import { WebhookEvent } from '@docmost/ee/webhook/constants';
 
 @Injectable()
 export class PageService {
@@ -73,6 +75,7 @@ export class PageService {
     private collaborationGateway: CollaborationGateway,
     private readonly watcherService: WatcherService,
     private readonly transclusionService: TransclusionService,
+    private readonly webhookDispatcher: WebhookDispatcher,
   ) {}
 
   async findById(
@@ -156,7 +159,28 @@ export class PageService {
         this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
       );
 
+    this.webhookDispatcher.dispatch(
+      page.workspaceId,
+      WebhookEvent.PageCreated,
+      this.toWebhookPagePayload(page),
+    );
+
     return page;
+  }
+
+  private toWebhookPagePayload(page: Page) {
+    return {
+      id: page.id,
+      slugId: page.slugId,
+      title: page.title,
+      icon: page.icon,
+      parentPageId: page.parentPageId,
+      spaceId: page.spaceId,
+      workspaceId: page.workspaceId,
+      creatorId: page.creatorId,
+      createdAt: page.createdAt,
+      updatedAt: page.updatedAt,
+    };
   }
 
   async nextPagePosition(spaceId: string, parentPageId?: string) {
@@ -245,13 +269,21 @@ export class PageService {
       );
     }
 
-    return await this.pageRepo.findById(page.id, {
+    const updatedPage = await this.pageRepo.findById(page.id, {
       includeSpace: true,
       includeContent: true,
       includeCreator: true,
       includeLastUpdatedBy: true,
       includeContributors: true,
     });
+
+    this.webhookDispatcher.dispatch(
+      updatedPage.workspaceId,
+      WebhookEvent.PageUpdated,
+      this.toWebhookPagePayload(updatedPage),
+    );
+
+    return updatedPage;
   }
 
   async updatePageContent(
@@ -486,6 +518,18 @@ export class PageService {
         });
       }
     });
+
+    this.webhookDispatcher.dispatch(
+      rootPage.workspaceId,
+      WebhookEvent.PageMoved,
+      {
+        id: rootPage.id,
+        slugId: rootPage.slugId,
+        fromSpaceId: rootPage.spaceId,
+        toSpaceId: spaceId,
+        workspaceId: rootPage.workspaceId,
+      },
+    );
 
     return { childPageIds };
   }
@@ -1015,6 +1059,14 @@ export class PageService {
         pageIds: pageIds,
         workspaceId,
       });
+
+      for (const id of pageIds) {
+        this.webhookDispatcher.dispatch(
+          workspaceId,
+          WebhookEvent.PageDeleted,
+          { id, workspaceId },
+        );
+      }
     }
   }
 
