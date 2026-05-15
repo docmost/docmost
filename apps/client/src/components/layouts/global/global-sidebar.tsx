@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollArea, Text, Divider, Modal } from "@mantine/core";
+import { ScrollArea, Text, Divider, Modal, UnstyledButton } from "@mantine/core";
 import {
   IconHome,
   IconClock,
@@ -119,17 +119,13 @@ export default function GlobalSidebar() {
       </ScrollArea>
 
       <div className={classes.bottomSection}>
-        <a
+        <UnstyledButton
           className={classes.link}
-          onClick={(e) => {
-            e.preventDefault();
-            openInvite();
-          }}
-          href="#"
+          onClick={openInvite}
         >
           <IconUserPlus className={classes.linkIcon} stroke={2} />
           <span>{t("Invite People")}</span>
-        </a>
+        </UnstyledButton>
         <Link
           className={classes.link}
           data-active={active.startsWith("/settings") || undefined}

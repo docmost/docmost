@@ -102,6 +102,14 @@ export const LinkEditorPanel = ({
           leftSection={<IconLink size={16} stroke={1.5} color="var(--mantine-color-dimmed)" />}
           classNames={{ input: classes.linkInput }}
           placeholder={t("Paste link or search pages")}
+          aria-label={t("Paste link or search pages")}
+          role="combobox"
+          aria-expanded={showDropdown}
+          aria-controls="link-editor-results"
+          aria-autocomplete="list"
+          aria-activedescendant={
+            showDropdown ? `link-editor-option-${selectedIndex}` : undefined
+          }
           value={state.url}
           onChange={state.onChange}
           onKeyDown={handleKeyDown}
@@ -125,10 +133,16 @@ export const LinkEditorPanel = ({
             scrollbarSize={6}
             mt={state.url.length > 0 ? 8 : 0}
             styles={{ content: { minWidth: 0 } }}
+            id="link-editor-results"
+            role="listbox"
+            aria-label={t("Link suggestions")}
           >
             {showUrlItem && (
               <UnstyledButton
                 data-item-index={0}
+                id="link-editor-option-0"
+                role="option"
+                aria-selected={selectedIndex === 0}
                 onClick={() => onSetLink(state.url, false)}
                 className={clsx(classes.searchItem, {
                   [classes.selectedSearchItem]: selectedIndex === 0,
@@ -156,6 +170,9 @@ export const LinkEditorPanel = ({
               return (
                 <UnstyledButton
                   data-item-index={itemIndex}
+                  id={`link-editor-option-${itemIndex}`}
+                  role="option"
+                  aria-selected={itemIndex === selectedIndex}
                   key={page.id || index}
                   onClick={() => selectPage(page)}
                   className={clsx(classes.searchItem, {

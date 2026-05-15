@@ -53,7 +53,7 @@ export function UpdateApiKeyModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("Update API key")}
+      title={t("Update {{credential}}", { credential: t("API key") })}
       size="md"
     >
       <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>

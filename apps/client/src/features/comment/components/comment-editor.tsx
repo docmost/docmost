@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import EmojiCommand from "@/features/editor/extensions/emoji-command";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion";
 import MentionView from "@/features/editor/components/mention/mention-view";
+import { platformModifierKey } from "@/lib";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -83,7 +84,7 @@ const CommentEditor = forwardRef(
               }
             }
 
-            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+            if (platformModifierKey(event) && event.code === "Enter") {
               event.preventDefault();
               if (onSave) onSave();
 

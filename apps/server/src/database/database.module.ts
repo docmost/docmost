@@ -11,6 +11,8 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PageRepo } from './repos/page/page.repo';
 import { PagePermissionRepo } from './repos/page/page-permission.repo';
 import { CommentRepo } from './repos/comment/comment.repo';
+import { PageTransclusionsRepo } from './repos/page-transclusions/page-transclusions.repo';
+import { PageTransclusionReferencesRepo } from './repos/page-transclusions/page-transclusion-references.repo';
 import { PageHistoryRepo } from './repos/page/page-history.repo';
 import { AttachmentRepo } from './repos/attachment/attachment.repo';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -22,6 +24,7 @@ import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { TemplateRepo } from '@docmost/db/repos/template/template.repo';
 import { PageListener } from '@docmost/db/listeners/page.listener';
@@ -75,6 +78,8 @@ import { normalizePostgresUrl } from '../common/helpers';
     SpaceMemberRepo,
     PageRepo,
     PagePermissionRepo,
+    PageTransclusionsRepo,
+    PageTransclusionReferencesRepo,
     PageHistoryRepo,
     CommentRepo,
     FavoriteRepo,
@@ -85,6 +90,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     ShareRepo,
     NotificationRepo,
     WatcherRepo,
+    LabelRepo,
     TemplateRepo,
     PageListener,
   ],
@@ -97,6 +103,8 @@ import { normalizePostgresUrl } from '../common/helpers';
     SpaceMemberRepo,
     PageRepo,
     PagePermissionRepo,
+    PageTransclusionsRepo,
+    PageTransclusionReferencesRepo,
     PageHistoryRepo,
     CommentRepo,
     FavoriteRepo,
@@ -107,6 +115,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     ShareRepo,
     NotificationRepo,
     WatcherRepo,
+    LabelRepo,
     TemplateRepo,
   ],
 })

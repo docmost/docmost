@@ -54,6 +54,7 @@ export class PageRepo {
       includeCreator?: boolean;
       includeLastUpdatedBy?: boolean;
       includeContributors?: boolean;
+      includeDeletedBy?: boolean;
       includeHasChildren?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
@@ -83,6 +84,10 @@ export class PageRepo {
       query = query.select((eb) => this.withContributors(eb));
     }
 
+    if (opts?.includeDeletedBy) {
+      query = query.select((eb) => this.withDeletedBy(eb));
+    }
+
     if (opts?.includeSpace) {
       query = query.select((eb) => this.withSpace(eb));
     }
@@ -98,6 +103,30 @@ export class PageRepo {
     }
 
     return query.executeTakeFirst();
+  }
+
+  async findManyByIds(
+    pageIds: string[],
+    opts?: {
+      trx?: KyselyTransaction;
+      workspaceId?: string;
+    },
+  ): Promise<Page[]> {
+    if (pageIds.length === 0) return [];
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .where('id', 'in', pageIds);
+
+    if (opts?.workspaceId) {
+      query = query
+        .where('workspaceId', '=', opts.workspaceId)
+        .where('deletedAt', 'is', null);
+    }
+
+    return query.execute();
   }
 
   async updatePage(

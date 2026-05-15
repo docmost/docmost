@@ -132,6 +132,7 @@ export default function AiChatSidebarItem({
               size="xs"
               color="gray"
               onClick={(e) => e.preventDefault()}
+              aria-label={t("Chat menu")}
             >
               <IconDots size={14} />
             </ActionIcon>

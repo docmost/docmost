@@ -51,9 +51,9 @@ export class ImportController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const validFileExtensions = ['.md', '.html', '.docx'];
+    const validFileExtensions = ['.md', '.html', '.docx', '.pdf'];
 
-    const maxFileSize = bytes('20mb');
+    const maxFileSize = bytes('30mb');
 
     let file = null;
     try {
@@ -102,6 +102,7 @@ export class ImportController {
       '.md': 'markdown',
       '.html': 'html',
       '.docx': 'docx',
+      '.pdf': 'pdf',
     };
 
     if (createdPage) {

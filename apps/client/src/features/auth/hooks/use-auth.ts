@@ -166,7 +166,7 @@ export default function useAuth() {
   const handleLogout = async () => {
     setCurrentUser(RESET);
     await logout();
-    window.location.replace(APP_ROUTE.AUTH.LOGIN);
+    window.location.replace(`${APP_ROUTE.AUTH.LOGIN}?logout=1`);
   };
 
   const handleForgotPassword = async (data: IForgotPassword) => {

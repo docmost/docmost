@@ -10,11 +10,35 @@
 .treeNode {
   text-decoration: none;
   user-select: none;
+  padding-bottom: 0;
 }
 
 .navbar,
 .aside {
   @media (max-width: $mantine-breakpoint-sm) {
     width: 350px;
+  }
+}
+
+.resizeHandle {
+  width: 3px;
+  cursor: col-resize;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+
+  &:hover,
+  &:active {
+    width: 5px;
+    background: light-dark(
+      var(--mantine-color-gray-4),
+      var(--mantine-color-dark-5)
+    );
+  }
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    display: none;
   }
 }

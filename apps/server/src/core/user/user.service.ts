@@ -61,6 +61,14 @@ export class UserService {
       );
     }
 
+    if (typeof updateUserDto.editorToolbar !== 'undefined') {
+      return this.userRepo.updatePreference(
+        userId,
+        'editorToolbar',
+        updateUserDto.editorToolbar,
+      );
+    }
+
     const notificationSettings: Record<string, NotificationSettingKey> = {
       notificationPageUpdates: 'page.updated',
       notificationPageUserMention: 'page.userMention',
@@ -108,10 +116,6 @@ export class UserService {
       }
 
       user.email = updateUserDto.email;
-    }
-
-    if (updateUserDto.avatarUrl) {
-      user.avatarUrl = updateUserDto.avatarUrl;
     }
 
     if (updateUserDto.locale) {

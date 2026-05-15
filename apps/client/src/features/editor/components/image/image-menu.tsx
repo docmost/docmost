@@ -2,6 +2,7 @@ import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback, useRef } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
+import { isEditorReady } from "@docmost/editor-ext";
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -56,7 +57,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
   );
 
   const getReferencedVirtualElement = useCallback(() => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "image";
     const parent = findParentNode(predicate)(selection);

@@ -162,6 +162,28 @@ export const Callout = Node.create<CalloutOptions>({
           return false;
         }
 
+        // Empty callout: delete the whole node so Backspace inside it isn't
+        // a no-op (isolating: true blocks the default join with the block
+        // above).
+        const calloutDepth = $from.depth - 1;
+        if (calloutDepth >= 0) {
+          const calloutNode = $from.node(calloutDepth);
+          if (
+            calloutNode.type === this.type &&
+            calloutNode.childCount === 1 &&
+            calloutNode.firstChild?.content.size === 0
+          ) {
+            const calloutPos = $from.before(calloutDepth);
+            const { tr } = state;
+            tr.delete(calloutPos, calloutPos + calloutNode.nodeSize);
+            tr.setSelection(
+              TextSelection.near(tr.doc.resolve(calloutPos), -1),
+            );
+            view.dispatch(tr);
+            return true;
+          }
+        }
+
         const previousPosition = $from.before($from.depth) - 1;
 
         // If nothing above to join with
@@ -206,6 +228,56 @@ export const Callout = Node.create<CalloutOptions>({
           return true;
         }
         return false;
+      },
+
+      // Exit the callout into a fresh paragraph below when the cursor sits
+      // in an empty trailing child. An empty callout (single empty
+      // paragraph) exits on the first Enter and keeps the empty callout
+      // intact; a callout with content needs the double-Enter pattern
+      // (first Enter splits, second Enter on the new trailing empty exits
+      // and removes that trailing paragraph).
+      Enter: ({ editor }) => {
+        const { state, view } = editor;
+        const { selection } = state;
+        if (!selection.empty) return false;
+
+        const { $from } = selection;
+        const calloutDepth = $from.depth - 1;
+        if (calloutDepth < 0) return false;
+
+        const calloutNode = $from.node(calloutDepth);
+        if (calloutNode.type !== this.type) return false;
+        if ($from.parent.content.size !== 0) return false;
+        if ($from.index(calloutDepth) !== calloutNode.childCount - 1) {
+          return false;
+        }
+
+        const paragraphType = state.schema.nodes.paragraph;
+        const containerDepth = calloutDepth - 1;
+        const container = $from.node(containerDepth);
+        const indexAfter = $from.indexAfter(containerDepth);
+        if (
+          !container.canReplaceWith(indexAfter, indexAfter, paragraphType)
+        ) {
+          return false;
+        }
+
+        const calloutEnd = $from.after(calloutDepth);
+        const paragraph = paragraphType.create();
+        const { tr } = state;
+
+        if (calloutNode.childCount === 1) {
+          tr.insert(calloutEnd, paragraph);
+          tr.setSelection(TextSelection.create(tr.doc, calloutEnd + 1));
+        } else {
+          tr.delete($from.before(), $from.after());
+          const insertPos = tr.mapping.map(calloutEnd);
+          tr.insert(insertPos, paragraph);
+          tr.setSelection(TextSelection.create(tr.doc, insertPos + 1));
+        }
+
+        view.dispatch(tr);
+        return true;
       },
     };
   },

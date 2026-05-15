@@ -38,12 +38,12 @@ export default defineConfig(({ mode }) => {
     build: {
       rolldownOptions: {
         output: {
-          codeSplitting: {
+          advancedChunks: {
             groups: [
-              { name: "vendor-mantine", test: /@mantine/ },
-              { name: "vendor-mermaid", test: /mermaid|cytoscape|elkjs/ },
-              { name: "vendor-excalidraw", test: /excalidraw/ },
-              { name: "vendor-katex", test: /katex/ },
+              {
+                name: "vendor-mantine",
+                test: /[\\/]node_modules[\\/]@mantine[\\/]/,
+              },
             ],
           },
         },

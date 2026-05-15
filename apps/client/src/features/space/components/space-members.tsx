@@ -143,7 +143,7 @@ export default function SpaceMembersList({
               <Table.Tr>
                 <Table.Th>{t("Member")}</Table.Th>
                 <Table.Th>{t("Role")}</Table.Th>
-                <Table.Th></Table.Th>
+                <Table.Th aria-label={t("Action")} />
               </Table.Tr>
             </Table.Thead>
 

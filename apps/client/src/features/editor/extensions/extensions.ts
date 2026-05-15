@@ -9,9 +9,10 @@ import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { Youtube } from "@tiptap/extension-youtube";
-import SlashCommand, { SlashCommandExtension as Command } from "@/features/editor/extensions/slash-command";
+import SlashCommand, {
+  SlashCommandExtension as Command,
+} from "@/features/editor/extensions/slash-command";
 import renderItems from "@/features/editor/components/slash-menu/render-items";
 import getSuggestionItems from "@/features/editor/components/slash-menu/menu-items";
 import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
@@ -41,17 +42,25 @@ import {
   Excalidraw,
   Embed,
   TiptapPdf,
+  PageBreak,
   SearchAndReplace,
   Mention,
   TableDndExtension,
+  TableHandleCommandsExtension,
+  TableHeaderPin,
+  TableReadonlySort,
   Subpages,
   Heading,
   Highlight,
+  Indent,
   UniqueID,
   SharedStorage,
   Columns,
   Column,
   Status,
+  TransclusionSource,
+  TransclusionReference,
+  TableView,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -76,10 +85,12 @@ import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
-import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
+import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view-lazy.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
+import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -100,6 +111,7 @@ import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboa
 import EmojiCommand from "./emoji-command";
 import { countWords } from "alfaaz";
 import AutoJoiner from "@/features/editor/extensions/autojoiner.ts";
+import GlobalDragHandle from "@/features/editor/extensions/drag-handle.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -167,7 +179,7 @@ export const mainExtensions = [
   SharedStorage,
   Heading,
   UniqueID.configure({
-    types: ["heading", "paragraph"],
+    types: ["heading", "paragraph", "transclusionSource"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({
@@ -197,6 +209,7 @@ export const mainExtensions = [
     showOnlyWhenEditable: true,
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
+  Indent,
   TaskList,
   TaskItem.configure({
     nested: true,
@@ -215,7 +228,9 @@ export const mainExtensions = [
   }),
   Typography,
   TrailingNode,
-  GlobalDragHandle,
+  GlobalDragHandle.configure({
+    customNodes: ["transclusionSource", "transclusionReference"],
+  }),
   TextStyle,
   Color,
   SlashCommand,
@@ -249,11 +264,16 @@ export const mainExtensions = [
     resizable: true,
     lastColumnResizable: true,
     allowTableNodeSelection: true,
+    cellMinWidth: 49,
+    View: TableView,
   }),
   TableRow,
   TableCell,
   TableHeader,
   TableDndExtension,
+  TableHandleCommandsExtension,
+  TableHeaderPin,
+  TableReadonlySort,
   MathInline.configure({
     view: MathInlineView,
   }),
@@ -305,6 +325,8 @@ export const mainExtensions = [
     view: CodeBlockView,
     //@ts-ignore
     lowlight,
+    enableTabIndentation: true,
+    tabSize: 2,
     HTMLAttributes: {
       spellcheck: false,
     },
@@ -345,11 +367,18 @@ export const mainExtensions = [
   TiptapPdf.configure({
     view: PdfView,
   }),
+  PageBreak,
   Subpages.configure({
     view: SubpagesView,
   }),
   Status.configure({
     view: StatusView,
+  }),
+  TransclusionSource.configure({
+    view: TransclusionView,
+  }),
+  TransclusionReference.configure({
+    view: TransclusionReferenceView,
   }),
   MarkdownClipboard.configure({
     transformPastedText: true,
@@ -393,7 +422,10 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
 const TemplateSlashCommand = Command.configure({
   suggestion: {
     items: ({ query }: { query: string }) =>
-      getSuggestionItems({ query, excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS }),
+      getSuggestionItems({
+        query,
+        excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS,
+      }),
     render: renderItems,
   },
 });

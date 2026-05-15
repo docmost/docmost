@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Menu, Text, ThemeIcon, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
   IconArrowsHorizontal,
@@ -29,7 +29,7 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 import { Trans, useTranslation } from "react-i18next";
@@ -40,7 +40,7 @@ import {
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate } from "@/lib/time.ts";
-import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
+import { PageEditModeToggle } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
@@ -65,6 +65,11 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
+  const { pageSlug } = useParams();
+  const { data: page } = usePageQuery({
+    pageId: extractPageSlugId(pageSlug),
+  });
+  const isDeleted = !!page?.deletedAt;
 
   useHotkeys(
     [
@@ -87,11 +92,15 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     [],
   );
 
+  if (isDeleted) {
+    return null;
+  }
+
   return (
     <>
       <ConnectionWarning />
 
-      {!readOnly && <PageStateSegmentedControl size="xs" />}
+      {!readOnly && <PageEditModeToggle size="xs" />}
 
       <PageShareModal readOnly={readOnly} />
 
@@ -99,6 +108,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         <ActionIcon
           variant="subtle"
           color="dark"
+          aria-label={t("Comments")}
           onClick={() => toggleAside("comments")}
         >
           <IconMessage size={20} stroke={2} />
@@ -109,6 +119,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         <ActionIcon
           variant="subtle"
           color="dark"
+          aria-label={t("Table of contents")}
           onClick={() => toggleAside("toc")}
         >
           <IconList size={20} stroke={2} />
@@ -132,7 +143,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     pageId: extractPageSlugId(pageSlug),
   });
   const { openDeleteModal } = useDeletePageModal();
-  const [tree] = useAtom(treeApiAtom);
+  const { handleDelete } = useTreeMutation(page?.spaceId ?? "");
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [
@@ -181,7 +192,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   };
 
   const handleDeletePage = () => {
-    openDeleteModal({ onConfirm: () => tree?.delete(page.id) });
+    openDeleteModal({ onConfirm: () => handleDelete(page.id) });
   };
 
   const handleToggleFavorite = () => {
@@ -205,7 +216,11 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         arrowPosition="center"
       >
         <Menu.Target>
-          <ActionIcon variant="subtle" color="dark">
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            aria-label={t("Page actions")}
+          >
             <IconDots size={20} />
           </ActionIcon>
         </Menu.Target>
@@ -416,9 +431,15 @@ function ConnectionWarning() {
       openDelay={250}
       withArrow
     >
-      <ActionIcon variant="default" c="red" style={{ border: "none" }}>
+      <ThemeIcon
+        variant="default"
+        c="red"
+        role="status"
+        aria-label={t("Real-time editor connection lost. Retrying...")}
+        style={{ border: "none" }}
+      >
         <IconWifiOff size={20} stroke={2} />
-      </ActionIcon>
+      </ThemeIcon>
     </Tooltip>
   );
 }

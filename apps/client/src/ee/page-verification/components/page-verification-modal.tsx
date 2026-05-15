@@ -1,4 +1,12 @@
-import { ActionIcon, Group, Menu, Modal, Text, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Group,
+  Menu,
+  Modal,
+  Text,
+  ThemeIcon,
+  Tooltip,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconRosetteDiscountCheckFilled,
@@ -38,6 +46,7 @@ export function PageVerificationModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      aria-label={status === "none" ? t("Set up verification") : t("Verify page")}
       title={
         <Group gap="xs">
           <IconShieldCheck
@@ -97,9 +106,9 @@ export function PageVerificationBadge({
         withArrow
         openDelay={250}
       >
-        <ActionIcon variant="subtle" color="gray">
+        <ThemeIcon variant="subtle" color="gray">
           <IconShieldCheck size={20} stroke={1.5} />
-        </ActionIcon>
+        </ThemeIcon>
       </Tooltip>
     );
   }
@@ -109,10 +118,20 @@ export function PageVerificationBadge({
 
   if (status === "none" && readOnly) return null;
 
+  const tooltipLabel =
+    status === "verified" && verificationInfo?.expiresAt
+      ? t("Verified until {{date}}", {
+          date: new Date(verificationInfo.expiresAt).toLocaleDateString(
+            undefined,
+            { month: "long", day: "numeric", year: "numeric" },
+          ),
+        })
+      : getStatusLabel(status, t);
+
   return (
     <>
       {status !== "none" ? (
-        <Tooltip label={getStatusLabel(status, t)} withArrow openDelay={250}>
+        <Tooltip label={tooltipLabel} withArrow openDelay={250}>
           <Group
             gap={4}
             onClick={open}
@@ -130,7 +149,12 @@ export function PageVerificationBadge({
         </Tooltip>
       ) : !readOnly ? (
         <Tooltip label={t("Set up verification")} withArrow openDelay={250}>
-          <ActionIcon variant="subtle" color="gray" onClick={open}>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            aria-label={t("Set up verification")}
+            onClick={open}
+          >
             <IconShieldCheck size={20} stroke={1.5} />
           </ActionIcon>
         </Tooltip>
