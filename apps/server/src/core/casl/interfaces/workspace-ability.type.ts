@@ -13,6 +13,7 @@ export enum WorkspaceCaslSubject {
   Attachment = 'attachment',
   API = 'api_key',
   Audit = 'audit',
+  Webhook = 'webhook',
 }
 
 export type IWorkspaceAbility =
@@ -22,4 +23,5 @@ export type IWorkspaceAbility =
   | [WorkspaceCaslAction, WorkspaceCaslSubject.Group]
   | [WorkspaceCaslAction, WorkspaceCaslSubject.Attachment]
   | [WorkspaceCaslAction, WorkspaceCaslSubject.API]
-  | [WorkspaceCaslAction, WorkspaceCaslSubject.Audit];
+  | [WorkspaceCaslAction, WorkspaceCaslSubject.Audit]
+  | [WorkspaceCaslAction, WorkspaceCaslSubject.Webhook];

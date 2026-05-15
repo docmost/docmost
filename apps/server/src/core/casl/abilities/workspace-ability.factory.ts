@@ -42,6 +42,7 @@ function buildWorkspaceOwnerAbility() {
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Attachment);
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.API);
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Audit);
+  can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Webhook);
 
   return build();
 }
@@ -58,6 +59,7 @@ function buildWorkspaceAdminAbility() {
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member);
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Attachment);
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.API);
+  can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Webhook);
 
   return build();
 }

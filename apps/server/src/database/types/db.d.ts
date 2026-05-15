@@ -589,6 +589,37 @@ export interface UserSessions {
   createdAt: Generated<Timestamp>;
 }
 
+export interface Webhooks {
+  id: Generated<string>;
+  workspaceId: string;
+  name: string;
+  url: string;
+  signingSecret: string;
+  subscribedEvents: Generated<Json>;
+  isActive: Generated<boolean>;
+  consecutiveFailureCount: Generated<number>;
+  disabledAt: Timestamp | null;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface WebhookDeliveries {
+  id: Generated<string>;
+  webhookId: string;
+  workspaceId: string;
+  event: string;
+  payload: Json;
+  status: Generated<string>;
+  httpStatus: number | null;
+  responseBody: string | null;
+  errorMessage: string | null;
+  attemptCount: Generated<number>;
+  durationMs: number | null;
+  deliveredAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface DB {
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
@@ -625,6 +656,8 @@ export interface DB {
   userSessions: UserSessions;
   userTokens: UserTokens;
   watchers: Watchers;
+  webhooks: Webhooks;
+  webhookDeliveries: WebhookDeliveries;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
 }

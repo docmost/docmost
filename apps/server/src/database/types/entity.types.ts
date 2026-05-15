@@ -37,6 +37,8 @@ import {
   Watchers,
   Audit as _Audit,
   Templates,
+  Webhooks,
+  WebhookDeliveries,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -238,3 +240,13 @@ export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
 export type Template = Selectable<Templates>;
 export type InsertableTemplate = Insertable<Templates>;
 export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;
+
+// Webhook
+export type Webhook = Selectable<Webhooks>;
+export type InsertableWebhook = Insertable<Webhooks>;
+export type UpdatableWebhook = Updateable<Omit<Webhooks, 'id'>>;
+
+// Webhook delivery
+export type WebhookDelivery = Selectable<WebhookDeliveries>;
+export type InsertableWebhookDelivery = Insertable<WebhookDeliveries>;
+export type UpdatableWebhookDelivery = Updateable<Omit<WebhookDeliveries, 'id'>>;
