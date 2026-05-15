@@ -593,7 +593,7 @@ export class PageService {
             const referencedPageId = node.attrs.entityId;
 
             // Check if the referenced page is within the pages being copied
-            if (referencedPageId && pageMap.has(referencedPageId)) {
+            if (referencedPageId && referencedPageId !== page.id && pageMap.has(referencedPageId)) {
               const mappedPage = pageMap.get(referencedPageId);
               //@ts-ignore
               node.attrs.entityId = mappedPage.newPageId;
@@ -623,7 +623,7 @@ export class PageService {
               const match = mark.attrs.href.match(INTERNAL_LINK_REGEX);
               if (match) {
                 const slugId = extractPageSlugId(match[5]);
-                if (slugId && slugIdMap.has(slugId)) {
+                if (slugId && slugId !== pageFromMap.oldSlugId && slugIdMap.has(slugId)) {
                   const mappedPage = slugIdMap.get(slugId);
                   //@ts-ignore
                   mark.attrs.href = mark.attrs.href.replace(
