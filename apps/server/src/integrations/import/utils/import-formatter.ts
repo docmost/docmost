@@ -104,11 +104,18 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
   normalizeTableColumnWidths($, $root);
   applyConfluenceMarginLeftIndent($, $root);
 
+  // Auto-embed only when the <a> is the SOLE meaningful child of its parent
+  // block (the "naked URL on its own line" pattern editors use as the
+  // embed-intent signal). Otherwise body-text links to YouTube/Vimeo/Loom
+  // get silently turned into fullscreen iframes, which is rarely what the
+  // author wanted — Confluence's storage format has the `widget` macro for
+  // explicit embeds, handled separately in the API converter.
   $root.find('a[href]').each((_, el) => {
     const $el = $(el);
     const url = $el.attr('href')!;
     const { provider } = getEmbedUrlAndProvider(url);
     if (provider === 'iframe') return;
+    if (!isSoleMeaningfulChild($el, el)) return;
 
     const embed = `<div data-type=\"embed\" data-src=\"${url}\" data-provider=\"${provider}\" data-align=\"center\" data-width=\"640\" data-height=\"480\"></div>`;
     $el.replaceWith(embed);
@@ -122,6 +129,21 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
     const embed = `<div data-type=\"embed\" data-src=\"${url}\" data-provider=\"${provider}\" data-align=\"center\" data-width=\"640\" data-height=\"480\"></div>`;
     $el.replaceWith(embed);
   });
+}
+
+function isSoleMeaningfulChild(
+  $el: Cheerio<any>,
+  rawEl: any,
+): boolean {
+  const $parent = $el.parent();
+  if ($parent.length === 0) return true;
+  const others = $parent.contents().toArray().filter((n: any) => {
+    if (n === rawEl) return false;
+    if (n.type === 'text') return (n.data ?? '').trim() !== '';
+    if (n.type === 'tag' && n.name === 'br') return false;
+    return true;
+  });
+  return others.length === 0;
 }
 
 const COLUMN_LAYOUTS = [
