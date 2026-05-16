@@ -447,6 +447,19 @@ export interface ScimTokens {
   workspaceId: string;
 }
 
+export interface IntegrationOauthTokens {
+  id: Generated<string>;
+  userId: string;
+  integrationId: string;
+  accessTokenEncrypted: string;
+  refreshTokenEncrypted: string | null;
+  expiresAt: Timestamp | null;
+  scopes: Generated<string>;
+  needsReconnect: Generated<boolean>;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface Watchers {
   id: Generated<string>;
   userId: string;
@@ -616,6 +629,7 @@ export interface DB {
   pageVerifiers: PageVerifiers;
   pages: Pages;
   scimTokens: ScimTokens;
+  integrationOauthTokens: IntegrationOauthTokens;
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;

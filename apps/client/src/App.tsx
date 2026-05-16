@@ -11,6 +11,7 @@ import GroupInfo from "./pages/settings/group/group-info";
 import Spaces from "@/pages/settings/space/spaces.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import AccountPreferences from "@/pages/settings/account/account-preferences.tsx";
+import AccountIntegrations from "@/pages/settings/account/integrations.tsx";
 import SpaceHome from "@/pages/space/space-home.tsx";
 import PageRedirect from "@/pages/page/page-redirect.tsx";
 import Layout from "@/components/layouts/global/layout.tsx";
@@ -113,6 +114,10 @@ export default function App() {
               element={<AccountPreferences />}
             />
             <Route path={"account/api-keys"} element={<UserApiKeys />} />
+            <Route
+              path={"account/integrations"}
+              element={<AccountIntegrations />}
+            />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
             <Route path={"api-keys"} element={<WorkspaceApiKeys />} />
