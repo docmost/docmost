@@ -1,6 +1,8 @@
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { StarterKit } from "@tiptap/starter-kit";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
 import { Mention, LinkExtension } from "@docmost/editor-ext";
 import classes from "./comment.module.css";
 import { useFocusWithin } from "@mantine/hooks";
@@ -47,6 +49,8 @@ const CommentEditor = forwardRef(
           placeholder: placeholder || t("Reply..."),
         }),
         LinkExtension,
+        TextStyle,
+        Color,
         EmojiCommand,
         Mention.configure({
           suggestion: {
