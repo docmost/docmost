@@ -1,5 +1,16 @@
 import { Json, Timestamp, Generated } from '@docmost/db/types/db';
 
+export interface ConfluenceApiImportMappings {
+  id: Generated<string>;
+  workspaceId: string;
+  entityType: string;
+  confluenceId: string;
+  docmostId: string;
+  status: Generated<string>;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface ConfluenceApiImports {
   id: Generated<string>;
   fileTaskId: string;
