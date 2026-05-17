@@ -110,6 +110,9 @@ function ProgressCell({ item }: { item: ConfluenceImportHistoryItem }) {
         <Text fz="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
           · {item.importedSpaces}/{item.totalSpaces || "?"} spaces
         </Text>
+        <Text fz="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
+          · {item.importedUsers}/{item.totalUsers || "?"} users
+        </Text>
       </Group>
     </Stack>
   );
