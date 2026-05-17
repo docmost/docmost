@@ -49,7 +49,7 @@ export async function getConfluenceImportStatus(
 }
 
 export async function listConfluenceImports(): Promise<ListImportsResponse> {
-  const req = await api.post<ListImportsResponse>("/confluence-import/list");
+  const req = await api.post<ListImportsResponse>("/confluence-import/history");
   return req.data;
 }
 
