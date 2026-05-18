@@ -166,6 +166,18 @@ export default function useAuth() {
   const handleLogout = async () => {
     setCurrentUser(RESET);
     await logout();
+
+    try {
+      if (typeof indexedDB?.databases === "function") {
+        const dbs = await indexedDB.databases();
+        dbs
+          .filter((db) => db.name?.startsWith("page."))
+          .forEach((db) => indexedDB.deleteDatabase(db.name!));
+      }
+    } catch {
+      //
+    }
+
     window.location.replace(`${APP_ROUTE.AUTH.LOGIN}?logout=1`);
   };
 
