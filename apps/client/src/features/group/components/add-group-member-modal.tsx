@@ -3,7 +3,7 @@ import { useDisclosure } from "@mantine/hooks";
 import React, { useState } from "react";
 import { MultiUserSelect } from "@/features/group/components/multi-user-select.tsx";
 import { useParams } from "react-router-dom";
-import { useAddGroupMemberMutation } from "@/features/group/queries/group-query.ts";
+import { useAddGroupMemberMutation, useGroupMembersQuery } from "@/features/group/queries/group-query.ts";
 import { useTranslation } from "react-i18next";
 
 export default function AddGroupMemberModal() {
@@ -12,6 +12,8 @@ export default function AddGroupMemberModal() {
   const [opened, { open, close }] = useDisclosure(false);
   const [userIds, setUserIds] = useState<string[]>([]);
   const addGroupMemberMutation = useAddGroupMemberMutation();
+  const { data: groupMembers } = useGroupMembersQuery(groupId, { limit: 500 });
+  const existingMemberIds = groupMembers?.items.map((m) => m.id) ?? [];
 
   const handleMultiSelectChange = (value: string[]) => {
     setUserIds(value);
@@ -37,6 +39,7 @@ export default function AddGroupMemberModal() {
         <MultiUserSelect
           label={t("Add group members")}
           onChange={handleMultiSelectChange}
+          excludeIds={existingMemberIds}
         />
 
         <Group justify="flex-end" mt="md">

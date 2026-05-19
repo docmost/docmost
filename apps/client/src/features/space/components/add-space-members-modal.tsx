@@ -1,7 +1,7 @@
 import { Button, Divider, Group, Modal, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import React, { useState } from "react";
-import { useAddSpaceMemberMutation } from "@/features/space/queries/space-query.ts";
+import React, { useMemo, useState } from "react";
+import { useAddSpaceMemberMutation, useSpaceMembersInfiniteQuery } from "@/features/space/queries/space-query.ts";
 import { MultiMemberSelect } from "@/features/space/components/multi-member-select.tsx";
 import { SpaceMemberRole } from "@/features/space/components/space-member-role.tsx";
 import { SpaceRole } from "@/lib/types.ts";
@@ -18,6 +18,13 @@ export default function AddSpaceMembersModal({
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [role, setRole] = useState<string>(SpaceRole.WRITER);
   const addSpaceMemberMutation = useAddSpaceMemberMutation();
+  const { data: spaceMembersData } = useSpaceMembersInfiniteQuery(spaceId);
+  const existingMemberIds = useMemo(() => {
+    const pages = spaceMembersData?.pages ?? [];
+    return pages.flatMap((p) =>
+      p.items.map((m) => `${m.type}-${m.id}`),
+    );
+  }, [spaceMembersData]);
 
   const handleMultiSelectChange = (value: string[]) => {
     setMemberIds(value);
@@ -55,7 +62,7 @@ export default function AddSpaceMembersModal({
         <Divider size="xs" mb="xs" />
 
         <Stack>
-          <MultiMemberSelect onChange={handleMultiSelectChange} />
+          <MultiMemberSelect onChange={handleMultiSelectChange} excludeIds={existingMemberIds} />
           <SpaceMemberRole
             onSelect={handleRoleSelection}
             defaultRole={role}

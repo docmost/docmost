@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 interface MultiUserSelectProps {
   onChange: (value: string[]) => void;
   label?: string;
+  excludeIds?: string[];
 }
 
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
@@ -29,7 +30,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   </Group>
 );
 
-export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
+export function MultiUserSelect({ onChange, label, excludeIds = [] }: MultiUserSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
@@ -50,9 +51,10 @@ export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
         };
       });
 
-      // Filter out existing users by their ids
+      // Filter out already-existing members and previously seen users
       const filteredUsersData = usersData.filter(
         (user) =>
+          !excludeIds.includes(user.value) &&
           !data.find((existingUser) => existingUser.value === user.value),
       );
 
