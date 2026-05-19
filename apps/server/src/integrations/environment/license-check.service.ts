@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { EnvironmentService } from './environment.service';
+import { Feature } from '../../common/features';
 
 @Injectable()
 export class LicenseCheckService {
@@ -10,6 +11,10 @@ export class LicenseCheckService {
   ) {}
 
   isValidEELicense(licenseKey: string): boolean {
+    if (this.environmentService.isDemoAll()) {
+      return true;
+    }
+
     if (this.environmentService.isCloud()) {
       return true;
     }
@@ -27,6 +32,10 @@ export class LicenseCheckService {
   }
 
   hasFeature(licenseKey: string, feature: string, plan?: string): boolean {
+    if (this.environmentService.isDemoAll()) {
+      return true;
+    }
+
     if (this.environmentService.isCloud()) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -50,6 +59,10 @@ export class LicenseCheckService {
   }
 
   getFeatures(licenseKey: string): string[] {
+    if (this.environmentService.isDemoAll()) {
+      return [...Object.values(Feature)];
+    }
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const LicenseModule = require('../../ee/licence/license.service');
@@ -63,6 +76,10 @@ export class LicenseCheckService {
   }
 
   resolveFeatures(licenseKey: string, plan: string): string[] {
+    if (this.environmentService.isDemoAll()) {
+      return [...Object.values(Feature)];
+    }
+
     if (this.environmentService.isCloud()) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -77,6 +94,10 @@ export class LicenseCheckService {
   }
 
   resolveTier(licenseKey: string, plan: string): string {
+    if (this.environmentService.isDemoAll()) {
+      return 'enterprise';
+    }
+
     if (this.environmentService.isCloud()) {
       return plan ?? 'standard';
     }

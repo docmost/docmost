@@ -1,6 +1,9 @@
 services:
   docmost:
-    image: docmost/docmost:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docmost/docmost:local
     depends_on:
       - db
       - redis
@@ -9,6 +12,8 @@ services:
       APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
       DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost'
       REDIS_URL: 'redis://redis:6379'
+      # Demo mode: when "true", unlocks every paid/EE feature. Do NOT use in production.
+      DEMO_ALL: ${DEMO_ALL:-false}
     ports:
       - "3000:3000"
     restart: unless-stopped

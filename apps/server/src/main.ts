@@ -147,6 +147,13 @@ async function bootstrap() {
 
   const logger = new Logger('NestApplication');
 
+  if (environmentService.isDemoAll()) {
+    logger.warn(
+      'DEMO_ALL=true is set. All paid/enterprise feature gates are bypassed. ' +
+        'Do not use in production.',
+    );
+  }
+
   process.on('unhandledRejection', (reason, promise) => {
     logger.error(`UnhandledRejection, reason: ${reason}`, promise);
   });

@@ -194,6 +194,13 @@ export class EnvironmentService {
     return !this.isCloud();
   }
 
+  isDemoAll(): boolean {
+    const demoConfig = this.configService
+      .get<string>('DEMO_ALL', 'false')
+      .toLowerCase();
+    return demoConfig === 'true';
+  }
+
   getStripePublishableKey(): string {
     return this.configService.get<string>('STRIPE_PUBLISHABLE_KEY');
   }
