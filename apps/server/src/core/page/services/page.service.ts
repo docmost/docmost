@@ -18,6 +18,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
+import { SortPagesDto } from '../dto/sort-pages.dto';
 import { generateSlugId } from '../../../common/helpers';
 import { getPageTitle } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
@@ -819,6 +820,56 @@ export class PageService {
       },
       dto.pageId,
     );
+  }
+
+  async sortPages(
+    dto: SortPagesDto,
+    workspaceId: string,
+  ): Promise<{ id: string; position: string }[]> {
+    let query = this.db
+      .selectFrom('pages')
+      .select(['id', 'title'])
+      .where('spaceId', '=', dto.spaceId)
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null);
+
+    if (dto.parentPageId) {
+      query = query.where('parentPageId', '=', dto.parentPageId);
+    } else {
+      query = query.where('parentPageId', 'is', null);
+    }
+
+    const pages = await query.execute();
+    if (pages.length <= 1) {
+      return [];
+    }
+
+    const sorted = [...pages].sort((a, b) => {
+      const nameA = (a.title || '').toLowerCase();
+      const nameB = (b.title || '').toLowerCase();
+      const cmp = nameA.localeCompare(nameB);
+      return dto.direction === 'asc' ? cmp : -cmp;
+    });
+
+    const positions: string[] = [];
+    let prev: string | null = null;
+    for (const _ of sorted) {
+      const pos = generateJitteredKeyBetween(prev, null);
+      positions.push(pos);
+      prev = pos;
+    }
+
+    await executeTx(this.db, async (trx) => {
+      for (let i = 0; i < sorted.length; i++) {
+        await trx
+          .updateTable('pages')
+          .set({ position: positions[i] })
+          .where('id', '=', sorted[i].id)
+          .execute();
+      }
+    });
+
+    return sorted.map((page, i) => ({ id: page.id, position: positions[i] }));
   }
 
   async getPageBreadCrumbs(childPageId: string) {
