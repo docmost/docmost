@@ -16,6 +16,8 @@ export function DestinationPickerModal({
   loading,
   excludePageId,
   pageLimit,
+  initialSpaceId,
+  searchSpacesOnly,
 }: DestinationPickerModalProps) {
   const { t } = useTranslation();
   const [selection, setSelection] = useState<DestinationSelection | null>(null);
@@ -46,6 +48,8 @@ export function DestinationPickerModal({
             onSelectionChange={setSelection}
             excludePageId={excludePageId}
             pageLimit={pageLimit}
+            initialSpaceId={initialSpaceId}
+            searchSpacesOnly={searchSpacesOnly}
           />
 
           <Group justify="flex-end" mt="md">

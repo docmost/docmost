@@ -20,4 +20,6 @@ export type DestinationPickerModalProps = {
   loading?: boolean;
   excludePageId?: string;
   pageLimit?: number;
+  initialSpaceId?: string;
+  searchSpacesOnly?: boolean;
 };

@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
-import { TextInput, ScrollArea, Loader } from "@mantine/core";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { ActionIcon, TextInput, ScrollArea, Loader } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { IconSearch, IconFile } from "@tabler/icons-react";
+import { IconSearch, IconFileDescription } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query";
@@ -15,23 +15,29 @@ type DestinationPickerProps = {
   onSelectionChange: (selection: DestinationSelection | null) => void;
   excludePageId?: string;
   pageLimit?: number;
+  initialSpaceId?: string;
+  searchSpacesOnly?: boolean;
 };
 
 export function DestinationPicker({
   onSelectionChange,
   excludePageId,
   pageLimit = 15,
+  initialSpaceId,
+  searchSpacesOnly,
 }: DestinationPickerProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selection, setSelection] = useState<DestinationSelection | null>(null);
   const [debouncedQuery] = useDebouncedValue(searchQuery, 300);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const { data: spacesData, isLoading: spacesLoading } = useGetSpacesQuery({
     limit: 100,
   });
 
-  const searchEnabled = debouncedQuery && debouncedQuery.length >= 2;
+  const searchEnabled =
+    !searchSpacesOnly && debouncedQuery && debouncedQuery.length >= 2;
 
   const { data: searchData, isLoading: searchLoading } =
     useSearchSuggestionsQuery({
@@ -41,6 +47,18 @@ export function DestinationPicker({
     });
 
   const isSearching = !!searchEnabled;
+
+  const filteredSpaces = useMemo(() => {
+    const items = spacesData?.items ?? [];
+    if (!searchSpacesOnly || !debouncedQuery) return items;
+    const fold = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .toLocaleLowerCase();
+    const term = fold(debouncedQuery);
+    return items.filter((s) => fold(s.name).includes(term));
+  }, [spacesData, searchSpacesOnly, debouncedQuery]);
 
   const selectedId =
     selection?.type === "space" ? selection.spaceId : selection?.pageId ?? null;
@@ -87,18 +105,48 @@ export function DestinationPicker({
     [updateSelection],
   );
 
+  // Pre-select space when initialSpaceId is set and spaces have loaded.
+  // Only runs once: skip if user has already made a selection.
+  useEffect(() => {
+    if (!initialSpaceId || selection) return;
+    const match = spacesData?.items?.find((s) => s.id === initialSpaceId);
+    if (match) {
+      updateSelection({ type: "space", spaceId: match.id, space: match });
+      requestAnimationFrame(() => {
+        const el = viewportRef.current?.querySelector<HTMLElement>(
+          `[data-space-id="${match.id}"]`,
+        );
+        el?.scrollIntoView({ block: "nearest" });
+      });
+    }
+  }, [initialSpaceId, selection, spacesData, updateSelection]);
+
   return (
     <>
       <TextInput
         leftSection={<IconSearch size={16} />}
-        placeholder={t("Search pages and spaces...")}
+        placeholder={
+          searchSpacesOnly
+            ? t("Search spaces...")
+            : t("Search pages and spaces...")
+        }
+        aria-label={
+          searchSpacesOnly
+            ? t("Search spaces...")
+            : t("Search pages and spaces...")
+        }
         variant="filled"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.currentTarget.value)}
         className={classes.searchInput}
       />
 
-      <ScrollArea h="50vh" offsetScrollbars className={classes.scrollArea}>
+      <ScrollArea
+        h="50vh"
+        offsetScrollbars
+        className={classes.scrollArea}
+        viewportRef={viewportRef}
+      >
         {isSearching ? (
           searchLoading ? (
             <div className={classes.emptyState}>
@@ -111,16 +159,28 @@ export function DestinationPicker({
                   <div
                     key={page.id}
                     className={classes.searchResult}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleSearchResultClick(page)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSearchResultClick(page);
+                      }
+                    }}
                   >
                     <div className={classes.iconWrapper}>
                       {page.icon ? (
                         page.icon
                       ) : (
-                        <IconFile
-                          size={16}
-                          color="var(--mantine-color-gray-5)"
-                        />
+                        <ActionIcon
+                          component="div"
+                          variant="transparent"
+                          c="gray"
+                          size={22}
+                        >
+                          <IconFileDescription size={18} />
+                        </ActionIcon>
                       )}
                     </div>
                     <div className={classes.pageTitle}>
@@ -141,8 +201,14 @@ export function DestinationPicker({
           <div className={classes.emptyState}>
             <Loader size="xs" />
           </div>
+        ) : filteredSpaces.length === 0 ? (
+          <div className={classes.emptyState}>
+            {searchSpacesOnly && debouncedQuery
+              ? t("No spaces found")
+              : t("No results found")}
+          </div>
         ) : (
-          spacesData?.items?.map((space) => (
+          filteredSpaces.map((space) => (
             <SpaceRow
               key={space.id}
               space={space}

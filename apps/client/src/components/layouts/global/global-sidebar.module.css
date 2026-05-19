@@ -38,6 +38,16 @@
             color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
         }
     }
+
+    &[data-disabled] {
+        cursor: not-allowed;
+        opacity: 0.5;
+
+        @mixin hover {
+            background-color: transparent;
+            color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+        }
+    }
 }
 
 .linkIcon {

@@ -416,7 +416,9 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Video",
   "File attachment",
   "Draw.io (diagrams.net)",
-  "Excalidraw diagram",
+  "Excalidraw (Whiteboard)",
+  "Audio",
+  "Synced block"
 ]);
 
 const TemplateSlashCommand = Command.configure({
