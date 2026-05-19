@@ -9,13 +9,12 @@ import {
   UnstyledButton,
   Group,
   SegmentedControl,
-  Anchor,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
+  IconArrowRight,
   IconSearch,
   IconFileText,
-  IconExternalLink,
 } from "@tabler/icons-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -223,18 +222,17 @@ export default function TemplatePickerModal({
           )}
         </ScrollArea>
 
-        <Group justify="space-between" mt="md">
-          <Anchor
+        <Group justify="flex-end" mt="md">
+          <Button
             component={Link}
             to="/templates"
+            variant="subtle"
             size="sm"
+            rightSection={<IconArrowRight size={16} />}
             onClick={handleClose}
           >
-            <Group gap={4} wrap="nowrap">
-              {t("Browse all templates")}
-              <IconExternalLink size={14} />
-            </Group>
-          </Anchor>
+            {t("Browse all templates")}
+          </Button>
         </Group>
       </Modal>
 
