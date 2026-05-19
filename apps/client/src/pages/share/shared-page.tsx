@@ -9,7 +9,10 @@ import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import ShareBranding from "@/features/share/components/share-branding.tsx";
 import { useAtomValue } from "jotai";
-import { sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom.ts";
+import {
+  sharedPageFullWidthAtom,
+  sharedTreeDataAtom,
+} from "@/features/share/atoms/shared-page-atom.ts";
 import { isPageInTree } from "@/features/share/utils.ts";
 
 export default function SharedPage() {
@@ -23,6 +26,7 @@ export default function SharedPage() {
   });
 
   const sharedTreeData = useAtomValue(sharedTreeDataAtom);
+  const fullWidth = useAtomValue(sharedPageFullWidthAtom);
 
   useEffect(() => {
     if (shareId && data) {
@@ -59,7 +63,7 @@ export default function SharedPage() {
         )}
       </Helmet>
 
-      <Container size={900} p={0}>
+      <Container fluid={fullWidth} size={fullWidth ? undefined : 900} p={0}>
         <ReadonlyPageEditor
           key={data.page.id}
           title={data.page.title}

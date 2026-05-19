@@ -22,7 +22,7 @@ interface TableBackgroundColorProps {
   editor: Editor | null;
 }
 
-const TABLE_COLORS: TableColorItem[] = [
+export const TABLE_COLORS: TableColorItem[] = [
   { name: "Default", color: "" },
   { name: "Blue", color: "#b4d5ff" },
   { name: "Green", color: "#acf5d2" },

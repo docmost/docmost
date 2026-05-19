@@ -1,4 +1,5 @@
-import { Box, ScrollArea, Text } from "@mantine/core";
+import { ActionIcon, Box, Group, ScrollArea, Text, Tooltip } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 import CommentListWithTabs from "@/features/comment/components/comment-list-with-tabs.tsx";
 import { useAtom } from "jotai";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
@@ -11,9 +12,10 @@ import AsideChatPanel from "@/ee/ai-chat/components/aside-chat-panel";
 import { PageDetailsAside } from "@/features/page-details/components/page-details-aside.tsx";
 
 export default function Aside() {
-  const [{ tab }] = useAtom(asideStateAtom);
+  const [{ tab }, setAsideState] = useAtom(asideStateAtom);
   const { t } = useTranslation();
   const pageEditor = useAtomValue(pageEditorAtom);
+  const closeAside = () => setAsideState((s) => ({ ...s, isAsideOpen: false }));
 
   let title: string;
   let component: ReactNode;
@@ -45,9 +47,19 @@ export default function Aside() {
       {component && (
         <>
           {tab !== "chat" && (
-            <Text mb="md" fw={500}>
-              {t(title)}
-            </Text>
+            <Group justify="space-between" wrap="nowrap" mb="md">
+              <Text fw={500}>{t(title)}</Text>
+              <Tooltip label={t("Close")} withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  onClick={closeAside}
+                  aria-label={t("Close")}
+                >
+                  <IconX size={18} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           )}
 
           {tab === "comments" || tab === "chat" ? (

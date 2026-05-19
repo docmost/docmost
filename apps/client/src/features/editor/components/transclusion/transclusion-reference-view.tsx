@@ -35,6 +35,7 @@ export default function TransclusionReferenceView(props: NodeViewProps) {
   return (
     <NodeViewWrapper
       className={classes.includeWrap}
+      data-editable={isEditable ? "true" : "false"}
       data-focused={isEditable && props.selected ? "true" : "false"}
       data-menu-open={openMenus > 0 ? "true" : "false"}
       contentEditable={false}

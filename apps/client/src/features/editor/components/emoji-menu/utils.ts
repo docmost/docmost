@@ -21,7 +21,7 @@ let _emojiIndex: EmojiIndexEntry[] | null = null;
 
 export const buildEmojiIndex = async (): Promise<EmojiIndexEntry[]> => {
   if (_emojiIndex) return _emojiIndex;
-  const { default: data } = await import("@emoji-mart/data");
+  const { default: data } = await import('@slidoapp/emoji-mart-data');
   _emojiIndex = (Object.values((data as any).emojis) as any[])
     .filter((e) => e.id && e.name && e.skins?.[0]?.native)
     .map((e) => ({
@@ -74,7 +74,7 @@ let _cats: EmojiCategory[] | null = null;
 export const getEmojiCategories = async (): Promise<EmojiCategory[]> => {
   if (_cats) return _cats;
   const [{ default: data }, index] = await Promise.all([
-    import("@emoji-mart/data"),
+    import("@slidoapp/emoji-mart-data"),
     buildEmojiIndex(),
   ]);
   const byId = new Map(index.map((e) => [e.id, e]));

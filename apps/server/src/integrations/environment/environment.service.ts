@@ -325,4 +325,19 @@ export class EnvironmentService {
       .toLowerCase();
     return disabled === 'true';
   }
+
+  isIframeEmbedAllowed(): boolean {
+    const allowed = this.configService
+      .get<string>('IFRAME_EMBED_ALLOWED', 'false')
+      .toLowerCase();
+    return allowed === 'true';
+  }
+
+  getIframeAllowedOrigins(): string[] {
+    const raw = this.configService.get<string>('IFRAME_ALLOWED_ORIGINS', '');
+    return raw
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+  }
 }

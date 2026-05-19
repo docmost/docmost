@@ -7,17 +7,16 @@ import {
   Group,
   ActionIcon,
   Text,
-  Alert,
   Stack,
   Menu,
 } from "@mantine/core";
 import {
-  IconInfoCircle,
   IconDots,
   IconRestore,
   IconTrash,
   IconFileDescription,
 } from "@tabler/icons-react";
+import { TrashBanner } from "@/features/page/trash/components/trash-banner.tsx";
 import {
   useDeletedPagesQuery,
   useRestorePageMutation,
@@ -31,12 +30,10 @@ import TrashPageContentModal from "@/features/page/trash/components/trash-page-c
 import { UserInfo } from "@/components/common/user-info.tsx";
 import Paginate from "@/components/common/paginate.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
-import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { useRestorePageModal } from "@/features/page/hooks/use-restore-page-modal.tsx";
 
 export default function Trash() {
   const { t } = useTranslation();
-  const [workspace] = useAtom(workspaceAtom);
   const { spaceSlug } = useParams();
   const { cursor, goNext, goPrev } = useCursorPaginate();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
@@ -45,6 +42,7 @@ export default function Trash() {
   });
   const restorePageMutation = useRestorePageMutation();
   const deletePageMutation = useDeletePageMutation();
+  const { openRestoreModal } = useRestorePageModal();
 
   const [selectedPage, setSelectedPage] = useState<{
     title: string;
@@ -78,23 +76,6 @@ export default function Trash() {
     });
   };
 
-  const openRestoreModal = (pageId: string, pageTitle: string) => {
-    modals.openConfirmModal({
-      title: t("Restore page"),
-      children: (
-        <Text size="sm">
-          {t("Restore '{{title}}' and its sub-pages?", {
-            title: pageTitle || "Untitled",
-          })}
-        </Text>
-      ),
-      centered: true,
-      labels: { confirm: t("Restore"), cancel: t("Cancel") },
-      confirmProps: { color: "blue" },
-      onConfirm: () => handleRestorePage(pageId),
-    });
-  };
-
   const hasPages = deletedPages && deletedPages.items.length > 0;
 
   const handlePageClick = (page: any) => {
@@ -109,11 +90,7 @@ export default function Trash() {
           <Title order={2}>{t("Trash")}</Title>
         </Group>
 
-        <Alert icon={<IconInfoCircle size={16} />} variant="light" color="red">
-          <Text size="sm">
-            {t("Pages in trash will be permanently deleted after {{count}} days.", { count: workspace?.trashRetentionDays ?? 30 })}
-          </Text>
-        </Alert>
+        <TrashBanner />
 
         {isLoading || !deletedPages ? (
           <></>
@@ -181,7 +158,10 @@ export default function Trash() {
                           <Menu.Item
                             leftSection={<IconRestore size={16} />}
                             onClick={() =>
-                              openRestoreModal(page.id, page.title)
+                              openRestoreModal({
+                                title: page.title,
+                                onConfirm: () => handleRestorePage(page.id),
+                              })
                             }
                           >
                             {t("Restore")}

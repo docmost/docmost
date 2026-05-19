@@ -18,14 +18,21 @@ export function buildSsoLoginUrl(opts: {
   providerId: string;
   type: SSO_PROVIDER;
   workspaceId?: string;
+  redirect?: string;
 }): string {
-  const { providerId, type, workspaceId } = opts;
+  const { providerId, type, workspaceId, redirect } = opts;
   const domain = getAppUrl();
 
+  const params = new URLSearchParams();
+  if (redirect) params.set("redirect", redirect);
+
   if (type === SSO_PROVIDER.GOOGLE) {
-    return `${getServerAppUrl()}/api/sso/${type}/login?workspaceId=${workspaceId}`;
+    if (workspaceId) params.set("workspaceId", workspaceId);
+    return `${getServerAppUrl()}/api/sso/${type}/login?${params.toString()}`;
   }
-  return `${domain}/api/sso/${type}/${providerId}/login`;
+  const query = params.toString();
+  const base = `${domain}/api/sso/${type}/${providerId}/login`;
+  return query ? `${base}?${query}` : base;
 }
 
 export function getGoogleSignupUrl(): string {
