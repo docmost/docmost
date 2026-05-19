@@ -137,7 +137,6 @@ export default function Security() {
                     { max: SCIM_TOKEN_LIMIT },
                   )}
                   disabled={(scimData?.items.length ?? 0) < SCIM_TOKEN_LIMIT}
-                  refProp="rootRef"
                 >
                   <Button
                     onClick={() => setCreateOpen(true)}

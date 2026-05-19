@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { IconChevronRight, IconFile } from "@tabler/icons-react";
+import { KeyboardEvent, useState } from "react";
+import { ActionIcon } from "@mantine/core";
+import { IconChevronRight, IconFileDescription } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { IPage } from "@/features/page/types/page.types";
 import { PageChildren } from "./page-children";
@@ -36,23 +37,44 @@ export function PageRow({
     .filter(Boolean)
     .join(" ");
 
+  const handleSelect = () => {
+    if (!isExcluded) onSelect(page);
+  };
+
+  const handleRowKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleSelect();
+    }
+  };
+
   return (
     <>
       <div
         className={rowClasses}
         style={{ paddingLeft: depth * 20 + 12 }}
-        onClick={() => !isExcluded && onSelect(page)}
+        role="button"
+        tabIndex={isExcluded ? -1 : 0}
+        aria-disabled={isExcluded || undefined}
+        onClick={handleSelect}
+        onKeyDown={handleRowKeyDown}
       >
         {page.hasChildren ? (
-          <div
+          <ActionIcon
             className={`${classes.chevron} ${expanded ? classes.chevronExpanded : ""}`}
+            variant="subtle"
+            color="gray"
+            size="sm"
+            aria-label={expanded ? t("Collapse") : t("Expand")}
+            aria-expanded={expanded}
             onClick={(e) => {
               e.stopPropagation();
               setExpanded(!expanded);
             }}
           >
             <IconChevronRight size={14} />
-          </div>
+          </ActionIcon>
         ) : (
           <div style={{ width: 20, flexShrink: 0 }} />
         )}
@@ -61,10 +83,14 @@ export function PageRow({
           {page.icon ? (
             page.icon
           ) : (
-            <IconFile
-              size={16}
-              color="var(--mantine-color-gray-5)"
-            />
+            <ActionIcon
+              component="div"
+              variant="transparent"
+              c="gray"
+              size={22}
+            >
+              <IconFileDescription size={18} />
+            </ActionIcon>
           )}
         </div>
 

@@ -63,11 +63,9 @@ export class TemplateRepo {
 
     if (opts?.spaceId) {
       if (!accessibleSpaceIds.includes(opts.spaceId)) {
-        query = query.where('spaceId', 'is', null);
+        query = query.where(sql<boolean>`false`);
       } else {
-        query = query.where((eb) =>
-          eb.or([eb('spaceId', '=', opts.spaceId), eb('spaceId', 'is', null)]),
-        );
+        query = query.where('spaceId', '=', opts.spaceId);
       }
     } else {
       query = query.where((eb) =>

@@ -75,6 +75,18 @@ export default function TemplateEditor() {
   const editor = useEditor({
     extensions: templateExtensions,
     content: "",
+    editorProps: {
+      handleDOMEvents: {
+        keydown: (_view, event) => {
+          if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
+            const slashCommand = document.querySelector("#slash-command");
+            if (slashCommand) {
+              return true;
+            }
+          }
+        },
+      },
+    },
     onUpdate() {
       if (loadedRef.current) {
         markDirty();

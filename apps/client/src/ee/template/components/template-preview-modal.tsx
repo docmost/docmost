@@ -9,6 +9,7 @@ type TemplatePreviewModalProps = {
   onClose: () => void;
   onUse: () => void;
   onEdit?: () => void;
+  useLoading?: boolean;
 };
 
 export default function TemplatePreviewModal({
@@ -17,6 +18,7 @@ export default function TemplatePreviewModal({
   onClose,
   onUse,
   onEdit,
+  useLoading,
 }: TemplatePreviewModalProps) {
   const { t } = useTranslation();
   const { data: template, isLoading } = useGetTemplateByIdQuery(templateId);
@@ -37,14 +39,19 @@ export default function TemplatePreviewModal({
             </Group>
           </Modal.Title>
           <Group gap="sm">
+            <Button
+              size="xs"
+              onClick={onUse}
+              loading={useLoading}
+              disabled={useLoading}
+            >
+              {t("Use template")}
+            </Button>
             {onEdit && (
               <Button size="xs" variant="default" onClick={onEdit}>
                 {t("Edit")}
               </Button>
             )}
-            <Button size="xs" onClick={onUse}>
-              {t("Use template")}
-            </Button>
             <Modal.CloseButton />
           </Group>
         </Modal.Header>
