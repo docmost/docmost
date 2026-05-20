@@ -56,6 +56,7 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import { searchSpotlight } from "@/features/search/constants";
 import TemplatePickerModal from "@/ee/template/components/template-picker-modal";
 import { useHasFeature } from "@/ee/hooks/use-feature";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { ErrorBoundary } from "react-error-boundary";
 
@@ -256,6 +257,7 @@ function SpaceMenu({
     { open: openTemplatePicker, close: closeTemplatePicker },
   ] = useDisclosure(false);
   const hasTemplates = useHasFeature(Feature.TEMPLATES);
+  const upgradeLabel = useUpgradeLabel();
 
   const { data: watchStatus } = useSpaceWatchStatusQuery(spaceId);
   const watchMutation = useWatchSpaceMutation();
@@ -325,15 +327,24 @@ function SpaceMenu({
             {isWatching ? t("Stop watching space") : t("Watch space")}
           </Menu.Item>
 
-          {hasTemplates && canManagePages && (
+          {canManagePages && (
             <>
               <Menu.Divider />
-              <Menu.Item
-                onClick={openTemplatePicker}
-                leftSection={<IconTemplate size={16} />}
+              <Tooltip
+                label={upgradeLabel}
+                disabled={hasTemplates}
+                position="right"
+                withArrow
               >
-                {t("Templates")}
-              </Menu.Item>
+                <Menu.Item
+                  onClick={hasTemplates ? openTemplatePicker : undefined}
+                  leftSection={<IconTemplate size={16} />}
+                  data-disabled={!hasTemplates || undefined}
+                  aria-disabled={!hasTemplates || undefined}
+                >
+                  {t("Templates")}
+                </Menu.Item>
+              </Tooltip>
             </>
           )}
 
