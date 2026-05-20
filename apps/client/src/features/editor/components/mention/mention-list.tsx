@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -15,6 +16,7 @@ import {
   ScrollArea,
   Text,
   UnstyledButton,
+  VisuallyHidden,
 } from "@mantine/core";
 import clsx from "clsx";
 import classes from "./mention.module.css";
@@ -45,6 +47,8 @@ import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(1);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const [countAnnouncement, setCountAnnouncement] = useState("");
+  const [selectionAnnouncement, setSelectionAnnouncement] = useState("");
   const { pageSlug, spaceSlug } = useParams();
   const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useSpaceQuery(spaceSlug);
@@ -182,6 +186,45 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     setSelectedIndex(1);
   }, [suggestion]);
 
+  const selectableCount = useMemo(
+    () => renderItems.filter((item) => item.entityType !== "header").length,
+    [renderItems],
+  );
+
+  useEffect(() => {
+    if (renderItems.length === 0) {
+      setCountAnnouncement(t("No results"));
+      return;
+    }
+    setCountAnnouncement(
+      t("{{count}} result available", { count: selectableCount }),
+    );
+  }, [renderItems.length, selectableCount, t]);
+
+  useEffect(() => {
+    const item = renderItems[selectedIndex];
+    if (!item || item.entityType === "header") {
+      setSelectionAnnouncement("");
+      return;
+    }
+    if (item.entityType === "user") {
+      setSelectionAnnouncement(`${t("People")}: ${item.label}`);
+      return;
+    }
+    if (item.entityType === "page") {
+      if (item.id === null) {
+        setSelectionAnnouncement(`${t("Create page")}: ${item.label}`);
+        return;
+      }
+      const pageLabel = item.label || t("Untitled");
+      setSelectionAnnouncement(
+        item.spaceName
+          ? `${t("Pages")}: ${pageLabel}, ${item.spaceName}`
+          : `${t("Pages")}: ${pageLabel}`,
+      );
+    }
+  }, [selectedIndex, renderItems, t]);
+
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
       if (event.key === "ArrowUp") {
@@ -269,6 +312,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   if (renderItems.length === 0) {
     return (
       <Paper id="mention" shadow="md" py="xs" withBorder radius="md">
+        <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+          {countAnnouncement}
+        </VisuallyHidden>
         <Text c="dimmed" size="sm" px="sm">
           {t("No results")}
         </Text>
@@ -295,6 +341,12 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       aria-label={t("Mention suggestions")}
       aria-activedescendant={`mention-option-${selectedIndex}`}
     >
+      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+        {countAnnouncement}
+      </VisuallyHidden>
+      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+        {selectionAnnouncement}
+      </VisuallyHidden>
       <ScrollArea.Autosize
         viewportRef={viewportRef}
         mah={350}

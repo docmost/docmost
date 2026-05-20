@@ -226,6 +226,7 @@ export default function ChatInput({
     ],
     editorProps: {
       attributes: {
+        role: "textbox",
         "aria-label": placeholder || t("Ask anything... Use @ to mention pages"),
         "aria-multiline": "true",
       },
@@ -335,7 +336,15 @@ export default function ChatInput({
 
       <EditorContent editor={editor} className={classes.editorContent} />
       <div className={classes.actions}>
-        <Popover opened={plusMenuOpen} onChange={setPlusMenuOpen} position="top-start" width={220} shadow="md">
+        <Popover
+          opened={plusMenuOpen}
+          onChange={setPlusMenuOpen}
+          position="top-start"
+          width={220}
+          shadow="md"
+          trapFocus
+          returnFocus
+        >
           <Popover.Target>
             <button
               type="button"

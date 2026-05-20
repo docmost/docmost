@@ -31,7 +31,12 @@ export default function AddGroupMemberModal() {
     <>
       <Button onClick={open}>{t("Add group members")}</Button>
 
-      <Modal opened={opened} onClose={close} title={t("Add group members")}>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Add group members")}
+        closeButtonProps={{ "aria-label": t("Close") }}
+      >
         <Divider size="xs" mb="xs" />
 
         <MultiUserSelect

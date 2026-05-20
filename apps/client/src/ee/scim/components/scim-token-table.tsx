@@ -93,7 +93,11 @@ export function ScimTokenTable({
                 <Table.Td>
                   <Menu position="bottom-end" withinPortal>
                     <Menu.Target>
-                      <ActionIcon variant="subtle" color="gray">
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        aria-label={t("Token actions")}
+                      >
                         <IconDots size={16} />
                       </ActionIcon>
                     </Menu.Target>

@@ -19,6 +19,7 @@ interface CommentEditorProps {
   editable: boolean;
   placeholder?: string;
   autofocus?: boolean;
+  surface?: "default" | "muted";
 }
 
 const CommentEditor = forwardRef(
@@ -30,6 +31,7 @@ const CommentEditor = forwardRef(
       editable,
       placeholder,
       autofocus,
+      surface,
     }: CommentEditorProps,
     ref,
   ) => {
@@ -66,6 +68,9 @@ const CommentEditor = forwardRef(
         }),
       ],
       editorProps: {
+        attributes: {
+          "aria-label": placeholder || t("Comment"),
+        },
         handleDOMEvents: {
           keydown: (_view, event) => {
             if (
@@ -131,6 +136,7 @@ const CommentEditor = forwardRef(
         ref={focusRef}
         className={classes.commentEditor}
         data-editable={editable || undefined}
+        data-surface={surface}
       >
         <EditorContent
           editor={commentEditor}

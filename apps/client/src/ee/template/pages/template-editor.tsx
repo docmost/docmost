@@ -283,6 +283,7 @@ export default function TemplateEditor() {
                   variant="subtle"
                   color="gray"
                   size="md"
+                  aria-label={t("Template settings")}
                   onClick={() => {
                     setDraftSpaceId(spaceId);
                     openSettings();

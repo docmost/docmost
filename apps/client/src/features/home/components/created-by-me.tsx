@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getSpaceUrl } from "@/lib/config";
 import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 type Props = {
   spaceId?: string;
@@ -49,9 +50,10 @@ export default function CreatedByMe({ spaceId }: Props) {
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Tbody>
             {pages.map((page) => (
-              <Table.Tr key={page.id}>
+              <Table.Tr key={page.id} className={rowClasses.row}>
                 <Table.Td>
                   <UnstyledButton
+                    className={rowClasses.link}
                     component={Link}
                     to={buildPageUrl(
                       page?.space.slug,

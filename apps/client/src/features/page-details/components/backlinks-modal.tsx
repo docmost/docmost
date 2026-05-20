@@ -23,7 +23,7 @@ export function BacklinksModal({
       <Modal.Content>
         <Modal.Header>
           <Modal.Title fw={500}>{t("Backlinks")}</Modal.Title>
-          <Modal.CloseButton />
+          <Modal.CloseButton aria-label={t("Close")} />
         </Modal.Header>
         <Modal.Body>
           <Stack gap="lg">

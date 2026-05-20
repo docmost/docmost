@@ -31,6 +31,11 @@
         color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
     }
 
+    &:focus-visible {
+        outline: 2px solid var(--mantine-primary-color-filled);
+        outline-offset: 2px;
+    }
+
     &[data-active] {
         &,
         & :hover {
@@ -95,5 +100,10 @@
                 var(--mantine-color-dark-6)
         );
         color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--mantine-primary-color-filled);
+        outline-offset: 2px;
     }
 }

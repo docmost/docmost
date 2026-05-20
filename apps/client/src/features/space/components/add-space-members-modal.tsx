@@ -1,6 +1,6 @@
 import { Button, Divider, Group, Modal, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { useAddSpaceMemberMutation } from "@/features/space/queries/space-query.ts";
 import { MultiMemberSelect } from "@/features/space/components/multi-member-select.tsx";
 import { SpaceMemberRole } from "@/features/space/components/space-member-role.tsx";
@@ -14,6 +14,7 @@ export default function AddSpaceMembersModal({
   spaceId,
 }: AddSpaceMemberModalProps) {
   const { t } = useTranslation();
+  const titleId = useId();
   const [opened, { open, close }] = useDisclosure(false);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [role, setRole] = useState<string>(SpaceRole.WRITER);
@@ -51,24 +52,33 @@ export default function AddSpaceMembersModal({
   return (
     <>
       <Button onClick={open}>{t("Add space members")}</Button>
-      <Modal opened={opened} onClose={close} title={t("Add space members")}>
-        <Divider size="xs" mb="xs" />
+      <Modal.Root opened={opened} onClose={close}>
+        <Modal.Overlay />
+        <Modal.Content aria-labelledby={titleId}>
+          <Modal.Header>
+            <Modal.Title id={titleId}>{t("Add space members")}</Modal.Title>
+            <Modal.CloseButton aria-label={t("Close")} />
+          </Modal.Header>
+          <Modal.Body>
+            <Divider size="xs" mb="xs" />
 
-        <Stack>
-          <MultiMemberSelect onChange={handleMultiSelectChange} />
-          <SpaceMemberRole
-            onSelect={handleRoleSelection}
-            defaultRole={role}
-            label={t("Select role")}
-          />
-        </Stack>
+            <Stack>
+              <MultiMemberSelect onChange={handleMultiSelectChange} />
+              <SpaceMemberRole
+                onSelect={handleRoleSelection}
+                defaultRole={role}
+                label={t("Select role")}
+              />
+            </Stack>
 
-        <Group justify="flex-end" mt="md">
-          <Button onClick={handleSubmit} type="submit">
-            {t("Add")}
-          </Button>
-        </Group>
-      </Modal>
+            <Group justify="flex-end" mt="md">
+              <Button onClick={handleSubmit} type="submit">
+                {t("Add")}
+              </Button>
+            </Group>
+          </Modal.Body>
+        </Modal.Content>
+      </Modal.Root>
     </>
   );
 }

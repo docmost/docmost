@@ -42,6 +42,7 @@ import {
 import { ShareSearchSpotlight } from "@/features/search/components/share-search-spotlight.tsx";
 import { shareSearchSpotlight } from "@/features/search/constants";
 import ShareBranding from '@/features/share/components/share-branding.tsx';
+import { MAIN_CONTENT_ID, SkipToMain } from "@/components/ui/skip-to-main.tsx";
 
 const MemoizedSharedTree = React.memo(SharedTree);
 
@@ -122,7 +123,9 @@ export default function ShareShell({
   }, [data, treeData, setSharedPageTree, setSharedTreeData]);
 
   return (
-    <AppShell
+    <>
+      <SkipToMain />
+      <AppShell
       header={{ height: 50 }}
       {...(data?.pageTree?.length > 1 && {
         navbar: {
@@ -242,7 +245,7 @@ export default function ShareShell({
         </AppShell.Navbar>
       )}
 
-      <AppShell.Main>
+      <AppShell.Main id={MAIN_CONTENT_ID} tabIndex={-1}>
         {children}
 
         {data && shareId && !(data.features?.length > 0) && <ShareBranding />}
@@ -264,5 +267,6 @@ export default function ShareShell({
 
       <ShareSearchSpotlight shareId={shareId} />
     </AppShell>
+    </>
   );
 }

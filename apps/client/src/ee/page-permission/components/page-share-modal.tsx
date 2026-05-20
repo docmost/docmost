@@ -79,7 +79,13 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
         {t("Share")}
       </Button>
 
-      <Modal opened={opened} onClose={close} title={t("Share")} size={600}>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Share")}
+        size={600}
+        closeButtonProps={{ "aria-label": t("Close") }}
+      >
         <Tabs value={activeTab} color="dark" onChange={setActiveTab}>
           <Tabs.List mb="md">
             <Tabs.Tab value="access">{t("Access")}</Tabs.Tab>

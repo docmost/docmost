@@ -120,7 +120,7 @@ export default function AiChatSidebar() {
   return (
     <div className={classes.sidebar}>
       <div className={classes.header}>
-        <span className={classes.title}>{t("AI Chat")}</span>
+        <h2 className={classes.title}>{t("AI Chat")}</h2>
         <Tooltip label={t("New chat")} openDelay={250} withArrow>
           <ActionIcon
             component={Link}
@@ -176,7 +176,7 @@ export default function AiChatSidebar() {
             ))
           : groupedChats.map((group) => (
               <div key={group.key} className={classes.chatGroup}>
-                <div className={classes.chatGroupLabel}>{group.label}</div>
+                <h3 className={classes.chatGroupLabel}>{group.label}</h3>
                 {group.chats.map((chat) => (
                   <AiChatSidebarItem
                     key={chat.id}

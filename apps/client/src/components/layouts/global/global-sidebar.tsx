@@ -92,6 +92,7 @@ export default function GlobalSidebar() {
                 key={item.label}
                 className={classes.link}
                 data-active={active === item.path || undefined}
+                aria-current={active === item.path ? "page" : undefined}
                 to={item.path}
                 onClick={handleNavClick}
               >
@@ -159,6 +160,7 @@ export default function GlobalSidebar() {
         <Link
           className={classes.link}
           data-active={active.startsWith("/settings") || undefined}
+          aria-current={active.startsWith("/settings") ? "page" : undefined}
           to="/settings/account/profile"
           onClick={handleNavClick}
         >

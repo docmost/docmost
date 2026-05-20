@@ -10,18 +10,28 @@ import { useDisclosure } from "@mantine/hooks";
 import EditGroupModal from "@/features/group/components/edit-group-modal.tsx";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
+import { IGroup } from "@/features/group/types/group.types.ts";
 
-export default function GroupActionMenu() {
+interface GroupActionMenuProps {
+  group?: IGroup;
+}
+
+export default function GroupActionMenu(props: GroupActionMenuProps = {}) {
   const { t } = useTranslation();
-  const { groupId } = useParams();
-  const { data: group, isLoading } = useGroupQuery(groupId);
+  const { groupId: routeGroupId } = useParams();
+  const groupId = props.group?.id ?? routeGroupId;
+  const { data: queriedGroup } = useGroupQuery(props.group ? undefined : groupId);
+  const group = props.group ?? queriedGroup;
   const deleteGroupMutation = useDeleteGroupMutation();
   const navigate = useNavigate();
   const [opened, { open, close }] = useDisclosure(false);
 
   const onDelete = async () => {
     await deleteGroupMutation.mutateAsync(groupId);
-    navigate("/settings/groups");
+    // Only navigate away if we're currently viewing this group's detail page.
+    if (routeGroupId === groupId) {
+      navigate("/settings/groups");
+    }
   };
 
   const openDeleteModal = () =>
@@ -53,7 +63,11 @@ export default function GroupActionMenu() {
             arrowPosition="center"
           >
             <Menu.Target>
-              <ActionIcon variant="light" aria-label={t("Group menu")}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                aria-label={t("Group actions for {{name}}", { name: group.name })}
+              >
                 <IconDots size={20} stroke={2} />
               </ActionIcon>
             </Menu.Target>
@@ -76,7 +90,7 @@ export default function GroupActionMenu() {
         </>
       )}
 
-      <EditGroupModal opened={opened} onClose={close} />
+      <EditGroupModal opened={opened} onClose={close} group={group} />
     </>
   );
 }

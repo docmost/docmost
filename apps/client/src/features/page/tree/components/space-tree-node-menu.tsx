@@ -125,7 +125,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
           <ActionIcon
             variant="transparent"
             c="gray"
-            aria-label={t("Page menu")}
+            aria-label={t("Page menu for {{name}}", { name: node.name || t("untitled") })}
             tabIndex={-1}
             onClick={(e) => {
               e.preventDefault();

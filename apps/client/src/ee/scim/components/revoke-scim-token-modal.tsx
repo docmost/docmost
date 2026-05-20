@@ -29,6 +29,7 @@ export function RevokeScimTokenModal({
       onClose={onClose}
       title={t("Revoke {{credential}}", { credential: t("SCIM token") })}
       size="md"
+      closeButtonProps={{ "aria-label": t("Close") }}
     >
       <Stack gap="md">
         <Text>

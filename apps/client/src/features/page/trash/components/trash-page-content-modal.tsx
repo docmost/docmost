@@ -28,7 +28,7 @@ export default function TrashPageContentModal({
               {t("Preview")}
             </Text>
           </Modal.Title>
-          <Modal.CloseButton />
+          <Modal.CloseButton aria-label={t("Close")} />
         </Modal.Header>
         <Modal.Body p={0}>
           <ScrollArea h="650" w="100%" scrollbarSize={5}>
