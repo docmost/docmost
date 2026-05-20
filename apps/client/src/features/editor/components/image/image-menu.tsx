@@ -1,15 +1,14 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
-import { ActionIcon, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import clsx from "clsx";
 import {
-  IconAlt,
   IconLayoutAlignCenter,
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
@@ -20,6 +19,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
+import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import classes from "../common/toolbar-menu.module.css";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
@@ -137,34 +137,15 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     editor.commands.deleteSelection();
   }, [editor]);
 
-  const [showAltInput, setShowAltInput] = useState(false);
-  const [altText, setAltText] = useState("");
-
-  const handleAltTextOpen = useCallback(() => {
-    setAltText(editorState?.alt || "");
-    setShowAltInput(true);
-  }, [editorState?.alt]);
-
-  const handleAltTextSave = useCallback(() => {
-    editor
-      .chain()
-      .focus(undefined, { scrollIntoView: false })
-      .updateAttributes("image", { alt: altText })
-      .run();
-    setShowAltInput(false);
-  }, [editor, altText]);
-
-  const handleAltTextKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleAltTextSave();
-      } else if (e.key === "Escape") {
-        setShowAltInput(false);
-      }
-    },
-    [handleAltTextSave],
-  );
+  const {
+    button: altTextButton,
+    panel: altTextPanel,
+    isEditing: isEditingAlt,
+  } = useAltTextControl({
+    editor,
+    nodeName: "image",
+    currentAlt: editorState?.alt || "",
+  });
 
   return (
     <BaseBubbleMenu
@@ -179,7 +160,10 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       }}
       shouldShow={shouldShow}
     >
-      <div className={classes.toolbar}>
+      {isEditingAlt ? (
+        altTextPanel
+      ) : (
+        <div className={classes.toolbar}>
         <Tooltip position="top" label={t("Align left")} withinPortal={false}>
           <ActionIcon
             onClick={alignImageLeft}
@@ -218,17 +202,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
-        <Tooltip position="top" label={t("Alt text")} withinPortal={false}>
-          <ActionIcon
-            onClick={handleAltTextOpen}
-            size="lg"
-            aria-label={t("Alt text")}
-            variant="subtle"
-            className={clsx({ [classes.active]: !!editorState?.alt })}
-          >
-            <IconAlt size={18} />
-          </ActionIcon>
-        </Tooltip>
+        {altTextButton}
 
         <div className={classes.divider} />
 
@@ -264,20 +238,6 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
-      </div>
-
-      {showAltInput && (
-        <div className={classes.toolbar} style={{ marginTop: 4 }}>
-          <TextInput
-            size="xs"
-            placeholder={t("Add alt text")}
-            value={altText}
-            onChange={(e) => setAltText(e.currentTarget.value)}
-            onKeyDown={handleAltTextKeyDown}
-            onBlur={handleAltTextSave}
-            autoFocus
-            styles={{ input: { minWidth: 200 } }}
-          />
         </div>
       )}
 

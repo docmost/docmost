@@ -28,6 +28,7 @@ export interface DrawioOptions {
 export interface DrawioAttributes {
   src?: string;
   title?: string;
+  alt?: string;
   size?: number;
   width?: number | string;
   height?: number;
@@ -77,6 +78,13 @@ export const Drawio = Node.create<DrawioOptions>({
         parseHTML: (element) => element.getAttribute("data-title"),
         renderHTML: (attributes: DrawioAttributes) => ({
           "data-title": attributes.title,
+        }),
+      },
+      alt: {
+        default: undefined,
+        parseHTML: (element) => element.getAttribute("data-alt"),
+        renderHTML: (attributes: DrawioAttributes) => ({
+          "data-alt": attributes.alt,
         }),
       },
       width: {
@@ -155,7 +163,7 @@ export const Drawio = Node.create<DrawioOptions>({
         "img",
         {
           src: HTMLAttributes["data-src"],
-          alt: HTMLAttributes["data-title"],
+          alt: HTMLAttributes["data-alt"] || HTMLAttributes["data-title"],
           width: HTMLAttributes["data-width"],
         },
       ],
@@ -226,7 +234,7 @@ export const Drawio = Node.create<DrawioOptions>({
 
       const el = document.createElement("img");
       el.src = normalizeFileUrl(node.attrs.src);
-      el.alt = node.attrs.title || "";
+      el.alt = node.attrs.alt || node.attrs.title || "";
       el.style.display = "block";
       el.style.maxWidth = "100%";
       el.style.borderRadius = "8px";
@@ -262,6 +270,14 @@ export const Drawio = Node.create<DrawioOptions>({
 
           if (updatedNode.attrs.src !== currentNode.attrs.src) {
             el.src = normalizeFileUrl(updatedNode.attrs.src);
+          }
+
+          if (
+            updatedNode.attrs.alt !== currentNode.attrs.alt ||
+            updatedNode.attrs.title !== currentNode.attrs.title
+          ) {
+            el.alt =
+              updatedNode.attrs.alt || updatedNode.attrs.title || "";
           }
 
           const w = updatedNode.attrs.width;
