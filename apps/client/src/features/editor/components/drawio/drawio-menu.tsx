@@ -38,6 +38,7 @@ import {
 import { decodeBase64ToSvgString, svgStringToFile } from "@/lib/utils";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
 import { modals } from "@mantine/modals";
+import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import classes from "../common/toolbar-menu.module.css";
 
 export function DrawioMenu({ editor }: EditorMenuProps) {
@@ -66,6 +67,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
         isAlignRight: ctx.editor.isActive("drawio", { align: "right" }),
         src: drawioAttr?.src || null,
         attachmentId: drawioAttr?.attachmentId || null,
+        alt: drawioAttr?.alt || "",
       };
     },
   });
@@ -139,6 +141,16 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
   const handleDelete = useCallback(() => {
     editor.commands.deleteSelection();
   }, [editor]);
+
+  const {
+    button: altTextButton,
+    panel: altTextPanel,
+    isEditing: isEditingAlt,
+  } = useAltTextControl({
+    editor,
+    nodeName: "drawio",
+    currentAlt: editorState?.alt || "",
+  });
 
   const saveData = useCallback(async (svgXml: string) => {
     if (isSavingRef.current) return;
@@ -266,7 +278,10 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
         }}
         shouldShow={shouldShow}
       >
-        <div className={classes.toolbar}>
+        {isEditingAlt ? (
+          altTextPanel
+        ) : (
+          <div className={classes.toolbar}>
           <Tooltip position="top" label={t("Align left")} withinPortal={false}>
             <ActionIcon
               onClick={alignLeft}
@@ -309,6 +324,10 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
 
           <div className={classes.divider} />
 
+          {altTextButton}
+
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Edit")} withinPortal={false}>
             <ActionIcon
               onClick={handleOpen}
@@ -342,7 +361,8 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
               <IconTrash size={18} />
             </ActionIcon>
           </Tooltip>
-        </div>
+          </div>
+        )}
       </BaseBubbleMenu>
 
       <Modal.Root opened={opened} onClose={handleClose} fullScreen closeOnEscape={false}>

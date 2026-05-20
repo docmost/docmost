@@ -18,6 +18,7 @@ import {
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
+import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import classes from "../common/toolbar-menu.module.css";
 
 export function VideoMenu({ editor }: EditorMenuProps) {
@@ -38,6 +39,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         isAlignCenter: ctx.editor.isActive("video", { align: "center" }),
         isAlignRight: ctx.editor.isActive("video", { align: "right" }),
         src: videoAttrs?.src || null,
+        alt: videoAttrs?.alt || "",
       };
     },
   });
@@ -112,6 +114,16 @@ export function VideoMenu({ editor }: EditorMenuProps) {
     editor.commands.deleteSelection();
   }, [editor]);
 
+  const {
+    button: altTextButton,
+    panel: altTextPanel,
+    isEditing: isEditingAlt,
+  } = useAltTextControl({
+    editor,
+    nodeName: "video",
+    currentAlt: editorState?.alt || "",
+  });
+
   return (
     <BaseBubbleMenu
       editor={editor}
@@ -125,7 +137,10 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       }}
       shouldShow={shouldShow}
     >
-      <div className={classes.toolbar}>
+      {isEditingAlt ? (
+        altTextPanel
+      ) : (
+        <div className={classes.toolbar}>
         <Tooltip position="top" label={t("Align left")} withinPortal={false}>
           <ActionIcon
             onClick={alignLeft}
@@ -164,6 +179,10 @@ export function VideoMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
+        {altTextButton}
+
+        <div className={classes.divider} />
+
         <Tooltip position="top" label={t("Download")} withinPortal={false}>
           <ActionIcon
             onClick={handleDownload}
@@ -185,7 +204,8 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
-      </div>
+        </div>
+      )}
     </BaseBubbleMenu>
   );
 }
