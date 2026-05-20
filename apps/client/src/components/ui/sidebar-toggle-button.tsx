@@ -14,7 +14,14 @@ export interface SidebarToggleProps extends BoxProps, ElementProps<"button"> {
 const SidebarToggle = React.forwardRef<HTMLButtonElement, SidebarToggleProps>(
   ({ opened, size = "sm", ...others }, ref) => {
     return (
-      <ActionIcon size={size} {...others} variant="subtle" color="gray" ref={ref}>
+      <ActionIcon
+        size={size}
+        aria-expanded={opened}
+        {...others}
+        variant="subtle"
+        color="gray"
+        ref={ref}
+      >
         {opened ? (
           <IconLayoutSidebarRightExpand />
         ) : (

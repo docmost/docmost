@@ -131,7 +131,11 @@ export default function EmbedView(props: NodeViewProps) {
               className={clsx(selected ? "ProseMirror-selectednode" : "")}
             >
               <div style={{ display: "flex", alignItems: "center" }}>
-                <ActionIcon variant="transparent" color="gray">
+                <ActionIcon
+                  variant="transparent"
+                  color="gray"
+                  aria-label={t("Edit embed")}
+                >
                   <IconEdit size={18} />
                 </ActionIcon>
 

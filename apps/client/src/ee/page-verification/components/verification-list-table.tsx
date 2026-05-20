@@ -18,6 +18,7 @@ import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { buildPageUrl } from "@/features/page/page.utils";
 import { format } from "date-fns";
 import NoTableResults from "@/components/common/no-table-results";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 const MAX_VISIBLE_VERIFIERS = 5;
 
@@ -124,12 +125,13 @@ export default function VerificationListTable({
               );
 
               return (
-                <Table.Tr key={item.id}>
+                <Table.Tr key={item.id} className={rowClasses.row}>
                   <Table.Td>
                     <Anchor
                       size="sm"
                       underline="never"
                       style={{ color: "var(--mantine-color-text)" }}
+                      className={rowClasses.link}
                       component={Link}
                       to={pageUrl}
                     >

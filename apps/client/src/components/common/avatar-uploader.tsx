@@ -80,11 +80,19 @@ export default function AvatarUploader({
     }
   };
 
-  const ariaLabel = {
+  const actionLabel = {
     [AvatarIconType.AVATAR]: t("Change avatar"),
     [AvatarIconType.SPACE_ICON]: t("Change space icon"),
     [AvatarIconType.WORKSPACE_ICON]: t("Change workspace icon"),
   }[type];
+
+  // Per WCAG 2.5.3 (Label in Name), the accessible name must include the
+  // visible text. When no image is set, the avatar renders the name's
+  // initials, so prepend the name to the action label.
+  const ariaLabel =
+    !currentImageUrl && fallbackName
+      ? `${fallbackName} – ${actionLabel}`
+      : actionLabel;
 
   const handleRemove = async () => {
     if (disabled) return;

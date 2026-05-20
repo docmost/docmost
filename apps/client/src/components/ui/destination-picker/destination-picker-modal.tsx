@@ -41,7 +41,7 @@ export function DestinationPickerModal({
       <Modal.Content>
         <Modal.Header py={0}>
           <Modal.Title fw={500}>{title}</Modal.Title>
-          <Modal.CloseButton />
+          <Modal.CloseButton aria-label={t("Close")} />
         </Modal.Header>
         <Modal.Body>
           <DestinationPicker

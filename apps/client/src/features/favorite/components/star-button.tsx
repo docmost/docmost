@@ -1,4 +1,5 @@
 import { ActionIcon, Tooltip } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { IconStar, IconStarFilled } from "@tabler/icons-react";
 import {
   useFavoriteIds,
@@ -14,6 +15,8 @@ type StarButtonProps = {
   pageId?: string;
   spaceId?: string;
   templateId?: string;
+  /** Name of the item being favorited, used to make the button's accessible name descriptive. */
+  name?: string;
   size?: number;
 };
 
@@ -25,7 +28,7 @@ function getEntityId(props: StarButtonProps): string | undefined {
 }
 
 export default function StarButton(props: StarButtonProps) {
-  const { type, size = 18 } = props;
+  const { type, name, size = 18 } = props;
   const { t } = useTranslation();
   const favoriteIds = useFavoriteIds(type);
   const addMutation = useAddFavoriteMutation();
@@ -47,22 +50,46 @@ export default function StarButton(props: StarButtonProps) {
     };
 
     if (isFavorited) {
-      removeMutation.mutate(params);
+      removeMutation.mutate(params, {
+        onSuccess: () => {
+          notifications.show({
+            message: name
+              ? t("Removed {{name}} from favorites", { name })
+              : t("Removed from favorites"),
+          });
+        },
+      });
     } else {
-      addMutation.mutate(params);
+      addMutation.mutate(params, {
+        onSuccess: () => {
+          notifications.show({
+            message: name
+              ? t("Added {{name}} to favorites", { name })
+              : t("Added to favorites"),
+          });
+        },
+      });
     }
   };
 
-  const label = isFavorited
+  // Tooltip label stays short. Accessible name expands to include the item
+  // so screen reader users can distinguish stars on different rows.
+  const tooltipLabel = isFavorited
     ? t("Remove from favorites")
     : t("Add to favorites");
 
+  const ariaLabel = name
+    ? isFavorited
+      ? t("Remove {{name}} from favorites", { name })
+      : t("Add {{name}} to favorites", { name })
+    : tooltipLabel;
+
   return (
-    <Tooltip label={label} openDelay={250} withArrow>
+    <Tooltip label={tooltipLabel} openDelay={250} withArrow>
       <ActionIcon
         variant="subtle"
         color={isFavorited ? "yellow" : "gray"}
-        aria-label={label}
+        aria-label={ariaLabel}
         aria-pressed={isFavorited}
         onClick={handleToggle}
         loading={isPending}

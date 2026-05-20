@@ -120,15 +120,17 @@ export const Indent = Extension.create<IndentOptions>({
     };
 
     return {
+      // Return the command's result so Tab falls through to the browser
+      // (moving focus out of the editor) once the user has reached max
+      // indent. Without this Tab stays trapped at max depth, failing
+      // WCAG 2.1.2.
       Tab: () => {
         if (!isInIndentableBlock()) return false;
-        this.editor.commands.indent();
-        return true;
+        return this.editor.commands.indent();
       },
       'Shift-Tab': () => {
         if (!isInIndentableBlock()) return false;
-        this.editor.commands.outdent();
-        return true;
+        return this.editor.commands.outdent();
       },
       Backspace: () => {
         const { $from, empty } = this.editor.state.selection;

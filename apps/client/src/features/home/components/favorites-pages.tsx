@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getSpaceUrl } from "@/lib/config";
 import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 interface Props {
   spaceId?: string;
@@ -50,9 +51,10 @@ export default function FavoritesPages({ spaceId }: Props) {
           <Table.Tbody>
             {favorites.map((fav) =>
               fav.page ? (
-                <Table.Tr key={fav.id}>
+                <Table.Tr key={fav.id} className={rowClasses.row}>
                   <Table.Td>
                     <UnstyledButton
+                      className={rowClasses.link}
                       component={Link}
                       to={buildPageUrl(
                         fav.space?.slug,

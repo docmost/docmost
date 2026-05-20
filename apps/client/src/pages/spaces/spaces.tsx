@@ -30,7 +30,7 @@ export default function Spaces() {
 
       <Container size={"800"} pt="xl">
         <Group justify="space-between" mb="xl">
-          <Title order={3}>{t("Spaces")}</Title>
+          <Title order={1} size="h3">{t("Spaces")}</Title>
           {isAdmin && <CreateSpaceModal />}
         </Group>
 

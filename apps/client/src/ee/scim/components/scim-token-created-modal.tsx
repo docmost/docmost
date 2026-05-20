@@ -32,6 +32,7 @@ export function ScimTokenCreatedModal({
       onClose={onClose}
       title={t("{{credential}} created", { credential: t("SCIM token") })}
       size="lg"
+      closeButtonProps={{ "aria-label": t("Close") }}
     >
       <Stack gap="md">
         <Alert

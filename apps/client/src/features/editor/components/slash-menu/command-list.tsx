@@ -10,6 +10,7 @@ import {
   ScrollArea,
   Text,
   UnstyledButton,
+  VisuallyHidden,
 } from "@mantine/core";
 import classes from "./slash-menu.module.css";
 import clsx from "clsx";
@@ -29,6 +30,8 @@ const CommandList = ({
   const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const [countAnnouncement, setCountAnnouncement] = useState("");
+  const [selectionAnnouncement, setSelectionAnnouncement] = useState("");
 
   const flatItems = useMemo(() => {
     return Object.values(items).flat();
@@ -80,6 +83,25 @@ const CommandList = ({
   }, [flatItems]);
 
   useEffect(() => {
+    if (flatItems.length === 0) {
+      setCountAnnouncement("");
+      return;
+    }
+    setCountAnnouncement(
+      t("{{count}} command available", { count: flatItems.length }),
+    );
+  }, [flatItems.length, t]);
+
+  useEffect(() => {
+    const item = flatItems[selectedIndex];
+    if (!item) {
+      setSelectionAnnouncement("");
+      return;
+    }
+    setSelectionAnnouncement(`${t(item.title)}, ${t(item.description)}`);
+  }, [selectedIndex, flatItems, t]);
+
+  useEffect(() => {
     viewportRef.current
       ?.querySelector(`[data-item-index="${selectedIndex}"]`)
       ?.scrollIntoView({ block: "nearest" });
@@ -95,6 +117,12 @@ const CommandList = ({
       aria-label={t("Slash commands")}
       aria-activedescendant={`slash-command-option-${selectedIndex}`}
     >
+      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+        {countAnnouncement}
+      </VisuallyHidden>
+      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+        {selectionAnnouncement}
+      </VisuallyHidden>
       <ScrollArea
         viewportRef={viewportRef}
         h={350}

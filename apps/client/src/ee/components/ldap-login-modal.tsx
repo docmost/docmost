@@ -111,6 +111,11 @@ export function LdapLoginModal({
             placeholder={t("Enter your LDAP password")}
             variant="filled"
             disabled={isLoading}
+            visibilityToggleButtonProps={{
+              "aria-label": t("Toggle password visibility"),
+              "aria-hidden": false,
+              tabIndex: 0,
+            }}
             {...form.getInputProps("password")}
           />
 

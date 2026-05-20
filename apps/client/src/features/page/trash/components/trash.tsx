@@ -150,7 +150,11 @@ export default function Trash() {
                     <Table.Td>
                       <Menu>
                         <Menu.Target>
-                          <ActionIcon variant="subtle" color="gray">
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            aria-label={t("Page actions")}
+                          >
                             <IconDots size={20} stroke={1.5} />
                           </ActionIcon>
                         </Menu.Target>

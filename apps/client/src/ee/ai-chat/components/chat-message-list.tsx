@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { IconArrowDown, IconAlertTriangle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { VisuallyHidden } from "@mantine/core";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
 import ChatMessage from "./chat-message";
 import classes from "../styles/ai-chat.module.css";
@@ -33,12 +34,45 @@ export default function ChatMessageList({
   streamingContent,
   streamingToolCalls,
 }: Props) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   const isAutoScrollingRef = useRef(false);
   const prevScrollTopRef = useRef(0);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  // Dedicated status-region announcement for screen readers. Rather than
+  // putting aria-live on the whole transcript (which re-fires for every
+  // streamed token), announce "AI is thinking…" when streaming starts and
+  // the full assistant reply once streaming completes — a single, clean read.
+  const [statusAnnouncement, setStatusAnnouncement] = useState("");
+  const wasStreamingRef = useRef(false);
+
+  useEffect(() => {
+    const justStartedStreaming = isStreaming && !wasStreamingRef.current;
+    const justFinishedStreaming = !isStreaming && wasStreamingRef.current;
+
+    if (justStartedStreaming) {
+      setStatusAnnouncement(t("AI is thinking..."));
+    } else if (justFinishedStreaming) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === "assistant" && lastMessage.content) {
+        // Strip markdown punctuation so screen readers don't read symbols
+        // like # * _ ` ~ aloud. A plain-text version is fine — the styled
+        // version stays in the DOM for visual users.
+        const plainText = lastMessage.content
+          .replace(/[#*_`~]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        setStatusAnnouncement(plainText);
+      } else {
+        setStatusAnnouncement("");
+      }
+    }
+
+    wasStreamingRef.current = isStreaming;
+  }, [isStreaming, messages, t]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const container = containerRef.current;
@@ -127,7 +161,18 @@ export default function ChatMessageList({
 
   return (
     <div className={classes.messageListWrapper}>
-      <div ref={containerRef} className={classes.messageList}>
+      {/* Single status region for chat announcements. Kept outside the
+          scrolling transcript so changes here trigger one polite read per
+          state change instead of re-announcing every streamed token. */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {statusAnnouncement}
+      </VisuallyHidden>
+
+      <div
+        ref={containerRef}
+        className={classes.messageList}
+        aria-label={t("Chat transcript")}
+      >
         {messages.map((msg) => (
           <ErrorBoundary
             key={msg.id}
@@ -162,7 +207,7 @@ export default function ChatMessageList({
       {showScrollButton && (
         <button
           type="button"
-          aria-label="Scroll to bottom"
+          aria-label={t("Scroll to bottom")}
           className={classes.scrollToBottomButton}
           onClick={() => scrollToBottom("smooth")}
         >

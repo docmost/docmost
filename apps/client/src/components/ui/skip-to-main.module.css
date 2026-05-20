@@ -1,0 +1,27 @@
+.skipLink {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  border: 2px solid var(--mantine-color-blue-6);
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: var(--mantine-font-size-sm);
+  transform: translateY(-200%);
+  transition: transform 0.15s ease-out;
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+  outline: none;
+}
+
+@media print {
+  .skipLink {
+    display: none !important;
+  }
+}

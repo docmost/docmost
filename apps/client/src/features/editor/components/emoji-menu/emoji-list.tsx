@@ -44,9 +44,11 @@ function EmojiList({
   const [cats, setCats] = useState<EmojiCategory[]>([]);
   const [activeCat, setActiveCat] = useState("");
   const [focusZone, setFocusZone] = useState<"grid" | "tabs">("grid");
+  const [announce, setAnnounce] = useState("");
   const listViewport = useRef<HTMLDivElement>(null);
   const gridViewport = useRef<HTMLDivElement>(null);
   const catBar = useRef<HTMLDivElement>(null);
+  const userInteractedRef = useRef(false);
 
   const searching = query.length > 0;
   const browseLoading = !searching && cats.length === 0;
@@ -74,6 +76,53 @@ function EmojiList({
     vp?.querySelector<HTMLElement>(`[data-i="${idx}"]`)?.scrollIntoView({ block: "nearest" });
   }, [idx, searching, focusZone]);
 
+  // Announce picker open and selection changes via a live region. Focus
+  // stays in the editor, so without this the screen reader has no way to
+  // know the picker exists or that arrow keys are changing the selection.
+  // The setTimeout defers the open message past the initial render so the
+  // live region is in the DOM before its content changes (screen readers
+  // ignore content that's present at mount time).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnnounce(
+        t("Emoji picker open. Use arrow keys to navigate, Enter to select."),
+      );
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [t]);
+
+  useEffect(() => {
+    // Skip data-driven updates (idx reset, async cat load); only announce
+    // selection changes that come from real user navigation.
+    if (!userInteractedRef.current) return;
+
+    if (focusZone === "tabs") {
+      if (activeCat) setAnnounce(t("{{name}} category", { name: activeCat }));
+      return;
+    }
+    if (searching) {
+      const item = items[idx];
+      if (item)
+        setAnnounce(
+          t("{{name}}, {{n}} of {{total}}", {
+            name: item.id,
+            n: idx + 1,
+            total: items.length,
+          }),
+        );
+      return;
+    }
+    const entry = gridItems[idx];
+    if (entry)
+      setAnnounce(
+        t("{{name}}, {{n}} of {{total}}", {
+          name: entry.id,
+          n: idx + 1,
+          total: gridItems.length,
+        }),
+      );
+  }, [idx, activeCat, focusZone, searching, items, gridItems, t]);
+
   const pickSearchItem = useCallback(
     (i: number) => {
       const item = items[i];
@@ -94,6 +143,13 @@ function EmojiList({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (
+        ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(
+          e.key,
+        )
+      ) {
+        userInteractedRef.current = true;
+      }
       if (searching) {
         if      (e.key === "ArrowDown") { e.preventDefault(); setIdx((i) => Math.min(i + 1, items.length - 1)); }
         else if (e.key === "ArrowUp")   { e.preventDefault(); setIdx((i) => Math.max(i - 1, 0)); }
@@ -131,6 +187,24 @@ function EmojiList({
       role="listbox"
       aria-label={t("Emoji picker")}
     >
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0,0,0,0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        {announce}
+      </div>
       {searching ? (
         <>
           {isLoading && <Loader m="xs" size="xs" color="blue" type="dots" />}
@@ -171,6 +245,7 @@ function EmojiList({
                   title={c.id}
                   role="tab"
                   aria-selected={isActive}
+                  aria-label={t("{{name}} category", { name: c.id })}
                   className={clsx(classes.catTab, {
                     [classes.catTabActive]: isActive,
                     [classes.catTabFocused]: isFocused,
@@ -190,6 +265,9 @@ function EmojiList({
                   key={entry.id}
                   data-i={i}
                   title={`:${entry.id}:`}
+                  role="option"
+                  aria-selected={i === idx}
+                  aria-label={entry.id}
                   className={clsx(classes.emojiBtn, { [classes.active]: i === idx })}
                   onClick={() => pickGridItem(entry)}
                   onMouseEnter={() => setIdx(i)}

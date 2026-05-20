@@ -43,7 +43,6 @@ import {
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import { ReadonlyBubbleMenu } from "@/features/editor/components/bubble-menu/readonly-bubble-menu";
-import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import { TableHandlesLayer } from "@/features/editor/components/table/handle/table-handles-layer";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
@@ -74,6 +73,7 @@ import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
+import { useTranslation } from "react-i18next";
 
 interface PageEditorProps {
   pageId: string;
@@ -88,6 +88,7 @@ export default function PageEditor({
   content,
   canComment,
 }: PageEditorProps) {
+  const { t } = useTranslation();
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
   const editorRef = useRef<Editor | null>(null);
@@ -232,6 +233,9 @@ export default function PageEditor({
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
+        attributes: {
+          "aria-label": t("Page content"),
+        },
         handleDOMEvents: {
           keydown: (_view, event) => {
             if (platformModifierKey(event) && event.code === "KeyS") {
@@ -391,6 +395,11 @@ export default function PageEditor({
           immediatelyRender={true}
           extensions={mainExtensions}
           content={content}
+          editorProps={{
+            attributes: {
+              "aria-label": t("Page content"),
+            },
+          }}
         />
       ) : (
         <div className="editor-container" style={{ position: "relative" }}>
@@ -421,9 +430,7 @@ export default function PageEditor({
             {editor &&
               !editorIsEditable &&
               (editable || canComment) &&
-              providersRef.current && (
-                <ReadonlyBubbleMenu editor={editor} />
-              )}
+              providersRef.current && <ReadonlyBubbleMenu editor={editor} />}
             {showCommentPopup && (
               <CommentDialog editor={editor} pageId={pageId} />
             )}

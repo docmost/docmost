@@ -1,6 +1,6 @@
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch, IconSparkles } from "@tabler/icons-react";
-import { Group, Button } from "@mantine/core";
+import { Group, Button, VisuallyHidden } from "@mantine/core";
 import React, { useState, useMemo, useEffect } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
@@ -126,6 +126,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
         <Group gap="xs" px="sm" pt="sm" pb="xs">
           <Spotlight.Search
             placeholder={isAiMode ? t("Ask a question...") : t("Search...")}
+            aria-label={isAiMode ? t("Ask a question...") : t("Search")}
             leftSection={<IconSearch size={20} stroke={1.5} />}
             style={{ flex: 1 }}
             onKeyDown={(e) => {
@@ -160,6 +161,18 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
             isAiMode={isAiMode}
           />
         </div>
+
+        <VisuallyHidden role="status" aria-live="polite">
+          {isAiMode
+            ? query.length > 0 && !isAiLoading && !aiSearchResult
+              ? t("No answer available")
+              : ""
+            : query.length > 0 && !isLoading
+              ? resultItems.length === 0
+                ? t("No results found")
+                : t("{{count}} results found", { count: resultItems.length })
+              : ""}
+        </VisuallyHidden>
 
         <Spotlight.ActionsList>
           {isAiMode ? (

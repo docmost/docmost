@@ -1,4 +1,4 @@
-import { Text, Divider } from "@mantine/core";
+import { Text, Divider, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ISpace } from "@/features/space/types/space.types.ts";
@@ -20,9 +20,9 @@ export default function SpaceSecuritySettings({
 
   return (
     <div>
-      <Text my="md" fw={600}>
+      <Title order={3} my="md" size="h6" fw={600}>
         {t("Security")}
-      </Text>
+      </Title>
 
       <SpacePublicSharingToggle space={space} />
 

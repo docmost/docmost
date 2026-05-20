@@ -383,6 +383,7 @@ const PageCommentInput = ({ onSave, isLoading }) => {
             onSave={handleSave}
             editable={true}
             placeholder={t("Add a comment...")}
+            surface="muted"
           />
         </div>
       </Group>
@@ -391,6 +392,7 @@ const PageCommentInput = ({ onSave, isLoading }) => {
           variant="filled"
           radius="xl"
           size="sm"
+          aria-label={t("Send comment")}
           onClick={handleSave}
           onMouseDown={(e) => e.preventDefault()}
           loading={isLoading}

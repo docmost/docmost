@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { IContributor } from "@/features/page/types/page.types.ts";
 import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
-import useToggleAside from "@/hooks/use-toggle-aside.tsx";
+import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
 import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
@@ -125,7 +125,7 @@ type PageBylineProps = {
 
 function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
   const { t } = useTranslation();
-  const toggleAside = useToggleAside();
+  const detailsTriggerProps = useAsideTriggerProps("details");
 
   const otherContributors = (contributors ?? []).filter(
     (c) => c.id !== creator?.id,
@@ -141,7 +141,9 @@ function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
       {creator && (
         <Popover position="bottom-start" shadow="md" width={280} withArrow>
           <Popover.Target>
-            <UnstyledButton>
+            <UnstyledButton
+              aria-label={t("Created by {{name}}", { name: creator.name })}
+            >
               <Group gap={6}>
                 <CustomAvatar
                   avatarUrl={creator.avatarUrl}
@@ -203,7 +205,7 @@ function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
           variant="subtle"
           color="gray"
           aria-label={t("Details")}
-          onClick={() => toggleAside("details")}
+          {...detailsTriggerProps}
         >
           <IconInfoCircle size={20} stroke={1.5} />
         </ActionIcon>

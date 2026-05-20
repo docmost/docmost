@@ -19,6 +19,7 @@ import { getSpaceUrl } from "@/lib/config";
 import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color";
 import PageListSkeleton from "@/components/ui/page-list-skeleton";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 export default function FavoritesPage() {
   const { t } = useTranslation();
@@ -49,7 +50,7 @@ export default function FavoritesPage() {
 
   return (
     <Container size={800} py="xl">
-      <Title order={3} mb="lg">
+      <Title order={1} size="h3" mb="lg">
         {t("Favorites")}
       </Title>
       {favorites.length > 0 ? (
@@ -59,9 +60,10 @@ export default function FavoritesPage() {
               <Table.Tbody>
                 {favorites.map((fav) =>
                   fav.page ? (
-                    <Table.Tr key={fav.id}>
+                    <Table.Tr key={fav.id} className={rowClasses.row}>
                       <Table.Td>
                         <UnstyledButton
+                          className={rowClasses.link}
                           component={Link}
                           to={buildPageUrl(
                             fav.space?.slug,

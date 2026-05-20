@@ -274,7 +274,7 @@ function CreateNode({
     <ActionIcon
       variant="transparent"
       c="gray"
-      aria-label={t("Create page")}
+      aria-label={t("Create subpage of {{name}}", { name: node.name || t("untitled") })}
       tabIndex={-1}
       onClick={(e) => {
         e.preventDefault();

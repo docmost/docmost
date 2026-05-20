@@ -240,7 +240,11 @@ export default function ExcalidrawView(props: NodeViewProps) {
         className={clsx(selected ? "ProseMirror-selectednode" : "")}
       >
         <div style={{ display: "flex", alignItems: "center" }}>
-          <ActionIcon variant="transparent" color="gray">
+          <ActionIcon
+            variant="transparent"
+            color="gray"
+            aria-label={t("Edit drawing")}
+          >
             <IconEdit size={18} />
           </ActionIcon>
 
