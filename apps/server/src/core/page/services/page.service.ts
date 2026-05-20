@@ -481,7 +481,7 @@ export class PageService {
         );
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
-          pageId: pageIdsToMove,
+          pageIds: pageIdsToMove,
           workspaceId: rootPage.workspaceId,
         });
       }
