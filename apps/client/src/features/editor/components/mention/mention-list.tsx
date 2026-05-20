@@ -3,7 +3,6 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -36,7 +35,7 @@ import {
   usePageQuery,
 } from "@/features/page/queries/page-query";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
+import { treeModel } from "@/features/page/tree/model/tree-model";
 import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
@@ -53,7 +52,6 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
   const { t } = useTranslation();
   const [data, setData] = useAtom(treeDataAtom);
-  const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const emit = useQueryEmit();
   const isInCommentContext = props.isInCommentContext ?? false;
@@ -62,7 +60,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     query: props.query,
     includeUsers: true,
     includePages: true,
-    spaceId: space.id,
+    spaceId: space?.id,
     limit: props.query ? 10 : 5,
     preload: true,
   });
@@ -220,20 +218,20 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     try {
       createdPage = await createPageMutation.mutateAsync(payload);
       const parentId = page.id || null;
-      const data = {
+      const newNode: SpaceTreeNode = {
         id: createdPage.id,
         slugId: createdPage.slugId,
         name: createdPage.title,
         position: createdPage.position,
         spaceId: createdPage.spaceId,
         parentPageId: createdPage.parentPageId,
+        hasChildren: false,
         children: [],
-      } as any;
+      };
 
-      const lastIndex = tree.data.length;
+      const lastIndex = data.length;
 
-      tree.create({ parentId, index: lastIndex, data });
-      setData(tree.data);
+      setData(treeModel.insert(data, parentId, newNode, lastIndex));
 
       props.command({
         id: uuid7(),
@@ -251,7 +249,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           payload: {
             parentId,
             index: lastIndex,
-            data,
+            data: newNode,
           },
         });
       }, 50);
@@ -287,7 +285,16 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   );
 
   return (
-    <Paper id="mention" shadow="md" withBorder radius="md" py={6}>
+    <Paper
+      id="mention"
+      shadow="md"
+      withBorder
+      radius="md"
+      py={6}
+      role="listbox"
+      aria-label={t("Mention suggestions")}
+      aria-activedescendant={`mention-option-${selectedIndex}`}
+    >
       <ScrollArea.Autosize
         viewportRef={viewportRef}
         mah={350}
@@ -301,7 +308,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           if (item.entityType === "header") {
             const isFirst = index === 0;
             return (
-              <div key={`${item.label}-${index}`}>
+              <div key={`${item.label}-${index}`} role="presentation">
                 {!isFirst && <Divider my={6} />}
                 <Text
                   c="dimmed"
@@ -322,6 +329,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
               <UnstyledButton
                 data-item-index={index}
                 key={index}
+                id={`mention-option-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
                 onClick={() => selectItem(index)}
                 className={clsx(classes.menuBtn, {
                   [classes.selectedItem]: index === selectedIndex,
@@ -348,6 +358,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
               <UnstyledButton
                 data-item-index={index}
                 key={index}
+                id={`mention-option-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
                 onClick={() => selectItem(index)}
                 className={clsx(classes.menuBtn, {
                   [classes.selectedItem]: index === selectedIndex,
@@ -358,7 +371,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                   <ActionIcon
                     variant="subtle"
                     component="div"
-                    aria-label={item.label}
+                    aria-hidden="true"
                     color="gray"
                     size="sm"
                   >
@@ -390,6 +403,11 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             {(hasUsers || hasPages) && <Divider my={6} />}
             <UnstyledButton
               data-item-index={renderItems.indexOf(createPageItemData)}
+              id={`mention-option-${renderItems.indexOf(createPageItemData)}`}
+              role="option"
+              aria-selected={
+                renderItems.indexOf(createPageItemData) === selectedIndex
+              }
               onClick={() =>
                 selectItem(renderItems.indexOf(createPageItemData))
               }
@@ -405,6 +423,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                   component="div"
                   color="gray"
                   size="sm"
+                  aria-hidden="true"
                 >
                   <IconPlus size={16} stroke={1.5} />
                 </ActionIcon>

@@ -37,6 +37,8 @@ marked.use({
   extensions: [calloutExtension, mathBlockExtension, mathInlineExtension],
 });
 
+marked.setOptions({ breaks: true });
+
 export function markdownToHtml(
   markdownInput: string,
 ): string | Promise<string> {
@@ -46,8 +48,5 @@ export function markdownToHtml(
     .replace(YAML_FONT_MATTER_REGEX, "")
     .trimStart();
 
-  return marked
-    .options({ breaks: true })
-    .parse(markdown)
-    .toString();
+  return marked.parse(markdown).toString();
 }

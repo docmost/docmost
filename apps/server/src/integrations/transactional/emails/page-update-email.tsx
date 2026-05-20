@@ -1,4 +1,4 @@
-import { Link, Section, Text } from '@react-email/components';
+import { Link, Section, Text } from 'react-email';
 import * as React from 'react';
 import { content, link, paragraph } from '../css/styles';
 import { EmailButton, getGreetingName, MailBody } from '../partials/partials';
@@ -27,7 +27,7 @@ export const PageUpdateEmail = ({
           <Link href={pageUrl} style={link}>
             <strong>{pageTitle}</strong>
           </Link>{' '}
-          in <strong>{spaceName}</strong>.
+          in the <strong>{spaceName}</strong> space.
         </Text>
       </Section>
       <EmailButton href={pageUrl}>View page</EmailButton>

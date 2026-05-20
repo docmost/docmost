@@ -77,7 +77,7 @@ export async function getAllSidebarPages(
   const pageParams: (string | undefined)[] = [];
 
   do {
-    const req = await api.post("/pages/sidebar-pages", { ...params, cursor });
+    const req = await api.post("/pages/sidebar-pages", { ...params, cursor, limit: 100 });
 
     const data: IPagination<IPage> = req.data;
     pages.push(data);
@@ -100,9 +100,16 @@ export async function getPageBreadcrumbs(
 }
 
 export async function getRecentChanges(
-  spaceId?: string,
+  params?: QueryParams & { spaceId?: string },
 ): Promise<IPagination<IPage>> {
-  const req = await api.post("/pages/recent", { spaceId });
+  const req = await api.post("/pages/recent", params);
+  return req.data;
+}
+
+export async function getCreatedByPages(
+  params?: QueryParams & { userId?: string; spaceId?: string },
+): Promise<IPagination<IPage>> {
+  const req = await api.post("/pages/created-by-user", params);
   return req.data;
 }
 

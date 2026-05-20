@@ -87,7 +87,7 @@ export function ActivateLicenseForm({ onClose }: ActivateLicenseFormProps) {
     <form onSubmit={form.onSubmit(handleSubmit)}>
       <input
         type="file"
-        accept=".txt"
+        accept=".txt,.license"
         ref={fileInputRef}
         onChange={handleFileUpload}
         hidden

@@ -49,6 +49,15 @@ export class SpaceWatcherController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('watched-ids')
+  async getWatchedSpaceIds(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.watcherService.getWatchedSpaceIds(user.id, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('watch')
   async watchSpace(
     @Body() dto: SpaceWatcherDto,

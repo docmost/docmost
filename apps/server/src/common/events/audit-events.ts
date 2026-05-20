@@ -23,6 +23,11 @@ export const AuditEvent = {
   API_KEY_UPDATED: 'api_key.updated',
   API_KEY_DELETED: 'api_key.deleted',
 
+  // SCIM Tokens
+  SCIM_TOKEN_CREATED: 'scim_token.created',
+  SCIM_TOKEN_UPDATED: 'scim_token.updated',
+  SCIM_TOKEN_DELETED: 'scim_token.deleted',
+
   // Space
   SPACE_CREATED: 'space.created',
   SPACE_UPDATED: 'space.updated',
@@ -59,6 +64,14 @@ export const AuditEvent = {
   PAGE_RESTRICTION_REMOVED: 'page.restriction_removed',
   PAGE_PERMISSION_ADDED: 'page.permission_added',
   PAGE_PERMISSION_REMOVED: 'page.permission_removed',
+  // Page verification
+  PAGE_VERIFICATION_CREATED: 'page.verification_created',
+  PAGE_VERIFICATION_UPDATED: 'page.verification_updated',
+  PAGE_VERIFICATION_REMOVED: 'page.verification_removed',
+  PAGE_VERIFIED: 'page.verified',
+  PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
+  PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
+  PAGE_MARKED_OBSOLETE: 'page.marked_obsolete',
 
   // Share
   SHARE_CREATED: 'share.created',
@@ -111,6 +124,7 @@ export const AuditResource = {
   COMMENT: 'comment',
   SHARE: 'share',
   API_KEY: 'api_key',
+  SCIM_TOKEN: 'scim_token',
   SSO_PROVIDER: 'sso_provider',
   WORKSPACE_INVITATION: 'workspace_invitation',
   ATTACHMENT: 'attachment',

@@ -92,8 +92,17 @@ export default function StatusView(props: NodeViewProps) {
               colorClassMap[color],
             )}
             onClick={() => isEditable && setOpened(true)}
+            onKeyDown={(e) => {
+              if (isEditable && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                setOpened(true);
+              }
+            }}
             role="button"
             tabIndex={0}
+            aria-label={text || "SET STATUS"}
+            aria-haspopup="dialog"
+            aria-expanded={opened}
           >
             {text || "SET STATUS"}
           </span>
@@ -127,6 +136,16 @@ export default function StatusView(props: NodeViewProps) {
                 )}
                 style={{ backgroundColor: bg }}
                 onClick={() => handleColorChange(name)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleColorChange(name);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={name}
+                aria-pressed={color === name}
               >
                 {color === name && <IconCheck size={14} />}
               </Box>

@@ -140,7 +140,7 @@ export function PagePermissionList({
         )}
       </Group>
 
-      <ScrollArea mah={250} viewportRef={viewportRef}>
+      <ScrollArea.Autosize mah={400} viewportRef={viewportRef}>
         {sortedMembers.map((member) => (
           <PagePermissionItem
             key={`${member.type}-${member.id}`}
@@ -158,7 +158,7 @@ export function PagePermissionList({
             <Loader size="xs" />
           </Center>
         )}
-      </ScrollArea>
+      </ScrollArea.Autosize>
     </>
   );
 }

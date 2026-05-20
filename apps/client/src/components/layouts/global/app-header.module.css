@@ -7,6 +7,19 @@
     padding-right: var(--mantine-spacing-md);
 }
 
+.brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.brandIcon {
+    display: flex;
+    align-items: center;
+}
+
 .link {
     display: block;
     line-height: 1;
@@ -16,6 +29,9 @@
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
     font-size: var(--mantine-font-size-sm);
     font-weight: 500;
+    user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
 
     @mixin hover {
         background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));

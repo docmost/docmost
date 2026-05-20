@@ -57,6 +57,7 @@ export default function VideoView(props: NodeViewProps) {
               preload="metadata"
               controls
               src={previewSrc}
+              aria-label={placeholder?.name || t("Video")}
             />
             <Loader size={20} pos="absolute" top={6} right={6} />
           </Group>
@@ -72,7 +73,7 @@ export default function VideoView(props: NodeViewProps) {
           </Group>
         )}
         {!src && !previewSrc && !placeholder && (
-          <video className={classes.video} controls />
+          <video className={classes.video} controls aria-label={t("Video")} />
         )}
       </div>
     </NodeViewWrapper>

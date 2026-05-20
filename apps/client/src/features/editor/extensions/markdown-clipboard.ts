@@ -80,10 +80,12 @@ export const MarkdownClipboard = Extension.create({
             const { from, to } = view.state.selection;
 
             const parsed = markdownToHtml(text.replace(/\n+$/, ""));
+            const body = elementFromString(parsed);
+            normalizeTableColumnWidths(body);
 
             const contentNodes = DOMParser.fromSchema(
               this.editor.schema,
-            ).parseSlice(elementFromString(parsed), {
+            ).parseSlice(body, {
               preserveWhitespace: true,
             });
 
@@ -136,4 +138,93 @@ function elementFromString(value) {
   const wrappedValue = `<body>${value}</body>`;
 
   return new window.DOMParser().parseFromString(wrappedValue, "text/html").body;
+}
+
+const DEFAULT_PASTE_COL_WIDTH_PX = 150;
+
+function parsePixelWidth(el: Element): number | null {
+  const attr = el.getAttribute("width");
+  if (attr) {
+    const n = parseInt(attr, 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const style = el.getAttribute("style") || "";
+  const m = style.match(/(?:^|;)\s*width\s*:\s*([\d.]+)\s*px/i);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
+function getFirstRow(table: Element): Element | null {
+  const tbodyRow = table.querySelector(":scope > tbody > tr");
+  if (tbodyRow) return tbodyRow;
+  const theadRow = table.querySelector(":scope > thead > tr");
+  if (theadRow) return theadRow;
+  return table.querySelector(":scope > tr");
+}
+
+function deriveColumnWidths(table: Element): (number | null)[] | null {
+  const cols = table.querySelectorAll(":scope > colgroup > col");
+  if (cols.length > 0) {
+    const widths: (number | null)[] = [];
+    cols.forEach((col) => widths.push(parsePixelWidth(col)));
+    if (widths.some((w) => w !== null)) return widths;
+  }
+
+  const firstRow = getFirstRow(table);
+  if (!firstRow) return null;
+
+  const widths: (number | null)[] = [];
+  Array.from(firstRow.children)
+    .filter((c) => c.tagName === "TD" || c.tagName === "TH")
+    .forEach((cell) => {
+      const colspan = parseInt(cell.getAttribute("colspan") || "1", 10) || 1;
+      const w = parsePixelWidth(cell);
+      for (let i = 0; i < colspan; i++) {
+        widths.push(w !== null ? Math.round(w / colspan) : null);
+      }
+    });
+  if (widths.length === 0 || widths.every((w) => w === null)) return null;
+  return widths;
+}
+
+// Mirror of server normalizeTableColumnWidths (see import/utils/table-utils.ts):
+// markdown source has no widths, so without this every pasted table renders
+// at table-layout:fixed/100% and squashes columns to fit the editor instead of
+// letting .tableWrapper's overflow-x: auto scroll.
+export function normalizeTableColumnWidths(root: Element): void {
+  root.querySelectorAll("table").forEach((table) => {
+    const firstRow = getFirstRow(table);
+    if (!firstRow) return;
+
+    let colWidths = deriveColumnWidths(table);
+    if (!colWidths) {
+      let count = 0;
+      Array.from(firstRow.children)
+        .filter((c) => c.tagName === "TD" || c.tagName === "TH")
+        .forEach((cell) => {
+          count += parseInt(cell.getAttribute("colspan") || "1", 10) || 1;
+        });
+      if (count === 0) return;
+      colWidths = new Array(count).fill(DEFAULT_PASTE_COL_WIDTH_PX);
+    }
+
+    let col = 0;
+    Array.from(firstRow.children)
+      .filter((c) => c.tagName === "TD" || c.tagName === "TH")
+      .forEach((cell) => {
+        if (cell.getAttribute("colwidth")) {
+          col += parseInt(cell.getAttribute("colspan") || "1", 10) || 1;
+          return;
+        }
+        const colspan = parseInt(cell.getAttribute("colspan") || "1", 10) || 1;
+        const slice = colWidths!.slice(col, col + colspan);
+        col += colspan;
+        if (slice.length === 0 || slice.every((w) => w === null)) return;
+        const values = slice.map((w) => (w == null ? 100 : w));
+        cell.setAttribute("colwidth", values.join(","));
+      });
+  });
 }

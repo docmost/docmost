@@ -80,6 +80,12 @@ export default function AvatarUploader({
     }
   };
 
+  const ariaLabel = {
+    [AvatarIconType.AVATAR]: t("Change avatar"),
+    [AvatarIconType.SPACE_ICON]: t("Change space icon"),
+    [AvatarIconType.WORKSPACE_ICON]: t("Change workspace icon"),
+  }[type];
+
   const handleRemove = async () => {
     if (disabled) return;
 
@@ -104,6 +110,8 @@ export default function AvatarUploader({
         ref={fileInputRef}
         onChange={handleFileInputChange}
         accept="image/png,image/jpeg,image/jpg"
+        aria-label={ariaLabel}
+        tabIndex={-1}
         style={{ display: "none" }}
       />
 
@@ -115,6 +123,8 @@ export default function AvatarUploader({
               size={size}
               avatarUrl={currentImageUrl}
               name={fallbackName}
+              aria-label={ariaLabel}
+              aria-haspopup="menu"
               style={{
                 cursor: disabled || isLoading ? "default" : "pointer",
                 opacity: isLoading ? 0.6 : 1,

@@ -26,7 +26,7 @@ function getSnapshot() {
   return tick;
 }
 
-export function useTimeAgo(date: Date | string) {
+export function useTimeAgo(date: Date | string | undefined) {
   const currentTick = useSyncExternalStore(subscribe, getSnapshot);
-  return useMemo(() => timeAgo(new Date(date)), [date, currentTick]);
+  return useMemo(() => (date ? timeAgo(new Date(date)) : ""), [date, currentTick]);
 }

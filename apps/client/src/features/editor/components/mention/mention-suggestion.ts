@@ -53,8 +53,8 @@ const mentionRenderItems = () => {
       const editorDom = props.editor?.view?.dom;
       const asideEl = editorDom?.closest(".mantine-AppShell-aside");
       const dialogEl = editorDom?.closest("[data-comment-dialog]");
-      const isInCommentContext = !!(asideEl || dialogEl);
-     // const isInCommentContext = !!asideEl;
+      const chatInput = editorDom?.closest("[data-chat-input]");
+      const isInCommentContext = !!(asideEl || dialogEl || chatInput);
 
       component = new ReactRenderer(MentionList, {
         props: { ...props, isInCommentContext },
