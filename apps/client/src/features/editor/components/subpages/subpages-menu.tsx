@@ -65,7 +65,7 @@ export const SubpagesMenu = React.memo(
 
     const handleSort = useCallback(
       async (direction: 'asc' | 'desc') => {
-        const pageId = editor.storage.pageId as string;
+        const pageId = editor.storage["pageId"] as string;
         if (!pageId) return;
         const sorted = await sortPages({ parentPageId: pageId, direction });
         const positionMap = new Map(sorted.map((p) => [p.id, p.position]));
