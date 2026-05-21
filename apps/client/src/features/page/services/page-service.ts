@@ -10,7 +10,6 @@ import {
 } from '@/features/page/types/page.types';
 import { QueryParams } from "@/lib/types";
 import { IPagination } from "@/lib/types.ts";
-import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
 import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
 import { IAttachment } from '@/features/attachments/types/attachment.types.ts';
@@ -118,18 +117,30 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
     responseType: "blob",
   });
 
-  const fileName = req?.headers["content-disposition"]
-    .split("filename=")[1]
-    .replace(/"/g, "");
+  const contentDisposition = req?.headers?.["content-disposition"] as string | undefined;
+  let fileName = `export.${data.format || "html"}`;
 
-  let decodedFileName = fileName;
-  try {
-    decodedFileName = decodeURIComponent(fileName);
-  } catch (err) {
-    // fallback to raw filename
+  if (contentDisposition) {
+    const rfcMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
+    const fallbackMatch = contentDisposition.match(/filename="([^"]+)"/);
+    const raw = rfcMatch?.[1] || fallbackMatch?.[1];
+    if (raw) {
+      try {
+        fileName = decodeURIComponent(raw);
+      } catch {
+        fileName = raw;
+      }
+    }
   }
 
-  saveAs(req.data, decodedFileName);
+  const blobUrl = URL.createObjectURL(req.data);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(blobUrl);
 }
 
 export async function importPage(file: File, spaceId: string) {
