@@ -122,6 +122,26 @@ export class EnvironmentService {
     return this.configService.get<string>('AWS_S3_URL');
   }
 
+  getAzureStorageAccountName(): string {
+    return this.configService.get<string>('AZURE_STORAGE_ACCOUNT_NAME');
+  }
+
+  getAzureStorageContainer(): string {
+    return this.configService.get<string>('AZURE_STORAGE_CONTAINER');
+  }
+
+  getAzureStorageAccountKey(): string {
+    return this.configService.get<string>('AZURE_STORAGE_ACCOUNT_KEY');
+  }
+
+  getAzureStorageEndpoint(): string {
+    return this.configService.get<string>('AZURE_STORAGE_ENDPOINT');
+  }
+
+  getAzureStorageUrl(): string {
+    return this.configService.get<string>('AZURE_STORAGE_URL');
+  }
+
   getMailDriver(): string {
     return this.configService.get<string>('MAIL_DRIVER', 'log');
   }
