@@ -38,7 +38,7 @@
     "@aws-sdk/s3-request-presigner": "3.1050.0",
     "@azure/storage-blob": "12.31.0",
     "@clickhouse/client": "^1.18.2",
-    "@docmost/pdf-inspector": "1.9.4",
+    "@docmost/pdf-inspector": "1.9.6",
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^10.0.0",
     "@fastify/static": "^9.1.3",

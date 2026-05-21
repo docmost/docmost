@@ -508,8 +508,8 @@ importers:
         specifier: ^1.18.2
         version: 1.18.2
       '@docmost/pdf-inspector':
-        specifier: 1.9.4
-        version: 1.9.4
+        specifier: 1.9.6
+        version: 1.9.6
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.0.2
@@ -1900,8 +1900,8 @@ packages:
     resolution: {integrity: sha512-UJnjoFsmxfKUdNYdWgOB0mWUypuLvAfQPH1+pyvRJs6euowbFkFC6P13w1l8mJyi3vxYMxc9kld5jZEGRQs6bw==}
     engines: {node: '>=18'}
 
-  '@docmost/pdf-inspector@1.9.4':
-    resolution: {integrity: sha512-G5DNyDtLNxybTXWakqi7PuOEuSb/A2ZjDlv2WCkOkiHszPeILdrC+G0a4e4UP10yxvzuLfb23pJ5jy8fUSYZPw==}
+  '@docmost/pdf-inspector@1.9.6':
+    resolution: {integrity: sha512-8k8N8Mwu9xbpRC1jLcz4sFv88ev2oBnW56a/2WLbrOBkfXzyZV2Tml5PikUwEWT4cUXfYfk2dGnJpWQYgCESCQ==}
 
   '@emnapi/core@1.8.1':
     resolution: {integrity: sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==}
@@ -11898,7 +11898,7 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.3': {}
 
-  '@docmost/pdf-inspector@1.9.4': {}
+  '@docmost/pdf-inspector@1.9.6': {}
 
   '@emnapi/core@1.8.1':
     dependencies:
