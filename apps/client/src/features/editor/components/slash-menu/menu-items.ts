@@ -544,6 +544,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
+      title: "Datenbank-Tabelle",
+      description: "Baserow- oder NocoDB-Tabelle als native Tabelle einbetten",
+      searchTerms: ["baserow", "nocodb", "datenbank", "database", "tabelle", "table"],
+      icon: IconTable,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setDatabaseTable({})
+          .run();
+      },
+    },
+    {
       title: "Airtable",
       description: "Embed Airtable",
       searchTerms: ["airtable"],

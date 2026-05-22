@@ -1,0 +1,38 @@
+/* Schwebende Werkzeug-Blase (erscheint bei Node-Selektion, zentriert über dem Block) –
+   nutzt zusätzlich die geteilte toolbar-menu.module.css für die Blasen-Optik. */
+.bubble {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+/* Link-Buttons (öffnen / bearbeiten) sollen keinen Unterstrich haben. */
+.iconLink,
+.iconLink:hover {
+  text-decoration: none;
+}
+
+/* ---- Rahmen-Modi (deterministisch per CSS, Mantine-Border-Props sind aus) ---- */
+.bAll,
+.bH,
+.bNone {
+  border-collapse: collapse;
+}
+.bAll :is(th, td) {
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)) !important;
+}
+.bH :is(th, td) {
+  border-top: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)) !important;
+  border-bottom: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)) !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+.bH thead th {
+  border-top: 0 !important; /* kein Rahmen oben über der Kopfzeile */
+}
+.bNone :is(th, td) {
+  border: 0 !important;
+}
+

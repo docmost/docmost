@@ -16,6 +16,7 @@ export * from "./lib/custom-code-block";
 export * from "./lib/drawio";
 export * from "./lib/excalidraw";
 export * from "./lib/embed";
+export * from "./lib/database-table";
 export * from "./lib/mention";
 export * from "./lib/markdown";
 export * from "./lib/search-and-replace";

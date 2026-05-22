@@ -40,6 +40,7 @@ import {
   Drawio,
   Excalidraw,
   Embed,
+  DatabaseTable,
   TiptapPdf,
   SearchAndReplace,
   Mention,
@@ -78,6 +79,7 @@ import CodeBlockView from "@/features/editor/components/code-block/code-block-vi
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
+import DatabaseTableView from "@/features/editor/components/database-table/database-table-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import { common, createLowlight } from "lowlight";
@@ -341,6 +343,9 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
+  }),
+  DatabaseTable.configure({
+    view: DatabaseTableView,
   }),
   TiptapPdf.configure({
     view: PdfView,
