@@ -1,8 +1,8 @@
-import { Group, Box, Button, TextInput, Stack, Textarea } from "@mantine/core";
+import { Group, Box, Button, TextInput, Stack, Textarea, Text } from "@mantine/core";
 import React, { useEffect } from "react";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
-import * as z from "zod";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { z } from "zod/v4";
 import { useNavigate } from "react-router-dom";
 import { useCreateSpaceMutation } from "@/features/space/queries/space-query.ts";
 import { computeSpaceSlug } from "@/lib";
@@ -30,7 +30,7 @@ export function CreateSpaceForm() {
   const navigate = useNavigate();
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     validateInputOnChange: ["slug"],
     initialValues: {
       name: "",
@@ -69,10 +69,25 @@ export function CreateSpaceForm() {
     navigate(getSpaceUrl(createdSpace.slug));
   };
 
+  function handleValidationFailure(errors: Record<string, unknown>) {
+    const firstInvalidId = Object.keys(errors)[0];
+    if (firstInvalidId) {
+      document.getElementById(firstInvalidId)?.focus();
+    }
+  }
+
   return (
     <>
       <Box maw="500" mx="auto">
-        <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>
+        <form
+          onSubmit={form.onSubmit(
+            (values) => handleSubmit(values),
+            handleValidationFailure,
+          )}
+        >
+          <Text size="sm" c="dimmed" mb="sm">
+            {t("* indicates required fields")}
+          </Text>
           <Stack>
             <TextInput
               withAsterisk
@@ -80,6 +95,8 @@ export function CreateSpaceForm() {
               label={t("Space name")}
               placeholder={t("e.g Product Team")}
               variant="filled"
+              data-autofocus
+              errorProps={{ role: "alert" }}
               {...form.getInputProps("name")}
             />
 
@@ -89,6 +106,7 @@ export function CreateSpaceForm() {
               label={t("Space slug")}
               placeholder={t("e.g product")}
               variant="filled"
+              errorProps={{ role: "alert" }}
               {...form.getInputProps("slug")}
             />
 
@@ -100,6 +118,7 @@ export function CreateSpaceForm() {
               autosize
               minRows={2}
               maxRows={8}
+              errorProps={{ role: "alert" }}
               {...form.getInputProps("description")}
             />
           </Stack>

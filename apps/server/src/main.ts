@@ -10,7 +10,10 @@ import { TransformHttpResponseInterceptor } from './common/interceptors/http-res
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
+import fastifyIp from 'fastify-ip';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
+import { EnvironmentService } from './integrations/environment/environment.service';
+import { resolveFrameHeader } from './common/helpers';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -36,7 +39,7 @@ async function bootstrap() {
   app.useLogger(app.get(PinoLogger));
 
   app.setGlobalPrefix('api', {
-    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug'],
+    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug', 'mcp'],
   });
 
   const reflector = app.get(Reflector);
@@ -45,8 +48,55 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(redisIoAdapter);
 
+  await app.register(fastifyIp);
   await app.register(fastifyMultipart);
   await app.register(fastifyCookie);
+
+  const environmentService = app.get(EnvironmentService);
+  const frameHeader = resolveFrameHeader(
+    environmentService.isIframeEmbedAllowed(),
+    environmentService.getIframeAllowedOrigins(),
+  );
+  if (frameHeader) {
+    // Skipped routes:
+    //   /api/files/ - attachment controller sets its own CSP we'd overwrite
+    //   /share/     0 public share pages are safe to embed
+    const frameHeaderSkippedPrefixes = ['/api/files/', '/share/'];
+    app
+      .getHttpAdapter()
+      .getInstance()
+      .addHook('onSend', (req, reply, payload, done) => {
+        if (frameHeaderSkippedPrefixes.some((p) => req.url.startsWith(p))) {
+          return done(null, payload);
+        }
+        reply.header(frameHeader.name, frameHeader.value);
+        done(null, payload);
+      });
+  }
+
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onRequest', (request, _reply, done) => {
+      (request.raw as any).ip = request.ip;
+      done();
+    });
+
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addContentTypeParser(
+      'application/scim+json',
+      { parseAs: 'string' },
+      (_, body, done) => {
+        try {
+          const json = JSON.parse(body.toString());
+          done(null, json);
+        } catch (err: any) {
+          done(err);
+        }
+      },
+    );
 
   app
     .getHttpAdapter()
@@ -67,7 +117,8 @@ async function bootstrap() {
         '/api/sso/google',
         '/api/workspace/create',
         '/api/workspace/joined',
-        '/api/integrations/oauth'
+        '/api/workspace/find-by-email',
+        '/api/integrations/oauth',
       ];
 
       if (

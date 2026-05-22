@@ -1,0 +1,70 @@
+.row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--mantine-spacing-sm);
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+    border-radius: var(--mantine-radius-sm);
+    width: 100%;
+
+    @mixin hover {
+        background-color: light-dark(
+                var(--mantine-color-gray-1),
+                var(--mantine-color-dark-6)
+        );
+    }
+}
+
+.icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--mantine-font-size-sm);
+    text-align: left;
+}
+
+.scope {
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+    font-size: var(--mantine-font-size-xs);
+    flex-shrink: 0;
+    transition: opacity 100ms ease;
+
+    .row:hover &,
+    .row:focus-within & {
+        opacity: 0;
+    }
+}
+
+.useButton {
+    position: absolute;
+    top: 50%;
+    right: var(--mantine-spacing-sm);
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 100ms ease;
+
+    .row:hover &,
+    .row:focus-within &,
+    &:focus-visible {
+        opacity: 1;
+    }
+}
+
+.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--mantine-spacing-xl);
+}

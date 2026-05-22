@@ -4,7 +4,6 @@ import {
   Button,
   Popover,
   rem,
-  ScrollArea,
   Text,
   Tooltip,
   SimpleGrid,
@@ -114,6 +113,63 @@ const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
   },
 ];
 
+const COLOR_GRID_COLS = 5;
+
+function focusSwatch(grid: "text" | "highlight", index: number) {
+  const el = document.querySelector<HTMLElement>(
+    `[data-color-grid="${grid}"][data-color-index="${index}"]`,
+  );
+  el?.focus();
+}
+
+function handleColorKeyNav(
+  e: React.KeyboardEvent<HTMLDivElement>,
+  index: number,
+  grid: "text" | "highlight",
+) {
+  const cols = COLOR_GRID_COLS;
+  const total =
+    grid === "text" ? TEXT_COLORS.length : HIGHLIGHT_COLORS.length;
+  const col = index % cols;
+
+  if (e.key === "ArrowRight") {
+    e.preventDefault();
+    if (index < total - 1) focusSwatch(grid, index + 1);
+    return;
+  }
+  if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    if (index > 0) focusSwatch(grid, index - 1);
+    return;
+  }
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    const next = index + cols;
+    if (next < total) {
+      focusSwatch(grid, next);
+    } else if (grid === "text") {
+      focusSwatch("highlight", Math.min(col, HIGHLIGHT_COLORS.length - 1));
+    } else if (grid === "highlight") {
+      document
+        .querySelector<HTMLElement>('[data-color-grid="remove"]')
+        ?.focus();
+    }
+    return;
+  }
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    const prev = index - cols;
+    if (prev >= 0) {
+      focusSwatch(grid, prev);
+    } else if (grid === "highlight") {
+      const lastRowStart =
+        Math.floor((TEXT_COLORS.length - 1) / cols) * cols;
+      focusSwatch("text", Math.min(lastRowStart + col, TEXT_COLORS.length - 1));
+    }
+    return;
+  }
+}
+
 export const ColorSelector: FC<ColorSelectorProps> = ({
   editor,
   isOpen,
@@ -157,13 +213,20 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
   );
 
   return (
-    <Popover width={220} opened={isOpen} withArrow>
+    <Popover
+      width={220}
+      opened={isOpen}
+      onChange={setIsOpen}
+      trapFocus
+      withArrow
+    >
       <Popover.Target>
         <Tooltip label={t("Text color")} withArrow>
           <Button
             variant="default"
             radius="0"
             rightSection={<IconChevronDown size={16} />}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => setIsOpen(!isOpen)}
             data-text-color={activeColorItem?.color || ""}
             data-highlight-color={activeHighlightItem?.color || ""}
@@ -172,34 +235,54 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
               fontWeight: 500,
               fontSize: rem(16),
             }}
+            aria-label={t("Text color")}
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
           >
             A
           </Button>
         </Tooltip>
       </Popover.Target>
 
-      <Popover.Dropdown>
-        <ScrollArea.Autosize type="scroll" mah="400">
-          <Stack gap="md">
+      <Popover.Dropdown onMouseDown={(e) => e.preventDefault()}>
+        <Stack gap="md" p="2px">
             <Box>
               <Text size="sm" fw={600} mb="xs">
                 {t("Text color")}
               </Text>
               <SimpleGrid cols={5} spacing="xs">
-                {TEXT_COLORS.map(({ name, color }, index) => (
+                {TEXT_COLORS.map(({ name, color }, index) => {
+                  const applyTextColor = () => {
+                    if (name === "Default") {
+                      editor.commands.unsetColor();
+                    } else {
+                      editor
+                        .chain()
+                        .focus()
+                        .setColor(color || "")
+                        .run();
+                    }
+                    setIsOpen(false);
+                  };
+                  return (
                   <Tooltip key={index} label={t(name)} withArrow>
                     <Box
-                      onClick={() => {
-                        if (name === "Default") {
-                          editor.commands.unsetColor();
-                        } else {
-                          editor
-                            .chain()
-                            .focus()
-                            .setColor(color || "")
-                            .run();
+                      role="button"
+                      tabIndex={0}
+                      data-autofocus={index === 0 ? true : undefined}
+                      data-color-grid="text"
+                      data-color-index={index}
+                      className={classes.colorSwatch}
+                      aria-label={t(name)}
+                      aria-pressed={!!editorState[`text_${color}`]}
+                      onClick={applyTextColor}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          applyTextColor();
+                          return;
                         }
-                        setIsOpen(false);
+                        handleColorKeyNav(e, index, "text");
                       }}
                       style={{
                         width: rem(28),
@@ -221,7 +304,8 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                       A
                     </Box>
                   </Tooltip>
-                ))}
+                  );
+                })}
               </SimpleGrid>
             </Box>
 
@@ -230,23 +314,40 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                 {t("Highlight color")}
               </Text>
               <SimpleGrid cols={5} spacing="xs">
-                {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
+                {HIGHLIGHT_COLORS.map(({ name, color }, index) => {
+                  const applyHighlight = () => {
+                    if (name === "Default") {
+                      editor.commands.unsetHighlight();
+                    } else {
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleMark("highlight", {
+                          color: color || "",
+                          colorName: name.toLowerCase() || "",
+                        })
+                        .run();
+                    }
+                    setIsOpen(false);
+                  };
+                  return (
                   <Tooltip key={index} label={t(name)} withArrow>
                     <Box
-                      onClick={() => {
-                        if (name === "Default") {
-                          editor.commands.unsetHighlight();
-                        } else {
-                          editor
-                            .chain()
-                            .focus()
-                            .toggleMark("highlight", {
-                              color: color || "",
-                              colorName: name.toLowerCase() || "",
-                            })
-                            .run();
+                      role="button"
+                      tabIndex={0}
+                      data-color-grid="highlight"
+                      data-color-index={index}
+                      className={classes.colorSwatch}
+                      aria-label={t(name)}
+                      aria-pressed={!!editorState[`highlight_${color}`]}
+                      onClick={applyHighlight}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          applyHighlight();
+                          return;
                         }
-                        setIsOpen(false);
+                        handleColorKeyNav(e, index, "highlight");
                       }}
                       style={{
                         width: rem(28),
@@ -274,23 +375,35 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                       )}
                     </Box>
                   </Tooltip>
-                ))}
+                  );
+                })}
               </SimpleGrid>
             </Box>
 
             <Button
               variant="default"
               fullWidth
+              data-color-grid="remove"
+              className={classes.removeColor}
               onClick={() => {
                 editor.commands.unsetColor();
                 editor.commands.unsetHighlight();
                 setIsOpen(false);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  const lastRowStart =
+                    Math.floor(
+                      (HIGHLIGHT_COLORS.length - 1) / COLOR_GRID_COLS,
+                    ) * COLOR_GRID_COLS;
+                  focusSwatch("highlight", lastRowStart);
+                }
+              }}
             >
               {t("Remove color")}
             </Button>
           </Stack>
-        </ScrollArea.Autosize>
       </Popover.Dropdown>
     </Popover>
   );

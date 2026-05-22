@@ -20,18 +20,6 @@ export type WatcherType = (typeof WatcherType)[keyof typeof WatcherType];
 export class WatcherRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  async findByUserAndPage(
-    userId: string,
-    pageId: string,
-  ): Promise<Watcher | undefined> {
-    return this.db
-      .selectFrom('watchers')
-      .selectAll()
-      .where('userId', '=', userId)
-      .where('pageId', '=', pageId)
-      .executeTakeFirst();
-  }
-
   async findPageWatchers(pageId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('watchers')
@@ -64,6 +52,53 @@ export class WatcherRepo {
       .execute();
 
     return watchers.map((w) => w.userId);
+  }
+
+  /**
+   * Recipients for a `page.updated` notification, combining:
+   *   - Active page watchers on this page, AND
+   *   - Active space watchers on this space, EXCLUDING any user who has a
+   *     muted page watcher row for this page (per-page mute always wins).
+   *
+   * Deduplicated at the SQL level — a user watching both the page and the
+   * containing space appears once.
+   */
+  async getPageUpdateRecipientIds(
+    pageId: string,
+    spaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<string[]> {
+    const db = dbOrTx(this.db, trx);
+
+    const pageWatchers = db
+      .selectFrom('watchers')
+      .select('userId')
+      .where('pageId', '=', pageId)
+      .where('type', '=', WatcherType.PAGE)
+      .where('mutedAt', 'is', null);
+
+    const spaceWatchers = db
+      .selectFrom('watchers as sw')
+      .select('sw.userId')
+      .where('sw.spaceId', '=', spaceId)
+      .where('sw.pageId', 'is', null)
+      .where('sw.type', '=', WatcherType.SPACE)
+      .where((eb) =>
+        eb.not(
+          eb.exists(
+            eb
+              .selectFrom('watchers as pw')
+              .select('pw.id')
+              .whereRef('pw.userId', '=', 'sw.userId')
+              .where('pw.pageId', '=', pageId)
+              .where('pw.type', '=', WatcherType.PAGE)
+              .where('pw.mutedAt', 'is not', null),
+          ),
+        ),
+      );
+
+    const rows = await pageWatchers.union(spaceWatchers).execute();
+    return [...new Set(rows.map((r) => r.userId))];
   }
 
   async insert(
@@ -110,18 +145,95 @@ export class WatcherRepo {
       .executeTakeFirst();
   }
 
+  async upsertSpace(
+    watcher: InsertableWatcher,
+    trx?: KyselyTransaction,
+  ): Promise<Watcher | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('watchers')
+      .values(watcher)
+      .onConflict((oc) =>
+        oc
+          .columns(['userId', 'spaceId'])
+          .where('pageId', 'is', null)
+          .doNothing(),
+      )
+      .returningAll()
+      .executeTakeFirst();
+  }
+
   async mute(
     userId: string,
     pageId: string,
+    spaceId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    const mutedAt = new Date();
+    await db
+      .insertInto('watchers')
+      .values({
+        userId,
+        pageId,
+        spaceId,
+        workspaceId,
+        type: WatcherType.PAGE,
+        addedById: userId,
+        mutedAt,
+      })
+      .onConflict((oc) =>
+        oc
+          .columns(['userId', 'pageId'])
+          .where('pageId', 'is not', null)
+          .doUpdateSet({ mutedAt }),
+      )
+      .execute();
+  }
+
+  async deleteSpaceWatch(
+    userId: string,
+    spaceId: string,
     trx?: KyselyTransaction,
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db
-      .updateTable('watchers')
-      .set({ mutedAt: new Date() })
+      .deleteFrom('watchers')
       .where('userId', '=', userId)
-      .where('pageId', '=', pageId)
+      .where('spaceId', '=', spaceId)
+      .where('pageId', 'is', null)
+      .where('type', '=', WatcherType.SPACE)
       .execute();
+  }
+
+  async getWatchedSpaceIds(userId: string, workspaceId: string) {
+    const query = this.db
+      .selectFrom('watchers')
+      .select(['watchers.id', 'watchers.spaceId'])
+      .where('userId', '=', userId)
+      .where('workspaceId', '=', workspaceId)
+      .where('pageId', 'is', null)
+      .where('type', '=', WatcherType.SPACE);
+
+    return executeWithCursorPagination(query, {
+      perPage: 250,
+      fields: [{ expression: 'watchers.id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
+    });
+  }
+
+  async isWatchingSpace(userId: string, spaceId: string): Promise<boolean> {
+    const watcher = await this.db
+      .selectFrom('watchers')
+      .select('id')
+      .where('userId', '=', userId)
+      .where('spaceId', '=', spaceId)
+      .where('pageId', 'is', null)
+      .where('type', '=', WatcherType.SPACE)
+      .executeTakeFirst();
+
+    return !!watcher;
   }
 
   async isWatching(userId: string, pageId: string): Promise<boolean> {
@@ -164,14 +276,14 @@ export class WatcherRepo {
       .where('spaceId', '=', spaceId)
       .where('userId', 'is not', null)
       .union(
-        this.db
+        db
           .selectFrom('spaceMembers')
           .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
           .select('groupUsers.userId')
           .where('spaceMembers.spaceId', '=', spaceId),
       );
 
-    await this.db
+    await db
       .deleteFrom('watchers')
       .where('userId', 'in', userIds)
       .where('spaceId', '=', spaceId)

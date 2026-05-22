@@ -1,0 +1,108 @@
+.handle {
+  position: absolute;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: rgba(55, 53, 47, 0.45);
+  background: var(--mantine-color-body);
+  border: 1px solid rgba(55, 53, 47, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: grab;
+  padding: 0;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  @mixin dark {
+    color: rgba(255, 255, 255, 0.55);
+    background: var(--mantine-color-dark-7);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.handle:hover {
+  background: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  color: light-dark(
+    var(--mantine-color-gray-7),
+    var(--mantine-color-dark-0)
+  );
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.columnHandle {
+  width: 28px;
+  height: 16px;
+}
+
+.columnHandle svg {
+  transform: rotate(90deg);
+}
+
+.rowHandle {
+  width: 16px;
+  height: 28px;
+}
+
+@media (max-width: 600px) {
+  .handle {
+    display: none;
+  }
+}
+
+.cellChevron {
+  position: absolute;
+  z-index: 50;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(
+    var(--mantine-color-gray-7),
+    var(--mantine-color-dark-1)
+  );
+  background: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  border: 1px solid rgba(55, 53, 47, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  @mixin dark {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.cellChevron:hover {
+  background: light-dark(
+    var(--mantine-color-gray-2),
+    var(--mantine-color-dark-4)
+  );
+  color: light-dark(
+    var(--mantine-color-gray-8),
+    var(--mantine-color-dark-0)
+  );
+}
+
+@media (max-width: 600px) {
+  .cellChevron {
+    display: none;
+  }
+}
+
+@media print {
+  .handle,
+  .cellChevron {
+    display: none !important;
+  }
+}

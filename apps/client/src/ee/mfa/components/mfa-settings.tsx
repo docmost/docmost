@@ -7,8 +7,9 @@ import { getMfaStatus } from "@/ee/mfa";
 import { MfaSetupModal } from "@/ee/mfa";
 import { MfaDisableModal } from "@/ee/mfa";
 import { MfaBackupCodesModal } from "@/ee/mfa";
-import { isCloud } from "@/lib/config.ts";
-import useLicense from "@/ee/hooks/use-license.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
 
 export function MfaSettings() {
@@ -17,7 +18,8 @@ export function MfaSettings() {
   const [setupModalOpen, setSetupModalOpen] = useState(false);
   const [disableModalOpen, setDisableModalOpen] = useState(false);
   const [backupCodesModalOpen, setBackupCodesModalOpen] = useState(false);
-  const { hasLicenseKey } = useLicense();
+  const canUseMfa = useHasFeature(Feature.MFA);
+  const upgradeLabel = useUpgradeLabel();
 
   const { data: mfaStatus, isLoading } = useQuery({
     queryKey: ["mfa-status"],
@@ -27,8 +29,6 @@ export function MfaSettings() {
   if (isLoading || !mfaStatus) {
     return null;
   }
-
-  const canUseMfa = isCloud() || hasLicenseKey;
 
   // Check if MFA is truly enabled
   const isMfaEnabled = mfaStatus?.isEnabled === true;
@@ -69,7 +69,7 @@ export function MfaSettings() {
         <ResponsiveSettingsControl>
           {!isMfaEnabled ? (
             <Tooltip
-              label={t("Available in enterprise edition")}
+              label={upgradeLabel}
               disabled={canUseMfa}
             >
               <Button

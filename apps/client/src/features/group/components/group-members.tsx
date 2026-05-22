@@ -54,7 +54,7 @@ export default function GroupMembersList() {
             <Table.Tr>
               <Table.Th>{t("User")}</Table.Th>
               <Table.Th>{t("Status")}</Table.Th>
-              <Table.Th></Table.Th>
+              <Table.Th aria-label={t("Action")} />
             </Table.Tr>
           </Table.Thead>
 
@@ -88,7 +88,11 @@ export default function GroupMembersList() {
                       arrowPosition="center"
                     >
                       <Menu.Target>
-                        <ActionIcon variant="subtle" c="gray">
+                        <ActionIcon
+                          variant="subtle"
+                          c="gray"
+                          aria-label={t("Member actions")}
+                        >
                           <IconDots size={20} stroke={2} />
                         </ActionIcon>
                       </Menu.Target>

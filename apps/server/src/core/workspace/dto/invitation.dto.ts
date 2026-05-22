@@ -12,6 +12,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { UserRole } from '../../../common/helpers/types/permission';
+import { NoUrls } from '../../../common/validators/no-urls.validator';
 
 export class InviteUserDto {
   @IsArray()
@@ -44,6 +45,7 @@ export class AcceptInviteDto extends InvitationIdDto {
   @MinLength(2)
   @MaxLength(60)
   @IsString()
+  @NoUrls()
   name: string;
 
   @MinLength(8)

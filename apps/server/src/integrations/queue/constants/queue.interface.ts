@@ -1,10 +1,10 @@
-import { MentionNode } from "../../../common/helpers/prosemirror/utils";
-
+import { MentionNode } from '../../../common/helpers/prosemirror/utils';
 
 export interface IPageBacklinkJob {
   pageId: string;
   workspaceId: string;
   mentions: MentionNode[];
+  internalLinkSlugIds?: string[];
 }
 
 export interface IAddPageWatchersJob {
@@ -59,4 +59,57 @@ export interface IPageMentionNotificationJob {
   pageId: string;
   spaceId: string;
   workspaceId: string;
+}
+
+export interface IPageUpdateNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorIds: string[];
+}
+
+export interface IPermissionGrantedNotificationJob {
+  userIds: string[];
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  role: string;
+}
+
+export interface IVerificationExpiringNotificationJob {
+  verificationId: string;
+}
+
+export interface IVerificationExpiredNotificationJob {
+  verificationId: string;
+}
+
+export interface IVerificationReconcileJob {
+  // no payload
+}
+
+export interface IPageVerifiedNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  verifierIds: string[];
+}
+
+export interface IApprovalRequestedNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  verifierIds: string[];
+}
+
+export interface IApprovalRejectedNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  requestedById: string;
+  comment?: string;
 }

@@ -15,7 +15,8 @@
 }
 
 .table-dnd-drop-indicator {
-  background-color: #adf;
+  background-color: var(--mantine-color-blue-5);
+  z-index: 3;
 }
 
 .ProseMirror {
@@ -57,13 +58,14 @@
     }
 
     .column-resize-handle {
-      background-color: #adf;
+      background-color: var(--mantine-color-blue-5);
       bottom: -1px;
       position: absolute;
-      right: -2px;
+      right: -1px;
       pointer-events: none;
       top: 0;
-      width: 4px;
+      width: 2px;
+      z-index: 3;
     }
 
     .selectedCell:after {
@@ -127,6 +129,139 @@
       }
     }
   }
+}
+
+
+/* Header-row pinning. Two CSS paths, picked by `header-pin/controller.ts`:
+   - native sticky (preferred): wrapper drops its overflow constraint so
+     `position: sticky` on the row can resolve against the document scroll.
+   - transform fallback: wrapper keeps `overflow-x: auto` for horizontal
+     scrolling; the row is positioned imperatively per scroll frame.
+
+   `--editor-pin-offset` is published to :root by `pinOffsetWatcher` in
+   `header-pin/offset.ts`, measured against the lowest fixed surface above
+   the editor (app shell header, page header, fixed toolbar). */
+
+.tableWrapper.tableWrapperNoOverflow,
+.tableWrapper.tableWrapperNoOverflow table {
+  overflow: visible;
+}
+
+.tableWrapper.tableHeaderPinned table tr:first-child {
+  z-index: 2;
+}
+
+.tableWrapper.tableWrapperNoOverflow.tableHeaderPinned table tr:first-child {
+  position: sticky;
+  top: var(--editor-pin-offset, 90px);
+}
+
+.tableWrapper.tableHeaderPinned:not(.tableWrapperNoOverflow) table tr:first-child {
+  position: relative;
+  transform: translateY(var(--table-pin-offset, 0px));
+}
+
+@media print {
+  .tableWrapper.tableHeaderPinned table tr:first-child {
+    position: static;
+    transform: none;
+  }
+}
+
+.tableReadonlySortChevron {
+  /* Anchor to the cell's right edge, vertically centered with the cell
+     content. The cell content (a <p>) is block-level so an inline chevron
+     would wrap to a new line; absolute positioning takes it out of flow. */
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: light-dark(
+    rgba(55, 53, 47, 0.08),
+    rgba(255, 255, 255, 0.08)
+  );
+  color: light-dark(
+    rgba(55, 53, 47, 0.55),
+    rgba(255, 255, 255, 0.55)
+  );
+  user-select: none;
+  cursor: pointer;
+  z-index: 1;
+  /* Hidden by default; revealed on header-cell hover or when this column is
+     the active sort (see selectors below). */
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.ProseMirror table th:hover .tableReadonlySortChevron,
+.tableReadonlySortChevron[data-sort] {
+  opacity: 1;
+}
+
+.ProseMirror table th:has(.tableReadonlySortChevron) {
+  padding-right: 30px;
+}
+
+.tableReadonlySortChevron:hover {
+  background: light-dark(
+    rgba(55, 53, 47, 0.16),
+    rgba(255, 255, 255, 0.16)
+  );
+}
+
+/* Immediate tooltip on the chevron — same style language as the rest of the
+   app (small, dark, rounded), unlike the native `title` tooltip which only
+   appears after a long delay. */
+.tableReadonlySortChevron::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  /* Below the chevron — placing it above the cell hits the table's
+     overflow clipping (the wrapper has `overflow-x: auto` which forces
+     `overflow-y: auto` per spec). */
+  top: calc(100% + 6px);
+  right: 0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--mantine-color-dark-7);
+  color: var(--mantine-color-white);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  z-index: 10;
+}
+
+.tableReadonlySortChevron:hover::after {
+  opacity: 1;
+}
+
+.tableReadonlySortChevron svg {
+  display: block;
+}
+
+.tableReadonlySortChevron[data-sort="asc"],
+.tableReadonlySortChevron[data-sort="desc"] {
+  background: light-dark(
+    var(--mantine-color-blue-1),
+    var(--mantine-color-blue-9)
+  );
+  color: light-dark(
+    var(--mantine-color-blue-7),
+    var(--mantine-color-blue-2)
+  );
+}
+
+.tableReadonlySortChevron[data-sort="asc"] svg {
+  transform: rotate(180deg);
 }
 
 .editor-container:has(.table-dnd-drop-indicator[data-dragging="true"]) {

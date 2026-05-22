@@ -40,6 +40,8 @@ const handleImageUpload =
     );
 
     const placeholderId = generateNodeId();
+    const width = imageDimensions?.width ?? undefined;
+    const height = imageDimensions?.height ?? undefined;
     const aspectRatio = imageDimensions
       ? imageDimensions.width / imageDimensions.height
       : undefined;
@@ -57,6 +59,8 @@ const handleImageUpload =
             id: placeholderId,
             name: file.name,
           },
+          width,
+          height,
           aspectRatio,
         });
 
@@ -88,6 +92,8 @@ const handleImageUpload =
           src: `/api/files/${attachment.id}/${attachment.fileName}`,
           attachmentId: attachment.id,
           size: attachment.fileSize,
+          width,
+          height,
           aspectRatio,
         });
 

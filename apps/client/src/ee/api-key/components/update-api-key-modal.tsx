@@ -1,7 +1,7 @@
 import { Modal, TextInput, Button, Group, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
-import { z } from "zod";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { z } from "zod/v4";
 import { useTranslation } from "react-i18next";
 import { useUpdateApiKeyMutation } from "@/ee/api-key/queries/api-key-query";
 import { IApiKey } from "@/ee/api-key";
@@ -27,7 +27,7 @@ export function UpdateApiKeyModal({
   const updateApiKeyMutation = useUpdateApiKeyMutation();
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       name: "",
     },
@@ -53,8 +53,9 @@ export function UpdateApiKeyModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("Update API key")}
+      title={t("Update {{credential}}", { credential: t("API key") })}
       size="md"
+      closeButtonProps={{ "aria-label": t("Close") }}
     >
       <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>
         <Stack gap="md">

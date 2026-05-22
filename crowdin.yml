@@ -1,3 +1,4 @@
 files:
   - source: /apps/client/public/locales/en-US/translation.json
     translation: /apps/client/public/locales/%locale%/%original_file_name%
+    type: i18next_json

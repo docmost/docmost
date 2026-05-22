@@ -1,4 +1,5 @@
 export type LinkEditorPanelProps = {
   initialUrl?: string;
-  onSetLink: (url: string, openInNewTab?: boolean) => void;
+  onSetLink: (url: string, internal?: boolean) => void;
+  onUnsetLink?: () => void;
 };

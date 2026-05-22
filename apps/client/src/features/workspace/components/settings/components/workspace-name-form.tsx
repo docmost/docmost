@@ -1,12 +1,12 @@
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useAtom } from "jotai";
-import * as z from "zod";
+import { z } from "zod/v4";
 import { useState } from "react";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 import { TextInput, Button } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { notifications } from "@mantine/notifications";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
@@ -24,7 +24,7 @@ export default function WorkspaceNameForm() {
   const { isAdmin } = useUserRole();
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       name: workspace?.name,
     },

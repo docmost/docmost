@@ -56,8 +56,11 @@ export default function MathBlockView(props: NodeViewProps) {
   }, [debouncedPreview]);
 
   useEffect(() => {
-    setIsEditing(!!props.selected);
-    if (props.selected) setPreview(node.attrs.text);
+    const pos = getPos();
+    const { from, to } = editor.state.selection;
+    const nodeSelected = props.selected && from === pos && to === pos + node.nodeSize;
+    setIsEditing(nodeSelected);
+    if (nodeSelected) setPreview(node.attrs.text);
   }, [props.selected]);
 
   return (
@@ -146,8 +149,13 @@ export default function MathBlockView(props: NodeViewProps) {
           ></Textarea>
 
           <Flex justify="flex-end" align="flex-end">
-            <ActionIcon variant="light" color="red">
-              <IconTrashX size={18} onClick={() => props.deleteNode()} />
+            <ActionIcon
+              variant="light"
+              color="red"
+              aria-label={t("Delete equation")}
+              onClick={() => props.deleteNode()}
+            >
+              <IconTrashX size={18} />
             </ActionIcon>
           </Flex>
         </Stack>

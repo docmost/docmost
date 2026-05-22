@@ -22,7 +22,7 @@ interface TableBackgroundColorProps {
   editor: Editor | null;
 }
 
-const TABLE_COLORS: TableColorItem[] = [
+export const TABLE_COLORS: TableColorItem[] = [
   { name: "Default", color: "" },
   { name: "Blue", color: "#b4d5ff" },
   { name: "Green", color: "#acf5d2" },
@@ -95,7 +95,7 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
       <Popover.Target>
         <Tooltip label={t("Background color")} withArrow>
           <ActionIcon
-            variant="default"
+            variant="subtle"
             size="lg"
             aria-label={t("Background color")}
             onClick={() => setOpened(!opened)}

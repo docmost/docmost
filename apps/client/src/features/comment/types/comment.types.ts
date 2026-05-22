@@ -17,6 +17,10 @@ export interface IComment {
   deletedAt?: Date;
   creator: IUser;
   resolvedBy?: IUser;
+  yjsSelection?: {
+    anchor: any;
+    head: any;
+  };
 }
 
 export interface ICommentData {

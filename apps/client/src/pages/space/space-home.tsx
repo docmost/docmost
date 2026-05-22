@@ -14,7 +14,7 @@ export default function SpaceHome() {
             <Helmet>
                 <title>{space?.name || 'Overview'} - {getAppName()}</title>
             </Helmet>
-            <Container size={"800"} pt="xl">
+            <Container size={"900"} pt="xl">
                 {space && <SpaceHomeTabs/>}
             </Container>
         </>

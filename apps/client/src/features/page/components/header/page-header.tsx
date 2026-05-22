@@ -8,7 +8,7 @@ interface Props {
 }
 export default function PageHeader({ readOnly }: Props) {
   return (
-    <div className={classes.header}>
+    <div className={classes.header} data-page-header="true">
       <Group justify="space-between" h="100%" px="md" wrap="nowrap" className={classes.group}>
         <Breadcrumb />
 

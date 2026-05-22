@@ -11,7 +11,12 @@ export default function CreateGroupModal() {
     <>
       <Button onClick={open}>{t("Create group")}</Button>
 
-      <Modal opened={opened} onClose={close} title={t("Create group")}>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Create group")}
+        closeButtonProps={{ "aria-label": t("Close") }}
+      >
         <Divider size="xs" mb="xs" />
         <CreateGroupForm />
       </Modal>

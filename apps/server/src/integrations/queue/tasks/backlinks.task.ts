@@ -11,7 +11,7 @@ export async function processBacklinks(
   backlinkRepo: BacklinkRepo,
   data: IPageBacklinkJob,
 ): Promise<void> {
-  const { pageId, mentions, workspaceId } = data;
+  const { pageId, mentions, workspaceId, internalLinkSlugIds = [] } = data;
 
   await executeTx(db, async (trx) => {
     const existingBacklinks = await trx
@@ -20,7 +20,28 @@ export async function processBacklinks(
       .where('sourcePageId', '=', pageId)
       .execute();
 
-    if (existingBacklinks.length === 0 && mentions.length === 0) {
+    const mentionTargetPageIds = mentions
+      .filter((mention) => mention.entityId !== pageId)
+      .map((mention) => mention.entityId);
+
+    let resolvedLinkPageIds: string[] = [];
+    if (internalLinkSlugIds.length > 0) {
+      const resolvedPages = await trx
+        .selectFrom('pages')
+        .select('id')
+        .where('slugId', 'in', internalLinkSlugIds)
+        .where('workspaceId', '=', workspaceId)
+        .execute();
+      resolvedLinkPageIds = resolvedPages
+        .map((p) => p.id)
+        .filter((id) => id !== pageId);
+    }
+
+    const allTargetPageIds = [
+      ...new Set([...mentionTargetPageIds, ...resolvedLinkPageIds]),
+    ];
+
+    if (existingBacklinks.length === 0 && allTargetPageIds.length === 0) {
       return;
     }
 
@@ -28,16 +49,12 @@ export async function processBacklinks(
       (backlink) => backlink.targetPageId,
     );
 
-    const targetPageIds = mentions
-      .filter((mention) => mention.entityId !== pageId)
-      .map((mention) => mention.entityId);
-
     let validTargetPages = [];
-    if (targetPageIds.length > 0) {
+    if (allTargetPageIds.length > 0) {
       validTargetPages = await trx
         .selectFrom('pages')
         .select('id')
-        .where('id', 'in', targetPageIds)
+        .where('id', 'in', allTargetPageIds)
         .where('workspaceId', '=', workspaceId)
         .execute();
     }

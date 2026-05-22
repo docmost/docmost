@@ -1,16 +1,15 @@
-import { useMemo } from "react";
-import {
-  CreateHandler,
-  DeleteHandler,
-  MoveHandler,
-  NodeApi,
-  RenameHandler,
-  SimpleTree,
-} from "react-arborist";
-import { useAtom } from "jotai";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
-import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
+import { useCallback } from "react";
+import { useAtom, useStore } from "jotai";
+import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
+
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import { treeModel } from "@/features/page/tree/model/tree-model";
+import type { DropOp } from "@/features/page/tree/model/tree-model.types";
+import { dropOpToMovePayload } from "./drop-op-to-move-payload";
+import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { IPage } from "@/features/page/types/page.types.ts";
 import {
   useCreatePageMutation,
   useRemovePageMutation,
@@ -18,258 +17,250 @@ import {
   useUpdatePageMutation,
   updateCacheOnMovePage,
 } from "@/features/page/queries/page-query.ts";
-import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
-import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 
-export function useTreeMutation<T>(spaceId: string) {
-  const [data, setData] = useAtom(treeDataAtom);
-  const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
+export type UseTreeMutation = {
+  handleMove: (sourceId: string, op: DropOp) => Promise<void>;
+  handleCreate: (parentId: string | null) => Promise<void>;
+  handleRename: (id: string, name: string) => Promise<void>;
+  handleDelete: (id: string) => Promise<void>;
+};
+
+export function useTreeMutation(spaceId: string): UseTreeMutation {
+  const { t } = useTranslation();
+  const [, setData] = useAtom(treeDataAtom);
+  // `store` reads the *current* treeDataAtom imperatively in handlers — avoids
+  // stale-closure issues when the caller updates the tree (e.g. lazy-load
+  // children) and then immediately invokes a handler.
+  const store = useStore();
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
   const removePageMutation = useRemovePageMutation();
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
-  const { spaceSlug } = useParams();
-  const { pageSlug } = useParams();
+  const { spaceSlug, pageSlug } = useParams();
   const emit = useQueryEmit();
 
-  const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
-    const payload: { spaceId: string; parentPageId?: string } = {
-      spaceId: spaceId,
-    };
-    if (parentId) {
-      payload.parentPageId = parentId;
-    }
+  const handleMove = useCallback(
+    async (sourceId: string, op: DropOp) => {
+      const before = store.get(treeDataAtom);
+      const { tree: after, result } = treeModel.move(before, sourceId, op);
+      if (after === before) return;
 
-    let createdPage: IPage;
-    try {
-      createdPage = await createPageMutation.mutateAsync(payload);
-    } catch (err) {
-      throw new Error("Failed to create page");
-    }
+      const payload = dropOpToMovePayload(before, sourceId, op);
+      const source = treeModel.find(before, sourceId) as SpaceTreeNode | null;
+      if (!source) return;
+      const oldParentId = source.parentPageId ?? null;
 
-    const data = {
-      id: createdPage.id,
-      slugId: createdPage.slugId,
-      name: "",
-      position: createdPage.position,
-      spaceId: createdPage.spaceId,
-      parentPageId: createdPage.parentPageId,
-      children: [],
-    } as any;
+      // optimistic apply with the new position from the payload
+      let optimistic = treeModel.update(after, sourceId, {
+        position: payload.position,
+        parentPageId: payload.parentPageId,
+      } as Partial<SpaceTreeNode>);
 
-    let lastIndex: number;
-    if (parentId === null) {
-      lastIndex = tree.data.length;
-    } else {
-      lastIndex = tree.find(parentId).children.length;
-    }
-    // to place the newly created node at the bottom
-    index = lastIndex;
-
-    tree.create({ parentId, index, data });
-    setData(tree.data);
-
-    setTimeout(() => {
-      emit({
-        operation: "addTreeNode",
-        spaceId: spaceId,
-        payload: {
-          parentId,
-          index,
-          data,
-        },
-      });
-    }, 50);
-
-    const pageUrl = buildPageUrl(
-      spaceSlug,
-      createdPage.slugId,
-      createdPage.title
-    );
-    navigate(pageUrl);
-    return data;
-  };
-
-  const onMove: MoveHandler<T> = async (args: {
-    dragIds: string[];
-    dragNodes: NodeApi<T>[];
-    parentId: string | null;
-    parentNode: NodeApi<T> | null;
-    index: number;
-  }) => {
-    const draggedNodeId = args.dragIds[0];
-
-    tree.move({
-      id: draggedNodeId,
-      parentId: args.parentId,
-      index: args.index,
-    });
-
-    const newDragIndex = tree.find(draggedNodeId)?.childIndex;
-
-    const currentTreeData = args.parentId
-      ? tree.find(args.parentId).children
-      : tree.data;
-
-    // if there is a parentId, tree.find(args.parentId).children returns a SimpleNode array
-    // we have to access the node differently via currentTreeData[args.index]?.data?.position
-    // this makes it possible to correctly sort children of a parent node that is not the root
-
-    const afterPosition =
-      // @ts-ignore
-      currentTreeData[newDragIndex - 1]?.position ||
-      // @ts-ignore
-      currentTreeData[args.index - 1]?.data?.position ||
-      null;
-
-    const beforePosition =
-      // @ts-ignore
-      currentTreeData[newDragIndex + 1]?.position ||
-      // @ts-ignore
-      currentTreeData[args.index + 1]?.data?.position ||
-      null;
-
-    let newPosition: string;
-
-    if (afterPosition && beforePosition && afterPosition === beforePosition) {
-      // if after is equal to before, put it next to the after node
-      newPosition = generateJitteredKeyBetween(afterPosition, null);
-    } else {
-      // if both are null then, it is the first index
-      newPosition = generateJitteredKeyBetween(afterPosition, beforePosition);
-    }
-
-    // update the node position in tree
-    tree.update({
-      id: draggedNodeId,
-      changes: { position: newPosition } as any,
-    });
-
-    const previousParent = args.dragNodes[0].parent;
-    if (
-      previousParent.id !== args.parentId &&
-      previousParent.id !== "__REACT_ARBORIST_INTERNAL_ROOT__"
-    ) {
-      // if the page was moved to another parent,
-      // check if the previous still has children
-      // if no children left, change 'hasChildren' to false, to make the page toggle arrows work properly
-      const childrenCount = previousParent.children.filter(
-        (child) => child.id !== draggedNodeId
-      ).length;
-      if (childrenCount === 0) {
-        tree.update({
-          id: previousParent.id,
-          changes: { ...previousParent.data, hasChildren: false } as any,
-        });
+      // If the old parent has no children left, mark hasChildren: false so the
+      // chevron disappears. Without this, the empty parent keeps rendering an
+      // expand toggle that fetches zero rows on click.
+      if (oldParentId) {
+        const oldParent = treeModel.find(optimistic, oldParentId);
+        if (!oldParent?.children?.length) {
+          optimistic = treeModel.update(optimistic, oldParentId, {
+            hasChildren: false,
+          } as Partial<SpaceTreeNode>);
+        }
       }
-    }
 
-    setData(tree.data);
+      // For make-child onto a previously-childless target: flip hasChildren on
+      // so the new parent shows its chevron.
+      if (op.kind === "make-child") {
+        optimistic = treeModel.update(optimistic, op.targetId, {
+          hasChildren: true,
+        } as Partial<SpaceTreeNode>);
+      }
 
-    const payload: IMovePage = {
-      pageId: draggedNodeId,
-      position: newPosition,
-      parentPageId: args.parentId,
-    };
+      setData(optimistic);
 
-    const draggedNode = args.dragNodes[0];
-    const nodeData = draggedNode.data as SpaceTreeNode;
-    const oldParentId = nodeData.parentPageId ?? null;
-    const pageData = {
-      id: nodeData.id,
-      slugId: nodeData.slugId,
-      title: nodeData.name,
-      icon: nodeData.icon,
-      position: newPosition,
-      spaceId: nodeData.spaceId,
-      parentPageId: args.parentId,
-      hasChildren: nodeData.hasChildren,
-    };
+      try {
+        await movePageMutation.mutateAsync(payload);
+      } catch {
+        setData(before);
+        notifications.show({
+          message: t("Failed to move page"),
+          color: "red",
+        });
+        return;
+      }
 
-    try {
-      await movePageMutation.mutateAsync(payload);
+      const pageData: Partial<IPage> = {
+        id: source.id,
+        slugId: source.slugId,
+        title: source.name,
+        icon: source.icon,
+        position: payload.position,
+        spaceId: source.spaceId,
+        parentPageId: payload.parentPageId,
+        hasChildren: source.hasChildren,
+      };
 
-      updateCacheOnMovePage(spaceId, draggedNodeId, oldParentId, args.parentId, pageData);
+      updateCacheOnMovePage(
+        spaceId,
+        sourceId,
+        oldParentId,
+        payload.parentPageId,
+        pageData,
+      );
 
       setTimeout(() => {
         emit({
           operation: "moveTreeNode",
           spaceId: spaceId,
           payload: {
-            id: draggedNodeId,
-            parentId: args.parentId,
+            id: sourceId,
+            parentId: payload.parentPageId,
             oldParentId,
-            index: args.index,
-            position: newPosition,
+            index: result.index,
+            position: payload.position,
             pageData,
           },
         });
       }, 50);
-    } catch (error) {
-      console.error("Error moving page:", error);
-    }
-  };
+    },
+    [setData, store, movePageMutation, spaceId, emit, t],
+  );
 
-  const onRename: RenameHandler<T> = ({ name, id }) => {
-    tree.update({ id, changes: { name } as any });
-    setData(tree.data);
+  const handleCreate = useCallback(
+    async (parentId: string | null) => {
+      const payload: { spaceId: string; parentPageId?: string } = { spaceId };
+      if (parentId) payload.parentPageId = parentId;
 
-    try {
-      updatePageMutation.mutateAsync({ pageId: id, title: name });
-    } catch (error) {
-      console.error("Error updating page title:", error);
-    }
-  };
+      let createdPage: IPage;
+      try {
+        createdPage = await createPageMutation.mutateAsync(payload);
+      } catch {
+        throw new Error("Failed to create page");
+      }
 
-  const isPageInNode = (
-    node: { data: SpaceTreeNode; children?: any[] },
-    pageSlug: string
-  ): boolean => {
-    if (node.data.slugId === pageSlug) {
-      return true;
-    }
-    for (const item of node.children) {
-      if (item.data.slugId === pageSlug) {
-        return true;
+      const newNode: SpaceTreeNode = {
+        id: createdPage.id,
+        slugId: createdPage.slugId,
+        name: "",
+        position: createdPage.position,
+        spaceId: createdPage.spaceId,
+        parentPageId: createdPage.parentPageId,
+        hasChildren: false,
+        children: [],
+      };
+
+      // Read latest tree at call time. Without this, callers that mutate the
+      // tree (e.g. lazy-load children on expand) immediately before calling
+      // handleCreate hit a stale closure and compute lastIndex against the
+      // pre-load tree, requiring a setTimeout-based wait at the call site.
+      const current = store.get(treeDataAtom);
+      let lastIndex: number;
+      if (parentId === null) {
+        lastIndex = current.length;
       } else {
-        return isPageInNode(item, pageSlug);
-      }
-    }
-    return false;
-  };
-
-  const onDelete: DeleteHandler<T> = async (args: { ids: string[] }) => {
-    try {
-      await removePageMutation.mutateAsync(args.ids[0]);
-
-      const node = tree.find(args.ids[0]);
-      if (!node) {
-        return;
+        const parent = treeModel.find(current, parentId);
+        lastIndex = parent?.children?.length ?? 0;
       }
 
-      tree.drop({ id: args.ids[0] });
-      setData(tree.data);
-
-      if (pageSlug && isPageInNode(node, pageSlug.split("-")[1])) {
-        navigate(getSpaceUrl(spaceSlug));
-      }
+      setData((prev) => treeModel.insert(prev, parentId, newNode, lastIndex));
 
       setTimeout(() => {
         emit({
-          operation: "deleteTreeNode",
-          spaceId: spaceId,
-          payload: { node: node.data },
+          operation: "addTreeNode",
+          spaceId,
+          payload: {
+            parentId,
+            index: lastIndex,
+            data: newNode,
+          },
         });
       }, 50);
-    } catch (error) {
-      console.error("Failed to delete page:", error);
-    }
-  };
 
-  const controllers = { onMove, onRename, onCreate, onDelete };
-  return { data, setData, controllers } as const;
+      const pageUrl = buildPageUrl(
+        spaceSlug,
+        createdPage.slugId,
+        createdPage.title,
+      );
+      navigate(pageUrl);
+    },
+    [spaceId, createPageMutation, setData, store, emit, navigate, spaceSlug],
+  );
+
+  const handleRename = useCallback(
+    async (id: string, name: string) => {
+      setData((prev) =>
+        treeModel.update(prev, id, { name } as Partial<SpaceTreeNode>),
+      );
+      try {
+        await updatePageMutation.mutateAsync({ pageId: id, title: name });
+      } catch (error) {
+        console.error("Error updating page title:", error);
+      }
+    },
+    [updatePageMutation, setData],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      const node = treeModel.find(
+        store.get(treeDataAtom),
+        id,
+      ) as SpaceTreeNode | null;
+      const parentPageId = node?.parentPageId ?? null;
+      try {
+        await removePageMutation.mutateAsync(id);
+        setData((prev) => {
+          let next = treeModel.remove(prev, id);
+          // If the parent has no children left, mark hasChildren: false so the
+          // chevron disappears. Without this, the empty parent keeps rendering an
+          // expand toggle that fetches zero rows on click.
+          if (parentPageId) {
+            const parent = treeModel.find(next, parentPageId);
+            if (!parent?.children?.length) {
+              next = treeModel.update(next, parentPageId, {
+                hasChildren: false,
+              } as Partial<SpaceTreeNode>);
+            }
+          }
+          return next;
+        });
+
+        if (
+          node &&
+          pageSlug &&
+          (node.slugId === pageSlug.split("-")[1] ||
+            isPageInNode(node, pageSlug.split("-")[1]))
+        ) {
+          navigate(getSpaceUrl(spaceSlug));
+        }
+
+        setTimeout(() => {
+          if (!node) return;
+          emit({
+            operation: "deleteTreeNode",
+            spaceId,
+            payload: { node },
+          });
+        }, 50);
+      } catch (error) {
+        console.error("Failed to delete page:", error);
+      }
+    },
+    [removePageMutation, setData, store, pageSlug, navigate, spaceSlug, emit, spaceId],
+  );
+
+  return { handleMove, handleCreate, handleRename, handleDelete };
+}
+
+function isPageInNode(node: SpaceTreeNode, pageSlug: string): boolean {
+  if (node.slugId === pageSlug) return true;
+  if (!node.children) return false;
+  for (const child of node.children) {
+    if (isPageInNode(child, pageSlug)) return true;
+  }
+  return false;
 }

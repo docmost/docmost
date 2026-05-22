@@ -49,7 +49,7 @@ const renderItems = () => {
       getReferenceClientRect = props.clientRect;
 
       popup = document.createElement("div");
-      popup.style.zIndex = "9999";
+      popup.style.zIndex = "199";
       popup.style.position = "absolute";
       popup.style.top = "0";
       popup.style.left = "0";

@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { WatcherService } from './watcher.service';
-import { CaslModule } from '../casl/casl.module';
+import { WatcherController } from './watcher.controller';
+import { SpaceWatcherController } from './space-watcher.controller';
+import { PageAccessModule } from '../page/page-access/page-access.module';
 
 @Module({
-  imports: [CaslModule],
-  controllers: [],
+  imports: [PageAccessModule],
+  controllers: [WatcherController, SpaceWatcherController],
   providers: [WatcherService],
   exports: [WatcherService],
 })

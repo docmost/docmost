@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 export default function ImageView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { editor, node, selected } = props;
-  const { src, width, align, title, aspectRatio, placeholder } = node.attrs;
+  const { src, width, align, alt, aspectRatio, placeholder } = node.attrs;
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
     if (align === "right") return "alignRight";
@@ -33,6 +33,7 @@ export default function ImageView(props: NodeViewProps) {
         className={clsx(
           selected && "ProseMirror-selectednode",
           classes.imageWrapper,
+          !src && placeholder && classes.skeleton,
           alignClass,
         )}
         style={{
@@ -41,7 +42,7 @@ export default function ImageView(props: NodeViewProps) {
         }}
       >
         {src && (
-          <Image radius="md" fit="contain" src={getFileUrl(src)} alt={title} />
+          <Image radius="md" fit="contain" src={getFileUrl(src)} alt={alt} />
         )}
         {!src && previewSrc && (
           <Group pos="relative" h="100%" w="100%">
@@ -54,7 +55,7 @@ export default function ImageView(props: NodeViewProps) {
             <Loader size={20} pos="absolute" bottom={6} right={6} />
           </Group>
         )}
-        {!src && !previewSrc && (
+        {!src && !previewSrc && placeholder && (
           <Group justify="center" wrap="nowrap" gap="xs" maw="100%" px="md">
             <Loader size={20} style={{ flexShrink: 0 }} />
             <Text component="span" size="sm" truncate="end">

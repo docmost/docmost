@@ -1,16 +1,17 @@
 import { Button, Group, Text, Modal, TextInput } from "@mantine/core";
-import * as z from "zod";
+import { z } from "zod/v4";
 import { useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import * as React from "react";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { getSubdomainHost } from "@/lib/config.ts";
 import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { getHostnameUrl } from "@/ee/utils.ts";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import {
   currentUserAtom,
   workspaceAtom,
@@ -66,7 +67,7 @@ function ChangeHostnameForm({ onClose }: ChangeHostnameFormProps) {
   const [currentUser, setCurrentUser] = useAtom(currentUserAtom);
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       hostname: currentUser?.workspace?.hostname,
     },

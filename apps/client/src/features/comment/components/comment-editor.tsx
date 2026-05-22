@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import EmojiCommand from "@/features/editor/extensions/emoji-command";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion";
 import MentionView from "@/features/editor/components/mention/mention-view";
+import { platformModifierKey } from "@/lib";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -18,6 +19,7 @@ interface CommentEditorProps {
   editable: boolean;
   placeholder?: string;
   autofocus?: boolean;
+  surface?: "default" | "muted";
 }
 
 const CommentEditor = forwardRef(
@@ -29,6 +31,7 @@ const CommentEditor = forwardRef(
       editable,
       placeholder,
       autofocus,
+      surface,
     }: CommentEditorProps,
     ref,
   ) => {
@@ -65,6 +68,9 @@ const CommentEditor = forwardRef(
         }),
       ],
       editorProps: {
+        attributes: {
+          "aria-label": placeholder || t("Comment"),
+        },
         handleDOMEvents: {
           keydown: (_view, event) => {
             if (
@@ -83,7 +89,7 @@ const CommentEditor = forwardRef(
               }
             }
 
-            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+            if (platformModifierKey(event) && event.code === "Enter") {
               event.preventDefault();
               if (onSave) onSave();
 
@@ -130,6 +136,7 @@ const CommentEditor = forwardRef(
         ref={focusRef}
         className={classes.commentEditor}
         data-editable={editable || undefined}
+        data-surface={surface}
       >
         <EditorContent
           editor={commentEditor}

@@ -53,7 +53,41 @@ export class SpaceController {
     pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
-    return this.spaceMemberService.getUserSpaces(user.id, pagination);
+    const result = await this.spaceMemberService.getUserSpaces(
+      user.id,
+      pagination,
+    );
+
+    if (result.items.length > 0) {
+      const spaceIds = result.items.map((s) => s.id);
+      const roles = await this.spaceMemberRepo.getUserRolesForSpaces(
+        user.id,
+        spaceIds,
+      );
+
+      const roleMap = new Map<string, string[]>();
+      for (const row of roles) {
+        const existing = roleMap.get(row.spaceId) || [];
+        existing.push(row.role);
+        roleMap.set(row.spaceId, existing);
+      }
+
+      result.items = result.items.map((space) => {
+        const spaceRoles = roleMap.get(space.id);
+        const role = spaceRoles
+          ? findHighestUserSpaceRole(
+              spaceRoles.map((r) => ({ userId: user.id, role: r })),
+            )
+          : undefined;
+
+        return {
+          ...space,
+          membership: { userId: user.id, role },
+        };
+      });
+    }
+
+    return result;
   }
 
   @HttpCode(HttpStatus.OK)

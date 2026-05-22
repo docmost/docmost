@@ -11,7 +11,12 @@ export default function CreateSpaceModal() {
     <>
       <Button onClick={open}>{t("Create space")}</Button>
 
-      <Modal opened={opened} onClose={close} title={t("Create space")}>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Create space")}
+        closeButtonProps={{ "aria-label": t("Close") }}
+      >
         <Divider size="xs" mb="xs" />
         <CreateSpaceForm />
       </Modal>

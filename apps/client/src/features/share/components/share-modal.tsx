@@ -69,19 +69,20 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
+    setIsPagePublic(value);
 
-    if (value) {
-      createShareMutation.mutateAsync({
-        pageId: pageId,
-        includeSubPages: true,
-        searchIndexing: false,
-      });
-      setIsPagePublic(value);
-    } else {
-      if (share && share.id) {
-        deleteShareMutation.mutateAsync(share.id);
-        setIsPagePublic(value);
+    try {
+      if (value) {
+        await createShareMutation.mutateAsync({
+          pageId: pageId,
+          includeSubPages: true,
+          searchIndexing: false,
+        });
+      } else if (share && share.id) {
+        await deleteShareMutation.mutateAsync(share.id);
       }
+    } catch {
+      setIsPagePublic(!value);
     }
   };
 
@@ -89,20 +90,28 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = event.currentTarget.checked;
-    updateShareMutation.mutateAsync({
-      shareId: share.id,
-      includeSubPages: value,
-    });
+    try {
+      await updateShareMutation.mutateAsync({
+        shareId: share.id,
+        includeSubPages: value,
+      });
+    } catch {
+      // query invalidation will revert the UI
+    }
   };
 
   const handleIndexSearchChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = event.currentTarget.checked;
-    updateShareMutation.mutateAsync({
-      shareId: share.id,
-      searchIndexing: value,
-    });
+    try {
+      await updateShareMutation.mutateAsync({
+        shareId: share.id,
+        searchIndexing: value,
+      });
+    } catch {
+      // query invalidation will revert the UI
+    }
   };
 
   const shareLink = useMemo(

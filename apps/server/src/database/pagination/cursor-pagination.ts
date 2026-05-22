@@ -306,6 +306,21 @@ export function defaultEncodeCursor<
   return Buffer.from(cursor.toString(), 'utf8').toString('base64url');
 }
 
+export function emptyCursorPaginationResult<T>(
+  limit: number,
+): CursorPaginationResult<T> {
+  return {
+    items: [],
+    meta: {
+      limit,
+      hasNextPage: false,
+      hasPrevPage: false,
+      nextCursor: null,
+      prevCursor: null,
+    },
+  };
+}
+
 export function defaultDecodeCursor<
   DB,
   TB extends keyof DB,

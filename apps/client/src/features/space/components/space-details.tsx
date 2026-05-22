@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { EditSpaceForm } from "@/features/space/components/edit-space-form.tsx";
-import { Button, Divider, Text } from "@mantine/core";
+import { Button, Divider, Text, Title } from "@mantine/core";
 import DeleteSpaceModal from "./delete-space-modal";
 import { useDisclosure } from "@mantine/hooks";
 import ExportModal from "@/components/common/export-modal.tsx";
@@ -18,8 +18,7 @@ import {
   ResponsiveSettingsControl,
   ResponsiveSettingsRow,
 } from "@/components/ui/responsive-settings-row.tsx";
-import SpacePublicSharingToggle from "@/ee/security/components/space-public-sharing-toggle.tsx";
-import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
+
 
 interface SpaceDetailsProps {
   spaceId: string;
@@ -28,8 +27,6 @@ interface SpaceDetailsProps {
 export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
   const { t } = useTranslation();
   const { data: space, isLoading, refetch } = useSpaceQuery(spaceId);
-  const hasEnterpriseAccess = useEnterpriseAccess();
-  const showSharingToggle = !readOnly && hasEnterpriseAccess;
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [isIconUploading, setIsIconUploading] = useState(false);
@@ -68,9 +65,9 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
     <>
       {space && (
         <div>
-          <Text my="md" fw={600}>
+          <Title order={3} my="md" size="h6" fw={600}>
             {t("Details")}
-          </Text>
+          </Title>
 
           <div style={{ marginBottom: "20px" }}>
             <Text size="sm" fw={500} mb="xs">
@@ -90,13 +87,6 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
           </div>
 
           <EditSpaceForm space={space} readOnly={readOnly} />
-
-          {showSharingToggle && (
-            <>
-              <Divider my="lg" />
-              <SpacePublicSharingToggle space={space} />
-            </>
-          )}
 
           {!readOnly && (
             <>

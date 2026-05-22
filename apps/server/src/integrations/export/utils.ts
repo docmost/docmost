@@ -62,6 +62,7 @@ export function replaceInternalLinks(
   prosemirrorJson: any,
   slugIdToPath: Record<string, string>,
   currentPagePath: string,
+  baseUrl?: string,
 ) {
   const doc = jsonToNode(prosemirrorJson);
 
@@ -76,6 +77,10 @@ export function replaceInternalLinks(
           const localPath = slugIdToPath[slugId];
 
           if (!localPath) {
+            if (baseUrl && mark.attrs.href.startsWith('/')) {
+              //@ts-expect-error
+              mark.attrs.href = `${baseUrl}${mark.attrs.href}`;
+            }
             continue;
           }
 

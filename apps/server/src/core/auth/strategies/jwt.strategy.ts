@@ -5,8 +5,10 @@ import { EnvironmentService } from '../../../integrations/environment/environmen
 import { JwtApiKeyPayload, JwtPayload, JwtType } from '../dto/jwt-payload';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
+import { SessionActivityService } from '../../session/session-activity.service';
 import { FastifyRequest } from 'fastify';
-import { extractBearerTokenFromHeader } from '../../../common/helpers';
+import { extractBearerTokenFromHeader, isUserDisabled } from '../../../common/helpers';
 import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
@@ -16,6 +18,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private userRepo: UserRepo,
     private workspaceRepo: WorkspaceRepo,
+    private userSessionRepo: UserSessionRepo,
+    private sessionActivityService: SessionActivityService,
     private readonly environmentService: EnvironmentService,
     private moduleRef: ModuleRef,
   ) {
@@ -53,8 +57,18 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
     const user = await this.userRepo.findById(payload.sub, payload.workspaceId);
 
-    if (!user || user.deactivatedAt || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new UnauthorizedException();
+    }
+
+    if ((payload as JwtPayload).sessionId) {
+      const sessionId = (payload as JwtPayload).sessionId;
+      const session = await this.userSessionRepo.findActiveById(sessionId);
+      if (!session || session.userId !== payload.sub || session.workspaceId !== payload.workspaceId) {
+        throw new UnauthorizedException();
+      }
+      req.raw.sessionId = sessionId;
+      this.sessionActivityService.trackActivity(sessionId, payload.sub, payload.workspaceId);
     }
 
     return { user, workspace };

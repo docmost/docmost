@@ -5,10 +5,11 @@
 .treeContainer {
     height: 100%;
     min-width: 0;
-
-    > div, > div > .tree {
-        height: 100% !important;
-    }
+    /* DocTree renders a vanilla <ul role="tree"> with no internal virtualizer,
+       so the container must own the scroll. Without this the tree grows past
+       its parent and the page scrolls instead. */
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .node {
@@ -17,76 +18,39 @@
     display: flex;
     align-items: center;
     height: 100%;
-    width: 93%; /* not to overlap with scroll bar */
+    width: 100%;
     text-decoration: none;
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
 
-    &:hover {
-        background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
-        /*background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));*/
-     }
+    /* Gate hover styles to mouse-capable devices. Touch browsers synthesize
+       :hover on the first tap (sticky hover) and only fire click on the
+       second tap, requiring a double-tap to navigate. */
+    @media (hover: hover) {
+        &:hover {
+            background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+        }
 
+        &:hover .actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    }
 
     .actions {
-        visibility: hidden;
-        position: absolute;
-        height: 100%;
-        top: 0;
-        right: 0;
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
-        background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-6));
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        margin-left: 4px;
+        opacity: 0;
+        pointer-events: none;
     }
 
-      &:hover .actions {
-       visibility: visible;
+    &:focus-within .actions {
+        opacity: 1;
+        pointer-events: auto;
     }
-
 }
 
-.node:global(.willReceiveDrop) {
-    background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-gray-7));
-}
-
-.node:global(.isSelected) {
-    border-radius: 0;
-
-    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-6));
-/*
-    color: white;
-
- // background-color: light-dark(
-  //  var(--mantine-color-gray-0),
-   // var(--mantine-color-dark-6)
-  //);
-  //background: rgb(20, 127, 250, 0.5);*/
-}
-
-.node:global(.isSelectedStart.isSelectedEnd) {
-    border-radius: 4px;
-}
-
-.row:focus .node:global(.isSelected) {
-    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
-}
-
-.row:focus .node:global(.isFocused) {
-    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
-}
-
-.row {
-    white-space: nowrap;
-    cursor: pointer;
-}
-
-.row:focus {
-    outline: none;
-}
-
-.row:focus .node {
-    /** come back to this **/
-   /* background-color: light-dark(var(--mantine-color-red-2), var(--mantine-color-dark-5));*/
-}
 
 .icon {
     margin: 0 rem(10px);
@@ -95,8 +59,12 @@
 
 .text {
     flex: 1;
+    /* min-width: 0 lets a flex child shrink below its content size — required
+       for text-overflow: ellipsis on flex items. */
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: rem(14px);
     font-weight: 500;
 }
@@ -107,4 +75,114 @@
 
 [role="treeitem"] {
     padding-bottom: 2px;
+}
+
+/* Strip the browser's default <ul> bullet + indent from the DocTree
+   <ul role="tree"> and nested <ul role="group"> nodes. The tree's own indent
+   is driven by paddingLeft on .rowWrapper. */
+[role="tree"],
+[role="tree"] [role="group"] {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* ---- pragmatic-tree additions ---- */
+
+.rowWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+}
+
+.node[data-dragging="true"] {
+    opacity: 0.4;
+}
+
+.node:focus-visible {
+    outline: 2px solid light-dark(
+        var(--mantine-color-blue-5),
+        var(--mantine-color-blue-4)
+    );
+    outline-offset: -2px;
+}
+
+.node :focus-visible {
+    outline-offset: -2px;
+}
+
+.node[data-selected="true"] {
+    background-color: light-dark(
+        var(--mantine-color-gray-3),
+        var(--mantine-color-dark-6)
+    );
+}
+
+.node[data-selected="true"] .actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.node[data-receiving-drop="make-child"] {
+    background-color: light-dark(
+        var(--mantine-color-blue-1),
+        rgba(56, 139, 253, 0.15)
+    );
+    outline: 2px solid light-dark(
+        var(--mantine-color-blue-5),
+        var(--mantine-color-blue-7)
+    );
+    outline-offset: -1px;
+}
+
+.node[data-receiving-drop="make-child-blocked"] {
+    outline-color: light-dark(
+        var(--mantine-color-red-5),
+        var(--mantine-color-red-7)
+    );
+}
+
+.dropLine {
+    position: absolute;
+    left: var(--drop-line-indent, 0);
+    right: 8px;
+    height: 2px;
+    background: light-dark(
+        var(--mantine-color-blue-5),
+        var(--mantine-color-blue-4)
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.dropLine::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    color: light-dark(
+        var(--mantine-color-blue-5),
+        var(--mantine-color-blue-4)
+    );
+    background: var(--mantine-color-body);
+}
+
+.dropLine[data-blocked="true"] {
+    background: light-dark(
+        var(--mantine-color-red-5),
+        var(--mantine-color-red-4)
+    );
+}
+
+.dropLine[data-edge="top"] {
+    top: -1px;
+}
+
+.dropLine[data-edge="bottom"] {
+    bottom: -1px;
 }

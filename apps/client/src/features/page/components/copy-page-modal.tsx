@@ -80,7 +80,7 @@ export default function CopyPageModal({
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
           <Modal.Title fw={500}>{t("Copy page")}</Modal.Title>
-          <Modal.CloseButton />
+          <Modal.CloseButton aria-label={t("Close")} />
         </Modal.Header>
         <Modal.Body>
           <Text mb="xs" c="dimmed" size="sm">

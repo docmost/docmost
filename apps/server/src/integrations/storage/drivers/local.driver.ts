@@ -3,7 +3,7 @@ import {
   LocalStorageConfig,
   StorageOption,
 } from '../interfaces';
-import { join, dirname } from 'path';
+import { dirname, resolve, sep } from 'path';
 import * as fs from 'fs-extra';
 import { Readable } from 'stream';
 import { createReadStream, createWriteStream } from 'node:fs';
@@ -17,7 +17,12 @@ export class LocalDriver implements StorageDriver {
   }
 
   private _fullPath(filePath: string): string {
-    return join(this.config.storagePath, filePath);
+    const storageRoot = resolve(this.config.storagePath);
+    const fullPath = resolve(storageRoot, filePath);
+    if (fullPath !== storageRoot && !fullPath.startsWith(storageRoot + sep)) {
+      throw new Error('Invalid file path');
+    }
+    return fullPath;
   }
 
   async upload(filePath: string, file: Buffer | Readable): Promise<void> {
@@ -66,25 +71,25 @@ export class LocalDriver implements StorageDriver {
   }
 
   async readStream(filePath: string): Promise<Readable> {
-    try {
-      return createReadStream(this._fullPath(filePath));
-    } catch (err) {
-      throw new Error(`Failed to read file: ${(err as Error).message}`);
+    const fullPath = this._fullPath(filePath);
+    if (!(await fs.pathExists(fullPath))) {
+      throw new Error(`File not found: ${filePath}`);
     }
+    return createReadStream(fullPath);
   }
 
   async readRangeStream(
     filePath: string,
     range: { start: number; end: number },
   ): Promise<Readable> {
-    try {
-      return createReadStream(this._fullPath(filePath), {
-        start: range.start,
-        end: range.end,
-      });
-    } catch (err) {
-      throw new Error(`Failed to read file: ${(err as Error).message}`);
+    const fullPath = this._fullPath(filePath);
+    if (!(await fs.pathExists(fullPath))) {
+      throw new Error(`File not found: ${filePath}`);
     }
+    return createReadStream(fullPath, {
+      start: range.start,
+      end: range.end,
+    });
   }
 
   async exists(filePath: string): Promise<boolean> {

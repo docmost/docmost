@@ -1,4 +1,4 @@
-import { Section, Text } from '@react-email/components';
+import { Section, Text } from 'react-email';
 import * as React from 'react';
 import { content, paragraph } from '../css/styles';
 import { MailBody } from '../partials/partials';

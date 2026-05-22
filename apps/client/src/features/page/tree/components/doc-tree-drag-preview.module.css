@@ -1,0 +1,26 @@
+.preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    background-color: light-dark(
+        var(--mantine-color-white),
+        var(--mantine-color-dark-6)
+    );
+    color: light-dark(
+        var(--mantine-color-gray-9),
+        var(--mantine-color-dark-0)
+    );
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    border: 1px solid light-dark(
+        var(--mantine-color-gray-3),
+        var(--mantine-color-dark-4)
+    );
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

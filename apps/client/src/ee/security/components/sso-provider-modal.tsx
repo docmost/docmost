@@ -32,6 +32,7 @@ export default function SsoProviderModal({
         ssoProviderType: provider.type.toUpperCase(),
       })}
       onClose={onClose}
+      closeButtonProps={{ "aria-label": t("Close") }}
     >
       {provider.type === SSO_PROVIDER.SAML && (
         <SsoSamlForm provider={provider} onClose={onClose} />

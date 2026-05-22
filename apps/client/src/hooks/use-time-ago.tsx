@@ -1,16 +1,32 @@
 import { timeAgo } from "@/lib/time.ts";
-import { useEffect, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
-export function useTimeAgo(date: Date | string) {
-  const [value, setValue] = useState(() => timeAgo(new Date(date)));
+let tick = 0;
+let intervalId: ReturnType<typeof setInterval> | null = null;
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setValue(timeAgo(new Date(date)));
-    }, 5 * 1000);
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  if (listeners.size === 1) {
+    intervalId = setInterval(() => {
+      tick++;
+      listeners.forEach((cb) => cb());
+    }, 60_000);
+  }
+  return () => {
+    listeners.delete(callback);
+    if (listeners.size === 0 && intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+}
 
-    return () => clearInterval(interval);
-  }, [date]);
+function getSnapshot() {
+  return tick;
+}
 
-  return value;
+export function useTimeAgo(date: Date | string | undefined) {
+  const currentTick = useSyncExternalStore(subscribe, getSnapshot);
+  return useMemo(() => (date ? timeAgo(new Date(date)) : ""), [date, currentTick]);
 }

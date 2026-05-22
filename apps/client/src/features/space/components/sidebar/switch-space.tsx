@@ -38,6 +38,8 @@ export function SwitchSpace({
       shadow="md"
       opened={opened}
       onChange={toggle}
+      trapFocus
+      returnFocus
     >
       <Popover.Target>
         <Button

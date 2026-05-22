@@ -1,37 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom.ts";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { WebSocketEvent } from "@/features/websocket/types";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { useQueryClient } from "@tanstack/react-query";
-import { SimpleTree } from "react-arborist";
+import { treeModel } from "@/features/page/tree/model/tree-model";
 import localEmitter from "@/lib/local-emitter.ts";
 
 export const useTreeSocket = () => {
   const [socket] = useAtom(socketAtom);
-  const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const [, setTreeData] = useAtom(treeDataAtom);
   const queryClient = useQueryClient();
-  const initialTreeData = useRef(treeData);
-
-  useEffect(() => {
-    initialTreeData.current = treeData;
-  }, [treeData]);
 
   useEffect(() => {
     const updateNodeName = (event) => {
-      const initialData = initialTreeData.current;
-      const treeApi = new SimpleTree<SpaceTreeNode>(initialData);
-
-      if (treeApi.find(event?.id)) {
-        if (event.payload?.title !== undefined) {
-          treeApi.update({
-            id: event.id,
-            changes: { name: event.payload.title },
-          });
-          setTreeData(treeApi.data);
-        }
-      }
+      if (event.payload?.title === undefined) return;
+      setTreeData((prev) => {
+        if (!treeModel.find(prev, event?.id)) return prev;
+        return treeModel.update(prev, event.id, {
+          name: event.payload.title,
+        } as Partial<SpaceTreeNode>);
+      });
     };
 
     localEmitter.on("message", updateNodeName);
@@ -42,70 +32,110 @@ export const useTreeSocket = () => {
 
   useEffect(() => {
     socket?.on("message", (event: WebSocketEvent) => {
-      const initialData = initialTreeData.current;
-      const treeApi = new SimpleTree<SpaceTreeNode>(initialData);
-
       switch (event.operation) {
         case "updateOne":
           if (event.entity[0] === "pages") {
-            if (treeApi.find(event.id)) {
+            setTreeData((prev) => {
+              if (!treeModel.find(prev, event.id)) return prev;
+              let next = prev;
               if (event.payload?.title !== undefined) {
-                treeApi.update({
-                  id: event.id,
-                  changes: { name: event.payload.title },
-                });
+                next = treeModel.update(next, event.id, {
+                  name: event.payload.title,
+                } as Partial<SpaceTreeNode>);
               }
               if (event.payload?.icon !== undefined) {
-                treeApi.update({
-                  id: event.id,
-                  changes: { icon: event.payload.icon },
-                });
+                next = treeModel.update(next, event.id, {
+                  icon: event.payload.icon,
+                } as Partial<SpaceTreeNode>);
               }
-              setTreeData(treeApi.data);
-            }
+              return next;
+            });
           }
           break;
         case "addTreeNode":
-          if (treeApi.find(event.payload.data.id)) return;
-
-          treeApi.create({
-            parentId: event.payload.parentId,
-            index: event.payload.index,
-            data: event.payload.data,
+          setTreeData((prev) => {
+            if (treeModel.find(prev, event.payload.data.id)) return prev;
+            const newParentId = event.payload.parentId as string | null;
+            let next = treeModel.insert(
+              prev,
+              newParentId,
+              event.payload.data,
+              event.payload.index,
+            );
+            // Mirror the emitter: flip new parent's hasChildren to true so
+            // the chevron renders on the receiver.
+            if (newParentId) {
+              next = treeModel.update(next, newParentId, {
+                hasChildren: true,
+              } as Partial<SpaceTreeNode>);
+            }
+            return next;
           });
-          setTreeData(treeApi.data);
-
           break;
         case "moveTreeNode":
-          // move node
-          if (treeApi.find(event.payload.id)) {
-            treeApi.move({
-              id: event.payload.id,
-              parentId: event.payload.parentId,
+          setTreeData((prev) => {
+            const sourceBefore = treeModel.find(prev, event.payload.id);
+            if (!sourceBefore) return prev;
+            const oldParentId =
+              (sourceBefore as SpaceTreeNode).parentPageId ?? null;
+            const newParentId = event.payload.parentId as string | null;
+
+            const placed = treeModel.place(prev, event.payload.id, {
+              parentId: newParentId,
               index: event.payload.index,
             });
+            // `place` silently returns the same reference if the destination
+            // parent isn't loaded on this client. Falling back to removing the
+            // source keeps the UI consistent (the source will reappear when
+            // the user expands the new parent and lazy-load fetches it).
+            if (placed === prev) {
+              return treeModel.remove(prev, event.payload.id);
+            }
 
-            // update node position
-            treeApi.update({
-              id: event.payload.id,
-              changes: {
-                position: event.payload.position,
-              },
-            });
+            let next = treeModel.update(placed, event.payload.id, {
+              position: event.payload.position,
+              parentPageId: newParentId,
+            } as Partial<SpaceTreeNode>);
 
-            setTreeData(treeApi.data);
-          }
+            // Mirror the emitter's hasChildren bookkeeping so both clients
+            // converge to the same chevron state.
+            if (oldParentId) {
+              const oldParent = treeModel.find(next, oldParentId);
+              if (!oldParent?.children?.length) {
+                next = treeModel.update(next, oldParentId, {
+                  hasChildren: false,
+                } as Partial<SpaceTreeNode>);
+              }
+            }
+            if (newParentId) {
+              next = treeModel.update(next, newParentId, {
+                hasChildren: true,
+              } as Partial<SpaceTreeNode>);
+            }
 
+            return next;
+          });
           break;
         case "deleteTreeNode":
-          if (treeApi.find(event.payload.node.id)) {
-            treeApi.drop({ id: event.payload.node.id });
-            setTreeData(treeApi.data);
-
+          setTreeData((prev) => {
+            if (!treeModel.find(prev, event.payload.node.id)) return prev;
             queryClient.invalidateQueries({
               queryKey: ["pages", event.payload.node.slugId].filter(Boolean),
             });
-          }
+            let next = treeModel.remove(prev, event.payload.node.id);
+            // Mirror the emitter's hasChildren bookkeeping so both clients
+            // converge to the same chevron state when the last child is deleted.
+            const parentPageId = event.payload.node.parentPageId;
+            if (parentPageId) {
+              const parent = treeModel.find(next, parentPageId);
+              if (!parent?.children?.length) {
+                next = treeModel.update(next, parentPageId, {
+                  hasChildren: false,
+                } as Partial<SpaceTreeNode>);
+              }
+            }
+            return next;
+          });
           break;
       }
     });

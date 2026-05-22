@@ -19,7 +19,9 @@ export const uploadAttachmentAction = handleAttachmentUpload({
   },
   validateFn: (file, allowMedia: boolean) => {
     if (
-      (file.type.includes("image/") || file.type.includes("video/")) &&
+      (file.type.includes("image/") ||
+        file.type.includes("video/") ||
+        file.type === "application/pdf") &&
       !allowMedia
     ) {
       return false;

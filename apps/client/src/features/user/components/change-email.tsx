@@ -6,13 +6,14 @@ import {
   Group,
   PasswordInput,
 } from "@mantine/core";
-import * as z from "zod";
+import { z } from "zod/v4";
 import { useState } from "react";
 import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useDisclosure } from "@mantine/hooks";
 import * as React from "react";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useTranslation } from "react-i18next";
 
 export default function ChangeEmail() {
@@ -35,7 +36,13 @@ export default function ChangeEmail() {
       </Button>
       */}
 
-      <Modal opened={opened} onClose={close} title={t("Change email")} centered>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Change email")}
+        centered
+        closeButtonProps={{ "aria-label": t("Close") }}
+      >
         <Text mb="md">
           {t(
             "To change your email, you have to enter your password and new email.",
@@ -48,9 +55,9 @@ export default function ChangeEmail() {
 }
 
 const formSchema = z.object({
-  email: z.string({ required_error: "New email is required" }).email(),
+  email: z.email({ error: "New email is required" }),
   password: z
-    .string({ required_error: "your current password is required" })
+    .string({ error: "your current password is required" })
     .min(8),
 });
 
@@ -61,7 +68,7 @@ function ChangeEmailForm() {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       password: "",
       email: "",
@@ -79,6 +86,11 @@ function ChangeEmailForm() {
         placeholder={t("Enter your password")}
         variant="filled"
         mb="md"
+        visibilityToggleButtonProps={{
+          "aria-label": t("Toggle password visibility"),
+          "aria-hidden": false,
+          tabIndex: 0,
+        }}
         {...form.getInputProps("password")}
       />
 

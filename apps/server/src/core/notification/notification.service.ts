@@ -6,6 +6,8 @@ import { InsertableNotification } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
+import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 
 @Injectable()
 export class NotificationService {
@@ -13,12 +15,23 @@ export class NotificationService {
 
   constructor(
     private readonly notificationRepo: NotificationRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly wsGateway: WsGateway,
     private readonly mailService: MailService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
   async create(data: InsertableNotification) {
+    const user = await this.db
+      .selectFrom('users')
+      .select(['id'])
+      .where('id', '=', data.userId)
+      .where('deletedAt', 'is', null)
+      .where('deactivatedAt', 'is', null)
+      .executeTakeFirst();
+
+    if (!user) return null;
+
     const notification = await this.notificationRepo.insert(data);
 
     this.wsGateway.server
@@ -28,8 +41,35 @@ export class NotificationService {
     return notification;
   }
 
-  async findByUserId(userId: string, pagination: PaginationOptions) {
-    return this.notificationRepo.findByUserId(userId, pagination);
+  async findByUserId(
+    userId: string,
+    pagination: PaginationOptions,
+    type: NotificationTab = 'all',
+  ) {
+    const result = await this.notificationRepo.findByUserId(
+      userId,
+      pagination,
+      type,
+    );
+
+    const pageIds = result.items
+      .map((n: any) => n.pageId)
+      .filter(Boolean);
+
+    if (pageIds.length > 0) {
+      const accessiblePageIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds,
+          userId,
+        });
+      const accessibleSet = new Set(accessiblePageIds);
+
+      result.items = result.items.filter(
+        (n: any) => !n.pageId || accessibleSet.has(n.pageId),
+      );
+    }
+
+    return result;
   }
 
   async getUnreadCount(userId: string) {
@@ -53,16 +93,26 @@ export class NotificationService {
     notificationId: string,
     subject: string,
     template: any,
+    type?: NotificationType,
   ) {
     try {
       const user = await this.db
         .selectFrom('users')
-        .select(['email'])
+        .select(['email', 'settings'])
         .where('id', '=', userId)
         .where('deletedAt', 'is', null)
+        .where('deactivatedAt', 'is', null)
         .executeTakeFirst();
 
       if (!user?.email) return;
+
+      if (type) {
+        const settingKey = NotificationTypeToSettingKey[type];
+        if (settingKey) {
+          const settings = user.settings as any;
+          if (settings?.notifications?.[settingKey] === false) return;
+        }
+      }
 
       await this.mailService.sendToQueue({
         to: user.email,

@@ -1,4 +1,4 @@
-import { computePosition, offset, ReferenceElement } from "@floating-ui/dom";
+import { computePosition, offset, shift, ReferenceElement } from "@floating-ui/dom";
 import { DraggingDOMs } from "../utils";
 import { clearPreviewDOM, createPreviewDOM } from "./render-preview";
 
@@ -23,7 +23,7 @@ export class PreviewController {
     onDragStart = (relatedDoms: DraggingDOMs, index: number | undefined, type: 'col' | 'row') => {
         this._initPreviewStyle(relatedDoms.table, relatedDoms.cell, type);
         createPreviewDOM(relatedDoms.table, this._preview, index, type)
-        this._initPreviewPosition(relatedDoms.cell, type);
+        this._initPreviewPosition(relatedDoms.table, relatedDoms.cell, type);
     }
 
     onDragEnd = () => {
@@ -32,7 +32,7 @@ export class PreviewController {
     }
 
     onDragging = (relatedDoms: DraggingDOMs, x: number, y: number, type: 'col' | 'row') => {
-        this._updatePreviewPosition(x, y, relatedDoms.cell, type);
+        this._updatePreviewPosition(x, y, relatedDoms.table, relatedDoms.cell, type);
     }
 
     destroy = () => {
@@ -60,7 +60,7 @@ export class PreviewController {
         }
     }
 
-    private _initPreviewPosition(cell: HTMLElement, type: 'col' | 'row') {
+    private _initPreviewPosition(table: HTMLElement, cell: HTMLElement, type: 'col' | 'row') {
         void computePosition(cell, this._preview, {
             placement: type === 'row' ? 'right' : 'bottom',
             middleware: [
@@ -70,6 +70,7 @@ export class PreviewController {
                     }
                     return -rects.reference.width
                 }),
+                shift({ boundary: table, padding: 0 }),
             ],
         }).then(({ x, y }) => {
             Object.assign(this._preview.style, {
@@ -79,11 +80,20 @@ export class PreviewController {
         });
     }
 
-    private _updatePreviewPosition(x: number, y: number, cell: HTMLElement, type: 'col' | 'row') {
+    // Clamp the preview to within the table's bounds via `shift({ boundary })`
+    // so it can't track the cursor past the table edge. Without the clamp,
+    // dragging near the viewport edge pushes the preview's `left` (or `top`)
+    // beyond the document's natural width/height, the browser extends the
+    // page to contain it, and the auto-scroll plugin then has a wider area
+    // to keep scrolling into — a feedback loop that grows the page forever.
+    private _updatePreviewPosition(x: number, y: number, table: HTMLElement, cell: HTMLElement, type: 'col' | 'row') {
         computePosition(
             getVirtualElement(cell, x, y),
             this._preview,
-            { placement: type === 'row' ? 'right' : 'bottom' },
+            {
+                placement: type === 'row' ? 'right' : 'bottom',
+                middleware: [shift({ boundary: table, padding: 0 })],
+            },
         ).then(({ x, y }) => {
             if (type === 'row') {
                 Object.assign(this._preview.style, {

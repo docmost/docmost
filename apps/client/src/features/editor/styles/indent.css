@@ -1,0 +1,14 @@
+.ProseMirror {
+  --indent-step: 2rem;
+}
+
+.ProseMirror [data-indent="1"] { padding-inline-start: calc(var(--indent-step) * 1); }
+.ProseMirror [data-indent="2"] { padding-inline-start: calc(var(--indent-step) * 2); }
+.ProseMirror [data-indent="3"] { padding-inline-start: calc(var(--indent-step) * 3); }
+.ProseMirror [data-indent="4"] { padding-inline-start: calc(var(--indent-step) * 4); }
+.ProseMirror [data-indent="5"] { padding-inline-start: calc(var(--indent-step) * 5); }
+.ProseMirror [data-indent="6"] { padding-inline-start: calc(var(--indent-step) * 6); }
+.ProseMirror [data-indent="7"] { padding-inline-start: calc(var(--indent-step) * 7); }
+.ProseMirror [data-indent="8"] { padding-inline-start: calc(var(--indent-step) * 8); }
+.ProseMirror [data-indent="9"] { padding-inline-start: calc(var(--indent-step) * 9); }
+.ProseMirror [data-indent="10"] { padding-inline-start: calc(var(--indent-step) * 10); }

@@ -61,7 +61,9 @@ const handleVideoUpload =
     const objectUrl = URL.createObjectURL(file);
     const videoDimensions = await getVideoDimensions(objectUrl);
     const placeholderId = generateNodeId();
-    const aspectRatio = videoDimensions.aspectRatio;
+    const width = videoDimensions?.width ?? undefined;
+    const height = videoDimensions?.height ?? undefined;
+    const aspectRatio = videoDimensions?.aspectRatio;
 
     let placeholderInserted = false;
 
@@ -76,6 +78,8 @@ const handleVideoUpload =
             id: placeholderId,
             name: file.name,
           },
+          width,
+          height,
           aspectRatio,
         });
 
@@ -108,6 +112,8 @@ const handleVideoUpload =
           attachmentId: attachment.id,
           title: attachment.fileName,
           size: attachment.fileSize,
+          width,
+          height,
           aspectRatio,
         });
 

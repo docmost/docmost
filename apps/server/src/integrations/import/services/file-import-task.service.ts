@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import { jsonToText } from '../../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
@@ -25,6 +25,7 @@ import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
   encodeFilePath,
+  extractNotionPartialId,
   readDocmostMetadata,
   stripNotionID,
 } from '../utils/import.utils';
@@ -36,6 +37,11 @@ import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class FileImportTaskService {
@@ -50,6 +56,7 @@ export class FileImportTaskService {
     private readonly importAttachmentService: ImportAttachmentService,
     private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async processZIpImport(fileTaskId: string): Promise<void> {
@@ -154,9 +161,16 @@ export class FileImportTaskService {
     fileTask: FileTask;
   }): Promise<void> {
     const { extractDir, fileTask } = opts;
+    const isNotion = fileTask.source === FileImportSource.Notion;
     const allFiles = await collectMarkdownAndHtmlFiles(extractDir);
     const attachmentCandidates = await buildAttachmentCandidates(extractDir);
     const docmostMetadata = await readDocmostMetadata(extractDir);
+
+    const space = await this.db
+      .selectFrom('spaces')
+      .select(['slug'])
+      .where('id', '=', fileTask.spaceId)
+      .executeTakeFirst();
 
     const pagesMap = new Map<string, ImportPageNode>();
 
@@ -218,7 +232,17 @@ export class FileImportTaskService {
     }
 
     // For each folder with content, create a placeholder page if no corresponding .md or .html exists
-    foldersWithContent.forEach((folderPath) => {
+    // Process folders with partial UUIDs first so they claim their specific files
+    // before plain folders (without partial UUIDs) take whatever remains.
+    const sortedFolders = isNotion
+      ? [...foldersWithContent].sort((a, b) => {
+          const aHasPartial = extractNotionPartialId(path.basename(a)) ? 0 : 1;
+          const bHasPartial = extractNotionPartialId(path.basename(b)) ? 0 : 1;
+          return aHasPartial - bHasPartial;
+        })
+      : [...foldersWithContent];
+
+    sortedFolders.forEach((folderPath) => {
       if (
         skipRootFolder &&
         folderPath?.toLowerCase() === skipRootFolder?.toLowerCase()
@@ -231,18 +255,54 @@ export class FileImportTaskService {
 
       if (!pagesMap.has(mdPath) && !pagesMap.has(htmlPath)) {
         const folderName = path.basename(folderPath);
-        const encodedMdPath = encodeFilePath(mdPath);
-        const placeholderMetadata = docmostMetadata?.pages[encodedMdPath];
-        pagesMap.set(mdPath, {
-          id: v7(),
-          slugId: generateSlugId(),
-          name: stripNotionID(folderName),
-          content: '',
-          parentPageId: null,
-          fileExtension: '.md',
-          filePath: mdPath,
-          icon: placeholderMetadata?.icon ?? null,
-        });
+        const parentDir = path.dirname(folderPath);
+
+        // Notion no longer adds UUIDs to folder names, but still adds them to files.
+        // For duplicate names, Notion adds a partial UUID "{first4}-{last4}" to the folder.
+        let matched = false;
+        if (isNotion) {
+          const partialId = extractNotionPartialId(folderName);
+          const strippedFolderName = stripNotionID(folderName);
+          const isSameDir = (fileDir: string) =>
+            fileDir === parentDir || (parentDir === '.' && !fileDir.includes('/'));
+
+          for (const [filePath, page] of pagesMap.entries()) {
+            if (!isSameDir(path.dirname(filePath))) continue;
+            if (page.name !== strippedFolderName) continue;
+
+            if (partialId) {
+              // Match partial UUID against the full UUID in the filename
+              const fileBase = path.basename(filePath, path.extname(filePath));
+              const fullIdMatch = fileBase.match(/[a-f0-9]{32}$/i);
+              if (!fullIdMatch) continue;
+              const fullId = fullIdMatch[0].toLowerCase();
+              if (!fullId.startsWith(partialId.prefix) || !fullId.endsWith(partialId.suffix)) {
+                continue;
+              }
+            }
+
+            pagesMap.delete(filePath);
+            page.filePath = mdPath;
+            pagesMap.set(mdPath, page);
+            matched = true;
+            break;
+          }
+        }
+
+        if (!matched) {
+          const encodedMdPath = encodeFilePath(mdPath);
+          const placeholderMetadata = docmostMetadata?.pages[encodedMdPath];
+          pagesMap.set(mdPath, {
+            id: v7(),
+            slugId: generateSlugId(),
+            name: stripNotionID(folderName),
+            content: '',
+            parentPageId: null,
+            fileExtension: '.md',
+            filePath: mdPath,
+            icon: placeholderMetadata?.icon ?? null,
+          });
+        }
       }
     });
 
@@ -402,6 +462,7 @@ export class FileImportTaskService {
     // Process pages level by level sequentially to respect foreign key constraints
     const allBacklinks: any[] = [];
     const validPageIds = new Set<string>();
+    const pageTitles = new Map<string, string>();
     let totalPagesProcessed = 0;
 
     // Sort levels to process in order
@@ -451,6 +512,7 @@ export class FileImportTaskService {
               creatorId: fileTask.creatorId,
               sourcePageId: page.id,
               workspaceId: fileTask.workspaceId,
+              spaceSlug: space?.slug,
             });
 
             const pmState = getProsemirrorContent(
@@ -478,8 +540,9 @@ export class FileImportTaskService {
 
             await trx.insertInto('pages').values(insertablePage).execute();
 
-            // Track valid page IDs and collect backlinks
+            // Track valid page IDs, titles, and collect backlinks
             validPageIds.add(insertablePage.id);
+            pageTitles.set(insertablePage.id, insertablePage.title);
             allBacklinks.push(...backlinks);
             totalPagesProcessed++;
 
@@ -522,6 +585,26 @@ export class FileImportTaskService {
           `Successfully imported ${totalPagesProcessed} pages with ${filteredBacklinks.length} backlinks`,
         );
       });
+
+      if (validPageIds.size > 0) {
+        const auditPayloads = Array.from(validPageIds).map((pageId) => ({
+          event: AuditEvent.PAGE_CREATED,
+          resourceType: AuditResource.PAGE,
+          resourceId: pageId,
+          spaceId: fileTask.spaceId,
+          metadata: {
+            source: fileTask.source,
+            fileTaskId: fileTask.id,
+            title: pageTitles.get(pageId),
+          },
+        }));
+
+        this.auditService.logBatchWithContext(auditPayloads, {
+          workspaceId: fileTask.workspaceId,
+          actorId: fileTask.creatorId,
+          actorType: 'user',
+        });
+      }
     } catch (error) {
       this.logger.error('Failed to import files:', error);
       throw new Error(`File import failed: ${error?.['message']}`);

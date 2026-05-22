@@ -4,13 +4,14 @@ import {
 } from '../constants/storage.constants';
 import { EnvironmentService } from '../../environment/environment.service';
 import {
+  AzureStorageConfig,
   LocalStorageConfig,
   S3StorageConfig,
   StorageConfig,
   StorageDriver,
   StorageOption,
 } from '../interfaces';
-import { LocalDriver, S3Driver } from '../drivers';
+import { AzureDriver, LocalDriver, S3Driver } from '../drivers';
 import * as process from 'node:process';
 import { LOCAL_STORAGE_PATH } from '../../../common/helpers';
 import path from 'path';
@@ -21,6 +22,8 @@ function createStorageDriver(disk: StorageConfig): StorageDriver {
       return new LocalDriver(disk.config as LocalStorageConfig);
     case StorageOption.S3:
       return new S3Driver(disk.config as S3StorageConfig);
+    case StorageOption.AZURE:
+      return new AzureDriver(disk.config as AzureStorageConfig);
     default:
       throw new Error(`Unknown storage driver`);
   }
@@ -69,6 +72,18 @@ export const storageDriverConfigProvider = {
         }
 
         return s3Config; }
+
+      case StorageOption.AZURE:
+        return {
+          driver,
+          config: {
+            accountName: environmentService.getAzureStorageAccountName(),
+            container: environmentService.getAzureStorageContainer(),
+            accountKey: environmentService.getAzureStorageAccountKey(),
+            endpoint: environmentService.getAzureStorageEndpoint() || undefined,
+            baseUrl: environmentService.getAzureStorageUrl() || undefined,
+          },
+        };
 
       default:
         throw new Error(`Unknown storage driver: ${driver}`);

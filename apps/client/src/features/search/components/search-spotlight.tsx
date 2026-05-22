@@ -1,6 +1,6 @@
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch, IconSparkles } from "@tabler/icons-react";
-import { Group, Button } from "@mantine/core";
+import { Group, Button, VisuallyHidden } from "@mantine/core";
 import React, { useState, useMemo, useEffect } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
@@ -11,15 +11,16 @@ import { useUnifiedSearch } from "../hooks/use-unified-search.ts";
 import { useAiSearch } from "../../../ee/ai/hooks/use-ai-search.ts";
 import { SearchResultItem } from "./search-result-item.tsx";
 import { AiSearchResult } from "../../../ee/ai/components/ai-search-result.tsx";
-import { useLicense } from "@/ee/hooks/use-license.tsx";
-import { isCloud } from "@/lib/config.ts";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
 
 interface SearchSpotlightProps {
   spaceId?: string;
 }
 export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   const { t } = useTranslation();
-  const { hasLicenseKey } = useLicense();
+  const hasAiFeature = useHasFeature(Feature.AI);
+  const hasAttachmentIndexing = useHasFeature(Feature.ATTACHMENT_INDEXING);
   const [query, setQuery] = useState("");
   const [debouncedSearchQuery] = useDebouncedValue(query, 300);
   const [filters, setFilters] = useState<{
@@ -84,7 +85,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
   // Determine result type for rendering
   const isAttachmentSearch =
-    filters.contentType === "attachment" && (hasLicenseKey || isCloud());
+    filters.contentType === "attachment" && hasAttachmentIndexing;
 
   const resultItems = (searchResults || []).map((result) => (
     <SearchResultItem
@@ -125,6 +126,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
         <Group gap="xs" px="sm" pt="sm" pb="xs">
           <Spotlight.Search
             placeholder={isAiMode ? t("Ask a question...") : t("Search...")}
+            aria-label={isAiMode ? t("Ask a question...") : t("Search")}
             leftSection={<IconSearch size={20} stroke={1.5} />}
             style={{ flex: 1 }}
             onKeyDown={(e) => {
@@ -134,7 +136,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
               }
             }}
           />
-          {isAiMode && hasLicenseKey && (
+          {isAiMode && hasAiFeature && (
             <Button
               size="xs"
               leftSection={<IconSparkles size={16} />}
@@ -159,6 +161,18 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
             isAiMode={isAiMode}
           />
         </div>
+
+        <VisuallyHidden role="status" aria-live="polite">
+          {isAiMode
+            ? query.length > 0 && !isAiLoading && !aiSearchResult
+              ? t("No answer available")
+              : ""
+            : query.length > 0 && !isLoading
+              ? resultItems.length === 0
+                ? t("No results found")
+                : t("{{count}} results found", { count: resultItems.length })
+              : ""}
+        </VisuallyHidden>
 
         <Spotlight.ActionsList>
           {isAiMode ? (

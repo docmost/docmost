@@ -25,9 +25,9 @@ export default function SubpagesView(props: NodeViewProps) {
   // Get subpages from shared tree if we're in a shared context
   const sharedSubpages = useSharedPageSubpages(currentPageId);
 
-  const { data, isLoading, error } = useGetSidebarPagesQuery({
-    pageId: currentPageId,
-  });
+  const { data, isLoading, error } = useGetSidebarPagesQuery(
+    shareId ? null : { pageId: currentPageId },
+  );
 
   const subpages = useMemo(() => {
     // If we're in a shared context, use the shared subpages

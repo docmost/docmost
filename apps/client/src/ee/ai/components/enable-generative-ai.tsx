@@ -1,17 +1,20 @@
-import { Group, Text, Switch } from "@mantine/core";
+import { Group, Text, Switch, Tooltip } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 export default function EnableGenerativeAi() {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
   const [checked, setChecked] = useState(workspace?.settings?.ai?.generative);
-  const hasAccess = useIsCloudEE();
+  const hasAccess = useHasFeature(Feature.AI);
+  const upgradeLabel = useUpgradeLabel();
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
@@ -38,11 +41,13 @@ export default function EnableGenerativeAi() {
         </Text>
       </div>
 
-      <Switch
-        defaultChecked={checked}
-        onChange={handleChange}
-        disabled={!hasAccess}
-      />
+      <Tooltip label={upgradeLabel} disabled={hasAccess} refProp="rootRef">
+        <Switch
+          defaultChecked={checked}
+          onChange={handleChange}
+          disabled={!hasAccess}
+        />
+      </Tooltip>
     </Group>
   );
 }

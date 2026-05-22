@@ -44,7 +44,7 @@ export function ApiKeyTable({
             <Table.Th>{t("Last used")}</Table.Th>
             <Table.Th>{t("Expires")}</Table.Th>
             <Table.Th>{t("Created")}</Table.Th>
-            <Table.Th></Table.Th>
+            <Table.Th aria-label={t("Action")} />
           </Table.Tr>
         </Table.Thead>
 
@@ -106,7 +106,11 @@ export function ApiKeyTable({
                 <Table.Td>
                   <Menu position="bottom-end" withinPortal>
                     <Menu.Target>
-                      <ActionIcon variant="subtle" color="gray">
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        aria-label={t("API key menu")}
+                      >
                         <IconDots size={16} />
                       </ActionIcon>
                     </Menu.Target>

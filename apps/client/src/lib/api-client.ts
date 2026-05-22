@@ -74,8 +74,12 @@ function redirectToLogin() {
   ];
   if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
     const redirectTo = window.location.pathname;
-    const params = new URLSearchParams({ redirect: redirectTo });
-    window.location.href = `${APP_ROUTE.AUTH.LOGIN}?${params.toString()}`;
+    if (redirectTo === APP_ROUTE.HOME) {
+      window.location.href = APP_ROUTE.AUTH.LOGIN;
+    } else {
+      const params = new URLSearchParams({ redirect: redirectTo });
+      window.location.href = `${APP_ROUTE.AUTH.LOGIN}?${params.toString()}`;
+    }
   }
 }
 

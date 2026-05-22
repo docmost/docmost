@@ -4,6 +4,7 @@ import {
   IconCircleCheckFilled,
   IconCircleXFilled,
   IconInfoCircleFilled,
+  IconNotes,
 } from "@tabler/icons-react";
 import { Alert } from "@mantine/core";
 import classes from "./callout.module.css";
@@ -22,6 +23,7 @@ export default function CalloutView(props: NodeViewProps) {
         icon={getCalloutIcon(type, icon)}
         p="xs"
         classNames={{
+          root: classes.root,
           message: classes.message,
           icon: classes.icon,
         }}
@@ -34,12 +36,14 @@ export default function CalloutView(props: NodeViewProps) {
 
 function getCalloutIcon(type: CalloutType, customIcon?: string) {
   if (customIcon && customIcon.trim() !== "") {
-    return <span style={{ fontSize: '18px' }}>{customIcon}</span>;
+    return <span style={{ fontSize: "18px" }}>{customIcon}</span>;
   }
 
   switch (type) {
     case "info":
       return <IconInfoCircleFilled />;
+    case "note":
+      return <IconNotes />;
     case "success":
       return <IconCircleCheckFilled />;
     case "warning":
@@ -55,6 +59,8 @@ function getCalloutColor(type: CalloutType) {
   switch (type) {
     case "info":
       return "blue";
+    case "note":
+      return "grape";
     case "success":
       return "green";
     case "warning":

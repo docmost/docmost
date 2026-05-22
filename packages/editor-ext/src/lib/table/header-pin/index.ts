@@ -1,0 +1,1 @@
+export { TableHeaderPin } from './extension';

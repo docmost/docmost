@@ -1,7 +1,7 @@
 import { useAtom } from "jotai";
-import * as z from "zod";
+import { z } from "zod/v4";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import React, { useState } from "react";
 import { Button, Text, TagsInput } from "@mantine/core";
@@ -22,7 +22,7 @@ export default function AllowedDomains() {
   const [, setDomains] = useState<string[]>([]);
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       emailDomains: workspace?.emailDomains || [],
     },

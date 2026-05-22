@@ -1,0 +1,100 @@
+.pdfWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.skeleton {
+  animation: pulse 1.2s ease-in-out infinite;
+
+  @mixin light {
+    background: linear-gradient(-90deg, var(--mantine-color-gray-3) 0%, var(--mantine-color-gray-1) 50%, var(--mantine-color-gray-3) 100%);
+    background-size: 400% 400%;
+  }
+
+  @mixin dark {
+    background: linear-gradient(-90deg, var(--mantine-color-dark-6) 0%, var(--mantine-color-dark-5) 50%, var(--mantine-color-dark-6) 100%);
+    background-size: 400% 400%;
+  }
+
+  @keyframes pulse {
+    0% {
+      background-position: 0% 0%;
+    }
+    100% {
+      background-position: -135% 0%;
+    }
+  }
+}
+
+.pdfContainer {
+  display: flex;
+  justify-content: center;
+}
+
+.pdfResizeWrapper {
+  @mixin light {
+    background-color: var(--mantine-color-gray-0);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-dark-7);
+  }
+}
+
+.pdfIframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+}
+
+.hoverMenu {
+  position: absolute;
+  top: 56px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.hoverMenu::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+}
+
+.hoverMenu:hover {
+  opacity: 1;
+}
+
+.pdfResizeWrapper:hover .hoverMenu {
+  opacity: 1;
+}
+
+.pdfError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 32px;
+  border-radius: 8px;
+  cursor: pointer;
+
+  @mixin light {
+    background-color: var(--mantine-color-gray-0);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-dark-7);
+  }
+}

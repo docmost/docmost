@@ -1,5 +1,4 @@
 import { validate as isValidUUID } from "uuid";
-import { ActionIcon } from "@mantine/core";
 import { IconFileDescription } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { TFunction } from "i18next";
@@ -87,12 +86,29 @@ export function capitalizeFirstChar(string: string) {
 export function getPageIcon(icon: string, size = 18): string | ReactNode {
   return (
     icon || (
-      <ActionIcon variant="transparent" color="gray" size={size}>
-        <IconFileDescription size={size} />
-      </ActionIcon>
+      <IconFileDescription
+        size={size}
+        color="var(--mantine-color-gray-6)"
+        aria-hidden="true"
+      />
     )
   );
 }
+
+export const normalizeUrl = (url: string): string => {
+  if (!url) return url;
+  if (url.startsWith("/") || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) return url;
+  return `https://${url}`;
+};
+
+const _isApple = /mac|iphone|ipad|ipod/i.test(navigator.platform ?? "");
+
+/// Cmd key on Apple devices, Ctrl key everywhere else
+export function platformModifierKey(event: KeyboardEvent): boolean {
+  return _isApple ? event.metaKey : event.ctrlKey;
+}
+
+export const platformModifierLabel = _isApple ? "⌘" : "Ctrl";
 
 export function castToBoolean(value: unknown): boolean {
   if (value == null) {

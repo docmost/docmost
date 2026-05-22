@@ -5,6 +5,13 @@ import { getBasename } from './basename';
 // CJS/ESM interop: .default exists in Vite, not in NestJS
 const TurndownService = (_TurndownService as any).default || _TurndownService;
 
+function sanitizeMdLinkText(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/([\[\]!])/g, '\\$1')
+    .replace(/[\r\n]+/g, ' ');
+}
+
 export function htmlToMarkdown(html: string): string {
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -21,9 +28,11 @@ export function htmlToMarkdown(html: string): string {
     callout,
     preserveDetail,
     listParagraph,
+    orderedListItem,
     mathInline,
     mathBlock,
     iframeEmbed,
+    image,
     video,
   ]);
   return turndownService.turndown(html).replaceAll('<br>', ' ');
@@ -37,6 +46,40 @@ function listParagraph(turndownService: _TurndownService) {
         return content;
       }
       return `\n\n${content}\n\n`;
+    },
+  });
+}
+
+function orderedListItem(turndownService: _TurndownService) {
+  turndownService.addRule('orderedListItem', {
+    filter: function (node: HTMLInputElement) {
+      return node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem';
+    },
+    replacement: (content: string, node: HTMLInputElement, options: any) => {
+      const parent = node.parentNode as HTMLElement;
+      if (parent.nodeName !== 'OL' && parent.nodeName !== 'UL') {
+        return content;
+      }
+
+      content = content
+        .replace(/^\n+/, '')
+        .replace(/\n+$/, '\n')
+        .replace(/\n/gm, '\n  ');
+
+      let prefix: string;
+      if (parent.nodeName === 'OL') {
+        const start = parseInt(parent.getAttribute('start') || '1', 10);
+        const index = Array.prototype.indexOf.call(parent.children, node);
+        prefix = `${start + index}. `;
+      } else {
+        prefix = `${options.bulletListMarker} `;
+      }
+
+      return (
+        prefix +
+        content +
+        (node.nextSibling && !/\n$/.test(content) ? '\n' : '')
+      );
     },
   });
 }
@@ -63,25 +106,17 @@ function taskList(turndownService: _TurndownService) {
         node.parentNode.nodeName === 'UL'
       );
     },
-    replacement: function (content: string, node: HTMLInputElement) {
-      const checkbox = node.querySelector(
-        'input[type="checkbox"]',
-      ) as HTMLInputElement;
-      const isChecked = checkbox.checked;
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const isChecked = node.getAttribute('data-checked') === 'true';
+      const div = node.querySelector('div');
+      const text = div ? div.textContent.trim() : node.textContent.trim();
 
-      // Process content like regular list items
-      content = content
-        .replace(/^\n+/, '') // remove leading newlines
-        .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
-        .replace(/\n/gm, '\n  '); // indent nested content with 2 spaces
-
-      // Create the checkbox prefix
       const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
 
       return (
         prefix +
-        content +
-        (node.nextSibling && !/\n$/.test(content) ? '\n' : '')
+        text +
+        (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
       );
     },
   });
@@ -154,6 +189,20 @@ function iframeEmbed(turndownService: _TurndownService) {
   });
 }
 
+function image(turndownService: _TurndownService) {
+  turndownService.addRule('image', {
+    filter: 'img',
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const src = node.getAttribute('src') || '';
+      if (!src) return '';
+      const alt = sanitizeMdLinkText(node.getAttribute('alt') || '');
+      const title = node.getAttribute('title') || '';
+      const titlePart = title ? ' "' + title.replace(/"/g, '\\"') + '"' : '';
+      return '![' + alt + '](' + src + titlePart + ')';
+    },
+  });
+}
+
 function video(turndownService: _TurndownService) {
   turndownService.addRule('video', {
     filter: function (node: HTMLInputElement) {
@@ -161,7 +210,10 @@ function video(turndownService: _TurndownService) {
     },
     replacement: function (_content: string, node: HTMLInputElement) {
       const src = node.getAttribute('src') || '';
-      const name = getBasename(src) || src;
+      const ariaLabel = node.getAttribute('aria-label');
+      const name = sanitizeMdLinkText(
+        ariaLabel || getBasename(src) || src,
+      );
       return '[' + name + '](' + src + ')';
     },
   });

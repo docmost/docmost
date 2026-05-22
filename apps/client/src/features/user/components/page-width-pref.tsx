@@ -39,9 +39,13 @@ export function PageWidthToggle({ size, label }: PageWidthToggleProps) {
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
-    const updatedUser = await updateUser({ fullPageWidth: value });
     setChecked(value);
-    setUser(updatedUser);
+    try {
+      const updatedUser = await updateUser({ fullPageWidth: value });
+      setUser(updatedUser);
+    } catch {
+      setChecked(!value);
+    }
   };
 
   return (

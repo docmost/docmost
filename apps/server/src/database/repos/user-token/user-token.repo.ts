@@ -38,9 +38,9 @@ export class UserTokenRepo {
 
   async insertUserToken(
     insertableUserToken: InsertableUserToken,
-    trx?: KyselyTransaction,
+    opts?: { trx?: KyselyTransaction },
   ) {
-    const db = dbOrTx(this.db, trx);
+    const db = dbOrTx(this.db, opts?.trx);
     return db
       .insertInto('userTokens')
       .values(insertableUserToken)

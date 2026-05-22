@@ -69,8 +69,8 @@ export default function SsoProviderList() {
   return (
     <>
       <Card shadow="sm" radius="sm">
-        <Table.ScrollContainer minWidth={600}>
-          <Table verticalSpacing="sm">
+        <Table.ScrollContainer minWidth={600} maxHeight={400}>
+          <Table verticalSpacing="sm" stickyHeader>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t("Name")}</Table.Th>
@@ -141,6 +141,7 @@ export default function SsoProviderList() {
                         <ActionIcon
                           variant="subtle"
                           color="gray"
+                          aria-label={t("Edit {{name}}", { name: provider.name })}
                           onClick={() => handleEdit(provider)}
                         >
                           <IconPencil size={16} />
@@ -152,7 +153,13 @@ export default function SsoProviderList() {
                           withinPortal
                         >
                           <Menu.Target>
-                            <ActionIcon variant="subtle" color="gray">
+                            <ActionIcon
+                              variant="subtle"
+                              color="gray"
+                              aria-label={t("More actions for {{name}}", {
+                                name: provider.name,
+                              })}
+                            >
                               <IconDots size={16} />
                             </ActionIcon>
                           </Menu.Target>
