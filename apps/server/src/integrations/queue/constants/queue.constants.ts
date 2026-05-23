@@ -10,6 +10,7 @@ export enum QueueName {
   NOTIFICATION_QUEUE = '{notification-queue}',
   INTEGRATION_QUEUE = '{integration-queue}',
   AUDIT_QUEUE = '{audit-queue}',
+  SLACK_INBOUND = '{slack-inbound}',
 }
 
 export enum QueueJob {
@@ -87,4 +88,5 @@ export enum QueueJob {
 
   INTEGRATION_EVENT = 'integration-event',
   INTEGRATION_TOKEN_REFRESH = 'integration-token-refresh',
+  SLACK_EVENT = 'slack-event',
 }
