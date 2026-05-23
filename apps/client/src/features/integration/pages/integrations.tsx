@@ -14,7 +14,11 @@ import {
   useUpdateIntegrationSettings,
 } from "../queries/integration-query";
 import { Integration } from "../types/integration.types";
-import { getOAuthAuthorizeUrl } from "../services/integration-service";
+import {
+  getOAuthAuthorizeUrl,
+  getOAuthInstallUrl,
+} from "../services/integration-service";
+import { notifications } from "@mantine/notifications";
 
 export default function Integrations() {
   const { t } = useTranslation();
@@ -31,19 +35,29 @@ export default function Integrations() {
   const handleInstall = useCallback(
     async (type: string) => {
       const definition = available?.find((d) => d.type === type);
-      try {
-        const integration = await installMutation.mutateAsync({ type });
-        if (definition?.oauth?.connectionScope === 'workspace') {
-          const { authorizationUrl } = await getOAuthAuthorizeUrl({
-            integrationId: integration.id,
-          });
+
+      // Workspace-scoped (Slack): the install row is only persisted when the
+      // OAuth callback succeeds. Skip the upfront install API call entirely.
+      if (definition?.oauth?.connectionScope === "workspace") {
+        try {
+          const { authorizationUrl } = await getOAuthInstallUrl({ type });
           window.location.href = authorizationUrl;
+        } catch (err: any) {
+          notifications.show({
+            message:
+              err?.response?.data?.message ?? t("Failed to start installation"),
+            color: "red",
+          });
         }
-      } catch (err) {
-        // installMutation's onError already shows a notification
+        return;
       }
+
+      // Per-user OAuth providers (Linear, Jira, GitHub, ...): keep existing
+      // two-step flow — create the integration row, then individual users
+      // OAuth-connect from /settings/account/connections.
+      installMutation.mutate({ type });
     },
-    [installMutation, available],
+    [installMutation, available, t],
   );
 
   const handleUninstall = useCallback(

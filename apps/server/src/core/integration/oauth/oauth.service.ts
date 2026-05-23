@@ -24,7 +24,12 @@ type OAuthTokenResponse = {
 };
 
 export type OAuthStatePayload = {
-  integrationId: string;
+  // For "authorize-only" flows (per-user OAuth on an already-installed
+  // integration) integrationId is set; for "install-and-authorize" flows
+  // (workspace-scoped providers like Slack) it's null until the callback
+  // resolves-or-creates the row atomically with token exchange success.
+  integrationId: string | null;
+  type: string;
   userId: string;
   workspaceId: string;
   // Workspace's canonical URL at authorize time. Cloud workspaces are routed
@@ -76,6 +81,7 @@ export class OAuthService {
 
     const state = this.createSignedState({
       integrationId,
+      type: integration.type,
       userId,
       workspaceId,
       returnUrl,
@@ -84,6 +90,75 @@ export class OAuthService {
 
     const params = new URLSearchParams({
       client_id: this.getClientId(integration.type),
+      redirect_uri: callbackUrl,
+      response_type: 'code',
+      state,
+    });
+
+    const scope = oauthConfig.scopes
+      .map((s) => encodeURIComponent(s))
+      .join('%20');
+
+    return {
+      authorizationUrl: `${oauthConfig.authUrl}?${params.toString()}&scope=${scope}`,
+    };
+  }
+
+  /**
+   * Install-and-authorize for workspace-scoped providers (Slack model).
+   *
+   * Skips creating the integration row up front. The callback (atomic with
+   * token exchange success) is what actually persists the integration; if the
+   * user cancels at Slack's consent screen, nothing is written. Refusing the
+   * already-installed case here keeps the install button idempotent.
+   */
+  async getInstallAuthorizationUrl(
+    type: string,
+    workspaceId: string,
+    userId: string,
+  ): Promise<{ authorizationUrl: string }> {
+    const provider = this.registry.getProvider(type);
+    if (!provider || !provider.definition.oauth) {
+      throw new BadRequestException('Integration does not support OAuth');
+    }
+    if (provider.definition.oauth.connectionScope !== 'workspace') {
+      throw new BadRequestException(
+        'This integration uses per-user OAuth; use the standard install + authorize flow',
+      );
+    }
+
+    const existing = await this.integrationRepo.findByWorkspaceAndType(
+      workspaceId,
+      type,
+    );
+    if (existing) {
+      throw new BadRequestException(
+        `Integration "${type}" is already installed`,
+      );
+    }
+
+    const oauthConfig = provider.getOAuthConfig
+      ? provider.getOAuthConfig({})
+      : provider.definition.oauth;
+
+    const callbackUrl = this.buildCallbackUrl(type);
+
+    const workspace = await this.workspaceRepo.findById(workspaceId);
+    const returnUrl = this.domainService.getWorkspaceUrl(
+      workspace ?? { hostname: null, customDomain: null },
+    );
+
+    const state = this.createSignedState({
+      integrationId: null,
+      type,
+      userId,
+      workspaceId,
+      returnUrl,
+      exp: Date.now() + 10 * 60 * 1000,
+    });
+
+    const params = new URLSearchParams({
+      client_id: this.getClientId(type),
       redirect_uri: callbackUrl,
       response_type: 'code',
       state,
@@ -129,7 +204,7 @@ export class OAuthService {
   async exchangeCodeForTokens(
     type: string,
     code: string,
-    integrationId: string,
+    integrationId: string | null,
     userId: string,
     workspaceId: string,
   ): Promise<IntegrationConnection> {
@@ -138,8 +213,22 @@ export class OAuthService {
       throw new BadRequestException('Integration does not support OAuth');
     }
 
-    const integration = await this.integrationRepo.findById(integrationId);
-    const settings = (integration?.settings as Record<string, any>) ?? {};
+    // Install-and-authorize flow (workspace-scoped providers): no integration
+    // row exists yet. Create or restore it now that OAuth has succeeded.
+    let integration = integrationId
+      ? await this.integrationRepo.findById(integrationId)
+      : null;
+
+    if (!integration) {
+      integration = await this.integrationRepo.insertOrRestore({
+        type,
+        workspaceId,
+        installedById: userId,
+      });
+      integrationId = integration.id;
+    }
+
+    const settings = (integration.settings as Record<string, any>) ?? {};
 
     const oauthConfig = provider.getOAuthConfig
       ? provider.getOAuthConfig(settings)

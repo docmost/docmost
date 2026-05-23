@@ -68,6 +68,21 @@ export async function getOAuthAuthorizeUrl(data: {
   return req.data;
 }
 
+/**
+ * For workspace-scoped providers: returns the authorize URL WITHOUT creating
+ * the integration row. The row is created atomically when the OAuth callback
+ * succeeds; a cancelled OAuth leaves no half-installed state.
+ */
+export async function getOAuthInstallUrl(data: {
+  type: string;
+}): Promise<{ authorizationUrl: string }> {
+  const req = await api.post<{ authorizationUrl: string }>(
+    "/integrations/oauth/install",
+    data,
+  );
+  return req.data;
+}
+
 export async function disconnectIntegration(data: {
   integrationId: string;
 }): Promise<void> {

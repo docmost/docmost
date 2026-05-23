@@ -18,7 +18,11 @@ import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { OAuthService } from './oauth.service';
-import { OAuthAuthorizeDto, OAuthDisconnectDto } from '../dto/integration.dto';
+import {
+  OAuthAuthorizeDto,
+  OAuthDisconnectDto,
+  OAuthInstallDto,
+} from '../dto/integration.dto';
 import { IntegrationConnectionService } from '../integration-connection.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
@@ -42,6 +46,29 @@ export class OAuthController {
   ) {
     const { authorizationUrl } = await this.oauthService.getAuthorizationUrl(
       dto.integrationId,
+      workspace.id,
+      user.id,
+    );
+
+    return { authorizationUrl };
+  }
+
+  /**
+   * Install-and-authorize for workspace-scoped providers (Slack model).
+   * Returns the authorize URL without first creating the integration row;
+   * the row is created atomically on successful OAuth callback so a cancelled
+   * OAuth flow leaves no half-installed state.
+   */
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('install')
+  async installAndAuthorize(
+    @Body() dto: OAuthInstallDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const { authorizationUrl } = await this.oauthService.getInstallAuthorizationUrl(
+      dto.type,
       workspace.id,
       user.id,
     );

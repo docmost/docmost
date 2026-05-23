@@ -49,3 +49,9 @@ export class OAuthDisconnectDto {
   @IsString()
   integrationId: string;
 }
+
+export class OAuthInstallDto {
+  @IsNotEmpty()
+  @IsString()
+  type: string;
+}
