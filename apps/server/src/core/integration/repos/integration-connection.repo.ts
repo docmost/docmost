@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { sql } from 'kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import {
   IntegrationConnection,
@@ -124,14 +125,9 @@ export class IntegrationConnectionRepo {
       );
     }
 
-    // Clear any stale non-workspace row for the same (integration, user) to
-    // avoid the uq(integration_id, user_id) constraint blocking the insert.
-    await db
-      .deleteFrom('integrationConnections')
-      .where('integrationId', '=', input.integrationId)
-      .where('userId', '=', input.userId)
-      .where('kind', '!=', 'workspace')
-      .execute();
+    // No need to clear other rows: the migration 20260524T020000 made the
+    // (integration_id, user_id) constraint partial-on-kind='user', so a
+    // workspace insert never conflicts with the installer's user-link row.
 
     return db
       .insertInto('integrationConnections')
@@ -286,6 +282,11 @@ export class IntegrationConnectionRepo {
     trx?: KyselyTransaction,
   ): Promise<IntegrationConnection> {
     const db = dbOrTx(this.db, trx);
+    // Target the partial unique index uq_integration_connections_user_per_integration
+    // (integration_id, user_id) WHERE kind = 'user'. Without the .where() hint,
+    // ON CONFLICT can't match a partial index. The kind discriminator means a
+    // workspace bot row sharing (integration_id, user_id) with this user-link
+    // is no longer a conflict, so we cannot flip its kind.
     return await db
       .insertInto('integrationConnections')
       .values({
@@ -298,12 +299,14 @@ export class IntegrationConnectionRepo {
         accessToken: null,
       })
       .onConflict((oc) =>
-        oc.columns(['integrationId', 'userId']).doUpdateSet({
-          providerUserId: input.providerUserId,
-          metadata: input.metadata as any,
-          kind: 'user',
-          updatedAt: new Date(),
-        }),
+        oc
+          .columns(['integrationId', 'userId'])
+          .where(sql.ref('kind'), '=', 'user')
+          .doUpdateSet({
+            providerUserId: input.providerUserId,
+            metadata: input.metadata as any,
+            updatedAt: new Date(),
+          }),
       )
       .returningAll()
       .executeTakeFirstOrThrow();
