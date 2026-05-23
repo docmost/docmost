@@ -21,11 +21,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     CHECK (kind IN ('workspace', 'user'))
   `.execute(db);
 
-  // 3. Backfill: existing rows with access_token AND scopes are workspace installs
+  // 3. Backfill: existing Slack workspace installs (rows with access_token)
   await sql`
-    UPDATE integration_connections
+    UPDATE integration_connections AS ic
     SET kind = 'workspace'
-    WHERE access_token IS NOT NULL AND scopes IS NOT NULL
+    FROM integrations AS i
+    WHERE ic.integration_id = i.id
+      AND i.type = 'slack'
+      AND ic.access_token IS NOT NULL
   `.execute(db);
 
   // 4. One workspace connection per integration
@@ -33,7 +36,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .createIndex('uq_integration_connections_workspace_per_integration')
     .on('integration_connections')
     .column('integration_id')
-    .where('kind', '=', 'workspace')
+    .where(sql.ref('kind'), '=', 'workspace')
     .unique()
     .execute();
 }
@@ -50,4 +53,8 @@ export async function down(db: Kysely<any>): Promise<void> {
     .alterTable('integration_connections')
     .dropColumn('kind')
     .execute();
+
+  // Note: we don't restore NOT NULL on access_token in down(); by this point
+  // there may be legitimate null-token rows (identity-only user links) that
+  // would block re-adding the constraint.
 }
