@@ -1,13 +1,5 @@
 import { z } from 'zod';
 
-export const slackSettingsSchema = z.object({
-  channelId: z.string().min(1),
-  channelName: z.string().optional(),
-  notifyOn: z
-    .array(z.enum(['page.created', 'page.updated', 'page.deleted']))
-    .default(['page.created']),
-});
-
 export const githubSettingsSchema = z.object({
   baseUrl: z.string().url().optional(),
   org: z.string().optional(),
@@ -31,7 +23,6 @@ export const linearSettingsSchema = z.object({
 });
 
 const integrationSettingsSchemas: Record<string, z.ZodType> = {
-  slack: slackSettingsSchema,
   github: githubSettingsSchema,
   gitlab: gitlabSettingsSchema,
   jira: jiraSettingsSchema,
@@ -61,7 +52,6 @@ export function validateIntegrationSettings(
   return { success: true, data: result.data };
 }
 
-export type SlackSettings = z.infer<typeof slackSettingsSchema>;
 export type GithubSettings = z.infer<typeof githubSettingsSchema>;
 export type GitlabSettings = z.infer<typeof gitlabSettingsSchema>;
 export type JiraSettings = z.infer<typeof jiraSettingsSchema>;
