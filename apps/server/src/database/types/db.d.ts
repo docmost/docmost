@@ -477,10 +477,11 @@ export interface IntegrationConnections {
   userId: string;
   workspaceId: string;
   providerUserId: string | null;
-  accessToken: string;
+  accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresAt: Timestamp | null;
   scopes: string | null;
+  kind: string;
   metadata: Json | null;
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
