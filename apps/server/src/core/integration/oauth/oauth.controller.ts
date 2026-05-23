@@ -24,7 +24,6 @@ import {
   OAuthInstallDto,
 } from '../dto/integration.dto';
 import { IntegrationConnectionService } from '../integration-connection.service';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 @Controller('integrations/oauth')
 export class OAuthController {
@@ -33,7 +32,6 @@ export class OAuthController {
   constructor(
     private readonly oauthService: OAuthService,
     private readonly connectionService: IntegrationConnectionService,
-    private readonly environmentService: EnvironmentService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -94,11 +92,8 @@ export class OAuthController {
 
     // returnUrl is derived server-side at authorize time from the workspace's
     // own hostname/customDomain (canonical DB truth, not user input), then
-    // signed into the state JWT. Safe to use directly here — tampering would
-    // invalidate the signature; older tokens predating this field will be
-    // undefined and fall back to APP_URL.
-    const returnUrl =
-      statePayload.returnUrl || this.environmentService.getAppUrl();
+    // signed into the state JWT. Tampering would invalidate the signature.
+    const returnUrl = statePayload.returnUrl;
 
     try {
       await this.oauthService.exchangeCodeForTokens(
