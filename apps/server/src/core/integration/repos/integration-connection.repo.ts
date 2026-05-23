@@ -35,6 +35,7 @@ export class IntegrationConnectionRepo {
       .selectAll()
       .where('integrationId', '=', integrationId)
       .where('userId', '=', userId)
+      .where('kind', '=', 'workspace')
       .executeTakeFirst();
   }
 
@@ -57,6 +58,7 @@ export class IntegrationConnectionRepo {
       .where('integrations.type', '=', integrationType)
       .where('integrations.deletedAt', 'is', null)
       .where('integrationConnections.userId', '=', userId)
+      .where('integrationConnections.kind', '=', 'workspace')
       .executeTakeFirst();
   }
 
@@ -158,6 +160,7 @@ export class IntegrationConnectionRepo {
       .where('refreshToken', 'is not', null)
       .where('tokenExpiresAt', 'is not', null)
       .where('tokenExpiresAt', '<', threshold)
+      .where('kind', '=', 'workspace')
       .execute();
   }
 
@@ -169,6 +172,48 @@ export class IntegrationConnectionRepo {
     await db
       .deleteFrom('integrationConnections')
       .where('integrationId', '=', integrationId)
+      .execute();
+  }
+
+  async findWorkspaceConnection(
+    integrationId: string,
+    trx?: KyselyTransaction,
+  ): Promise<IntegrationConnection | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .selectFrom('integrationConnections')
+      .selectAll()
+      .where('integrationId', '=', integrationId)
+      .where('kind', '=', 'workspace')
+      .executeTakeFirst();
+  }
+
+  async findUserLink(
+    integrationId: string,
+    providerUserId: string,
+    trx?: KyselyTransaction,
+  ): Promise<IntegrationConnection | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .selectFrom('integrationConnections')
+      .selectAll()
+      .where('integrationId', '=', integrationId)
+      .where('providerUserId', '=', providerUserId)
+      .where('kind', '=', 'user')
+      .executeTakeFirst();
+  }
+
+  async deleteUserLink(
+    integrationId: string,
+    userId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('integrationConnections')
+      .where('integrationId', '=', integrationId)
+      .where('userId', '=', userId)
+      .where('kind', '=', 'user')
       .execute();
   }
 }
