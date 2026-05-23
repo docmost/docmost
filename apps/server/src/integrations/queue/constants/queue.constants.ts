@@ -11,6 +11,9 @@ export enum QueueName {
   INTEGRATION_QUEUE = '{integration-queue}',
   AUDIT_QUEUE = '{audit-queue}',
   SLACK_INBOUND = '{slack-inbound}',
+  // Separate queue for /docmost ask: AI work takes seconds and would
+  // otherwise starve fast inbound event dispatch.
+  SLACK_ASK = '{slack-ask}',
 }
 
 export enum QueueJob {
@@ -89,4 +92,5 @@ export enum QueueJob {
   INTEGRATION_EVENT = 'integration-event',
   INTEGRATION_TOKEN_REFRESH = 'integration-token-refresh',
   SLACK_EVENT = 'slack-event',
+  SLACK_ASK = 'slack-ask',
 }
