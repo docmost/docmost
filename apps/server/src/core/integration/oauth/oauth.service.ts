@@ -161,6 +161,8 @@ export class OAuthService {
 
     if (provider.onConnected) {
       await provider.onConnected({
+        integrationId,
+        workspaceId,
         accessToken: tokenResponse.access_token,
         refreshToken: tokenResponse.refresh_token,
         providerUserId: '',

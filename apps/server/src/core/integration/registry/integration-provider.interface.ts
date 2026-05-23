@@ -35,6 +35,8 @@ export type IntegrationDefinition = {
 };
 
 export type ConnectedEvent = {
+  integrationId: string;
+  workspaceId: string;
   accessToken: string;
   refreshToken?: string;
   providerUserId: string;
