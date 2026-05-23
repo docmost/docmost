@@ -35,7 +35,6 @@ export class IntegrationConnectionRepo {
       .selectAll()
       .where('integrationId', '=', integrationId)
       .where('userId', '=', userId)
-      .where('kind', '=', 'workspace')
       .executeTakeFirst();
   }
 
@@ -58,7 +57,6 @@ export class IntegrationConnectionRepo {
       .where('integrations.type', '=', integrationType)
       .where('integrations.deletedAt', 'is', null)
       .where('integrationConnections.userId', '=', userId)
-      .where('integrationConnections.kind', '=', 'workspace')
       .executeTakeFirst();
   }
 
@@ -160,7 +158,6 @@ export class IntegrationConnectionRepo {
       .where('refreshToken', 'is not', null)
       .where('tokenExpiresAt', 'is not', null)
       .where('tokenExpiresAt', '<', threshold)
-      .where('kind', '=', 'workspace')
       .execute();
   }
 
