@@ -362,6 +362,6 @@ export class EnvironmentService {
   }
 
   getSlackSigningSecret(): string | undefined {
-    return this.configService.get<string>('SLACK_SIGNING_SECRET');
+    return this.configService.get<string>('INTEGRATION_SLACK_SIGNING_SECRET');
   }
 }
