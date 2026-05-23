@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { sql } from 'kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import {
   Integration,
@@ -123,5 +124,20 @@ export class IntegrationRepo {
       .set({ deletedAt: new Date() })
       .where('id', '=', integrationId)
       .execute();
+  }
+
+  async findByTypeAndSettingsField(
+    type: string,
+    key: string,
+    value: string,
+  ): Promise<Integration | undefined> {
+    return this.db
+      .selectFrom('integrations')
+      .selectAll()
+      .where('type', '=', type)
+      .where('isEnabled', '=', true)
+      .where('deletedAt', 'is', null)
+      .where(sql<string>`settings->>${sql.lit(key)}`, '=', value)
+      .executeTakeFirst();
   }
 }
