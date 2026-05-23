@@ -5,9 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { DomainService } from '../../../integrations/environment/domain.service';
 import { IntegrationRegistry } from '../registry/integration-registry';
 import { IntegrationRepo } from '../repos/integration.repo';
 import { IntegrationConnectionRepo } from '../repos/integration-connection.repo';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { encryptToken, decryptToken } from '../crypto/token-crypto';
 import { IntegrationConnection } from '@docmost/db/types/entity.types';
 import { OAuthConfig } from '../registry/integration-provider.interface';
@@ -25,6 +27,11 @@ export type OAuthStatePayload = {
   integrationId: string;
   userId: string;
   workspaceId: string;
+  // Workspace's canonical URL at authorize time. Cloud workspaces are routed
+  // through a single central OAuth callback (the only redirect_uri Slack/etc.
+  // accept), and this lets the callback redirect the user back to their own
+  // workspace host (subdomain or custom domain) after token exchange.
+  returnUrl: string;
   exp: number;
 };
 
@@ -34,9 +41,11 @@ export class OAuthService {
 
   constructor(
     private readonly environmentService: EnvironmentService,
+    private readonly domainService: DomainService,
     private readonly registry: IntegrationRegistry,
     private readonly integrationRepo: IntegrationRepo,
     private readonly connectionRepo: IntegrationConnectionRepo,
+    private readonly workspaceRepo: WorkspaceRepo,
   ) {}
 
   async getAuthorizationUrl(
@@ -60,10 +69,16 @@ export class OAuthService {
 
     const callbackUrl = this.buildCallbackUrl(integration.type);
 
+    const workspace = await this.workspaceRepo.findById(workspaceId);
+    const returnUrl = this.domainService.getWorkspaceUrl(
+      workspace ?? { hostname: null, customDomain: null },
+    );
+
     const state = this.createSignedState({
       integrationId,
       userId,
       workspaceId,
+      returnUrl,
       exp: Date.now() + 10 * 60 * 1000,
     });
 

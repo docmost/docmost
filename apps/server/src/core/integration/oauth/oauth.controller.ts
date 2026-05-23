@@ -65,6 +65,14 @@ export class OAuthController {
       throw new BadRequestException('Invalid or expired OAuth state');
     }
 
+    // returnUrl is derived server-side at authorize time from the workspace's
+    // own hostname/customDomain (canonical DB truth, not user input), then
+    // signed into the state JWT. Safe to use directly here — tampering would
+    // invalidate the signature; older tokens predating this field will be
+    // undefined and fall back to APP_URL.
+    const returnUrl =
+      statePayload.returnUrl || this.environmentService.getAppUrl();
+
     try {
       await this.oauthService.exchangeCodeForTokens(
         type,
@@ -74,12 +82,12 @@ export class OAuthController {
         statePayload.workspaceId,
       );
 
-      const appUrl = this.environmentService.getAppUrl();
-      return res.redirect(`${appUrl}/settings/integrations`, 302).send();
+      return res.redirect(`${returnUrl}/settings/integrations`, 302).send();
     } catch (err) {
       this.logger.error(`OAuth callback error for ${type}: ${(err as Error).message}`);
-      const appUrl = this.environmentService.getAppUrl();
-      return res.redirect(`${appUrl}/settings/integrations?error=oauth_failed`, 302).send();
+      return res
+        .redirect(`${returnUrl}/settings/integrations?error=oauth_failed`, 302)
+        .send();
     }
   }
 
