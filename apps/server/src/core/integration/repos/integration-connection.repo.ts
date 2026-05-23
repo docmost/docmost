@@ -213,4 +213,38 @@ export class IntegrationConnectionRepo {
       .where('kind', '=', 'user')
       .execute();
   }
+
+  async upsertUserLink(
+    input: {
+      integrationId: string;
+      workspaceId: string;
+      userId: string;
+      providerUserId: string;
+      metadata: Record<string, unknown>;
+    },
+    trx?: KyselyTransaction,
+  ): Promise<IntegrationConnection> {
+    const db = dbOrTx(this.db, trx);
+    return await db
+      .insertInto('integrationConnections')
+      .values({
+        integrationId: input.integrationId,
+        workspaceId: input.workspaceId,
+        userId: input.userId,
+        providerUserId: input.providerUserId,
+        kind: 'user',
+        metadata: input.metadata as any,
+        accessToken: null,
+      })
+      .onConflict((oc) =>
+        oc.columns(['integrationId', 'userId']).doUpdateSet({
+          providerUserId: input.providerUserId,
+          metadata: input.metadata as any,
+          kind: 'user',
+          updatedAt: new Date(),
+        }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
 }
