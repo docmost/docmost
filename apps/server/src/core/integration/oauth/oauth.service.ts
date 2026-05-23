@@ -164,7 +164,7 @@ export class OAuthService {
         accessToken: tokenResponse.access_token,
         refreshToken: tokenResponse.refresh_token,
         providerUserId: '',
-        metadata: {},
+        metadata: tokenResponse,
       });
     }
 
