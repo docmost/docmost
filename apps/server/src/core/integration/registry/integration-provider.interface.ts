@@ -4,6 +4,9 @@ export type OAuthConfig = {
   authUrl: string;
   tokenUrl: string;
   scopes: string[];
+  // 'workspace' = one shared bot/app connection per integration (Slack model);
+  // 'user' (default) = each Docmost user OAuths separately and gets their own token (Linear, Jira, GitHub model)
+  connectionScope?: 'workspace' | 'user';
 };
 
 export type UnfurlPattern = {

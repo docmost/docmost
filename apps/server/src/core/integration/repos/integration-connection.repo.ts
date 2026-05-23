@@ -95,6 +95,60 @@ export class IntegrationConnectionRepo {
       .executeTakeFirstOrThrow();
   }
 
+  async upsertWorkspaceConnection(
+    input: {
+      integrationId: string;
+      userId: string;
+      workspaceId: string;
+      accessToken: string;
+      refreshToken?: string | null;
+      tokenExpiresAt?: Date | null;
+      scopes?: string | null;
+    },
+    trx?: KyselyTransaction,
+  ): Promise<IntegrationConnection> {
+    const db = dbOrTx(this.db, trx);
+
+    const existing = await this.findWorkspaceConnection(input.integrationId, trx);
+    if (existing) {
+      return this.update(
+        existing.id,
+        {
+          accessToken: input.accessToken,
+          refreshToken: input.refreshToken ?? null,
+          tokenExpiresAt: input.tokenExpiresAt ?? null,
+          scopes: input.scopes ?? null,
+          userId: input.userId,
+        },
+        trx,
+      );
+    }
+
+    // Clear any stale non-workspace row for the same (integration, user) to
+    // avoid the uq(integration_id, user_id) constraint blocking the insert.
+    await db
+      .deleteFrom('integrationConnections')
+      .where('integrationId', '=', input.integrationId)
+      .where('userId', '=', input.userId)
+      .where('kind', '!=', 'workspace')
+      .execute();
+
+    return db
+      .insertInto('integrationConnections')
+      .values({
+        integrationId: input.integrationId,
+        userId: input.userId,
+        workspaceId: input.workspaceId,
+        accessToken: input.accessToken,
+        refreshToken: input.refreshToken ?? null,
+        tokenExpiresAt: input.tokenExpiresAt ?? null,
+        scopes: input.scopes ?? null,
+        kind: 'workspace',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
   async update(
     connectionId: string,
     data: UpdatableIntegrationConnection,

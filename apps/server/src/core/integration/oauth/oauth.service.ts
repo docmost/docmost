@@ -149,15 +149,29 @@ export class OAuthService {
       ? new Date(Date.now() + tokenResponse.expires_in * 1000)
       : null;
 
-    const connection = await this.connectionRepo.upsert({
-      integrationId,
-      userId,
-      workspaceId,
-      accessToken: encryptedAccessToken,
-      refreshToken: encryptedRefreshToken,
-      tokenExpiresAt,
-      scopes: tokenResponse.scope ?? null,
-    });
+    const connectionScope =
+      provider.definition.oauth?.connectionScope ?? 'user';
+
+    const connection =
+      connectionScope === 'workspace'
+        ? await this.connectionRepo.upsertWorkspaceConnection({
+            integrationId,
+            userId,
+            workspaceId,
+            accessToken: encryptedAccessToken,
+            refreshToken: encryptedRefreshToken,
+            tokenExpiresAt,
+            scopes: tokenResponse.scope ?? null,
+          })
+        : await this.connectionRepo.upsert({
+            integrationId,
+            userId,
+            workspaceId,
+            accessToken: encryptedAccessToken,
+            refreshToken: encryptedRefreshToken,
+            tokenExpiresAt,
+            scopes: tokenResponse.scope ?? null,
+          });
 
     if (provider.onConnected) {
       await provider.onConnected({
