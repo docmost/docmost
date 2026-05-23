@@ -14,6 +14,7 @@ import {
   useUpdateIntegrationSettings,
 } from "../queries/integration-query";
 import { Integration } from "../types/integration.types";
+import { getOAuthAuthorizeUrl } from "../services/integration-service";
 
 export default function Integrations() {
   const { t } = useTranslation();
@@ -28,10 +29,21 @@ export default function Integrations() {
   const [configuring, setConfiguring] = useState<Integration | null>(null);
 
   const handleInstall = useCallback(
-    (type: string) => {
-      installMutation.mutate({ type });
+    async (type: string) => {
+      const definition = available?.find((d) => d.type === type);
+      try {
+        const integration = await installMutation.mutateAsync({ type });
+        if (definition?.oauth?.connectionScope === 'workspace') {
+          const { authorizationUrl } = await getOAuthAuthorizeUrl({
+            integrationId: integration.id,
+          });
+          window.location.href = authorizationUrl;
+        }
+      } catch (err) {
+        // installMutation's onError already shows a notification
+      }
     },
-    [installMutation],
+    [installMutation, available],
   );
 
   const handleUninstall = useCallback(

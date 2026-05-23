@@ -19,6 +19,7 @@ export default function ConnectionRow({
   isDisconnecting,
 }: ConnectionRowProps) {
   const { t } = useTranslation();
+  const isWorkspaceScoped = definition.oauth?.connectionScope === 'workspace';
 
   return (
     <Box
@@ -42,30 +43,47 @@ export default function ConnectionRow({
         </Group>
 
         <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
-          {connection ? (
+          {isWorkspaceScoped ? (
             <>
-              <Text size="xs" c="green">
-                {t("Connected")}
-                {connection.providerUserId && ` (${connection.providerUserId})`}
-              </Text>
-              <Button
-                size="xs"
-                variant="subtle"
-                color="red"
-                onClick={() => onDisconnect(connection.integrationId)}
-                loading={isDisconnecting}
-              >
-                {t("Disconnect")}
-              </Button>
+              {connection ? (
+                <Text size="xs" c="green">
+                  {t("Linked")}
+                  {connection.providerUserId && ` as @${connection.providerUserId}`}
+                </Text>
+              ) : (
+                <Text size="xs" c="dimmed">
+                  {t("Use")} <code>/docmost help</code> {t("in")} {definition.name} {t("to link your account.")}
+                </Text>
+              )}
             </>
           ) : (
-            <Button
-              size="xs"
-              variant="light"
-              onClick={() => onConnect(definition.type)}
-            >
-              {t("Connect")}
-            </Button>
+            <>
+              {connection ? (
+                <>
+                  <Text size="xs" c="green">
+                    {t("Connected")}
+                    {connection.providerUserId && ` (${connection.providerUserId})`}
+                  </Text>
+                  <Button
+                    size="xs"
+                    variant="subtle"
+                    color="red"
+                    onClick={() => onDisconnect(connection.integrationId)}
+                    loading={isDisconnecting}
+                  >
+                    {t("Disconnect")}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="xs"
+                  variant="light"
+                  onClick={() => onConnect(definition.type)}
+                >
+                  {t("Connect")}
+                </Button>
+              )}
+            </>
           )}
         </Group>
       </Group>

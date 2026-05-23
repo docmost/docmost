@@ -1,11 +1,19 @@
 export type IntegrationCapability = "oauth" | "unfurl" | "actions" | "webhooks";
 
+export type OAuthConfig = {
+  authUrl: string;
+  tokenUrl: string;
+  scopes: string[];
+  connectionScope?: 'workspace' | 'user';
+};
+
 export type IntegrationDefinition = {
   type: string;
   name: string;
   description: string;
   icon: string;
   capabilities: IntegrationCapability[];
+  oauth?: OAuthConfig;
 };
 
 export type Integration = {
