@@ -169,10 +169,17 @@ export class IntegrationConnectionRepo {
     trx?: KyselyTransaction,
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
+    // Never delete a kind='workspace' row from a per-user disconnect.
+    // For Slack (and any future workspace-scoped provider) the installer's
+    // userId matches the workspace connection's userId; without this filter
+    // a single user clicking Disconnect would wipe the shared bot token and
+    // break the integration for the whole workspace. Full uninstall uses
+    // deleteByIntegration which intentionally has no kind filter.
     await db
       .deleteFrom('integrationConnections')
       .where('integrationId', '=', integrationId)
       .where('userId', '=', userId)
+      .where('kind', '!=', 'workspace')
       .execute();
   }
 
