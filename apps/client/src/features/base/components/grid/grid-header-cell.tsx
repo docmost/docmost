@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Header, flexRender } from "@tanstack/react-table";
-import { Popover } from "@mantine/core";
+import { Badge, Popover } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
@@ -80,6 +81,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   getColumnOrder,
   onColumnReorder,
 }: GridHeaderCellProps) {
+  const { t } = useTranslation();
   const isRowNumber = header.column.id === "__row_number";
   const isPinned = header.column.getIsPinned();
   const pinOffset = isPinned ? header.column.getStart("left") : undefined;
@@ -213,6 +215,11 @@ export const GridHeaderCell = memo(function GridHeaderCell({
           <span className={classes.headerCellName}>
             {flexRender(header.column.columnDef.header, header.getContext())}
           </span>
+          {property?.pendingType && (
+            <Badge size="xs" color="gray" variant="light" ml={6}>
+              {t("Converting…")}
+            </Badge>
+          )}
         </div>
       )}
       {header.column.getCanResize() && (
