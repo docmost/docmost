@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Header, flexRender } from "@tanstack/react-table";
 import { Popover } from "@mantine/core";
 import { useAtom } from "jotai";
@@ -100,7 +100,18 @@ export const GridHeaderCell = memo(function GridHeaderCell({
     setPropertyMenuDirty(dirty);
   }, [setPropertyMenuDirty]);
 
-  const isSortableDisabled = isRowNumber || isPinned === "left";
+  const isSortableDisabled = isRowNumber || !!isPinned;
+
+  // onColumnReorder ultimately depends on React Query result objects
+  // (activeView, base) via persistViewConfig — their identity changes on
+  // every cache invalidation (i.e. every WS-driven collab refresh). Holding
+  // the callback in a ref keeps it out of the DnD effect's dep array, so
+  // we don't tear down and re-register the pragmatic-dnd adapter on every
+  // header cell each time another user edits the base.
+  const onColumnReorderRef = useRef(onColumnReorder);
+  useLayoutEffect(() => {
+    onColumnReorderRef.current = onColumnReorder;
+  });
 
   useEffect(() => {
     const el = cellRef.current;
@@ -142,13 +153,13 @@ export const GridHeaderCell = memo(function GridHeaderCell({
             axis: "horizontal",
           });
           if (finishIndex === startIndex) return;
-          onColumnReorder?.(source.data.columnId as string, finishIndex);
+          onColumnReorderRef.current?.(source.data.columnId as string, finishIndex);
           triggerPostMoveFlash(el);
           liveRegion.announce(`Moved column to position ${finishIndex + 1}`);
         },
       }),
     );
-  }, [header.column.id, isSortableDisabled, onColumnReorder, getColumnOrder]);
+  }, [header.column.id, isSortableDisabled, getColumnOrder]);
 
   const handleHeaderClick = useCallback(() => {
     setEditingCell(null);
