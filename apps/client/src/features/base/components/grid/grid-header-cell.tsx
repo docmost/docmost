@@ -1,11 +1,27 @@
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Header, flexRender } from "@tanstack/react-table";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Popover } from "@mantine/core";
 import { useAtom } from "jotai";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import {
+  draggable,
+  dropTargetForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import {
+  attachClosestEdge,
+  extractClosestEdge,
+  type Edge,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { getReorderDestinationIndex } from "@atlaskit/pragmatic-drag-and-drop-hitbox/util/get-reorder-destination-index";
+import { triggerPostMoveFlash } from "@atlaskit/pragmatic-drag-and-drop-flourish/trigger-post-move-flash";
+import * as liveRegion from "@atlaskit/pragmatic-drag-and-drop-live-region";
 import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
-import { activePropertyMenuAtomFamily, propertyMenuDirtyAtomFamily, propertyMenuCloseRequestAtomFamily, editingCellAtomFamily } from "@/features/base/atoms/base-atoms";
+import {
+  activePropertyMenuAtomFamily,
+  propertyMenuDirtyAtomFamily,
+  propertyMenuCloseRequestAtomFamily,
+  editingCellAtomFamily,
+} from "@/features/base/atoms/base-atoms";
 import {
   IconLetterT,
   IconHash,
@@ -24,8 +40,11 @@ import {
 } from "@tabler/icons-react";
 import { PropertyMenuContent } from "@/features/base/components/property/property-menu";
 import { RowNumberHeaderCell } from "./row-number-header-cell";
+import { BaseDropEdgeIndicator } from "./base-drop-edge-indicator";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import classes from "@/features/base/styles/grid.module.css";
+
+const COLUMN_DRAG_TYPE = "base-column";
 
 const typeIcons: Record<string, typeof IconLetterT> = {
   text: IconLetterT,
@@ -49,6 +68,8 @@ type GridHeaderCellProps = {
   property: IBaseProperty | undefined;
   loadedRowIds: string[];
   pageId: string;
+  getColumnOrder: () => string[];
+  onColumnReorder?: (columnId: string, finishIndex: number) => void;
 };
 
 export const GridHeaderCell = memo(function GridHeaderCell({
@@ -56,6 +77,8 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   property,
   loadedRowIds,
   pageId,
+  getColumnOrder,
+  onColumnReorder,
 }: GridHeaderCellProps) {
   const isRowNumber = header.column.id === "__row_number";
   const isPinned = header.column.getIsPinned();
@@ -70,31 +93,62 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   const [closeRequest, setCloseRequest] = useAtom(propertyMenuCloseRequestAtomFamily(pageId)) as unknown as [number, (val: number) => void];
   const [, setEditingCell] = useAtom(editingCellAtomFamily(pageId)) as unknown as [EditingCell, (val: EditingCell) => void];
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
+
   const handleDirtyChange = useCallback((dirty: boolean) => {
     setPropertyMenuDirty(dirty);
   }, [setPropertyMenuDirty]);
 
   const isSortableDisabled = isRowNumber || isPinned === "left";
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: header.column.id,
-    disabled: isSortableDisabled,
-  });
-
-  const combinedRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      setNodeRef(node);
-      (cellRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-    },
-    [setNodeRef],
-  );
+  useEffect(() => {
+    const el = cellRef.current;
+    if (!el || isSortableDisabled) return;
+    return combine(
+      draggable({
+        element: el,
+        getInitialData: () => ({
+          type: COLUMN_DRAG_TYPE,
+          columnId: header.column.id,
+        }),
+        onDragStart: () => setIsDragging(true),
+        onDrop: () => setIsDragging(false),
+      }),
+      dropTargetForElements({
+        element: el,
+        canDrop: ({ source }) =>
+          source.data.type === COLUMN_DRAG_TYPE &&
+          source.data.columnId !== header.column.id,
+        getData: ({ input, element }) =>
+          attachClosestEdge(
+            { columnId: header.column.id },
+            { input, element, allowedEdges: ["left", "right"] },
+          ),
+        onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+        onDragLeave: () => setClosestEdge(null),
+        onDrop: ({ source, self }) => {
+          setClosestEdge(null);
+          const edge = extractClosestEdge(self.data);
+          if (!edge) return;
+          const order = getColumnOrder();
+          const startIndex = order.indexOf(source.data.columnId as string);
+          const indexOfTarget = order.indexOf(header.column.id);
+          if (startIndex === -1 || indexOfTarget === -1) return;
+          const finishIndex = getReorderDestinationIndex({
+            startIndex,
+            indexOfTarget,
+            closestEdgeOfTarget: edge,
+            axis: "horizontal",
+          });
+          if (finishIndex === startIndex) return;
+          onColumnReorder?.(source.data.columnId as string, finishIndex);
+          triggerPostMoveFlash(el);
+          liveRegion.announce(`Moved column to position ${finishIndex + 1}`);
+        },
+      }),
+    );
+  }, [header.column.id, isSortableDisabled, onColumnReorder, getColumnOrder]);
 
   const handleHeaderClick = useCallback(() => {
     setEditingCell(null);
@@ -108,11 +162,6 @@ export const GridHeaderCell = memo(function GridHeaderCell({
     setActivePropertyMenu(null);
   }, [setActivePropertyMenu]);
 
-  // Mantine's built-in `closeOnEscape` only fires when focus is inside the
-  // dropdown, but opening the property menu (clicking the header) leaves
-  // focus on the header itself. Mirror the click-outside path: when dirty,
-  // bump `propertyMenuCloseRequestAtomFamily` so property-menu shows its
-  // "Unsaved changes" confirmation panel; otherwise close directly.
   useEffect(() => {
     if (!menuOpened) return;
     const handler = (e: KeyboardEvent) => {
@@ -129,33 +178,19 @@ export const GridHeaderCell = memo(function GridHeaderCell({
 
   const TypeIcon = property ? typeIcons[property.type] : undefined;
 
-  const sortableStyle = transform
-    ? {
-        transform: CSS.Transform.toString({
-          ...transform,
-          scaleX: 1,
-          scaleY: 1,
-        }),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 10 : undefined,
-      }
-    : {};
-
   return (
     <div
-      ref={combinedRef}
+      ref={cellRef}
       className={`${classes.headerCell} ${isPinned ? classes.headerCellPinned : ""} ${hasSelection ? classes.hasSelection : ""}`}
       style={{
         ...(isPinned
           ? ({ "--pin-offset": `${pinOffset}px` } as React.CSSProperties)
           : {}),
         ...(isRowNumber ? {} : { cursor: "pointer" }),
-        ...sortableStyle,
+        opacity: isDragging ? 0.4 : 1,
       }}
       onClick={handleHeaderClick}
-      {...(isSortableDisabled ? {} : attributes)}
-      {...(isSortableDisabled ? {} : listeners)}
+      data-dragging={isDragging || undefined}
     >
       {isRowNumber ? (
         <RowNumberHeaderCell loadedRowIds={loadedRowIds} pageId={pageId} />
@@ -186,6 +221,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
           onClick={(e) => e.stopPropagation()}
         />
       )}
+      {closestEdge && <BaseDropEdgeIndicator edge={closestEdge} />}
       {property && !isRowNumber && (
         <Popover
           opened={menuOpened}

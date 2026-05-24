@@ -4,7 +4,7 @@ import { notifications } from "@mantine/notifications";
 import { useAtom } from "jotai";
 import { IconDatabase } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { arrayMove } from "@dnd-kit/sortable";
+import { reorder } from "@atlaskit/pragmatic-drag-and-drop/reorder";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 import { useBaseSocket } from "@/features/base/hooks/use-base-socket";
@@ -207,14 +207,11 @@ export function BaseTable({ pageId, embedded }: BaseTableProps) {
   }, [pageId, createViewMutation, t]);
 
   const handleColumnReorder = useCallback(
-    (activeId: string, overId: string) => {
-      const currentOrder = table.getState().columnOrder;
-      const oldIndex = currentOrder.indexOf(activeId);
-      const newIndex = currentOrder.indexOf(overId);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const newOrder = arrayMove(currentOrder, oldIndex, newIndex);
-      table.setColumnOrder(newOrder);
+    (columnId: string, finishIndex: number) => {
+      const order = table.getState().columnOrder;
+      const startIndex = order.indexOf(columnId);
+      if (startIndex === -1 || startIndex === finishIndex) return;
+      table.setColumnOrder(reorder({ list: order, startIndex, finishIndex }));
       persistViewConfig();
     },
     [table, persistViewConfig],

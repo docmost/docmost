@@ -7,20 +7,6 @@ import {
   windowScroll,
 } from "@tanstack/react-virtual";
 import { useAtom } from "jotai";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
 import { editingCellAtomFamily, activePropertyMenuAtomFamily, propertyMenuDirtyAtomFamily, propertyMenuCloseRequestAtomFamily } from "@/features/base/atoms/base-atoms";
 import { useColumnResize } from "@/features/base/hooks/use-column-resize";
@@ -54,7 +40,7 @@ type GridContainerProps = {
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   onAddRow?: () => void;
   pageId: string;
-  onColumnReorder?: (columnId: string, overColumnId: string) => void;
+  onColumnReorder?: (columnId: string, finishIndex: number) => void;
   onResizeEnd?: () => void;
   onRowReorder?: (rowId: string, targetRowId: string, position: "above" | "below") => void;
   hasNextPage?: boolean;
@@ -314,63 +300,34 @@ export function GridContainer({
     });
   }, []);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor),
+  const getColumnOrder = useCallback(
+    () => table.getState().columnOrder,
+    [table],
   );
-
-  const sortableColumnIds = useMemo(() => {
-    return table
-      .getVisibleLeafColumns()
-      .filter((col) => col.id !== "__row_number")
-      .map((col) => col.id);
-  }, [table, table.getState().columnOrder]);
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-      onColumnReorder?.(active.id as string, over.id as string);
-    },
-    [onColumnReorder],
-  );
-
-  const modifiers = useMemo(() => [restrictToHorizontalAxis], []);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-      modifiers={modifiers}
-    >
-      <div role="grid">
-        <div className={classes.stickyBand}>
-          {stickyBandPrelude}
-          <div
-            className={classes.headerGrid}
-            ref={headerRef}
-            style={{ gridTemplateColumns }}
-            role="row"
-          >
-            <SortableContext
-              items={sortableColumnIds}
-              strategy={horizontalListSortingStrategy}
-            >
-              <GridHeader
-                table={table}
-                pageId={pageId}
-                columnOrder={table.getState().columnOrder}
-                columnVisibility={table.getState().columnVisibility}
-                properties={properties}
-                loadedRowIds={rowIds}
-                onPropertyCreated={handlePropertyCreated}
-              />
-            </SortableContext>
-          </div>
+    <div role="grid">
+      <div className={classes.stickyBand}>
+        {stickyBandPrelude}
+        <div
+          className={classes.headerGrid}
+          ref={headerRef}
+          style={{ gridTemplateColumns }}
+          role="row"
+        >
+          <GridHeader
+            table={table}
+            pageId={pageId}
+            columnOrder={table.getState().columnOrder}
+            columnVisibility={table.getState().columnVisibility}
+            properties={properties}
+            loadedRowIds={rowIds}
+            onPropertyCreated={handlePropertyCreated}
+            getColumnOrder={getColumnOrder}
+            onColumnReorder={onColumnReorder}
+          />
         </div>
+      </div>
         <div
           className={classes.bodyGrid}
           ref={bodyRef}
@@ -415,7 +372,6 @@ export function GridContainer({
           <AddRowButton onClick={handleAddRow} />
           {pageId && <SelectionActionBar pageId={pageId} />}
         </div>
-      </div>
-    </DndContext>
+    </div>
   );
 }

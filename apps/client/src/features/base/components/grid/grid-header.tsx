@@ -8,13 +8,13 @@ import classes from "@/features/base/styles/grid.module.css";
 type GridHeaderProps = {
   table: Table<IBaseRow>;
   pageId: string;
-  // Passed explicitly to break memo when columns change
-  // (table ref is stable from useReactTable, so memo won't fire without these)
   columnOrder: ColumnOrderState;
   columnVisibility: VisibilityState;
   properties: IBaseProperty[];
   loadedRowIds: string[];
   onPropertyCreated?: () => void;
+  getColumnOrder: () => string[];
+  onColumnReorder?: (columnId: string, finishIndex: number) => void;
 };
 
 export const GridHeader = memo(function GridHeader({
@@ -27,6 +27,8 @@ export const GridHeader = memo(function GridHeader({
   properties,
   loadedRowIds,
   onPropertyCreated,
+  getColumnOrder,
+  onColumnReorder,
 }: GridHeaderProps) {
   const headerGroups = table.getHeaderGroups();
   const propertyById = useMemo(() => {
@@ -44,6 +46,8 @@ export const GridHeader = memo(function GridHeader({
           property={propertyById.get(header.column.id)}
           loadedRowIds={loadedRowIds}
           pageId={pageId}
+          getColumnOrder={getColumnOrder}
+          onColumnReorder={onColumnReorder}
         />
       ))}
       <CreatePropertyPopover
