@@ -39,6 +39,8 @@ import { BaseToolbar } from "@/features/base/components/base-toolbar";
 import { BaseViewDraftBanner } from "@/features/base/components/base-view-draft-banner";
 import { BaseTableSkeleton } from "@/features/base/components/base-table-skeleton";
 import { ViewRenderer } from "@/features/base/components/views/view-renderer";
+import { useRowDetailModal } from "@/features/base/hooks/use-row-detail-modal";
+import { RowDetailModal } from "@/features/base/components/row-detail-modal/row-detail-modal";
 import classes from "@/features/base/styles/grid.module.css";
 
 type BaseViewProps = {
@@ -267,12 +269,11 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
     updateViewMutation,
   ]);
 
-  const handleCardClick = useCallback((rowId: string) => {
-    // Phase 5 wires this to the URL-driven row detail modal.
-    // Until then, noop — the click still registers and the focus ring
-    // appears, but nothing opens.
-    void rowId;
-  }, []);
+  const { openRowId, openRow, closeRow } = useRowDetailModal();
+  const handleCardClick = useCallback(
+    (rowId: string) => openRow(rowId),
+    [openRow],
+  );
 
   const handleRowReorder = useCallback(
     (rowId: string, targetRowId: string, dropPosition: "above" | "below") => {
@@ -350,44 +351,7 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
     // Inline: banner + toolbar live inside the StickyBand (passed via
     // stickyBandPrelude). The page is the vertical scroll container.
     return (
-      <ViewRenderer
-        base={base}
-        rows={rows}
-        effectiveView={effectiveView}
-        table={table}
-        pageId={pageId}
-        embedded={embedded}
-        hasNextPage={!!hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        onFetchNextPage={fetchNextPage}
-        onCellUpdate={handleCellUpdate}
-        onAddRow={handleAddRow}
-        onColumnReorder={handleColumnReorder}
-        onResizeEnd={handleResizeEnd}
-        onRowReorder={handleRowReorder}
-        onCardClick={handleCardClick}
-        persistViewConfig={persistViewConfig}
-        scrollportRef={scrollportRef}
-        stickyBandPrelude={
-          <>
-            {banner}
-            {toolbar}
-          </>
-        }
-      />
-    );
-  }
-
-  // Standalone: banner + toolbar sit above the .tableScrollport, which
-  // is the vertical scroll container. StickyBand inside contains only
-  // the column-header row.
-  return (
-    <div
-      style={{ display: "flex", flexDirection: "column", height: "100%" }}
-    >
-      {banner}
-      {toolbar}
-      <div className={classes.tableScrollport} ref={scrollportRef}>
+      <>
         <ViewRenderer
           base={base}
           rows={rows}
@@ -406,8 +370,61 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
           onCardClick={handleCardClick}
           persistViewConfig={persistViewConfig}
           scrollportRef={scrollportRef}
+          stickyBandPrelude={
+            <>
+              {banner}
+              {toolbar}
+            </>
+          }
         />
+        <RowDetailModal
+          base={base}
+          rows={rows}
+          openRowId={openRowId}
+          onClose={closeRow}
+        />
+      </>
+    );
+  }
+
+  // Standalone: banner + toolbar sit above the .tableScrollport, which
+  // is the vertical scroll container. StickyBand inside contains only
+  // the column-header row.
+  return (
+    <>
+      <div
+        style={{ display: "flex", flexDirection: "column", height: "100%" }}
+      >
+        {banner}
+        {toolbar}
+        <div className={classes.tableScrollport} ref={scrollportRef}>
+          <ViewRenderer
+            base={base}
+            rows={rows}
+            effectiveView={effectiveView}
+            table={table}
+            pageId={pageId}
+            embedded={embedded}
+            hasNextPage={!!hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onFetchNextPage={fetchNextPage}
+            onCellUpdate={handleCellUpdate}
+            onAddRow={handleAddRow}
+            onColumnReorder={handleColumnReorder}
+            onResizeEnd={handleResizeEnd}
+            onRowReorder={handleRowReorder}
+            onCardClick={handleCardClick}
+            persistViewConfig={persistViewConfig}
+            scrollportRef={scrollportRef}
+          />
+        </div>
       </div>
-    </div>
+      <RowDetailModal
+        base={base}
+        rows={rows}
+        openRowId={openRowId}
+        onClose={closeRow}
+      />
+    </>
   );
 }
