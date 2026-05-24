@@ -35,6 +35,17 @@ export type BasePropertyTypeValue =
 
 export const BASE_PROPERTY_TYPES = Object.values(BasePropertyType);
 
+/*
+ * The subset of property types that users can convert TO via the
+ * /bases/properties/update endpoint. Excludes system auto-types
+ * (createdAt/lastEditedAt/lastEditedBy) and formula — those have their
+ * own creation paths and are not valid one-click conversion targets.
+ */
+export const USER_PROPERTY_TYPES: readonly BasePropertyTypeValue[] =
+  BASE_PROPERTY_TYPES.filter(
+    (t) => !SYSTEM_PROPERTY_TYPES.has(t),
+  ) as readonly BasePropertyTypeValue[];
+
 export const choiceSchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
