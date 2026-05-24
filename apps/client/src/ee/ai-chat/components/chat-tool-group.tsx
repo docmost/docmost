@@ -31,7 +31,16 @@ export default function ChatToolGroup({ toolCalls, isStreaming }: Props) {
     <div className={classes.toolGroup}>
       <div
         className={classes.toolGroupHeader}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
         onClick={() => setExpanded((prev) => !prev)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setExpanded((prev) => !prev);
+          }
+        }}
       >
         {activeLabel ? (
           <IconLoader2 size={12} className={classes.processingSpinner} />

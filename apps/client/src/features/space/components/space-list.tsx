@@ -12,6 +12,7 @@ import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 export default function SpaceList() {
   const { t } = useTranslation();
@@ -42,8 +43,17 @@ export default function SpaceList() {
             data?.items.map((space, index) => (
               <Table.Tr
                 key={index}
-                style={{ cursor: "pointer" }}
+                className={rowClasses.row}
+                role="button"
+                tabIndex={0}
+                aria-label={t("Open settings for {{name}}", { name: space.name })}
                 onClick={() => handleClick(space.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleClick(space.id);
+                  }
+                }}
               >
                 <Table.Td>
                   <Group gap="sm" wrap="nowrap">

@@ -1,2 +1,2 @@
-export * from './generateHTML.js';
-export * from './generateJSON.js';
+export * from './generateHTML';
+export * from './generateJSON';

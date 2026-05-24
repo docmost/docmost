@@ -1,4 +1,4 @@
-import { Text, SimpleGrid, Card, rem, Group, Box, Button } from "@mantine/core";
+import { Text, SimpleGrid, Card, rem, Group, Box, Button, Title } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -30,9 +30,9 @@ export default function FavoriteSpacesGrid() {
 
   return (
     <Box mb="xl">
-      <Text size="sm" fw={500} mb="md">
+      <Title order={2} size="h6" fw={500} mb="md">
         {t("Favorite spaces")}
-      </Text>
+      </Title>
 
       <SimpleGrid cols={{ base: 1, xs: 2, sm: 4 }}>
         {visibleSpaces.map((fav) => (
@@ -53,6 +53,7 @@ export default function FavoriteSpacesGrid() {
                 <StarButton
                   type="space"
                   spaceId={fav.space!.id}
+                  name={fav.space!.name}
                   size={16}
                 />
               </div>

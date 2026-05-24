@@ -2,6 +2,7 @@ import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
+import { isEditorReady } from "@docmost/editor-ext";
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -35,6 +36,7 @@ import { IAttachment } from "@/features/attachments/types/attachment.types";
 import ReactClearModal from "react-clear-modal";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
+import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import classes from "../common/toolbar-menu.module.css";
 
 const ExcalidrawComponent = lazy(() =>
@@ -76,6 +78,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         isAlignRight: ctx.editor.isActive("excalidraw", { align: "right" }),
         src: excalidrawAttr?.src || null,
         attachmentId: excalidrawAttr?.attachmentId || null,
+        alt: excalidrawAttr?.alt || "",
       };
     },
   });
@@ -94,7 +97,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   );
 
   const getReferencedVirtualElement = useCallback(() => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "excalidraw";
     const parent = findParentNode(predicate)(selection);
@@ -151,6 +154,16 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const handleDelete = useCallback(() => {
     editor.commands.deleteSelection();
   }, [editor]);
+
+  const {
+    button: altTextButton,
+    panel: altTextPanel,
+    isEditing: isEditingAlt,
+  } = useAltTextControl({
+    editor,
+    nodeName: "excalidraw",
+    currentAlt: editorState?.alt || "",
+  });
 
   const handleOpen = useCallback(async () => {
     if (!editorState?.src) return;
@@ -290,7 +303,10 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         }}
         shouldShow={shouldShow}
       >
-        <div className={classes.toolbar}>
+        {isEditingAlt ? (
+          altTextPanel
+        ) : (
+          <div className={classes.toolbar}>
           <Tooltip position="top" label={t("Align left")} withinPortal={false}>
             <ActionIcon
               onClick={alignLeft}
@@ -339,6 +355,10 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
 
           <div className={classes.divider} />
 
+          {altTextButton}
+
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Edit")} withinPortal={false}>
             <ActionIcon
               onClick={handleOpen}
@@ -372,7 +392,8 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
               <IconTrash size={18} />
             </ActionIcon>
           </Tooltip>
-        </div>
+          </div>
+        )}
       </BaseBubbleMenu>
 
       <ReactClearModal

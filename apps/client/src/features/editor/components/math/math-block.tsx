@@ -149,8 +149,13 @@ export default function MathBlockView(props: NodeViewProps) {
           ></Textarea>
 
           <Flex justify="flex-end" align="flex-end">
-            <ActionIcon variant="light" color="red">
-              <IconTrashX size={18} onClick={() => props.deleteNode()} />
+            <ActionIcon
+              variant="light"
+              color="red"
+              aria-label={t("Delete equation")}
+              onClick={() => props.deleteNode()}
+            >
+              <IconTrashX size={18} />
             </ActionIcon>
           </Flex>
         </Stack>

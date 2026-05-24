@@ -19,7 +19,7 @@ export default function TrashPageContentModal({
   const title = pageTitle || t("Untitled");
 
   return (
-    <Modal.Root size={1200} opened={opened} onClose={onClose}>
+    <Modal.Root size={1200} opened={opened} onClose={onClose} aria-label={t("Preview")}>
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header>
@@ -28,7 +28,7 @@ export default function TrashPageContentModal({
               {t("Preview")}
             </Text>
           </Modal.Title>
-          <Modal.CloseButton />
+          <Modal.CloseButton aria-label={t("Close")} />
         </Modal.Header>
         <Modal.Body p={0}>
           <ScrollArea h="650" w="100%" scrollbarSize={5}>

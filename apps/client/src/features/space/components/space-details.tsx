@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { EditSpaceForm } from "@/features/space/components/edit-space-form.tsx";
-import { Button, Divider, Text } from "@mantine/core";
+import { Button, Divider, Text, Title } from "@mantine/core";
 import DeleteSpaceModal from "./delete-space-modal";
 import { useDisclosure } from "@mantine/hooks";
 import ExportModal from "@/components/common/export-modal.tsx";
@@ -65,9 +65,9 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
     <>
       {space && (
         <div>
-          <Text my="md" fw={600}>
+          <Title order={3} my="md" size="h6" fw={600}>
             {t("Details")}
-          </Text>
+          </Title>
 
           <div style={{ marginBottom: "20px" }}>
             <Text size="sm" fw={500} mb="xs">

@@ -14,6 +14,7 @@ import { getPageIcon } from "@/lib";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
 import classes from "./share.module.css";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 export default function ShareList() {
   const { t } = useTranslation();
@@ -38,7 +39,7 @@ export default function ShareList() {
 
           <Table.Tbody>
             {data?.items.map((share: ISharedItem, index: number) => (
-              <Table.Tr key={index}>
+              <Table.Tr key={index} className={rowClasses.row}>
                 <Table.Td>
                   <Anchor
                     size="sm"
@@ -47,6 +48,7 @@ export default function ShareList() {
                       cursor: "pointer",
                       color: "var(--mantine-color-text)",
                     }}
+                    className={rowClasses.link}
                     component={Link}
                     target="_blank"
                     to={buildSharedPageUrl({

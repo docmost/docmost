@@ -4,7 +4,7 @@ import {
   UnstyledButton,
   Badge,
   Table,
-  ActionIcon,
+  ThemeIcon,
   Button,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getSpaceUrl } from "@/lib/config";
 import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 type Props = {
   spaceId?: string;
@@ -49,9 +50,10 @@ export default function CreatedByMe({ spaceId }: Props) {
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Tbody>
             {pages.map((page) => (
-              <Table.Tr key={page.id}>
+              <Table.Tr key={page.id} className={rowClasses.row}>
                 <Table.Td>
                   <UnstyledButton
+                    className={rowClasses.link}
                     component={Link}
                     to={buildPageUrl(
                       page?.space.slug,
@@ -61,13 +63,13 @@ export default function CreatedByMe({ spaceId }: Props) {
                   >
                     <Group wrap="nowrap">
                       {page.icon || (
-                        <ActionIcon
+                        <ThemeIcon
                           variant="transparent"
                           color="gray"
                           size={18}
                         >
                           <IconFileDescription size={18} />
-                        </ActionIcon>
+                        </ThemeIcon>
                       )}
                       <Text fw={500} size="md" lineClamp={1}>
                         {page.title || t("Untitled")}

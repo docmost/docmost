@@ -22,6 +22,11 @@
 
 .commentEditor {
 
+    &[data-editable][data-surface="muted"] .ProseMirror:not(.focused) {
+        border-radius: var(--mantine-radius-sm);
+        box-shadow: 0 0 0 1px light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-4));
+    }
+
     .focused {
         border-radius: var(--mantine-radius-sm);
         box-shadow: 0 0 0 2px var(--mantine-color-blue-3);

@@ -7,7 +7,6 @@ import { BaseRowRepo } from '@docmost/db/repos/base/base-row.repo';
 import { stringify } from 'csv-stringify';
 import { FastifyReply } from 'fastify';
 import { PassThrough } from 'node:stream';
-import { sanitize } from 'sanitize-filename-ts';
 import {
   BasePropertyType,
   BasePropertyTypeValue,
@@ -16,6 +15,7 @@ import {
   CellCsvContext,
   serializeCellForCsv,
 } from '../export/cell-csv-serializer';
+import { sanitizeFileName } from '../../../common/helpers';
 
 const CHUNK_SIZE = 1000;
 
@@ -42,7 +42,7 @@ export class BaseCsvExportService {
 
     const properties = await this.basePropertyRepo.findByPageId(pageId);
 
-    const fileName = sanitize(base.title || 'base') + '.csv';
+    const fileName = sanitizeFileName(base.title || 'base') + '.csv';
 
     const stringifier = stringify({
       header: true,

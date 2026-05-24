@@ -48,7 +48,7 @@ export default function SpaceSettingsModal({
                 {space?.name}
               </Text>
             </Modal.Title>
-            <Modal.CloseButton />
+            <Modal.CloseButton aria-label={t("Close")} />
           </Modal.Header>
           <Modal.Body>
             <div style={{ height: rem(600) }}>

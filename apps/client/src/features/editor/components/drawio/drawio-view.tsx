@@ -137,7 +137,13 @@ export default function DrawioView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle>
-      <Modal.Root opened={opened} onClose={handleClose} fullScreen closeOnEscape={false}>
+      <Modal.Root
+        opened={opened}
+        onClose={handleClose}
+        fullScreen
+        closeOnEscape={false}
+        aria-label={t("Diagram editor")}
+      >
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>
           <Modal.Body pos="relative">
@@ -192,7 +198,11 @@ export default function DrawioView(props: NodeViewProps) {
         className={clsx(selected ? "ProseMirror-selectednode" : "")}
       >
         <div style={{ display: "flex", alignItems: "center" }}>
-          <ActionIcon variant="transparent" color="gray">
+          <ActionIcon
+            variant="transparent"
+            color="gray"
+            aria-label={t("Edit diagram")}
+          >
             <IconEdit size={18} />
           </ActionIcon>
 

@@ -103,6 +103,11 @@ export function InviteSignUpForm() {
                 placeholder={t("Your password")}
                 variant="filled"
                 mt="md"
+                visibilityToggleButtonProps={{
+                  "aria-label": t("Toggle password visibility"),
+                  "aria-hidden": false,
+                  tabIndex: 0,
+                }}
                 {...form.getInputProps("password")}
               />
               <Button type="submit" fullWidth mt="xl" loading={isLoading}>

@@ -74,7 +74,18 @@ export function PageChildren({
         />
       ))}
       {hasNextPage && (
-        <div className={classes.loadMore} onClick={() => fetchNextPage()}>
+        <div
+          className={classes.loadMore}
+          onClick={() => fetchNextPage()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              fetchNextPage();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
           {t("Load more")}
         </div>
       )}

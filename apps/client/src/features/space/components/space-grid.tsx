@@ -1,4 +1,4 @@
-import { Text, SimpleGrid, Card, rem, Group, Button } from "@mantine/core";
+import { Text, SimpleGrid, Card, rem, Group, Button, Title } from "@mantine/core";
 import React from "react";
 import {
   prefetchSpace,
@@ -33,7 +33,7 @@ export default function SpaceGrid() {
     >
       <Card.Section className={classes.cardSection} h={40}>
         <div className={classes.starButton} data-favorited={spaceFavoriteIds.has(space.id)}>
-          <StarButton type="space" spaceId={space.id} size={16} />
+          <StarButton type="space" spaceId={space.id} name={space.name} size={16} />
         </div>
       </Card.Section>
       <CustomAvatar
@@ -59,9 +59,9 @@ export default function SpaceGrid() {
   return (
     <>
       <Group justify="space-between" align="center" mb="md">
-        <Text fz="sm" fw={500}>
+        <Title order={2} size="h6" fw={500}>
           {t("Spaces you belong to")}
-        </Text>
+        </Title>
       </Group>
 
       <SimpleGrid cols={{ base: 1, xs: 2, sm: 3 }}>{cards}</SimpleGrid>

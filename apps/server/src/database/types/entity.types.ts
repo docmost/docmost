@@ -8,8 +8,12 @@ import {
   BaseViews,
   Comments,
   Groups,
+  Labels,
   Notifications,
+  PageLabels,
   PageAccess as _PageAccess,
+  PageTransclusions,
+  PageTransclusionReferences,
   PagePermissions as _PagePermissions,
   PageVerifications as _PageVerifications,
   PageVerifiers as _PageVerifiers,
@@ -32,6 +36,7 @@ import {
   UserMfa as _UserMFA,
   UserSessions,
   ApiKeys,
+  ScimTokens,
   Watchers,
   Audit as _Audit,
   Templates,
@@ -147,6 +152,18 @@ export type Favorite = Selectable<Favorites>;
 export type InsertableFavorite = Insertable<Favorites>;
 export type UpdatableFavorite = Updateable<Omit<Favorites, 'id'>>;
 
+// Page Transclusion
+export type PageTransclusion = Selectable<PageTransclusions>;
+export type InsertablePageTransclusion = Insertable<PageTransclusions>;
+export type UpdatablePageTransclusion = Updateable<Omit<PageTransclusions, 'id'>>;
+
+// Page Transclusion Reference
+export type PageTransclusionReference = Selectable<PageTransclusionReferences>;
+export type InsertablePageTransclusionReference = Insertable<PageTransclusionReferences>;
+export type UpdatablePageTransclusionReference = Updateable<
+  Omit<PageTransclusionReferences, 'id'>
+>;
+
 // File Task
 export type FileTask = Selectable<FileTasks>;
 export type InsertableFileTask = Insertable<FileTasks>;
@@ -162,6 +179,11 @@ export type ApiKey = Selectable<ApiKeys>;
 export type InsertableApiKey = Insertable<ApiKeys>;
 export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 
+// Scim Tokens
+export type ScimToken = Selectable<ScimTokens>;
+export type InsertableScimToken = Insertable<ScimTokens>;
+export type UpdatableScimToken = Updateable<Omit<ScimTokens, 'id'>>;
+
 // Page Embedding
 export type PageEmbedding = Selectable<PageEmbeddings>;
 export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
@@ -176,6 +198,15 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Label
+export type Label = Selectable<Labels>;
+export type InsertableLabel = Insertable<Labels>;
+export type UpdatableLabel = Updateable<Omit<Labels, 'id'>>;
+
+// PageLabel
+export type PageLabel = Selectable<PageLabels>;
+export type InsertablePageLabel = Insertable<PageLabels>;
 
 // Page Access
 export type PageAccess = Selectable<_PageAccess>;

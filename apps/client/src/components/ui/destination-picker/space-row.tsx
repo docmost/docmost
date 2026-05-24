@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Tooltip } from "@mantine/core";
+import { KeyboardEvent, useState } from "react";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconChevronRight, IconLock } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { ISpace } from "@/features/space/types/space.types";
@@ -42,21 +42,43 @@ export function SpaceRow({
     .filter(Boolean)
     .join(" ");
 
+  const handleSelect = () => {
+    if (writable) onSelectSpace(space);
+  };
+
+  const handleRowKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleSelect();
+    }
+  };
+
   const rowContent = (
     <div
       className={rowClasses}
-      onClick={() => writable && onSelectSpace(space)}
+      data-space-id={space.id}
+      role="button"
+      tabIndex={writable ? 0 : -1}
+      aria-disabled={!writable || undefined}
+      onClick={handleSelect}
+      onKeyDown={handleRowKeyDown}
     >
       {writable ? (
-        <div
+        <ActionIcon
           className={`${classes.chevron} ${expanded ? classes.chevronExpanded : ""}`}
+          variant="subtle"
+          color="gray"
+          size="sm"
+          aria-label={expanded ? t("Collapse") : t("Expand")}
+          aria-expanded={expanded}
           onClick={(e) => {
             e.stopPropagation();
             setExpanded(!expanded);
           }}
         >
           <IconChevronRight size={14} />
-        </div>
+        </ActionIcon>
       ) : (
         <div style={{ width: 20, flexShrink: 0 }} />
       )}

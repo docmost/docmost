@@ -8,6 +8,11 @@
     @mixin hover {
         transform: scale(1.02);
     }
+
+    &:focus-visible {
+        outline: 2px solid var(--mantine-primary-color-filled);
+        outline-offset: 2px;
+    }
 }
 
 .cardBody {
@@ -50,18 +55,27 @@
 .footer {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--mantine-spacing-xs);
+    gap: 6px;
     padding-top: var(--mantine-spacing-sm);
     margin-top: var(--mantine-spacing-lg);
     border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.scopeDot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background-color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
 }
 
 .menuTarget {
     opacity: 0;
     transition: opacity 100ms ease;
 
-    .card:hover & {
+    .card:hover &,
+    .card:focus-within & {
         opacity: 1;
     }
 }

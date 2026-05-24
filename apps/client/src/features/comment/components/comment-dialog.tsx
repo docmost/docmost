@@ -144,6 +144,7 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
       withCloseButton
       withBorder
       data-comment-dialog
+      aria-label={t("Add comment")}
     >
       <Stack gap={2}>
         <Group>

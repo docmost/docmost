@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
@@ -17,6 +19,11 @@ import {
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
 import { PagePermissionMember } from './types/page-permission.types';
+import { withCache } from '../../../common/helpers/with-cache';
+import {
+  CacheKey,
+  PERMISSION_CACHE_TTL_MS,
+} from '../../../common/helpers/cache-keys';
 
 export { PagePermissionMember } from './types/page-permission.types';
 
@@ -25,6 +32,7 @@ export class PagePermissionRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly groupRepo: GroupRepo,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   async findPageAccessByPageId(
@@ -361,40 +369,8 @@ export class PagePermissionRepo {
    * Check if user can access a page by verifying they have permission on ALL restricted ancestors.
    */
   async canUserAccessPage(userId: string, pageId: string): Promise<boolean> {
-    const deniedAncestor = await this.db
-      .withRecursive('ancestors', (qb) =>
-        qb
-          .selectFrom('pages')
-          .select(['pages.id as ancestorId', 'pages.parentPageId'])
-          .where('pages.id', '=', pageId)
-          .unionAll((eb) =>
-            eb
-              .selectFrom('pages')
-              .innerJoin('ancestors', 'ancestors.parentPageId', 'pages.id')
-              .select(['pages.id as ancestorId', 'pages.parentPageId']),
-          ),
-      )
-      .selectFrom('ancestors')
-      .innerJoin('pageAccess', 'pageAccess.pageId', 'ancestors.ancestorId')
-      .leftJoin('pagePermissions', (join) =>
-        join
-          .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
-          .on((eb) =>
-            eb.or([
-              eb('pagePermissions.userId', '=', userId),
-              eb(
-                'pagePermissions.groupId',
-                'in',
-                this.userGroupIdsSubquery(eb, userId),
-              ),
-            ]),
-          ),
-      )
-      .select('pageAccess.pageId')
-      .where('pagePermissions.id', 'is', null)
-      .executeTakeFirst();
-
-    return !deniedAncestor;
+    const { canAccess } = await this.canUserEditPage(userId, pageId);
+    return canAccess;
   }
 
   /**
@@ -412,43 +388,50 @@ export class PagePermissionRepo {
     canAccess: boolean;
     canEdit: boolean;
   }> {
-    const result = await sql<{
-      canAccess: boolean | null;
-      canEdit: boolean | null;
-    }>`
-      WITH RECURSIVE ancestors AS (
-        SELECT id AS ancestor_id, parent_page_id, 0 AS depth
-        FROM pages
-        WHERE id = ${pageId}::uuid
-        UNION ALL
-        SELECT p.id, p.parent_page_id, a.depth + 1
-        FROM pages p
-        JOIN ancestors a ON a.parent_page_id = p.id
-      )
-      SELECT
-        bool_and(pp.id IS NOT NULL) AS "canAccess",
-        -- nearest restricted ancestor's highest role wins (DESC: 'writer' > 'reader', NULLS LAST: no-permission after real roles)
-        (array_agg(pp.role ORDER BY a.depth ASC, pp.role DESC NULLS LAST))[1] = 'writer' AS "canEdit"
-      FROM ancestors a
-      JOIN page_access pa ON pa.page_id = a.ancestor_id
-      LEFT JOIN page_permissions pp ON pp.page_access_id = pa.id
-        AND (
-          pp.user_id = ${userId}::uuid
-          OR pp.group_id IN (
-            SELECT gu.group_id FROM group_users gu WHERE gu.user_id = ${userId}::uuid
+    return withCache(
+      this.cacheManager,
+      CacheKey.PAGE_CAN_EDIT(userId, pageId),
+      PERMISSION_CACHE_TTL_MS,
+      async () => {
+        const result = await sql<{
+          canAccess: boolean | null;
+          canEdit: boolean | null;
+        }>`
+          WITH RECURSIVE ancestors AS (
+            SELECT id AS ancestor_id, parent_page_id, 0 AS depth
+            FROM pages
+            WHERE id = ${pageId}::uuid
+            UNION ALL
+            SELECT p.id, p.parent_page_id, a.depth + 1
+            FROM pages p
+            JOIN ancestors a ON a.parent_page_id = p.id
           )
-        )
-    `.execute(this.db);
+          SELECT
+            bool_and(pp.id IS NOT NULL) AS "canAccess",
+            -- nearest restricted ancestor's highest role wins (DESC: 'writer' > 'reader', NULLS LAST: no-permission after real roles)
+            (array_agg(pp.role ORDER BY a.depth ASC, pp.role DESC NULLS LAST))[1] = 'writer' AS "canEdit"
+          FROM ancestors a
+          JOIN page_access pa ON pa.page_id = a.ancestor_id
+          LEFT JOIN page_permissions pp ON pp.page_access_id = pa.id
+            AND (
+              pp.user_id = ${userId}::uuid
+              OR pp.group_id IN (
+                SELECT gu.group_id FROM group_users gu WHERE gu.user_id = ${userId}::uuid
+              )
+            )
+        `.execute(this.db);
 
-    const row = result.rows[0];
-    if (!row || row.canAccess === null) {
-      return { hasAnyRestriction: false, canAccess: true, canEdit: true };
-    }
-    return {
-      hasAnyRestriction: true,
-      canAccess: row.canAccess,
-      canEdit: row.canAccess && (row.canEdit ?? false),
-    };
+        const row = result.rows[0];
+        if (!row || row.canAccess === null) {
+          return { hasAnyRestriction: false, canAccess: true, canEdit: true };
+        }
+        return {
+          hasAnyRestriction: true,
+          canAccess: row.canAccess,
+          canEdit: row.canAccess && (row.canEdit ?? false),
+        };
+      },
+    );
   }
 
   /**

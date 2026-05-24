@@ -200,7 +200,7 @@ export default function ChatInput({
         link: false,
       }),
       Placeholder.configure({
-        placeholder: placeholder || "Ask anything... Use @ to mention pages",
+        placeholder: placeholder || t("Ask anything... Use @ to mention pages"),
       }),
       CharacterCount.configure({
         limit: 50000,
@@ -225,6 +225,11 @@ export default function ChatInput({
       }),
     ],
     editorProps: {
+      attributes: {
+        role: "textbox",
+        "aria-label": placeholder || t("Ask anything... Use @ to mention pages"),
+        "aria-multiline": "true",
+      },
       handleDOMEvents: {
         keydown: (_view, event) => {
           if (
@@ -275,6 +280,8 @@ export default function ChatInput({
         type="file"
         accept={ACCEPTED_FILE_TYPES}
         multiple
+        aria-label={t("Add files")}
+        tabIndex={-1}
         style={{ display: "none" }}
         onChange={(e) => handleFileSelect(e.target.files)}
       />
@@ -329,7 +336,15 @@ export default function ChatInput({
 
       <EditorContent editor={editor} className={classes.editorContent} />
       <div className={classes.actions}>
-        <Popover opened={plusMenuOpen} onChange={setPlusMenuOpen} position="top-start" width={220} shadow="md">
+        <Popover
+          opened={plusMenuOpen}
+          onChange={setPlusMenuOpen}
+          position="top-start"
+          width={220}
+          shadow="md"
+          trapFocus
+          returnFocus
+        >
           <Popover.Target>
             <button
               type="button"

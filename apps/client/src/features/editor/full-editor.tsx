@@ -1,31 +1,46 @@
 import classes from "@/features/editor/styles/editor.module.css";
-import React from "react";
+import React, { useEffect } from "react";
 import { TitleEditor } from "@/features/editor/title-editor";
 import PageEditor from "@/features/editor/page-editor";
 import {
+  ActionIcon,
   Container,
   Divider,
   Group,
   Popover,
   Stack,
   Text,
+  Tooltip,
   UnstyledButton,
 } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { PageVerificationBadge } from "@/ee/page-verification";
 import { useTranslation } from "react-i18next";
 import { IContributor } from "@/features/page/types/page.types.ts";
+import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
+import { PageEditMode } from "@/features/user/types/user.types.ts";
+import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
+import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
+import clsx from "clsx";
+import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
+const MemoizedFixedToolbar = React.memo(FixedToolbar);
+const MemoizedDeletedPageBanner = React.memo(DeletedPageBanner);
 
-type PageCreator = {
+type PageUser = {
   id: string;
   name: string;
   avatarUrl: string;
 };
+
+// Module-level flag: survives component unmount/remount on page navigation,
+// reset only on full page reload (i.e. a new app session).
+let defaultEditModeApplied = false;
 
 export interface FullEditorProps {
   pageId: string;
@@ -34,7 +49,7 @@ export interface FullEditorProps {
   content: string;
   spaceSlug: string;
   editable: boolean;
-  creator?: PageCreator;
+  creator?: PageUser;
   contributors?: IContributor[];
   canComment?: boolean;
 }
@@ -52,6 +67,23 @@ export function FullEditor({
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
+  const editorToolbarEnabled =
+    user.settings?.preferences?.editorToolbar ?? false;
+  const [currentPageEditMode, setCurrentPageEditMode] = useAtom(
+    currentPageEditModeAtom,
+  );
+  const userPageEditMode =
+    user.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
+  const isEditMode = currentPageEditMode === PageEditMode.Edit;
+
+  // Apply the user's saved preference only once on initial load, not on every
+  // page navigation — so the mode sticks across navigations within a session.
+  useEffect(() => {
+    if (!defaultEditModeApplied) {
+      setCurrentPageEditMode(userPageEditMode as PageEditMode);
+      defaultEditModeApplied = true;
+    }
+  }, [userPageEditMode, setCurrentPageEditMode]);
 
   return (
     <Container
@@ -59,6 +91,10 @@ export function FullEditor({
       size={!fullPageWidth && 900}
       className={classes.editor}
     >
+      {editorToolbarEnabled && editable && isEditMode && (
+        <MemoizedFixedToolbar />
+      )}
+      <MemoizedDeletedPageBanner slugId={slugId} />
       <MemoizedTitleEditor
         pageId={pageId}
         slugId={slugId}
@@ -82,17 +118,14 @@ export function FullEditor({
 }
 
 type PageBylineProps = {
-  creator?: PageCreator;
+  creator?: PageUser;
   contributors?: IContributor[];
   readOnly?: boolean;
 };
 
-function PageByline({
-  creator,
-  contributors,
-  readOnly,
-}: PageBylineProps) {
+function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
   const { t } = useTranslation();
+  const detailsTriggerProps = useAsideTriggerProps("details");
 
   const otherContributors = (contributors ?? []).filter(
     (c) => c.id !== creator?.id,
@@ -102,13 +135,15 @@ function PageByline({
     <Group
       gap="sm"
       mb="md"
-      className="print-hide"
-      style={{ marginTop: "-0.5em", paddingLeft: "3rem" }}
+      className={clsx("print-hide", classes.byline)}
+      style={{ marginTop: "-0.5em" }}
     >
       {creator && (
         <Popover position="bottom-start" shadow="md" width={280} withArrow>
           <Popover.Target>
-            <UnstyledButton>
+            <UnstyledButton
+              aria-label={t("Created by {{name}}", { name: creator.name })}
+            >
               <Group gap={6}>
                 <CustomAvatar
                   avatarUrl={creator.avatarUrl}
@@ -165,6 +200,17 @@ function PageByline({
           </Popover.Dropdown>
         </Popover>
       )}
+      <Tooltip label={t("Details")} withArrow openDelay={250}>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          aria-label={t("Details")}
+          {...detailsTriggerProps}
+        >
+          <IconInfoCircle size={20} stroke={1.5} />
+        </ActionIcon>
+      </Tooltip>
+
       <PageVerificationBadge readOnly={readOnly} />
     </Group>
   );

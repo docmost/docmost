@@ -16,7 +16,7 @@
 
 .subtitle {
   font-size: var(--mantine-font-size-sm);
-  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  color: var(--mantine-color-dimmed);
   text-align: center;
   margin-top: 6px;
   margin-bottom: var(--mantine-spacing-lg);
