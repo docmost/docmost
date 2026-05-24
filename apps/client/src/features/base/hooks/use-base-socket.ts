@@ -94,6 +94,12 @@ type BaseFormulaRecomputeCompleted = {
   errored: number;
 };
 
+type BaseSchemaBumped = {
+  operation: "base:schema:bumped";
+  pageId: string;
+  schemaVersion: number;
+};
+
 type BaseInboundEvent =
   | BaseRowCreated
   | BaseRowUpdated
@@ -103,6 +109,7 @@ type BaseInboundEvent =
   | BaseRowsUpdated
   | BaseFormulaRecomputeStarted
   | BaseFormulaRecomputeCompleted
+  | BaseSchemaBumped
   | BasePropertyEvent
   | BaseViewEvent
   | { operation: string; pageId: string };
@@ -296,6 +303,14 @@ export function useBaseSocket(pageId: string | undefined): void {
           if (touchesCache) {
             queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
           }
+          break;
+        }
+        case "base:schema:bumped": {
+          // The worker just committed a property type conversion (Path 3) or
+          // a property/cell GC. Invalidate the base + row caches so cells
+          // re-fetch under the new schema.
+          queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+          queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
           break;
         }
         case "base:formula:recompute:started": {
