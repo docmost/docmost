@@ -1,7 +1,7 @@
 import { NodeViewWrapper, NodeViewProps } from "@tiptap/react";
 import { Box, Text } from "@mantine/core";
 import { useEffect, useRef } from "react";
-import { BaseTable } from "@/features/base/components/base-table";
+import { BaseView } from "@/features/base/components/base-view";
 import { BaseTableSkeleton } from "@/features/base/components/base-table-skeleton";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 
@@ -99,7 +99,7 @@ export function BaseEmbedView({ node }: NodeViewProps) {
       </Box>
     );
   } else {
-    content = <BaseTable pageId={pageId} embedded />;
+    content = <BaseView pageId={pageId} embedded />;
   }
 
   return (

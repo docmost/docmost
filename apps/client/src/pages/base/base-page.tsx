@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { Container, Title, Text, Stack } from "@mantine/core";
-import { BaseTable } from "@/features/base/components/base-table";
+import { BaseView } from "@/features/base/components/base-view";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 
 export default function BasePage() {
@@ -26,7 +26,7 @@ export default function BasePage() {
           {base.icon ? `${base.icon} ` : ""}{base.name}
         </Title>
       )}
-      <BaseTable pageId={pageId} />
+      <BaseView pageId={pageId} />
     </Container>
   );
 }

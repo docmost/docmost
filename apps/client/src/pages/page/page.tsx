@@ -14,7 +14,7 @@ import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
-import { BaseTable } from "@/features/base/components/base-table";
+import { BaseView } from "@/features/base/components/base-view";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -139,7 +139,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
               flexDirection: "column",
             }}
           >
-            <BaseTable pageId={page.id} />
+            <BaseView pageId={page.id} />
           </div>
         </div>
       </div>
