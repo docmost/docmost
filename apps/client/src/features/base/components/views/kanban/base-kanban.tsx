@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Badge } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import {
   NO_VALUE_CHOICE_ID,
 } from "@/features/base/types/base.types";
 import { useKanbanGroups } from "@/features/base/hooks/use-kanban-groups";
+import { useKanbanAutoScroll } from "@/features/base/hooks/use-kanban-auto-scroll";
 import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
 import {
   useCreateRowMutation,
@@ -56,6 +57,14 @@ export function BaseKanban({
   const updateRowMutation = useUpdateRowMutation();
   const reorderRowMutation = useReorderRowMutation();
   const sortsActive = (effectiveView?.config?.sorts?.length ?? 0) > 0;
+  const boardRef = useRef<HTMLDivElement>(null);
+  const canScrollBoard = useCallback(
+    ({ source }: { source: { data: Record<string, unknown> } }) =>
+      source.data.type === "base-kanban-card" ||
+      source.data.type === "base-kanban-column",
+    [],
+  );
+  useKanbanAutoScroll(boardRef, canScrollBoard);
 
   // Rules of Hooks: call useKanbanGroups unconditionally with `undefined`
   // when not groupable; switch the render path on isGroupable below.
@@ -253,7 +262,7 @@ export function BaseKanban({
           {t("Sorted — cards within a column can't be reordered.")}
         </div>
       )}
-      <div className={classes.board}>
+      <div ref={boardRef} className={classes.board}>
         {columns.map((column) => (
           <KanbanColumn
             key={column.key}

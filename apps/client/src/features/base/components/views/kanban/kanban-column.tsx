@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { KanbanColumnData } from "@/features/base/hooks/use-kanban-groups";
 import { IBaseProperty } from "@/features/base/types/base.types";
 import { KanbanCard } from "./kanban-card";
@@ -6,6 +7,7 @@ import { KanbanAddCardButton } from "./kanban-add-card-button";
 import type { CardDropPayload } from "@/features/base/hooks/use-kanban-card-drag";
 import type { ColumnReorderPayload } from "@/features/base/hooks/use-kanban-column-reorder";
 import { useKanbanColumnDrop } from "@/features/base/hooks/use-kanban-column-drop";
+import { useKanbanAutoScroll } from "@/features/base/hooks/use-kanban-auto-scroll";
 import classes from "@/features/base/styles/kanban.module.css";
 
 type KanbanColumnProps = {
@@ -33,6 +35,12 @@ export function KanbanColumn({
     columnKey: column.key,
     onDrop: onCardDrop,
   });
+  const canScrollColumn = useCallback(
+    ({ source }: { source: { data: Record<string, unknown> } }) =>
+      source.data.type === "base-kanban-card",
+    [],
+  );
+  useKanbanAutoScroll(bodyRef, canScrollColumn);
 
   return (
     <div className={classes.column} data-column-key={column.key}>
