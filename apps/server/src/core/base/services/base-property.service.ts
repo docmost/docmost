@@ -198,9 +198,13 @@ export class BasePropertyService {
       await this.ensureNameUnique(dto.pageId, dto.name, dto.propertyId);
     }
 
-    // Block concurrent type changes — the worker still owns the previous
-    // conversion, and letting a second one through would race on `type`.
-    if (property.pendingType) {
+    // Block competing type / typeOptions edits — the worker still owns
+    // the previous conversion. A name-only rename is safe and passes
+    // through; it doesn't touch the type/cells the worker is rewriting.
+    if (
+      property.pendingType &&
+      (dto.type !== undefined || dto.typeOptions !== undefined)
+    ) {
       throw new ConflictException(
         'A type conversion is already in progress for this property',
       );
@@ -210,6 +214,19 @@ export class BasePropertyService {
     const oldType = property.type as BasePropertyTypeValue;
     const oldTypeOptions = property.typeOptions;
     const newType = (dto.type ?? property.type) as BasePropertyTypeValue;
+
+    if (isTypeChange && isSystemPropertyType(oldType)) {
+      throw new BadRequestException(
+        'Cannot change the type of a system property',
+      );
+    }
+    if (
+      isTypeChange &&
+      property.isPrimary &&
+      newType !== BasePropertyType.TEXT
+    ) {
+      throw new BadRequestException('The primary property must be text');
+    }
 
     // --- Formula-specific type-option compilation ---------------------------
     // If the update is a formula (either staying a formula and editing source,
@@ -498,6 +515,12 @@ export class BasePropertyService {
 
     if (property.isPrimary) {
       throw new BadRequestException('Cannot delete the primary property');
+    }
+
+    if (property.pendingType) {
+      throw new ConflictException(
+        'Cannot delete a property while a type conversion is in progress',
+      );
     }
 
     // Compute dependents BEFORE the delete — once soft-deleted the graph
