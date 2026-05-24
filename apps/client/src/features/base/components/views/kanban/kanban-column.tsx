@@ -1,4 +1,4 @@
-import { KanbanColumn as KanbanColumnData } from "@/features/base/hooks/use-kanban-groups";
+import { KanbanColumnData } from "@/features/base/hooks/use-kanban-groups";
 import { IBaseProperty } from "@/features/base/types/base.types";
 import { KanbanCard } from "./kanban-card";
 import { KanbanColumnHeader } from "./kanban-column-header";

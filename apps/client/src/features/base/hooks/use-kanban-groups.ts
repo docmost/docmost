@@ -6,7 +6,7 @@ import {
   SelectTypeOptions,
 } from "@/features/base/types/base.types";
 
-export type KanbanColumn = {
+export type KanbanColumnData = {
   key: string;            // choice id or NO_VALUE_CHOICE_ID
   choiceId: string | null; // null for NO_VALUE column
   name: string;
@@ -15,7 +15,7 @@ export type KanbanColumn = {
 };
 
 export type PartitionResult = {
-  columns: KanbanColumn[];
+  columns: KanbanColumnData[];
   groupByPropertyId: string | null;
 };
 
@@ -87,7 +87,7 @@ export function partitionRowsByGroup(
     buckets.get(key)!.push(row);
   }
 
-  const columns: KanbanColumn[] = order.map((key) => {
+  const columns: KanbanColumnData[] = order.map((key) => {
     if (key === NO_VALUE_CHOICE_ID) {
       return {
         key,

@@ -1,6 +1,7 @@
 import { IBaseProperty, IBaseRow } from "@/features/base/types/base.types";
 import classes from "@/features/base/styles/kanban.module.css";
 import { useTranslation } from "react-i18next";
+import clsx from "clsx";
 
 type KanbanCardProps = {
   row: IBaseRow;
@@ -30,11 +31,7 @@ export function KanbanCard({ row, primaryProperty, onClick }: KanbanCardProps) {
         }
       }}
     >
-      <div
-        className={
-          classes.cardTitle + (isEmpty ? " " + classes.cardTitleEmpty : "")
-        }
-      >
+      <div className={clsx(classes.cardTitle, isEmpty && classes.cardTitleEmpty)}>
         {titleText}
       </div>
     </div>

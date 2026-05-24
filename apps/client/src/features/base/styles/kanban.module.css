@@ -38,7 +38,7 @@
 }
 
 .columnCount {
-  font-size: 12px;
+  font-size: var(--mantine-font-size-xs);
   color: var(--mantine-color-dimmed);
 }
 
@@ -67,7 +67,7 @@
 }
 
 .cardTitle {
-  font-size: 14px;
+  font-size: var(--mantine-font-size-sm);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -84,6 +84,6 @@
 
 .sortHint {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--mantine-font-size-xs);
   color: var(--mantine-color-dimmed);
 }
