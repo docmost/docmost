@@ -21,6 +21,8 @@ import { ViewTabs } from "@/features/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/features/base/components/views/view-sort-config";
 import { ViewFilterConfigPopover } from "@/features/base/components/views/view-filter-config";
 import { ViewFieldVisibility } from "@/features/base/components/views/view-field-visibility";
+import { KanbanGroupByPicker } from "@/features/base/components/views/kanban/kanban-group-by-picker";
+import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
 import { useTranslation } from "react-i18next";
 import classes from "@/features/base/styles/grid.module.css";
 
@@ -136,6 +138,21 @@ export function BaseToolbar({
     return cols.filter((col) => col.getCanHide() && !col.getIsVisible()).length;
   }, [table, table.getState().columnVisibility]);
 
+  const updateViewMutation = useUpdateViewMutation();
+  const isKanban = activeView?.type === "kanban";
+
+  const handleGroupByChange = useCallback(
+    (propertyId: string) => {
+      if (!activeView) return;
+      updateViewMutation.mutate({
+        viewId: activeView.id,
+        pageId: base.id,
+        config: { ...activeView.config, groupByPropertyId: propertyId },
+      });
+    },
+    [activeView, base.id, updateViewMutation],
+  );
+
   const handleSortsChange = useCallback(
     (newSorts: ViewSortConfig[]) => {
       // Normalize empty to undefined so the draft hook can drop the `sorts`
@@ -167,6 +184,15 @@ export function BaseToolbar({
         onViewChange={onViewChange}
         onAddView={onAddView}
       />
+
+      {isKanban && (
+        <KanbanGroupByPicker
+          properties={base.properties}
+          value={activeView?.config?.groupByPropertyId ?? null}
+          onChange={handleGroupByChange}
+          size="xs"
+        />
+      )}
 
       <div className={classes.toolbarRight} ref={toolbarRightRef}>
         <Tooltip label={t("Export CSV")}>
@@ -257,43 +283,45 @@ export function BaseToolbar({
           </Tooltip>
         </ViewSortConfigPopover>
 
-        <ViewFieldVisibility
-          opened={fieldsOpened}
-          onClose={() => setFieldsOpened(false)}
-          table={table}
-          properties={base.properties}
-          onPersist={onPersistViewConfig}
-        >
-          <Tooltip label={t("Hide fields")}>
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              color={hiddenFieldCount > 0 ? "blue" : "gray"}
-              onClick={() => openToolbar("fields")}
-            >
-              <IconEye size={16} />
-              {hiddenFieldCount > 0 && (
-                <Badge
-                  size="xs"
-                  circle
-                  color="blue"
-                  style={{
-                    position: "absolute",
-                    top: -2,
-                    right: -2,
-                    padding: 0,
-                    width: 14,
-                    height: 14,
-                    minWidth: 14,
-                    fontSize: 9,
-                  }}
-                >
-                  {hiddenFieldCount}
-                </Badge>
-              )}
-            </ActionIcon>
-          </Tooltip>
-        </ViewFieldVisibility>
+        {!isKanban && (
+          <ViewFieldVisibility
+            opened={fieldsOpened}
+            onClose={() => setFieldsOpened(false)}
+            table={table}
+            properties={base.properties}
+            onPersist={onPersistViewConfig}
+          >
+            <Tooltip label={t("Hide fields")}>
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                color={hiddenFieldCount > 0 ? "blue" : "gray"}
+                onClick={() => openToolbar("fields")}
+              >
+                <IconEye size={16} />
+                {hiddenFieldCount > 0 && (
+                  <Badge
+                    size="xs"
+                    circle
+                    color="blue"
+                    style={{
+                      position: "absolute",
+                      top: -2,
+                      right: -2,
+                      padding: 0,
+                      width: 14,
+                      height: 14,
+                      minWidth: 14,
+                      fontSize: 9,
+                    }}
+                  >
+                    {hiddenFieldCount}
+                  </Badge>
+                )}
+              </ActionIcon>
+            </Tooltip>
+          </ViewFieldVisibility>
+        )}
       </div>
     </div>
   );
