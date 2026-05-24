@@ -47,19 +47,6 @@ import { processBaseTypeConversion } from '../tasks/base-type-conversion.task';
 import { FormulaService } from '../formula/formula.service';
 import { BaseFormulaGraph } from '@docmost/base-formula/server';
 
-/*
- * Types whose cell values are IDs referencing external records. Converting
- * them to any other type (especially text) requires an ID → display
- * resolution pass — otherwise `select → text` persists the choice UUID
- * instead of its display name (the bug that motivated this job).
- */
-const ID_REFERENCING_TYPES: ReadonlySet<BasePropertyTypeValue> = new Set([
-  BasePropertyType.SELECT,
-  BasePropertyType.STATUS,
-  BasePropertyType.MULTI_SELECT,
-  BasePropertyType.PERSON,
-  BasePropertyType.FILE,
-]);
 
 /*
  * Row-count cutoff below which the cell rewrite runs synchronously inside
@@ -271,9 +258,7 @@ export class BasePropertyService {
 
     const involvesSystem =
       isSystemPropertyType(oldType) || isSystemPropertyType(newType);
-    const needsIdResolution = ID_REFERENCING_TYPES.has(oldType);
-    const needsCellRewrite =
-      isTypeChange && (involvesSystem || needsIdResolution);
+    const needsCellRewrite = isTypeChange;
 
     // --- Path 1: no cell rewrite needed ---------------------------------
     if (!needsCellRewrite) {
