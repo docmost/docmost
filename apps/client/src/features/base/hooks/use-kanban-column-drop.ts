@@ -23,16 +23,23 @@ export function useKanbanColumnDrop({
     return dropTargetForElements({
       element: el,
       canDrop: ({ source }) => source.data.type === "base-kanban-card",
+      // Keeps the column highlighted while the cursor passes over inner
+      // card drop targets, so the drop affordance doesn't flicker.
       getIsSticky: () => true,
       onDragEnter: () => setIsOver(true),
       onDragLeave: () => setIsOver(false),
-      onDrop: ({ source }) => {
+      onDrop: ({ source, location }) => {
         setIsOver(false);
         if (source.data.type !== "base-kanban-card") return;
-        // If a card-level target inside this column already handled the
-        // drop, Pragmatic-dnd only invokes the innermost matching target,
-        // so this column-body handler won't fire. When it does fire, the
-        // user missed every card — append to the column.
+        // Pragmatic-dnd fires onDrop on EVERY matching target in the ancestor
+        // chain, not just the innermost. If a card-level target also matched
+        // (the user dropped on a specific card, not on empty space below
+        // the last card), the card target already dispatched the precise
+        // slot — bail so we don't double-fire and clobber its position.
+        const hitCardTarget = location.current.dropTargets.some(
+          (t) => (t.data as { type?: unknown }).type === "base-kanban-card-target",
+        );
+        if (hitCardTarget) return;
         onDropRef.current({
           draggedCardId: source.data.cardId as string,
           targetCardId: COLUMN_BODY_TARGET_ID,
