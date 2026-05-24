@@ -1,4 +1,6 @@
 import { useCallback, useMemo } from "react";
+import { Badge } from "@mantine/core";
+import { IconPlus } from "@tabler/icons-react";
 import {
   IBase,
   IBaseRow,
@@ -168,23 +170,91 @@ export function BaseKanban({
     [base.id, columns, effectiveView, updateViewMutation],
   );
 
+  const handleHideColumn = useCallback(
+    (columnKey: string) => {
+      if (!effectiveView) return;
+      const current = effectiveView.config?.hiddenChoiceIds ?? [];
+      if (current.includes(columnKey)) return;
+      updateViewMutation.mutate({
+        viewId: effectiveView.id,
+        pageId: base.id,
+        config: {
+          ...effectiveView.config,
+          hiddenChoiceIds: [...current, columnKey],
+        },
+      });
+    },
+    [base.id, effectiveView, updateViewMutation],
+  );
+
+  const handleShowColumn = useCallback(
+    (columnKey: string) => {
+      if (!effectiveView) return;
+      const next = (effectiveView.config?.hiddenChoiceIds ?? []).filter(
+        (id) => id !== columnKey,
+      );
+      updateViewMutation.mutate({
+        viewId: effectiveView.id,
+        pageId: base.id,
+        config: { ...effectiveView.config, hiddenChoiceIds: next },
+      });
+    },
+    [base.id, effectiveView, updateViewMutation],
+  );
+
+  const hiddenIds = effectiveView?.config?.hiddenChoiceIds ?? [];
+  const hiddenChoices = useMemo(() => {
+    if (!isGroupable || hiddenIds.length === 0) return [];
+    const opts = (property!.typeOptions as { choices?: Array<{ id: string; name: string; color: string }> } | undefined) ?? {};
+    const choices = opts.choices ?? [];
+    const byId = new Map(choices.map((c) => [c.id, c]));
+    return hiddenIds
+      .map((id) =>
+        id === NO_VALUE_CHOICE_ID
+          ? { id, name: "No value", color: null as string | null }
+          : byId.get(id)
+            ? { id, name: byId.get(id)!.name, color: byId.get(id)!.color as string | null }
+            : null,
+      )
+      .filter((c): c is { id: string; name: string; color: string | null } => c !== null);
+  }, [hiddenIds, isGroupable, property]);
+
   if (!isGroupable) {
     return <KanbanEmptyState base={base} onPick={handlePickProperty} />;
   }
 
   return (
-    <div className={classes.board}>
-      {columns.map((column) => (
-        <KanbanColumn
-          key={column.key}
-          column={column}
-          primaryProperty={primaryProperty}
-          onCardClick={onCardClick}
-          onAddCard={handleAddCard}
-          onCardDrop={handleCardDrop}
-          onColumnReorder={handleColumnReorder}
-        />
-      ))}
-    </div>
+    <>
+      {hiddenChoices.length > 0 && (
+        <div style={{ padding: "6px 12px", display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {hiddenChoices.map((c) => (
+            <Badge
+              key={c.id}
+              color={c.color ?? "gray"}
+              variant="outline"
+              style={{ cursor: "pointer" }}
+              onClick={() => handleShowColumn(c.id)}
+              rightSection={<IconPlus size={12} />}
+            >
+              {c.name}
+            </Badge>
+          ))}
+        </div>
+      )}
+      <div className={classes.board}>
+        {columns.map((column) => (
+          <KanbanColumn
+            key={column.key}
+            column={column}
+            primaryProperty={primaryProperty}
+            onCardClick={onCardClick}
+            onAddCard={handleAddCard}
+            onCardDrop={handleCardDrop}
+            onColumnReorder={handleColumnReorder}
+            onHide={handleHideColumn}
+          />
+        ))}
+      </div>
+    </>
   );
 }

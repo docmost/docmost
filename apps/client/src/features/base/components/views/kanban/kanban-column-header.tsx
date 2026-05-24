@@ -1,4 +1,6 @@
-import { Badge, Text } from "@mantine/core";
+import { ActionIcon, Badge, Menu, Text } from "@mantine/core";
+import { IconDots, IconEyeOff } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import {
   useKanbanColumnReorder,
   type ColumnReorderPayload,
@@ -12,6 +14,7 @@ type KanbanColumnHeaderProps = {
   color: string | null;
   count: number;
   onReorderDrop: (payload: ColumnReorderPayload) => void;
+  onHide: (columnKey: string) => void;
 };
 
 export function KanbanColumnHeader({
@@ -20,7 +23,9 @@ export function KanbanColumnHeader({
   color,
   count,
   onReorderDrop,
+  onHide,
 }: KanbanColumnHeaderProps) {
+  const { t } = useTranslation();
   const { ref, isDragging, closestEdge } = useKanbanColumnReorder({
     columnKey,
     onDrop: onReorderDrop,
@@ -43,6 +48,21 @@ export function KanbanColumnHeader({
         )}
         <span className={classes.columnCount}>{count}</span>
       </div>
+      <Menu shadow="md" width={160} position="bottom-end">
+        <Menu.Target>
+          <ActionIcon variant="subtle" size="sm" color="gray">
+            <IconDots size={14} />
+          </ActionIcon>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<IconEyeOff size={14} />}
+            onClick={() => onHide(columnKey)}
+          >
+            {t("Hide group")}
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
       {closestEdge && <BaseDropEdgeIndicator edge={closestEdge} />}
     </div>
   );
