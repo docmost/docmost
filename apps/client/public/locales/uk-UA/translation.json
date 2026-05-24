@@ -1084,5 +1084,21 @@
   "Added {{name}} to favorites": "{{name}} додано до обраного",
   "Removed {{name}} from favorites": "{{name}} видалено з обраного",
   "Page menu for {{name}}": "Меню сторінки для {{name}}",
-  "Create subpage of {{name}}": "Створити підсторінку для {{name}}"
+  "Create subpage of {{name}}": "Створити підсторінку для {{name}}",
+  "Apply": "Apply",
+  "Cells that aren't already a page reference will be cleared.": "Cells that aren't already a page reference will be cleared.",
+  "Cells that can't be parsed as a date will be cleared.": "Cells that can't be parsed as a date will be cleared.",
+  "Cells that can't be parsed as a number will be cleared.": "Cells that can't be parsed as a number will be cleared.",
+  "Cells will be coerced (yes/true/1 become checked; everything else becomes unchecked or cleared).": "Cells will be coerced (yes/true/1 become checked; everything else becomes unchecked or cleared).",
+  "Cells will be reinterpreted under the new type.": "Cells will be reinterpreted under the new type.",
+  "Cells will be replaced with a comma-separated list of file names.": "Cells will be replaced with a comma-separated list of file names.",
+  "Cells will be replaced with a comma-separated list of option names.": "Cells will be replaced with a comma-separated list of option names.",
+  "Cells will be replaced with the option name.": "Cells will be replaced with the option name.",
+  "Cells will be replaced with the page title.": "Cells will be replaced with the page title.",
+  "Cells will be replaced with the person's name.": "Cells will be replaced with the person's name.",
+  "Change type": "Change type",
+  "Change type to {{label}}?": "Change type to {{label}}?",
+  "Converting…": "Converting…",
+  "Existing values become single-item lists. No data is lost.": "Existing values become single-item lists. No data is lost.",
+  "Only the first selected item per row will be kept; the rest will be discarded.": "Only the first selected item per row will be kept; the rest will be discarded."
 }
