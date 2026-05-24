@@ -27,6 +27,20 @@ export const BaseEmbed = Node.create<BaseEmbedOptions>({
     return { HTMLAttributes: {} };
   },
 
+  // prosemirror-dropcursor draws a block-boundary indicator on every
+  // `dragover` it sees. Pragmatic-dnd (used for column / choice reorder
+  // inside the embed) fires native `dragstart`/`dragover`, which bubble
+  // up to the editor and trigger dropcursor — visible as a stray blue
+  // line above or below the embed during an internal drag. The cursor
+  // event lands over the atom node, so dropcursor consults
+  // `disableDropCursor` on this node spec; returning true suppresses
+  // the indicator while still letting pragmatic-dnd handle the drag.
+  extendNodeSchema(extension) {
+    return extension.name === 'baseEmbed'
+      ? { disableDropCursor: true }
+      : {};
+  },
+
   addAttributes() {
     return {
       pageId: {
