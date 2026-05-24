@@ -71,34 +71,6 @@ export function BaseEmbedView({ node }: NodeViewProps) {
     };
   }, [isLoading, isError, pageId]);
 
-  // Isolate the embed's internal drags (column reorder, choice reorder)
-  // from the surrounding ProseMirror editor. Without this, native drag
-  // events bubble up to prosemirror-dropcursor's handleDOMEvents listener,
-  // which then paints its own blue indicator at the embed's node boundary
-  // — visible as a horizontal line above/below the table during a column
-  // drag. Pragmatic-dnd binds its own listeners with `{capture: true}` on
-  // window, so they fire BEFORE bubbling starts; stopping bubble-phase
-  // propagation at the wrapper leaves pragmatic-dnd unaffected while
-  // preventing the editor's listeners from seeing the events.
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const stop = (e: Event) => e.stopPropagation();
-    const events = [
-      "dragstart",
-      "drag",
-      "dragenter",
-      "dragover",
-      "dragleave",
-      "drop",
-      "dragend",
-    ] as const;
-    for (const type of events) wrapper.addEventListener(type, stop);
-    return () => {
-      for (const type of events) wrapper.removeEventListener(type, stop);
-    };
-  }, []);
-
   let content: React.ReactNode;
   if (pendingKey) {
     // Slash command inserted the embed and is awaiting the server's
