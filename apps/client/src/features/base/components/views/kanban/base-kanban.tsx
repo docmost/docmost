@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Badge } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +30,9 @@ type BaseKanbanProps = {
   rows: IBaseRow[];
   effectiveView: IBaseView | undefined;
   onCardClick: (rowId: string) => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  onFetchNextPage: () => void;
 };
 
 export function BaseKanban({
@@ -37,6 +40,9 @@ export function BaseKanban({
   rows,
   effectiveView,
   onCardClick,
+  hasNextPage,
+  isFetchingNextPage,
+  onFetchNextPage,
 }: BaseKanbanProps) {
   const { t } = useTranslation();
   const groupByPropertyId = effectiveView?.config?.groupByPropertyId;
@@ -58,6 +64,7 @@ export function BaseKanban({
   const reorderRowMutation = useReorderRowMutation();
   const sortsActive = (effectiveView?.config?.sorts?.length ?? 0) > 0;
   const boardRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const canScrollBoard = useCallback(
     ({ source }: { source: { data: Record<string, unknown> } }) =>
       source.data.type === "base-kanban-card" ||
@@ -65,6 +72,21 @@ export function BaseKanban({
     [],
   );
   useKanbanAutoScroll(boardRef, canScrollBoard);
+
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    const target = endRef.current;
+    const root = boardRef.current;
+    if (!target || !root) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) onFetchNextPage();
+      },
+      { root, threshold: 0.1 },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, onFetchNextPage]);
 
   // Rules of Hooks: call useKanbanGroups unconditionally with `undefined`
   // when not groupable; switch the render path on isGroupable below.
@@ -276,6 +298,7 @@ export function BaseKanban({
             sortsActive={sortsActive}
           />
         ))}
+        <div ref={endRef} style={{ flex: "0 0 1px" }} aria-hidden />
       </div>
     </>
   );

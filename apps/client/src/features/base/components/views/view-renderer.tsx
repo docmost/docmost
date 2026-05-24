@@ -42,6 +42,9 @@ export function ViewRenderer(props: ViewRendererProps) {
         rows={props.rows}
         effectiveView={props.effectiveView}
         onCardClick={props.onCardClick}
+        hasNextPage={props.hasNextPage}
+        isFetchingNextPage={props.isFetchingNextPage}
+        onFetchNextPage={props.onFetchNextPage}
       />
     );
   }
