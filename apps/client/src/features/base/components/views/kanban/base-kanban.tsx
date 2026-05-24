@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   IBase,
   IBaseRow,
@@ -7,7 +7,15 @@ import {
 } from "@/features/base/types/base.types";
 import { useKanbanGroups } from "@/features/base/hooks/use-kanban-groups";
 import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
-import { useCreateRowMutation } from "@/features/base/queries/base-row-query";
+import {
+  useCreateRowMutation,
+  useReorderRowMutation,
+  useUpdateRowMutation,
+} from "@/features/base/queries/base-row-query";
+import { resolveCardDrop } from "@/features/base/hooks/resolve-card-drop";
+import type { CardDropPayload } from "@/features/base/hooks/use-kanban-card-drag";
+import { triggerPostMoveFlash } from "@atlaskit/pragmatic-drag-and-drop-flourish/trigger-post-move-flash";
+import * as liveRegion from "@atlaskit/pragmatic-drag-and-drop-live-region";
 import { KanbanColumn } from "./kanban-column";
 import { KanbanEmptyState } from "./kanban-empty-state";
 import classes from "@/features/base/styles/kanban.module.css";
@@ -40,6 +48,9 @@ export function BaseKanban({
   const isGroupable = property?.type === "select" || property?.type === "status";
   const updateViewMutation = useUpdateViewMutation();
   const createRowMutation = useCreateRowMutation();
+  const updateRowMutation = useUpdateRowMutation();
+  const reorderRowMutation = useReorderRowMutation();
+  const sortsActive = (effectiveView?.config?.sorts?.length ?? 0) > 0;
 
   // Rules of Hooks: call useKanbanGroups unconditionally with `undefined`
   // when not groupable; switch the render path on isGroupable below.
@@ -58,6 +69,60 @@ export function BaseKanban({
       config: { ...effectiveView.config, groupByPropertyId: propertyId },
     });
   };
+
+  const handleCardDrop = useCallback(
+    (payload: CardDropPayload) => {
+      if (!groupByPropertyId) return;
+      const targetColumn = columns.find((c) => c.key === payload.targetColumnKey);
+      // The drop target restricts allowedEdges to ["top","bottom"], so the
+      // runtime value is always assignable; narrow the broader Edge union.
+      const edge =
+        payload.edge === "top" || payload.edge === "bottom"
+          ? payload.edge
+          : null;
+      const result = resolveCardDrop({
+        draggedCardId: payload.draggedCardId,
+        targetCardId: payload.targetCardId,
+        edge,
+        sourceColumnKey: payload.sourceColumnKey,
+        targetColumnKey: payload.targetColumnKey,
+        groupByPropertyId,
+        columnRows: targetColumn?.rows ?? [],
+        sortsActive,
+      });
+
+      if (result.cells !== undefined) {
+        updateRowMutation.mutate({
+          rowId: payload.draggedCardId,
+          pageId: base.id,
+          cells: result.cells,
+          ...(result.position !== undefined && { position: result.position }),
+        });
+      } else if (result.position !== undefined) {
+        reorderRowMutation.mutate({
+          rowId: payload.draggedCardId,
+          pageId: base.id,
+          position: result.position,
+        });
+      }
+
+      // a11y + post-move flash on the dropped card (if still in DOM).
+      const el = document.querySelector(
+        `[data-row-id="${payload.draggedCardId}"]`,
+      );
+      if (el instanceof HTMLElement) triggerPostMoveFlash(el);
+      const colName = targetColumn?.name ?? "column";
+      liveRegion.announce(`Moved card to ${colName}`);
+    },
+    [
+      base.id,
+      columns,
+      groupByPropertyId,
+      reorderRowMutation,
+      sortsActive,
+      updateRowMutation,
+    ],
+  );
 
   const handleAddCard = (columnKey: string) => {
     if (!groupByPropertyId) return;
@@ -87,6 +152,7 @@ export function BaseKanban({
           primaryProperty={primaryProperty}
           onCardClick={onCardClick}
           onAddCard={handleAddCard}
+          onCardDrop={handleCardDrop}
         />
       ))}
     </div>
