@@ -36,6 +36,16 @@ export function useKanbanColumnReorder({
     return combine(
       draggable({
         element: el,
+        canDrag: ({ input }) => {
+          // Don't start a drag when the user is interacting with a marked
+          // "no-drag" subtree (e.g. the column header's menu trigger).
+          const target = document.elementFromPoint(
+            input.clientX,
+            input.clientY,
+          ) as HTMLElement | null;
+          if (target?.closest("[data-no-drag]")) return false;
+          return true;
+        },
         getInitialData: () => ({ type: "base-kanban-column", columnKey }),
         onDragStart: () => setIsDragging(true),
         onDrop: () => setIsDragging(false),

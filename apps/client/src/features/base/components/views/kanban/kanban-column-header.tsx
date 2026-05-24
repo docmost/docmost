@@ -50,7 +50,7 @@ export function KanbanColumnHeader({
       </div>
       <Menu shadow="md" width={160} position="bottom-end">
         <Menu.Target>
-          <ActionIcon variant="subtle" size="sm" color="gray">
+          <ActionIcon variant="subtle" size="sm" color="gray" data-no-drag>
             <IconDots size={14} />
           </ActionIcon>
         </Menu.Target>

@@ -91,3 +91,14 @@
   font-size: var(--mantine-font-size-xs);
   color: var(--mantine-color-dimmed);
 }
+
+.hiddenStrip {
+  padding: 6px 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hiddenChip {
+  cursor: pointer;
+}

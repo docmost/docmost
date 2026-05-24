@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Badge } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import {
   IBase,
   IBaseRow,
@@ -36,6 +37,7 @@ export function BaseKanban({
   effectiveView,
   onCardClick,
 }: BaseKanbanProps) {
+  const { t } = useTranslation();
   const groupByPropertyId = effectiveView?.config?.groupByPropertyId;
   const property = useMemo(
     () =>
@@ -211,13 +213,13 @@ export function BaseKanban({
     return hiddenIds
       .map((id) =>
         id === NO_VALUE_CHOICE_ID
-          ? { id, name: "No value", color: null as string | null }
+          ? { id, name: t("No value"), color: null as string | null }
           : byId.get(id)
             ? { id, name: byId.get(id)!.name, color: byId.get(id)!.color as string | null }
             : null,
       )
       .filter((c): c is { id: string; name: string; color: string | null } => c !== null);
-  }, [hiddenIds, isGroupable, property]);
+  }, [hiddenIds, isGroupable, property, t]);
 
   if (!isGroupable) {
     return <KanbanEmptyState base={base} onPick={handlePickProperty} />;
@@ -226,13 +228,13 @@ export function BaseKanban({
   return (
     <>
       {hiddenChoices.length > 0 && (
-        <div style={{ padding: "6px 12px", display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className={classes.hiddenStrip}>
           {hiddenChoices.map((c) => (
             <Badge
               key={c.id}
               color={c.color ?? "gray"}
               variant="outline"
-              style={{ cursor: "pointer" }}
+              className={classes.hiddenChip}
               onClick={() => handleShowColumn(c.id)}
               rightSection={<IconPlus size={12} />}
             >
