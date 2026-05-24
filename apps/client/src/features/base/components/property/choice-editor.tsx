@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from "react";
 import {
   TextInput,
   Group,
@@ -16,22 +16,21 @@ import {
   IconGripVertical,
   IconArrowsSort,
 } from "@tabler/icons-react";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
+  draggable,
+  dropTargetForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { CSS } from "@dnd-kit/utilities";
+  attachClosestEdge,
+  extractClosestEdge,
+  type Edge,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { getReorderDestinationIndex } from "@atlaskit/pragmatic-drag-and-drop-hitbox/util/get-reorder-destination-index";
+import { reorder } from "@atlaskit/pragmatic-drag-and-drop/reorder";
+import { triggerPostMoveFlash } from "@atlaskit/pragmatic-drag-and-drop-flourish/trigger-post-move-flash";
+import * as liveRegion from "@atlaskit/pragmatic-drag-and-drop-live-region";
+import { BaseDropEdgeIndicator } from "@/features/base/components/grid/base-drop-edge-indicator";
 import { Choice } from "@/features/base/types/base.types";
 import { choiceColor } from "@/features/base/components/cells/choice-color";
 import { useTranslation } from "react-i18next";
@@ -143,23 +142,44 @@ export function ChoiceEditor({
     onClose();
   }, [initialChoices, onDirtyChange, onClose]);
 
-  const handleReorder = useCallback((activeId: string, overId: string) => {
-    setDraft((prev) => {
-      const oldIndex = prev.findIndex((c) => c.id === activeId);
-      const newIndex = prev.findIndex((c) => c.id === overId);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      return arrayMove(prev, oldIndex, newIndex);
-    });
-  }, []);
+  const handleReorder = useCallback(
+    (activeId: string, targetId: string, edge: Edge) => {
+      setDraft((prev) => {
+        const startIndex = prev.findIndex((c) => c.id === activeId);
+        const indexOfTarget = prev.findIndex((c) => c.id === targetId);
+        if (startIndex === -1 || indexOfTarget === -1) return prev;
+        const finishIndex = getReorderDestinationIndex({
+          startIndex,
+          indexOfTarget,
+          closestEdgeOfTarget: edge,
+          axis: "vertical",
+        });
+        if (finishIndex === startIndex) return prev;
+        return reorder({ list: prev, startIndex, finishIndex });
+      });
+    },
+    [],
+  );
 
   const handleCategoryReorder = useCallback(
-    (category: string, activeId: string, overId: string) => {
+    (category: string, activeId: string, targetId: string, edge: Edge) => {
       setDraft((prev) => {
         const catChoices = prev.filter((c) => (c.category ?? "todo") === category);
-        const oldIndex = catChoices.findIndex((c) => c.id === activeId);
-        const newIndex = catChoices.findIndex((c) => c.id === overId);
-        if (oldIndex === -1 || newIndex === -1) return prev;
-        const reordered = arrayMove(catChoices, oldIndex, newIndex);
+        const startIndex = catChoices.findIndex((c) => c.id === activeId);
+        const indexOfTarget = catChoices.findIndex((c) => c.id === targetId);
+        if (startIndex === -1 || indexOfTarget === -1) return prev;
+        const finishIndex = getReorderDestinationIndex({
+          startIndex,
+          indexOfTarget,
+          closestEdgeOfTarget: edge,
+          axis: "vertical",
+        });
+        if (finishIndex === startIndex) return prev;
+        const reordered = reorder({
+          list: catChoices,
+          startIndex,
+          finishIndex,
+        });
         const result: Choice[] = [];
         for (const cat of ["todo", "inProgress", "complete"]) {
           if (cat === category) {
@@ -245,48 +265,25 @@ function FlatChoiceList({
   onColorChange: (id: string, color: string) => void;
   onRemove: (id: string) => void;
   onAdd: () => void;
-  onReorder: (activeId: string, overId: string) => void;
+  onReorder: (activeId: string, targetId: string, edge: Edge) => void;
 }) {
   const { t } = useTranslation();
-  const choiceIds = useMemo(() => draft.map((c) => c.id), [draft]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-      onReorder(active.id as string, over.id as string);
-    },
-    [onReorder],
-  );
-
-  const modifiers = useMemo(() => [restrictToVerticalAxis], []);
 
   return (
     <Stack gap={4}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={modifiers}
-      >
-        <SortableContext items={choiceIds} strategy={verticalListSortingStrategy}>
-          {draft.map((choice) => (
-            <SortableChoiceRow
-              key={choice.id}
-              choice={choice}
-              autoFocus={choice.id === focusChoiceId}
-              onFocused={onFocused}
-              onRename={onRename}
-              onColorChange={onColorChange}
-              onRemove={onRemove}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+      {draft.map((choice) => (
+        <SortableChoiceRow
+          key={choice.id}
+          choice={choice}
+          dragType="base-choice-flat"
+          autoFocus={choice.id === focusChoiceId}
+          onFocused={onFocused}
+          onRename={onRename}
+          onColorChange={onColorChange}
+          onRemove={onRemove}
+          onReorder={onReorder}
+        />
+      ))}
 
       <UnstyledButton
         onClick={() => onAdd()}
@@ -316,7 +313,7 @@ function StatusChoiceList({
   onColorChange: (id: string, color: string) => void;
   onRemove: (id: string) => void;
   onAdd: (category: "todo" | "inProgress" | "complete") => void;
-  onCategoryReorder: (category: string, activeId: string, overId: string) => void;
+  onCategoryReorder: (category: string, activeId: string, targetId: string, edge: Edge) => void;
 }) {
   const grouped = useMemo(() => {
     const groups: Record<string, Choice[]> = { todo: [], inProgress: [], complete: [] };
@@ -369,25 +366,21 @@ function CategorySection({
   onColorChange: (id: string, color: string) => void;
   onRemove: (id: string) => void;
   onAdd: (category: "todo" | "inProgress" | "complete") => void;
-  onReorder: (category: string, activeId: string, overId: string) => void;
+  onReorder: (
+    category: string,
+    activeId: string,
+    targetId: string,
+    edge: Edge,
+  ) => void;
 }) {
   const { t } = useTranslation();
-  const choiceIds = useMemo(() => choices.map((c) => c.id), [choices]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-      onReorder(category, active.id as string, over.id as string);
+  const handleRowReorder = useCallback(
+    (activeId: string, targetId: string, edge: Edge) => {
+      onReorder(category, activeId, targetId, edge);
     },
     [category, onReorder],
   );
-
-  const modifiers = useMemo(() => [restrictToVerticalAxis], []);
 
   return (
     <Stack gap={4}>
@@ -395,26 +388,23 @@ function CategorySection({
         {t(label)}
       </Text>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={modifiers}
-      >
-        <SortableContext items={choiceIds} strategy={verticalListSortingStrategy}>
-          {choices.map((choice) => (
-            <SortableChoiceRow
-              key={choice.id}
-              choice={choice}
-              autoFocus={choice.id === focusChoiceId}
-              onFocused={onFocused}
-              onRename={onRename}
-              onColorChange={onColorChange}
-              onRemove={onRemove}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+      {choices.map((choice) => (
+        <SortableChoiceRow
+          key={choice.id}
+          choice={choice}
+          // Per-category drag type isolates drops to within the same category.
+          // A drag started in "Todo" reports type "base-choice-status:todo";
+          // an "In Progress" row's canDrop matches against its own
+          // "base-choice-status:inProgress" type and rejects.
+          dragType={`base-choice-status:${category}`}
+          autoFocus={choice.id === focusChoiceId}
+          onFocused={onFocused}
+          onRename={onRename}
+          onColorChange={onColorChange}
+          onRemove={onRemove}
+          onReorder={handleRowReorder}
+        />
+      ))}
 
       <UnstyledButton
         onClick={() => onAdd(category)}
@@ -429,28 +419,37 @@ function CategorySection({
 
 function SortableChoiceRow({
   choice,
+  dragType,
   autoFocus,
   onFocused,
   onRename,
   onColorChange,
   onRemove,
+  onReorder,
 }: {
   choice: Choice;
+  dragType: string;
   autoFocus?: boolean;
   onFocused?: () => void;
   onRename: (id: string, name: string) => void;
   onColorChange: (id: string, color: string) => void;
   onRemove: (id: string) => void;
+  onReorder: (activeId: string, targetId: string, edge: Edge) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: choice.id });
+  const rowRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
+
+  // Same rationale as grid-header-cell: keep `onReorder` out of the DnD
+  // effect's deps so we don't tear down the adapter when the parent
+  // re-renders with a new closure.
+  const onReorderRef = useRef(onReorder);
+  useLayoutEffect(() => {
+    onReorderRef.current = onReorder;
+  });
 
   useEffect(() => {
     if (autoFocus) {
@@ -459,20 +458,65 @@ function SortableChoiceRow({
     }
   }, [autoFocus, onFocused]);
 
-  const style = {
-    transform: CSS.Transform.toString(transform ? { ...transform, scaleX: 1, scaleY: 1 } : null),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 10 : undefined,
-  };
+  useEffect(() => {
+    const row = rowRef.current;
+    const handle = handleRef.current;
+    if (!row || !handle) return;
+    return combine(
+      draggable({
+        element: row,
+        // Only the grip icon initiates the drag (preserves text-input clicks
+        // and close-button clicks). The native preview is still derived from
+        // `element` (the full row).
+        dragHandle: handle,
+        getInitialData: () => ({ type: dragType, choiceId: choice.id }),
+        onDragStart: () => setIsDragging(true),
+        onDrop: () => setIsDragging(false),
+      }),
+      dropTargetForElements({
+        element: row,
+        canDrop: ({ source }) =>
+          source.data.type === dragType &&
+          source.data.choiceId !== choice.id,
+        getData: ({ input, element }) =>
+          attachClosestEdge(
+            { choiceId: choice.id },
+            { input, element, allowedEdges: ["top", "bottom"] },
+          ),
+        onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+        onDragLeave: () => setClosestEdge(null),
+        onDrop: ({ source, self }) => {
+          setClosestEdge(null);
+          const edge = extractClosestEdge(self.data);
+          if (!edge) return;
+          onReorderRef.current(
+            source.data.choiceId as string,
+            choice.id,
+            edge,
+          );
+          triggerPostMoveFlash(row);
+          liveRegion.announce("Moved option");
+        },
+      }),
+    );
+  }, [choice.id, dragType]);
 
   const hasError = !choice.name.trim();
 
   return (
-    <Group ref={setNodeRef} style={style} gap={6} wrap="nowrap" align="center">
+    <Group
+      ref={rowRef}
+      gap={6}
+      wrap="nowrap"
+      align="center"
+      style={{
+        position: "relative",
+        opacity: isDragging ? 0.4 : 1,
+      }}
+      data-dragging={isDragging || undefined}
+    >
       <div
-        {...attributes}
-        {...listeners}
+        ref={handleRef}
         style={{ flexShrink: 0, cursor: "grab", display: "flex", alignItems: "center" }}
       >
         <IconGripVertical size={14} style={{ opacity: 0.4 }} />
@@ -488,6 +532,7 @@ function SortableChoiceRow({
         styles={hasError ? { input: { borderColor: "var(--mantine-color-red-6)" } } : undefined}
       />
       <CloseButton size="sm" onClick={() => onRemove(choice.id)} />
+      {closestEdge && <BaseDropEdgeIndicator edge={closestEdge} />}
     </Group>
   );
 }
