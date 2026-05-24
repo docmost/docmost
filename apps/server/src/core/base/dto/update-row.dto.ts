@@ -27,6 +27,11 @@ export class UpdateRowDto {
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
   requestId?: string;
 }
 

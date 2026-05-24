@@ -150,6 +150,9 @@ export function useUpdateRowMutation() {
                   ? {
                       ...row,
                       cells: { ...row.cells, ...variables.cells },
+                      ...(variables.position !== undefined && {
+                        position: variables.position,
+                      }),
                     }
                   : row,
               ),

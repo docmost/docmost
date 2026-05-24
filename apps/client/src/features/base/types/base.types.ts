@@ -272,6 +272,7 @@ export type UpdateRowInput = {
   rowId: string;
   pageId: string;
   cells: Record<string, unknown>;
+  position?: string;
   requestId?: string;
 };
 

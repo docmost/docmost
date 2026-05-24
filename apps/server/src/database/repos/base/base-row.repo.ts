@@ -275,6 +275,7 @@ export class BaseRowRepo {
       pageId: string;
       workspaceId: string;
       actorId?: string;
+      position?: string;
       trx?: KyselyTransaction;
     },
   ): Promise<BaseRow | undefined> {
@@ -287,6 +288,7 @@ export class BaseRowRepo {
       .updateTable('baseRows')
       .set({
         cells: sql`jsonb_set_many(cells, ${patchJson}::text::jsonb)`,
+        ...(opts.position !== undefined && { position: opts.position }),
         updatedAt: new Date(),
         lastUpdatedById: opts.actorId ?? null,
       })

@@ -135,6 +135,15 @@ export class BaseRowService {
     const properties = await this.basePropertyRepo.findByPageId(dto.pageId);
     const validatedCells = this.validateCells(dto.cells, properties);
 
+    // Smoke-check the position (same guard as `reorder`).
+    if (dto.position !== undefined) {
+      try {
+        generateJitteredKeyBetween(dto.position, null);
+      } catch {
+        throw new BadRequestException('Invalid position value');
+      }
+    }
+
     const existing = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
     const mergedRow = {
       ...((existing?.cells as Record<string, unknown>) ?? {}),
@@ -154,6 +163,7 @@ export class BaseRowService {
         pageId: dto.pageId,
         workspaceId,
         actorId: userId,
+        position: dto.position,
       },
     );
 
