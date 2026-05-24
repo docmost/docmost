@@ -44,6 +44,16 @@ describe("partitionRowsByGroup", () => {
     expect(result.columns.map((c) => c.key)).toEqual([NO_VALUE_CHOICE_ID, "c1"]);
   });
 
+  it("hides the NO_VALUE column when hiddenChoiceIds includes the sentinel", () => {
+    const result = partitionRowsByGroup(
+      rows,
+      property,
+      [NO_VALUE_CHOICE_ID],
+      undefined,
+    );
+    expect(result.columns.map((c) => c.key)).toEqual(["c1", "c2"]);
+  });
+
   it("respects an override choiceOrder", () => {
     const result = partitionRowsByGroup(
       rows,
@@ -79,7 +89,14 @@ describe("partitionRowsByGroup", () => {
       undefined,
       ["c1", "deleted-choice", "c2"],
     );
-    expect(result.columns.map((c) => c.key)).toEqual(["c1", "c2"]);
+    // 'deleted-choice' is filtered out as stale. NO_VALUE is auto-appended
+    // (it's never in the property's choices but always rendered unless
+    // explicitly hidden via hiddenChoiceIds).
+    expect(result.columns.map((c) => c.key)).toEqual([
+      "c1",
+      "c2",
+      NO_VALUE_CHOICE_ID,
+    ]);
   });
 
   it("returns null columns when groupByPropertyId is unset", () => {

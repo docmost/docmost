@@ -55,19 +55,18 @@ export function partitionRowsByGroup(
     const valid = new Set<string>([...propertyChoiceIds, NO_VALUE_CHOICE_ID]);
     const fromOverride = choiceOrderOverride.filter((id) => valid.has(id));
     const overrideSet = new Set(fromOverride);
+    // Always include NO_VALUE somewhere (sentinel for rows with no
+    // grouping value). If the user listed it in the override, respect
+    // that position; otherwise append it after the override entries.
+    const noValueTail = overrideSet.has(NO_VALUE_CHOICE_ID)
+      ? []
+      : [NO_VALUE_CHOICE_ID];
+    // Append any property choices the user hasn't placed yet (new
+    // choices added to the property after this view was saved).
     const missingChoices = propertyChoiceIds.filter(
       (id) => !overrideSet.has(id),
     );
-    // Only inject NO_VALUE implicitly when there are newly-discovered choices
-    // to append — when the override fully covers the current property, leave
-    // NO_VALUE off unless the user listed it explicitly.
-    const tail =
-      missingChoices.length > 0
-        ? overrideSet.has(NO_VALUE_CHOICE_ID)
-          ? missingChoices
-          : [NO_VALUE_CHOICE_ID, ...missingChoices]
-        : [];
-    order = [...fromOverride, ...tail];
+    order = [...fromOverride, ...noValueTail, ...missingChoices];
   } else {
     order = [NO_VALUE_CHOICE_ID, ...propertyChoiceIds];
   }
