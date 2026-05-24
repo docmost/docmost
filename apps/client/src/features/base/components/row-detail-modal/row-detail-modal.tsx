@@ -6,6 +6,7 @@ import {
   IBaseRow,
 } from "@/features/base/types/base.types";
 import { useUpdateRowMutation } from "@/features/base/queries/base-row-query";
+import { CreatePropertyPopover } from "@/features/base/components/property/create-property-popover";
 import { RowDetailTitle } from "./row-detail-title";
 import { PropertyRow } from "./property-row";
 
@@ -80,7 +81,14 @@ export function RowDetailModal({
                 }}
               />
             ))}
-          {/* Add-property button goes here in Task 20 */}
+          <CreatePropertyPopover
+            pageId={base.id}
+            properties={base.properties}
+            onPropertyCreated={() => {
+              // The base query invalidates on success — the new property will
+              // appear as a new <PropertyRow /> on next render. Nothing else to do.
+            }}
+          />
         </Stack>
       ) : (
         <Text c="dimmed">{t("Loading…")}</Text>
