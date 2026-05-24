@@ -1087,6 +1087,8 @@
   "Create subpage of {{name}}": "Create subpage of {{name}}",
   "Apply": "Apply",
   "Cells that aren't already a page reference will be cleared.": "Cells that aren't already a page reference will be cleared.",
+  "Cells that aren't a valid URL will be cleared.": "Cells that aren't a valid URL will be cleared.",
+  "Cells that aren't a valid email address will be cleared.": "Cells that aren't a valid email address will be cleared.",
   "Cells that can't be parsed as a date will be cleared.": "Cells that can't be parsed as a date will be cleared.",
   "Cells that can't be parsed as a number will be cleared.": "Cells that can't be parsed as a number will be cleared.",
   "Cells will be coerced (yes/true/1 become checked; everything else becomes unchecked or cleared).": "Cells will be coerced (yes/true/1 become checked; everything else becomes unchecked or cleared).",

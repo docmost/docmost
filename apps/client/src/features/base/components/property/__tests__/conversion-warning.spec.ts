@@ -79,9 +79,15 @@ describe("conversionWarning", () => {
     );
   });
 
-  it("returns the default safe copy for text → url", () => {
+  it("returns url-cleared copy when target is url", () => {
     expect(conversionWarning("text", "url")).toBe(
-      "Cells will be reinterpreted under the new type.",
+      "Cells that aren't a valid URL will be cleared.",
+    );
+  });
+
+  it("returns email-cleared copy when target is email", () => {
+    expect(conversionWarning("text", "email")).toBe(
+      "Cells that aren't a valid email address will be cleared.",
     );
   });
 
