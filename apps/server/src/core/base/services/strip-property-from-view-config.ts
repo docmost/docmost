@@ -53,5 +53,29 @@ export function stripPropertyFromViewConfig(
     delete next.choiceOrder;
   }
 
+  if (config.visiblePropertyIds) {
+    const kept = config.visiblePropertyIds.filter((id) => id !== propertyId);
+    if (kept.length > 0) next.visiblePropertyIds = kept;
+    else delete next.visiblePropertyIds;
+  }
+
+  if (config.hiddenPropertyIds) {
+    const kept = config.hiddenPropertyIds.filter((id) => id !== propertyId);
+    if (kept.length > 0) next.hiddenPropertyIds = kept;
+    else delete next.hiddenPropertyIds;
+  }
+
+  if (config.propertyOrder) {
+    const kept = config.propertyOrder.filter((id) => id !== propertyId);
+    if (kept.length > 0) next.propertyOrder = kept;
+    else delete next.propertyOrder;
+  }
+
+  if (config.propertyWidths && propertyId in config.propertyWidths) {
+    const { [propertyId]: _removed, ...rest } = config.propertyWidths;
+    if (Object.keys(rest).length > 0) next.propertyWidths = rest;
+    else delete next.propertyWidths;
+  }
+
   return next as ViewConfig;
 }

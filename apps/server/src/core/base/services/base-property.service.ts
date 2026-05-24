@@ -30,6 +30,7 @@ import {
   parseTypeOptions,
   validateTypeOptions,
   isSystemPropertyType,
+  ViewConfig,
 } from '../base.schemas';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
@@ -534,21 +535,17 @@ export class BasePropertyService {
         trx,
       });
       for (const view of views) {
-        const before = (view.config ?? {}) as Record<string, unknown>;
         const next = stripPropertyFromViewConfig(
-          view.config as any,
+          view.config as ViewConfig,
           dto.propertyId,
         );
-        const after = next as Record<string, unknown>;
-        if (
-          Object.keys(before).length === Object.keys(after).length &&
-          Object.keys(before).every((k) => k in after) &&
-          JSON.stringify(before) === JSON.stringify(after)
-        ) {
+        if (JSON.stringify(view.config ?? {}) === JSON.stringify(next)) {
           continue;
         }
         await this.baseViewRepo.updateView(
           view.id,
+          // `config` column is typed `Json` by Kysely; ViewConfig is a Zod
+          // inferred shape that isn't structurally assignable to `Json`.
           { config: next as any },
           { workspaceId, trx },
         );
@@ -582,6 +579,11 @@ export class BasePropertyService {
         `Enqueue of cell-gc failed for property ${dto.propertyId}; reverting soft-delete`,
         err as Error,
       );
+      // Best-effort revert: restores `deletedAt: null` on the property. The
+      // view-config cleanup and schema-bump that ran inside the earlier
+      // `executeTx` are NOT reverted — restoring those would require capturing
+      // the original configs before the transaction. Rare path (queue down);
+      // acceptable today.
       try {
         await this.basePropertyRepo.updateProperty(dto.propertyId, {
           deletedAt: null,
