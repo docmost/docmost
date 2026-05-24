@@ -614,3 +614,41 @@
   background: rgba(255, 255, 255, 0.08);
   color: var(--mantine-color-white);
 }
+
+.dropEdgeLine {
+  position: absolute;
+  background: light-dark(
+    var(--mantine-color-blue-5),
+    var(--mantine-color-blue-4)
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.dropEdgeLine[data-edge="left"] {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+}
+
+.dropEdgeLine[data-edge="right"] {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+}
+
+.dropEdgeLine[data-edge="top"] {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+}
+
+.dropEdgeLine[data-edge="bottom"] {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+}
