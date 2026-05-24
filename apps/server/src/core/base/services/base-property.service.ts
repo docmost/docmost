@@ -16,6 +16,8 @@ import { executeTx } from '@docmost/db/utils';
 import { BasePropertyRepo } from '@docmost/db/repos/base/base-property.repo';
 import { BaseRowRepo } from '@docmost/db/repos/base/base-row.repo';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
+import { BaseViewRepo } from '@docmost/db/repos/base/base-view.repo';
+import { stripPropertyFromViewConfig } from './strip-property-from-view-config';
 import { CreatePropertyDto } from '../dto/create-property.dto';
 import {
   UpdatePropertyDto,
@@ -42,6 +44,7 @@ import {
   BasePropertyReorderedEvent,
   BasePropertyUpdatedEvent,
   BaseSchemaBumpedEvent,
+  BaseViewUpdatedEvent,
 } from '../events/base-events';
 import { processBaseTypeConversion } from '../tasks/base-type-conversion.task';
 import { FormulaService } from '../formula/formula.service';
@@ -67,6 +70,7 @@ export class BasePropertyService {
     private readonly basePropertyRepo: BasePropertyRepo,
     private readonly baseRowRepo: BaseRowRepo,
     private readonly baseRepo: BaseRepo,
+    private readonly baseViewRepo: BaseViewRepo,
     @InjectQueue(QueueName.BASE_QUEUE) private readonly baseQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
     private readonly formulaService: FormulaService,
@@ -517,10 +521,54 @@ export class BasePropertyService {
     // Soft-delete so queries filter the property out immediately, then
     // enqueue cell-gc to scrub cell keys and hard-delete. If the enqueue
     // fails, revert the soft-delete so the property isn't orphaned.
+    // In the same transaction, strip the deleted property's id out of
+    // every view's config (sorts, filters, groupBy) so views don't render
+    // dangling references after the delete commits.
+    const updatedViewIds: string[] = [];
     await executeTx(this.db, async (trx) => {
       await this.basePropertyRepo.softDelete(dto.propertyId, trx);
       await this.baseRepo.bumpSchemaVersion(dto.pageId, trx);
+
+      const views = await this.baseViewRepo.findByPageId(dto.pageId, {
+        workspaceId,
+        trx,
+      });
+      for (const view of views) {
+        const before = (view.config ?? {}) as Record<string, unknown>;
+        const next = stripPropertyFromViewConfig(
+          view.config as any,
+          dto.propertyId,
+        );
+        const after = next as Record<string, unknown>;
+        if (
+          Object.keys(before).length === Object.keys(after).length &&
+          Object.keys(before).every((k) => k in after) &&
+          JSON.stringify(before) === JSON.stringify(after)
+        ) {
+          continue;
+        }
+        await this.baseViewRepo.updateView(
+          view.id,
+          { config: next as any },
+          { workspaceId, trx },
+        );
+        updatedViewIds.push(view.id);
+      }
     });
+
+    for (const viewId of updatedViewIds) {
+      const fresh = await this.baseViewRepo.findById(viewId, { workspaceId });
+      if (fresh) {
+        const event: BaseViewUpdatedEvent = {
+          pageId: dto.pageId,
+          workspaceId,
+          actorId: actorId ?? null,
+          requestId: dto.requestId ?? null,
+          view: fresh,
+        };
+        this.eventEmitter.emit(EventName.BASE_VIEW_UPDATED, event);
+      }
+    }
 
     const payload: IBaseCellGcJob = {
       pageId: dto.pageId,
