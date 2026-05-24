@@ -80,8 +80,12 @@ export function resolveCardDrop(
   try {
     position = generateJitteredKeyBetween(lower, upper);
   } catch {
-    // Identical keys (rare; happens when two rows briefly share a position
-    // during a concurrent edit). Fall back to insert-after-lower.
+    // Throws whenever `lower >= upper` (the row ordering in `columnRows`
+    // briefly diverged from position ordering — typically during a
+    // concurrent reorder). Fall back to insert-after-lower. The card lands
+    // at the end of the column rather than at the dropped slot; surprising
+    // but better than rejecting the drop. The reconciliation arrives via
+    // the realtime patch.
     position = generateJitteredKeyBetween(lower, null);
   }
   return { cells, position };

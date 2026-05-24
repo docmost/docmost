@@ -1,8 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 
+let throwOnNextCall = false;
 vi.mock("fractional-indexing-jittered", () => ({
-  generateJitteredKeyBetween: (a: string | null, b: string | null) =>
-    `${a ?? "START"}|${b ?? "END"}`,
+  generateJitteredKeyBetween: (a: string | null, b: string | null) => {
+    if (throwOnNextCall) {
+      throwOnNextCall = false;
+      throw new Error("lower >= upper");
+    }
+    return `${a ?? "START"}|${b ?? "END"}`;
+  },
 }));
 
 import { resolveCardDrop } from "../resolve-card-drop";
@@ -104,5 +110,23 @@ describe("resolveCardDrop", () => {
     });
     expect(result.cells).toBeUndefined();
     expect(result.position).toBeUndefined();
+  });
+
+  it("falls back to append-after-lower when generateJitteredKeyBetween throws", () => {
+    throwOnNextCall = true;
+    const result = resolveCardDrop({
+      draggedCardId: "r1",
+      targetCardId: "r2",
+      edge: "top",
+      sourceColumnKey: "c1",
+      targetColumnKey: "c1",
+      groupByPropertyId: "prop-status",
+      columnRows: [mkRow("r2", "b"), mkRow("r3", "d")],
+      sortsActive: false,
+    });
+    // First call (lower=null, upper="b") threw → second call (lower=null,
+    // upper=null) succeeds. The mock returns "START|END" in that case.
+    expect(result.cells).toBeUndefined();
+    expect(result.position).toBe("START|END");
   });
 });
