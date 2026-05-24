@@ -62,6 +62,16 @@ export function useUpdatePropertyMutation() {
           };
         },
       );
+
+      // Path 1 (no rewrite) and Path 2 (inline rewrite): the HTTP
+      // response is the "cells migrated" signal — refetch row pages now.
+      // Path 3 sets `jobId`; we wait for the `base:schema:bumped` socket
+      // event instead so we don't churn pages with mid-conversion data.
+      if (variables.type && !result.jobId) {
+        queryClient.invalidateQueries({
+          queryKey: ["base-rows", variables.pageId],
+        });
+      }
     },
     onError: () => {
       notifications.show({
