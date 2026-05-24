@@ -9,6 +9,7 @@ import {
   ActionIcon,
   Divider,
   ScrollArea,
+  Loader,
 } from "@mantine/core";
 import {
   IconTrash,
@@ -16,15 +17,22 @@ import {
   IconChevronRight,
   IconSettings,
 } from "@tabler/icons-react";
-import { IBaseProperty } from "@/features/base/types/base.types";
+import {
+  IBaseProperty,
+  BasePropertyType,
+} from "@/features/base/types/base.types";
 import { useAtom } from "jotai";
 import { propertyMenuCloseRequestAtomFamily } from "@/features/base/atoms/base-atoms";
 import {
   useUpdatePropertyMutation,
   useDeletePropertyMutation,
 } from "@/features/base/queries/base-property-query";
-import { propertyTypes } from "./property-type-picker";
+import { PropertyTypePicker, propertyTypes } from "./property-type-picker";
 import { PropertyOptions } from "./property-options";
+import {
+  conversionWarning,
+  NON_USER_TARGET_TYPES,
+} from "./conversion-warning";
 import { useTranslation } from "react-i18next";
 import { isSystemPropertyType } from "@/features/base/hooks/use-base-table";
 import cellClasses from "@/features/base/styles/cells.module.css";
@@ -37,7 +45,14 @@ type PropertyMenuContentProps = {
   pageId: string;
 };
 
-type MenuPanel = "main" | "rename" | "options" | "confirmDelete" | "confirmDiscard";
+type MenuPanel =
+  | "main"
+  | "rename"
+  | "options"
+  | "changeType"
+  | "confirmTypeChange"
+  | "confirmDelete"
+  | "confirmDiscard";
 
 export function PropertyMenuContent({
   property,
@@ -51,6 +66,7 @@ export function PropertyMenuContent({
   const [renameValue, setRenameValue] = useState(property.name);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [optionsDirty, setOptionsDirty] = useState(false);
+  const [pendingTargetType, setPendingTargetType] = useState<BasePropertyType | null>(null);
   const pendingActionRef = useRef<"back" | "close" | null>(null);
   const sourcePanelRef = useRef<"rename" | "options" | null>(null);
   const [closeRequest] = useAtom(propertyMenuCloseRequestAtomFamily(pageId)) as unknown as [number];
@@ -66,6 +82,7 @@ export function PropertyMenuContent({
       setPanel("main");
       setRenameValue(property.name);
       setOptionsDirty(false);
+      setPendingTargetType(null);
     }
   }, [opened, property.name]);
 
@@ -148,6 +165,35 @@ export function PropertyMenuContent({
     [property, updatePropertyMutation],
   );
 
+  const handleTypeSelect = useCallback(
+    (type: BasePropertyType) => {
+      if (type === property.type) {
+        onClose();
+        return;
+      }
+      setPendingTargetType(type);
+      setPanel("confirmTypeChange");
+    },
+    [property.type, onClose],
+  );
+
+  const handleApplyTypeChange = useCallback(() => {
+    if (!pendingTargetType) return;
+    updatePropertyMutation.mutate({
+      propertyId: property.id,
+      pageId: property.pageId,
+      type: pendingTargetType,
+      typeOptions: {},
+    });
+    onClose();
+  }, [
+    pendingTargetType,
+    property.id,
+    property.pageId,
+    updatePropertyMutation,
+    onClose,
+  ]);
+
   const handleDelete = useCallback(() => {
     deletePropertyMutation.mutate({
       propertyId: property.id,
@@ -201,6 +247,7 @@ export function PropertyMenuContent({
         <MainPanel
           property={property}
           onRename={() => setPanel("rename")}
+          onChangeType={() => setPanel("changeType")}
           onOptions={() => setPanel("options")}
           onDelete={() => setPanel("confirmDelete")}
         />
@@ -228,6 +275,61 @@ export function PropertyMenuContent({
               disabled={!renameValue.trim() || renameValue.trim() === property.name}
             >
               {t("Save")}
+            </Button>
+          </Group>
+        </Stack>
+      )}
+      {panel === "changeType" && (
+        <Stack gap={0} p={4}>
+          <Group gap="xs" px="sm" py={6}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="xs"
+              onClick={() => setPanel("main")}
+            >
+              <IconChevronRight
+                size={14}
+                style={{ transform: "rotate(180deg)" }}
+              />
+            </ActionIcon>
+            <Text size="xs" fw={600} c="dimmed">
+              {t("Change type")}
+            </Text>
+          </Group>
+          <ScrollArea.Autosize mah={300} scrollbarSize={6} offsetScrollbars>
+            <PropertyTypePicker
+              onSelect={handleTypeSelect}
+              currentType={property.type}
+              excludeTypes={NON_USER_TARGET_TYPES}
+              showSearch
+            />
+          </ScrollArea.Autosize>
+        </Stack>
+      )}
+      {panel === "confirmTypeChange" && pendingTargetType && (
+        <Stack gap="xs" p="sm">
+          <Text size="sm" fw={600}>
+            {t("Change type to {{label}}?", {
+              label: t(
+                propertyTypes.find((pt) => pt.type === pendingTargetType)
+                  ?.labelKey ?? pendingTargetType,
+              ),
+            })}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {t(conversionWarning(property.type, pendingTargetType))}
+          </Text>
+          <Group gap="xs" justify="flex-end">
+            <Button
+              variant="default"
+              size="xs"
+              onClick={() => setPanel("main")}
+            >
+              {t("Cancel")}
+            </Button>
+            <Button size="xs" onClick={handleApplyTypeChange}>
+              {t("Apply")}
             </Button>
           </Group>
         </Stack>
@@ -351,25 +453,29 @@ function MenuItem({
 function MainPanel({
   property,
   onRename,
+  onChangeType,
   onOptions,
   onDelete,
 }: {
   property: IBaseProperty;
   onRename: () => void;
+  onChangeType: () => void;
   onOptions: () => void;
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
 
   const isSystem = isSystemPropertyType(property.type);
+  const isPending = property.pendingType != null;
 
   const hasOptions =
     !isSystem &&
+    !isPending &&
     (property.type === "select" ||
-    property.type === "multiSelect" ||
-    property.type === "status" ||
-    property.type === "number" ||
-    property.type === "date");
+      property.type === "multiSelect" ||
+      property.type === "status" ||
+      property.type === "number" ||
+      property.type === "date");
 
   const typeDef = propertyTypes.find((pt) => pt.type === property.type);
   const TypeIcon = typeDef?.icon;
@@ -381,17 +487,27 @@ function MainPanel({
         label={t("Rename")}
         onClick={onRename}
       />
-      {!isSystem && (
-        <Stack gap={4} px="sm" py={6}>
-          <Text size="xs" c="dimmed">{t("Type")}</Text>
-          <TextInput
-            size="xs"
-            value={typeDef ? t(typeDef.labelKey) : property.type}
-            disabled
-            leftSection={TypeIcon ? <TypeIcon size={14} /> : null}
-            readOnly
-          />
-        </Stack>
+      {isPending && (
+        <Group gap={8} px="sm" py={8}>
+          <Loader size={12} />
+          <Text size="sm" c="dimmed">
+            {t("Converting…")}
+          </Text>
+        </Group>
+      )}
+      {!isSystem && !isPending && !property.isPrimary && (
+        <UnstyledButton
+          className={cellClasses.menuItem}
+          onClick={onChangeType}
+        >
+          <Group gap={8} wrap="nowrap" style={{ flex: 1 }}>
+            {TypeIcon ? <TypeIcon size={14} /> : null}
+            <Text size="sm">
+              {typeDef ? t(typeDef.labelKey) : property.type}
+            </Text>
+          </Group>
+          <IconChevronRight size={14} />
+        </UnstyledButton>
       )}
       {hasOptions && (
         <MenuItem
@@ -401,7 +517,7 @@ function MainPanel({
           onClick={onOptions}
         />
       )}
-      {!property.isPrimary && (
+      {!property.isPrimary && !isPending && (
         <>
           <Divider my={4} />
           <MenuItem
