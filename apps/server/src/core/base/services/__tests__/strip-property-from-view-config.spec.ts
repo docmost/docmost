@@ -1,4 +1,7 @@
-import { stripPropertyFromViewConfig } from '../strip-property-from-view-config';
+import {
+  clearKanbanGroupingFromViewConfig,
+  stripPropertyFromViewConfig,
+} from '../strip-property-from-view-config';
 
 describe('stripPropertyFromViewConfig', () => {
   it('returns the config unchanged when no references exist', () => {
@@ -121,6 +124,48 @@ describe('stripPropertyFromViewConfig', () => {
     };
     expect(stripPropertyFromViewConfig(config, 'p-deleted')).toEqual({
       sorts: [{ propertyId: 'p-keep', direction: 'asc' as const }],
+    });
+  });
+});
+
+describe('clearKanbanGroupingFromViewConfig', () => {
+  it("returns the config unchanged (by reference) when groupByPropertyId doesn't match", () => {
+    const config = { groupByPropertyId: 'p-other' };
+    expect(clearKanbanGroupingFromViewConfig(config, 'p-here')).toBe(config);
+  });
+
+  it('returns {} when config is null or undefined', () => {
+    expect(clearKanbanGroupingFromViewConfig(null, 'p1')).toEqual({});
+    expect(clearKanbanGroupingFromViewConfig(undefined, 'p1')).toEqual({});
+  });
+
+  it('clears kanban fields when groupByPropertyId matches', () => {
+    const result = clearKanbanGroupingFromViewConfig(
+      {
+        groupByPropertyId: 'p1',
+        hiddenChoiceIds: ['c1'],
+        choiceOrder: ['c1'],
+        sorts: [{ propertyId: 'p2', direction: 'asc' as const }],
+      },
+      'p1',
+    );
+    expect(result).toEqual({
+      sorts: [{ propertyId: 'p2', direction: 'asc' as const }],
+    });
+  });
+
+  it('preserves non-kanban fields untouched when clearing', () => {
+    const result = clearKanbanGroupingFromViewConfig(
+      {
+        groupByPropertyId: 'p1',
+        filter: { op: 'and' as const, children: [] },
+        visiblePropertyIds: ['p2'],
+      },
+      'p1',
+    );
+    expect(result).toEqual({
+      filter: { op: 'and' as const, children: [] },
+      visiblePropertyIds: ['p2'],
     });
   });
 });

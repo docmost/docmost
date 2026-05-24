@@ -8,6 +8,8 @@ import { executeTx } from '@docmost/db/utils';
 import { BaseRowRepo } from '@docmost/db/repos/base/base-row.repo';
 import { BasePropertyRepo } from '@docmost/db/repos/base/base-property.repo';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
+import { BasePropertyService } from '../services/base-property.service';
+import { BasePropertyTypeValue } from '../base.schemas';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import {
   IBaseCellGcJob,
@@ -39,6 +41,7 @@ export class BaseQueueProcessor
     private readonly baseRowRepo: BaseRowRepo,
     private readonly basePropertyRepo: BasePropertyRepo,
     private readonly baseRepo: BaseRepo,
+    private readonly basePropertyService: BasePropertyService,
     private readonly eventEmitter: EventEmitter2,
     private readonly formulaLock: FormulaLockService,
   ) {
@@ -94,6 +97,13 @@ export class BaseQueueProcessor
           data.workspaceId,
           schemaVersion,
           data.actorId,
+        );
+        await this.basePropertyService.clearKanbanGroupingIfNotGroupable(
+          data.pageId,
+          data.propertyId,
+          data.toType as BasePropertyTypeValue,
+          data.workspaceId,
+          data.actorId ?? null,
         );
         return summary;
       }

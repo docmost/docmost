@@ -17,7 +17,10 @@ import { BasePropertyRepo } from '@docmost/db/repos/base/base-property.repo';
 import { BaseRowRepo } from '@docmost/db/repos/base/base-row.repo';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
 import { BaseViewRepo } from '@docmost/db/repos/base/base-view.repo';
-import { stripPropertyFromViewConfig } from './strip-property-from-view-config';
+import {
+  clearKanbanGroupingFromViewConfig,
+  stripPropertyFromViewConfig,
+} from './strip-property-from-view-config';
 import { CreatePropertyDto } from '../dto/create-property.dto';
 import {
   UpdatePropertyDto,
@@ -374,6 +377,13 @@ export class BasePropertyService {
         schemaVersion,
       };
       this.eventEmitter.emit(EventName.BASE_SCHEMA_BUMPED, bumpEvent);
+      await this.clearKanbanGroupingIfNotGroupable(
+        dto.pageId,
+        dto.propertyId,
+        newType,
+        workspaceId,
+        actorId ?? null,
+      );
       return this.loadAndEmit(dto, workspaceId, actorId, null);
     }
 
@@ -449,6 +459,55 @@ export class BasePropertyService {
       throw new BadRequestException(
         `A property named "${trimmed}" already exists in this base`,
       );
+    }
+  }
+
+  /*
+   * Post-type-conversion cleanup: when a property's type flips to something
+   * not groupable (anything other than select/status), drop the kanban
+   * grouping fields from any view rooted on it. Called from BOTH the inline
+   * path here and the BullMQ processor after the pending→live swap, so
+   * `view.config` stays coherent with the property's actual type. Each
+   * touched view re-emits `base.view.updated` so other clients see it.
+   */
+  async clearKanbanGroupingIfNotGroupable(
+    pageId: string,
+    propertyId: string,
+    newType: BasePropertyTypeValue,
+    workspaceId: string,
+    actorId: string | null,
+  ): Promise<void> {
+    if (
+      newType === BasePropertyType.SELECT ||
+      newType === BasePropertyType.STATUS
+    ) {
+      return;
+    }
+    const views = await this.baseViewRepo.findByPageId(pageId, {
+      workspaceId,
+    });
+    for (const view of views) {
+      const before = (view.config ?? {}) as ViewConfig;
+      const after = clearKanbanGroupingFromViewConfig(before, propertyId);
+      if (after === before) continue;
+      await this.baseViewRepo.updateView(
+        view.id,
+        // `config` column is typed `Json` by Kysely; ViewConfig is a Zod
+        // inferred shape that isn't structurally assignable to `Json`.
+        { config: after as any },
+        { workspaceId },
+      );
+      const fresh = await this.baseViewRepo.findById(view.id, { workspaceId });
+      if (fresh) {
+        const event: BaseViewUpdatedEvent = {
+          pageId,
+          workspaceId,
+          actorId,
+          requestId: null,
+          view: fresh,
+        };
+        this.eventEmitter.emit(EventName.BASE_VIEW_UPDATED, event);
+      }
     }
   }
 

@@ -79,3 +79,23 @@ export function stripPropertyFromViewConfig(
 
   return next as ViewConfig;
 }
+
+/*
+ * Narrower sibling of `stripPropertyFromViewConfig`. Used after a property's
+ * type changes to something no longer groupable (e.g. select → text): the
+ * property still exists, so we leave sorts/filters/visibility alone, and only
+ * clear the kanban grouping fields rooted on it. Returns the input by
+ * reference when nothing matches so callers can skip the write.
+ */
+export function clearKanbanGroupingFromViewConfig(
+  config: ViewConfig | undefined | null,
+  propertyId: string,
+): ViewConfig {
+  if (!config) return {};
+  if (config.groupByPropertyId !== propertyId) return config;
+  const next: Record<string, unknown> = { ...config };
+  delete next.groupByPropertyId;
+  delete next.hiddenChoiceIds;
+  delete next.choiceOrder;
+  return next as ViewConfig;
+}
