@@ -267,6 +267,13 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
     updateViewMutation,
   ]);
 
+  const handleCardClick = useCallback((rowId: string) => {
+    // Phase 5 wires this to the URL-driven row detail modal.
+    // Until then, noop — the click still registers and the focus ring
+    // appears, but nothing opens.
+    void rowId;
+  }, []);
+
   const handleRowReorder = useCallback(
     (rowId: string, targetRowId: string, dropPosition: "above" | "below") => {
       const remainingRows = rows.filter((r) => r.id !== rowId);
@@ -358,6 +365,7 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
         onColumnReorder={handleColumnReorder}
         onResizeEnd={handleResizeEnd}
         onRowReorder={handleRowReorder}
+        onCardClick={handleCardClick}
         persistViewConfig={persistViewConfig}
         scrollportRef={scrollportRef}
         stickyBandPrelude={
@@ -395,6 +403,7 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
           onColumnReorder={handleColumnReorder}
           onResizeEnd={handleResizeEnd}
           onRowReorder={handleRowReorder}
+          onCardClick={handleCardClick}
           persistViewConfig={persistViewConfig}
           scrollportRef={scrollportRef}
         />
