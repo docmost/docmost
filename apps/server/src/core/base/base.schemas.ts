@@ -410,6 +410,8 @@ const viewFilterGroupSchema: z.ZodType<ViewFilterGroup> = z.lazy(() =>
   }),
 );
 
+export const NO_VALUE_CHOICE_ID = '__no_value';
+
 export const viewConfigSchema = z
   .object({
     sorts: z.array(viewSortSchema).optional(),
@@ -418,6 +420,12 @@ export const viewConfigSchema = z
     hiddenPropertyIds: z.array(z.uuid()).optional(),
     propertyWidths: z.record(z.string(), z.number().positive()).optional(),
     propertyOrder: z.array(z.uuid()).optional(),
+    // Kanban-only fields. `hiddenChoiceIds` and `choiceOrder` accept
+    // `z.string()` (not `z.uuid()`) because the NO_VALUE_CHOICE_ID
+    // sentinel ('__no_value') lives in the same array as choice uuids.
+    groupByPropertyId: z.uuid().optional(),
+    hiddenChoiceIds: z.array(z.string()).optional(),
+    choiceOrder: z.array(z.string()).optional(),
   })
   .passthrough();
 

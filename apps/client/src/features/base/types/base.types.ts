@@ -154,6 +154,8 @@ export type SearchSpec = {
   mode?: 'trgm' | 'fts';
 };
 
+export const NO_VALUE_CHOICE_ID = '__no_value';
+
 export type ViewConfig = {
   sorts?: ViewSortConfig[];
   filter?: FilterGroup;
@@ -161,6 +163,10 @@ export type ViewConfig = {
   hiddenPropertyIds?: string[];
   propertyWidths?: Record<string, number>;
   propertyOrder?: string[];
+  // Kanban
+  groupByPropertyId?: string;
+  hiddenChoiceIds?: string[];
+  choiceOrder?: string[];
 };
 
 export type IBaseView = {
