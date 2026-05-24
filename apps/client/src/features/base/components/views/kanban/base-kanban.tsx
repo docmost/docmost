@@ -248,6 +248,11 @@ export function BaseKanban({
           ))}
         </div>
       )}
+      {sortsActive && (
+        <div className={classes.sortHint}>
+          {t("Sorted — cards within a column can't be reordered.")}
+        </div>
+      )}
       <div className={classes.board}>
         {columns.map((column) => (
           <KanbanColumn
@@ -259,6 +264,7 @@ export function BaseKanban({
             onCardDrop={handleCardDrop}
             onColumnReorder={handleColumnReorder}
             onHide={handleHideColumn}
+            sortsActive={sortsActive}
           />
         ))}
       </div>

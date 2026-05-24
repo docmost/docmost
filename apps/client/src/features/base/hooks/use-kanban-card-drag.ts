@@ -28,11 +28,13 @@ export function useKanbanCardDrag({
   cardId,
   columnKey,
   onDrop,
+  sortsActive,
   disabled,
 }: {
   cardId: string;
   columnKey: string;
   onDrop: (payload: CardDropPayload) => void;
+  sortsActive: boolean;
   disabled?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -61,7 +63,12 @@ export function useKanbanCardDrag({
         element: el,
         canDrop: ({ source }) => {
           if (source.data.type !== "base-kanban-card") return false;
-          return source.data.cardId !== cardId;
+          if (source.data.cardId === cardId) return false;
+          // Block intra-column drops when a sort is active (the slot would
+          // visibly snap back to the sort's chosen position, confusing the
+          // user). Cross-column drops still work and change the cell value.
+          if (sortsActive && source.data.columnKey === columnKey) return false;
+          return true;
         },
         getData: ({ input, element }) =>
           attachClosestEdge(
@@ -85,7 +92,7 @@ export function useKanbanCardDrag({
         },
       }),
     );
-  }, [cardId, columnKey, disabled]);
+  }, [cardId, columnKey, disabled, sortsActive]);
 
   return { ref, isDragging, closestEdge };
 }

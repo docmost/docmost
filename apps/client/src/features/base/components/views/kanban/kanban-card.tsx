@@ -14,6 +14,7 @@ type KanbanCardProps = {
   primaryProperty: IBaseProperty | undefined;
   onClick: (rowId: string) => void;
   onDrop: (payload: CardDropPayload) => void;
+  sortsActive: boolean;
 };
 
 export function KanbanCard({
@@ -22,12 +23,14 @@ export function KanbanCard({
   primaryProperty,
   onClick,
   onDrop,
+  sortsActive,
 }: KanbanCardProps) {
   const { t } = useTranslation();
   const { ref, isDragging, closestEdge } = useKanbanCardDrag({
     cardId: row.id,
     columnKey,
     onDrop,
+    sortsActive,
   });
 
   const titleValue = primaryProperty

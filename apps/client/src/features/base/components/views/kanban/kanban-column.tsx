@@ -16,6 +16,7 @@ type KanbanColumnProps = {
   onCardDrop: (payload: CardDropPayload) => void;
   onColumnReorder: (payload: ColumnReorderPayload) => void;
   onHide: (columnKey: string) => void;
+  sortsActive: boolean;
 };
 
 export function KanbanColumn({
@@ -26,6 +27,7 @@ export function KanbanColumn({
   onCardDrop,
   onColumnReorder,
   onHide,
+  sortsActive,
 }: KanbanColumnProps) {
   const { ref: bodyRef, isOver } = useKanbanColumnDrop({
     columnKey: column.key,
@@ -56,6 +58,7 @@ export function KanbanColumn({
             primaryProperty={primaryProperty}
             onClick={onCardClick}
             onDrop={onCardDrop}
+            sortsActive={sortsActive}
           />
         ))}
         <KanbanAddCardButton onClick={() => onAddCard(column.key)} />
