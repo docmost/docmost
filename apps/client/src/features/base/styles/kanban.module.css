@@ -52,6 +52,10 @@
   min-height: 80px;
 }
 
+.columnBody[data-over="true"] {
+  background: var(--mantine-color-blue-0);
+}
+
 .card {
   padding: 10px 12px;
   background: var(--mantine-color-body);

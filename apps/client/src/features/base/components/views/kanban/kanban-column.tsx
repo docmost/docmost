@@ -4,6 +4,7 @@ import { KanbanCard } from "./kanban-card";
 import { KanbanColumnHeader } from "./kanban-column-header";
 import { KanbanAddCardButton } from "./kanban-add-card-button";
 import type { CardDropPayload } from "@/features/base/hooks/use-kanban-card-drag";
+import { useKanbanColumnDrop } from "@/features/base/hooks/use-kanban-column-drop";
 import classes from "@/features/base/styles/kanban.module.css";
 
 type KanbanColumnProps = {
@@ -21,6 +22,11 @@ export function KanbanColumn({
   onAddCard,
   onCardDrop,
 }: KanbanColumnProps) {
+  const { ref: bodyRef, isOver } = useKanbanColumnDrop({
+    columnKey: column.key,
+    onDrop: onCardDrop,
+  });
+
   return (
     <div className={classes.column} data-column-key={column.key}>
       <KanbanColumnHeader
@@ -28,7 +34,12 @@ export function KanbanColumn({
         color={column.color}
         count={column.rows.length}
       />
-      <div className={classes.columnBody} data-column-body={column.key}>
+      <div
+        ref={bodyRef}
+        className={classes.columnBody}
+        data-column-body={column.key}
+        data-over={isOver || undefined}
+      >
         {column.rows.map((row) => (
           <KanbanCard
             key={row.id}
