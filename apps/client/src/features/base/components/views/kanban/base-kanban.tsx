@@ -129,7 +129,7 @@ export function BaseKanban({
     ],
   );
 
-  const handleAddCard = (columnKey: string) => {
+  const handleAddCard = async (columnKey: string) => {
     if (!groupByPropertyId) return;
     const cells =
       columnKey === NO_VALUE_CHOICE_ID
@@ -137,11 +137,16 @@ export function BaseKanban({
         : { [groupByPropertyId]: columnKey };
     const column = columns.find((c) => c.key === columnKey);
     const afterRowId = column?.rows[column.rows.length - 1]?.id;
-    createRowMutation.mutate({
-      pageId: base.id,
-      cells,
-      afterRowId,
-    });
+    try {
+      const newRow = await createRowMutation.mutateAsync({
+        pageId: base.id,
+        cells,
+        afterRowId,
+      });
+      onCardClick(newRow.id);
+    } catch {
+      // mutation already shows an error toast.
+    }
   };
 
   const handleColumnReorder = useCallback(
