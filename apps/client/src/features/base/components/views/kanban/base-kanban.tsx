@@ -14,6 +14,7 @@ import {
 } from "@/features/base/queries/base-row-query";
 import { resolveCardDrop } from "@/features/base/hooks/resolve-card-drop";
 import type { CardDropPayload } from "@/features/base/hooks/use-kanban-card-drag";
+import type { ColumnReorderPayload } from "@/features/base/hooks/use-kanban-column-reorder";
 import { triggerPostMoveFlash } from "@atlaskit/pragmatic-drag-and-drop-flourish/trigger-post-move-flash";
 import * as liveRegion from "@atlaskit/pragmatic-drag-and-drop-live-region";
 import { KanbanColumn } from "./kanban-column";
@@ -139,6 +140,34 @@ export function BaseKanban({
     });
   };
 
+  const handleColumnReorder = useCallback(
+    (payload: ColumnReorderPayload) => {
+      if (!effectiveView) return;
+      const current = columns.map((c) => c.key);
+      const fromIdx = current.indexOf(payload.draggedColumnKey);
+      const toIdx = current.indexOf(payload.targetColumnKey);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const next = current.slice();
+      next.splice(fromIdx, 1);
+      const insertAt =
+        payload.edge === "left"
+          ? toIdx > fromIdx
+            ? toIdx - 1
+            : toIdx
+          : toIdx > fromIdx
+            ? toIdx
+            : toIdx + 1;
+      next.splice(insertAt, 0, payload.draggedColumnKey);
+
+      updateViewMutation.mutate({
+        viewId: effectiveView.id,
+        pageId: base.id,
+        config: { ...effectiveView.config, choiceOrder: next },
+      });
+    },
+    [base.id, columns, effectiveView, updateViewMutation],
+  );
+
   if (!isGroupable) {
     return <KanbanEmptyState base={base} onPick={handlePickProperty} />;
   }
@@ -153,6 +182,7 @@ export function BaseKanban({
           onCardClick={onCardClick}
           onAddCard={handleAddCard}
           onCardDrop={handleCardDrop}
+          onColumnReorder={handleColumnReorder}
         />
       ))}
     </div>

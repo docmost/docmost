@@ -4,6 +4,7 @@ import { KanbanCard } from "./kanban-card";
 import { KanbanColumnHeader } from "./kanban-column-header";
 import { KanbanAddCardButton } from "./kanban-add-card-button";
 import type { CardDropPayload } from "@/features/base/hooks/use-kanban-card-drag";
+import type { ColumnReorderPayload } from "@/features/base/hooks/use-kanban-column-reorder";
 import { useKanbanColumnDrop } from "@/features/base/hooks/use-kanban-column-drop";
 import classes from "@/features/base/styles/kanban.module.css";
 
@@ -13,6 +14,7 @@ type KanbanColumnProps = {
   onCardClick: (rowId: string) => void;
   onAddCard: (columnKey: string) => void;
   onCardDrop: (payload: CardDropPayload) => void;
+  onColumnReorder: (payload: ColumnReorderPayload) => void;
 };
 
 export function KanbanColumn({
@@ -21,6 +23,7 @@ export function KanbanColumn({
   onCardClick,
   onAddCard,
   onCardDrop,
+  onColumnReorder,
 }: KanbanColumnProps) {
   const { ref: bodyRef, isOver } = useKanbanColumnDrop({
     columnKey: column.key,
@@ -30,9 +33,11 @@ export function KanbanColumn({
   return (
     <div className={classes.column} data-column-key={column.key}>
       <KanbanColumnHeader
+        columnKey={column.key}
         name={column.name}
         color={column.color}
         count={column.rows.length}
+        onReorderDrop={onColumnReorder}
       />
       <div
         ref={bodyRef}
