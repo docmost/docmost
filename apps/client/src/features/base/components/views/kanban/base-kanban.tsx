@@ -3,9 +3,11 @@ import {
   IBase,
   IBaseRow,
   IBaseView,
+  NO_VALUE_CHOICE_ID,
 } from "@/features/base/types/base.types";
 import { useKanbanGroups } from "@/features/base/hooks/use-kanban-groups";
 import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
+import { useCreateRowMutation } from "@/features/base/queries/base-row-query";
 import { KanbanColumn } from "./kanban-column";
 import { KanbanEmptyState } from "./kanban-empty-state";
 import classes from "@/features/base/styles/kanban.module.css";
@@ -37,6 +39,7 @@ export function BaseKanban({
   );
   const isGroupable = property?.type === "select" || property?.type === "status";
   const updateViewMutation = useUpdateViewMutation();
+  const createRowMutation = useCreateRowMutation();
 
   // Rules of Hooks: call useKanbanGroups unconditionally with `undefined`
   // when not groupable; switch the render path on isGroupable below.
@@ -56,6 +59,21 @@ export function BaseKanban({
     });
   };
 
+  const handleAddCard = (columnKey: string) => {
+    if (!groupByPropertyId) return;
+    const cells =
+      columnKey === NO_VALUE_CHOICE_ID
+        ? {}
+        : { [groupByPropertyId]: columnKey };
+    const column = columns.find((c) => c.key === columnKey);
+    const afterRowId = column?.rows[column.rows.length - 1]?.id;
+    createRowMutation.mutate({
+      pageId: base.id,
+      cells,
+      afterRowId,
+    });
+  };
+
   if (!isGroupable) {
     return <KanbanEmptyState base={base} onPick={handlePickProperty} />;
   }
@@ -68,6 +86,7 @@ export function BaseKanban({
           column={column}
           primaryProperty={primaryProperty}
           onCardClick={onCardClick}
+          onAddCard={handleAddCard}
         />
       ))}
     </div>

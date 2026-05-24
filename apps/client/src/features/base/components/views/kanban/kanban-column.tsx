@@ -2,18 +2,21 @@ import { KanbanColumnData } from "@/features/base/hooks/use-kanban-groups";
 import { IBaseProperty } from "@/features/base/types/base.types";
 import { KanbanCard } from "./kanban-card";
 import { KanbanColumnHeader } from "./kanban-column-header";
+import { KanbanAddCardButton } from "./kanban-add-card-button";
 import classes from "@/features/base/styles/kanban.module.css";
 
 type KanbanColumnProps = {
   column: KanbanColumnData;
   primaryProperty: IBaseProperty | undefined;
   onCardClick: (rowId: string) => void;
+  onAddCard: (columnKey: string) => void;
 };
 
 export function KanbanColumn({
   column,
   primaryProperty,
   onCardClick,
+  onAddCard,
 }: KanbanColumnProps) {
   return (
     <div className={classes.column} data-column-key={column.key}>
@@ -31,6 +34,7 @@ export function KanbanColumn({
             onClick={onCardClick}
           />
         ))}
+        <KanbanAddCardButton onClick={() => onAddCard(column.key)} />
       </div>
     </div>
   );
