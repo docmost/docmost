@@ -27,7 +27,15 @@ const MIN_COLUMN_WIDTH = 80;
 const MAX_COLUMN_WIDTH = 600;
 const ROW_NUMBER_COLUMN_WIDTH = 64;
 
-export const SYSTEM_PROPERTY_TYPES = new Set(["createdAt", "lastEditedAt", "lastEditedBy"]);
+// Keep in sync with the server's SYSTEM_PROPERTY_TYPES in
+// apps/server/src/core/base/base.schemas.ts. Both sets must include
+// formula so the property menu treats formula columns as read-only.
+export const SYSTEM_PROPERTY_TYPES = new Set([
+  "createdAt",
+  "lastEditedAt",
+  "lastEditedBy",
+  "formula",
+]);
 
 export function isSystemPropertyType(type: string): boolean {
   return SYSTEM_PROPERTY_TYPES.has(type);
