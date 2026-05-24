@@ -1,11 +1,15 @@
 import {
-  IsEmpty,
+  IsIn,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
   IsUUID,
 } from 'class-validator';
+import {
+  USER_PROPERTY_TYPES,
+  BasePropertyTypeValue,
+} from '../base.schemas';
 
 export class UpdatePropertyDto {
   @IsUUID()
@@ -19,15 +23,9 @@ export class UpdatePropertyDto {
   @IsNotEmpty()
   name?: string;
 
-  /*
-   * Type changes are intentionally not exposed via the API in v1. The
-   * conversion engine in apps/server/src/core/base/engine/ and the
-   * worker in tasks/base-type-conversion.task.ts remain intact for
-   * a future v2 re-wire. Requests including `type` are rejected here
-   * so the service's type-change branches stay unreachable.
-   */
-  @IsEmpty()
-  type?: string;
+  @IsOptional()
+  @IsIn(USER_PROPERTY_TYPES)
+  type?: BasePropertyTypeValue;
 
   @IsOptional()
   @IsObject()
