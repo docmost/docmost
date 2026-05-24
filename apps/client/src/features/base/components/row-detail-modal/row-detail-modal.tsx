@@ -7,6 +7,7 @@ import {
 } from "@/features/base/types/base.types";
 import { useUpdateRowMutation } from "@/features/base/queries/base-row-query";
 import { RowDetailTitle } from "./row-detail-title";
+import { PropertyRow } from "./property-row";
 
 type RowDetailModalProps = {
   base: IBase;
@@ -63,7 +64,22 @@ export function RowDetailModal({
               });
             }}
           />
-          {/* Property list goes here in Task 19 */}
+          {base.properties
+            .filter((p) => !p.isPrimary)
+            .map((property) => (
+              <PropertyRow
+                key={property.id}
+                property={property}
+                row={row}
+                onUpdate={(propertyId, value) => {
+                  updateRowMutation.mutate({
+                    rowId: row.id,
+                    pageId: base.id,
+                    cells: { [propertyId]: value },
+                  });
+                }}
+              />
+            ))}
           {/* Add-property button goes here in Task 20 */}
         </Stack>
       ) : (

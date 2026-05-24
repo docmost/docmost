@@ -1,58 +1,12 @@
 import { memo, useCallback } from "react";
 import { Cell } from "@tanstack/react-table";
 import { useAtom } from "jotai";
-import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
+import { IBaseRow, EditingCell } from "@/features/base/types/base.types";
 import { editingCellAtomFamily } from "@/features/base/atoms/base-atoms";
 import { isSystemPropertyType } from "@/features/base/hooks/use-base-table";
-import { CellText } from "@/features/base/components/cells/cell-text";
-import { CellNumber } from "@/features/base/components/cells/cell-number";
-import { CellSelect } from "@/features/base/components/cells/cell-select";
-import { CellStatus } from "@/features/base/components/cells/cell-status";
-import { CellMultiSelect } from "@/features/base/components/cells/cell-multi-select";
-import { CellDate } from "@/features/base/components/cells/cell-date";
-import { CellCheckbox } from "@/features/base/components/cells/cell-checkbox";
-import { CellUrl } from "@/features/base/components/cells/cell-url";
-import { CellEmail } from "@/features/base/components/cells/cell-email";
-import { CellPerson } from "@/features/base/components/cells/cell-person";
-import { CellFile } from "@/features/base/components/cells/cell-file";
-import { CellPage } from "@/features/base/components/cells/cell-page";
-import { CellCreatedAt } from "@/features/base/components/cells/cell-created-at";
-import { CellLastEditedAt } from "@/features/base/components/cells/cell-last-edited-at";
-import { CellLastEditedBy } from "@/features/base/components/cells/cell-last-edited-by";
-import { CellFormula } from "@/features/base/components/cells/cell-formula";
+import { cellComponents } from "@/features/base/components/cells/cell-renderer";
 import { RowNumberCell } from "./row-number-cell";
 import classes from "@/features/base/styles/grid.module.css";
-
-type CellComponentProps = {
-  value: unknown;
-  property: IBaseProperty;
-  rowId: string;
-  isEditing: boolean;
-  onCommit: (value: unknown) => void;
-  onCancel: () => void;
-};
-
-const cellComponents: Record<
-  string,
-  React.ComponentType<CellComponentProps>
-> = {
-  text: CellText,
-  number: CellNumber,
-  select: CellSelect,
-  status: CellStatus,
-  multiSelect: CellMultiSelect,
-  date: CellDate,
-  checkbox: CellCheckbox,
-  url: CellUrl,
-  email: CellEmail,
-  person: CellPerson,
-  file: CellFile,
-  page: CellPage,
-  createdAt: CellCreatedAt,
-  lastEditedAt: CellLastEditedAt,
-  lastEditedBy: CellLastEditedBy,
-  formula: CellFormula,
-};
 
 type RowDragProps = {
   draggable: boolean;
