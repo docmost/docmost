@@ -49,6 +49,7 @@ docops/
 | Data | File modificato | Motivazione | Alternativa valutata |
 |---|---|---|---|
 | 2026-05-25 | `apps/server/package.json` | Aggiunta script `migration-docops:*` per eseguire migrazioni custom da `migrations-docops/` via migrator separato | Mettere le migrazioni in `migrations/` upstream (scartato: viola regola isolamento) |
+| 2026-05-25 | `apps/server/src/app.module.ts` | Aggiunta import e registrazione `DocopsModule` nel root module | Lazy loading (scartato: non necessario per i volumi previsti) |
 
 ## File aggiunti alla root (non presenti in upstream)
 
