@@ -26,7 +26,7 @@ type BaseTableProps = {
     dropPosition: "above" | "below",
   ) => void;
   persistViewConfig: () => void;
-  scrollportRef: React.RefObject<HTMLDivElement>;
+  scrollportEl: HTMLDivElement | null;
   stickyBandPrelude?: React.ReactNode;
 };
 
@@ -44,7 +44,7 @@ export function BaseTable({
   onColumnReorder,
   onResizeEnd,
   onRowReorder,
-  scrollportRef,
+  scrollportEl,
   stickyBandPrelude,
 }: BaseTableProps) {
   return (
@@ -60,7 +60,7 @@ export function BaseTable({
       hasNextPage={hasNextPage}
       isFetchingNextPage={isFetchingNextPage}
       onFetchNextPage={onFetchNextPage}
-      scrollElement={embedded ? window : scrollportRef.current}
+      scrollElement={embedded ? window : scrollportEl}
       stickyBandPrelude={stickyBandPrelude ?? null}
     />
   );

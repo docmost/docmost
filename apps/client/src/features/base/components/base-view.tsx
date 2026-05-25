@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Text, Stack } from "@mantine/core";
 import { useAtom } from "jotai";
 import { IconDatabase } from "@tabler/icons-react";
@@ -159,7 +159,15 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
     clearSelection();
   }, [pageId, activeView?.id, clearSelection]);
 
-  const scrollportRef = useRef<HTMLDivElement>(null);
+  // Track the scrollport element in state (not a ref) so the virtualizer's
+  // `_willUpdate` re-runs when the div attaches on first mount. Reading
+  // `scrollportRef.current` during render would always be null on the
+  // render that mounts the div, and no subsequent render is guaranteed —
+  // particularly after a filter change, where the scrollport remounts via
+  // the `rowsLoading` skeleton path. The virtualizer would then sit on
+  // `scrollElement=null`, render zero items, and only recover when
+  // something else forced a re-render (e.g. switching views).
+  const [scrollportEl, setScrollportEl] = useState<HTMLDivElement | null>(null);
 
   const rows = useMemo(() => {
     const flat = flattenRows(rowsData);
@@ -369,7 +377,7 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
           onRowReorder={handleRowReorder}
           onCardClick={handleCardClick}
           persistViewConfig={persistViewConfig}
-          scrollportRef={scrollportRef}
+          scrollportEl={scrollportEl}
           stickyBandPrelude={
             <>
               {banner}
@@ -397,7 +405,7 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
       >
         {banner}
         {toolbar}
-        <div className={classes.tableScrollport} ref={scrollportRef}>
+        <div className={classes.tableScrollport} ref={setScrollportEl}>
           <ViewRenderer
             base={base}
             rows={rows}
@@ -415,7 +423,7 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
             onRowReorder={handleRowReorder}
             onCardClick={handleCardClick}
             persistViewConfig={persistViewConfig}
-            scrollportRef={scrollportRef}
+            scrollportEl={scrollportEl}
           />
         </div>
       </div>

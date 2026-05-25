@@ -28,7 +28,7 @@ type ViewRendererProps = {
   ) => void;
   onCardClick: (rowId: string) => void;
   persistViewConfig: () => void;
-  scrollportRef: React.RefObject<HTMLDivElement>;
+  scrollportEl: HTMLDivElement | null;
   stickyBandPrelude?: React.ReactNode;
 };
 
