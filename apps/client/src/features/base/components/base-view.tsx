@@ -190,6 +190,8 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
     baselineConfig: activeView?.config,
   });
 
+  const isKanban = effectiveView?.type === "kanban";
+
   const handleCellUpdate = useCallback(
     (rowId: string, propertyId: string, value: unknown) => {
       updateRowMutation.mutate({
@@ -389,6 +391,7 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
           base={base}
           rows={rows}
           openRowId={openRowId}
+          canEdit={canSave}
           onClose={closeRow}
         />
       </>
@@ -405,32 +408,65 @@ export function BaseView({ pageId, embedded }: BaseViewProps) {
       >
         {banner}
         {toolbar}
-        <div className={classes.tableScrollport} ref={setScrollportEl}>
-          <ViewRenderer
-            base={base}
-            rows={rows}
-            effectiveView={effectiveView}
-            table={table}
-            pageId={pageId}
-            embedded={embedded}
-            hasNextPage={!!hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            onFetchNextPage={fetchNextPage}
-            onCellUpdate={handleCellUpdate}
-            onAddRow={handleAddRow}
-            onColumnReorder={handleColumnReorder}
-            onResizeEnd={handleResizeEnd}
-            onRowReorder={handleRowReorder}
-            onCardClick={handleCardClick}
-            persistViewConfig={persistViewConfig}
-            scrollportEl={scrollportEl}
-          />
-        </div>
+        {isKanban ? (
+          <div
+            ref={setScrollportEl}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <ViewRenderer
+              base={base}
+              rows={rows}
+              effectiveView={effectiveView}
+              table={table}
+              pageId={pageId}
+              embedded={embedded}
+              hasNextPage={!!hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              onFetchNextPage={fetchNextPage}
+              onCellUpdate={handleCellUpdate}
+              onAddRow={handleAddRow}
+              onColumnReorder={handleColumnReorder}
+              onResizeEnd={handleResizeEnd}
+              onRowReorder={handleRowReorder}
+              onCardClick={handleCardClick}
+              persistViewConfig={persistViewConfig}
+              scrollportEl={scrollportEl}
+            />
+          </div>
+        ) : (
+          <div className={classes.tableScrollport} ref={setScrollportEl}>
+            <ViewRenderer
+              base={base}
+              rows={rows}
+              effectiveView={effectiveView}
+              table={table}
+              pageId={pageId}
+              embedded={embedded}
+              hasNextPage={!!hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              onFetchNextPage={fetchNextPage}
+              onCellUpdate={handleCellUpdate}
+              onAddRow={handleAddRow}
+              onColumnReorder={handleColumnReorder}
+              onResizeEnd={handleResizeEnd}
+              onRowReorder={handleRowReorder}
+              onCardClick={handleCardClick}
+              persistViewConfig={persistViewConfig}
+              scrollportEl={scrollportEl}
+            />
+          </div>
+        )}
       </div>
       <RowDetailModal
         base={base}
         rows={rows}
         openRowId={openRowId}
+        canEdit={canSave}
         onClose={closeRow}
       />
     </>
