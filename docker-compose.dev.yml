@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: docmost
+      POSTGRES_USER: docmost
+      POSTGRES_PASSWORD: docmost_dev_pass
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    volumes:
+      - db_data_dev:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data_dev:/data
+
+volumes:
+  db_data_dev:
+  redis_data_dev:

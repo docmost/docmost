@@ -1,3 +1,28 @@
+# DocOps
+
+**DocOps** è un fork interno di Docmost Community Edition (AGPL-3.0) esteso con:
+
+- **Service Catalog** — gestione di ~2.000 servizi software con tassonomia, owner e ciclo di vita
+- **Change Request Workflow** — processo formale a 8 stati tra Ufficio Processi e Ufficio Sviluppo
+- **Release Linkage** — collegamento documentazione ↔ rilascio software via PR/commit/ticket
+
+## Rapporto con upstream
+
+| | |
+|---|---|
+| Upstream | `github.com/docmost/docmost` (AGPL-3.0) |
+| Fork | `github.com/tigre9/docops` (AGPL-3.0) |
+| Sync | Settimanale automatico via GitHub Actions |
+
+Documentazione del fork: [`FORK.md`](FORK.md) | Log sync: [`SYNC_LOG.md`](SYNC_LOG.md)
+
+> **Nota licenza**: i path `packages/ee`, `apps/server/src/ee`, `apps/client/src/ee`
+> sono sotto licenza commerciale Docmost Enterprise e **non** fanno parte di questo fork.
+
+---
+
+<!-- UPSTREAM README BELOW — non modificare questa sezione, aggiornata dai sync -->
+
 <div align="center">
     <h1><b>Docmost</b></h1>
     <p>
