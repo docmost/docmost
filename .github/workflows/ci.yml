@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "feat/*"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: docmost_test
+          POSTGRES_USER: docmost
+          POSTGRES_PASSWORD: docmost_test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      APP_URL: http://localhost:3000
+      APP_SECRET: ci_secret_placeholder_32_chars_min
+      DATABASE_URL: postgresql://docmost:docmost_test_pass@localhost:5432/docmost_test
+      REDIS_URL: redis://localhost:6379
+      STORAGE_DRIVER: local
+      DISABLE_TELEMETRY: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.4.0"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter ./apps/server run lint || true
+        # `|| true` fino a quando il linting upstream è stabilizzato nel fork
+
+      - name: TypeScript check
+        run: pnpm --filter ./apps/server run build
+
+      - name: Run migrations
+        run: pnpm --filter ./apps/server run migration:latest
+
+      - name: Run tests
+        run: pnpm --filter ./apps/server run test --passWithNoTests
+
+      - name: Build client
+        run: pnpm run client:build

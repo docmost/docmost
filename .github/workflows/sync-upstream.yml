@@ -1,0 +1,121 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    # ogni domenica alle 06:00 UTC
+    - cron: "0 6 * * 0"
+  workflow_dispatch:
+    # eseguibile manualmente da GitHub UI
+
+jobs:
+  sync:
+    name: Sync with docmost/docmost upstream
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/docmost/docmost.git || true
+          git fetch upstream main
+
+      - name: Get upstream version info
+        id: upstream_info
+        run: |
+          UPSTREAM_SHA=$(git rev-parse upstream/main)
+          UPSTREAM_DATE=$(git log -1 --format="%ci" upstream/main)
+          DIVERGE_COUNT=$(git rev-list HEAD..upstream/main --count)
+          echo "sha=${UPSTREAM_SHA:0:8}" >> $GITHUB_OUTPUT
+          echo "date=${UPSTREAM_DATE}" >> $GITHUB_OUTPUT
+          echo "diverge=${DIVERGE_COUNT}" >> $GITHUB_OUTPUT
+
+      - name: Check if sync needed
+        id: check
+        run: |
+          DIVERGE=${{ steps.upstream_info.outputs.diverge }}
+          if [ "$DIVERGE" -eq "0" ]; then
+            echo "needed=false" >> $GITHUB_OUTPUT
+            echo "Fork is up to date with upstream. No sync needed."
+          else
+            echo "needed=true" >> $GITHUB_OUTPUT
+            echo "Upstream has ${DIVERGE} new commits."
+          fi
+
+      - name: Create sync branch
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          BRANCH="sync/upstream-${{ steps.upstream_info.outputs.sha }}"
+          git checkout -b "${BRANCH}"
+          echo "SYNC_BRANCH=${BRANCH}" >> $GITHUB_ENV
+
+      - name: Attempt merge (no-commit)
+        if: steps.check.outputs.needed == 'true'
+        id: merge
+        run: |
+          git merge upstream/main --no-commit --no-ff || true
+          if git diff --name-only --diff-filter=U | grep -q .; then
+            echo "has_conflicts=true" >> $GITHUB_OUTPUT
+            git merge --abort
+          else
+            echo "has_conflicts=false" >> $GITHUB_OUTPUT
+            git merge --abort
+          fi
+
+      - name: Open PR for manual review
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin "${SYNC_BRANCH}" || true
+          CONFLICTS="${{ steps.merge.outputs.has_conflicts }}"
+          DIVERGE="${{ steps.upstream_info.outputs.diverge }}"
+          UPSTREAM_DATE="${{ steps.upstream_info.outputs.date }}"
+
+          BODY="## Sync upstream docmost/docmost
+
+          **Upstream commit**: \`${{ steps.upstream_info.outputs.sha }}\` (${UPSTREAM_DATE})
+          **Nuovi commit upstream**: ${DIVERGE}
+          **Conflitti previsti**: ${CONFLICTS}
+
+          ### Checklist review (obbligatoria — mai merge automatico)
+          - [ ] Leggere i commit upstream impattanti
+          - [ ] Verificare file critici: \`users.entity.ts\`, \`pages.entity.ts\`, \`notifications.module.ts\`
+          - [ ] Verificare UI: \`Sidebar.tsx\`, \`PageHeader.tsx\`
+          - [ ] Eseguire \`pnpm install\` + \`pnpm dev\` localmente
+          - [ ] Eseguire migrazioni upstream + migrations-docops
+          - [ ] Test E2E flussi critici
+          - [ ] Aggiornare SYNC_LOG.md
+          - [ ] Revisione da 2 sviluppatori
+
+          Ref: FORK.md §Strategia di sincronizzazione"
+
+          gh pr create \
+            --title "sync: upstream docmost ${{ steps.upstream_info.outputs.sha }}" \
+            --body "${BODY}" \
+            --base main \
+            --head "${SYNC_BRANCH}" \
+            --label "sync-upstream" || true
+
+      - name: Open issue if no PR possible
+        if: steps.check.outputs.needed == 'true' && failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "SYNC: upstream ha ${{ steps.upstream_info.outputs.diverge }} nuovi commit" \
+            --body "Sync automatico fallito. Eseguire sync manuale. Upstream SHA: ${{ steps.upstream_info.outputs.sha }}" \
+            --label "sync-upstream" || true

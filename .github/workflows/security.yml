@@ -1,0 +1,38 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # ogni lunedi alle 08:00 UTC
+    - cron: "0 8 * * 1"
+
+jobs:
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.4.0"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm audit (high severity)
+        run: pnpm audit --audit-level=high
+        # Fail su High/Critical. Medium tollerato in CI, monitorato manualmente.
+        continue-on-error: false
+
+      - name: pnpm audit (all levels - informational)
+        run: pnpm audit --audit-level=low
+        continue-on-error: true
