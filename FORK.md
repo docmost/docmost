@@ -48,7 +48,7 @@ docops/
 
 | Data | File modificato | Motivazione | Alternativa valutata |
 |---|---|---|---|
-| — | — | Nessuna modifica al core ancora | — |
+| 2026-05-25 | `apps/server/package.json` | Aggiunta script `migration-docops:*` per eseguire migrazioni custom da `migrations-docops/` via migrator separato | Mettere le migrazioni in `migrations/` upstream (scartato: viola regola isolamento) |
 
 ## File aggiunti alla root (non presenti in upstream)
 
