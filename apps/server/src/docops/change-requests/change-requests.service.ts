@@ -14,6 +14,7 @@ import { CreateChangeRequestDto } from './dto/create-change-request.dto';
 import { ListChangeRequestsDto } from './dto/list-change-requests.dto';
 import { TransitionChangeRequestDto } from './dto/transition-change-request.dto';
 import { AddExternalRefDto } from './dto/add-external-ref.dto';
+import { AuditService } from '../audit/audit.service';
 
 const ACTIVE_STATES = [
   'IN_REVIEW',
@@ -67,7 +68,10 @@ const REASON_REQUIRED = new Set([
 
 @Injectable()
 export class ChangeRequestsService {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly auditService: AuditService,
+  ) {}
 
   async createChangeRequest(dto: CreateChangeRequestDto, authUser: User) {
     const service = await this.db
@@ -278,6 +282,21 @@ export class ChangeRequestsService {
         })
         .execute();
     });
+
+    // Best-effort: audit failure must not break the transition
+    try {
+      await this.auditService.log({
+        actorId: authUser.id,
+        action: `cr.${dto.action}`,
+        entityKind: 'change_request',
+        entityId: dto.id,
+        payloadDiff: {
+          fromStatus: crAny.status,
+          toStatus: TARGET_STATUS[dto.action],
+          reason: dto.reason ?? null,
+        },
+      });
+    } catch (_) {}
 
     return this.getChangeRequest(dto.id);
   }
