@@ -1,11 +1,15 @@
 .board {
+  /* Claim remaining height in the flex-column wrapper after chips strip
+   * and sort hint take their natural heights. Without flex:1+min-height:0
+   * the board's children (columns) wouldn't have a bounded height and
+   * `.columnBody`'s `overflow-y: auto` would never engage. */
   display: flex;
   flex-direction: row;
   gap: 12px;
   padding: 12px;
   overflow-x: auto;
   overflow-y: hidden;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   align-items: stretch;
 }
