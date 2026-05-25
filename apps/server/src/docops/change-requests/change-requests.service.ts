@@ -15,6 +15,7 @@ import { ListChangeRequestsDto } from './dto/list-change-requests.dto';
 import { TransitionChangeRequestDto } from './dto/transition-change-request.dto';
 import { AddExternalRefDto } from './dto/add-external-ref.dto';
 import { AuditService } from '../audit/audit.service';
+import { WebhookDeliveryService } from '../webhooks/webhook-delivery.service';
 
 const ACTIVE_STATES = [
   'IN_REVIEW',
@@ -71,6 +72,7 @@ export class ChangeRequestsService {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly auditService: AuditService,
+    private readonly webhookDeliveryService: WebhookDeliveryService,
   ) {}
 
   async createChangeRequest(dto: CreateChangeRequestDto, authUser: User) {
@@ -283,11 +285,14 @@ export class ChangeRequestsService {
         .execute();
     });
 
-    // Best-effort: audit failure must not break the transition
+    const result = await this.getChangeRequest(dto.id);
+    const event = `cr.${dto.action}`;
+
+    // Best-effort: failures must not break the transition
     try {
       await this.auditService.log({
         actorId: authUser.id,
-        action: `cr.${dto.action}`,
+        action: event,
         entityKind: 'change_request',
         entityId: dto.id,
         payloadDiff: {
@@ -298,7 +303,11 @@ export class ChangeRequestsService {
       });
     } catch (_) {}
 
-    return this.getChangeRequest(dto.id);
+    try {
+      await this.webhookDeliveryService.deliver(event, crAny.serviceId, result);
+    } catch (_) {}
+
+    return result;
   }
 
   async addExternalRef(dto: AddExternalRefDto, authUser: User) {
