@@ -49,6 +49,10 @@ import LabelPage from "@/pages/label/label-page";
 import ServicesListPage from "@/docops/services/pages/ServicesListPage";
 import ServiceDetailPage from "@/docops/services/pages/ServiceDetailPage";
 import ServiceCreatePage from "@/docops/services/pages/ServiceCreatePage";
+import ChangeRequestsListPage from "@/docops/change-requests/pages/ChangeRequestsListPage";
+import ChangeRequestDetailPage from "@/docops/change-requests/pages/ChangeRequestDetailPage";
+import ChangeRequestCreatePage from "@/docops/change-requests/pages/ChangeRequestCreatePage";
+import MyChangeRequestsPage from "@/docops/change-requests/pages/MyChangeRequestsPage";
 
 export default function App() {
   const { t } = useTranslation();
@@ -100,6 +104,10 @@ export default function App() {
           <Route path={"/services"} element={<ServicesListPage />} />
           <Route path={"/services/new"} element={<ServiceCreatePage />} />
           <Route path={"/services/:code"} element={<ServiceDetailPage />} />
+          <Route path={"/change-requests"} element={<ChangeRequestsListPage />} />
+          <Route path={"/change-requests/new"} element={<ChangeRequestCreatePage />} />
+          <Route path={"/change-requests/:id"} element={<ChangeRequestDetailPage />} />
+          <Route path={"/my/change-requests"} element={<MyChangeRequestsPage />} />
           <Route path={"/templates"} element={<TemplateList />} />
           <Route
             path={"/templates/:templateId"}

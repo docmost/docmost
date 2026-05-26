@@ -74,4 +74,10 @@ export class ChangeRequestsController {
   getEvents(@Body() body: { id: string }) {
     return this.crService.getEvents(body.id);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('available-transitions')
+  availableTransitions(@Body() body: { id: string }, @AuthUser() user: User) {
+    return this.crService.getAvailableTransitions(body.id, user);
+  }
 }

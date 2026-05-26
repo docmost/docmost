@@ -25,8 +25,9 @@ import { ChangeRequestsRepository } from './change-requests.repository';
 import {
   validateCrTransition,
   getTargetStatus,
+  CR_STATE_MACHINE,
 } from './state-machine/cr-state-machine';
-import { CrAction, TransitionContext } from './state-machine/cr-state.types';
+import { CrAction, TransitionContext, TransitionDef } from './state-machine/cr-state.types';
 import { CrEventsEmitter } from './events/cr-events.emitter';
 
 @Injectable()
@@ -330,6 +331,35 @@ export class ChangeRequestsService {
     const cr = await this.repo.findById(crId);
     if (!cr) throw new NotFoundException('Change request not found');
     return this.repo.getEvents(crId);
+  }
+
+  async getAvailableTransitions(id: string, authUser: User) {
+    const cr = await this.repo.findById(id);
+    if (!cr) throw new NotFoundException('Change request not found');
+
+    const crAny = cr as any;
+    const userRoles = await this.repo.getUserRoles(authUser.id);
+    const isAdmin = userRoles.includes('ADMIN');
+
+    const ctx: TransitionContext = {
+      userRoles,
+      isAdmin,
+      actorId: authUser.id,
+      creatorId: crAny.requestedById,
+      currentStatus: crAny.status,
+    };
+
+    const actions = (
+      Object.entries(CR_STATE_MACHINE) as [CrAction, TransitionDef][]
+    )
+      .filter(([, def]) => def.from.includes(ctx.currentStatus) && def.canExecute(ctx))
+      .map(([action, def]) => ({
+        action,
+        requiresReason: def.requiresReason,
+        targetStatus: def.to,
+      }));
+
+    return { actions };
   }
 
   private async sendTransitionNotification(

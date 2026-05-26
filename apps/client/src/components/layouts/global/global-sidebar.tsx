@@ -9,6 +9,8 @@ import {
   IconUserPlus,
   IconTemplate,
   IconServer,
+  IconGitPullRequest,
+  IconClipboardList,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./global-sidebar.module.css";
@@ -104,7 +106,7 @@ export default function GlobalSidebar() {
           )}
         </div>
 
-        {/* DOCOPS: Service Catalog — see FORK.md#sidebar-service-catalog */}
+        {/* DOCOPS: Service Catalog + Change Requests — see FORK.md#sidebar-service-catalog */}
         <Divider my="xs" />
         <div className={classes.section}>
           <Text className={classes.sectionHeader}>{t("Service Catalog")}</Text>
@@ -117,6 +119,26 @@ export default function GlobalSidebar() {
           >
             <IconServer className={classes.linkIcon} stroke={2} />
             <span>{t("Services")}</span>
+          </Link>
+          <Link
+            className={classes.link}
+            data-active={active.startsWith("/change-requests") || undefined}
+            aria-current={active.startsWith("/change-requests") ? "page" : undefined}
+            to="/change-requests"
+            onClick={handleNavClick}
+          >
+            <IconGitPullRequest className={classes.linkIcon} stroke={2} />
+            <span>{t("Change Requests")}</span>
+          </Link>
+          <Link
+            className={classes.link}
+            data-active={active.startsWith("/my/change-requests") || undefined}
+            aria-current={active.startsWith("/my/change-requests") ? "page" : undefined}
+            to="/my/change-requests"
+            onClick={handleNavClick}
+          >
+            <IconClipboardList className={classes.linkIcon} stroke={2} />
+            <span>{t("My CRs")}</span>
           </Link>
         </div>
 
