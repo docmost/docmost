@@ -399,6 +399,7 @@ export class ChangeRequestsService {
             actorName,
             crTitle: crAny.title ?? crId,
             serviceName,
+            justification: crAny.justification ?? '',
             crUrl,
           }),
         });
@@ -428,6 +429,7 @@ export class ChangeRequestsService {
             approverName: actorName,
             crTitle: crAny.title ?? crId,
             serviceName,
+            justification: crAny.justification ?? '',
             crUrl,
           }),
         });
@@ -450,6 +452,7 @@ export class ChangeRequestsService {
             implementerName: actorName,
             crTitle: crAny.title ?? crId,
             serviceName,
+            justification: crAny.justification ?? '',
             crUrl,
           }),
         });
@@ -480,6 +483,7 @@ export class ChangeRequestsService {
           template: React.createElement(CrPublishedEmail, {
             crTitle: crAny.title ?? crId,
             serviceName,
+            justification: crAny.justification ?? '',
             crUrl,
           }),
         });
