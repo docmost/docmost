@@ -1,9 +1,11 @@
 import { useState } from "react";
 import {
   ActionIcon,
+  Alert,
   Badge,
   Button,
   Checkbox,
+  Code,
   Container,
   Group,
   Modal,
@@ -18,7 +20,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPlus, IconTrash, IconEdit } from "@tabler/icons-react";
+import { IconPlus, IconTrash, IconEdit, IconBolt, IconHistory } from "@tabler/icons-react";
 import { Helmet } from "react-helmet-async";
 import { useForm } from "@mantine/form";
 import {
@@ -26,8 +28,10 @@ import {
   useCreateWebhookMutation,
   useUpdateWebhookMutation,
   useDeleteWebhookMutation,
+  useWebhookDeliveriesQuery,
+  usePingWebhookMutation,
 } from "../hooks/useWebhooks";
-import type { WebhookConfig, CreateWebhookPayload } from "../api/webhooks.api";
+import type { WebhookConfig, CreateWebhookPayload, WebhookDelivery, PingResult } from "../api/webhooks.api";
 import { getAppName } from "@/lib/config";
 
 const CR_EVENTS = [
@@ -115,6 +119,17 @@ export default function WebhooksAdminPage() {
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
   const [editTarget, setEditTarget] = useState<WebhookConfig | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WebhookConfig | null>(null);
+  const [deliveriesTarget, setDeliveriesTarget] = useState<WebhookConfig | null>(null);
+  const [pingResult, setPingResult] = useState<PingResult | null>(null);
+  const pingMutation = usePingWebhookMutation();
+  const { data: deliveries, isLoading: deliveriesLoading } = useWebhookDeliveriesQuery(
+    deliveriesTarget?.id ?? null,
+  );
+
+  const handlePing = (wh: WebhookConfig) => {
+    setPingResult(null);
+    pingMutation.mutate(wh.id, { onSuccess: (result) => setPingResult(result) });
+  };
 
   const handleCreate = (values: WebhookFormValues) => {
     createMutation.mutate(values as CreateWebhookPayload, { onSuccess: closeCreate });
@@ -219,6 +234,25 @@ export default function WebhooksAdminPage() {
                           <IconTrash size={16} />
                         </ActionIcon>
                       </Tooltip>
+                      <Tooltip label="Test (ping)">
+                        <ActionIcon
+                          variant="subtle"
+                          color="teal"
+                          loading={pingMutation.isPending && pingMutation.variables === wh.id}
+                          onClick={() => handlePing(wh)}
+                        >
+                          <IconBolt size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Consegne recenti">
+                        <ActionIcon
+                          variant="subtle"
+                          color="blue"
+                          onClick={() => setDeliveriesTarget(wh)}
+                        >
+                          <IconHistory size={16} />
+                        </ActionIcon>
+                      </Tooltip>
                     </Group>
                   </Table.Td>
                 </Table.Tr>
@@ -275,6 +309,93 @@ export default function WebhooksAdminPage() {
             Elimina
           </Button>
         </Group>
+      </Modal>
+
+      {/* Ping result modal */}
+      <Modal
+        opened={pingResult !== null}
+        onClose={() => setPingResult(null)}
+        title="Risultato test webhook"
+        size="lg"
+      >
+        {pingResult && (
+          <Stack>
+            <Alert
+              color={pingResult.success ? "green" : "red"}
+              title={pingResult.success ? "Consegna riuscita" : "Consegna fallita"}
+            >
+              {pingResult.success
+                ? `HTTP ${pingResult.statusCode} — il webhook ha risposto correttamente.`
+                : pingResult.errorMessage ?? `HTTP ${pingResult.statusCode}`}
+            </Alert>
+            <Text size="sm" fw={500}>Firma HMAC-SHA256:</Text>
+            <Code block>{pingResult.signature}</Code>
+            <Text size="sm" fw={500}>Payload inviato:</Text>
+            <Code block>{JSON.stringify(pingResult.payload, null, 2)}</Code>
+            <Text size="xs" c="dimmed">
+              Verifica: <code>sha256=HMAC_SHA256(secret, JSON.stringify(payload))</code>
+            </Text>
+          </Stack>
+        )}
+      </Modal>
+
+      {/* Delivery log modal */}
+      <Modal
+        opened={deliveriesTarget !== null}
+        onClose={() => setDeliveriesTarget(null)}
+        title={`Consegne recenti — ${deliveriesTarget?.name ?? ""}`}
+        size="xl"
+      >
+        {deliveriesLoading ? (
+          <Text ta="center" py="xl" c="dimmed">Caricamento…</Text>
+        ) : (
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Data</Table.Th>
+                <Table.Th>Evento</Table.Th>
+                <Table.Th>Tentativo</Table.Th>
+                <Table.Th>HTTP</Table.Th>
+                <Table.Th>ms</Table.Th>
+                <Table.Th>Errore</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {!deliveries?.length && (
+                <Table.Tr>
+                  <Table.Td colSpan={6}>
+                    <Text ta="center" py="xl" c="dimmed">Nessuna consegna registrata.</Text>
+                  </Table.Td>
+                </Table.Tr>
+              )}
+              {deliveries?.map((d: WebhookDelivery) => (
+                <Table.Tr key={d.id}>
+                  <Table.Td>
+                    <Text size="xs">{new Date(d.created_at).toLocaleString("it-IT")}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge size="xs" variant="light">{d.event}</Badge>
+                  </Table.Td>
+                  <Table.Td>{d.attempt_number}</Table.Td>
+                  <Table.Td>
+                    <Badge
+                      size="xs"
+                      color={d.status_code !== null && d.status_code < 300 ? "green" : "red"}
+                    >
+                      {d.status_code ?? "—"}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>{d.duration_ms ?? "—"}</Table.Td>
+                  <Table.Td>
+                    <Text size="xs" c="red" truncate maw={200}>
+                      {d.error_message ?? "—"}
+                    </Text>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        )}
       </Modal>
     </>
   );

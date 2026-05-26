@@ -48,3 +48,35 @@ export async function updateWebhook(payload: UpdateWebhookPayload): Promise<Webh
 export async function deleteWebhook(id: string): Promise<void> {
   await api.post("/docops/webhooks/delete", { id });
 }
+
+export interface WebhookDelivery {
+  id: number;
+  webhook_id: string;
+  event: string;
+  delivery_id: string;
+  attempt_number: number;
+  status_code: number | null;
+  error_message: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
+export interface PingResult {
+  webhookId: string;
+  url: string;
+  signature: string;
+  payload: Record<string, any>;
+  statusCode: number | null;
+  success: boolean;
+  errorMessage: string | null;
+}
+
+export async function listWebhookDeliveries(webhookId: string): Promise<WebhookDelivery[]> {
+  const res = await api.post("/docops/webhooks/deliveries", { webhookId });
+  return res.data;
+}
+
+export async function pingWebhook(webhookId: string): Promise<PingResult> {
+  const res = await api.post("/docops/webhooks/ping", { webhookId });
+  return res.data;
+}

@@ -4,8 +4,12 @@ import {
   deleteWebhook,
   listWebhooks,
   updateWebhook,
+  listWebhookDeliveries,
+  pingWebhook,
   type CreateWebhookPayload,
   type UpdateWebhookPayload,
+  type WebhookDelivery,
+  type PingResult,
 } from "../api/webhooks.api";
 
 const QUERY_KEY = ["docops-webhooks"];
@@ -38,5 +42,19 @@ export function useDeleteWebhookMutation() {
   return useMutation({
     mutationFn: (id: string) => deleteWebhook(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+}
+
+export function useWebhookDeliveriesQuery(webhookId: string | null) {
+  return useQuery({
+    queryKey: ["docops-webhook-deliveries", webhookId],
+    queryFn: () => listWebhookDeliveries(webhookId!),
+    enabled: webhookId !== null,
+  });
+}
+
+export function usePingWebhookMutation() {
+  return useMutation({
+    mutationFn: (webhookId: string) => pingWebhook(webhookId),
   });
 }
