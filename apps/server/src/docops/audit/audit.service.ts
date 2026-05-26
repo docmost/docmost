@@ -14,6 +14,8 @@ export interface AuditLogParams {
   entityKind: string;
   entityId: string;
   payloadDiff?: Record<string, any>;
+  ip?: string;
+  userAgent?: string;
 }
 
 @Injectable()
@@ -31,6 +33,8 @@ export class AuditService {
         payload_diff: params.payloadDiff
           ? sql`${JSON.stringify(params.payloadDiff)}::jsonb`
           : null,
+        ip: params.ip ?? null,
+        user_agent: params.userAgent ?? null,
       })
       .execute();
   }
