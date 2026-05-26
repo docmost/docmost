@@ -36,6 +36,43 @@ Nessuno.
 
 ---
 
+## 2026-05-26 — Milestone 2: Schema dati DocOps
+
+**Tipo**: Sviluppo custom (nessuna sync upstream)  
+**Autore**: Daniele Pierdomenico  
+
+### Cosa è stato fatto
+
+- Verificate e applicate 10 migrazioni DocOps custom in `migrations-docops/`
+- Aggiunta migrazione `docops_20260526T100011-add-justification-check` (CHECK constraint su `change_requests.justification >= 30 char` — mancava nelle migrazioni Fase 0)
+- Test up/down/up per tutte le 11 migrazioni DocOps ✓
+- Rigenerati tipi TypeScript Kysely (`db.d.ts`) — 48 tabelle introspettate
+- Aggiornato `FORK.md` con documentazione ALTER TABLE su `users`, `pages`, `page_history`
+
+### Entità create
+
+| Tabella | Tipo | Migrazione |
+|---|---|---|
+| `offices` | Nuova | 20260525T100001 |
+| `services` | Nuova | 20260525T100002 |
+| `tags` | Nuova | 20260525T100002 |
+| `service_tags` | Nuova | 20260525T100002 |
+| `change_requests` | Nuova | 20260525T100003 |
+| `change_request_events` | Nuova | 20260525T100004 |
+| `external_refs` | Nuova | 20260525T100005 |
+| `docops_audit_logs` | Nuova | 20260525T100006 |
+| `webhooks_config` | Nuova | 20260525T100007 |
+| `users.office_id/docops_roles/external_id/auth_provider` | ALTER | 20260525T100008 |
+| `pages.cr_draft_id/current_published_version_id` | ALTER | 20260525T100009 |
+| `page_history.change_request_id/is_published_version/published_at/published_by_id` | ALTER | 20260525T100010 |
+| `change_requests` CHECK constraint su `justification` | Constraint | 20260526T100011 |
+
+### File upstream modificati
+
+Nessuno (tutte le modifiche in `migrations-docops/`; ALTER TABLE su tabelle native documentate in `FORK.md`).
+
+---
+
 <!-- Template per sincronizzazioni future:
 
 ## YYYY-MM-DD — Sync upstream vX.Y.Z
