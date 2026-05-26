@@ -53,6 +53,8 @@ import ChangeRequestsListPage from "@/docops/change-requests/pages/ChangeRequest
 import ChangeRequestDetailPage from "@/docops/change-requests/pages/ChangeRequestDetailPage";
 import ChangeRequestCreatePage from "@/docops/change-requests/pages/ChangeRequestCreatePage";
 import MyChangeRequestsPage from "@/docops/change-requests/pages/MyChangeRequestsPage";
+import AuditLogPage from "@/docops/audit/pages/AuditLogPage";
+import WebhooksAdminPage from "@/docops/webhooks/pages/WebhooksAdminPage";
 
 export default function App() {
   const { t } = useTranslation();
@@ -108,6 +110,8 @@ export default function App() {
           <Route path={"/change-requests/new"} element={<ChangeRequestCreatePage />} />
           <Route path={"/change-requests/:id"} element={<ChangeRequestDetailPage />} />
           <Route path={"/my/change-requests"} element={<MyChangeRequestsPage />} />
+          <Route path={"/docops/audit"} element={<AuditLogPage />} />
+          <Route path={"/docops/webhooks"} element={<WebhooksAdminPage />} />
           <Route path={"/templates"} element={<TemplateList />} />
           <Route
             path={"/templates/:templateId"}
