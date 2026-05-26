@@ -13,6 +13,7 @@ import {
 import { PageService } from './services/page.service';
 import { BacklinkService } from './services/backlink.service';
 import { PageAccessService } from './page-access/page-access.service';
+import { CrEditLockGuard } from '../../docops/change-requests/guards/cr-edit-lock.guard';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto';
@@ -268,6 +269,7 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @UseGuards(CrEditLockGuard)
   @Post('update')
   async update(@Body() updatePageDto: UpdatePageDto, @AuthUser() user: User) {
     const page = await this.pageRepo.findById(updatePageDto.pageId);

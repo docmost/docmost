@@ -14,6 +14,7 @@ import { CreateChangeRequestDto } from './dto/create-change-request.dto';
 import { ListChangeRequestsDto } from './dto/list-change-requests.dto';
 import { TransitionChangeRequestDto } from './dto/transition-change-request.dto';
 import { AddExternalRefDto } from './dto/add-external-ref.dto';
+import { SaveDraftContentDto } from './dto/save-draft-content.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('docops/change-requests')
@@ -57,5 +58,20 @@ export class ChangeRequestsController {
     @AuthUser() user: User,
   ) {
     return this.crService.removeExternalRef(body.id, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('draft-content/save')
+  saveDraftContent(
+    @Body() dto: SaveDraftContentDto,
+    @AuthUser() user: User,
+  ) {
+    return this.crService.saveDraftContent(dto, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('events')
+  getEvents(@Body() body: { id: string }) {
+    return this.crService.getEvents(body.id);
   }
 }

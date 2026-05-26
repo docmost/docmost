@@ -10,69 +10,35 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { User } from '@docmost/db/types/entity.types';
 import { executeTx } from '@docmost/db/utils';
 import { sql } from 'kysely';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { CreateChangeRequestDto } from './dto/create-change-request.dto';
 import { ListChangeRequestsDto } from './dto/list-change-requests.dto';
 import { TransitionChangeRequestDto } from './dto/transition-change-request.dto';
 import { AddExternalRefDto } from './dto/add-external-ref.dto';
+import { SaveDraftContentDto } from './dto/save-draft-content.dto';
 import { AuditService } from '../audit/audit.service';
 import { WebhookDeliveryService } from '../webhooks/webhook-delivery.service';
-
-const ACTIVE_STATES = [
-  'IN_REVIEW',
-  'APPROVED',
-  'IN_IMPLEMENTATION',
-  'IN_VERIFICATION',
-];
-
-const TERMINAL_STATES = ['PUBLISHED', 'CLOSED', 'REJECTED', 'CANCELLED'];
-
-const ALLOWED_FROM: Record<string, string[]> = {
-  submit: ['DRAFT'],
-  take_for_review: ['REQUESTED'],
-  approve: ['IN_REVIEW'],
-  reject: ['IN_REVIEW'],
-  assign_to_self: ['APPROVED'],
-  submit_for_verification: ['IN_IMPLEMENTATION'],
-  reject_implementation: ['IN_VERIFICATION'],
-  publish: ['IN_VERIFICATION'],
-  close: ['PUBLISHED'],
-  cancel: [
-    'DRAFT',
-    'REQUESTED',
-    'IN_REVIEW',
-    'APPROVED',
-    'IN_IMPLEMENTATION',
-    'IN_VERIFICATION',
-    'PUBLISHED',
-  ],
-};
-
-const TARGET_STATUS: Record<string, string> = {
-  submit: 'REQUESTED',
-  take_for_review: 'IN_REVIEW',
-  approve: 'APPROVED',
-  reject: 'REJECTED',
-  assign_to_self: 'IN_IMPLEMENTATION',
-  submit_for_verification: 'IN_VERIFICATION',
-  reject_implementation: 'IN_IMPLEMENTATION',
-  publish: 'PUBLISHED',
-  close: 'CLOSED',
-  cancel: 'CANCELLED',
-};
-
-const REASON_REQUIRED = new Set([
-  'approve',
-  'reject',
-  'reject_implementation',
-  'cancel',
-]);
+import { MailService } from '../../integrations/mail/mail.service';
+import { QueueName, QueueJob } from '../../integrations/queue/constants';
+import { ChangeRequestsRepository } from './change-requests.repository';
+import {
+  validateCrTransition,
+  getTargetStatus,
+} from './state-machine/cr-state-machine';
+import { CrAction, TransitionContext } from './state-machine/cr-state.types';
+import { CrEventsEmitter } from './events/cr-events.emitter';
 
 @Injectable()
 export class ChangeRequestsService {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
+    private readonly repo: ChangeRequestsRepository,
     private readonly auditService: AuditService,
     private readonly webhookDeliveryService: WebhookDeliveryService,
+    private readonly mailService: MailService,
+    private readonly crEventsEmitter: CrEventsEmitter,
+    @InjectQueue(QueueName.SEARCH_QUEUE) private readonly searchQueue: Queue,
   ) {}
 
   async createChangeRequest(dto: CreateChangeRequestDto, authUser: User) {
@@ -90,126 +56,58 @@ export class ChangeRequestsService {
       .executeTakeFirst();
     if (!page) throw new NotFoundException('Page not found');
 
-    const cr = await this.db
-      .insertInto('change_requests' as any)
-      .values({
-        service_id: dto.serviceId,
-        page_id: dto.pageId,
-        title: dto.title,
-        description: dto.description,
-        justification: dto.justification,
-        status: 'DRAFT',
-        priority: dto.priority,
-        impact: dto.impact,
-        requested_by_id: authUser.id,
-        due_date: dto.dueDate ? new Date(dto.dueDate) : null,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    return cr;
+    return this.repo.insert({
+      service_id: dto.serviceId,
+      page_id: dto.pageId,
+      title: dto.title,
+      description: dto.description,
+      justification: dto.justification,
+      status: 'DRAFT',
+      priority: dto.priority,
+      impact: dto.impact,
+      requested_by_id: authUser.id,
+      due_date: dto.dueDate ? new Date(dto.dueDate) : null,
+    });
   }
 
   async getChangeRequest(id: string) {
-    const cr = await this.db
-      .selectFrom('change_requests' as any)
-      .selectAll()
-      .where('id' as any, '=', id)
-      .executeTakeFirst();
-
+    const cr = await this.repo.findById(id);
     if (!cr) throw new NotFoundException('Change request not found');
 
-    const events = await sql<any>`
-      SELECT * FROM change_request_events
-      WHERE change_request_id = ${id}
-      ORDER BY created_at ASC
-    `.execute(this.db);
+    const [events, externalRefs] = await Promise.all([
+      this.repo.getEvents(id),
+      this.repo.getExternalRefs(id),
+    ]);
 
-    const externalRefs = await sql<any>`
-      SELECT * FROM external_refs
-      WHERE change_request_id = ${id}
-      ORDER BY created_at ASC
-    `.execute(this.db);
-
-    return {
-      ...cr,
-      events: events.rows,
-      externalRefs: externalRefs.rows,
-    };
+    return { ...cr, events, externalRefs };
   }
 
   async listChangeRequests(dto: ListChangeRequestsDto) {
-    let query = this.db
-      .selectFrom('change_requests as cr' as any)
-      .selectAll('cr' as any)
-      .limit(dto.limit ?? 20)
-      .offset(dto.offset ?? 0)
-      .orderBy('cr.created_at' as any, 'desc');
-
-    if (dto.serviceId) {
-      query = query.where('cr.service_id' as any, '=', dto.serviceId);
-    }
-    if (dto.status) {
-      query = query.where('cr.status' as any, '=', dto.status);
-    }
-    if (dto.priority) {
-      query = query.where('cr.priority' as any, '=', dto.priority);
-    }
-    if (dto.requestedById) {
-      query = query.where('cr.requested_by_id' as any, '=', dto.requestedById);
-    }
-    if (dto.implementerId) {
-      query = query.where('cr.implementer_id' as any, '=', dto.implementerId);
-    }
-    if (dto.approverId) {
-      query = query.where('cr.approver_id' as any, '=', dto.approverId);
-    }
-    if (dto.search) {
-      query = query.where(
-        sql`to_tsvector('italian', cr.title || ' ' || coalesce(cr.description, '') || ' ' || coalesce(cr.justification, ''))`,
-        '@@',
-        sql`plainto_tsquery('italian', ${dto.search})`,
-      );
-    }
-
-    const items = await query.execute();
-
-    const totalResult = await this.db
-      .selectFrom('change_requests' as any)
-      .select(this.db.fn.countAll<number>().as('count'))
-      .executeTakeFirst();
-
-    return {
-      items,
-      total: Number(totalResult?.count ?? 0),
+    const { items, total } = await this.repo.listWithCount({
+      serviceId: dto.serviceId,
+      status: dto.status,
+      priority: dto.priority,
+      requestedById: dto.requestedById,
+      implementerId: dto.implementerId,
+      approverId: dto.approverId,
+      search: dto.search,
       limit: dto.limit ?? 20,
       offset: dto.offset ?? 0,
-    };
+    });
+
+    return { items, total, limit: dto.limit ?? 20, offset: dto.offset ?? 0 };
   }
 
   async transition(dto: TransitionChangeRequestDto, authUser: User) {
-    const userRolesResult = await sql<{
-      docops_roles: string[];
-    }>`SELECT docops_roles FROM users WHERE id = ${authUser.id}`.execute(
-      this.db,
-    );
-    const userRoles: string[] = userRolesResult.rows[0]?.docops_roles ?? [];
+    const userRoles = await this.repo.getUserRoles(authUser.id);
     const isAdmin = userRoles.includes('ADMIN');
 
-    const cr = await this.db
-      .selectFrom('change_requests' as any)
-      .selectAll()
-      .where('id' as any, '=', dto.id)
-      .executeTakeFirst();
-
+    const cr = await this.repo.findById(dto.id);
     if (!cr) throw new NotFoundException('Change request not found');
 
     const crAny = cr as any;
 
-    if (
-      dto.rowVersion !== undefined &&
-      dto.rowVersion !== crAny.rowVersion
-    ) {
+    if (dto.rowVersion !== undefined && dto.rowVersion !== crAny.rowVersion) {
       throw new ConflictException('Change request was modified by another user');
     }
 
@@ -223,13 +121,15 @@ export class ChangeRequestsService {
       dto.reason,
     );
 
-    if (dto.action === 'submit') {
+    if (dto.action === 'take_for_review') {
       await this.checkNoActiveCr(crAny.serviceId, dto.id);
     }
 
+    const targetStatus = getTargetStatus(dto.action as CrAction);
+
     await executeTx(this.db, async (trx) => {
       const updates: Record<string, any> = {
-        status: TARGET_STATUS[dto.action],
+        status: targetStatus,
         updated_at: new Date(),
         row_version: (crAny.rowVersion ?? 0) + 1,
       };
@@ -240,13 +140,14 @@ export class ChangeRequestsService {
         updates.approved_at = new Date();
       } else if (dto.action === 'assign_to_self') {
         updates.implementer_id = authUser.id;
+        await trx
+          .updateTable('pages')
+          .set({ crDraftId: dto.id })
+          .where('id', '=', crAny.pageId)
+          .execute();
       } else if (dto.action === 'submit_for_verification') {
-        const refCount = await sql<{ count: string }>`
-          SELECT COUNT(*) as count FROM external_refs
-          WHERE change_request_id = ${dto.id}
-          AND ref_type IN ('PR', 'COMMIT')
-        `.execute(trx);
-        if (Number(refCount.rows[0]?.count ?? 0) === 0) {
+        const refCount = await this.repo.getExternalRefCount(dto.id);
+        if (refCount === 0) {
           throw new BadRequestException(
             'At least one PR or COMMIT external ref required before submitting for verification',
           );
@@ -262,61 +163,119 @@ export class ChangeRequestsService {
         );
         updates.published_version_id = historyId;
         updates.published_at = new Date();
+        updates.tech_lead_id = authUser.id;
       } else if (dto.action === 'close' || dto.action === 'cancel') {
         updates.closed_at = new Date();
       }
 
-      await trx
-        .updateTable('change_requests' as any)
-        .set(updates)
-        .where('id' as any, '=', dto.id)
-        .execute();
-
-      await trx
-        .insertInto('change_request_events' as any)
-        .values({
-          change_request_id: dto.id,
-          from_status: crAny.status,
-          to_status: TARGET_STATUS[dto.action],
-          actor_id: authUser.id,
+      await this.repo.updateById(dto.id, updates, trx);
+      await this.repo.insertEvent(
+        {
+          changeRequestId: dto.id,
+          fromStatus: crAny.status,
+          toStatus: targetStatus,
+          actorId: authUser.id,
           reason: dto.reason ?? null,
-          metadata: sql`'{}'::jsonb`,
-        })
-        .execute();
+        },
+        trx,
+      );
     });
 
     const result = await this.getChangeRequest(dto.id);
-    const event = `cr.${dto.action}`;
 
-    // Best-effort: failures must not break the transition
+    // Side effects — best-effort, must not break the transition
     try {
       await this.auditService.log({
         actorId: authUser.id,
-        action: event,
+        action: `cr.${dto.action}`,
         entityKind: 'change_request',
         entityId: dto.id,
         payloadDiff: {
           fromStatus: crAny.status,
-          toStatus: TARGET_STATUS[dto.action],
+          toStatus: targetStatus,
           reason: dto.reason ?? null,
         },
       });
     } catch (_) {}
 
     try {
-      await this.webhookDeliveryService.deliver(event, crAny.serviceId, result);
+      await this.webhookDeliveryService.deliver(
+        `cr.${dto.action}`,
+        crAny.serviceId,
+        result,
+      );
+    } catch (_) {}
+
+    if (dto.action === 'publish') {
+      try {
+        await this.searchQueue.add(QueueJob.PAGE_UPDATED, {
+          pageIds: [crAny.pageId],
+        });
+      } catch (_) {}
+
+      this.crEventsEmitter.emitPublished({
+        crId: dto.id,
+        action: dto.action,
+        fromStatus: crAny.status,
+        toStatus: targetStatus,
+        actorId: authUser.id,
+        serviceId: crAny.serviceId,
+        pageId: crAny.pageId,
+        reason: dto.reason ?? null,
+        publishedVersionId: (result as any).publishedVersionId,
+      });
+    } else {
+      this.crEventsEmitter.emitTransition({
+        crId: dto.id,
+        action: dto.action,
+        fromStatus: crAny.status,
+        toStatus: targetStatus,
+        actorId: authUser.id,
+        serviceId: crAny.serviceId,
+        pageId: crAny.pageId,
+        reason: dto.reason ?? null,
+      });
+    }
+
+    try {
+      await this.sendTransitionNotification(dto.action, dto.id, crAny, authUser);
     } catch (_) {}
 
     return result;
   }
 
-  async addExternalRef(dto: AddExternalRefDto, authUser: User) {
+  async saveDraftContent(dto: SaveDraftContentDto, authUser: User) {
     const cr = await this.db
       .selectFrom('change_requests' as any)
-      .select(['id', 'status'])
+      .select(['id', 'status', 'implementerId', 'pageId'] as any)
       .where('id' as any, '=', dto.changeRequestId)
       .executeTakeFirst();
 
+    if (!cr) throw new NotFoundException('Change request not found');
+
+    const crAny = cr as any;
+    if (crAny.status !== 'IN_IMPLEMENTATION') {
+      throw new BadRequestException(
+        'Draft content can only be saved when CR is IN_IMPLEMENTATION',
+      );
+    }
+    if (crAny.implementerId !== authUser.id) {
+      throw new ForbiddenException(
+        'Only the assigned implementer can save draft content',
+      );
+    }
+
+    await this.db
+      .updateTable('pages')
+      .set({ content: dto.content, lastUpdatedById: authUser.id } as any)
+      .where('id', '=', crAny.pageId)
+      .execute();
+
+    return { saved: true };
+  }
+
+  async addExternalRef(dto: AddExternalRefDto, authUser: User) {
+    const cr = await this.repo.findById(dto.changeRequestId);
     if (!cr) throw new NotFoundException('Change request not found');
 
     const crStatus = (cr as any).status;
@@ -348,14 +307,7 @@ export class ChangeRequestsService {
 
     if (!ref) throw new NotFoundException('External ref not found');
 
-    const refAny = ref as any;
-
-    const cr = await this.db
-      .selectFrom('change_requests' as any)
-      .select(['status'])
-      .where('id' as any, '=', refAny.changeRequestId)
-      .executeTakeFirst();
-
+    const cr = await this.repo.findById((ref as any).changeRequestId);
     if ((cr as any)?.status !== 'IN_IMPLEMENTATION') {
       throw new BadRequestException(
         'External refs can only be removed when CR status is IN_IMPLEMENTATION',
@@ -368,15 +320,77 @@ export class ChangeRequestsService {
       .execute();
   }
 
-  private async checkNoActiveCr(serviceId: string, excludeId: string) {
-    const result = await sql<{ count: string }>`
-      SELECT COUNT(*) as count FROM change_requests
-      WHERE service_id = ${serviceId}
-      AND status = ANY(${ACTIVE_STATES}::text[])
-      AND id != ${excludeId}
-    `.execute(this.db);
+  async getEvents(crId: string) {
+    const cr = await this.repo.findById(crId);
+    if (!cr) throw new NotFoundException('Change request not found');
+    return this.repo.getEvents(crId);
+  }
 
-    if (Number(result.rows[0]?.count ?? 0) > 0) {
+  private async sendTransitionNotification(
+    action: string,
+    crId: string,
+    crAny: any,
+    actor: User,
+  ) {
+    const subject = `[DocOps CR] ${action.replace(/_/g, ' ').toUpperCase()}: ${crAny.title ?? crId}`;
+
+    const roleToNotify: Record<string, string> = {
+      submit: 'APPROVER',
+      approve: 'DEVELOPER',
+      submit_for_verification: 'TECH_LEAD',
+    };
+
+    if (roleToNotify[action]) {
+      const role = roleToNotify[action];
+      const recipients = await sql<{ email: string }>`
+        SELECT email FROM users
+        WHERE docops_roles @> ARRAY[${role}]::text[]
+        AND deleted_at IS NULL
+      `.execute(this.db);
+
+      for (const r of recipients.rows) {
+        await this.mailService.sendToQueue({
+          to: r.email,
+          subject,
+          text: `Change request "${crAny.title}" has transitioned via action "${action}". View it in DocOps.`,
+        });
+      }
+      return;
+    }
+
+    if (action === 'publish') {
+      const service = await sql<{ space_id: string; owner_id: string }>`
+        SELECT space_id, owner_id FROM services WHERE id = ${crAny.serviceId}
+      `.execute(this.db);
+
+      if (!service.rows[0]) return;
+
+      const { space_id, owner_id } = service.rows[0];
+
+      const members = await sql<{ email: string }>`
+        SELECT DISTINCT u.email
+        FROM space_members sm
+        JOIN users u ON u.id = sm.user_id
+        WHERE sm.space_id = ${space_id}
+          AND sm.deleted_at IS NULL
+          AND u.deleted_at IS NULL
+        UNION
+        SELECT email FROM users WHERE id = ${owner_id} AND deleted_at IS NULL
+      `.execute(this.db);
+
+      for (const m of members.rows) {
+        await this.mailService.sendToQueue({
+          to: m.email,
+          subject,
+          text: `Change request "${crAny.title}" has been published. The documentation for this service has been updated.`,
+        });
+      }
+    }
+  }
+
+  private async checkNoActiveCr(serviceId: string, excludeId: string) {
+    const count = await this.repo.countActiveCrs(serviceId, excludeId);
+    if (count > 0) {
       throw new ConflictException(
         'An active change request already exists for this service',
       );
@@ -408,13 +422,15 @@ export class ChangeRequestsService {
 
     if (!page) throw new NotFoundException('Page not found');
 
+    const publishedContent = page.content;
+
     const historyRecord = await trx
       .insertInto('pageHistory')
       .values({
         pageId: page.id,
         slugId: page.slugId,
         title: page.title,
-        content: page.content,
+        content: publishedContent,
         icon: page.icon,
         coverPhoto: page.coverPhoto,
         lastUpdatedById: actorId,
@@ -430,7 +446,11 @@ export class ChangeRequestsService {
 
     await trx
       .updateTable('pages')
-      .set({ currentPublishedVersionId: historyRecord.id } as any)
+      .set({
+        content: publishedContent,
+        currentPublishedVersionId: historyRecord.id,
+        crDraftId: null,
+      } as any)
       .where('id', '=', pageId)
       .execute();
 
@@ -445,55 +465,14 @@ export class ChangeRequestsService {
     actorId: string,
     creatorId: string,
     reason?: string,
-  ) {
-    const allowed = ALLOWED_FROM[action];
-    if (!allowed) throw new BadRequestException(`Unknown action: ${action}`);
-    if (!allowed.includes(currentStatus)) {
-      throw new BadRequestException(
-        `Cannot perform '${action}' on a CR in status '${currentStatus}'`,
-      );
-    }
-
-    if (REASON_REQUIRED.has(action) && !reason?.trim()) {
-      throw new BadRequestException(
-        `A reason is required for action '${action}'`,
-      );
-    }
-
-    const hasRole = (role: string) => userRoles.includes(role) || isAdmin;
-
-    const roleChecks: Record<string, () => boolean> = {
-      submit: () => hasRole('PROCESS_OWNER'),
-      take_for_review: () => hasRole('APPROVER'),
-      approve: () => hasRole('APPROVER'),
-      reject: () => hasRole('APPROVER'),
-      assign_to_self: () => hasRole('DEVELOPER'),
-      submit_for_verification: () => hasRole('DEVELOPER'),
-      reject_implementation: () => hasRole('TECH_LEAD'),
-      publish: () => hasRole('TECH_LEAD'),
-      close: () => isAdmin,
-      cancel: () => {
-        // From terminal-adjacent states: admin only
-        const adminOnlyStates = [
-          'IN_REVIEW',
-          'APPROVED',
-          'IN_IMPLEMENTATION',
-          'IN_VERIFICATION',
-          'PUBLISHED',
-        ];
-        if (adminOnlyStates.includes(currentStatus)) return isAdmin;
-        // From DRAFT/REQUESTED: creator with PROCESS_OWNER role or admin
-        return (
-          isAdmin ||
-          (actorId === creatorId && userRoles.includes('PROCESS_OWNER'))
-        );
-      },
+  ): void {
+    const ctx: TransitionContext = {
+      userRoles,
+      isAdmin,
+      actorId,
+      creatorId,
+      currentStatus: currentStatus as any,
     };
-
-    if (!roleChecks[action]()) {
-      throw new ForbiddenException(
-        `Insufficient role to perform '${action}'`,
-      );
-    }
+    validateCrTransition(action, ctx, reason);
   }
 }
