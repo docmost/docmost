@@ -50,6 +50,7 @@ docops/
 |---|---|---|---|
 | 2026-05-25 | `apps/server/package.json` | Aggiunta script `migration-docops:*` per eseguire migrazioni custom da `migrations-docops/` via migrator separato | Mettere le migrazioni in `migrations/` upstream (scartato: viola regola isolamento) |
 | 2026-05-25 | `apps/server/src/app.module.ts` | Aggiunta import e registrazione `DocopsModule` nel root module | Lazy loading (scartato: non necessario per i volumi previsti) |
+| 2026-05-26 | `apps/client/src/components/layouts/global/global-sidebar.tsx` | Aggiunta sezione "Catalogo Servizi" con `IconServer` e link `/services` sopra "Favorite spaces". Marcata con commento `/* DOCOPS: sidebar-service-catalog */`. Modifica minima: ~12 righe, nessuna prop rimossa, nessuna logica upstream alterata. | Slot/composition (scartato: GlobalSidebar non espone slot; aggiungerne uno richiederebbe più modifiche upstream di quante ne faccia l'aggiunta diretta) |
 
 ## ALTER TABLE su entità native Docmost (Milestone 2)
 
