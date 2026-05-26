@@ -46,6 +46,9 @@ import FavoritesPage from "@/pages/favorites/favorites-page";
 import AiChat from "@/ee/ai-chat/pages/ai-chat.tsx";
 import VerifyEmail from "@/ee/pages/verify-email.tsx";
 import LabelPage from "@/pages/label/label-page";
+import ServicesListPage from "@/docops/services/pages/ServicesListPage";
+import ServiceDetailPage from "@/docops/services/pages/ServiceDetailPage";
+import ServiceCreatePage from "@/docops/services/pages/ServiceCreatePage";
 
 export default function App() {
   const { t } = useTranslation();
@@ -94,6 +97,9 @@ export default function App() {
           <Route path={"/spaces"} element={<SpacesPage />} />
           <Route path={"/favorites"} element={<FavoritesPage />} />
           <Route path={"/labels/:labelName"} element={<LabelPage />} />
+          <Route path={"/services"} element={<ServicesListPage />} />
+          <Route path={"/services/new"} element={<ServiceCreatePage />} />
+          <Route path={"/services/:code"} element={<ServiceDetailPage />} />
           <Route path={"/templates"} element={<TemplateList />} />
           <Route
             path={"/templates/:templateId"}

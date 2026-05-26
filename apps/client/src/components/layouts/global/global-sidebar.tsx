@@ -8,6 +8,7 @@ import {
   IconSettings,
   IconUserPlus,
   IconTemplate,
+  IconServer,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./global-sidebar.module.css";
@@ -101,6 +102,22 @@ export default function GlobalSidebar() {
               </Link>
             ),
           )}
+        </div>
+
+        {/* DOCOPS: Service Catalog — see FORK.md#sidebar-service-catalog */}
+        <Divider my="xs" />
+        <div className={classes.section}>
+          <Text className={classes.sectionHeader}>{t("Service Catalog")}</Text>
+          <Link
+            className={classes.link}
+            data-active={active.startsWith("/services") || undefined}
+            aria-current={active.startsWith("/services") ? "page" : undefined}
+            to="/services"
+            onClick={handleNavClick}
+          >
+            <IconServer className={classes.linkIcon} stroke={2} />
+            <span>{t("Services")}</span>
+          </Link>
         </div>
 
         <Divider my="xs" />
