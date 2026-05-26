@@ -1,6 +1,13 @@
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { Transform, TransformFnParams } from 'class-transformer';
-import { Type } from 'class-transformer';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
+import { Transform, TransformFnParams, Type } from 'class-transformer';
 
 export class ListServicesDto {
   @IsOptional()
@@ -19,6 +26,10 @@ export class ListServicesDto {
   @IsOptional()
   @IsString()
   tag?: string;
+
+  @IsOptional()
+  @IsUUID()
+  ownerId?: string;
 
   @IsOptional()
   @Type(() => Number)

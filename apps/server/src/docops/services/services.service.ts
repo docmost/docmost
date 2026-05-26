@@ -8,36 +8,40 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { executeTx } from '@docmost/db/utils';
 import { sql } from 'kysely';
+import { generateSlugId } from '../../common/helpers';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ListServicesDto } from './dto/list-services.dto';
+import { ImportServicesDto } from './dto/import-services.dto';
+import { ServicesRepository } from './services.repository';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class ServicesService {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly servicesRepo: ServicesRepository,
+    private readonly auditService: AuditService,
+  ) {}
 
   async createService(
     dto: CreateServiceDto,
     authUser: User,
     workspace: Workspace,
-  ) {
-    const existing = await this.db
-      .selectFrom('services' as any)
-      .select(['id'])
-      .where('code' as any, '=', dto.code)
-      .executeTakeFirst();
-
+  ): Promise<any> {
+    const existing = await this.servicesRepo.findByIdOrCode(dto.code);
     if (existing) {
       throw new BadRequestException(
-        `Service with code '${dto.code}' already exists`,
+        `Service code '${dto.code}' already exists`,
       );
     }
 
     let service: any;
 
     await executeTx(this.db, async (trx) => {
-      // create dedicated Docmost space for this service
-      const space = await trx
+      // Create dedicated Docmost Space for this service.
+      // slug = service code (already validated as [a-z0-9_-]+).
+      const space = await (trx as any)
         .insertInto('spaces')
         .values({
           name: dto.name,
@@ -46,170 +50,241 @@ export class ServicesService {
           creatorId: authUser.id,
           workspaceId: workspace.id,
           visibility: 'private',
-        } as any)
-        .returningAll()
-        .executeTakeFirstOrThrow();
-
-      const ownerId = dto.ownerId ?? authUser.id;
-
-      service = await trx
-        .insertInto('services' as any)
-        .values({
-          code: dto.code,
-          name: dto.name,
-          description: dto.description ?? null,
-          domain: dto.domain ?? null,
-          owner_id: ownerId,
-          lifecycle_state: dto.lifecycleState ?? 'active',
-          space_id: space.id,
-          metadata: sql`'{}'::jsonb`,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
 
+      // Create root page for the service inside the Space.
+      const rootPage = await (trx as any)
+        .insertInto('pages')
+        .values({
+          slugId: generateSlugId(),
+          title: dto.name,
+          spaceId: space.id,
+          workspaceId: workspace.id,
+          creatorId: authUser.id,
+          lastUpdatedById: authUser.id,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      // Persist service with Space and root page bindings.
+      service = await this.servicesRepo.insert(
+        {
+          code: dto.code,
+          name: dto.name,
+          description: dto.description,
+          domain: dto.domain,
+          ownerId: dto.ownerId ?? authUser.id,
+          lifecycleState: dto.lifecycleState ?? 'active',
+          spaceId: space.id,
+          rootPageId: rootPage.id,
+        },
+        trx,
+      );
+
       if (dto.tags && dto.tags.length > 0) {
-        await this.upsertTags(trx, service.id, dto.tags);
+        await this.servicesRepo.upsertTags(service.id, dto.tags, trx);
       }
+    });
+
+    await this.auditService.log({
+      actorId: authUser.id,
+      action: 'service.created',
+      entityKind: 'service',
+      entityId: service.id,
+      payloadDiff: {
+        after: { code: service.code, name: service.name, domain: service.domain },
+      },
+    });
+
+    const tags = await this.servicesRepo.getServiceTags(service.id);
+    return { ...service, tags };
+  }
+
+  async getService(idOrCode: string): Promise<any> {
+    const service = await this.servicesRepo.findByIdOrCode(idOrCode);
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+    const tags = await this.servicesRepo.getServiceTags(service.id);
+    return { ...service, tags };
+  }
+
+  async getServiceDocument(idOrCode: string): Promise<any> {
+    const service = await this.servicesRepo.findByIdOrCode(idOrCode);
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+    if (!service.root_page_id) {
+      throw new NotFoundException('Service has no root document');
+    }
+
+    const page = await (this.db as any)
+      .selectFrom('pages')
+      .selectAll()
+      .where('id', '=', service.root_page_id)
+      .executeTakeFirst();
+
+    if (!page) {
+      throw new NotFoundException('Service document not found');
+    }
+    return page;
+  }
+
+  async listServices(dto: ListServicesDto): Promise<any> {
+    return this.servicesRepo.findAll({
+      search: dto.search,
+      domain: dto.domain,
+      lifecycleState: dto.lifecycleState,
+      tag: dto.tag,
+      ownerId: dto.ownerId,
+      limit: dto.limit ?? 20,
+      offset: dto.offset ?? 0,
+    });
+  }
+
+  async updateService(dto: UpdateServiceDto, authUser: User): Promise<any> {
+    const before = await this.getService(dto.id);
+
+    const service = await this.db.transaction().execute(async (trx) => {
+      const updated = await this.servicesRepo.update(
+        dto.id,
+        {
+          name: dto.name,
+          description: dto.description,
+          domain: dto.domain,
+          ownerId: dto.ownerId,
+          lifecycleState: dto.lifecycleState,
+        },
+        trx,
+      );
+
+      if (dto.tags !== undefined) {
+        await this.servicesRepo.clearTags(dto.id, trx);
+        if (dto.tags.length > 0) {
+          await this.servicesRepo.upsertTags(dto.id, dto.tags, trx);
+        }
+      }
+
+      return updated;
+    });
+
+    await this.auditService.log({
+      actorId: authUser.id,
+      action: 'service.updated',
+      entityKind: 'service',
+      entityId: dto.id,
+      payloadDiff: {
+        before: {
+          name: before.name,
+          domain: before.domain,
+          lifecycle_state: before.lifecycle_state,
+        },
+        after: {
+          name: service.name,
+          domain: service.domain,
+          lifecycle_state: service.lifecycle_state,
+        },
+      },
+    });
+
+    const tags = await this.servicesRepo.getServiceTags(dto.id);
+    return { ...service, tags };
+  }
+
+  async retireService(id: string, authUser: User): Promise<any> {
+    const before = await this.getService(id);
+
+    const service = await this.servicesRepo.retire(id);
+
+    await this.auditService.log({
+      actorId: authUser.id,
+      action: 'service.retired',
+      entityKind: 'service',
+      entityId: id,
+      payloadDiff: {
+        before: { lifecycle_state: before.lifecycle_state },
+        after: { lifecycle_state: 'retired' },
+      },
     });
 
     return service;
   }
 
-  async getService(id: string) {
-    const service = await this.db
-      .selectFrom('services' as any)
-      .selectAll()
-      .where((eb: any) =>
-        eb.or([eb('id', '=', id), eb('code', '=', id)]),
-      )
-      .executeTakeFirst();
-
-    if (!service) {
-      throw new NotFoundException('Service not found');
-    }
-
-    const tags = await this.getServiceTags(service.id);
-    return { ...service, tags };
+  async listTags(): Promise<any[]> {
+    return this.servicesRepo.listTags();
   }
 
-  async listServices(dto: ListServicesDto) {
-    let query = this.db
-      .selectFrom('services as s' as any)
-      .selectAll('s' as any)
-      .limit(dto.limit ?? 20)
-      .offset(dto.offset ?? 0)
-      .orderBy('s.name' as any, 'asc');
+  // Bulk import: services are inserted without Space/root page (batch mode).
+  // Caller should create Spaces in a follow-up step or via the dedicated
+  // single-create endpoint. Skips duplicate codes silently.
+  async importServices(
+    dto: ImportServicesDto,
+    authUser: User,
+    workspace: Workspace,
+  ): Promise<{ attempted: number; message: string }> {
+    const PLACEHOLDER_SPACE_ID = await this.ensureBulkImportSpace(
+      authUser,
+      workspace,
+    );
 
-    if (dto.lifecycleState) {
-      query = query.where('s.lifecycle_state' as any, '=', dto.lifecycleState);
-    }
+    const records = dto.services.map((s) => ({
+      code: s.code,
+      name: s.name,
+      description: s.description,
+      domain: s.domain,
+      ownerId: s.ownerId ?? authUser.id,
+      lifecycleState: s.lifecycleState ?? 'active',
+      spaceId: PLACEHOLDER_SPACE_ID,
+    }));
 
-    if (dto.domain) {
-      query = query.where('s.domain' as any, '=', dto.domain);
-    }
+    const attempted = await this.servicesRepo.bulkInsert(records);
 
-    if (dto.search) {
-      query = query.where(
-        sql`to_tsvector('italian', s.name || ' ' || coalesce(s.description, ''))`,
-        '@@',
-        sql`plainto_tsquery('italian', ${dto.search})`,
-      );
-    }
-
-    if (dto.tag) {
-      query = query.where(
-        's.id' as any,
-        'in',
-        sql`(
-          SELECT st.service_id FROM service_tags st
-          INNER JOIN tags t ON t.id = st.tag_id
-          WHERE t.name = ${dto.tag}
-        )`,
-      );
-    }
-
-    const items = await query.execute();
-
-    const totalResult = await this.db
-      .selectFrom('services' as any)
-      .select(this.db.fn.countAll<number>().as('count'))
-      .executeTakeFirst();
+    await this.auditService.log({
+      actorId: authUser.id,
+      action: 'service.bulk_imported',
+      entityKind: 'service',
+      entityId: authUser.id,
+      payloadDiff: { count: attempted },
+    });
 
     return {
-      items,
-      total: Number(totalResult?.count ?? 0),
-      limit: dto.limit ?? 20,
-      offset: dto.offset ?? 0,
+      attempted,
+      message: `Import complete. ${attempted} records processed (duplicates skipped).`,
     };
   }
 
-  async updateService(dto: UpdateServiceDto, actorId: string) {
-    await this.getService(dto.id);
+  // Ensures a shared placeholder Space exists for bulk-imported services that
+  // have not yet been individually provisioned with their own Space.
+  private async ensureBulkImportSpace(
+    authUser: User,
+    workspace: Workspace,
+  ): Promise<string> {
+    const BULK_SLUG = '__docops_bulk_import__';
 
-    const updates: Record<string, any> = { updated_at: new Date() };
-    if (dto.name !== undefined) updates.name = dto.name;
-    if (dto.description !== undefined) updates.description = dto.description;
-    if (dto.domain !== undefined) updates.domain = dto.domain;
-    if (dto.ownerId !== undefined) updates.owner_id = dto.ownerId;
-    if (dto.lifecycleState !== undefined)
-      updates.lifecycle_state = dto.lifecycleState;
+    const existing = await (this.db as any)
+      .selectFrom('spaces')
+      .select(['id'])
+      .where('slug', '=', BULK_SLUG)
+      .where('workspaceId', '=', workspace.id)
+      .executeTakeFirst();
 
-    const service = await this.db
-      .updateTable('services' as any)
-      .set(updates)
-      .where('id' as any, '=', dto.id)
+    if (existing) return existing.id;
+
+    const space = await (this.db as any)
+      .insertInto('spaces')
+      .values({
+        name: 'Bulk Import (placeholder)',
+        description: 'Auto-created space for services imported in bulk',
+        slug: BULK_SLUG,
+        creatorId: authUser.id,
+        workspaceId: workspace.id,
+        visibility: 'private',
+      })
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    if (dto.tags !== undefined) {
-      await this.db
-        .deleteFrom('service_tags' as any)
-        .where('service_id' as any, '=', dto.id)
-        .execute();
-      if (dto.tags.length > 0) {
-        await this.upsertTags(this.db, dto.id, dto.tags);
-      }
-    }
-
-    const tags = await this.getServiceTags(dto.id);
-    return { ...service, tags };
-  }
-
-  private async getServiceTags(serviceId: string): Promise<string[]> {
-    const rows = await sql<{ name: string }>`
-      SELECT t.name
-      FROM service_tags st
-      INNER JOIN tags t ON t.id = st.tag_id
-      WHERE st.service_id = ${serviceId}
-    `.execute(this.db);
-
-    return rows.rows.map((r) => r.name);
-  }
-
-  private async upsertTags(db: any, serviceId: string, tags: string[]) {
-    for (const tagName of tags) {
-      const normalizedTag = tagName.trim().toLowerCase();
-      if (!normalizedTag) continue;
-
-      let tag = await db
-        .selectFrom('tags')
-        .select(['id'])
-        .where('name', '=', normalizedTag)
-        .executeTakeFirst();
-
-      if (!tag) {
-        tag = await db
-          .insertInto('tags')
-          .values({ name: normalizedTag })
-          .returning(['id'])
-          .executeTakeFirstOrThrow();
-      }
-
-      await db
-        .insertInto('service_tags')
-        .values({ service_id: serviceId, tag_id: tag.id })
-        .onConflict((oc: any) => oc.doNothing())
-        .execute();
-    }
+    return space.id;
   }
 }
