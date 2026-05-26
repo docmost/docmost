@@ -41,4 +41,19 @@ export class WebhooksController {
   delete(@Body() body: { id: string }, @AuthUser() user: User) {
     return this.webhooksService.deleteWebhook(body.id, user);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('deliveries')
+  listDeliveries(
+    @Body() body: { webhookId: string },
+    @AuthUser() user: User,
+  ) {
+    return this.webhooksService.listDeliveries(body.webhookId, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('ping')
+  ping(@Body() body: { webhookId: string }, @AuthUser() user: User) {
+    return this.webhooksService.pingWebhook(body.webhookId, user);
+  }
 }

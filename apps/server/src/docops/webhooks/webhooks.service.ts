@@ -9,6 +9,7 @@ import { User } from '@docmost/db/types/entity.types';
 import { sql } from 'kysely';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { UpdateWebhookDto } from './dto/update-webhook.dto';
+import { createHmac } from 'crypto';
 
 @Injectable()
 export class WebhooksService {
@@ -89,6 +90,87 @@ export class WebhooksService {
       .deleteFrom('webhooks_config' as any)
       .where('id' as any, '=', id)
       .execute();
+  }
+
+  async listDeliveries(webhookId: string, authUser: User) {
+    await this.assertAdmin(authUser.id);
+
+    const result = await sql<{
+      id: number;
+      webhook_id: string;
+      event: string;
+      delivery_id: string;
+      attempt_number: number;
+      status_code: number | null;
+      error_message: string | null;
+      duration_ms: number | null;
+      created_at: string;
+    }>`
+      SELECT id, webhook_id, event, delivery_id, attempt_number,
+             status_code, error_message, duration_ms, created_at
+      FROM webhook_delivery_logs
+      WHERE webhook_id = ${webhookId}
+      ORDER BY created_at DESC
+      LIMIT 50
+    `.execute(this.db);
+
+    return result.rows;
+  }
+
+  async pingWebhook(webhookId: string, authUser: User) {
+    await this.assertAdmin(authUser.id);
+
+    const result = await sql<{
+      id: string;
+      url: string;
+      secret: string;
+      is_active: boolean;
+    }>`
+      SELECT id, url, secret, is_active FROM webhooks_config WHERE id = ${webhookId}
+    `.execute(this.db);
+
+    const webhook = result.rows[0];
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    const payload = {
+      event: 'cr.test',
+      timestamp: new Date().toISOString(),
+      message: 'DocOps webhook test ping',
+    };
+
+    const body = JSON.stringify(payload);
+    const signature =
+      'sha256=' + createHmac('sha256', webhook.secret).update(body).digest('hex');
+
+    let statusCode: number | null = null;
+    let errorMessage: string | null = null;
+
+    try {
+      const response = await fetch(webhook.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-DocOps-Signature-256': signature,
+          'X-DocOps-Event': 'cr.test',
+          'X-DocOps-Delivery': 'test-ping',
+        },
+        body,
+        signal: AbortSignal.timeout(10_000),
+      });
+      statusCode = response.status;
+    } catch (err: any) {
+      errorMessage = err?.message ?? 'Connection failed';
+    }
+
+    return {
+      webhookId,
+      url: webhook.url,
+      signature,
+      payload,
+      statusCode,
+      success: statusCode !== null && statusCode >= 200 && statusCode < 300,
+      errorMessage,
+    };
   }
 
   private redactSecret(webhook: any) {
