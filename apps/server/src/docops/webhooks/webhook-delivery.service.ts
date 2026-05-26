@@ -26,14 +26,17 @@ export class WebhookDeliveryService {
     serviceId: string,
     crData: Record<string, any>,
   ): Promise<void> {
-    const matchingWebhooks = await sql<{ id: string }>`
-      SELECT id FROM webhooks_config
-      WHERE is_active = true
-        AND ${event} = ANY(events)
-        AND (service_id IS NULL OR service_id = ${serviceId})
-    `.execute(this.db);
+    const matchingWebhooks = await (this.db as any)
+      .selectFrom('webhooks_config')
+      .select('id')
+      .where('is_active', '=', true)
+      .where(sql`${event} = ANY(events)`)
+      .where((eb: any) =>
+        eb.or([eb('service_id', 'is', null), eb('service_id', '=', serviceId)]),
+      )
+      .execute();
 
-    if (matchingWebhooks.rows.length === 0) return;
+    if (matchingWebhooks.length === 0) return;
 
     const payload: Record<string, any> = {
       event,
@@ -41,7 +44,7 @@ export class WebhookDeliveryService {
       changeRequest: crData,
     };
 
-    for (const webhook of matchingWebhooks.rows) {
+    for (const webhook of matchingWebhooks) {
       await this.queue.add(
         WEBHOOK_DELIVER_JOB,
         { webhookId: webhook.id, event, payload } satisfies WebhookJobData,
