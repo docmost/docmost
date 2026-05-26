@@ -12,6 +12,7 @@ import { CrEventsEmitter } from './events/cr-events.emitter';
 import { AuditService } from '../audit/audit.service';
 import { WebhookDeliveryService } from '../webhooks/webhook-delivery.service';
 import { MailService } from '../../integrations/mail/mail.service';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { QueueName } from '../../integrations/queue/constants';
 
 // ── Mock factories ────────────────────────────────────────────────────────────
@@ -19,6 +20,7 @@ import { QueueName } from '../../integrations/queue/constants';
 const mockAudit = () => ({ log: jest.fn().mockResolvedValue(undefined) });
 const mockWebhook = () => ({ deliver: jest.fn().mockResolvedValue(undefined) });
 const mockMail = () => ({ sendToQueue: jest.fn().mockResolvedValue(undefined) });
+const mockEnv = () => ({ getAppUrl: jest.fn().mockReturnValue('http://localhost:3000') });
 const mockQueue = () => ({ add: jest.fn().mockResolvedValue(undefined) });
 const mockEventsEmitter = () => ({
   emitTransition: jest.fn(),
@@ -70,6 +72,7 @@ const buildModule = async (cr: any = null) => {
       { provide: AuditService, useValue: mockAudit() },
       { provide: WebhookDeliveryService, useValue: mockWebhook() },
       { provide: MailService, useValue: mockMail() },
+      { provide: EnvironmentService, useValue: mockEnv() },
       { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
       { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
     ],
@@ -246,6 +249,7 @@ describe('ChangeRequestsService — transition submit_for_verification implement
         { provide: AuditService, useValue: mockAudit() },
         { provide: WebhookDeliveryService, useValue: mockWebhook() },
         { provide: MailService, useValue: mockMail() },
+        { provide: EnvironmentService, useValue: mockEnv() },
         { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
         { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: buildDbMock() },
       ],
@@ -280,6 +284,7 @@ describe('ChangeRequestsService — transition submit_for_verification implement
         { provide: AuditService, useValue: mockAudit() },
         { provide: WebhookDeliveryService, useValue: mockWebhook() },
         { provide: MailService, useValue: mockMail() },
+        { provide: EnvironmentService, useValue: mockEnv() },
         { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
         { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
       ],

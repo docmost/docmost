@@ -20,6 +20,7 @@ import { SaveDraftContentDto } from './dto/save-draft-content.dto';
 import { AuditService } from '../audit/audit.service';
 import { WebhookDeliveryService } from '../webhooks/webhook-delivery.service';
 import { MailService } from '../../integrations/mail/mail.service';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { QueueName, QueueJob } from '../../integrations/queue/constants';
 import { ChangeRequestsRepository } from './change-requests.repository';
 import {
@@ -29,6 +30,11 @@ import {
 } from './state-machine/cr-state-machine';
 import { CrAction, TransitionContext, TransitionDef } from './state-machine/cr-state.types';
 import { CrEventsEmitter } from './events/cr-events.emitter';
+import * as React from 'react';
+import { CrCreatedEmail } from '../../integrations/transactional/emails/cr-created-email';
+import { CrApprovedEmail } from '../../integrations/transactional/emails/cr-approved-email';
+import { CrInVerificationEmail } from '../../integrations/transactional/emails/cr-in-verification-email';
+import { CrPublishedEmail } from '../../integrations/transactional/emails/cr-published-email';
 
 @Injectable()
 export class ChangeRequestsService {
@@ -38,6 +44,7 @@ export class ChangeRequestsService {
     private readonly auditService: AuditService,
     private readonly webhookDeliveryService: WebhookDeliveryService,
     private readonly mailService: MailService,
+    private readonly environmentService: EnvironmentService,
     private readonly crEventsEmitter: CrEventsEmitter,
     @InjectQueue(QueueName.SEARCH_QUEUE) private readonly searchQueue: Queue,
   ) {}
@@ -368,57 +375,113 @@ export class ChangeRequestsService {
     crAny: any,
     actor: User,
   ) {
-    const subject = `[DocOps CR] ${action.replace(/_/g, ' ').toUpperCase()}: ${crAny.title ?? crId}`;
+    const actorName = actor.name ?? 'Un utente';
+    const appUrl = this.environmentService.getAppUrl();
+    const crUrl = `${appUrl}/change-requests/${crId}`;
 
-    const roleToNotify: Record<string, string> = {
-      submit: 'APPROVER',
-      approve: 'DEVELOPER',
-      submit_for_verification: 'TECH_LEAD',
-    };
+    const serviceRow = await sql<{ name: string; owner_id: string }>`
+      SELECT name, owner_id FROM services WHERE id = ${crAny.serviceId}
+    `.execute(this.db);
+    const serviceName = serviceRow.rows[0]?.name ?? 'Servizio sconosciuto';
 
-    if (roleToNotify[action]) {
-      const role = roleToNotify[action];
+    if (action === 'submit') {
       const recipients = await sql<{ email: string }>`
         SELECT email FROM users
-        WHERE docops_roles @> ARRAY[${role}]::text[]
+        WHERE docops_roles @> ARRAY['APPROVER']::text[]
         AND deleted_at IS NULL
       `.execute(this.db);
 
       for (const r of recipients.rows) {
         await this.mailService.sendToQueue({
           to: r.email,
-          subject,
-          text: `Change request "${crAny.title}" has transitioned via action "${action}". View it in DocOps.`,
+          subject: `[DocOps] Nuova richiesta di modifica: ${crAny.title}`,
+          template: React.createElement(CrCreatedEmail, {
+            actorName,
+            crTitle: crAny.title ?? crId,
+            serviceName,
+            crUrl,
+          }),
+        });
+      }
+      return;
+    }
+
+    if (action === 'approve') {
+      const richiedenteRow = await sql<{ email: string }>`
+        SELECT email FROM users WHERE id = ${crAny.requestedById} AND deleted_at IS NULL
+      `.execute(this.db);
+
+      const developerRows = await sql<{ email: string }>`
+        SELECT email FROM users
+        WHERE docops_roles @> ARRAY['DEVELOPER']::text[]
+        AND deleted_at IS NULL
+      `.execute(this.db);
+
+      const seen = new Set<string>();
+      for (const r of [...richiedenteRow.rows, ...developerRows.rows]) {
+        if (seen.has(r.email)) continue;
+        seen.add(r.email);
+        await this.mailService.sendToQueue({
+          to: r.email,
+          subject: `[DocOps] Richiesta approvata: ${crAny.title}`,
+          template: React.createElement(CrApprovedEmail, {
+            approverName: actorName,
+            crTitle: crAny.title ?? crId,
+            serviceName,
+            crUrl,
+          }),
+        });
+      }
+      return;
+    }
+
+    if (action === 'submit_for_verification') {
+      const recipients = await sql<{ email: string }>`
+        SELECT email FROM users
+        WHERE docops_roles @> ARRAY['TECH_LEAD']::text[]
+        AND deleted_at IS NULL
+      `.execute(this.db);
+
+      for (const r of recipients.rows) {
+        await this.mailService.sendToQueue({
+          to: r.email,
+          subject: `[DocOps] CR pronta per verifica: ${crAny.title}`,
+          template: React.createElement(CrInVerificationEmail, {
+            implementerName: actorName,
+            crTitle: crAny.title ?? crId,
+            serviceName,
+            crUrl,
+          }),
         });
       }
       return;
     }
 
     if (action === 'publish') {
-      const service = await sql<{ space_id: string; owner_id: string }>`
-        SELECT space_id, owner_id FROM services WHERE id = ${crAny.serviceId}
-      `.execute(this.db);
-
-      if (!service.rows[0]) return;
-
-      const { space_id, owner_id } = service.rows[0];
-
-      const members = await sql<{ email: string }>`
-        SELECT DISTINCT u.email
-        FROM space_members sm
-        JOIN users u ON u.id = sm.user_id
-        WHERE sm.space_id = ${space_id}
-          AND sm.deleted_at IS NULL
+      const serviceOwnerRow = await sql<{ email: string }>`
+        SELECT u.email
+        FROM services s
+        JOIN users u ON u.id = s.owner_id
+        WHERE s.id = ${crAny.serviceId}
           AND u.deleted_at IS NULL
-        UNION
-        SELECT email FROM users WHERE id = ${owner_id} AND deleted_at IS NULL
       `.execute(this.db);
 
-      for (const m of members.rows) {
+      const richiedenteRow = await sql<{ email: string }>`
+        SELECT email FROM users WHERE id = ${crAny.requestedById} AND deleted_at IS NULL
+      `.execute(this.db);
+
+      const seen = new Set<string>();
+      for (const r of [...richiedenteRow.rows, ...serviceOwnerRow.rows]) {
+        if (seen.has(r.email)) continue;
+        seen.add(r.email);
         await this.mailService.sendToQueue({
-          to: m.email,
-          subject,
-          text: `Change request "${crAny.title}" has been published. The documentation for this service has been updated.`,
+          to: r.email,
+          subject: `[DocOps] Richiesta pubblicata: ${crAny.title}`,
+          template: React.createElement(CrPublishedEmail, {
+            crTitle: crAny.title ?? crId,
+            serviceName,
+            crUrl,
+          }),
         });
       }
     }
