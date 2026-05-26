@@ -202,6 +202,103 @@ describe('ChangeRequestsService — validateTransition', () => {
       call('cancel', 'IN_REVIEW', ['PROCESS_OWNER'], false, 'u1', 'u1', 'reason'),
     ).toThrow(ForbiddenException);
   });
+
+  // ── Gap A: submit requires actorId === creatorId ──────────────────────────
+
+  it('submit: creator with PROCESS_OWNER succeeds', () => {
+    expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'u1', 'u1')).not.toThrow();
+  });
+
+  it('submit: PROCESS_OWNER who is NOT creator is forbidden', () => {
+    expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'other', 'u1')).toThrow(ForbiddenException);
+  });
+
+  it('submit: admin can submit even if not creator', () => {
+    expect(() => call('submit', 'DRAFT', [], true, undefined, 'admin', 'u1')).not.toThrow();
+  });
+});
+
+// ── Gap B: transition submit_for_verification — only assigned implementer ─────
+
+describe('ChangeRequestsService — transition submit_for_verification implementer check', () => {
+  const baseCr = {
+    id: 'cr-1',
+    status: 'IN_IMPLEMENTATION',
+    implementerId: 'dev-1',
+    requestedById: 'owner-1',
+    serviceId: 'svc-1',
+    pageId: 'page-1',
+    rowVersion: 0,
+    title: 'Test CR',
+  };
+
+  it('throws ForbiddenException when actor is not the assigned implementer', async () => {
+    const repo = mockRepo(baseCr);
+    repo.getUserRoles.mockResolvedValue(['DEVELOPER']);
+
+    const { service: svc } = await buildModule(baseCr);
+    // Override repo on the already-built module via the mock
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: repo },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: MailService, useValue: mockMail() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: buildDbMock() },
+      ],
+    }).compile();
+    const service = module.get(ChangeRequestsService);
+
+    await expect(
+      service.transition(
+        { id: 'cr-1', action: 'submit_for_verification' },
+        { id: 'other-dev' } as any,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('proceeds when actor is the assigned implementer (with external ref)', async () => {
+    const repo = mockRepo(baseCr);
+    repo.getUserRoles.mockResolvedValue(['DEVELOPER']);
+    repo.getExternalRefCount.mockResolvedValue(1);
+    repo.findById
+      .mockResolvedValueOnce(baseCr)
+      .mockResolvedValueOnce({ ...baseCr, status: 'IN_VERIFICATION' });
+
+    const dbMock = buildDbMock();
+    // executeTx mock — just run the callback
+    dbMock.transaction = jest.fn();
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: repo },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: MailService, useValue: mockMail() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
+      ],
+    }).compile();
+    const svc = module.get(ChangeRequestsService);
+
+    // No ForbiddenException — may throw for other reasons (executeTx needs real db)
+    // We verify it does NOT throw ForbiddenException specifically
+    let err: any;
+    try {
+      await svc.transition(
+        { id: 'cr-1', action: 'submit_for_verification' },
+        { id: 'dev-1', docopsRoles: ['DEVELOPER'] } as any,
+      );
+    } catch (e) {
+      err = e;
+    }
+    expect(err).not.toBeInstanceOf(ForbiddenException);
+  });
 });
 
 // ── saveDraftContent ──────────────────────────────────────────────────────────
@@ -270,7 +367,9 @@ describe('E2E smoke: DRAFT → PUBLISHED state machine', () => {
     roles: string[],
     isAdmin = false,
     reason?: string,
-  ) => (svc as any).validateTransition(action, status, roles, isAdmin, 'actor', 'creator', reason);
+    actorId = 'actor',
+    creatorId = 'actor',
+  ) => (svc as any).validateTransition(action, status, roles, isAdmin, actorId, creatorId, reason);
 
   // Step 1: DRAFT → REQUESTED (submit)
   describe('Step 1: submit (DRAFT → REQUESTED)', () => {
@@ -386,6 +485,16 @@ describe('E2E smoke: DRAFT → PUBLISHED state machine', () => {
     });
     it('DEVELOPER is forbidden', () => {
       expect(() => call('reject_implementation', 'IN_VERIFICATION', ['DEVELOPER'], false, 'reason')).toThrow(ForbiddenException);
+    });
+  });
+
+  // Gap A: submit creator check in E2E context
+  describe('Gap A: submit requires actorId === creatorId', () => {
+    it('succeeds when actor is the creator', () => {
+      expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'creator-user', 'creator-user')).not.toThrow();
+    });
+    it('non-creator PROCESS_OWNER is forbidden', () => {
+      expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'other-user', 'creator-user')).toThrow(ForbiddenException);
     });
   });
 

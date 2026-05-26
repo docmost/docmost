@@ -4,6 +4,6 @@ export const submitTransition: TransitionDef = {
   from: ['DRAFT'],
   to: 'REQUESTED',
   requiresReason: false,
-  canExecute: ({ userRoles, isAdmin }: TransitionContext) =>
-    userRoles.includes('PROCESS_OWNER') || isAdmin,
+  canExecute: ({ userRoles, isAdmin, actorId, creatorId }: TransitionContext) =>
+    (actorId === creatorId && userRoles.includes('PROCESS_OWNER')) || isAdmin,
 };

@@ -125,6 +125,12 @@ export class ChangeRequestsService {
       await this.checkNoActiveCr(crAny.serviceId, dto.id);
     }
 
+    if (dto.action === 'submit_for_verification' && crAny.implementerId !== authUser.id) {
+      throw new ForbiddenException(
+        'Only the assigned implementer can submit for verification',
+      );
+    }
+
     const targetStatus = getTargetStatus(dto.action as CrAction);
 
     await executeTx(this.db, async (trx) => {
