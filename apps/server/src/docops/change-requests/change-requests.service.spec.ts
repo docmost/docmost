@@ -513,3 +513,121 @@ describe('E2E smoke: DRAFT → PUBLISHED state machine', () => {
     });
   });
 });
+
+// ── sendTransitionNotification — email dispatch ───────────────────────────────
+
+describe('ChangeRequestsService — sendTransitionNotification', () => {
+  const baseCrAny = {
+    id: 'cr-1',
+    title: 'Test CR',
+    justification: 'Motivazione di test sufficientemente lunga.',
+    serviceId: 'svc-1',
+    requestedById: 'requester-1',
+    status: 'IN_IMPLEMENTATION',
+    pageId: 'page-1',
+    rowVersion: 0,
+  };
+
+  const buildSvc = async () => {
+    const mail = mockMail();
+    const queryHandler = jest.fn().mockImplementation((q: any) => {
+      const sqlStr: string = q?.sql ?? '';
+      if (sqlStr.includes('services') && (sqlStr.includes('name') || sqlStr.includes('owner_id'))) {
+        return Promise.resolve({ rows: [{ name: 'slcone', owner_id: 'owner-1' }] });
+      }
+      if (sqlStr.includes("ARRAY['APPROVER']")) {
+        return Promise.resolve({ rows: [{ email: 'approver@test.it' }] });
+      }
+      if (sqlStr.includes("ARRAY['DEVELOPER']")) {
+        return Promise.resolve({ rows: [{ email: 'dev@test.it' }] });
+      }
+      if (sqlStr.includes("ARRAY['TECH_LEAD']")) {
+        return Promise.resolve({ rows: [{ email: 'techlead@test.it' }] });
+      }
+      if (sqlStr.includes('users') && sqlStr.includes('WHERE id')) {
+        return Promise.resolve({ rows: [{ email: 'requester@test.it' }] });
+      }
+      if (sqlStr.includes('services s') && sqlStr.includes('JOIN users')) {
+        return Promise.resolve({ rows: [{ email: 'owner@test.it' }] });
+      }
+      return Promise.resolve({ rows: [] });
+    });
+    const executor = {
+      transformQuery: (node: any) => node,
+      compileQuery: (node: any) => {
+        const fragments: string[] = node?.sqlFragments ?? [];
+        return { sql: fragments.join('?'), parameters: [] };
+      },
+      executeQuery: queryHandler,
+    };
+    const db: any = {
+      ...buildDbMock(),
+      getExecutor: jest.fn().mockReturnValue(executor),
+      executeQuery: queryHandler,
+    };
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: mockRepo(baseCrAny) },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: MailService, useValue: mail },
+        { provide: EnvironmentService, useValue: mockEnv() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: db },
+      ],
+    }).compile();
+
+    return { svc: module.get(ChangeRequestsService), mail };
+  };
+
+  const actor = (name: string, id = 'actor-1') => ({ id, name } as any);
+
+  it('submit: sends email to Approvers', async () => {
+    const { svc, mail } = await buildSvc();
+    await (svc as any).sendTransitionNotification('submit', 'cr-1', baseCrAny, actor('Mario'));
+    expect(mail.sendToQueue).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'approver@test.it' }),
+    );
+  });
+
+  it('submit: subject contains [DocOps]', async () => {
+    const { svc, mail } = await buildSvc();
+    await (svc as any).sendTransitionNotification('submit', 'cr-1', baseCrAny, actor('Mario'));
+    expect(mail.sendToQueue.mock.calls[0][0].subject).toContain('[DocOps]');
+  });
+
+  it('approve: sends at least one email', async () => {
+    const { svc, mail } = await buildSvc();
+    await (svc as any).sendTransitionNotification('approve', 'cr-1', baseCrAny, actor('Approver'));
+    expect(mail.sendToQueue).toHaveBeenCalled();
+  });
+
+  it('submit_for_verification: sends to Tech Lead', async () => {
+    const { svc, mail } = await buildSvc();
+    await (svc as any).sendTransitionNotification('submit_for_verification', 'cr-1', baseCrAny, actor('Dev'));
+    expect(mail.sendToQueue).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'techlead@test.it' }),
+    );
+  });
+
+  it('publish: sends at least one email', async () => {
+    const { svc, mail } = await buildSvc();
+    await (svc as any).sendTransitionNotification('publish', 'cr-1', baseCrAny, actor('TL'));
+    expect(mail.sendToQueue).toHaveBeenCalled();
+  });
+
+  it('take_for_review: sends no email', async () => {
+    const { svc, mail } = await buildSvc();
+    await (svc as any).sendTransitionNotification('take_for_review', 'cr-1', baseCrAny, actor('Approver'));
+    expect(mail.sendToQueue).not.toHaveBeenCalled();
+  });
+
+  it('cancel: sends no email', async () => {
+    const { svc, mail } = await buildSvc();
+    await (svc as any).sendTransitionNotification('cancel', 'cr-1', baseCrAny, actor('PO'));
+    expect(mail.sendToQueue).not.toHaveBeenCalled();
+  });
+});
