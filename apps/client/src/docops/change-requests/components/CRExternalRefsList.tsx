@@ -3,7 +3,10 @@ import {
   ActionIcon,
   Anchor,
   Badge,
+  Button,
+  Divider,
   Group,
+  List,
   Stack,
   Text,
   TextInput,
@@ -62,6 +65,30 @@ export function CRExternalRefsList({ cr, canEdit }: CRExternalRefsListProps) {
 
   return (
     <Stack gap="sm">
+      <Stack gap={4}>
+        <Text size="xs" c="dimmed">
+          {t("Supported reference types:")}
+        </Text>
+        <List size="xs" spacing={2} c="dimmed">
+          <List.Item>
+            <Badge color="violet" size="xs" variant="light" mr={4}>PR</Badge>
+            {t("Pull request — e.g. github.com/.../pull/123")}
+          </List.Item>
+          <List.Item>
+            <Badge color="blue" size="xs" variant="light" mr={4}>COMMIT</Badge>
+            {t("Commit hash or link — e.g. a1b2c3d or github.com/.../commit/...")}
+          </List.Item>
+          <List.Item>
+            <Badge color="orange" size="xs" variant="light" mr={4}>TICKET</Badge>
+            {t("Ticket link — Jira, Linear, etc.")}
+          </List.Item>
+          <List.Item>
+            <Badge color="gray" size="xs" variant="light" mr={4}>BUILD</Badge>
+            {t("CI/CD pipeline or build artifact link")}
+          </List.Item>
+        </List>
+      </Stack>
+      <Divider />
       {refs.length === 0 && (
         <Text size="sm" c="dimmed">
           {t("No external references yet")}
@@ -74,16 +101,22 @@ export function CRExternalRefsList({ cr, canEdit }: CRExternalRefsListProps) {
             <Badge color={REF_COLORS[ref.refType]} size="xs" variant="light">
               {ref.refType}
             </Badge>
-            <Anchor
-              href={ref.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              size="sm"
-              truncate
-              style={{ maxWidth: 360 }}
-            >
-              {ref.label ?? ref.url}
-            </Anchor>
+            {isValidInput(ref.url) && !/^[a-f0-9]{7,40}$/i.test(ref.url) ? (
+              <Anchor
+                href={ref.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="sm"
+                truncate
+                style={{ maxWidth: 360 }}
+              >
+                {ref.label ?? ref.url}
+              </Anchor>
+            ) : (
+              <Text size="sm" truncate style={{ maxWidth: 360 }}>
+                {ref.label ?? ref.url}
+              </Text>
+            )}
           </Group>
           {canEdit && (
             <ActionIcon
@@ -119,16 +152,16 @@ export function CRExternalRefsList({ cr, canEdit }: CRExternalRefsListProps) {
             }}
             aria-label={t("External reference URL")}
           />
-          <ActionIcon
-            size="input-sm"
+          <Button
+            size="sm"
             variant="filled"
             disabled={!url || !isValidInput(url)}
             loading={addMutation.isPending}
             onClick={handleAdd}
-            aria-label={t("Add reference")}
+            leftSection={<IconLink size={16} />}
           >
-            <IconLink size={16} />
-          </ActionIcon>
+            {t("Inserisci")}
+          </Button>
         </Group>
       )}
     </Stack>
