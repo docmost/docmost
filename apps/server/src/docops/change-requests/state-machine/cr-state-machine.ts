@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { CrAction, TransitionContext, TransitionDef } from './cr-state.types';
+import { CrAction, CrStatus, TransitionContext, TransitionDef } from './cr-state.types';
 import { approveTransition } from './transitions/approve.transition';
 import { verifyTransition } from './transitions/verify.transition';
 import { assignToSelfTransition } from './transitions/assign-to-self.transition';
@@ -37,6 +37,6 @@ export function validateCrTransition(
   }
 }
 
-export function getTargetStatus(action: CrAction): string {
+export function getTargetStatus(action: CrAction): CrStatus {
   return CR_STATE_MACHINE[action].to;
 }
