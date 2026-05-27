@@ -1,4 +1,5 @@
-export type CrStatus = 'IN_REVIEW' | 'IN_VERIFICATION' | 'IN_PROGRESS' | 'PUBLISHED' | 'CLOSED';
+export const CR_STATUSES = ['IN_REVIEW', 'IN_VERIFICATION', 'IN_PROGRESS', 'PUBLISHED', 'CLOSED'] as const;
+export type CrStatus = typeof CR_STATUSES[number];
 
 export type CloseReason = 'REJECTED' | 'CANCELLED';
 
@@ -37,8 +38,8 @@ export interface ChangeRequest {
 export interface CrEvent {
   id: string;
   changeRequestId: string;
-  fromStatus?: string | null;
-  toStatus: string;
+  fromStatus?: CrStatus | null;
+  toStatus: CrStatus;
   actorId: string;
   reason?: string | null;
   createdAt: string;

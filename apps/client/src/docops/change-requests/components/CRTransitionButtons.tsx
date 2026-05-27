@@ -34,7 +34,7 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
 
   const [pending, setPending] = useState<AvailableTransition | null>(null);
   const [reason, setReason] = useState("");
-  const [closeReason, setCloseReason] = useState<'REJECTED' | 'CANCELLED' | ''>('');
+  const [closeReason, setCloseReason] = useState<'REJECTED' | 'CANCELLED' | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
 
   if (isLoading || !data?.actions.length) return null;
@@ -43,7 +43,7 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
     if (t.requiresReason) {
       setPending(t);
       setReason("");
-      setCloseReason('');
+      setCloseReason(null);
       open();
     } else {
       transition.mutate({ id: cr.id, action: t.action, rowVersion: cr.rowVersion });
@@ -57,11 +57,18 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
         id: cr.id,
         action: pending.action,
         reason,
-        closeReason: pending.action === 'close' ? closeReason as 'REJECTED' | 'CANCELLED' : undefined,
+        closeReason: pending.action === 'close' && closeReason ? closeReason : undefined,
         rowVersion: cr.rowVersion,
       },
-      { onSuccess: close },
+      { onSuccess: handleModalClose },
     );
+  };
+
+  const handleModalClose = () => {
+    close();
+    setPending(null);
+    setReason('');
+    setCloseReason(null);
   };
 
   return (
@@ -91,7 +98,7 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
 
       <Modal
         opened={opened}
-        onClose={close}
+        onClose={handleModalClose}
         title={pending ? t(`action.${pending.action}`) : ""}
         centered
         size="md"
@@ -123,7 +130,7 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
             />
           )}
           <Group justify="flex-end">
-            <Button variant="default" onClick={close}>
+            <Button variant="default" onClick={handleModalClose}>
               {t("Cancel")}
             </Button>
             <Button

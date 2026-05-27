@@ -32,7 +32,7 @@ const PRIORITY_COLORS: Record<CrPriority, string> = {
   CRITICAL: "red",
 };
 
-const EDITABLE_REF_STATUSES: CrStatus[] = ["IN_IMPLEMENTATION", "IN_VERIFICATION"];
+const EDITABLE_REF_STATUSES: CrStatus[] = ["IN_PROGRESS"];
 
 export default function ChangeRequestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -171,7 +171,7 @@ export default function ChangeRequestDetailPage() {
           </Paper>
 
           {/* External refs */}
-          {(cr.status === "IN_IMPLEMENTATION" || cr.status === "IN_VERIFICATION") && (
+          {cr.status === "IN_PROGRESS" && (
             <Paper withBorder p="md" radius="md">
               <Title order={5} mb="sm">
                 {t("External references")}

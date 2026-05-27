@@ -22,6 +22,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useChangeRequestsQuery } from "../hooks/useChangeRequests";
 import { CRStateBadge } from "../components/CRStateBadge";
+import { CR_STATUSES } from "../types/cr.types";
 import type { CrPriority, CrStatus } from "../types/cr.types";
 import { getAppName } from "@/lib/config";
 
@@ -85,9 +86,7 @@ export default function ChangeRequestsListPage() {
               w={160}
               placeholder={t("All statuses")}
               clearable
-              data={[
-                "IN_REVIEW", "IN_VERIFICATION", "IN_PROGRESS", "PUBLISHED", "CLOSED",
-              ].map((s) => ({ value: s, label: t(s) }))}
+              data={CR_STATUSES.map((s) => ({ value: s, label: t(s) }))}
               value={status}
               onChange={(v) => { setStatus((v as CrStatus) ?? ""); setPage(1); }}
               aria-label={t("Filter by status")}
