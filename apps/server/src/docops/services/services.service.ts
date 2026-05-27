@@ -54,6 +54,17 @@ export class ServicesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
+      // Add creator as space admin so they can access the private space.
+      await (trx as any)
+        .insertInto('spaceMembers')
+        .values({
+          spaceId: space.id,
+          userId: authUser.id,
+          addedById: authUser.id,
+          role: 'admin',
+        })
+        .execute();
+
       // Create root page for the service inside the Space.
       const rootPage = await (trx as any)
         .insertInto('pages')
