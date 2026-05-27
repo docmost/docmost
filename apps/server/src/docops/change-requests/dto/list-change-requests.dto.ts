@@ -8,19 +8,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-
-const CR_STATUSES = [
-  'DRAFT',
-  'REQUESTED',
-  'IN_REVIEW',
-  'APPROVED',
-  'IN_IMPLEMENTATION',
-  'IN_VERIFICATION',
-  'PUBLISHED',
-  'CLOSED',
-  'REJECTED',
-  'CANCELLED',
-];
+import { CR_STATUSES } from '../state-machine/cr-state.types';
 
 export class ListChangeRequestsDto {
   @IsOptional()
@@ -28,7 +16,7 @@ export class ListChangeRequestsDto {
   serviceId?: string;
 
   @IsOptional()
-  @IsIn(CR_STATUSES)
+  @IsIn([...CR_STATUSES])
   status?: string;
 
   @IsOptional()

@@ -57,13 +57,15 @@ export class ChangeRequestsService {
       .executeTakeFirst();
     if (!page) throw new NotFoundException('Page not found');
 
+    await this.checkNoActiveCr(dto.serviceId, '00000000-0000-0000-0000-000000000000');
+
     return this.repo.insert({
       service_id: dto.serviceId,
       page_id: dto.pageId,
       title: dto.title,
       description: dto.description,
       justification: dto.justification,
-      status: 'DRAFT',
+      status: 'IN_REVIEW',
       priority: dto.priority,
       impact: dto.impact,
       requested_by_id: authUser.id,
@@ -122,16 +124,6 @@ export class ChangeRequestsService {
       dto.reason,
     );
 
-    if (dto.action === 'take_for_review') {
-      await this.checkNoActiveCr(crAny.serviceId, dto.id);
-    }
-
-    if (dto.action === 'submit_for_verification' && crAny.implementerId !== authUser.id) {
-      throw new ForbiddenException(
-        'Only the assigned implementer can submit for verification',
-      );
-    }
-
     const targetStatus = getTargetStatus(dto.action as CrAction);
 
     await executeTx(this.db, async (trx) => {
@@ -141,18 +133,23 @@ export class ChangeRequestsService {
         row_version: (crAny.rowVersion ?? 0) + 1,
       };
 
-      if (dto.action === 'take_for_review') {
-        updates.approver_id = authUser.id;
-      } else if (dto.action === 'approve') {
+      if (dto.action === 'approve') {
         updates.approved_at = new Date();
+        updates.approver_id = authUser.id;
+      } else if (dto.action === 'verify') {
+        updates.tech_lead_id = authUser.id;
       } else if (dto.action === 'assign_to_self') {
+        // Idempotent: if already assigned to this developer, no-op (no error)
+        if (crAny.implementerId && crAny.implementerId !== authUser.id) {
+          throw new ConflictException('CR is already assigned to another implementer');
+        }
         updates.implementer_id = authUser.id;
         await trx
           .updateTable('pages')
           .set({ crDraftId: dto.id })
           .where('id', '=', crAny.pageId)
           .execute();
-        // Grant write access to the space for the duration of implementation.
+        // Grant writer to space
         await (trx as any)
           .updateTable('spaceMembers')
           .set({ role: 'writer' })
@@ -166,14 +163,24 @@ export class ChangeRequestsService {
               .where('id', '=', crAny.serviceId),
           )
           .execute();
-      } else if (dto.action === 'submit_for_verification') {
+      } else if (dto.action === 'publish') {
+        // Requires >=1 external ref
         const refCount = await this.repo.getExternalRefCount(dto.id);
         if (refCount === 0) {
           throw new BadRequestException(
-            'At least one PR or COMMIT external ref required before submitting for verification',
+            'At least one PR or COMMIT external ref required before publishing',
           );
         }
-        // Revoke write access — document is now locked pending tech lead review.
+        const historyId = await this.createPublishedSnapshot(
+          trx,
+          crAny.pageId,
+          dto.id,
+          authUser.id,
+        );
+        updates.published_version_id = historyId;
+        updates.published_at = new Date();
+        updates.tech_lead_id = authUser.id;
+        // Revoke writer from implementer
         if (crAny.implementerId) {
           await (trx as any)
             .updateTable('spaceMembers')
@@ -189,36 +196,10 @@ export class ChangeRequestsService {
             )
             .execute();
         }
-      } else if (dto.action === 'reject_implementation') {
-        // Tech lead rejected: restore write access for implementer to fix.
-        if (crAny.implementerId) {
-          await (trx as any)
-            .updateTable('spaceMembers')
-            .set({ role: 'writer' })
-            .where('userId', '=', crAny.implementerId)
-            .where(
-              'spaceId',
-              '=',
-              (trx as any)
-                .selectFrom('services')
-                .select('spaceId')
-                .where('id', '=', crAny.serviceId),
-            )
-            .execute();
-        }
-        updates.tech_lead_id = authUser.id;
-      } else if (dto.action === 'publish') {
-        const historyId = await this.createPublishedSnapshot(
-          trx,
-          crAny.pageId,
-          dto.id,
-          authUser.id,
-        );
-        updates.published_version_id = historyId;
-        updates.published_at = new Date();
-        updates.tech_lead_id = authUser.id;
-      } else if (dto.action === 'close' || dto.action === 'cancel') {
+      } else if (dto.action === 'close') {
         updates.closed_at = new Date();
+        updates.close_reason = dto.closeReason ?? null;
+        // Revoke writer from implementer if any
         if (crAny.implementerId) {
           await (trx as any)
             .updateTable('spaceMembers')
@@ -322,9 +303,9 @@ export class ChangeRequestsService {
     if (!cr) throw new NotFoundException('Change request not found');
 
     const crAny = cr as any;
-    if (crAny.status !== 'IN_IMPLEMENTATION') {
+    if (crAny.status !== 'IN_PROGRESS') {
       throw new BadRequestException(
-        'Draft content can only be saved when CR is IN_IMPLEMENTATION',
+        'Draft content can only be saved when CR is IN_PROGRESS',
       );
     }
     if (crAny.implementerId !== authUser.id) {
@@ -347,9 +328,9 @@ export class ChangeRequestsService {
     if (!cr) throw new NotFoundException('Change request not found');
 
     const crStatus = (cr as any).status;
-    if (!['IN_IMPLEMENTATION', 'IN_VERIFICATION'].includes(crStatus)) {
+    if (crStatus !== 'IN_PROGRESS') {
       throw new BadRequestException(
-        'External refs can only be added when CR status is IN_IMPLEMENTATION or IN_VERIFICATION',
+        'External refs can only be added when CR status is IN_PROGRESS',
       );
     }
 
@@ -376,9 +357,9 @@ export class ChangeRequestsService {
     if (!ref) throw new NotFoundException('External ref not found');
 
     const cr = await this.repo.findById((ref as any).changeRequestId);
-    if ((cr as any)?.status !== 'IN_IMPLEMENTATION') {
+    if ((cr as any)?.status !== 'IN_PROGRESS') {
       throw new BadRequestException(
-        'External refs can only be removed when CR status is IN_IMPLEMENTATION',
+        'External refs can only be removed when CR status is IN_PROGRESS',
       );
     }
 
@@ -429,7 +410,7 @@ export class ChangeRequestsService {
     crAny: any,
     actor: User,
   ) {
-    const NOTIFIED_ACTIONS = new Set(['submit', 'approve', 'submit_for_verification', 'publish']);
+    const NOTIFIED_ACTIONS = new Set(['approve', 'verify', 'publish']);
     if (!NOTIFIED_ACTIONS.has(action)) return;
 
     await this.crEmailQueue.add(CR_NOTIFY_EMAIL_JOB, {
