@@ -153,9 +153,9 @@ export class ChangeRequestsRepository {
   }
 
   async getUserRoles(userId: string): Promise<string[]> {
-    const result = await sql<{ docops_roles: string[] }>`
+    const result = await sql<{ docopsRoles: string[] }>`
       SELECT docops_roles FROM users WHERE id = ${userId}
     `.execute(this.db);
-    return result.rows[0]?.docops_roles ?? [];
+    return result.rows[0]?.docopsRoles ?? [];
   }
 }

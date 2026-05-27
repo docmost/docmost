@@ -37,11 +37,11 @@ export class DocOpsRoleGuard implements CanActivate {
       throw new ForbiddenException();
     }
 
-    const result = await sql<{ docops_roles: string[] }>`
+    const result = await sql<{ docopsRoles: string[] }>`
       SELECT docops_roles FROM users WHERE id = ${userId}
     `.execute(this.db);
 
-    const userRoles: string[] = result.rows[0]?.docops_roles ?? [];
+    const userRoles: string[] = result.rows[0]?.docopsRoles ?? [];
 
     const hasRole = required.some((r) => userRoles.includes(r));
     if (!hasRole) {

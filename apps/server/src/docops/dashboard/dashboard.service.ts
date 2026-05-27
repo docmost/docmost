@@ -296,10 +296,10 @@ export class DashboardService {
   }
 
   private async assertAdmin(userId: string): Promise<void> {
-    const result = await sql<{ docops_roles: string[] }>`
+    const result = await sql<{ docopsRoles: string[] }>`
       SELECT docops_roles FROM users WHERE id = ${userId}
     `.execute(this.db);
-    const roles: string[] = result.rows[0]?.docops_roles ?? [];
+    const roles: string[] = result.rows[0]?.docopsRoles ?? [];
     if (!roles.includes('ADMIN')) {
       throw new ForbiddenException('Admin role required');
     }
