@@ -55,15 +55,30 @@ export class ServicesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      // Add creator as space admin so they can access the private space.
+      // Add creator as admin + all other workspace members as writer.
+      const otherUsers = await (trx as any)
+        .selectFrom('users')
+        .select(['id'])
+        .where('workspaceId', '=', workspace.id)
+        .where('id', '!=', authUser.id)
+        .where('deactivatedAt', 'is', null)
+        .where('deletedAt', 'is', null)
+        .execute();
+
+      const memberRows = [
+        { spaceId: space.id, userId: authUser.id, addedById: authUser.id, role: 'admin' },
+        ...otherUsers.map((u: { id: string }) => ({
+          spaceId: space.id,
+          userId: u.id,
+          addedById: authUser.id,
+          role: 'writer',
+        })),
+      ];
+
       await (trx as any)
         .insertInto('spaceMembers')
-        .values({
-          spaceId: space.id,
-          userId: authUser.id,
-          addedById: authUser.id,
-          role: 'admin',
-        })
+        .values(memberRows)
+        .onConflict((oc: any) => oc.doNothing())
         .execute();
 
       // Create root page for the service inside the Space.
