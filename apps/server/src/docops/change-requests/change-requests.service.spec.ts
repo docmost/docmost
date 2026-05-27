@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -90,140 +91,156 @@ describe('ChangeRequestsService — validateTransition', () => {
     ({ service: svc } = await buildModule());
   });
 
-  const call = (action: string, status: string, roles: string[], isAdmin = false, actorId = 'u1', creatorId = 'u1', reason?: string) =>
-    (svc as any).validateTransition(action, status, roles, isAdmin, actorId, creatorId, reason);
+  const call = (
+    action: string,
+    status: string,
+    roles: string[],
+    isAdmin = false,
+    actorId = 'u1',
+    creatorId = 'u1',
+    reason?: string,
+  ) => (svc as any).validateTransition(action, status, roles, isAdmin, actorId, creatorId, reason);
 
   // ── Unknown action ────────────────────────────────────────────────────────
 
   it('throws BadRequestException for unknown action', () => {
-    expect(() => call('fly_to_moon', 'DRAFT', [])).toThrow(BadRequestException);
+    expect(() => call('fly_to_moon', 'IN_REVIEW', [])).toThrow(BadRequestException);
   });
 
   // ── Wrong source state ────────────────────────────────────────────────────
 
   it.each([
-    ['approve', 'DRAFT', ['APPROVER'], undefined],
-    ['submit', 'APPROVED', ['PROCESS_OWNER'], undefined],
-    ['assign_to_self', 'DRAFT', ['DEVELOPER'], undefined],
-    ['publish', 'APPROVED', ['TECH_LEAD'], 'some reason'],
-    ['reject', 'DRAFT', ['APPROVER'], 'reason'],
-  ])('action=%s from status=%s throws BadRequestException', (action, status, roles, reason) => {
-    expect(() => call(action, status, roles, false, 'u1', 'u1', reason)).toThrow(BadRequestException);
-  });
+    ['approve', 'IN_PROGRESS', ['APPROVER'], 'reason'],
+    ['approve', 'IN_VERIFICATION', ['APPROVER'], 'reason'],
+    ['verify', 'IN_REVIEW', ['TECH_LEAD'], undefined],
+    ['verify', 'IN_PROGRESS', ['TECH_LEAD'], undefined],
+    ['assign_to_self', 'IN_REVIEW', ['DEVELOPER'], undefined],
+    ['assign_to_self', 'IN_VERIFICATION', ['DEVELOPER'], undefined],
+    ['publish', 'IN_REVIEW', ['TECH_LEAD'], undefined],
+    ['publish', 'IN_VERIFICATION', ['TECH_LEAD'], undefined],
+    ['close', 'PUBLISHED', ['APPROVER'], 'reason'],
+    ['close', 'CLOSED', ['APPROVER'], 'reason'],
+  ])(
+    'action=%s from status=%s throws BadRequestException',
+    (action, status, roles, reason) => {
+      expect(() => call(action, status, roles, false, 'u1', 'u1', reason as any)).toThrow(
+        BadRequestException,
+      );
+    },
+  );
 
   // ── Missing reason ────────────────────────────────────────────────────────
 
-  it.each(['approve', 'reject', 'reject_implementation', 'cancel'])(
-    'action=%s without reason throws BadRequestException',
-    (action) => {
-      const statusMap: Record<string, string> = {
-        approve: 'IN_REVIEW',
-        reject: 'IN_REVIEW',
-        reject_implementation: 'IN_VERIFICATION',
-        cancel: 'DRAFT',
-      };
-      const roleMap: Record<string, string> = {
-        approve: 'APPROVER',
-        reject: 'APPROVER',
-        reject_implementation: 'TECH_LEAD',
-        cancel: 'PROCESS_OWNER',
-      };
-      expect(() =>
-        call(action, statusMap[action], [roleMap[action]], false, 'u1', 'u1', undefined),
-      ).toThrow(BadRequestException);
-    },
-  );
+  it('approve without reason throws BadRequestException', () => {
+    expect(() => call('approve', 'IN_REVIEW', ['APPROVER'], false, 'u1', 'u1', undefined)).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('close without reason throws BadRequestException', () => {
+    // close is guarded by the transition() method before validateTransition,
+    // but the state machine's requiresReason also enforces it
+    expect(() => call('close', 'IN_REVIEW', ['APPROVER'], false, 'u1', 'u1', undefined)).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('approve with empty-string reason throws BadRequestException', () => {
+    expect(() => call('approve', 'IN_REVIEW', ['APPROVER'], false, 'u1', 'u1', '   ')).toThrow(
+      BadRequestException,
+    );
+  });
 
   // ── Role checks: wrong role → ForbiddenException ─────────────────────────
 
   it.each([
-    ['submit', 'DRAFT', 'APPROVER', 'some reason'],
-    ['take_for_review', 'REQUESTED', 'DEVELOPER', undefined],
     ['approve', 'IN_REVIEW', 'DEVELOPER', 'reason'],
-    ['reject', 'IN_REVIEW', 'DEVELOPER', 'reason'],
-    ['assign_to_self', 'APPROVED', 'APPROVER', undefined],
-    ['submit_for_verification', 'IN_IMPLEMENTATION', 'APPROVER', undefined],
-    ['reject_implementation', 'IN_VERIFICATION', 'DEVELOPER', 'reason'],
-    ['publish', 'IN_VERIFICATION', 'DEVELOPER', undefined],
-  ])('action=%s with wrong role=%s throws ForbiddenException', (action, status, wrongRole, reason) => {
-    expect(() => call(action, status, [wrongRole], false, 'u1', 'u1', reason as any)).toThrow(
-      ForbiddenException,
-    );
-  });
+    ['approve', 'IN_REVIEW', 'TECH_LEAD', 'reason'],
+    ['verify', 'IN_VERIFICATION', 'APPROVER', undefined],
+    ['verify', 'IN_VERIFICATION', 'DEVELOPER', undefined],
+    ['assign_to_self', 'IN_PROGRESS', 'APPROVER', undefined],
+    ['assign_to_self', 'IN_PROGRESS', 'TECH_LEAD', undefined],
+    ['publish', 'IN_PROGRESS', 'DEVELOPER', undefined],
+    ['close', 'IN_VERIFICATION', 'APPROVER', 'reason'],
+    ['close', 'IN_REVIEW', 'DEVELOPER', 'reason'],
+    ['close', 'IN_REVIEW', 'TECH_LEAD', 'reason'],
+  ])(
+    'action=%s with wrong role=%s throws ForbiddenException',
+    (action, status, wrongRole, reason) => {
+      expect(() =>
+        call(action, status, [wrongRole], false, 'u1', 'u1', reason as any),
+      ).toThrow(ForbiddenException);
+    },
+  );
 
   // ── Role checks: correct role → no throw ─────────────────────────────────
 
   it.each([
-    ['submit', 'DRAFT', 'PROCESS_OWNER', undefined],
-    ['take_for_review', 'REQUESTED', 'APPROVER', undefined],
     ['approve', 'IN_REVIEW', 'APPROVER', 'approved'],
-    ['reject', 'IN_REVIEW', 'APPROVER', 'reason'],
-    ['assign_to_self', 'APPROVED', 'DEVELOPER', undefined],
-    ['submit_for_verification', 'IN_IMPLEMENTATION', 'DEVELOPER', undefined],
-    ['reject_implementation', 'IN_VERIFICATION', 'TECH_LEAD', 'reason'],
-    ['publish', 'IN_VERIFICATION', 'TECH_LEAD', undefined],
-  ])('action=%s with correct role=%s does not throw', (action, status, role, reason) => {
-    expect(() => call(action, status, [role], false, 'u1', 'u1', reason as any)).not.toThrow();
-  });
+    ['verify', 'IN_VERIFICATION', 'TECH_LEAD', undefined],
+    ['assign_to_self', 'IN_PROGRESS', 'DEVELOPER', undefined],
+    ['publish', 'IN_PROGRESS', 'TECH_LEAD', undefined],
+    ['publish', 'IN_PROGRESS', 'APPROVER', undefined],
+    ['close', 'IN_REVIEW', 'APPROVER', 'reason'],
+  ])(
+    'action=%s with correct role=%s does not throw',
+    (action, status, role, reason) => {
+      expect(() =>
+        call(action, status, [role], false, 'u1', 'u1', reason as any),
+      ).not.toThrow();
+    },
+  );
 
   // ── Admin override ────────────────────────────────────────────────────────
 
-  it('admin can close a PUBLISHED CR', () => {
-    expect(() => call('close', 'PUBLISHED', [], true)).not.toThrow();
+  it('admin can approve from IN_REVIEW', () => {
+    expect(() => call('approve', 'IN_REVIEW', [], true, 'u1', 'u1', 'reason')).not.toThrow();
   });
 
-  it('non-admin without correct role cannot close', () => {
-    expect(() => call('close', 'PUBLISHED', ['DEVELOPER'])).toThrow(ForbiddenException);
+  it('admin can verify from IN_VERIFICATION', () => {
+    expect(() => call('verify', 'IN_VERIFICATION', [], true)).not.toThrow();
   });
 
-  // ── cancel rules ─────────────────────────────────────────────────────────
+  it('admin can publish from IN_PROGRESS', () => {
+    expect(() => call('publish', 'IN_PROGRESS', [], true)).not.toThrow();
+  });
 
-  it('creator with PROCESS_OWNER can cancel from DRAFT', () => {
+  it('admin can close from IN_REVIEW', () => {
+    expect(() => call('close', 'IN_REVIEW', [], true, 'u1', 'u1', 'reason')).not.toThrow();
+  });
+
+  it('admin can close from IN_VERIFICATION', () => {
     expect(() =>
-      call('cancel', 'DRAFT', ['PROCESS_OWNER'], false, 'u1', 'u1', 'changed mind'),
+      call('close', 'IN_VERIFICATION', [], true, 'u1', 'u1', 'reason'),
     ).not.toThrow();
   });
 
-  it('non-creator cannot cancel from DRAFT without admin', () => {
+  it('admin can close from IN_PROGRESS', () => {
     expect(() =>
-      call('cancel', 'DRAFT', ['PROCESS_OWNER'], false, 'u1', 'other-user', 'forced'),
-    ).toThrow(ForbiddenException);
-  });
-
-  it('admin can cancel from IN_REVIEW', () => {
-    expect(() =>
-      call('cancel', 'IN_REVIEW', [], true, 'admin', 'u1', 'force cancel'),
+      call('close', 'IN_PROGRESS', [], true, 'u1', 'u1', 'reason'),
     ).not.toThrow();
   });
 
-  it('non-admin cannot cancel from IN_REVIEW', () => {
+  it('non-admin APPROVER cannot close from IN_VERIFICATION', () => {
     expect(() =>
-      call('cancel', 'IN_REVIEW', ['PROCESS_OWNER'], false, 'u1', 'u1', 'reason'),
+      call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'u1', 'u1', 'reason'),
     ).toThrow(ForbiddenException);
   });
 
-  // ── Gap A: submit requires actorId === creatorId ──────────────────────────
-
-  it('submit: creator with PROCESS_OWNER succeeds', () => {
-    expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'u1', 'u1')).not.toThrow();
-  });
-
-  it('submit: PROCESS_OWNER who is NOT creator is forbidden', () => {
-    expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'other', 'u1')).toThrow(ForbiddenException);
-  });
-
-  it('submit: admin can submit even if not creator', () => {
-    expect(() => call('submit', 'DRAFT', [], true, undefined, 'admin', 'u1')).not.toThrow();
+  it('non-admin APPROVER cannot close from IN_PROGRESS', () => {
+    expect(() =>
+      call('close', 'IN_PROGRESS', ['APPROVER'], false, 'u1', 'u1', 'reason'),
+    ).toThrow(ForbiddenException);
   });
 });
 
-// ── Gap B: transition submit_for_verification — only assigned implementer ─────
+// ── closeReason guards (checked in transition() before validateTransition) ────
 
-describe('ChangeRequestsService — transition submit_for_verification implementer check', () => {
+describe('ChangeRequestsService — closeReason guards', () => {
   const baseCr = {
     id: 'cr-1',
-    status: 'IN_IMPLEMENTATION',
-    implementerId: 'dev-1',
+    status: 'IN_REVIEW',
+    implementerId: null,
     requestedById: 'owner-1',
     serviceId: 'svc-1',
     pageId: 'page-1',
@@ -231,12 +248,10 @@ describe('ChangeRequestsService — transition submit_for_verification implement
     title: 'Test CR',
   };
 
-  it('throws ForbiddenException when actor is not the assigned implementer', async () => {
+  it('close without closeReason throws BadRequestException', async () => {
     const repo = mockRepo(baseCr);
-    repo.getUserRoles.mockResolvedValue(['DEVELOPER']);
+    repo.getUserRoles.mockResolvedValue(['APPROVER']);
 
-    const { service: svc } = await buildModule(baseCr);
-    // Override repo on the already-built module via the mock
     const module = await Test.createTestingModule({
       providers: [
         ChangeRequestsService,
@@ -249,27 +264,76 @@ describe('ChangeRequestsService — transition submit_for_verification implement
         { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: buildDbMock() },
       ],
     }).compile();
-    const service = module.get(ChangeRequestsService);
+    const svc = module.get(ChangeRequestsService);
 
     await expect(
-      service.transition(
-        { id: 'cr-1', action: 'submit_for_verification' },
-        { id: 'other-dev' } as any,
-      ),
-    ).rejects.toThrow(ForbiddenException);
+      svc.transition({ id: 'cr-1', action: 'close' } as any, { id: 'u1' } as any),
+    ).rejects.toThrow(BadRequestException);
   });
 
-  it('proceeds when actor is the assigned implementer (with external ref)', async () => {
+  it('approve with closeReason throws BadRequestException', async () => {
     const repo = mockRepo(baseCr);
-    repo.getUserRoles.mockResolvedValue(['DEVELOPER']);
-    repo.getExternalRefCount.mockResolvedValue(1);
-    repo.findById
-      .mockResolvedValueOnce(baseCr)
-      .mockResolvedValueOnce({ ...baseCr, status: 'IN_VERIFICATION' });
+    repo.getUserRoles.mockResolvedValue(['APPROVER']);
 
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: repo },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: buildDbMock() },
+      ],
+    }).compile();
+    const svc = module.get(ChangeRequestsService);
+
+    await expect(
+      svc.transition(
+        { id: 'cr-1', action: 'approve', closeReason: 'REJECTED', reason: 'ok' } as any,
+        { id: 'u1' } as any,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
+// ── assign_to_self conflict ───────────────────────────────────────────────────
+
+describe('ChangeRequestsService — assign_to_self conflict', () => {
+  const makeRepo = (implementerId: string | null) => {
+    const cr = {
+      id: 'cr-1',
+      status: 'IN_PROGRESS',
+      implementerId,
+      requestedById: 'owner-1',
+      serviceId: 'svc-1',
+      pageId: 'page-1',
+      rowVersion: 0,
+      title: 'Test CR',
+    };
+    const repo = mockRepo(cr);
+    repo.getUserRoles.mockResolvedValue(['DEVELOPER']);
+    // getEvents and getExternalRefs for getChangeRequest call after transition
+    repo.getEvents.mockResolvedValue([]);
+    repo.getExternalRefs.mockResolvedValue([]);
+    return { cr, repo };
+  };
+
+  // Helper: build a db mock where transaction().execute(cb) calls cb with the same mock
+  const buildTxDbMock = () => {
     const dbMock = buildDbMock();
-    // executeTx mock — just run the callback
-    dbMock.transaction = jest.fn();
+    dbMock.returning = jest.fn().mockReturnThis();
+    // executeTx calls db.transaction().execute(cb)
+    dbMock.transaction = jest.fn().mockReturnValue({
+      execute: jest.fn().mockImplementation((cb: any) => cb(dbMock)),
+    });
+    return dbMock;
+  };
+
+  it('throws ConflictException when CR is assigned to a different implementer', async () => {
+    const { repo } = makeRepo('other-dev');
+    const dbMock = buildTxDbMock();
 
     const module = await Test.createTestingModule({
       providers: [
@@ -285,18 +349,78 @@ describe('ChangeRequestsService — transition submit_for_verification implement
     }).compile();
     const svc = module.get(ChangeRequestsService);
 
-    // No ForbiddenException — may throw for other reasons (executeTx needs real db)
-    // We verify it does NOT throw ForbiddenException specifically
+    await expect(
+      svc.transition({ id: 'cr-1', action: 'assign_to_self' } as any, { id: 'actor-dev' } as any),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('does not throw ConflictException when same user re-assigns (idempotent)', async () => {
+    const { repo } = makeRepo('actor-dev');
+    const dbMock = buildTxDbMock();
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: repo },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
+      ],
+    }).compile();
+    const svc = module.get(ChangeRequestsService);
+
     let err: any;
     try {
       await svc.transition(
-        { id: 'cr-1', action: 'submit_for_verification' },
-        { id: 'dev-1', docopsRoles: ['DEVELOPER'] } as any,
+        { id: 'cr-1', action: 'assign_to_self' } as any,
+        { id: 'actor-dev' } as any,
       );
     } catch (e) {
       err = e;
     }
-    expect(err).not.toBeInstanceOf(ForbiddenException);
+    expect(err).not.toBeInstanceOf(ConflictException);
+  });
+});
+
+// ── createChangeRequest active CR constraint ───────────────────────────────────
+
+describe('ChangeRequestsService — createChangeRequest active CR constraint', () => {
+  it('throws ConflictException when countActiveCrs > 0', async () => {
+    const dbMock = buildDbMock({ id: 'svc-1' }); // service + page found
+    const repoMock = mockRepo(null);
+    repoMock.countActiveCrs.mockResolvedValue(1);
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: repoMock },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
+      ],
+    }).compile();
+    const svc = module.get(ChangeRequestsService);
+
+    await expect(
+      svc.createChangeRequest(
+        {
+          serviceId: 'svc-1',
+          pageId: 'page-1',
+          title: 'New CR',
+          description: '',
+          justification: 'Needed',
+          priority: 'MEDIUM',
+          impact: 'LOW',
+        } as any,
+        { id: 'u1' } as any,
+      ),
+    ).rejects.toThrow(ConflictException);
   });
 });
 
@@ -310,26 +434,54 @@ describe('ChangeRequestsService — saveDraftContent', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('throws BadRequestException when CR not IN_IMPLEMENTATION', async () => {
-    const { service } = await buildModule({ id: 'cr-1', status: 'DRAFT', implementerId: 'u1', pageId: 'p1' });
+  it('throws BadRequestException when status !== IN_PROGRESS', async () => {
+    const { service } = await buildModule({
+      id: 'cr-1',
+      status: 'IN_REVIEW',
+      implementerId: 'u1',
+      pageId: 'p1',
+    });
+    await expect(
+      service.saveDraftContent({ changeRequestId: 'cr-1', content: {} }, { id: 'u1' } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('throws BadRequestException when status is IN_VERIFICATION', async () => {
+    const { service } = await buildModule({
+      id: 'cr-1',
+      status: 'IN_VERIFICATION',
+      implementerId: 'u1',
+      pageId: 'p1',
+    });
     await expect(
       service.saveDraftContent({ changeRequestId: 'cr-1', content: {} }, { id: 'u1' } as any),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('throws ForbiddenException when user is not the implementer', async () => {
-    const { service } = await buildModule({ id: 'cr-1', status: 'IN_IMPLEMENTATION', implementerId: 'other', pageId: 'p1' });
+    const { service } = await buildModule({
+      id: 'cr-1',
+      status: 'IN_PROGRESS',
+      implementerId: 'other',
+      pageId: 'p1',
+    });
     await expect(
       service.saveDraftContent({ changeRequestId: 'cr-1', content: {} }, { id: 'u1' } as any),
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('returns { saved: true } when implementer saves draft', async () => {
-    const { service, db } = await buildModule({ id: 'cr-1', status: 'IN_IMPLEMENTATION', implementerId: 'u1', pageId: 'p1' });
+  it('returns { saved: true } when implementer saves draft in IN_PROGRESS', async () => {
+    const { service, db } = await buildModule({
+      id: 'cr-1',
+      status: 'IN_PROGRESS',
+      implementerId: 'u1',
+      pageId: 'p1',
+    });
     db.updateTable.mockReturnThis();
     db.set.mockReturnThis();
     db.where.mockReturnThis();
     db.execute.mockResolvedValue([]);
+
     const result = await service.saveDraftContent(
       { changeRequestId: 'cr-1', content: { type: 'doc' } },
       { id: 'u1' } as any,
@@ -343,168 +495,7 @@ describe('ChangeRequestsService — saveDraftContent', () => {
 describe('ChangeRequestsService — getEvents', () => {
   it('throws NotFoundException when CR not found', async () => {
     const { service } = await buildModule(null);
-    await expect(service.getEvents('missing')).rejects.toThrow(NotFoundException);
-  });
-});
-
-// ── E2E smoke: DRAFT → PUBLISHED via validateTransition ───────────────────────
-//
-// Tests the full 8-step state machine in sequence.
-// Each step asserts: correct role passes, wrong role fails, wrong source state fails.
-// validateTransition is pure logic — no DB needed.
-
-describe('E2E smoke: DRAFT → PUBLISHED state machine', () => {
-  let svc: ChangeRequestsService;
-
-  beforeEach(async () => {
-    ({ service: svc } = await buildModule());
-  });
-
-  const call = (
-    action: string,
-    status: string,
-    roles: string[],
-    isAdmin = false,
-    reason?: string,
-    actorId = 'actor',
-    creatorId = 'actor',
-  ) => (svc as any).validateTransition(action, status, roles, isAdmin, actorId, creatorId, reason);
-
-  // Step 1: DRAFT → REQUESTED (submit)
-  describe('Step 1: submit (DRAFT → REQUESTED)', () => {
-    it('PROCESS_OWNER succeeds', () => {
-      expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'])).not.toThrow();
-    });
-    it('DEVELOPER is forbidden', () => {
-      expect(() => call('submit', 'DRAFT', ['DEVELOPER'])).toThrow(ForbiddenException);
-    });
-    it('wrong source state throws', () => {
-      expect(() => call('submit', 'IN_REVIEW', ['PROCESS_OWNER'])).toThrow(BadRequestException);
-    });
-  });
-
-  // Step 2: REQUESTED → IN_REVIEW (take_for_review)
-  describe('Step 2: take_for_review (REQUESTED → IN_REVIEW)', () => {
-    it('APPROVER succeeds', () => {
-      expect(() => call('take_for_review', 'REQUESTED', ['APPROVER'])).not.toThrow();
-    });
-    it('PROCESS_OWNER is forbidden', () => {
-      expect(() => call('take_for_review', 'REQUESTED', ['PROCESS_OWNER'])).toThrow(ForbiddenException);
-    });
-    it('wrong source state throws', () => {
-      expect(() => call('take_for_review', 'DRAFT', ['APPROVER'])).toThrow(BadRequestException);
-    });
-  });
-
-  // Step 3: IN_REVIEW → APPROVED (approve)
-  describe('Step 3: approve (IN_REVIEW → APPROVED)', () => {
-    it('APPROVER with reason succeeds', () => {
-      expect(() => call('approve', 'IN_REVIEW', ['APPROVER'], false, 'looks good')).not.toThrow();
-    });
-    it('APPROVER without reason throws', () => {
-      expect(() => call('approve', 'IN_REVIEW', ['APPROVER'])).toThrow(BadRequestException);
-    });
-    it('DEVELOPER is forbidden', () => {
-      expect(() => call('approve', 'IN_REVIEW', ['DEVELOPER'], false, 'ok')).toThrow(ForbiddenException);
-    });
-    it('wrong source state throws', () => {
-      expect(() => call('approve', 'DRAFT', ['APPROVER'], false, 'ok')).toThrow(BadRequestException);
-    });
-  });
-
-  // Step 4: APPROVED → IN_IMPLEMENTATION (assign_to_self)
-  describe('Step 4: assign_to_self (APPROVED → IN_IMPLEMENTATION)', () => {
-    it('DEVELOPER succeeds', () => {
-      expect(() => call('assign_to_self', 'APPROVED', ['DEVELOPER'])).not.toThrow();
-    });
-    it('APPROVER is forbidden', () => {
-      expect(() => call('assign_to_self', 'APPROVED', ['APPROVER'])).toThrow(ForbiddenException);
-    });
-    it('wrong source state throws', () => {
-      expect(() => call('assign_to_self', 'REQUESTED', ['DEVELOPER'])).toThrow(BadRequestException);
-    });
-  });
-
-  // Step 5: IN_IMPLEMENTATION → IN_VERIFICATION (submit_for_verification)
-  describe('Step 5: submit_for_verification (IN_IMPLEMENTATION → IN_VERIFICATION)', () => {
-    it('DEVELOPER succeeds', () => {
-      expect(() => call('submit_for_verification', 'IN_IMPLEMENTATION', ['DEVELOPER'])).not.toThrow();
-    });
-    it('TECH_LEAD is forbidden', () => {
-      expect(() => call('submit_for_verification', 'IN_IMPLEMENTATION', ['TECH_LEAD'])).toThrow(ForbiddenException);
-    });
-    it('wrong source state throws', () => {
-      expect(() => call('submit_for_verification', 'APPROVED', ['DEVELOPER'])).toThrow(BadRequestException);
-    });
-  });
-
-  // Step 6: IN_VERIFICATION → PUBLISHED (publish)
-  describe('Step 6: publish (IN_VERIFICATION → PUBLISHED)', () => {
-    it('TECH_LEAD succeeds', () => {
-      expect(() => call('publish', 'IN_VERIFICATION', ['TECH_LEAD'])).not.toThrow();
-    });
-    it('APPROVER also succeeds (S1 fix)', () => {
-      expect(() => call('publish', 'IN_VERIFICATION', ['APPROVER'])).not.toThrow();
-    });
-    it('DEVELOPER is forbidden', () => {
-      expect(() => call('publish', 'IN_VERIFICATION', ['DEVELOPER'])).toThrow(ForbiddenException);
-    });
-    it('wrong source state throws', () => {
-      expect(() => call('publish', 'IN_IMPLEMENTATION', ['TECH_LEAD'])).toThrow(BadRequestException);
-    });
-  });
-
-  // Step 7: PUBLISHED → CLOSED (close)
-  describe('Step 7: close (PUBLISHED → CLOSED)', () => {
-    it('Admin succeeds', () => {
-      expect(() => call('close', 'PUBLISHED', [], true)).not.toThrow();
-    });
-    it('non-admin is forbidden', () => {
-      expect(() => call('close', 'PUBLISHED', ['TECH_LEAD'])).toThrow(ForbiddenException);
-    });
-    it('wrong source state throws', () => {
-      expect(() => call('close', 'IN_REVIEW', [], true)).toThrow(BadRequestException);
-    });
-  });
-
-  // Terminal: reject at IN_REVIEW
-  describe('Terminal: reject (IN_REVIEW → REJECTED)', () => {
-    it('APPROVER with reason succeeds', () => {
-      expect(() => call('reject', 'IN_REVIEW', ['APPROVER'], false, 'not acceptable')).not.toThrow();
-    });
-    it('APPROVER without reason throws', () => {
-      expect(() => call('reject', 'IN_REVIEW', ['APPROVER'])).toThrow(BadRequestException);
-    });
-  });
-
-  // Terminal: reject_implementation at IN_VERIFICATION
-  describe('Terminal: reject_implementation (IN_VERIFICATION → IN_IMPLEMENTATION)', () => {
-    it('TECH_LEAD with reason succeeds', () => {
-      expect(() => call('reject_implementation', 'IN_VERIFICATION', ['TECH_LEAD'], false, 'needs rework')).not.toThrow();
-    });
-    it('DEVELOPER is forbidden', () => {
-      expect(() => call('reject_implementation', 'IN_VERIFICATION', ['DEVELOPER'], false, 'reason')).toThrow(ForbiddenException);
-    });
-  });
-
-  // Gap A: submit creator check in E2E context
-  describe('Gap A: submit requires actorId === creatorId', () => {
-    it('succeeds when actor is the creator', () => {
-      expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'creator-user', 'creator-user')).not.toThrow();
-    });
-    it('non-creator PROCESS_OWNER is forbidden', () => {
-      expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'], false, undefined, 'other-user', 'creator-user')).toThrow(ForbiddenException);
-    });
-  });
-
-  // checkNoActiveCr now triggered on take_for_review (B2 fix)
-  describe('B2: checkNoActiveCr triggered on take_for_review, not submit', () => {
-    it('submit from DRAFT does NOT fail on wrong state check (no active-CR guard on submit)', () => {
-      expect(() => call('submit', 'DRAFT', ['PROCESS_OWNER'])).not.toThrow();
-    });
-    it('take_for_review from REQUESTED passes role check (DB check happens separately)', () => {
-      expect(() => call('take_for_review', 'REQUESTED', ['APPROVER'])).not.toThrow();
-    });
+    await expect(service.getEvents('missing-cr')).rejects.toThrow(NotFoundException);
   });
 });
 
@@ -517,7 +508,7 @@ describe('ChangeRequestsService — sendTransitionNotification', () => {
     justification: 'Motivazione di test sufficientemente lunga.',
     serviceId: 'svc-1',
     requestedById: 'requester-1',
-    status: 'IN_IMPLEMENTATION',
+    status: 'IN_PROGRESS',
     pageId: 'page-1',
     rowVersion: 0,
   };
@@ -546,8 +537,9 @@ describe('ChangeRequestsService — sendTransitionNotification', () => {
 
   const actor = (name: string, id = 'actor-1') => ({ id, name } as any);
 
-  it.each(['submit', 'approve', 'submit_for_verification', 'publish'])(
-    '%s: dispatches cr.notify.email job', async (action) => {
+  it.each(['approve', 'verify', 'publish'])(
+    '%s: dispatches cr.notify.email job',
+    async (action) => {
       await (svc as any).sendTransitionNotification(action, 'cr-1', baseCrAny, actor('Mario'));
       expect(crEmailQueue.add).toHaveBeenCalledWith(
         CR_NOTIFY_EMAIL_JOB,
@@ -556,8 +548,8 @@ describe('ChangeRequestsService — sendTransitionNotification', () => {
     },
   );
 
-  it('submit: job payload contains actorName and crData', async () => {
-    await (svc as any).sendTransitionNotification('submit', 'cr-1', baseCrAny, actor('Mario'));
+  it('approve: job payload contains actorName and crData', async () => {
+    await (svc as any).sendTransitionNotification('approve', 'cr-1', baseCrAny, actor('Mario'));
     expect(crEmailQueue.add).toHaveBeenCalledWith(
       CR_NOTIFY_EMAIL_JOB,
       expect.objectContaining({
@@ -571,10 +563,149 @@ describe('ChangeRequestsService — sendTransitionNotification', () => {
     );
   });
 
-  it.each(['take_for_review', 'cancel'])(
-    '%s: does not dispatch any job', async (action) => {
+  it.each(['assign_to_self', 'close'])(
+    '%s: does not dispatch any job',
+    async (action) => {
       await (svc as any).sendTransitionNotification(action, 'cr-1', baseCrAny, actor('PO'));
       expect(crEmailQueue.add).not.toHaveBeenCalled();
     },
   );
+});
+
+// ── E2E smoke: IN_REVIEW → PUBLISHED state machine ───────────────────────────
+//
+// Exercises validateTransition (pure logic) across all 5 states.
+// Each step: correct role passes, wrong role fails, wrong source state fails.
+
+describe('E2E smoke: IN_REVIEW → PUBLISHED state machine', () => {
+  let svc: ChangeRequestsService;
+
+  beforeEach(async () => {
+    ({ service: svc } = await buildModule());
+  });
+
+  const call = (
+    action: string,
+    status: string,
+    roles: string[],
+    isAdmin = false,
+    reason?: string,
+    actorId = 'actor',
+    creatorId = 'actor',
+  ) => (svc as any).validateTransition(action, status, roles, isAdmin, actorId, creatorId, reason);
+
+  // Step 1: IN_REVIEW → IN_VERIFICATION (approve)
+  describe('Step 1: approve (IN_REVIEW → IN_VERIFICATION)', () => {
+    it('APPROVER with reason succeeds', () => {
+      expect(() => call('approve', 'IN_REVIEW', ['APPROVER'], false, 'looks good')).not.toThrow();
+    });
+    it('APPROVER without reason throws', () => {
+      expect(() => call('approve', 'IN_REVIEW', ['APPROVER'])).toThrow(BadRequestException);
+    });
+    it('DEVELOPER is forbidden', () => {
+      expect(() => call('approve', 'IN_REVIEW', ['DEVELOPER'], false, 'ok')).toThrow(
+        ForbiddenException,
+      );
+    });
+    it('TECH_LEAD is forbidden', () => {
+      expect(() => call('approve', 'IN_REVIEW', ['TECH_LEAD'], false, 'ok')).toThrow(
+        ForbiddenException,
+      );
+    });
+    it('wrong source state (IN_PROGRESS) throws', () => {
+      expect(() => call('approve', 'IN_PROGRESS', ['APPROVER'], false, 'ok')).toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  // Step 2: IN_VERIFICATION → IN_PROGRESS (verify)
+  describe('Step 2: verify (IN_VERIFICATION → IN_PROGRESS)', () => {
+    it('TECH_LEAD succeeds', () => {
+      expect(() => call('verify', 'IN_VERIFICATION', ['TECH_LEAD'])).not.toThrow();
+    });
+    it('APPROVER is forbidden', () => {
+      expect(() => call('verify', 'IN_VERIFICATION', ['APPROVER'])).toThrow(ForbiddenException);
+    });
+    it('DEVELOPER is forbidden', () => {
+      expect(() => call('verify', 'IN_VERIFICATION', ['DEVELOPER'])).toThrow(ForbiddenException);
+    });
+    it('wrong source state (IN_REVIEW) throws', () => {
+      expect(() => call('verify', 'IN_REVIEW', ['TECH_LEAD'])).toThrow(BadRequestException);
+    });
+  });
+
+  // Step 3: IN_PROGRESS → IN_PROGRESS (assign_to_self — self-loop)
+  describe('Step 3: assign_to_self (IN_PROGRESS → IN_PROGRESS)', () => {
+    it('DEVELOPER succeeds', () => {
+      expect(() => call('assign_to_self', 'IN_PROGRESS', ['DEVELOPER'])).not.toThrow();
+    });
+    it('APPROVER is forbidden', () => {
+      expect(() => call('assign_to_self', 'IN_PROGRESS', ['APPROVER'])).toThrow(ForbiddenException);
+    });
+    it('TECH_LEAD is forbidden', () => {
+      expect(() => call('assign_to_self', 'IN_PROGRESS', ['TECH_LEAD'])).toThrow(ForbiddenException);
+    });
+    it('wrong source state (IN_REVIEW) throws', () => {
+      expect(() => call('assign_to_self', 'IN_REVIEW', ['DEVELOPER'])).toThrow(BadRequestException);
+    });
+    it('wrong source state (IN_VERIFICATION) throws', () => {
+      expect(() => call('assign_to_self', 'IN_VERIFICATION', ['DEVELOPER'])).toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  // Step 4: IN_PROGRESS → PUBLISHED (publish)
+  describe('Step 4: publish (IN_PROGRESS → PUBLISHED)', () => {
+    it('TECH_LEAD succeeds', () => {
+      expect(() => call('publish', 'IN_PROGRESS', ['TECH_LEAD'])).not.toThrow();
+    });
+    it('APPROVER also succeeds', () => {
+      expect(() => call('publish', 'IN_PROGRESS', ['APPROVER'])).not.toThrow();
+    });
+    it('DEVELOPER is forbidden', () => {
+      expect(() => call('publish', 'IN_PROGRESS', ['DEVELOPER'])).toThrow(ForbiddenException);
+    });
+    it('wrong source state (IN_VERIFICATION) throws', () => {
+      expect(() => call('publish', 'IN_VERIFICATION', ['TECH_LEAD'])).toThrow(BadRequestException);
+    });
+    it('wrong source state (IN_REVIEW) throws', () => {
+      expect(() => call('publish', 'IN_REVIEW', ['TECH_LEAD'])).toThrow(BadRequestException);
+    });
+  });
+
+  // close: active states → CLOSED
+  describe('close: active states → CLOSED', () => {
+    it('APPROVER can close from IN_REVIEW', () => {
+      expect(() =>
+        call('close', 'IN_REVIEW', ['APPROVER'], false, 'REJECTED'),
+      ).not.toThrow();
+    });
+    it('APPROVER cannot close from IN_VERIFICATION', () => {
+      expect(() =>
+        call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'REJECTED'),
+      ).toThrow(ForbiddenException);
+    });
+    it('Admin can close from IN_REVIEW', () => {
+      expect(() => call('close', 'IN_REVIEW', [], true, 'REJECTED')).not.toThrow();
+    });
+    it('Admin can close from IN_VERIFICATION', () => {
+      expect(() => call('close', 'IN_VERIFICATION', [], true, 'CANCELLED')).not.toThrow();
+    });
+    it('Admin can close from IN_PROGRESS', () => {
+      expect(() => call('close', 'IN_PROGRESS', [], true, 'CANCELLED')).not.toThrow();
+    });
+    it('close without reason throws (requiresReason)', () => {
+      expect(() => call('close', 'IN_REVIEW', ['APPROVER'], false, undefined)).toThrow(
+        BadRequestException,
+      );
+    });
+    it('close from PUBLISHED throws (not an active state)', () => {
+      expect(() => call('close', 'PUBLISHED', [], true, 'CANCELLED')).toThrow(BadRequestException);
+    });
+    it('close from CLOSED throws (not an active state)', () => {
+      expect(() => call('close', 'CLOSED', [], true, 'CANCELLED')).toThrow(BadRequestException);
+    });
+  });
 });
