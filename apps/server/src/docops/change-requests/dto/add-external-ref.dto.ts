@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, IsUrl, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class AddExternalRefDto {
   @IsUUID()
@@ -7,7 +7,8 @@ export class AddExternalRefDto {
   @IsIn(['PR', 'COMMIT', 'TICKET', 'BUILD'])
   refType: string;
 
-  @IsUrl()
+  @IsString()
+  @MinLength(7)
   url: string;
 
   @IsOptional()
