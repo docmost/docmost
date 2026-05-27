@@ -12,9 +12,11 @@ export class ChangeRequestsRepository {
   async findById(id: string, trx?: KyselyTransaction): Promise<any> {
     const db = dbOrTx(this.db, trx);
     return (db as any)
-      .selectFrom('change_requests')
-      .selectAll()
-      .where('id', '=', id)
+      .selectFrom('change_requests as cr')
+      .selectAll('cr')
+      .select('s.code as serviceCode')
+      .leftJoin('services as s', 's.id', 'cr.service_id')
+      .where('cr.id', '=', id)
       .executeTakeFirst();
   }
 

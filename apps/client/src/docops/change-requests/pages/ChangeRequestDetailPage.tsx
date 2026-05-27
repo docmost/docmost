@@ -153,10 +153,10 @@ export default function ChangeRequestDetailPage() {
                 >
                   {t("View service")}
                 </Button>
-                {cr.pageId && (
+                {cr.pageId && cr.serviceCode && (
                   <Button
                     component="a"
-                    href={getSpaceUrl(cr.serviceId)}
+                    href={getSpaceUrl(cr.serviceCode)}
                     target="_blank"
                     rel="noopener noreferrer"
                     variant="subtle"

@@ -24,6 +24,7 @@ export interface ChangeRequest {
   priority: CrPriority;
   impact: CrImpact;
   serviceId: string;
+  serviceCode?: string | null;
   pageId?: string | null;
   requestedById: string;
   implementerId?: string | null;
