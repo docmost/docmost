@@ -30,6 +30,7 @@ import { DomainService } from '../../../integrations/environment/domain.service'
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
 import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
+import { isAdminActingOnOwner } from '../workspace.util';
 import { v4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
@@ -590,8 +591,8 @@ export class WorkspaceService {
 
     // prevent ADMIN from managing OWNER role
     if (
-      (authUser.role === UserRole.ADMIN && newRole === UserRole.OWNER) ||
-      (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER)
+      isAdminActingOnOwner(authUser.role, newRole) ||
+      isAdminActingOnOwner(authUser.role, user.role)
     ) {
       throw new ForbiddenException();
     }
@@ -695,7 +696,7 @@ export class WorkspaceService {
       throw new BadRequestException('You cannot deactivate yourself');
     }
 
-    if (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER) {
+    if (isAdminActingOnOwner(authUser.role, user.role)) {
       throw new BadRequestException(
         'You cannot deactivate a user with owner role',
       );
@@ -753,7 +754,7 @@ export class WorkspaceService {
       throw new BadRequestException('User is not deactivated');
     }
 
-    if (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER) {
+    if (isAdminActingOnOwner(authUser.role, user.role)) {
       throw new BadRequestException(
         'You cannot activate a user with owner role',
       );
@@ -805,7 +806,7 @@ export class WorkspaceService {
       throw new BadRequestException('You cannot delete yourself');
     }
 
-    if (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER) {
+    if (isAdminActingOnOwner(authUser.role, user.role)) {
       throw new BadRequestException('You cannot delete a user with owner role');
     }
 
