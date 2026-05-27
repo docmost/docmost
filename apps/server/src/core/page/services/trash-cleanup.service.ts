@@ -35,7 +35,7 @@ export class TrashCleanupService {
           workspace.trashRetentionDays ?? DEFAULT_RETENTION_DAYS;
 
         const retentionDate = new Date();
-        retentionDate.setDate(retentionDate.getDate() - retentionDays);
+        retentionDate.setDate(retentionDate.getDate() - Number(retentionDays));
 
         const oldDeletedPages = await this.db
           .selectFrom('pages')
