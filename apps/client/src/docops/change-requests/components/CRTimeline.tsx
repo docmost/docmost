@@ -45,11 +45,11 @@ export function CRTimeline({ events }: CRTimelineProps) {
       {events.map((ev) => (
         <Timeline.Item
           key={ev.id}
-          bullet={eventIcon(ev.to_status)}
-          color={eventColor(ev.to_status)}
+          bullet={eventIcon(ev.toStatus)}
+          color={eventColor(ev.toStatus)}
           title={
             <Text size="sm" fw={500}>
-              {ev.from_status ? `${t(ev.from_status)} → ${t(ev.to_status)}` : t(ev.to_status)}
+              {ev.fromStatus ? `${t(ev.fromStatus)} → ${t(ev.toStatus)}` : t(ev.toStatus)}
             </Text>
           }
         >
@@ -60,7 +60,7 @@ export function CRTimeline({ events }: CRTimelineProps) {
               </Text>
             )}
             <Text size="xs" c="dimmed">
-              {new Date(ev.created_at).toLocaleString()}
+              {new Date(ev.createdAt).toLocaleString()}
             </Text>
           </Stack>
         </Timeline.Item>

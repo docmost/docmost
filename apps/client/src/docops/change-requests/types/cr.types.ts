@@ -41,15 +41,14 @@ export interface ChangeRequest {
   externalRefs?: ExternalRef[];
 }
 
-// From raw sql<> queries → snake_case
 export interface CrEvent {
   id: string;
-  change_request_id: string;
-  from_status?: string | null;
-  to_status: string;
-  actor_id: string;
+  changeRequestId: string;
+  fromStatus?: string | null;
+  toStatus: string;
+  actorId: string;
   reason?: string | null;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface ExternalRef {
