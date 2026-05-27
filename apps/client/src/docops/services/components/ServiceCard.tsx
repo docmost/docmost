@@ -56,14 +56,14 @@ export function ServiceCard({ service }: ServiceCardProps) {
           </Text>
         )}
 
-        {service.tags.length > 0 && (
+        {(service.tags ?? []).length > 0 && (
           <Group gap={4} wrap="wrap">
-            {service.tags.slice(0, 4).map((tag) => (
+            {(service.tags ?? []).slice(0, 4).map((tag) => (
               <Badge key={tag} size="xs" variant="outline" color="blue">
                 {tag}
               </Badge>
             ))}
-            {service.tags.length > 4 && (
+            {(service.tags ?? []).length > 4 && (
               <Badge size="xs" variant="outline" color="gray">
                 +{service.tags.length - 4}
               </Badge>
