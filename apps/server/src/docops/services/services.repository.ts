@@ -34,12 +34,13 @@ export class ServicesRepository {
     trx?: KyselyTransaction,
   ): Promise<any> {
     const db = dbOrTx(this.db, trx);
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const col = UUID_RE.test(idOrCode) ? 's.id' : 's.code';
     return (db as any)
       .selectFrom('services as s')
       .selectAll('s')
-      .where((eb: any) =>
-        eb.or([eb('s.id', '=', idOrCode), eb('s.code', '=', idOrCode)]),
-      )
+      .where(col, '=', idOrCode)
       .executeTakeFirst();
   }
 
