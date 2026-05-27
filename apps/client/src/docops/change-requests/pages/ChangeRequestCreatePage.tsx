@@ -48,7 +48,7 @@ export default function ChangeRequestCreatePage() {
   const serviceOptions =
     servicesData?.items.map((s) => ({
       value: s.id,
-      label: `${s.name} (${s.code})`,
+      label: s.name,
       pageId: s.rootPageId ?? "",
     })) ?? [];
 
