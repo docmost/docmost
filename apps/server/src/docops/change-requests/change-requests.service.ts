@@ -152,6 +152,20 @@ export class ChangeRequestsService {
           .set({ crDraftId: dto.id })
           .where('id', '=', crAny.pageId)
           .execute();
+        // Grant write access to the space for the duration of implementation.
+        await (trx as any)
+          .updateTable('spaceMembers')
+          .set({ role: 'writer' })
+          .where('userId', '=', authUser.id)
+          .where(
+            'spaceId',
+            '=',
+            (trx as any)
+              .selectFrom('services')
+              .select('spaceId')
+              .where('id', '=', crAny.serviceId),
+          )
+          .execute();
       } else if (dto.action === 'submit_for_verification') {
         const refCount = await this.repo.getExternalRefCount(dto.id);
         if (refCount === 0) {
@@ -159,7 +173,39 @@ export class ChangeRequestsService {
             'At least one PR or COMMIT external ref required before submitting for verification',
           );
         }
+        // Revoke write access — document is now locked pending tech lead review.
+        if (crAny.implementerId) {
+          await (trx as any)
+            .updateTable('spaceMembers')
+            .set({ role: 'reader' })
+            .where('userId', '=', crAny.implementerId)
+            .where(
+              'spaceId',
+              '=',
+              (trx as any)
+                .selectFrom('services')
+                .select('spaceId')
+                .where('id', '=', crAny.serviceId),
+            )
+            .execute();
+        }
       } else if (dto.action === 'reject_implementation') {
+        // Tech lead rejected: restore write access for implementer to fix.
+        if (crAny.implementerId) {
+          await (trx as any)
+            .updateTable('spaceMembers')
+            .set({ role: 'writer' })
+            .where('userId', '=', crAny.implementerId)
+            .where(
+              'spaceId',
+              '=',
+              (trx as any)
+                .selectFrom('services')
+                .select('spaceId')
+                .where('id', '=', crAny.serviceId),
+            )
+            .execute();
+        }
         updates.tech_lead_id = authUser.id;
       } else if (dto.action === 'publish') {
         const historyId = await this.createPublishedSnapshot(
@@ -173,6 +219,21 @@ export class ChangeRequestsService {
         updates.tech_lead_id = authUser.id;
       } else if (dto.action === 'close' || dto.action === 'cancel') {
         updates.closed_at = new Date();
+        if (crAny.implementerId) {
+          await (trx as any)
+            .updateTable('spaceMembers')
+            .set({ role: 'reader' })
+            .where('userId', '=', crAny.implementerId)
+            .where(
+              'spaceId',
+              '=',
+              (trx as any)
+                .selectFrom('services')
+                .select('spaceId')
+                .where('id', '=', crAny.serviceId),
+            )
+            .execute();
+        }
       }
 
       await this.repo.updateById(dto.id, updates, trx);
