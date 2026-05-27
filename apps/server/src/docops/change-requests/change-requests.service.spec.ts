@@ -372,16 +372,12 @@ describe('ChangeRequestsService — assign_to_self conflict', () => {
     }).compile();
     const svc = module.get(ChangeRequestsService);
 
-    let err: any;
-    try {
-      await svc.transition(
+    await expect(
+      svc.transition(
         { id: 'cr-1', action: 'assign_to_self' } as any,
         { id: 'actor-dev' } as any,
-      );
-    } catch (e) {
-      err = e;
-    }
-    expect(err).not.toBeInstanceOf(ConflictException);
+      ),
+    ).resolves.toBeDefined();
   });
 });
 
@@ -407,17 +403,115 @@ describe('ChangeRequestsService — createChangeRequest active CR constraint', (
     }).compile();
     const svc = module.get(ChangeRequestsService);
 
+    const dto = {
+      serviceId: 'svc-1',
+      pageId: 'page-1',
+      title: 'New CR',
+      description: '',
+      justification: 'Needed',
+      priority: 'MEDIUM',
+      impact: 'LOW',
+    } as any;
+
     await expect(
-      svc.createChangeRequest(
-        {
-          serviceId: 'svc-1',
-          pageId: 'page-1',
-          title: 'New CR',
-          description: '',
-          justification: 'Needed',
-          priority: 'MEDIUM',
-          impact: 'LOW',
-        } as any,
+      svc.createChangeRequest(dto, { id: 'u1' } as any),
+    ).rejects.toThrow(ConflictException);
+
+    expect(repoMock.countActiveCrs).toHaveBeenCalledWith(
+      dto.serviceId,
+      '00000000-0000-0000-0000-000000000000',
+    );
+  });
+});
+
+// ── transition integration tests ─────────────────────────────────────────────
+
+describe('ChangeRequestsService — transition integration', () => {
+  // Helper: build a db mock where transaction().execute(cb) calls cb with the same mock
+  const buildTxDbMock = (executeTakeFirstResult: any = null) => {
+    const dbMock = buildDbMock(executeTakeFirstResult);
+    dbMock.returning = jest.fn().mockReturnThis();
+    dbMock.returningAll = jest.fn().mockReturnThis();
+    dbMock.transaction = jest.fn().mockReturnValue({
+      execute: jest.fn().mockImplementation((cb: any) => cb(dbMock)),
+    });
+    return dbMock;
+  };
+
+  it('publish: throws BadRequestException when no external refs', async () => {
+    const cr = {
+      id: 'cr-1',
+      status: 'IN_PROGRESS',
+      implementerId: null,
+      requestedById: 'u1',
+      serviceId: 'svc-1',
+      pageId: 'p1',
+      title: 'T',
+      rowVersion: 0,
+    };
+    const repo = mockRepo(cr);
+    repo.getUserRoles.mockResolvedValue(['TECH_LEAD']);
+    repo.getEvents.mockResolvedValue([]);
+    repo.getExternalRefs.mockResolvedValue([]);
+
+    // executeTakeFirst returns { count: '0' } for the external_refs count query
+    const dbMock = buildTxDbMock({ count: '0' });
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: repo },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
+      ],
+    }).compile();
+    const svc = module.get(ChangeRequestsService);
+
+    await expect(
+      svc.transition(
+        { id: 'cr-1', action: 'publish' } as any,
+        { id: 'u1' } as any,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('transition: throws ConflictException on rowVersion mismatch', async () => {
+    const cr = {
+      id: 'cr-1',
+      status: 'IN_REVIEW',
+      rowVersion: 5,
+      requestedById: 'u1',
+      serviceId: 'svc-1',
+      pageId: 'p1',
+      title: 'T',
+      implementerId: null,
+    };
+    const repo = mockRepo(cr);
+    repo.getUserRoles.mockResolvedValue(['APPROVER']);
+
+    const dbMock = buildTxDbMock();
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ChangeRequestsService,
+        { provide: ChangeRequestsRepository, useValue: repo },
+        { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
+        { provide: AuditService, useValue: mockAudit() },
+        { provide: WebhookDeliveryService, useValue: mockWebhook() },
+        { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
+      ],
+    }).compile();
+    const svc = module.get(ChangeRequestsService);
+
+    await expect(
+      svc.transition(
+        { id: 'cr-1', action: 'approve', rowVersion: 3, reason: 'ok' } as any,
         { id: 'u1' } as any,
       ),
     ).rejects.toThrow(ConflictException);
@@ -589,31 +683,31 @@ describe('E2E smoke: IN_REVIEW → PUBLISHED state machine', () => {
     status: string,
     roles: string[],
     isAdmin = false,
-    reason?: string,
     actorId = 'actor',
     creatorId = 'actor',
+    reason?: string,
   ) => (svc as any).validateTransition(action, status, roles, isAdmin, actorId, creatorId, reason);
 
   // Step 1: IN_REVIEW → IN_VERIFICATION (approve)
   describe('Step 1: approve (IN_REVIEW → IN_VERIFICATION)', () => {
     it('APPROVER with reason succeeds', () => {
-      expect(() => call('approve', 'IN_REVIEW', ['APPROVER'], false, 'looks good')).not.toThrow();
+      expect(() => call('approve', 'IN_REVIEW', ['APPROVER'], false, 'actor', 'actor', 'looks good')).not.toThrow();
     });
     it('APPROVER without reason throws', () => {
       expect(() => call('approve', 'IN_REVIEW', ['APPROVER'])).toThrow(BadRequestException);
     });
     it('DEVELOPER is forbidden', () => {
-      expect(() => call('approve', 'IN_REVIEW', ['DEVELOPER'], false, 'ok')).toThrow(
+      expect(() => call('approve', 'IN_REVIEW', ['DEVELOPER'], false, 'actor', 'actor', 'ok')).toThrow(
         ForbiddenException,
       );
     });
     it('TECH_LEAD is forbidden', () => {
-      expect(() => call('approve', 'IN_REVIEW', ['TECH_LEAD'], false, 'ok')).toThrow(
+      expect(() => call('approve', 'IN_REVIEW', ['TECH_LEAD'], false, 'actor', 'actor', 'ok')).toThrow(
         ForbiddenException,
       );
     });
     it('wrong source state (IN_PROGRESS) throws', () => {
-      expect(() => call('approve', 'IN_PROGRESS', ['APPROVER'], false, 'ok')).toThrow(
+      expect(() => call('approve', 'IN_PROGRESS', ['APPROVER'], false, 'actor', 'actor', 'ok')).toThrow(
         BadRequestException,
       );
     });
@@ -679,33 +773,33 @@ describe('E2E smoke: IN_REVIEW → PUBLISHED state machine', () => {
   describe('close: active states → CLOSED', () => {
     it('APPROVER can close from IN_REVIEW', () => {
       expect(() =>
-        call('close', 'IN_REVIEW', ['APPROVER'], false, 'REJECTED'),
+        call('close', 'IN_REVIEW', ['APPROVER'], false, 'actor', 'actor', 'REJECTED'),
       ).not.toThrow();
     });
     it('APPROVER cannot close from IN_VERIFICATION', () => {
       expect(() =>
-        call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'REJECTED'),
+        call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'actor', 'actor', 'REJECTED'),
       ).toThrow(ForbiddenException);
     });
     it('Admin can close from IN_REVIEW', () => {
-      expect(() => call('close', 'IN_REVIEW', [], true, 'REJECTED')).not.toThrow();
+      expect(() => call('close', 'IN_REVIEW', [], true, 'actor', 'actor', 'REJECTED')).not.toThrow();
     });
     it('Admin can close from IN_VERIFICATION', () => {
-      expect(() => call('close', 'IN_VERIFICATION', [], true, 'CANCELLED')).not.toThrow();
+      expect(() => call('close', 'IN_VERIFICATION', [], true, 'actor', 'actor', 'CANCELLED')).not.toThrow();
     });
     it('Admin can close from IN_PROGRESS', () => {
-      expect(() => call('close', 'IN_PROGRESS', [], true, 'CANCELLED')).not.toThrow();
+      expect(() => call('close', 'IN_PROGRESS', [], true, 'actor', 'actor', 'CANCELLED')).not.toThrow();
     });
     it('close without reason throws (requiresReason)', () => {
-      expect(() => call('close', 'IN_REVIEW', ['APPROVER'], false, undefined)).toThrow(
+      expect(() => call('close', 'IN_REVIEW', ['APPROVER'], false, 'actor', 'actor', undefined)).toThrow(
         BadRequestException,
       );
     });
     it('close from PUBLISHED throws (not an active state)', () => {
-      expect(() => call('close', 'PUBLISHED', [], true, 'CANCELLED')).toThrow(BadRequestException);
+      expect(() => call('close', 'PUBLISHED', [], true, 'actor', 'actor', 'CANCELLED')).toThrow(BadRequestException);
     });
     it('close from CLOSED throws (not an active state)', () => {
-      expect(() => call('close', 'CLOSED', [], true, 'CANCELLED')).toThrow(BadRequestException);
+      expect(() => call('close', 'CLOSED', [], true, 'actor', 'actor', 'CANCELLED')).toThrow(BadRequestException);
     });
   });
 });
