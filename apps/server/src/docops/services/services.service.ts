@@ -50,6 +50,7 @@ export class ServicesService {
           creatorId: authUser.id,
           workspaceId: workspace.id,
           visibility: 'private',
+          settings: sql`'{"sharing":{"disabled":true},"comments":{"allowViewerComments":false}}'::jsonb`,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
