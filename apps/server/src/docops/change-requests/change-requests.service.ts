@@ -114,6 +114,13 @@ export class ChangeRequestsService {
       throw new ConflictException('Change request was modified by another user');
     }
 
+    if (dto.action === 'close' && !dto.closeReason) {
+      throw new BadRequestException("'closeReason' (REJECTED or CANCELLED) is required for action 'close'");
+    }
+    if (dto.action !== 'close' && dto.closeReason) {
+      throw new BadRequestException("'closeReason' is only valid for action 'close'");
+    }
+
     this.validateTransition(
       dto.action,
       crAny.status,
@@ -164,9 +171,14 @@ export class ChangeRequestsService {
           )
           .execute();
       } else if (dto.action === 'publish') {
-        // Requires >=1 external ref
-        const refCount = await this.repo.getExternalRefCount(dto.id);
-        if (refCount === 0) {
+        // Requires >=1 external ref — checked inside the transaction to avoid TOCTOU
+        const refCountRow = await (trx as any)
+          .selectFrom('external_refs')
+          .select(sql`COUNT(*)`.as('count'))
+          .where('change_request_id', '=', dto.id)
+          .where('ref_type', 'in', ['PR', 'COMMIT'])
+          .executeTakeFirst();
+        if (Number(refCountRow?.count ?? 0) === 0) {
           throw new BadRequestException(
             'At least one PR or COMMIT external ref required before publishing',
           );
