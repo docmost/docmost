@@ -1,8 +1,8 @@
 import { TransitionDef, TransitionContext } from '../cr-state.types';
 
 export const assignToSelfTransition: TransitionDef = {
-  from: ['APPROVED'],
-  to: 'IN_IMPLEMENTATION',
+  from: ['IN_PROGRESS'],
+  to: 'IN_PROGRESS',
   requiresReason: false,
   canExecute: ({ userRoles, isAdmin }: TransitionContext) =>
     userRoles.includes('DEVELOPER') || isAdmin,
