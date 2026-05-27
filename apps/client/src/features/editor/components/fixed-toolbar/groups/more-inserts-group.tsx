@@ -32,9 +32,10 @@ import { useTranslation } from "react-i18next";
 
 interface Props {
   editor: Editor;
+  templateMode?: boolean;
 }
 
-export const MoreInsertsGroup: FC<Props> = ({ editor }) => {
+export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
   const { t } = useTranslation();
 
   const setEmbed = (provider: string) =>
@@ -91,14 +92,16 @@ export const MoreInsertsGroup: FC<Props> = ({ editor }) => {
         >
           {t("Subpages")}
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconRotate2 size={16} />}
-          onClick={() =>
-            editor.chain().focus().insertTransclusionSource().run()
-          }
-        >
-          {t("Synced block")}
-        </Menu.Item>
+        {!templateMode && (
+          <Menu.Item
+            leftSection={<IconRotate2 size={16} />}
+            onClick={() =>
+              editor.chain().focus().insertTransclusionSource().run()
+            }
+          >
+            {t("Synced block")}
+          </Menu.Item>
+        )}
 
         <Menu.Divider />
         <Menu.Label>{t("Diagrams")}</Menu.Label>
@@ -115,18 +118,22 @@ export const MoreInsertsGroup: FC<Props> = ({ editor }) => {
         >
           {t("Mermaid diagram")}
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconDrawio size={16} />}
-          onClick={() => editor.chain().focus().setDrawio().run()}
-        >
-          Draw.io
-        </Menu.Item>
-        <Menu.Item
-          leftSection={<IconExcalidraw size={16} />}
-          onClick={() => editor.chain().focus().setExcalidraw().run()}
-        >
-          Excalidraw
-        </Menu.Item>
+        {!templateMode && (
+          <Menu.Item
+            leftSection={<IconDrawio size={16} />}
+            onClick={() => editor.chain().focus().setDrawio().run()}
+          >
+            Draw.io
+          </Menu.Item>
+        )}
+        {!templateMode && (
+          <Menu.Item
+            leftSection={<IconExcalidraw size={16} />}
+            onClick={() => editor.chain().focus().setExcalidraw().run()}
+          >
+            Excalidraw
+          </Menu.Item>
+        )}
 
         <Menu.Divider />
         <Menu.Label>{t("Embeds")}</Menu.Label>
