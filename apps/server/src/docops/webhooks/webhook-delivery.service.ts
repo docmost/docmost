@@ -48,7 +48,7 @@ export class WebhookDeliveryService {
       await this.queue.add(
         WEBHOOK_DELIVER_JOB,
         { webhookId: webhook.id, event, payload } satisfies WebhookJobData,
-        { attempts: 5 },
+        { attempts: 5, backoff: { type: 'exponential', delay: 1000 } },
       );
       this.logger.debug(
         `Queued webhook ${webhook.id} for event ${event}`,

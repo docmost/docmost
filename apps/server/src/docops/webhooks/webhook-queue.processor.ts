@@ -52,7 +52,7 @@ export class WebhookQueueProcessor
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-DocOps-Signature-256': signature,
+          'X-DocOps-Signature': signature,
           'X-DocOps-Event': event,
           'X-DocOps-Delivery': deliveryId,
         },
