@@ -71,7 +71,7 @@ export class ServicesService {
           spaceId: space.id,
           userId: u.id,
           addedById: authUser.id,
-          role: 'writer',
+          role: 'reader',
         })),
       ];
 
