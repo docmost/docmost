@@ -49,7 +49,7 @@ export default function ChangeRequestCreatePage() {
     servicesData?.items.map((s) => ({
       value: s.id,
       label: `${s.name} (${s.code})`,
-      pageId: s.root_page_id ?? "",
+      pageId: s.rootPageId ?? "",
     })) ?? [];
 
   const preselected = serviceCode
@@ -59,7 +59,7 @@ export default function ChangeRequestCreatePage() {
   const form = useForm<FormValues>({
     initialValues: {
       serviceId: preselected?.id ?? "",
-      pageId: preselected?.root_page_id ?? "",
+      pageId: preselected?.rootPageId ?? "",
       title: "",
       description: "",
       justification: "",
@@ -90,7 +90,7 @@ export default function ChangeRequestCreatePage() {
     if (preselected) {
       form.setValues({
         serviceId: preselected.id,
-        pageId: preselected.root_page_id ?? "",
+        pageId: preselected.rootPageId ?? "",
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,12 +101,12 @@ export default function ChangeRequestCreatePage() {
   const handleServiceChange = (val: string | null) => {
     const svc = servicesData?.items.find((s) => s.id === val);
     if (svc) {
-      if (!svc.root_page_id) {
+      if (!svc.rootPageId) {
         setNoPageError(true);
         form.setValues({ serviceId: svc.id, pageId: "" });
       } else {
         setNoPageError(false);
-        form.setValues({ serviceId: svc.id, pageId: svc.root_page_id });
+        form.setValues({ serviceId: svc.id, pageId: svc.rootPageId });
       }
     }
   };

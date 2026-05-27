@@ -33,10 +33,10 @@ export function ServiceCard({ service }: ServiceCardProps) {
           </Text>
           <Badge
             size="xs"
-            color={LIFECYCLE_COLORS[service.lifecycle_state] ?? "gray"}
+            color={LIFECYCLE_COLORS[service.lifecycleState] ?? "gray"}
             variant="light"
           >
-            {t(service.lifecycle_state)}
+            {t(service.lifecycleState)}
           </Badge>
         </Group>
 

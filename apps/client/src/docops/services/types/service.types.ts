@@ -20,13 +20,13 @@ export interface Service {
   name: string;
   description?: string | null;
   domain?: string | null;
-  owner_id?: string | null;
-  lifecycle_state: LifecycleState;
-  space_id?: string | null;
-  root_page_id?: string | null;
+  ownerId?: string | null;
+  lifecycleState: LifecycleState;
+  spaceId?: string | null;
+  rootPageId?: string | null;
   tags: string[];
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ServiceListResponse {
@@ -70,14 +70,14 @@ export interface ChangeRequest {
   status: CrStatus;
   priority: CrPriority;
   impact?: 'LOW' | 'MEDIUM' | 'HIGH';
-  service_id: string;
-  page_id?: string | null;
-  requested_by_id: string;
-  implementer_id?: string | null;
-  approver_id?: string | null;
-  due_date?: string | null;
-  created_at?: string;
-  updated_at?: string;
+  serviceId: string;
+  pageId?: string | null;
+  requestedById: string;
+  implementerId?: string | null;
+  approverId?: string | null;
+  dueDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CrListResponse {

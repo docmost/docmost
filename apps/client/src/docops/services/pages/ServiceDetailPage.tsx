@@ -91,10 +91,10 @@ export default function ServiceDetailPage() {
             <Group gap="sm" wrap="nowrap">
               <Title order={2}>{service.name}</Title>
               <Badge
-                color={LIFECYCLE_COLORS[service.lifecycle_state] ?? "gray"}
+                color={LIFECYCLE_COLORS[service.lifecycleState] ?? "gray"}
                 variant="light"
               >
-                {t(service.lifecycle_state)}
+                {t(service.lifecycleState)}
               </Badge>
             </Group>
             <Text size="sm" c="dimmed" ff="monospace">
@@ -123,8 +123,8 @@ export default function ServiceDetailPage() {
                 name: service.name,
                 description: service.description ?? "",
                 domain: service.domain ?? "",
-                lifecycleState: service.lifecycle_state,
-                tags: service.tags,
+                lifecycleState: service.lifecycleState,
+                tags: service.tags ?? [],
               }}
               isLoading={updateMutation.isPending}
               onSubmit={handleUpdate}
@@ -151,7 +151,7 @@ export default function ServiceDetailPage() {
                   <Text size="sm">{service.domain}</Text>
                 </Group>
               )}
-              {service.tags.length > 0 && (
+              {(service.tags ?? []).length > 0 && (
                 <Group gap={4} wrap="wrap">
                   {service.tags.map((tag) => (
                     <Badge key={tag} size="sm" variant="outline" color="blue">
