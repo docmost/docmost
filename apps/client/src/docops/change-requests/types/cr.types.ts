@@ -53,12 +53,12 @@ export interface CrEvent {
 
 export interface ExternalRef {
   id: string;
-  change_request_id: string;
-  ref_type: RefType;
+  changeRequestId: string;
+  refType: RefType;
   url: string;
   label?: string | null;
-  created_by_id: string;
-  created_at: string;
+  createdById: string;
+  createdAt: string;
 }
 
 export interface AvailableTransition {

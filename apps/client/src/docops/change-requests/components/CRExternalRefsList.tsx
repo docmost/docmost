@@ -20,16 +20,18 @@ const REF_COLORS: Record<RefType, string> = {
   BUILD: "gray",
 };
 
-function detectRefType(url: string): RefType {
-  if (/github\.com\/.+\/pull\/\d+/.test(url)) return "PR";
-  if (/github\.com\/.+\/commit\/[a-f0-9]+/.test(url)) return "COMMIT";
-  if (/jira\.|atlassian\.net|linear\.app/.test(url)) return "TICKET";
+function detectRefType(value: string): RefType {
+  if (/github\.com\/.+\/pull\/\d+/.test(value)) return "PR";
+  if (/github\.com\/.+\/commit\/[a-f0-9]+/.test(value)) return "COMMIT";
+  if (/^[a-f0-9]{7,40}$/i.test(value)) return "COMMIT";
+  if (/jira\.|atlassian\.net|linear\.app/.test(value)) return "TICKET";
   return "BUILD";
 }
 
-function isValidUrl(url: string): boolean {
+function isValidInput(value: string): boolean {
+  if (/^[a-f0-9]{7,40}$/i.test(value)) return true;
   try {
-    new URL(url);
+    new URL(value);
     return true;
   } catch {
     return false;
@@ -51,7 +53,7 @@ export function CRExternalRefsList({ cr, canEdit }: CRExternalRefsListProps) {
   const detectedType = url ? detectRefType(url) : null;
 
   const handleAdd = () => {
-    if (!isValidUrl(url)) return;
+    if (!isValidInput(url)) return;
     addMutation.mutate(
       { changeRequestId: cr.id, refType: detectRefType(url), url },
       { onSuccess: () => setUrl("") },
@@ -69,8 +71,8 @@ export function CRExternalRefsList({ cr, canEdit }: CRExternalRefsListProps) {
       {refs.map((ref) => (
         <Group key={ref.id} justify="space-between" wrap="nowrap">
           <Group gap="xs" wrap="nowrap" style={{ overflow: "hidden" }}>
-            <Badge color={REF_COLORS[ref.ref_type]} size="xs" variant="light">
-              {ref.ref_type}
+            <Badge color={REF_COLORS[ref.refType]} size="xs" variant="light">
+              {ref.refType}
             </Badge>
             <Anchor
               href={ref.url}
@@ -120,7 +122,7 @@ export function CRExternalRefsList({ cr, canEdit }: CRExternalRefsListProps) {
           <ActionIcon
             size="input-sm"
             variant="filled"
-            disabled={!url || !isValidUrl(url)}
+            disabled={!url || !isValidInput(url)}
             loading={addMutation.isPending}
             onClick={handleAdd}
             aria-label={t("Add reference")}
