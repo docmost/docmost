@@ -1,14 +1,6 @@
-export type CrStatus =
-  | 'DRAFT'
-  | 'REQUESTED'
-  | 'IN_REVIEW'
-  | 'APPROVED'
-  | 'IN_IMPLEMENTATION'
-  | 'IN_VERIFICATION'
-  | 'PUBLISHED'
-  | 'CLOSED'
-  | 'REJECTED'
-  | 'CANCELLED';
+export type CrStatus = 'IN_REVIEW' | 'IN_VERIFICATION' | 'IN_PROGRESS' | 'PUBLISHED' | 'CLOSED';
+
+export type CloseReason = 'REJECTED' | 'CANCELLED';
 
 export type CrPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type CrImpact = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -34,6 +26,7 @@ export interface ChangeRequest {
   approvedAt?: string | null;
   publishedAt?: string | null;
   closedAt?: string | null;
+  closeReason?: CloseReason | null;
   rowVersion?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -101,6 +94,7 @@ export interface TransitionCrPayload {
   id: string;
   action: string;
   reason?: string;
+  closeReason?: CloseReason;
   rowVersion?: number;
 }
 

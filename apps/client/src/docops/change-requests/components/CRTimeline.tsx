@@ -1,28 +1,24 @@
 import { Stack, Text, Timeline } from "@mantine/core";
 import {
   IconCheck,
-  IconCircleOff,
   IconGitBranch,
-  IconSend,
   IconX,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CrEvent } from "../types/cr.types";
 
 function eventIcon(toStatus: string) {
-  if (toStatus === "PUBLISHED") return <IconCheck size={14} />;
-  if (toStatus === "REJECTED" || toStatus === "CANCELLED") return <IconX size={14} />;
-  if (toStatus === "CLOSED") return <IconCircleOff size={14} />;
-  if (toStatus === "REQUESTED") return <IconSend size={14} />;
+  if (toStatus === 'PUBLISHED') return <IconCheck size={14} />;
+  if (toStatus === 'CLOSED') return <IconX size={14} />;
   return <IconGitBranch size={14} />;
 }
 
 function eventColor(toStatus: string): string {
-  if (toStatus === "PUBLISHED") return "green";
-  if (toStatus === "REJECTED" || toStatus === "CANCELLED") return "red";
-  if (toStatus === "CLOSED") return "dark";
-  if (toStatus === "APPROVED") return "teal";
-  return "blue";
+  if (toStatus === 'PUBLISHED') return 'green';
+  if (toStatus === 'CLOSED') return 'red';
+  if (toStatus === 'IN_VERIFICATION') return 'violet';
+  if (toStatus === 'IN_PROGRESS') return 'orange';
+  return 'blue';
 }
 
 interface CRTimelineProps {

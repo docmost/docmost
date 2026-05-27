@@ -3,16 +3,11 @@ import { useTranslation } from "react-i18next";
 import type { CrStatus } from "../types/cr.types";
 
 const STATUS_COLORS: Record<CrStatus, string> = {
-  DRAFT: "gray",
-  REQUESTED: "blue",
-  IN_REVIEW: "violet",
-  APPROVED: "teal",
-  IN_IMPLEMENTATION: "orange",
-  IN_VERIFICATION: "yellow",
-  PUBLISHED: "green",
-  CLOSED: "dark",
-  REJECTED: "red",
-  CANCELLED: "gray",
+  IN_REVIEW: 'blue',
+  IN_VERIFICATION: 'violet',
+  IN_PROGRESS: 'orange',
+  PUBLISHED: 'green',
+  CLOSED: 'dark',
 };
 
 interface CRStateBadgeProps {

@@ -86,9 +86,7 @@ export default function ChangeRequestsListPage() {
               placeholder={t("All statuses")}
               clearable
               data={[
-                "DRAFT", "REQUESTED", "IN_REVIEW", "APPROVED",
-                "IN_IMPLEMENTATION", "IN_VERIFICATION",
-                "PUBLISHED", "CLOSED", "REJECTED", "CANCELLED",
+                "IN_REVIEW", "IN_VERIFICATION", "IN_PROGRESS", "PUBLISHED", "CLOSED",
               ].map((s) => ({ value: s, label: t(s) }))}
               value={status}
               onChange={(v) => { setStatus((v as CrStatus) ?? ""); setPage(1); }}

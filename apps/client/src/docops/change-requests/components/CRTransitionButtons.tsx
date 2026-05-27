@@ -4,6 +4,7 @@ import {
   Button,
   Group,
   Modal,
+  Select,
   Stack,
   Text,
   Textarea,
@@ -15,16 +16,11 @@ import { useTransitionMutation } from "../hooks/useChangeRequests";
 import type { AvailableTransition, ChangeRequest } from "../types/cr.types";
 
 const ACTION_COLORS: Record<string, string> = {
-  submit: "blue",
-  take_for_review: "violet",
-  approve: "teal",
-  reject: "red",
-  assign_to_self: "orange",
-  submit_for_verification: "blue",
-  reject_implementation: "red",
-  publish: "green",
-  close: "dark",
-  cancel: "red",
+  approve: 'teal',
+  verify: 'blue',
+  assign_to_self: 'orange',
+  publish: 'green',
+  close: 'red',
 };
 
 interface CRTransitionButtonsProps {
@@ -38,6 +34,7 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
 
   const [pending, setPending] = useState<AvailableTransition | null>(null);
   const [reason, setReason] = useState("");
+  const [closeReason, setCloseReason] = useState<'REJECTED' | 'CANCELLED' | ''>('');
   const [opened, { open, close }] = useDisclosure(false);
 
   if (isLoading || !data?.actions.length) return null;
@@ -46,6 +43,7 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
     if (t.requiresReason) {
       setPending(t);
       setReason("");
+      setCloseReason('');
       open();
     } else {
       transition.mutate({ id: cr.id, action: t.action, rowVersion: cr.rowVersion });
@@ -55,7 +53,13 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
   const handleConfirm = () => {
     if (!pending) return;
     transition.mutate(
-      { id: cr.id, action: pending.action, reason, rowVersion: cr.rowVersion },
+      {
+        id: cr.id,
+        action: pending.action,
+        reason,
+        closeReason: pending.action === 'close' ? closeReason as 'REJECTED' | 'CANCELLED' : undefined,
+        rowVersion: cr.rowVersion,
+      },
       { onSuccess: close },
     );
   };
@@ -68,7 +72,7 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
             key={act.action}
             size="sm"
             color={ACTION_COLORS[act.action] ?? "blue"}
-            variant={act.action === "reject" || act.action === "cancel" ? "outline" : "filled"}
+            variant={act.action === "close" ? "outline" : "filled"}
             loading={transition.isPending && !opened}
             onClick={() => handleClick(act)}
             aria-label={t(`action.${act.action}`)}
@@ -105,13 +109,26 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
             onChange={(e) => setReason(e.currentTarget.value)}
             aria-label={t("Reason (required)")}
           />
+          {pending?.action === 'close' && (
+            <Select
+              label={t("Close reason")}
+              placeholder={t("Select reason...")}
+              required
+              data={[
+                { value: 'REJECTED', label: t('REJECTED') },
+                { value: 'CANCELLED', label: t('CANCELLED') },
+              ]}
+              value={closeReason}
+              onChange={(v) => setCloseReason((v ?? '') as any)}
+            />
+          )}
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>
               {t("Cancel")}
             </Button>
             <Button
               color={pending ? (ACTION_COLORS[pending.action] ?? "blue") : "blue"}
-              disabled={!reason.trim()}
+              disabled={!reason.trim() || (pending?.action === 'close' && !closeReason)}
               loading={transition.isPending}
               onClick={handleConfirm}
             >
