@@ -1130,6 +1130,7 @@
   "DRAFT": "Bozza",
   "REQUESTED": "Richiesta",
   "IN_REVIEW": "In revisione",
+  "IN_PROGRESS": "In corso",
   "APPROVED": "Approvata",
   "IN_VERIFICATION": "In verifica",
   "PUBLISHED": "Pubblicata",

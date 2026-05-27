@@ -1130,6 +1130,7 @@
   "DRAFT": "Draft",
   "REQUESTED": "Requested",
   "IN_REVIEW": "In review",
+  "IN_PROGRESS": "In progress",
   "APPROVED": "Approved",
   "IN_VERIFICATION": "In verification",
   "PUBLISHED": "Published",

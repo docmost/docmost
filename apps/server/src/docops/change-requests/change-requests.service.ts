@@ -131,6 +131,11 @@ export class ChangeRequestsService {
       dto.reason,
     );
 
+    // True no-op: assign_to_self when already assigned to same developer — skip event
+    if (dto.action === 'assign_to_self' && crAny.implementerId === authUser.id) {
+      return this.getChangeRequest(dto.id);
+    }
+
     const targetStatus = getTargetStatus(dto.action as CrAction);
 
     await executeTx(this.db, async (trx) => {
