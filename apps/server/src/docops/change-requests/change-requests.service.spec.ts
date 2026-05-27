@@ -11,16 +11,13 @@ import { ChangeRequestsRepository } from './change-requests.repository';
 import { CrEventsEmitter } from './events/cr-events.emitter';
 import { AuditService } from '../audit/audit.service';
 import { WebhookDeliveryService } from '../webhooks/webhook-delivery.service';
-import { MailService } from '../../integrations/mail/mail.service';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { QueueName } from '../../integrations/queue/constants';
+import { DOCOPS_CR_EMAIL_QUEUE, CR_NOTIFY_EMAIL_JOB } from './cr-notify-email.constants';
 
 // ── Mock factories ────────────────────────────────────────────────────────────
 
 const mockAudit = () => ({ log: jest.fn().mockResolvedValue(undefined) });
 const mockWebhook = () => ({ deliver: jest.fn().mockResolvedValue(undefined) });
-const mockMail = () => ({ sendToQueue: jest.fn().mockResolvedValue(undefined) });
-const mockEnv = () => ({ getAppUrl: jest.fn().mockReturnValue('http://localhost:3000') });
 const mockQueue = () => ({ add: jest.fn().mockResolvedValue(undefined) });
 const mockEventsEmitter = () => ({
   emitTransition: jest.fn(),
@@ -71,9 +68,8 @@ const buildModule = async (cr: any = null) => {
       { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
       { provide: AuditService, useValue: mockAudit() },
       { provide: WebhookDeliveryService, useValue: mockWebhook() },
-      { provide: MailService, useValue: mockMail() },
-      { provide: EnvironmentService, useValue: mockEnv() },
       { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+      { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
       { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
     ],
   }).compile();
@@ -248,9 +244,8 @@ describe('ChangeRequestsService — transition submit_for_verification implement
         { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
         { provide: AuditService, useValue: mockAudit() },
         { provide: WebhookDeliveryService, useValue: mockWebhook() },
-        { provide: MailService, useValue: mockMail() },
-        { provide: EnvironmentService, useValue: mockEnv() },
         { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
         { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: buildDbMock() },
       ],
     }).compile();
@@ -283,9 +278,8 @@ describe('ChangeRequestsService — transition submit_for_verification implement
         { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
         { provide: AuditService, useValue: mockAudit() },
         { provide: WebhookDeliveryService, useValue: mockWebhook() },
-        { provide: MailService, useValue: mockMail() },
-        { provide: EnvironmentService, useValue: mockEnv() },
         { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: mockQueue() },
         { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: dbMock },
       ],
     }).compile();
@@ -514,7 +508,7 @@ describe('E2E smoke: DRAFT → PUBLISHED state machine', () => {
   });
 });
 
-// ── sendTransitionNotification — email dispatch ───────────────────────────────
+// ── sendTransitionNotification — BullMQ job dispatch ─────────────────────────
 
 describe('ChangeRequestsService — sendTransitionNotification', () => {
   const baseCrAny = {
@@ -528,43 +522,11 @@ describe('ChangeRequestsService — sendTransitionNotification', () => {
     rowVersion: 0,
   };
 
-  const buildSvc = async () => {
-    const mail = mockMail();
-    const queryHandler = jest.fn().mockImplementation((q: any) => {
-      const sqlStr: string = q?.sql ?? '';
-      if (sqlStr.includes('services') && (sqlStr.includes('name') || sqlStr.includes('owner_id'))) {
-        return Promise.resolve({ rows: [{ name: 'slcone', owner_id: 'owner-1' }] });
-      }
-      if (sqlStr.includes("ARRAY['APPROVER']")) {
-        return Promise.resolve({ rows: [{ email: 'approver@test.it' }] });
-      }
-      if (sqlStr.includes("ARRAY['DEVELOPER']")) {
-        return Promise.resolve({ rows: [{ email: 'dev@test.it' }] });
-      }
-      if (sqlStr.includes("ARRAY['TECH_LEAD']")) {
-        return Promise.resolve({ rows: [{ email: 'techlead@test.it' }] });
-      }
-      if (sqlStr.includes('users') && sqlStr.includes('WHERE id')) {
-        return Promise.resolve({ rows: [{ email: 'requester@test.it' }] });
-      }
-      if (sqlStr.includes('services s') && sqlStr.includes('JOIN users')) {
-        return Promise.resolve({ rows: [{ email: 'owner@test.it' }] });
-      }
-      return Promise.resolve({ rows: [] });
-    });
-    const executor = {
-      transformQuery: (node: any) => node,
-      compileQuery: (node: any) => {
-        const fragments: string[] = node?.sqlFragments ?? [];
-        return { sql: fragments.join('?'), parameters: [] };
-      },
-      executeQuery: queryHandler,
-    };
-    const db: any = {
-      ...buildDbMock(),
-      getExecutor: jest.fn().mockReturnValue(executor),
-      executeQuery: queryHandler,
-    };
+  let crEmailQueue: { add: jest.Mock };
+  let svc: ChangeRequestsService;
+
+  beforeEach(async () => {
+    crEmailQueue = { add: jest.fn().mockResolvedValue(undefined) };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -573,61 +535,46 @@ describe('ChangeRequestsService — sendTransitionNotification', () => {
         { provide: CrEventsEmitter, useValue: mockEventsEmitter() },
         { provide: AuditService, useValue: mockAudit() },
         { provide: WebhookDeliveryService, useValue: mockWebhook() },
-        { provide: MailService, useValue: mail },
-        { provide: EnvironmentService, useValue: mockEnv() },
         { provide: getQueueToken(QueueName.SEARCH_QUEUE), useValue: mockQueue() },
-        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: db },
+        { provide: getQueueToken(DOCOPS_CR_EMAIL_QUEUE), useValue: crEmailQueue },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: buildDbMock() },
       ],
     }).compile();
 
-    return { svc: module.get(ChangeRequestsService), mail };
-  };
+    svc = module.get(ChangeRequestsService);
+  });
 
   const actor = (name: string, id = 'actor-1') => ({ id, name } as any);
 
-  it('submit: sends email to Approvers', async () => {
-    const { svc, mail } = await buildSvc();
+  it.each(['submit', 'approve', 'submit_for_verification', 'publish'])(
+    '%s: dispatches cr.notify.email job', async (action) => {
+      await (svc as any).sendTransitionNotification(action, 'cr-1', baseCrAny, actor('Mario'));
+      expect(crEmailQueue.add).toHaveBeenCalledWith(
+        CR_NOTIFY_EMAIL_JOB,
+        expect.objectContaining({ action, crId: 'cr-1' }),
+      );
+    },
+  );
+
+  it('submit: job payload contains actorName and crData', async () => {
     await (svc as any).sendTransitionNotification('submit', 'cr-1', baseCrAny, actor('Mario'));
-    expect(mail.sendToQueue).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'approver@test.it' }),
+    expect(crEmailQueue.add).toHaveBeenCalledWith(
+      CR_NOTIFY_EMAIL_JOB,
+      expect.objectContaining({
+        actorName: 'Mario',
+        crData: expect.objectContaining({
+          title: 'Test CR',
+          serviceId: 'svc-1',
+          justification: baseCrAny.justification,
+        }),
+      }),
     );
   });
 
-  it('submit: subject contains [DocOps]', async () => {
-    const { svc, mail } = await buildSvc();
-    await (svc as any).sendTransitionNotification('submit', 'cr-1', baseCrAny, actor('Mario'));
-    expect(mail.sendToQueue.mock.calls[0][0].subject).toContain('[DocOps]');
-  });
-
-  it('approve: sends at least one email', async () => {
-    const { svc, mail } = await buildSvc();
-    await (svc as any).sendTransitionNotification('approve', 'cr-1', baseCrAny, actor('Approver'));
-    expect(mail.sendToQueue).toHaveBeenCalled();
-  });
-
-  it('submit_for_verification: sends to Tech Lead', async () => {
-    const { svc, mail } = await buildSvc();
-    await (svc as any).sendTransitionNotification('submit_for_verification', 'cr-1', baseCrAny, actor('Dev'));
-    expect(mail.sendToQueue).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'techlead@test.it' }),
-    );
-  });
-
-  it('publish: sends at least one email', async () => {
-    const { svc, mail } = await buildSvc();
-    await (svc as any).sendTransitionNotification('publish', 'cr-1', baseCrAny, actor('TL'));
-    expect(mail.sendToQueue).toHaveBeenCalled();
-  });
-
-  it('take_for_review: sends no email', async () => {
-    const { svc, mail } = await buildSvc();
-    await (svc as any).sendTransitionNotification('take_for_review', 'cr-1', baseCrAny, actor('Approver'));
-    expect(mail.sendToQueue).not.toHaveBeenCalled();
-  });
-
-  it('cancel: sends no email', async () => {
-    const { svc, mail } = await buildSvc();
-    await (svc as any).sendTransitionNotification('cancel', 'cr-1', baseCrAny, actor('PO'));
-    expect(mail.sendToQueue).not.toHaveBeenCalled();
-  });
+  it.each(['take_for_review', 'cancel'])(
+    '%s: does not dispatch any job', async (action) => {
+      await (svc as any).sendTransitionNotification(action, 'cr-1', baseCrAny, actor('PO'));
+      expect(crEmailQueue.add).not.toHaveBeenCalled();
+    },
+  );
 });
