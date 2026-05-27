@@ -7,18 +7,32 @@ type CanScrollArgs = {
   source: { data: Record<string, unknown> };
 };
 
-// How far past each edge the cursor can roam and still drive scroll.
-// 120px gives users a generous "drag past the column" affordance before
-// scrolling stops — matches what other kanbans (Linear, Notion) do.
-const OVERFLOW_PX = 120;
+const OVERFLOW_PX = 6000;
+
+type Axis = "horizontal" | "vertical";
 
 export function useKanbanAutoScroll(
   ref: RefObject<HTMLElement | null>,
+  axis: Axis,
   canScroll: (args: CanScrollArgs) => boolean = () => true,
 ) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    const overflow =
+      axis === "vertical"
+        ? {
+            forTopEdge: { top: OVERFLOW_PX, right: 0, left: 0 },
+            forBottomEdge: { bottom: OVERFLOW_PX, right: 0, left: 0 },
+            forLeftEdge: { left: 0, top: 0, bottom: 0 },
+            forRightEdge: { right: 0, top: 0, bottom: 0 },
+          }
+        : {
+            forTopEdge: { top: 0, right: 0, left: 0 },
+            forBottomEdge: { bottom: 0, right: 0, left: 0 },
+            forLeftEdge: { left: OVERFLOW_PX, top: 0, bottom: 0 },
+            forRightEdge: { right: OVERFLOW_PX, top: 0, bottom: 0 },
+          };
     return combine(
       autoScrollForElements({
         element: el,
@@ -29,13 +43,8 @@ export function useKanbanAutoScroll(
         element: el,
         canScroll,
         getConfiguration: () => ({ maxScrollSpeed: "fast" }),
-        getOverflow: () => ({
-          forTopEdge: { top: OVERFLOW_PX },
-          forBottomEdge: { bottom: OVERFLOW_PX },
-          forLeftEdge: { left: OVERFLOW_PX },
-          forRightEdge: { right: OVERFLOW_PX },
-        }),
+        getOverflow: () => overflow,
       }),
     );
-  }, [ref, canScroll]);
+  }, [ref, axis, canScroll]);
 }

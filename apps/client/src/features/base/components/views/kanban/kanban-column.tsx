@@ -40,7 +40,7 @@ export function KanbanColumn({
       source.data.type === "base-kanban-card",
     [],
   );
-  useKanbanAutoScroll(bodyRef, canScrollColumn);
+  useKanbanAutoScroll(bodyRef, "vertical", canScrollColumn);
 
   return (
     <div className={classes.column} data-column-key={column.key}>

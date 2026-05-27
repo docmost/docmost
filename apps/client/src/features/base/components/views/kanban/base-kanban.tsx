@@ -71,7 +71,7 @@ export function BaseKanban({
       source.data.type === "base-kanban-column",
     [],
   );
-  useKanbanAutoScroll(boardRef, canScrollBoard);
+  useKanbanAutoScroll(boardRef, "horizontal", canScrollBoard);
 
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage) return;
