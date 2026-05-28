@@ -36,13 +36,13 @@ interface Props {
 }
 
 export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const setEmbed = (provider: string) =>
     editor.chain().focus().setEmbed({ provider }).run();
 
   const insertDate = () => {
-    const currentDate = new Date().toLocaleDateString("en-US", {
+    const currentDate = new Date().toLocaleDateString(i18n.language, {
       year: "numeric",
       month: "long",
       day: "numeric",

@@ -31,7 +31,7 @@ export function CreateApiKeyModal({
   onClose,
   onSuccess,
 }: CreateApiKeyModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [expirationOption, setExpirationOption] = useState<string>("30");
   const createApiKeyMutation = useCreateApiKeyMutation();
 
@@ -59,7 +59,7 @@ export function CreateApiKeyModal({
   const getExpirationLabel = (days: number) => {
     const date = new Date();
     date.setDate(date.getDate() + days);
-    const formatted = date.toLocaleDateString("en-US", {
+    const formatted = date.toLocaleDateString(i18n.language, {
       month: "short",
       day: "2-digit",
       year: "numeric",

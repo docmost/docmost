@@ -7,8 +7,8 @@ import Paginate from "@/components/common/paginate.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetSharesQuery } from "@/features/share/queries/share-query.ts";
 import { ISharedItem } from "@/features/share/types/share.types.ts";
-import { format } from "date-fns";
 import ShareActionMenu from "@/features/share/components/share-action-menu.tsx";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
 import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
 import { getPageIcon } from "@/lib";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -20,6 +20,7 @@ export default function ShareList() {
   const { t } = useTranslation();
   const { cursor, goNext, goPrev } = useCursorPaginate();
   const { data, isLoading } = useGetSharesQuery({ cursor });
+  const locale = useDateFnsLocale();
 
   if (!isLoading && data?.items.length === 0) {
     return <EmptyState icon={IconWorld} title={t("No shared pages")} />;
@@ -81,7 +82,12 @@ export default function ShareList() {
                 </Table.Td>
                 <Table.Td>
                   <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                    {format(new Date(share.createdAt), "MMM dd, yyyy")}
+                    {formatLocalized(
+                      share.createdAt,
+                      "MMM dd, yyyy",
+                      "PP",
+                      locale,
+                    )}
                   </Text>
                 </Table.Td>
                 <Table.Td>
