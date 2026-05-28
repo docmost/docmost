@@ -171,12 +171,12 @@ export class ServicesService {
     });
   }
 
-  async updateService(dto: UpdateServiceDto, authUser: User): Promise<any> {
-    const before = await this.getService(dto.id);
+  async updateService(id: string, dto: UpdateServiceDto, authUser: User): Promise<any> {
+    const before = await this.getService(id);
 
     const service = await this.db.transaction().execute(async (trx) => {
       const updated = await this.servicesRepo.update(
-        dto.id,
+        id,
         {
           name: dto.name,
           description: dto.description,
@@ -188,9 +188,9 @@ export class ServicesService {
       );
 
       if (dto.tags !== undefined) {
-        await this.servicesRepo.clearTags(dto.id, trx);
+        await this.servicesRepo.clearTags(id, trx);
         if (dto.tags.length > 0) {
-          await this.servicesRepo.upsertTags(dto.id, dto.tags, trx);
+          await this.servicesRepo.upsertTags(id, dto.tags, trx);
         }
       }
 
@@ -201,7 +201,7 @@ export class ServicesService {
       actorId: authUser.id,
       action: 'service.updated',
       entityKind: 'service',
-      entityId: dto.id,
+      entityId: id,
       payloadDiff: {
         before: {
           name: before.name,
@@ -216,7 +216,7 @@ export class ServicesService {
       },
     });
 
-    const tags = await this.servicesRepo.getServiceTags(dto.id);
+    const tags = await this.servicesRepo.getServiceTags(id);
     return { ...service, tags };
   }
 

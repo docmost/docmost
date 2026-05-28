@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsIn,
-  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -11,10 +10,6 @@ import {
 import { Transform, TransformFnParams } from 'class-transformer';
 
 export class UpdateServiceDto {
-  @IsUUID()
-  @IsNotEmpty()
-  id: string;
-
   @IsOptional()
   @IsString()
   @MinLength(2)

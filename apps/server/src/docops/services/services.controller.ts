@@ -74,7 +74,7 @@ export class ServicesController {
     @Body() dto: UpdateServiceDto,
     @AuthUser() user: User,
   ) {
-    return this.servicesService.updateService({ ...dto, id }, user);
+    return this.servicesService.updateService(id, dto, user);
   }
 
   // DELETE /docops/services/:id  — ADMIN only (soft delete → retired)

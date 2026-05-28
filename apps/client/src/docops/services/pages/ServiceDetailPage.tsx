@@ -9,6 +9,7 @@ import {
   Paper,
   Skeleton,
   Stack,
+  Table,
   Text,
   Title,
 } from "@mantine/core";
@@ -21,6 +22,7 @@ import {
   IconExternalLink,
   IconLockOff,
   IconPencil,
+  IconPlus,
 } from "@tabler/icons-react";
 import { getAppName, getSpaceUrl } from "@/lib/config";
 import useCurrentUser from "@/features/user/hooks/use-current-user";
@@ -29,6 +31,16 @@ import { useServiceLock } from "../hooks/useServiceLock";
 import { EditLockBanner } from "../components/EditLockBanner";
 import { ServiceForm } from "../components/ServiceForm";
 import type { UpdateServicePayload } from "../types/service.types";
+import { useChangeRequestsQuery } from "@/docops/change-requests/hooks/useChangeRequests";
+import { CRStateBadge } from "@/docops/change-requests/components/CRStateBadge";
+import type { CrPriority } from "@/docops/change-requests/types/cr.types";
+
+const PRIORITY_COLORS: Record<CrPriority, string> = {
+  LOW: "gray",
+  MEDIUM: "blue",
+  HIGH: "orange",
+  CRITICAL: "red",
+};
 
 const LIFECYCLE_COLORS: Record<string, string> = {
   active: "green",
@@ -47,6 +59,10 @@ export default function ServiceDetailPage() {
 
   const { data: service, isLoading, isError } = useServiceQuery(code ?? "");
   const { isLocked, activeCr, isLoading: lockLoading } = useServiceLock(service?.id);
+  const { data: crsData, isLoading: crsLoading } = useChangeRequestsQuery({
+    serviceId: service?.id,
+    limit: 50,
+  });
   const updateMutation = useUpdateServiceMutation(code ?? "");
 
   if (isLoading) {
@@ -206,28 +222,88 @@ export default function ServiceDetailPage() {
                     </Text>
                   </Stack>
                 </Alert>
-                <Group gap="sm">
-                  <Button
-                    component={Link}
-                    to={getSpaceUrl(service.code)}
-                    variant="default"
-                    leftSection={<IconExternalLink size={14} />}
-                    aria-label={t("View document in space")}
-                  >
-                    {t("View document")}
-                  </Button>
-                  <Button
-                    component={Link}
-                    to="/change-requests"
-                    variant="light"
-                    leftSection={<IconEdit size={14} />}
-                  >
-                    {t("Open a Change Request")}
-                  </Button>
-                </Group>
+                <Button
+                  component={Link}
+                  to={getSpaceUrl(service.code)}
+                  variant="default"
+                  leftSection={<IconExternalLink size={14} />}
+                  aria-label={t("View document in space")}
+                >
+                  {t("View document")}
+                </Button>
               </>
             )}
           </>
+        )}
+        <Divider my="lg" />
+
+        <Group justify="space-between" mb="md">
+          <Title order={4}>{t("Change Requests")}</Title>
+          <Button
+            component={Link}
+            to={`/change-requests/new?serviceId=${service.id}`}
+            size="sm"
+            variant="light"
+            leftSection={<IconPlus size={14} />}
+          >
+            {t("New Change Request")}
+          </Button>
+        </Group>
+
+        {crsLoading ? (
+          <Stack gap="xs">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} height={44} radius="sm" />
+            ))}
+          </Stack>
+        ) : !crsData?.items.length ? (
+          <Text c="dimmed" size="sm" ta="center" py="md">
+            {t("No change requests for this service.")}
+          </Text>
+        ) : (
+          <Paper withBorder radius="md" style={{ overflow: "hidden" }}>
+            <Table highlightOnHover>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>{t("Title")}</Table.Th>
+                  <Table.Th>{t("Status")}</Table.Th>
+                  <Table.Th>{t("Priority")}</Table.Th>
+                  <Table.Th>{t("Created")}</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {crsData.items.map((cr) => (
+                  <Table.Tr key={cr.id}>
+                    <Table.Td>
+                      <Text
+                        component={Link}
+                        to={`/change-requests/${cr.id}`}
+                        size="sm"
+                        fw={500}
+                        c="blue"
+                        style={{ textDecoration: "none" }}
+                      >
+                        {cr.title}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <CRStateBadge status={cr.status} />
+                    </Table.Td>
+                    <Table.Td>
+                      <Badge color={PRIORITY_COLORS[cr.priority]} variant="light" size="sm">
+                        {t(cr.priority)}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="xs" c="dimmed">
+                        {cr.createdAt ? new Date(cr.createdAt).toLocaleDateString() : "—"}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Paper>
         )}
       </Container>
     </>
