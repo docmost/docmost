@@ -13,6 +13,8 @@ export const inlineFileExtensions = [
   '.jpg',
   '.png',
   '.jpeg',
+  '.heic',
+  '.heif',
   '.pdf',
   '.mp4',
   '.mov',
