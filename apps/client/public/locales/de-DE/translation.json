@@ -424,6 +424,7 @@
   "Names do not match": "Namen stimmen nicht überein",
   "Today, {{time}}": "Heute, {{time}}",
   "Yesterday, {{time}}": "Gestern, {{time}}",
+  "now": "now",
   "Space created successfully": "Bereich erfolgreich erstellt",
   "Space updated successfully": "Bereich erfolgreich aktualisiert",
   "Space deleted successfully": "Bereich erfolgreich gelöscht",
