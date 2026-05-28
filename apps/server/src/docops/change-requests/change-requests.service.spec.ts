@@ -161,9 +161,6 @@ describe('ChangeRequestsService — validateTransition', () => {
     ['assign_to_self', 'IN_PROGRESS', 'APPROVER', undefined],
     ['assign_to_self', 'IN_PROGRESS', 'TECH_LEAD', undefined],
     ['publish', 'IN_PROGRESS', 'DEVELOPER', undefined],
-    ['close', 'IN_VERIFICATION', 'APPROVER', 'reason'],
-    ['close', 'IN_REVIEW', 'DEVELOPER', 'reason'],
-    ['close', 'IN_REVIEW', 'TECH_LEAD', 'reason'],
   ])(
     'action=%s with wrong role=%s throws ForbiddenException',
     (action, status, wrongRole, reason) => {
@@ -172,6 +169,25 @@ describe('ChangeRequestsService — validateTransition', () => {
       ).toThrow(ForbiddenException);
     },
   );
+
+  // close role checks require actor !== creator to bypass the creator shortcut
+  it('APPROVER (non-creator) cannot close from IN_VERIFICATION', () => {
+    expect(() =>
+      call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'actor', 'creator', 'reason'),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('DEVELOPER (non-creator) cannot close from IN_REVIEW', () => {
+    expect(() =>
+      call('close', 'IN_REVIEW', ['DEVELOPER'], false, 'actor', 'creator', 'reason'),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('TECH_LEAD (non-creator) cannot close from IN_REVIEW', () => {
+    expect(() =>
+      call('close', 'IN_REVIEW', ['TECH_LEAD'], false, 'actor', 'creator', 'reason'),
+    ).toThrow(ForbiddenException);
+  });
 
   // ── Role checks: correct role → no throw ─────────────────────────────────
 
@@ -221,15 +237,33 @@ describe('ChangeRequestsService — validateTransition', () => {
     ).not.toThrow();
   });
 
-  it('non-admin APPROVER cannot close from IN_VERIFICATION', () => {
+  it('non-admin APPROVER (non-creator) cannot close from IN_VERIFICATION', () => {
     expect(() =>
-      call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'u1', 'u1', 'reason'),
+      call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'actor', 'creator', 'reason'),
     ).toThrow(ForbiddenException);
   });
 
-  it('non-admin APPROVER cannot close from IN_PROGRESS', () => {
+  it('non-admin APPROVER (non-creator) cannot close from IN_PROGRESS', () => {
     expect(() =>
-      call('close', 'IN_PROGRESS', ['APPROVER'], false, 'u1', 'u1', 'reason'),
+      call('close', 'IN_PROGRESS', ['APPROVER'], false, 'actor', 'creator', 'reason'),
+    ).toThrow(ForbiddenException);
+  });
+
+  // ── Creator permission ────────────────────────────────────────────────────
+
+  it.each([
+    ['IN_REVIEW'],
+    ['IN_VERIFICATION'],
+    ['IN_PROGRESS'],
+  ])('creator can close own CR from %s', (status) => {
+    expect(() =>
+      call('close', status, [], false, 'creator', 'creator', 'reason'),
+    ).not.toThrow();
+  });
+
+  it('non-creator without role cannot close', () => {
+    expect(() =>
+      call('close', 'IN_REVIEW', [], false, 'actor', 'creator', 'reason'),
     ).toThrow(ForbiddenException);
   });
 });
@@ -776,9 +810,9 @@ describe('E2E smoke: IN_REVIEW → PUBLISHED state machine', () => {
         call('close', 'IN_REVIEW', ['APPROVER'], false, 'actor', 'actor', 'REJECTED'),
       ).not.toThrow();
     });
-    it('APPROVER cannot close from IN_VERIFICATION', () => {
+    it('APPROVER (non-creator) cannot close from IN_VERIFICATION', () => {
       expect(() =>
-        call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'actor', 'actor', 'REJECTED'),
+        call('close', 'IN_VERIFICATION', ['APPROVER'], false, 'actor', 'other-creator', 'REJECTED'),
       ).toThrow(ForbiddenException);
     });
     it('Admin can close from IN_REVIEW', () => {
