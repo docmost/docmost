@@ -1,13 +1,14 @@
 import { Badge, Table } from "@mantine/core";
-import { format } from "date-fns";
 import { useLicenseInfo } from "@/ee/licence/queries/license-query.ts";
 import { isLicenseExpired } from "@/ee/licence/license.utils.ts";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
 
 export default function LicenseDetails() {
   const { data: license, isError } = useLicenseInfo();
   const [workspace] = useAtom(workspaceAtom);
+  const locale = useDateFnsLocale();
 
   if (!license) {
     return null;
@@ -50,12 +51,16 @@ export default function LicenseDetails() {
 
           <Table.Tr>
             <Table.Th>Issued at</Table.Th>
-            <Table.Td>{format(license.issuedAt, "dd MMMM, yyyy")}</Table.Td>
+            <Table.Td>
+              {formatLocalized(license.issuedAt, "dd MMMM, yyyy", "PPP", locale)}
+            </Table.Td>
           </Table.Tr>
 
           <Table.Tr>
             <Table.Th>Expires at</Table.Th>
-            <Table.Td>{format(license.expiresAt, "dd MMMM, yyyy")}</Table.Td>
+            <Table.Td>
+              {formatLocalized(license.expiresAt, "dd MMMM, yyyy", "PPP", locale)}
+            </Table.Td>
           </Table.Tr>
           <Table.Tr>
             <Table.Th>License ID</Table.Th>

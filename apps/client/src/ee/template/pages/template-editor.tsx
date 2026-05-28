@@ -32,6 +32,12 @@ import {
 } from "../queries/template-query";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import useUserRole from "@/hooks/use-user-role";
+import { useAtomValue } from "jotai";
+import { userAtom } from "@/features/user/atoms/current-user-atom";
+import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
+import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
+import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 
 import classes from "./template-editor.module.css";
 
@@ -39,6 +45,9 @@ export default function TemplateEditor() {
   const { t } = useTranslation();
   const { templateId } = useParams<{ templateId: string }>();
   const { isAdmin: isWorkspaceAdmin } = useUserRole();
+  const user = useAtomValue(userAtom);
+  const editorToolbarEnabled =
+    user?.settings?.preferences?.editorToolbar ?? false;
 
   const { data: existingTemplate } = useGetTemplateByIdQuery(templateId || "");
   const { data: spaces } = useGetSpacesQuery({ limit: 100 });
@@ -238,6 +247,10 @@ export default function TemplateEditor() {
         </title>
       </Helmet>
 
+      {editorToolbarEnabled && editor && (
+        <FixedToolbar editor={editor} templateMode />
+      )}
+
       <div className={classes.header}>
         <Container size={900} h="100%" px={0}>
         <Group justify="space-between" h="100%" wrap="nowrap">
@@ -379,6 +392,13 @@ export default function TemplateEditor() {
           )}
         </div>
         <EditorContent editor={editor} />
+        {editor && (
+          <>
+            <EditorAiMenu editor={editor} />
+            <EditorBubbleMenu editor={editor} templateMode />
+            <EditorLinkMenu editor={editor} />
+          </>
+        )}
         <div style={{ paddingBottom: "20vh" }} />
       </Container>
     </>

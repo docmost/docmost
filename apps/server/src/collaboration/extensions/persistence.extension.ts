@@ -165,6 +165,21 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
+      document.broadcastStateless(
+        JSON.stringify({
+          type: 'page.updated',
+          updatedAt: new Date().toISOString(),
+          lastUpdatedById: context?.user?.id,
+          lastUpdatedBy: context?.user
+            ? {
+                id: context.user?.id,
+                name: context.user?.name,
+                avatarUrl: context.user?.avatarUrl,
+              }
+            : undefined,
+        }),
+      );
+
       await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
     }
 

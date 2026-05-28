@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n.ts";
 import {
   useMarkObsoleteMutation,
   usePageVerificationInfoQuery,
@@ -197,11 +198,14 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
             {info.expiresAt && (
               <Text size="xs" c="dimmed">
                 {t(status === "expired" ? "Expired {{date}}" : "Expires {{date}}", {
-                  date: new Date(info.expiresAt).toLocaleDateString(undefined, {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  }),
+                  date: new Date(info.expiresAt).toLocaleDateString(
+                    i18n.language,
+                    {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    },
+                  ),
                 })}
               </Text>
             )}

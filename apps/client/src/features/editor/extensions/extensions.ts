@@ -3,7 +3,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
-import { Placeholder, CharacterCount } from "@tiptap/extensions";
+import { Placeholder, CharacterCount, UndoRedo } from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -437,6 +437,7 @@ const TemplateSlashCommand = Command.configure({
 export const templateExtensions = [
   ...mainExtensions.filter((ext: any) => ext !== SlashCommand),
   TemplateSlashCommand,
+  UndoRedo,
 ] as any;
 
 export const collabExtensions: CollabExtensions = (provider, user) => [

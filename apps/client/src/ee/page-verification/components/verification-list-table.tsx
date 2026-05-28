@@ -16,9 +16,10 @@ import {
 } from "@/ee/page-verification/types/page-verification.types";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { buildPageUrl } from "@/features/page/page.utils";
-import { format } from "date-fns";
 import NoTableResults from "@/components/common/no-table-results";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
+import type { Locale } from "date-fns";
 
 const MAX_VISIBLE_VERIFIERS = 5;
 
@@ -48,7 +49,11 @@ function statusBadge(status: VerificationStatus | null, t: (s: string) => string
   }
 }
 
-function verifiedUntilText(item: IVerificationListItem, t: (s: string) => string): string {
+function verifiedUntilText(
+  item: IVerificationListItem,
+  t: (s: string) => string,
+  locale: Locale,
+): string {
   if (item.type === "qms") {
     if (item.status === "approved") return t("Indefinitely");
     return "—";
@@ -60,7 +65,7 @@ function verifiedUntilText(item: IVerificationListItem, t: (s: string) => string
   const now = new Date();
 
   if (expires <= now) return t("Expired");
-  return format(expires, "MMM d, yyyy");
+  return formatLocalized(expires, "MMM d, yyyy", "PP", locale);
 }
 
 function TableSkeleton() {
@@ -98,6 +103,7 @@ export default function VerificationListTable({
   isLoading,
 }: VerificationListTableProps) {
   const { t } = useTranslation();
+  const locale = useDateFnsLocale();
 
   return (
     <Table.ScrollContainer minWidth={600}>
@@ -200,7 +206,7 @@ export default function VerificationListTable({
 
                   <Table.Td>
                     <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                      {verifiedUntilText(item, t)}
+                      {verifiedUntilText(item, t, locale)}
                     </Text>
                   </Table.Td>
 

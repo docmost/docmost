@@ -43,6 +43,7 @@ import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
 import { IconColumns4 } from "@/components/icons/icon-columns-4";
 import { IconColumns5 } from "@/components/icons/icon-columns-5";
+import i18n from "@/i18n.ts";
 import {
   AirtableIcon,
   FigmaIcon,
@@ -459,7 +460,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["date", "today"],
       icon: IconCalendar,
       command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString("en-US", {
+        const currentDate = new Date().toLocaleDateString(i18n.language, {
           year: "numeric",
           month: "long",
           day: "numeric",

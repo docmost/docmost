@@ -310,6 +310,7 @@ export class PageService {
           expression: 'position',
           direction: 'asc',
           orderModifier: (ob) => ob.collate('C').asc(),
+          cursorExpression: sql`position collate "C"`,
         },
         { expression: 'id', direction: 'asc' },
       ],

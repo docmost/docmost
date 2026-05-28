@@ -16,7 +16,8 @@ import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { useBacklinksCountQuery } from "@/features/page-details/queries/backlinks-query.ts";
 import { BacklinksModal } from "./backlinks-modal";
-import { formattedDate, timeAgo } from "@/lib/time.ts";
+import { formattedDate } from "@/lib/time.ts";
+import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { LabelsSection } from "@/features/label/components/labels-section.tsx";
 
@@ -139,6 +140,7 @@ function StatsSection({
   updatedAt: Date | string;
 }) {
   const { t } = useTranslation();
+  const lastUpdated = useTimeAgo(updatedAt);
   return (
     <Stack gap="xs">
       <Text size="xs" fw={500} c="dimmed">
@@ -150,10 +152,7 @@ function StatsSection({
         label={t("Created")}
         value={formattedDate(new Date(createdAt))}
       />
-      <StatRow
-        label={t("Last updated")}
-        value={timeAgo(new Date(updatedAt))}
-      />
+      <StatRow label={t("Last updated")} value={lastUpdated} />
     </Stack>
   );
 }
