@@ -18,6 +18,7 @@ export interface ChangeRequest {
   impact: CrImpact;
   serviceId: string;
   serviceCode?: string | null;
+  serviceName?: string | null;
   pageId?: string | null;
   requestedById: string;
   implementerId?: string | null;

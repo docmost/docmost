@@ -53,6 +53,7 @@ function CRTable({ items, isLoading }: { items: ChangeRequest[]; isLoading: bool
       <Table highlightOnHover>
         <Table.Thead>
           <Table.Tr>
+            <Table.Th>{t("Service")}</Table.Th>
             <Table.Th>{t("Title")}</Table.Th>
             <Table.Th>{t("Status")}</Table.Th>
             <Table.Th>{t("Priority")}</Table.Th>
@@ -62,6 +63,9 @@ function CRTable({ items, isLoading }: { items: ChangeRequest[]; isLoading: bool
         <Table.Tbody>
           {items.map((cr) => (
             <Table.Tr key={cr.id}>
+              <Table.Td>
+                <Text size="sm">{cr.serviceName ?? "—"}</Text>
+              </Table.Td>
               <Table.Td>
                 <Text
                   component={Link}
@@ -113,6 +117,17 @@ export default function MyChangeRequestsPage() {
     limit: 50,
   });
 
+  // Priority: creator > implementer > approver — CR shows only in highest-priority tab
+  const requestedItems = requested.data?.items ?? [];
+  const requestedIds = new Set(requestedItems.map((cr) => cr.id));
+  const implementingItems = (implementing.data?.items ?? []).filter(
+    (cr) => !requestedIds.has(cr.id),
+  );
+  const implementingIds = new Set([...requestedIds, ...implementingItems.map((cr) => cr.id)]);
+  const reviewingItems = (reviewing.data?.items ?? []).filter(
+    (cr) => !implementingIds.has(cr.id),
+  );
+
   return (
     <>
       <Helmet>
@@ -129,9 +144,9 @@ export default function MyChangeRequestsPage() {
             <Tabs.Tab
               value="requested"
               rightSection={
-                requested.data?.total ? (
+                requestedItems.length ? (
                   <Badge size="xs" variant="filled" circle>
-                    {requested.data.total}
+                    {requestedItems.length}
                   </Badge>
                 ) : undefined
               }
@@ -141,9 +156,9 @@ export default function MyChangeRequestsPage() {
             <Tabs.Tab
               value="implementing"
               rightSection={
-                implementing.data?.total ? (
+                implementingItems.length ? (
                   <Badge size="xs" variant="filled" circle>
-                    {implementing.data.total}
+                    {implementingItems.length}
                   </Badge>
                 ) : undefined
               }
@@ -153,9 +168,9 @@ export default function MyChangeRequestsPage() {
             <Tabs.Tab
               value="reviewing"
               rightSection={
-                reviewing.data?.total ? (
+                reviewingItems.length ? (
                   <Badge size="xs" variant="filled" circle>
-                    {reviewing.data.total}
+                    {reviewingItems.length}
                   </Badge>
                 ) : undefined
               }
@@ -165,13 +180,13 @@ export default function MyChangeRequestsPage() {
           </Tabs.List>
 
           <Tabs.Panel value="requested">
-            <CRTable items={requested.data?.items ?? []} isLoading={requested.isLoading} />
+            <CRTable items={requestedItems} isLoading={requested.isLoading} />
           </Tabs.Panel>
           <Tabs.Panel value="implementing">
-            <CRTable items={implementing.data?.items ?? []} isLoading={implementing.isLoading} />
+            <CRTable items={implementingItems} isLoading={implementing.isLoading} />
           </Tabs.Panel>
           <Tabs.Panel value="reviewing">
-            <CRTable items={reviewing.data?.items ?? []} isLoading={reviewing.isLoading} />
+            <CRTable items={reviewingItems} isLoading={reviewing.isLoading} />
           </Tabs.Panel>
         </Tabs>
       </Container>

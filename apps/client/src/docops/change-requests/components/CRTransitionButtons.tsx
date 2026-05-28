@@ -91,8 +91,10 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
 
       {transition.isError && (
         <Alert color="red" mt="xs">
-          {(transition.error as any)?.response?.data?.message ??
-            t("Transition failed. Please try again.")}
+          {t(
+            (transition.error as any)?.response?.data?.message ??
+              "Transition failed. Please try again.",
+          )}
         </Alert>
       )}
 

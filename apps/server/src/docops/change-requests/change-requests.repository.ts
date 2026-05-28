@@ -98,6 +98,8 @@ export class ChangeRequestsRepository {
     let itemsQ = (this.db as any)
       .selectFrom('change_requests as cr')
       .selectAll('cr')
+      .select(['s.name as service_name', 's.code as service_code'])
+      .leftJoin('services as s', 's.id', 'cr.service_id')
       .limit(opts.limit)
       .offset(opts.offset)
       .orderBy('cr.created_at', 'desc');

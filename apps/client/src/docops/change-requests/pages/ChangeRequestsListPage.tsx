@@ -127,6 +127,7 @@ export default function ChangeRequestsListPage() {
             <Table highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
+                  <Table.Th>{t("Service")}</Table.Th>
                   <Table.Th>{t("Title")}</Table.Th>
                   <Table.Th>{t("Status")}</Table.Th>
                   <Table.Th>{t("Priority")}</Table.Th>
@@ -136,6 +137,9 @@ export default function ChangeRequestsListPage() {
               <Table.Tbody>
                 {data.items.map((cr) => (
                   <Table.Tr key={cr.id}>
+                    <Table.Td>
+                      <Text size="sm">{cr.serviceName ?? "—"}</Text>
+                    </Table.Td>
                     <Table.Td>
                       <Text
                         component={Link}
