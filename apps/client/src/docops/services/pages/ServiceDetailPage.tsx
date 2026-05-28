@@ -269,22 +269,14 @@ export default function ServiceDetailPage() {
                   <Table.Th>{t("Status")}</Table.Th>
                   <Table.Th>{t("Priority")}</Table.Th>
                   <Table.Th>{t("Created")}</Table.Th>
+                  <Table.Th />
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {crsData.items.map((cr) => (
                   <Table.Tr key={cr.id}>
                     <Table.Td>
-                      <Text
-                        component={Link}
-                        to={`/change-requests/${cr.id}`}
-                        size="sm"
-                        fw={500}
-                        c="blue"
-                        style={{ textDecoration: "none" }}
-                      >
-                        {cr.title}
-                      </Text>
+                      <Text size="sm" fw={500}>{cr.title}</Text>
                     </Table.Td>
                     <Table.Td>
                       <CRStateBadge status={cr.status} />
@@ -298,6 +290,16 @@ export default function ServiceDetailPage() {
                       <Text size="xs" c="dimmed">
                         {cr.createdAt ? new Date(cr.createdAt).toLocaleDateString() : "—"}
                       </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Button
+                        component={Link}
+                        to={`/change-requests/${cr.id}`}
+                        size="xs"
+                        variant="light"
+                      >
+                        {t("View")}
+                      </Button>
                     </Table.Td>
                   </Table.Tr>
                 ))}

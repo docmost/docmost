@@ -1,5 +1,6 @@
 import {
   Badge,
+  Button,
   Container,
   Group,
   Paper,
@@ -58,6 +59,7 @@ function CRTable({ items, isLoading }: { items: ChangeRequest[]; isLoading: bool
             <Table.Th>{t("Status")}</Table.Th>
             <Table.Th>{t("Priority")}</Table.Th>
             <Table.Th>{t("Created")}</Table.Th>
+            <Table.Th />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -67,16 +69,7 @@ function CRTable({ items, isLoading }: { items: ChangeRequest[]; isLoading: bool
                 <Text size="sm">{cr.serviceName ?? "—"}</Text>
               </Table.Td>
               <Table.Td>
-                <Text
-                  component={Link}
-                  to={`/change-requests/${cr.id}`}
-                  size="sm"
-                  fw={500}
-                  c="blue"
-                  style={{ textDecoration: "none" }}
-                >
-                  {cr.title}
-                </Text>
+                <Text size="sm" fw={500}>{cr.title}</Text>
               </Table.Td>
               <Table.Td>
                 <CRStateBadge status={cr.status} />
@@ -90,6 +83,16 @@ function CRTable({ items, isLoading }: { items: ChangeRequest[]; isLoading: bool
                 <Text size="xs" c="dimmed">
                   {cr.createdAt ? new Date(cr.createdAt).toLocaleDateString() : "—"}
                 </Text>
+              </Table.Td>
+              <Table.Td>
+                <Button
+                  component={Link}
+                  to={`/change-requests/${cr.id}`}
+                  size="xs"
+                  variant="light"
+                >
+                  {t("View")}
+                </Button>
               </Table.Td>
             </Table.Tr>
           ))}
