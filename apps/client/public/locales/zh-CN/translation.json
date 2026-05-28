@@ -424,6 +424,7 @@
   "Names do not match": "名称不匹配",
   "Today, {{time}}": "今天，{{time}}",
   "Yesterday, {{time}}": "昨天，{{time}}",
+  "now": "now",
   "Space created successfully": "空间创建成功",
   "Space updated successfully": "空间更新成功",
   "Space deleted successfully": "空间删除成功",
