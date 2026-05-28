@@ -424,6 +424,7 @@
   "Names do not match": "名前が一致しません",
   "Today, {{time}}": "今日 {{time}}",
   "Yesterday, {{time}}": "昨日 {{time}}",
+  "now": "now",
   "Space created successfully": "スペースが正常に作成されました",
   "Space updated successfully": "スペースが正常に更新されました",
   "Space deleted successfully": "スペースが正常に削除されました",
