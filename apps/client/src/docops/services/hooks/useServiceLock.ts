@@ -6,7 +6,7 @@ export function useServiceLock(serviceId: string | undefined) {
   const { data, isLoading } = useQuery({
     queryKey: ["service-lock", serviceId],
     queryFn: () =>
-      listChangeRequests({ serviceId, status: "IN_IMPLEMENTATION", limit: 1 }),
+      listChangeRequests({ serviceId, status: "IN_PROGRESS", limit: 1 }),
     enabled: !!serviceId,
     staleTime: 30_000,
     refetchInterval: 60_000,
