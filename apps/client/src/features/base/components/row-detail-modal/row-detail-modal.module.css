@@ -1,0 +1,281 @@
+/* ---------- Modal shell ---------- */
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  max-height: min(86vh, 820px);
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+}
+
+.closeButtonWrap {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.iconButton:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  padding: 32px 36px 4px;
+  flex-shrink: 0;
+}
+
+.titleInput {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+.titleInput::placeholder {
+  color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+  font-weight: 700;
+}
+
+.titleStatic {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  word-break: break-word;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  flex-wrap: wrap;
+}
+
+.metaDot {
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+  flex-shrink: 0;
+}
+
+/* ---------- Body / properties list ---------- */
+
+.body {
+  padding: 24px 36px 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.propertyList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.propertyRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 0;
+  border-radius: 8px;
+  transition: background-color 80ms ease;
+}
+
+.propertyLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 168px;
+  flex: 0 0 168px;
+  height: 34px;
+  padding-left: 4px;
+  font-size: 13.5px;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.propertyLabelIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+}
+
+.propertyLabelText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.propertyValueWrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  transition: background-color 100ms ease, border-color 100ms ease, box-shadow 100ms ease;
+  cursor: text;
+}
+
+.propertyValueWrap:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.propertyValueWrap.editing {
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  border-color: light-dark(var(--mantine-color-blue-5), var(--mantine-color-blue-5));
+  box-shadow: 0 0 0 3px light-dark(
+    rgba(34, 139, 230, 0.12),
+    rgba(34, 139, 230, 0.22)
+  );
+}
+
+.propertyValueWrap.readOnlyCell {
+  cursor: default;
+  background-color: transparent;
+  padding-left: 4px;
+}
+
+.propertyValueWrap.readOnlyCell:hover {
+  background-color: transparent;
+}
+
+.propertyValueWrap.locked {
+  cursor: default;
+}
+
+.lockIcon {
+  flex-shrink: 0;
+  margin-right: 6px;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.valueInner {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Trim Mantine cell paddings inside the modal value pill — the wrapper
+   already provides the horizontal padding. Without this, text/numbers
+   would sit 8px to the right of where they should. */
+.valueInner :global(.mantine-Input-input),
+.valueInner input.cellInput,
+.valueInner input[type="text"],
+.valueInner input[type="number"] {
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
+}
+
+/* Add property button */
+.addPropertyWrap {
+  margin-top: 12px;
+  padding-left: 4px;
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 36px 16px;
+  border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  font-size: 12px;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  flex-shrink: 0;
+  min-height: 44px;
+}
+
+.footerStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.savingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--mantine-color-yellow-5);
+  box-shadow: 0 0 0 0 rgba(250, 176, 5, 0.5);
+  animation: savingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes savingPulse {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 0 rgba(250, 176, 5, 0.45);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 4px rgba(250, 176, 5, 0);
+  }
+}
+
+.lockedHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.kbdHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  box-shadow: 0 1px 0 light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+}
