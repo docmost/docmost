@@ -424,6 +424,7 @@
   "Names do not match": "Les noms ne correspondent pas",
   "Today, {{time}}": "Aujourd’hui, {{time}}",
   "Yesterday, {{time}}": "Hier, {{time}}",
+  "now": "now",
   "Space created successfully": "Espace créé avec succès",
   "Space updated successfully": "Espace mis à jour avec succès",
   "Space deleted successfully": "Espace supprimé avec succès",
