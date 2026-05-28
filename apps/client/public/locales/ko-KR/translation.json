@@ -424,6 +424,7 @@
   "Names do not match": "이름이 일치하지 않습니다",
   "Today, {{time}}": "오늘, {{time}}",
   "Yesterday, {{time}}": "어제, {{time}}",
+  "now": "now",
   "Space created successfully": "스페이스가 성공적으로 생성되었습니다",
   "Space updated successfully": "스페이스가 성공적으로 업데이트되었습니다",
   "Space deleted successfully": "스페이스가 성공적으로 삭제되었습니다",
