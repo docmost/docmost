@@ -424,6 +424,7 @@
   "Names do not match": "Назви не збігаються",
   "Today, {{time}}": "Сьогодні, {{time}}",
   "Yesterday, {{time}}": "Вчора, {{time}}",
+  "now": "now",
   "Space created successfully": "Простір успішно створено",
   "Space updated successfully": "Простір успішно оновлено",
   "Space deleted successfully": "Простір успішно видалено",
