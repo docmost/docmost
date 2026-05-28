@@ -4,7 +4,7 @@ import {
   createMongoAbility,
   MongoAbility,
 } from '@casl/ability';
-import { SpaceRole } from '../../../common/helpers/types/permission';
+import { SpaceRole, UserRole } from '../../../common/helpers/types/permission';
 import { User } from '@docmost/db/types/entity.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import {
@@ -18,6 +18,11 @@ import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 export default class SpaceAbilityFactory {
   constructor(private readonly spaceMemberRepo: SpaceMemberRepo) {}
   async createForUser(user: User, spaceId: string) {
+    // Workspace owners and admins have full space admin permissions regardless of space membership
+    if (user.role === UserRole.OWNER || user.role === UserRole.ADMIN) {
+      return buildSpaceAdminAbility();
+    }
+
     const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
       user.id,
       spaceId,
