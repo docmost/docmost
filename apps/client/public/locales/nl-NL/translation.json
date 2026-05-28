@@ -424,6 +424,7 @@
   "Names do not match": "Namen komen niet overeen",
   "Today, {{time}}": "Vandaag, {{time}}",
   "Yesterday, {{time}}": "Gisteren, {{time}}",
+  "now": "now",
   "Space created successfully": "Ruimte succesvol aangemaakt",
   "Space updated successfully": "Ruimte succesvol bijgewerkt",
   "Space deleted successfully": "Ruimte succesvol verwijderd",
