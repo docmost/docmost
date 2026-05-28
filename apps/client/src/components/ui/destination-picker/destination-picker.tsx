@@ -221,14 +221,6 @@ export function DestinationPicker({
           ))
         )}
       </ScrollArea>
-
-      {selection && (
-        <div className={classes.selectedIndicator}>
-          {selection.type === "space"
-            ? selection.space.name
-            : `${selection.space.name} / ${selection.page.title || t("Untitled")}`}
-        </div>
-      )}
     </>
   );
 }

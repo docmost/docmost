@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Button, Group } from "@mantine/core";
+import { Modal, Button, Group, Divider } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { DestinationPicker } from "./destination-picker";
 import {
@@ -52,7 +52,9 @@ export function DestinationPickerModal({
             searchSpacesOnly={searchSpacesOnly}
           />
 
-          <Group justify="flex-end" mt="md">
+          <Divider my="md" />
+
+          <Group justify="flex-end">
             <Button variant="default" onClick={onClose}>
               {t("Close")}
             </Button>
