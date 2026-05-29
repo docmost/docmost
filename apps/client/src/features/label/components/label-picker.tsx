@@ -16,7 +16,7 @@ type LabelPickerProps = {
   onClose: () => void;
 };
 
-const NAME_PATTERN = /^[a-z0-9_-][a-z0-9_~-]*$/;
+const NAME_PATTERN = /^[\p{L}\p{N}_-][\p{L}\p{N}_~-]*$/u;
 const MAX_LABEL_NAME_LENGTH = 100;
 
 function isValidLabelName(name: string): boolean {
