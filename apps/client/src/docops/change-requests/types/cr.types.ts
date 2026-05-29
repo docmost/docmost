@@ -18,7 +18,9 @@ export interface ChangeRequest {
   impact: CrImpact;
   serviceId: string;
   serviceCode?: string | null;
+  serviceDocVersion?: string | null;
   serviceName?: string | null;
+  docVersion?: string | null;
   pageId?: string | null;
   requestedById: string;
   implementerId?: string | null;
@@ -98,6 +100,7 @@ export interface TransitionCrPayload {
   reason?: string;
   closeReason?: CloseReason;
   rowVersion?: number;
+  docVersion?: string;
 }
 
 export interface AddExternalRefPayload {
