@@ -191,6 +191,7 @@ export interface ChangeRequests {
   approvedAt: Timestamp | null;
   approverId: string | null;
   closedAt: Timestamp | null;
+  closeReason: string | null;
   createdAt: Generated<Timestamp>;
   description: string;
   docVersion: string | null;
@@ -659,6 +660,18 @@ export interface Watchers {
   workspaceId: string;
 }
 
+export interface WebhookDeliveryLogs {
+  attemptNumber: Generated<number>;
+  createdAt: Generated<Timestamp>;
+  deliveryId: string;
+  durationMs: number | null;
+  errorMessage: string | null;
+  event: string;
+  id: Generated<Int8>;
+  statusCode: number | null;
+  webhookId: string;
+}
+
 export interface WebhooksConfig {
   createdAt: Generated<Timestamp>;
   events: string[];
@@ -755,6 +768,7 @@ export interface DB {
   userSessions: UserSessions;
   userTokens: UserTokens;
   watchers: Watchers;
+  webhookDeliveryLogs: WebhookDeliveryLogs;
   webhooksConfig: WebhooksConfig;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
