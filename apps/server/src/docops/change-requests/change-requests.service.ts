@@ -197,12 +197,12 @@ export class ChangeRequestsService {
         }
         const serviceRow = await (trx as any)
           .selectFrom('services')
-          .select('docVersion')
+          .select('doc_version as docVersion')
           .where('id', '=', crAny.serviceId)
           .executeTakeFirstOrThrow();
         if (!isGreaterSemVer(dto.docVersion, serviceRow.docVersion)) {
           throw new BadRequestException(
-            `docVersion must be greater than current version (${serviceRow.docVersion})`,
+            `docVersion must be greater than current version (${serviceRow.docVersion ?? '0.0.0'})`,
           );
         }
         updates.doc_version = dto.docVersion;

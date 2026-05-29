@@ -3,7 +3,6 @@ import {
   Alert,
   Badge,
   Button,
-  Checkbox,
   Group,
   Modal,
   SegmentedControl,
@@ -18,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useAvailableTransitions } from "../hooks/useAvailableTransitions";
 import { useTransitionMutation } from "../hooks/useChangeRequests";
 import type { AvailableTransition, ChangeRequest } from "../types/cr.types";
-import { bumpVersion, isValidSemVer, type BumpType } from "../utils/semver.util";
+import { bumpVersion, isValidSemVer, isGreaterSemVer, type BumpType } from "../utils/semver.util";
 
 const ACTION_COLORS: Record<string, string> = {
   approve: 'teal',
@@ -52,10 +51,13 @@ export function CRTransitionButtons({ cr }: CRTransitionButtonsProps) {
   const currentVersion = cr.serviceDocVersion ?? '0.0.0';
   const suggestedVersion = bumpVersion(currentVersion, bumpType);
   const finalVersion = useCustom ? customVersion : suggestedVersion;
-  const versionError =
-    useCustom && customVersion && !isValidSemVer(customVersion)
+  const versionError = useCustom && customVersion
+    ? !isValidSemVer(customVersion)
       ? t('Formato non valido. Usa X.Y.Z (es. 1.2.3)')
-      : null;
+      : !isGreaterSemVer(customVersion, currentVersion)
+      ? t('La versione deve essere maggiore della corrente ({{v}})', { v: currentVersion })
+      : null
+    : null;
 
   if (isLoading || !data?.actions.length) return null;
 

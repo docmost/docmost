@@ -97,11 +97,11 @@ export default function ChangeRequestDetailPage() {
                   </Badge>
                 )}
                 <Badge color="blue" variant="outline" size="md">
-                  {t("Doc v")}{cr.serviceDocVersion ?? '0.0.0'}
+                  {t("Doc v{{version}}", { version: cr.serviceDocVersion ?? '0.0.0' })}
                 </Badge>
                 {cr.status === 'PUBLISHED' && cr.docVersion && (
                   <Badge color="green" size="md">
-                    {t("Pubblicata come v")}{cr.docVersion}
+                    {t("Pubblicata come v{{version}}", { version: cr.docVersion })}
                   </Badge>
                 )}
               </Group>
