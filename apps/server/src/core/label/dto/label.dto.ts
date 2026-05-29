@@ -28,7 +28,7 @@ export class AddLabelsDto extends PageIdDto {
     Array.isArray(value) ? value.map(normalizeLabelName) : value,
   )
   @MaxLength(100, { each: true })
-  @Matches(/^[a-z0-9_-][a-z0-9_~-]*$/, {
+  @Matches(/^[\p{L}\p{N}][\p{L}\p{N}_~-]*$/u, {
     each: true,
     message:
       'Label names can only contain letters, numbers, hyphens, underscores, and tildes, and cannot start with a tilde',
