@@ -193,6 +193,7 @@ export interface ChangeRequests {
   closedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
   description: string;
+  docVersion: string | null;
   dueDate: Timestamp | null;
   id: Generated<string>;
   impact: string;
@@ -498,6 +499,7 @@ export interface Services {
   code: string;
   createdAt: Generated<Timestamp>;
   description: string | null;
+  docVersion: Generated<string>;
   domain: string | null;
   id: Generated<string>;
   lifecycleState: Generated<string>;
