@@ -29,6 +29,7 @@ import {
 } from './state-machine/cr-state-machine';
 import { CrAction, TransitionContext, TransitionDef } from './state-machine/cr-state.types';
 import { CrEventsEmitter } from './events/cr-events.emitter';
+import { isValidSemVer, isGreaterSemVer } from './utils/semver.util';
 
 @Injectable()
 export class ChangeRequestsService {
@@ -188,6 +189,28 @@ export class ChangeRequestsService {
             'At least one PR or COMMIT external ref required before publishing',
           );
         }
+        if (!dto.docVersion) {
+          throw new BadRequestException('docVersion is required for publish');
+        }
+        if (!isValidSemVer(dto.docVersion)) {
+          throw new BadRequestException('docVersion must be a valid SemVer (e.g. 1.2.3)');
+        }
+        const serviceRow = await (trx as any)
+          .selectFrom('services')
+          .select('docVersion')
+          .where('id', '=', crAny.serviceId)
+          .executeTakeFirstOrThrow();
+        if (!isGreaterSemVer(dto.docVersion, serviceRow.docVersion)) {
+          throw new BadRequestException(
+            `docVersion must be greater than current version (${serviceRow.docVersion})`,
+          );
+        }
+        updates.doc_version = dto.docVersion;
+        await (trx as any)
+          .updateTable('services')
+          .set({ doc_version: dto.docVersion })
+          .where('id', '=', crAny.serviceId)
+          .execute();
         const historyId = await this.createPublishedSnapshot(
           trx,
           crAny.pageId,
