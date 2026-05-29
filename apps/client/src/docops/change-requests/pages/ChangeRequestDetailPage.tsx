@@ -96,6 +96,14 @@ export default function ChangeRequestDetailPage() {
                     {t("Impact")}: {t(cr.impact)}
                   </Badge>
                 )}
+                <Badge color="blue" variant="outline" size="md">
+                  {t("Doc v")}{cr.serviceDocVersion ?? '0.0.0'}
+                </Badge>
+                {cr.status === 'PUBLISHED' && cr.docVersion && (
+                  <Badge color="green" size="md">
+                    {t("Pubblicata come v")}{cr.docVersion}
+                  </Badge>
+                )}
               </Group>
             </Stack>
 
