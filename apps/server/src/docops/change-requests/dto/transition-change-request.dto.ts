@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
 import { CR_ACTIONS, CloseReason } from '../state-machine/cr-state.types';
 
 export class TransitionChangeRequestDto {
@@ -19,4 +19,9 @@ export class TransitionChangeRequestDto {
   @IsOptional()
   @IsNumber()
   rowVersion?: number;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d+\.\d+\.\d+$/, { message: 'docVersion must be a valid SemVer (e.g. 1.2.3)' })
+  docVersion?: string;
 }
