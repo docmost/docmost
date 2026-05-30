@@ -16,7 +16,7 @@ import {
   IconMoodSmile,
   IconNotes,
 } from "@tabler/icons-react";
-import { CalloutType, isTextSelected } from "@docmost/editor-ext";
+import { CalloutType, isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import classes from "../common/toolbar-menu.module.css";
@@ -55,7 +55,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
   });
 
   const getReferencedVirtualElement = useCallback(() => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "callout";
     const parent = findParentNode(predicate)(selection);

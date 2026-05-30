@@ -3,8 +3,14 @@
   color: inherit;
   display: flex;
   width: 100%;
-  
+
   &:hover {
     text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+    border-radius: var(--mantine-radius-sm);
   }
 }

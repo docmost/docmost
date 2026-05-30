@@ -6,10 +6,14 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { InsertableWatcher } from '@docmost/db/types/entity.types';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
 export class WatcherService {
-  constructor(private readonly watcherRepo: WatcherRepo) {}
+  constructor(
+    private readonly watcherRepo: WatcherRepo,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
+  ) {}
 
   async watchPage(
     userId: string,
@@ -82,6 +86,24 @@ export class WatcherService {
 
   async unwatchSpace(userId: string, spaceId: string) {
     return this.watcherRepo.deleteSpaceWatch(userId, spaceId);
+  }
+
+  async getWatchedSpaceIds(userId: string, workspaceId: string) {
+    const result = await this.watcherRepo.getWatchedSpaceIds(userId, workspaceId);
+
+    const spaceIds = result.items.map((r) => r.spaceId);
+
+    if (spaceIds.length === 0) {
+      return { items: spaceIds, meta: result.meta };
+    }
+
+    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
+    const spaceSet = new Set(userSpaceIds);
+
+    return {
+      items: spaceIds.filter((id) => spaceSet.has(id)),
+      meta: result.meta,
+    };
   }
 
   async isWatchingSpace(userId: string, spaceId: string): Promise<boolean> {

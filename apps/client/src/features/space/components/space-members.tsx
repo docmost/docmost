@@ -143,7 +143,7 @@ export default function SpaceMembersList({
               <Table.Tr>
                 <Table.Th>{t("Member")}</Table.Th>
                 <Table.Th>{t("Role")}</Table.Th>
-                <Table.Th></Table.Th>
+                <Table.Th aria-label={t("Action")} />
               </Table.Tr>
             </Table.Thead>
 
@@ -207,7 +207,11 @@ export default function SpaceMembersList({
                         arrowPosition="center"
                       >
                         <Menu.Target>
-                          <ActionIcon variant="subtle" c="gray">
+                          <ActionIcon
+                            variant="subtle"
+                            c="gray"
+                            aria-label={t("Member actions")}
+                          >
                             <IconDots size={20} stroke={2} />
                           </ActionIcon>
                         </Menu.Target>

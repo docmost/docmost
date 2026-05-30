@@ -85,6 +85,11 @@ export type RefetchRootTreeNodeEvent = {
   spaceId: string;
 };
 
+export type VerificationUpdatedEvent = {
+  operation: "verificationUpdated";
+  pageId: string;
+};
+
 export type WebSocketEvent =
   | InvalidateEvent
   | CommentCreatedEvent
@@ -96,4 +101,5 @@ export type WebSocketEvent =
   | AddTreeNodeEvent
   | MoveTreeNodeEvent
   | DeleteTreeNodeEvent
-  | RefetchRootTreeNodeEvent;
+  | RefetchRootTreeNodeEvent
+  | VerificationUpdatedEvent;

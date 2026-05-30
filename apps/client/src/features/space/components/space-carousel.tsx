@@ -1,4 +1,4 @@
-import { Text, Card, rem, Group, Button } from "@mantine/core";
+import { Text, Card, rem, Group, Button, Skeleton, Title } from "@mantine/core";
 import {
   prefetchSpace,
   useGetSpacesQuery,
@@ -13,9 +13,37 @@ import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import CardCarousel from "@/components/ui/card-carousel";
 
+function SpaceCardSkeleton() {
+  return (
+    <Card p="xs" radius="md" withBorder className={classes.card}>
+      <Card.Section className={classes.cardSection} h={40} />
+      <Skeleton circle height={38} width={38} mt={rem(-20)} />
+      <Skeleton height={14} mt="xs" width="70%" radius="xl" />
+      <Skeleton height={10} mt="md" width="40%" radius="xl" />
+    </Card>
+  );
+}
+
 export default function SpaceCarousel() {
   const { t } = useTranslation();
-  const { data } = useGetSpacesQuery({ limit: 20 });
+  const { data, isPending } = useGetSpacesQuery({ limit: 20 });
+
+  if (isPending) {
+    return (
+      <>
+        <Group justify="space-between" align="center" mb="md">
+          <Title order={2} size="h6" fw={500}>
+            {t("Spaces you belong to")}
+          </Title>
+        </Group>
+        <CardCarousel ariaLabel={t("Spaces you belong to")}>
+          {Array.from({ length: 4 }, (_, i) => (
+            <SpaceCardSkeleton key={i} />
+          ))}
+        </CardCarousel>
+      </>
+    );
+  }
 
   const cards = data?.items.map((space) => (
     <Card
@@ -52,9 +80,9 @@ export default function SpaceCarousel() {
   return (
     <>
       <Group justify="space-between" align="center" mb="md">
-        <Text fz="sm" fw={500}>
+        <Title order={2} size="h6" fw={500}>
           {t("Spaces you belong to")}
-        </Text>
+        </Title>
       </Group>
 
       <CardCarousel ariaLabel={t("Spaces you belong to")}>{cards}</CardCarousel>

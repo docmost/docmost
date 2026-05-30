@@ -2,6 +2,7 @@ import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { useCallback } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
+import { isEditorReady } from "@docmost/editor-ext";
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -37,9 +38,8 @@ export function PdfMenu({ editor }: EditorMenuProps) {
 
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
-      if (!state || !editor.isActive("pdf")) {
-        return false;
-      }
+      if (!state || !isEditorReady(editor)) return false;
+      if (!editor.isActive("pdf")) return false;
 
       const { selection } = state;
       const dom = editor.view.nodeDOM(selection.from) as HTMLElement | null;
@@ -51,7 +51,7 @@ export function PdfMenu({ editor }: EditorMenuProps) {
   );
 
   const getReferencedVirtualElement = useCallback(() => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "pdf";
     const parent = findParentNode(predicate)(selection);

@@ -16,6 +16,9 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconStar,
+  IconStarFilled,
+  IconTemplate,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -26,7 +29,7 @@ import {
 import classes from "./space-sidebar.module.css";
 import React from "react";
 import { useAtom } from "jotai";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
@@ -43,13 +46,22 @@ import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 import { useTranslation } from "react-i18next";
 import { SwitchSpace } from "./switch-space";
 import ExportModal from "@/components/common/export-modal";
+import {
+  useFavoriteIds,
+  useAddFavoriteMutation,
+  useRemoveFavoriteMutation,
+} from "@/features/favorite/queries/favorite-query";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
+import TemplatePickerModal from "@/ee/template/components/template-picker-modal";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { Feature } from "@/ee/features";
+import { ErrorBoundary } from "react-error-boundary";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
-  const [tree] = useAtom(treeApiAtom);
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
@@ -61,13 +73,14 @@ export function SpaceSidebar() {
 
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
+  const { handleCreate } = useTreeMutation(space?.id ?? "");
 
   if (!space) {
     return <></>;
   }
 
   function handleCreatePage() {
-    tree?.create({ parentId: null, type: "internal", index: 0 });
+    handleCreate(null);
   }
 
   return (
@@ -81,11 +94,18 @@ export function SpaceSidebar() {
             marginBottom: 3,
           }}
         >
-          <SwitchSpace
-            spaceName={space?.name}
-            spaceSlug={space?.slug}
-            spaceIcon={space?.logo}
-          />
+          <Group
+            gap={4}
+            wrap="nowrap"
+            justify="space-between"
+            style={{ width: "100%" }}
+          >
+            <SwitchSpace
+              spaceName={space?.name}
+              spaceSlug={space?.slug}
+              spaceIcon={space?.logo}
+            />
+          </Group>
         </div>
 
         <div className={classes.section}>
@@ -232,11 +252,31 @@ function SpaceMenu({
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [
+    templatePickerOpened,
+    { open: openTemplatePicker, close: closeTemplatePicker },
+  ] = useDisclosure(false);
+  const hasTemplates = useHasFeature(Feature.TEMPLATES);
+  const upgradeLabel = useUpgradeLabel();
 
   const { data: watchStatus } = useSpaceWatchStatusQuery(spaceId);
   const watchMutation = useWatchSpaceMutation();
   const unwatchMutation = useUnwatchSpaceMutation();
   const isWatching = watchStatus?.watching ?? false;
+
+  const favoriteIds = useFavoriteIds("space");
+  const addFavoriteMutation = useAddFavoriteMutation();
+  const removeFavoriteMutation = useRemoveFavoriteMutation();
+  const isFavorited = favoriteIds.has(spaceId);
+
+  const handleToggleFavorite = () => {
+    const params = { type: "space" as const, spaceId };
+    if (isFavorited) {
+      removeFavoriteMutation.mutate(params);
+    } else {
+      addFavoriteMutation.mutate(params);
+    }
+  };
 
   const handleToggleWatch = () => {
     if (isWatching) {
@@ -263,6 +303,22 @@ function SpaceMenu({
 
         <Menu.Dropdown>
           <Menu.Item
+            onClick={handleToggleFavorite}
+            leftSection={
+              isFavorited ? (
+                <IconStarFilled
+                  size={16}
+                  color="var(--mantine-color-yellow-filled)"
+                />
+              ) : (
+                <IconStar size={16} />
+              )
+            }
+          >
+            {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
+          </Menu.Item>
+
+          <Menu.Item
             onClick={handleToggleWatch}
             leftSection={
               isWatching ? <IconEyeOff size={16} /> : <IconEye size={16} />
@@ -270,6 +326,27 @@ function SpaceMenu({
           >
             {isWatching ? t("Stop watching space") : t("Watch space")}
           </Menu.Item>
+
+          {canManagePages && (
+            <>
+              <Menu.Divider />
+              <Tooltip
+                label={upgradeLabel}
+                disabled={hasTemplates}
+                position="right"
+                withArrow
+              >
+                <Menu.Item
+                  onClick={hasTemplates ? openTemplatePicker : undefined}
+                  leftSection={<IconTemplate size={16} />}
+                  data-disabled={!hasTemplates || undefined}
+                  aria-disabled={!hasTemplates || undefined}
+                >
+                  {t("Templates")}
+                </Menu.Item>
+              </Tooltip>
+            </>
+          )}
 
           {canManagePages && (
             <>
@@ -325,6 +402,16 @@ function SpaceMenu({
             onClose={closeExportModal}
           />
         </>
+      )}
+
+      {hasTemplates && templatePickerOpened && (
+        <ErrorBoundary fallbackRender={() => null}>
+          <TemplatePickerModal
+            opened={templatePickerOpened}
+            onClose={closeTemplatePicker}
+            initialSpaceId={spaceId}
+          />
+        </ErrorBoundary>
       )}
     </>
   );

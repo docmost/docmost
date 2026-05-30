@@ -80,6 +80,20 @@ export default function AvatarUploader({
     }
   };
 
+  const actionLabel = {
+    [AvatarIconType.AVATAR]: t("Change avatar"),
+    [AvatarIconType.SPACE_ICON]: t("Change space icon"),
+    [AvatarIconType.WORKSPACE_ICON]: t("Change workspace icon"),
+  }[type];
+
+  // Per WCAG 2.5.3 (Label in Name), the accessible name must include the
+  // visible text. When no image is set, the avatar renders the name's
+  // initials, so prepend the name to the action label.
+  const ariaLabel =
+    !currentImageUrl && fallbackName
+      ? `${fallbackName} – ${actionLabel}`
+      : actionLabel;
+
   const handleRemove = async () => {
     if (disabled) return;
 
@@ -104,6 +118,8 @@ export default function AvatarUploader({
         ref={fileInputRef}
         onChange={handleFileInputChange}
         accept="image/png,image/jpeg,image/jpg"
+        aria-label={ariaLabel}
+        tabIndex={-1}
         style={{ display: "none" }}
       />
 
@@ -115,6 +131,8 @@ export default function AvatarUploader({
               size={size}
               avatarUrl={currentImageUrl}
               name={fallbackName}
+              aria-label={ariaLabel}
+              aria-haspopup="menu"
               style={{
                 cursor: disabled || isLoading ? "default" : "pointer",
                 opacity: isLoading ? 0.6 : 1,

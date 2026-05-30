@@ -21,7 +21,9 @@ export * from "./lib/markdown";
 export * from "./lib/search-and-replace";
 export * from "./lib/embed-provider";
 export * from "./lib/subpages";
+export * from "./lib/transclusion";
 export * from "./lib/highlight";
+export * from "./lib/indent";
 export * from "./lib/heading/heading";
 export * from "./lib/unique-id";
 export * from "./lib/shared-storage";
@@ -29,5 +31,6 @@ export * from "./lib/recreate-transform";
 export * from "./lib/columns";
 export * from "./lib/status";
 export * from "./lib/pdf";
+export * from "./lib/page-break";
 export * from "./lib/resizable-nodeview";
 

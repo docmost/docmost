@@ -54,7 +54,7 @@ export class WsService {
       return;
     }
 
-    await this.broadcastToAuthorizedUsers(room, client.data.userId, pageId, data);
+    await this.broadcastToAuthorizedUsers(room, client.id, pageId, data);
   }
 
   async invalidateSpaceRestrictionCache(spaceId: string): Promise<void> {
@@ -115,14 +115,17 @@ export class WsService {
 
   private async broadcastToAuthorizedUsers(
     room: string,
-    excludeUserId: string | null,
+    excludeSocketId: string | null,
     pageId: string,
     data: any,
   ): Promise<void> {
     const sockets = await this.server.in(room).fetchSockets();
 
-    const otherSockets = excludeUserId
-      ? sockets.filter((s) => s.data.userId !== excludeUserId)
+    // Exclude only the originating socket, not every socket of the originating
+    // user. Excluding by userId silently dropped the originator's other tabs
+    // from receiving restricted-space tree events.
+    const otherSockets = excludeSocketId
+      ? sockets.filter((s) => s.id !== excludeSocketId)
       : sockets;
     if (otherSockets.length === 0) return;
 

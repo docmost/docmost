@@ -3,7 +3,7 @@ import { updateUser } from "@/features/user/services/user-service.ts";
 import { IUser, IUserSettings } from "@/features/user/types/user.types.ts";
 import { Switch, Text, Title, Stack } from "@mantine/core";
 import { useAtom } from "jotai";
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ResponsiveSettingsRow,
@@ -64,6 +64,8 @@ function NotificationToggle({
   description: string;
 }) {
   const { t } = useTranslation();
+  const switchId = useId();
+  const descriptionId = useId();
   const [user, setUser] = useAtom(userAtom);
   const [checked, setChecked] = useState(
     user.settings?.notifications?.[settingKey] !== false,
@@ -83,14 +85,21 @@ function NotificationToggle({
   return (
     <ResponsiveSettingsRow>
       <ResponsiveSettingsContent>
-        <Text size="md">{t(label)}</Text>
-        <Text size="sm" c="dimmed">
+        <Text component="label" htmlFor={switchId} size="md" style={{ cursor: "pointer" }}>
+          {t(label)}
+        </Text>
+        <Text id={descriptionId} size="sm" c="dimmed">
           {t(description)}
         </Text>
       </ResponsiveSettingsContent>
 
       <ResponsiveSettingsControl>
-        <Switch checked={checked} onChange={handleChange} />
+        <Switch
+          id={switchId}
+          checked={checked}
+          onChange={handleChange}
+          aria-describedby={descriptionId}
+        />
       </ResponsiveSettingsControl>
     </ResponsiveSettingsRow>
   );
@@ -101,7 +110,7 @@ export default function NotificationPref() {
 
   return (
     <Stack gap="xs">
-      <Title order={5}>{t("Email notifications")}</Title>
+      <Title order={2} size="h5">{t("Email notifications")}</Title>
 
       {notificationItems.map((item) => (
         <NotificationToggle

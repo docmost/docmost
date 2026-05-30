@@ -26,6 +26,7 @@ import {
   TiptapVideo,
   TiptapAudio,
   TiptapPdf,
+  PageBreak,
   TrailingNode,
   Attachment,
   Drawio,
@@ -34,12 +35,15 @@ import {
   Mention,
   Subpages,
   Highlight,
+  Indent,
   UniqueID,
   Columns,
   Column,
   Status,
   addUniqueIdsToDoc,
   htmlToMarkdown,
+  TransclusionSource,
+  TransclusionReference,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -60,10 +64,11 @@ export const tiptapExtensions = [
   }),
   Heading,
   UniqueID.configure({
-    types: ['heading', 'paragraph'],
+    types: ['heading', 'paragraph', 'transclusionSource'],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Indent,
   TaskList,
   TaskItem.configure({
     nested: true,
@@ -90,6 +95,7 @@ export const tiptapExtensions = [
   TiptapVideo,
   TiptapAudio,
   TiptapPdf,
+  PageBreak,
   Callout,
   Attachment,
   CustomCodeBlock,
@@ -101,6 +107,8 @@ export const tiptapExtensions = [
   Columns,
   Column,
   Status,
+  TransclusionSource,
+  TransclusionReference,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
@@ -141,6 +149,18 @@ export function jsonToNode(tiptapJson: JSONContent) {
 
 export function getPageId(documentName: string) {
   return documentName.split('.')[1];
+}
+
+export function isEmptyParagraphDoc(tiptapJson: JSONContent): boolean {
+  if (!tiptapJson || tiptapJson.type !== 'doc') return false;
+  const content = tiptapJson.content;
+  if (!Array.isArray(content) || content.length !== 1) return false;
+  const child = content[0];
+  if (!child || child.type !== 'paragraph') return false;
+  return (
+    !child.content ||
+    (Array.isArray(child.content) && child.content.length === 0)
+  );
 }
 
 function stripUnknownNodes(

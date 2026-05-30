@@ -18,7 +18,7 @@ import {
   IconTrashX,
 } from "@tabler/icons-react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
+import { isCellSelection, isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
 
@@ -38,6 +38,7 @@ export const TableMenu = React.memo(
     );
 
     const getReferencedVirtualElement = useCallback(() => {
+      if (!isEditorReady(editor)) return;
       const { selection } = editor.state;
       const predicate = (node: PMNode) => node.type.name === "table";
       const parent = findParentNode(predicate)(selection);
@@ -104,12 +105,12 @@ export const TableMenu = React.memo(
           element.style.zIndex = "99";
         }}
         options={{
-          placement: "top",
+          placement: "bottom",
           offset: {
             mainAxis: 15,
           },
           flip: {
-            fallbackPlacements: ["top", "bottom"],
+            fallbackPlacements: ["bottom", "top"],
             padding: { top: 35 + 15, left: 8, right: 8, bottom: -Infinity },
             boundary: editor.options.element as HTMLElement,
           },

@@ -207,6 +207,22 @@ export class WatcherRepo {
       .execute();
   }
 
+  async getWatchedSpaceIds(userId: string, workspaceId: string) {
+    const query = this.db
+      .selectFrom('watchers')
+      .select(['watchers.id', 'watchers.spaceId'])
+      .where('userId', '=', userId)
+      .where('workspaceId', '=', workspaceId)
+      .where('pageId', 'is', null)
+      .where('type', '=', WatcherType.SPACE);
+
+    return executeWithCursorPagination(query, {
+      perPage: 250,
+      fields: [{ expression: 'watchers.id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
+    });
+  }
+
   async isWatchingSpace(userId: string, spaceId: string): Promise<boolean> {
     const watcher = await this.db
       .selectFrom('watchers')

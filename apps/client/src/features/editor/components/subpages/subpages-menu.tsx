@@ -6,6 +6,7 @@ import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tiptap/core";
+import { isEditorReady } from "@docmost/editor-ext";
 
 interface SubpagesMenuProps {
   editor: Editor;
@@ -33,6 +34,7 @@ export const SubpagesMenu = React.memo(
     );
 
     const getReferenceClientRect = useCallback(() => {
+      if (!isEditorReady(editor)) return new DOMRect();
       const { selection } = editor.state;
       const predicate = (node: PMNode) => node.type.name === "subpages";
       const parent = findParentNode(predicate)(selection);

@@ -55,7 +55,7 @@ export default function AiChatLayout() {
     navigate(location.pathname, { replace: true, state: null });
   }, [chatId, location, navigate, sendMessage]);
 
-  const hasMessages = messages.length > 0 || isStreaming;
+  const hasMessages = messages.length > 0 || isStreaming || !!chatId;
 
   // While the redirect effect is running (or if the user is still on this
   // component for any reason) never render the chat UI for a forbidden chat.
@@ -65,18 +65,6 @@ export default function AiChatLayout() {
 
   return (
     <div className={classes.main}>
-      {error && (
-        <div
-          style={{
-            padding: "var(--mantine-spacing-sm) var(--mantine-spacing-lg)",
-            color: "var(--mantine-color-red-6)",
-            fontSize: "var(--mantine-font-size-sm)",
-          }}
-        >
-          {error}
-        </div>
-      )}
-
       {hasMessages ? (
         <>
           <ChatMessageList
@@ -85,6 +73,17 @@ export default function AiChatLayout() {
             streamingContent={streamingContent}
             streamingToolCalls={streamingToolCalls}
           />
+          {error && (
+            <div
+              style={{
+                padding: "var(--mantine-spacing-sm) var(--mantine-spacing-lg)",
+                color: "var(--mantine-color-red-6)",
+                fontSize: "var(--mantine-font-size-sm)",
+              }}
+            >
+              {error}
+            </div>
+          )}
           <div className={classes.inputArea}>
             <ChatInput
               isStreaming={isStreaming}

@@ -11,6 +11,7 @@ import {
   INTERNAL_LINK_REGEX,
   extractPageSlugId,
 } from '../../../integrations/export/utils';
+import { isAttachmentNode } from './attachment-node-types';
 
 export interface MentionNode {
   id: string;
@@ -122,18 +123,7 @@ export function getProsemirrorContent(content: any) {
   );
 }
 
-export function isAttachmentNode(nodeType: string) {
-  const attachmentNodeTypes = [
-    'attachment',
-    'image',
-    'video',
-    'audio',
-    'pdf',
-    'excalidraw',
-    'drawio',
-  ];
-  return attachmentNodeTypes.includes(nodeType);
-}
+export { isAttachmentNode };
 
 export function getAttachmentIds(prosemirrorJson: any) {
   const doc = jsonToNode(prosemirrorJson);

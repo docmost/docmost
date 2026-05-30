@@ -52,10 +52,7 @@ export function AppHeader() {
   const [workspace] = useAtom(workspaceAtom);
   const aiChatEnabled = workspace?.settings?.ai?.chat === true;
 
-  const isHomeRoute = location.pathname.startsWith("/home");
-  const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
-  const hideSidebar = isHomeRoute || isSpacesRoute;
 
   const items = links.map((link) => (
     <Link key={link.label} to={link.link} className={classes.link}>
@@ -67,29 +64,25 @@ export function AppHeader() {
     <>
       <Group h="100%" px="md" justify="space-between" wrap={"nowrap"}>
         <Group wrap="nowrap">
-          {!hideSidebar && (
-            <>
-              <Tooltip label={t("Sidebar toggle")}>
-                <SidebarToggle
-                  aria-label={t("Sidebar toggle")}
-                  opened={mobileOpened}
-                  onClick={toggleMobile}
-                  hiddenFrom="sm"
-                  size="sm"
-                />
-              </Tooltip>
+          <Tooltip label={t("Sidebar toggle")}>
+            <SidebarToggle
+              aria-label={t("Sidebar toggle")}
+              opened={mobileOpened}
+              onClick={toggleMobile}
+              hiddenFrom="sm"
+              size="sm"
+            />
+          </Tooltip>
 
-              <Tooltip label={t("Sidebar toggle")}>
-                <SidebarToggle
-                  aria-label={t("Sidebar toggle")}
-                  opened={desktopOpened}
-                  onClick={toggleDesktop}
-                  visibleFrom="sm"
-                  size="sm"
-                />
-              </Tooltip>
-            </>
-          )}
+          <Tooltip label={t("Sidebar toggle")}>
+            <SidebarToggle
+              aria-label={t("Sidebar toggle")}
+              opened={desktopOpened}
+              onClick={toggleDesktop}
+              visibleFrom="sm"
+              size="sm"
+            />
+          </Tooltip>
 
           <Link to="/home" className={classes.brand} aria-label="Docmost">
             <Box hiddenFrom="sm" className={classes.brandIcon}>

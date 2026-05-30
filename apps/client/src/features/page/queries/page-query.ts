@@ -17,6 +17,7 @@ import {
   movePage,
   getPageBreadcrumbs,
   getRecentChanges,
+  getCreatedByPages,
   getAllSidebarPages,
   getDeletedPages,
   restorePage,
@@ -36,7 +37,7 @@ import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
+import { treeModel } from "@/features/page/tree/model/tree-model";
 import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
@@ -116,10 +117,20 @@ export function useUpdatePageMutation() {
 }
 
 export function useRemovePageMutation() {
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId, false),
     onSuccess: (_, pageId) => {
-      notifications.show({ message: "Page moved to trash" });
+      notifications.show({ message: t("Page moved to trash") });
+
+      // Stamp deletedAt so a re-visit shows the trash banner, not stale state.
+      const cached = queryClient.getQueryData<IPage>(["pages", pageId]);
+      if (cached) {
+        const stamped = { ...cached, deletedAt: new Date() };
+        queryClient.setQueryData(["pages", cached.id], stamped);
+        queryClient.setQueryData(["pages", cached.slugId], stamped);
+      }
+
       invalidateOnDeletePage(pageId);
       queryClient.invalidateQueries({
         predicate: (item) =>
@@ -127,7 +138,7 @@ export function useRemovePageMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: "Failed to delete page", color: "red" });
+      notifications.show({ message: t("Failed to delete page"), color: "red" });
     },
   });
 }
@@ -161,19 +172,17 @@ export function useMovePageMutation() {
 }
 
 export function useRestorePageMutation() {
+  const { t } = useTranslation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
 
   return useMutation({
     mutationFn: (pageId: string) => restorePage(pageId),
     onSuccess: async (restoredPage) => {
-      notifications.show({ message: "Page restored successfully" });
-
-      // Add the restored page back to the tree
-      const treeApi = new SimpleTree<SpaceTreeNode>(treeData);
+      notifications.show({ message: t("Page restored successfully") });
 
       // Check if the page already exists in the tree (it shouldn't)
-      if (!treeApi.find(restoredPage.id)) {
+      if (!treeModel.find(treeData, restoredPage.id)) {
         // Create the tree node data with hasChildren from backend
         const nodeData: SpaceTreeNode = {
           id: restoredPage.id,
@@ -192,24 +201,17 @@ export function useRestorePageMutation() {
         let index = 0;
 
         if (parentId) {
-          const parentNode = treeApi.find(parentId);
+          const parentNode = treeModel.find(treeData, parentId);
           if (parentNode) {
             index = parentNode.children?.length || 0;
           }
         } else {
           // Root level page
-          index = treeApi.data.length;
+          index = treeData.length;
         }
 
         // Add the node to the tree
-        treeApi.create({
-          parentId,
-          index,
-          data: nodeData,
-        });
-
-        // Update the tree data
-        setTreeData(treeApi.data);
+        setTreeData(treeModel.insert(treeData, parentId, nodeData, index));
 
         // Emit websocket event to sync with other users
         setTimeout(() => {
@@ -231,9 +233,16 @@ export function useRestorePageMutation() {
       await queryClient.invalidateQueries({
         queryKey: ["trash-list", restoredPage.spaceId],
       });
+
+      // Merge — restore endpoint returns a skinny page;
+      // Replace would strip space/permissions/content and break the editor.
+      const merge = (cached: IPage | undefined) =>
+        cached ? { ...cached, ...restoredPage } : cached;
+      queryClient.setQueryData<IPage>(["pages", restoredPage.id], merge);
+      queryClient.setQueryData<IPage>(["pages", restoredPage.slugId], merge);
     },
     onError: (error) => {
-      notifications.show({ message: "Failed to restore page", color: "red" });
+      notifications.show({ message: t("Failed to restore page"), color: "red" });
     },
   });
 }
@@ -244,7 +253,7 @@ export function useGetSidebarPagesQuery(
   return useInfiniteQuery({
     queryKey: ["sidebar-pages", data],
     enabled: !!data?.pageId || !!data?.spaceId,
-    queryFn: ({ pageParam }) => getSidebarPages({ ...data, cursor: pageParam }),
+    queryFn: ({ pageParam }) => getSidebarPages({ ...data, cursor: pageParam, limit: 100 }),
     initialPageParam: undefined,
     getNextPageParam: (lastPage) =>
       lastPage.meta?.nextCursor ?? undefined,
@@ -255,7 +264,7 @@ export function useGetRootSidebarPagesQuery(data: SidebarPagesParams) {
   return useInfiniteQuery({
     queryKey: ["root-sidebar-pages", data.spaceId],
     queryFn: async ({ pageParam }) => {
-      return getSidebarPages({ spaceId: data.spaceId, cursor: pageParam });
+      return getSidebarPages({ spaceId: data.spaceId, cursor: pageParam, limit: 100 });
     },
     initialPageParam: undefined,
     getNextPageParam: (lastPage) =>
@@ -285,12 +294,26 @@ export async function fetchAllAncestorChildren(params: SidebarPagesParams) {
   return buildTree(allItems);
 }
 
-export function useRecentChangesQuery(
-  spaceId?: string,
-): UseQueryResult<IPagination<IPage>, Error> {
-  return useQuery({
+export function useRecentChangesQuery(spaceId?: string) {
+  return useInfiniteQuery({
     queryKey: ["recent-changes", spaceId],
-    queryFn: () => getRecentChanges(spaceId),
+    queryFn: ({ pageParam }) =>
+      getRecentChanges({ spaceId, cursor: pageParam, limit: 15 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
+    refetchOnMount: true,
+  });
+}
+
+export function useCreatedByQuery(params?: { userId?: string; spaceId?: string }) {
+  const { userId, spaceId } = params ?? {};
+  return useInfiniteQuery({
+    queryKey: ["pages-created-by-user", { userId, spaceId }],
+    queryFn: ({ pageParam }) => getCreatedByPages({ userId, spaceId, cursor: pageParam, limit: 15 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     refetchOnMount: true,
   });
 }

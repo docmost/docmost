@@ -47,4 +47,5 @@ const SlashCommand = Command.configure({
   },
 });
 
+export { Command as SlashCommandExtension };
 export default SlashCommand;

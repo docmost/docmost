@@ -5,15 +5,10 @@ import {
   IsBoolean,
   IsInt,
   IsOptional,
-  IsString,
   Min,
 } from 'class-validator';
 
 export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
-  @IsOptional()
-  @IsString()
-  logo: string;
-
   @IsOptional()
   @IsArray()
   emailDomains: string[];
@@ -48,10 +43,18 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
 
   @IsOptional()
   @IsBoolean()
+  isScimEnabled: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   aiChat: boolean;
 
   @IsOptional()
   @IsInt()
   @Min(1)
   trashRetentionDays: number;
+
+  @IsOptional()
+  @IsBoolean()
+  allowMemberTemplates: boolean;
 }

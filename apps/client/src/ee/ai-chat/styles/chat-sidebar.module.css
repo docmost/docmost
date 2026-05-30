@@ -15,6 +15,7 @@
 }
 
 .title {
+  margin: 0;
   font-weight: 600;
   font-size: var(--mantine-font-size-sm);
 }
@@ -33,10 +34,11 @@
 }
 
 .chatGroupLabel {
+  margin: 0;
   padding: 4px var(--mantine-spacing-xs);
   font-size: var(--mantine-font-size-xs);
   font-weight: 600;
-  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  color: var(--mantine-color-dimmed);
   user-select: none;
 }
 
@@ -104,7 +106,7 @@
 
 .chatItemDate {
   font-size: var(--mantine-font-size-xs);
-  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  color: var(--mantine-color-dimmed);
   white-space: nowrap;
   transition: opacity 150ms;
 }
@@ -118,7 +120,8 @@
   color: inherit;
 }
 
-.chatItem:hover .chatItemDate {
+.chatItem:hover .chatItemDate,
+.chatItem:focus-within .chatItemDate {
   opacity: 0;
 }
 
@@ -133,6 +136,12 @@
   position: relative;
 }
 
-.chatItem:hover .chatItemActions {
+.chatItem:hover .chatItemActions,
+.chatItem:focus-within .chatItemActions {
   opacity: 1;
+}
+
+.chatItemActions :global(.mantine-ActionIcon-root):focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
 }

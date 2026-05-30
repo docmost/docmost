@@ -8,6 +8,7 @@ export const Feature = {
   AI: 'ai',
   CONFLUENCE_IMPORT: 'import:confluence',
   DOCX_IMPORT: 'import:docx',
+  PDF_IMPORT: 'import:pdf',
   ATTACHMENT_INDEXING: 'attachment:indexing',
   SECURITY_SETTINGS: 'security:settings',
   MCP: 'mcp',
@@ -16,5 +17,6 @@ export const Feature = {
   AUDIT_LOGS: 'audit:logs',
   RETENTION: 'retention',
   SHARING_CONTROLS: 'sharing:controls',
+  TEMPLATES: 'templates',
   VIEWER_COMMENTS: 'comment:viewer',
 } as const;

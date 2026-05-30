@@ -7,8 +7,16 @@ import {
   Space,
   Menu,
   Anchor,
+  Tooltip,
+  VisuallyHidden,
 } from "@mantine/core";
-import { IconDots, IconSettings } from "@tabler/icons-react";
+import { IconDots, IconSettings, IconEye, IconEyeOff } from "@tabler/icons-react";
+import StarButton from "@/features/favorite/components/star-button";
+import {
+  useWatchedSpaceIds,
+  useWatchSpaceMutation,
+  useUnwatchSpaceMutation,
+} from "@/features/space/queries/space-watcher-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import React, { useState } from "react";
@@ -21,9 +29,50 @@ import Paginate from "@/components/common/paginate";
 import NoTableResults from "@/components/common/no-table-results";
 import SpaceSettingsModal from "@/features/space/components/settings-modal";
 import classes from "./all-spaces-list.module.css";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
+import clsx from "clsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
+
+function WatchButton({ spaceId, watchedIds, size = 16 }: { spaceId: string; watchedIds: Set<string>; size?: number }) {
+  const { t } = useTranslation();
+  const watchMutation = useWatchSpaceMutation();
+  const unwatchMutation = useUnwatchSpaceMutation();
+  const isWatching = watchedIds.has(spaceId);
+  const isPending = watchMutation.isPending || unwatchMutation.isPending;
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (isWatching) {
+      unwatchMutation.mutate(spaceId);
+    } else {
+      watchMutation.mutate(spaceId);
+    }
+  };
+
+  const label = isWatching ? t("Stop watching space") : t("Watch space");
+
+  return (
+    <Tooltip label={label} openDelay={250} withArrow>
+      <ActionIcon
+        variant="subtle"
+        color={isWatching ? "blue" : "gray"}
+        aria-label={label}
+        aria-pressed={isWatching}
+        onClick={handleToggle}
+        loading={isPending}
+      >
+        {isWatching ? (
+          <IconEyeOff size={size} stroke={2} />
+        ) : (
+          <IconEye size={size} stroke={2} />
+        )}
+      </ActionIcon>
+    </Tooltip>
+  );
+}
 
 interface AllSpacesListProps {
   spaces: any[];
@@ -43,6 +92,7 @@ export default function AllSpacesList({
   onPrev,
 }: AllSpacesListProps) {
   const { t } = useTranslation();
+  const watchedIds = useWatchedSpaceIds();
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
@@ -60,18 +110,25 @@ export default function AllSpacesList({
 
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm">
+          <Table.Caption>
+            <VisuallyHidden>
+              {t("List of spaces in this workspace")}
+            </VisuallyHidden>
+          </Table.Caption>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>{t("Space")}</Table.Th>
               <Table.Th>{t("Members")}</Table.Th>
-              <Table.Th w={100}></Table.Th>
+              <Table.Th w={130}>
+                <VisuallyHidden>{t("Action")}</VisuallyHidden>
+              </Table.Th>
             </Table.Tr>
           </Table.Thead>
 
           <Table.Tbody>
             {spaces.length > 0 ? (
               spaces.map((space) => (
-                <Table.Tr key={space.id}>
+                <Table.Tr key={space.id} className={rowClasses.row}>
                   <Table.Td>
                     <Anchor
                       size="sm"
@@ -80,13 +137,13 @@ export default function AllSpacesList({
                         cursor: "pointer",
                         color: "var(--mantine-color-text)",
                       }}
+                      className={clsx(classes.spaceLink, rowClasses.link)}
                       component={Link}
                       to={getSpaceUrl(space.slug)}
                     >
                       <Group
                         gap="sm"
                         wrap="nowrap"
-                        className={classes.spaceLink}
                         onMouseEnter={() => prefetchSpace(space.slug, space.id)}
                       >
                         <CustomAvatar
@@ -116,10 +173,16 @@ export default function AllSpacesList({
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Group gap="xs" justify="flex-end">
+                    <Group gap="xs" justify="flex-end" wrap="nowrap">
+                      <StarButton type="space" spaceId={space.id} name={space.name} size={16} />
+                      <WatchButton spaceId={space.id} watchedIds={watchedIds} size={16} />
                       <Menu position="bottom-end">
                         <Menu.Target>
-                          <ActionIcon variant="subtle" color="gray">
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            aria-label={t("Space menu")}
+                          >
                             <IconDots size={16} />
                           </ActionIcon>
                         </Menu.Target>

@@ -20,6 +20,7 @@ export interface IUser {
   deletedAt: Date;
   fullPageWidth: boolean; // used for update
   pageEditMode: string; // used for update
+  editorToolbar: boolean; // used for update
   notificationPageUpdates: boolean; // used for update
   notificationPageUserMention: boolean; // used for update
   notificationCommentUserMention: boolean; // used for update
@@ -37,6 +38,7 @@ export interface IUserSettings {
   preferences: {
     fullPageWidth: boolean;
     pageEditMode: string;
+    editorToolbar: boolean;
   };
   notifications?: {
     "page.updated"?: boolean;
