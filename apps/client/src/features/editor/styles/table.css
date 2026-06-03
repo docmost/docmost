@@ -204,10 +204,6 @@
   opacity: 1;
 }
 
-.ProseMirror table th:has(.tableReadonlySortChevron) {
-  padding-right: 30px;
-}
-
 .tableReadonlySortChevron:hover {
   background: light-dark(
     rgba(55, 53, 47, 0.16),
