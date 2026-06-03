@@ -1,6 +1,8 @@
 .env
 .env.dev
 .env.prod
+# local dev compose (contains a generated APP_SECRET and DB password)
+docker-compose.local.yml
 data
 # compiled output
 /dist

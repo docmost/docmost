@@ -44,6 +44,32 @@ All files in the following directories are licensed under the Docmost Enterprise
   - apps/client/src/ee
   - packages/ee
 
+### NIS-2 compliance additions (this fork)
+
+This fork adds two features to help technical teams document configuration changes for NIS-2:
+
+- **Change log** — an append-only, audit-proof record of configuration changes per page or space.
+  Each batch captures *what was changed*, *why*, *who requested/authorized it* and *which system/ticket*,
+  with a server-side timestamp and the logged-in author (not editable). Shown in a side panel;
+  corrections are added as new, linked entries. When enabled for a section, a warning banner appears
+  if the page was changed without a corresponding entry.
+- **Reviews** — a per-page/space review interval (inherited down the page tree) with a status banner on
+  the page (up to date / due / overdue), a colored + pulsing indicator in the sidebar tree, and a logged
+  "mark as reviewed" action.
+
+Both are activated per section via the page **"⋯ → NIS-2 settings"** menu or the space settings **"NIS-2"** tab.
+New database tables: `change_sets`, `change_entries`, `change_log_settings`, `review_settings`, `review_records`.
+
+This is meant as a practical add-on for everyday documentation duties — it does **not** cover all of NIS-2.
+Some related capabilities (such as a full system audit log) are part of Docmost's Enterprise edition.
+
+The fork's tables are created idempotently on startup and are **not** registered in Docmost's migration
+ledger, and no existing tables are altered. You can therefore switch the Docker image between stock Docmost
+and this fork in either direction without any migration steps — the stock image simply ignores the extra tables.
+
+A local stack that builds this fork from source is provided in `docker-compose.local.yml` (not committed —
+it holds a generated secret); run `docker compose -f docker-compose.local.yml up -d --build`.
+
 ### Contributing
 
 See the [development documentation](https://docmost.com/docs/self-hosting/development)

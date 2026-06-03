@@ -24,6 +24,8 @@ import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-t
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
+import ReviewBanner from "@/features/compliance/components/review-banner.tsx";
+import ChangeLogBanner from "@/features/compliance/components/change-log-banner.tsx";
 import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
 
@@ -95,6 +97,8 @@ export function FullEditor({
         <MemoizedFixedToolbar />
       )}
       <MemoizedDeletedPageBanner slugId={slugId} />
+      <ChangeLogBanner pageId={pageId} canEdit={editable} />
+      <ReviewBanner pageId={pageId} canReview={editable} />
       <MemoizedTitleEditor
         pageId={pageId}
         slugId={slugId}

@@ -4,6 +4,7 @@ import AddSpaceMembersModal from "@/features/space/components/add-space-members-
 import React from "react";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
 import SpaceSecuritySettings from "@/features/space/components/space-security-settings.tsx";
+import ReviewSettings from "@/features/compliance/components/review-settings.tsx";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
@@ -68,6 +69,14 @@ export default function SpaceSettingsModal({
                       {t("Security")}
                     </Tabs.Tab>
                   )}
+                  {spaceAbility.can(
+                    SpaceCaslAction.Manage,
+                    SpaceCaslSubject.Settings,
+                  ) && (
+                    <Tabs.Tab fw={500} value="reviews">
+                      {t("NIS-2")}
+                    </Tabs.Tab>
+                  )}
                 </Tabs.List>
 
                 <Tabs.Panel value="general">
@@ -109,6 +118,24 @@ export default function SpaceSettingsModal({
                         readOnly={spaceAbility.cannot(
                           SpaceCaslAction.Manage,
                           SpaceCaslSubject.Settings,
+                        )}
+                      />
+                    </div>
+                  </ScrollArea>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="reviews">
+                  <ScrollArea h={580} scrollbarSize={5} pr={8}>
+                    <div style={{ paddingBottom: "100px" }}>
+                      <ReviewSettings
+                        spaceId={space?.id}
+                        readOnly={spaceAbility.cannot(
+                          SpaceCaslAction.Manage,
+                          SpaceCaslSubject.Settings,
+                        )}
+                        canReview={spaceAbility.can(
+                          SpaceCaslAction.Manage,
+                          SpaceCaslSubject.Page,
                         )}
                       />
                     </div>

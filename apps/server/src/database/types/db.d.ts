@@ -589,6 +589,64 @@ export interface UserSessions {
   createdAt: Generated<Timestamp>;
 }
 
+export interface ChangeLogSettings {
+  createdAt: Generated<Timestamp>;
+  enabled: Generated<boolean>;
+  id: Generated<string>;
+  pageId: string | null;
+  spaceId: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface ChangeSets {
+  correctsId: string | null;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  pageId: string | null;
+  performedById: string | null;
+  reason: string;
+  requestedBy: string;
+  spaceId: string | null;
+  targetSystem: string | null;
+  ticketRef: string | null;
+  workspaceId: string;
+}
+
+export interface ChangeEntries {
+  changeSetId: string;
+  createdAt: Generated<Timestamp>;
+  detail: string | null;
+  id: Generated<string>;
+  position: number | null;
+  summary: string;
+}
+
+export interface ReviewSettings {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  intervalDays: number;
+  lastReviewedAt: Timestamp | null;
+  lastReviewedById: string | null;
+  nextReviewAt: Timestamp | null;
+  pageId: string | null;
+  spaceId: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface ReviewRecords {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  note: string | null;
+  pageId: string | null;
+  reviewedAt: Generated<Timestamp>;
+  reviewedById: string | null;
+  reviewSettingId: string;
+  spaceId: string | null;
+  workspaceId: string;
+}
+
 export interface DB {
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
@@ -599,6 +657,9 @@ export interface DB {
   authProviders: AuthProviders;
   backlinks: Backlinks;
   billing: Billing;
+  changeEntries: ChangeEntries;
+  changeLogSettings: ChangeLogSettings;
+  changeSets: ChangeSets;
   comments: Comments;
   favorites: Favorites;
   fileTasks: FileTasks;
@@ -615,6 +676,8 @@ export interface DB {
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
   pages: Pages;
+  reviewRecords: ReviewRecords;
+  reviewSettings: ReviewSettings;
   scimTokens: ScimTokens;
   shares: Shares;
   spaceMembers: SpaceMembers;

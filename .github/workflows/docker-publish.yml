@@ -1,0 +1,53 @@
+name: Publish Docker image
+
+# Builds the image from the Dockerfile and pushes it to Docker Hub on every
+# push to the default branch -> tags "latest" and the short commit SHA.
+# Versioned releases (tags like v1.2.3) are handled by release.yml.
+# Run it manually anytime via the "Run workflow" button (workflow_dispatch).
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # Target Docker Hub repository. Defaults to <your-dockerhub-username>/docmost.
+  # Change "docmost" if your Docker Hub repo has a different name.
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/docmost
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Add linux/arm64 here for multi-arch builds (slower, uses QEMU emulation).
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

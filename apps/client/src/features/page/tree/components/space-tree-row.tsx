@@ -8,7 +8,6 @@ import {
   IconChevronRight,
   IconFileDescription,
   IconPlus,
-  IconPointFilled,
 } from "@tabler/icons-react";
 
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
@@ -26,6 +25,8 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
+import { useReviewStatusesQuery } from "@/features/compliance/queries/review-query.ts";
+import { ReviewStatus } from "@/features/compliance/types/compliance.types.ts";
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import type { RenderRowProps } from "./doc-tree";
 import { NodeMenu } from "./space-tree-node-menu";
@@ -57,6 +58,9 @@ export function SpaceTreeRow({
 
   const canEdit = !readOnly && node.canEdit !== false;
   const pageUrl = buildPageUrl(spaceSlug, node.slugId, node.name);
+
+  const { data: reviewStatuses } = useReviewStatusesQuery(node.spaceId);
+  const reviewStatus = reviewStatuses?.[node.id];
 
   const prefetchPage = () => {
     timerRef.current = setTimeout(async () => {
@@ -155,6 +159,7 @@ export function SpaceTreeRow({
         isOpen={isOpen}
         hasChildren={hasChildren}
         onToggle={toggleOpen}
+        reviewStatus={reviewStatus}
       />
 
       <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
@@ -192,26 +197,36 @@ interface PageArrowProps {
   isOpen: boolean;
   hasChildren: boolean;
   onToggle: () => void;
+  reviewStatus?: ReviewStatus;
 }
 
-function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
+const reviewStatusColor: Record<ReviewStatus, string> = {
+  ok: "green",
+  due: "orange",
+  overdue: "red",
+};
+
+function PageArrow({
+  isOpen,
+  hasChildren,
+  onToggle,
+  reviewStatus,
+}: PageArrowProps) {
   const { t } = useTranslation();
+  const color = reviewStatus ? reviewStatusColor[reviewStatus] : "gray";
 
   if (!hasChildren) {
     return (
       <span
         aria-hidden
-        style={{
-          width: 20,
-          height: 20,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--mantine-color-gray-6)",
-          flexShrink: 0,
-        }}
+        title={reviewStatus ? t("NIS-2 review") : undefined}
+        className={classes.reviewDotWrap}
+        style={{ color: `var(--mantine-color-${color}-6)` }}
       >
-        <IconPointFilled size={8} />
+        {(reviewStatus === "due" || reviewStatus === "overdue") && (
+          <span className={classes.reviewPulseRing} />
+        )}
+        <span className={classes.reviewDotCore} />
       </span>
     );
   }
@@ -220,7 +235,7 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
     <ActionIcon
       size={20}
       variant="subtle"
-      c="gray"
+      c={color}
       aria-label={isOpen ? t("Collapse") : t("Expand")}
       aria-expanded={isOpen}
       tabIndex={-1}

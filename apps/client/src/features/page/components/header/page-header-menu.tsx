@@ -1,7 +1,16 @@
-import { ActionIcon, Group, Menu, Text, ThemeIcon, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Group,
+  Menu,
+  Modal,
+  Text,
+  ThemeIcon,
+  Tooltip,
+} from "@mantine/core";
 import {
   IconArrowRight,
   IconArrowsHorizontal,
+  IconClipboardText,
   IconDots,
   IconEye,
   IconEyeOff,
@@ -12,6 +21,7 @@ import {
   IconMarkdown,
   IconMessage,
   IconPrinter,
+  IconShieldCheck,
   IconStar,
   IconStarFilled,
   IconTrash,
@@ -58,6 +68,13 @@ import {
   useWatchPageMutation,
   useUnwatchPageMutation,
 } from "@/features/page/queries/watcher-query";
+import ReviewSettings from "@/features/compliance/components/review-settings.tsx";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -66,6 +83,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const commentsTriggerProps = useAsideTriggerProps("comments");
   const tocTriggerProps = useAsideTriggerProps("toc");
+  const changelogTriggerProps = useAsideTriggerProps("changelog");
   const { pageSlug } = useParams();
   const { data: page } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -127,6 +145,17 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </ActionIcon>
       </Tooltip>
 
+      <Tooltip label={t("Change log")} openDelay={250} withArrow>
+        <ActionIcon
+          variant="subtle"
+          color="dark"
+          aria-label={t("Change log")}
+          {...changelogTriggerProps}
+        >
+          <IconClipboardText size={20} stroke={2} />
+        </ActionIcon>
+      </Tooltip>
+
       <PageActionMenu readOnly={readOnly} />
     </>
   );
@@ -155,6 +184,12 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     verificationOpened,
     { open: openVerificationModal, close: closeVerificationModal },
   ] = useDisclosure(false);
+  const [
+    reviewOpened,
+    { open: openReviewModal, close: closeReviewModal },
+  ] = useDisclosure(false);
+  const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  const spaceAbility = useSpaceAbility(space?.membership?.permissions);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
   const favoriteIds = useFavoriteIds("page", page?.spaceId);
@@ -292,6 +327,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             />
           )}
 
+          <Menu.Item
+            leftSection={<IconShieldCheck size={16} />}
+            onClick={openReviewModal}
+          >
+            {t("NIS-2 settings")}
+          </Menu.Item>
+
           <Menu.Divider />
 
           {!readOnly && (
@@ -387,6 +429,25 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         opened={verificationOpened}
         onClose={closeVerificationModal}
       />
+
+      <Modal
+        opened={reviewOpened}
+        onClose={closeReviewModal}
+        title={t("NIS-2 settings")}
+        size={600}
+      >
+        <ReviewSettings
+          pageId={page.id}
+          readOnly={spaceAbility.cannot(
+            SpaceCaslAction.Manage,
+            SpaceCaslSubject.Settings,
+          )}
+          canReview={spaceAbility.can(
+            SpaceCaslAction.Manage,
+            SpaceCaslSubject.Page,
+          )}
+        />
+      </Modal>
     </>
   );
 }

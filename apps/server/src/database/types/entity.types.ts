@@ -37,6 +37,11 @@ import {
   Watchers,
   Audit as _Audit,
   Templates,
+  ChangeSets,
+  ChangeEntries,
+  ChangeLogSettings,
+  ReviewSettings,
+  ReviewRecords,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -238,3 +243,30 @@ export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
 export type Template = Selectable<Templates>;
 export type InsertableTemplate = Insertable<Templates>;
 export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;
+
+// ChangeSet
+export type ChangeSet = Selectable<ChangeSets>;
+export type InsertableChangeSet = Insertable<ChangeSets>;
+export type UpdatableChangeSet = Updateable<Omit<ChangeSets, 'id'>>;
+
+// ChangeEntry
+export type ChangeEntry = Selectable<ChangeEntries>;
+export type InsertableChangeEntry = Insertable<ChangeEntries>;
+export type UpdatableChangeEntry = Updateable<Omit<ChangeEntries, 'id'>>;
+
+// ChangeLogSetting
+export type ChangeLogSetting = Selectable<ChangeLogSettings>;
+export type InsertableChangeLogSetting = Insertable<ChangeLogSettings>;
+export type UpdatableChangeLogSetting = Updateable<
+  Omit<ChangeLogSettings, 'id'>
+>;
+
+// ReviewSetting
+export type ReviewSetting = Selectable<ReviewSettings>;
+export type InsertableReviewSetting = Insertable<ReviewSettings>;
+export type UpdatableReviewSetting = Updateable<Omit<ReviewSettings, 'id'>>;
+
+// ReviewRecord
+export type ReviewRecord = Selectable<ReviewRecords>;
+export type InsertableReviewRecord = Insertable<ReviewRecords>;
+export type UpdatableReviewRecord = Updateable<Omit<ReviewRecords, 'id'>>;

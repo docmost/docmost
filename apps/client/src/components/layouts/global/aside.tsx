@@ -10,6 +10,7 @@ import { useAtomValue } from "jotai";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import AsideChatPanel from "@/ee/ai-chat/components/aside-chat-panel";
 import { PageDetailsAside } from "@/features/page-details/components/page-details-aside.tsx";
+import ChangeLogPanel from "@/features/compliance/components/change-log-panel.tsx";
 import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
 
 export default function Aside() {
@@ -42,6 +43,10 @@ export default function Aside() {
     case "details":
       component = <PageDetailsAside />;
       title = "Details";
+      break;
+    case "changelog":
+      component = <ChangeLogPanel />;
+      title = "Change log";
       break;
     default:
       component = null;
