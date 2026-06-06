@@ -24,6 +24,8 @@ import { WatcherModule } from './watcher/watcher.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { SessionModule } from './session/session.module';
 import { ApiKeyModule } from './api-key/api-key.module';
+import { OrganizeModule } from './organize/organize.module';
+import { DedupModule } from './dedup/dedup.module';
 import { McpModule } from '../integrations/mcp/mcp.module';
 import { AiModule } from '../integrations/ai/ai.module';
 import { ClsMiddleware } from 'nestjs-cls';
@@ -48,6 +50,8 @@ import { ClsMiddleware } from 'nestjs-cls';
     WatcherModule,
     SessionModule,
     ApiKeyModule,
+    OrganizeModule,
+    DedupModule,
     McpModule,
     AiModule,
   ],

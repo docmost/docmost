@@ -30,6 +30,7 @@ export class PageRepo {
     'slugId',
     'title',
     'icon',
+    'summary',
     'coverPhoto',
     'position',
     'parentPageId',

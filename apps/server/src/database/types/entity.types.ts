@@ -33,6 +33,9 @@ import {
   UserMfa as _UserMFA,
   UserSessions,
   ApiKeys,
+  OrganizeTasks,
+  OrganizeEvents,
+  PageContentHashes,
   ScimTokens,
   Watchers,
   Audit as _Audit,
@@ -175,6 +178,19 @@ export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;
 export type ApiKey = Selectable<ApiKeys>;
 export type InsertableApiKey = Insertable<ApiKeys>;
 export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
+
+// Organize Tasks
+export type OrganizeTask = Selectable<OrganizeTasks>;
+export type InsertableOrganizeTask = Insertable<OrganizeTasks>;
+export type UpdatableOrganizeTask = Updateable<Omit<OrganizeTasks, 'id'>>;
+
+// Organize Events
+export type OrganizeEvent = Selectable<OrganizeEvents>;
+export type InsertableOrganizeEvent = Insertable<OrganizeEvents>;
+
+// Page Content Hashes
+export type PageContentHash = Selectable<PageContentHashes>;
+export type InsertablePageContentHash = Insertable<PageContentHashes>;
 
 // Scim Tokens
 export type ScimToken = Selectable<ScimTokens>;
