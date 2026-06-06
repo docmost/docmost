@@ -335,9 +335,12 @@ All under `/api`, JWT **or** API-key auth, CASL-scoped to the caller. MCP mirror
   sha256) + `DedupService.analyze` (cluster) + `DedupController` (`analyze`/`resolve`, soft-delete
   via `pageRepo.removePage`), 11 unit tests, build+lint green. (Hashes are computed/persisted on
   `analyze`; an optional on-write refresh hook can come later.)
-- **D5 — Agent Skill bundle** (A3 headline): `skills/` (OpenAPI filter + manifest + openclaw
-  descriptors + `RECIPE.organize.md` + `RECIPE.code-to-wiki.md`), MCP tool additions, per-agent
-  install docs. *(code→wiki (h) is a recipe, not server code)*
+- **D5 — Agent Skill bundle** (A3 headline): 🟡 **lean core done** — `skills/docmost.skills.json`
+  (18 skills mapped to verified endpoints), `skills/docmost/RECIPE.organize.md` +
+  `RECIPE.code-to-wiki.md`, `skills/README.md` (per-agent install: Hermes/opencode REST,
+  opencode/Claude MCP, openclaw). Remaining (optional): filtered OpenAPI doc + per-skill openclaw
+  descriptor files + MCP tool additions for organize/dedup/labels. *(code→wiki (h) is a recipe,
+  not server code)*
 - **D6 — manual upload UI** (b-1): drag-drop uploader + review queue.
 
 Depends on: **C0 API-key** ✅ (agent auth), **bulk-import** ✅ (a/h storage). **Independent of**
@@ -386,6 +389,10 @@ the server-side AI module (B) — the agent brings its own LLM.
   [dedup.controller.ts](../../apps/server/src/core/dedup/dedup.controller.ts),
   [dedup.repo.ts](../../apps/server/src/database/repos/dedup/dedup.repo.ts); soft-delete reuses
   `pageRepo.removePage`.
+- Skill bundle (D5): [skills/docmost.skills.json](../../skills/docmost.skills.json),
+  [skills/docmost/RECIPE.organize.md](../../skills/docmost/RECIPE.organize.md),
+  [skills/docmost/RECIPE.code-to-wiki.md](../../skills/docmost/RECIPE.code-to-wiki.md),
+  [skills/README.md](../../skills/README.md).
 - Code→wiki prior art (research): [OpenDeepWiki](https://github.com/AIDotNet/OpenDeepWiki),
   [deepwiki-open](https://github.com/AsyncFuncAI/deepwiki-open) +
   [wiki-generation guide](https://asyncfunc.mintlify.app/guides/wiki-generation),

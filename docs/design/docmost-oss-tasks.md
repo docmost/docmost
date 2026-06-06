@@ -60,7 +60,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ todo
 - 🟡 D2 organize task + status: ✅ **server done** — `organize_tasks`/`organize_events` + repo + `OrganizeService`/`OrganizeController` (`create/info/by-token/update/events/list`) + `statusUrl`; 8 unit tests + build+lint green. Left: client `/organize/:token` status page (with D3 UI) (A3 f)
 - ⬜ D3 realtime relay: events already ingested (D2) → Redis pub/sub + SSE `GET /api/organize-tasks/:id/stream` + UI live panel + status page (A3 g)
 - ✅ D4 dedup primitives: `page_content_hashes` + `dedup.util` (normalize+sha256) + `DedupService.analyze` (cluster, keep-oldest) + `POST /api/dedup/{analyze,resolve}` (resolve soft-deletes via `pageRepo.removePage`); 11 unit tests + build+lint green. Hashes computed on analyze; optional on-write refresh later (A3 e — agent decides, native history = versions)
-- ⬜ D5 Agent Skill bundle: `skills/` (OpenAPI filter + manifest + openclaw descriptors + `RECIPE.organize.md` + `RECIPE.code-to-wiki.md`), MCP tool additions, per-agent install docs (A3 headline + h as recipe)
+- 🟡 D5 Agent Skill bundle: ✅ **lean core done** — `skills/docmost.skills.json` (18 skills → verified endpoints) + `skills/docmost/RECIPE.{organize,code-to-wiki}.md` + `skills/README.md` (per-agent install). Left (optional): filtered OpenAPI doc + per-skill openclaw descriptors + MCP organize/dedup/label tools (A3 headline + h as recipe)
 - ⬜ D6 manual upload UI: drag-drop multi-file/folder uploader + review queue (A3 b-1)
 
 ## 9. Documentation
