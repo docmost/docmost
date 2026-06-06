@@ -1,38 +1,34 @@
 services:
   docmost:
-    image: docmost/docmost:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #image: docmost/docmost:latest
+    container_name: mydocmost
     depends_on:
       - db
-      - redis
-    environment:
-      APP_URL: 'http://localhost:3000'
-      APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
-      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost'
-      REDIS_URL: 'redis://redis:6379'
+      - valkey
+    env_file:
+      - .env
     ports:
-      - "3000:3000"
+      - 3010:${APPPORT}
     restart: unless-stopped
     volumes:
-      - docmost:/app/data/storage
+      - ./data/docmost:/app/data/storage
 
   db:
-    image: postgres:18
+    image: postgres:18-alpine3.22
     environment:
-      POSTGRES_DB: docmost
-      POSTGRES_USER: docmost
-      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     restart: unless-stopped
     volumes:
-      - db_data:/var/lib/postgresql
+      - ./data/db:/var/lib/postgresql
 
-  redis:
-    image: redis:8
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+  valkey:
+    image: valkey/valkey:9.1-alpine3.23
+    command: ["valkey-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     restart: unless-stopped
     volumes:
-      - redis_data:/data
-
-volumes:
-  docmost:
-  db_data:
-  redis_data:
+      - ./data/valkey:/data

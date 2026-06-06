@@ -1,6 +1,8 @@
 .env
 .env.dev
 .env.prod
+# docker bind-mount data (docmost storage, postgres, valkey)
+/data/
 data
 # compiled output
 /dist
