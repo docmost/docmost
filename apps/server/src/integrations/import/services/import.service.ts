@@ -19,10 +19,12 @@ import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
 import { markdownToHtml } from '@docmost/editor-ext';
 import {
+  FileImportSource,
   FileTaskStatus,
   FileTaskType,
   getFileTaskFolderPath,
 } from '../utils/file.utils';
+import { buildBulkImportZip } from '../utils/bulk-import.util';
 import { v7 as uuid7 } from 'uuid';
 import { StorageService } from '../../storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -337,6 +339,53 @@ export class ImportService {
         fileName: fileNameWithExt,
         filePath: filePath,
         fileSize: fileSize,
+        fileExt: 'zip',
+        creatorId: userId,
+        spaceId: spaceId,
+        workspaceId: workspaceId,
+      })
+      .returningAll()
+      .executeTakeFirst();
+
+    await this.fileTaskQueue.add(QueueJob.IMPORT_TASK, {
+      fileTaskId: fileTaskId,
+    });
+
+    return fileTask;
+  }
+
+  /**
+   * Bulk import: packs many uploaded files (markdown/html + referenced
+   * attachments, optionally in sub-folders) into a single zip and runs them
+   * through the existing async generic-import pipeline. Returns a file task the
+   * client can poll for progress.
+   */
+  async importBulkFiles(opts: {
+    files: Array<{ filename: string; buffer: Buffer }>;
+    userId: string;
+    spaceId: string;
+    workspaceId: string;
+  }) {
+    const { files, userId, spaceId, workspaceId } = opts;
+
+    const zipBuffer = await buildBulkImportZip(files);
+
+    const fileTaskId = uuid7();
+    const fileName = `bulk-import-${files.length}-files.zip`;
+    const filePath = `${getFileTaskFolderPath(FileTaskType.Import, workspaceId)}/${fileTaskId}/${fileName}`;
+
+    await this.storageService.upload(filePath, zipBuffer);
+
+    const fileTask = await this.db
+      .insertInto('fileTasks')
+      .values({
+        id: fileTaskId,
+        type: FileTaskType.Import,
+        source: FileImportSource.Generic,
+        status: FileTaskStatus.Processing,
+        fileName: fileName,
+        filePath: filePath,
+        fileSize: zipBuffer.length,
         fileExt: 'zip',
         creatorId: userId,
         spaceId: spaceId,

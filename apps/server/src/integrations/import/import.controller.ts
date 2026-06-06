@@ -197,4 +197,86 @@ export class ImportController {
       workspace.id,
     );
   }
+
+  @UseInterceptors(FileInterceptor)
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('pages/import-files')
+  async importFiles(
+    @Req() req: any,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const validFileExtensions = ['.md', '.html'];
+    const maxFileSize = bytes(this.environmentService.getFileImportSizeLimit());
+    const maxFiles = 200;
+
+    let spaceId: string | undefined;
+    const files: Array<{ filename: string; buffer: Buffer }> = [];
+
+    try {
+      const parts = req.parts({
+        limits: { fileSize: maxFileSize, files: maxFiles, fields: 5 },
+      });
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const buffer = await part.toBuffer();
+          files.push({ filename: part.filename, buffer });
+        } else if (part.fieldname === 'spaceId') {
+          spaceId = part.value;
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(err.message);
+      if (err?.statusCode === 413) {
+        throw new BadRequestException(
+          `File too large. Exceeds the ${this.environmentService.getFileImportSizeLimit()} import limit`,
+        );
+      }
+      throw new BadRequestException('Failed to upload files');
+    }
+
+    if (!spaceId) {
+      throw new BadRequestException('spaceId is required');
+    }
+
+    if (files.length === 0) {
+      throw new BadRequestException('No files uploaded');
+    }
+
+    const hasPageFile = files.some((f) =>
+      validFileExtensions.includes(path.extname(f.filename).toLowerCase()),
+    );
+    if (!hasPageFile) {
+      throw new BadRequestException(
+        'At least one .md or .html file is required',
+      );
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const fileTask = await this.importService.importBulkFiles({
+      files,
+      userId: user.id,
+      spaceId,
+      workspaceId: workspace.id,
+    });
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_IMPORTED,
+      resourceType: AuditResource.PAGE,
+      resourceId: spaceId,
+      spaceId,
+      metadata: {
+        source: 'generic',
+        fileCount: files.length,
+        fileTaskId: fileTask?.id,
+      },
+    });
+
+    return fileTask;
+  }
 }
