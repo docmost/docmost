@@ -25,6 +25,7 @@ import { FavoriteModule } from './favorite/favorite.module';
 import { SessionModule } from './session/session.module';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { McpModule } from '../integrations/mcp/mcp.module';
+import { AiModule } from '../integrations/ai/ai.module';
 import { ClsMiddleware } from 'nestjs-cls';
 
 @Module({
@@ -48,6 +49,7 @@ import { ClsMiddleware } from 'nestjs-cls';
     SessionModule,
     ApiKeyModule,
     McpModule,
+    AiModule,
   ],
 })
 export class CoreModule implements NestModule {
