@@ -10,6 +10,7 @@ import { SessionActivityService } from '../../session/session-activity.service';
 import { FastifyRequest } from 'fastify';
 import { extractBearerTokenFromHeader, isUserDisabled } from '../../../common/helpers';
 import { ModuleRef } from '@nestjs/core';
+import { ApiKeyService } from '../../api-key/api-key.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -75,28 +76,27 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   private async validateApiKey(req: any, payload: JwtApiKeyPayload) {
-    let ApiKeyModule: any;
-    let isApiKeyModuleReady = false;
-
+    // Prefer the enterprise API key service when bundled, otherwise fall back
+    // to the open-source implementation (core ApiKeyModule).
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      ApiKeyModule = require('./../../../ee/api-key/api-key.service');
-      isApiKeyModuleReady = true;
+      const EeApiKeyModule = require('./../../../ee/api-key/api-key.service');
+      if (EeApiKeyModule?.ApiKeyService) {
+        const eeService = this.moduleRef.get(EeApiKeyModule.ApiKeyService, {
+          strict: false,
+        });
+        return eeService.validateApiKey(payload);
+      }
     } catch (err) {
       this.logger.debug(
-        'API Key module requested but enterprise module not bundled in this build',
+        'Enterprise API Key module not bundled; using open-source API key service',
       );
-      isApiKeyModuleReady = false;
     }
 
-    if (isApiKeyModuleReady) {
-      const ApiKeyService = this.moduleRef.get(ApiKeyModule.ApiKeyService, {
-        strict: false,
-      });
-
-      return ApiKeyService.validateApiKey(payload);
+    const apiKeyService = this.moduleRef.get(ApiKeyService, { strict: false });
+    if (!apiKeyService) {
+      throw new UnauthorizedException('API Key module missing');
     }
-
-    throw new UnauthorizedException('Enterprise API Key module missing');
+    return apiKeyService.validateApiKey(payload);
   }
 }
