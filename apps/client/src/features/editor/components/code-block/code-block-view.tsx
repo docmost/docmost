@@ -38,7 +38,7 @@ export default function CodeBlockView(props: NodeViewProps) {
     };
   }, [editor, getPos(), node.nodeSize]);
 
-  function changeLanguage(language: string) {
+  function changeLanguage(language: string | null) {
     setLanguageValue(language);
     updateAttributes({
       language: language,
