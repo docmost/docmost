@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docmost REST API:商業版功能、設計動機與開源版設計</title>
+<style>
+  :root{
+    --ink:#16242b;--ink-soft:#3f5158;--paper:#f4f6f6;--card:#fff;--line:#dde4e4;
+    --accent:#117a8b;--accent2:#c2622a;--accent-soft:#dbeef0;--good:#2f7d52;--bad:#b5482e;
+    --warn:#b8860b;--code-bg:#13242a;--code-fg:#cde9ec;--muted:#7d8a8c;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-size:20px;line-height:1.75;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",-apple-system,BlinkMacSystemFont,sans-serif;
+    color:var(--ink);background:var(--paper);word-break:break-word}
+  .wrap{max-width:840px;margin:0 auto;padding:28px 20px 80px}
+
+  header.hero{border-bottom:3px solid var(--accent);padding-bottom:22px}
+  .kicker{font-size:.78em;letter-spacing:.16em;color:var(--accent2);font-weight:700;margin:0 0 10px}
+  h1{font-size:1.78em;line-height:1.3;margin:0 0 14px}
+  .lede{font-size:1.0em;color:var(--ink-soft);margin:0}
+  .meta-line{font-size:.78em;color:var(--muted);margin-top:16px;border-top:1px dashed var(--line);padding-top:12px}
+
+  h2{font-size:1.34em;margin:46px 0 16px;padding-left:14px;border-left:6px solid var(--accent);line-height:1.35}
+  h3{font-size:1.08em;margin:26px 0 10px;color:var(--accent)}
+  p{margin:0 0 16px}
+  strong{color:var(--ink)}
+  em.hl{color:var(--accent2);font-style:normal;font-weight:700}
+
+  .core{background:var(--accent-soft);border:1px solid #bcdde0;border-radius:14px;padding:20px 22px;margin:24px 0}
+  .core h3{margin-top:0}
+
+  pre{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:16px;margin:18px 0;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;font-family:"SF Mono","Cascadia Code",Menlo,Consolas,monospace;font-size:.7em;line-height:1.5}
+  code.inline{background:#e6ecec;border-radius:5px;padding:1px 6px;font-family:Menlo,Consolas,monospace;font-size:.82em;color:#6f3a14}
+
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:18px -20px;padding:0 20px}
+  table{border-collapse:collapse;width:100%;min-width:620px;font-size:.8em;background:var(--card)}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  thead th{background:var(--ink);color:#fff}
+  tbody th{background:#e6eded;white-space:nowrap}
+  .scroll-hint{font-size:.74em;color:var(--muted);text-align:center;margin:-6px 0 18px}
+  .m{font-family:Menlo,Consolas,monospace;font-size:.92em;color:var(--accent);font-weight:700}
+
+  .grp{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 18px;margin:12px 0}
+  .grp .t{font-weight:800;color:var(--accent);font-size:.96em;margin-bottom:4px}
+  .grp .d{font-size:.92em;color:var(--ink-soft)}
+
+  ul{padding-left:1.2em}li{margin-bottom:9px}
+
+  .why{border-left:4px solid var(--accent2);background:var(--card);border-radius:0 12px 12px 0;
+    padding:14px 18px;margin:12px 0;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .why b{color:var(--ink)}
+
+  .callout{background:#fbf3e0;border:1px solid #ecd9a8;border-left:5px solid var(--warn);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:.95em}
+  .danger{background:#fdece7;border:1px solid #f1c4b6;border-left:5px solid var(--bad);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:.95em}
+
+  .pill{display:inline-block;font-size:.7em;font-weight:700;border-radius:999px;padding:2px 9px;color:#fff;white-space:nowrap}
+  .p-mvp{background:var(--good)}.p-full{background:var(--accent)}.p-add{background:var(--accent2)}
+
+  footer{margin-top:54px;padding-top:20px;border-top:1px solid var(--line);font-size:.78em;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker">Docmost · REST API 分析與設計</p>
+    <h1>Docmost REST API:商業版有什麼、為什麼存在、開源版怎麼設計</h1>
+    <p class="lede">拆解官方企業版 API 的實際功能與授權模型,說明它為何被設計、又為何鎖在 Enterprise;接著給出一套可自建的開源版 REST API 設計 —— 具體端點、技術難點與應用範圍。</p>
+    <p class="meta-line">2026 年 6 月 · 依據 Docmost 官方 API 文件(Scalar / OAS 3.1.0, v1.0.0)、原始碼結構與社群實作整理</p>
+  </header>
+
+  <h2>一、商業版 Docmost REST API 有什麼功能</h2>
+  <p>官方 API 是 <em class="hl">Enterprise 專屬功能</em>(需有效企業授權)。它是一套以 OpenAPI 3.1 描述的 RESTful 介面,有幾個一致慣例:</p>
+  <ul>
+    <li><strong>認證</strong>:傳 <code class="inline">Authorization: Bearer &lt;token&gt;</code>。token 是<em class="hl">個人 API key</em>,綁定建立者、<strong>繼承該使用者的權限</strong>;可設到期(30/60/90/365 天、自訂、永不),可命名、改名、撤銷;管理員可在 workspace 層級檢視與管理所有人的 key。</li>
+    <li><strong>呼叫慣例</strong>:除少數標註外,端點一律用 <code class="inline">POST</code>(偏 RPC-over-POST 風格);列表用 <em class="hl">cursor 分頁</em>(limit 1–100),搜尋回 <code class="inline">data.items[]</code>。</li>
+  </ul>
+
+  <h3>端點分組(官方 v1.0.0)</h3>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>類別</th><th>分組</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><th>內容</th><td>Spaces · Pages · Comments · Comment Resolution · Attachments · Shares</td><td>空間、頁面、留言與解決、附件、公開分享的 CRUD 與管理</td></tr>
+        <tr><th>檢索</th><td>Search · Attachment Search</td><td>全文搜尋,含搜尋 PDF/DOCX 附件內文</td></tr>
+        <tr><th>組織/身分</th><td>Groups · API Keys · MFA · SSO</td><td>群組與成員、API 金鑰、多因素、單一登入</td></tr>
+        <tr><th>資料搬移</th><td>Import · Export · File Tasks</td><td>匯入(Confluence/DOCX/PDF/Markdown)、匯出、非同步檔案任務</td></tr>
+        <tr><th>維運/平台</th><td>Health · Version · License · Models · AI · Cloud</td><td>健康檢查、版本、授權、AI 模型與功能、雲端</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="scroll-hint">← 表格可左右滑動 →</p>
+  <p>白話講:它幾乎把 Docmost UI 能做的事都開成端點 —— <strong>建/改/刪頁面與空間、上傳附件、搜尋、管理群組與權限、匯入匯出、佈建使用者與 SSO</strong>。注意頁面「內容」的寫入在底層仍與即時協作(Yjs)綁定,這點在開源版設計時是最大關卡。</p>
+
+  <h2>二、為什麼要設計這個 REST API</h2>
+  <p>分兩個層次:<em class="hl">為什麼需要一個程式化 API</em>,以及<em class="hl">Docmost 為什麼把它鎖在 Enterprise</em>。</p>
+
+  <h3>A. 為什麼需要程式化 API(它解決什麼)</h3>
+  <div class="why"><b>內容自動化:</b>讓外部系統把文件「寫進」wiki —— CI/CD 自動產生 API 文件、把監控告警的 runbook、事故 postmortem 自動歸檔成頁面。</div>
+  <div class="why"><b>批次遷移:</b>從 Confluence / Notion 大量搬入,保留階層與附件,人工點不完。</div>
+  <div class="why"><b>AI / Agent 整合:</b>MCP 服務背後就是這套 API。讓 agent 讀知識、寫回整理結果 —— 正是前面 Agentic 知識層要的「投影前台」。</div>
+  <div class="why"><b>佈建與治理:</b>自動建立空間、佈建使用者群組、套權限(類 SCIM),配合 SSO 做企業身分整合。</div>
+  <div class="why"><b>備份與合規:</b>定期匯出做備份、稽核、離線保存(對 ITAR/GDPR 類合規場景重要)。</div>
+
+  <h3>B. 為什麼鎖在 Enterprise</h3>
+  <p>這是<strong>商業模式</strong>的選擇,不是技術限制。可自架、不限人數是社群版的賣點;而「程式化整合 + 治理」恰好是企業最需要、也最願意付費的能力:</p>
+  <ul>
+    <li><strong>API 本身就是整合的價值點</strong> —— 企業要把 wiki 接進既有系統,這條整合線就是營利線。</li>
+    <li><strong>API key 的治理</strong>(scoping、到期、稽核「last used」、管理員集中管理、撤銷)正是企業合規要的,把它做成付費功能順理成章。</li>
+    <li>連帶的 <strong>SSO、MFA、權限審批</strong> 也都歸在企業層,API 與它們是同一套治理故事。</li>
+  </ul>
+  <div class="callout">換句話說:免費版讓你「自己用」,企業版讓你「接進組織的系統與流程」。API 是後者的核心。所以若你只是要程式化操作自架的社群版,自建一套 API 在<em class="hl">技術上完全可行</em>(核心是 AGPL 開源)。</div>
+
+  <h2>三、如何設計開源版的 Docmost REST API</h2>
+
+  <div class="core">
+    <h3>四個設計原則</h3>
+    <ul>
+      <li><strong>不碰 ee 程式碼</strong>:核心是 AGPL,可自由建構;但 <code class="inline">packages/ee</code> 通常另有商業授權,<em class="hl">自己重寫對等模組,不要移植</em>。AGPL 的網路 copyleft 也要注意。</li>
+      <li><strong>讀寫分離</strong>:讀走 PostgreSQL 或內部端點;<em class="hl">寫「頁面內容」必須經 Hocuspocus / Yjs</em>(下詳),不能直接改 DB。</li>
+      <li><strong>REST-native</strong>:設計成資源導向(而非官方的 RPC-over-POST),自由度高、好用、好快取。</li>
+      <li><strong>權限繼承</strong>:沿用 Docmost 既有的 space role 與 CASL 權限檢查,用服務帳號身分執行,避免另造一套權限系統。</li>
+    </ul>
+  </div>
+
+  <h3>建議端點規格(MVP → 完整)</h3>
+  <p><span class="pill p-mvp">MVP</span> 先打通內容流;<span class="pill p-full">完整</span> 補組織與搬移;<span class="pill p-add">加值</span> 是官方沒有、但知識層很需要的。</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Method / Path</th><th>功能</th><th>階段 / 備註</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m">POST /v1/auth/keys</span><br><span class="m">GET·DELETE /v1/auth/keys/:id</span></td><td>自管 API key:建立、列出、撤銷</td><td><span class="pill p-mvp">MVP</span> 雜湊存 DB、scope、到期</td></tr>
+        <tr><td><span class="m">GET /v1/spaces/:sid/pages</span></td><td>列出空間頁面(cursor 分頁)</td><td><span class="pill p-mvp">MVP</span> 讀 DB</td></tr>
+        <tr><td><span class="m">POST /v1/spaces/:sid/pages</span></td><td>建立頁面(markdown→ProseMirror)</td><td><span class="pill p-mvp">MVP</span> 走 import / transformer</td></tr>
+        <tr><td><span class="m">GET /v1/pages/:id</span></td><td>取頁面內容 + metadata</td><td><span class="pill p-mvp">MVP</span> 讀 DB</td></tr>
+        <tr><td><span class="m">PUT /v1/pages/:id/content</span></td><td>覆寫頁面內容</td><td><span class="pill p-mvp">MVP</span> ⚠ Yjs 寫入路徑</td></tr>
+        <tr><td><span class="m">PATCH /v1/pages/:id</span></td><td>改標題 / icon / 階層</td><td><span class="pill p-mvp">MVP</span></td></tr>
+        <tr><td><span class="m">DELETE /v1/pages/:id</span> · <span class="m">POST /v1/pages/:id/move</span></td><td>刪除、移動(reparent)</td><td><span class="pill p-mvp">MVP</span></td></tr>
+        <tr><td><span class="m">GET /v1/search?q=&amp;spaceId=</span></td><td>全文搜尋,回 items[]</td><td><span class="pill p-mvp">MVP</span></td></tr>
+        <tr><td><span class="m">POST /v1/pages/:id/attachments</span></td><td>上傳附件(multipart)</td><td><span class="pill p-mvp">MVP</span></td></tr>
+        <tr><td><span class="m">GET·POST /v1/spaces</span> · <span class="m">/:id/members</span></td><td>空間 CRUD、成員授權</td><td><span class="pill p-full">完整</span></td></tr>
+        <tr><td><span class="m">GET·POST /v1/groups</span> · <span class="m">/:id/members</span></td><td>群組與成員管理</td><td><span class="pill p-full">完整</span></td></tr>
+        <tr><td><span class="m">GET /v1/pages/:id/history</span></td><td>頁面版本歷史 / 還原</td><td><span class="pill p-full">完整</span></td></tr>
+        <tr><td><span class="m">POST /v1/spaces/:id/import</span><br><span class="m">GET /v1/spaces/:id/export</span></td><td>匯入 / 匯出(markdown·html·zip)</td><td><span class="pill p-full">完整</span> 非同步用 File Tasks</td></tr>
+        <tr><td><span class="m">POST /v1/webhooks</span></td><td>訂閱 page.created / updated / deleted</td><td><span class="pill p-add">加值</span> 官方沒有</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>關鍵技術設計</h3>
+  <div class="danger">
+    <strong>最硬的一塊:頁面內容寫入。</strong>內容存成 Yjs CRDT 二進位,直接寫 Postgres 會破壞協作合併。正確做法是<em class="hl">當一個 Yjs 客戶端</em>,連到 :3001 的 Hocuspocus,用 <code class="inline">@hocuspocus/transformer</code> 的 <code class="inline">TiptapTransformer</code> 把 ProseMirror JSON 轉成 Y.Doc 再套用,由 Hocuspocus 負責持久化。transformer 要載入 <code class="inline">packages/editor-ext</code> 同一組擴充,結構才會被認得。</div>
+  <pre>// 寫入路徑骨架（sidecar 內）
+const ydoc = TiptapTransformer.toYdoc(prosemirrorJSON, "default", extensions);
+const provider = new HocuspocusProvider({
+  url: "ws://localhost:3001",
+  name: `page.${pageId}`,      // Docmost 文件房間命名
+  document: ydoc,
+  token: serviceAccountJWT,
+});
+// Hocuspocus 收到後 merge → 寫回 Postgres，內容與協作狀態皆正確</pre>
+  <ul>
+    <li><strong>讀路徑</strong>:直接查 <code class="inline">pages</code> 表(ProseMirror JSON、階層、空間),最快;附件走既有 storage 抽象(本機 / S3)。</li>
+    <li><strong>API key</strong>:雜湊後存表,記 scope 與到期;比對時 hash 比對,記錄 last_used 供稽核。</li>
+    <li><strong>權限</strong>:每個請求解析出對應使用者身分 → 套用 space CASL 檢查,不另造權限模型。</li>
+    <li><strong>慣例</strong>:cursor 分頁(limit 1–100)、一致錯誤模型(code/message/details)、基本 rate limit。</li>
+  </ul>
+
+  <h3>架構選型:sidecar vs fork</h3>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>做法</th><th>怎麼做</th><th>取捨</th></tr></thead>
+      <tbody>
+        <tr><th>Sidecar(推薦)</th><td>獨立 FastAPI/Express 服務:讀 DB、寫經 Hocuspocus</td><td>不動 Docmost 本體、升級不衝突;需自行對齊 schema</td></tr>
+        <tr><th>NestJS 模組</th><td>在 fork 內加一個對等 API module 掛進主程式</td><td>整合最乾淨、共用權限;受 AGPL copyleft、升級需 rebase</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>四、應用範圍</h2>
+  <ul>
+    <li><strong>Agentic 知識層的前台投影</strong>:前面設計的 <code class="inline">project-to-docmost</code> skill 就用這套 API,把編譯好的 artifact 與查詢結果寫成 Docmost 頁,並用回溯連結指向來源版本。</li>
+    <li><strong>文件 CI/CD</strong>:程式碼倉庫變更 → 自動產生 / 更新 API 文件、架構決策紀錄(ADR)、runbook。</li>
+    <li><strong>外部系統內容同步</strong>:工單、監控、ChatOps 把事件與 postmortem 自動歸檔。</li>
+    <li><strong>遷移與備份</strong>:大量匯入舊系統內容、定期匯出做合規備份。</li>
+    <li><strong>佈建</strong>:依組織結構自動建空間、群組、套權限。</li>
+    <li><strong>加值:webhooks</strong> —— 官方沒有,但知識層需要監聽頁面變動來觸發 re-cognify / 重編,值得在 OSS 版優先補上。</li>
+  </ul>
+
+  <div class="callout">
+    <strong>務實建議:</strong>先做 <span class="pill p-mvp">MVP</span> 七條(key 自管 + pages CRUD + search + 附件 + import),把「能程式化讀寫頁面」打通;唯一的硬骨頭是 Yjs 內容寫入,用官方 transformer 正確解掉。之後再補組織/搬移,並把 <span class="pill p-add">webhooks</span> 當成你比商業版多出來的價值。
+  </div>
+
+  <footer>
+    <p><strong>主要資料來源:</strong>Docmost 官方文件(API 為 Enterprise 功能、API key 管理、端點分組 Scalar/OAS 3.1.0 v1.0.0、cursor 分頁變更 v0.25.0)、Docmost 原始碼結構(NestJS + Fastify、Hocuspocus :3001、Yjs CRDT、packages/editor-ext、attachment controller)、社群 docmost-mcp 專案揭示之功能面;延續本系列 Agentic Wiki 設計。</p>
+    <p>本文為設計分析;端點命名與階段劃分為建議方案,實作請依 Docmost 版本與你的權限/合規需求調整。注意 AGPL 網路 copyleft 與 ee 授權邊界。</p>
+  </footer>
+
+</div>
+</body>
+</html>
