@@ -19,7 +19,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ todo
 - ✅ read tools: get_current_user, list_spaces, search_pages, get_page, list_recent_pages
 - ✅ write tools: create_page, update_page; unit tests (6); build+lint
 - ⬜ T2.1 more tools: get_space, create_space, update_space, list/add/update comments, search_attachments, list_members, move_page, duplicate_page
-- ⬜ T2.2 client config docs (Claude Code / Desktop / Cursor)
+- ✅ T2.2 client config docs (Claude Code / Desktop / Cursor) — covered in [docs/USER-MANUAL.md](../USER-MANUAL.md) §3.2 and [skills/README.md](../../skills/README.md)
 
 ## 3. Bulk file import
 - ✅ `buildBulkImportZip` util + `ImportService.importBulkFiles` + `POST /pages/import-files`

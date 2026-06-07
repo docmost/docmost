@@ -345,11 +345,11 @@ All under `/api`, JWT **or** API-key auth, CASL-scoped to the caller. MCP mirror
   `analyze`; an optional on-write refresh hook can come later.)
 - **D5 — Agent Skill bundle** (A3 headline): ✅ **done** — `skills/docmost.skills.json` (18 skills),
   `RECIPE.organize.md` + `RECIPE.code-to-wiki.md`, `skills/docmost/SKILL.md` (openclaw descriptor),
-  `skills/README.md` (per-agent install). **MCP tool additions ✅** — `list_labels`,
+  `skills/README.md` (per-agent install), and `skills/docmost.openapi.json` (OpenAPI 3.1, 20
+  filtered operations for native function-schema import). **MCP tool additions ✅** — `list_labels`,
   `add_page_labels`, `set_page_summary`, `dedup_analyze`, `organize_create/report/close` added to
-  the MCP server (9 MCP unit tests). Remaining (optional): a filtered OpenAPI doc (best generated
-  from the running Nest/Swagger app) and one-file-per-skill openclaw split. *(code→wiki (h) is a
-  recipe, not server code)*
+  the MCP server (9 MCP unit tests). Remaining (optional): one-file-per-skill openclaw split.
+  *(code→wiki (h) is a recipe, not server code)*
 - **D6 — manual upload UI** (b-1): ✅ `BulkUpload` + `BulkUploadModal` (drag-drop multi-file/folder
   → `import-files` → opens organize task → embeds `OrganizePanel` + shareable link), **mounted** as
   a "Bulk upload & organize" item in the space sidebar menu (next to Import, gated by
