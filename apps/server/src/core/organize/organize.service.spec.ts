@@ -5,6 +5,8 @@ describe('OrganizeService', () => {
   let service: OrganizeService;
   let organizeRepo: any;
   let environmentService: any;
+  let publisher: any;
+  let redisService: any;
 
   const workspaceId = 'ws-1';
   const user = { id: 'user-1', workspaceId } as any;
@@ -22,7 +24,9 @@ describe('OrganizeService', () => {
     environmentService = {
       getAppUrl: jest.fn().mockReturnValue('https://wiki.example.com'),
     };
-    service = new OrganizeService(organizeRepo, environmentService);
+    publisher = { publish: jest.fn().mockResolvedValue(1) };
+    redisService = { getOrThrow: jest.fn().mockReturnValue(publisher) };
+    service = new OrganizeService(organizeRepo, environmentService, redisService);
   });
 
   describe('create', () => {
@@ -117,6 +121,11 @@ describe('OrganizeService', () => {
         'task-1',
         workspaceId,
       );
+      // relays the event to the SSE channel
+      expect(publisher.publish).toHaveBeenCalledWith(
+        'organize:task-1',
+        expect.stringContaining('"type":"event"'),
+      );
     });
 
     it('increments completed when the event counts as progress', async () => {
@@ -171,6 +180,53 @@ describe('OrganizeService', () => {
       await expect(
         service.addEvent(workspaceId, { organizeTaskId: 'nope', step: 'x' }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('update', () => {
+    it('publishes a done event when the task reaches a terminal status', async () => {
+      organizeRepo.findById.mockResolvedValue({ id: 'task-1', workspaceId });
+      organizeRepo.update.mockResolvedValue({
+        id: 'task-1',
+        workspaceId,
+        status: 'succeeded',
+        completed: 5,
+        total: 5,
+        shareToken: 'tok',
+      });
+
+      await service.update(workspaceId, {
+        organizeTaskId: 'task-1',
+        status: 'succeeded',
+      });
+
+      expect(publisher.publish).toHaveBeenCalledWith(
+        'organize:task-1',
+        expect.stringContaining('"type":"done"'),
+      );
+    });
+
+    it('does not publish for a non-terminal update', async () => {
+      organizeRepo.findById.mockResolvedValue({ id: 'task-1', workspaceId });
+      organizeRepo.update.mockResolvedValue({
+        id: 'task-1',
+        workspaceId,
+        status: 'running',
+        shareToken: 'tok',
+      });
+
+      await service.update(workspaceId, {
+        organizeTaskId: 'task-1',
+        total: 9,
+      });
+
+      expect(publisher.publish).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('channel', () => {
+    it('namespaces by task id', () => {
+      expect(OrganizeService.channel('abc')).toBe('organize:abc');
     });
   });
 });
