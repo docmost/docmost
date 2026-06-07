@@ -10,6 +10,14 @@ jest.mock('../../core/space/services/space-member.service', () => ({
   SpaceMemberService: class {},
 }));
 jest.mock('@docmost/db/repos/page/page.repo', () => ({ PageRepo: class {} }));
+jest.mock('../../core/label/label.service', () => ({ LabelService: class {} }));
+jest.mock('../../core/organize/organize.service', () => ({
+  OrganizeService: class {},
+}));
+jest.mock('../../core/dedup/dedup.service', () => ({ DedupService: class {} }));
+jest.mock('@docmost/db/repos/label/label.repo', () => ({
+  LabelType: { PAGE: 'page' },
+}));
 jest.mock('../../collaboration/collaboration.util', () => ({
   jsonToMarkdown: (json: unknown) => `# ${JSON.stringify(json)}`,
 }));
@@ -32,6 +40,9 @@ describe('McpService', () => {
   let pageAccessService: any;
   let spaceMemberService: any;
   let spaceAbility: any;
+  let labelService: any;
+  let organizeService: any;
+  let dedupService: any;
   let service: McpService;
 
   async function connectClient() {
@@ -70,7 +81,23 @@ describe('McpService', () => {
       .mockResolvedValue({ id: 'new1', slugId: 'sl', title: 'New', spaceId: 's1' });
     pageService.update = jest
       .fn()
-      .mockResolvedValue({ id: 'p1', title: 'Updated' });
+      .mockResolvedValue({ id: 'p1', title: 'Updated', summary: 'sum' });
+    labelService = {
+      getLabels: jest.fn().mockResolvedValue({ items: [], meta: {} }),
+      addLabelsToPage: jest.fn().mockResolvedValue([{ id: 'l1', name: 'tag' }]),
+    };
+    organizeService = {
+      create: jest
+        .fn()
+        .mockResolvedValue({ id: 't1', shareToken: 'tok', statusUrl: 'url' }),
+      addEvent: jest.fn().mockResolvedValue({ event: { id: 'e1' }, task: {} }),
+      update: jest.fn().mockResolvedValue({ id: 't1', status: 'succeeded' }),
+    };
+    dedupService = {
+      analyze: jest
+        .fn()
+        .mockResolvedValue({ scanned: 0, duplicateClusters: 0, clusters: [] }),
+    };
     service = new McpService(
       searchService,
       pageService,
@@ -78,6 +105,9 @@ describe('McpService', () => {
       pageAccessService,
       spaceMemberService,
       spaceAbility,
+      labelService,
+      organizeService,
+      dedupService,
     );
   });
 
@@ -94,7 +124,52 @@ describe('McpService', () => {
         'list_recent_pages',
         'create_page',
         'update_page',
+        'list_labels',
+        'add_page_labels',
+        'set_page_summary',
+        'dedup_analyze',
+        'organize_create',
+        'organize_report',
+        'organize_close',
       ]),
+    );
+  });
+
+  it('dedup_analyze delegates to DedupService scoped to the workspace', async () => {
+    const client = await connectClient();
+    await client.callTool({
+      name: 'dedup_analyze',
+      arguments: { spaceId: 's1' },
+    });
+    expect(dedupService.analyze).toHaveBeenCalledWith('w1', 's1');
+  });
+
+  it('organize_create opens a task as the authenticated user', async () => {
+    const client = await connectClient();
+    const res = await client.callTool({
+      name: 'organize_create',
+      arguments: { source: 'upload', title: 'batch' },
+    });
+    expect(organizeService.create).toHaveBeenCalledWith(
+      user,
+      'w1',
+      expect.objectContaining({ source: 'upload', title: 'batch' }),
+    );
+    expect(res.content[0].text).toContain('statusUrl');
+  });
+
+  it('add_page_labels checks edit access then tags the page', async () => {
+    pageRepo.findById.mockResolvedValue({ id: 'p1', deletedAt: null });
+    const client = await connectClient();
+    await client.callTool({
+      name: 'add_page_labels',
+      arguments: { pageId: 'p1', names: ['guide'] },
+    });
+    expect(pageAccessService.validateCanEdit).toHaveBeenCalled();
+    expect(labelService.addLabelsToPage).toHaveBeenCalledWith(
+      'p1',
+      ['guide'],
+      'w1',
     );
   });
 
