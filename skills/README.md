@@ -8,6 +8,8 @@ duplicates, understand code) and writes its results back into the wiki.
 ## Contents
 - [`docmost.skills.json`](./docmost.skills.json) — the skill manifest: each skill name → HTTP
   method, path (under `<DOCMOST_BASE_URL>/api`), params, and return shape.
+- [`docmost.openapi.json`](./docmost.openapi.json) — OpenAPI 3.1 for native function-calling
+  import (Hermes / opencode).
 - [`docmost/RECIPE.organize.md`](./docmost/RECIPE.organize.md) — playbook: ingest files → dedup,
   summarize, tag, classify, with live progress (A3 a/b/c/e/f/g).
 - [`docmost/RECIPE.code-to-wiki.md`](./docmost/RECIPE.code-to-wiki.md) — playbook: turn a git repo
@@ -28,8 +30,8 @@ DOCMOST_API_KEY=dm_...
 ```
 Each tool call = `POST {DOCMOST_BASE_URL}/api{path}` with the JSON body from `params` and the
 bearer header. Read the `data` field of the `{ data, success, status }` envelope.
-> A filtered OpenAPI document for native function-schema import is planned (see the design doc
-> §3.2); until then, `docmost.skills.json` is the source of truth.
+> For native function-schema import, load [`docmost.openapi.json`](./docmost.openapi.json)
+> (OpenAPI 3.1, 20 operations). `docmost.skills.json` remains the human-readable index.
 
 ### opencode / Claude-family (MCP — no files needed)
 Docmost exposes the same operations over MCP at `<DOCMOST_BASE_URL>/mcp` using the **same API
