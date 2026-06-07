@@ -3,7 +3,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
-import { Placeholder, CharacterCount } from "@tiptap/extensions";
+import { Placeholder, CharacterCount, UndoRedo } from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -42,9 +42,13 @@ import {
   Excalidraw,
   Embed,
   TiptapPdf,
+  PageBreak,
   SearchAndReplace,
   Mention,
   TableDndExtension,
+  TableHandleCommandsExtension,
+  TableHeaderPin,
+  TableReadonlySort,
   Subpages,
   Heading,
   Highlight,
@@ -56,6 +60,7 @@ import {
   Status,
   TransclusionSource,
   TransclusionReference,
+  TableView,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -80,7 +85,7 @@ import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
-import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
+import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view-lazy.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
@@ -107,6 +112,7 @@ import EmojiCommand from "./emoji-command";
 import { countWords } from "alfaaz";
 import AutoJoiner from "@/features/editor/extensions/autojoiner.ts";
 import GlobalDragHandle from "@/features/editor/extensions/drag-handle.ts";
+import { CleanStyles } from "@/features/editor/extensions/clean-styles.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -261,11 +267,16 @@ export const mainExtensions = [
     resizable: true,
     lastColumnResizable: true,
     allowTableNodeSelection: true,
+    cellMinWidth: 49,
+    View: TableView,
   }),
   TableRow,
   TableCell,
   TableHeader,
   TableDndExtension,
+  TableHandleCommandsExtension,
+  TableHeaderPin,
+  TableReadonlySort,
   MathInline.configure({
     view: MathInlineView,
   }),
@@ -360,6 +371,7 @@ export const mainExtensions = [
   TiptapPdf.configure({
     view: PdfView,
   }),
+  PageBreak,
   Subpages.configure({
     view: SubpagesView,
   }),
@@ -375,6 +387,7 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
+  CleanStyles,
   CharacterCount.configure({
     wordCounter: (text) => countWords(text),
   }),
@@ -408,7 +421,9 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Video",
   "File attachment",
   "Draw.io (diagrams.net)",
-  "Excalidraw diagram",
+  "Excalidraw (Whiteboard)",
+  "Audio",
+  "Synced block"
 ]);
 
 const TemplateSlashCommand = Command.configure({
@@ -425,6 +440,7 @@ const TemplateSlashCommand = Command.configure({
 export const templateExtensions = [
   ...mainExtensions.filter((ext: any) => ext !== SlashCommand),
   TemplateSlashCommand,
+  UndoRedo,
 ] as any;
 
 export const collabExtensions: CollabExtensions = (provider, user) => [

@@ -1,5 +1,6 @@
 import api from "@/lib/api-client";
 import { ITemplate } from "@/ee/template/types/template.types";
+import { IPage } from "@/features/page/types/page.types";
 import { IPagination } from "@/lib/types.ts";
 
 export async function getTemplates(params?: {
@@ -40,7 +41,7 @@ export async function useTemplate(data: {
   templateId: string;
   spaceId: string;
   parentPageId?: string;
-}): Promise<any> {
-  const req = await api.post("/templates/use", data);
+}): Promise<IPage> {
+  const req = await api.post<IPage>("/templates/use", data);
   return req.data;
 }

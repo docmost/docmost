@@ -34,7 +34,7 @@ function AllowMemberTemplatesToggle() {
   const [checked, setChecked] = useState(
     workspace?.settings?.templates?.allowMemberTemplates === true,
   );
-  const hasSecuritySettings = useHasFeature(Feature.SECURITY_SETTINGS);
+  const hasTemplates = useHasFeature(Feature.TEMPLATES);
   const upgradeLabel = useUpgradeLabel();
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,15 +54,11 @@ function AllowMemberTemplatesToggle() {
   };
 
   return (
-    <Tooltip
-      label={upgradeLabel}
-      disabled={hasSecuritySettings}
-      refProp="rootRef"
-    >
+    <Tooltip label={upgradeLabel} disabled={hasTemplates} refProp="rootRef">
       <Switch
         checked={checked}
         onChange={handleChange}
-        disabled={!hasSecuritySettings}
+        disabled={!hasTemplates}
         aria-label={t("Toggle allow members to create templates")}
       />
     </Tooltip>

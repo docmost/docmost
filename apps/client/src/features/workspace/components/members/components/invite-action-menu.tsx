@@ -73,7 +73,11 @@ export default function InviteActionMenu({ invitationId }: Props) {
         arrowPosition="center"
       >
         <Menu.Target>
-          <ActionIcon variant="subtle" c="gray">
+          <ActionIcon
+            variant="subtle"
+            c="gray"
+            aria-label={t("Invite actions")}
+          >
             <IconDots size={20} stroke={2} />
           </ActionIcon>
         </Menu.Target>

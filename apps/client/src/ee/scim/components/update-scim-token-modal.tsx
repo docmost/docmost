@@ -52,6 +52,7 @@ export function UpdateScimTokenModal({
       onClose={onClose}
       title={t("Update {{credential}}", { credential: t("SCIM token") })}
       size="md"
+      closeButtonProps={{ "aria-label": t("Close") }}
     >
       <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>
         <Stack gap="md">

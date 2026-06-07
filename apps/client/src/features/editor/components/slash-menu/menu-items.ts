@@ -19,6 +19,7 @@ import {
   IconTable,
   IconTypography,
   IconMenu4,
+  IconPageBreak,
   IconCalendar,
   IconAppWindow,
   IconSitemap,
@@ -42,6 +43,7 @@ import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
 import { IconColumns4 } from "@/components/icons/icon-columns-4";
 import { IconColumns5 } from "@/components/icons/icon-columns-5";
+import i18n from "@/i18n.ts";
 import {
   AirtableIcon,
   FigmaIcon,
@@ -163,6 +165,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconMenu4,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+    },
+    {
+      title: "Page break",
+      description: "Insert a page break for printing.",
+      searchTerms: ["page", "break", "pagebreak", "print"],
+      icon: IconPageBreak,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).setPageBreak().run(),
     },
     {
       title: "Image",
@@ -450,7 +460,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["date", "today"],
       icon: IconCalendar,
       command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString("en-US", {
+        const currentDate = new Date().toLocaleDateString(i18n.language, {
           year: "numeric",
           month: "long",
           day: "numeric",

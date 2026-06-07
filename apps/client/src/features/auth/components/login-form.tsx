@@ -54,6 +54,13 @@ export function LoginForm() {
     await signIn(data);
   }
 
+  function handleValidationFailure(errors: Record<string, unknown>) {
+    const firstInvalidId = Object.keys(errors)[0];
+    if (firstInvalidId) {
+      document.getElementById(firstInvalidId)?.focus();
+    }
+  }
+
   if (isDataLoading) {
    return null;
   }
@@ -66,7 +73,7 @@ export function LoginForm() {
     <AuthLayout>
       <Container size={420} className={classes.container}>
         <Box p="xl" className={classes.containerBox}>
-          <Title order={2} ta="center" fw={500} mb="md">
+          <Title order={1} size="h2" ta="center" fw={500} mb="md">
             {t("Login")}
           </Title>
 
@@ -74,21 +81,31 @@ export function LoginForm() {
 
           {!data?.enforceSso && (
             <>
-              <form onSubmit={form.onSubmit(onSubmit)}>
+              <form onSubmit={form.onSubmit(onSubmit, handleValidationFailure)}>
                 <TextInput
                   id="email"
                   type="email"
                   label={t("Email")}
                   placeholder="email@example.com"
                   variant="filled"
+                  autoComplete="email"
+                  errorProps={{ role: "alert" }}
                   {...form.getInputProps("email")}
                 />
 
                 <PasswordInput
+                  id="password"
                   label={t("Password")}
                   placeholder={t("Your password")}
                   variant="filled"
                   mt="md"
+                  autoComplete="current-password"
+                  errorProps={{ role: "alert" }}
+                  visibilityToggleButtonProps={{
+                    "aria-label": t("Toggle password visibility"),
+                    "aria-hidden": false,
+                    tabIndex: 0,
+                  }}
                   {...form.getInputProps("password")}
                 />
 

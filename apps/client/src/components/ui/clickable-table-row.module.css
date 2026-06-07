@@ -1,0 +1,29 @@
+/*
+ * Focus styling for list-style tables (recent changes, favorites, all
+ * spaces, groups, verified pages, shares).
+ *
+ * Per WAI-ARIA Authoring Practices and Adrian Roselli's guidance on table
+ * accessibility (https://adrianroselli.com/2020/02/block-links-cards-clickable-regions-etc.html),
+ * data tables should not be made fully clickable. Only the title cell is the
+ * link, and that link is what receives Tab focus.
+ *
+ * - `.row` adds a subtle background tint when the row contains the focused
+ *   element, so keyboard users can see which row they're inspecting.
+ * - `.link` adds a visible :focus-visible outline on the title link itself.
+ *
+ * No stretched-link pseudo here on purpose: absolutely-positioned pseudos
+ * inside table cells cause column reflow on focus in Chromium.
+ */
+
+.row:focus-within {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+  border-radius: var(--mantine-radius-sm);
+}

@@ -1,4 +1,4 @@
-import { Card, Text, ActionIcon, Menu, Group } from "@mantine/core";
+import { Button, Card, Text, ActionIcon, Menu, Group } from "@mantine/core";
 import {
   IconDots,
   IconEdit,
@@ -12,6 +12,7 @@ import classes from "./template-card.module.css";
 type TemplateCardProps = {
   template: ITemplate;
   spaceName?: string;
+  onPreview: (template: ITemplate) => void;
   onUse: (template: ITemplate) => void;
   onEdit?: (template: ITemplate) => void;
   onDelete?: (template: ITemplate) => void;
@@ -21,6 +22,7 @@ type TemplateCardProps = {
 export default function TemplateCard({
   template,
   spaceName,
+  onPreview,
   onUse,
   onEdit,
   onDelete,
@@ -34,7 +36,17 @@ export default function TemplateCard({
       padding="lg"
       className={classes.card}
       style={{ cursor: "pointer" }}
-      onClick={() => onUse(template)}
+      role="button"
+      tabIndex={0}
+      aria-label={t("Preview template: {{title}}", { title: template.title })}
+      onClick={() => onPreview(template)}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onPreview(template);
+        }
+      }}
     >
       <div className={classes.cardBody}>
         <Group justify="space-between" align="flex-start" wrap="nowrap" mb="md">
@@ -47,6 +59,17 @@ export default function TemplateCard({
           )}
 
           <Group gap={6} wrap="nowrap">
+            <Button
+              size="compact-xs"
+              variant="filled"
+              className={classes.menuTarget}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUse(template);
+              }}
+            >
+              {t("Use")}
+            </Button>
             {canManage && (
               <Menu width={150} shadow="md" withArrow>
                 <Menu.Target>
@@ -91,6 +114,7 @@ export default function TemplateCard({
         <div className={classes.title}>{template.title}</div>
 
         <div className={classes.footer}>
+          <span className={classes.scopeDot} aria-hidden="true" />
           <Text size="sm" fw={500} c="dimmed">
             {template.spaceId ? (spaceName || t("Space")) : t("Global")}
           </Text>

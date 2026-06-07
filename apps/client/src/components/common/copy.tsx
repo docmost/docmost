@@ -8,15 +8,19 @@ interface CopyProps {
   text: string;
   size?: MantineSize;
   color?: MantineColor;
+  /** Override the accessible name (and tooltip) when not yet copied. Lets callers disambiguate adjacent copy buttons for screen readers. */
+  label?: string;
 }
-export default function CopyTextButton({ text, size }: CopyProps) {
+export default function CopyTextButton({ text, size, label }: CopyProps) {
   const { t } = useTranslation();
+
+  const copyLabel = label ?? t("Copy");
 
   return (
     <CopyButton value={text} timeout={2000}>
       {({ copied, copy }) => (
         <Tooltip
-          label={copied ? t("Copied") : t("Copy")}
+          label={copied ? t("Copied") : copyLabel}
           withArrow
           position="right"
         >
@@ -25,7 +29,7 @@ export default function CopyTextButton({ text, size }: CopyProps) {
             variant="subtle"
             onClick={copy}
             size={size}
-            aria-label={copied ? t("Copied") : t("Copy")}
+            aria-label={copied ? t("Copied") : copyLabel}
           >
             {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
           </ActionIcon>

@@ -20,7 +20,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           Docmost
         </Text>
       </Group>
-      {children}
+      <main>{children}</main>
     </>
   );
 }

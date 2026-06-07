@@ -44,8 +44,29 @@
   transition: border 0.3s;
 }
 
-.transclusionWrap:hover,
-.transclusionWrap:focus-within {
+.transclusionWrap[data-editable="false"],
+.includeWrap[data-editable="false"] {
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
+  padding: 0;
+}
+
+/* Cancel the wrapping .react-renderer's vertical spacing in read-only mode
+   so the synced block sits flush with surrounding paragraphs (whose own
+   margins already provide the right rhythm). */
+:global(.react-renderer.node-transclusionSource):has(
+    .transclusionWrap[data-editable="false"]
+  ),
+:global(.react-renderer.node-transclusionReference):has(
+    .includeWrap[data-editable="false"]
+  ) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.transclusionWrap[data-editable="true"]:hover,
+.transclusionWrap[data-editable="true"]:focus-within {
   border: 2px solid
     light-dark(
       var(--mantine-color-orange-2),
@@ -114,9 +135,9 @@
   transition: border 0.3s;
 }
 
-.includeWrap:hover,
-.includeWrap[data-focused="true"],
-.includeWrap[data-menu-open="true"] {
+.includeWrap[data-editable="true"]:hover,
+.includeWrap[data-editable="true"][data-focused="true"],
+.includeWrap[data-editable="true"][data-menu-open="true"] {
   border: 2px solid
     light-dark(
       var(--mantine-color-orange-2),

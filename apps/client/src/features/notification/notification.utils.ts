@@ -1,3 +1,4 @@
+import i18n from "@/i18n.ts";
 import { INotification } from "./types/notification.types";
 
 export function formatRelativeTime(dateStr: string): string {
@@ -8,15 +9,15 @@ export function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3_600_000);
   const diffDays = Math.floor(diffMs / 86_400_000);
 
-  if (diffMin < 1) return "now";
+  if (diffMin < 1) return i18n.t("now");
   if (diffMin < 60) return `${diffMin}m`;
   if (diffHours < 24) return `${diffHours}h`;
   if (diffDays < 7) return `${diffDays}d`;
 
-  return date.toLocaleDateString(undefined, {
+  return new Intl.DateTimeFormat(i18n.language, {
     month: "short",
     day: "numeric",
-  });
+  }).format(date);
 }
 
 type TimeGroup = "today" | "yesterday" | "this_week" | "older";

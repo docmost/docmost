@@ -122,6 +122,26 @@ export class EnvironmentService {
     return this.configService.get<string>('AWS_S3_URL');
   }
 
+  getAzureStorageAccountName(): string {
+    return this.configService.get<string>('AZURE_STORAGE_ACCOUNT_NAME');
+  }
+
+  getAzureStorageContainer(): string {
+    return this.configService.get<string>('AZURE_STORAGE_CONTAINER');
+  }
+
+  getAzureStorageAccountKey(): string {
+    return this.configService.get<string>('AZURE_STORAGE_ACCOUNT_KEY');
+  }
+
+  getAzureStorageEndpoint(): string {
+    return this.configService.get<string>('AZURE_STORAGE_ENDPOINT');
+  }
+
+  getAzureStorageUrl(): string {
+    return this.configService.get<string>('AZURE_STORAGE_URL');
+  }
+
   getMailDriver(): string {
     return this.configService.get<string>('MAIL_DRIVER', 'log');
   }
@@ -324,5 +344,20 @@ export class EnvironmentService {
       .get<string>('SAML_DISABLE_REQUESTED_AUTHN_CONTEXT', 'false')
       .toLowerCase();
     return disabled === 'true';
+  }
+
+  isIframeEmbedAllowed(): boolean {
+    const allowed = this.configService
+      .get<string>('IFRAME_EMBED_ALLOWED', 'false')
+      .toLowerCase();
+    return allowed === 'true';
+  }
+
+  getIframeAllowedOrigins(): string[] {
+    const raw = this.configService.get<string>('IFRAME_ALLOWED_ORIGINS', '');
+    return raw
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
   }
 }

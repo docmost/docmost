@@ -52,6 +52,11 @@ export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
             placeholder={t("Your new password")}
             variant="filled"
             mt="md"
+            visibilityToggleButtonProps={{
+              "aria-label": t("Toggle password visibility"),
+              "aria-hidden": false,
+              tabIndex: 0,
+            }}
             {...form.getInputProps("newPassword")}
           />
 

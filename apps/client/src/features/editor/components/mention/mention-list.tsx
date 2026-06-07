@@ -16,6 +16,7 @@ import {
   ScrollArea,
   Text,
   UnstyledButton,
+  VisuallyHidden,
 } from "@mantine/core";
 import clsx from "clsx";
 import classes from "./mention.module.css";
@@ -36,7 +37,7 @@ import {
   usePageQuery,
 } from "@/features/page/queries/page-query";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
+import { treeModel } from "@/features/page/tree/model/tree-model";
 import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
@@ -46,6 +47,8 @@ import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(1);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const [countAnnouncement, setCountAnnouncement] = useState("");
+  const [selectionAnnouncement, setSelectionAnnouncement] = useState("");
   const { pageSlug, spaceSlug } = useParams();
   const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useSpaceQuery(spaceSlug);
@@ -53,7 +56,6 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
   const { t } = useTranslation();
   const [data, setData] = useAtom(treeDataAtom);
-  const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const emit = useQueryEmit();
   const isInCommentContext = props.isInCommentContext ?? false;
@@ -184,6 +186,45 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     setSelectedIndex(1);
   }, [suggestion]);
 
+  const selectableCount = useMemo(
+    () => renderItems.filter((item) => item.entityType !== "header").length,
+    [renderItems],
+  );
+
+  useEffect(() => {
+    if (renderItems.length === 0) {
+      setCountAnnouncement(t("No results"));
+      return;
+    }
+    setCountAnnouncement(
+      t("{{count}} result available", { count: selectableCount }),
+    );
+  }, [renderItems.length, selectableCount, t]);
+
+  useEffect(() => {
+    const item = renderItems[selectedIndex];
+    if (!item || item.entityType === "header") {
+      setSelectionAnnouncement("");
+      return;
+    }
+    if (item.entityType === "user") {
+      setSelectionAnnouncement(`${t("People")}: ${item.label}`);
+      return;
+    }
+    if (item.entityType === "page") {
+      if (item.id === null) {
+        setSelectionAnnouncement(`${t("Create page")}: ${item.label}`);
+        return;
+      }
+      const pageLabel = item.label || t("Untitled");
+      setSelectionAnnouncement(
+        item.spaceName
+          ? `${t("Pages")}: ${pageLabel}, ${item.spaceName}`
+          : `${t("Pages")}: ${pageLabel}`,
+      );
+    }
+  }, [selectedIndex, renderItems, t]);
+
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
       if (event.key === "ArrowUp") {
@@ -220,20 +261,20 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     try {
       createdPage = await createPageMutation.mutateAsync(payload);
       const parentId = page.id || null;
-      const data = {
+      const newNode: SpaceTreeNode = {
         id: createdPage.id,
         slugId: createdPage.slugId,
         name: createdPage.title,
         position: createdPage.position,
         spaceId: createdPage.spaceId,
         parentPageId: createdPage.parentPageId,
+        hasChildren: false,
         children: [],
-      } as any;
+      };
 
-      const lastIndex = tree.data.length;
+      const lastIndex = data.length;
 
-      tree.create({ parentId, index: lastIndex, data });
-      setData(tree.data);
+      setData(treeModel.insert(data, parentId, newNode, lastIndex));
 
       props.command({
         id: uuid7(),
@@ -251,7 +292,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           payload: {
             parentId,
             index: lastIndex,
-            data,
+            data: newNode,
           },
         });
       }, 50);
@@ -271,6 +312,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   if (renderItems.length === 0) {
     return (
       <Paper id="mention" shadow="md" py="xs" withBorder radius="md">
+        <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+          {countAnnouncement}
+        </VisuallyHidden>
         <Text c="dimmed" size="sm" px="sm">
           {t("No results")}
         </Text>
@@ -297,6 +341,12 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       aria-label={t("Mention suggestions")}
       aria-activedescendant={`mention-option-${selectedIndex}`}
     >
+      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+        {countAnnouncement}
+      </VisuallyHidden>
+      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+        {selectionAnnouncement}
+      </VisuallyHidden>
       <ScrollArea.Autosize
         viewportRef={viewportRef}
         mah={350}

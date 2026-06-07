@@ -175,6 +175,8 @@ export function SearchSpotlightFilters({
           {contentTypeOptions.map((option) => (
             <Menu.Item
               key={option.value}
+              role="menuitemradio"
+              aria-checked={contentType === option.value}
               onClick={() =>
                 !option.disabled &&
                 contentType !== option.value &&
@@ -200,7 +202,7 @@ export function SearchSpotlightFilters({
                       </Text>
                     )}
                 </div>
-                {contentType === option.value && <IconCheck size={20} />}
+                {contentType === option.value && <IconCheck size={20} aria-hidden />}
               </Group>
             </Menu.Item>
           ))}

@@ -310,6 +310,7 @@ export class PageService {
           expression: 'position',
           direction: 'asc',
           orderModifier: (ob) => ob.collate('C').asc(),
+          cursorExpression: sql`position collate "C"`,
         },
         { expression: 'id', direction: 'asc' },
       ],
@@ -481,7 +482,7 @@ export class PageService {
         );
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
-          pageId: pageIdsToMove,
+          pageIds: pageIdsToMove,
           workspaceId: rootPage.workspaceId,
         });
       }

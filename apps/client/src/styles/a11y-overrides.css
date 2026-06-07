@@ -1,0 +1,27 @@
+/*
+ * Accessibility-driven overrides on top of Mantine's default component styles.
+ * Each rule documents the WCAG criterion it addresses and the measured
+ * contrast before/after.
+ */
+
+/* Mantine's default disabled menu item uses opacity: 0.5 on the active text
+ * color, which collapses to ~3.94:1 on white — below WCAG AA 4.5:1.
+ * (WCAG 1.4.3 exempts "inactive" UI components, but the text becomes hard
+ * to read.) Force opacity back to 1 and use the dimmed color so the item
+ * still feels subdued vs. active items but is comfortably readable
+ * (~7.56:1 on white).
+ */
+.mantine-Menu-item[data-disabled] {
+  opacity: 1;
+  color: var(--mantine-color-dimmed);
+}
+
+/* Mantine variant="default" inputs ship with --mantine-color-default-border
+ * = gray.4 (#ced4da), which on white is only 1.49:1 — fails WCAG AA 3:1
+ * for non-text. Bump to gray.6 (3.32:1) on the input itself rather than
+ * overriding the variable globally, because the same variable backs Card
+ * borders, dividers, and other subtle outlines we want to keep airy.
+ */
+.mantine-Input-input[data-variant="default"] {
+  border-color: var(--mantine-color-gray-6);
+}

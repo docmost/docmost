@@ -36,7 +36,13 @@ export default function ChangeEmail() {
       </Button>
       */}
 
-      <Modal opened={opened} onClose={close} title={t("Change email")} centered>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Change email")}
+        centered
+        closeButtonProps={{ "aria-label": t("Close") }}
+      >
         <Text mb="md">
           {t(
             "To change your email, you have to enter your password and new email.",
@@ -80,6 +86,11 @@ function ChangeEmailForm() {
         placeholder={t("Enter your password")}
         variant="filled"
         mb="md"
+        visibilityToggleButtonProps={{
+          "aria-label": t("Toggle password visibility"),
+          "aria-hidden": false,
+          tabIndex: 0,
+        }}
         {...form.getInputProps("password")}
       />
 

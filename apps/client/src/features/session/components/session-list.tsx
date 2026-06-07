@@ -7,6 +7,7 @@ import {
   Stack,
   Table,
   Text,
+  VisuallyHidden,
 } from "@mantine/core";
 import { IconDevices } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -33,11 +34,16 @@ export default function SessionList() {
   if (isLoading) {
     return (
       <Table verticalSpacing="md">
+        <Table.Caption>
+          <VisuallyHidden>{t("Active sessions")}</VisuallyHidden>
+        </Table.Caption>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t("Device Name")}</Table.Th>
             <Table.Th>{t("Last Active")}</Table.Th>
-            <Table.Th aria-label={t("Action")} />
+            <Table.Th>
+              <VisuallyHidden>{t("Action")}</VisuallyHidden>
+            </Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -90,11 +96,18 @@ export default function SessionList() {
       )}
 
       <Table verticalSpacing="md">
+        <Table.Caption>
+          <VisuallyHidden>{t("Active sessions")}</VisuallyHidden>
+        </Table.Caption>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t("Device Name")}</Table.Th>
             <Table.Th>{t("Last Active")}</Table.Th>
-            {otherSessions.length > 0 && <Table.Th aria-label={t("Action")} />}
+            {otherSessions.length > 0 && (
+              <Table.Th>
+                <VisuallyHidden>{t("Action")}</VisuallyHidden>
+              </Table.Th>
+            )}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>

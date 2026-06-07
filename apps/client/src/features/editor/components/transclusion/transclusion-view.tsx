@@ -62,6 +62,7 @@ export default function TransclusionView(props: NodeViewProps) {
   return (
     <NodeViewWrapper
       className={classes.transclusionWrap}
+      data-editable={isEditable ? "true" : "false"}
       data-menu-open={openMenus > 0 ? "true" : "false"}
       data-id={transclusionId ?? undefined}
     >

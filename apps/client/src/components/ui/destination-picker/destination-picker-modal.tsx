@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Button, Group } from "@mantine/core";
+import { Modal, Button, Group, Divider } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { DestinationPicker } from "./destination-picker";
 import {
@@ -16,6 +16,8 @@ export function DestinationPickerModal({
   loading,
   excludePageId,
   pageLimit,
+  initialSpaceId,
+  searchSpacesOnly,
 }: DestinationPickerModalProps) {
   const { t } = useTranslation();
   const [selection, setSelection] = useState<DestinationSelection | null>(null);
@@ -39,16 +41,20 @@ export function DestinationPickerModal({
       <Modal.Content>
         <Modal.Header py={0}>
           <Modal.Title fw={500}>{title}</Modal.Title>
-          <Modal.CloseButton />
+          <Modal.CloseButton aria-label={t("Close")} />
         </Modal.Header>
         <Modal.Body>
           <DestinationPicker
             onSelectionChange={setSelection}
             excludePageId={excludePageId}
             pageLimit={pageLimit}
+            initialSpaceId={initialSpaceId}
+            searchSpacesOnly={searchSpacesOnly}
           />
 
-          <Group justify="flex-end" mt="md">
+          <Divider my="md" />
+
+          <Group justify="flex-end">
             <Button variant="default" onClick={onClose}>
               {t("Close")}
             </Button>

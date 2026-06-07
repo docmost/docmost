@@ -66,8 +66,11 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
 
   @OnWorkerEvent('failed')
   async onFailed(job: Job) {
+    const fileTaskId = job.data?.fileTaskId;
     this.logger.error(
-      `Error processing ${job.name} job. File Task ID: ${job.data?.fileTaskId}. Reason: ${job.failedReason}`,
+      fileTaskId
+        ? `Error processing ${job.name} job. File Task ID: ${fileTaskId}. Reason: ${job.failedReason}`
+        : `Error processing ${job.name} job. Reason: ${job.failedReason}`,
     );
 
     if (job.name === QueueJob.IMPORT_TASK) {
@@ -79,8 +82,11 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
 
   @OnWorkerEvent('completed')
   async onCompleted(job: Job) {
+    const fileTaskId = job.data?.fileTaskId;
     this.logger.log(
-      `Completed ${job.name} job for File task ID ${job.data?.fileTaskId}`,
+      fileTaskId
+        ? `Completed ${job.name} job for File task ID ${fileTaskId}`
+        : `Completed ${job.name} job`,
     );
 
     if (job.name === QueueJob.IMPORT_TASK) {

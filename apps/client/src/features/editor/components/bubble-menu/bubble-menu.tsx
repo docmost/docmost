@@ -38,9 +38,11 @@ export interface BubbleMenuItem {
 
 type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
   editor: Editor | null;
+  templateMode?: boolean;
 };
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
+  const { templateMode = false } = props;
   const { t } = useTranslation();
   const [showAiMenu, setShowAiMenu] = useAtom(showAiMenuAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
@@ -232,8 +234,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
               ))}
             </ActionIcon.Group>
 
-            <LinkSelector />
-
             <ColorSelector
               editor={props.editor}
               isOpen={isColorSelectorOpen}
@@ -246,18 +246,22 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           </>
         )}
 
-        <Tooltip label={t(commentItem.name)} withArrow withinPortal={false}>
-          <ActionIcon
-            variant="default"
-            size="lg"
-            radius="6px"
-            aria-label={t(commentItem.name)}
-            style={{ border: "none" }}
-            onClick={commentItem.command}
-          >
-            <IconMessage size={16} stroke={2} />
-          </ActionIcon>
-        </Tooltip>
+        <LinkSelector />
+
+        {!templateMode && (
+          <Tooltip label={t(commentItem.name)} withArrow withinPortal={false}>
+            <ActionIcon
+              variant="default"
+              size="lg"
+              radius="6px"
+              aria-label={t(commentItem.name)}
+              style={{ border: "none" }}
+              onClick={commentItem.command}
+            >
+              <IconMessage size={16} stroke={2} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </div>
     </BubbleMenu>
   );

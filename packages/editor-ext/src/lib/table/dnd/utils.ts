@@ -1,4 +1,5 @@
 import { cellAround, TableMap } from "@tiptap/pm/tables"
+import { ResolvedPos } from "@tiptap/pm/model"
 import { EditorView } from "@tiptap/pm/view"
 
 export function getHoveringCell(
@@ -8,19 +9,30 @@ export function getHoveringCell(
   const domCell = domCellAround(event.target as HTMLElement | null)
   if (!domCell) return
 
-  const { left, top, width, height } = domCell.getBoundingClientRect()
-  const eventPos = view.posAtCoords({
-    // Use the center coordinates of the cell to ensure we're within the
-    // selected cell. This prevents potential issues when the mouse is on the
-    // border of two cells.
-    left: left + width / 2,
-    top: top + height / 2,
-  })
-  if (!eventPos) return
-
-  const $cellPos = cellAround(view.state.doc.resolve(eventPos.pos))
+  // Resolve directly from the cell DOM rather than via coords. The previous
+  // center-coords approach broke on tall merged cells — their visual center
+  // can land in empty space whose closest PM position resolves to an
+  // adjacent cell. `posAtDOM(td, 0)` is always inside this cell, regardless
+  // of rowspan/colspan.
+  let pos: number
+  try {
+    pos = view.posAtDOM(domCell, 0)
+  } catch {
+    return
+  }
+  const $cellPos = cellAround(view.state.doc.resolve(pos))
   if (!$cellPos) return
 
+  return cellInfoFromResolvedCell($cellPos)
+}
+
+/**
+ * Build HoveringCellInfo from a resolved position whose parent is a
+ * table cell (i.e. the result of `cellAround` on some inner position).
+ */
+export function cellInfoFromResolvedCell(
+  $cellPos: ResolvedPos,
+): HoveringCellInfo {
   const map = TableMap.get($cellPos.node(-1))
   const tableStart = $cellPos.start(-1)
   const cellRect = map.findCell($cellPos.pos - tableStart)
