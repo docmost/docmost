@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { EnvironmentService } from './environment.service';
+import { Feature } from '../../common/features';
+
+// Features whose OSS backend is fully implemented in this self-hosted build.
+// They are granted regardless of an EE license so the admin UI toggles are
+// usable and the matching settings can be enabled. EE-only features (SCIM,
+// security settings, etc.) are intentionally excluded and remain license-gated.
+const SELF_HOSTED_OSS_FEATURES: string[] = [Feature.API_KEYS, Feature.MCP];
 
 @Injectable()
 export class LicenseCheckService {
@@ -37,6 +44,11 @@ export class LicenseCheckService {
       }
     }
 
+    // self-hosted OSS: grant features whose OSS backend ships in this build
+    if (SELF_HOSTED_OSS_FEATURES.includes(feature)) {
+      return true;
+    }
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const LicenseModule = require('../../ee/licence/license.service');
@@ -50,16 +62,19 @@ export class LicenseCheckService {
   }
 
   getFeatures(licenseKey: string): string[] {
+    let licensed: string[] = [];
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const LicenseModule = require('../../ee/licence/license.service');
       const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
         strict: false,
       });
-      return licenseService.getFeatures(licenseKey);
+      licensed = licenseService.getFeatures(licenseKey) ?? [];
     } catch {
-      return [];
+      licensed = [];
     }
+    // self-hosted OSS: always include the OSS-implemented features
+    return Array.from(new Set([...licensed, ...SELF_HOSTED_OSS_FEATURES]));
   }
 
   resolveFeatures(licenseKey: string, plan: string): string[] {
