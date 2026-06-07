@@ -235,17 +235,23 @@ Source: [organize.controller.ts](../../apps/server/src/core/organize/organize.co
 [organize.repo.ts](../../apps/server/src/database/repos/organize/organize.repo.ts);
 8 unit tests green.
 
-### 7.2 Realtime feed (g) — Docmost re-broadcasts the agent's events
-- The agent pushes to `POST /api/organize-tasks/:id/events`; Docmost appends to `organize_events`
-  **and** publishes to Redis.
-- `GET /api/organize-tasks/:id/stream` → **SSE** (framing matches the AI endpoints:
-  `data: {json}\n`, terminator `data: [DONE]`). Events: `{type:'event', …}`,
-  `{type:'progress', completed, total}`, `{type:'done'}`.
-- **UI panel:** an "Organizing…" drawer subscribes to the SSE and renders the live checklist
-  (file → dedup ✓ → summary ✓ → tags ✓ → moved to *Space X*). This is the literal answer to g:
-  the Docmost frontend shows, in realtime, what the **external** agent is doing — because the
-  agent narrates via the events API and Docmost relays it. No server-side AI, no new realtime
-  infra beyond the queue's existing Redis.
+### 7.2 Realtime feed (g) — Docmost re-broadcasts the agent's events — ✅ implemented (D3)
+- The agent pushes to `POST /api/organize-tasks/events`; `OrganizeService` appends to
+  `organize_events` **and publishes** to Redis channel `organize:<taskId>` (also a `done` on
+  terminal `update`). A failed publish never breaks the write path.
+- `GET /api/organize-tasks/:id/stream` → **SSE** (`reply.hijack()`, `data: {json}\n\n`,
+  `: ping` heartbeats). Emits `{type:'snapshot', task}` (catch-up) → `{type:'event', event,
+  completed, total, status}` per report → `{type:'done', status}`. A per-connection subscriber is
+  a `redisService.getOrThrow().duplicate()`; cleaned up on client close.
+- **UI:** `useOrganizeStream` (EventSource, cookie auth) + `OrganizePanel` (Mantine `Progress` +
+  `Timeline` checklist) render the live view — the literal answer to g: the frontend shows, in
+  realtime, what the **external** agent is doing, because the agent narrates and Docmost relays.
+  No server-side AI; reuses the queue's existing Redis.
+- **Verification:** 3 added server unit tests (publish-on-event, done-on-terminal, channel
+  naming); the raw SSE socket + UI need a live stack to confirm end-to-end.
+Source: [organize.controller.ts](../../apps/server/src/core/organize/organize.controller.ts)
+`stream`, [organize.service.ts](../../apps/server/src/core/organize/organize.service.ts)
+`channel`/`publish`; client [features/organize/](../../apps/client/src/features/organize/).
 
 ## 8. Frontend & manual REST (b-1)
 
@@ -329,8 +335,10 @@ All under `/api`, JWT **or** API-key auth, CASL-scoped to the caller. MCP mirror
   tables, repo, `OrganizeService`/`OrganizeController` (`create/info/by-token/update/events/list`),
   `statusUrl` via `APP_URL`, 8 unit tests, build+lint green. Remaining: the client
   `/organize/:token` status **page** (folded into D3 UI).
-- **D3 — realtime relay** (g): `events` already ingested (D2) → add Redis pub/sub + SSE stream
-  (`GET /api/organize-tasks/:id/stream`) + UI live panel + the status page.
+- **D3 — realtime relay** (g): ✅ **done** — Redis pub/sub publish in `OrganizeService` + SSE
+  `GET /api/organize-tasks/:id/stream` + client `useOrganizeStream`/`OrganizePanel` + status page
+  `/organize/:shareToken` (route wired in `App.tsx`). Server build+lint+tests green (22), client
+  typecheck green. Live SSE/UI pending a running stack to confirm.
 - **D4 — dedup primitives** (e): ✅ **done** — `page_content_hashes` + `dedup.util` (normalize+
   sha256) + `DedupService.analyze` (cluster) + `DedupController` (`analyze`/`resolve`, soft-delete
   via `pageRepo.removePage`), 11 unit tests, build+lint green. (Hashes are computed/persisted on
@@ -341,7 +349,10 @@ All under `/api`, JWT **or** API-key auth, CASL-scoped to the caller. MCP mirror
   opencode/Claude MCP, openclaw). Remaining (optional): filtered OpenAPI doc + per-skill openclaw
   descriptor files + MCP tool additions for organize/dedup/labels. *(code→wiki (h) is a recipe,
   not server code)*
-- **D6 — manual upload UI** (b-1): drag-drop uploader + review queue.
+- **D6 — manual upload UI** (b-1): ✅ `BulkUpload` + `BulkUploadModal` (drag-drop multi-file/folder
+  → `import-files` → opens organize task → embeds `OrganizePanel` + shareable link), **mounted** as
+  a "Bulk upload & organize" item in the space sidebar menu (next to Import, gated by
+  `canManagePages`). Optional later: a review queue for low-confidence classifications.
 
 Depends on: **C0 API-key** ✅ (agent auth), **bulk-import** ✅ (a/h storage). **Independent of**
 the server-side AI module (B) — the agent brings its own LLM.

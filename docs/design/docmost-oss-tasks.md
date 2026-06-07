@@ -58,10 +58,10 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ todo
 > server-side LLM in this flow. See [agent-skills design](./docmost-agent-skills-design.md) §1.1 RACI.
 - 🟡 D1 tag + summary **store**: tags = **native labels** (`labels`/`page_labels` + `/api/pages/labels/*` + client picker — ✅ already in OSS, no work); summary ✅ **done** (`pages.summary` migration + `page.repo` baseFields + `update-page.dto` + `page.service.update`; build+lint green). Optional left: summary in page-header UI; label `origin` flag (A3 b/c)
 - 🟡 D2 organize task + status: ✅ **server done** — `organize_tasks`/`organize_events` + repo + `OrganizeService`/`OrganizeController` (`create/info/by-token/update/events/list`) + `statusUrl`; 8 unit tests + build+lint green. Left: client `/organize/:token` status page (with D3 UI) (A3 f)
-- ⬜ D3 realtime relay: events already ingested (D2) → Redis pub/sub + SSE `GET /api/organize-tasks/:id/stream` + UI live panel + status page (A3 g)
+- ✅ D3 realtime relay: Redis pub/sub publish (`OrganizeService`) + SSE `GET /api/organize-tasks/:id/stream` + client `useOrganizeStream`/`OrganizePanel` + status page `/organize/:shareToken`; server build+lint+22 tests green, client typecheck green. Live SSE/UI pending a running stack (A3 g)
 - ✅ D4 dedup primitives: `page_content_hashes` + `dedup.util` (normalize+sha256) + `DedupService.analyze` (cluster, keep-oldest) + `POST /api/dedup/{analyze,resolve}` (resolve soft-deletes via `pageRepo.removePage`); 11 unit tests + build+lint green. Hashes computed on analyze; optional on-write refresh later (A3 e — agent decides, native history = versions)
 - 🟡 D5 Agent Skill bundle: ✅ **lean core done** — `skills/docmost.skills.json` (18 skills → verified endpoints) + `skills/docmost/RECIPE.{organize,code-to-wiki}.md` + `skills/README.md` (per-agent install). Left (optional): filtered OpenAPI doc + per-skill openclaw descriptors + MCP organize/dedup/label tools (A3 headline + h as recipe)
-- ⬜ D6 manual upload UI: drag-drop multi-file/folder uploader + review queue (A3 b-1)
+- ✅ D6 manual upload UI: `BulkUpload` + `BulkUploadModal` (drag-drop -> import-files -> organize task + live panel + share link), mounted as "Bulk upload & organize" in the space sidebar menu (next to Import, gated by canManagePages); client typecheck green. Optional later: review queue (A3 b-1)
 
 ## 9. Documentation
 - ⬜ T8.1 **User manual** (使用說明書): API keys, REST API usage, MCP setup, bulk import, AI features, agent skills — after features land
