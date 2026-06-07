@@ -39,11 +39,13 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ todo
 - ⬜ T5.5 tests (chunking + query), build+lint
 
 ## 6. Feature-gate / entitlement unlock (makes MCP + AI UI toggles usable)
-- ⬜ T6.1 grant `Feature.AI` + `Feature.MCP` for self-hosted OSS via an allowlist in
-  `apps/client/src/ee/hooks/use-feature.ts` (`useHasFeature` returns true for OSS-implemented
-  features even without a license entitlement). Do **after B2** so the AI Search toggle has a
-  working backend. AI Chat remains documented as unsupported.
-- ⬜ T6.2 verify admin Settings shows AI/MCP toggles; client typecheck/build
+- ✅ T6.1 grant OSS-implemented features for self-hosted in **`license-check.service.ts`**
+  (single source of truth — feeds both `resolveFeatures` for the entitlements endpoint and
+  `hasFeature` for the enable-gate). `SELF_HOSTED_OSS_FEATURES = [API_KEYS, MCP]` — both fully
+  implemented + verified. SCIM/security/AI-search stay license-gated. `ai` intentionally held
+  until B2 (AI Search) has a backend, to avoid exposing a broken toggle. 4 unit tests, build+lint.
+- ⬜ T6.2 live: verify admin Settings shows the API-keys + MCP entries and the MCP toggle enables
+  (needs a running stack)
 
 ## 7. Agent REST API gateway (Python, Workstream A)
 - ⬜ T7.1 package skeleton (`tools/docmost-gateway`): config, errors, auth (Bearer GATEWAY_API_KEY)
