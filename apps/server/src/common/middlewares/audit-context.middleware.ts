@@ -19,7 +19,8 @@ export class AuditContextMiddleware implements NestMiddleware {
   use(req: FastifyRequest['raw'], res: FastifyReply['raw'], next: () => void) {
     const workspaceId = (req as any).workspaceId ?? null;
 
-    const ipAddress = (req as any).ip ?? (req as any).socket?.remoteAddress ?? null;
+    const rawIp = (req as any).ip ?? (req as any).socket?.remoteAddress ?? null;
+    const ipAddress = rawIp && rawIp !== '(null)' ? rawIp : null;
 
     const userAgent =
       (req.headers['user-agent'] as string) ?? null;
