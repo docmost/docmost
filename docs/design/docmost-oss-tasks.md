@@ -32,11 +32,11 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ todo
 - ✅ T4.4 permission gate (`settings.ai.generative`), wired `AiModule`, prompt unit tests (6), build+lint
 
 ## 5. AI — AI Answers (semantic/RAG search) — "B2"
-- ⬜ T5.1 pgvector migration: `CREATE EXTENSION vector` + `page_embeddings(vector(dim))` + HNSW index
-- ⬜ T5.2 ingestion: chunk (`@langchain/textsplitters`) → `embedMany` → upsert; queue processors for GENERATE/DELETE_PAGE_EMBEDDINGS + WORKSPACE_CREATE/DELETE_EMBEDDINGS
-- ⬜ T5.3 enqueue re-embed on page save; workspace backfill on `aiSearch` toggle
-- ⬜ T5.4 `POST /api/ai/answers` (SSE): embed query → ANN search scoped by CASL → stream answer + sources[]
-- ⬜ T5.5 tests (chunking + query), build+lint
+- ✅ T5.1 pgvector migration: `CREATE EXTENSION vector` + `page_embeddings(vector(dim))` + HNSW (cosine) index; `embedding.util` chunking + `AiProviderService.embeddingModel()`
+- ✅ T5.2 ingestion: `AiIndexingService` (chunk → `embedMany` → `EmbeddingRepo.replacePageChunks`) + `AiQueueProcessor` consuming page/workspace AI_QUEUE jobs (gated by config + workspace `ai.search`)
+- ✅ T5.3 re-embed on save/create/move + delete on delete; workspace backfill/teardown on `aiSearch` toggle (enqueue already in workspace.service; processor added)
+- ✅ T5.4 `POST /api/ai/answers` (SSE): embed query → CASL-scoped cosine ANN search → grounded `streamText` + deduped `sources[]` matching the client contract
+- ✅ T5.5 unit tests: chunking (5), indexing gating (8), answer retrieval/dedup (3); build+lint green. Live (ANN over real pgvector) needs a running stack with pgvector installed.
 
 ## 6. Feature-gate / entitlement unlock (makes MCP + AI UI toggles usable)
 - ✅ T6.1 grant OSS-implemented features for self-hosted in **`license-check.service.ts`**
