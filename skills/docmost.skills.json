@@ -1,0 +1,243 @@
+{
+  "$schema": "https://docmost.dev/agent-skills.schema.json",
+  "name": "docmost-wiki",
+  "version": "0.1.0",
+  "description": "Agent skills for driving a self-hosted Docmost wiki (AgentWiki). Docmost is a thin API: it stores, retrieves, and relays. The intelligence (summarize, classify, tag, dedup decisions, code understanding) lives in the calling agent. All routes are relative to <DOCMOST_BASE_URL>/api and authenticate with a personal API key.",
+  "auth": {
+    "type": "bearer",
+    "header": "Authorization",
+    "format": "Bearer <DOCMOST_API_KEY>",
+    "note": "Create the key in Docmost: Settings > API keys. The same key also works for the MCP endpoint at <DOCMOST_BASE_URL>/mcp."
+  },
+  "baseUrlEnv": "DOCMOST_BASE_URL",
+  "conventions": {
+    "method": "All endpoints are POST (Docmost convention), JSON body unless marked multipart.",
+    "responseEnvelope": "Responses are wrapped as { data, success, status }; read the `data` field.",
+    "scoping": "Every call is scoped by the key owner's permissions (CASL). Writes require space Edit rights."
+  },
+  "skills": [
+    {
+      "name": "wiki.files.upload",
+      "a3": "a",
+      "summary": "Bulk-upload text files (.md/.html) into a space as pages; returns a background file task.",
+      "method": "POST",
+      "path": "/pages/import-files",
+      "contentType": "multipart/form-data",
+      "params": {
+        "spaceId": "string (uuid, required) - target space; caller needs Edit/Page",
+        "files": "file x N (repeated parts). Send relative paths as filenames (e.g. guide/setup.md) to build a page tree."
+      },
+      "returns": "file_task { id, status:'processing', ... }. Poll wiki.files.taskStatus until success.",
+      "limits": "<=200 files; .md/.html become pages, other files are attachment candidates."
+    },
+    {
+      "name": "wiki.files.taskStatus",
+      "a3": "a",
+      "summary": "Poll an import/file task until it succeeds or fails.",
+      "method": "POST",
+      "path": "/file-tasks/info",
+      "params": { "fileTaskId": "string (required)" },
+      "returns": "{ id, status:'processing'|'success'|'failed', errorMessage? }"
+    },
+    {
+      "name": "wiki.page.create",
+      "summary": "Create a single page (e.g. an agent-generated wiki page).",
+      "method": "POST",
+      "path": "/pages/create",
+      "params": {
+        "spaceId": "string (uuid, required)",
+        "title": "string (optional)",
+        "icon": "string (optional)",
+        "parentPageId": "string (optional) - nest under a parent",
+        "content": "string|object (optional) - page body",
+        "format": "'json'|'markdown'|'html' (optional, default json)"
+      },
+      "returns": "{ id, slugId, title, spaceId, parentPageId, position, ... }"
+    },
+    {
+      "name": "wiki.page.get",
+      "summary": "Read a page's metadata and (optionally) content to reason over it.",
+      "method": "POST",
+      "path": "/pages/info",
+      "params": {
+        "pageId": "string (required)",
+        "includeContent": "boolean (set true to get the body)"
+      },
+      "returns": "{ id, title, summary, spaceId, content?, ... }"
+    },
+    {
+      "name": "wiki.page.update",
+      "summary": "Write a new version of a page (title/content). Content goes through the CRDT path; native history records the version.",
+      "method": "POST",
+      "path": "/pages/update",
+      "params": {
+        "pageId": "string (required)",
+        "title": "string (optional)",
+        "content": "string|object (optional)",
+        "operation": "'append'|'prepend'|'replace' (required when content is set)",
+        "format": "'json'|'markdown'|'html' (required when content is set)"
+      },
+      "returns": "updated page"
+    },
+    {
+      "name": "wiki.page.setSummary",
+      "a3": "c",
+      "summary": "Store an agent-generated summary on a page (pages.summary).",
+      "method": "POST",
+      "path": "/pages/update",
+      "params": {
+        "pageId": "string (required)",
+        "summary": "string - the summary text the agent produced"
+      },
+      "returns": "updated page"
+    },
+    {
+      "name": "wiki.page.move",
+      "a3": "b",
+      "summary": "Reparent/reorder a page within its space (classification result).",
+      "method": "POST",
+      "path": "/pages/move",
+      "params": {
+        "pageId": "string (required)",
+        "position": "string (5-12 chars, fractional index) - place among siblings",
+        "parentPageId": "string|null (optional)"
+      },
+      "returns": "ok",
+      "note": "To move across spaces use /pages/move-to-space { pageId, spaceId }."
+    },
+    {
+      "name": "wiki.spaces.list",
+      "a3": "b",
+      "summary": "List the spaces the key owner can access (the folders to classify into).",
+      "method": "POST",
+      "path": "/spaces/",
+      "params": { "page": "number (optional)", "limit": "number (optional)" },
+      "returns": "paginated spaces [{ id, name, slug, ... }]"
+    },
+    {
+      "name": "wiki.labels.list",
+      "a3": "b",
+      "summary": "List the workspace's existing labels (tag vocabulary) so the agent reuses names instead of inventing synonyms.",
+      "method": "POST",
+      "path": "/labels",
+      "params": { "type": "string (optional, e.g. 'page')", "page": "number (optional)" },
+      "returns": "paginated labels [{ id, name, type, ... }]"
+    },
+    {
+      "name": "wiki.page.addLabels",
+      "a3": "b",
+      "summary": "Tag a page. Native upsert-by-name: pass tag names, server creates missing labels and attaches them.",
+      "method": "POST",
+      "path": "/pages/labels/add",
+      "params": {
+        "pageId": "string (required)",
+        "names": "string[] - tag names (created if absent)"
+      },
+      "returns": "the page's labels"
+    },
+    {
+      "name": "wiki.page.labels",
+      "a3": "b",
+      "summary": "Read the labels currently on a page.",
+      "method": "POST",
+      "path": "/pages/labels",
+      "params": { "pageId": "string (required)" },
+      "returns": "labels [{ id, name }]"
+    },
+    {
+      "name": "wiki.search",
+      "a3": "d",
+      "summary": "Keyword search across pages the key owner can see.",
+      "method": "POST",
+      "path": "/search",
+      "params": {
+        "query": "string (required)",
+        "spaceId": "string (optional)",
+        "limit": "number (optional)",
+        "offset": "number (optional)"
+      },
+      "returns": "ranked items [{ id, title, slugId, rank, highlight }]"
+    },
+    {
+      "name": "wiki.dedup.analyze",
+      "a3": "e",
+      "summary": "Compute normalized content hashes and return clusters of exact-duplicate pages with a keep-oldest recommendation. Read-only.",
+      "method": "POST",
+      "path": "/dedup/analyze",
+      "params": { "spaceId": "string (optional) - scope to one space" },
+      "returns": "{ scanned, duplicateClusters, clusters:[{ sha256, charLen, pages:[{pageId,title,slugId,spaceId}], recommendation:{keepPageId,dropPageIds} }] }"
+    },
+    {
+      "name": "wiki.dedup.resolve",
+      "a3": "e",
+      "summary": "Apply a dedup decision: soft-delete the duplicate pages (never hard-deleted; native history preserved).",
+      "method": "POST",
+      "path": "/dedup/resolve",
+      "params": {
+        "keepPageId": "string (uuid, required)",
+        "dropPageIds": "string[] (uuid, required, non-empty; must not include keepPageId)",
+        "mode": "'soft-delete' (optional, default)"
+      },
+      "returns": "{ keptPageId, dropped:[pageId], mode }"
+    },
+    {
+      "name": "wiki.organize.open",
+      "a3": "f",
+      "summary": "Open an organize task so progress is trackable; returns a shareable status URL to hand to a human.",
+      "method": "POST",
+      "path": "/organize-tasks/create",
+      "params": {
+        "spaceId": "string (optional, uuid) - requires Edit/Page when set",
+        "source": "'upload'|'code'|'manual' (optional, default upload)",
+        "title": "string (optional)",
+        "total": "number (optional) - expected item count",
+        "fileTaskId": "string (optional) - link to the import task"
+      },
+      "returns": "{ id, shareToken, statusUrl, status:'open', ... }"
+    },
+    {
+      "name": "wiki.organize.status",
+      "a3": "f",
+      "summary": "Poll an organize task and its events.",
+      "method": "POST",
+      "path": "/organize-tasks/info",
+      "params": { "organizeTaskId": "string (required)" },
+      "returns": "{ id, status, total, completed, statusUrl, events:[...] }"
+    },
+    {
+      "name": "wiki.organize.report",
+      "a3": "g",
+      "summary": "Report one step of progress. First event flips the task to running; countsAsProgress bumps completed. Docmost relays this to the live UI.",
+      "method": "POST",
+      "path": "/organize-tasks/events",
+      "params": {
+        "organizeTaskId": "string (required)",
+        "step": "string (required, e.g. 'dedup'|'summarize'|'tag'|'classify'|'move'|'done')",
+        "status": "string (optional, e.g. 'running'|'done'|'skipped'|'failed')",
+        "pageId": "string (optional)",
+        "title": "string (optional)",
+        "detail": "object (optional) - free-form JSON",
+        "countsAsProgress": "boolean (optional) - increment completed"
+      },
+      "returns": "{ event, task }"
+    },
+    {
+      "name": "wiki.organize.close",
+      "a3": "f",
+      "summary": "Finalize an organize task.",
+      "method": "POST",
+      "path": "/organize-tasks/update",
+      "params": {
+        "organizeTaskId": "string (required)",
+        "status": "'succeeded'|'failed' (optional)",
+        "completed": "number (optional)",
+        "error": "string (optional)"
+      },
+      "returns": "updated task"
+    }
+  ],
+  "recipes": [
+    "docmost/RECIPE.organize.md",
+    "docmost/RECIPE.code-to-wiki.md"
+  ]
+}

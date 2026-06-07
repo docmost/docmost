@@ -1,0 +1,194 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Docmost Agent API (AgentWiki)",
+    "version": "0.1.0",
+    "description": "Filtered OpenAPI for external agents. Docmost is a thin API (store/retrieve/relay); the agent is the brain. All paths are under <DOCMOST_BASE_URL>/api. Responses are wrapped as { data, success, status } unless noted; read `data`."
+  },
+  "servers": [{ "url": "{baseUrl}/api", "variables": { "baseUrl": { "default": "https://wiki.example.com" } } }],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "Personal API key (Settings > API keys)." }
+    },
+    "schemas": {
+      "Envelope": { "type": "object", "properties": { "data": {}, "success": { "type": "boolean" }, "status": { "type": "integer" } } }
+    }
+  },
+  "paths": {
+    "/pages/import-files": {
+      "post": {
+        "operationId": "wiki_files_upload",
+        "summary": "Bulk-upload .md/.html files into a space as pages (async).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["spaceId", "files"],
+                "properties": {
+                  "spaceId": { "type": "string", "format": "uuid" },
+                  "files": { "type": "array", "items": { "type": "string", "format": "binary" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "file task", "content": { "application/json": { "schema": { "type": "object", "properties": { "id": { "type": "string" }, "status": { "type": "string" } } } } } } }
+      }
+    },
+    "/file-tasks/info": {
+      "post": {
+        "operationId": "wiki_files_taskStatus",
+        "summary": "Poll an import/file task.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["fileTaskId"], "properties": { "fileTaskId": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "task", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/pages/create": {
+      "post": {
+        "operationId": "wiki_page_create",
+        "summary": "Create a page.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["spaceId"], "properties": { "spaceId": { "type": "string", "format": "uuid" }, "title": { "type": "string" }, "icon": { "type": "string" }, "parentPageId": { "type": "string" }, "content": { "type": "string" }, "format": { "type": "string", "enum": ["json", "markdown", "html"] } } } } } },
+        "responses": { "200": { "description": "page", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/pages/info": {
+      "post": {
+        "operationId": "wiki_page_get",
+        "summary": "Get a page, optionally with content.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["pageId"], "properties": { "pageId": { "type": "string" }, "includeContent": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "page", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/pages/update": {
+      "post": {
+        "operationId": "wiki_page_update",
+        "summary": "Update a page (title/content/summary). Content edits create a version.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["pageId"], "properties": { "pageId": { "type": "string" }, "title": { "type": "string" }, "summary": { "type": "string" }, "content": { "type": "string" }, "operation": { "type": "string", "enum": ["append", "prepend", "replace"] }, "format": { "type": "string", "enum": ["json", "markdown", "html"] } } } } } },
+        "responses": { "200": { "description": "page", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/pages/move": {
+      "post": {
+        "operationId": "wiki_page_move",
+        "summary": "Reparent/reorder a page within its space.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["pageId", "position"], "properties": { "pageId": { "type": "string" }, "position": { "type": "string", "minLength": 5, "maxLength": 12 }, "parentPageId": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/spaces/": {
+      "post": {
+        "operationId": "wiki_spaces_list",
+        "summary": "List spaces the caller can access.",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "page": { "type": "integer" }, "limit": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "spaces", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/labels": {
+      "post": {
+        "operationId": "wiki_labels_list",
+        "summary": "List the workspace label vocabulary.",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "type": { "type": "string" }, "page": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "labels", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/pages/labels/add": {
+      "post": {
+        "operationId": "wiki_page_addLabels",
+        "summary": "Tag a page (upsert-by-name).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["pageId", "names"], "properties": { "pageId": { "type": "string" }, "names": { "type": "array", "items": { "type": "string" } } } } } } },
+        "responses": { "200": { "description": "labels", "content": { "application/json": { "schema": { "type": "array", "items": { "type": "object" } } } } } }
+      }
+    },
+    "/pages/labels": {
+      "post": {
+        "operationId": "wiki_page_labels",
+        "summary": "Read a page's labels.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["pageId"], "properties": { "pageId": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "labels", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/search": {
+      "post": {
+        "operationId": "wiki_search",
+        "summary": "Keyword search across accessible pages.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["query"], "properties": { "query": { "type": "string" }, "spaceId": { "type": "string" }, "limit": { "type": "integer" }, "offset": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "results", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/dedup/analyze": {
+      "post": {
+        "operationId": "wiki_dedup_analyze",
+        "summary": "Cluster exact-duplicate pages with a keep-oldest recommendation.",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "spaceId": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "analysis", "content": { "application/json": { "schema": { "type": "object", "properties": { "scanned": { "type": "integer" }, "duplicateClusters": { "type": "integer" }, "clusters": { "type": "array", "items": { "type": "object" } } } } } } } }
+      }
+    },
+    "/dedup/resolve": {
+      "post": {
+        "operationId": "wiki_dedup_resolve",
+        "summary": "Soft-delete duplicate pages, keeping one.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["keepPageId", "dropPageIds"], "properties": { "keepPageId": { "type": "string", "format": "uuid" }, "dropPageIds": { "type": "array", "items": { "type": "string", "format": "uuid" } }, "mode": { "type": "string", "enum": ["soft-delete"] } } } } } },
+        "responses": { "200": { "description": "result", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/organize-tasks/create": {
+      "post": {
+        "operationId": "wiki_organize_open",
+        "summary": "Open an organize task; returns id, shareToken, statusUrl.",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "spaceId": { "type": "string" }, "source": { "type": "string", "enum": ["upload", "code", "manual"] }, "title": { "type": "string" }, "total": { "type": "integer" }, "fileTaskId": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "task", "content": { "application/json": { "schema": { "type": "object", "properties": { "id": { "type": "string" }, "shareToken": { "type": "string" }, "statusUrl": { "type": "string" } } } } } } }
+      }
+    },
+    "/organize-tasks/info": {
+      "post": {
+        "operationId": "wiki_organize_status",
+        "summary": "Get an organize task and its events.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["organizeTaskId"], "properties": { "organizeTaskId": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "task", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/organize-tasks/by-token": {
+      "post": {
+        "operationId": "wiki_organize_byToken",
+        "summary": "Get an organize task by its share token.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["shareToken"], "properties": { "shareToken": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "task", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/organize-tasks/events": {
+      "post": {
+        "operationId": "wiki_organize_report",
+        "summary": "Report a progress step (drives the live UI).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["organizeTaskId", "step"], "properties": { "organizeTaskId": { "type": "string" }, "step": { "type": "string" }, "status": { "type": "string" }, "pageId": { "type": "string" }, "title": { "type": "string" }, "detail": { "type": "object" }, "countsAsProgress": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "event + task", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/organize-tasks/update": {
+      "post": {
+        "operationId": "wiki_organize_close",
+        "summary": "Update/finalize an organize task.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["organizeTaskId"], "properties": { "organizeTaskId": { "type": "string" }, "status": { "type": "string", "enum": ["open", "running", "succeeded", "failed"] }, "completed": { "type": "integer" }, "total": { "type": "integer" }, "error": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "task", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/organize-tasks": {
+      "post": {
+        "operationId": "wiki_organize_list",
+        "summary": "List the workspace's organize tasks (newest first).",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "limit": { "type": "integer" }, "cursor": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "tasks", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/organize-tasks/{id}/stream": {
+      "get": {
+        "operationId": "wiki_organize_stream",
+        "summary": "SSE stream of an organize task's live events (text/event-stream).",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "event stream", "content": { "text/event-stream": { "schema": { "type": "string" } } } } }
+      }
+    }
+  }
+}

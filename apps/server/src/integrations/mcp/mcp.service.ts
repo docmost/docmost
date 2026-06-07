@@ -20,6 +20,10 @@ import {
   SpaceCaslSubject,
 } from '../../core/casl/interfaces/space-ability.type';
 import { jsonToMarkdown } from '../../collaboration/collaboration.util';
+import { LabelService } from '../../core/label/label.service';
+import { LabelType } from '@docmost/db/repos/label/label.repo';
+import { OrganizeService } from '../../core/organize/organize.service';
+import { DedupService } from '../../core/dedup/dedup.service';
 
 // The MCP SDK ships ESM + a CJS build but no flat `main`/type entry that the
 // server's classic module resolution can follow, so load the CJS build via
@@ -50,6 +54,9 @@ export class McpService {
     private readonly pageAccessService: PageAccessService,
     private readonly spaceMemberService: SpaceMemberService,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly labelService: LabelService,
+    private readonly organizeService: OrganizeService,
+    private readonly dedupService: DedupService,
   ) {}
 
   /**
@@ -267,6 +274,179 @@ export class McpService {
 
         const updated = await this.pageService.update(page, dto, user);
         return toText({ id: updated.id, title: updated.title });
+      },
+    );
+
+    // --- Organize / labels / dedup tools (Workstream D over MCP) ---
+
+    server.registerTool(
+      'list_labels',
+      {
+        description:
+          'List the workspace label vocabulary (reuse these names when tagging).',
+        inputSchema: { limit: z.number().min(1).max(100).optional() },
+      },
+      async ({ limit }: { limit?: number }) => {
+        const pagination = new PaginationOptions();
+        pagination.limit = limit ?? 50;
+        const result = await this.labelService.getLabels(
+          workspace.id,
+          user.id,
+          LabelType.PAGE,
+          pagination,
+        );
+        return toText(result);
+      },
+    );
+
+    server.registerTool(
+      'add_page_labels',
+      {
+        description:
+          'Tag a page. Pass label names; missing labels are created and attached.',
+        inputSchema: {
+          pageId: z.string(),
+          names: z.array(z.string()).min(1),
+        },
+      },
+      async ({ pageId, names }: { pageId: string; names: string[] }) => {
+        const page = await this.pageRepo.findById(pageId);
+        if (!page || page.deletedAt) {
+          throw new NotFoundException('Page not found');
+        }
+        await this.pageAccessService.validateCanEdit(page, user);
+        const labels = await this.labelService.addLabelsToPage(
+          page.id,
+          names,
+          workspace.id,
+        );
+        return toText(labels);
+      },
+    );
+
+    server.registerTool(
+      'set_page_summary',
+      {
+        description: 'Store an agent-generated summary on a page.',
+        inputSchema: { pageId: z.string(), summary: z.string() },
+      },
+      async ({ pageId, summary }: { pageId: string; summary: string }) => {
+        const page = await this.pageRepo.findById(pageId);
+        if (!page || page.deletedAt) {
+          throw new NotFoundException('Page not found');
+        }
+        await this.pageAccessService.validateCanEdit(page, user);
+        const dto = new UpdatePageDto();
+        dto.pageId = page.id;
+        dto.summary = summary;
+        const updated = await this.pageService.update(page, dto, user);
+        return toText({ id: updated.id, summary: updated.summary });
+      },
+    );
+
+    server.registerTool(
+      'dedup_analyze',
+      {
+        description:
+          'Analyze pages for exact-duplicate content; returns clusters with a keep-oldest recommendation.',
+        inputSchema: { spaceId: z.string().optional() },
+      },
+      async ({ spaceId }: { spaceId?: string }) => {
+        if (spaceId) {
+          const ability = await this.spaceAbility.createForUser(user, spaceId);
+          if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+            throw new ForbiddenException();
+          }
+        }
+        const result = await this.dedupService.analyze(workspace.id, spaceId);
+        return toText(result);
+      },
+    );
+
+    server.registerTool(
+      'organize_create',
+      {
+        description:
+          'Open an organize task to track progress; returns id, shareToken and statusUrl.',
+        inputSchema: {
+          spaceId: z.string().optional(),
+          source: z.enum(['upload', 'code', 'manual']).optional(),
+          title: z.string().optional(),
+          total: z.number().min(0).optional(),
+          fileTaskId: z.string().optional(),
+        },
+      },
+      async (args: {
+        spaceId?: string;
+        source?: 'upload' | 'code' | 'manual';
+        title?: string;
+        total?: number;
+        fileTaskId?: string;
+      }) => {
+        if (args.spaceId) {
+          const ability = await this.spaceAbility.createForUser(
+            user,
+            args.spaceId,
+          );
+          if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+            throw new ForbiddenException();
+          }
+        }
+        const task = await this.organizeService.create(
+          user,
+          workspace.id,
+          args,
+        );
+        return toText(task);
+      },
+    );
+
+    server.registerTool(
+      'organize_report',
+      {
+        description:
+          'Report one organize progress step (drives the live UI). countsAsProgress bumps completed.',
+        inputSchema: {
+          organizeTaskId: z.string(),
+          step: z.string(),
+          status: z.string().optional(),
+          pageId: z.string().optional(),
+          title: z.string().optional(),
+          countsAsProgress: z.boolean().optional(),
+        },
+      },
+      async (args: {
+        organizeTaskId: string;
+        step: string;
+        status?: string;
+        pageId?: string;
+        title?: string;
+        countsAsProgress?: boolean;
+      }) => {
+        const result = await this.organizeService.addEvent(workspace.id, args);
+        return toText(result);
+      },
+    );
+
+    server.registerTool(
+      'organize_close',
+      {
+        description: 'Finalize an organize task (succeeded or failed).',
+        inputSchema: {
+          organizeTaskId: z.string(),
+          status: z.enum(['succeeded', 'failed']).optional(),
+          completed: z.number().min(0).optional(),
+          error: z.string().optional(),
+        },
+      },
+      async (args: {
+        organizeTaskId: string;
+        status?: 'succeeded' | 'failed';
+        completed?: number;
+        error?: string;
+      }) => {
+        const task = await this.organizeService.update(workspace.id, args);
+        return toText(task);
       },
     );
 

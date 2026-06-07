@@ -30,6 +30,42 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface OrganizeTasks {
+  id: Generated<string>;
+  workspaceId: string;
+  spaceId: string | null;
+  creatorId: string | null;
+  source: Generated<string>;
+  status: Generated<string>;
+  title: string | null;
+  total: number | null;
+  completed: Generated<number>;
+  fileTaskId: string | null;
+  shareToken: string;
+  error: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface OrganizeEvents {
+  id: Generated<string>;
+  organizeTaskId: string;
+  pageId: string | null;
+  title: string | null;
+  step: string;
+  status: Generated<string>;
+  detail: Json | null;
+  createdAt: Generated<Timestamp>;
+}
+
+export interface PageContentHashes {
+  pageId: string;
+  workspaceId: string;
+  sha256: string;
+  charLen: number;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface ApiKeys {
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
@@ -281,6 +317,7 @@ export interface Pages {
   position: string | null;
   slugId: string;
   spaceId: string;
+  summary: string | null;
   textContent: string | null;
   title: string | null;
   tsv: string | null;
@@ -606,6 +643,9 @@ export interface DB {
   groupUsers: GroupUsers;
   labels: Labels;
   notifications: Notifications;
+  organizeTasks: OrganizeTasks;
+  organizeEvents: OrganizeEvents;
+  pageContentHashes: PageContentHashes;
   pageAccess: PageAccess;
   pageTransclusionReferences: PageTransclusionReferences;
   pageTransclusions: PageTransclusions;

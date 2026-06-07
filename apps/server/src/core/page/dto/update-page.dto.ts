@@ -10,6 +10,10 @@ export class UpdatePageDto extends PartialType(CreatePageDto) {
   pageId: string;
 
   @IsOptional()
+  @IsString()
+  summary?: string;
+
+  @IsOptional()
   content?: string | object;
 
   @ValidateIf((o) => o.content !== undefined)

@@ -213,6 +213,7 @@ export class PageService {
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
+        summary: updatePageDto.summary,
         lastUpdatedById: user.id,
         updatedAt: new Date(),
         contributorIds: contributorIds,
