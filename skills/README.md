@@ -38,13 +38,15 @@ key**:
 claude mcp add docmost --transport http https://wiki.example.com/mcp \
   --header "Authorization: Bearer dm_..."
 ```
-(MCP currently surfaces the read/write page + search + spaces tools; the organize/dedup/label
-tools are reachable via REST per the manifest.)
+MCP now surfaces the full set: read/write pages, search, spaces, **plus** `list_labels`,
+`add_page_labels`, `set_page_summary`, `dedup_analyze`, and `organize_create/report/close` — so
+the entire organize flow is drivable over MCP as well as REST.
 
 ### openclaw (skill descriptors)
-Point openclaw at this `skills/` folder. The manifest + the two `RECIPE.*.md` playbooks are
-enough to compose the flow; per-skill descriptor files (one per manifest entry) can be generated
-later if openclaw needs them split out.
+Point openclaw at this `skills/` folder and load [`docmost/SKILL.md`](./docmost/SKILL.md) — a
+single descriptor that lists every skill (with method/path/params) and links the two
+`RECIPE.*.md` playbooks. That plus `docmost.skills.json` is enough to compose the flow; if
+openclaw later needs one file per skill, they can be split out from the manifest.
 
 ## Quick start (organize a batch)
 1. `wiki.files.upload` the files into an inbox space → poll `wiki.files.taskStatus`.
