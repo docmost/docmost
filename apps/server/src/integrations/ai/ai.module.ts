@@ -3,6 +3,7 @@ import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { AiProviderService } from './ai-provider.service';
 import { AiIndexingService } from './ai-indexing.service';
+import { AiAnswerService } from './ai-answer.service';
 import { AiQueueProcessor } from './processors/ai-queue.processor';
 
 @Module({
@@ -11,6 +12,7 @@ import { AiQueueProcessor } from './processors/ai-queue.processor';
     AiService,
     AiProviderService,
     AiIndexingService,
+    AiAnswerService,
     AiQueueProcessor,
   ],
   exports: [AiService, AiProviderService, AiIndexingService],

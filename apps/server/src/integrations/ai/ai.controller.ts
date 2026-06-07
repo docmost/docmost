@@ -13,19 +13,25 @@ import {
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
 import { AiService } from './ai.service';
+import { AiAnswerService } from './ai-answer.service';
 import { AiGenerateDto } from './dto/ai-generate.dto';
+import { AiAnswerDto } from './dto/ai-answer.dto';
 import { AI_ACTION_IDS } from './prompts';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { SkipTransform } from '../../common/decorators/skip-transform.decorator';
-import { Workspace } from '@docmost/db/types/entity.types';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('ai')
 export class AiController {
   private readonly logger = new Logger(AiController.name);
 
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly aiAnswerService: AiAnswerService,
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Get('config')
@@ -72,6 +78,56 @@ export class AiController {
       reply.raw.write('data: [DONE]\n\n');
     } catch (err) {
       this.logger.error(`AI generate stream failed: ${(err as Error)?.message}`);
+      reply.raw.write(
+        `data: ${JSON.stringify({ error: (err as Error)?.message ?? 'AI error' })}\n\n`,
+      );
+    } finally {
+      reply.raw.end();
+    }
+  }
+
+  @SkipTransform()
+  @Post('answers')
+  async answers(
+    @Body() dto: AiAnswerDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Res() reply: FastifyReply,
+  ) {
+    const settings = workspace.settings as { ai?: { search?: boolean } } | null;
+    if (settings?.ai?.search !== true) {
+      throw new ForbiddenException(
+        'AI Search is not enabled for this workspace',
+      );
+    }
+    if (!this.aiAnswerService.isConfigured()) {
+      throw new BadRequestException(
+        'AI embeddings are not configured on this server',
+      );
+    }
+
+    reply.raw.setHeader('content-type', 'text/event-stream');
+    reply.raw.setHeader('cache-control', 'no-cache, no-transform');
+    reply.raw.setHeader('connection', 'keep-alive');
+    reply.hijack();
+
+    try {
+      const { sources, context } = await this.aiAnswerService.retrieve(
+        dto.query,
+        { userId: user.id, workspaceId: workspace.id, spaceId: dto.spaceId },
+      );
+
+      for await (const delta of this.aiAnswerService.streamAnswer(
+        dto.query,
+        context,
+      )) {
+        reply.raw.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+      }
+
+      reply.raw.write(`data: ${JSON.stringify({ sources })}\n\n`);
+      reply.raw.write('data: [DONE]\n\n');
+    } catch (err) {
+      this.logger.error(`AI answers failed: ${(err as Error)?.message}`);
       reply.raw.write(
         `data: ${JSON.stringify({ error: (err as Error)?.message ?? 'AI error' })}\n\n`,
       );
