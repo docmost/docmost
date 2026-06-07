@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
+import { RedisService } from '@nestjs-labs/nestjs-ioredis';
+import type { Redis } from 'ioredis';
 import { OrganizeRepo } from '@docmost/db/repos/organize/organize.repo';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import {
@@ -33,10 +35,28 @@ export interface OrganizeTaskDetail extends OrganizeTaskWithUrl {
 
 @Injectable()
 export class OrganizeService {
+  private readonly publisher: Redis;
+
   constructor(
     private readonly organizeRepo: OrganizeRepo,
     private readonly environmentService: EnvironmentService,
-  ) {}
+    private readonly redisService: RedisService,
+  ) {
+    this.publisher = this.redisService.getOrThrow();
+  }
+
+  /** Redis pub/sub channel that carries an organize task's live events. */
+  static channel(organizeTaskId: string): string {
+    return `organize:${organizeTaskId}`;
+  }
+
+  private publish(organizeTaskId: string, payload: unknown): void {
+    this.publisher
+      .publish(OrganizeService.channel(organizeTaskId), JSON.stringify(payload))
+      .catch(() => {
+        // a failed relay must never break the write path
+      });
+  }
 
   private statusUrl(shareToken: string): string {
     return `${this.environmentService.getAppUrl()}/organize/${shareToken}`;
@@ -115,6 +135,15 @@ export class OrganizeService {
       dto.organizeTaskId,
       workspaceId,
     );
+    if (updated.status === 'succeeded' || updated.status === 'failed') {
+      this.publish(updated.id, {
+        type: 'done',
+        status: updated.status,
+        completed: updated.completed,
+        total: updated.total,
+        error: updated.error,
+      });
+    }
     return this.withUrl(updated);
   }
 
@@ -150,6 +179,15 @@ export class OrganizeService {
         workspaceId,
       );
     }
+
+    // relay to any live SSE subscribers (the frontend "Organizing…" panel)
+    this.publish(task.id, {
+      type: 'event',
+      event,
+      completed: updatedTask.completed,
+      total: updatedTask.total,
+      status: updatedTask.status,
+    });
 
     return { event, task: this.withUrl(updatedTask) };
   }

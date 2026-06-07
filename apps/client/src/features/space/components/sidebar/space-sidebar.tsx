@@ -20,6 +20,7 @@ import {
   IconStarFilled,
   IconTemplate,
   IconTrash,
+  IconUpload,
 } from "@tabler/icons-react";
 import {
   useSpaceWatchStatusQuery,
@@ -43,6 +44,7 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import PageImportModal from "@/features/page/components/page-import-modal.tsx";
+import { BulkUploadModal } from "@/features/organize/components/bulk-upload-modal.tsx";
 import { useTranslation } from "react-i18next";
 import { SwitchSpace } from "./switch-space";
 import ExportModal from "@/components/common/export-modal";
@@ -250,6 +252,10 @@ function SpaceMenu({
   const { spaceSlug } = useParams();
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
+  const [
+    bulkUploadOpened,
+    { open: openBulkUploadModal, close: closeBulkUploadModal },
+  ] = useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [
@@ -360,6 +366,13 @@ function SpaceMenu({
               </Menu.Item>
 
               <Menu.Item
+                onClick={openBulkUploadModal}
+                leftSection={<IconUpload size={16} />}
+              >
+                {t("Bulk upload & organize")}
+              </Menu.Item>
+
+              <Menu.Item
                 onClick={openExportModal}
                 leftSection={<IconFileExport size={16} />}
               >
@@ -393,6 +406,12 @@ function SpaceMenu({
             spaceId={spaceId}
             open={importOpened}
             onClose={closeImportModal}
+          />
+
+          <BulkUploadModal
+            spaceId={spaceId}
+            open={bulkUploadOpened}
+            onClose={closeBulkUploadModal}
           />
 
           <ExportModal
