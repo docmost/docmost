@@ -64,7 +64,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ todo
 - ✅ D6 manual upload UI: `BulkUpload` + `BulkUploadModal` (drag-drop -> import-files -> organize task + live panel + share link), mounted as "Bulk upload & organize" in the space sidebar menu (next to Import, gated by canManagePages); client typecheck green. Optional later: review queue (A3 b-1)
 
 ## 9. Documentation
-- ⬜ T8.1 **User manual** (使用說明書): API keys, REST API usage, MCP setup, bulk import, AI features, agent skills — after features land
+- ✅ T8.1 **User manual** (使用說明書): [docs/USER-MANUAL.md](../USER-MANUAL.md) — A3 a–h, API keys, REST + MCP usage, skill bundle/recipes, bulk upload UI, status page, and a live smoke-test checklist
 
 ## Execution order
 3 ✅ → 1 ✅ → 2 ✅ → **4 (AI B1)** → 6 (entitlement) → 5 (AI B2) → 2.1/2.2 (MCP extras) → 7 (gateway) → D1→D2→D3→D4→D5→D6 → 8 (manual).
