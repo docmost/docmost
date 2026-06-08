@@ -17,6 +17,7 @@ import {
   IconFileTypePdf,
   IconPhoto,
   IconTable,
+  IconLink,
   IconTypography,
   IconMenu4,
   IconPageBreak,
@@ -56,6 +57,7 @@ import {
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import { getRegisteredIntegrationResources } from "@/features/integrations/integration-resource-registry";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -744,6 +746,38 @@ const CommandGroups: SlashMenuGroupedItemsType = {
   ],
 };
 
+// Module-scoped (not React context) because the slash-menu suggestion
+// plugin runs outside React. Populated by useSyncRegisteredIntegrations.
+let registeredIntegrations: Set<string> = new Set();
+
+export function setRegisteredIntegrations(ids: Iterable<string>): void {
+  registeredIntegrations = new Set(ids);
+}
+
+function getIntegrationResourceItems() {
+  const iconByName = { link: IconLink, table: IconTable } as const;
+  return getRegisteredIntegrationResources()
+    .filter((resource) => resource.menu)
+    .map((resource) => ({
+      title: resource.menu?.title ?? resource.title,
+      description: resource.menu?.description ?? resource.description ?? "Embed integration resource",
+      searchTerms: resource.menu?.searchTerms ?? resource.searchTerms,
+      icon: iconByName[resource.menu?.icon ?? "link"] ?? IconLink,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setIntegrationEmbed({
+            integrationId: resource.integrationId,
+            resourceId: resource.id,
+            renderKind: resource.renderKind,
+          })
+          .run();
+      },
+    }));
+}
+
 export const getSuggestionItems = ({
   query,
   excludeItems,
@@ -753,6 +787,10 @@ export const getSuggestionItems = ({
 }): SlashMenuGroupedItemsType => {
   const search = query.toLowerCase();
   const filteredGroups: SlashMenuGroupedItemsType = {};
+  const commandGroups: SlashMenuGroupedItemsType = {
+    ...CommandGroups,
+    embed: [...(CommandGroups.embed ?? []), ...getIntegrationResourceItems()],
+  };
 
   const fuzzyMatch = (query: string, target: string) => {
     let queryIndex = 0;
@@ -764,9 +802,14 @@ export const getSuggestionItems = ({
     return false;
   };
 
-  for (const [group, items] of Object.entries(CommandGroups)) {
+  for (const [group, items] of Object.entries(commandGroups)) {
     const filteredItems = items.filter((item) => {
       if (excludeItems?.has(item.title)) return false;
+      if (
+        item.requiresIntegration &&
+        !registeredIntegrations.has(item.requiresIntegration)
+      )
+        return false;
       return (
         fuzzyMatch(search, item.title) ||
         item.description.toLowerCase().includes(search) ||

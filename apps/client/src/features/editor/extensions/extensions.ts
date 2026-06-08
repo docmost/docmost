@@ -61,6 +61,7 @@ import {
   TransclusionSource,
   TransclusionReference,
   TableView,
+  IntegrationEmbed,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -87,6 +88,8 @@ import CodeBlockView from "@/features/editor/components/code-block/code-block-vi
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view-lazy.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
+import IntegrationEmbedView from "@/features/editor/components/integrations/integration-embed-view.tsx";
+import { matchIntegrationEmbedText } from "@/features/integrations/integration-resource-registry";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
@@ -364,6 +367,18 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
+  }),
+  IntegrationEmbed.configure({
+    view: IntegrationEmbedView,
+    // One dynamic rule backed by the registered-integration catalog: pasted
+    // provider URLs convert to embeds for whatever integrations the server
+    // exposes, with zero provider-specific code in the editor bundle.
+    inputRules: [
+      {
+        find: (text) => matchIntegrationEmbedText(text),
+        getAttributes: (match) => match.data ?? {},
+      },
+    ],
   }),
   TiptapPdf.configure({
     view: PdfView,
