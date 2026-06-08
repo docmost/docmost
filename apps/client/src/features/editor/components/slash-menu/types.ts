@@ -22,6 +22,13 @@ export type SlashMenuItemType = {
   command: (props: CommandProps) => void;
   disable?: (editor: ReturnType<typeof useEditor>) => boolean;
   requiresBases?: true;
+  /**
+   * Hide the entry until the given third-party integration is registered
+   * (i.e. its manifest is in IntegrationOAuthRegistry server-side, which
+   * happens when its env config is present). Doesn't gate on the user
+   * having connected — clicking the entry is the discovery + connect path.
+   */
+  requiresIntegration?: string;
 };
 
 export type SlashMenuGroupedItemsType = {

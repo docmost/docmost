@@ -1,0 +1,20 @@
+/* Anchors inside editor content are repainted by the global `.ProseMirror a`
+   rule; embed links opt out and always present as clickable. The !important
+   color overrides follow the same approach as mention.module.css. */
+.link {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  cursor: pointer;
+}
+
+/* Badges rendered as anchors keep the Mantine badge palette. */
+.badgeLink {
+  composes: link;
+  color: var(--badge-color) !important;
+}
+
+/* Links that should read as regular text (row/card titles). */
+.quietLink {
+  composes: link;
+  color: inherit !important;
+}
