@@ -16,13 +16,10 @@ interface CustomAvatarProps {
   mt?: string | number;
 }
 
-// `color.shade` pairs whose contrast meets WCAG AA (4.5:1) in BOTH variants:
-//   - filled: white text on the shade as bg
-//   - light:  shade as text on the color's light-bg (10% color.6 over white)
-// Avoids lime/yellow/green/orange — even their dark shades have weak
-// contrast. grape and indigo were bumped from .7 to darker shades because
-// the original picks failed: grape.7 was 4.02/3.61 (both fail) and
-// indigo.7 was 4.98/4.39 (light fails by a hair).
+// color.shade picks whose FILLED variant (white text on the shade) meets WCAG AA 4.5:1.
+// Avoids lime/yellow/green/orange, too light even at dark shades.
+// For non-filled variants, initials text is forced to the .9 shade at render time:
+// Mantine otherwise caps light-variant placeholder text at .6, dropping contrast to ~3:1.
 const SAFE_INITIALS_COLORS: MantineColor[] = [
   "blue.8",
   "cyan.9",
@@ -54,11 +51,20 @@ function sanitizeInitialsSource(name: string) {
 export const CustomAvatar = React.forwardRef<
   HTMLInputElement,
   CustomAvatarProps
->(({ avatarUrl, name, type, color, ...props }: CustomAvatarProps, ref) => {
+>(({ avatarUrl, name, type, color, variant, ...props }: CustomAvatarProps, ref) => {
   const avatarLink = getAvatarUrl(avatarUrl, type);
-  const resolvedColor =
-    !color || color === "initials" ? pickInitialsColor(name ?? "") : color;
+  const isInitials = !color || color === "initials";
+  const resolvedColor = isInitials ? pickInitialsColor(name ?? "") : color;
   const initialsSource = sanitizeInitialsSource(name ?? "");
+
+  const placeholderStyles =
+    isInitials && variant !== "filled"
+      ? {
+          placeholder: {
+            color: `var(--mantine-color-${resolvedColor.split(".")[0]}-9)`,
+          },
+        }
+      : undefined;
 
   return (
     <Avatar
@@ -67,6 +73,8 @@ export const CustomAvatar = React.forwardRef<
       name={initialsSource}
       alt={name}
       color={resolvedColor}
+      variant={variant}
+      styles={placeholderStyles}
       {...props}
     />
   );

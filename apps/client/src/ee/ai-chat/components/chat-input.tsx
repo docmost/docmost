@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect, useState } from "react";
+import { useCallback, useId, useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto, IconPlus, IconAt, IconFileText } from "@tabler/icons-react";
 import { Popover } from "@mantine/core";
@@ -107,6 +107,7 @@ export default function ChatInput({
   const [isEmpty, setIsEmpty] = useState(true);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const plusMenuId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const onSendRef = useRef(onSend);
   onSendRef.current = onSend;
@@ -342,6 +343,7 @@ export default function ChatInput({
           position="top-start"
           width={220}
           shadow="md"
+          withRoles={false}
           trapFocus
           returnFocus
         >
@@ -351,13 +353,17 @@ export default function ChatInput({
               className={classes.plusButton}
               onClick={() => setPlusMenuOpen((o) => !o)}
               aria-label="Add content"
+              aria-haspopup="menu"
+              aria-expanded={plusMenuOpen}
+              aria-controls={plusMenuOpen ? plusMenuId : undefined}
             >
               <IconPlus size={14} />
             </button>
           </Popover.Target>
-          <Popover.Dropdown p={4}>
+          <Popover.Dropdown id={plusMenuId} role="menu" p={4}>
             <button
               type="button"
+              role="menuitem"
               className={classes.plusMenuItem}
               onClick={() => {
                 fileInputRef.current?.click();
@@ -377,6 +383,7 @@ export default function ChatInput({
             </button>
             <button
               type="button"
+              role="menuitem"
               className={classes.plusMenuItem}
               onClick={() => {
                 editor?.commands.insertContent("@");
@@ -385,7 +392,7 @@ export default function ChatInput({
               }}
             >
               <IconAt size={16} className={classes.plusMenuIcon} />
-              Mention a page
+              {t("Mention a page")}
             </button>
           </Popover.Dropdown>
         </Popover>

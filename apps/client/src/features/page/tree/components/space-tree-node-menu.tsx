@@ -34,6 +34,7 @@ import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import classes from "@/features/page/tree/styles/tree.module.css";
 
 export interface NodeMenuProps {
   node: SpaceTreeNode;
@@ -123,8 +124,9 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       <Menu shadow="md" width={200}>
         <Menu.Target>
           <ActionIcon
-            variant="transparent"
-            c="gray"
+            variant="subtle"
+            color="gray"
+            className={classes.actionIcon}
             aria-label={t("Page menu for {{name}}", { name: node.name || t("untitled") })}
             tabIndex={-1}
             onClick={(e) => {

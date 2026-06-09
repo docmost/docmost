@@ -13,6 +13,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import { RadioMenuItem } from "@/components/ui/radio-menu-item";
 
 type SpaceFilterMenuProps = {
   value: string | null;
@@ -75,7 +76,7 @@ export function SpaceFilterMenu({
 
         <ScrollArea.Autosize mah={280}>
           <Menu.Item
-            role="menuitemradio"
+            component={RadioMenuItem}
             aria-checked={!value}
             onClick={() => onChange(null)}
           >
@@ -103,7 +104,7 @@ export function SpaceFilterMenu({
           {orderedSpaces.map((space) => (
             <Menu.Item
               key={space.id}
-              role="menuitemradio"
+              component={RadioMenuItem}
               aria-checked={value === space.id}
               onClick={() => onChange(space.id)}
             >

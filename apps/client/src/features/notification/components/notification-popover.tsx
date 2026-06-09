@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   ActionIcon,
   Group,
@@ -31,6 +31,7 @@ import classes from "../notification.module.css";
 
 export function NotificationPopover() {
   const { t } = useTranslation();
+  const titleId = useId();
   const [opened, setOpened] = useState(false);
   const [tab, setTab] = useState<NotificationTab>("direct");
   const [filter, setFilter] = useState<NotificationFilter>("all");
@@ -83,10 +84,11 @@ export function NotificationPopover() {
 
       <Popover.Dropdown
         p={0}
+        aria-labelledby={titleId}
         style={{ width: "min(420px, calc(100vw - 24px))" }}
       >
         <Group justify="space-between" px="md" py="sm">
-          <Title order={2} fz="sm" fw={600}>
+          <Title id={titleId} order={2} fz="sm" fw={600}>
             {t("Notifications")}
           </Title>
           <Group gap={4}>

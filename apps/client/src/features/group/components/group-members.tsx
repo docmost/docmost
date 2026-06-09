@@ -91,7 +91,9 @@ export default function GroupMembersList() {
                         <ActionIcon
                           variant="subtle"
                           c="gray"
-                          aria-label={t("Member actions")}
+                          aria-label={t("Member actions for {{name}}", {
+                            name: user.name,
+                          })}
                         >
                           <IconDots size={20} stroke={2} />
                         </ActionIcon>

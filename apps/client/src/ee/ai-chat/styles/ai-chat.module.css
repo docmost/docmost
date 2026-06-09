@@ -76,7 +76,6 @@
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-lg) var(--mantine-spacing-lg);
 }
 
-/* Empty state - Notion AI style centered layout */
 .emptyState {
   flex: 1;
   display: flex;
