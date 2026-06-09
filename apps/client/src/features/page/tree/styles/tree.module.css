@@ -57,6 +57,10 @@
     flex-shrink: 0;
 }
 
+.actionIcon {
+    color: light-dark(var(--mantine-color-dark-3), var(--mantine-color-gray-4));
+}
+
 .text {
     flex: 1;
     /* min-width: 0 lets a flex child shrink below its content size — required

@@ -201,13 +201,13 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
     return (
       <span
         aria-hidden
+        className={classes.actionIcon}
         style={{
           width: 20,
           height: 20,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "var(--mantine-color-gray-6)",
           flexShrink: 0,
         }}
       >
@@ -220,7 +220,8 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
     <ActionIcon
       size={20}
       variant="subtle"
-      c="gray"
+      color="gray"
+      className={classes.actionIcon}
       aria-label={isOpen ? t("Collapse") : t("Expand")}
       aria-expanded={isOpen}
       tabIndex={-1}
@@ -272,8 +273,9 @@ function CreateNode({
 
   return (
     <ActionIcon
-      variant="transparent"
-      c="gray"
+      variant="subtle"
+      color="gray"
+      className={classes.actionIcon}
       aria-label={t("Create subpage of {{name}}", { name: node.name || t("untitled") })}
       tabIndex={-1}
       onClick={(e) => {
