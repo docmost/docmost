@@ -447,6 +447,35 @@ export interface ScimTokens {
   workspaceId: string;
 }
 
+export interface IntegrationOauthConnections {
+  id: Generated<string>;
+  workspaceId: string;
+  integrationId: string;
+  enabled: Generated<boolean>;
+  baseUrl: string;
+  oauthClientId: string;
+  oauthClientSecretEncrypted: string | null;
+  settings: Generated<Json>;
+  createdById: string | null;
+  updatedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface IntegrationOauthTokens {
+  id: Generated<string>;
+  userId: string;
+  workspaceId: string;
+  integrationId: string;
+  accessTokenEncrypted: string;
+  refreshTokenEncrypted: string | null;
+  expiresAt: Timestamp | null;
+  scopes: Generated<string>;
+  needsReconnect: Generated<boolean>;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface Watchers {
   id: Generated<string>;
   userId: string;
@@ -616,6 +645,8 @@ export interface DB {
   pageVerifiers: PageVerifiers;
   pages: Pages;
   scimTokens: ScimTokens;
+  integrationOauthConnections: IntegrationOauthConnections;
+  integrationOauthTokens: IntegrationOauthTokens;
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
