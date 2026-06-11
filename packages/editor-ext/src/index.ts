@@ -20,6 +20,7 @@ export * from "./lib/mention";
 export * from "./lib/markdown";
 export * from "./lib/search-and-replace";
 export * from "./lib/embed-provider";
+export * from "./lib/integration-embed";
 export * from "./lib/subpages";
 export * from "./lib/transclusion";
 export * from "./lib/highlight";
