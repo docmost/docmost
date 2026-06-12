@@ -53,7 +53,14 @@ export function PagePermissionItem({
             {isCurrentUser && <Text span c="dimmed"> ({t("You")})</Text>}
           </AutoTooltipText>
           <AutoTooltipText fz="xs" c="dimmed">
-            {member.type === "user" ? member.email : formatMemberCount(member.memberCount, t)}
+            {member.type === "user"
+              ? member.email
+              : member.isDefault
+                ? // Page access still requires space membership, so the
+                  // workspace-wide member count would overstate who can
+                  // actually see the page.
+                  t("Everyone with access to this space")
+                : formatMemberCount(member.memberCount, t)}
           </AutoTooltipText>
         </div>
       </div>

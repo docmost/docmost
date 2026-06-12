@@ -153,7 +153,9 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       setImportAll(true);
       setActive(1);
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || t("Unexpected error"));
+      setError(
+        err?.response?.data?.message || err?.message || t("Unexpected error"),
+      );
     } finally {
       setLoading(false);
     }
@@ -161,7 +163,9 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
 
   const toggleSpace = (key: string, checked: boolean) => {
     setSelectedKeys((prev) =>
-      checked ? Array.from(new Set([...prev, key])) : prev.filter((k) => k !== key),
+      checked
+        ? Array.from(new Set([...prev, key]))
+        : prev.filter((k) => k !== key),
     );
   };
 
@@ -349,13 +353,14 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
           )}
 
           <Group justify="flex-end">
-            <Button variant="default" onClick={handleCancelFlow} disabled={loading}>
+            <Button
+              variant="default"
+              onClick={handleCancelFlow}
+              disabled={loading}
+            >
               {t("Cancel")}
             </Button>
-            <Button
-              onClick={handleNextFromCredentials}
-              loading={loading}
-            >
+            <Button onClick={handleNextFromCredentials} loading={loading}>
               {t("Test & continue")}
             </Button>
           </Group>
@@ -366,7 +371,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
         <Stack>
           <Text size="sm" c="dimmed">
             {t(
-              "Choose the spaces to import. Users, groups and permissions will be imported for the selected spaces.",
+              "Pages, comments, page labels, users, groups, spaces and permissions will be imported.",
             )}
           </Text>
 
@@ -435,7 +440,6 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
           </Group>
         </Stack>
       )}
-
     </Modal>
   );
 }

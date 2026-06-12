@@ -18,6 +18,10 @@ export interface ConfluenceApiImports {
   importedAttachments: Generated<number>;
   totalLabels: Generated<number>;
   importedLabels: Generated<number>;
+  totalGroups: Generated<number>;
+  importedGroups: Generated<number>;
+  totalRestrictedPages: Generated<number>;
+  importedRestrictedPages: Generated<number>;
   idMapping: Generated<Json>;
   warnings: Generated<Json>;
   currentPhase: string | null;

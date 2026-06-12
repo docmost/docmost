@@ -1,7 +1,7 @@
 import {
-  IsAlphanumeric,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -20,6 +20,8 @@ export class CreateSpaceDto {
 
   @MinLength(2)
   @MaxLength(100)
-  @IsAlphanumeric()
+  @Matches(/^[a-zA-Z0-9-]+$/, {
+    message: 'slug can only contain letters, numbers, and hyphens',
+  })
   slug: string;
 }
