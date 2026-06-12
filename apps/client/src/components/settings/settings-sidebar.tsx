@@ -130,7 +130,7 @@ const groupedData: DataGroup[] = [
         label: "Import",
         icon: IconFileImport,
         path: "/settings/import/confluence",
-        feature: Feature.CONFLUENCE_IMPORT,
+        feature: Feature.CONFLUENCE_API_IMPORT,
         role: "admin",
       },
     ],

@@ -22,7 +22,7 @@ import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 export default function ConfluenceImportPage() {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
-  const hasConfluenceImport = useHasFeature(Feature.CONFLUENCE_IMPORT);
+  const hasConfluenceImport = useHasFeature(Feature.CONFLUENCE_API_IMPORT);
   const upgradeLabel = useUpgradeLabel();
 
   return (
