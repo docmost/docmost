@@ -7,6 +7,7 @@ export const Feature = {
   PAGE_PERMISSIONS: 'page:permissions',
   AI: 'ai',
   CONFLUENCE_IMPORT: 'import:confluence',
+  CONFLUENCE_API_IMPORT: 'import:confluence-api',
   DOCX_IMPORT: 'import:docx',
   PDF_IMPORT: 'import:pdf',
   ATTACHMENT_INDEXING: 'attachment:indexing',
