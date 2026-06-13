@@ -45,10 +45,6 @@ import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
 import {
-  PageVerificationMenuItem,
-  PageVerificationModal,
-} from "@/ee/page-verification";
-import {
   useFavoriteIds,
   useAddFavoriteMutation,
   useRemoveFavoriteMutation,
@@ -150,10 +146,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [
     movePageModalOpened,
     { open: openMovePageModal, close: closeMoveSpaceModal },
-  ] = useDisclosure(false);
-  const [
-    verificationOpened,
-    { open: openVerificationModal, close: closeVerificationModal },
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
@@ -285,13 +277,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             {t("Page history")}
           </Menu.Item>
 
-          {!readOnly && (
-            <PageVerificationMenuItem
-              pageId={page?.id}
-              onClick={openVerificationModal}
-            />
-          )}
-
           <Menu.Divider />
 
           {!readOnly && (
@@ -382,11 +367,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         open={movePageModalOpened}
       />
 
-      <PageVerificationModal
-        pageId={page.id}
-        opened={verificationOpened}
-        onClose={closeVerificationModal}
-      />
     </>
   );
 }
