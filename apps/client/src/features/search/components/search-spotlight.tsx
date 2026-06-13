@@ -1,6 +1,6 @@
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch, IconSparkles } from "@tabler/icons-react";
-import { Group, Button, VisuallyHidden } from "@mantine/core";
+import { Group, Button, VisuallyHidden, Center, Text } from "@mantine/core";
 import React, { useState, useMemo, useEffect } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,9 @@ import { SearchResultItem } from "./search-result-item.tsx";
 import { AiSearchResult } from "../../../ee/ai/components/ai-search-result.tsx";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
+import { useLinearIssueSearchQuery } from "@/features/linear/queries/linear-query";
+import LinearIcon from "@/components/icons/linear-icon.tsx";
+import { sanitizeUrl } from "@docmost/editor-ext";
 
 interface SearchSpotlightProps {
   spaceId?: string;
@@ -95,6 +98,11 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
       showSpace={!filters.spaceId}
     />
   ));
+
+  const { data: linearData } = useLinearIssueSearchQuery(
+    isAiMode ? "" : debouncedSearchQuery,
+  );
+  const linearIssues = linearData?.connected ? linearData.issues : [];
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
@@ -198,11 +206,44 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
                 <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
               )}
 
-              {query.length > 0 && !isLoading && resultItems.length === 0 && (
-                <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
-              )}
+              {query.length > 0 &&
+                !isLoading &&
+                resultItems.length === 0 &&
+                linearIssues.length === 0 && (
+                  <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
+                )}
 
               {resultItems.length > 0 && <>{resultItems}</>}
+
+              {linearIssues.length > 0 && (
+                <Spotlight.ActionsGroup label={t("Linear")}>
+                  {linearIssues.map((issue) => (
+                    <Spotlight.Action
+                      key={issue.id}
+                      component="a"
+                      //@ts-ignore
+                      href={sanitizeUrl(issue.url) || undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ userSelect: "none" }}
+                    >
+                      <Group wrap="nowrap" w="100%">
+                        <Center>
+                          <LinearIcon size={16} />
+                        </Center>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Group gap="xs" wrap="nowrap">
+                            <Text size="xs" opacity={0.6}>
+                              {issue.identifier}
+                            </Text>
+                            <Text truncate>{issue.title}</Text>
+                          </Group>
+                        </div>
+                      </Group>
+                    </Spotlight.Action>
+                  ))}
+                </Spotlight.ActionsGroup>
+              )}
             </>
           )}
         </Spotlight.ActionsList>

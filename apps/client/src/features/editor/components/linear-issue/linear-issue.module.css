@@ -1,0 +1,124 @@
+.wrapper {
+  display: inline;
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.875em;
+  font-weight: 500;
+  line-height: 1.4;
+  text-decoration: none;
+  color: var(--mantine-color-text);
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  cursor: pointer;
+}
+
+.chip:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-2),
+    var(--mantine-color-dark-4)
+  );
+}
+
+.stateDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dropdown {
+  z-index: 300;
+  padding: 10px 12px;
+}
+
+.searchPanel {
+  width: 320px;
+  padding-top: 6px;
+  padding-bottom: 4px;
+  overflow: hidden;
+}
+
+.searchItem {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.searchItem[data-selected] {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+}
+
+.itemId {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.createPanel {
+  width: 320px;
+}
+
+.description {
+  /* grow with content, but scroll instead of ballooning for long descriptions */
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.description > :first-child {
+  margin-top: 0;
+}
+
+.description > :last-child {
+  margin-bottom: 0;
+}
+
+.description p,
+.description ul,
+.description ol,
+.description blockquote,
+.description pre,
+.description table {
+  margin-block: 0.35em;
+}
+
+.description ul,
+.description ol {
+  padding-inline-start: 1.2em;
+}
+
+/* keep markdown headings subordinate to the issue title: bold, but body size */
+.description h1,
+.description h2,
+.description h3,
+.description h4,
+.description h5,
+.description h6 {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  margin-block: 0.4em;
+}
+
+.description pre,
+.description code {
+  font-size: 0.85em;
+}
+
+.description img {
+  max-width: 100%;
+}

@@ -27,6 +27,8 @@ import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { TemplateRepo } from '@docmost/db/repos/template/template.repo';
+import { IntegrationConnectionRepo } from '@docmost/db/repos/integration/integration-connection.repo';
+import { IntegrationSettingsRepo } from '@docmost/db/repos/integration/integration-settings.repo';
 import { PageListener } from '@docmost/db/listeners/page.listener';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import * as postgres from 'postgres';
@@ -92,6 +94,8 @@ import { normalizePostgresUrl } from '../common/helpers';
     WatcherRepo,
     LabelRepo,
     TemplateRepo,
+    IntegrationConnectionRepo,
+    IntegrationSettingsRepo,
     PageListener,
   ],
   exports: [
@@ -117,6 +121,8 @@ import { normalizePostgresUrl } from '../common/helpers';
     WatcherRepo,
     LabelRepo,
     TemplateRepo,
+    IntegrationConnectionRepo,
+    IntegrationSettingsRepo,
   ],
 })
 export class DatabaseModule implements OnApplicationBootstrap {

@@ -38,6 +38,8 @@ import { uploadVideoAction } from "@/features/editor/components/video/upload-vid
 import { uploadAudioAction } from "@/features/editor/components/audio/upload-audio-action.tsx";
 import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
 import { uploadPdfAction } from "@/features/editor/components/pdf/upload-pdf-action.tsx";
+import { openLinearIssueSearch } from "@/features/editor/components/linear-issue/open-linear-issue-search.ts";
+import LinearIcon from "@/components/icons/linear-icon.tsx";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
@@ -486,6 +488,16 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .setStatus({ text: "", color: "gray" })
           .run();
+      },
+    },
+    {
+      title: "Linear issue",
+      description: "Search and mention a Linear issue.",
+      searchTerms: ["linear", "issue", "ticket", "task"],
+      icon: LinearIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).run();
+        openLinearIssueSearch(editor);
       },
     },
     {
