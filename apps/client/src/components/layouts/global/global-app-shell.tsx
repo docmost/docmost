@@ -92,9 +92,16 @@ export default function GlobalAppShell({
   return (
     <>
       <Helmet>
-        {workspaceLogo ? (
-          <link rel="icon" type="image/png" href={workspaceLogo} />
-        ) : null}
+        <link
+          rel="icon"
+          sizes="32x32"
+          href={workspaceLogo || "/icons/favicon-32x32.png"}
+        />
+        <link
+          rel="icon"
+          sizes="16x16"
+          href={workspaceLogo || "/icons/favicon-16x16.png"}
+        />
       </Helmet>
       <SkipToMain />
       <AppShell
