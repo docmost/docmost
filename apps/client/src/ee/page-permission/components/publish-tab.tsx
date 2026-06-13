@@ -10,11 +10,11 @@ import {
   TextInput,
 } from "@mantine/core";
 import { IconExternalLink, IconLock } from "@tabler/icons-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPageIcon } from "@/lib";
 import CopyTextButton from "@/components/common/copy";
-import { getAppUrl, isCloud } from "@/lib/config";
+import { getAppUrl } from "@/lib/config";
 import { buildPageUrl } from "@/features/page/page.utils";
 import {
   useCreateShareMutation,
@@ -22,7 +22,6 @@ import {
   useShareForPageQuery,
   useUpdateShareMutation,
 } from "@/features/share/queries/share-query";
-import useTrial from "@/ee/hooks/use-trial";
 
 type PublishTabProps = {
   pageId: string;
@@ -34,10 +33,7 @@ type PublishTabProps = {
 
 export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDisabled, spaceSharingDisabled }: PublishTabProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { pageSlug, spaceSlug } = useParams();
-  const { isTrial } = useTrial();
-
   const { data: share } = useShareForPageQuery(pageId);
   const createShareMutation = useCreateShareMutation();
   const updateShareMutation = useUpdateShareMutation();
@@ -115,25 +111,6 @@ export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDis
     ),
     [publicLink],
   );
-
-  if (isCloud() && isTrial) {
-    return (
-      <Stack align="center" py="md">
-        <IconLock size={20} stroke={1.5} />
-        <Text size="sm" ta="center" fw={500}>
-          {t("Upgrade to share pages")}
-        </Text>
-        <Text size="sm" c="dimmed" ta="center">
-          {t(
-            "Page sharing is available on paid plans. Upgrade to share your pages publicly.",
-          )}
-        </Text>
-        <Button size="xs" onClick={() => navigate("/settings/billing")}>
-          {t("Upgrade Plan")}
-        </Button>
-      </Stack>
-    );
-  }
 
   if (workspaceSharingDisabled || spaceSharingDisabled) {
     return (

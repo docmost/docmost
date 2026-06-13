@@ -17,14 +17,9 @@ import Layout from "@/components/layouts/global/layout.tsx";
 import InviteSignup from "@/pages/auth/invite-signup.tsx";
 import ForgotPassword from "@/pages/auth/forgot-password.tsx";
 import PasswordReset from "./pages/auth/password-reset";
-import Billing from "@/ee/billing/pages/billing.tsx";
-import CloudLogin from "@/ee/pages/cloud-login.tsx";
-import CreateWorkspace from "@/ee/pages/create-workspace.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
-import License from "@/ee/licence/pages/license.tsx";
-import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import SharedPage from "@/pages/share/shared-page.tsx";
 import PdfRenderPage from "@/ee/pdf-export/pdf-render-page.tsx";
 import Shares from "@/pages/settings/shares/shares.tsx";
@@ -44,12 +39,10 @@ import TemplateList from "@/ee/template/pages/template-list";
 import TemplateEditor from "@/ee/template/pages/template-editor";
 import FavoritesPage from "@/pages/favorites/favorites-page";
 import AiChat from "@/ee/ai-chat/pages/ai-chat.tsx";
-import VerifyEmail from "@/ee/pages/verify-email.tsx";
 import LabelPage from "@/pages/label/label-page";
 
 export default function App() {
   const { t } = useTranslation();
-  useRedirectToCloudSelect();
   useTrackOrigin();
 
   return (
@@ -65,14 +58,6 @@ export default function App() {
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
-        )}
-
-        {isCloud() && (
-          <>
-            <Route path={"/create"} element={<CreateWorkspace />} />
-            <Route path={"/select"} element={<CloudLogin />} />
-            <Route path={"/verify-email"} element={<VerifyEmail />} />
-          </>
         )}
 
         <Route element={<ShareLayout />}>
@@ -125,8 +110,6 @@ export default function App() {
             <Route path={"ai/mcp"} element={<AiSettings />} />
             <Route path={"audit"} element={<AuditLogs />} />
             <Route path={"verifications"} element={<VerifiedPages />} />
-            {!isCloud() && <Route path={"license"} element={<License />} />}
-            {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>
         </Route>
 
