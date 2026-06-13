@@ -8,6 +8,7 @@ import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util';
 import { ExportFormat } from './dto/export-dto';
 import { Page } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
+import { sanitizeFileName } from '../../common/helpers';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as JSZip from 'jszip';
 import { StorageService } from '../storage/storage.service';
@@ -315,13 +316,14 @@ export class ExportService {
         }
 
         const pageTitle = getPageTitle(page.title);
+        const safePageTitle = sanitizeFileName(pageTitle);
         const pageExportContent = await this.exportPage(format, {
           ...page,
           content: updatedJsonContent,
         });
 
         folder.file(
-          `${pageTitle}${getExportExtension(format)}`,
+          `${safePageTitle}${getExportExtension(format)}`,
           pageExportContent,
         );
 
@@ -339,7 +341,7 @@ export class ExportService {
         };
 
         if (childPages.length > 0) {
-          const pageFolder = folder.folder(pageTitle);
+          const pageFolder = folder.folder(safePageTitle);
           stack.push({ folder: pageFolder, parentPageId: page.id });
         }
       }

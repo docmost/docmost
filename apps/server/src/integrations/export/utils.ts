@@ -6,6 +6,7 @@ import { validate as isValidUUID } from 'uuid';
 import * as path from 'path';
 import { Page } from '@docmost/db/types/entity.types';
 import { isAttachmentNode } from '../../common/helpers/prosemirror/utils';
+import { sanitizeFileName } from '../../common/helpers';
 
 export type PageExportTree = Record<string, Page[]>;
 
@@ -167,7 +168,7 @@ export function computeLocalPath(
   const children = tree[parentPageId] || [];
 
   for (const page of children) {
-    const title = encodeURIComponent(getPageTitle(page.title));
+    const title = encodeURIComponent(sanitizeFileName(getPageTitle(page.title)));
     const localPath = `${currentPath}${title}`;
     slugIdToPath[page.slugId] = `${localPath}${getExportExtension(format)}`;
 
