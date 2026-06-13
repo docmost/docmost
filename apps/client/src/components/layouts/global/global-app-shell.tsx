@@ -20,6 +20,11 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import GlobalSidebar from "@/components/layouts/global/global-sidebar.tsx";
 import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
 import { MAIN_CONTENT_ID, SkipToMain } from "@/components/ui/skip-to-main.tsx";
+import { Helmet } from "react-helmet-async";
+import { useAtomValue } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { getAvatarUrl } from "@/lib/config.ts";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 export default function GlobalAppShell({
   children,
@@ -81,9 +86,16 @@ export default function GlobalAppShell({
   const isAiRoute = location.pathname.startsWith("/ai");
   const isPageRoute = location.pathname.includes("/p/");
   const showGlobalSidebar = !isSpaceRoute && !isSettingsRoute && !isAiRoute;
+  const workspace = useAtomValue(workspaceAtom);
+  const workspaceLogo = getAvatarUrl(workspace?.logo, AvatarIconType.WORKSPACE_ICON);
 
   return (
     <>
+      <Helmet>
+        {workspaceLogo ? (
+          <link rel="icon" type="image/png" href={workspaceLogo} />
+        ) : null}
+      </Helmet>
       <SkipToMain />
       <AppShell
       header={{ height: 45 }}
