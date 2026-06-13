@@ -3,6 +3,9 @@ import {
   AiChats,
   AiChatMessages,
   Attachments,
+  BaseProperties,
+  BaseRows,
+  BaseViews,
   Comments,
   Groups,
   Labels,
@@ -238,3 +241,27 @@ export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
 export type Template = Selectable<Templates>;
 export type InsertableTemplate = Insertable<Templates>;
 export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;
+
+// Base Property
+export type BaseProperty = Selectable<BaseProperties>;
+export type InsertableBaseProperty = Insertable<BaseProperties>;
+export type UpdatableBaseProperty = Updateable<Omit<BaseProperties, 'id'>>;
+
+// Base Row
+// `searchText` and `searchTsv` are internal fulltext-index columns maintained
+// by a trigger. They are omitted from the public types so they never leak into
+// HTTP responses or write payloads.
+export type BaseRow = Omit<Selectable<BaseRows>, 'searchText' | 'searchTsv'>;
+export type InsertableBaseRow = Omit<
+  Insertable<BaseRows>,
+  'searchText' | 'searchTsv'
+>;
+export type UpdatableBaseRow = Omit<
+  Updateable<Omit<BaseRows, 'id'>>,
+  'searchText' | 'searchTsv'
+>;
+
+// Base View
+export type BaseView = Selectable<BaseViews>;
+export type InsertableBaseView = Insertable<BaseViews>;
+export type UpdatableBaseView = Updateable<Omit<BaseViews, 'id'>>;

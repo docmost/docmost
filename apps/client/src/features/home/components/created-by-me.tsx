@@ -4,15 +4,15 @@ import {
   UnstyledButton,
   Badge,
   Table,
-  ThemeIcon,
   Button,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
 import PageListSkeleton from "@/components/ui/page-list-skeleton";
-import { buildPageUrl } from "@/features/page/page.utils";
+import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { formattedDate } from "@/lib/time";
 import { useCreatedByQuery } from "@/features/page/queries/page-query";
-import { IconFileDescription, IconFiles } from "@tabler/icons-react";
+import { PageListIcon } from "@/components/common/page-list-icon";
+import { IconFiles } from "@tabler/icons-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSpaceUrl } from "@/lib/config";
 import { useTranslation } from "react-i18next";
@@ -62,17 +62,9 @@ export default function CreatedByMe({ spaceId }: Props) {
                     )}
                   >
                     <Group wrap="nowrap">
-                      {page.icon || (
-                        <ThemeIcon
-                          variant="transparent"
-                          color="gray"
-                          size={18}
-                        >
-                          <IconFileDescription size={18} />
-                        </ThemeIcon>
-                      )}
+                      <PageListIcon icon={page.icon} isBase={page.isBase} />
                       <Text fw={500} size="md" lineClamp={1}>
-                        {page.title || t("Untitled")}
+                        {getPageTitle(page.title, page.isBase, t)}
                       </Text>
                     </Group>
                   </UnstyledButton>

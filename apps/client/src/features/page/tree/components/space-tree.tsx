@@ -18,6 +18,7 @@ import {
   mergeRootTrees,
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { getPageTitle } from "@/features/page/page.utils";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { getPageBreadcrumbs } from "@/features/page/services/page-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
@@ -200,7 +201,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     [],
   );
   const getDragLabel = useCallback(
-    (n: SpaceTreeNode) => n.name || t("untitled"),
+    (n: SpaceTreeNode) => getPageTitle(n.name, n.isBase, t),
     [t],
   );
 

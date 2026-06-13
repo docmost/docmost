@@ -56,6 +56,32 @@ import {
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import api from "@/lib/api-client";
+import { notifications } from "@mantine/notifications";
+import type { Editor } from "@tiptap/core";
+import { v7 as uuid7 } from "uuid";
+
+// Resolve the position of a baseEmbed placeholder by its pendingKey.
+// Used by the Database slash command to patch in the real pageId once
+// the create-base API responds — positions may have shifted in the
+// interim from collab edits, undo/redo, or concurrent slash commands.
+function findBaseEmbedPlaceholderPos(
+  editor: Editor,
+  pendingKey: string,
+): number | null {
+  let foundPos: number | null = null;
+  editor.state.doc.descendants((node, pos) => {
+    if (
+      node.type.name === "base" &&
+      node.attrs.pendingKey === pendingKey
+    ) {
+      foundPos = pos;
+      return false;
+    }
+    return true;
+  });
+  return foundPos;
+}
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -357,6 +383,65 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
           .run(),
+    },
+    {
+      title: "Base (Inline)",
+      description: "Insert an inline base on this page",
+      searchTerms: ["base", "database", "table", "grid", "spreadsheet"],
+      icon: IconTable,
+      command: async ({ editor, range }: CommandProps) => {
+        // @ts-ignore
+        const parentPageId = editor.storage?.pageId as string | undefined;
+        if (!parentPageId) return;
+
+        // Insert a placeholder embed at the slash position synchronously
+        // so the user sees a skeleton immediately while we wait on the
+        // create-base API. Once the response lands we look the
+        // placeholder up by its pendingKey and patch in the real pageId.
+        const pendingKey = uuid7();
+
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertBaseEmbed({ pageId: null, pendingKey })
+          .run();
+
+        try {
+          const res = await api.post<{ id: string }>("/bases/create", {
+            parentPageId,
+          });
+
+          const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
+          if (pos === null) return;
+          editor
+            .chain()
+            .command(({ tr }) => {
+              tr.setNodeMarkup(pos, undefined, {
+                pageId: res.data.id,
+                pendingKey: null,
+              });
+              return true;
+            })
+            .run();
+        } catch {
+          const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
+          if (pos !== null) {
+            editor
+              .chain()
+              .command(({ tr }) => {
+                const node = tr.doc.nodeAt(pos);
+                if (node) tr.delete(pos, pos + node.nodeSize);
+                return true;
+              })
+              .run();
+          }
+          notifications.show({
+            message: "Failed to create base",
+            color: "red",
+          });
+        }
+      },
     },
     {
       title: "Toggle block",
