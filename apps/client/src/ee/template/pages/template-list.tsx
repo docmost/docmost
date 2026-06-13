@@ -17,7 +17,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useDisclosure } from "@mantine/hooks";
-import { getAppName } from "@/lib/config";
+import { useAppName } from "@/lib/config";
 import {
   useGetTemplatesQuery,
   useDeleteTemplateMutation,
@@ -98,7 +98,7 @@ export default function TemplateList() {
     <>
       <Helmet>
         <title>
-          {t("Templates")} - {getAppName()}
+          {t("Templates")} - {useAppName()}
         </title>
       </Helmet>
 

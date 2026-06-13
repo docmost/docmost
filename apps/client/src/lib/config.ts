@@ -12,8 +12,12 @@ declare global {
 }
 
 export function getAppName(): string {
+  return "Docmost";
+}
+
+export function useAppName(): string {
   const workspace = useAtomValue(workspaceAtom);
-  return workspace?.name || "Docmost";
+  return workspace?.name || getAppName();
 }
 
 export function getAppUrl(): string {

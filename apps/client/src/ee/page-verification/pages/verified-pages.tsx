@@ -5,7 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { IconSearch } from "@tabler/icons-react";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
+import { useAppName } from "@/lib/config";
 import Paginate from "@/components/common/paginate";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useVerificationListQuery } from "@/ee/page-verification/queries/page-verification-query";
@@ -70,7 +70,7 @@ export default function VerifiedPages() {
     <>
       <Helmet>
         <title>
-          {t("Verified pages")} - {getAppName()}
+          {t("Verified pages")} - {useAppName()}
         </title>
       </Helmet>
 

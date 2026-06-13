@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config.ts";
+import { useAppName } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import BillingPlans from "@/ee/billing/components/billing-plans.tsx";
 import BillingTrial from "@/ee/billing/components/billing-trial.tsx";
@@ -13,6 +13,7 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 export default function Billing() {
   const { data: billing, isError: isBillingError } = useBillingQuery();
   const { isAdmin } = useUserRole();
+  const appName = useAppName();
 
   if (!isAdmin) {
     return null;
@@ -21,7 +22,7 @@ export default function Billing() {
   return (
     <>
       <Helmet>
-        <title>Billing - {getAppName()}</title>
+        <title>Billing - {appName}</title>
       </Helmet>
       <SettingsTitle title="Billing" />
 

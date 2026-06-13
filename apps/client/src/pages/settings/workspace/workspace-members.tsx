@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import WorkspaceInvitesTable from "@/features/workspace/components/members/components/workspace-invites-table.tsx";
 import useUserRole from "@/hooks/use-user-role.tsx";
-import { getAppName } from "@/lib/config.ts";
+import { useAppName } from "@/lib/config.ts";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
@@ -40,7 +40,7 @@ export default function WorkspaceMembers() {
     <>
       <Helmet>
         <title>
-          {t("Members")} - {getAppName()}
+          {t("Members")} - {useAppName()}
         </title>
       </Helmet>
       <SettingsTitle title={t("Members")} />

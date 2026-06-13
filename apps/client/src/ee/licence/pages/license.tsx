@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config.ts";
+import { useAppName } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import React from "react";
 import useUserRole from "@/hooks/use-user-role.tsx";
@@ -14,6 +14,7 @@ export default function License() {
   const [entitlements] = useAtom(entitlementAtom);
   const hasLicense = entitlements != null && entitlements.tier !== "free";
   const { isAdmin } = useUserRole();
+  const appName = useAppName();
 
   if (!isAdmin) {
     return null;
@@ -22,7 +23,7 @@ export default function License() {
   return (
     <>
       <Helmet>
-        <title>License - {getAppName()}</title>
+        <title>License - {appName}</title>
       </Helmet>
       <SettingsTitle title="License" />
 

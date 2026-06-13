@@ -5,7 +5,7 @@ import PageWidthPref from "@/features/user/components/page-width-pref.tsx";
 import PageEditPref from "@/features/user/components/page-state-pref";
 import FixedToolbarPref from "@/features/user/components/fixed-toolbar-pref";
 import NotificationPref from "@/features/user/components/notification-pref";
-import { getAppName } from "@/lib/config.ts";
+import { useAppName } from "@/lib/config.ts";
 import { Divider } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
@@ -17,7 +17,7 @@ export default function AccountPreferences() {
     <>
       <Helmet>
         <title>
-          {t("Preferences")} - {getAppName()}
+          {t("Preferences")} - {useAppName()}
         </title>
       </Helmet>
       <SettingsTitle title={t("Preferences")} />

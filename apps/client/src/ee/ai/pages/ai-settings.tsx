@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config.ts";
+import { useAppName } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import React from "react";
 import useUserRole from "@/hooks/use-user-role.tsx";
@@ -19,6 +19,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 export default function AiSettings() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
+  const appName = useAppName();
   const hasAccess = useHasFeature(Feature.AI);
   const upgradeLabel = useUpgradeLabel();
   const location = useLocation();
@@ -41,7 +42,7 @@ export default function AiSettings() {
   return (
     <>
       <Helmet>
-        <title>AI settings - {getAppName()}</title>
+        <title>AI settings - {appName}</title>
       </Helmet>
       <SettingsTitle title={t("AI settings")} />
 

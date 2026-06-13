@@ -1,7 +1,7 @@
 import { Container, Title, Text, Group, Box } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config";
+import { useAppName } from "@/lib/config";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import CreateSpaceModal from "@/features/space/components/create-space-modal";
 import { AllSpacesList } from "@/features/space/components/spaces-page";
@@ -24,7 +24,7 @@ export default function Spaces() {
     <>
       <Helmet>
         <title>
-          {t("Spaces")} - {getAppName()}
+          {t("Spaces")} - {useAppName()}
         </title>
       </Helmet>
 

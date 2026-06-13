@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { getAppName, isCloud } from "@/lib/config.ts";
+import { useAppName, isCloud } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import {
   Alert,
@@ -43,6 +43,7 @@ const SCIM_TOKEN_LIMIT = 5;
 export default function Security() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
+  const appName = useAppName();
   const hasCustomSso = useHasFeature(Feature.SSO_CUSTOM);
   const hasScim = useHasFeature(Feature.SCIM);
   const [workspace] = useAtom(workspaceAtom);
@@ -65,7 +66,7 @@ export default function Security() {
   return (
     <>
       <Helmet>
-        <title>Security - {getAppName()}</title>
+        <title>Security - {appName}</title>
       </Helmet>
       <SettingsTitle title={t("Security")} />
 

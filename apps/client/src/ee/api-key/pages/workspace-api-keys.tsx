@@ -3,7 +3,7 @@ import { Anchor, Button, Divider, Group, Space, Text } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { Trans, useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
+import { useAppName } from "@/lib/config";
 import { ApiKeyTable } from "@/ee/api-key/components/api-key-table";
 import { CreateApiKeyModal } from "@/ee/api-key/components/create-api-key-modal";
 import { ApiKeyCreatedModal } from "@/ee/api-key/components/api-key-created-modal";
@@ -26,6 +26,7 @@ export default function WorkspaceApiKeys() {
   const [selectedApiKey, setSelectedApiKey] = useState<IApiKey | null>(null);
   const { data, isLoading } = useGetApiKeysQuery({ cursor, adminView: true });
   const { isAdmin } = useUserRole();
+  const appName = useAppName();
 
   if (!isAdmin) {
     return null;
@@ -49,7 +50,7 @@ export default function WorkspaceApiKeys() {
     <>
       <Helmet>
         <title>
-          {t("API management")} - {getAppName()}
+          {t("API management")} - {appName}
         </title>
       </Helmet>
 

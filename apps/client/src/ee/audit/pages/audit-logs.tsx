@@ -14,7 +14,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { IconSettings } from "@tabler/icons-react";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
+import { useAppName } from "@/lib/config";
 import Paginate from "@/components/common/paginate";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import {
@@ -48,6 +48,7 @@ function retentionToDays(amount: number, unit: RetentionUnit): number {
 export default function AuditLogs() {
   const { t } = useTranslation();
   const { isOwner } = useUserRole();
+  const appName = useAppName();
   const { cursor, goNext, goPrev, resetCursor } = useCursorPaginate();
 
   const [eventFilter, setEventFilter] = useState<string | null>(null);
@@ -99,7 +100,7 @@ export default function AuditLogs() {
     <>
       <Helmet>
         <title>
-          {t("Audit log")} - {getAppName()}
+          {t("Audit log")} - {appName}
         </title>
       </Helmet>
 

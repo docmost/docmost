@@ -23,7 +23,7 @@ import { useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config";
+import { useAppName } from "@/lib/config";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { templateExtensions } from "@/features/editor/extensions/extensions";
 import {
@@ -243,7 +243,7 @@ export default function TemplateEditor() {
     <>
       <Helmet>
         <title>
-          {t("Edit template")} - {getAppName()}
+          {t("Edit template")} - {useAppName()}
         </title>
       </Helmet>
 
