@@ -214,22 +214,6 @@ export class EnvironmentService {
     return !this.isCloud();
   }
 
-  getStripePublishableKey(): string {
-    return this.configService.get<string>('STRIPE_PUBLISHABLE_KEY');
-  }
-
-  getStripeSecretKey(): string {
-    return this.configService.get<string>('STRIPE_SECRET_KEY');
-  }
-
-  getStripeWebhookSecret(): string {
-    return this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
-  }
-
-  getBillingTrialDays(): number {
-    return parseInt(this.configService.get<string>('BILLING_TRIAL_DAYS', '14'));
-  }
-
   getCollabUrl(): string {
     return this.configService.get<string>('COLLAB_URL');
   }

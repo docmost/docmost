@@ -2,7 +2,6 @@ export enum QueueName {
   EMAIL_QUEUE = '{email-queue}',
   ATTACHMENT_QUEUE = '{attachment-queue}',
   GENERAL_QUEUE = '{general-queue}',
-  BILLING_QUEUE = '{billing-queue}',
   FILE_TASK_QUEUE = '{file-task-queue}',
   SEARCH_QUEUE = '{search-queue}',
   AI_QUEUE = '{ai-queue}',
@@ -23,11 +22,6 @@ export enum QueueJob {
 
   PAGE_BACKLINKS = 'page-backlinks',
   ADD_PAGE_WATCHERS = 'add-page-watchers',
-
-  STRIPE_SEATS_SYNC = 'sync-stripe-seats',
-  TRIAL_ENDED = 'trial-ended',
-  WELCOME_EMAIL = 'welcome-email',
-  FIRST_PAYMENT_EMAIL = 'first-payment-email',
 
   IMPORT_TASK = 'import-task',
   EXPORT_TASK = 'export-task',

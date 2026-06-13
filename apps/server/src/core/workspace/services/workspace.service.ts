@@ -28,8 +28,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { DomainService } from '../../../integrations/environment/domain.service';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
-import { addDays } from 'date-fns';
-import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
+import { DISALLOWED_HOSTNAMES } from '../workspace.constants';
 import { isAdminActingOnOwner } from '../workspace.util';
 import { v4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -69,7 +68,6 @@ export class WorkspaceService {
     private favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
-    @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private userSessionRepo: UserSessionRepo,
@@ -122,43 +120,14 @@ export class WorkspaceService {
     createWorkspaceDto: CreateWorkspaceDto,
     trx?: KyselyTransaction,
   ) {
-    let trialEndAt = undefined;
-
     const createdWorkspace = await executeTx(
       this.db,
       async (trx) => {
-        let hostname = undefined;
-        let status = undefined;
-        let plan = undefined;
-        let billingEmail = undefined;
-        let settings = undefined;
-
-        if (this.environmentService.isCloud()) {
-          // generate unique hostname
-          hostname = await this.generateHostname(
-            createWorkspaceDto.hostname ?? createWorkspaceDto.name,
-          );
-          trialEndAt = addDays(
-            new Date(),
-            this.environmentService.getBillingTrialDays(),
-          );
-          status = WorkspaceStatus.Active;
-          plan = 'standard';
-          billingEmail = user.email;
-          settings = { ai: { generative: true, chat: true } };
-        }
-
         // create workspace
         const workspace = await this.workspaceRepo.insertWorkspace(
           {
             name: createWorkspaceDto.name,
             description: createWorkspaceDto.description,
-            hostname,
-            status,
-            trialEndAt,
-            plan,
-            billingEmail,
-            settings,
           },
           trx,
         );
@@ -233,26 +202,6 @@ export class WorkspaceService {
       },
       trx,
     );
-
-    if (this.environmentService.isCloud() && trialEndAt) {
-      try {
-        const delay = trialEndAt.getTime() - Date.now();
-
-        await this.billingQueue.add(
-          QueueJob.TRIAL_ENDED,
-          { workspaceId: createdWorkspace.id },
-          { delay },
-        );
-
-        await this.billingQueue.add(
-          QueueJob.WELCOME_EMAIL,
-          { userId: user.id },
-          { delay: 30 * 60 * 1000 }, // 30m
-        );
-      } catch (err) {
-        this.logger.error(err);
-      }
-    }
 
     return createdWorkspace;
   }

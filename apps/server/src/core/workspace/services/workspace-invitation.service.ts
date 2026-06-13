@@ -28,9 +28,6 @@ import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { DomainService } from 'src/integrations/environment/domain.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
-import { Queue } from 'bullmq';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
   validateAllowedEmail,
@@ -54,7 +51,6 @@ export class WorkspaceInvitationService {
     private tokenService: TokenService,
     private sessionService: SessionService,
     @InjectKysely() private readonly db: KyselyDB,
-    @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     private readonly environmentService: EnvironmentService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -345,12 +341,6 @@ export class WorkspaceInvitationService {
         invitationId: invitation.id,
       },
     });
-
-    if (this.environmentService.isCloud()) {
-      await this.billingQueue.add(QueueJob.STRIPE_SEATS_SYNC, {
-        workspaceId: workspace.id,
-      });
-    }
 
     if (workspace.enforceMfa) {
       return {

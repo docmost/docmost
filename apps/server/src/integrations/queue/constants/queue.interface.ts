@@ -14,10 +14,6 @@ export interface IAddPageWatchersJob {
   workspaceId: string;
 }
 
-export interface IStripeSeatsSyncJob {
-  workspaceId: string;
-}
-
 export interface IPageHistoryJob {
   pageId: string;
 }
