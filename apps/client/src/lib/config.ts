@@ -2,6 +2,8 @@ import bytes from "bytes";
 import { castToBoolean } from "@/lib/utils.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import { sanitizeUrl } from "@docmost/editor-ext";
+import { useAtomValue } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 declare global {
   interface Window {
@@ -10,7 +12,8 @@ declare global {
 }
 
 export function getAppName(): string {
-  return "Docmost";
+  const workspace = useAtomValue(workspaceAtom);
+  return workspace?.name || "Docmost";
 }
 
 export function getAppUrl(): string {

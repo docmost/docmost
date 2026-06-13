@@ -3,6 +3,7 @@ import classes from "./error-404.module.css";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { getAppName } from "@/lib/config.ts";
 
 export function Error404() {
   const { t } = useTranslation();
@@ -10,7 +11,7 @@ export function Error404() {
   return (
     <>
       <Helmet>
-        <title>{t("404 page not found")} - Docmost</title>
+        <title>{t("404 page not found")} - {getAppName()}</title>
       </Helmet>
       <Container className={classes.root}>
         <Title className={classes.title}>{t("404 page not found")}</Title>

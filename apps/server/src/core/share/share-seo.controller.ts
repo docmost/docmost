@@ -70,8 +70,10 @@ export class ShareSeoController {
       }
 
       const rawTitle = htmlEscape(share?.sharedPage.title ?? 'untitled');
+      const workspaceName = htmlEscape(workspace?.name ?? 'Docmost');
       const metaTitle =
         rawTitle.length > 80 ? `${rawTitle.slice(0, 77)}…` : rawTitle;
+      const fullTitle = `${metaTitle} - ${workspaceName}`;
 
       const metaTagVar = '<!--meta-tags-->';
 
@@ -85,7 +87,7 @@ export class ShareSeoController {
 
       const html = fs.readFileSync(indexFilePath, 'utf8');
       const transformedHtml = html
-        .replace(/<title>[\s\S]*?<\/title>/i, `<title>${metaTitle}</title>`)
+        .replace(/<title>[\s\S]*?<\/title>/i, `<title>${fullTitle}</title>`)
         .replace(metaTagVar, metaTags);
 
       res.type('text/html').send(transformedHtml);

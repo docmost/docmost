@@ -7,7 +7,6 @@ import React, { useEffect } from "react";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
-import ShareBranding from "@/features/share/components/share-branding.tsx";
 import { useAtomValue } from "jotai";
 import {
   sharedPageFullWidthAtom,
@@ -73,7 +72,6 @@ export default function SharedPage() {
         />
       </Container>
 
-      {data && !shareId && !(data.features?.length > 0) && <ShareBranding />}
     </div>
   );
 }

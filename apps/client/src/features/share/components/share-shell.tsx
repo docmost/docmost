@@ -41,7 +41,6 @@ import {
 } from "@/features/search/components/search-control.tsx";
 import { ShareSearchSpotlight } from "@/features/search/components/share-search-spotlight.tsx";
 import { shareSearchSpotlight } from "@/features/search/constants";
-import ShareBranding from '@/features/share/components/share-branding.tsx';
 import { MAIN_CONTENT_ID, SkipToMain } from "@/components/ui/skip-to-main.tsx";
 
 const MemoizedSharedTree = React.memo(SharedTree);
@@ -247,8 +246,6 @@ export default function ShareShell({
 
       <AppShell.Main id={MAIN_CONTENT_ID} tabIndex={-1}>
         {children}
-
-        {data && shareId && !(data.features?.length > 0) && <ShareBranding />}
       </AppShell.Main>
 
       <AppShell.Aside
