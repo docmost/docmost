@@ -3,8 +3,10 @@ import {
   IBase,
   IBaseRow,
   IBaseView,
+  FilterGroup,
 } from "@/ee/base/types/base.types";
 import { BaseTable } from "@/ee/base/components/base-table";
+import { BaseKanban } from "@/ee/base/components/kanban/base-kanban";
 
 type ViewRendererProps = {
   base: IBase;
@@ -13,6 +15,7 @@ type ViewRendererProps = {
   table: Table<IBaseRow>;
   pageId: string;
   embedded?: boolean;
+  editable: boolean;
   isFiltered: boolean;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
@@ -29,15 +32,28 @@ type ViewRendererProps = {
   persistViewConfig: () => void;
   scrollportRef: React.RefObject<HTMLDivElement>;
   aboveBand?: React.ReactNode;
+  kanbanFilter?: FilterGroup | undefined;
 };
 
 export function ViewRenderer(props: ViewRendererProps) {
   const viewType = props.effectiveView?.type ?? "table";
 
+  if (viewType === "kanban") {
+    return (
+      <BaseKanban
+        base={props.base}
+        view={props.effectiveView!}
+        pageId={props.pageId}
+        embedded={props.embedded}
+        editable={props.editable}
+        viewFilter={props.kanbanFilter}
+      />
+    );
+  }
+
   if (viewType === "table") {
     return <BaseTable {...props} />;
   }
 
-  // Kanban not yet implemented; fall back to table to avoid blank page.
   return <BaseTable {...props} />;
 }

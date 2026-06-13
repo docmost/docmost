@@ -30,7 +30,7 @@ import classes from "@/ee/base/styles/grid.module.css";
 type CreatePropertyPopoverProps = {
   pageId: string;
   properties?: IBaseProperty[];
-  onPropertyCreated?: () => void;
+  onPropertyCreated?: (property: IBaseProperty) => void;
   /** Custom trigger; must return a ref-forwarding element for Popover.Target.
    *  Defaults to the grid's + column button. */
   renderTarget?: (open: () => void) => React.ReactElement;
@@ -145,8 +145,8 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
           : undefined,
       },
       {
-        onSuccess: () => {
-          onPropertyCreated?.();
+        onSuccess: (created) => {
+          onPropertyCreated?.(created);
         },
       },
     );
@@ -293,7 +293,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
                         astVersion: 1,
                       } as TypeOptions,
                     },
-                    { onSuccess: () => onPropertyCreated?.() },
+                    { onSuccess: (created) => onPropertyCreated?.(created) },
                   );
                   handleClose();
                 }}

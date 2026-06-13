@@ -7,6 +7,9 @@ import { useBaseQuery } from "@/ee/base/queries/base-query";
 import { pinOffsetWatcher } from "@docmost/editor-ext";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
+import { IconTable } from "@tabler/icons-react";
+import { usePageQuery } from "@/features/page/queries/page-query";
+import classes from "./base-embed.module.css";
 
 const SIDE_GUTTER = 8;
 
@@ -56,6 +59,7 @@ export function BaseEmbedView({ node, editor }: NodeViewProps) {
   const { data: base, isLoading, isError } = useBaseQuery(
     pendingKey ? "" : pageId ?? "",
   );
+  const { data: page } = usePageQuery({ pageId: pageId ?? undefined });
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -129,7 +133,11 @@ export function BaseEmbedView({ node, editor }: NodeViewProps) {
   }
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper className={classes.handleGutter}>
+      <div data-drag-preview hidden className={classes.dragPreview}>
+        <IconTable size={16} />
+        <span>{page?.title?.trim() || "Untitled base"}</span>
+      </div>
       <div ref={wrapperRef} style={{ minHeight: isCompact ? undefined : 200 }}>
         {content}
       </div>

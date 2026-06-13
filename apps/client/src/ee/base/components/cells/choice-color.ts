@@ -2,7 +2,7 @@ import { CSSProperties } from "react";
 
 const colorMap: Record<string, { bg: string; bgDark: string; text: string; textDark: string }> = {
   gray: { bg: "#f1f3f5", bgDark: "#373a40", text: "#495057", textDark: "#ced4da" },
-  red: { bg: "#ffe3e3", bgDark: "#4a1a1a", text: "#c92a2a", textDark: "#ffa8a8" },
+  red: { bg: "#ffe3e3", bgDark: "#4a1a1a", text: "#bf2020", textDark: "#ffa8a8" },
   pink: { bg: "#ffdeeb", bgDark: "#4a1a2e", text: "#a61e4d", textDark: "#faa2c1" },
   grape: { bg: "#f3d9fa", bgDark: "#3b1a4a", text: "#862e9c", textDark: "#e599f7" },
   violet: { bg: "#e5dbff", bgDark: "#2b1a4a", text: "#5f3dc4", textDark: "#b197fc" },

@@ -13,10 +13,10 @@ import {
   getRowInfo,
   listRows,
   reorderRow,
-  countRows,
   IBaseRowsPage,
 } from "@/ee/base/services/base-service";
 import {
+  IBase,
   IBaseRow,
   CreateRowInput,
   UpdateRowInput,
@@ -26,8 +26,8 @@ import {
   FilterNode,
   SearchSpec,
   ViewSortConfig,
-  CountRowsResult,
   RowReferences,
+  NO_VALUE_CHOICE_ID,
 } from "@/ee/base/types/base.types";
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
@@ -42,7 +42,7 @@ type RowCacheContext = {
 
 // An empty group filter is the draft-layer's "no predicates" marker (see use-view-draft.ts).
 // Strip it at the query boundary to keep request payloads clean and cache keys stable.
-function normalizeFilter(filter: FilterNode | undefined): FilterNode | undefined {
+export function normalizeFilter(filter: FilterNode | undefined): FilterNode | undefined {
   if (!filter) return undefined;
   if ('children' in filter && filter.children.length === 0) return undefined;
   return filter;
@@ -53,6 +53,34 @@ function newRequestId(): string {
   const id = uuid7();
   markRequestIdOutbound(id);
   return id;
+}
+
+export function baseRowsQueryKey(
+  pageId: string | undefined,
+  filter: FilterNode | undefined,
+  sorts: ViewSortConfig[] | undefined,
+  search: SearchSpec | undefined,
+) {
+  return [
+    "base-rows",
+    pageId,
+    normalizeFilter(filter),
+    sorts?.length ? sorts : undefined,
+    search?.query ? search : undefined,
+  ] as const;
+}
+
+
+export function findRowInInfinite(
+  data: InfiniteData<IBaseRowsPage> | undefined,
+  rowId: string,
+): IBaseRow | undefined {
+  if (!data) return undefined;
+  for (const page of data.pages) {
+    const row = page.items.find((r) => r.id === rowId);
+    if (row) return row;
+  }
+  return undefined;
 }
 
 export function useBaseRowsQuery(
@@ -66,7 +94,7 @@ export function useBaseRowsQuery(
   const activeSearch = search?.query ? search : undefined;
 
   const query = useInfiniteQuery({
-    queryKey: ["base-rows", pageId, activeFilter, activeSorts, activeSearch],
+    queryKey: baseRowsQueryKey(pageId, filter, sorts, search),
     queryFn: ({ pageParam }) =>
       listRows(pageId!, {
         cursor: pageParam,
@@ -122,6 +150,10 @@ export function useCreateRowMutation() {
           };
         },
       );
+      const base = queryClient.getQueryData<IBase>(["bases", newRow.pageId]);
+      if ((base?.views ?? []).some((v) => v.type === "kanban")) {
+        invalidateBaseRows(newRow.pageId);
+      }
     },
     onError: () => {
       notifications.show({
@@ -209,7 +241,7 @@ export function useUpdateRowMutation() {
         color: "red",
       });
     },
-    onSuccess: (updatedRow) => {
+    onSuccess: (updatedRow, variables) => {
       queryClient.setQueriesData<InfiniteData<IBaseRowsPage>>(
         { queryKey: ["base-rows", updatedRow.pageId] },
         (old) => {
@@ -234,6 +266,18 @@ export function useUpdateRowMutation() {
             ? { ...old, ...updatedRow, cells: { ...old.cells, ...updatedRow.cells } }
             : old,
       );
+
+      const base = queryClient.getQueryData<IBase>(["bases", variables.pageId]);
+      const kanbanGroupByIds = new Set(
+        (base?.views ?? [])
+          .filter((v) => v.type === "kanban")
+          .map((v) => v.config?.groupByPropertyId)
+          .filter(Boolean) as string[],
+      );
+      const changedPropertyIds = Object.keys(variables.cells ?? {});
+      if (changedPropertyIds.some((id) => kanbanGroupByIds.has(id))) {
+        invalidateBaseRows(variables.pageId);
+      }
     },
   });
 }
@@ -325,28 +369,8 @@ export function useDeleteRowsMutation() {
   });
 }
 
-// Fires in parallel with useBaseRowsQuery without blocking first paint.
-// Keyed by filter + search so different views get independent cached counts.
-export function useBaseRowsCountQuery(
-  pageId: string | undefined,
-  filter?: FilterNode,
-  search?: SearchSpec,
-) {
-  const activeFilter = normalizeFilter(filter);
-  const activeSearch = search?.query ? search : undefined;
 
-  return useQuery<CountRowsResult>({
-    queryKey: ["base-rows-count", pageId, activeFilter, activeSearch],
-    queryFn: () =>
-      countRows({
-        pageId: pageId!,
-        filter: activeFilter,
-        search: activeSearch,
-      }),
-    enabled: !!pageId,
-    staleTime: 30 * 1000,
-  });
-}
+
 
 export function useReorderRowMutation() {
   const { t } = useTranslation();
@@ -393,4 +417,158 @@ export function useReorderRowMutation() {
       });
     },
   });
+}
+
+type KanbanMoveCardInput = {
+  pageId: string;
+  rowId: string;
+  sourceColumnFilter: FilterNode | undefined;
+  destColumnFilter: FilterNode | undefined;
+  columnChanged: boolean;
+  groupByPropertyId: string;
+  destChoiceValue: string | null;
+  position: string;
+  search?: SearchSpec;
+};
+
+type KanbanMoveCardContext = {
+  snapshots: [readonly unknown[], unknown][];
+};
+
+export function useKanbanMoveCardMutation() {
+  const { t } = useTranslation();
+  return useMutation<IBaseRow, Error, KanbanMoveCardInput, KanbanMoveCardContext>({
+    mutationFn: ({ pageId, rowId, columnChanged, groupByPropertyId, destChoiceValue, position }) =>
+      updateRow({
+        pageId,
+        rowId,
+        cells: columnChanged ? { [groupByPropertyId]: destChoiceValue } : {},
+        position,
+        requestId: newRequestId(),
+      }),
+    onMutate: async (variables) => {
+      const { pageId, rowId, sourceColumnFilter, destColumnFilter, columnChanged, groupByPropertyId, destChoiceValue, position, search } = variables;
+
+      await queryClient.cancelQueries({ queryKey: ["base-rows", pageId] });
+
+      const sourceKey = baseRowsQueryKey(pageId, sourceColumnFilter, undefined, search);
+      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined, search);
+
+      const sourceSnapshot = queryClient.getQueryData<InfiniteData<IBaseRowsPage>>(sourceKey);
+      const destSnapshot = queryClient.getQueryData<InfiniteData<IBaseRowsPage>>(destKey);
+      const snapshots: KanbanMoveCardContext["snapshots"] = [
+        [sourceKey, sourceSnapshot],
+        [destKey, destSnapshot],
+      ];
+
+      if (columnChanged) {
+        queryClient.setQueryData<InfiniteData<IBaseRowsPage>>(sourceKey, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((r) => r.id !== rowId),
+            })),
+          };
+        });
+
+        const movingRow = findRowInInfinite(sourceSnapshot, rowId);
+        if (movingRow) {
+          const moved: IBaseRow = {
+            ...movingRow,
+            cells: { ...movingRow.cells, [groupByPropertyId]: destChoiceValue },
+            position,
+          };
+          queryClient.setQueryData<InfiniteData<IBaseRowsPage>>(destKey, (old) => {
+            if (!old) return old;
+            const lastPageIndex = old.pages.length - 1;
+            return {
+              ...old,
+              pages: old.pages.map((page, index) =>
+                index === lastPageIndex
+                  ? { ...page, items: [...page.items, moved] }
+                  : page,
+              ),
+            };
+          });
+        }
+
+      } else {
+        queryClient.setQueryData<InfiniteData<IBaseRowsPage>>(destKey, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.map((r) =>
+                r.id === rowId ? { ...r, position } : r,
+              ),
+            })),
+          };
+        });
+      }
+
+      return { snapshots };
+    },
+    onError: (_, __, context) => {
+      if (context?.snapshots) {
+        for (const [key, data] of context.snapshots) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      notifications.show({
+        message: t("Failed to move card"),
+        color: "red",
+      });
+    },
+  });
+}
+
+type KanbanCreateCardInput = {
+  pageId: string;
+  destColumnFilter: FilterNode | undefined;
+  groupByPropertyId: string;
+  columnKey: string;
+  position?: string;
+  search?: SearchSpec;
+};
+
+export function useKanbanCreateCardMutation() {
+  const { t } = useTranslation();
+  return useMutation<IBaseRow, Error, KanbanCreateCardInput>({
+    mutationFn: ({ pageId, groupByPropertyId, columnKey, position }) =>
+      createRow({
+        pageId,
+        cells: columnKey === NO_VALUE_CHOICE_ID ? {} : { [groupByPropertyId]: columnKey },
+        position,
+        requestId: newRequestId(),
+      }),
+    onSuccess: (newRow, variables) => {
+      const { pageId, destColumnFilter, search } = variables;
+      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined, search);
+      queryClient.setQueryData<InfiniteData<IBaseRowsPage>>(destKey, (old) => {
+        if (!old) return old;
+        const lastPageIndex = old.pages.length - 1;
+        return {
+          ...old,
+          pages: old.pages.map((page, index) =>
+            index === lastPageIndex
+              ? { ...page, items: [...page.items, newRow] }
+              : page,
+          ),
+        };
+      });
+    },
+    onError: () => {
+      notifications.show({
+        message: t("Failed to add card"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function invalidateBaseRows(pageId: string) {
+  queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
 }

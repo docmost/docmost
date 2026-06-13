@@ -61,7 +61,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   // whitespace-padded duplicates also collide. Formulas look properties up by
   // name, so the names have to stay unique.
   await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS uq_base_properties_page_name_alive
+    CREATE UNIQUE INDEX IF NOT EXISTS base_properties_page_name_alive_unique
       ON base_properties (page_id, lower(trim(name)))
       WHERE deleted_at IS NULL
   `.execute(db);
@@ -99,8 +99,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('deleted_at', 'timestamptz')
     .execute();
 
-  // Intentionally no GIN on cells: `cells ? key` lookups are rare and
-  // page-scoped, while the index doubled the write cost of every cell edit.
   await sql`
     CREATE INDEX IF NOT EXISTS idx_base_rows_page_alive
       ON base_rows (page_id, position COLLATE "C", id)
@@ -122,12 +120,6 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     CREATE INDEX IF NOT EXISTS idx_base_rows_search_tsv
       ON base_rows USING gin (search_tsv)
-      WHERE deleted_at IS NULL
-  `.execute(db);
-
-  await sql`
-    CREATE INDEX IF NOT EXISTS idx_base_rows_search_trgm
-      ON base_rows USING gin (search_text gin_trgm_ops)
       WHERE deleted_at IS NULL
   `.execute(db);
 
@@ -336,7 +328,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     CREATE OR REPLACE FUNCTION base_rows_search_trigger() RETURNS trigger
     LANGUAGE plpgsql AS $$
       BEGIN
-        NEW.search_text := build_base_row_search_text(NEW.cells, NEW.page_id);
+        NEW.search_text := substring(build_base_row_search_text(NEW.cells, NEW.page_id), 1, 25000);
         NEW.search_tsv := to_tsvector('english', coalesce(NEW.search_text, ''));
         RETURN NEW;
       END;

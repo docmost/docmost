@@ -23,8 +23,6 @@ import {
   FilterNode,
   SearchSpec,
   ViewSortConfig,
-  CountRowsInput,
-  CountRowsResult,
   RowReferences,
 } from "@/ee/base/types/base.types";
 import { IPagination } from "@/lib/types";
@@ -32,8 +30,6 @@ import { IPagination } from "@/lib/types";
 export type IBaseRowsPage = IPagination<IBaseRow> & {
   references?: RowReferences;
 };
-
-// --- Bases ---
 
 export async function createBase(data: CreateBaseInput): Promise<IBase> {
   const req = await api.post<IBase>("/bases/create", data);
@@ -54,8 +50,11 @@ export async function deleteBase(pageId: string): Promise<void> {
   await api.post("/bases/delete", { pageId });
 }
 
-export async function convertPageToBase(pageId: string): Promise<IBase> {
-  const req = await api.post<IBase>("/bases/convert", { pageId });
+export async function convertPageToBase(
+  pageId: string,
+  template?: "kanban",
+): Promise<IBase> {
+  const req = await api.post<IBase>("/bases/convert", { pageId, template });
   return req.data;
 }
 
@@ -87,8 +86,6 @@ export async function listBases(
   return req.data;
 }
 
-// --- Properties ---
-
 export async function createProperty(
   data: CreatePropertyInput,
 ): Promise<IBaseProperty> {
@@ -115,8 +112,6 @@ export async function reorderProperty(
 ): Promise<void> {
   await api.post("/bases/properties/reorder", data);
 }
-
-// --- Rows ---
 
 export async function createRow(data: CreateRowInput): Promise<IBaseRow> {
   const req = await api.post<IBaseRow>("/bases/rows/create", data);
@@ -160,13 +155,6 @@ export async function listRows(
 
 export async function reorderRow(data: ReorderRowInput): Promise<void> {
   await api.post("/bases/rows/reorder", data);
-}
-
-export async function countRows(
-  data: CountRowsInput,
-): Promise<CountRowsResult> {
-  const req = await api.post<CountRowsResult>("/bases/rows/count", data);
-  return req.data;
 }
 
 // --- Views ---

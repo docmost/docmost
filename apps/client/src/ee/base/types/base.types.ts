@@ -25,6 +25,8 @@ export type BasePropertyType =
   | 'formula'
   | 'longText';
 
+export type BaseViewType = 'table' | 'kanban' | 'calendar';
+
 export type Choice = {
   id: string;
   name: string;
@@ -193,6 +195,10 @@ export type SearchSpec = {
 
 export const NO_VALUE_CHOICE_ID = '__no_value';
 
+export const KANBAN_CARD_DRAG_TYPE = "base-kanban-card";
+export const KANBAN_COLUMN_DRAG_TYPE = "base-kanban-column";
+export type KanbanColumn = { key: string; name: string; color?: string; isNoValue: boolean };
+
 export type ViewConfig = {
   sorts?: ViewSortConfig[];
   filter?: FilterGroup;
@@ -214,7 +220,7 @@ export type IBaseView = {
   id: string;
   pageId: string;
   name: string;
-  type: 'table' | 'kanban' | 'calendar';
+  type: BaseViewType;
   config: ViewConfig;
   position: string;
   workspaceId: string;
@@ -291,20 +297,11 @@ export type ReorderPropertyInput = {
   requestId?: string;
 };
 
-export type CountRowsInput = {
-  pageId: string;
-  filter?: FilterNode;
-  search?: SearchSpec;
-};
-
-export type CountRowsResult = {
-  count: number;
-};
-
 export type CreateRowInput = {
   pageId: string;
   cells?: Record<string, unknown>;
   afterRowId?: string;
+  position?: string;
   requestId?: string;
 };
 
@@ -338,7 +335,7 @@ export type ReorderRowInput = {
 export type CreateViewInput = {
   pageId: string;
   name: string;
-  type?: 'table' | 'kanban' | 'calendar';
+  type?: BaseViewType;
   config?: ViewConfig;
 };
 
@@ -346,7 +343,7 @@ export type UpdateViewInput = {
   viewId: string;
   pageId: string;
   name?: string;
-  type?: 'table' | 'kanban' | 'calendar';
+  type?: BaseViewType;
   config?: ViewConfigPatch;
   position?: string;
 };

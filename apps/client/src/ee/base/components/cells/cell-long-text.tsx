@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Popover, Textarea, Group, CloseButton, Tooltip } from "@mantine/core";
 import { useDebouncedCallback } from "@mantine/hooks";
 import { IBaseProperty } from "@/ee/base/types/base.types";
+import { formatLongTextPreview } from "@/ee/base/formatters/cell-formatters";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
 type CellLongTextProps = {
@@ -68,7 +69,7 @@ export function CellLongText({
     onCancel();
   };
 
-  const preview = toText(value).replace(/\s+/g, " ").trim();
+  const preview = formatLongTextPreview(toText(value));
 
   return (
     <Popover

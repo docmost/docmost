@@ -513,6 +513,9 @@ importers:
       '@clickhouse/client':
         specifier: ^1.18.2
         version: 1.18.2
+      '@docmost/base-formula':
+        specifier: workspace:*
+        version: link:../../packages/base-formula
       '@docmost/pdf-inspector':
         specifier: 1.9.6
         version: 1.9.6

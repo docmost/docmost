@@ -11,6 +11,7 @@ import {
 import { selectedRowIdsAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { formulaRecomputeAtom } from "@/ee/base/atoms/formula-recompute-atom";
 import { IPagination } from "@/lib/types";
+import { invalidateBaseRows } from "@/ee/base/queries/base-row-query";
 
 type BaseRowCreated = {
   operation: "base:row:created";
@@ -161,45 +162,57 @@ export function useBaseSocket(pageId: string | undefined): void {
       switch (event.operation) {
         case "base:row:created": {
           const e = event as BaseRowCreated;
-          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", pageId] },
-            (old) => {
-              if (!old) return old;
-              const lastPageIndex = old.pages.length - 1;
-              return {
-                ...old,
-                pages: old.pages.map((page, index) =>
-                  index === lastPageIndex
-                    ? { ...page, items: [...page.items, e.row] }
-                    : page,
-                ),
-              };
-            },
-          );
+          const baseForCreate = queryClient.getQueryData<IBase>(["bases", pageId]);
+          const hasKanbanForCreate = (baseForCreate?.views ?? []).some((v) => v.type === "kanban");
+          if (hasKanbanForCreate) {
+            invalidateBaseRows(pageId);
+          } else {
+            queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+              { queryKey: ["base-rows", pageId] },
+              (old) => {
+                if (!old) return old;
+                const lastPageIndex = old.pages.length - 1;
+                return {
+                  ...old,
+                  pages: old.pages.map((page, index) =>
+                    index === lastPageIndex
+                      ? { ...page, items: [...page.items, e.row] }
+                      : page,
+                  ),
+                };
+              },
+            );
+          }
           break;
         }
         case "base:row:updated": {
           const e = event as BaseRowUpdated;
-          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", pageId] },
-            (old) =>
-              !old
-                ? old
-                : {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                      ...page,
-                      items: page.items.map((row) =>
-                        row.id === e.rowId
-                          ? {
-                              ...row,
-                              cells: { ...row.cells, ...e.updatedCells },
-                            }
-                          : row,
-                      ),
-                    })),
-                  },
-          );
+          const baseForUpdate = queryClient.getQueryData<IBase>(["bases", pageId]);
+          const hasKanbanForUpdate = (baseForUpdate?.views ?? []).some((v) => v.type === "kanban");
+          if (hasKanbanForUpdate) {
+            invalidateBaseRows(pageId);
+          } else {
+            queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+              { queryKey: ["base-rows", pageId] },
+              (old) =>
+                !old
+                  ? old
+                  : {
+                      ...old,
+                      pages: old.pages.map((page) => ({
+                        ...page,
+                        items: page.items.map((row) =>
+                          row.id === e.rowId
+                            ? {
+                                ...row,
+                                cells: { ...row.cells, ...e.updatedCells },
+                              }
+                            : row,
+                        ),
+                      })),
+                    },
+            );
+          }
           break;
         }
         case "base:row:deleted": {
@@ -258,23 +271,29 @@ export function useBaseSocket(pageId: string | undefined): void {
         }
         case "base:row:reordered": {
           const e = event as BaseRowReordered;
-          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", pageId] },
-            (old) =>
-              !old
-                ? old
-                : {
-                    ...old,
-                    pages: old.pages.map((page) => ({
-                      ...page,
-                      items: page.items.map((row) =>
-                        row.id === e.rowId
-                          ? { ...row, position: e.position }
-                          : row,
-                      ),
-                    })),
-                  },
-          );
+          const baseForReorder = queryClient.getQueryData<IBase>(["bases", pageId]);
+          const hasKanbanForReorder = (baseForReorder?.views ?? []).some((v) => v.type === "kanban");
+          if (hasKanbanForReorder) {
+            invalidateBaseRows(pageId);
+          } else {
+            queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+              { queryKey: ["base-rows", pageId] },
+              (old) =>
+                !old
+                  ? old
+                  : {
+                      ...old,
+                      pages: old.pages.map((page) => ({
+                        ...page,
+                        items: page.items.map((row) =>
+                          row.id === e.rowId
+                            ? { ...row, position: e.position }
+                            : row,
+                        ),
+                      })),
+                    },
+            );
+          }
           break;
         }
         case "base:rows:updated": {

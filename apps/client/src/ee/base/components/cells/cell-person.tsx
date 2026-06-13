@@ -5,14 +5,13 @@ import clsx from "clsx";
 import {
   IBaseProperty,
   PersonTypeOptions,
-  UserRef,
 } from "@/ee/base/types/base.types";
 import {
   useReferenceStore,
   useHydrateUsers,
 } from "@/ee/base/reference/reference-store";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
-import { BadgeOverflowList } from "@/ee/base/components/cells/badge-overflow";
+import { PersonReadList } from "@/ee/base/components/cells/person-read-list";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import { useListKeyboardNav } from "@/ee/base/hooks/use-list-keyboard-nav";
 import { usePersonSearch } from "@/ee/base/hooks/use-person-search";
@@ -245,38 +244,3 @@ export function CellPerson({
   return <PersonReadList personIds={personIds} users={store.users} />;
 }
 
-function PersonReadList({
-  personIds,
-  users,
-}: {
-  personIds: string[];
-  users: Record<string, UserRef>;
-}) {
-  const entries = personIds.map((id) => ({
-    id,
-    name: users[id]?.name ?? id.substring(0, 8),
-    avatarUrl: users[id]?.avatarUrl ?? "",
-  }));
-  const chips = entries.map((entry) => (
-    <span
-      key={entry.id}
-      className={clsx(cellClasses.badge, cellClasses.personChip)}
-    >
-      <CustomAvatar
-        avatarUrl={entry.avatarUrl}
-        name={entry.name}
-        size={16}
-        radius="xl"
-        style={{ flexShrink: 0 }}
-      />
-      <span className={cellClasses.personChipName}>{entry.name}</span>
-    </span>
-  ));
-  return (
-    <BadgeOverflowList
-      chips={chips}
-      measureKey={entries.map((e) => `${e.id}:${e.name}`).join("|")}
-      tooltipLabel={entries.map((e) => e.name).join(", ")}
-    />
-  );
-}

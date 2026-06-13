@@ -193,8 +193,7 @@
   text-overflow: ellipsis;
 }
 
-/* ---------- Field shell ----------
-   Every value renders inside the same shell: identical padding, identical
+/* Every value renders inside the same shell: identical padding, identical
    left edge, identical focus treatment. Fields differ only in content. */
 
 .fieldShell {

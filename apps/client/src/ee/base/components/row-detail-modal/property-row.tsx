@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import clsx from "clsx";
 import { Popover } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
@@ -17,6 +17,8 @@ type PropertyRowProps = {
   onMenuOpenChange: (opened: boolean) => void;
   onMenuDirtyChange: (dirty: boolean) => void;
   onUpdate: (propertyId: string, value: unknown) => void;
+  autoFocusValue?: boolean;
+  onAutoFocused?: () => void;
 };
 
 export function PropertyRow({
@@ -27,8 +29,23 @@ export function PropertyRow({
   onMenuOpenChange,
   onMenuDirtyChange,
   onUpdate,
+  autoFocusValue,
+  onAutoFocused,
 }: PropertyRowProps) {
   const canEdit = useBaseEditable();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!autoFocusValue || focusedRef.current) return;
+    focusedRef.current = true;
+    const el = rowRef.current;
+    if (el) {
+      el.scrollIntoView({ block: "nearest" });
+      el.querySelector<HTMLElement>("input, textarea")?.focus();
+    }
+    onAutoFocused?.();
+  }, [autoFocusValue, onAutoFocused]);
 
   const handleLabelClick = useCallback(() => {
     onMenuOpenChange(!menuOpened);
@@ -48,7 +65,7 @@ export function PropertyRow({
   );
 
   return (
-    <div className={classes.propertyRow}>
+    <div className={classes.propertyRow} ref={rowRef}>
       {canEdit ? (
         <Popover
           opened={menuOpened}

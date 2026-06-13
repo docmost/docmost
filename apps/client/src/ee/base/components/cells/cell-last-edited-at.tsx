@@ -1,4 +1,5 @@
 import { IBaseProperty } from "@/ee/base/types/base.types";
+import { formatTimestamp } from "@/ee/base/formatters/cell-formatters";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
 type CellLastEditedAtProps = {
@@ -10,21 +11,8 @@ type CellLastEditedAtProps = {
   onCancel: () => void;
 };
 
-function formatTimestamp(val: unknown): string {
-  if (typeof val !== "string" || !val) return "";
-  const date = new Date(val);
-  if (isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 export function CellLastEditedAt({ value }: CellLastEditedAtProps) {
-  const formatted = formatTimestamp(value);
+  const formatted = formatTimestamp(typeof value === "string" ? value : null);
 
   if (!formatted) {
     return <span className={cellClasses.emptyValue} />;

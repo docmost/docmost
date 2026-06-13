@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
 import { timeAgo } from "@/lib/time.ts";
@@ -22,11 +22,19 @@ export function RowDetailTitle({
     ? (((row.cells ?? {})[primaryProperty.id] as string) ?? "")
     : "";
   const [value, setValue] = useState(initial);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const didAutofocusRef = useRef(false);
 
   // Re-sync when the row changes underneath us (navigation or remote edit).
   useEffect(() => {
     setValue(initial);
   }, [initial]);
+
+  useEffect(() => {
+    if (didAutofocusRef.current || !canEdit || initial) return;
+    didAutofocusRef.current = true;
+    inputRef.current?.focus();
+  }, [canEdit, initial]);
 
   const updatedAgo = row.updatedAt ? timeAgo(new Date(row.updatedAt)) : "";
 
@@ -34,6 +42,7 @@ export function RowDetailTitle({
     <header className={classes.header}>
       {canEdit ? (
         <input
+          ref={inputRef}
           type="text"
           className={classes.titleInput}
           placeholder={t("Untitled")}

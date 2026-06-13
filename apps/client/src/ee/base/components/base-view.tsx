@@ -16,16 +16,12 @@ import {
 } from "@/ee/base/types/base.types";
 import {
   useBaseRowsQuery,
-  useBaseRowsCountQuery,
   flattenRows,
   useCreateRowMutation,
   useUpdateRowMutation,
   useReorderRowMutation,
 } from "@/ee/base/queries/base-row-query";
-import {
-  useCreateViewMutation,
-  useUpdateViewMutation,
-} from "@/ee/base/queries/base-view-query";
+import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
 import {
   activeViewIdAtomFamily,
   editingCellAtomFamily,
@@ -51,6 +47,7 @@ import { getAppUrl } from "@/lib/config.ts";
 import { useNavigate } from "react-router-dom";
 import classes from "@/ee/base/styles/grid.module.css";
 import viewClasses from "@/ee/base/styles/base-view.module.css";
+import kanbanClasses from "@/ee/base/styles/kanban.module.css";
 
 type BaseViewProps = {
   pageId: string;
@@ -146,23 +143,19 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
 
   // Gate on base to avoid a "bland" list request before the active view's
   // config resolves, which would double network traffic for sorted/filtered views.
+  const isKanban = activeView?.type === "kanban";
+
   const {
     data: rowsData,
     isLoading: rowsLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useBaseRowsQuery(base ? pageId : undefined, activeFilter, activeSorts);
-
-  // Warm the count cache alongside the rows query. Gate on currentUser so
-  // useViewDraft has hydrated from localStorage before the count fires.
-  const canFetchCount = !!base && !!currentUser;
-  useBaseRowsCountQuery(canFetchCount ? pageId : undefined, activeFilter);
+  } = useBaseRowsQuery(base && !isKanban ? pageId : undefined, activeFilter, activeSorts);
 
   const updateRowMutation = useUpdateRowMutation();
   const createRowMutation = useCreateRowMutation();
   const reorderRowMutation = useReorderRowMutation();
-  const createViewMutation = useCreateViewMutation();
   const updateViewMutation = useUpdateViewMutation();
 
   useEffect(() => {
@@ -263,15 +256,6 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     [setActiveViewId],
   );
 
-  const handleAddView = useCallback(() => {
-    if (!editable) return;
-    createViewMutation.mutate({
-      pageId,
-      name: t("New view"),
-      type: "table",
-    });
-  }, [editable, pageId, createViewMutation, t]);
-
   const handleColumnReorder = useCallback(
     (columnId: string, finishIndex: number) => {
       const order = table.getState().columnOrder;
@@ -325,7 +309,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     updateViewMutation,
   ]);
 
-  const { openRowId, openRow, closeRow } = useRowDetailModal();
+  const { openRowId, openRow, closeRow } = useRowDetailModal(pageId);
   // openRow's identity tracks searchParams; rows subscribe to the expand
   // context, so hand them a stable wrapper instead.
   const openRowRef = useRef(openRow);
@@ -374,7 +358,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     [editable, pageId, reorderRow],
   );
 
-  if (baseLoading || rowsLoading) {
+  if (baseLoading || (!isKanban && rowsLoading)) {
     return <BaseTableSkeleton />;
   }
   if (baseError) {
@@ -407,7 +391,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
       views={views}
       table={table}
       onViewChange={handleViewChange}
-      onAddView={editable ? handleAddView : undefined}
+      canAddView={editable}
       onPersistViewConfig={guardedPersistViewConfig}
       onDraftSortsChange={handleDraftSortsChange}
       onDraftFiltersChange={handleDraftFiltersChange}
@@ -416,39 +400,92 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     />
   );
 
+  const kanbanBand = (
+    <div className={kanbanClasses.bandWrap}>
+      {embedded ? null : titleSlot}
+      {banner}
+      {toolbar}
+      {embedded ? <BaseEmbedTitle pageId={pageId} /> : null}
+    </div>
+  );
+
+  const viewRenderer = (folded: React.ReactNode) => (
+    <ViewRenderer
+      base={base}
+      rows={rows}
+      effectiveView={effectiveView}
+      table={table}
+      pageId={pageId}
+      embedded={embedded}
+      editable={editable}
+      isFiltered={isFiltered}
+      hasNextPage={!!hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
+      onFetchNextPage={fetchNextPage}
+      onCellUpdate={handleCellUpdate}
+      onAddRow={handleAddRow}
+      onColumnReorder={editable ? handleColumnReorder : undefined}
+      onResizeEnd={handleResizeEnd}
+      onRowReorder={editable ? handleRowReorder : undefined}
+      persistViewConfig={guardedPersistViewConfig}
+      scrollportRef={scrollportRef}
+      kanbanFilter={activeFilter}
+      aboveBand={folded}
+    />
+  );
+
   if (embedded) {
+    if (isKanban) {
+      return (
+        <BaseEditableProvider editable={editable}>
+          <RowExpandProvider value={handleExpandRow}>
+            {kanbanBand}
+            {viewRenderer(null)}
+          </RowExpandProvider>
+          <RowDetailModal
+            base={base}
+            rows={rows}
+            openRowId={openRowId}
+            onClose={closeRow}
+            onNavigate={handleRowNavigate}
+          />
+        </BaseEditableProvider>
+      );
+    }
+
     // Banner and toolbar go into aboveBand so they scroll with the host document;
     // only the column-header row stays pinned (via --sticky-band-top).
     return (
       <BaseEditableProvider editable={editable}>
         <RowExpandProvider value={handleExpandRow}>
-          <ViewRenderer
-            base={base}
-            rows={rows}
-            effectiveView={effectiveView}
-            table={table}
-            pageId={pageId}
-            embedded={embedded}
-            isFiltered={isFiltered}
-            hasNextPage={!!hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            onFetchNextPage={fetchNextPage}
-            onCellUpdate={handleCellUpdate}
-            onAddRow={handleAddRow}
-            onColumnReorder={editable ? handleColumnReorder : undefined}
-            onResizeEnd={handleResizeEnd}
-            onRowReorder={editable ? handleRowReorder : undefined}
-            persistViewConfig={guardedPersistViewConfig}
-            scrollportRef={scrollportRef}
-            aboveBand={
-              <>
-                {banner}
-                {toolbar}
-                <BaseEmbedTitle pageId={pageId} />
-              </>
-            }
-          />
+          {viewRenderer(
+            <>
+              {banner}
+              {toolbar}
+              <BaseEmbedTitle pageId={pageId} />
+            </>,
+          )}
         </RowExpandProvider>
+        <RowDetailModal
+          base={base}
+          rows={rows}
+          openRowId={openRowId}
+          onClose={closeRow}
+          onNavigate={handleRowNavigate}
+        />
+      </BaseEditableProvider>
+    );
+  }
+
+  if (isKanban) {
+    return (
+      <BaseEditableProvider editable={editable}>
+        <div className={kanbanClasses.standalone}>
+          <RowExpandProvider value={handleExpandRow}>
+            {kanbanBand}
+            {viewRenderer(null)}
+          </RowExpandProvider>
+        </div>
         <RowDetailModal
           base={base}
           rows={rows}
@@ -467,32 +504,13 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
       <div className={viewClasses.fullHeight}>
         <div className={classes.tableScrollport} ref={scrollportRef}>
           <RowExpandProvider value={handleExpandRow}>
-            <ViewRenderer
-              base={base}
-              rows={rows}
-              effectiveView={effectiveView}
-              table={table}
-              pageId={pageId}
-              embedded={embedded}
-              isFiltered={isFiltered}
-              hasNextPage={!!hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              onFetchNextPage={fetchNextPage}
-              onCellUpdate={handleCellUpdate}
-              onAddRow={handleAddRow}
-              onColumnReorder={editable ? handleColumnReorder : undefined}
-              onResizeEnd={handleResizeEnd}
-              onRowReorder={editable ? handleRowReorder : undefined}
-              persistViewConfig={guardedPersistViewConfig}
-              scrollportRef={scrollportRef}
-              aboveBand={
-                <>
-                  {titleSlot}
-                  {banner}
-                  {toolbar}
-                </>
-              }
-            />
+            {viewRenderer(
+              <>
+                {titleSlot}
+                {banner}
+                {toolbar}
+              </>,
+            )}
           </RowExpandProvider>
         </div>
       </div>

@@ -10,19 +10,17 @@ import {
   Group,
   UnstyledButton,
   Text,
-  ActionIcon,
-  Tooltip,
   TextInput,
   Popover,
   Stack,
   Divider,
 } from "@mantine/core";
 import {
-  IconPlus,
   IconPencil,
   IconTrash,
   IconTable,
   IconLink,
+  IconLayoutKanban,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
@@ -36,7 +34,8 @@ import {
   type Edge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
-import { IBaseView } from "@/ee/base/types/base.types";
+import { IBase, IBaseView } from "@/ee/base/types/base.types";
+import { ViewCreateMenu } from "@/ee/base/components/views/view-create-menu";
 import {
   useUpdateViewMutation,
   useDeleteViewMutation,
@@ -54,6 +53,8 @@ type ViewTabsProps = {
   pageId: string;
   onViewChange: (viewId: string) => void;
   onAddView?: () => void;
+  base?: IBase;
+  canAddView?: boolean;
   /** Standalone base-page link for a view, used by "Copy link to view". */
   getViewShareUrl?: (viewId: string) => string | null;
 };
@@ -64,6 +65,8 @@ export function ViewTabs({
   pageId,
   onViewChange,
   onAddView,
+  base,
+  canAddView,
   getViewShareUrl,
 }: ViewTabsProps) {
   const { t } = useTranslation();
@@ -174,7 +177,6 @@ export function ViewTabs({
           isEditing={view.id === editingViewId}
           editingName={editingName}
           canDelete={orderedViews.length > 1}
-          multipleViews={orderedViews.length > 1}
           reorderEnabled={editable && orderedViews.length > 1}
           onReorder={handleReorder}
           onClick={() => onViewChange(view.id)}
@@ -186,17 +188,8 @@ export function ViewTabs({
           getViewShareUrl={getViewShareUrl}
         />
       ))}
-      {onAddView && (
-        <Tooltip label={t("Add view")}>
-          <ActionIcon
-            variant="subtle"
-            size="sm"
-            color="gray"
-            onClick={onAddView}
-          >
-            <IconPlus size={14} />
-          </ActionIcon>
-        </Tooltip>
+      {canAddView && base && (
+        <ViewCreateMenu base={base} pageId={pageId} />
       )}
     </Group>
   );
@@ -208,7 +201,6 @@ function ViewTab({
   isEditing,
   editingName,
   canDelete,
-  multipleViews,
   reorderEnabled,
   onReorder,
   onClick,
@@ -224,7 +216,6 @@ function ViewTab({
   isEditing: boolean;
   editingName: string;
   canDelete: boolean;
-  multipleViews: boolean;
   reorderEnabled: boolean;
   onReorder: (sourceId: string, targetId: string, edge: Edge) => void;
   onClick: () => void;
@@ -336,14 +327,17 @@ function ViewTab({
               padding: "2px 10px",
               borderRadius: "var(--mantine-radius-xl)",
               fontWeight: isActive ? 600 : 400,
-              backgroundColor:
-                isActive && multipleViews
-                  ? "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))"
-                  : undefined,
+              backgroundColor: isActive
+                ? "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))"
+                : undefined,
             }}
           >
             <Group gap={6} wrap="nowrap">
-              <IconTable size={14} opacity={isActive ? 1 : 0.5} />
+              {view.type === "kanban" ? (
+                <IconLayoutKanban size={14} opacity={isActive ? 1 : 0.5} />
+              ) : (
+                <IconTable size={14} opacity={isActive ? 1 : 0.5} />
+              )}
               <Text size="sm" lh={1.2} c={isActive ? undefined : "dimmed"}>
                 {view.name}
               </Text>

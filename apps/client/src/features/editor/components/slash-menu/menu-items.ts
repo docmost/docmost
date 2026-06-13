@@ -7,6 +7,7 @@ import {
   IconH2,
   IconH3,
   IconInfoCircle,
+  IconLayoutKanban,
   IconList,
   IconListNumbers,
   IconMath,
@@ -410,6 +411,62 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         try {
           const res = await api.post<{ id: string }>("/bases/create", {
             parentPageId,
+          });
+
+          const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
+          if (pos === null) return;
+          editor
+            .chain()
+            .command(({ tr }) => {
+              tr.setNodeMarkup(pos, undefined, {
+                pageId: res.data.id,
+                pendingKey: null,
+              });
+              return true;
+            })
+            .run();
+        } catch {
+          const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
+          if (pos !== null) {
+            editor
+              .chain()
+              .command(({ tr }) => {
+                const node = tr.doc.nodeAt(pos);
+                if (node) tr.delete(pos, pos + node.nodeSize);
+                return true;
+              })
+              .run();
+          }
+          notifications.show({
+            message: "Failed to create base",
+            color: "red",
+          });
+        }
+      },
+    },
+    {
+      title: "Kanban",
+      description: "Insert a kanban board on this page",
+      searchTerms: ["kanban", "board", "cards", "status", "task"],
+      icon: IconLayoutKanban,
+      command: async ({ editor, range }: CommandProps) => {
+        // @ts-ignore
+        const parentPageId = editor.storage?.pageId as string | undefined;
+        if (!parentPageId) return;
+
+        const pendingKey = uuid7();
+
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertBaseEmbed({ pageId: null, pendingKey })
+          .run();
+
+        try {
+          const res = await api.post<{ id: string }>("/bases/create", {
+            parentPageId,
+            template: "kanban",
           });
 
           const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);

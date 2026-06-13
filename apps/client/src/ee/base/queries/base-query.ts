@@ -58,8 +58,8 @@ export function useConvertPageToBaseMutation() {
   const [, setTreeData] = useAtom(treeDataAtom);
   const [socket] = useAtom(socketAtom);
 
-  return useMutation<IBase, Error, { pageId: string }>({
-    mutationFn: ({ pageId }) => convertPageToBase(pageId),
+  return useMutation<IBase, Error, { pageId: string; template?: "kanban" }>({
+    mutationFn: ({ pageId, template }) => convertPageToBase(pageId, template),
     onSuccess: (base) => {
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({

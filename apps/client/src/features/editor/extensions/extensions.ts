@@ -233,6 +233,7 @@ export const mainExtensions = [
   TrailingNode,
   GlobalDragHandle.configure({
     customNodes: ["transclusionSource", "transclusionReference"],
+    atomNodes: ["base"],
   }),
   TextStyle,
   Color,

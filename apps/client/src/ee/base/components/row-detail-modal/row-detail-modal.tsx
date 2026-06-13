@@ -80,6 +80,8 @@ export function RowDetailModal({
   // The shared closeRequest atom asks an open dirty PropertyMenuContent to
   // run its discard-confirm flow instead of being torn down mid-edit.
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [newPropertyId, setNewPropertyId] = useState<string | null>(null);
+  const clearNewProperty = useCallback(() => setNewPropertyId(null), []);
   const menuDirtyRef = useRef(false);
   const [closeRequest, setCloseRequest] = useAtom(
     propertyMenuCloseRequestAtomFamily(base.id),
@@ -310,6 +312,8 @@ export function RowDetailModal({
                     property={property}
                     row={row}
                     pageId={base.id}
+                    autoFocusValue={property.id === newPropertyId}
+                    onAutoFocused={clearNewProperty}
                     menuOpened={openMenuId === property.id}
                     onMenuOpenChange={(nextOpened) =>
                       handleMenuOpenChange(property.id, nextOpened)
@@ -329,6 +333,7 @@ export function RowDetailModal({
               <CreatePropertyPopover
                 pageId={base.id}
                 properties={base.properties}
+                onPropertyCreated={(p) => setNewPropertyId(p.id)}
                 renderTarget={(open) => (
                   <button
                     type="button"

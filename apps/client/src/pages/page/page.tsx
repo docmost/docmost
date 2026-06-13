@@ -107,7 +107,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           // Height: see `.base-page-root` in core.css.
           // Clear the fixed PageHeader (breadcrumb) plus a little extra so the
           // pinned column-header row isn't tucked half under it.
-          paddingTop: "calc(var(--page-header-height) + 18px)",
+          paddingTop: "calc(var(--page-header-height) + 6px)",
         }}
       >
         <Helmet>
@@ -137,7 +137,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
               titleSlot={
                 <div
                   className="base-page-title"
-                  style={{ paddingTop: 32, paddingBottom: 12 }}
+                  style={{ paddingTop: 2, paddingBottom: 6 }}
                 >
                   <MemoizedTitleEditor
                     pageId={page.id}
