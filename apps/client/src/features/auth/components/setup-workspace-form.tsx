@@ -116,7 +116,7 @@ export function SetupWorkspaceForm() {
           {t("Already part of an existing workspace?")}{" "}
           <Anchor
             component={Link}
-            to={APP_ROUTE.AUTH.SELECT_WORKSPACE}
+            to={APP_ROUTE.AUTH.LOGIN}
             fw={500}
           >
             {t("Sign-in")}

@@ -47,9 +47,6 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
       name: QueueName.GENERAL_QUEUE,
     }),
     BullModule.registerQueue({
-      name: QueueName.BILLING_QUEUE,
-    }),
-    BullModule.registerQueue({
       name: QueueName.FILE_TASK_QUEUE,
       defaultJobOptions: {
         removeOnComplete: true,

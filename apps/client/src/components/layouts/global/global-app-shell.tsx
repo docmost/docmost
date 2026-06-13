@@ -15,7 +15,6 @@ import AiChatSidebar from "@/ee/ai-chat/components/ai-chat-sidebar.tsx";
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
-import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import GlobalSidebar from "@/components/layouts/global/global-sidebar.tsx";
 import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
@@ -32,7 +31,6 @@ export default function GlobalAppShell({
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
-  useTrialEndAction();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);

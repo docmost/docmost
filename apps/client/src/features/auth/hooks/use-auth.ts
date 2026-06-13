@@ -54,14 +54,6 @@ export default function useAuth() {
       setIsLoading(false);
 
       const message = err.response?.data?.message;
-      if (isCloud() && message?.includes("verify your email")) {
-        const sig = err.response?.data?.emailSignature;
-        navigate(
-          `${APP_ROUTE.AUTH.VERIFY_EMAIL}?email=${encodeURIComponent(data.email)}${sig ? `&sig=${sig}` : ""}`,
-        );
-        return;
-      }
-
       notifications.show({
         message,
         color: "red",
