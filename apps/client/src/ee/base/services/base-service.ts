@@ -21,7 +21,6 @@ import {
   DeleteViewInput,
   UpdatePropertyResult,
   FilterNode,
-  SearchSpec,
   ViewSortConfig,
   RowReferences,
 } from "@/ee/base/types/base.types";
@@ -146,7 +145,6 @@ export async function listRows(
     limit?: number;
     filter?: FilterNode;
     sorts?: ViewSortConfig[];
-    search?: SearchSpec;
   },
 ): Promise<IBaseRowsPage> {
   const req = await api.post("/bases/rows", { pageId, ...params });

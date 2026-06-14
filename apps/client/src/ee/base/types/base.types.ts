@@ -188,11 +188,6 @@ export type FilterGroup = {
 
 export type FilterNode = FilterCondition | FilterGroup;
 
-export type SearchSpec = {
-  query: string;
-  mode?: 'trgm' | 'fts';
-};
-
 export const NO_VALUE_CHOICE_ID = '__no_value';
 
 export const KANBAN_CARD_DRAG_TYPE = "base-kanban-card";

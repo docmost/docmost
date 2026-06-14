@@ -248,18 +248,9 @@ export type InsertableBaseProperty = Insertable<BaseProperties>;
 export type UpdatableBaseProperty = Updateable<Omit<BaseProperties, 'id'>>;
 
 // Base Row
-// `searchText` and `searchTsv` are internal fulltext-index columns maintained
-// by a trigger. They are omitted from the public types so they never leak into
-// HTTP responses or write payloads.
-export type BaseRow = Omit<Selectable<BaseRows>, 'searchText' | 'searchTsv'>;
-export type InsertableBaseRow = Omit<
-  Insertable<BaseRows>,
-  'searchText' | 'searchTsv'
->;
-export type UpdatableBaseRow = Omit<
-  Updateable<Omit<BaseRows, 'id'>>,
-  'searchText' | 'searchTsv'
->;
+export type BaseRow = Selectable<BaseRows>;
+export type InsertableBaseRow = Insertable<BaseRows>;
+export type UpdatableBaseRow = Updateable<Omit<BaseRows, 'id'>>;
 
 // Base View
 export type BaseView = Selectable<BaseViews>;

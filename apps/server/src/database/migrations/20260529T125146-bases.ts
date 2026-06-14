@@ -79,8 +79,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`'{}'::jsonb`),
     )
     .addColumn('position', 'varchar', (col) => col.notNull())
-    .addColumn('search_text', 'text')
-    .addColumn('search_tsv', sql`tsvector`)
     .addColumn('creator_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
     )
@@ -114,12 +112,6 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     CREATE INDEX IF NOT EXISTS idx_base_rows_page_created
       ON base_rows (page_id, created_at DESC)
-      WHERE deleted_at IS NULL
-  `.execute(db);
-
-  await sql`
-    CREATE INDEX IF NOT EXISTS idx_base_rows_search_tsv
-      ON base_rows USING gin (search_tsv)
       WHERE deleted_at IS NULL
   `.execute(db);
 
@@ -236,121 +228,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     $$
   `.execute(db);
 
-  // Resolves select/multiSelect cells to their choice names. The property list
-  // per page is cached in a transaction-local setting so bulk writes look it up
-  // once instead of per row.
-  await sql`
-    CREATE OR REPLACE FUNCTION build_base_row_search_text(
-      _cells jsonb,
-      _page_id uuid
-    ) RETURNS text
-    LANGUAGE plpgsql STABLE PARALLEL SAFE
-    AS $$
-      DECLARE
-        _parts text[] := ARRAY[]::text[];
-        _prop jsonb;
-        _value text;
-        _arr jsonb;
-        _elem jsonb;
-        _resolved text;
-        _cache_key text;
-        _cached text;
-        _props jsonb;
-      BEGIN
-        IF _cells IS NULL OR _cells = '{}'::jsonb OR _page_id IS NULL THEN
-          RETURN NULL;
-        END IF;
-
-        _cache_key := 'bases.prop_cache_' || replace(_page_id::text, '-', '_');
-        _cached := current_setting(_cache_key, true);
-        IF _cached IS NULL OR _cached = '' THEN
-          SELECT coalesce(
-            jsonb_agg(jsonb_build_object(
-              'id', id,
-              'type', type,
-              'type_options', type_options
-            )),
-            '[]'::jsonb
-          )
-            INTO _props
-            FROM base_properties
-            WHERE page_id = _page_id AND deleted_at IS NULL;
-          PERFORM set_config(_cache_key, _props::text, true);
-        ELSE
-          _props := _cached::jsonb;
-        END IF;
-
-        FOR _prop IN SELECT * FROM jsonb_array_elements(_props)
-        LOOP
-          IF (_prop->>'type') IN ('text', 'url', 'email') THEN
-            _value := _cells->>(_prop->>'id');
-            IF _value IS NOT NULL AND _value <> '' THEN
-              _parts := array_append(_parts, _value);
-            END IF;
-          ELSIF (_prop->>'type') IN ('select', 'status') THEN
-            _value := _cells->>(_prop->>'id');
-            IF _value IS NOT NULL AND _value <> '' THEN
-              SELECT c->>'name' INTO _resolved
-                FROM jsonb_array_elements(coalesce(_prop->'type_options'->'choices', '[]'::jsonb)) AS c
-                WHERE c->>'id' = _value
-                LIMIT 1;
-              IF _resolved IS NOT NULL AND _resolved <> '' THEN
-                _parts := array_append(_parts, _resolved);
-              END IF;
-            END IF;
-          ELSIF (_prop->>'type') = 'multiSelect' THEN
-            _arr := _cells->(_prop->>'id');
-            IF jsonb_typeof(_arr) = 'array' THEN
-              FOR _elem IN SELECT * FROM jsonb_array_elements(_arr)
-              LOOP
-                SELECT c->>'name' INTO _resolved
-                  FROM jsonb_array_elements(coalesce(_prop->'type_options'->'choices', '[]'::jsonb)) AS c
-                  WHERE c->>'id' = _elem#>>'{}'
-                  LIMIT 1;
-                IF _resolved IS NOT NULL AND _resolved <> '' THEN
-                  _parts := array_append(_parts, _resolved);
-                END IF;
-              END LOOP;
-            END IF;
-          END IF;
-        END LOOP;
-
-        IF array_length(_parts, 1) IS NULL THEN
-          RETURN NULL;
-        END IF;
-
-        RETURN f_unaccent(array_to_string(_parts, ' '));
-      END;
-    $$
-  `.execute(db);
-
-  await sql`
-    CREATE OR REPLACE FUNCTION base_rows_search_trigger() RETURNS trigger
-    LANGUAGE plpgsql AS $$
-      BEGIN
-        NEW.search_text := substring(build_base_row_search_text(NEW.cells, NEW.page_id), 1, 25000);
-        NEW.search_tsv := to_tsvector('english', coalesce(NEW.search_text, ''));
-        RETURN NEW;
-      END;
-    $$
-  `.execute(db);
-
-  await sql`
-    CREATE OR REPLACE TRIGGER base_rows_search_insert
-      BEFORE INSERT ON base_rows
-      FOR EACH ROW EXECUTE FUNCTION base_rows_search_trigger()
-  `.execute(db);
-
-  // Position-only reorders and metadata touches must not pay the
-  // search_text recompute; OLD is not referenceable on INSERT, hence
-  // the split triggers.
-  await sql`
-    CREATE OR REPLACE TRIGGER base_rows_search_update
-      BEFORE UPDATE ON base_rows
-      FOR EACH ROW
-      WHEN (OLD.cells IS DISTINCT FROM NEW.cells)
-      EXECUTE FUNCTION base_rows_search_trigger()
-  `.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
@@ -358,8 +235,6 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('base_rows').execute();
   await db.schema.dropTable('base_properties').execute();
 
-  await sql`DROP FUNCTION base_rows_search_trigger()`.execute(db);
-  await sql`DROP FUNCTION build_base_row_search_text(jsonb, uuid)`.execute(db);
   await sql`DROP FUNCTION jsonb_set_many(jsonb, jsonb)`.execute(db);
   await sql`DROP FUNCTION base_cell_array(jsonb, uuid)`.execute(db);
   await sql`DROP FUNCTION base_cell_bool(jsonb, uuid)`.execute(db);

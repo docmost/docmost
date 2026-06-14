@@ -44,7 +44,7 @@ export function KanbanColumn({
     [viewFilter, groupByPropertyId, column.key],
   );
 
-  const rowsQuery = useBaseRowsQuery(pageId, filter, undefined, undefined);
+  const rowsQuery = useBaseRowsQuery(pageId, filter, undefined);
   const createCard = useKanbanCreateCardMutation();
 
   const rows = useMemo(() => {

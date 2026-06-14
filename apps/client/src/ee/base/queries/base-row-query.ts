@@ -24,7 +24,6 @@ import {
   DeleteRowsInput,
   ReorderRowInput,
   FilterNode,
-  SearchSpec,
   ViewSortConfig,
   RowReferences,
   NO_VALUE_CHOICE_ID,
@@ -59,14 +58,12 @@ export function baseRowsQueryKey(
   pageId: string | undefined,
   filter: FilterNode | undefined,
   sorts: ViewSortConfig[] | undefined,
-  search: SearchSpec | undefined,
 ) {
   return [
     "base-rows",
     pageId,
     normalizeFilter(filter),
     sorts?.length ? sorts : undefined,
-    search?.query ? search : undefined,
   ] as const;
 }
 
@@ -87,21 +84,18 @@ export function useBaseRowsQuery(
   pageId: string | undefined,
   filter?: FilterNode,
   sorts?: ViewSortConfig[],
-  search?: SearchSpec,
 ) {
   const activeFilter = normalizeFilter(filter);
   const activeSorts = sorts?.length ? sorts : undefined;
-  const activeSearch = search?.query ? search : undefined;
 
   const query = useInfiniteQuery({
-    queryKey: baseRowsQueryKey(pageId, filter, sorts, search),
+    queryKey: baseRowsQueryKey(pageId, filter, sorts),
     queryFn: ({ pageParam }) =>
       listRows(pageId!, {
         cursor: pageParam,
         limit: 100,
         filter: activeFilter,
         sorts: activeSorts,
-        search: activeSearch,
       }),
     enabled: !!pageId,
     initialPageParam: undefined as string | undefined,
@@ -428,7 +422,6 @@ type KanbanMoveCardInput = {
   groupByPropertyId: string;
   destChoiceValue: string | null;
   position: string;
-  search?: SearchSpec;
 };
 
 type KanbanMoveCardContext = {
@@ -447,12 +440,12 @@ export function useKanbanMoveCardMutation() {
         requestId: newRequestId(),
       }),
     onMutate: async (variables) => {
-      const { pageId, rowId, sourceColumnFilter, destColumnFilter, columnChanged, groupByPropertyId, destChoiceValue, position, search } = variables;
+      const { pageId, rowId, sourceColumnFilter, destColumnFilter, columnChanged, groupByPropertyId, destChoiceValue, position } = variables;
 
       await queryClient.cancelQueries({ queryKey: ["base-rows", pageId] });
 
-      const sourceKey = baseRowsQueryKey(pageId, sourceColumnFilter, undefined, search);
-      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined, search);
+      const sourceKey = baseRowsQueryKey(pageId, sourceColumnFilter, undefined);
+      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined);
 
       const sourceSnapshot = queryClient.getQueryData<InfiniteData<IBaseRowsPage>>(sourceKey);
       const destSnapshot = queryClient.getQueryData<InfiniteData<IBaseRowsPage>>(destKey);
@@ -531,7 +524,6 @@ type KanbanCreateCardInput = {
   groupByPropertyId: string;
   columnKey: string;
   position?: string;
-  search?: SearchSpec;
 };
 
 export function useKanbanCreateCardMutation() {
@@ -545,8 +537,8 @@ export function useKanbanCreateCardMutation() {
         requestId: newRequestId(),
       }),
     onSuccess: (newRow, variables) => {
-      const { pageId, destColumnFilter, search } = variables;
-      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined, search);
+      const { pageId, destColumnFilter } = variables;
+      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined);
       queryClient.setQueryData<InfiniteData<IBaseRowsPage>>(destKey, (old) => {
         if (!old) return old;
         const lastPageIndex = old.pages.length - 1;
