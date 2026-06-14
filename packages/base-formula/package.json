@@ -1,0 +1,28 @@
+{
+  "name": "@docmost/base-formula",
+  "homepage": "https://docmost.com",
+  "private": true,
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsc --watch",
+    "bench": "tsx bench/formula-bench.ts"
+  },
+  "main": "dist/index.server.js",
+  "module": "./dist/index.server.js",
+  "exports": {
+    "./client": {
+      "types": "./dist/index.client.d.ts",
+      "default": "./src/index.client.ts"
+    },
+    "./server": {
+      "types": "./dist/index.server.d.ts",
+      "default": "./dist/index.server.js"
+    },
+    ".": {
+      "types": "./dist/index.server.d.ts",
+      "default": "./dist/index.server.js"
+    }
+  },
+  "types": "dist/index.server.d.ts",
+  "dependencies": {}
+}

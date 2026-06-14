@@ -1,0 +1,46 @@
+.formulaHeaderRow {
+  border-bottom: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.formulaIconBadge {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  background: var(--mantine-color-blue-0);
+  color: var(--mantine-color-blue-6);
+}
+
+.fnChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: var(--mantine-color-blue-7);
+  background: var(--mantine-color-white);
+  border: 1px solid var(--mantine-color-gray-3);
+  cursor: pointer;
+}
+
+.fnChipParens {
+  color: var(--mantine-color-gray-5);
+}
+
+.propChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  background: var(--mantine-color-blue-0);
+  border: 1px solid var(--mantine-color-blue-2);
+  color: var(--mantine-color-blue-7);
+  cursor: pointer;
+}

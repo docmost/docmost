@@ -3,6 +3,9 @@ import {
   AiChats,
   AiChatMessages,
   Attachments,
+  BaseProperties,
+  BaseRows,
+  BaseViews,
   Comments,
   Groups,
   Labels,
@@ -238,3 +241,18 @@ export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
 export type Template = Selectable<Templates>;
 export type InsertableTemplate = Insertable<Templates>;
 export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;
+
+// Base Property
+export type BaseProperty = Selectable<BaseProperties>;
+export type InsertableBaseProperty = Insertable<BaseProperties>;
+export type UpdatableBaseProperty = Updateable<Omit<BaseProperties, 'id'>>;
+
+// Base Row
+export type BaseRow = Selectable<BaseRows>;
+export type InsertableBaseRow = Insertable<BaseRows>;
+export type UpdatableBaseRow = Updateable<Omit<BaseRows, 'id'>>;
+
+// Base View
+export type BaseView = Selectable<BaseViews>;
+export type InsertableBaseView = Insertable<BaseViews>;
+export type UpdatableBaseView = Updateable<Omit<BaseViews, 'id'>>;

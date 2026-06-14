@@ -25,3 +25,8 @@
     background: var(--mantine-color-gray-light);
   }
 }
+
+.disabledItem {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

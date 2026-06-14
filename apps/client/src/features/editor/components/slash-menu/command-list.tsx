@@ -5,6 +5,7 @@ import {
 } from "@/features/editor/components/slash-menu/types";
 import {
   ActionIcon,
+  Badge,
   Group,
   Paper,
   ScrollArea,
@@ -15,6 +16,8 @@ import {
 import classes from "./slash-menu.module.css";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
 
 const CommandList = ({
   items,
@@ -33,6 +36,13 @@ const CommandList = ({
   const [countAnnouncement, setCountAnnouncement] = useState("");
   const [selectionAnnouncement, setSelectionAnnouncement] = useState("");
 
+  const hasBases = useHasFeature(Feature.BASES);
+  // Title must match the "Base (Inline)" item in menu-items.ts. Without the
+  // bases entitlement the item stays visible but disabled; an expired license
+  // the client can't detect falls through to a handled create failure.
+  const isItemDisabled = (item: SlashMenuItemType) =>
+    !hasBases && item.title === "Base (Inline)";
+
   const flatItems = useMemo(() => {
     return Object.values(items).flat();
   }, [items]);
@@ -40,11 +50,11 @@ const CommandList = ({
   const selectItem = useCallback(
     (index: number) => {
       const item = flatItems[index];
-      if (item) {
+      if (item && !isItemDisabled(item)) {
         command(item);
       }
     },
-    [command, flatItems],
+    [command, flatItems, hasBases],
   );
 
   useEffect(() => {
@@ -140,6 +150,7 @@ const CommandList = ({
             {categoryItems.map((item: SlashMenuItemType) => {
               flatIndex += 1;
               const itemIndex = flatIndex;
+              const disabled = isItemDisabled(item);
               return (
               <UnstyledButton
                 data-item-index={itemIndex}
@@ -147,12 +158,15 @@ const CommandList = ({
                 id={`slash-command-option-${itemIndex}`}
                 role="option"
                 aria-selected={itemIndex === selectedIndex}
+                aria-disabled={disabled}
+                disabled={disabled}
                 onClick={() => selectItem(itemIndex)}
                 className={clsx(classes.menuBtn, {
                   [classes.selectedItem]: itemIndex === selectedIndex,
+                  [classes.disabledItem]: disabled,
                 })}
               >
-                <Group>
+                <Group wrap="nowrap">
                   <ActionIcon variant="default" component="div" aria-hidden="true">
                     <item.icon size={18} />
                   </ActionIcon>
@@ -166,6 +180,12 @@ const CommandList = ({
                       {t(item.description)}
                     </Text>
                   </div>
+
+                  {disabled && (
+                    <Badge size="xs" variant="light" color="gray">
+                      {t("Upgrade")}
+                    </Badge>
+                  )}
                 </Group>
               </UnstyledButton>
               );
