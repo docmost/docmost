@@ -447,7 +447,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Kanban",
       description: "Insert a kanban board on this page",
-      searchTerms: ["kanban", "board", "cards", "status", "task"],
+      searchTerms: ["kanban", "board", "cards", "status", "task", "database"],
       icon: IconLayoutKanban,
       command: async ({ editor, range }: CommandProps) => {
         // @ts-ignore

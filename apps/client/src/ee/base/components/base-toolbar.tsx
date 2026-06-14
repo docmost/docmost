@@ -20,6 +20,7 @@ import {
   FilterGroup,
 } from "@/ee/base/types/base.types";
 import { exportBaseToCsv } from "@/ee/base/services/base-service";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { ViewTabs } from "@/ee/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/ee/base/components/views/view-sort-config";
@@ -78,7 +79,7 @@ export function BaseToolbar({
     } catch (err) {
       notifications.show({
         color: "red",
-        message: t("Failed to export CSV"),
+        message: getApiErrorMessage(err, t("Failed to export CSV")),
       });
     } finally {
       setExporting(false);

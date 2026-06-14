@@ -18,11 +18,12 @@ import {
   TypeOptions,
 } from "@/ee/base/types/base.types";
 import { useCreatePropertyMutation } from "@/ee/base/queries/base-property-query";
-import { PropertyTypePicker, propertyTypes } from "./property-type-picker";
+import { PropertyTypePicker } from "./property-type-picker";
 import { PropertyOptions } from "./property-options";
 import {
   getDescriptor,
   defaultTypeOptionsFor,
+  propertyTypes,
 } from "@/ee/base/property-types/property-type.registry";
 import { FormulaEditor } from "../formula/formula-editor";
 import classes from "@/ee/base/styles/grid.module.css";

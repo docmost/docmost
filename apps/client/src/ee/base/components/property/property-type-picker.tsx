@@ -1,18 +1,10 @@
 import { UnstyledButton, Group, Text, TextInput } from "@mantine/core";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
 import { BasePropertyType } from "@/ee/base/types/base.types";
-import {
-  PROPERTY_PICKER_ORDER,
-  getDescriptor,
-} from "@/ee/base/property-types/property-type.registry";
+import { propertyTypes } from "@/ee/base/property-types/property-type.registry";
 import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect } from "react";
 import classes from "@/ee/base/styles/cells.module.css";
-
-const propertyTypes = PROPERTY_PICKER_ORDER.map((type) => {
-  const d = getDescriptor(type)!;
-  return { type, icon: d.icon, labelKey: d.labelKey };
-});
 
 type PropertyTypePickerProps = {
   onSelect: (type: BasePropertyType) => void;
@@ -77,5 +69,3 @@ export function PropertyTypePicker({
     </>
   );
 }
-
-export { propertyTypes };

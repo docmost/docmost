@@ -292,6 +292,7 @@ export function RowDetailModal({
             row={row}
             primaryProperty={primaryProperty}
             canEdit={canEdit}
+            onClose={onClose}
             onCommit={(value) => {
               if (!primaryProperty) return;
               updateRowMutation.mutate({

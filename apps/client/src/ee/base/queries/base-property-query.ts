@@ -18,6 +18,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { IPagination } from "@/lib/types";
 
 export function useCreatePropertyMutation() {
@@ -36,9 +37,9 @@ export function useCreatePropertyMutation() {
         },
       );
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to create property"),
+        message: getApiErrorMessage(error, t("Failed to create property")),
         color: "red",
       });
     },
@@ -69,9 +70,9 @@ export function useUpdatePropertyMutation() {
         });
       }
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to update property"),
+        message: getApiErrorMessage(error, t("Failed to update property")),
         color: "red",
       });
     },
@@ -114,9 +115,9 @@ export function useDeletePropertyMutation() {
         },
       );
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to delete property"),
+        message: getApiErrorMessage(error, t("Failed to delete property")),
         color: "red",
       });
     },
@@ -154,7 +155,7 @@ export function useReorderPropertyMutation() {
 
       return { previous };
     },
-    onError: (_, variables, context) => {
+    onError: (error, variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(
           ["bases", variables.pageId],
@@ -162,7 +163,7 @@ export function useReorderPropertyMutation() {
         );
       }
       notifications.show({
-        message: t("Failed to reorder property"),
+        message: getApiErrorMessage(error, t("Failed to reorder property")),
         color: "red",
       });
     },

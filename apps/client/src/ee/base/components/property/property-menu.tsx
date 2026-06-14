@@ -28,7 +28,7 @@ import {
   useUpdatePropertyMutation,
   useDeletePropertyMutation,
 } from "@/ee/base/queries/base-property-query";
-import { PropertyTypePicker, propertyTypes } from "./property-type-picker";
+import { PropertyTypePicker } from "./property-type-picker";
 import { PropertyOptions } from "./property-options";
 import {
   conversionWarning,
@@ -36,7 +36,7 @@ import {
   NON_USER_TARGET_TYPES,
 } from "./conversion-warning";
 import { useTranslation } from "react-i18next";
-import { isSystemPropertyType } from "@/ee/base/property-types/property-type.registry";
+import { isSystemPropertyType, propertyTypes } from "@/ee/base/property-types/property-type.registry";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import classes from "@/ee/base/styles/property.module.css";
 

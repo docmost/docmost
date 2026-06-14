@@ -2,7 +2,7 @@ import { useMemo, useCallback } from "react";
 import { Popover, Switch, Stack, Text, Group, Divider, UnstyledButton } from "@mantine/core";
 import { Table } from "@tanstack/react-table";
 import { IBaseRow, IBaseProperty } from "@/ee/base/types/base.types";
-import { propertyTypes } from "@/ee/base/components/property/property-type-picker";
+import { propertyTypes } from "@/ee/base/property-types/property-type.registry";
 import { useTranslation } from "react-i18next";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import viewClasses from "@/ee/base/styles/views.module.css";

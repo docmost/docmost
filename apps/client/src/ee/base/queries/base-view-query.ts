@@ -28,6 +28,7 @@ function applyConfigPatch(
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 export function useCreateViewMutation() {
   const { t } = useTranslation();
@@ -45,9 +46,9 @@ export function useCreateViewMutation() {
         },
       );
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to create view"),
+        message: getApiErrorMessage(error, t("Failed to create view")),
         color: "red",
       });
     },
@@ -99,7 +100,7 @@ export function useUpdateViewMutation() {
 
       return { previous };
     },
-    onError: (_, variables, context) => {
+    onError: (error, variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(
           ["bases", variables.pageId],
@@ -107,7 +108,7 @@ export function useUpdateViewMutation() {
         );
       }
       notifications.show({
-        message: t("Failed to update view"),
+        message: getApiErrorMessage(error, t("Failed to update view")),
         color: "red",
       });
     },
@@ -144,9 +145,9 @@ export function useDeleteViewMutation() {
         },
       );
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to delete view"),
+        message: getApiErrorMessage(error, t("Failed to delete view")),
         color: "red",
       });
     },

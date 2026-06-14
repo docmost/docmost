@@ -96,7 +96,11 @@ export const PROPERTY_TYPE_REGISTRY: Record<
     hasOptions: true,
     defaultTypeOptions: () => {
       const choices = defaultStatusChoices();
-      return { choices, choiceOrder: choices.map((c) => c.id) };
+      return {
+        choices,
+        choiceOrder: choices.map((c) => c.id),
+        defaultValue: choices[0].id,
+      };
     },
   },
   multiSelect: {
@@ -243,6 +247,11 @@ export const PROPERTY_PICKER_ORDER: BasePropertyType[] = [
   "person", "file", "formula", "page", "checkbox", "url", "email",
   "createdAt", "lastEditedAt", "lastEditedBy",
 ];
+
+export const propertyTypes = PROPERTY_PICKER_ORDER.map((type) => {
+  const d = getDescriptor(type)!;
+  return { type, icon: d.icon, labelKey: d.labelKey };
+});
 
 export function systemAccessorFor(type: string) {
   return getDescriptor(type)?.systemAccessor;

@@ -9,6 +9,7 @@ type RowDetailTitleProps = {
   primaryProperty: IBaseProperty | undefined;
   canEdit: boolean;
   onCommit: (value: string) => void;
+  onClose: () => void;
 };
 
 export function RowDetailTitle({
@@ -16,6 +17,7 @@ export function RowDetailTitle({
   primaryProperty,
   canEdit,
   onCommit,
+  onClose,
 }: RowDetailTitleProps) {
   const { t } = useTranslation();
   const initial = primaryProperty
@@ -57,6 +59,10 @@ export function RowDetailTitle({
             if (e.key === "Enter") {
               e.preventDefault();
               (e.currentTarget as HTMLInputElement).blur();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              (e.currentTarget as HTMLInputElement).blur();
+              onClose();
             }
           }}
         />

@@ -31,6 +31,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useHydrateReferences } from "@/ee/base/reference/reference-store";
 import { markRequestIdOutbound } from "@/ee/base/hooks/use-base-socket";
 import { v7 as uuid7 } from "uuid";
@@ -149,9 +150,9 @@ export function useCreateRowMutation() {
         invalidateBaseRows(newRow.pageId);
       }
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to create row"),
+        message: getApiErrorMessage(error, t("Failed to create row")),
         color: "red",
       });
     },
@@ -221,7 +222,7 @@ export function useUpdateRowMutation() {
 
       return { snapshots };
     },
-    onError: (_, variables, context) => {
+    onError: (error, variables, context) => {
       if (context?.snapshots) {
         for (const [key, data] of context.snapshots) {
           queryClient.setQueryData(key, data);
@@ -231,7 +232,7 @@ export function useUpdateRowMutation() {
         queryKey: ["base-row", variables.pageId, variables.rowId],
       });
       notifications.show({
-        message: t("Failed to update row"),
+        message: getApiErrorMessage(error, t("Failed to update row")),
         color: "red",
       });
     },
@@ -305,14 +306,14 @@ export function useDeleteRowMutation() {
 
       return { snapshots };
     },
-    onError: (_, variables, context) => {
+    onError: (error, variables, context) => {
       if (context?.snapshots) {
         for (const [key, data] of context.snapshots) {
           queryClient.setQueryData(key, data);
         }
       }
       notifications.show({
-        message: t("Failed to delete row"),
+        message: getApiErrorMessage(error, t("Failed to delete row")),
         color: "red",
       });
     },
@@ -349,14 +350,14 @@ export function useDeleteRowsMutation() {
 
       return { snapshots };
     },
-    onError: (_, __, context) => {
+    onError: (error, __, context) => {
       if (context?.snapshots) {
         for (const [key, data] of context.snapshots) {
           queryClient.setQueryData(key, data);
         }
       }
       notifications.show({
-        message: t("Failed to delete rows"),
+        message: getApiErrorMessage(error, t("Failed to delete rows")),
         color: "red",
       });
     },
@@ -399,14 +400,14 @@ export function useReorderRowMutation() {
 
       return { snapshots };
     },
-    onError: (_, variables, context) => {
+    onError: (error, variables, context) => {
       if (context?.snapshots) {
         for (const [key, data] of context.snapshots) {
           queryClient.setQueryData(key, data);
         }
       }
       notifications.show({
-        message: t("Failed to reorder row"),
+        message: getApiErrorMessage(error, t("Failed to reorder row")),
         color: "red",
       });
     },
@@ -504,14 +505,14 @@ export function useKanbanMoveCardMutation() {
 
       return { snapshots };
     },
-    onError: (_, __, context) => {
+    onError: (error, __, context) => {
       if (context?.snapshots) {
         for (const [key, data] of context.snapshots) {
           queryClient.setQueryData(key, data);
         }
       }
       notifications.show({
-        message: t("Failed to move card"),
+        message: getApiErrorMessage(error, t("Failed to move card")),
         color: "red",
       });
     },
@@ -552,9 +553,9 @@ export function useKanbanCreateCardMutation() {
         };
       });
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to add card"),
+        message: getApiErrorMessage(error, t("Failed to add card")),
         color: "red",
       });
     },

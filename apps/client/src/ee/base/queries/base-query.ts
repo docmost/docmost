@@ -18,6 +18,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { treeModel } from "@/features/page/tree/model/tree-model";
@@ -44,9 +45,9 @@ export function useCreateBaseMutation() {
         queryKey: ["bases", "list", data.spaceId],
       });
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to create base"),
+        message: getApiErrorMessage(error, t("Failed to create base")),
         color: "red",
       });
     },
@@ -77,9 +78,9 @@ export function useConvertPageToBaseMutation() {
         payload: { isBase: true },
       });
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to create base"),
+        message: getApiErrorMessage(error, t("Failed to create base")),
         color: "red",
       });
     },
@@ -96,9 +97,9 @@ export function useUpdateBaseMutation() {
         return { ...old, ...data };
       });
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to update base"),
+        message: getApiErrorMessage(error, t("Failed to update base")),
         color: "red",
       });
     },
@@ -116,9 +117,9 @@ export function useDeleteBaseMutation() {
       });
       notifications.show({ message: t("Base deleted") });
     },
-    onError: () => {
+    onError: (error) => {
       notifications.show({
-        message: t("Failed to delete base"),
+        message: getApiErrorMessage(error, t("Failed to delete base")),
         color: "red",
       });
     },

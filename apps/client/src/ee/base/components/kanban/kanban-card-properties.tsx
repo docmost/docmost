@@ -4,7 +4,7 @@ import { IconGripVertical, type IconLetterT } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { IBase, IBaseProperty, IBaseView } from "@/ee/base/types/base.types";
 import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
-import { propertyTypes } from "@/ee/base/components/property/property-type-picker";
+import { propertyTypes } from "@/ee/base/property-types/property-type.registry";
 import { BaseDropEdgeIndicator } from "@/ee/base/components/grid/base-drop-edge-indicator";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
