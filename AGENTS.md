@@ -30,7 +30,7 @@ pnpm --filter ./apps/server run migration:codegen  # → src/database/types/db.d
 apps/server/               NestJS + Fastify (CommonJS, Jest)
 apps/client/               React + Vite + Mantine UI v8 (ESM, Vitest)
 packages/editor-ext/       Shared editor extensions (TipTap)
-packages/ee/               License file only — no code (can be removed)
+packages/ee/               (removed — was license file only, no code)
 ```
 
 ## Key architecture
@@ -90,7 +90,55 @@ Client also has: `pdf-export` (server `features.ts` lacks this — possible sync
 
 - **Stripe billing**: migrations exist (`billing.ts`, `more-billing-columns.ts`) with `stripeCustomerId`, `stripeSubscriptionId` etc columns. Remove.
 - **`CLOUD=true`**: makes `app.module.ts` exit if EE module fails to load. The `EnvironmentService.isCloud()` method reads env `CLOUD`. Strip cloud-only logic.
-- **`packages/ee/LICENSE`** and **`apps/client/src/ee/LICENSE`** — Docmost Enterprise License text. Remove.
+
+## Completed work
+
+### UI Rebrand: Docmost → Cuervodocs 
+
+All user-facing "Docmost" branding replaced with "Cuervodocs". Internal code references (`@docmost/` package namespaces, variable names, export format) kept unchanged for upstream compatibility.
+
+**Client changes:**
+- `apps/client/index.html` — page title + apple-mobile-web-app-title
+- `apps/client/public/manifest.json` — PWA name + short_name
+- `apps/client/src/lib/config.ts` — `getAppName()` returns `"Cuervodocs"`
+- `apps/client/src/features/auth/components/auth-layout.tsx` — logo alt + brand text
+- `apps/client/src/components/layouts/global/app-header.tsx` — aria-label, alt, brand text
+- `apps/client/src/features/home/components/home-ai-prompt.tsx` — fallback workspace name
+- `apps/client/src/ee/ai-chat/components/chat-empty-state.tsx` — "Cuervodocs AI"
+- `apps/client/src/ee/ai/pages/ai-settings.tsx` — enterprise edition text
+- `apps/client/src/ee/ai/components/mcp-settings.tsx` — enterprise edition text + stubbed docmost.com link
+- `apps/client/src/components/settings/settings-sidebar.tsx` — replaced `help@docmost.com` with generic support text
+- `apps/client/src/ee/api-key/pages/user-api-keys.tsx` — stubbed `docmost.com/api-docs` and `docmost.com/docs` links
+- `apps/client/src/ee/api-key/pages/workspace-api-keys.tsx` — stubbed `docmost.com/api-docs` link
+- All 12 locale `translation.json` files — "Docmost" → "Cuervodocs", removed `sales@docmost.com`
+
+**Server changes:**
+- `apps/server/src/integrations/transactional/partials/partials.tsx` — email footer copyright
+- `apps/server/src/integrations/transactional/emails/invitation-email.tsx` — invitation text
+- `apps/server/src/core/workspace/services/workspace-invitation.service.ts` — email subjects
+- `apps/server/src/integrations/environment/environment.service.ts` — default `MAIL_FROM_NAME`
+- `apps/server/src/core/auth/token.module.ts` — JWT issuer
+- `apps/server/src/core/share/share-seo.controller.ts` — share page fallback title
+
+**Telemetry disabled:**
+- `apps/server/src/integrations/telemetry/telemetry.service.ts` — gutted entirely, no outbound requests
+
+**License files removed:**
+- `packages/ee/LICENSE` — deleted (was Docmost Enterprise License, no code in this dir)
+- `apps/client/src/ee/LICENSE` — deleted (was one-line Enterprise license notice)
+
+**Intentionally unchanged (upstream compat):**
+- `@docmost/editor-ext` package namespace and all `@docmost/*` path aliases
+- Internal variable/function names (`readDocmostMetadata`, `docmostMetadata`, etc.)
+- Export metadata format (`source: 'docmost'`, `docmost-metadata.json` filename)
+- `version.service.ts` — still checks `docmost/docmost` GitHub releases
+- `app-version.tsx` — still links to `docmost/docmost` releases
+- Docker compose service names, image names, volume names
+- `workspace.constants.ts` DISALLOWED_HOSTNAMES `'docmost'`
+- `posthog-user.tsx` analytics source identifier
+- `sso-login.tsx` localStorage key
+- `workspace.service.ts` `@deleted.docmost.com` placeholder email
+- `embed-provider.ts` third-party embed params (`embed_host=docmost`, `embedSource=docmost`)
 
 ## Key invariants
 
