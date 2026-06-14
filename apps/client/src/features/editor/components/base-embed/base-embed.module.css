@@ -1,6 +1,38 @@
 .handleGutter {
+  position: relative;
   margin-left: -1.5rem;
   padding-left: 1.5rem;
+}
+
+.controls {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.controls::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.handleGutter:hover .controls,
+.handleGutter[data-menu-open="true"] .controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media print {
+  .controls {
+    display: none !important;
+  }
 }
 
 @media (max-width: 48em) {

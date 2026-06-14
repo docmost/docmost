@@ -1,13 +1,14 @@
 import { NodeViewWrapper, NodeViewProps } from "@tiptap/react";
-import { Box, Text } from "@mantine/core";
-import { useEffect, useRef } from "react";
+import { ActionIcon, Box, Menu, Text } from "@mantine/core";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { BaseView } from "@/ee/base/components/base-view";
 import { BaseTableSkeleton } from "@/ee/base/components/base-table-skeleton";
 import { useBaseQuery } from "@/ee/base/queries/base-query";
 import { pinOffsetWatcher } from "@docmost/editor-ext";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
-import { IconTable } from "@tabler/icons-react";
+import { IconDots, IconTable, IconX } from "@tabler/icons-react";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import classes from "./base-embed.module.css";
 
@@ -49,11 +50,13 @@ function applyExtension(wrapper: HTMLDivElement) {
   );
 }
 
-export function BaseEmbedView({ node, editor }: NodeViewProps) {
+export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
+  const { t } = useTranslation();
   const pageId = node.attrs.pageId as string | null;
   const pendingKey = node.attrs.pendingKey as string | null;
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const hasBases = useHasFeature(Feature.BASES);
+  const [menuOpen, setMenuOpen] = useState(false);
   // Suppress the query while the slash command awaits the server-assigned
   // pageId; useBaseQuery would otherwise fire with an empty key.
   const { data: base, isLoading, isError } = useBaseQuery(
@@ -95,6 +98,8 @@ export function BaseEmbedView({ node, editor }: NodeViewProps) {
   // mounts) is reserved only for the skeleton/loading/table states.
   const isCompact = !pendingKey && (!pageId || isError);
 
+  const showControls = editor.isEditable && !pendingKey;
+
   let content: React.ReactNode;
   if (pendingKey) {
     // Slash command inserted the embed and is awaiting the server's
@@ -133,7 +138,37 @@ export function BaseEmbedView({ node, editor }: NodeViewProps) {
   }
 
   return (
-    <NodeViewWrapper className={classes.handleGutter}>
+    <NodeViewWrapper
+      className={classes.handleGutter}
+      data-menu-open={menuOpen ? "true" : "false"}
+    >
+      {showControls && (
+        <div
+          className={classes.controls}
+          contentEditable={false}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <Menu position="bottom-end" withinPortal onChange={setMenuOpen}>
+            <Menu.Target>
+              <ActionIcon
+                variant="default"
+                size="sm"
+                aria-label={t("Base options")}
+              >
+                <IconDots size={16} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconX size={14} />}
+                onClick={() => deleteNode()}
+              >
+                {t("Remove from page")}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </div>
+      )}
       <div data-drag-preview hidden className={classes.dragPreview}>
         <IconTable size={16} />
         <span>{page?.title?.trim() || "Untitled base"}</span>
