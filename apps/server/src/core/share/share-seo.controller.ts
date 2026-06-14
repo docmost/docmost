@@ -70,7 +70,7 @@ export class ShareSeoController {
       }
 
       const rawTitle = htmlEscape(share?.sharedPage.title ?? 'untitled');
-      const workspaceName = htmlEscape(workspace?.name ?? 'Docmost');
+      const workspaceName = htmlEscape(workspace?.name ?? 'Cuervodocs');
       const metaTitle =
         rawTitle.length > 80 ? `${rawTitle.slice(0, 77)}…` : rawTitle;
       const fullTitle = `${metaTitle} - ${workspaceName}`;

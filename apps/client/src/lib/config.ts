@@ -12,7 +12,7 @@ declare global {
 }
 
 export function getAppName(): string {
-  return "Docmost";
+  return "Cuervodocs";
 }
 
 export function useAppName(): string {

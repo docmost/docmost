@@ -12,7 +12,7 @@ import { TokenService } from './services/token.service';
           secret: environmentService.getAppSecret(),
           signOptions: {
             expiresIn: environmentService.getJwtTokenExpiresIn() as StringValue,
-            issuer: 'Docmost',
+            issuer: 'Cuervodocs',
           },
         };
       },

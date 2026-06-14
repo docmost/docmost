@@ -270,13 +270,8 @@ export default function SettingsSidebar() {
 
       {isCloud() && (
         <div className={classes.text}>
-          <Text
-            size="sm"
-            c="dimmed"
-            component="a"
-            href="mailto:help@docmost.com"
-          >
-            help@docmost.com
+          <Text size="sm" c="dimmed">
+            {t("Contact your workspace admin for support")}
           </Text>
         </div>
       )}

@@ -51,7 +51,7 @@ export default function McpSettings() {
       {!hasAccess && (
         <Alert icon={<IconInfoCircle />} title={upgradeLabel} color="blue">
           {t(
-            "MCP is only available in the Docmost enterprise edition. Contact sales@docmost.com.",
+            "MCP is not available in the current Cuervodocs version.",
           )}
         </Alert>
       )}

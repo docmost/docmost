@@ -40,7 +40,7 @@ export default function HomeAiPrompt() {
   return (
     <div className={classes.wrapper}>
       <h1 className={classes.heading}>
-        {t("Welcome to {{name}}", { name: workspace?.name ?? "Docmost" })}
+        {t("Welcome to {{name}}", { name: workspace?.name ?? "Cuervodocs" })}
       </h1>
       <div className={classes.subtitle}>
         {t("Ask anything or search your workspace")}

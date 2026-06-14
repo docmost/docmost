@@ -12,7 +12,7 @@ export const InvitationEmail = ({ inviteLink }: Props) => {
     <MailBody>
       <Section style={content}>
         <Text style={paragraph}>Hi there,</Text>
-        <Text style={paragraph}>You have been invited to Docmost.</Text>
+        <Text style={paragraph}>You have been invited to Cuervodocs.</Text>
         <Text style={paragraph}>
           Please click the button below to accept this invitation.
         </Text>
