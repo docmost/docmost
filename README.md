@@ -1,18 +1,21 @@
 <div align="center">
-    <h1><b>Docmost</b></h1>
+    <h1><b>Cuervodocs</b></h1>
     <p>
-        Open-source collaborative wiki and documentation software.
+        A fork of <a href="https://docmost.com"><strong>Docmost</strong></a> —
+        open-source collaborative wiki and documentation software.
         <br />
-        <a href="https://docmost.com"><strong>Website</strong></a> | 
-        <a href="https://docmost.com/docs"><strong>Documentation</strong></a> |
-        <a href="https://twitter.com/DocmostHQ"><strong>Twitter / X</strong></a>
+        Part of the <strong>OpenUTT</strong> initiative.
+        <br />
+        Reimplements enterprise/paid features for hobby and educational use only.
+        <br />
+        <a href="https://docmost.com/docs"><strong>Documentation</strong></a>
     </p>
 </div>
 <br />
 
 ## Getting started
 
-To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
+To get started, please refer to the [Docmost documentation](https://docmost.com/docs).
 
 ## Features
 
@@ -36,13 +39,13 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 </p>
 
 ### License
-Docmost core is licensed under the open-source AGPL 3.0 license.  
-Enterprise features are available under an enterprise license (Enterprise Edition).  
+Docmost core is licensed under the open-source [AGPL 3.0](LICENSE) license.  
+Enterprise features are originally under the Docmost Enterprise License.
 
-All files in the following directories are licensed under the Docmost Enterprise license defined in `packages/ee/License`.
-  - apps/server/src/ee
-  - apps/client/src/ee
-  - packages/ee
+This fork (**Cuervodocs**), part of the **OpenUTT** initiative, reimplements
+enterprise/paid features. All license gates, subscription checks, and billing have
+been removed — every feature is available without restriction. This fork is provided
+for **hobby and educational use only**. Use at your own risk.
 
 ### Contributing
 
