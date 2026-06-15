@@ -246,8 +246,10 @@ export type IBase = {
   views: IBaseView[];
   createdAt: string;
   updatedAt: string;
-  /** Effective edit permission for the current user (page-restrictions included). */
-  canEdit?: boolean;
+  permissions?: {
+    canEdit: boolean;
+    hasRestriction: boolean;
+  };
   baseSchemaVersion: number;
 };
 

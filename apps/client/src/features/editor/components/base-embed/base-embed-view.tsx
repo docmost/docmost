@@ -132,7 +132,7 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
       <BaseView
         pageId={pageId}
         embedded
-        editable={hasBases && editor.isEditable && (base?.canEdit ?? false)}
+        editable={hasBases && editor.isEditable && (base?.permissions?.canEdit ?? false)}
       />
     );
   }

@@ -29,7 +29,7 @@ export default function BasePage() {
           {base.icon ? `${base.icon} ` : ""}{base.name}
         </Title>
       )}
-      <BaseView pageId={pageId} editable={hasBases && (base?.canEdit ?? false)} />
+      <BaseView pageId={pageId} editable={hasBases && (base?.permissions?.canEdit ?? false)} />
     </Container>
   );
 }
