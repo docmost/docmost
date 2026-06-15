@@ -194,6 +194,13 @@ export class EnvironmentService {
     return !this.isCloud();
   }
 
+  isBetaConfluenceImporter(): boolean {
+    const flag = this.configService
+      .get<string>('BETA_CONFLUENCE_IMPORTER', 'false')
+      .toLowerCase();
+    return flag === 'true';
+  }
+
   getStripePublishableKey(): string {
     return this.configService.get<string>('STRIPE_PUBLISHABLE_KEY');
   }

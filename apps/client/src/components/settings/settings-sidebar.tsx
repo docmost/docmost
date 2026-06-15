@@ -20,7 +20,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
-import { isCloud } from "@/lib/config.ts";
+import { isBetaConfluenceImporter, isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useAtom } from "jotai";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
@@ -52,6 +52,7 @@ type DataItem = {
   feature?: string;
   role?: "admin" | "owner";
   env?: "cloud" | "selfhosted";
+  show?: () => boolean;
 };
 
 type DataGroup = {
@@ -132,6 +133,7 @@ const groupedData: DataGroup[] = [
         path: "/settings/import/confluence",
         feature: Feature.CONFLUENCE_API_IMPORT,
         role: "admin",
+        show: () => isBetaConfluenceImporter(),
       },
     ],
   },
@@ -166,6 +168,7 @@ export default function SettingsSidebar() {
     entitlements?.features?.includes(f) ?? false;
 
   const canShowItem = (item: DataItem) => {
+    if (item.show && !item.show()) return false;
     if (item.env === "cloud" && !isCloud()) return false;
     if (item.env === "selfhosted" && isCloud()) return false;
     if (item.role === "admin" && !isAdmin) return false;

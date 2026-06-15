@@ -43,6 +43,10 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
+export function isBetaConfluenceImporter(): boolean {
+  return castToBoolean(getConfigValue("BETA_CONFLUENCE_IMPORTER"));
+}
+
 export function getAvatarUrl(
   avatarUrl: string,
   type: AvatarIconType = AvatarIconType.AVATAR,

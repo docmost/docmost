@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
     BILLING_TRIAL_DAYS,
     POSTHOG_HOST,
     POSTHOG_KEY,
+    BETA_CONFLUENCE_IMPORTER,
   } = loadEnv(mode, envPath, "");
 
   return {
@@ -31,6 +32,7 @@ export default defineConfig(({ mode }) => {
         BILLING_TRIAL_DAYS,
         POSTHOG_HOST,
         POSTHOG_KEY,
+        BETA_CONFLUENCE_IMPORTER
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },
