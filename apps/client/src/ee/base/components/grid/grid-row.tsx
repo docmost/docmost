@@ -160,12 +160,15 @@ export const GridRow = memo(function GridRow({
       data-index={rowIndex}
       className={`${classes.row} ${classes.virtualRow} ${isDragging ? classes.rowDragging : ""} ${dropIndicatorClass} ${isSelected ? classes.rowSelected : ""}`}
       role="row"
+      aria-rowindex={rowIndex + 1}
+      aria-selected={isSelected}
     >
-      {row.getVisibleCells().map((cell) => (
+      {row.getVisibleCells().map((cell, colIndex) => (
         <GridCell
           key={cell.id}
           cell={cell}
           rowIndex={rowIndex}
+          colIndex={colIndex}
           onCellUpdate={onCellUpdate}
           pageId={pageId}
         />
