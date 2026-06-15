@@ -342,7 +342,6 @@ function NumberOptions({
         comboboxProps={{ portalProps: { target: dropdownPortalTarget ?? undefined } }}
         data={[
           { value: "plain", label: t("Number") },
-          { value: "separators", label: t("Number with separators") },
           { value: "currency", label: t("Currency") },
           { value: "percent", label: t("Percent") },
           { value: "progress", label: t("Progress") },
@@ -367,13 +366,40 @@ function NumberOptions({
           }
         />
       )}
-      <NumberInput
+      <Select
+        size="xs"
+        label={t("Thousands and decimal separators")}
+        allowDeselect={false}
+        checkIconPosition="right"
+        comboboxProps={{ portalProps: { target: dropdownPortalTarget ?? undefined } }}
+        data={[
+          { value: "none", label: t("None") },
+          { value: "local", label: t("Local") },
+          { value: "comma_period", label: t("Comma, period") },
+          { value: "period_comma", label: t("Period, comma") },
+          { value: "space_comma", label: t("Space, comma") },
+          { value: "space_period", label: t("Space, period") },
+        ]}
+        value={options.separators ?? "none"}
+        onChange={(val) => update({ separators: val ?? "none" })}
+      />
+      <Select
         size="xs"
         label={t("Decimal places")}
-        min={0}
-        max={8}
-        value={options.precision ?? 0}
-        onChange={(val) => update({ precision: val })}
+        allowDeselect={false}
+        checkIconPosition="right"
+        comboboxProps={{ portalProps: { target: dropdownPortalTarget ?? undefined } }}
+        data={[
+          { value: "default", label: t("Default") },
+          ...Array.from({ length: 9 }, (_, i) => ({
+            value: String(i),
+            label: String(i),
+          })),
+        ]}
+        value={options.precision == null ? "default" : String(options.precision)}
+        onChange={(val) =>
+          update({ precision: val == null || val === "default" ? undefined : Number(val) })
+        }
       />
       <NumberInput
         size="xs"

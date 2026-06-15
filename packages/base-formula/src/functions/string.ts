@@ -1,6 +1,7 @@
 import { register } from "./registry";
+import { valueToString } from "../number";
 
-const s = (v: unknown): string => v == null ? "" : String(v);
+const s = (v: unknown): string => valueToString(v);
 
 register({
   name: "concat", arity: { min: 1, max: null }, paramTypes: "variadic-any", returnType: "string",

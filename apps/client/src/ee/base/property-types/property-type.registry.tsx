@@ -74,6 +74,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
     filterInput: "number",
     isSystem: false,
     hasOptions: true,
+    defaultTypeOptions: () => ({ separators: "local" }),
   },
   select: {
     type: "select",

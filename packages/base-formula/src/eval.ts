@@ -1,4 +1,5 @@
 import { makeErrorCell, isErrorCell } from "./error";
+import { valueToString } from "./number";
 import { MAX_EVAL_DEPTH } from "./types";
 import type { FormulaAST, OpCode } from "./ast";
 import type { Value, EvalContext } from "./types";
@@ -102,7 +103,7 @@ function evalOp(
 
   switch (op as Exclude<OpCode, "neg" | "not">) {
     case "+":
-      if (typeof a === "string" || typeof b === "string") return (a == null ? "" : String(a)) + (b == null ? "" : String(b));
+      if (typeof a === "string" || typeof b === "string") return valueToString(a) + valueToString(b);
       if (a == null || b == null) return null;
       return Number(a) + Number(b);
     case "-": return a == null || b == null ? null : Number(a) - Number(b);

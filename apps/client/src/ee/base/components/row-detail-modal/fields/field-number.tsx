@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { NumberTypeOptions } from "@/ee/base/types/base.types";
-import { formatNumber } from "@/ee/base/components/cells/cell-number";
+import {
+  formatNumber,
+  parseNumberDraft,
+  sanitizeNumberInput,
+} from "@/ee/base/components/cells/cell-number";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
 
 const toDraft = (value: unknown) =>
   typeof value === "number" ? String(value) : "";
-
-const parse = (draft: string) => {
-  const parsed = draft === "" ? null : Number(draft);
-  return parsed != null && isNaN(parsed) ? null : parsed;
-};
 
 export function FieldNumber({ property, value, readOnly, onChange }: FieldProps) {
   const typeOptions = property.typeOptions as NumberTypeOptions | undefined;
@@ -42,7 +41,7 @@ export function FieldNumber({ property, value, readOnly, onChange }: FieldProps)
       setDraft(toDraft(value));
       return;
     }
-    if (parse(draft) !== numValue) onChange(parse(draft));
+    if (parseNumberDraft(draft) !== numValue) onChange(parseNumberDraft(draft));
   };
 
   return (
@@ -61,6 +60,17 @@ export function FieldNumber({ property, value, readOnly, onChange }: FieldProps)
           if (v === "" || v === "-" || /^-?\d*\.?\d*$/.test(v)) {
             setDraft(v);
           }
+        }}
+        onPaste={(e) => {
+          e.preventDefault();
+          const el = e.currentTarget;
+          const start = el.selectionStart ?? draft.length;
+          const end = el.selectionEnd ?? draft.length;
+          setDraft(
+            draft.slice(0, start) +
+              sanitizeNumberInput(e.clipboardData.getData("text")) +
+              draft.slice(end),
+          );
         }}
         onBlur={commit}
         onKeyDown={(e) => {

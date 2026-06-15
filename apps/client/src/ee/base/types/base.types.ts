@@ -41,8 +41,17 @@ export type SelectTypeOptions = {
   defaultValue?: string | string[] | null;
 };
 
+export type NumberSeparatorStyle =
+  | 'none'
+  | 'local'
+  | 'comma_period'
+  | 'period_comma'
+  | 'space_comma'
+  | 'space_period';
+
 export type NumberTypeOptions = {
-  format?: 'plain' | 'separators' | 'currency' | 'percent' | 'progress';
+  format?: 'plain' | 'currency' | 'percent' | 'progress';
+  separators?: NumberSeparatorStyle;
   precision?: number;
   currencyCode?: string;
   currencySymbol?: string;

@@ -12,3 +12,4 @@ export { registry, register } from "./functions/index";
 export type { FormulaFn } from "./functions/index";
 export * from "./graph";
 export * from "./eval";
+export * from "./number";

@@ -1,4 +1,5 @@
 import { register } from "./registry";
+import { valueToString } from "../number";
 
 register({
   name: "toNumber", arity: { min: 1, max: 1 }, paramTypes: "any", returnType: "number",
@@ -11,6 +12,6 @@ register({
 });
 register({
   name: "toString", arity: { min: 1, max: 1 }, paramTypes: "any", returnType: "string",
-  eval: ([v]) => v == null ? "" : String(v),
+  eval: ([v]) => valueToString(v),
   doc: "Converts the value to a string.", category: "coercion",
 });
