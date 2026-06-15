@@ -18,6 +18,7 @@ import {
   getDescriptor,
 } from "@/ee/base/property-types/property-type.registry";
 import { cellValuesEqual } from "@/ee/base/components/cells/cell-value-equal";
+import { computeNextCell } from "@/ee/base/utils/grid-cell-nav";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useRowExpand } from "@/ee/base/context/row-expand";
 import { RowNumberCell } from "./row-number-cell";
@@ -132,6 +133,31 @@ export const GridCell = memo(function GridCell({
     setEditingCell(null);
   }, [setEditingCell]);
 
+  const handleTabNavigate = useCallback(
+    (shiftKey: boolean) => {
+      if (!property) return;
+      const tableInstance = cell.getContext().table;
+      const colIds = tableInstance
+        .getVisibleLeafColumns()
+        .filter((c) => c.id !== "__row_number")
+        .map((c) => c.id);
+      const rowIds = tableInstance.getRowModel().rows.map((r) => r.id);
+      const next = computeNextCell(
+        rowIds,
+        colIds,
+        { rowId, propertyId: property.id },
+        0,
+        shiftKey ? -1 : 1,
+        true,
+      );
+      if (next) {
+        setEditingCell(next);
+        setFocusedCell(next);
+      }
+    },
+    [cell, rowId, property, setEditingCell, setFocusedCell],
+  );
+
   if (isRowNumber) {
     return (
       <RowNumberCell
@@ -175,6 +201,7 @@ export const GridCell = memo(function GridCell({
         onCommit={handleCommit}
         onValueChange={handleValueChange}
         onCancel={handleCancel}
+        onTabNavigate={handleTabNavigate}
       />
       {property.isPrimary && onExpandRow && !isEditing && (
         <span className={classes.rowExpandAnchor}>

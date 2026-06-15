@@ -13,6 +13,7 @@ type CellLongTextProps = {
   onCommit: (value: unknown) => void;
   onValueChange: (value: unknown) => void;
   onCancel: () => void;
+  onTabNavigate?: (shiftKey: boolean) => void;
 };
 
 const toText = (value: unknown) => (typeof value === "string" ? value : "");
@@ -27,6 +28,7 @@ export function CellLongText({
   onCommit,
   onValueChange,
   onCancel,
+  onTabNavigate,
 }: CellLongTextProps) {
   const [draft, setDraft] = useState(() => toText(value));
   const cancelledRef = useRef(false);
@@ -127,7 +129,11 @@ export function CellLongText({
               }}
               onKeyDown={(e) => {
                 e.stopPropagation();
-                if (e.key === "Escape") {
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  commit();
+                  onTabNavigate?.(e.shiftKey);
+                } else if (e.key === "Escape") {
                   e.preventDefault();
                   cancel();
                 } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {

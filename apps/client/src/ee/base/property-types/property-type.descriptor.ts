@@ -17,6 +17,7 @@ export type CellComponentProps = {
   onCommit: (value: unknown) => void;
   onValueChange: (value: unknown) => void;
   onCancel: () => void;
+  onTabNavigate?: (shiftKey: boolean) => void;
 };
 
 export type FilterInputKind =
