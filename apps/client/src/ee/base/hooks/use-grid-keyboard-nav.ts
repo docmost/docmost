@@ -25,6 +25,7 @@ type UseGridKeyboardNavOptions = {
   clearSelection: () => void;
   deleteSelected: () => void | Promise<void>;
   toggleRowSelection: (rowId: string) => void;
+  expandRow: (rowId: string) => void;
 };
 
 const isPrintableKey = (e: KeyboardEvent) =>
@@ -52,6 +53,7 @@ export function useGridKeyboardNav({
   clearSelection,
   deleteSelected,
   toggleRowSelection,
+  expandRow,
 }: UseGridKeyboardNavOptions) {
   const getColIds = useCallback(
     () =>
@@ -244,12 +246,15 @@ export function useGridKeyboardNav({
           }
           break;
         default: {
-          if (e.key === " " && focusedCell.propertyId === "__row_number") {
+          if (e.key === " ") {
             e.preventDefault();
-            toggleRowSelection(focusedCell.rowId);
-          } else if (e.key === " " && propertyType(focusedCell.propertyId) === "checkbox") {
-            e.preventDefault();
-            openEditor(focusedCell);
+            if (focusedCell.propertyId === "__row_number") {
+              toggleRowSelection(focusedCell.rowId);
+            } else if (propertyType(focusedCell.propertyId) === "checkbox") {
+              openEditor(focusedCell);
+            } else {
+              expandRow(focusedCell.rowId);
+            }
           } else if (isPrintableKey(e)) {
             e.preventDefault();
             beginTypeToEdit(focusedCell, e.key);
@@ -275,6 +280,7 @@ export function useGridKeyboardNav({
       clearSelection,
       deleteSelected,
       toggleRowSelection,
+      expandRow,
     ],
   );
 

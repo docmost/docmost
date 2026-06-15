@@ -37,6 +37,7 @@ import { AddRowButton } from "./add-row-button";
 import { GridGhostRows } from "./grid-ghost-rows";
 import { SelectionActionBar } from "./selection-action-bar";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
+import { useRowExpand } from "@/ee/base/context/row-expand";
 import { GridRowOrderProvider } from "@/ee/base/context/grid-row-order";
 import classes from "@/ee/base/styles/grid.module.css";
 
@@ -120,6 +121,7 @@ export function GridContainer({
   rowIdsRef.current = rowIds;
   const getOrderedRowIds = useCallback(() => rowIdsRef.current, []);
   const editable = useBaseEditable();
+  const onExpandRow = useRowExpand();
 
   const [editingCell, setEditingCell] = useAtom(editingCellAtomFamily(pageId)) as unknown as [EditingCell, (val: EditingCell) => void];
   const editingCellRef = useRef(editingCell);
@@ -334,6 +336,13 @@ export function GridContainer({
     [toggleRow],
   );
 
+  const expandRow = useCallback(
+    (rowId: string) => {
+      onExpandRow?.(rowId);
+    },
+    [onExpandRow],
+  );
+
   const prevEditingRef = useRef(editingCell);
   useEffect(() => {
     const prev = prevEditingRef.current;
@@ -385,6 +394,7 @@ export function GridContainer({
     clearSelection,
     deleteSelected,
     toggleRowSelection,
+    expandRow,
   });
 
   const activeCell = editingCell ?? focusedCell;

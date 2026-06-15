@@ -181,6 +181,7 @@ export const GridCell = memo(function GridCell({
           <Tooltip label={t("Expand")} position="bottom" openDelay={400}>
             <button
               type="button"
+              tabIndex={-1}
               className={classes.rowExpandButton}
               onClick={() => onExpandRow(rowId)}
               onDoubleClick={(e) => e.stopPropagation()}

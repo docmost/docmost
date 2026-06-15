@@ -38,7 +38,15 @@ export function useHorizontalScrollSync<
       body.scrollLeft += e.deltaY;
     };
 
+    const onHeaderScroll = () => {
+      if (rafId !== 0) return;
+      if (body.scrollLeft !== header.scrollLeft) {
+        body.scrollLeft = header.scrollLeft;
+      }
+    };
+
     body.addEventListener("scroll", onBodyScroll, { passive: true });
+    header.addEventListener("scroll", onHeaderScroll, { passive: true });
     header.addEventListener("wheel", onHeaderWheel, { passive: false });
 
     // Initial sync in case the body is already scrolled when the hook mounts.
@@ -46,6 +54,7 @@ export function useHorizontalScrollSync<
 
     return () => {
       body.removeEventListener("scroll", onBodyScroll);
+      header.removeEventListener("scroll", onHeaderScroll);
       header.removeEventListener("wheel", onHeaderWheel);
       if (rafId !== 0) cancelAnimationFrame(rafId);
     };
