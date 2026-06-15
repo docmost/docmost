@@ -91,6 +91,14 @@ export const GridCell = memo(function GridCell({
     setEditingCell({ rowId, propertyId: property.id });
   }, [property, isRowNumber, rowId, readOnly, setEditingCell, setActiveFormulaEditor]);
 
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!property || e.button !== 0) return;
+      setFocusedCell({ rowId, propertyId: property.id });
+    },
+    [property, rowId, setFocusedCell],
+  );
+
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!property) return;
@@ -190,6 +198,7 @@ export const GridCell = memo(function GridCell({
           : undefined
       }
       onClick={handleClick}
+      onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
     >
       <CellComponent

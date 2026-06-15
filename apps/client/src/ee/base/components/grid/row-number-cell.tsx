@@ -44,6 +44,14 @@ export const RowNumberCell = memo(function RowNumberCell({
     ),
   );
 
+  const handleCellMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      setFocusedCell({ rowId, propertyId: "__row_number" });
+    },
+    [rowId, setFocusedCell],
+  );
+
   const handleCellClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       setFocusedCell({ rowId, propertyId: "__row_number" });
@@ -77,6 +85,7 @@ export const RowNumberCell = memo(function RowNumberCell({
           : undefined
       }
       onClick={handleCellClick}
+      onMouseDown={handleCellMouseDown}
     >
       <div className={classes.rowNumberCellInner}>
         {editable && (
