@@ -288,15 +288,35 @@ function ViewTab({
 
   if (isEditing) {
     return (
-      <TextInput
-        size="xs"
-        w={120}
-        value={editingName}
-        onChange={(e) => onRenameChange(e.currentTarget.value)}
-        onBlur={onRenameCommit}
-        onKeyDown={onRenameKeyDown}
-        autoFocus
-      />
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          padding: "1px 10px",
+          border: "1px solid var(--mantine-color-default-border)",
+          borderRadius: "var(--mantine-radius-xl)",
+        }}
+      >
+        <TextInput
+          variant="unstyled"
+          size="xs"
+          value={editingName}
+          onChange={(e) => onRenameChange(e.currentTarget.value)}
+          onBlur={onRenameCommit}
+          onKeyDown={onRenameKeyDown}
+          autoFocus
+          styles={{
+            input: {
+              height: "auto",
+              minHeight: 0,
+              padding: 0,
+              width: 100,
+              fontSize: "var(--mantine-font-size-sm)",
+              lineHeight: 1.2,
+            },
+          }}
+        />
+      </div>
     );
   }
 
