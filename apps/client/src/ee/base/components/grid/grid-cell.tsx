@@ -1,12 +1,14 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Cell } from "@tanstack/react-table";
 import { Popover, Tooltip } from "@mantine/core";
 import { IconArrowsDiagonal } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { useAtom } from "jotai";
-import { IBaseRow, EditingCell } from "@/ee/base/types/base.types";
+import { useAtom, useAtomValue, useSetAtom, type PrimitiveAtom } from "jotai";
+import { selectAtom } from "jotai/utils";
+import { IBaseRow, EditingCell, FocusedCell } from "@/ee/base/types/base.types";
 import {
   editingCellAtomFamily,
+  focusedCellAtomFamily,
   activeFormulaEditorAtomFamily,
   FormulaEditorTarget,
 } from "@/ee/base/atoms/base-atoms";
@@ -24,6 +26,7 @@ import classes from "@/ee/base/styles/grid.module.css";
 type GridCellProps = {
   cell: Cell<IBaseRow, unknown>;
   rowIndex: number;
+  colIndex?: number;
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   pageId: string;
 };
@@ -31,6 +34,7 @@ type GridCellProps = {
 export const GridCell = memo(function GridCell({
   cell,
   rowIndex,
+  colIndex,
   onCellUpdate,
   pageId,
 }: GridCellProps) {
@@ -43,6 +47,18 @@ export const GridCell = memo(function GridCell({
   const [activeFormulaEditor, setActiveFormulaEditor] = useAtom(
     activeFormulaEditorAtomFamily(pageId),
   ) as unknown as [FormulaEditorTarget, (val: FormulaEditorTarget) => void];
+
+  const setFocusedCell = useSetAtom(focusedCellAtomFamily(pageId) as PrimitiveAtom<FocusedCell>);
+  const isFocused = useAtomValue(
+    useMemo(
+      () =>
+        selectAtom(
+          focusedCellAtomFamily(pageId),
+          (fc) => fc?.rowId === cell.row.id && fc?.propertyId === property?.id,
+        ),
+      [pageId, cell.row.id, property?.id],
+    ),
+  );
 
   const { t } = useTranslation();
   const editable = useBaseEditable();
@@ -73,6 +89,21 @@ export const GridCell = memo(function GridCell({
     if (isSystemPropertyType(property.type)) return;
     setEditingCell({ rowId, propertyId: property.id });
   }, [property, isRowNumber, rowId, readOnly, setEditingCell, setActiveFormulaEditor]);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!property) return;
+      setFocusedCell({ rowId, propertyId: property.id });
+      (e.currentTarget.closest('[role="grid"]') as HTMLElement | null)?.focus({
+        preventScroll: true,
+      });
+    },
+    [property, rowId, setFocusedCell],
+  );
+
+  const cellReadOnly = property
+    ? readOnly || isSystemPropertyType(property.type)
+    : false;
 
   const closeFormulaEditor = useCallback(
     () => setActiveFormulaEditor(null),
@@ -122,12 +153,17 @@ export const GridCell = memo(function GridCell({
 
   const cellInner = (
     <div
-      className={`${classes.cell} ${isPinned ? classes.cellPinned : ""} ${isEditing ? classes.cellEditing : ""} ${property.isPrimary ? classes.primaryCell : ""}`}
+      id={`base-cell-${rowId}-${property.id}`}
+      role="gridcell"
+      aria-colindex={colIndex != null ? colIndex + 1 : undefined}
+      aria-readonly={cellReadOnly || undefined}
+      className={`${classes.cell} ${isPinned ? classes.cellPinned : ""} ${isEditing ? classes.cellEditing : ""} ${isFocused && !isEditing ? classes.cellFocused : ""} ${property.isPrimary ? classes.primaryCell : ""}`}
       style={
         isPinned
           ? ({ "--pin-offset": `${pinOffset}px` } as React.CSSProperties)
           : undefined
       }
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
       <CellComponent
@@ -209,6 +245,7 @@ gridCellPropsEqual);
 function gridCellPropsEqual(prev: GridCellProps, next: GridCellProps) {
   if (
     prev.rowIndex !== next.rowIndex ||
+    prev.colIndex !== next.colIndex ||
     prev.pageId !== next.pageId ||
     prev.onCellUpdate !== next.onCellUpdate
   ) {
