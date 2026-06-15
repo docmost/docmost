@@ -147,7 +147,10 @@ export function useCreateRowMutation() {
       );
       const base = queryClient.getQueryData<IBase>(["bases", newRow.pageId]);
       if ((base?.views ?? []).some((v) => v.type === "kanban")) {
-        invalidateBaseRows(newRow.pageId);
+        queryClient.invalidateQueries({
+          queryKey: ["base-rows", newRow.pageId],
+          refetchType: "none",
+        });
       }
     },
     onError: (error) => {
