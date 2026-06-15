@@ -4,6 +4,7 @@ import { Table } from "@tanstack/react-table";
 import { IBaseRow, IBaseProperty } from "@/ee/base/types/base.types";
 import { propertyTypes } from "@/ee/base/property-types/property-type.registry";
 import { useTranslation } from "react-i18next";
+import { useEscapeClose } from "@/ee/base/hooks/use-escape-close";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import viewClasses from "@/ee/base/styles/views.module.css";
 
@@ -25,6 +26,7 @@ export function ViewPropertyVisibility({
   children,
 }: ViewPropertyVisibilityProps) {
   const { t } = useTranslation();
+  useEscapeClose(opened, onClose);
 
   const columns = useMemo(() => {
     return table
@@ -122,6 +124,9 @@ export function ViewPropertyVisibility({
               return (
                 <UnstyledButton
                   key={col.id}
+                  role="switch"
+                  aria-checked={isVisible}
+                  aria-disabled={!canHide || undefined}
                   className={cellClasses.menuItem}
                   onClick={() => {
                     if (canHide) {
@@ -140,6 +145,8 @@ export function ViewPropertyVisibility({
                     size="xs"
                     checked={isVisible}
                     disabled={!canHide}
+                    tabIndex={-1}
+                    aria-hidden
                     onChange={() => {}}
                     // Clicking the track synthesizes a second click on the hidden input which bubbles
                     // to UnstyledButton, firing handleToggle twice. stopPropagation blocks only that

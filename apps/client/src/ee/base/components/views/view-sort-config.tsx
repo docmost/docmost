@@ -15,6 +15,7 @@ import {
   ViewSortConfig,
 } from "@/ee/base/types/base.types";
 import { useTranslation } from "react-i18next";
+import { useEscapeClose } from "@/ee/base/hooks/use-escape-close";
 import viewClasses from "@/ee/base/styles/views.module.css";
 
 type ViewSortConfigProps = {
@@ -35,6 +36,7 @@ export function ViewSortConfigPopover({
   children,
 }: ViewSortConfigProps) {
   const { t } = useTranslation();
+  useEscapeClose(opened, onClose);
   const [draft, setDraft] = useState<ViewSortConfig | null>(null);
 
   useEffect(() => {

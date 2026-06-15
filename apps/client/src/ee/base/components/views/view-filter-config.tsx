@@ -24,6 +24,7 @@ import {
 } from "@/ee/base/property-types/property-type.registry";
 import { FilterPersonInput } from "./filter-person-input";
 import { FilterDateInput } from "./filter-date-input";
+import { useEscapeClose } from "@/ee/base/hooks/use-escape-close";
 import viewClasses from "@/ee/base/styles/views.module.css";
 
 const OPERATORS: { value: FilterOperator; labelKey: string }[] = [
@@ -191,6 +192,7 @@ export function ViewFilterConfigPopover({
   children,
 }: ViewFilterConfigProps) {
   const { t } = useTranslation();
+  useEscapeClose(opened, onClose);
 
   const propertyOptions = properties.map((p) => ({
     value: p.id,
