@@ -7,8 +7,23 @@ import {
   windowScroll,
 } from "@tanstack/react-virtual";
 import { useAtom } from "jotai";
-import { IBaseRow, IBaseProperty, EditingCell } from "@/ee/base/types/base.types";
-import { editingCellAtomFamily } from "@/ee/base/atoms/base-atoms";
+import {
+  IBaseRow,
+  IBaseProperty,
+  EditingCell,
+  FocusedCell,
+  CellCoord,
+} from "@/ee/base/types/base.types";
+import {
+  editingCellAtomFamily,
+  focusedCellAtomFamily,
+  activeFormulaEditorAtomFamily,
+  pendingTypeInsertAtom,
+  type FormulaEditorTarget,
+  type PendingTypeInsert,
+} from "@/ee/base/atoms/base-atoms";
+import { isSystemPropertyType } from "@/ee/base/property-types/property-type.registry";
+import { useTranslation } from "react-i18next";
 import { useColumnResize } from "@/ee/base/hooks/use-column-resize";
 import { useGridKeyboardNav } from "@/ee/base/hooks/use-grid-keyboard-nav";
 import { useRowAutoScroll } from "@/ee/base/hooks/use-row-autoscroll";
@@ -113,6 +128,14 @@ export function GridContainer({
   const { selectionCount, clear: clearSelection } = useRowSelection(pageId);
   const { deleteSelected } = useDeleteSelectedRows(pageId);
 
+  const { t } = useTranslation();
+
+  const [focusedCell, setFocusedCell] = useAtom(focusedCellAtomFamily(pageId)) as unknown as [FocusedCell, (val: FocusedCell) => void];
+  const focusedCellRef = useRef(focusedCell);
+  focusedCellRef.current = focusedCell;
+  const [, setActiveFormulaEditor] = useAtom(activeFormulaEditorAtomFamily(pageId)) as unknown as [FormulaEditorTarget, (val: FormulaEditorTarget) => void];
+  const [, setPendingTypeInsert] = useAtom(pendingTypeInsertAtom) as unknown as [PendingTypeInsert, (val: PendingTypeInsert) => void];
+
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       // Only act while an inline cell editor is open. Popover-based cells
@@ -141,12 +164,6 @@ export function GridContainer({
 
   useColumnResize(table, onResizeEnd ?? (() => {}));
 
-  useGridKeyboardNav({
-    table,
-    editingCell,
-    setEditingCell,
-    containerRef: bodyRef,
-  });
 
   // When the scroll container is the window (inline embed mode), the default
   // Element-mode observers read scrollTop/scrollLeft, which Window does not
@@ -226,6 +243,143 @@ export function GridContainer({
 
   const virtualItems = virtualizer.getVirtualItems();
 
+  const pinnedLeftWidth = useCallback(
+    () =>
+      table
+        .getVisibleLeafColumns()
+        .filter((c) => c.getIsPinned() === "left")
+        .reduce((sum, c) => sum + c.getSize(), 0),
+    [table],
+  );
+
+  const scrollCellIntoView = useCallback(
+    (coord: CellCoord, rowIndex: number) => {
+      if (rowIndex >= 0) virtualizer.scrollToIndex(rowIndex, { align: "auto" });
+      requestAnimationFrame(() => {
+        const scroller = bodyRef.current;
+        const el = document.getElementById(
+          `base-cell-${coord.rowId}-${coord.propertyId}`,
+        );
+        if (!scroller || !el) return;
+        const cellRect = el.getBoundingClientRect();
+        const scRect = scroller.getBoundingClientRect();
+        const pinned = pinnedLeftWidth();
+        if (cellRect.left < scRect.left + pinned) {
+          scroller.scrollLeft -= scRect.left + pinned - cellRect.left;
+        } else if (cellRect.right > scRect.right) {
+          scroller.scrollLeft += cellRect.right - scRect.right;
+        }
+      });
+    },
+    [virtualizer, pinnedLeftWidth],
+  );
+
+  const openEditor = useCallback(
+    (coord: CellCoord) => {
+      const prop = properties.find((p) => p.id === coord.propertyId);
+      if (!prop) return;
+      if (prop.type === "checkbox") {
+        if (!editable) return;
+        const current = table.getRow(coord.rowId, true)?.getValue(coord.propertyId);
+        onCellUpdate(coord.rowId, coord.propertyId, !current);
+        return;
+      }
+      if (!editable) {
+        if (prop.type === "file") setEditingCell(coord);
+        return;
+      }
+      if (prop.type === "formula") {
+        setActiveFormulaEditor({ propertyId: coord.propertyId, rowId: coord.rowId });
+        return;
+      }
+      if (isSystemPropertyType(prop.type)) return;
+      setEditingCell(coord);
+    },
+    [properties, editable, table, onCellUpdate, setEditingCell, setActiveFormulaEditor],
+  );
+
+  const clearCell = useCallback(
+    (coord: CellCoord) => {
+      if (!editable) return;
+      const prop = properties.find((p) => p.id === coord.propertyId);
+      if (!prop || isSystemPropertyType(prop.type)) return;
+      onCellUpdate(coord.rowId, coord.propertyId, null);
+    },
+    [editable, properties, onCellUpdate],
+  );
+
+  const beginTypeToEdit = useCallback(
+    (coord: CellCoord, char: string) => {
+      if (!editable) return;
+      const prop = properties.find((p) => p.id === coord.propertyId);
+      if (!prop || isSystemPropertyType(prop.type) || prop.type === "checkbox") return;
+      if (["text", "number", "url", "email"].includes(prop.type)) {
+        setPendingTypeInsert({ rowId: coord.rowId, propertyId: coord.propertyId, char });
+        setEditingCell(coord);
+      } else {
+        openEditor(coord);
+      }
+    },
+    [editable, properties, setPendingTypeInsert, setEditingCell, openEditor],
+  );
+
+  const prevEditingRef = useRef(editingCell);
+  useEffect(() => {
+    const prev = prevEditingRef.current;
+    prevEditingRef.current = editingCell;
+    if (prev && !editingCell) {
+      if (!focusedCellRef.current) setFocusedCell(prev);
+      const grid = bodyRef.current;
+      const active = document.activeElement;
+      if (grid && active && !grid.contains(active)) {
+        grid.focus({ preventScroll: true });
+      }
+    }
+  }, [editingCell, setFocusedCell]);
+
+  useEffect(() => {
+    const fc = focusedCellRef.current;
+    if (!fc) return;
+    const rowOk = rowIds.includes(fc.rowId);
+    const colOk = table.getVisibleLeafColumns().some((c) => c.id === fc.propertyId);
+    if (!rowOk || !colOk) setFocusedCell(null);
+  }, [rowIds, table.getState().columnVisibility, table.getState().columnOrder, setFocusedCell]);
+
+  const handleGridFocus = useCallback(
+    (e: React.FocusEvent<HTMLDivElement>) => {
+      if (e.target !== e.currentTarget) return;
+      if (editingCellRef.current || focusedCellRef.current) return;
+      const firstRow = rowIdsRef.current[0];
+      const firstCol = table
+        .getVisibleLeafColumns()
+        .find((c) => c.id !== "__row_number")?.id;
+      if (firstRow && firstCol) setFocusedCell({ rowId: firstRow, propertyId: firstCol });
+    },
+    [table, setFocusedCell],
+  );
+
+  useGridKeyboardNav({
+    table,
+    properties,
+    containerRef: bodyRef,
+    focusedCell,
+    setFocusedCell,
+    editingCell,
+    setEditingCell,
+    openEditor,
+    clearCell,
+    beginTypeToEdit,
+    scrollCellIntoView,
+    selectionCount,
+    clearSelection,
+    deleteSelected,
+  });
+
+  const activeCell = editingCell ?? focusedCell;
+  const activeDescendantId = activeCell
+    ? `base-cell-${activeCell.rowId}-${activeCell.propertyId}`
+    : undefined;
+
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage || !onFetchNextPage) return;
     const lastItem = virtualItems[virtualItems.length - 1];
@@ -244,29 +398,6 @@ export function GridContainer({
     }
   }, [rows.length]);
 
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (!el || !pageId) return;
-    const handler = (e: KeyboardEvent) => {
-      if (editingCell) return;
-      const active = document.activeElement as HTMLElement | null;
-      if (!active || !el.contains(active)) return;
-      const tag = active.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || active.isContentEditable) {
-        return;
-      }
-      if (e.key === "Escape" && selectionCount > 0) {
-        clearSelection();
-        return;
-      }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectionCount > 0) {
-        e.preventDefault();
-        void deleteSelected();
-      }
-    };
-    el.addEventListener("keydown", handler);
-    return () => el.removeEventListener("keydown", handler);
-  }, [editingCell, selectionCount, clearSelection, deleteSelected, pageId]);
 
   const gridTemplateColumns = useMemo(() => {
     const visibleColumns = table.getVisibleLeafColumns();
@@ -314,7 +445,7 @@ export function GridContainer({
   );
 
   return (
-    <div role="grid" style={GRID_ROOT_STYLE}>
+    <div style={GRID_ROOT_STYLE}>
       {aboveBand}
       <div className={classes.stickyBand}>
         <div
@@ -341,6 +472,13 @@ export function GridContainer({
             className={classes.bodyGrid}
             ref={bodyRef}
             tabIndex={0}
+            role="grid"
+            aria-label={t("Base table")}
+            aria-rowcount={rows.length}
+            aria-colcount={table.getVisibleLeafColumns().length}
+            aria-multiselectable
+            aria-activedescendant={activeDescendantId}
+            onFocus={handleGridFocus}
             style={
               {
                 "--base-grid-cols": bodyGridTemplateColumns,
