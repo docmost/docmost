@@ -6,7 +6,7 @@ import {
   useVirtualizer,
   windowScroll,
 } from "@tanstack/react-virtual";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom, type PrimitiveAtom } from "jotai";
 import {
   IBaseRow,
   IBaseProperty,
@@ -134,7 +134,7 @@ export function GridContainer({
   const focusedCellRef = useRef(focusedCell);
   focusedCellRef.current = focusedCell;
   const [, setActiveFormulaEditor] = useAtom(activeFormulaEditorAtomFamily(pageId)) as unknown as [FormulaEditorTarget, (val: FormulaEditorTarget) => void];
-  const [, setPendingTypeInsert] = useAtom(pendingTypeInsertAtom) as unknown as [PendingTypeInsert, (val: PendingTypeInsert) => void];
+  const setPendingTypeInsert = useSetAtom(pendingTypeInsertAtom as PrimitiveAtom<PendingTypeInsert>);
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {

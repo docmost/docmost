@@ -17,6 +17,8 @@ const enterpriseFeatures = [
   "Resolve Comments",
   "Confluence Import",
   "PDF & DOCX Import",
+  "Bases",
+  "Kanban",
   "Templates",
 ];
 
