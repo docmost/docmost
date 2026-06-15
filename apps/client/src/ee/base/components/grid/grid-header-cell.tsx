@@ -60,6 +60,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   const { selectionCount } = useRowSelection(pageId);
   const hasSelection = selectionCount > 0;
   const editable = useBaseEditable();
+  const isHeaderInteractive = editable && !!property && !isRowNumber;
 
   const [activePropertyMenu, setActivePropertyMenu] = useAtom(activePropertyMenuAtomFamily(pageId)) as unknown as [string | null, (val: string | null) => void];
   const menuOpened = activePropertyMenu === header.column.id;
@@ -208,6 +209,9 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   return (
     <div
       ref={cellRef}
+      role={isRowNumber ? undefined : "columnheader"}
+      tabIndex={isHeaderInteractive ? 0 : undefined}
+      aria-haspopup={isHeaderInteractive ? "menu" : undefined}
       className={`${classes.headerCell} ${isPinned ? classes.headerCellPinned : ""} ${hasSelection ? classes.hasSelection : ""}`}
       style={{
         ...(isPinned
@@ -220,6 +224,12 @@ export const GridHeaderCell = memo(function GridHeaderCell({
         resizeIntentRef.current = false;
       }}
       onClick={handleHeaderClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleHeaderClick();
+        }
+      }}
       data-dragging={isDragging || undefined}
     >
       {isRowNumber ? (
@@ -269,6 +279,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
           shadow="md"
           width={260}
           trapFocus
+          returnFocus
           withinPortal
           closeOnClickOutside
           closeOnEscape

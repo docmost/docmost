@@ -242,6 +242,12 @@
   z-index: 1;
 }
 
+.headerCell:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-5);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
 .cellContent {
   flex: 1;
   min-width: 0;
