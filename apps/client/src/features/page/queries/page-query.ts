@@ -455,7 +455,11 @@ export function invalidateOnUpdatePage(
           ...page,
           items: page.items.map((sidebarPage: IPage) =>
             sidebarPage.id === id
-              ? { ...sidebarPage, title: title, icon: icon }
+              ? {
+                  ...sidebarPage,
+                  ...(title !== undefined ? { title } : {}),
+                  ...(icon !== undefined ? { icon } : {}),
+                }
               : sidebarPage,
           ),
         })),
