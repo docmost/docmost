@@ -552,6 +552,10 @@ export function useKanbanCreateCardMutation() {
           ),
         };
       });
+      queryClient.setQueryData<IBaseRow>(
+        ["base-row", newRow.pageId, newRow.id],
+        newRow,
+      );
     },
     onError: (error) => {
       notifications.show({
