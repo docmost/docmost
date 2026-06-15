@@ -16,9 +16,18 @@ type CellTextProps = {
 const toDraft = (value: unknown) => (typeof value === "string" ? value : "");
 const parse = (draft: string) => draft;
 
-export function CellText({ value, isEditing, onCommit, onCancel }: CellTextProps) {
+export function CellText({ value, property, rowId, isEditing, onCommit, onCancel }: CellTextProps) {
   const { draft, setDraft, inputRef, handleKeyDown, handleBlur } =
-    useEditableTextCell({ value, isEditing, onCommit, onCancel, toDraft, parse });
+    useEditableTextCell({
+      value,
+      isEditing,
+      onCommit,
+      onCancel,
+      toDraft,
+      parse,
+      rowId,
+      propertyId: property.id,
+    });
 
   if (isEditing) {
     return (

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useStore, type PrimitiveAtom } from "jotai";
+import { pendingTypeInsertAtom, type PendingTypeInsert } from "@/ee/base/atoms/base-atoms";
 
 export type UseEditableTextCellParams = {
   value: unknown;
@@ -9,6 +11,8 @@ export type UseEditableTextCellParams = {
   toDraft: (value: unknown) => string;
   /** draft string -> the value passed to onCommit */
   parse: (draft: string) => unknown;
+  rowId?: string;
+  propertyId?: string;
 };
 
 export type EditableTextCell = {
@@ -26,6 +30,8 @@ export function useEditableTextCell({
   onCancel,
   toDraft,
   parse,
+  rowId,
+  propertyId,
 }: UseEditableTextCellParams): EditableTextCell {
   const [draft, setDraft] = useState(() => toDraft(value));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,18 +39,37 @@ export function useEditableTextCell({
   const wasEditingRef = useRef(false);
   const toDraftRef = useRef(toDraft);
   toDraftRef.current = toDraft;
+  const store = useStore();
 
   useEffect(() => {
     if (isEditing && !wasEditingRef.current) {
       committedRef.current = false;
-      setDraft(toDraftRef.current(value));
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
+      const pending = store.get(pendingTypeInsertAtom);
+      const seeded =
+        pending != null &&
+        pending.rowId === rowId &&
+        pending.propertyId === propertyId;
+      if (seeded) {
+        setDraft(pending.char);
+        store.set(pendingTypeInsertAtom as PrimitiveAtom<PendingTypeInsert>, null);
+        requestAnimationFrame(() => {
+          const el = inputRef.current;
+          if (el) {
+            el.focus();
+            const len = el.value.length;
+            el.setSelectionRange(len, len);
+          }
+        });
+      } else {
+        setDraft(toDraftRef.current(value));
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+          inputRef.current?.select();
+        });
+      }
     }
     wasEditingRef.current = isEditing;
-  }, [isEditing, value]);
+  }, [isEditing, value, rowId, propertyId, store]);
 
   const commitOnce = useCallback(
     (val: unknown) => {

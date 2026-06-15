@@ -92,6 +92,7 @@ export function parseNumberDraft(draft: string): number | null {
 export function CellNumber({
   value,
   property,
+  rowId,
   isEditing,
   onCommit,
   onCancel,
@@ -105,6 +106,8 @@ export function CellNumber({
       onCancel,
       toDraft,
       parse: parseNumberDraft,
+      rowId,
+      propertyId: property.id,
     });
 
   if (isEditing) {
