@@ -241,7 +241,7 @@
   padding: 0;
 }
 
-.bodyGrid:focus-within .cellFocused {
+.bodyGrid:focus .cellFocused {
   outline: 2px solid var(--mantine-color-blue-5);
   outline-offset: -2px;
   z-index: 1;
@@ -498,10 +498,10 @@
 .rowSelected .rowNumberCheckbox {
   display: inline-flex;
 }
-.bodyGrid:focus-within .cellFocused .rowNumberIndex {
+.bodyGrid:focus .cellFocused .rowNumberIndex {
   display: none;
 }
-.bodyGrid:focus-within .cellFocused .rowNumberCheckbox {
+.bodyGrid:focus .cellFocused .rowNumberCheckbox {
   display: inline-flex;
 }
 .rowSelected .cell {
