@@ -251,10 +251,14 @@ export type IBase = {
   baseSchemaVersion: number;
 };
 
-export type EditingCell = {
+export type CellCoord = {
   rowId: string;
   propertyId: string;
-} | null;
+};
+
+export type EditingCell = CellCoord | null;
+
+export type FocusedCell = CellCoord | null;
 
 export type CreateBaseInput = {
   name: string;
