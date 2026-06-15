@@ -67,14 +67,14 @@ export function KanbanEmptyState({ base, view, pageId, editable }: KanbanEmptySt
 
   if (!editable) {
     return (
-      <Stack align="center" justify="center" gap="md" style={{ flex: 1 }}>
+      <Stack align="center" gap="md" style={{ flex: 1, paddingTop: "15vh" }}>
         <Text fw={500}>{t("This board has no grouping property yet.")}</Text>
       </Stack>
     );
   }
 
   return (
-    <Stack align="center" justify="center" gap="md" style={{ flex: 1 }}>
+    <Stack align="center" gap="md" style={{ flex: 1, paddingTop: "15vh" }}>
       <Text fw={500}>{t("Group this board by a select or status property.")}</Text>
       {groupableProperties.length > 0 ? (
         <Select
