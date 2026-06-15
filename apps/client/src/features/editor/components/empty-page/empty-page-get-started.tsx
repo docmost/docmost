@@ -44,7 +44,7 @@ export function EmptyPageGetStarted({
 
   const chips = [
     {
-      key: "database",
+      key: "base",
       label: t("Base"),
       icon: IconTable,
       onClick: () => convertMutation.mutate({ pageId }),

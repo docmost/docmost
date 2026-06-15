@@ -63,7 +63,7 @@ import type { Editor } from "@tiptap/core";
 import { v7 as uuid7 } from "uuid";
 
 // Resolve the position of a baseEmbed placeholder by its pendingKey.
-// Used by the Database slash command to patch in the real pageId once
+// Used by the Base slash command to patch in the real pageId once
 // the create-base API responds — positions may have shifted in the
 // interim from collab edits, undo/redo, or concurrent slash commands.
 function findBaseEmbedPlaceholderPos(

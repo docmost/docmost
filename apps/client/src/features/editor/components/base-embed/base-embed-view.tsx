@@ -124,7 +124,7 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
   } else if (isError) {
     content = (
       <Box p="md" bg="gray.0" style={{ borderRadius: 8 }}>
-        <Text c="dimmed">You don't have access to this database.</Text>
+        <Text c="dimmed">You don't have access to this base.</Text>
       </Box>
     );
   } else {

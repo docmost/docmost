@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Text, Stack } from "@mantine/core";
 import { useAtom } from "jotai";
-import { IconDatabase } from "@tabler/icons-react";
+import { IconTable } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
 import { reorder } from "@atlaskit/pragmatic-drag-and-drop/reorder";
@@ -364,14 +364,14 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
   if (baseError) {
     return (
       <Stack align="center" gap="sm" p="xl">
-        <IconDatabase size={40} color="var(--mantine-color-gray-5)" />
+        <IconTable size={40} color="var(--mantine-color-gray-5)" />
         <Text c="dimmed">{t("Failed to load base")}</Text>
       </Stack>
     );
   }
   if (!base) return null;
 
-  // Ghost rows are an "empty database" affordance, not a "filter matched nothing" state.
+  // Ghost rows are an "empty base" affordance, not a "filter matched nothing" state.
   const isFiltered = (activeFilter?.children?.length ?? 0) > 0;
 
   const banner = (
