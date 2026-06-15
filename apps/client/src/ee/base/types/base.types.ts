@@ -235,6 +235,7 @@ export type IBaseView = {
 
 export type IBase = {
   id: string;
+  slugId: string;
   name: string;
   description?: string;
   icon?: string;

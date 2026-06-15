@@ -15,6 +15,7 @@ import {
   CreateBaseInput,
   UpdateBaseInput,
 } from "@/ee/base/types/base.types";
+import { IPage } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
@@ -62,6 +63,10 @@ export function useConvertPageToBaseMutation() {
   return useMutation<IBase, Error, { pageId: string; template?: "kanban" }>({
     mutationFn: ({ pageId, template }) => convertPageToBase(pageId, template),
     onSuccess: (base) => {
+      const markAsBase = (old?: IPage) => (old ? { ...old, isBase: true } : old);
+      queryClient.setQueryData<IPage>(["pages", base.id], markAsBase);
+      queryClient.setQueryData<IPage>(["pages", base.slugId], markAsBase);
+
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({
         queryKey: ["root-sidebar-pages", base.spaceId],
@@ -75,7 +80,7 @@ export function useConvertPageToBaseMutation() {
         spaceId: base.spaceId,
         entity: ["pages"],
         id: base.id,
-        payload: { isBase: true },
+        payload: { isBase: true, slugId: base.slugId },
       });
     },
     onError: (error) => {
