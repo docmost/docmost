@@ -24,6 +24,7 @@ type UseGridKeyboardNavOptions = {
   selectionCount: number;
   clearSelection: () => void;
   deleteSelected: () => void | Promise<void>;
+  toggleRowSelection: (rowId: string) => void;
 };
 
 const isPrintableKey = (e: KeyboardEvent) =>
@@ -50,6 +51,7 @@ export function useGridKeyboardNav({
   selectionCount,
   clearSelection,
   deleteSelected,
+  toggleRowSelection,
 }: UseGridKeyboardNavOptions) {
   const getColIds = useCallback(
     () =>
@@ -57,6 +59,11 @@ export function useGridKeyboardNav({
         .getVisibleLeafColumns()
         .filter((col) => col.id !== "__row_number")
         .map((col) => col.id),
+    [table],
+  );
+
+  const getNavColIds = useCallback(
+    () => table.getVisibleLeafColumns().map((col) => col.id),
     [table],
   );
 
@@ -187,35 +194,35 @@ export function useGridKeyboardNav({
         case "ArrowUp":
           e.preventDefault();
           {
-            const next = computeNextCell(getRowIds(), getColIds(), focusedCell, -1, 0, false);
+            const next = computeNextCell(getRowIds(), getNavColIds(), focusedCell, -1, 0, false);
             if (next) goFocused(next);
           }
           break;
         case "ArrowDown":
           e.preventDefault();
           {
-            const next = computeNextCell(getRowIds(), getColIds(), focusedCell, 1, 0, false);
+            const next = computeNextCell(getRowIds(), getNavColIds(), focusedCell, 1, 0, false);
             if (next) goFocused(next);
           }
           break;
         case "ArrowLeft":
           e.preventDefault();
           {
-            const next = computeNextCell(getRowIds(), getColIds(), focusedCell, 0, -1, false);
+            const next = computeNextCell(getRowIds(), getNavColIds(), focusedCell, 0, -1, false);
             if (next) goFocused(next);
           }
           break;
         case "ArrowRight":
           e.preventDefault();
           {
-            const next = computeNextCell(getRowIds(), getColIds(), focusedCell, 0, 1, false);
+            const next = computeNextCell(getRowIds(), getNavColIds(), focusedCell, 0, 1, false);
             if (next) goFocused(next);
           }
           break;
         case "Tab": {
           const next = computeNextCell(
             getRowIds(),
-            getColIds(),
+            getNavColIds(),
             focusedCell,
             0,
             e.shiftKey ? -1 : 1,
@@ -230,10 +237,17 @@ export function useGridKeyboardNav({
         case "Enter":
         case "F2":
           e.preventDefault();
-          openEditor(focusedCell);
+          if (focusedCell.propertyId === "__row_number") {
+            toggleRowSelection(focusedCell.rowId);
+          } else {
+            openEditor(focusedCell);
+          }
           break;
         default: {
-          if (e.key === " " && propertyType(focusedCell.propertyId) === "checkbox") {
+          if (e.key === " " && focusedCell.propertyId === "__row_number") {
+            e.preventDefault();
+            toggleRowSelection(focusedCell.rowId);
+          } else if (e.key === " " && propertyType(focusedCell.propertyId) === "checkbox") {
             e.preventDefault();
             openEditor(focusedCell);
           } else if (isPrintableKey(e)) {
@@ -248,6 +262,7 @@ export function useGridKeyboardNav({
       focusedCell,
       getRowIds,
       getColIds,
+      getNavColIds,
       goEditing,
       goFocused,
       setEditingCell,
@@ -259,6 +274,7 @@ export function useGridKeyboardNav({
       selectionCount,
       clearSelection,
       deleteSelected,
+      toggleRowSelection,
     ],
   );
 

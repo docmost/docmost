@@ -125,7 +125,7 @@ export function GridContainer({
   const editingCellRef = useRef(editingCell);
   editingCellRef.current = editingCell;
 
-  const { selectionCount, clear: clearSelection } = useRowSelection(pageId);
+  const { selectionCount, clear: clearSelection, toggle: toggleRow } = useRowSelection(pageId);
   const { deleteSelected } = useDeleteSelectedRows(pageId);
 
   const { t } = useTranslation();
@@ -323,6 +323,17 @@ export function GridContainer({
     [editable, properties, setPendingTypeInsert, setEditingCell, openEditor],
   );
 
+  const toggleRowSelection = useCallback(
+    (rowId: string) => {
+      toggleRow(rowId, {
+        shiftKey: false,
+        rowIndex: rowIdsRef.current.indexOf(rowId),
+        orderedRowIds: rowIdsRef.current,
+      });
+    },
+    [toggleRow],
+  );
+
   const prevEditingRef = useRef(editingCell);
   useEffect(() => {
     const prev = prevEditingRef.current;
@@ -373,6 +384,7 @@ export function GridContainer({
     selectionCount,
     clearSelection,
     deleteSelected,
+    toggleRowSelection,
   });
 
   const activeCell = editingCell ?? focusedCell;

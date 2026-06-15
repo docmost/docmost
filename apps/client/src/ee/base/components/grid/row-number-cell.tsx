@@ -1,7 +1,11 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Checkbox } from "@mantine/core";
 import { IconGripVertical } from "@tabler/icons-react";
+import { useAtomValue, useSetAtom, type PrimitiveAtom } from "jotai";
+import { selectAtom } from "jotai/utils";
 import { useRowSelection } from "@/ee/base/hooks/use-row-selection";
+import { focusedCellAtomFamily } from "@/ee/base/atoms/base-atoms";
+import { FocusedCell } from "@/ee/base/types/base.types";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useGridRowOrder } from "@/ee/base/context/grid-row-order";
 import classes from "@/ee/base/styles/grid.module.css";
@@ -26,6 +30,30 @@ export const RowNumberCell = memo(function RowNumberCell({
   const editable = useBaseEditable();
   const getOrderedRowIds = useGridRowOrder();
 
+  const setFocusedCell = useSetAtom(
+    focusedCellAtomFamily(pageId) as PrimitiveAtom<FocusedCell>,
+  );
+  const isFocused = useAtomValue(
+    useMemo(
+      () =>
+        selectAtom(
+          focusedCellAtomFamily(pageId),
+          (fc) => fc?.rowId === rowId && fc?.propertyId === "__row_number",
+        ),
+      [pageId, rowId],
+    ),
+  );
+
+  const handleCellClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      setFocusedCell({ rowId, propertyId: "__row_number" });
+      (e.currentTarget.closest('[role="grid"]') as HTMLElement | null)?.focus({
+        preventScroll: true,
+      });
+    },
+    [rowId, setFocusedCell],
+  );
+
   const handleCheckboxChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const nativeEvent = e.nativeEvent as MouseEvent;
@@ -40,12 +68,15 @@ export const RowNumberCell = memo(function RowNumberCell({
 
   return (
     <div
-      className={`${classes.cell} ${classes.rowNumberCell} ${isPinned ? classes.cellPinned : ""}`}
+      id={`base-cell-${rowId}-__row_number`}
+      role="gridcell"
+      className={`${classes.cell} ${classes.rowNumberCell} ${isPinned ? classes.cellPinned : ""} ${isFocused ? classes.cellFocused : ""}`}
       style={
         isPinned
           ? ({ "--pin-offset": `${pinOffset ?? 0}px` } as React.CSSProperties)
           : undefined
       }
+      onClick={handleCellClick}
     >
       <div className={classes.rowNumberCellInner}>
         {editable && (
@@ -60,6 +91,7 @@ export const RowNumberCell = memo(function RowNumberCell({
               checked={selected}
               onChange={handleCheckboxChange}
               aria-label="Select row"
+              tabIndex={-1}
             />
           </span>
         )}

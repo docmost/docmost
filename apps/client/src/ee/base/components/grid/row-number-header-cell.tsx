@@ -42,6 +42,7 @@ export const RowNumberHeaderCell = memo(function RowNumberHeaderCell({
             indeterminate={indeterminate}
             onChange={() => toggleAll(loadedRowIds)}
             aria-label="Select all loaded rows"
+            tabIndex={-1}
           />
         </Tooltip>
       </span>

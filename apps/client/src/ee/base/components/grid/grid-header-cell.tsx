@@ -57,10 +57,12 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   const isRowNumber = header.column.id === "__row_number";
   const isPinned = header.column.getIsPinned();
   const pinOffset = isPinned ? header.column.getStart("left") : undefined;
-  const { selectionCount } = useRowSelection(pageId);
+  const { selectionCount, toggleAll } = useRowSelection(pageId);
   const hasSelection = selectionCount > 0;
   const editable = useBaseEditable();
   const isHeaderInteractive = editable && !!property && !isRowNumber;
+  const isRowNumberHeaderInteractive =
+    isRowNumber && editable && loadedRowIds.length > 0;
 
   const [activePropertyMenu, setActivePropertyMenu] = useAtom(activePropertyMenuAtomFamily(pageId)) as unknown as [string | null, (val: string | null) => void];
   const menuOpened = activePropertyMenu === header.column.id;
@@ -209,9 +211,10 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   return (
     <div
       ref={cellRef}
-      role={isRowNumber ? undefined : "columnheader"}
-      tabIndex={isHeaderInteractive ? 0 : undefined}
+      role="columnheader"
+      tabIndex={isHeaderInteractive || isRowNumberHeaderInteractive ? 0 : undefined}
       aria-haspopup={isHeaderInteractive ? "menu" : undefined}
+      aria-label={isRowNumberHeaderInteractive ? t("Select all loaded rows") : undefined}
       className={`${classes.headerCell} ${isPinned ? classes.headerCellPinned : ""} ${hasSelection ? classes.hasSelection : ""}`}
       style={{
         ...(isPinned
@@ -227,7 +230,11 @@ export const GridHeaderCell = memo(function GridHeaderCell({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          handleHeaderClick();
+          if (isRowNumber) {
+            if (isRowNumberHeaderInteractive) toggleAll(loadedRowIds);
+          } else {
+            handleHeaderClick();
+          }
         }
       }}
       data-dragging={isDragging || undefined}

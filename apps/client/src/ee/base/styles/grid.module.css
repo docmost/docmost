@@ -498,6 +498,12 @@
 .rowSelected .rowNumberCheckbox {
   display: inline-flex;
 }
+.bodyGrid:focus-within .cellFocused .rowNumberIndex {
+  display: none;
+}
+.bodyGrid:focus-within .cellFocused .rowNumberCheckbox {
+  display: inline-flex;
+}
 .rowSelected .cell {
   background: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6));
 }
@@ -531,6 +537,13 @@
 
 .headerCell:hover .rowNumberHeaderCheckbox,
 .hasSelection .rowNumberHeaderCheckbox {
+  display: inline-flex;
+}
+
+.headerCell:focus-visible .rowNumberHeaderHash {
+  display: none;
+}
+.headerCell:focus-visible .rowNumberHeaderCheckbox {
   display: inline-flex;
 }
 
