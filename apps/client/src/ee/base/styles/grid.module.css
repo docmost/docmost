@@ -36,6 +36,11 @@
   scrollbar-width: thin;
 }
 
+.bodyGrid:focus,
+.bodyGrid:focus-visible {
+  outline: none;
+}
+
 .bodyGrid::-webkit-scrollbar {
   height: 8px;
 }
