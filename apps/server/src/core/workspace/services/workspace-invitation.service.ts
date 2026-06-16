@@ -125,28 +125,34 @@ export class WorkspaceInvitationService {
       throw new ForbiddenException();
     }
 
+    // we do not want to invite existing members
+    const findExistingUsers = await this.db
+      .selectFrom('users')
+      .select(['email'])
+      .where('users.email', 'in', emails)
+      .where('users.workspaceId', '=', workspace.id)
+      .execute();
+
+    let existingUserEmails = [];
+    if (findExistingUsers) {
+      existingUserEmails = findExistingUsers.map((user) => user.email);
+    }
+
+    if (existingUserEmails.length > 0) {
+      throw new BadRequestException(
+        `The following email(s) are already workspace members: ${existingUserEmails.join(', ')}`,
+      );
+    }
+
+    // filter out existing users (safety: throw above already guarantees this is a no-op)
+    const inviteEmails = emails.filter(
+      (email) => !existingUserEmails.includes(email),
+    );
+
     let invites: WorkspaceInvitation[] = [];
 
     try {
       await executeTx(this.db, async (trx) => {
-        // we do not want to invite existing members
-        const findExistingUsers = await this.db
-          .selectFrom('users')
-          .select(['email'])
-          .where('users.email', 'in', emails)
-          .where('users.workspaceId', '=', workspace.id)
-          .execute();
-
-        let existingUserEmails = [];
-        if (findExistingUsers) {
-          existingUserEmails = findExistingUsers.map((user) => user.email);
-        }
-
-        // filter out existing users
-        const inviteEmails = emails.filter(
-          (email) => !existingUserEmails.includes(email),
-        );
-
         let validGroups = [];
         if (groupIds && groupIds.length > 0) {
           validGroups = await trx
@@ -165,10 +171,6 @@ export class WorkspaceInvitationService {
           invitedById: authUser.id,
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
         }));
-
-        if (invitesToInsert.length < 1) {
-          return;
-        }
 
         invites = await trx
           .insertInto('workspaceInvitations')
