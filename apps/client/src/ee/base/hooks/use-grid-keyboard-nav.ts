@@ -166,6 +166,8 @@ export function useGridKeyboardNav({
         return;
       }
 
+      if (e.target !== containerRef.current) return;
+
       if (isTextEntry(document.activeElement)) return;
 
       if (e.key === "Escape") {
@@ -263,6 +265,7 @@ export function useGridKeyboardNav({
       }
     },
     [
+      containerRef,
       editingCell,
       focusedCell,
       getRowIds,

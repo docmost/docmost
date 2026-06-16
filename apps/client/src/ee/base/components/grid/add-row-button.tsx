@@ -16,6 +16,12 @@ export const AddRowButton = memo(function AddRowButton({
     <div
       className={classes.addRowButton}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       role="button"
       tabIndex={0}
     >
