@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { Cell } from "@tanstack/react-table";
 import { Popover, Tooltip } from "@mantine/core";
 import { IconArrowsDiagonal } from "@tabler/icons-react";
@@ -23,6 +23,8 @@ import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useRowExpand } from "@/ee/base/context/row-expand";
 import { RowNumberCell } from "./row-number-cell";
 import classes from "@/ee/base/styles/grid.module.css";
+
+const TOUCH_TAP_SLOP_PX = 10;
 
 type GridCellProps = {
   cell: Cell<IBaseRow, unknown>;
@@ -72,6 +74,9 @@ export const GridCell = memo(function GridCell({
     editingCell?.propertyId === property?.id &&
     (editable || property?.type === "file");
 
+  const tapStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickRef = useRef(false);
+
   const handleDoubleClick = useCallback(() => {
     if (!property || isRowNumber) return;
     if (property.type === "checkbox") return;
@@ -102,6 +107,10 @@ export const GridCell = memo(function GridCell({
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!property) return;
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
       setFocusedCell({ rowId, propertyId: property.id });
       (e.currentTarget.closest('[role="grid"]') as HTMLElement | null)?.focus({
         preventScroll: true,
@@ -109,6 +118,38 @@ export const GridCell = memo(function GridCell({
     },
     [property, rowId, setFocusedCell],
   );
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "mouse") return;
+      suppressClickRef.current = false;
+      tapStartRef.current = { x: e.clientX, y: e.clientY };
+    },
+    [],
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "mouse") return;
+      const start = tapStartRef.current;
+      tapStartRef.current = null;
+      if (!start) return;
+      if (
+        Math.abs(e.clientX - start.x) > TOUCH_TAP_SLOP_PX ||
+        Math.abs(e.clientY - start.y) > TOUCH_TAP_SLOP_PX
+      ) {
+        return;
+      }
+      if ((e.target as HTMLElement).closest("button, a, input")) return;
+      suppressClickRef.current = true;
+      handleDoubleClick();
+    },
+    [handleDoubleClick],
+  );
+
+  const handlePointerCancel = useCallback(() => {
+    tapStartRef.current = null;
+  }, []);
 
   const cellReadOnly = property
     ? readOnly || isSystemPropertyType(property.type)
@@ -200,6 +241,9 @@ export const GridCell = memo(function GridCell({
       onClick={handleClick}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       <CellComponent
         value={value}

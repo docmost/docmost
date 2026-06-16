@@ -479,6 +479,13 @@
   pointer-events: auto;
 }
 
+@media (hover: none) {
+  .rowExpandButton {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .rowExpandButton:hover {
   background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
   color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
