@@ -51,6 +51,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
   // Portal target for nested Select dropdowns to avoid triggering closeOnClickOutside.
   const [dropdownNode, setDropdownNode] = useState<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const createPropertyMutation = useCreatePropertyMutation();
 
@@ -221,6 +222,17 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
         closeOnClickOutside
         closeOnEscape={false}
         withinPortal
+        middlewares={{
+          flip: true,
+          shift: true,
+          size: {
+            padding: 8,
+            apply: ({ availableHeight }) => {
+              const el = scrollRef.current;
+              if (el) el.style.maxHeight = `${availableHeight}px`;
+            },
+          },
+        }}
       >
         <Popover.Target>
           {renderTarget ? (
@@ -248,6 +260,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
             maxWidth: "calc(100vw - 32px)",
           }}
         >
+          <div ref={scrollRef} style={{ overflowY: "auto", overflowX: "hidden" }}>
           {panel === "typePicker" && (
             <Stack gap={0} p={4}>
               <ScrollArea.Autosize
@@ -382,6 +395,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
               </Group>
             </Stack>
           )}
+          </div>
         </Popover.Dropdown>
       </Popover>
     </>

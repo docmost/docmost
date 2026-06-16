@@ -217,6 +217,7 @@ export function RowDetailModal({
       radius="md"
       title={null}
       classNames={{ content: classes.modalContent }}
+      removeScrollProps={{ noIsolation: true }}
     >
       {row ? (
         <>
