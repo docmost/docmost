@@ -21,6 +21,8 @@ import {
 import {
   IBaseProperty,
   BasePropertyType,
+  TypeOptions,
+  SelectTypeOptions,
 } from "@/ee/base/types/base.types";
 import { useAtom } from "jotai";
 import { propertyMenuCloseRequestAtomFamily } from "@/ee/base/atoms/base-atoms";
@@ -36,7 +38,11 @@ import {
   NON_USER_TARGET_TYPES,
 } from "./conversion-warning";
 import { useTranslation } from "react-i18next";
-import { isSystemPropertyType, propertyTypes } from "@/ee/base/property-types/property-type.registry";
+import {
+  isSystemPropertyType,
+  propertyTypes,
+  defaultTypeOptionsFor,
+} from "@/ee/base/property-types/property-type.registry";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import classes from "@/ee/base/styles/property.module.css";
 
@@ -57,6 +63,31 @@ type MenuPanel =
   | "confirmTypeChange"
   | "confirmDelete"
   | "confirmDiscard";
+
+const CHOICE_TYPES = new Set<BasePropertyType>([
+  "select",
+  "multiSelect",
+  "status",
+]);
+
+function typeOptionsForConversion(
+  source: IBaseProperty,
+  target: BasePropertyType,
+): TypeOptions {
+  if (!CHOICE_TYPES.has(source.type) || !CHOICE_TYPES.has(target)) {
+    return defaultTypeOptionsFor(target);
+  }
+  const opts = source.typeOptions as SelectTypeOptions | undefined;
+  const choices = opts?.choices ?? [];
+  const choiceOrder = opts?.choiceOrder?.length
+    ? opts.choiceOrder
+    : choices.map((c) => c.id);
+  const carried: SelectTypeOptions = { choices, choiceOrder };
+  if (target === "status") {
+    carried.defaultValue = choices[0]?.id ?? null;
+  }
+  return carried;
+}
 
 export function PropertyMenuContent({
   property,
@@ -185,16 +216,10 @@ export function PropertyMenuContent({
       propertyId: property.id,
       pageId: property.pageId,
       type: pendingTargetType,
-      typeOptions: {},
+      typeOptions: typeOptionsForConversion(property, pendingTargetType),
     });
     onClose();
-  }, [
-    pendingTargetType,
-    property.id,
-    property.pageId,
-    updatePropertyMutation,
-    onClose,
-  ]);
+  }, [pendingTargetType, property, updatePropertyMutation, onClose]);
 
   const handleDelete = useCallback(() => {
     deletePropertyMutation.mutate({

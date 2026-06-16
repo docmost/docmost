@@ -63,8 +63,12 @@ export function useEditableTextCell({
       } else {
         setDraft(toDraftRef.current(value));
         requestAnimationFrame(() => {
-          inputRef.current?.focus();
-          inputRef.current?.select();
+          const el = inputRef.current;
+          if (el) {
+            el.focus();
+            const len = el.value.length;
+            el.setSelectionRange(len, len);
+          }
         });
       }
     }

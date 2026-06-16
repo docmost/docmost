@@ -52,6 +52,9 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
   const [dropdownNode, setDropdownNode] = useState<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<"bottom-start" | "top-start">(
+    "bottom-start",
+  );
 
   const createPropertyMutation = useCreatePropertyMutation();
 
@@ -95,10 +98,20 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
     setTypeOptions({});
   }, []);
 
-  const handleOpen = useCallback(() => {
-    resetState();
-    setOpened(true);
-  }, [resetState]);
+  const handleOpen = useCallback(
+    (event?: React.SyntheticEvent) => {
+      resetState();
+      const trigger = event?.currentTarget as HTMLElement | undefined;
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        const spaceAbove = rect.top;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setPosition(spaceAbove > spaceBelow ? "top-start" : "bottom-start");
+      }
+      setOpened(true);
+    },
+    [resetState],
+  );
 
   const handleClose = useCallback(() => {
     // Don't reset state here: resetting mid-close flashes the type picker.
@@ -217,13 +230,13 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
         onChange={(o) => {
           if (!o) attemptClose();
         }}
-        position="bottom-start"
+        position={position}
         shadow="md"
         closeOnClickOutside
         closeOnEscape={false}
         withinPortal
         middlewares={{
-          flip: true,
+          flip: false,
           shift: true,
           size: {
             padding: 8,

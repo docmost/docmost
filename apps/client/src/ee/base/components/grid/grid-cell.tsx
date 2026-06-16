@@ -76,6 +76,7 @@ export const GridCell = memo(function GridCell({
 
   const tapStartRef = useRef<{ x: number; y: number } | null>(null);
   const suppressClickRef = useRef(false);
+  const expandClickGuardRef = useRef(false);
 
   const handleDoubleClick = useCallback(() => {
     if (!property || isRowNumber) return;
@@ -121,6 +122,7 @@ export const GridCell = memo(function GridCell({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      expandClickGuardRef.current = false;
       if (e.pointerType === "mouse") return;
       suppressClickRef.current = false;
       tapStartRef.current = { x: e.clientX, y: e.clientY };
@@ -140,11 +142,18 @@ export const GridCell = memo(function GridCell({
       ) {
         return;
       }
-      if ((e.target as HTMLElement).closest("button, a, input")) return;
+      const target = e.target as HTMLElement;
+      if (onExpandRow && target.closest("[data-base-row-expand]")) {
+        suppressClickRef.current = true;
+        expandClickGuardRef.current = true;
+        onExpandRow(rowId);
+        return;
+      }
+      if (target.closest("button, a, input")) return;
       suppressClickRef.current = true;
       handleDoubleClick();
     },
-    [handleDoubleClick],
+    [handleDoubleClick, onExpandRow, rowId],
   );
 
   const handlePointerCancel = useCallback(() => {
@@ -262,8 +271,15 @@ export const GridCell = memo(function GridCell({
             <button
               type="button"
               tabIndex={-1}
+              data-base-row-expand=""
               className={classes.rowExpandButton}
-              onClick={() => onExpandRow(rowId)}
+              onClick={() => {
+                if (expandClickGuardRef.current) {
+                  expandClickGuardRef.current = false;
+                  return;
+                }
+                onExpandRow(rowId);
+              }}
               onDoubleClick={(e) => e.stopPropagation()}
               aria-label={t("Expand row {{number}}", { number: rowIndex + 1 })}
             >
