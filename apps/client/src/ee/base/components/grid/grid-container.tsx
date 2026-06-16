@@ -67,7 +67,7 @@ type GridContainerProps = {
   table: Table<IBaseRow>;
   properties: IBaseProperty[];
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
-  onAddRow?: () => void;
+  onAddRow?: (afterRowId?: string, focusPropertyId?: string) => void;
   pageId: string;
   onColumnReorder?: (columnId: string, finishIndex: number) => void;
   onResizeEnd?: () => void;
@@ -378,6 +378,13 @@ export function GridContainer({
     [table, setFocusedCell],
   );
 
+  const handleAddRowBelow = useCallback(
+    (afterRowId: string, focusPropertyId: string) => {
+      onAddRow?.(afterRowId, focusPropertyId);
+    },
+    [onAddRow],
+  );
+
   useGridKeyboardNav({
     table,
     properties,
@@ -395,6 +402,7 @@ export function GridContainer({
     deleteSelected,
     toggleRowSelection,
     expandRow,
+    addRow: handleAddRowBelow,
   });
 
   const activeCell = editingCell ?? focusedCell;

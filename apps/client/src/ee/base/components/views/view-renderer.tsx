@@ -21,7 +21,7 @@ type ViewRendererProps = {
   isFetchingNextPage: boolean;
   onFetchNextPage: () => void;
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
-  onAddRow: () => void;
+  onAddRow: (afterRowId?: string, focusPropertyId?: string) => void;
   onColumnReorder: (columnId: string, finishIndex: number) => void;
   onResizeEnd: () => void;
   onRowReorder: (

@@ -12,6 +12,7 @@ import {
   FilterGroup,
   ViewSortConfig,
   EditingCell,
+  FocusedCell,
   IBaseProperty,
 } from "@/ee/base/types/base.types";
 import {
@@ -25,6 +26,7 @@ import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
 import {
   activeViewIdAtomFamily,
   editingCellAtomFamily,
+  focusedCellAtomFamily,
 } from "@/ee/base/atoms/base-atoms";
 import { useBaseTable } from "@/ee/base/hooks/use-base-table";
 import { isSystemPropertyType } from "@/ee/base/property-types/property-type.registry";
@@ -88,6 +90,10 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
   const [, setEditingCell] = useAtom(
     editingCellAtomFamily(pageId),
   ) as unknown as [EditingCell, (val: EditingCell) => void];
+
+  const [, setFocusedCell] = useAtom(
+    focusedCellAtomFamily(pageId),
+  ) as unknown as [FocusedCell, (val: FocusedCell) => void];
 
   const views = useMemo(
     () =>
@@ -221,33 +227,42 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     [editable, pageId, updateRow],
   );
 
-  const handleAddRow = useCallback(() => {
-    if (!editable) return;
-    createRowMutation.mutate(
-      { pageId },
-      {
-        onSuccess: (newRow) => {
-          const firstEditable = table.getVisibleLeafColumns().find((col) => {
-            if (col.id === "__row_number") return false;
-            const prop = col.columnDef.meta?.property as
-              | IBaseProperty
-              | undefined;
-            return (
-              !!prop &&
-              prop.type !== "checkbox" &&
-              !isSystemPropertyType(prop.type)
-            );
-          });
-          const propertyId = (
-            firstEditable?.columnDef.meta?.property as IBaseProperty | undefined
-          )?.id;
-          if (propertyId) {
-            setEditingCell({ rowId: newRow.id, propertyId });
-          }
+  const handleAddRow = useCallback(
+    (afterRowId?: string, focusPropertyId?: string) => {
+      if (!editable) return;
+      createRowMutation.mutate(
+        { pageId, ...(afterRowId ? { afterRowId } : {}) },
+        {
+          onSuccess: (newRow) => {
+            let propertyId = focusPropertyId;
+            if (!propertyId) {
+              const firstEditable = table.getVisibleLeafColumns().find((col) => {
+                if (col.id === "__row_number") return false;
+                const prop = col.columnDef.meta?.property as
+                  | IBaseProperty
+                  | undefined;
+                return (
+                  !!prop &&
+                  prop.type !== "checkbox" &&
+                  !isSystemPropertyType(prop.type)
+                );
+              });
+              propertyId = (
+                firstEditable?.columnDef.meta?.property as
+                  | IBaseProperty
+                  | undefined
+              )?.id;
+            }
+            if (propertyId) {
+              setEditingCell({ rowId: newRow.id, propertyId });
+              setFocusedCell({ rowId: newRow.id, propertyId });
+            }
+          },
         },
-      },
-    );
-  }, [editable, pageId, createRowMutation, table, setEditingCell]);
+      );
+    },
+    [editable, pageId, createRowMutation, table, setEditingCell, setFocusedCell],
+  );
 
   const handleViewChange = useCallback(
     (viewId: string) => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Table } from "@tanstack/react-table";
 import {
   IBaseRow,
@@ -26,6 +26,7 @@ type UseGridKeyboardNavOptions = {
   deleteSelected: () => void | Promise<void>;
   toggleRowSelection: (rowId: string) => void;
   expandRow: (rowId: string) => void;
+  addRow: (afterRowId: string, focusPropertyId: string) => void;
 };
 
 const isPrintableKey = (e: KeyboardEvent) =>
@@ -54,6 +55,7 @@ export function useGridKeyboardNav({
   deleteSelected,
   toggleRowSelection,
   expandRow,
+  addRow,
 }: UseGridKeyboardNavOptions) {
   const getColIds = useCallback(
     () =>
@@ -76,6 +78,11 @@ export function useGridKeyboardNav({
 
   const propertyType = useCallback(
     (propertyId: string) => properties.find((p) => p.id === propertyId)?.type,
+    [properties],
+  );
+
+  const primaryPropertyId = useMemo(
+    () => properties.find((p) => p.isPrimary)?.id,
     [properties],
   );
 
@@ -142,6 +149,12 @@ export function useGridKeyboardNav({
           }
           case "Enter": {
             e.preventDefault();
+            if (e.shiftKey && editingCell.propertyId === primaryPropertyId) {
+              (document.activeElement as HTMLElement | null)?.blur();
+              setEditingCell(null);
+              addRow(editingCell.rowId, editingCell.propertyId);
+              break;
+            }
             const next = computeNextCell(
               getRowIds(),
               getColIds(),
@@ -241,7 +254,13 @@ export function useGridKeyboardNav({
         case "Enter":
         case "F2":
           e.preventDefault();
-          if (focusedCell.propertyId === "__row_number") {
+          if (
+            e.key === "Enter" &&
+            e.shiftKey &&
+            focusedCell.propertyId === primaryPropertyId
+          ) {
+            addRow(focusedCell.rowId, focusedCell.propertyId);
+          } else if (focusedCell.propertyId === "__row_number") {
             toggleRowSelection(focusedCell.rowId);
           } else {
             openEditor(focusedCell);
@@ -284,6 +303,8 @@ export function useGridKeyboardNav({
       deleteSelected,
       toggleRowSelection,
       expandRow,
+      primaryPropertyId,
+      addRow,
     ],
   );
 
