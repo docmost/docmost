@@ -428,7 +428,9 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Draw.io (diagrams.net)",
   "Excalidraw (Whiteboard)",
   "Audio",
-  "Synced block"
+  "Synced block",
+  "Base (Inline)",
+  "Kanban"
 ]);
 
 const TemplateSlashCommand = Command.configure({
