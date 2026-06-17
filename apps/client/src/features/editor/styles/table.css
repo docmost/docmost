@@ -163,8 +163,13 @@
 
 @media print {
   .tableWrapper.tableHeaderPinned table tr:first-child {
-    position: static;
-    transform: none;
+    position: static !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  .tableReadonlySortChevron {
+    display: none !important;
   }
 }
 
