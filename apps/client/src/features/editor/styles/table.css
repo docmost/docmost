@@ -171,10 +171,6 @@
   .tableReadonlySortChevron {
     display: none !important;
   }
-
-  .ProseMirror table th:has(.tableReadonlySortChevron) {
-    padding-right: 5px;
-  }
 }
 
 .tableReadonlySortChevron {
