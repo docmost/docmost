@@ -41,6 +41,7 @@ export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
       trapFocus
       closeOnClickOutside
       closeOnEscape
+      hideDetached={false}
     >
       <Popover.Target>
         <FieldShell

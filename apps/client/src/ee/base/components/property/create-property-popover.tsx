@@ -235,6 +235,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
         closeOnClickOutside
         closeOnEscape={false}
         withinPortal
+        hideDetached={false}
         middlewares={{
           flip: false,
           shift: true,

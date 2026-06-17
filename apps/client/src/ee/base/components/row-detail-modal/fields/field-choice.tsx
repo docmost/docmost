@@ -66,6 +66,7 @@ export function FieldChoice({ property, value, readOnly, onChange }: FieldProps)
       trapFocus
       closeOnClickOutside
       closeOnEscape={false}
+      hideDetached={false}
     >
       <Popover.Target>
         <FieldShell

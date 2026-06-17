@@ -125,6 +125,7 @@ export function CellFile({
         trapFocus
         closeOnClickOutside
         closeOnEscape
+        hideDetached={false}
       >
         <Popover.Target>
           <div className={cellClasses.popoverTarget}>
