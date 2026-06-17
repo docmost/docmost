@@ -767,18 +767,34 @@ export const getSuggestionItems = ({
   for (const [group, items] of Object.entries(CommandGroups)) {
     const filteredItems = items.filter((item) => {
       if (excludeItems?.has(item.title)) return false;
+      const translatedTitle = i18n.t(item.title);
+      const translatedDescription = i18n.t(item.description);
       return (
         fuzzyMatch(search, item.title) ||
+        fuzzyMatch(search, translatedTitle) ||
         item.description.toLowerCase().includes(search) ||
+        translatedDescription.toLowerCase().includes(search) ||
         (item.searchTerms &&
-          item.searchTerms.some((term: string) => term.includes(search)))
+          item.searchTerms.some(
+            (term: string) =>
+              term.includes(search) ||
+              i18n.t(term).toLowerCase().includes(search),
+          ))
       );
     });
 
     if (filteredItems.length) {
       filteredGroups[group] = filteredItems.sort((a, b) => {
-        const aTitle = a.title.toLowerCase().includes(search) ? 0 : 1;
-        const bTitle = b.title.toLowerCase().includes(search) ? 0 : 1;
+        const aTitle =
+          a.title.toLowerCase().includes(search) ||
+          i18n.t(a.title).toLowerCase().includes(search)
+            ? 0
+            : 1;
+        const bTitle =
+          b.title.toLowerCase().includes(search) ||
+          i18n.t(b.title).toLowerCase().includes(search)
+            ? 0
+            : 1;
         return aTitle - bTitle;
       });
     }
