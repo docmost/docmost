@@ -184,11 +184,13 @@
     light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
 }
 
-.row:hover .cell {
-  background-color: light-dark(
-    var(--mantine-color-gray-0),
-    var(--mantine-color-dark-7)
-  );
+@media (hover: hover) {
+  .row:hover .cell {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-7)
+    );
+  }
 }
 
 .cell {
@@ -196,6 +198,7 @@
   align-items: center;
   min-height: 36px;
   padding: 0 8px;
+  touch-action: manipulation;
   font-size: var(--mantine-font-size-sm);
   color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
   background-color: light-dark(
@@ -227,11 +230,13 @@
   );
 }
 
-.row:hover .cellPinned {
-  background-color: light-dark(
-    var(--mantine-color-gray-0),
-    var(--mantine-color-dark-7)
-  );
+@media (hover: hover) {
+  .row:hover .cellPinned {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-7)
+    );
+  }
 }
 
 .cellEditing {
@@ -245,6 +250,14 @@
   outline: 2px solid var(--mantine-color-blue-5);
   outline-offset: -2px;
   z-index: 1;
+}
+
+@media (hover: none) {
+  .cellFocused {
+    outline: 2px solid var(--mantine-color-blue-5);
+    outline-offset: -2px;
+    z-index: 1;
+  }
 }
 
 .headerCell:focus-visible {
@@ -470,6 +483,7 @@
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
+  touch-action: manipulation;
   transition: opacity 80ms ease, color 80ms ease;
 }
 
@@ -486,17 +500,21 @@
   }
 }
 
-.rowExpandButton:hover {
-  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
-  color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+@media (hover: hover) {
+  .rowExpandButton:hover {
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+  }
 }
 
-.row:hover .rowNumberIndex {
-  display: none;
-}
-.row:hover .rowNumberCheckbox,
-.row:hover .rowNumberDragHandle {
-  display: inline-flex;
+@media (hover: hover) {
+  .row:hover .rowNumberIndex {
+    display: none;
+  }
+  .row:hover .rowNumberCheckbox,
+  .row:hover .rowNumberDragHandle {
+    display: inline-flex;
+  }
 }
 
 .rowSelected .rowNumberIndex {
@@ -511,13 +529,23 @@
 .bodyGrid:focus .cellFocused .rowNumberCheckbox {
   display: inline-flex;
 }
+@media (hover: none) {
+  .cellFocused .rowNumberIndex {
+    display: none;
+  }
+  .cellFocused .rowNumberCheckbox {
+    display: inline-flex;
+  }
+}
 .rowSelected .cell {
   background: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6));
 }
 
-.row.rowSelected:hover .cell,
-.row.rowSelected:hover .cellPinned {
-  background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5));
+@media (hover: hover) {
+  .row.rowSelected:hover .cell,
+  .row.rowSelected:hover .cellPinned {
+    background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5));
+  }
 }
 
 .rowNumberHeaderInner {

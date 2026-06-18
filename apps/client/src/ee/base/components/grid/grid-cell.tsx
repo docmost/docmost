@@ -1,4 +1,5 @@
-import { memo, useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { Cell } from "@tanstack/react-table";
 import { Popover, Tooltip } from "@mantine/core";
 import { IconArrowsDiagonal } from "@tabler/icons-react";
@@ -23,8 +24,6 @@ import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useRowExpand } from "@/ee/base/context/row-expand";
 import { RowNumberCell } from "./row-number-cell";
 import classes from "@/ee/base/styles/grid.module.css";
-
-const TOUCH_TAP_SLOP_PX = 10;
 
 type GridCellProps = {
   cell: Cell<IBaseRow, unknown>;
@@ -74,18 +73,14 @@ export const GridCell = memo(function GridCell({
     editingCell?.propertyId === property?.id &&
     (editable || property?.type === "file");
 
-  const tapStartRef = useRef<{ x: number; y: number } | null>(null);
-  const suppressClickRef = useRef(false);
-  const expandClickGuardRef = useRef(false);
-
-  const handleDoubleClick = useCallback(() => {
+  const handleEdit = useCallback(() => {
     if (!property || isRowNumber) return;
     if (property.type === "checkbox") return;
     if (readOnly) {
       // Read-only: only the file cell opens (a download-only popover) so
       // attachments stay reachable.
       if (property.type === "file") {
-        setEditingCell({ rowId, propertyId: property.id });
+        flushSync(() => setEditingCell({ rowId, propertyId: property.id }));
       }
       return;
     }
@@ -94,7 +89,7 @@ export const GridCell = memo(function GridCell({
       return;
     }
     if (isSystemPropertyType(property.type)) return;
-    setEditingCell({ rowId, propertyId: property.id });
+    flushSync(() => setEditingCell({ rowId, propertyId: property.id }));
   }, [property, isRowNumber, rowId, readOnly, setEditingCell, setActiveFormulaEditor]);
 
   const handleMouseDown = useCallback(
@@ -108,10 +103,6 @@ export const GridCell = memo(function GridCell({
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!property) return;
-      if (suppressClickRef.current) {
-        suppressClickRef.current = false;
-        return;
-      }
       setFocusedCell({ rowId, propertyId: property.id });
       (e.currentTarget.closest('[role="grid"]') as HTMLElement | null)?.focus({
         preventScroll: true,
@@ -119,46 +110,6 @@ export const GridCell = memo(function GridCell({
     },
     [property, rowId, setFocusedCell],
   );
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      expandClickGuardRef.current = false;
-      if (e.pointerType === "mouse") return;
-      suppressClickRef.current = false;
-      tapStartRef.current = { x: e.clientX, y: e.clientY };
-    },
-    [],
-  );
-
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (e.pointerType === "mouse") return;
-      const start = tapStartRef.current;
-      tapStartRef.current = null;
-      if (!start) return;
-      if (
-        Math.abs(e.clientX - start.x) > TOUCH_TAP_SLOP_PX ||
-        Math.abs(e.clientY - start.y) > TOUCH_TAP_SLOP_PX
-      ) {
-        return;
-      }
-      const target = e.target as HTMLElement;
-      if (onExpandRow && target.closest("[data-base-row-expand]")) {
-        suppressClickRef.current = true;
-        expandClickGuardRef.current = true;
-        onExpandRow(rowId);
-        return;
-      }
-      if (target.closest("button, a, input")) return;
-      suppressClickRef.current = true;
-      handleDoubleClick();
-    },
-    [handleDoubleClick, onExpandRow, rowId],
-  );
-
-  const handlePointerCancel = useCallback(() => {
-    tapStartRef.current = null;
-  }, []);
 
   const cellReadOnly = property
     ? readOnly || isSystemPropertyType(property.type)
@@ -249,10 +200,7 @@ export const GridCell = memo(function GridCell({
       }
       onClick={handleClick}
       onMouseDown={handleMouseDown}
-      onDoubleClick={handleDoubleClick}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
+      onDoubleClick={handleEdit}
     >
       <CellComponent
         value={value}
@@ -273,13 +221,7 @@ export const GridCell = memo(function GridCell({
               tabIndex={-1}
               data-base-row-expand=""
               className={classes.rowExpandButton}
-              onClick={() => {
-                if (expandClickGuardRef.current) {
-                  expandClickGuardRef.current = false;
-                  return;
-                }
-                onExpandRow(rowId);
-              }}
+              onClick={() => onExpandRow(rowId)}
               onDoubleClick={(e) => e.stopPropagation()}
               aria-label={t("Expand row {{number}}", { number: rowIndex + 1 })}
             >

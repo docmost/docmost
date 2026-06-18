@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useStore, type PrimitiveAtom } from "jotai";
 import { pendingTypeInsertAtom, type PendingTypeInsert } from "@/ee/base/atoms/base-atoms";
 
@@ -41,7 +41,7 @@ export function useEditableTextCell({
   toDraftRef.current = toDraft;
   const store = useStore();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isEditing && !wasEditingRef.current) {
       committedRef.current = false;
       const pending = store.get(pendingTypeInsertAtom);
@@ -49,27 +49,21 @@ export function useEditableTextCell({
         pending != null &&
         pending.rowId === rowId &&
         pending.propertyId === propertyId;
+      const nextDraft = seeded ? pending.char : toDraftRef.current(value);
       if (seeded) {
-        setDraft(pending.char);
         store.set(pendingTypeInsertAtom as PrimitiveAtom<PendingTypeInsert>, null);
-        requestAnimationFrame(() => {
-          const el = inputRef.current;
-          if (el) {
-            el.focus();
-            const len = el.value.length;
-            el.setSelectionRange(len, len);
-          }
-        });
-      } else {
-        setDraft(toDraftRef.current(value));
-        requestAnimationFrame(() => {
-          const el = inputRef.current;
-          if (el) {
-            el.focus();
-            const len = el.value.length;
-            el.setSelectionRange(len, len);
-          }
-        });
+      }
+      setDraft(nextDraft);
+      const el = inputRef.current;
+      if (el) {
+        el.value = nextDraft;
+        el.focus({ preventScroll: true });
+        try {
+          el.setSelectionRange(nextDraft.length, nextDraft.length);
+        } catch {
+          // email/number inputs reject setSelectionRange
+        }
+        el.scrollLeft = el.scrollWidth;
       }
     }
     wasEditingRef.current = isEditing;

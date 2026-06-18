@@ -276,6 +276,12 @@ export function GridContainer({
     [virtualizer, pinnedLeftWidth],
   );
 
+  useEffect(() => {
+    if (!editingCell) return;
+    const idx = rowIdsRef.current.indexOf(editingCell.rowId);
+    if (idx >= 0) scrollCellIntoView(editingCell, idx);
+  }, [editingCell, scrollCellIntoView]);
+
   const openEditor = useCallback(
     (coord: CellCoord) => {
       const prop = properties.find((p) => p.id === coord.propertyId);
