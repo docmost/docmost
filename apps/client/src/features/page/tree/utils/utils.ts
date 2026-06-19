@@ -199,6 +199,40 @@ export function appendNodeChildren(
   });
 }
 
+export function updateSortedChildren(
+  nodes: SpaceTreeNode[],
+  parentId: string,
+  direction: 'asc' | 'desc',
+  positionMap: Map<string, string>,
+): SpaceTreeNode[] {
+  return nodes.map((n) => {
+    if (n.id === parentId) {
+      const sortedChildren = [...(n.children || [])].sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        const cmp = nameA.localeCompare(nameB);
+        return direction === 'asc' ? cmp : -cmp;
+      });
+      return {
+        ...n,
+        children: sortedChildren.map((child) => ({
+          ...child,
+          position: positionMap.get(child.id) ?? child.position,
+        })),
+      };
+    }
+    return {
+      ...n,
+      children: updateSortedChildren(
+        n.children || [],
+        parentId,
+        direction,
+        positionMap,
+      ),
+    };
+  });
+}
+
 /**
  * Merge root nodes; keep existing ones intact, append new ones,
  */
