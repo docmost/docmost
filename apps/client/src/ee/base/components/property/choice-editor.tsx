@@ -35,7 +35,7 @@ import { BaseDropEdgeIndicator } from "@/ee/base/components/grid/base-drop-edge-
 import { Choice } from "@/ee/base/types/base.types";
 import { choiceColor } from "@/ee/base/components/cells/choice-color";
 import { useTranslation } from "react-i18next";
-import { v7 as uuid7 } from "uuid";
+import { generateBaseChoiceId } from "@/ee/base/utils/generate-base-id";
 import { DefaultValuePicker } from "./default-value-picker";
 
 const CHOICE_COLORS = [
@@ -52,9 +52,9 @@ const STATUS_CATEGORIES = [
 // Default choices for a new status property, one per category.
 export function defaultStatusChoices(): Choice[] {
   return [
-    { id: uuid7(), name: "Not started", color: "gray", category: "todo" },
-    { id: uuid7(), name: "In progress", color: "blue", category: "inProgress" },
-    { id: uuid7(), name: "Done", color: "green", category: "complete" },
+    { id: generateBaseChoiceId(), name: "Not started", color: "gray", category: "todo" },
+    { id: generateBaseChoiceId(), name: "In progress", color: "blue", category: "inProgress" },
+    { id: generateBaseChoiceId(), name: "Done", color: "green", category: "complete" },
   ];
 }
 
@@ -169,7 +169,7 @@ export function ChoiceEditor({
   }, []);
 
   const handleAdd = useCallback((category?: "todo" | "inProgress" | "complete") => {
-    const id = uuid7();
+    const id = generateBaseChoiceId();
     setDraft((prev) => {
       const colorIndex = prev.length % CHOICE_COLORS.length;
       const newChoice: Choice = {

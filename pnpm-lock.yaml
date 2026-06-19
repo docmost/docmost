@@ -368,6 +368,9 @@ importers:
       mitt:
         specifier: 3.0.1
         version: 3.0.1
+      nanoid:
+        specifier: 3.3.8
+        version: 3.3.8
       posthog-js:
         specifier: 1.372.2
         version: 1.372.2

@@ -9,7 +9,7 @@ import {
 } from "@/ee/base/types/base.types";
 import { choiceColor } from "@/ee/base/components/cells/choice-color";
 import { useUpdatePropertyMutation } from "@/ee/base/queries/base-property-query";
-import { v7 as uuid7 } from "uuid";
+import { generateBaseChoiceId } from "@/ee/base/utils/generate-base-id";
 import { useListKeyboardNav } from "@/ee/base/hooks/use-list-keyboard-nav";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
@@ -124,7 +124,7 @@ export function ChoicePicker({
   const handleAddOption = useCallback(() => {
     if (!trimmedSearch) return;
     const newChoice: Choice = {
-      id: uuid7(),
+      id: generateBaseChoiceId(),
       name: trimmedSearch,
       color: addOptionColor,
     };
