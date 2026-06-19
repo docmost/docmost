@@ -21,7 +21,6 @@ import {
 } from "@/ee/base/types/base.types";
 import { exportBaseToCsv } from "@/ee/base/services/base-service";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { ViewTabs } from "@/ee/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/ee/base/components/views/view-sort-config";
 import { ViewFilterConfigPopover } from "@/ee/base/components/views/view-filter-config";
@@ -62,7 +61,6 @@ export function BaseToolbar({
   getViewShareUrl,
 }: BaseToolbarProps) {
   const { t } = useTranslation();
-  const editable = useBaseEditable();
   const [sortOpened, setSortOpened] = useState(false);
   const [filterOpened, setFilterOpened] = useState(false);
   const [propertiesOpened, setPropertiesOpened] = useState(false);
@@ -139,19 +137,17 @@ export function BaseToolbar({
       />
 
       <div className={classes.toolbarRight}>
-        {editable && (
-          <Tooltip label={t("Export CSV")}>
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              color="gray"
-              loading={exporting}
-              onClick={handleExport}
-            >
-              <IconDownload size={16} />
-            </ActionIcon>
-          </Tooltip>
-        )}
+        <Tooltip label={t("Export CSV")}>
+          <ActionIcon
+            variant="subtle"
+            size="sm"
+            color="gray"
+            loading={exporting}
+            onClick={handleExport}
+          >
+            <IconDownload size={16} />
+          </ActionIcon>
+        </Tooltip>
 
         <ViewFilterConfigPopover
           opened={filterOpened}
