@@ -21,13 +21,20 @@ export default function SubpagesView(props: NodeViewProps) {
 
   //@ts-ignore
   const currentPageId = editor.storage.pageId;
+  //@ts-ignore
+  const currentSpaceId = editor.storage.spaceId;
 
   // Get subpages from shared tree if we're in a shared context
   const sharedSubpages = useSharedPageSubpages(currentPageId);
 
-  const { data, isLoading, error } = useGetSidebarPagesQuery(
-    shareId ? null : { pageId: currentPageId },
-  );
+  const sidebarParams = useMemo(() => {
+    if (shareId || !currentPageId) return null;
+    return currentSpaceId
+      ? { pageId: currentPageId, spaceId: currentSpaceId }
+      : { pageId: currentPageId };
+  }, [currentPageId, currentSpaceId, shareId]);
+
+  const { data, isLoading, error } = useGetSidebarPagesQuery(sidebarParams);
 
   const subpages = useMemo(() => {
     // If we're in a shared context, use the shared subpages
