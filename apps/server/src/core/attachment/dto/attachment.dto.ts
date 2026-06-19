@@ -21,3 +21,13 @@ export class RemoveIconDto {
   @IsUUID()
   spaceId: string;
 }
+
+export class UpdateCropMetadataDto {
+  @IsNotEmpty()
+  cropMetadata: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}

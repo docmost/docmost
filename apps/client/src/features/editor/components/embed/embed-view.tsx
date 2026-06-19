@@ -5,13 +5,17 @@ import {
   ActionIcon,
   Button,
   Card,
+  Divider,
   FocusTrap,
   Group,
+  Menu,
   Popover,
+  Stack,
   Text,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
-import { IconEdit } from "@tabler/icons-react";
+import { IconEdit, IconLink, IconFileText } from "@tabler/icons-react";
 import { z } from "zod/v4";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
@@ -56,6 +60,61 @@ export default function EmbedView(props: NodeViewProps) {
     [updateAttributes],
   );
 
+  const handleConvertToText = useCallback(() => {
+    if (!editor.isEditable) {
+      return;
+    }
+
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .deleteSelection()
+      .command(({ commands }) => {
+        return commands.insertContent({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: src,
+            },
+          ],
+        });
+      })
+      .run();
+  }, [editor, src]);
+
+  const handleConvertToLink = useCallback(() => {
+    if (!editor.isEditable) {
+      return;
+    }
+
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .deleteSelection()
+      .command(({ commands }) => {
+        return commands.insertContent({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: src,
+              marks: [
+                {
+                  type: "link",
+                  attrs: {
+                    href: src,
+                    target: "_blank",
+                  },
+                },
+              ],
+            },
+          ],
+        });
+      })
+      .run();
+  }, [editor, src]);
+
   async function onSubmit(data: { url: string }) {
     if (!editor.isEditable) {
       return;
@@ -85,6 +144,34 @@ export default function EmbedView(props: NodeViewProps) {
     <NodeViewWrapper data-drag-handle className={classes.embedNodeView}>
       {embedUrl ? (
         <div className={classes.embedContainer}>
+          {selected &&
+            editor.isEditable &&
+            provider &&
+            !["youtube", "vimeo", "loom"].includes(provider.toLowerCase()) && (
+            <div style={{ marginBottom: "8px" }}>
+              <Menu position="bottom-start" shadow="md" withinPortal={false}>
+                <Menu.Target>
+                  <Button variant="default" size="sm">
+                    {t("Paste Format")}
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item
+                    onClick={handleConvertToText}
+                    leftSection={<IconFileText size={14} />}
+                  >
+                    {t("Plain text")}
+                  </Menu.Item>
+                  <Menu.Item
+                    onClick={handleConvertToLink}
+                    leftSection={<IconLink size={14} />}
+                  >
+                    {t("Link")}
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </div>
+          )}
           <ResizableWrapper
             initialWidth={nodeWidth || 800}
             initialHeight={nodeHeight || 600}

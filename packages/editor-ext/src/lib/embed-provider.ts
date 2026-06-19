@@ -61,7 +61,7 @@ export const embedProviders: IEmbedProvider[] = [
     id: "youtube",
     name: "YouTube",
     regex:
-      /^((?:https?:)?\/\/)?((?:www|m|music)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
+      /^((?:https?:)?\/\/)?((?:www|m|music|www\.youtube-nocookie|youtube-nocookie)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
     getEmbedUrl: (match, url) => {
       if (url.includes("/embed/")) {
         return url;

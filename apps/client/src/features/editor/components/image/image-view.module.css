@@ -19,13 +19,39 @@
     background: linear-gradient(-90deg, var(--mantine-color-dark-6) 0%, var(--mantine-color-dark-5) 50%, var(--mantine-color-dark-6) 100%);
     background-size: 400% 400%;
   }
+}
 
-  @keyframes pulse {
-    0% {
-      background-position: 0% 0%;
-    }
-    100% {
-      background-position: -135% 0%;
-    }
-  }
+.croppedImage {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  max-width: none !important;
+}
+
+.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dragOver {
+  border: 2px dashed var(--mantine-color-blue-5);
+  background-color: var(--mantine-color-blue-0);
+}
+
+.dragOver.canCreateColumns {
+  border: 2px solid var(--mantine-color-green-5);
+  background-color: var(--mantine-color-green-0);
+}
+
+.alignLeft {
+  justify-content: flex-start;
+}
+
+.alignCenter {
+  justify-content: center;
+}
+
+.alignRight {
+  justify-content: flex-end;
 }
