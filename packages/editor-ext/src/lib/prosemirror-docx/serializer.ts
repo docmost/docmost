@@ -117,7 +117,7 @@ export class DocxSerializerState {
   constructor(nodes: NodeSerializer, marks: MarkSerializer, options: Options) {
     this.nodes = nodes;
     this.marks = marks;
-    this.options = options ?? {};
+    this.options = options ?? ({} as Options);
     this.children = [];
     this.numbering = [];
 
@@ -342,7 +342,7 @@ export class DocxSerializerState {
       // Check if all cells are headers in this row
       let tableHeader = true;
       row.content.forEach((cell) => {
-        if (cell.type.name !== 'table_header') {
+        if (cell.type.name !== 'tableHeader') {
           tableHeader = false;
         }
       });
@@ -529,7 +529,7 @@ export class DocxSerializerStateAsync {
   constructor(nodes: NodeSerializerAsync, marks: MarkSerializer, options: OptionsAsync) {
     this.nodes = nodes;
     this.marks = marks;
-    this.options = options ?? {};
+    this.options = options ?? ({} as OptionsAsync);
     this.children = [];
     this.numbering = [];
 
@@ -765,7 +765,7 @@ export class DocxSerializerStateAsync {
       // Check if all cells in the row are headers
       for (let cellIndex = 0; cellIndex < row.content.childCount; cellIndex += 1) {
         const cell = row.content.child(cellIndex);
-        if (cell.type.name !== 'table_header') {
+        if (cell.type.name !== 'tableHeader') {
           tableHeader = false;
         }
       }

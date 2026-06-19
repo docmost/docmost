@@ -16,10 +16,9 @@ export {
   MAX_IMAGE_WIDTH,
 } from './serializer';
 export {
-  defaultDocxSerializer,
-  defaultDocxSerializerAsync,
   defaultAsyncNodes,
-  defaultNodes,
   defaultMarks,
+  pageNodeToDocxBuffer,
+  type DocxImageResolver,
 } from './schema';
 export { writeDocx, createDocFromState, buildDoc } from './utils';

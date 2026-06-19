@@ -14,14 +14,16 @@ export function createShortId() {
 }
 
 export function buildDoc(state: SerializationState, opts?: IPropertiesOptions): Document {
-  let sections = state?.sections?.map((section) => ({
-    properties: section.config.properties || {
-      type: SectionType.CONTINUOUS,
-    },
-    headers: section.config.headers,
-    footers: section.config.footers,
-    children: section.children,
-  }));
+  let sections = state?.sections?.length
+    ? state.sections.map((section) => ({
+        properties: section.config.properties || {
+          type: SectionType.CONTINUOUS,
+        },
+        headers: section.config.headers,
+        footers: section.config.footers,
+        children: section.children,
+      }))
+    : undefined;
   if (!sections) {
     sections = [
       {
