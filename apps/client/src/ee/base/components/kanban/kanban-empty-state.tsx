@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Stack, Text, Select, Button } from "@mantine/core";
-import { v7 as uuid7 } from "uuid";
+import { generateBaseChoiceId } from "@/ee/base/utils/generate-base-id";
 import { useTranslation } from "react-i18next";
 import { IBase, IBaseView } from "@/ee/base/types/base.types";
 import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
@@ -36,9 +36,9 @@ export function KanbanEmptyState({ base, view, pageId, editable }: KanbanEmptySt
   );
 
   const handleCreateStatus = useCallback(() => {
-    const todoId = uuid7();
-    const inProgressId = uuid7();
-    const completeId = uuid7();
+    const todoId = generateBaseChoiceId();
+    const inProgressId = generateBaseChoiceId();
+    const completeId = generateBaseChoiceId();
     createProperty.mutate(
       {
         pageId,
