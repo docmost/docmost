@@ -20,9 +20,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('base_properties')
     .ifNotExists()
-    .addColumn('id', 'uuid', (col) =>
-      col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
-    )
+    .addColumn('id', 'varchar', (col) => col.notNull())
     .addColumn('page_id', 'uuid', (col) =>
       col.references('pages.id').onDelete('cascade').notNull(),
     )
@@ -45,6 +43,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('deleted_at', 'timestamptz')
+    .addPrimaryKeyConstraint('base_properties_pkey', ['page_id', 'id'])
     .execute();
 
   await sql`CREATE INDEX IF NOT EXISTS idx_base_properties_page_id ON base_properties (page_id)`.execute(
@@ -151,13 +150,13 @@ export async function up(db: Kysely<any>): Promise<void> {
   // Cell extraction helpers for filters and sorts. Return NULL for absent or
   // non-castable values.
   await sql`
-    CREATE OR REPLACE FUNCTION base_cell_text(cells jsonb, prop uuid)
+    CREATE OR REPLACE FUNCTION base_cell_text(cells jsonb, prop text)
     RETURNS text LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
     AS $$ SELECT cells->>prop::text $$
   `.execute(db);
 
   await sql`
-    CREATE OR REPLACE FUNCTION base_cell_numeric(cells jsonb, prop uuid)
+    CREATE OR REPLACE FUNCTION base_cell_numeric(cells jsonb, prop text)
     RETURNS numeric LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
     AS $$
       SELECT CASE jsonb_typeof(cells->prop::text)
@@ -176,7 +175,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   // cast can fail on values no regex can pre-validate (e.g. '2024-13-45'). This
   // helper uses plpgsql with an EXCEPTION handler to return NULL on failure.
   await sql`
-    CREATE OR REPLACE FUNCTION base_cell_timestamptz(cells jsonb, prop uuid)
+    CREATE OR REPLACE FUNCTION base_cell_timestamptz(cells jsonb, prop text)
     RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE STRICT PARALLEL SAFE
     AS $$
       BEGIN RETURN (cells->>prop::text)::timestamptz;
@@ -185,7 +184,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   `.execute(db);
 
   await sql`
-    CREATE OR REPLACE FUNCTION base_cell_bool(cells jsonb, prop uuid)
+    CREATE OR REPLACE FUNCTION base_cell_bool(cells jsonb, prop text)
     RETURNS boolean LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
     AS $$
       SELECT CASE jsonb_typeof(cells->prop::text)
@@ -201,7 +200,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   `.execute(db);
 
   await sql`
-    CREATE OR REPLACE FUNCTION base_cell_array(cells jsonb, prop uuid)
+    CREATE OR REPLACE FUNCTION base_cell_array(cells jsonb, prop text)
     RETURNS jsonb LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
     AS $$ SELECT cells->prop::text $$
   `.execute(db);
@@ -236,11 +235,11 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('base_properties').execute();
 
   await sql`DROP FUNCTION jsonb_set_many(jsonb, jsonb)`.execute(db);
-  await sql`DROP FUNCTION base_cell_array(jsonb, uuid)`.execute(db);
-  await sql`DROP FUNCTION base_cell_bool(jsonb, uuid)`.execute(db);
-  await sql`DROP FUNCTION base_cell_timestamptz(jsonb, uuid)`.execute(db);
-  await sql`DROP FUNCTION base_cell_numeric(jsonb, uuid)`.execute(db);
-  await sql`DROP FUNCTION base_cell_text(jsonb, uuid)`.execute(db);
+  await sql`DROP FUNCTION base_cell_array(jsonb, text)`.execute(db);
+  await sql`DROP FUNCTION base_cell_bool(jsonb, text)`.execute(db);
+  await sql`DROP FUNCTION base_cell_timestamptz(jsonb, text)`.execute(db);
+  await sql`DROP FUNCTION base_cell_numeric(jsonb, text)`.execute(db);
+  await sql`DROP FUNCTION base_cell_text(jsonb, text)`.execute(db);
 
   await sql`DROP INDEX idx_pages_is_base`.execute(db);
   await db.schema
