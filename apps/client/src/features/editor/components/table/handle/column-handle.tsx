@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useTableHandleDrag } from "./hooks/use-table-handle-drag";
 import { useColumnRowMenuLifecycle } from "./hooks/use-column-row-menu-lifecycle";
 import { ColumnHandleMenu } from "./menus/column-handle-menu";
+import { isEditorReady } from "@docmost/editor-ext";
 import classes from "./handle.module.css";
 
 interface ColumnHandleProps {
@@ -35,7 +36,9 @@ export const ColumnHandle = React.memo(function ColumnHandle({
   // an external drop reflows the doc before the plugin re-emits
   // hoveringCell), it can resolve to a Text node, on which `.closest` is
   // undefined. Filter to HTMLElement so downstream consumers stay safe.
-  const lookupDom = editor.view.nodeDOM(anchorPos);
+  const lookupDom = isEditorReady(editor)
+    ? editor.view.nodeDOM(anchorPos)
+    : null;
   const lookupCellDom = lookupDom instanceof HTMLElement ? lookupDom : null;
   const [cellDom, setCellDom] = useState<HTMLElement | null>(lookupCellDom);
   const lastCellDomRef = useRef<HTMLElement | null>(lookupCellDom);

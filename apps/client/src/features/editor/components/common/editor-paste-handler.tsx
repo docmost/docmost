@@ -183,6 +183,7 @@ async function reuploadPastedAttachments(
   );
 
   if (reuploadResults.size === 0) return;
+  if (editor.isDestroyed) return;
 
   editor.chain().command(({ tr }) => {
     const sorted = [...nodesToReupload].sort((a, b) => b.pos - a.pos);

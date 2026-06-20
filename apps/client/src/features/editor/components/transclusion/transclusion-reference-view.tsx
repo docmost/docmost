@@ -105,6 +105,7 @@ function TransclusionReferenceBody({
         sourcePageId,
         transclusionId,
       });
+      if (editor.isDestroyed) return;
       const pos = getPos();
       if (typeof pos !== "number") return;
       const from = pos;

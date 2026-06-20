@@ -21,7 +21,7 @@ export interface ToolbarState {
 // static editor (mainExtensions only, undoRedo disabled), neither is loaded
 // and editor.can().undo/redo is undefined.
 function safeCan(editor: Editor, command: "undo" | "redo"): boolean {
-  const can = editor.can() as Record<string, unknown>;
+  const can = editor?.can() as Record<string, unknown>;
   const fn = can[command];
   return typeof fn === "function" ? (fn as () => boolean)() : false;
 }
@@ -30,7 +30,7 @@ export function useToolbarState(editor: Editor | null): ToolbarState | null {
   return useEditorState({
     editor,
     selector: (ctx) => {
-      if (!ctx.editor) return null;
+      if (!ctx.editor || ctx.editor.isDestroyed) return null;
       return {
         isBold: ctx.editor.isActive("bold"),
         isItalic: ctx.editor.isActive("italic"),

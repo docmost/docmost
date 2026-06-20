@@ -19,6 +19,7 @@ import { Popover, Button, ScrollArea, Tooltip } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
+import { isEditorReady } from "@docmost/editor-ext";
 import classes from "./bubble-menu.module.css";
 
 interface NodeSelectorProps {
@@ -193,7 +194,7 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
                 justify="left"
                 fullWidth
                 onClick={() => {
-                  item.command();
+                  if (isEditorReady(editor)) item.command();
                   setIsOpen(false);
                 }}
                 style={{ border: "none" }}
