@@ -1,7 +1,14 @@
 import { Editor } from "@tiptap/react";
 import { ActionIcon, TextInput } from "@mantine/core";
 import { useDebouncedCallback, useMediaQuery } from "@mantine/hooks";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+} from "react";
 import { createPortal } from "react-dom";
 import { useAtom } from "jotai";
 import { IconArrowUp } from "@tabler/icons-react";
