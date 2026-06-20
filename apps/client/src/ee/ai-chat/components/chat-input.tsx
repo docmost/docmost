@@ -177,7 +177,7 @@ export default function ChatInput({
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!editor || isStreaming) return;
+    if (!editor || editor.isDestroyed || isStreaming) return;
     const json = editor.getJSON();
     const text = editorJsonToText(json).trim();
     const readyAttachments = pendingAttachments.filter((a) => !a.uploading);
@@ -264,7 +264,7 @@ export default function ChatInput({
   });
 
   useEffect(() => {
-    if (editor && autofocus) {
+    if (editor && !editor.isDestroyed && autofocus) {
       editor.commands.focus();
     }
   }, [editor]);

@@ -18,6 +18,7 @@ const enterpriseFeatures = [
   "Confluence Import",
   "PDF & DOCX Import",
   "Templates",
+  "Personal Spaces"
 ];
 
 export default function OssDetails() {

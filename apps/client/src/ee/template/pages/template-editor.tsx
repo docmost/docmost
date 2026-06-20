@@ -105,7 +105,7 @@ export default function TemplateEditor() {
 
   // Load template data into editor
   useEffect(() => {
-    if (existingTemplate && editor) {
+    if (existingTemplate && editor && !editor.isDestroyed) {
       loadedRef.current = false;
       setTitle(existingTemplate.title || "");
       setIcon(existingTemplate.icon || null);
@@ -383,7 +383,8 @@ export default function TemplateEditor() {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                editor?.commands.focus("start");
+                if (editor && !editor.isDestroyed)
+                  editor.commands.focus("start");
               }
             }}
           />

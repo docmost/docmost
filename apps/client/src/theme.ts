@@ -1,4 +1,5 @@
 import {
+  Badge,
   createTheme,
   CSSVariablesResolver,
   MantineColorsTuple,
@@ -38,6 +39,15 @@ export const theme = createTheme({
     red,
   },
   components: {
+    // Size badges to their content; fit-content collapses inside table cells.
+    Badge: Badge.extend({
+      styles: (_theme, props) => ({
+        root:
+          props.fullWidth || props.circle
+            ? {}
+            : { width: "max-content", maxWidth: "100%" },
+      }),
+    }),
     Tabs: Tabs.extend({
       vars: (theme, props) => ({
         root: {
