@@ -226,7 +226,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       END;
     $$
   `.execute(db);
-
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
