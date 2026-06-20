@@ -398,6 +398,8 @@
   "Insert mermaid diagram": "插入 Mermaid 图表",
   "Insert and design Drawio diagrams": "插入并设计 Drawio 图表",
   "Insert current date": "插入当前日期",
+  "Time": "Time",
+  "Insert current time": "Insert current time",
   "Draw and sketch excalidraw diagrams": "绘制和草绘 Excalidraw 图表",
   "Multiple": "多个",
   "Turn into": "变成",
@@ -1085,5 +1087,11 @@
   "Added {{name}} to favorites": "已将 {{name}} 添加到收藏",
   "Removed {{name}} from favorites": "已将 {{name}} 从收藏中移除",
   "Page menu for {{name}}": "{{name}} 的页面菜单",
-  "Create subpage of {{name}}": "创建 {{name}} 的子页面"
+  "Create subpage of {{name}}": "创建 {{name}} 的子页面",
+  "Allow personal spaces": "Allow personal spaces",
+  "Members can create their own personal space.": "Members can create their own personal space.",
+  "Toggle allow personal spaces": "Toggle allow personal spaces",
+  "Create personal space": "Create personal space",
+  "Personal space": "Personal space",
+  "{{name}}'s space": "{{name}}'s space"
 }
