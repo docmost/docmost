@@ -21,7 +21,7 @@ import { ResultPreview } from "./result-preview.tsx";
 import classes from "./ai-menu.module.css";
 import { marked } from "marked";
 import { DOMSerializer } from "@tiptap/pm/model";
-import { copyToClipboard, htmlToMarkdown } from "@docmost/editor-ext";
+import { copyToClipboard, htmlToMarkdown, isEditorReady } from "@docmost/editor-ext";
 import { useLocation } from "react-router-dom";
 
 interface EditorAiMenuProps {
@@ -56,7 +56,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
     });
   }, [prompt, output, activeCommandSet]);
   const updateMenuPlacement = useCallback(() => {
-    if (!editor || !showAiMenu) return;
+    if (!isEditorReady(editor) || !showAiMenu) return;
 
     const { view } = editor;
     const { from, to } = editor.state.selection;
@@ -102,7 +102,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
   );
   const handleGenerate = useCallback(
     (item?: CommandItem) => {
-      if (!editor || isLoading) return;
+      if (!isEditorReady(editor) || isLoading) return;
 
       let command: CommandItem | null = item || null;
 
@@ -165,6 +165,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
         return setActiveCommandSet("main");
       }
       if (item.id === "result-replace") {
+        if (!isEditorReady(editor)) return setShowAiMenu(false);
         const chain = editor.chain().focus();
 
         if (lastAction.action === AiAction.CONTINUE_WRITING) {
@@ -190,6 +191,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
         return setShowAiMenu(false);
       }
       if (item.id === "result-insert-below") {
+        if (!isEditorReady(editor)) return setShowAiMenu(false);
         editor
           .chain()
           .focus()
@@ -253,7 +255,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
   );
 
   useEffect(() => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
 
     const handleClose = () => setShowAiMenu(false);
     const observer = new ResizeObserver(() => {
