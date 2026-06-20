@@ -160,7 +160,11 @@ export function TitleEditor({
   const debounceUpdate = useDebouncedCallback(saveTitle, 500);
 
   useEffect(() => {
-    if (titleEditor && title !== titleEditor.getText()) {
+    if (
+      titleEditor &&
+      !titleEditor.isDestroyed &&
+      title !== titleEditor.getText()
+    ) {
       titleEditor.commands.setContent(title);
     }
   }, [pageId, title, titleEditor]);

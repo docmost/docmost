@@ -301,7 +301,7 @@ export default function AuditLogsTable({
                   {expandable && (
                     <Table.Tr className={classes.detailRow}>
                       <Table.Td colSpan={4} p={0}>
-                        <Collapse in={isExpanded}>
+                        <Collapse expanded={isExpanded}>
                           <Box
                             px="md"
                             py="sm"

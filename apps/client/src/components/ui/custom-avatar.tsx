@@ -54,14 +54,17 @@ export const CustomAvatar = React.forwardRef<
 >(({ avatarUrl, name, type, color, variant, ...props }: CustomAvatarProps, ref) => {
   const avatarLink = getAvatarUrl(avatarUrl, type);
   const isInitials = !color || color === "initials";
-  const resolvedColor = isInitials ? pickInitialsColor(name ?? "") : color;
+  const pickedColor = isInitials ? pickInitialsColor(name ?? "") : color;
+  const hue = pickedColor.split(".")[0];
   const initialsSource = sanitizeInitialsSource(name ?? "");
+
+  const resolvedColor = variant === "filled" ? pickedColor : hue;
 
   const placeholderStyles =
     isInitials && variant !== "filled"
       ? {
           placeholder: {
-            color: `var(--mantine-color-${resolvedColor.split(".")[0]}-9)`,
+            color: `var(--mantine-color-${hue}-9)`,
           },
         }
       : undefined;

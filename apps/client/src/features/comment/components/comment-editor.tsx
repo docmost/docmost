@@ -112,22 +112,24 @@ const CommentEditor = forwardRef(
     // websocket on another browser). Skip for editable editors to avoid
     // resetting the cursor position on every keystroke.
     useEffect(() => {
-      if (!editable && commentEditor && defaultContent) {
+      if (!editable && commentEditor && !commentEditor.isDestroyed && defaultContent) {
         commentEditor.commands.setContent(defaultContent);
       }
     }, [defaultContent, editable, commentEditor]);
 
     useEffect(() => {
       setTimeout(() => {
-        if (autofocus) {
-          commentEditor?.commands.focus("end");
+        if (autofocus && commentEditor && !commentEditor.isDestroyed) {
+          commentEditor.commands.focus("end");
         }
       }, 10);
     }, [commentEditor, autofocus]);
 
     useImperativeHandle(ref, () => ({
       clearContent: () => {
-        commentEditor.commands.clearContent();
+        if (commentEditor && !commentEditor.isDestroyed) {
+          commentEditor.commands.clearContent();
+        }
       },
     }));
 

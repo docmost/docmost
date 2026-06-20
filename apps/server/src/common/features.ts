@@ -20,6 +20,8 @@ export const Feature = {
   VIEWER_COMMENTS: 'comment:viewer',
   TEMPLATES: 'templates',
   PDF_EXPORT: 'export:pdf',
+  PERSONAL_SPACES: 'spaces:personal',
+  DOCX_EXPORT: 'export:docx',
   BASES: 'bases',
 } as const;
 

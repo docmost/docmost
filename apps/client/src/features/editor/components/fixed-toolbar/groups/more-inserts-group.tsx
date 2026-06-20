@@ -99,7 +99,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           <Menu.Item
             leftSection={<IconRotate2 size={16} />}
             onClick={() =>
-              editor.chain().focus().insertTransclusionSource().run()
+              editor.chain().focus().toggleTransclusionSource().run()
             }
           >
             {t("Synced block")}

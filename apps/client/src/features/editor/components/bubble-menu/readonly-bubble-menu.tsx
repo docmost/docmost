@@ -11,6 +11,7 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import { useTranslation } from "react-i18next";
 import { getRelativeSelection, ySyncPluginKey } from "@tiptap/y-tiptap";
+import { isEditorReady } from "@docmost/editor-ext";
 
 type ReadonlyBubbleMenuProps = {
   editor: Editor;
@@ -29,6 +30,10 @@ export const ReadonlyBubbleMenu: FC<ReadonlyBubbleMenuProps> = ({ editor }) => {
 
   const updateMenuPosition = useCallback(() => {
     if (isInteractingRef.current) return;
+    if (!isEditorReady(editor)) {
+      setVisible(false);
+      return;
+    }
 
     const pmSelection = editor.state.selection;
     if (!(pmSelection instanceof TextSelection) || pmSelection.empty) {
@@ -97,7 +102,7 @@ export const ReadonlyBubbleMenu: FC<ReadonlyBubbleMenuProps> = ({ editor }) => {
   }, [showReadOnlyCommentPopup]);
 
   const handleCommentClick = () => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
 
     const view = editor.view;
     const ystate = ySyncPluginKey.getState(view.state);
