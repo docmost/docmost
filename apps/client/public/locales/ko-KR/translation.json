@@ -398,6 +398,8 @@
   "Insert mermaid diagram": "Mermaid 다이어그램 삽입",
   "Insert and design Drawio diagrams": "Drawio 다이어그램 삽입 및 편집",
   "Insert current date": "현재 날짜 삽입",
+  "Time": "Time",
+  "Insert current time": "Insert current time",
   "Draw and sketch excalidraw diagrams": "Excalidraw 다이어그램 그리기 및 스케치",
   "Multiple": "다중",
   "Turn into": "변경하기",
@@ -1085,5 +1087,11 @@
   "Added {{name}} to favorites": "{{name}} 즐겨찾기에 추가됨",
   "Removed {{name}} from favorites": "{{name}} 즐겨찾기에서 제거됨",
   "Page menu for {{name}}": "{{name}}의 페이지 메뉴",
-  "Create subpage of {{name}}": "{{name}}의 하위 페이지 만들기"
+  "Create subpage of {{name}}": "{{name}}의 하위 페이지 만들기",
+  "Allow personal spaces": "Allow personal spaces",
+  "Members can create their own personal space.": "Members can create their own personal space.",
+  "Toggle allow personal spaces": "Toggle allow personal spaces",
+  "Create personal space": "Create personal space",
+  "Personal space": "Personal space",
+  "{{name}}'s space": "{{name}}'s space"
 }
