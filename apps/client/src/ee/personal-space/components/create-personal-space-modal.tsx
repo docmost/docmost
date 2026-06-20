@@ -8,6 +8,7 @@ import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useCreatePersonalSpaceMutation } from "@/ee/personal-space/queries/personal-space-query";
 import { getSpaceUrl } from "@/lib/config.ts";
+import { notifications } from "@mantine/notifications";
 
 const formSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -35,9 +36,18 @@ export default function CreatePersonalSpaceModal({ opened, onClose }: Props) {
   });
 
   const handleSubmit = async (values: FormValues) => {
-    const createdSpace = await createMutation.mutateAsync({ name: values.name });
-    onClose();
-    navigate(getSpaceUrl(createdSpace.slug));
+    try {
+      const createdSpace = await createMutation.mutateAsync({
+        name: values.name,
+      });
+      onClose();
+      navigate(getSpaceUrl(createdSpace.slug));
+    } catch (err) {
+      notifications.show({
+        message: err?.response?.data?.message,
+        color: "red",
+      });
+    }
   };
 
   return (
