@@ -7,6 +7,7 @@ import { Helmet } from "react-helmet-async";
 import ManageHostname from "@/ee/components/manage-hostname.tsx";
 import { Divider } from "@mantine/core";
 import AllowMemberTemplates from "@/ee/security/components/allow-member-templates.tsx";
+import PersonalSpacesSetting from "@/ee/personal-space/components/personal-spaces-setting.tsx";
 
 export default function WorkspaceSettings() {
   const { t } = useTranslation();
@@ -21,6 +22,9 @@ export default function WorkspaceSettings() {
 
       <Divider my="md" />
       <AllowMemberTemplates />
+
+      <Divider my="md" />
+      <PersonalSpacesSetting />
 
       {isCloud() && (
         <>

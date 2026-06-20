@@ -322,6 +322,7 @@ export interface Spaces {
   deletedAt: Timestamp | null;
   description: string | null;
   id: Generated<string>;
+  isPersonal: Generated<boolean>;
   logo: string | null;
   name: string | null;
   settings: Json | null;

@@ -1087,5 +1087,11 @@
   "Added {{name}} to favorites": "Added {{name}} to favorites",
   "Removed {{name}} from favorites": "Removed {{name}} from favorites",
   "Page menu for {{name}}": "Page menu for {{name}}",
-  "Create subpage of {{name}}": "Create subpage of {{name}}"
+  "Create subpage of {{name}}": "Create subpage of {{name}}",
+  "Allow personal spaces": "Allow personal spaces",
+  "Members can create their own personal space.": "Members can create their own personal space.",
+  "Toggle allow personal spaces": "Toggle allow personal spaces",
+  "Create personal space": "Create personal space",
+  "Personal space": "Personal space",
+  "{{name}}'s space": "{{name}}'s space"
 }

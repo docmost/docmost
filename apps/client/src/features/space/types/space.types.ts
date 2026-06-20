@@ -24,6 +24,7 @@ export interface ISpace {
   description: string;
   logo?: string;
   slug: string;
+  isPersonal?: boolean;
   hostname: string;
   creatorId: string;
   createdAt: Date;
