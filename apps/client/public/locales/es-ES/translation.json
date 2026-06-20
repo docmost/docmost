@@ -398,6 +398,8 @@
   "Insert mermaid diagram": "Insertar diagrama Mermaid",
   "Insert and design Drawio diagrams": "Insertar y diseñar diagramas de Drawio",
   "Insert current date": "Insertar fecha actual",
+  "Time": "Time",
+  "Insert current time": "Insert current time",
   "Draw and sketch excalidraw diagrams": "Dibujar y crear bocetos de diagramas de Excalidraw",
   "Multiple": "Múltiple",
   "Turn into": "Convertir en",
@@ -1085,5 +1087,11 @@
   "Added {{name}} to favorites": "Se agregó {{name}} a favoritos",
   "Removed {{name}} from favorites": "Se quitó {{name}} de favoritos",
   "Page menu for {{name}}": "Menú de página para {{name}}",
-  "Create subpage of {{name}}": "Crear subpágina de {{name}}"
+  "Create subpage of {{name}}": "Crear subpágina de {{name}}",
+  "Allow personal spaces": "Allow personal spaces",
+  "Members can create their own personal space.": "Members can create their own personal space.",
+  "Toggle allow personal spaces": "Toggle allow personal spaces",
+  "Create personal space": "Create personal space",
+  "Personal space": "Personal space",
+  "{{name}}'s space": "{{name}}'s space"
 }
