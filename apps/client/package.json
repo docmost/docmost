@@ -89,7 +89,7 @@
     "prettier": "3.8.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.57.1",
-    "vite": "8.0.5",
+    "vite": "8.0.16",
     "vitest": "4.1.6"
   }
 }

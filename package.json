@@ -83,7 +83,7 @@
     "@types/bytes": "3.1.5",
     "@types/qrcode": "1.5.6",
     "@types/turndown": "5.0.6",
-    "concurrently": "9.2.1",
+    "concurrently": "9.2.3",
     "nx": "22.6.1",
     "tsx": "^4.21.0"
   },
