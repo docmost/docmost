@@ -60,5 +60,5 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
 
   @IsOptional()
   @IsBoolean()
-  enablePersonalSpaces: boolean;
+  allowPersonalSpaces: boolean;
 }

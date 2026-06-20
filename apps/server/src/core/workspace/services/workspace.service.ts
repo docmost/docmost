@@ -334,7 +334,7 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
       typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
       typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
-      typeof updateWorkspaceDto.enablePersonalSpaces !== 'undefined'
+      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -362,7 +362,7 @@ export class WorkspaceService {
         }
       }
 
-      if (typeof updateWorkspaceDto.enablePersonalSpaces !== 'undefined') {
+      if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
         if (
           !this.licenseCheckService.hasFeature(
             ws.licenseKey,
@@ -513,16 +513,16 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.enablePersonalSpaces !== 'undefined') {
-        const prev = settingsBefore?.spaces?.personal ?? false;
-        if (prev !== updateWorkspaceDto.enablePersonalSpaces) {
-          before.enablePersonalSpaces = prev;
-          after.enablePersonalSpaces = updateWorkspaceDto.enablePersonalSpaces;
+      if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
+        const prev = settingsBefore?.spaces?.allowPersonal ?? false;
+        if (prev !== updateWorkspaceDto.allowPersonalSpaces) {
+          before.allowPersonalSpaces = prev;
+          after.allowPersonalSpaces = updateWorkspaceDto.allowPersonalSpaces;
         }
         await this.workspaceRepo.updateSpaceSettings(
           workspaceId,
-          'personal',
-          updateWorkspaceDto.enablePersonalSpaces,
+          'allowPersonal',
+          updateWorkspaceDto.allowPersonalSpaces,
           trx,
         );
       }
@@ -534,7 +534,7 @@ export class WorkspaceService {
       delete updateWorkspaceDto.mcpEnabled;
       delete updateWorkspaceDto.allowMemberTemplates;
       delete updateWorkspaceDto.aiChat;
-      delete updateWorkspaceDto.enablePersonalSpaces;
+      delete updateWorkspaceDto.allowPersonalSpaces;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,

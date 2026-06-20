@@ -44,7 +44,7 @@ export default function TopMenu() {
   const workspace = currentUser?.workspace;
 
   const hasPersonalSpaces = useHasFeature(Feature.PERSONAL_SPACES);
-  const settingEnabled = workspace?.settings?.spaces?.personal === true;
+  const settingEnabled = workspace?.settings?.spaces?.allowPersonal === true;
   const { data: personalSpace } = usePersonalSpaceQuery(hasPersonalSpaces);
   const [
     createOpened,

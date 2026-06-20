@@ -32,7 +32,7 @@ function PersonalSpacesToggle() {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
   const [checked, setChecked] = useState(
-    workspace?.settings?.spaces?.personal === true,
+    workspace?.settings?.spaces?.allowPersonal === true,
   );
   const hasPersonalSpaces = useHasFeature(Feature.PERSONAL_SPACES);
   const upgradeLabel = useUpgradeLabel();
@@ -41,7 +41,7 @@ function PersonalSpacesToggle() {
     const value = event.currentTarget.checked;
     try {
       const updatedWorkspace = await updateWorkspace({
-        enablePersonalSpaces: value,
+        allowPersonalSpaces: value,
       });
       setChecked(value);
       setWorkspace(updatedWorkspace);
