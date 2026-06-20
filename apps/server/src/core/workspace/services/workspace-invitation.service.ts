@@ -6,8 +6,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
-import { provisionPersonalSpaceForNewUser } from '../../../common/helpers/personal-space-provisioning';
 import { AcceptInviteDto, InviteUserDto } from '../dto/invitation.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { InjectKysely } from 'nestjs-kysely';
@@ -55,7 +53,6 @@ export class WorkspaceInvitationService {
     private domainService: DomainService,
     private tokenService: TokenService,
     private sessionService: SessionService,
-    private moduleRef: ModuleRef,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     private readonly environmentService: EnvironmentService,
@@ -312,12 +309,6 @@ export class WorkspaceInvitationService {
     if (!newUser) {
       return;
     }
-
-    await provisionPersonalSpaceForNewUser(
-      this.moduleRef,
-      newUser.id,
-      workspace.id,
-    );
 
     // notify the inviter
     const invitedByUser = await this.userRepo.findById(

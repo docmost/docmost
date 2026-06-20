@@ -17,9 +17,7 @@ export default function PersonalSpacesSetting() {
       <div>
         <Text size="md">{t("Allow personal spaces")}</Text>
         <Text size="sm" c="dimmed">
-          {t(
-            "Members can create their own personal space. New members get one automatically.",
-          )}
+          {t("Members can create their own personal space.")}
         </Text>
       </div>
 
