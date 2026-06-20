@@ -53,7 +53,7 @@ importers:
   .:
     dependencies:
       '@braintree/sanitize-url':
-        specifier: ^7.1.2
+        specifier: 7.1.2
         version: 7.1.2
       '@casl/ability':
         specifier: 6.8.0
@@ -62,7 +62,7 @@ importers:
         specifier: workspace:*
         version: link:packages/editor-ext
       '@floating-ui/dom':
-        specifier: ^1.7.3
+        specifier: 1.7.3
         version: 1.7.3
       '@hocuspocus/provider':
         specifier: 3.4.4
@@ -74,10 +74,10 @@ importers:
         specifier: 3.4.4
         version: 3.4.4(@tiptap/core@3.20.4(@tiptap/pm@3.20.4))(@tiptap/pm@3.20.4)(y-prosemirror@1.3.7(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(yjs@13.6.30)
       '@joplin/turndown':
-        specifier: ^4.0.82
+        specifier: 4.0.82
         version: 4.0.82
       '@joplin/turndown-plugin-gfm':
-        specifier: ^1.0.64
+        specifier: 1.0.64
         version: 1.0.64
       '@sindresorhus/slugify':
         specifier: 3.0.0
@@ -170,34 +170,37 @@ importers:
         specifier: 3.0.2
         version: 3.0.2(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)
       bytes:
-        specifier: ^3.1.2
+        specifier: 3.1.2
         version: 3.1.2
       cross-env:
-        specifier: ^10.1.0
+        specifier: 10.1.0
         version: 10.1.0
       date-fns:
-        specifier: ^4.1.0
+        specifier: 4.1.0
         version: 4.1.0
       diff:
         specifier: 8.0.3
         version: 8.0.3
+      docx:
+        specifier: 9.7.1
+        version: 9.7.1
       dompurify:
         specifier: 3.4.1
         version: 3.4.1
       fractional-indexing-jittered:
-        specifier: ^1.0.0
+        specifier: 1.0.0
         version: 1.0.0
       highlight.js:
-        specifier: ^11.11.1
+        specifier: 11.11.1
         version: 11.11.1
       image-dimensions:
-        specifier: ^2.5.0
+        specifier: 2.5.0
         version: 2.5.0
       jszip:
-        specifier: ^3.10.1
+        specifier: 3.10.1
         version: 3.10.1
       linkifyjs:
-        specifier: ^4.3.2
+        specifier: 4.3.2
         version: 4.3.2
       marked:
         specifier: 17.0.5
@@ -206,16 +209,16 @@ importers:
         specifier: 3.0.0-canary.1
         version: 3.0.0-canary.1
       qrcode:
-        specifier: ^1.5.4
+        specifier: 1.5.4
         version: 1.5.4
       rfc6902:
         specifier: 5.2.0
         version: 5.2.0
       uuid:
-        specifier: ^14.0.0
+        specifier: 14.0.0
         version: 14.0.0
       y-indexeddb:
-        specifier: ^9.0.12
+        specifier: 9.0.12
         version: 9.0.12(yjs@13.6.30)
       y-prosemirror:
         specifier: 1.3.7
@@ -228,16 +231,16 @@ importers:
         specifier: 22.6.1
         version: 22.6.1(@babel/traverse@7.28.5)(nx@22.6.1)
       '@types/bytes':
-        specifier: ^3.1.5
+        specifier: 3.1.5
         version: 3.1.5
       '@types/qrcode':
-        specifier: ^1.5.6
+        specifier: 1.5.6
         version: 1.5.6
       '@types/turndown':
-        specifier: ^5.0.6
+        specifier: 5.0.6
         version: 5.0.6
       concurrently:
-        specifier: ^9.2.1
+        specifier: 9.2.1
         version: 9.2.1
       nx:
         specifier: 22.6.1
@@ -484,13 +487,13 @@ importers:
   apps/server:
     dependencies:
       '@ai-sdk/google':
-        specifier: ^3.0.52
+        specifier: 3.0.52
         version: 3.0.52(zod@4.3.6)
       '@ai-sdk/openai':
-        specifier: ^3.0.47
+        specifier: 3.0.47
         version: 3.0.47(zod@4.3.6)
       '@ai-sdk/openai-compatible':
-        specifier: ^2.0.37
+        specifier: 2.0.37
         version: 2.0.37(zod@4.3.6)
       '@aws-sdk/client-s3':
         specifier: 3.1050.0
@@ -505,7 +508,7 @@ importers:
         specifier: 12.31.0
         version: 12.31.0
       '@clickhouse/client':
-        specifier: ^1.18.2
+        specifier: 1.18.2
         version: 1.18.2
       '@docmost/pdf-inspector':
         specifier: 1.9.6
@@ -589,43 +592,43 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0(socket.io-adapter@2.5.4)
       ai:
-        specifier: ^6.0.134
+        specifier: 6.0.134
         version: 6.0.134(zod@4.3.6)
       ai-sdk-ollama:
-        specifier: ^3.8.1
+        specifier: 3.8.1
         version: 3.8.1(ai@6.0.134(zod@4.3.6))(zod@4.3.6)
       bcrypt:
-        specifier: ^6.0.0
+        specifier: 6.0.0
         version: 6.0.0
       bowser:
-        specifier: ^2.14.1
+        specifier: 2.14.1
         version: 2.14.1
       bullmq:
-        specifier: ^5.76.10
+        specifier: 5.76.10
         version: 5.76.10
       cache-manager:
-        specifier: ^7.2.8
+        specifier: 7.2.8
         version: 7.2.8
       cheerio:
-        specifier: ^1.2.0
+        specifier: 1.2.0
         version: 1.2.0
       class-transformer:
-        specifier: ^0.5.1
+        specifier: 0.5.1
         version: 0.5.1
       class-validator:
-        specifier: ^0.15.1
+        specifier: 0.15.1
         version: 0.15.1
       cookie:
-        specifier: ^1.1.1
+        specifier: 1.1.1
         version: 1.1.1
       fast-bm25:
         specifier: 0.0.5
         version: 0.0.5(typescript@5.9.3)
       fastify-ip:
-        specifier: ^2.0.0
+        specifier: 2.0.0
         version: 2.0.0
       fs-extra:
-        specifier: ^11.3.4
+        specifier: 11.3.4
         version: 11.3.4
       happy-dom:
         specifier: 20.8.9
@@ -736,13 +739,13 @@ importers:
         specifier: ^17.7.0
         version: 17.7.0
       tlds:
-        specifier: ^1.261.0
+        specifier: 1.261.0
         version: 1.261.0
       tmp-promise:
-        specifier: ^3.0.3
+        specifier: 3.0.3
         version: 3.0.3
       tseep:
-        specifier: ^1.3.1
+        specifier: 1.3.1
         version: 1.3.1
       typesense:
         specifier: ^3.0.5
@@ -6306,6 +6309,10 @@ packages:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
 
+  docx@9.7.1:
+    resolution: {integrity: sha512-ilXFf9Moz47ABjFpDiA5s1w9lpb4EFSp7+5iiJSbfyYDM+bpZdAgLlSr7fW4aXhVe/E+F6QCv0EvRVFEd5CsWg==}
+    engines: {node: '>=10'}
+
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
 
@@ -6976,6 +6983,9 @@ packages:
   has-tostringtag@1.0.2:
     resolution: {integrity: sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==}
     engines: {node: '>= 0.4'}
+
+  hash.js@1.1.7:
+    resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
 
   hashery@1.4.0:
     resolution: {integrity: sha512-Wn2i1In6XFxl8Az55kkgnFRiAlIAushzh26PTjL2AKtQcEfXrcLa7Hn5QOWGZEf3LU057P9TwwZjFyxfS1VuvQ==}
@@ -8110,6 +8120,9 @@ packages:
   min-indent@1.0.1:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
     engines: {node: '>=4'}
+
+  minimalistic-assert@1.0.1:
+    resolution: {integrity: sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A==}
 
   minimatch@10.2.4:
     resolution: {integrity: sha512-oRjTw/97aTBN0RHbYCdtF1MQfvusSIBQM0IZEgzl6426+8jSC0nF1a/GmnVLpfB9yyr6g6FTqWqiZVbxrtaCIg==}
@@ -10264,6 +10277,10 @@ packages:
   xml-encryption@3.1.0:
     resolution: {integrity: sha512-PV7qnYpoAMXbf1kvQkqMScLeQpjCMixddAKq9PtqVrho8HnYbBOWNfG0kA4R7zxQDo7w9kiYAyzS/ullAyO55Q==}
 
+  xml-js@1.6.11:
+    resolution: {integrity: sha512-7rVi2KMfwfWFl+GpPg6m80IVMWXLRjO+PxTq7V2CDhoGak0wzYzFgUY2m4XJ47OGdXd8eLE8EmwfAmdjw7lC1g==}
+    hasBin: true
+
   xml-name-validator@5.0.0:
     resolution: {integrity: sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==}
     engines: {node: '>=18'}
@@ -10275,6 +10292,9 @@ packages:
   xml2js@0.6.2:
     resolution: {integrity: sha512-T4rieHaC1EXcES0Kxxj4JWgaUQHDk+qwHcYOCFHfiwKz7tOVPLq7Hjq9dM1WCMhylqMEfP7hMcOIChvotiZegA==}
     engines: {node: '>=4.0.0'}
+
+  xml@1.0.1:
+    resolution: {integrity: sha512-huCv9IH9Tcf95zuYCsQraZtWnJvBtLVE0QHMOs8bWyZAFZNDcYjsPq1nEx8jKA9y+Beo9v+7OBPRisQTjinQMw==}
 
   xmlbuilder@10.1.1:
     resolution: {integrity: sha512-OyzrcFLL/nb6fMGHbiRDuPup9ljBycsdCypwuyg5AAHvyWzGfChJpCXMG88AGTIMFhGZ9RccFN1e6lhg3hkwKg==}
@@ -14449,7 +14469,7 @@ snapshots:
 
   '@tiptap/extension-bubble-menu@3.20.4(@tiptap/core@3.20.4(@tiptap/pm@3.20.4))(@tiptap/pm@3.20.4)':
     dependencies:
-      '@floating-ui/dom': 1.7.4
+      '@floating-ui/dom': 1.7.3
       '@tiptap/core': 3.20.4(@tiptap/pm@3.20.4)
       '@tiptap/pm': 3.20.4
     optional: true
@@ -16620,6 +16640,15 @@ snapshots:
     dependencies:
       esutils: 2.0.3
 
+  docx@9.7.1:
+    dependencies:
+      '@types/node': 25.5.0
+      hash.js: 1.1.7
+      jszip: 3.10.1
+      nanoid: 5.1.7
+      xml: 1.0.1
+      xml-js: 1.6.11
+
   dom-accessibility-api@0.5.16: {}
 
   dom-accessibility-api@0.6.3: {}
@@ -17540,6 +17569,11 @@ snapshots:
   has-tostringtag@1.0.2:
     dependencies:
       has-symbols: 1.1.0
+
+  hash.js@1.1.7:
+    dependencies:
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
 
   hashery@1.4.0:
     dependencies:
@@ -18820,6 +18854,8 @@ snapshots:
   mimic-function@5.0.1: {}
 
   min-indent@1.0.1: {}
+
+  minimalistic-assert@1.0.1: {}
 
   minimatch@10.2.4:
     dependencies:
@@ -20163,8 +20199,7 @@ snapshots:
 
   sax@1.4.1: {}
 
-  sax@1.6.0:
-    optional: true
+  sax@1.6.0: {}
 
   saxes@6.0.0:
     dependencies:
@@ -21223,6 +21258,10 @@ snapshots:
       escape-html: 1.0.3
       xpath: 0.0.32
 
+  xml-js@1.6.11:
+    dependencies:
+      sax: 1.6.0
+
   xml-name-validator@5.0.0: {}
 
   xml-naming@0.1.0: {}
@@ -21231,6 +21270,8 @@ snapshots:
     dependencies:
       sax: 1.4.1
       xmlbuilder: 11.0.1
+
+  xml@1.0.1: {}
 
   xmlbuilder@10.1.1: {}
 

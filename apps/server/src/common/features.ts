@@ -20,6 +20,7 @@ export const Feature = {
   VIEWER_COMMENTS: 'comment:viewer',
   TEMPLATES: 'templates',
   PDF_EXPORT: 'export:pdf',
+  DOCX_EXPORT: 'export:docx',
 } as const;
 
 export type FeatureKey = (typeof Feature)[keyof typeof Feature];
