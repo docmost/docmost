@@ -78,6 +78,7 @@ import { useTranslation } from "react-i18next";
 
 interface PageEditorProps {
   pageId: string;
+  spaceId: string;
   editable: boolean;
   content: any;
   canComment?: boolean;
@@ -85,6 +86,7 @@ interface PageEditorProps {
 
 export default function PageEditor({
   pageId,
+  spaceId,
   editable,
   content,
   canComment,
@@ -310,6 +312,8 @@ export default function PageEditor({
           setEditor(editor);
           // @ts-ignore
           editor.storage.pageId = pageId;
+          // @ts-ignore
+          editor.storage.spaceId = spaceId;
           handleScrollTo(editor);
           editorRef.current = editor;
         }
@@ -321,7 +325,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, extensions],
+    [pageId, spaceId, editable, extensions],
   );
 
   const editorIsEditable = useEditorState({
@@ -418,6 +422,14 @@ export default function PageEditor({
             attributes: {
               "aria-label": t("Page content"),
             },
+          }}
+          onCreate={({ editor }) => {
+            if (editor) {
+              // @ts-ignore
+              editor.storage.pageId = pageId;
+              // @ts-ignore
+              editor.storage.spaceId = spaceId;
+            }
           }}
         />
       ) : (

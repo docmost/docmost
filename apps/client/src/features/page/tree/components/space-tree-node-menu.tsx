@@ -34,6 +34,7 @@ import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { addPageToSidebarCache } from "@/features/page/queries/page-query.ts";
 import classes from "@/features/page/tree/styles/tree.module.css";
 
 export interface NodeMenuProps {
@@ -97,6 +98,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       setData((prev) =>
         treeModel.insert(prev, parentId, treeNodeData, newIndex),
       );
+      addPageToSidebarCache(duplicatedPage);
 
       setTimeout(() => {
         emit({

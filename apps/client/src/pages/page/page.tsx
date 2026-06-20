@@ -106,6 +106,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           content={page.content}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
+          spaceId={page.spaceId}
           editable={canEdit}
           creator={page.creator}
           contributors={page.contributors}
