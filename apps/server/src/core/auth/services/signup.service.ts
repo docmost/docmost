@@ -1,4 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { provisionPersonalSpaceForNewUser } from '../../../common/helpers/personal-space-provisioning';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
@@ -22,6 +24,7 @@ export class SignupService {
     private userRepo: UserRepo,
     private workspaceService: WorkspaceService,
     private groupUserRepo: GroupUserRepo,
+    private moduleRef: ModuleRef,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -88,6 +91,14 @@ export class SignupService {
         source: 'signup',
       },
     });
+
+    if (!trx) {
+      await provisionPersonalSpaceForNewUser(
+        this.moduleRef,
+        user.id,
+        workspaceId,
+      );
+    }
 
     return user;
   }
