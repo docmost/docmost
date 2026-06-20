@@ -8,6 +8,9 @@ import { queryClient } from "@/main.tsx";
 import { SpaceSelect } from "@/features/space/components/sidebar/space-select.tsx";
 import { useNavigate } from "react-router-dom";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { useSetAtom } from "jotai";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import { removePageFromTree } from "@/features/page/tree/utils";
 
 interface MovePageModalProps {
   pageId: string;
@@ -26,6 +29,7 @@ export default function MovePageModal({
 }: MovePageModalProps) {
   const { t } = useTranslation();
   const [targetSpace, setTargetSpace] = useState<ISpace>(null);
+  const setTreeData = useSetAtom(treeDataAtom);
   const navigate = useNavigate();
 
   const handlePageMove = async () => {
@@ -33,6 +37,7 @@ export default function MovePageModal({
 
     try {
       await movePageToSpace({ pageId, spaceId: targetSpace.id });
+      setTreeData((prev) => removePageFromTree(prev, pageId));
       queryClient.removeQueries({
         predicate: (item) =>
           ["pages", "sidebar-pages", "root-sidebar-pages"].includes(

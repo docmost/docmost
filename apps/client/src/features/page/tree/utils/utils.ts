@@ -122,6 +122,45 @@ export const deleteTreeNode = (
     .filter((node) => node !== null);
 };
 
+export function removePageFromTree(
+  treeItems: SpaceTreeNode[],
+  pageId: string,
+): SpaceTreeNode[] {
+  const removeFromNodes = (
+    nodes: SpaceTreeNode[],
+  ): { nodes: SpaceTreeNode[]; changed: boolean } => {
+    let changed = false;
+    const nextNodes: SpaceTreeNode[] = [];
+
+    for (const node of nodes) {
+      if (node.id === pageId) {
+        changed = true;
+        continue;
+      }
+
+      if (node.children?.length) {
+        const result = removeFromNodes(node.children);
+        if (result.changed) {
+          changed = true;
+          nextNodes.push({
+            ...node,
+            children: result.nodes,
+            hasChildren: result.nodes.length > 0,
+          });
+          continue;
+        }
+      }
+
+      nextNodes.push(node);
+    }
+
+    return changed ? { nodes: nextNodes, changed } : { nodes, changed };
+  };
+
+  const result = removeFromNodes(treeItems);
+  return result.changed ? result.nodes : treeItems;
+}
+
 export function buildTreeWithChildren(items: SpaceTreeNode[]): SpaceTreeNode[] {
   const nodeMap = {};
   let result: SpaceTreeNode[] = [];
