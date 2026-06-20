@@ -468,7 +468,9 @@ export default function PageEditor({
             )}
           </div>
           <div
-            onClick={() => editor.commands.focus("end")}
+            onClick={() => {
+              if (editor && !editor.isDestroyed) editor.commands.focus("end");
+            }}
             style={{ paddingBottom: "20vh" }}
           ></div>
         </div>

@@ -23,7 +23,7 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import { useAtom, useAtomValue } from "jotai";
 import { v7 as uuid7 } from "uuid";
-import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
+import { isCellSelection, isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
 import { showAiMenuAtom, showLinkMenuAtom } from "@/features/editor/atoms/editor-atoms";
@@ -226,7 +226,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
                     aria-label={t(item.name)}
                     className={clsx({ [classes.active]: item.isActive() })}
                     style={{ border: "none" }}
-                    onClick={item.command}
+                    onClick={() => isEditorReady(props.editor) && item.command()}
                   >
                     <item.icon style={{ width: rem(16) }} stroke={2} />
                   </ActionIcon>
@@ -256,7 +256,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
               radius="6px"
               aria-label={t(commentItem.name)}
               style={{ border: "none" }}
-              onClick={commentItem.command}
+              onClick={() => isEditorReady(props.editor) && commentItem.command()}
             >
               <IconMessage size={16} stroke={2} />
             </ActionIcon>

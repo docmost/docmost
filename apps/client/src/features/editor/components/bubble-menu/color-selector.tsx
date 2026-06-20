@@ -13,6 +13,7 @@ import {
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
+import { isEditorReady } from "@docmost/editor-ext";
 import clsx from "clsx";
 import classes from "./bubble-menu.module.css";
 
@@ -253,6 +254,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
               <SimpleGrid cols={5} spacing="xs">
                 {TEXT_COLORS.map(({ name, color }, index) => {
                   const applyTextColor = () => {
+                    if (!isEditorReady(editor)) return;
                     if (name === "Default") {
                       editor.commands.unsetColor();
                     } else {
@@ -316,6 +318,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
               <SimpleGrid cols={5} spacing="xs">
                 {HIGHLIGHT_COLORS.map(({ name, color }, index) => {
                   const applyHighlight = () => {
+                    if (!isEditorReady(editor)) return;
                     if (name === "Default") {
                       editor.commands.unsetHighlight();
                     } else {
@@ -386,8 +389,10 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
               data-color-grid="remove"
               className={classes.removeColor}
               onClick={() => {
-                editor.commands.unsetColor();
-                editor.commands.unsetHighlight();
+                if (isEditorReady(editor)) {
+                  editor.commands.unsetColor();
+                  editor.commands.unsetHighlight();
+                }
                 setIsOpen(false);
               }}
               onKeyDown={(e) => {
