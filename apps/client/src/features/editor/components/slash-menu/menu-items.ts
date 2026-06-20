@@ -21,6 +21,7 @@ import {
   IconMenu4,
   IconPageBreak,
   IconCalendar,
+  IconClock,
   IconAppWindow,
   IconSitemap,
   IconColumns3,
@@ -471,6 +472,25 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertContent(currentDate)
+          .run();
+      },
+    },
+    {
+      title: "Time",
+      description: "Insert current time",
+      searchTerms: ["time", "now", "clock"],
+      icon: IconClock,
+      command: ({ editor, range }: CommandProps) => {
+        const currentTime = new Date().toLocaleTimeString(i18n.language, {
+          hour: "numeric",
+          minute: "numeric",
+        });
+
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertContent(currentTime)
           .run();
       },
     },
