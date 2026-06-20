@@ -111,8 +111,9 @@ async function reuploadPastedAttachments(
     const match = ATTACHMENT_URL_RE.exec(src);
     if (!match) return;
 
+    const cleanSrc = src.split("?")[0];
     const fileName =
-      node.attrs.name || src.split("/").pop() || "file";
+      node.attrs.name || cleanSrc.split("/").pop() || "file";
 
     pastedNodes.push({
       pos,
