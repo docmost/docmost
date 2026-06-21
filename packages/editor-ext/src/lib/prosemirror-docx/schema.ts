@@ -236,30 +236,54 @@ export async function pageNodeToDocxBuffer(
       ({
         styles: {
           default: {
-            document: { paragraph: { spacing: { after: 120 } } },
+            document: { paragraph: { spacing: { after: 160 } } },
             heading1: {
               run: { color: '000000', size: 32 },
-              paragraph: { spacing: { before: 360, after: 120 } },
+              paragraph: {
+                keepNext: true,
+                keepLines: true,
+                spacing: { before: 240, after: 0 },
+              },
             },
             heading2: {
               run: { color: '000000', size: 26 },
-              paragraph: { spacing: { before: 280, after: 120 } },
+              paragraph: {
+                keepNext: true,
+                keepLines: true,
+                spacing: { before: 40, after: 0 },
+              },
             },
             heading3: {
               run: { color: '000000', size: 24 },
-              paragraph: { spacing: { before: 240, after: 80 } },
+              paragraph: {
+                keepNext: true,
+                keepLines: true,
+                spacing: { before: 40, after: 0 },
+              },
             },
             heading4: {
               run: { color: '000000', italics: true },
-              paragraph: { spacing: { before: 240, after: 80 } },
+              paragraph: {
+                keepNext: true,
+                keepLines: true,
+                spacing: { before: 40, after: 0 },
+              },
             },
             heading5: {
               run: { color: '000000' },
-              paragraph: { spacing: { before: 200, after: 80 } },
+              paragraph: {
+                keepNext: true,
+                keepLines: true,
+                spacing: { before: 40, after: 0 },
+              },
             },
             heading6: {
               run: { color: '000000' },
-              paragraph: { spacing: { before: 200, after: 80 } },
+              paragraph: {
+                keepNext: true,
+                keepLines: true,
+                spacing: { before: 40, after: 0 },
+              },
             },
           },
         },
