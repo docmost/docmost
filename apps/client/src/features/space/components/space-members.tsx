@@ -207,7 +207,13 @@ export default function SpaceMembersList({
                         arrowPosition="center"
                       >
                         <Menu.Target>
-                          <ActionIcon variant="subtle" c="gray">
+                          <ActionIcon
+                            variant="subtle"
+                            c="gray"
+                            aria-label={t("Member actions for {{name}}", {
+                              name: member.name,
+                            })}
+                          >
                             <IconDots size={20} stroke={2} />
                           </ActionIcon>
                         </Menu.Target>

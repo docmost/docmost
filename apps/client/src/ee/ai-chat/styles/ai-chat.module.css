@@ -76,7 +76,6 @@
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-lg) var(--mantine-spacing-lg);
 }
 
-/* Empty state - Notion AI style centered layout */
 .emptyState {
   flex: 1;
   display: flex;
@@ -106,6 +105,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+  margin-top: 0;
   margin-bottom: var(--mantine-spacing-xl);
   text-align: center;
 }
@@ -128,6 +128,7 @@
   color: var(--mantine-color-dimmed);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-top: 0;
   margin-bottom: var(--mantine-spacing-sm);
 }
 

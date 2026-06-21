@@ -20,8 +20,9 @@ export class CreateSpaceDto {
 
   @MinLength(2)
   @MaxLength(100)
-  @Matches(/^[a-zA-Z0-9-]+$/, {
-    message: 'slug can only contain letters, numbers, and hyphens',
+  @Matches(/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/, {
+    message:
+      'Space slug must start with a letter or number and may contain hyphens and underscores',
   })
   slug: string;
 }

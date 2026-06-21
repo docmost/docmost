@@ -14,6 +14,7 @@ import {
   WebSocketStatus,
   HocuspocusProviderWebsocket,
   onSyncedParameters,
+  onStatelessParameters,
 } from "@hocuspocus/provider";
 import {
   Editor,
@@ -33,6 +34,7 @@ import {
   currentPageEditModeAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
+  yjsSyncedAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
@@ -43,7 +45,6 @@ import {
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import { ReadonlyBubbleMenu } from "@/features/editor/components/bubble-menu/readonly-bubble-menu";
-import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import { TableHandlesLayer } from "@/features/editor/components/table/handle/table-handles-layer";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
@@ -74,6 +75,7 @@ import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
+import { useTranslation } from "react-i18next";
 
 interface PageEditorProps {
   pageId: string;
@@ -88,6 +90,7 @@ export default function PageEditor({
   content,
   canComment,
 }: PageEditorProps) {
+  const { t } = useTranslation();
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
   const editorRef = useRef<Editor | null>(null);
@@ -107,6 +110,7 @@ export default function PageEditor({
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
   );
+  const [, setYjsSynced] = useAtom(yjsSyncedAtom);
   const menuContainerRef = useRef(null);
   const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
@@ -144,6 +148,24 @@ export default function PageEditor({
       const onSyncedHandler = (event: onSyncedParameters) => {
         setIsRemoteSynced(event.state);
       };
+      const onStatelessHandler = ({ payload }: onStatelessParameters) => {
+        try {
+          const message = JSON.parse(payload);
+          if (message?.type !== "page.updated" || !message.updatedAt) return;
+          const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
+          if (pageData) {
+            queryClient.setQueryData(["pages", slugId], {
+              ...pageData,
+              updatedAt: message.updatedAt,
+              ...(message.lastUpdatedBy && {
+                lastUpdatedBy: message.lastUpdatedBy,
+              }),
+            });
+          }
+        } catch {
+          // ignore unrelated stateless messages
+        }
+      };
       const onAuthenticationFailedHandler = () => {
         const payload = jwtDecode(collabQuery?.token);
         const now = Date.now().valueOf() / 1000;
@@ -168,6 +190,7 @@ export default function PageEditor({
         onAuthenticationFailed: onAuthenticationFailedHandler,
         onStatus: onStatusHandler,
         onSynced: onSyncedHandler,
+        onStateless: onStatelessHandler,
       });
 
       local.on("synced", onLocalSyncedHandler);
@@ -232,19 +255,14 @@ export default function PageEditor({
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
+        attributes: {
+          "aria-label": t("Page content"),
+        },
         handleDOMEvents: {
           keydown: (_view, event) => {
             if (platformModifierKey(event) && event.code === "KeyS") {
               event.preventDefault();
               return true;
-            }
-            if (event.key === "Tab") {
-                const editor = editorRef.current;
-                if (!editor) return false;
-                event.preventDefault();
-                return editor.view.someProp("handleKeyDown", (f) =>
-                  f(editor.view, event)
-                );
             }
             if (platformModifierKey(event) && event.code === "KeyK") {
               searchSpotlight.open();
@@ -322,7 +340,6 @@ export default function PageEditor({
       queryClient.setQueryData(["pages", slugId], {
         ...pageData,
         content: newContent,
-        updatedAt: new Date(),
       });
     }
   }, 3000);
@@ -364,6 +381,14 @@ export default function PageEditor({
   const isSynced = isLocalSynced && isRemoteSynced;
 
   useEffect(() => {
+    setYjsSynced(isSynced);
+  }, [isSynced, setYjsSynced]);
+
+  useEffect(() => {
+    return () => setYjsSynced(false);
+  }, [setYjsSynced]);
+
+  useEffect(() => {
     const timeout = setTimeout(() => {
       if (yjsConnectionStatus === WebSocketStatus.Connecting || !isSynced) {
         setYjsConnectionStatus(WebSocketStatus.Disconnected);
@@ -399,6 +424,11 @@ export default function PageEditor({
           immediatelyRender={true}
           extensions={mainExtensions}
           content={content}
+          editorProps={{
+            attributes: {
+              "aria-label": t("Page content"),
+            },
+          }}
         />
       ) : (
         <div className="editor-container" style={{ position: "relative" }}>
@@ -429,9 +459,7 @@ export default function PageEditor({
             {editor &&
               !editorIsEditable &&
               (editable || canComment) &&
-              providersRef.current && (
-                <ReadonlyBubbleMenu editor={editor} />
-              )}
+              providersRef.current && <ReadonlyBubbleMenu editor={editor} />}
             {showCommentPopup && (
               <CommentDialog editor={editor} pageId={pageId} />
             )}
@@ -440,7 +468,9 @@ export default function PageEditor({
             )}
           </div>
           <div
-            onClick={() => editor.commands.focus("end")}
+            onClick={() => {
+              if (editor && !editor.isDestroyed) editor.commands.focus("end");
+            }}
             style={{ paddingBottom: "20vh" }}
           ></div>
         </div>

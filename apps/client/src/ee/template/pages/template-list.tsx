@@ -160,7 +160,8 @@ export default function TemplateList() {
                       ? spaceNameMap.get(template.spaceId)
                       : undefined
                   }
-                  onUse={handlePreview}
+                  onPreview={handlePreview}
+                  onUse={handleUse}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   canManage={isWorkspaceAdmin}

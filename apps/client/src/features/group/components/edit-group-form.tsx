@@ -9,6 +9,7 @@ import { z } from "zod/v4";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { zod4Resolver } from "mantine-form-zod-resolver";
+import { IGroup } from "@/features/group/types/group.types.ts";
 
 const formSchema = z.object({
   name: z.string().min(2).max(100),
@@ -18,13 +19,16 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 interface EditGroupFormProps {
   onClose?: () => void;
+  group?: IGroup;
 }
-export function EditGroupForm({ onClose }: EditGroupFormProps) {
+export function EditGroupForm({ onClose, group: groupProp }: EditGroupFormProps) {
   const { t } = useTranslation();
   const updateGroupMutation = useUpdateGroupMutation();
   const { isSuccess } = updateGroupMutation;
-  const { groupId } = useParams();
-  const { data: group } = useGroupQuery(groupId);
+  const { groupId: routeGroupId } = useParams();
+  const groupId = groupProp?.id ?? routeGroupId;
+  const { data: queriedGroup } = useGroupQuery(groupProp ? undefined : groupId);
+  const group = groupProp ?? queriedGroup;
 
   useEffect(() => {
     if (isSuccess) {
@@ -66,6 +70,7 @@ export function EditGroupForm({ onClose }: EditGroupFormProps) {
               label={t("Group name")}
               placeholder={t("e.g Developers")}
               variant="filled"
+              data-autofocus
               {...form.getInputProps("name")}
             />
 

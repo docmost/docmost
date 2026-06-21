@@ -23,7 +23,7 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import { useAtom, useAtomValue } from "jotai";
 import { v7 as uuid7 } from "uuid";
-import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
+import { isCellSelection, isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
 import { showAiMenuAtom, showLinkMenuAtom } from "@/features/editor/atoms/editor-atoms";
@@ -38,9 +38,11 @@ export interface BubbleMenuItem {
 
 type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
   editor: Editor | null;
+  templateMode?: boolean;
 };
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
+  const { templateMode = false } = props;
   const { t } = useTranslation();
   const [showAiMenu, setShowAiMenu] = useAtom(showAiMenuAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
@@ -224,15 +226,13 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
                     aria-label={t(item.name)}
                     className={clsx({ [classes.active]: item.isActive() })}
                     style={{ border: "none" }}
-                    onClick={item.command}
+                    onClick={() => isEditorReady(props.editor) && item.command()}
                   >
                     <item.icon style={{ width: rem(16) }} stroke={2} />
                   </ActionIcon>
                 </Tooltip>
               ))}
             </ActionIcon.Group>
-
-            <LinkSelector />
 
             <ColorSelector
               editor={props.editor}
@@ -246,18 +246,22 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           </>
         )}
 
-        <Tooltip label={t(commentItem.name)} withArrow withinPortal={false}>
-          <ActionIcon
-            variant="default"
-            size="lg"
-            radius="6px"
-            aria-label={t(commentItem.name)}
-            style={{ border: "none" }}
-            onClick={commentItem.command}
-          >
-            <IconMessage size={16} stroke={2} />
-          </ActionIcon>
-        </Tooltip>
+        <LinkSelector />
+
+        {!templateMode && (
+          <Tooltip label={t(commentItem.name)} withArrow withinPortal={false}>
+            <ActionIcon
+              variant="default"
+              size="lg"
+              radius="6px"
+              aria-label={t(commentItem.name)}
+              style={{ border: "none" }}
+              onClick={() => isEditorReady(props.editor) && commentItem.command()}
+            >
+              <IconMessage size={16} stroke={2} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </div>
     </BubbleMenu>
   );

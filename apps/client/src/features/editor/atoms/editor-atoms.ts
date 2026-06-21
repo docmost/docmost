@@ -10,6 +10,8 @@ export const readOnlyEditorAtom = atom<Editor | null>(null);
 
 export const yjsConnectionStatusAtom = atom<string>("");
 
+export const yjsSyncedAtom = atom<boolean>(false);
+
 export const showAiMenuAtom = atom(false);
 
 export const showLinkMenuAtom = atom(false);

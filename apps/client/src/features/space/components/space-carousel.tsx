@@ -1,4 +1,4 @@
-import { Text, Card, rem, Group, Button, Skeleton } from "@mantine/core";
+import { Text, Card, rem, Group, Button, Skeleton, Title } from "@mantine/core";
 import {
   prefetchSpace,
   useGetSpacesQuery,
@@ -32,9 +32,9 @@ export default function SpaceCarousel() {
     return (
       <>
         <Group justify="space-between" align="center" mb="md">
-          <Text fz="sm" fw={500}>
+          <Title order={2} size="h6" fw={500}>
             {t("Spaces you belong to")}
-          </Text>
+          </Title>
         </Group>
         <CardCarousel ariaLabel={t("Spaces you belong to")}>
           {Array.from({ length: 4 }, (_, i) => (
@@ -80,9 +80,9 @@ export default function SpaceCarousel() {
   return (
     <>
       <Group justify="space-between" align="center" mb="md">
-        <Text fz="sm" fw={500}>
+        <Title order={2} size="h6" fw={500}>
           {t("Spaces you belong to")}
-        </Text>
+        </Title>
       </Group>
 
       <CardCarousel ariaLabel={t("Spaces you belong to")}>{cards}</CardCarousel>

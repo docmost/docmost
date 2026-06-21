@@ -126,6 +126,50 @@ export interface Backlinks {
   workspaceId: string;
 }
 
+export interface BaseProperties {
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  isPrimary: Generated<boolean>;
+  name: string;
+  pageId: string;
+  pendingType: string | null;
+  pendingTypeOptions: Json | null;
+  pendingToken: string | null;
+  position: string;
+  schemaVersion: Generated<number>;
+  type: string;
+  typeOptions: Json | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface BaseRows {
+  cells: Generated<Json>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  lastUpdatedById: string | null;
+  pageId: string;
+  position: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface BaseViews {
+  config: Generated<Json>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  id: Generated<string>;
+  name: string;
+  pageId: string;
+  position: string;
+  type: Generated<string>;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Billing {
   amount: Int8 | null;
   billingScheme: string | null;
@@ -275,6 +319,8 @@ export interface Pages {
   deletedById: string | null;
   icon: string | null;
   id: Generated<string>;
+  isBase: Generated<boolean>;
+  baseSchemaVersion: Generated<number>;
   isLocked: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
@@ -322,6 +368,7 @@ export interface Spaces {
   deletedAt: Timestamp | null;
   description: string | null;
   id: Generated<string>;
+  isPersonal: Generated<boolean>;
   logo: string | null;
   name: string | null;
   settings: Json | null;
@@ -598,6 +645,9 @@ export interface DB {
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;
+  baseProperties: BaseProperties;
+  baseRows: BaseRows;
+  baseViews: BaseViews;
   billing: Billing;
   comments: Comments;
   favorites: Favorites;

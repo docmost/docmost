@@ -56,9 +56,9 @@ export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
     <div className={classes.emptyState}>
       <IconSparkles size={48} stroke={1.5} className={classes.emptyStateIcon} />
       <div className={classes.emptyStateBrand}>{t("Docmost AI")}</div>
-      <div className={classes.emptyStateTitle}>
+      <h1 className={classes.emptyStateTitle}>
         {t("What can I help you with?")}
-      </div>
+      </h1>
 
       <div className={classes.emptyStateInput}>
         <ChatInput
@@ -71,7 +71,7 @@ export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
       </div>
 
       <div className={classes.suggestionsSection}>
-        <div className={classes.suggestionsLabel}>Get started</div>
+        <h2 className={classes.suggestionsLabel}>{t("Get started")}</h2>
         <div className={classes.suggestionsGrid}>
           {SUGGESTIONS.map((s) => (
             <button

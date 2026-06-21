@@ -18,7 +18,7 @@ import {
   IconWifiOff,
 } from "@tabler/icons-react";
 import React, { useEffect, useRef, useState } from "react";
-import useToggleAside from "@/hooks/use-toggle-aside.tsx";
+import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { useAtom, useAtomValue } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
 import { useDisclosure, useHotkeys } from "@mantine/hooks";
@@ -64,7 +64,8 @@ interface PageHeaderMenuProps {
 }
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
-  const toggleAside = useToggleAside();
+  const commentsTriggerProps = useAsideTriggerProps("comments");
+  const tocTriggerProps = useAsideTriggerProps("toc");
   const { pageSlug } = useParams();
   const { data: page } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -100,7 +101,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     <>
       <ConnectionWarning />
 
-      {!readOnly && <PageEditModeToggle size="xs" />}
+      {!readOnly && !page?.isBase && <PageEditModeToggle size="xs" />}
 
       <PageShareModal readOnly={readOnly} />
 
@@ -109,22 +110,24 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           variant="subtle"
           color="dark"
           aria-label={t("Comments")}
-          onClick={() => toggleAside("comments")}
+          {...commentsTriggerProps}
         >
           <IconMessage size={20} stroke={2} />
         </ActionIcon>
       </Tooltip>
 
-      <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
-        <ActionIcon
-          variant="subtle"
-          color="dark"
-          aria-label={t("Table of contents")}
-          onClick={() => toggleAside("toc")}
-        >
-          <IconList size={20} stroke={2} />
-        </ActionIcon>
-      </Tooltip>
+      {!page?.isBase && (
+        <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            aria-label={t("Table of contents")}
+            {...tocTriggerProps}
+          >
+            <IconList size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
 
       <PageActionMenu readOnly={readOnly} />
     </>
@@ -233,12 +236,14 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             {t("Copy link")}
           </Menu.Item>
 
-          <Menu.Item
-            leftSection={<IconMarkdown size={16} />}
-            onClick={handleCopyAsMarkdown}
-          >
-            {t("Copy as Markdown")}
-          </Menu.Item>
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconMarkdown size={16} />}
+              onClick={handleCopyAsMarkdown}
+            >
+              {t("Copy as Markdown")}
+            </Menu.Item>
+          )}
 
           <Menu.Item
             leftSection={
@@ -269,22 +274,26 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          <Menu.Divider />
+          {!page?.isBase && <Menu.Divider />}
 
-          <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
-            <Group wrap="nowrap">
-              <PageWidthToggle label={t("Full width")} />
-            </Group>
-          </Menu.Item>
+          {!page?.isBase && (
+            <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
+              <Group wrap="nowrap">
+                <PageWidthToggle label={t("Full width")} />
+              </Group>
+            </Menu.Item>
+          )}
 
-          <Menu.Item
-            leftSection={<IconHistory size={16} />}
-            onClick={openHistoryModal}
-          >
-            {t("Page history")}
-          </Menu.Item>
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconHistory size={16} />}
+              onClick={openHistoryModal}
+            >
+              {t("Page history")}
+            </Menu.Item>
+          )}
 
-          {!readOnly && (
+          {!readOnly && !page?.isBase && (
             <PageVerificationMenuItem
               pageId={page?.id}
               onClick={openVerificationModal}

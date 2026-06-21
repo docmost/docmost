@@ -4,8 +4,8 @@ import {
   Menu,
   Modal,
   Text,
-  ThemeIcon,
   Tooltip,
+  UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -13,6 +13,7 @@ import {
   IconShieldCheck,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query";
@@ -100,15 +101,20 @@ export function PageVerificationBadge({
   if (!pageId) return null;
   if (!hasVerificationFeature) {
     if (readOnly) return null;
+    const lockedLabel = `${t("Add verification")} — ${upgradeLabel}`;
+    // Use ActionIcon (a real <button>) instead of a ThemeIcon so the tooltip
+    // is reachable on keyboard focus, and screen readers announce the upgrade
+    // hint via the accessible name. Click is a no-op since the feature is
+    // gated; the tooltip explains why.
     return (
-      <Tooltip
-        label={`${t("Add verification")} — ${upgradeLabel}`}
-        withArrow
-        openDelay={250}
-      >
-        <ThemeIcon variant="subtle" color="gray">
+      <Tooltip label={lockedLabel} withArrow openDelay={250}>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          aria-label={lockedLabel}
+        >
           <IconShieldCheck size={20} stroke={1.5} />
-        </ThemeIcon>
+        </ActionIcon>
       </Tooltip>
     );
   }
@@ -122,7 +128,7 @@ export function PageVerificationBadge({
     status === "verified" && verificationInfo?.expiresAt
       ? t("Verified until {{date}}", {
           date: new Date(verificationInfo.expiresAt).toLocaleDateString(
-            undefined,
+            i18n.language,
             { month: "long", day: "numeric", year: "numeric" },
           ),
         })
@@ -132,20 +138,25 @@ export function PageVerificationBadge({
     <>
       {status !== "none" ? (
         <Tooltip label={tooltipLabel} withArrow openDelay={250}>
-          <Group
-            gap={4}
+          <UnstyledButton
             onClick={open}
-            style={{ cursor: "pointer" }}
-            wrap="nowrap"
+            aria-label={tooltipLabel}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              cursor: "pointer",
+            }}
           >
             <IconRosetteDiscountCheckFilled
               size={18}
               color={`var(--mantine-color-${getStatusColor(status).replace(".", "-")})`}
+              aria-hidden="true"
             />
             <Text size="sm" c={getStatusColor(status)}>
               {getStatusLabel(status, t)}
             </Text>
-          </Group>
+          </UnstyledButton>
         </Tooltip>
       ) : !readOnly ? (
         <Tooltip label={t("Set up verification")} withArrow openDelay={250}>

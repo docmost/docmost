@@ -103,7 +103,7 @@ export default function BillingPlans() {
               label="Team size"
               description="Select the number of users"
               value={selectedTierValue}
-              onChange={setSelectedTierValue}
+              onChange={(value) => setSelectedTierValue(value)}
               data={selectData}
               w={250}
               size="md"

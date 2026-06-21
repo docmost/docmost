@@ -1,21 +1,27 @@
-import { ActionIcon, Box, Group, ScrollArea, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Group, ScrollArea, Title, Tooltip } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import CommentListWithTabs from "@/features/comment/components/comment-list-with-tabs.tsx";
 import { useAtom } from "jotai";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { TableOfContents } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
 import { useAtomValue } from "jotai";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import AsideChatPanel from "@/ee/ai-chat/components/aside-chat-panel";
 import { PageDetailsAside } from "@/features/page-details/components/page-details-aside.tsx";
+import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
 
 export default function Aside() {
-  const [{ tab }, setAsideState] = useAtom(asideStateAtom);
+  const [{ tab, isAsideOpen }, setAsideState] = useAtom(asideStateAtom);
   const { t } = useTranslation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const closeAside = () => setAsideState((s) => ({ ...s, isAsideOpen: false }));
+
+  useEffect(() => {
+    if (!isAsideOpen) return;
+    document.getElementById(ASIDE_PANEL_ID)?.focus();
+  }, [isAsideOpen, tab]);
 
   let title: string;
   let component: ReactNode;
@@ -48,7 +54,7 @@ export default function Aside() {
         <>
           {tab !== "chat" && (
             <Group justify="space-between" wrap="nowrap" mb="md">
-              <Text fw={500}>{t(title)}</Text>
+              <Title order={2} size="h6" fw={500}>{t(title)}</Title>
               <Tooltip label={t("Close")} withArrow>
                 <ActionIcon
                   variant="subtle"

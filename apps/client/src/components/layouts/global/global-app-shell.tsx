@@ -18,6 +18,8 @@ import classes from "./app-shell.module.css";
 import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import GlobalSidebar from "@/components/layouts/global/global-sidebar.tsx";
+import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
+import { MAIN_CONTENT_ID, SkipToMain } from "@/components/ui/skip-to-main.tsx";
 
 export default function GlobalAppShell({
   children,
@@ -81,7 +83,9 @@ export default function GlobalAppShell({
   const showGlobalSidebar = !isSpaceRoute && !isSettingsRoute && !isAiRoute;
 
   return (
-    <AppShell
+    <>
+      <SkipToMain />
+      <AppShell
       header={{ height: 45 }}
       navbar={{
         width: isSpaceRoute ? sidebarWidth : 300,
@@ -125,7 +129,7 @@ export default function GlobalAppShell({
         {isAiRoute && <AiChatSidebar />}
         {showGlobalSidebar && <GlobalSidebar />}
       </AppShell.Navbar>
-      <AppShell.Main id="main-content">
+      <AppShell.Main id={MAIN_CONTENT_ID} tabIndex={-1}>
         {isSettingsRoute ? (
           <Container size={900} pb={80}>
             {children}
@@ -137,6 +141,8 @@ export default function GlobalAppShell({
 
       {isPageRoute && (
         <AppShell.Aside
+          id={ASIDE_PANEL_ID}
+          tabIndex={-1}
           className={classes.aside}
           p="md"
           withBorder={false}
@@ -156,5 +162,6 @@ export default function GlobalAppShell({
         </AppShell.Aside>
       )}
     </AppShell>
+    </>
   );
 }

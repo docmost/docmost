@@ -56,6 +56,12 @@ export function WorkspaceInviteForm({ onClose }: Props) {
           maxDropdownHeight={200}
           maxTags={50}
           onChange={setEmails}
+          data-autofocus
+          autoComplete="off"
+          data-1p-ignore
+          data-lpignore="true"
+          data-bwignore
+          data-form-type="other"
         />
 
         <Select
@@ -74,7 +80,7 @@ export function WorkspaceInviteForm({ onClose }: Props) {
           defaultValue={UserRole.MEMBER}
           allowDeselect={false}
           checkIconPosition="right"
-          onChange={setRole}
+          onChange={(value) => setRole(value)}
         />
 
         <MultiGroupSelect

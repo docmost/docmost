@@ -1,4 +1,18 @@
 import slugify from "@sindresorhus/slugify";
+import type { TFunction } from "i18next";
+
+/**
+ * Display title for a page, with a base-aware empty-title fallback: bases
+ * fall back to "Untitled base", normal pages to "Untitled". Single chokepoint
+ * so the fallback stays consistent across the UI.
+ */
+export function getPageTitle(
+  title: string | null | undefined,
+  isBase: boolean | undefined,
+  t: TFunction,
+): string {
+  return title || (isBase ? t("Untitled base") : t("Untitled"));
+}
 
 const buildPageSlug = (pageSlugId: string, pageTitle?: string): string => {
   const titleSlug = slugify(pageTitle?.substring(0, 70) || "untitled", {

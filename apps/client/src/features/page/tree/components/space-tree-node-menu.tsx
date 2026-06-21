@@ -20,6 +20,7 @@ import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import CopyPageModal from "@/features/page/components/copy-page-modal.tsx";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { getPageTitle } from "@/features/page/page.utils";
 import { duplicatePage } from "@/features/page/services/page-service.ts";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { getAppUrl } from "@/lib/config.ts";
@@ -34,6 +35,7 @@ import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import classes from "@/features/page/tree/styles/tree.module.css";
 
 export interface NodeMenuProps {
   node: SpaceTreeNode;
@@ -123,9 +125,10 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       <Menu shadow="md" width={200}>
         <Menu.Target>
           <ActionIcon
-            variant="transparent"
-            c="gray"
-            aria-label={t("Page menu")}
+            variant="subtle"
+            color="gray"
+            className={classes.actionIcon}
+            aria-label={t("Page menu for {{name}}", { name: getPageTitle(node.name, node.isBase, t) })}
             tabIndex={-1}
             onClick={(e) => {
               e.preventDefault();

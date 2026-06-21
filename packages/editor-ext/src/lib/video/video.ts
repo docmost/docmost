@@ -27,6 +27,7 @@ export interface VideoOptions {
 
 export interface VideoAttributes {
   src?: string;
+  alt?: string;
   align?: string;
   attachmentId?: string;
   size?: number;
@@ -77,6 +78,13 @@ export const TiptapVideo = Node.create<VideoOptions>({
         parseHTML: (element) => element.getAttribute("src"),
         renderHTML: (attributes) => ({
           src: attributes.src,
+        }),
+      },
+      alt: {
+        default: undefined,
+        parseHTML: (element) => element.getAttribute("aria-label"),
+        renderHTML: (attributes: VideoAttributes) => ({
+          "aria-label": attributes.alt,
         }),
       },
       attachmentId: {
@@ -228,6 +236,9 @@ export const TiptapVideo = Node.create<VideoOptions>({
       el.src = normalizeFileUrl(node.attrs.src);
       el.controls = true;
       el.preload = "metadata";
+      if (node.attrs.alt) {
+        el.setAttribute("aria-label", node.attrs.alt);
+      }
       el.style.display = "block";
       el.style.maxWidth = "100%";
       el.style.borderRadius = "8px";
@@ -270,6 +281,14 @@ export const TiptapVideo = Node.create<VideoOptions>({
 
           if (updatedNode.attrs.src !== currentNode.attrs.src) {
             el.src = normalizeFileUrl(updatedNode.attrs.src);
+          }
+
+          if (updatedNode.attrs.alt !== currentNode.attrs.alt) {
+            if (updatedNode.attrs.alt) {
+              el.setAttribute("aria-label", updatedNode.attrs.alt);
+            } else {
+              el.removeAttribute("aria-label");
+            }
           }
 
           const w = updatedNode.attrs.width;

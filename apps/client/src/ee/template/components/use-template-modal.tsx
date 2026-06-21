@@ -10,12 +10,14 @@ type UseTemplateModalProps = {
   template: ITemplate;
   opened: boolean;
   onClose: () => void;
+  initialSpaceId?: string;
 };
 
 export default function UseTemplateModal({
   template,
   opened,
   onClose,
+  initialSpaceId,
 }: UseTemplateModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -54,6 +56,8 @@ export default function UseTemplateModal({
       actionLabel={t("Create page")}
       onSelect={handleSelect}
       loading={useTemplateMutation.isPending}
+      initialSpaceId={initialSpaceId ?? template.spaceId}
+      searchSpacesOnly
     />
   );
 }

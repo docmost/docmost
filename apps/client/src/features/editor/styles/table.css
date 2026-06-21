@@ -163,8 +163,13 @@
 
 @media print {
   .tableWrapper.tableHeaderPinned table tr:first-child {
-    position: static;
-    transform: none;
+    position: static !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  .tableReadonlySortChevron {
+    display: none !important;
   }
 }
 
@@ -202,10 +207,6 @@
 .ProseMirror table th:hover .tableReadonlySortChevron,
 .tableReadonlySortChevron[data-sort] {
   opacity: 1;
-}
-
-.ProseMirror table th:has(.tableReadonlySortChevron) {
-  padding-right: 30px;
 }
 
 .tableReadonlySortChevron:hover {

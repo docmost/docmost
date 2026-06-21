@@ -17,6 +17,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { SpaceFilterMenu } from "@/features/space/components/space-filter-menu";
+import { RadioMenuItem } from "@/components/ui/radio-menu-item";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import classes from "./search-spotlight-filters.module.css";
@@ -175,6 +176,8 @@ export function SearchSpotlightFilters({
           {contentTypeOptions.map((option) => (
             <Menu.Item
               key={option.value}
+              component={RadioMenuItem}
+              aria-checked={contentType === option.value}
               onClick={() =>
                 !option.disabled &&
                 contentType !== option.value &&
@@ -200,7 +203,7 @@ export function SearchSpotlightFilters({
                       </Text>
                     )}
                 </div>
-                {contentType === option.value && <IconCheck size={20} />}
+                {contentType === option.value && <IconCheck size={20} aria-hidden />}
               </Group>
             </Menu.Item>
           ))}

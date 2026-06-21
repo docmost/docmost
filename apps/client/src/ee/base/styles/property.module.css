@@ -1,0 +1,23 @@
+.alphabetizeBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.addOptionBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.dragHandle {
+  flex-shrink: 0;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+}
+
+.chevronBack {
+  transform: rotate(180deg);
+}

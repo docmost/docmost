@@ -15,7 +15,7 @@ import {
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { generateSlugId } from '../../../common/helpers';
@@ -92,6 +92,8 @@ export class PageService {
     userId: string,
     workspaceId: string,
     createPageDto: CreatePageDto,
+    trx?: KyselyTransaction,
+    isBase: boolean = false,
   ): Promise<Page> {
     let parentPageId = undefined;
 
@@ -140,21 +142,34 @@ export class PageService {
       creatorId: userId,
       workspaceId: workspaceId,
       lastUpdatedById: userId,
+      isBase,
       content,
       textContent,
       ydoc,
-    });
+    }, trx);
 
-    this.generalQueue
-      .add(QueueJob.ADD_PAGE_WATCHERS, {
-        userIds: [userId],
-        pageId: page.id,
-        spaceId: createPageDto.spaceId,
+    if (trx) {
+      // Add the watcher inside the caller's transaction so the async worker
+      // never inserts against an uncommitted page (FK violation on bases).
+      await this.watcherService.addPageWatchers(
+        [userId],
+        page.id,
+        createPageDto.spaceId,
         workspaceId,
-      })
-      .catch((err) =>
-        this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+        trx,
       );
+    } else {
+      this.generalQueue
+        .add(QueueJob.ADD_PAGE_WATCHERS, {
+          userIds: [userId],
+          pageId: page.id,
+          spaceId: createPageDto.spaceId,
+          workspaceId,
+        })
+        .catch((err) =>
+          this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+        );
+    }
 
     return page;
   }
@@ -289,6 +304,7 @@ export class PageService {
         'parentPageId',
         'spaceId',
         'creatorId',
+        'isBase',
         'deletedAt',
       ])
       .select((eb) => this.pageRepo.withHasChildren(eb))
@@ -310,6 +326,7 @@ export class PageService {
           expression: 'position',
           direction: 'asc',
           orderModifier: (ob) => ob.collate('C').asc(),
+          cursorExpression: sql`position collate "C"`,
         },
         { expression: 'id', direction: 'asc' },
       ],
@@ -481,7 +498,7 @@ export class PageService {
         );
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
-          pageId: pageIdsToMove,
+          pageIds: pageIdsToMove,
           workspaceId: rootPage.workspaceId,
         });
       }
@@ -831,6 +848,7 @@ export class PageService {
             'slugId',
             'title',
             'icon',
+            'isBase',
             'position',
             'parentPageId',
             'spaceId',
@@ -846,6 +864,7 @@ export class PageService {
                 'p.slugId',
                 'p.title',
                 'p.icon',
+                'p.isBase',
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',

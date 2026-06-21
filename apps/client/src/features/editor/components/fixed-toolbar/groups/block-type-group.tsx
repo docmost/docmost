@@ -25,11 +25,11 @@ export const BlockTypeGroup: FC<Props> = ({ editor }) => {
   const state = useEditorState({
     editor,
     selector: (ctx) => ({
-      isHeading1: ctx.editor.isActive("heading", { level: 1 }),
-      isHeading2: ctx.editor.isActive("heading", { level: 2 }),
-      isHeading3: ctx.editor.isActive("heading", { level: 3 }),
-      isBlockquote: ctx.editor.isActive("blockquote"),
-      isCodeBlock: ctx.editor.isActive("codeBlock"),
+      isHeading1: !!ctx.editor?.isActive("heading", { level: 1 }),
+      isHeading2: !!ctx.editor?.isActive("heading", { level: 2 }),
+      isHeading3: !!ctx.editor?.isActive("heading", { level: 3 }),
+      isBlockquote: !!ctx.editor?.isActive("blockquote"),
+      isCodeBlock: !!ctx.editor?.isActive("codeBlock"),
     }),
   });
 

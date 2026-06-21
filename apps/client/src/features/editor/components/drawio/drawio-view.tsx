@@ -198,7 +198,11 @@ export default function DrawioView(props: NodeViewProps) {
         className={clsx(selected ? "ProseMirror-selectednode" : "")}
       >
         <div style={{ display: "flex", alignItems: "center" }}>
-          <ActionIcon variant="transparent" color="gray">
+          <ActionIcon
+            variant="transparent"
+            color="gray"
+            aria-label={t("Edit diagram")}
+          >
             <IconEdit size={18} />
           </ActionIcon>
 

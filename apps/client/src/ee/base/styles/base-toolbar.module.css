@@ -1,0 +1,10 @@
+.badgeDot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  font-size: 9px;
+}

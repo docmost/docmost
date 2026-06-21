@@ -88,7 +88,13 @@ export default function GroupMembersList() {
                       arrowPosition="center"
                     >
                       <Menu.Target>
-                        <ActionIcon variant="subtle" c="gray">
+                        <ActionIcon
+                          variant="subtle"
+                          c="gray"
+                          aria-label={t("Member actions for {{name}}", {
+                            name: user.name,
+                          })}
+                        >
                           <IconDots size={20} stroke={2} />
                         </ActionIcon>
                       </Menu.Target>

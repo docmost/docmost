@@ -1,12 +1,12 @@
 import { FC } from "react";
 import { useAtomValue } from "jotai";
+import type { Editor } from "@tiptap/react";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
 import { useToolbarState } from "./use-toolbar-state";
 import { BlockTypeGroup } from "./groups/block-type-group";
 import { InlineMarksGroup } from "./groups/inline-marks-group";
 import { ColorGroup } from "./groups/color-group";
 import { ListsGroup } from "./groups/lists-group";
-import { LinkGroup } from "./groups/link-group";
 import { AlignmentGroup } from "./groups/alignment-group";
 import { MediaGroup } from "./groups/media-group";
 import { QuickInsertsGroup } from "./groups/quick-inserts-group";
@@ -16,8 +16,17 @@ import { AskAiGroup } from "./groups/ask-ai-group";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 import classes from "./fixed-toolbar.module.css";
 
-export const FixedToolbar: FC = () => {
-  const editor = useAtomValue(pageEditorAtom);
+type FixedToolbarProps = {
+  editor?: Editor | null;
+  templateMode?: boolean;
+};
+
+export const FixedToolbar: FC<FixedToolbarProps> = ({
+  editor: editorProp,
+  templateMode = false,
+}) => {
+  const editorFromAtom = useAtomValue(pageEditorAtom);
+  const editor = editorProp ?? editorFromAtom;
   const state = useToolbarState(editor);
   const workspace = useAtomValue(workspaceAtom);
   const isGenerativeAiEnabled = workspace?.settings?.ai?.generative === true;
@@ -48,14 +57,12 @@ export const FixedToolbar: FC = () => {
           <div className={classes.divider} />
           <ListsGroup editor={editor} state={state} />
           <div className={classes.divider} />
-          <LinkGroup />
-          <div className={classes.divider} />
           <AlignmentGroup editor={editor} />
           <div className={classes.divider} />
-          <MediaGroup editor={editor} />
+          <MediaGroup editor={editor} templateMode={templateMode} />
           <div className={classes.divider} />
           <QuickInsertsGroup editor={editor} />
-          <MoreInsertsGroup editor={editor} />
+          <MoreInsertsGroup editor={editor} templateMode={templateMode} />
           <div className={classes.divider} />
           <HistoryGroup editor={editor} state={state} />
         </div>

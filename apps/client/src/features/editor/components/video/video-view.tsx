@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 export default function VideoView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { editor, node, selected } = props;
-  const { src, width, align, aspectRatio, placeholder } = node.attrs;
+  const { src, width, align, alt, aspectRatio, placeholder } = node.attrs;
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
     if (align === "right") return "alignRight";
@@ -47,7 +47,7 @@ export default function VideoView(props: NodeViewProps) {
             preload="metadata"
             controls
             src={getFileUrl(src)}
-            aria-label={placeholder?.name || t("Video")}
+            aria-label={alt || undefined}
           />
         )}
         {!src && previewSrc && (

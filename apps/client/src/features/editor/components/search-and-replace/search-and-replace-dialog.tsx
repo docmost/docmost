@@ -17,6 +17,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useEditor } from "@tiptap/react";
+import { isEditorReady } from "@docmost/editor-ext";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { searchAndReplaceStateAtom } from "@/features/editor/components/search-and-replace/atoms/search-and-replace-state-atom.ts";
 import { useAtom } from "jotai";
@@ -64,13 +65,13 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
       replaceButtonToggle();
     }
     // Clear search term in editor
-    if (editor) {
+    if (isEditorReady(editor)) {
       editor.commands.setSearchTerm("");
     }
   };
 
   const goToSelection = () => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
 
     const { results, resultIndex } = editor.storage.searchAndReplace;
     //TODO: check type error
@@ -90,27 +91,32 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
   };
 
   const next = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.nextSearchResult();
     goToSelection();
   };
 
   const previous = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.previousSearchResult();
     goToSelection();
   };
 
   const replace = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.setReplaceTerm(replaceText);
     editor.commands.replace();
     goToSelection();
   };
 
   const replaceAll = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.setReplaceTerm(replaceText);
     editor.commands.replaceAll();
   };
 
   useEffect(() => {
+    if (!isEditorReady(editor)) return;
     editor.commands.setSearchTerm(searchText);
     editor.commands.resetIndex();
     editor.commands.selectCurrentItem();
@@ -118,6 +124,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
 
   const handleOpenEvent = (e) => {
     setPageFindState({ isOpen: true });
+    if (!isEditorReady(editor)) return;
     const selectedText = editor.state.doc.textBetween(
       editor.state.selection.from,
       editor.state.selection.to,
@@ -149,6 +156,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
   }, [pageFindState.isOpen]);
 
   useEffect(() => {
+    if (!isEditorReady(editor)) return;
     editor.commands.setCaseSensitive(caseSensitive.isCaseSensitive);
     editor.commands.resetIndex();
     goToSelection();

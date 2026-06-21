@@ -33,4 +33,8 @@ export * from "./lib/status";
 export * from "./lib/pdf";
 export * from "./lib/page-break";
 export * from "./lib/resizable-nodeview";
-
+export {
+  pageNodeToDocxBuffer,
+  type DocxImageResolver,
+} from "./lib/prosemirror-docx";
+export * from "./lib/base-embed";

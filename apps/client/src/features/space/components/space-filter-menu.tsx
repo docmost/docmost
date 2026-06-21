@@ -13,6 +13,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import { RadioMenuItem } from "@/components/ui/radio-menu-item";
 
 type SpaceFilterMenuProps = {
   value: string | null;
@@ -74,7 +75,11 @@ export function SpaceFilterMenu({
         />
 
         <ScrollArea.Autosize mah={280}>
-          <Menu.Item onClick={() => onChange(null)}>
+          <Menu.Item
+            component={RadioMenuItem}
+            aria-checked={!value}
+            onClick={() => onChange(null)}
+          >
             <Group flex="1" gap="xs">
               <Avatar
                 color="initials"
@@ -90,14 +95,19 @@ export function SpaceFilterMenu({
                   {t("Search in all your spaces")}
                 </Text>
               </div>
-              {!value && <IconCheck size={20} />}
+              {!value && <IconCheck size={20} aria-hidden />}
             </Group>
           </Menu.Item>
 
           <Divider my="xs" />
 
           {orderedSpaces.map((space) => (
-            <Menu.Item key={space.id} onClick={() => onChange(space.id)}>
+            <Menu.Item
+              key={space.id}
+              component={RadioMenuItem}
+              aria-checked={value === space.id}
+              onClick={() => onChange(space.id)}
+            >
               <Group flex="1" gap="xs">
                 <Avatar
                   color="initials"
@@ -108,7 +118,7 @@ export function SpaceFilterMenu({
                 <Text size="sm" fw={500} style={{ flex: 1 }} truncate>
                   {space.name}
                 </Text>
-                {value === space.id && <IconCheck size={20} />}
+                {value === space.id && <IconCheck size={20} aria-hidden />}
               </Group>
             </Menu.Item>
           ))}

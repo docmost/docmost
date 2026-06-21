@@ -193,7 +193,7 @@ export function MfaSetupModal({
                     </Group>
                   </UnstyledButton>
 
-                  <Collapse in={manualEntryOpen}>
+                  <Collapse expanded={manualEntryOpen}>
                     <Alert
                       icon={<IconAlertCircle size={20} />}
                       color="gray"

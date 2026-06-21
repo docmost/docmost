@@ -16,14 +16,15 @@ interface CustomAvatarProps {
   mt?: string | number;
 }
 
-// `color.shade` pairs whose filled background meets WCAG AA (4.5:1) against
-// white text. Avoids lime/yellow/green/orange — even their dark shades have
-// weak white-text contrast.
+// color.shade picks whose FILLED variant (white text on the shade) meets WCAG AA 4.5:1.
+// Avoids lime/yellow/green/orange, too light even at dark shades.
+// For non-filled variants, initials text is forced to the .9 shade at render time:
+// Mantine otherwise caps light-variant placeholder text at .6, dropping contrast to ~3:1.
 const SAFE_INITIALS_COLORS: MantineColor[] = [
   "blue.8",
   "cyan.9",
-  "grape.7",
-  "indigo.7",
+  "grape.9",
+  "indigo.8",
   "pink.8",
   "red.8",
   "violet.7",
@@ -50,11 +51,23 @@ function sanitizeInitialsSource(name: string) {
 export const CustomAvatar = React.forwardRef<
   HTMLInputElement,
   CustomAvatarProps
->(({ avatarUrl, name, type, color, ...props }: CustomAvatarProps, ref) => {
+>(({ avatarUrl, name, type, color, variant, ...props }: CustomAvatarProps, ref) => {
   const avatarLink = getAvatarUrl(avatarUrl, type);
-  const resolvedColor =
-    !color || color === "initials" ? pickInitialsColor(name ?? "") : color;
+  const isInitials = !color || color === "initials";
+  const pickedColor = isInitials ? pickInitialsColor(name ?? "") : color;
+  const hue = pickedColor.split(".")[0];
   const initialsSource = sanitizeInitialsSource(name ?? "");
+
+  const resolvedColor = variant === "filled" ? pickedColor : hue;
+
+  const placeholderStyles =
+    isInitials && variant !== "filled"
+      ? {
+          placeholder: {
+            color: `var(--mantine-color-${hue}-9)`,
+          },
+        }
+      : undefined;
 
   return (
     <Avatar
@@ -63,6 +76,8 @@ export const CustomAvatar = React.forwardRef<
       name={initialsSource}
       alt={name}
       color={resolvedColor}
+      variant={variant}
+      styles={placeholderStyles}
       {...props}
     />
   );

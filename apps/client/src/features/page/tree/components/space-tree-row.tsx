@@ -9,11 +9,13 @@ import {
   IconFileDescription,
   IconPlus,
   IconPointFilled,
+  IconTable,
 } from "@tabler/icons-react";
 
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { queryClient } from "@/main.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { getPageTitle } from "@/features/page/page.utils";
 import { getPageById } from "@/features/page/services/page-service.ts";
 import {
   useUpdatePageMutation,
@@ -161,7 +163,13 @@ export function SpaceTreeRow({
         <EmojiPicker
           onEmojiSelect={handleEmojiSelect}
           icon={
-            node.icon ? node.icon : <IconFileDescription size="18" />
+            node.icon ? (
+              node.icon
+            ) : node.isBase ? (
+              <IconTable size={18} />
+            ) : (
+              <IconFileDescription size="18" />
+            )
           }
           readOnly={!canEdit}
           removeEmojiAction={handleRemoveEmoji}
@@ -169,7 +177,7 @@ export function SpaceTreeRow({
         />
       </div>
 
-      <span className={classes.text}>{node.name || t("untitled")}</span>
+      <span className={classes.text}>{getPageTitle(node.name, node.isBase, t)}</span>
 
       <div className={classes.actions}>
         <NodeMenu node={node} canEdit={canEdit} />
@@ -201,13 +209,13 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
     return (
       <span
         aria-hidden
+        className={classes.actionIcon}
         style={{
           width: 20,
           height: 20,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "var(--mantine-color-gray-6)",
           flexShrink: 0,
         }}
       >
@@ -220,7 +228,8 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
     <ActionIcon
       size={20}
       variant="subtle"
-      c="gray"
+      color="gray"
+      className={classes.actionIcon}
       aria-label={isOpen ? t("Collapse") : t("Expand")}
       aria-expanded={isOpen}
       tabIndex={-1}
@@ -272,9 +281,10 @@ function CreateNode({
 
   return (
     <ActionIcon
-      variant="transparent"
-      c="gray"
-      aria-label={t("Create page")}
+      variant="subtle"
+      color="gray"
+      className={classes.actionIcon}
+      aria-label={t("Create subpage of {{name}}", { name: node.name || t("untitled") })}
       tabIndex={-1}
       onClick={(e) => {
         e.preventDefault();

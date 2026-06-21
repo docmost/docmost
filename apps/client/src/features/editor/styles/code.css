@@ -103,13 +103,13 @@
     margin: 0;
 
     @mixin where-light {
-      background-color: var(--code-bg, var(--mantine-color-gray-1));
-      color: var(--mantine-color-pink-7);
+      background-color: var(--mantine-color-gray-1);
+      color: var(--mantine-color-text);
     }
 
     @mixin where-dark {
-      background-color: var(--mantine-color-dark-8);
-      color: var(--mantine-color-pink-7);
+      background-color: var(--mantine-color-dark-5) !important;
+      color: var(--mantine-color-text);
     }
   }
 }
