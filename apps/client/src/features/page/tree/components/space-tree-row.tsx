@@ -9,11 +9,13 @@ import {
   IconFileDescription,
   IconPlus,
   IconPointFilled,
+  IconTable,
 } from "@tabler/icons-react";
 
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { queryClient } from "@/main.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { getPageTitle } from "@/features/page/page.utils";
 import { getPageById } from "@/features/page/services/page-service.ts";
 import {
   useUpdatePageMutation,
@@ -161,7 +163,13 @@ export function SpaceTreeRow({
         <EmojiPicker
           onEmojiSelect={handleEmojiSelect}
           icon={
-            node.icon ? node.icon : <IconFileDescription size="18" />
+            node.icon ? (
+              node.icon
+            ) : node.isBase ? (
+              <IconTable size={18} />
+            ) : (
+              <IconFileDescription size="18" />
+            )
           }
           readOnly={!canEdit}
           removeEmojiAction={handleRemoveEmoji}
@@ -169,7 +177,7 @@ export function SpaceTreeRow({
         />
       </div>
 
-      <span className={classes.text}>{node.name || t("untitled")}</span>
+      <span className={classes.text}>{getPageTitle(node.name, node.isBase, t)}</span>
 
       <div className={classes.actions}>
         <NodeMenu node={node} canEdit={canEdit} />

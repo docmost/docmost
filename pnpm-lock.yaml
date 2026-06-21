@@ -269,6 +269,9 @@ importers:
       '@casl/react':
         specifier: 5.0.1
         version: 5.0.1(@casl/ability@6.8.0)(react@19.2.7)
+      '@docmost/base-formula':
+        specifier: workspace:*
+        version: link:../../packages/base-formula
       '@docmost/editor-ext':
         specifier: workspace:*
         version: link:../../packages/editor-ext
@@ -311,9 +314,12 @@ importers:
       '@tanstack/react-query':
         specifier: 5.90.17
         version: 5.90.17(react@19.2.7)
+      '@tanstack/react-table':
+        specifier: 8.21.3
+        version: 8.21.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tanstack/react-virtual':
-        specifier: 3.13.24
-        version: 3.13.24(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 3.14.3
+        version: 3.14.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       alfaaz:
         specifier: 1.1.0
         version: 1.1.0
@@ -365,6 +371,9 @@ importers:
       mitt:
         specifier: 3.0.1
         version: 3.0.1
+      nanoid:
+        specifier: 3.3.8
+        version: 3.3.8
       posthog-js:
         specifier: 1.391.2
         version: 1.391.2
@@ -510,6 +519,9 @@ importers:
       '@clickhouse/client':
         specifier: 1.18.2
         version: 1.18.2
+      '@docmost/base-formula':
+        specifier: workspace:*
+        version: link:../../packages/base-formula
       '@docmost/pdf-inspector':
         specifier: 1.9.6
         version: 1.9.6
@@ -621,6 +633,9 @@ importers:
       cookie:
         specifier: 1.1.1
         version: 1.1.1
+      csv-stringify:
+        specifier: 6.8.0
+        version: 6.8.0
       fast-bm25:
         specifier: 0.0.5
         version: 0.0.5(typescript@5.9.3)
@@ -853,6 +868,8 @@ importers:
       typescript-eslint:
         specifier: ^8.57.1
         version: 8.57.1(eslint@9.39.4(jiti@2.4.2))(typescript@5.9.3)
+
+  packages/base-formula: {}
 
   packages/editor-ext:
     dependencies:
@@ -4280,14 +4297,25 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@tanstack/react-virtual@3.13.24':
-    resolution: {integrity: sha512-aIJvz5OSkhNIhZIpYivrxrPTKYsjW9Uzy+sP/mx0S3sev2HyvPb7xmjbYvokzEpfgYHy/HjzJ2zFAETuUfgCpg==}
+  '@tanstack/react-table@8.21.3':
+    resolution: {integrity: sha512-5nNMTSETP4ykGegmVkhjcS8tTLW6Vl4axfEGQN3v0zdHYbK4UfoqfPChclTrJ4EoK9QynqAu9oUf8VEmrpZ5Ww==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: '>=16.8'
+      react-dom: '>=16.8'
+
+  '@tanstack/react-virtual@3.14.3':
+    resolution: {integrity: sha512-k/cnHPVaOfn46hSbiY6n4Dzf4QjCGWSF40zR5QIIYUqPAjpA6TN7InfYmcMiDVQGP2iUn9xsRbAl8u1v3UmeVQ==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@tanstack/virtual-core@3.14.0':
-    resolution: {integrity: sha512-JLANqGy/D6k4Ujmh8Tr25lGimuOXNiaVyXaCAZS0W+1390sADdGnyUdSWNIfd49gebtIxGMij4IktRVzrdr12Q==}
+  '@tanstack/table-core@8.21.3':
+    resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
+    engines: {node: '>=12'}
+
+  '@tanstack/virtual-core@3.17.1':
+    resolution: {integrity: sha512-VZyW2Uiml5tmBZwPGrSD3Sz73OxzljQMCmzYHsUTPEuTsERf5xwa+uWb01xEzkz3ZSYTjj8NEb/mKHvgKxyZdA==}
 
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
@@ -5953,6 +5981,9 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  csv-stringify@6.8.0:
+    resolution: {integrity: sha512-Ya0OOHb6XbgPaZKH7dcdmwXe3azUS0TwmlbVdS75HoAhnHApSkiQcfEJoC/s5WwGsrXwOjBDr3FTmCZPjkssgg==}
 
   cytoscape-cose-bilkent@4.1.0:
     resolution: {integrity: sha512-wgQlVIUJF13Quxiv5e1gstZ08rnZj2XaLHGoFMYXz7SkNfCDOOteKBE6SYRfA9WxxI/iBc3ajfDoc6hb/MRAHQ==}
@@ -14271,13 +14302,21 @@ snapshots:
       '@tanstack/query-core': 5.90.17
       react: 19.2.7
 
-  '@tanstack/react-virtual@3.13.24(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@tanstack/react-table@8.21.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@tanstack/virtual-core': 3.14.0
+      '@tanstack/table-core': 8.21.3
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  '@tanstack/virtual-core@3.14.0': {}
+  '@tanstack/react-virtual@3.14.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@tanstack/virtual-core': 3.17.1
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+
+  '@tanstack/table-core@8.21.3': {}
+
+  '@tanstack/virtual-core@3.17.1': {}
 
   '@testing-library/dom@10.4.1':
     dependencies:
@@ -16172,6 +16211,8 @@ snapshots:
       rrweb-cssom: 0.8.0
 
   csstype@3.2.3: {}
+
+  csv-stringify@6.8.0: {}
 
   cytoscape-cose-bilkent@4.1.0(cytoscape@3.33.1):
     dependencies:

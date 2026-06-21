@@ -24,6 +24,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
       hasChildren: page.hasChildren,
       spaceId: page.spaceId,
       parentPageId: page.parentPageId,
+      isBase: page.isBase,
       canEdit: page.canEdit ?? page.permissions?.canEdit,
       children: [],
     };
@@ -42,10 +43,6 @@ export function findBreadcrumbPath(
   path: SpaceTreeNode[] = [],
 ): SpaceTreeNode[] | null {
   for (const node of tree) {
-    if (!node.name || node.name.trim() === "") {
-      node.name = "untitled";
-    }
-
     if (node.id === pageId) {
       return [...path, node];
     }

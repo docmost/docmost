@@ -14,6 +14,7 @@ export type IFavorite = {
     slugId: string;
     title: string;
     icon: string | null;
+    isBase: boolean;
     spaceId: string;
   };
   space?: {

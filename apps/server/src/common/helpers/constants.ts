@@ -10,6 +10,9 @@ export const LOCAL_STORAGE_PATH = path.resolve(
   LOCAL_STORAGE_DIR,
 );
 
-export function getPageTitle(title: string | null | undefined): string {
-  return title || 'untitled';
+export function getPageTitle(
+  title: string | null | undefined,
+  isBase?: boolean,
+): string {
+  return title || (isBase ? 'Untitled base' : 'untitled');
 }

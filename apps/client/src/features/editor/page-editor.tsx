@@ -34,6 +34,7 @@ import {
   currentPageEditModeAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
+  yjsSyncedAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
@@ -109,6 +110,7 @@ export default function PageEditor({
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
   );
+  const [, setYjsSynced] = useAtom(yjsSyncedAtom);
   const menuContainerRef = useRef(null);
   const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
@@ -377,6 +379,14 @@ export default function PageEditor({
   }, [pageId]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
+
+  useEffect(() => {
+    setYjsSynced(isSynced);
+  }, [isSynced, setYjsSynced]);
+
+  useEffect(() => {
+    return () => setYjsSynced(false);
+  }, [setYjsSynced]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

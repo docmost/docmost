@@ -22,6 +22,7 @@ export const Feature = {
   PDF_EXPORT: 'export:pdf',
   PERSONAL_SPACES: 'spaces:personal',
   DOCX_EXPORT: 'export:docx',
+  BASES: 'bases',
 } as const;
 
 export type FeatureKey = (typeof Feature)[keyof typeof Feature];

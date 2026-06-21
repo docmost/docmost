@@ -61,6 +61,7 @@ import {
   TransclusionSource,
   TransclusionReference,
   TableView,
+  BaseEmbed as BaseEmbedNode,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -91,6 +92,7 @@ import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
+import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -231,6 +233,7 @@ export const mainExtensions = [
   TrailingNode,
   GlobalDragHandle.configure({
     customNodes: ["transclusionSource", "transclusionReference"],
+    atomNodes: ["base"],
   }),
   TextStyle,
   Color,
@@ -381,6 +384,11 @@ export const mainExtensions = [
   TransclusionReference.configure({
     view: TransclusionReferenceView,
   }),
+  BaseEmbedNode.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(BaseEmbedView);
+    },
+  }),
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
@@ -420,7 +428,9 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Draw.io (diagrams.net)",
   "Excalidraw (Whiteboard)",
   "Audio",
-  "Synced block"
+  "Synced block",
+  "Base (Inline)",
+  "Kanban"
 ]);
 
 const TemplateSlashCommand = Command.configure({

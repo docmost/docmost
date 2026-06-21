@@ -116,6 +116,7 @@ export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
     // ~6.8:1. Affects every <Badge color="green" variant="light"> and
     // matching Button / Text usages.
     "--mantine-color-green-light-color": "#1B5E20",
+    "--mantine-color-orange-light-color": "#a63508",
   },
   dark: {
     ...v8CssVariablesResolver(theme).dark,

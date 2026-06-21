@@ -20,6 +20,7 @@ import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import CopyPageModal from "@/features/page/components/copy-page-modal.tsx";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { getPageTitle } from "@/features/page/page.utils";
 import { duplicatePage } from "@/features/page/services/page-service.ts";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { getAppUrl } from "@/lib/config.ts";
@@ -127,7 +128,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
             variant="subtle"
             color="gray"
             className={classes.actionIcon}
-            aria-label={t("Page menu for {{name}}", { name: node.name || t("untitled") })}
+            aria-label={t("Page menu for {{name}}", { name: getPageTitle(node.name, node.isBase, t) })}
             tabIndex={-1}
             onClick={(e) => {
               e.preventDefault();

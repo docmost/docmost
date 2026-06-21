@@ -21,4 +21,5 @@ export const Feature = {
   VIEWER_COMMENTS: 'comment:viewer',
   PERSONAL_SPACES: 'spaces:personal',
   DOCX_EXPORT: 'export:docx',
+  BASES: 'bases',
 } as const;

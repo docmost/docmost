@@ -48,6 +48,11 @@ export const useTreeSocket = () => {
                   icon: event.payload.icon,
                 } as Partial<SpaceTreeNode>);
               }
+              if (event.payload?.isBase !== undefined) {
+                next = treeModel.update(next, event.id, {
+                  isBase: event.payload.isBase,
+                } as Partial<SpaceTreeNode>);
+              }
               return next;
             });
           }
