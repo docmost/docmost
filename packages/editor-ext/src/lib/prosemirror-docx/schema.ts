@@ -236,12 +236,31 @@ export async function pageNodeToDocxBuffer(
       ({
         styles: {
           default: {
-            heading1: { run: { color: '000000', size: 32 } },
-            heading2: { run: { color: '000000', size: 26 } },
-            heading3: { run: { color: '000000', size: 24 } },
-            heading4: { run: { color: '000000', italics: true } },
-            heading5: { run: { color: '000000' } },
-            heading6: { run: { color: '000000' } },
+            document: { paragraph: { spacing: { after: 120 } } },
+            heading1: {
+              run: { color: '000000', size: 32 },
+              paragraph: { spacing: { before: 360, after: 120 } },
+            },
+            heading2: {
+              run: { color: '000000', size: 26 },
+              paragraph: { spacing: { before: 280, after: 120 } },
+            },
+            heading3: {
+              run: { color: '000000', size: 24 },
+              paragraph: { spacing: { before: 240, after: 80 } },
+            },
+            heading4: {
+              run: { color: '000000', italics: true },
+              paragraph: { spacing: { before: 240, after: 80 } },
+            },
+            heading5: {
+              run: { color: '000000' },
+              paragraph: { spacing: { before: 200, after: 80 } },
+            },
+            heading6: {
+              run: { color: '000000' },
+              paragraph: { spacing: { before: 200, after: 80 } },
+            },
           },
         },
       }) as any,
