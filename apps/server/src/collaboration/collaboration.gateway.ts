@@ -65,6 +65,7 @@ export class CollaborationGateway {
           password: this.redisConfig.password,
           db: this.redisConfig.db,
           family: this.redisConfig.family,
+          tls: this.redisConfig.tls,
           retryStrategy: createRetryStrategy(),
         }),
         serverId: `collab-${os?.hostname()}-${nanoid(10)}`,
