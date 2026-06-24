@@ -36,7 +36,7 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
   // format - redis[s]://[[username][:password]@][host][:port][/db-number][?family=4|6]
   const url = new URL(redisUrl);
   const { hostname, port, password, pathname, searchParams } = url;
-  const portInt = parseInt(port, 10);
+  const portInt = port ? parseInt(port, 10) : 6379;
 
   let db: number = 0;
   // extract db value if present
