@@ -481,9 +481,10 @@ export class AttachmentController {
     );
 
     if (!inlineFileExtensions.includes(attachment.fileExt)) {
+      const fallbackName = `attachment${attachment.fileExt}`;
       res.header(
         'Content-Disposition',
-        `attachment; filename="${encodeURIComponent(attachment.fileName)}"`,
+        `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(attachment.fileName)}`,
       );
     }
 
