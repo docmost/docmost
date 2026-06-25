@@ -20,4 +20,15 @@
   .tableWrapper {
     overflow: hidden !important;
   }
+
+  .tableWrapper table {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .tableWrapper table td,
+  .tableWrapper table th {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
 }
