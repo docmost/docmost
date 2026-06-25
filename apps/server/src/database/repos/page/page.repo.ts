@@ -38,6 +38,7 @@ export class PageRepo {
     'spaceId',
     'workspaceId',
     'isLocked',
+    'metadata',
     'createdAt',
     'updatedAt',
     'deletedAt',
@@ -505,6 +506,7 @@ export class PageRepo {
             'workspaceId',
             'createdAt',
             'updatedAt',
+            'metadata',
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
@@ -523,6 +525,7 @@ export class PageRepo {
                 'p.workspaceId',
                 'p.createdAt',
                 'p.updatedAt',
+                'p.metadata',
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')

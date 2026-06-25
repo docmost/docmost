@@ -1,5 +1,14 @@
 import { ISpace } from "@/features/space/types/space.types.ts";
 
+export type PageMetadataType = 'text' | 'number' | 'boolean' | 'date';
+
+export interface IPageMetadataEntry {
+  value: string;
+  type: PageMetadataType;
+}
+
+export type PageMetadata = Record<string, IPageMetadataEntry>;
+
 export interface IPage {
   id: string;
   slugId: string;
@@ -19,6 +28,7 @@ export interface IPage {
   position: string;
   hasChildren: boolean;
   canEdit?: boolean;
+  metadata?: PageMetadata;
   creator: ICreator;
   lastUpdatedBy: ILastUpdatedBy;
   deletedBy: IDeletedBy;
@@ -86,6 +96,7 @@ export interface IPageInput {
   coverPhoto: string;
   position: string;
   isLocked: boolean;
+  metadata?: PageMetadata;
 }
 
 export interface IExportPageParams {
