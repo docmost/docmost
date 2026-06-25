@@ -35,7 +35,7 @@ export function htmlToMarkdown(html: string): string {
     image,
     video,
   ]);
-  return turndownService.turndown(html).replaceAll('<br>', ' ');
+  return turndownService.turndown(html);
 }
 
 function listParagraph(turndownService: _TurndownService) {
