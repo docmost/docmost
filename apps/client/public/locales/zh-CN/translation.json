@@ -1084,5 +1084,15 @@
   "Added {{name}} to favorites": "已将 {{name}} 添加到收藏",
   "Removed {{name}} from favorites": "已将 {{name}} 从收藏中移除",
   "Page menu for {{name}}": "{{name}} 的页面菜单",
-  "Create subpage of {{name}}": "创建 {{name}} 的子页面"
+  "Create subpage of {{name}}": "创建 {{name}} 的子页面",
+  "Number": "数字",
+  "Boolean": "布尔",
+  "Yes": "是",
+  "No": "否",
+  "Metadata": "元数据",
+  "No metadata": "暂无元数据",
+  "Metadata key": "元数据键",
+  "Value": "值",
+  "Metadata key cannot be empty": "元数据键不能为空",
+  "Metadata key \"{{key}}\" is duplicated": "元数据键 \"{{key}}\" 重复"
 }

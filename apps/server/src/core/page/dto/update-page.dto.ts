@@ -1,7 +1,8 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreatePageDto, ContentFormat } from './create-page.dto';
-import { IsIn, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { Transform } from 'class-transformer';
+import type { PageMetadata } from './page-metadata.dto';
 
 export type ContentOperation = 'append' | 'prepend' | 'replace';
 
@@ -21,4 +22,8 @@ export class UpdatePageDto extends PartialType(CreatePageDto) {
   @Transform(({ value }) => value?.toLowerCase() ?? 'json')
   @IsIn(['json', 'markdown', 'html'])
   format?: ContentFormat;
+
+  @IsOptional()
+  @IsObject()
+  metadata?: PageMetadata;
 }

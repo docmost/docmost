@@ -20,6 +20,7 @@ import { formattedDate } from "@/lib/time.ts";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { LabelsSection } from "@/features/label/components/labels-section.tsx";
+import { MetadataSection } from "./metadata-section";
 
 export function PageDetailsAside() {
   const { pageSlug } = useParams();
@@ -40,7 +41,7 @@ export function PageDetailsAside() {
 
   return (
     <>
-      <Stack gap="md">
+      <Stack gap="md" pr={10}>
         <PeopleSection
           creator={page.creator}
           lastUpdatedBy={page.lastUpdatedBy}
@@ -62,6 +63,12 @@ export function PageDetailsAside() {
           outgoingCount={counts?.outgoing ?? 0}
           isLoading={countsLoading}
           onClick={openModal}
+        />
+
+        <MetadataSection
+          pageId={page.id}
+          metadata={page.metadata}
+          canEdit={page.permissions?.canEdit ?? false}
         />
 
         <LabelsSection

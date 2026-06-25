@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreatePageDto, ContentFormat } from '../dto/create-page.dto';
 import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
+import { validateMetadata } from '../dto/page-metadata.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
@@ -209,6 +210,11 @@ export class PageService {
     contributors.add(user.id);
     const contributorIds = Array.from(contributors);
 
+    // 校验 metadata
+    if (updatePageDto.metadata !== undefined) {
+      validateMetadata(updatePageDto.metadata);
+    }
+
     await this.pageRepo.updatePage(
       {
         title: updatePageDto.title,
@@ -216,6 +222,7 @@ export class PageService {
         lastUpdatedById: user.id,
         updatedAt: new Date(),
         contributorIds: contributorIds,
+        metadata: updatePageDto.metadata as unknown as Record<string, unknown>,
       },
       page.id,
     );
@@ -651,6 +658,7 @@ export class PageService {
           slugId: pageFromMap.newSlugId,
           title: title,
           icon: page.icon,
+          metadata: page.metadata,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
           ydoc: createYdocFromJson(prosemirrorJson),
