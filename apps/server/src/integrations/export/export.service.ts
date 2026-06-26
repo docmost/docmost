@@ -16,6 +16,7 @@ import {
   computeLocalPath,
   getExportExtension,
   getPageTitle,
+  getSafePageTitle,
   PageExportTree,
   replaceInternalLinks,
   updateAttachmentUrlsToLocalPaths,
@@ -314,7 +315,7 @@ export class ExportService {
             updateAttachmentUrlsToLocalPaths(updatedJsonContent);
         }
 
-        const pageTitle = getPageTitle(page.title);
+        const pageTitle = getSafePageTitle(page.title);
         const pageExportContent = await this.exportPage(format, {
           ...page,
           content: updatedJsonContent,
