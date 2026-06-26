@@ -47,7 +47,6 @@ interface MfaSetupModalProps {
 }
 
 interface SetupData {
-  secret: string;
   qrCode: string;
   manualKey: string;
 }
@@ -101,7 +100,6 @@ export function MfaSetupModal({
   const enableMutation = useMutation({
     mutationFn: (verificationCode: string) =>
       enableMfa({
-        secret: setupData!.secret,
         verificationCode,
       }),
     onSuccess: (data) => {
