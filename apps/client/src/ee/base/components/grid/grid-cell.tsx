@@ -94,21 +94,21 @@ export const GridCell = memo(function GridCell({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!property || e.button !== 0) return;
+      if (!property || e.button !== 0 || isEditing) return;
       setFocusedCell({ rowId, propertyId: property.id });
     },
-    [property, rowId, setFocusedCell],
+    [property, rowId, setFocusedCell, isEditing],
   );
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!property) return;
+      if (!property || isEditing) return;
       setFocusedCell({ rowId, propertyId: property.id });
       (e.currentTarget.closest('[role="grid"]') as HTMLElement | null)?.focus({
         preventScroll: true,
       });
     },
-    [property, rowId, setFocusedCell],
+    [property, rowId, setFocusedCell, isEditing],
   );
 
   const cellReadOnly = property
