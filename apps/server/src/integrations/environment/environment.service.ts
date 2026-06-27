@@ -360,4 +360,11 @@ export class EnvironmentService {
       .map((o) => o.trim())
       .filter(Boolean);
   }
+
+  isUnlockEe(): boolean {
+    return (
+      this.configService.get<string>('UNLOCK_EE', 'false').toLowerCase() ===
+      'true'
+    );
+  }
 }

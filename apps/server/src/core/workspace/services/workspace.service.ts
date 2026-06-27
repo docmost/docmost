@@ -346,47 +346,6 @@ export class WorkspaceService {
         throw new NotFoundException('Workspace not found');
       }
 
-      if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
-        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'mcp', ws.plan)) {
-          throw new ForbiddenException(
-            'This feature requires a valid license',
-          );
-        }
-      }
-
-      if (typeof updateWorkspaceDto.isScimEnabled !== 'undefined') {
-        if (!this.licenseCheckService.hasFeature(ws.licenseKey, Feature.SCIM, ws.plan)) {
-          throw new ForbiddenException(
-            'This feature requires a valid license',
-          );
-        }
-      }
-
-      if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
-        if (
-          !this.licenseCheckService.hasFeature(
-            ws.licenseKey,
-            Feature.PERSONAL_SPACES,
-            ws.plan,
-          )
-        ) {
-          throw new ForbiddenException('This feature requires a valid license');
-        }
-      }
-
-      if (
-        typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
-        typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
-        typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
-        typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined'
-      ) {
-        if (!this.licenseCheckService.hasFeature(ws.licenseKey, Feature.SECURITY_SETTINGS, ws.plan)) {
-          throw new ForbiddenException(
-            'This feature requires a valid license',
-          );
-        }
-      }
-
       if (
         typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' &&
         updateWorkspaceDto.trashRetentionDays !== ws.trashRetentionDays

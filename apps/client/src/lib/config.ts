@@ -43,6 +43,10 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
+export function isUnlockEe(): boolean {
+  return castToBoolean(getConfigValue("UNLOCK_EE"));
+}
+
 export function getAvatarUrl(
   avatarUrl: string,
   type: AvatarIconType = AvatarIconType.AVATAR,
