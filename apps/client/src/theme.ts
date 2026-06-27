@@ -38,6 +38,7 @@ export const theme = createTheme({
     blue,
     red,
   },
+  defaultRadius: 'sm',
   components: {
     // Size badges to their content; fit-content collapses inside table cells.
     Badge: Badge.extend({
