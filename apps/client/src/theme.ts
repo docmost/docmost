@@ -4,6 +4,7 @@ import {
   CSSVariablesResolver,
   MantineColorsTuple,
   Tabs,
+  Tooltip,
   v8CssVariablesResolver,
 } from "@mantine/core";
 
@@ -40,6 +41,11 @@ export const theme = createTheme({
   },
   defaultRadius: 'sm',
   components: {
+    Tooltip: Tooltip.extend({
+      defaultProps: {
+        events: { hover: true, focus: true, touch: false },
+      },
+    }),
     // Size badges to their content; fit-content collapses inside table cells.
     Badge: Badge.extend({
       styles: (_theme, props) => ({
