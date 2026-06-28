@@ -18,7 +18,6 @@ import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
-import { Feature } from '../../../common/features';
 import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
@@ -55,24 +54,24 @@ export class WorkspaceService {
   private readonly logger = new Logger(WorkspaceService.name);
 
   constructor(
-    private workspaceRepo: WorkspaceRepo,
-    private spaceService: SpaceService,
-    private spaceMemberService: SpaceMemberService,
-    private groupRepo: GroupRepo,
-    private groupUserRepo: GroupUserRepo,
-    private userRepo: UserRepo,
-    private environmentService: EnvironmentService,
-    private domainService: DomainService,
-    private licenseCheckService: LicenseCheckService,
-    private shareRepo: ShareRepo,
-    private watcherRepo: WatcherRepo,
-    private favoriteRepo: FavoriteRepo,
+    private readonly workspaceRepo: WorkspaceRepo,
+    private readonly spaceService: SpaceService,
+    private readonly spaceMemberService: SpaceMemberService,
+    private readonly groupRepo: GroupRepo,
+    private readonly groupUserRepo: GroupUserRepo,
+    private readonly userRepo: UserRepo,
+    private readonly environmentService: EnvironmentService,
+    private readonly domainService: DomainService,
+    private readonly licenseCheckService: LicenseCheckService,
+    private readonly shareRepo: ShareRepo,
+    private readonly watcherRepo: WatcherRepo,
+    private readonly favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
-    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
-    @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
-    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private readonly attachmentQueue: Queue,
+    @InjectQueue(QueueName.BILLING_QUEUE) private readonly billingQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private readonly aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
-    private userSessionRepo: UserSessionRepo,
+    private readonly userSessionRepo: UserSessionRepo,
   ) {}
 
   async findById(workspaceId: string) {
@@ -328,13 +327,13 @@ export class WorkspaceService {
     const after: Record<string, any> = {};
 
     if (
-      typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
-      typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
-      typeof updateWorkspaceDto.mcpEnabled !== 'undefined' ||
-      typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
-      typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
-      typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
-      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined'
+      updateWorkspaceDto.disablePublicSharing !== undefined ||
+      updateWorkspaceDto.trashRetentionDays !== undefined ||
+      updateWorkspaceDto.mcpEnabled !== undefined ||
+      updateWorkspaceDto.restrictApiToAdmins !== undefined ||
+      updateWorkspaceDto.allowMemberTemplates !== undefined ||
+      updateWorkspaceDto.isScimEnabled !== undefined ||
+      updateWorkspaceDto.allowPersonalSpaces !== undefined
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -347,7 +346,7 @@ export class WorkspaceService {
       }
 
       if (
-        typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' &&
+        updateWorkspaceDto.trashRetentionDays !== undefined &&
         updateWorkspaceDto.trashRetentionDays !== ws.trashRetentionDays
       ) {
         before.trashRetentionDays = ws.trashRetentionDays;
@@ -371,7 +370,7 @@ export class WorkspaceService {
     >;
 
     await executeTx(this.db, async (trx) => {
-      if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
+      if (updateWorkspaceDto.restrictApiToAdmins !== undefined) {
         const prev = settingsBefore?.api?.restrictToAdmins ?? false;
         if (prev !== updateWorkspaceDto.restrictApiToAdmins) {
           before.restrictApiToAdmins = prev;
@@ -385,7 +384,7 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.aiSearch !== 'undefined') {
+      if (updateWorkspaceDto.aiSearch !== undefined) {
         const prev = settingsBefore?.ai?.search ?? false;
         if (prev !== updateWorkspaceDto.aiSearch) {
           before.aiSearch = prev;
@@ -399,7 +398,7 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.generativeAi !== 'undefined') {
+      if (updateWorkspaceDto.generativeAi !== undefined) {
         const prev = settingsBefore?.ai?.generative ?? false;
         if (prev !== updateWorkspaceDto.generativeAi) {
           before.generativeAi = prev;
@@ -413,7 +412,7 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.disablePublicSharing !== 'undefined') {
+      if (updateWorkspaceDto.disablePublicSharing !== undefined) {
         const prev = settingsBefore?.sharing?.disabled ?? false;
         if (prev !== updateWorkspaceDto.disablePublicSharing) {
           before.disablePublicSharing = prev;
@@ -430,7 +429,7 @@ export class WorkspaceService {
         }
       }
 
-      if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
+      if (updateWorkspaceDto.mcpEnabled !== undefined) {
         const prev = settingsBefore?.ai?.mcp ?? false;
         if (prev !== updateWorkspaceDto.mcpEnabled) {
           before.mcpEnabled = prev;
@@ -444,7 +443,7 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined') {
+      if (updateWorkspaceDto.allowMemberTemplates !== undefined) {
         const prev = settingsBefore?.templates?.allowMemberTemplates ?? false;
         if (prev !== updateWorkspaceDto.allowMemberTemplates) {
           before.allowMemberTemplates = prev;
@@ -458,7 +457,7 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.aiChat !== 'undefined') {
+      if (updateWorkspaceDto.aiChat !== undefined) {
         const prev = settingsBefore?.ai?.chat ?? false;
         if (prev !== updateWorkspaceDto.aiChat) {
           before.aiChat = prev;
@@ -472,7 +471,7 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
+      if (updateWorkspaceDto.allowPersonalSpaces !== undefined) {
         const prev = settingsBefore?.spaces?.allowPersonal ?? false;
         if (prev !== updateWorkspaceDto.allowPersonalSpaces) {
           before.allowPersonalSpaces = prev;
@@ -848,7 +847,7 @@ export class WorkspaceService {
     try {
       await this.attachmentQueue.add(QueueJob.DELETE_USER_AVATARS, user);
     } catch (err) {
-      // empty
+      this.logger.error(err);
     }
   }
 }

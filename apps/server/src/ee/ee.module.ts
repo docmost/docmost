@@ -22,6 +22,7 @@ import { TypesenseEeModule } from './typesense/typesense.module';
 import { DocxExportModule } from './docx-export/docx-export.module';
 import { PdfExportModule } from './pdf-export/pdf-export.module';
 import { McpModule } from './mcp/mcp.module';
+import { PluginsModule } from './plugins/plugins.module';
 import { FeatureGateGuard } from './common/guards/feature-gate.guard';
 
 @Module({
@@ -49,6 +50,7 @@ import { FeatureGateGuard } from './common/guards/feature-gate.guard';
     DocxExportModule,
     PdfExportModule,
     McpModule,
+    PluginsModule,
   ],
   providers: [FeatureGateGuard],
   exports: [
@@ -62,6 +64,7 @@ import { FeatureGateGuard } from './common/guards/feature-gate.guard';
     AttachmentEeModule,
     TypesenseEeModule,
     PdfExportModule,
+    PluginsModule,
   ],
 })
 export class EeModule {}
