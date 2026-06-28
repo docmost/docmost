@@ -122,7 +122,7 @@
     "typesense": "3.0.5",
     "undici": "7.28.0",
     "ws": "8.21.0",
-    "yauzl": "3.2.1",
+    "yauzl": "3.4.0",
     "zod": "4.3.6"
   },
   "devDependencies": {
