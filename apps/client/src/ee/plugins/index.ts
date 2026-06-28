@@ -1,0 +1,5 @@
+export { PluginSettingsPage } from './pages/plugin-settings'
+export { PluginList } from './components/plugin-list'
+export { PluginConfigPanel } from './components/plugin-config-panel'
+export { usePlugins } from './hooks/use-plugins'
+export type { Plugin } from './hooks/use-plugins'

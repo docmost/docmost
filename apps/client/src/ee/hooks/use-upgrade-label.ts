@@ -1,3 +1,3 @@
 export function useUpgradeLabel(): string {
-  return "";
+  return '';
 }

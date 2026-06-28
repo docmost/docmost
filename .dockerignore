@@ -4,3 +4,4 @@
 /data
 **/.env*
 **/.nx
+_ee_dist_extract/

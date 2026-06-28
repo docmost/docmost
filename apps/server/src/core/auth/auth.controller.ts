@@ -37,6 +37,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { CoreHooks, getHookRegistry } from '../plugins/plugin-hooks';
 
 @SkipThrottle({ [AI_CHAT_THROTTLER]: true })
 @UseGuards(ThrottlerGuard)
@@ -60,6 +61,25 @@ export class AuthController {
     @Body() loginInput: LoginDto,
   ) {
     validateSsoEnforcement(workspace);
+
+    // Hook: BEFORE_LOGIN
+    try {
+      const hookRegistry = getHookRegistry();
+      await hookRegistry.emit(CoreHooks.BEFORE_LOGIN, {
+        loginInput,
+        workspaceId: workspace.id,
+      });
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code;
+      if (
+        code === 'BOT_DETECTED' ||
+        code === 'UNAUTHORIZED' ||
+        code === 'FORBIDDEN'
+      ) {
+        throw error;
+      }
+      this.logger.warn('BEFORE_LOGIN hook error (non-blocking):', error);
+    }
 
     let MfaModule: any;
     let isMfaModuleReady = false;
@@ -102,6 +122,17 @@ export class AuthController {
 
     const authToken = await this.authService.login(loginInput, workspace.id);
     this.setAuthCookie(res, authToken);
+
+    // Hook: AFTER_LOGIN
+    try {
+      const hookRegistry = getHookRegistry();
+      await hookRegistry.emit(CoreHooks.AFTER_LOGIN, {
+        loginInput,
+        workspaceId: workspace.id,
+      });
+    } catch (error) {
+      this.logger.warn('AFTER_LOGIN hook error (non-blocking):', error);
+    }
   }
 
   @UseGuards(SetupGuard)
@@ -111,10 +142,40 @@ export class AuthController {
     @Res({ passthrough: true }) res: FastifyReply,
     @Body() createAdminUserDto: CreateAdminUserDto,
   ) {
+    // Hook: BEFORE_SIGNUP
+    try {
+      const hookRegistry = getHookRegistry();
+      await hookRegistry.emit(CoreHooks.BEFORE_SIGNUP, {
+        createAdminUserDto,
+      });
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code;
+      if (
+        code === 'BOT_DETECTED' ||
+        code === 'UNAUTHORIZED' ||
+        code === 'FORBIDDEN'
+      ) {
+        throw error;
+      }
+      this.logger.warn('BEFORE_SIGNUP hook error (non-blocking):', error);
+    }
+
     const { workspace, authToken } =
       await this.authService.setup(createAdminUserDto);
 
     this.setAuthCookie(res, authToken);
+
+    // Hook: AFTER_SIGNUP
+    try {
+      const hookRegistry = getHookRegistry();
+      await hookRegistry.emit(CoreHooks.AFTER_SIGNUP, {
+        workspace,
+        createAdminUserDto,
+      });
+    } catch (error) {
+      this.logger.warn('AFTER_SIGNUP hook error (non-blocking):', error);
+    }
+
     return workspace;
   }
 
