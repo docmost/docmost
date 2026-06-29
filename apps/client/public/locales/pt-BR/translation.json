@@ -990,6 +990,8 @@
   "Are you sure you want to delete this template?": "Tem certeza de que deseja excluir este modelo?",
   "Template scope updated": "Escopo do modelo atualizado",
   "Choose which space this template belongs to": "Escolha a qual espaço este modelo pertence",
+  "Only workspace admins can create global templates.": "Somente administradores do espaço de trabalho podem criar modelos globais.",
+  "You need edit access to this space to create templates.": "Você precisa de acesso de edição a este espaço para criar modelos.",
   "Scope": "Escopo",
   "Select scope": "Selecionar escopo",
   "Title": "Título",
