@@ -990,6 +990,8 @@
   "Are you sure you want to delete this template?": "¿Seguro que quieres eliminar esta plantilla?",
   "Template scope updated": "Alcance de la plantilla actualizado",
   "Choose which space this template belongs to": "Elige a qué espacio pertenece esta plantilla",
+  "Only workspace admins can create global templates.": "Solo los administradores del espacio de trabajo pueden crear plantillas globales.",
+  "You need edit access to this space to create templates.": "Necesitas acceso de edición a este espacio para crear plantillas.",
   "Scope": "Alcance",
   "Select scope": "Seleccionar alcance",
   "Title": "Título",
