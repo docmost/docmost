@@ -76,7 +76,7 @@ export function useCreateTemplateMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to create template"),
+        message: errorMessage ? t(errorMessage) : t("Failed to create template"),
         color: "red",
       });
     },
@@ -117,7 +117,7 @@ export function useUpdateTemplateMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to update template"),
+        message: errorMessage ? t(errorMessage) : t("Failed to update template"),
         color: "red",
       });
     },
