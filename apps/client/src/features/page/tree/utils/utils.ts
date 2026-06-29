@@ -203,7 +203,14 @@ export function mergeRootTrees(
   prevRoots: SpaceTreeNode[],
   incomingRoots: SpaceTreeNode[],
 ): SpaceTreeNode[] {
-  const seen = new Set(prevRoots.map((r) => r.id));
+  const seen = new Set<string>();
+  const collect = (nodes: SpaceTreeNode[]) => {
+    for (const node of nodes) {
+      seen.add(node.id);
+      if (node.children?.length) collect(node.children);
+    }
+  };
+  collect(prevRoots);
 
   // add new roots that were not present before
   const merged = [...prevRoots];
