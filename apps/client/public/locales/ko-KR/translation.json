@@ -990,6 +990,8 @@
   "Are you sure you want to delete this template?": "이 템플릿을 삭제하시겠습니까?",
   "Template scope updated": "템플릿 범위가 업데이트되었습니다",
   "Choose which space this template belongs to": "이 템플릿이 속할 스페이스를 선택하세요",
+  "Only workspace admins can create global templates.": "전역 템플릿은 워크스페이스 관리자만 만들 수 있습니다.",
+  "You need edit access to this space to create templates.": "템플릿을 만들려면 이 스페이스에 대한 편집 권한이 있어야 합니다.",
   "Scope": "범위",
   "Select scope": "범위 선택",
   "Title": "제목",

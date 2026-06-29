@@ -990,6 +990,8 @@
   "Are you sure you want to delete this template?": "Ви впевнені, що хочете видалити цей шаблон?",
   "Template scope updated": "Область дії шаблону оновлено",
   "Choose which space this template belongs to": "Виберіть, до якого простору належить цей шаблон",
+  "Only workspace admins can create global templates.": "Лише адміністратори робочого простору можуть створювати глобальні шаблони.",
+  "You need edit access to this space to create templates.": "Щоб створювати шаблони, вам потрібен доступ до редагування цього простору.",
   "Scope": "Область дії",
   "Select scope": "Вибрати область дії",
   "Title": "Назва",
