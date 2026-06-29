@@ -990,6 +990,8 @@
   "Are you sure you want to delete this template?": "你确定要删除此模板吗？",
   "Template scope updated": "模板范围已更新",
   "Choose which space this template belongs to": "选择此模板所属的空间",
+  "Only workspace admins can create global templates.": "只有工作区管理员才能创建全局模板。",
+  "You need edit access to this space to create templates.": "您需要拥有此空间的编辑权限才能创建模板。",
   "Scope": "范围",
   "Select scope": "选择范围",
   "Title": "标题",
