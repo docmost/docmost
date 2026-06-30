@@ -271,4 +271,22 @@ export class WorkspaceRepo {
       .executeTakeFirst();
   }
 
+  async updateDefaultPageEditMode(
+    workspaceId: string,
+    pageEditMode: string,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('workspaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('defaultPageEditMode', ${sql.lit(pageEditMode)})`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', workspaceId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
+  }
+
 }

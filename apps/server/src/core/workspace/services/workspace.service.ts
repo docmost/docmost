@@ -527,6 +527,20 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.defaultPageEditMode !== 'undefined') {
+        const prev = settingsBefore?.defaultPageEditMode ?? null;
+        const next = updateWorkspaceDto.defaultPageEditMode.toLowerCase();
+        if (prev !== next) {
+          before.defaultPageEditMode = prev;
+          after.defaultPageEditMode = next;
+        }
+        await this.workspaceRepo.updateDefaultPageEditMode(
+          workspaceId,
+          next,
+          trx,
+        );
+      }
+
       delete updateWorkspaceDto.restrictApiToAdmins;
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
@@ -535,6 +549,7 @@ export class WorkspaceService {
       delete updateWorkspaceDto.allowMemberTemplates;
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
+      delete updateWorkspaceDto.defaultPageEditMode;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,
