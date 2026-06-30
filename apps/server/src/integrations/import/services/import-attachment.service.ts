@@ -452,16 +452,7 @@ export class ImportAttachmentService {
 
       const audioExtensions = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.flac', '.aac']);
 
-      if (ext === '.pdf') {
-        const $pdf = $('<div>')
-          .attr('data-type', 'pdf')
-          .attr('src', apiFilePath)
-          .attr('data-attachment-id', attachmentId)
-          .attr('width', '800')
-          .attr('height', '600');
-        $a.replaceWith($pdf);
-        unwrapFromParagraph($, $pdf);
-      } else if (ext === '.mp4') {
+      if (ext === '.mp4') {
         const $video = $('<video>')
           .attr('src', apiFilePath)
           .attr('data-attachment-id', attachmentId)
