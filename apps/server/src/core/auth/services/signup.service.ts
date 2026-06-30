@@ -4,6 +4,8 @@ import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { getWorkspaceDefaultPageEditMode } from '../../workspace/workspace.util';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
@@ -20,6 +22,7 @@ import {
 export class SignupService {
   constructor(
     private userRepo: UserRepo,
+    private workspaceRepo: WorkspaceRepo,
     private workspaceService: WorkspaceService,
     private groupUserRepo: GroupUserRepo,
     @InjectKysely() private readonly db: KyselyDB,
@@ -46,12 +49,16 @@ export class SignupService {
       this.db,
       async (trx) => {
         // create user
+        const workspace = await this.workspaceRepo.findById(workspaceId, {
+          trx,
+        });
         const user = await this.userRepo.insertUser(
           {
             ...createUserDto,
             workspaceId: workspaceId,
           },
           trx,
+          { pageEditMode: getWorkspaceDefaultPageEditMode(workspace) },
         );
 
         // add user to workspace

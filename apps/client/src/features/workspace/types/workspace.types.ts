@@ -29,6 +29,7 @@ export interface IWorkspace {
   restrictApiToAdmins?: boolean;
   allowMemberTemplates?: boolean;
   allowPersonalSpaces?: boolean;
+  defaultPageEditMode?: string;
   isScimEnabled?: boolean;
 }
 
@@ -38,6 +39,7 @@ export interface IWorkspaceSettings {
   api?: IWorkspaceApiSettings;
   templates?: IWorkspaceTemplateSettings;
   spaces?: IWorkspaceSpaceSettings;
+  defaultPageEditMode?: string;
 }
 
 export interface IWorkspaceApiSettings {

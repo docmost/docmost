@@ -3,8 +3,10 @@ import { CreateWorkspaceDto } from './create-workspace.dto';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
+  IsString,
   Min,
 } from 'class-validator';
 
@@ -61,4 +63,9 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
   @IsBoolean()
   allowPersonalSpaces: boolean;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['read', 'edit'])
+  defaultPageEditMode: string;
 }
