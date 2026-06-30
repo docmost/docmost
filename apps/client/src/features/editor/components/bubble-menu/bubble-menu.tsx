@@ -25,6 +25,8 @@ import { useAtom, useAtomValue } from "jotai";
 import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
+import { openLinearIssueCreate } from "@/features/editor/components/linear-issue/open-linear-issue-create.ts";
+import LinearIcon from "@/components/icons/linear-icon.tsx";
 import { useTranslation } from "react-i18next";
 import { showAiMenuAtom, showLinkMenuAtom } from "@/features/editor/atoms/editor-atoms";
 import { userAtom, workspaceAtom } from "@/features/user/atoms/current-user-atom";
@@ -259,6 +261,25 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
               onClick={() => isEditorReady(props.editor) && commentItem.command()}
             >
               <IconMessage size={16} stroke={2} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+
+        {!templateMode && (
+          <Tooltip
+            label={t("Create Linear issue")}
+            withArrow
+            withinPortal={false}
+          >
+            <ActionIcon
+              variant="default"
+              size="lg"
+              radius="6px"
+              aria-label={t("Create Linear issue")}
+              style={{ border: "none" }}
+              onClick={() => openLinearIssueCreate(props.editor)}
+            >
+              <LinearIcon size={16} />
             </ActionIcon>
           </Tooltip>
         )}

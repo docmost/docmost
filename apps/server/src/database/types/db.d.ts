@@ -636,6 +636,33 @@ export interface UserSessions {
   createdAt: Generated<Timestamp>;
 }
 
+export interface IntegrationSettings {
+  clientId: string;
+  clientSecret: string;
+  createdAt: Generated<Timestamp>;
+  enabled: Generated<boolean>;
+  id: Generated<string>;
+  provider: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface IntegrationConnections {
+  accessToken: string;
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp | null;
+  externalId: string | null;
+  externalName: string | null;
+  id: Generated<string>;
+  metadata: Json | null;
+  provider: string;
+  refreshToken: string | null;
+  scope: string | null;
+  updatedAt: Generated<Timestamp>;
+  userId: string;
+  workspaceId: string;
+}
+
 export interface DB {
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
@@ -654,6 +681,8 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  integrationConnections: IntegrationConnections;
+  integrationSettings: IntegrationSettings;
   labels: Labels;
   notifications: Notifications;
   pageAccess: PageAccess;
