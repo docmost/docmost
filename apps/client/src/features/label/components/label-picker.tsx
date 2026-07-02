@@ -1,4 +1,10 @@
-import { useMemo, useRef, useState, KeyboardEvent } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import clsx from "clsx";
 import { IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +17,9 @@ import classes from "@/features/label/label.module.css";
 
 type LabelPickerProps = {
   applied: ILabel[];
+  autoFocusInput?: boolean;
   enabled: boolean;
+  inputRef?: RefObject<HTMLInputElement>;
   onAdd: (name: string) => void;
   onClose: () => void;
 };
@@ -29,7 +37,9 @@ function isValidLabelName(name: string): boolean {
 
 export function LabelPicker({
   applied,
+  autoFocusInput = true,
   enabled,
+  inputRef,
   onAdd,
   onClose,
 }: LabelPickerProps) {
@@ -37,7 +47,8 @@ export function LabelPicker({
   const scheme = useComputedColorScheme("light");
   const [query, setQuery] = useState("");
   const [hover, setHover] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const fallbackInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = inputRef ?? fallbackInputRef;
 
   const normalized = normalizeLabelName(query);
   const { data } = useWorkspaceLabelsQuery(normalized, enabled);
@@ -66,7 +77,9 @@ export function LabelPicker({
     }
     setQuery("");
     setHover(0);
-    inputRef.current?.focus();
+    if (autoFocusInput) {
+      searchInputRef.current?.focus({ preventScroll: true });
+    }
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -90,9 +103,9 @@ export function LabelPicker({
     <div className={classes.popover}>
       <div className={classes.popoverSearch}>
         <input
-          ref={inputRef}
+          ref={searchInputRef}
           type="text"
-          autoFocus
+          data-autofocus={autoFocusInput ? true : undefined}
           maxLength={MAX_LABEL_NAME_LENGTH}
           placeholder={t("Search or create…")}
           value={query}
