@@ -223,7 +223,6 @@ export class PageService {
         lastUpdatedById: user.id,
         updatedAt: new Date(),
         contributorIds: contributorIds,
-        metadata: updatePageDto.metadata as unknown as JsonValue,
       },
       page.id,
     );
