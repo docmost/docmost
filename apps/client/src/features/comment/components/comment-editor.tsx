@@ -3,14 +3,7 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { StarterKit } from "@tiptap/starter-kit";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import {
-  Mention,
-  LinkExtension,
-  TiptapImage,
-  SharedStorage,
-  Attachment,
-} from "@docmost/editor-ext";
-import ImageView from "@/features/editor/components/image/image-view";
+import { Mention, LinkExtension } from "@docmost/editor-ext";
 import classes from "./comment.module.css";
 import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
@@ -21,7 +14,7 @@ import mentionRenderItems from "@/features/editor/components/mention/mention-sug
 import MentionView from "@/features/editor/components/mention/mention-view";
 import { platformModifierKey } from "@/lib";
 import { TableKit } from "@tiptap/extension-table";
-import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -80,13 +73,9 @@ const CommentEditor = forwardRef(
           },
         }),
         TableKit,
-        Attachment.configure({
-          view: AttachmentView,
-        }),
-        SharedStorage,
-        TiptapImage.configure({
-          view: ImageView,
-          allowBase64: false,
+        TaskList,
+        TaskItem.configure({
+          nested: true,
         }),
       ],
       editorProps: {
