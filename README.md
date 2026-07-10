@@ -14,6 +14,10 @@
 
 To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
 
+You can also spin up a fully managed instance in one click:
+
+[![Deploy with Zenith](https://cdn.zenith.hosting/buttons/deploy-with-zenith.svg)](https://zenith.hosting/host/docmost)
+
 ## Features
 
 - Real-time collaboration
