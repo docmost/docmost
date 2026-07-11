@@ -1,0 +1,11 @@
+import { Page } from "../../database/types/entity.types";
+export type PageExportTree = Record<string, Page[]>;
+export declare const INTERNAL_LINK_REGEX: RegExp;
+export declare function getExportExtension(format: string): ".html" | ".md";
+export declare function getPageTitle(title: string): string;
+export declare function updateAttachmentUrlsToLocalPaths(prosemirrorJson: any): any;
+export declare function replaceInternalLinks(prosemirrorJson: any, slugIdToPath: Record<string, string>, currentPagePath: string, baseUrl?: string): any;
+export declare function getInternalLinkPageName(path: string, currentFilePath?: string): string;
+export declare function extractPageSlugId(input: string): string;
+export declare function buildTree(pages: Page[]): PageExportTree;
+export declare function computeLocalPath(tree: PageExportTree, format: string, parentPageId: string | null, currentPath: string, slugIdToPath: Record<string, string>): void;

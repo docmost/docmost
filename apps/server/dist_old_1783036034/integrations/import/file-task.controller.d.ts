@@ -1,0 +1,52 @@
+import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
+import { User, Workspace } from "../../database/types/entity.types";
+import WorkspaceAbilityFactory from '../../core/casl/abilities/workspace-ability.factory';
+import { KyselyDB } from "../../database/types/kysely.types";
+import { FileTaskIdDto } from './dto/file-task-dto';
+import { SpaceMemberRepo } from "../../database/repos/space/space-member.repo";
+import { PaginationOptions } from "../../database/pagination/pagination-options";
+export declare class FileTaskController {
+    private readonly spaceAbility;
+    private readonly workspaceAbility;
+    private readonly spaceMemberRepo;
+    private readonly db;
+    constructor(spaceAbility: SpaceAbilityFactory, workspaceAbility: WorkspaceAbilityFactory, spaceMemberRepo: SpaceMemberRepo, db: KyselyDB);
+    getFileTasks(pagination: PaginationOptions, user: User, workspace: Workspace): Promise<import("@docmost/db/pagination/cursor-pagination").CursorPaginationResult<{
+        type: string;
+        id: string;
+        workspaceId: string;
+        creatorId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        metadata: import("../../database/types/db").JsonValue;
+        status: string;
+        spaceId: string;
+        pageId: string;
+        fileExt: string;
+        fileName: string;
+        filePath: string;
+        fileSize: string;
+        errorMessage: string;
+        source: string;
+    }, undefined>>;
+    getFileTask(dto: FileTaskIdDto, user: User): Promise<{
+        type: string;
+        id: string;
+        workspaceId: string;
+        creatorId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        metadata: import("../../database/types/db").JsonValue;
+        status: string;
+        spaceId: string;
+        pageId: string;
+        fileExt: string;
+        fileName: string;
+        filePath: string;
+        fileSize: string;
+        errorMessage: string;
+        source: string;
+    }>;
+}

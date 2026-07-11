@@ -1,0 +1,31 @@
+import { PaginationOptions } from "../../../database/pagination/pagination-options";
+import { KyselyDB, KyselyTransaction } from "../../../database/types/kysely.types";
+import { SpaceMemberRepo } from "../../../database/repos/space/space-member.repo";
+import { GroupUserRepo } from "../../../database/repos/group/group-user.repo";
+import { AddSpaceMembersDto } from '../dto/add-space-members.dto';
+import { Space, User } from "../../../database/types/entity.types";
+import { SpaceRepo } from "../../../database/repos/space/space.repo";
+import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
+import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
+import { CursorPaginationResult } from "../../../database/pagination/cursor-pagination";
+import { WatcherRepo } from "../../../database/repos/watcher/watcher.repo";
+import { FavoriteRepo } from "../../../database/repos/favorite/favorite.repo";
+import { IAuditService } from '../../../integrations/audit/audit.service';
+export declare class SpaceMemberService {
+    private spaceMemberRepo;
+    private groupUserRepo;
+    private spaceRepo;
+    private watcherRepo;
+    private favoriteRepo;
+    private readonly db;
+    private readonly auditService;
+    constructor(spaceMemberRepo: SpaceMemberRepo, groupUserRepo: GroupUserRepo, spaceRepo: SpaceRepo, watcherRepo: WatcherRepo, favoriteRepo: FavoriteRepo, db: KyselyDB, auditService: IAuditService);
+    addUserToSpace(userId: string, spaceId: string, role: string, workspaceId: string, trx?: KyselyTransaction): Promise<void>;
+    addGroupToSpace(groupId: string, spaceId: string, role: string, workspaceId: string, trx?: KyselyTransaction): Promise<void>;
+    getSpaceMembers(spaceId: string, workspaceId: string, pagination: PaginationOptions): Promise<CursorPaginationResult<any>>;
+    addMembersToSpaceBatch(dto: AddSpaceMembersDto, authUser: User, workspaceId: string): Promise<void>;
+    removeMemberFromSpace(dto: RemoveSpaceMemberDto, workspaceId: string): Promise<void>;
+    updateSpaceMemberRole(dto: UpdateSpaceMemberRoleDto, workspaceId: string): Promise<void>;
+    validateLastAdmin(spaceId: string): Promise<void>;
+    getUserSpaces(userId: string, pagination: PaginationOptions): Promise<CursorPaginationResult<Space>>;
+}

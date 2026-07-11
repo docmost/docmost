@@ -1,0 +1,1 @@
+{"version":3,"file":"removeMarks.js","sourceRoot":"","sources":["../../../src/lib/recreate-transform/removeMarks.ts"],"names":[],"mappings":";;AAGA,kCAIC;AAPD,oDAAiD;AAGjD,SAAgB,WAAW,CAAC,GAAS;IACnC,MAAM,EAAE,GAAG,IAAI,qBAAS,CAAC,GAAG,CAAC,CAAC;IAC9B,EAAE,CAAC,UAAU,CAAC,CAAC,EAAE,GAAG,CAAC,QAAQ,GAAG,CAAC,CAAC,CAAC;IACnC,OAAO,EAAE,CAAC,GAAG,CAAC;AAChB,CAAC"}

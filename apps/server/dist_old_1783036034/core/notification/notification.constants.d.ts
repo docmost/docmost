@@ -1,0 +1,20 @@
+export declare const NotificationType: {
+    readonly COMMENT_USER_MENTION: "comment.user_mention";
+    readonly COMMENT_CREATED: "comment.created";
+    readonly COMMENT_RESOLVED: "comment.resolved";
+    readonly PAGE_USER_MENTION: "page.user_mention";
+    readonly PAGE_PERMISSION_GRANTED: "page.permission_granted";
+    readonly PAGE_UPDATED: "page.updated";
+    readonly PAGE_VERIFICATION_EXPIRING: "page.verification_expiring";
+    readonly PAGE_VERIFICATION_EXPIRED: "page.verification_expired";
+    readonly PAGE_VERIFIED: "page.verified";
+    readonly PAGE_APPROVAL_REQUESTED: "page.approval_requested";
+    readonly PAGE_APPROVAL_REJECTED: "page.approval_rejected";
+};
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
+export type NotificationSettingKey = 'page.updated' | 'page.userMention' | 'comment.userMention' | 'comment.created' | 'comment.resolved';
+export declare const NotificationTypeToSettingKey: Partial<Record<NotificationType, NotificationSettingKey>>;
+export type NotificationTab = 'direct' | 'updates' | 'all';
+export declare const DIRECT_NOTIFICATION_TYPES: NotificationType[];
+export declare const UPDATES_NOTIFICATION_TYPES: NotificationType[];
+export declare function getTypesForTab(tab: NotificationTab): NotificationType[] | undefined;

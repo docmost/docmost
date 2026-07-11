@@ -1,0 +1,30 @@
+import { CreateSpaceDto } from '../dto/create-space.dto';
+import { PaginationOptions } from "../../../database/pagination/pagination-options";
+import { SpaceRepo } from "../../../database/repos/space/space.repo";
+import { KyselyDB, KyselyTransaction } from "../../../database/types/kysely.types";
+import { Space, User } from "../../../database/types/entity.types";
+import { UpdateSpaceDto } from '../dto/update-space.dto';
+import { SpaceMemberService } from './space-member.service';
+import { Queue } from 'bullmq';
+import { CursorPaginationResult } from "../../../database/pagination/cursor-pagination";
+import { ShareRepo } from "../../../database/repos/share/share.repo";
+import { WorkspaceRepo } from "../../../database/repos/workspace/workspace.repo";
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { IAuditService } from '../../../integrations/audit/audit.service';
+export declare class SpaceService {
+    private spaceRepo;
+    private spaceMemberService;
+    private shareRepo;
+    private workspaceRepo;
+    private licenseCheckService;
+    private readonly db;
+    private attachmentQueue;
+    private readonly auditService;
+    constructor(spaceRepo: SpaceRepo, spaceMemberService: SpaceMemberService, shareRepo: ShareRepo, workspaceRepo: WorkspaceRepo, licenseCheckService: LicenseCheckService, db: KyselyDB, attachmentQueue: Queue, auditService: IAuditService);
+    createSpace(authUser: User, workspaceId: string, createSpaceDto: CreateSpaceDto, trx?: KyselyTransaction): Promise<Space>;
+    create(userId: string, workspaceId: string, createSpaceDto: CreateSpaceDto, trx?: KyselyTransaction): Promise<Space>;
+    updateSpace(updateSpaceDto: UpdateSpaceDto, workspaceId: string): Promise<Space>;
+    getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space>;
+    getWorkspaceSpaces(workspaceId: string, pagination: PaginationOptions): Promise<CursorPaginationResult<Space>>;
+    deleteSpace(spaceId: string, workspaceId: string): Promise<void>;
+}

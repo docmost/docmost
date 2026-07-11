@@ -1,0 +1,53 @@
+import { UserRepo } from "../../database/repos/user/user.repo";
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Workspace } from "../../database/types/entity.types";
+import { IAuditService } from '../../integrations/audit/audit.service';
+export declare class UserService {
+    private userRepo;
+    private readonly auditService;
+    constructor(userRepo: UserRepo, auditService: IAuditService);
+    findById(userId: string, workspaceId: string): Promise<{
+        password: string;
+        id: string;
+        workspaceId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        role: string;
+        name: string;
+        settings: import("../../database/types/db").JsonValue;
+        email: string;
+        invitedById: string;
+        avatarUrl: string;
+        deactivatedAt: Date;
+        emailVerifiedAt: Date;
+        lastActiveAt: Date;
+        lastLoginAt: Date;
+        locale: string;
+        hasGeneratedPassword: boolean;
+        scimExternalId: string;
+        timezone: string;
+    }>;
+    update(updateUserDto: UpdateUserDto, userId: string, workspace: Workspace): Promise<{
+        password: string;
+        id: string;
+        workspaceId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        role: string;
+        name: string;
+        settings: import("../../database/types/db").JsonValue;
+        email: string;
+        invitedById: string;
+        avatarUrl: string;
+        deactivatedAt: Date;
+        emailVerifiedAt: Date;
+        lastActiveAt: Date;
+        lastLoginAt: Date;
+        locale: string;
+        hasGeneratedPassword: boolean;
+        scimExternalId: string;
+        timezone: string;
+    }>;
+}

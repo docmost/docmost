@@ -1,0 +1,67 @@
+import { CreateUserDto } from '../dto/create-user.dto';
+import { WorkspaceService } from '../../workspace/services/workspace.service';
+import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
+import { UserRepo } from "../../../database/repos/user/user.repo";
+import { KyselyDB, KyselyTransaction } from "../../../database/types/kysely.types";
+import { User } from "../../../database/types/entity.types";
+import { GroupUserRepo } from "../../../database/repos/group/group-user.repo";
+import { IAuditService } from '../../../integrations/audit/audit.service';
+export declare class SignupService {
+    private userRepo;
+    private workspaceService;
+    private groupUserRepo;
+    private readonly db;
+    private readonly auditService;
+    constructor(userRepo: UserRepo, workspaceService: WorkspaceService, groupUserRepo: GroupUserRepo, db: KyselyDB, auditService: IAuditService);
+    signup(createUserDto: CreateUserDto, workspaceId: string, trx?: KyselyTransaction): Promise<User>;
+    initialSetup(createAdminUserDto: CreateAdminUserDto, trx?: KyselyTransaction): Promise<{
+        user: {
+            password: string;
+            id: string;
+            workspaceId: string;
+            createdAt: Date;
+            updatedAt: Date;
+            deletedAt: Date;
+            role: string;
+            name: string;
+            settings: import("../../../database/types/db").JsonValue;
+            email: string;
+            invitedById: string;
+            avatarUrl: string;
+            deactivatedAt: Date;
+            emailVerifiedAt: Date;
+            lastActiveAt: Date;
+            lastLoginAt: Date;
+            locale: string;
+            hasGeneratedPassword: boolean;
+            scimExternalId: string;
+            timezone: string;
+        };
+        workspace: {
+            hostname: string;
+            description: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            deletedAt: Date;
+            auditRetentionDays: number;
+            trashRetentionDays: number;
+            billingEmail: string;
+            customDomain: string;
+            defaultRole: string;
+            defaultSpaceId: string;
+            emailDomains: string[];
+            enforceMfa: boolean;
+            enforceSso: boolean;
+            isScimEnabled: boolean;
+            licenseKey: string;
+            logo: string;
+            name: string;
+            plan: string;
+            settings: import("../../../database/types/db").JsonValue;
+            status: string;
+            stripeCustomerId: string;
+            trialEndAt: Date;
+        };
+    }>;
+}

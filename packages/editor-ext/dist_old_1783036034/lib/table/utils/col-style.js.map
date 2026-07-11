@@ -1,0 +1,1 @@
+{"version":3,"file":"col-style.js","sourceRoot":"","sources":["../../../../src/lib/table/utils/col-style.ts"],"names":[],"mappings":";;AAAA,wDAMC;AAND,SAAgB,sBAAsB,CAAC,QAAgB,EAAE,KAAyB;IAChF,IAAI,KAAK,EAAE,CAAC;QACV,OAAO,CAAC,OAAO,EAAE,GAAG,IAAI,CAAC,GAAG,CAAC,KAAK,EAAE,QAAQ,CAAC,IAAI,CAAC,CAAA;IACpD,CAAC;IAED,OAAO,CAAC,WAAW,EAAE,GAAG,QAAQ,IAAI,CAAC,CAAA;AACvC,CAAC"}

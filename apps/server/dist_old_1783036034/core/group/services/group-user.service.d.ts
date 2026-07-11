@@ -1,0 +1,44 @@
+import { PaginationOptions } from "../../../database/pagination/pagination-options";
+import { GroupService } from './group.service';
+import { KyselyDB, KyselyTransaction } from "../../../database/types/kysely.types";
+import { GroupUserRepo } from "../../../database/repos/group/group-user.repo";
+import { SpaceMemberRepo } from "../../../database/repos/space/space-member.repo";
+import { UserRepo } from "../../../database/repos/user/user.repo";
+import { WatcherRepo } from "../../../database/repos/watcher/watcher.repo";
+import { FavoriteRepo } from "../../../database/repos/favorite/favorite.repo";
+import { IAuditService } from '../../../integrations/audit/audit.service';
+export declare class GroupUserService {
+    private groupUserRepo;
+    private spaceMemberRepo;
+    private userRepo;
+    private groupService;
+    private readonly watcherRepo;
+    private readonly favoriteRepo;
+    private readonly db;
+    private readonly auditService;
+    constructor(groupUserRepo: GroupUserRepo, spaceMemberRepo: SpaceMemberRepo, userRepo: UserRepo, groupService: GroupService, watcherRepo: WatcherRepo, favoriteRepo: FavoriteRepo, db: KyselyDB, auditService: IAuditService);
+    getGroupUsers(groupId: string, workspaceId: string, pagination: PaginationOptions): Promise<import("../../../database/pagination/cursor-pagination").CursorPaginationResult<{
+        password: string;
+        id: string;
+        workspaceId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        role: string;
+        name: string;
+        settings: import("../../../database/types/db").JsonValue;
+        email: string;
+        invitedById: string;
+        avatarUrl: string;
+        deactivatedAt: Date;
+        emailVerifiedAt: Date;
+        lastActiveAt: Date;
+        lastLoginAt: Date;
+        locale: string;
+        hasGeneratedPassword: boolean;
+        scimExternalId: string;
+        timezone: string;
+    }, undefined>>;
+    addUsersToGroupBatch(userIds: string[], groupId: string, workspaceId: string, trx?: KyselyTransaction): Promise<void>;
+    removeUserFromGroup(userId: string, groupId: string, workspaceId: string): Promise<void>;
+}

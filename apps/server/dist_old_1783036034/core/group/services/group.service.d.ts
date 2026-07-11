@@ -1,0 +1,30 @@
+import { CreateGroupDto } from '../dto/create-group.dto';
+import { PaginationOptions } from "../../../database/pagination/pagination-options";
+import { UpdateGroupDto } from '../dto/update-group.dto';
+import { KyselyDB, KyselyTransaction } from "../../../database/types/kysely.types";
+import { GroupRepo } from "../../../database/repos/group/group.repo";
+import { GroupUserRepo } from "../../../database/repos/group/group-user.repo";
+import { SpaceMemberRepo } from "../../../database/repos/space/space-member.repo";
+import { Group, User } from "../../../database/types/entity.types";
+import { CursorPaginationResult } from "../../../database/pagination/cursor-pagination";
+import { GroupUserService } from './group-user.service';
+import { WatcherRepo } from "../../../database/repos/watcher/watcher.repo";
+import { FavoriteRepo } from "../../../database/repos/favorite/favorite.repo";
+import { IAuditService } from '../../../integrations/audit/audit.service';
+export declare class GroupService {
+    private groupRepo;
+    private groupUserRepo;
+    private spaceMemberRepo;
+    private groupUserService;
+    private readonly watcherRepo;
+    private readonly favoriteRepo;
+    private readonly db;
+    private readonly auditService;
+    constructor(groupRepo: GroupRepo, groupUserRepo: GroupUserRepo, spaceMemberRepo: SpaceMemberRepo, groupUserService: GroupUserService, watcherRepo: WatcherRepo, favoriteRepo: FavoriteRepo, db: KyselyDB, auditService: IAuditService);
+    getGroupInfo(groupId: string, workspaceId: string): Promise<Group>;
+    createGroup(authUser: User, workspaceId: string, createGroupDto: CreateGroupDto, trx?: KyselyTransaction): Promise<Group>;
+    updateGroup(workspaceId: string, updateGroupDto: UpdateGroupDto): Promise<Group>;
+    getWorkspaceGroups(workspaceId: string, paginationOptions: PaginationOptions): Promise<CursorPaginationResult<Group>>;
+    deleteGroup(groupId: string, workspaceId: string): Promise<void>;
+    findAndValidateGroup(groupId: string, workspaceId: string, trx?: KyselyTransaction): Promise<Group>;
+}

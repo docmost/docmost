@@ -1,0 +1,2 @@
+export declare const STORAGE_DRIVER_TOKEN = "STORAGE_DRIVER_TOKEN";
+export declare const STORAGE_CONFIG_TOKEN = "STORAGE_CONFIG_TOKEN";

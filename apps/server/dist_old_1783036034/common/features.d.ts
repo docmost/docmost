@@ -1,0 +1,24 @@
+export declare const Feature: {
+    readonly SSO_CUSTOM: "sso:custom";
+    readonly SSO_GOOGLE: "sso:google";
+    readonly MFA: "mfa";
+    readonly API_KEYS: "api:keys";
+    readonly COMMENT_RESOLUTION: "comment:resolution";
+    readonly PAGE_PERMISSIONS: "page:permissions";
+    readonly AI: "ai";
+    readonly CONFLUENCE_IMPORT: "import:confluence";
+    readonly DOCX_IMPORT: "import:docx";
+    readonly PDF_IMPORT: "import:pdf";
+    readonly ATTACHMENT_INDEXING: "attachment:indexing";
+    readonly SECURITY_SETTINGS: "security:settings";
+    readonly MCP: "mcp";
+    readonly SCIM: "scim";
+    readonly PAGE_VERIFICATION: "page:verification";
+    readonly AUDIT_LOGS: "audit:logs";
+    readonly RETENTION: "retention";
+    readonly SHARING_CONTROLS: "sharing:controls";
+    readonly VIEWER_COMMENTS: "comment:viewer";
+    readonly TEMPLATES: "templates";
+    readonly PDF_EXPORT: "export:pdf";
+};
+export type FeatureKey = (typeof Feature)[keyof typeof Feature];

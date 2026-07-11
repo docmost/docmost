@@ -1,0 +1,94 @@
+import { Page } from "../../database/types/entity.types";
+import { KyselyDB } from "../../database/types/kysely.types";
+import * as JSZip from 'jszip';
+import { StorageService } from '../storage/storage.service';
+import { PageExportTree } from './utils';
+import { PageRepo } from "../../database/repos/page/page.repo";
+import { PagePermissionRepo } from "../../database/repos/page/page-permission.repo";
+import { EnvironmentService } from '../environment/environment.service';
+import { DomainService } from '../environment/domain.service';
+type AllowedAttachment = {
+    id: string;
+    fileName: string;
+    filePath: string;
+};
+export declare class ExportService {
+    private readonly pageRepo;
+    private readonly pagePermissionRepo;
+    private readonly db;
+    private readonly storageService;
+    private readonly environmentService;
+    private readonly domainService;
+    private readonly logger;
+    constructor(pageRepo: PageRepo, pagePermissionRepo: PagePermissionRepo, db: KyselyDB, storageService: StorageService, environmentService: EnvironmentService, domainService: DomainService);
+    exportPage(format: string, page: Page, singlePage?: boolean): Promise<string>;
+    exportPages(pageId: string, format: string, includeAttachments: boolean, includeChildren: boolean, userId?: string, ignorePermissions?: boolean): Promise<{
+        type: "file";
+        content: string;
+        page: {
+            id: string;
+            workspaceId: string;
+            creatorId: string;
+            title: string;
+            createdAt: Date;
+            updatedAt: Date;
+            deletedAt: Date;
+            content: import("../../database/types/db").JsonValue;
+            metadata: string | number | boolean | import("../../database/types/db").JsonArray | import("../../database/types/db").JsonObject;
+            tsv: string;
+            spaceId: string;
+            contributorIds: string[];
+            coverPhoto: string;
+            deletedById: string;
+            icon: string;
+            isLocked: boolean;
+            lastUpdatedById: string;
+            parentPageId: string;
+            position: string;
+            slugId: string;
+            textContent: string;
+            ydoc: Buffer<ArrayBufferLike>;
+        };
+        stream?: undefined;
+    } | {
+        type: "zip";
+        stream: NodeJS.ReadableStream;
+        page: {
+            id: string;
+            workspaceId: string;
+            creatorId: string;
+            title: string;
+            createdAt: Date;
+            updatedAt: Date;
+            deletedAt: Date;
+            content: import("../../database/types/db").JsonValue;
+            metadata: string | number | boolean | import("../../database/types/db").JsonArray | import("../../database/types/db").JsonObject;
+            tsv: string;
+            spaceId: string;
+            contributorIds: string[];
+            coverPhoto: string;
+            deletedById: string;
+            icon: string;
+            isLocked: boolean;
+            lastUpdatedById: string;
+            parentPageId: string;
+            position: string;
+            slugId: string;
+            textContent: string;
+            ydoc: Buffer<ArrayBufferLike>;
+        };
+        content?: undefined;
+    }>;
+    exportSpace(spaceId: string, format: string, includeAttachments: boolean, userId?: string, ignorePermissions?: boolean): Promise<{
+        fileStream: NodeJS.ReadableStream;
+        fileName: string;
+        spaceName: string;
+    }>;
+    zipPages(tree: PageExportTree, format: string, zip: JSZip, includeAttachments: boolean, baseUrl: string, userId?: string, ignorePermissions?: boolean): Promise<void>;
+    zipAttachments(prosemirrorJson: any, zip: JSZip, allowed: Map<string, AllowedAttachment>): Promise<void>;
+    private resolveAccessibleAttachments;
+    turnPageMentionsToLinks(prosemirrorJson: any, workspaceId: string, baseUrl: string, userId?: string, ignorePermissions?: boolean): Promise<any>;
+    private getWorkspaceBaseUrl;
+    private filterPagesForExport;
+}
+export {};

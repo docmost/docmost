@@ -1,0 +1,63 @@
+import { Queue } from 'bullmq';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { CollaborationGateway } from '../../collaboration/collaboration.gateway';
+import { UpdateCommentDto } from './dto/update-comment.dto';
+import { CommentRepo } from "../../database/repos/comment/comment.repo";
+import { Comment, Page, User } from "../../database/types/entity.types";
+import { PaginationOptions } from "../../database/pagination/pagination-options";
+import { PageRepo } from "../../database/repos/page/page.repo";
+import { CursorPaginationResult } from "../../database/pagination/cursor-pagination";
+import { WsService } from '../../ws/ws.service';
+export declare class CommentService {
+    private commentRepo;
+    private pageRepo;
+    private wsService;
+    private collaborationGateway;
+    private generalQueue;
+    private notificationQueue;
+    private readonly logger;
+    constructor(commentRepo: CommentRepo, pageRepo: PageRepo, wsService: WsService, collaborationGateway: CollaborationGateway, generalQueue: Queue, notificationQueue: Queue);
+    findById(commentId: string): Promise<{
+        type: string;
+        id: string;
+        workspaceId: string;
+        creatorId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        content: import("../../database/types/db").JsonValue;
+        spaceId: string;
+        pageId: string;
+        editedAt: Date;
+        lastEditedById: string;
+        parentCommentId: string;
+        resolvedAt: Date;
+        resolvedById: string;
+        selection: string;
+    }>;
+    create(opts: {
+        page: Page;
+        workspaceId: string;
+        user: User;
+    }, createCommentDto: CreateCommentDto): Promise<{
+        type: string;
+        id: string;
+        workspaceId: string;
+        creatorId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        content: import("../../database/types/db").JsonValue;
+        spaceId: string;
+        pageId: string;
+        editedAt: Date;
+        lastEditedById: string;
+        parentCommentId: string;
+        resolvedAt: Date;
+        resolvedById: string;
+        selection: string;
+    }>;
+    findByPageId(pageId: string, pagination: PaginationOptions): Promise<CursorPaginationResult<Comment>>;
+    update(comment: Comment, updateCommentDto: UpdateCommentDto, authUser: User): Promise<Comment>;
+    private queueCommentNotification;
+}

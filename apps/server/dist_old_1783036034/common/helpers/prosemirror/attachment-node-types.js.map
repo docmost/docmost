@@ -1,0 +1,1 @@
+{"version":3,"file":"attachment-node-types.js","sourceRoot":"","sources":["../../../../src/common/helpers/prosemirror/attachment-node-types.ts"],"names":[],"mappings":";;AAUA,4CAEC;AAZD,MAAM,qBAAqB,GAAG;IAC5B,YAAY;IACZ,OAAO;IACP,OAAO;IACP,OAAO;IACP,KAAK;IACL,YAAY;IACZ,QAAQ;CACT,CAAC;AAEF,SAAgB,gBAAgB,CAAC,QAAgB;IAC/C,OAAO,qBAAqB,CAAC,QAAQ,CAAC,QAAQ,CAAC,CAAC;AAClD,CAAC"}

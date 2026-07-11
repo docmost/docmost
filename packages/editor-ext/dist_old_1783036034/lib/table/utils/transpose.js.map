@@ -1,0 +1,1 @@
+{"version":3,"file":"transpose.js","sourceRoot":"","sources":["../../../../src/lib/table/utils/transpose.ts"],"names":[],"mappings":";;AAwBA,8BAIC;AAJD,SAAgB,SAAS,CAAI,KAAY;IACvC,OAAO,KAAK,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,CAAC,EAAE,CAAC,EAAE,EAAE;QAC3B,OAAO,KAAK,CAAC,GAAG,CAAC,CAAC,MAAM,EAAE,EAAE,CAAC,MAAM,CAAC,CAAC,CAAC,CAAC,CAAA;IACzC,CAAC,CAAC,CAAA;AACJ,CAAC"}

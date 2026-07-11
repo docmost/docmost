@@ -1,0 +1,77 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createPinoConfig = createPinoConfig;
+const pino_1 = require("pino");
+const utils_1 = require("../helpers/utils");
+const CONTEXTS_TO_IGNORE = [
+    'InstanceLoader',
+    'RoutesResolver',
+    'RouterExplorer',
+    'LegacyRouteConverter',
+    'WebSocketsController',
+];
+function createPinoConfig() {
+    const isProduction = process.env.NODE_ENV?.toLowerCase() === 'production';
+    const isDebugMode = process.env.DEBUG_MODE?.toLowerCase() === 'true';
+    const logHttp = process.env.LOG_HTTP?.toLowerCase() === 'true';
+    const level = isProduction && !isDebugMode ? 'info' : 'debug';
+    return {
+        pinoHttp: {
+            level,
+            timestamp: pino_1.stdTimeFunctions.isoTime,
+            transport: !isProduction
+                ? {
+                    target: 'pino-pretty',
+                    options: {
+                        colorize: true,
+                        singleLine: true,
+                        translateTime: 'SYS:standard',
+                        ignore: 'pid,hostname',
+                    },
+                }
+                : undefined,
+            formatters: {
+                level: (label) => ({ level: label }),
+            },
+            hooks: {
+                logMethod(inputArgs, method) {
+                    if (isProduction && !isDebugMode) {
+                        for (const arg of inputArgs) {
+                            if (typeof arg === 'object' && arg !== null && 'context' in arg) {
+                                const context = arg['context'];
+                                if (typeof context === 'string' && CONTEXTS_TO_IGNORE.includes(context)) {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    return method.apply(this, inputArgs);
+                },
+            },
+            serializers: {
+                req: (req) => ({
+                    method: req.method,
+                    url: (0, utils_1.redactSensitiveUrl)(req.url),
+                    ip: req.ip || req.remoteAddress,
+                    userAgent: req.headers?.['user-agent'],
+                }),
+                res: (res) => ({
+                    statusCode: res.statusCode,
+                }),
+            },
+            customLogLevel: (_req, res, err) => {
+                if (res.statusCode >= 500 || err)
+                    return 'error';
+                if (res.statusCode >= 400)
+                    return 'warn';
+                return 'info';
+            },
+            autoLogging: logHttp
+                ? {
+                    ignore: (req) => req.url === '/api/health' || req.url === '/api/health/live',
+                }
+                : false,
+        },
+    };
+}
+//# sourceMappingURL=pino.config.js.map

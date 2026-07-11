@@ -1,0 +1,12 @@
+import { JSONContent } from '@tiptap/core';
+import { Node } from '@tiptap/pm/model';
+import * as Y from 'yjs';
+export declare const tiptapExtensions: any;
+export declare function jsonToHtml(tiptapJson: any): string;
+export declare function htmlToJson(html: string): Record<string, any>;
+export declare function jsonToText(tiptapJson: JSONContent): string;
+export declare function jsonToNode(tiptapJson: JSONContent): Node;
+export declare function getPageId(documentName: string): string;
+export declare function isEmptyParagraphDoc(tiptapJson: JSONContent): boolean;
+export declare function prosemirrorNodeToYElement(node: any): Y.XmlElement | Y.XmlText;
+export declare function jsonToMarkdown(tiptapJson: any): string;
