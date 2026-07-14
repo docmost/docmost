@@ -89,8 +89,7 @@ export function FullEditor({
   return (
     <Container
       fluid={fullPageWidth}
-      size={!fullPageWidth && 900}
-      className={classes.editor}
+      className={clsx(classes.editor, fullPageWidth && classes.fluid)}
       style={{ display: "flex", flexDirection: "column" }}
     >
       {editorToolbarEnabled && editable && isEditMode && (

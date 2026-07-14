@@ -3,12 +3,29 @@
     min-height: calc(100dvh - var(--app-shell-header-height, 45px) - 96px);
     padding: 8px 0;
     margin: 48px auto;
+    /* Mantine's Container only sets max-width from --container-size and
+     * leaves width at its default "auto" — with no other block-level
+     * sibling to size against, it was shrinking to fit whatever content
+     * happened to be inside (short test lines vs. long paragraphs), so the
+     * left edge visibly moved page to page instead of sitting still. Force
+     * an explicit width so the box is always exactly --container-size wide,
+     * regardless of content length. */
+    --container-size: min(1200px, 100% - 10rem) !important;
+
+    &:not(.fluid) {
+        width: var(--container-size) !important;
+    }
 
     @media print {
         padding: 0;
         margin: 0;
         min-height: 0;
     }
+}
+
+/* Marker class only — toggled alongside Mantine's Container `fluid` prop so
+ * the width lock above doesn't fight the "Full page width" preference. */
+.fluid {
 }
 
 .byline {

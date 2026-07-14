@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "client-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "./apps/client", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}
