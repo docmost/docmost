@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { type IBase, type IBaseRow, type IBaseView, type FilterGroup, type KanbanColumn as KanbanColumnType, KANBAN_CARD_DRAG_TYPE } from "@/ee/base/types/base.types";
+import { type IBase, type IBaseProperty, type IBaseRow, type IBaseView, type FilterGroup, type KanbanColumn as KanbanColumnType, KANBAN_CARD_DRAG_TYPE } from "@/ee/base/types/base.types";
 import { buildColumnFilter } from "@/ee/base/services/kanban-column-filter";
 import { formatKanbanCount } from "@/ee/base/services/format-kanban-count";
 import { useKanbanColumnAutoScroll } from "@/ee/base/hooks/use-kanban-autoscroll";
@@ -19,6 +19,7 @@ type KanbanColumnProps = {
   column: KanbanColumnType;
   viewFilter: FilterGroup | undefined;
   groupByPropertyId: string;
+  groupByProperty: IBaseProperty | undefined;
   canEdit: boolean;
   onOpenRow: (rowId: string) => void;
   onHide: (columnKey: string) => void;
@@ -33,6 +34,7 @@ export function KanbanColumn({
   column,
   viewFilter,
   groupByPropertyId,
+  groupByProperty,
   canEdit,
   onOpenRow,
   onHide,
@@ -139,6 +141,7 @@ export function KanbanColumn({
       <KanbanColumnHeader
         column={column}
         pageId={pageId}
+        property={groupByProperty}
         count={count}
         canEdit={canEdit}
         onHide={() => onHide(column.key)}

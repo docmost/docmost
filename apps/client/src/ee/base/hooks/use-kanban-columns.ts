@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { IBase, IBaseView, KanbanColumn, NO_VALUE_CHOICE_ID, SelectTypeOptions } from "@/ee/base/types/base.types";
+import { IBase, IBaseProperty, IBaseView, KanbanColumn, NO_VALUE_CHOICE_ID, SelectTypeOptions } from "@/ee/base/types/base.types";
 
 export type KanbanGroup = KanbanColumn & { hidden: boolean };
 
@@ -8,6 +8,7 @@ export function useKanbanColumns(
   view: IBaseView | undefined,
 ): {
   groupByPropertyId: string | undefined;
+  groupByProperty: IBaseProperty | undefined;
   columns: KanbanColumn[];
   allGroups: KanbanGroup[];
   hasValidGroupBy: boolean;
@@ -18,7 +19,7 @@ export function useKanbanColumns(
     const groupable = prop && (prop.type === "select" || prop.type === "status");
 
     if (!groupable || !prop || !view) {
-      return { groupByPropertyId, columns: [], allGroups: [], hasValidGroupBy: false };
+      return { groupByPropertyId, groupByProperty: undefined, columns: [], allGroups: [], hasValidGroupBy: false };
     }
 
     const typeOptions = prop.typeOptions as SelectTypeOptions;
@@ -47,6 +48,6 @@ export function useKanbanColumns(
     });
     const columns: KanbanColumn[] = allGroups.filter((g) => !g.hidden);
 
-    return { groupByPropertyId, columns, allGroups, hasValidGroupBy: true };
+    return { groupByPropertyId, groupByProperty: prop, columns, allGroups, hasValidGroupBy: true };
   }, [base, view]);
 }

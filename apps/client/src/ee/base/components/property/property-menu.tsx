@@ -53,6 +53,7 @@ type PropertyMenuContentProps = {
   onDirtyChange?: (dirty: boolean) => void;
   onEditFormula?: () => void;
   pageId: string;
+  initialPanel?: "main" | "options";
 };
 
 type MenuPanel =
@@ -96,9 +97,10 @@ export function PropertyMenuContent({
   onDirtyChange,
   onEditFormula,
   pageId,
+  initialPanel,
 }: PropertyMenuContentProps) {
   const { t } = useTranslation();
-  const [panel, setPanel] = useState<MenuPanel>("main");
+  const [panel, setPanel] = useState<MenuPanel>(initialPanel ?? "main");
   const [renameValue, setRenameValue] = useState(property.name);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [optionsDirty, setOptionsDirty] = useState(false);
@@ -117,12 +119,12 @@ export function PropertyMenuContent({
 
   useEffect(() => {
     if (opened) {
-      setPanel("main");
+      setPanel(initialPanel ?? "main");
       setRenameValue(property.name);
       setOptionsDirty(false);
       setPendingTargetType(null);
     }
-  }, [opened, property.name]);
+  }, [opened, property.name, initialPanel]);
 
   useEffect(() => {
     if (panel === "rename") {
@@ -463,7 +465,7 @@ export function PropertyMenuContent({
 
 PropertyMenuContent.displayName = "PropertyMenuContent";
 
-function MenuItem({
+export function MenuItem({
   icon,
   label,
   rightIcon,

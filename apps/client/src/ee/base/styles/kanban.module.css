@@ -76,6 +76,21 @@
   cursor: grabbing;
 }
 
+.columnTitleButton {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.columnTitleButton:hover {
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
 .cardList {
   display: flex;
   flex-direction: column;

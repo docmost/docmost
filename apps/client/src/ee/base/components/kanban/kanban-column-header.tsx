@@ -1,24 +1,27 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Menu, Text } from "@mantine/core";
-import { IconDots, IconPlus, IconGripVertical } from "@tabler/icons-react";
+import { ActionIcon, Text } from "@mantine/core";
+import { IconPlus, IconGripVertical } from "@tabler/icons-react";
 import clsx from "clsx";
-import { KanbanColumn } from "@/ee/base/types/base.types";
+import { IBaseProperty, KanbanColumn } from "@/ee/base/types/base.types";
 import { choiceColor } from "@/ee/base/components/cells/choice-color";
 import { useKanbanColumnDnd } from "@/ee/base/hooks/use-kanban-column-dnd";
 import { BaseDropEdgeIndicator } from "@/ee/base/components/grid/base-drop-edge-indicator";
+import { KanbanColumnTitle } from "@/ee/base/components/kanban/kanban-column-title";
+import { KanbanColumnMenu } from "@/ee/base/components/kanban/kanban-column-menu";
 import classes from "@/ee/base/styles/kanban.module.css";
 
 type KanbanColumnHeaderProps = {
   column: KanbanColumn;
   pageId: string;
+  property: IBaseProperty | undefined;
   count?: string;
   canEdit: boolean;
   onHide: () => void;
   onAddCard: () => void;
 };
 
-export function KanbanColumnHeader({ column, pageId, count, canEdit, onHide, onAddCard }: KanbanColumnHeaderProps) {
+export function KanbanColumnHeader({ column, pageId, property, count, canEdit, onHide, onAddCard }: KanbanColumnHeaderProps) {
   const { t } = useTranslation();
   const dotColor = column.color
     ? choiceColor(column.color).color as string
@@ -49,22 +52,13 @@ export function KanbanColumnHeader({ column, pageId, count, canEdit, onHide, onA
           background: dotColor,
         }}
       />
-      <Text fw={600} size="sm" flex={1} truncate>
-        {column.isNoValue ? t("No value") : column.name}
-      </Text>
+      <KanbanColumnTitle column={column} property={property} pageId={pageId} canEdit={canEdit} />
       {count !== undefined && <Text className={classes.count}>{count}</Text>}
       {canEdit && (
         <>
-          <Menu position="bottom-end" withinPortal>
-            <Menu.Target>
-              <ActionIcon variant="subtle" size="sm" color="gray" aria-label={t("Column options")}>
-                <IconDots size={14} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item onClick={onHide}>{t("Hide group")}</Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
+          {property && (
+            <KanbanColumnMenu property={property} pageId={pageId} onHide={onHide} />
+          )}
           <ActionIcon variant="subtle" size="sm" color="gray" aria-label={t("Add card")} onClick={onAddCard}>
             <IconPlus size={14} />
           </ActionIcon>

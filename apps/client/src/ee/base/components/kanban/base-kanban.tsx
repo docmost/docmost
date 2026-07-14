@@ -30,7 +30,7 @@ type BaseKanbanProps = {
 
 export function BaseKanban({ base, view, pageId, embedded, editable, viewFilter }: BaseKanbanProps) {
   const { t } = useTranslation();
-  const { groupByPropertyId, columns, hasValidGroupBy } = useKanbanColumns(base, view);
+  const { groupByPropertyId, groupByProperty, columns, hasValidGroupBy } = useKanbanColumns(base, view);
   const updateView = useUpdateViewMutation();
   const moveCard = useKanbanMoveCardMutation();
   const { openRow } = useRowDetailModal(pageId);
@@ -201,6 +201,7 @@ export function BaseKanban({ base, view, pageId, embedded, editable, viewFilter 
           column={column}
           viewFilter={viewFilter}
           groupByPropertyId={groupByPropertyId!}
+          groupByProperty={groupByProperty}
           canEdit={editable}
           onOpenRow={handleOpenRow}
           onHide={hideColumn}

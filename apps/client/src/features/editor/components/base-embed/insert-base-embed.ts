@@ -2,6 +2,8 @@ import type { Editor, Range } from "@tiptap/core";
 import { v7 as uuid7 } from "uuid";
 import { notifications } from "@mantine/notifications";
 import api from "@/lib/api-client";
+import i18n from "@/i18n.ts";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 function findBaseEmbedPlaceholderPos(
   editor: Editor,
@@ -50,7 +52,7 @@ export async function insertBaseEmbedBlock(
         return true;
       })
       .run();
-  } catch {
+  } catch (err) {
     const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
     if (pos !== null) {
       editor
@@ -62,6 +64,9 @@ export async function insertBaseEmbedBlock(
         })
         .run();
     }
-    notifications.show({ message: "Failed to create base", color: "red" });
+    notifications.show({
+      message: getApiErrorMessage(err, i18n.t("Failed to create base")),
+      color: "red",
+    });
   }
 }

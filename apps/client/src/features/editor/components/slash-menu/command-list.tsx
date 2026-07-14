@@ -10,6 +10,7 @@ import {
   Paper,
   ScrollArea,
   Text,
+  Tooltip,
   UnstyledButton,
   VisuallyHidden,
 } from "@mantine/core";
@@ -18,6 +19,7 @@ import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 const CommandList = ({
   items,
@@ -37,11 +39,12 @@ const CommandList = ({
   const [selectionAnnouncement, setSelectionAnnouncement] = useState("");
 
   const hasBases = useHasFeature(Feature.BASES);
-  // Title must match the "Base (Inline)" item in menu-items.ts. Without the
-  // bases entitlement the item stays visible but disabled; an expired license
-  // the client can't detect falls through to a handled create failure.
+  const upgradeLabel = useUpgradeLabel();
+  // Without the bases entitlement the item stays visible but inert; an
+  // expired license the client can't detect falls through to a handled
+  // create failure.
   const isItemDisabled = (item: SlashMenuItemType) =>
-    !hasBases && item.title === "Base (Inline)";
+    !hasBases && item.requiresBases === true;
 
   const flatItems = useMemo(() => {
     return Object.values(items).flat();
@@ -152,18 +155,22 @@ const CommandList = ({
               const itemIndex = flatIndex;
               const disabled = isItemDisabled(item);
               return (
+              <Tooltip
+                key={itemIndex}
+                label={upgradeLabel}
+                disabled={!disabled}
+                position="right"
+              >
               <UnstyledButton
                 data-item-index={itemIndex}
-                key={itemIndex}
                 id={`slash-command-option-${itemIndex}`}
                 role="option"
                 aria-selected={itemIndex === selectedIndex}
                 aria-disabled={disabled}
-                disabled={disabled}
                 onClick={() => selectItem(itemIndex)}
                 className={clsx(classes.menuBtn, {
                   [classes.selectedItem]: itemIndex === selectedIndex,
-                  [classes.disabledItem]: disabled,
+                  [classes.gatedItem]: disabled,
                 })}
               >
                 <Group wrap="nowrap">
@@ -188,6 +195,7 @@ const CommandList = ({
                   )}
                 </Group>
               </UnstyledButton>
+              </Tooltip>
               );
             })}
           </div>
