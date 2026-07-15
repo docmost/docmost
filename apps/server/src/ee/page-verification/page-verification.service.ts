@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -9,6 +10,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PageVerificationRepo } from './page-verification.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
+import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { PageAccessService } from '../../core/page/page-access/page-access.service';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
@@ -35,6 +38,8 @@ export class PageVerificationService {
     private readonly pageAccessService: PageAccessService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly commentRepo: CommentRepo,
+    private readonly pageHistoryRepo: PageHistoryRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
     private readonly notificationQueue: Queue,
@@ -464,6 +469,260 @@ export class PageVerificationService {
           : null,
         createdAt: new Date(item.createdAt).toISOString(),
       })),
+    };
+  }
+
+  async submit(pageId: string, user: User) {
+    const page = await this.getPageOrThrow(pageId);
+    // findLatestByPageId, not findByPageId: a page can have multiple
+    // page_verification rows once a QMS cycle has gone through
+    // approve -> content-changed-reset (see design doc §3.1/§4). Using
+    // the unordered findByPageId here would pick a nondeterministic row.
+    const verification = await this.pageVerificationRepo.findLatestByPageId(
+      pageId,
+    );
+    if (!verification || verification.type !== 'qms') {
+      throw new BadRequestException('QMS verification required');
+    }
+    if (!(await this.canManage(page, user))) {
+      throw new ForbiddenException();
+    }
+    if (
+      verification.status !== 'draft' &&
+      verification.status !== 'needs_clarification'
+    ) {
+      throw new BadRequestException('Page is not eligible for submission');
+    }
+
+    const unresolvedCount = await this.commentRepo.countUnresolvedByPageId(
+      pageId,
+    );
+    if (unresolvedCount > 0) {
+      throw new BadRequestException(
+        `Resolve ${unresolvedCount} comment(s) before submitting for review`,
+      );
+    }
+
+    const lastHistory = await this.pageHistoryRepo.findPageLastHistory(
+      pageId,
+    );
+    const verifiers = await this.pageVerificationRepo.getVerifiers(
+      verification.id,
+    );
+
+    await executeTx(this.db, async (trx) => {
+      await this.pageVerificationRepo.update(
+        pageId,
+        {
+          status: 'in_approval',
+          submittedAt: new Date(),
+          pageHistoryId: lastHistory?.id ?? null,
+          requestedAt: new Date(),
+          requestedById: user.id,
+          rejectedAt: null,
+          rejectedById: null,
+          rejectionComment: null,
+          clarificationRequestedAt: null,
+          clarificationRequestedById: null,
+        },
+        trx,
+      );
+      await this.pageVerificationRepo.resetReviewsForCycle(
+        verification.id,
+        verifiers.map((v) => v.id),
+        trx,
+      );
+    });
+
+    await this.notificationQueue.add(
+      QueueJob.PAGE_APPROVAL_REQUESTED_NOTIFICATION,
+      {
+        pageId: page.id,
+        spaceId: page.spaceId,
+        workspaceId: verification.workspaceId,
+        actorId: user.id,
+        verifierIds: verifiers.map((v) => v.id),
+      },
+    );
+  }
+
+  async approve(pageId: string, user: User) {
+    const verification = await this.getInApprovalVerificationForVerifier(
+      pageId,
+      user,
+    );
+    const unresolvedCount = await this.commentRepo.countUnresolvedByPageId(
+      pageId,
+    );
+    if (unresolvedCount > 0) {
+      throw new BadRequestException(
+        'Resolve outstanding comments or request clarification instead',
+      );
+    }
+
+    await executeTx(this.db, async (trx) => {
+      const decided = await this.pageVerificationRepo.recordReviewDecision(
+        verification.id,
+        user.id,
+        'approved',
+        trx,
+      );
+      if (!decided) {
+        throw new ForbiddenException('No pending decision for this verifier');
+      }
+
+      const pendingCount = await this.pageVerificationRepo.countPendingReviews(
+        verification.id,
+        trx,
+      );
+      if (pendingCount === 0) {
+        const flipped = await this.pageVerificationRepo.flipStatusIfInApproval(
+          verification.id,
+          {
+            status: 'approved',
+            verifiedAt: new Date(),
+            verifiedById: user.id,
+          },
+          trx,
+        );
+        if (!flipped) {
+          throw new ConflictException('Review cycle already resolved');
+        }
+      }
+    });
+  }
+
+  async reject(data: { pageId: string; comment: string }, user: User) {
+    if (!data.comment?.trim()) {
+      throw new BadRequestException('A rejection comment is required');
+    }
+    const verification = await this.getInApprovalVerificationForVerifier(
+      data.pageId,
+      user,
+    );
+
+    await executeTx(this.db, async (trx) => {
+      await this.pageVerificationRepo.recordReviewDecision(
+        verification.id,
+        user.id,
+        'rejected',
+        trx,
+      );
+      const flipped = await this.pageVerificationRepo.flipStatusIfInApproval(
+        verification.id,
+        {
+          status: 'draft',
+          rejectedAt: new Date(),
+          rejectedById: user.id,
+          rejectionComment: data.comment,
+        },
+        trx,
+      );
+      if (!flipped) {
+        throw new ConflictException('Review cycle already resolved');
+      }
+    });
+
+    await this.notificationQueue.add(
+      QueueJob.PAGE_APPROVAL_REJECTED_NOTIFICATION,
+      {
+        pageId: verification.pageId,
+        spaceId: verification.spaceId,
+        workspaceId: verification.workspaceId,
+        actorId: user.id,
+        requestedById: verification.requestedById,
+        comment: data.comment,
+      },
+    );
+  }
+
+  async requestClarification(pageId: string, user: User) {
+    const verification = await this.getInApprovalVerificationForVerifier(
+      pageId,
+      user,
+    );
+    const unresolvedCount = await this.commentRepo.countUnresolvedByPageId(
+      pageId,
+    );
+    if (unresolvedCount === 0) {
+      throw new BadRequestException(
+        'Add an unresolved comment to request clarification',
+      );
+    }
+
+    await executeTx(this.db, async (trx) => {
+      await this.pageVerificationRepo.recordReviewDecision(
+        verification.id,
+        user.id,
+        'needs_clarification',
+        trx,
+      );
+      const flipped = await this.pageVerificationRepo.flipStatusIfInApproval(
+        verification.id,
+        {
+          status: 'needs_clarification',
+          clarificationRequestedAt: new Date(),
+          clarificationRequestedById: user.id,
+        },
+        trx,
+      );
+      if (!flipped) {
+        throw new ConflictException('Review cycle already resolved');
+      }
+    });
+
+    await this.notificationQueue.add(
+      QueueJob.PAGE_APPROVAL_CLARIFICATION_NOTIFICATION,
+      {
+        pageId: verification.pageId,
+        spaceId: verification.spaceId,
+        workspaceId: verification.workspaceId,
+        actorId: user.id,
+        requestedById: verification.requestedById,
+      },
+    );
+  }
+
+  private async getInApprovalVerificationForVerifier(
+    pageId: string,
+    user: User,
+  ) {
+    const verification = await this.pageVerificationRepo.findLatestByPageId(
+      pageId,
+    );
+    if (!verification || verification.type !== 'qms') {
+      throw new NotFoundException('Verification not found');
+    }
+    const isVerifier = await this.pageVerificationRepo.isVerifier(
+      verification.id,
+      user.id,
+    );
+    if (!isVerifier) {
+      throw new ForbiddenException();
+    }
+    if (verification.status !== 'in_approval') {
+      throw new BadRequestException('Page is not awaiting review');
+    }
+    return verification;
+  }
+
+  async getReviewPayload(pageId: string, user: User) {
+    const page = await this.getPageOrThrow(pageId);
+    await this.pageAccessService.validateCanView(page, user);
+    const verification = await this.pageVerificationRepo.findLatestByPageId(
+      pageId,
+    );
+    if (!verification) {
+      throw new NotFoundException('Verification not found');
+    }
+    const [reviews, isReviewer] = await Promise.all([
+      this.pageVerificationRepo.findReviewsByVerificationId(verification.id),
+      this.pageVerificationRepo.isVerifier(verification.id, user.id),
+    ]);
+    return {
+      verification,
+      reviews,
+      permissions: { isReviewer },
     };
   }
 }
