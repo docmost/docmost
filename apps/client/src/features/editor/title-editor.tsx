@@ -56,7 +56,9 @@ export function TitleEditor({
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  // Untitled pages (no title yet) are editable right away; once a page has a
+  // title, editing requires the explicit "Edit title" button below.
+  const [isEditingTitle, setIsEditingTitle] = useState(!title);
 
   const titleEditor = useEditor({
     extensions: [
@@ -187,6 +189,13 @@ export function TitleEditor({
     };
   }, [pageId]);
 
+  // This component instance persists across page navigation (see
+  // activePageId above), so re-derive the edit-without-clicking affordance
+  // for each newly loaded page rather than only on first mount.
+  useEffect(() => {
+    setIsEditingTitle(!title);
+  }, [pageId]);
+
   useEffect(() => {
     if (!titleEditor) return;
     titleEditor.setEditable(
@@ -265,7 +274,13 @@ export function TitleEditor({
             // Then handle other key events
             handleTitleKeyDown(event);
           }}
-          onBlur={() => setIsEditingTitle(false)}
+          onBlur={() => {
+            // Keep untitled pages freely editable — only require the
+            // "Edit title" button again once a title has actually been set.
+            if (titleEditor && titleEditor.getText().trim() !== "") {
+              setIsEditingTitle(false);
+            }
+          }}
         />
       ) : (
         <Group gap="xs" wrap="nowrap">
