@@ -365,6 +365,24 @@ export class PageVerificationRepo {
       .execute();
   }
 
+  // Serializes concurrent decisive actions (approve/reject/requestClarification)
+  // on the same verification cycle. Takes a row lock on the parent
+  // pageVerifications row so that two concurrent transactions acting on the
+  // same verification id cannot both read a stale (pre-commit) view of the
+  // sibling review rows — without this, under READ COMMITTED, two final
+  // `approve()` calls can each see the other's review as still "pending" via
+  // countPendingReviews, and both skip the status flip, leaving the cycle
+  // stuck in `in_approval` forever (write skew). Must be called at the very
+  // start of the transaction, before recordReviewDecision/countPendingReviews.
+  async lockForUpdate(id: string, trx: KyselyTransaction): Promise<void> {
+    await trx
+      .selectFrom('pageVerifications')
+      .select('id')
+      .where('id', '=', id)
+      .forUpdate()
+      .executeTakeFirst();
+  }
+
   // Atomic race guard (design §2/§5): only succeeds while status is still
   // in_approval; returns undefined if another verifier's decisive action
   // already closed the cycle, so the caller can respond 409.

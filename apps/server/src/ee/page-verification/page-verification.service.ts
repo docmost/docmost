@@ -561,6 +561,11 @@ export class PageVerificationService {
     }
 
     await executeTx(this.db, async (trx) => {
+      // Lock the parent verification row first so concurrent approve() calls
+      // for the same verification serialize instead of racing on
+      // countPendingReviews (see write-skew note on lockForUpdate).
+      await this.pageVerificationRepo.lockForUpdate(verification.id, trx);
+
       const decided = await this.pageVerificationRepo.recordReviewDecision(
         verification.id,
         user.id,
@@ -602,6 +607,8 @@ export class PageVerificationService {
     );
 
     await executeTx(this.db, async (trx) => {
+      await this.pageVerificationRepo.lockForUpdate(verification.id, trx);
+
       await this.pageVerificationRepo.recordReviewDecision(
         verification.id,
         user.id,
@@ -651,6 +658,8 @@ export class PageVerificationService {
     }
 
     await executeTx(this.db, async (trx) => {
+      await this.pageVerificationRepo.lockForUpdate(verification.id, trx);
+
       await this.pageVerificationRepo.recordReviewDecision(
         verification.id,
         user.id,
