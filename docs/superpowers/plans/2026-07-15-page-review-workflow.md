@@ -38,7 +38,7 @@
 - Modify: `apps/server/src/integrations/queue/constants/queue.constants.ts:79-80` — add `PAGE_REVERIFICATION_REQUIRED_NOTIFICATION`, `PAGE_APPROVAL_CLARIFICATION_NOTIFICATION` job names.
 - Modify: `apps/server/src/integrations/queue/constants/queue.interface.ts` — add `IReverificationRequiredNotificationJob`, `IApprovalClarificationNotificationJob`.
 - Modify: `apps/server/src/core/notification/notification.processor.ts:139-153` — two additive `case` lines routing to EE `verificationNotificationService`.
-- Create (EE service methods, referenced but not separately listed as a file since it's inside the module): extend `apps/server/src/core/notification/services/verification.notification.ts` is core — actually per golden rule, the *content* of these handlers must live in EE. Since `VerificationNotificationService` today lives in core (`core/notification/services/verification.notification.ts`), we add thin pass-through methods there (data/plumbing, no business logic) that call into an EE-provided template resolver — see Task 6 for the exact minimal-touch approach.
+- Create: `apps/server/src/ee/page-verification/services/review-notification.service.ts` — `ReviewNotificationService.processApprovalClarification`/`.processReverificationRequired`, EE-owned (core's `VerificationNotificationService` is NOT modified). Routed from core via the pre-existing dynamic-require + `moduleRef.get(..., { strict: false })` pattern already used by `notification.processor.ts`'s `runVerificationReconcile()` — no new core import, no new core business logic. See Task 6.
 - Create: `apps/client/src/ee/page-verification/notification-url-override.ts` — `getReviewUrlOverride(notification)`.
 - Modify: `apps/client/src/features/notification/components/notification-item.tsx:71-78` — one-line hook-in.
 - Modify: `apps/client/src/ee/page-verification/types/page-verification.types.ts` — add `needs_clarification` status, `IReviewDecision`, `IReviewPayload` types.
@@ -63,7 +63,9 @@
 
 **Interfaces:**
 - Consumes: existing Kysely migration style from `apps/server/src/database/migrations/20260413T121647-page-verifications.ts` and `20260630T000001-recaptcha-verifications.ts` (snake_case columns, `gen_uuid_v7()` default, `onDelete` FKs).
-- Produces: `page_verifications.page_history_id/submitted_at/clarification_requested_at/clarification_requested_by_id` columns; new `page_verification_reviews` table; TS types `PageVerificationReviews`, `PageVerificationReview`, `InsertablePageVerificationReview`, `UpdatablePageVerificationReview`.
+- Produces: `page_verifications.page_history_id/submitted_at/clarification_requested_at/clarification_requested_by_id` columns; `page_verifications.page_id` no longer unique (replaced by a plain index); new `page_verification_reviews` table; TS types `PageVerificationReviews`, `PageVerificationReview`, `InsertablePageVerificationReview`, `UpdatablePageVerificationReview`.
+
+**Critical — verify before writing `down()`:** `20260413T121647-page-verifications.ts:10` defines `page_id` as `.notNull().unique().references('pages.id')`. Postgres auto-names a column-level `.unique()` constraint `<table>_<column>_key` — confirm the actual name with `psql -c "\d page_verifications"` against a running dev DB (`docker compose up -d db`) before finalizing; the snippet below assumes the default `page_verifications_page_id_key` but MUST be corrected if the live schema differs. This constraint must be dropped, or the multi-row-per-page model this whole feature depends on (§3.1/§4 of the design doc) cannot be built — inserting a second `page_verifications` row for the same `page_id` will fail at the DB level otherwise.
 
 - [ ] **Step 1: Write the migration file**
 ```ts
@@ -71,6 +73,23 @@
 import { Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
+  // Multiple page_verification rows per page are now valid (one per QMS
+  // review cycle after an approved page's content changes) — the original
+  // 1:1 uniqueness assumption from the initial page-verification feature
+  // no longer holds for type='qms'. Verify the constraint name below
+  // against the live DB first (see Interfaces note above).
+  await db.schema
+    .alterTable('page_verifications')
+    .dropConstraint('page_verifications_page_id_key')
+    .execute();
+
+  await db.schema
+    .createIndex('idx_page_verifications_page_id')
+    .ifNotExists()
+    .on('page_verifications')
+    .column('page_id')
+    .execute();
+
   await db.schema
     .alterTable('page_verifications')
     .addColumn('page_history_id', 'uuid', (col) =>
@@ -126,6 +145,20 @@ export async function down(db: Kysely<any>): Promise<void> {
     .dropColumn('submitted_at')
     .dropColumn('clarification_requested_at')
     .dropColumn('clarification_requested_by_id')
+    .execute();
+
+  await db.schema
+    .dropIndex('idx_page_verifications_page_id')
+    .ifExists()
+    .execute();
+
+  // NOTE: this will fail if any page now has >1 page_verification row
+  // (i.e. this migration has been live long enough for a real review
+  // cycle to have run) — down() is a best-effort dev-rollback path here,
+  // not a guaranteed production revert.
+  await db.schema
+    .alterTable('page_verifications')
+    .addUniqueConstraint('page_verifications_page_id_key', ['page_id'])
     .execute();
 }
 ```
@@ -384,7 +417,7 @@ describe('PageVerificationService.submit', () => {
     const pageRepo = { findById: jest.fn().mockResolvedValue({ id: 'p1', spaceId: 's1', creatorId: 'u1', deletedAt: null }) };
     const commentRepo = { countUnresolvedByPageId: jest.fn().mockResolvedValue(2) };
     const pageVerificationRepo = {
-      findByPageId: jest.fn().mockResolvedValue({ id: 'pv1', type: 'qms', status: 'draft', workspaceId: 'w1' }),
+      findLatestByPageId: jest.fn().mockResolvedValue({ id: 'pv1', type: 'qms', status: 'draft', workspaceId: 'w1' }),
     };
 
     const module = await Test.createTestingModule({
@@ -435,7 +468,13 @@ import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 ```ts
   async submit(pageId: string, user: User) {
     const page = await this.getPageOrThrow(pageId);
-    const verification = await this.pageVerificationRepo.findByPageId(pageId);
+    // findLatestByPageId, not findByPageId: a page can have multiple
+    // page_verification rows once a QMS cycle has gone through
+    // approve -> content-changed-reset (see design doc §3.1/§4). Using
+    // the unordered findByPageId here would pick a nondeterministic row.
+    const verification = await this.pageVerificationRepo.findLatestByPageId(
+      pageId,
+    );
     if (!verification || verification.type !== 'qms') {
       throw new BadRequestException('QMS verification required');
     }
@@ -642,7 +681,9 @@ import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
     pageId: string,
     user: User,
   ) {
-    const verification = await this.pageVerificationRepo.findByPageId(pageId);
+    const verification = await this.pageVerificationRepo.findLatestByPageId(
+      pageId,
+    );
     if (!verification || verification.type !== 'qms') {
       throw new NotFoundException('Verification not found');
     }
@@ -962,18 +1003,21 @@ import { PageContentUpdatedListener } from './page-content-updated.listener';
 
 ---
 
-### Task 6: Queue constants and notification routing
+### Task 6: Queue constants, EE `ReviewNotificationService`, and core routing via the existing `runVerificationReconcile` pattern
 
 **Files:**
 - Modify: `apps/server/src/integrations/queue/constants/queue.constants.ts:79-80`
 - Modify: `apps/server/src/integrations/queue/constants/queue.interface.ts` (append two interfaces)
-- Modify: `apps/server/src/core/notification/notification.processor.ts:1-24,44-58,139-153`
-- Modify: (EE, not core) `apps/server/src/ee/page-verification` — add a `processReverificationRequired` / `processApprovalClarification` method to wherever `verificationNotificationService` actually lives (confirmed core file `apps/server/src/core/notification/services/verification.notification.ts` — read it before editing to match its existing `processApprovalRequested`/`processApprovalRejected` signatures)
-- Test: none required (data/constants + thin routing; covered indirectly by Task 3/5 tests)
+- Create: `apps/server/src/ee/page-verification/services/review-notification.service.ts`
+- Modify: `apps/server/src/ee/page-verification/page-verification.module.ts` (register the new provider)
+- Modify: `apps/server/src/core/notification/notification.processor.ts` (two new private methods + two new `case` lines — NO new top-level import; see Step 4)
+- Test: `apps/server/src/ee/page-verification/services/review-notification.service.spec.ts`
 
 **Interfaces:**
-- Consumes: none new.
-- Produces: `QueueJob.PAGE_REVERIFICATION_REQUIRED_NOTIFICATION`, `QueueJob.PAGE_APPROVAL_CLARIFICATION_NOTIFICATION`; `IReverificationRequiredNotificationJob`, `IApprovalClarificationNotificationJob`.
+- Consumes: `apps/server/src/core/notification/notification.processor.ts:181-204`'s existing `runVerificationReconcile()` method as the pattern to replicate — read it first, it is the reference implementation for this task, not just inspiration. `VerificationNotificationService.processApprovalRejected` (`apps/server/src/core/notification/services/verification.notification.ts`) as the reference for what an in-app-notification-insert-plus-email method body looks like (read it, do not modify it).
+- Produces: `QueueJob.PAGE_REVERIFICATION_REQUIRED_NOTIFICATION`, `QueueJob.PAGE_APPROVAL_CLARIFICATION_NOTIFICATION`; `IReverificationRequiredNotificationJob`, `IApprovalClarificationNotificationJob`; EE `ReviewNotificationService.processApprovalClarification(job, appUrl)` / `.processReverificationRequired(job, appUrl)`.
+
+**Why not inject `ReviewNotificationService` into `NotificationProcessor`'s constructor:** `NotificationModule` (`apps/server/src/core/notification/notification.module.ts`) is a core module with `imports: []`, loaded unconditionally at app boot — unlike `app.module.ts`, which wraps `require('./ee/ee.module')` in a try/catch specifically so the app still boots without `ee/` bundled. A static `import { ReviewNotificationService } from '../../ee/page-verification/...'` in `notification.processor.ts`, or `NotificationModule` statically importing `PageVerificationModule`, would silently remove that guarantee for this one feature. `runVerificationReconcile()` already solves this exact problem for the pre-existing `PageVerificationSchedulerService` — dynamic `require()` in a `try/catch`, falling back to a debug log if EE isn't bundled, then `this.moduleRef.get(EeClass, { strict: false })` using the `ModuleRef` already injected in the constructor. Task 6 replicates that shape for the two new jobs instead of adding a new DI wiring path.
 
 - [ ] **Step 1: Add the two job name constants**
 ```ts
@@ -1002,44 +1046,151 @@ export interface IReverificationRequiredNotificationJob {
 }
 ```
 
-- [ ] **Step 3: Read `apps/server/src/core/notification/services/verification.notification.ts` in full to match the existing `processApprovalRequested`/`processApprovalRejected` method shape (transactional email + in-app notification insert), then add two sibling methods `processApprovalClarification` and `processReverificationRequired` following the same pattern** (this is the file's existing data/plumbing pattern — reused as-is, not new business logic, per design §7).
+- [ ] **Step 3: Write a failing test for the EE service, then implement it**
 
-- [ ] **Step 4: Wire the two new `case`s into the switch (additive lines only, matching the existing two approval cases)**
+First read `apps/server/src/core/notification/services/verification.notification.ts` in full — copy its constructor dependencies (notification repo/DB, email service, etc.) and the shape of `processApprovalRejected` exactly, since `ReviewNotificationService` needs the same kind of in-app-notification-insert + transactional-email logic, just EE-owned and for the two new job types.
+
 ```ts
-// apps/server/src/core/notification/notification.processor.ts:1-24 — extend the job-type import list
-import {
-  IApprovalClarificationNotificationJob,
-  IReverificationRequiredNotificationJob,
-  // ...existing imports...
-} from '../../integrations/queue/constants/queue.interface';
+// apps/server/src/ee/page-verification/services/review-notification.service.spec.ts
+import { Test } from '@nestjs/testing';
+import { ReviewNotificationService } from './review-notification.service';
+import { getKyselyToken } from 'nestjs-kysely';
+
+describe('ReviewNotificationService.processApprovalClarification', () => {
+  it('inserts an in-app notification for the actor of the clarification request\'s requester', async () => {
+    const insertInto = jest.fn().mockReturnThis();
+    const values = jest.fn().mockReturnThis();
+    const execute = jest.fn().mockResolvedValue(undefined);
+    const db: any = { insertInto: insertInto.mockReturnValue({ values: values.mockReturnValue({ execute }) }) };
+
+    const module = await Test.createTestingModule({
+      providers: [
+        ReviewNotificationService,
+        { provide: getKyselyToken(), useValue: db },
+      ],
+    }).compile();
+
+    const service = module.get(ReviewNotificationService);
+
+    await service.processApprovalClarification(
+      {
+        pageId: 'p1',
+        spaceId: 's1',
+        workspaceId: 'w1',
+        actorId: 'reviewer-1',
+        requestedById: 'contributor-1',
+      },
+      'https://app.example.com',
+    );
+
+    expect(insertInto).toHaveBeenCalledWith('notifications');
+  });
+});
 ```
+Run: `pnpm --filter server test review-notification.service.spec` — verify it fails (module doesn't exist).
+
+Implement `ReviewNotificationService` matching the real constructor/DB-write shape found in `verification.notification.ts` (the snippet above is illustrative of the test intent, not the literal Kysely calls — match whatever `processApprovalRejected` actually does for its `notifications` table insert and email dispatch).
+
+- [ ] **Step 4: Register the provider in the EE module**
 ```ts
-// extend the process() job union type (line ~56) with:
-      | IApprovalClarificationNotificationJob
-      | IReverificationRequiredNotificationJob,
+// apps/server/src/ee/page-verification/page-verification.module.ts
+import { ReviewNotificationService } from './services/review-notification.service';
+// ...
+  providers: [
+    PageVerificationService,
+    PageVerificationRepo,
+    PageVerificationSchedulerService,
+    PageContentUpdatedListener,
+    ReviewNotificationService,
+  ],
 ```
+
+- [ ] **Step 5: Add two private methods to `notification.processor.ts`, replicating `runVerificationReconcile`'s shape — no new top-level import**
 ```ts
-        // after the existing PAGE_APPROVAL_REJECTED_NOTIFICATION case (line ~153)
+// apps/server/src/core/notification/notification.processor.ts — new private methods,
+// placed next to runVerificationReconcile()
+  private async runApprovalClarification(
+    job: Job<{ pageId: string; spaceId: string; workspaceId: string; actorId: string; requestedById: string }>,
+  ): Promise<void> {
+    let eeModule: { ReviewNotificationService?: unknown };
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      eeModule = require('../../ee/page-verification/services/review-notification.service');
+    } catch {
+      this.logger.debug(
+        'PAGE_APPROVAL_CLARIFICATION_NOTIFICATION fired but EE service not bundled in this build',
+      );
+      return;
+    }
+
+    const serviceClass = eeModule.ReviewNotificationService as
+      | (new (...args: unknown[]) => {
+          processApprovalClarification(job: unknown, appUrl: string): Promise<void>;
+        })
+      | undefined;
+    if (!serviceClass) return;
+
+    const service = this.moduleRef.get(serviceClass, { strict: false });
+    if (!service) {
+      this.logger.warn(
+        'PAGE_APPROVAL_CLARIFICATION_NOTIFICATION fired but service not resolvable',
+      );
+      return;
+    }
+    const appUrl = await this.getWorkspaceUrl(job.data.workspaceId);
+    await service.processApprovalClarification(job.data, appUrl);
+  }
+
+  private async runReverificationRequired(
+    job: Job<{ pageId: string; spaceId: string; workspaceId: string; verifierIds: string[] }>,
+  ): Promise<void> {
+    let eeModule: { ReviewNotificationService?: unknown };
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      eeModule = require('../../ee/page-verification/services/review-notification.service');
+    } catch {
+      this.logger.debug(
+        'PAGE_REVERIFICATION_REQUIRED_NOTIFICATION fired but EE service not bundled in this build',
+      );
+      return;
+    }
+
+    const serviceClass = eeModule.ReviewNotificationService as
+      | (new (...args: unknown[]) => {
+          processReverificationRequired(job: unknown, appUrl: string): Promise<void>;
+        })
+      | undefined;
+    if (!serviceClass) return;
+
+    const service = this.moduleRef.get(serviceClass, { strict: false });
+    if (!service) {
+      this.logger.warn(
+        'PAGE_REVERIFICATION_REQUIRED_NOTIFICATION fired but service not resolvable',
+      );
+      return;
+    }
+    const appUrl = await this.getWorkspaceUrl(job.data.workspaceId);
+    await service.processReverificationRequired(job.data, appUrl);
+  }
+```
+
+- [ ] **Step 6: Wire the two new `case`s into the switch (additive lines only — call the private methods from Step 5, no service field, no new import)**
+```ts
+        // after the existing PAGE_APPROVAL_REJECTED_NOTIFICATION case
         case QueueJob.PAGE_APPROVAL_CLARIFICATION_NOTIFICATION: {
-          await this.verificationNotificationService.processApprovalClarification(
-            job.data as IApprovalClarificationNotificationJob,
-            appUrl,
-          );
+          await this.runApprovalClarification(job as Job<any>);
           break;
         }
 
         case QueueJob.PAGE_REVERIFICATION_REQUIRED_NOTIFICATION: {
-          await this.verificationNotificationService.processReverificationRequired(
-            job.data as IReverificationRequiredNotificationJob,
-            appUrl,
-          );
+          await this.runReverificationRequired(job as Job<any>);
           break;
         }
 ```
 
-- [ ] **Step 5: Run the notification processor test suite (if present) and typecheck** — `pnpm --filter server test notification.processor` (or `pnpm --filter server typecheck` if no spec file exists yet); verify green.
+- [ ] **Step 7: Run tests** — `pnpm --filter server test review-notification.service.spec` (verify passes) and `pnpm --filter server test notification.processor` (if a spec file exists; otherwise `pnpm --filter server exec tsc --noEmit` to confirm the processor still typechecks).
 
-- [ ] **Step 6: Commit** — `git add apps/server/src/integrations/queue/constants/queue.constants.ts apps/server/src/integrations/queue/constants/queue.interface.ts apps/server/src/core/notification/notification.processor.ts apps/server/src/core/notification/services/verification.notification.ts && git commit -m "feat(notifications): route clarification and reverification jobs to EE verification service"`
+- [ ] **Step 8: Commit** — `git add apps/server/src/integrations/queue/constants/queue.constants.ts apps/server/src/integrations/queue/constants/queue.interface.ts apps/server/src/ee/page-verification/services/review-notification.service.ts apps/server/src/ee/page-verification/services/review-notification.service.spec.ts apps/server/src/ee/page-verification/page-verification.module.ts apps/server/src/core/notification/notification.processor.ts && git commit -m "feat(notifications): add EE ReviewNotificationService, route via existing EE-optional dynamic-require pattern"`
 
 ---
 
@@ -1729,7 +1880,7 @@ describe('PageVerificationService aggregate decisions', () => {
     commentRepo?: Partial<Record<string, jest.Mock>>;
   } = {}) {
     const pageVerificationRepo = {
-      findByPageId: jest.fn().mockResolvedValue({
+      findLatestByPageId: jest.fn().mockResolvedValue({
         id: 'pv1', type: 'qms', status: 'in_approval',
         pageId: 'p1', workspaceId: 'w1', spaceId: 's1', requestedById: 'owner',
       }),
