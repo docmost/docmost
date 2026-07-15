@@ -48,6 +48,17 @@ export class CommentRepo {
     });
   }
 
+  async countUnresolvedByPageId(pageId: string): Promise<number> {
+    const row = await this.db
+      .selectFrom('comments')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('pageId', '=', pageId)
+      .where('parentCommentId', 'is', null)
+      .where('resolvedAt', 'is', null)
+      .executeTakeFirst();
+    return Number(row?.count ?? 0);
+  }
+
   async updateComment(
     updatableComment: UpdatableComment,
     commentId: string,

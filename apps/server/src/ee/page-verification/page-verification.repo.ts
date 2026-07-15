@@ -4,8 +4,11 @@ import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertablePageVerification,
+  InsertablePageVerificationReview,
   PageVerification,
+  PageVerificationReview,
   UpdatablePageVerification,
+  UpdatablePageVerificationReview,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
@@ -277,5 +280,106 @@ export class PageVerificationRepo {
       .where('expiresAt', 'is not', null)
       .where('expiresAt', '<=', now)
       .execute();
+  }
+
+  async findLatestByPageId(
+    pageId: string,
+  ): Promise<PageVerification | undefined> {
+    return this.db
+      .selectFrom('pageVerifications')
+      .selectAll()
+      .where('pageId', '=', pageId)
+      .orderBy('createdAt', 'desc')
+      .executeTakeFirst();
+  }
+
+  async resetReviewsForCycle(
+    pageVerificationId: string,
+    verifierIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('pageVerificationReviews')
+      .where('pageVerificationId', '=', pageVerificationId)
+      .execute();
+
+    if (verifierIds.length === 0) return;
+
+    await db
+      .insertInto('pageVerificationReviews')
+      .values(
+        verifierIds.map((verifierId) => ({
+          pageVerificationId,
+          verifierId,
+          decision: 'pending',
+        })),
+      )
+      .execute();
+  }
+
+  async recordReviewDecision(
+    pageVerificationId: string,
+    verifierId: string,
+    decision: string,
+    trx?: KyselyTransaction,
+  ): Promise<PageVerificationReview | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('pageVerificationReviews')
+      .set({ decision, decidedAt: new Date() })
+      .where('pageVerificationId', '=', pageVerificationId)
+      .where('verifierId', '=', verifierId)
+      .where('decision', '=', 'pending')
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  async countPendingReviews(
+    pageVerificationId: string,
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    const db = dbOrTx(this.db, trx);
+    const row = await db
+      .selectFrom('pageVerificationReviews')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('pageVerificationId', '=', pageVerificationId)
+      .where('decision', '=', 'pending')
+      .executeTakeFirst();
+    return Number(row?.count ?? 0);
+  }
+
+  async findReviewsByVerificationId(pageVerificationId: string) {
+    return this.db
+      .selectFrom('pageVerificationReviews')
+      .innerJoin('users', 'users.id', 'pageVerificationReviews.verifierId')
+      .select([
+        'pageVerificationReviews.id',
+        'pageVerificationReviews.decision',
+        'pageVerificationReviews.decidedAt',
+        'users.id as verifierId',
+        'users.name as verifierName',
+        'users.avatarUrl as verifierAvatarUrl',
+      ])
+      .where('pageVerificationId', '=', pageVerificationId)
+      .execute();
+  }
+
+  // Atomic race guard (design §2/§5): only succeeds while status is still
+  // in_approval; returns undefined if another verifier's decisive action
+  // already closed the cycle, so the caller can respond 409.
+  async flipStatusIfInApproval(
+    id: string,
+    data: UpdatablePageVerification,
+    trx?: KyselyTransaction,
+  ): Promise<PageVerification | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('pageVerifications')
+      .set({ ...data, updatedAt: new Date() })
+      .where('id', '=', id)
+      .where('status', '=', 'in_approval')
+      .returningAll()
+      .executeTakeFirst();
   }
 }
