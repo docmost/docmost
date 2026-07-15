@@ -24,6 +24,59 @@ See `apps/client/src/ee/breadcrumb/space-breadcrumb-link.tsx` and its single-imp
 - Before finishing any task that touches a core file, re-check the diff: if it contains anything beyond an import statement and a trivial usage line, move that logic into `ee/` and re-wire.
 - When in doubt about whether something counts as "core", ask the user rather than guessing.
 
+# Commands
+
+Package manager is pnpm (10+), monorepo orchestrated via Nx. Run everything from the repo root; use `pnpm --filter ./apps/server` / `./apps/client` to scope a command to one app.
+
+- `pnpm install` — install deps
+- `pnpm dev` — client (Vite) + server (Nest) concurrently, for local dev
+- `pnpm client:dev` / `pnpm server:dev` — run one side only
+- `pnpm build` — build everything (`nx run-many -t build`)
+- `pnpm client:build` / `pnpm server:build` / `pnpm editor-ext:build` — build one target
+- `pnpm start` — run the built server in production mode
+- `pnpm collab:dev` / `pnpm collab:prod` — run the standalone collaboration (Hocuspocus) process separately, for horizontal scaling
+
+Lint:
+- `pnpm --filter ./apps/server run lint` — ESLint with `--fix`
+- `pnpm --filter ./apps/client run lint` — ESLint
+
+Tests:
+- Server uses Jest: `pnpm --filter ./apps/server run test` / `test:watch` / `test:cov`
+  - Single file: `pnpm --filter ./apps/server exec jest path/to/file.spec.ts`
+  - Single test: `pnpm --filter ./apps/server exec jest path/to/file.spec.ts -t "test name"`
+  - E2E: `pnpm --filter ./apps/server run test:e2e`
+- Client uses Vitest: `pnpm --filter ./apps/client run test` (run once) / `test:watch`
+  - Single file: `pnpm --filter ./apps/client exec vitest run path/to/file.test.tsx`
+
+Database migrations (server, Kysely-based, not an ORM):
+- `pnpm --filter ./apps/server run migration:create <name>`
+- `pnpm --filter ./apps/server run migration:up` / `migration:latest` / `migration:down` / `migration:redo`
+- `pnpm --filter ./apps/server run migration:codegen` — regenerates `apps/server/src/database/types/db.d.ts` from the live DB schema; never hand-edit that file
+
+Local infra without running the app: `docker compose up -d db redis minio` gives Postgres 18, Redis 8, and MinIO. Copy `.env.example` to `.env` and set `DATABASE_URL`, `REDIS_URL`, `APP_SECRET`, and `UNLOCK_EE=true` before running the app.
+
+# Architecture
+
+pnpm/Nx monorepo: `apps/client` (React 19 + Vite + Mantine SPA), `apps/server` (NestJS + Fastify API and realtime collaboration server), `packages/editor-ext` (shared TipTap extensions), `packages/base-formula` (formula engine for the Bases feature) — the packages are consumed by both apps as `workspace:*` deps. This is a fork of Docmost tracking upstream (see Golden Rule above); all fork-specific work belongs under `ee/` in both apps.
+
+**Server** (`apps/server/src`):
+- `core/` — OSS domain modules (space, page, workspace, user, group, auth, comment, search, share, attachment, favorite, label, notification, session, watcher), one NestJS module per domain with controller/service/repo.
+- `ee/` — Enterprise modules: SSO/SSO-auth, SCIM, MFA, API keys, audit, page permissions, templates, page verification, personal spaces, Bases, AI/AI-chat (stub), billing (stub), MCP (stub), DOCX/PDF/Confluence import-export, and the plugin system. Loaded dynamically in `app.module.ts` via `require('./ee/ee.module')` inside a try/catch — the app still boots if `ee/` is missing or fails to load (except when `CLOUD=true`, where that's fatal). Gate individual EE capabilities through the `Feature` enum in `common/features.ts` plus `ee/licence`, rather than branching in core.
+- `database/` — Kysely query builder; hand-written SQL migrations in `database/migrations`; generated types in `database/types/db.d.ts`.
+- `collaboration/` — Hocuspocus/Yjs realtime editing; can run in-process or as the standalone `collab` process.
+- `integrations/` — external adapters: storage (local/S3/Azure/MinIO), mail, queue (BullMQ+Redis), export (DOCX/PDF via Gotenberg), import, telemetry, security, throttle.
+- `common/` — cross-cutting decorators, guards, interceptors, error types, and the `Feature` enum.
+
+**Client** (`apps/client/src`):
+- `features/` — OSS UI organized by domain (page, space, editor, comment, search, workspace, attachments, page-history, transclusion, etc.), mirroring the server's `core/` domains.
+- `ee/` — Enterprise UI, one directory per capability (`security` (SSO), `mfa`, `scim`, `api-key`, `audit`, `billing`, `licence`, `template`, `page-permission`, `base` (Bases), `ai`/`ai-chat`, `pdf-export`, `plugins`, `personal-space`, `page-verification`, `breadcrumb`, etc.), each typically with `components/`, `queries/` (TanStack Query), `services/` (axios), and sometimes `pages/`.
+- Client-side feature gating goes through `ee/hooks/use-feature.ts` (`useHasFeature`) and `ee/entitlement/`; `ee/licence/license.utils.ts` reads licence state.
+- Editor is TipTap 3 (`@tiptap/*` plus the workspace `@docmost/editor-ext` package), diagrams via Draw.io/Excalidraw/Mermaid, app state via Jotai, data fetching via TanStack Query, forms via Mantine Form + Zod.
+
+**Plugin system** (WIP, orthogonal to the EE/core split above): a fork-safe hook system for optional integrations (e.g. reCAPTCHA), implemented under `apps/server/src/ee/plugins` and `apps/client/src/ee/plugins`. `docs/plugin_management/` documents the design and rollout plan.
+
+`docs/` contains per-feature planning and architecture docs (SSO, plugin management, MinIO storage, page history, detail info panel, etc.) written during development of specific EE/fork features — check the relevant subdirectory there for design rationale before reworking one of those areas.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 

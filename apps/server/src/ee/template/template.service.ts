@@ -22,6 +22,7 @@ import { User, Workspace } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { ContentFormat } from '../../core/page/dto/create-page.dto';
 import { JsonValue } from '@docmost/db/types/db';
+import { resolveTemplateSkeletons } from './utils/resolve-template-skeletons.util';
 
 @Injectable()
 export class TemplateService {
@@ -193,7 +194,7 @@ export class TemplateService {
       icon: template.icon ?? undefined,
       spaceId: data.spaceId,
       parentPageId: data.parentPageId,
-      content: template.content as object,
+      content: resolveTemplateSkeletons(template.content) as object,
       format: 'json' as ContentFormat,
     });
   }
