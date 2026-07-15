@@ -21,6 +21,7 @@ import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { extractPageSlugId } from "@/lib";
 import { useMediaQuery } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
+import { SpaceBreadcrumbLink } from "@/ee/breadcrumb/space-breadcrumb-link";
 
 function getTitle(node: SpaceTreeNode, t: TFunction) {
   const name = getPageTitle(node.name, node.isBase, t);
@@ -105,12 +106,21 @@ export default function Breadcrumb() {
   const getBreadcrumbItems = () => {
     if (!breadcrumbNodes) return [];
 
+    const spaceAnchor = (
+      <SpaceBreadcrumbLink
+        spaceSlug={spaceSlug}
+        className={classes.truncatedText}
+        key="space"
+      />
+    );
+
     if (breadcrumbNodes.length > 3) {
       const firstNode = breadcrumbNodes[0];
       //const secondLastNode = breadcrumbNodes[breadcrumbNodes.length - 2];
       const lastNode = breadcrumbNodes[breadcrumbNodes.length - 1];
 
       return [
+        spaceAnchor,
         renderAnchor(firstNode),
         <Popover
           width={250}
@@ -137,16 +147,28 @@ export default function Breadcrumb() {
       ];
     }
 
-    return breadcrumbNodes.map((node, i) =>
-      renderAnchor(node, i === breadcrumbNodes.length - 1),
-    );
+    return [
+      spaceAnchor,
+      ...breadcrumbNodes.map((node, i) =>
+        renderAnchor(node, i === breadcrumbNodes.length - 1),
+      ),
+    ];
   };
 
   const getMobileBreadcrumbItems = () => {
     if (!breadcrumbNodes) return [];
 
+    const spaceAnchor = (
+      <SpaceBreadcrumbLink
+        spaceSlug={spaceSlug}
+        className={classes.truncatedText}
+        key="space"
+      />
+    );
+
     if (breadcrumbNodes.length > 0) {
       return [
+        spaceAnchor,
         <Popover
           width={250}
           position="bottom"

@@ -1,3 +1,29 @@
+# ⚠️ GOLDEN RULE — Fork Upstream Sync Policy
+
+This repository is a **fork tracking an upstream project**. Upstream changes are merged/rebased into this fork periodically. **Minimizing diff against core (upstream-owned) code is the single most important constraint in this project — more important than code elegance, DRY, or "correct" architecture placement.**
+
+## The rule
+
+- **All new features, customizations, and behavior changes MUST be implemented under `apps/client/src/ee/` (or the equivalent `ee/` path for other apps/packages), NEVER by adding logic directly inside core/upstream files.**
+- Core files (anything outside `ee/`) may only receive **minimal, mechanical hook-in points**: an import line, and a single line/prop wiring an `ee/` component or hook into the render tree or call site. No business logic, no new state, no new conditionals beyond what's needed to call into `ee/`.
+- If a feature seems to require real logic inside a core file (e.g. a core function must branch based on new behavior), prefer exposing an extension point (a prop, a callback, a hook from `ee/`) over inlining the logic in core.
+- This applies to ALL tasks — features, bug fixes, refactors — not just ones the user explicitly labels as "add to ee". Default to `ee/` unless the user explicitly says the change must be in core (e.g. fixing an actual upstream bug that must be patched at the source).
+
+## Before writing any code, ask:
+
+1. Can this be built as a new file/component/hook entirely inside `ee/`?
+2. What is the absolute minimum touch to a core file needed to wire it in (ideally: one import + one line of usage)?
+3. Am I adding any conditional, state, or business logic to a core file? If yes — stop and move it into `ee/`.
+
+## Reference implementation
+
+See `apps/client/src/ee/breadcrumb/space-breadcrumb-link.tsx` and its single-import wiring into `apps/client/src/features/page/components/breadcrumbs/breadcrumb.tsx` as the pattern to replicate: all logic (data fetching, rendering) lives in `ee/`; core only imports the component and drops it into the existing JSX.
+
+## Reviewing a change before it's done
+
+- Before finishing any task that touches a core file, re-check the diff: if it contains anything beyond an import statement and a trivial usage line, move that logic into `ee/` and re-wire.
+- When in doubt about whether something counts as "core", ask the user rather than guessing.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
