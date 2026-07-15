@@ -42,3 +42,12 @@ overrides:
   protobufjs: 7.5.8
   ip-address: 10.1.1
 shamefullyHoist: true
+minimumReleaseAge: 5760
+allowBuilds:
+  '@swc/core': true
+  bcrypt: true
+  core-js: true
+  esbuild: true
+  msgpackr-extract: true
+  nx: true
+  unrs-resolver: true
