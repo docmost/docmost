@@ -567,6 +567,10 @@ export interface PageVerifications {
   creatorId: string | null;
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
+  pageHistoryId: string | null;
+  submittedAt: Timestamp | null;
+  clarificationRequestedAt: Timestamp | null;
+  clarificationRequestedById: string | null;
 }
 
 export interface PageVerifiers {
@@ -575,6 +579,15 @@ export interface PageVerifiers {
   userId: string;
   isPrimary: Generated<boolean>;
   addedById: string | null;
+  createdAt: Generated<Timestamp>;
+}
+
+export interface PageVerificationReviews {
+  id: Generated<string>;
+  pageVerificationId: string;
+  verifierId: string;
+  decision: Generated<string>;
+  decidedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
 }
 
@@ -664,6 +677,7 @@ export interface DB {
   pageHistory: PageHistory;
   pageLabels: PageLabels;
   pageVerifications: PageVerifications;
+  pageVerificationReviews: PageVerificationReviews;
   pageVerifiers: PageVerifiers;
   pages: Pages;
   scimTokens: ScimTokens;
