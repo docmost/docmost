@@ -13,7 +13,6 @@ import {
   IconEyeOff,
   IconFileExport,
   IconHome,
-  IconPlus,
   IconSearch,
   IconSettings,
   IconStar,
@@ -55,6 +54,7 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
 import TemplatePickerModal from "@/ee/template/components/template-picker-modal";
+import CreatePageMenu from "@/ee/template/components/create-page-menu";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
@@ -159,24 +159,19 @@ export function SpaceSidebar() {
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page,
             ) && (
-              <UnstyledButton
+              <CreatePageMenu
+                spaceId={space.id}
+                trigger="menuItem"
                 className={classes.menu}
-                onClick={() => {
+                innerClassName={classes.menuItemInner}
+                iconClassName={classes.menuItemIcon}
+                onCreateBlank={() => {
                   handleCreatePage();
                   if (mobileSidebarOpened) {
                     toggleMobileSidebar();
                   }
                 }}
-              >
-                <div className={classes.menuItemInner}>
-                  <IconPlus
-                    size={18}
-                    className={classes.menuItemIcon}
-                    stroke={2}
-                  />
-                  <span>{t("New page")}</span>
-                </div>
-              </UnstyledButton>
+              />
             )}
           </div>
         </div>
@@ -201,16 +196,11 @@ export function SpaceSidebar() {
                 SpaceCaslAction.Manage,
                 SpaceCaslSubject.Page,
               ) && (
-                <Tooltip label={t("Create page")} withArrow position="right">
-                  <ActionIcon
-                    variant="default"
-                    size={18}
-                    onClick={handleCreatePage}
-                    aria-label={t("Create page")}
-                  >
-                    <IconPlus />
-                  </ActionIcon>
-                </Tooltip>
+                <CreatePageMenu
+                  spaceId={space.id}
+                  trigger="actionIcon"
+                  onCreateBlank={handleCreatePage}
+                />
               )}
             </Group>
           </Group>

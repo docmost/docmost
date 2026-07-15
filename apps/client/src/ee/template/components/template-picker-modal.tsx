@@ -8,13 +8,14 @@ import {
   Text,
   UnstyledButton,
   Group,
-  SegmentedControl,
+  ThemeIcon,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconSearch,
   IconFileText,
+  IconFileSearch,
 } from "@tabler/icons-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -34,23 +35,27 @@ type TemplatePickerModalProps = {
   onClose: () => void;
   /** Pre-select this space in the destination picker after a template is chosen. */
   initialSpaceId?: string;
+  /** When set alongside initialSpaceId, the created page becomes a child of this page. */
+  initialParentPageId?: string;
 };
 
-type ScopeFilter = "current" | "all";
+type TemplateSection = {
+  key: string;
+  label: string;
+  items: ITemplate[];
+};
 
 export default function TemplatePickerModal({
   opened,
   onClose,
   initialSpaceId,
+  initialParentPageId,
 }: TemplatePickerModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const useTemplateMutation = useUseTemplateMutation();
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebouncedValue(query, 200);
-  const [scope, setScope] = useState<ScopeFilter>(
-    initialSpaceId ? "current" : "all",
-  );
   // Two-stage selection: previewing first, then destination-picker.
   // `previewTemplate` is set when the user clicks a row in the picker.
   // `destinationTemplate` is set when they click "Use template" in the preview.
@@ -60,9 +65,7 @@ export default function TemplatePickerModal({
   const [destinationTemplate, setDestinationTemplate] =
     useState<ITemplate | null>(null);
 
-  const { data, isPending } = useGetTemplatesQuery({
-    spaceId: scope === "current" ? initialSpaceId : undefined,
-  });
+  const { data, isPending } = useGetTemplatesQuery({});
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
 
   const spaceNamesById = useMemo(() => {
@@ -78,12 +81,30 @@ export default function TemplatePickerModal({
     return all.filter((tpl) => tpl.title.toLowerCase().includes(term));
   }, [data, debouncedQuery]);
 
+  const sections = useMemo<TemplateSection[]>(() => {
+    const currentSpace = initialSpaceId
+      ? filtered.filter((tpl) => tpl.spaceId === initialSpaceId)
+      : [];
+    const global = filtered.filter((tpl) => !tpl.spaceId);
+    const accountedIds = new Set([...currentSpace, ...global].map((t) => t.id));
+    const other = filtered.filter((tpl) => !accountedIds.has(tpl.id));
+
+    return [
+      { key: "current", label: t("This space"), items: currentSpace },
+      { key: "global", label: t("Global"), items: global },
+      { key: "other", label: t("Other spaces"), items: other },
+    ].filter((section) => section.items.length > 0);
+  }, [filtered, initialSpaceId, t]);
+
+  const isEmpty = sections.length === 0;
+
   const createInInitialSpace = async (tpl: ITemplate) => {
     if (!initialSpaceId) return;
     try {
       const page = await useTemplateMutation.mutateAsync({
         templateId: tpl.id,
         spaceId: initialSpaceId,
+        parentPageId: initialParentPageId,
       });
       setPreviewTemplate(null);
       onClose();
@@ -130,21 +151,62 @@ export default function TemplatePickerModal({
 
   const handleClose = () => {
     setQuery("");
-    setScope(initialSpaceId ? "current" : "all");
     setPreviewTemplate(null);
     setDestinationTemplate(null);
     onClose();
   };
+
+  const renderRow = (tpl: ITemplate) => (
+    <UnstyledButton
+      key={tpl.id}
+      className={classes.row}
+      onClick={() => handlePick(tpl)}
+    >
+      <ThemeIcon
+        className={classes.icon}
+        variant="light"
+        color="gray"
+        size={28}
+        radius="md"
+      >
+        {tpl.icon ? (
+          <span className={classes.emoji}>{tpl.icon}</span>
+        ) : (
+          <IconFileText size={15} />
+        )}
+      </ThemeIcon>
+      <div className={classes.title}>{tpl.title}</div>
+      <div className={classes.scope}>
+        {tpl.spaceId
+          ? spaceNamesById.get(tpl.spaceId) ?? t("Space")
+          : t("Global")}
+      </div>
+      <Button
+        size="compact-xs"
+        variant="filled"
+        className={classes.useButton}
+        loading={useTemplateMutation.isPending}
+        disabled={useTemplateMutation.isPending}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleQuickUse(tpl);
+        }}
+      >
+        {t("Use")}
+      </Button>
+    </UnstyledButton>
+  );
 
   return (
     <>
       <Modal
         opened={opened && !previewTemplate && !destinationTemplate}
         onClose={handleClose}
-        size={550}
+        size={560}
         padding="lg"
+        radius="md"
         yOffset="10vh"
-        title={<Text fw={500}>{t("Use a template")}</Text>}
+        title={<Text fw={600}>{t("Use a template")}</Text>}
       >
         <TextInput
           leftSection={<IconSearch size={16} />}
@@ -152,72 +214,30 @@ export default function TemplatePickerModal({
           variant="filled"
           value={query}
           onChange={(e) => setQuery(e.currentTarget.value)}
-          mb="xs"
+          mb="md"
           autoFocus
         />
-
-        {initialSpaceId && (
-          <SegmentedControl
-            fullWidth
-            size="xs"
-            mb="sm"
-            value={scope}
-            onChange={(v) => setScope(v as ScopeFilter)}
-            data={[
-              { label: t("This space"), value: "current" },
-              { label: t("All templates"), value: "all" },
-            ]}
-          />
-        )}
 
         <ScrollArea h="50vh" offsetScrollbars>
           {isPending ? (
             <div className={classes.empty}>
               <Loader size="xs" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : isEmpty ? (
             <div className={classes.empty}>
-              <Text size="sm" c="dimmed">
+              <ThemeIcon variant="light" color="gray" size={40} radius="xl">
+                <IconFileSearch size={20} />
+              </ThemeIcon>
+              <Text size="sm" c="dimmed" mt="sm">
                 {t("No templates found")}
               </Text>
             </div>
           ) : (
-            filtered.map((tpl) => (
-              <UnstyledButton
-                key={tpl.id}
-                className={classes.row}
-                onClick={() => handlePick(tpl)}
-              >
-                <div className={classes.icon}>
-                  {tpl.icon ? (
-                    <span>{tpl.icon}</span>
-                  ) : (
-                    <IconFileText
-                      size={16}
-                      color="var(--mantine-color-gray-6)"
-                    />
-                  )}
-                </div>
-                <div className={classes.title}>{tpl.title}</div>
-                <div className={classes.scope}>
-                  {tpl.spaceId
-                    ? spaceNamesById.get(tpl.spaceId) ?? t("Space")
-                    : t("Global")}
-                </div>
-                <Button
-                  size="compact-xs"
-                  variant="filled"
-                  className={classes.useButton}
-                  loading={useTemplateMutation.isPending}
-                  disabled={useTemplateMutation.isPending}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleQuickUse(tpl);
-                  }}
-                >
-                  {t("Use")}
-                </Button>
-              </UnstyledButton>
+            sections.map((section) => (
+              <div key={section.key} className={classes.section}>
+                <Text className={classes.sectionLabel}>{section.label}</Text>
+                {section.items.map(renderRow)}
+              </div>
             ))
           )}
         </ScrollArea>

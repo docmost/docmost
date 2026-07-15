@@ -2,12 +2,11 @@ import { useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, rem } from "@mantine/core";
+import { ActionIcon } from "@mantine/core";
 import {
   IconChevronDown,
   IconChevronRight,
   IconFileDescription,
-  IconPlus,
   IconPointFilled,
   IconTable,
 } from "@tabler/icons-react";
@@ -33,6 +32,7 @@ import type { RenderRowProps } from "./doc-tree";
 import { NodeMenu } from "./space-tree-node-menu";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { updateTreeNodeIcon } from "@/features/page/tree/utils/utils.ts";
+import CreatePageMenu from "@/ee/template/components/create-page-menu";
 
 type SpaceTreeRowProps = RenderRowProps<SpaceTreeNode> & {
   readOnly: boolean;
@@ -280,19 +280,21 @@ function CreateNode({
   }
 
   return (
-    <ActionIcon
-      variant="subtle"
-      color="gray"
-      className={classes.actionIcon}
-      aria-label={t("Create subpage of {{name}}", { name: node.name || t("untitled") })}
-      tabIndex={-1}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleClickCreate();
+    <CreatePageMenu
+      trigger="actionIcon"
+      spaceId={node.spaceId}
+      parentPageId={node.id}
+      onCreateBlank={handleClickCreate}
+      actionIconGlyphSize={20}
+      actionIconProps={{
+        variant: "subtle",
+        color: "gray",
+        className: classes.actionIcon,
+        "aria-label": t("Create subpage of {{name}}", {
+          name: node.name || t("untitled"),
+        }),
+        tabIndex: -1,
       }}
-    >
-      <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
-    </ActionIcon>
+    />
   );
 }

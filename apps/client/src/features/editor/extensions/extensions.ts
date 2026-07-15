@@ -115,6 +115,9 @@ import { countWords } from "alfaaz";
 import AutoJoiner from "@/features/editor/extensions/autojoiner.ts";
 import GlobalDragHandle from "@/features/editor/extensions/drag-handle.ts";
 import { CleanStyles } from "@/features/editor/extensions/clean-styles.ts";
+import { TemplateSkeleton } from "@/ee/template/extensions/template-skeleton/template-skeleton-extension";
+import TemplateSkeletonView from "@/ee/template/extensions/template-skeleton/template-skeleton-view";
+import { mergeTemplateSkeletonItems } from "@/ee/template/extensions/template-skeleton/template-skeleton-slash-items";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -436,10 +439,13 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
 const TemplateSlashCommand = Command.configure({
   suggestion: {
     items: ({ query }: { query: string }) =>
-      getSuggestionItems({
+      mergeTemplateSkeletonItems(
+        getSuggestionItems({
+          query,
+          excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS,
+        }),
         query,
-        excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS,
-      }),
+      ),
     render: renderItems,
   },
 });
@@ -447,6 +453,7 @@ const TemplateSlashCommand = Command.configure({
 export const templateExtensions = [
   ...mainExtensions.filter((ext: any) => ext !== SlashCommand),
   TemplateSlashCommand,
+  TemplateSkeleton.configure({ view: TemplateSkeletonView }),
   UndoRedo,
 ] as any;
 

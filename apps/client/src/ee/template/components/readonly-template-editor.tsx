@@ -6,6 +6,8 @@ import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { UniqueID } from "@docmost/editor-ext";
 import { ITemplate } from "@/ee/template/types/template.types";
 import TemplateMeta from "@/ee/template/components/template-meta";
+import { TemplateSkeleton } from "@/ee/template/extensions/template-skeleton/template-skeleton-extension";
+import TemplateSkeletonView from "@/ee/template/extensions/template-skeleton/template-skeleton-view";
 
 type ReadonlyTemplateEditorProps = {
   template: ITemplate;
@@ -25,6 +27,7 @@ export default function ReadonlyTemplateEditor({
         types: ["heading", "paragraph"],
         updateDocument: false,
       }),
+      TemplateSkeleton.configure({ view: TemplateSkeletonView }),
     ];
   }, []);
 
