@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { executeTx } from '@docmost/db/utils';
 import { EventName } from '../../common/events/event.contants';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { PageVerificationRepo } from './page-verification.repo';
@@ -19,6 +22,7 @@ export class PageContentUpdatedListener {
 
   constructor(
     private readonly pageVerificationRepo: PageVerificationRepo,
+    @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
     private readonly notificationQueue: Queue,
   ) {}
@@ -40,23 +44,31 @@ export class PageContentUpdatedListener {
       previous.id,
     );
 
-    const created = await this.pageVerificationRepo.insert({
-      pageId: event.pageId,
-      workspaceId: event.workspaceId,
-      spaceId: event.spaceId,
-      type: 'qms',
-      status: 'draft',
-      pageHistoryId: event.historyId,
-      creatorId: previous.creatorId,
-    });
-
-    if (verifiers.length > 0) {
-      await this.pageVerificationRepo.replaceVerifiers(
-        created.id,
-        verifiers.map((v) => v.id),
-        previous.creatorId,
+    const created = await executeTx(this.db, async (trx) => {
+      const inserted = await this.pageVerificationRepo.insert(
+        {
+          pageId: event.pageId,
+          workspaceId: event.workspaceId,
+          spaceId: event.spaceId,
+          type: 'qms',
+          status: 'draft',
+          pageHistoryId: event.historyId,
+          creatorId: previous.creatorId,
+        },
+        trx,
       );
-    }
+
+      if (verifiers.length > 0) {
+        await this.pageVerificationRepo.replaceVerifiers(
+          inserted.id,
+          verifiers.map((v) => v.id),
+          previous.creatorId,
+          trx,
+        );
+      }
+
+      return inserted;
+    });
 
     this.logger.debug(
       `Page ${event.pageId} content changed after approval; reset to draft (${created.id})`,
