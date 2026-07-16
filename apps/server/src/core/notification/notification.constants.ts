@@ -10,6 +10,8 @@ export const NotificationType = {
   PAGE_VERIFIED: 'page.verified',
   PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
   PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
+  PAGE_APPROVAL_CLARIFICATION_REQUESTED: 'page.approval_clarification_requested',
+  PAGE_REVERIFICATION_REQUIRED: 'page.reverification_required',
 } as const;
 
 export type NotificationType =

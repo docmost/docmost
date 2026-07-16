@@ -6,11 +6,13 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import {
+  IApprovalClarificationNotificationJob,
   IApprovalRejectedNotificationJob,
   IApprovalRequestedNotificationJob,
   ICommentNotificationJob,
   ICommentResolvedNotificationJob,
   IPageMentionNotificationJob,
+  IPageReverificationRequiredNotificationJob,
   IPageUpdateNotificationJob,
   IPageVerifiedNotificationJob,
   IPermissionGrantedNotificationJob,
@@ -53,7 +55,9 @@ export class NotificationProcessor
       | IVerificationReconcileJob
       | IPageVerifiedNotificationJob
       | IApprovalRequestedNotificationJob
-      | IApprovalRejectedNotificationJob,
+      | IApprovalRejectedNotificationJob
+      | IApprovalClarificationNotificationJob
+      | IPageReverificationRequiredNotificationJob,
       void
     >,
   ): Promise<void> {
@@ -152,6 +156,16 @@ export class NotificationProcessor
           break;
         }
 
+        case QueueJob.PAGE_APPROVAL_CLARIFICATION_NOTIFICATION: {
+          await this.runApprovalClarification(job as Job<any>, appUrl);
+          break;
+        }
+
+        case QueueJob.PAGE_REVERIFICATION_REQUIRED_NOTIFICATION: {
+          await this.runReverificationRequired(job as Job<any>, appUrl);
+          break;
+        }
+
         default:
           this.logger.warn(`Unknown notification job: ${job.name}`);
       }
@@ -203,6 +217,76 @@ export class NotificationProcessor
       return;
     }
     await scheduler.reconcile();
+  }
+
+  private async runApprovalClarification(
+    job: Job<IApprovalClarificationNotificationJob>,
+    appUrl: string,
+  ): Promise<void> {
+    let eeModule: { ReviewNotificationService?: unknown };
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      eeModule = require('../../ee/page-verification/review-notification.service');
+    } catch {
+      this.logger.debug(
+        'PAGE_APPROVAL_CLARIFICATION_NOTIFICATION fired but EE service not bundled in this build',
+      );
+      return;
+    }
+
+    const serviceClass = eeModule.ReviewNotificationService as
+      | (new (...args: unknown[]) => {
+          processApprovalClarification(
+            job: IApprovalClarificationNotificationJob,
+            appUrl: string,
+          ): Promise<void>;
+        })
+      | undefined;
+    if (!serviceClass) return;
+
+    const service = this.moduleRef.get(serviceClass, { strict: false });
+    if (!service) {
+      this.logger.warn(
+        'PAGE_APPROVAL_CLARIFICATION_NOTIFICATION fired but service not resolvable',
+      );
+      return;
+    }
+    await service.processApprovalClarification(job.data, appUrl);
+  }
+
+  private async runReverificationRequired(
+    job: Job<IPageReverificationRequiredNotificationJob>,
+    appUrl: string,
+  ): Promise<void> {
+    let eeModule: { ReviewNotificationService?: unknown };
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      eeModule = require('../../ee/page-verification/review-notification.service');
+    } catch {
+      this.logger.debug(
+        'PAGE_REVERIFICATION_REQUIRED_NOTIFICATION fired but EE service not bundled in this build',
+      );
+      return;
+    }
+
+    const serviceClass = eeModule.ReviewNotificationService as
+      | (new (...args: unknown[]) => {
+          processReverificationRequired(
+            job: IPageReverificationRequiredNotificationJob,
+            appUrl: string,
+          ): Promise<void>;
+        })
+      | undefined;
+    if (!serviceClass) return;
+
+    const service = this.moduleRef.get(serviceClass, { strict: false });
+    if (!service) {
+      this.logger.warn(
+        'PAGE_REVERIFICATION_REQUIRED_NOTIFICATION fired but service not resolvable',
+      );
+      return;
+    }
+    await service.processReverificationRequired(job.data, appUrl);
   }
 
   private async getWorkspaceUrl(workspaceId: string): Promise<string> {
