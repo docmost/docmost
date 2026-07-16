@@ -3,6 +3,7 @@ import { PageVerificationService } from './page-verification.service';
 import { PageVerificationController } from './page-verification.controller';
 import { PageVerificationRepo } from './page-verification.repo';
 import { PageVerificationSchedulerService } from './page-verification-scheduler.service';
+import { PageContentUpdatedListener } from './page-content-updated.listener';
 import { PageAccessModule } from '../../core/page/page-access/page-access.module';
 import { QueueModule } from '../../integrations/queue/queue.module';
 
@@ -12,6 +13,7 @@ import { QueueModule } from '../../integrations/queue/queue.module';
     PageVerificationService,
     PageVerificationRepo,
     PageVerificationSchedulerService,
+    PageContentUpdatedListener,
   ],
   controllers: [PageVerificationController],
   exports: [PageVerificationSchedulerService],

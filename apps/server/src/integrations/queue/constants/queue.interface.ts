@@ -122,6 +122,13 @@ export interface IApprovalClarificationNotificationJob {
   requestedById: string;
 }
 
+export interface IPageReverificationRequiredNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  verifierIds: string[];
+}
+
 export interface IBaseTypeConversionJob {
   pageId: string;
   propertyId: string;
