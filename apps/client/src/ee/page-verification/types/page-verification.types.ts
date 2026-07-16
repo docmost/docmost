@@ -10,6 +10,7 @@ export type VerificationStatus =
   | "expired"
   | "draft"
   | "in_approval"
+  | "needs_clarification"
   | "approved"
   | "obsolete"
   | "none";
@@ -101,4 +102,25 @@ export type IVerificationListParams = {
   beforeCursor?: string;
   limit?: number;
   query?: string;
+};
+
+export type ReviewDecision =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "needs_clarification";
+
+export type IReviewDecisionEntry = {
+  id: string;
+  decision: ReviewDecision;
+  decidedAt: string | null;
+  verifierId: string;
+  verifierName: string;
+  verifierAvatarUrl: string | null;
+};
+
+export type IReviewPayload = {
+  verification: IPageVerificationInfo;
+  reviews: IReviewDecisionEntry[];
+  permissions: { isReviewer: boolean };
 };
