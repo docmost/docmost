@@ -34,7 +34,6 @@ COPY --from=builder /app/packages/base-formula/package.json /app/packages/base-f
 # Copy root package files
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/pnpm*.yaml /app/
-COPY --from=builder /app/.npmrc /app/.npmrc
 
 # Copy patches
 COPY --from=builder /app/patches /app/patches
