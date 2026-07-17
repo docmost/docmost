@@ -21,6 +21,7 @@ import { useMarkReadMutation } from "../queries/notification-query";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { formatRelativeTime } from "../notification.utils";
 import classes from "../notification.module.css";
+import { getReviewUrlOverride } from "@/ee/page-verification/notification-url-override";
 
 type NotificationItemProps = {
   notification: INotification;
@@ -68,7 +69,7 @@ export function NotificationItem({
     }
   };
 
-  const pageUrl =
+  const defaultPageUrl =
     notification.page && notification.space
       ? buildPageUrl(
           notification.space.slug,
@@ -76,6 +77,7 @@ export function NotificationItem({
           notification.page.title,
         )
       : undefined;
+  const pageUrl = getReviewUrlOverride(notification) ?? defaultPageUrl;
 
   const markReadIfNeeded = () => {
     if (isUnread) {
