@@ -1,4 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PageVerificationService } from './page-verification.service';
 import { PageVerificationRepo } from './page-verification.repo';
@@ -129,5 +133,366 @@ describe('PageVerificationService.approve', () => {
       'pv1',
       trx,
     );
+  });
+});
+
+// Exhaustive coverage of the aggregate multi-reviewer state machine (design
+// doc §2/§5): unanimous approval, first-decisive-action-wins for
+// reject/request-clarification, resubmit resetting all decisions, the four
+// comment gates, the 409 race guard, and authorization (non-verifier /
+// already-decided verifier). Builds the service via Test.createTestingModule
+// (not a bare `new PageVerificationService(...)`) because `executeTx`
+// (apps/server/src/database/utils.ts) calls `db.transaction().execute(cb)` on
+// the injected KyselyDB — a plain `{}` stub for `db` would throw, so the
+// KYSELY_MODULE_CONNECTION_TOKEN provider must be a fake with a working
+// `transaction().execute()` chain, mirroring the `approve` lock-order test
+// above.
+describe('PageVerificationService aggregate decisions', () => {
+  const baseVerification = {
+    id: 'pv1',
+    type: 'qms',
+    status: 'in_approval',
+    pageId: 'p1',
+    workspaceId: 'w1',
+    spaceId: 's1',
+    requestedById: 'owner',
+  };
+
+  function buildService(
+    overrides: {
+      repo?: Partial<Record<string, jest.Mock>>;
+      commentRepo?: Partial<Record<string, jest.Mock>>;
+    } = {},
+  ) {
+    const pageVerificationRepo = {
+      findLatestByPageId: jest.fn().mockResolvedValue({ ...baseVerification }),
+      isVerifier: jest.fn().mockResolvedValue(true),
+      lockForUpdate: jest.fn().mockResolvedValue(undefined),
+      recordReviewDecision: jest
+        .fn()
+        .mockResolvedValue({ id: 'r1', decision: 'approved' }),
+      countPendingReviews: jest.fn().mockResolvedValue(0),
+      flipStatusIfInApproval: jest
+        .fn()
+        .mockResolvedValue({ id: 'pv1', status: 'approved' }),
+      resetReviewsForCycle: jest.fn().mockResolvedValue(undefined),
+      update: jest.fn().mockResolvedValue(undefined),
+      getVerifiers: jest
+        .fn()
+        .mockResolvedValue([{ id: 'v1' }, { id: 'v2' }, { id: 'v3' }]),
+      ...overrides.repo,
+    };
+    const commentRepo = {
+      countUnresolvedByPageId: jest.fn().mockResolvedValue(0),
+      ...overrides.commentRepo,
+    };
+    const pageRepo = {
+      findById: jest
+        .fn()
+        .mockResolvedValue({ id: 'p1', spaceId: 's1', creatorId: 'owner', deletedAt: null }),
+    };
+    const pageHistoryRepo = {
+      findPageLastHistory: jest.fn().mockResolvedValue({ id: 'h1' }),
+    };
+    const notificationQueue = { add: jest.fn() };
+
+    const trx = {};
+    const db = {
+      transaction: () => ({
+        execute: (cb: (trx: unknown) => Promise<unknown>) => cb(trx),
+      }),
+    };
+
+    return {
+      pageVerificationRepo,
+      commentRepo,
+      pageRepo,
+      pageHistoryRepo,
+      notificationQueue,
+      trx,
+      db,
+    };
+  }
+
+  async function buildModule(
+    overrides: Parameters<typeof buildService>[0] = {},
+  ) {
+    const mocks = buildService(overrides);
+
+    const module = await Test.createTestingModule({
+      providers: [
+        PageVerificationService,
+        { provide: PageVerificationRepo, useValue: mocks.pageVerificationRepo },
+        { provide: PageRepo, useValue: mocks.pageRepo },
+        { provide: CommentRepo, useValue: mocks.commentRepo },
+        { provide: PageHistoryRepo, useValue: mocks.pageHistoryRepo },
+        {
+          provide: PageAccessService,
+          useValue: { validateCanView: jest.fn(), validateCanEdit: jest.fn() },
+        },
+        { provide: SpaceMemberRepo, useValue: {} },
+        {
+          provide: SpaceAbilityFactory,
+          useValue: {
+            createForUser: jest.fn().mockResolvedValue({ can: () => true }),
+          },
+        },
+        { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: mocks.db },
+        {
+          provide: getQueueToken(QueueName.NOTIFICATION_QUEUE),
+          useValue: mocks.notificationQueue,
+        },
+      ],
+    }).compile();
+
+    const service = module.get(PageVerificationService);
+    return { service, ...mocks };
+  }
+
+  describe('unanimous approval', () => {
+    it('flips status to approved only when this is the last pending reviewer', async () => {
+      const { service, pageVerificationRepo } = await buildModule();
+      await service.approve('p1', { id: 'v1' } as any);
+      expect(pageVerificationRepo.flipStatusIfInApproval).toHaveBeenCalledWith(
+        'pv1',
+        expect.objectContaining({ status: 'approved' }),
+        expect.anything(),
+      );
+    });
+
+    it('does not flip status when other reviewers are still pending', async () => {
+      const { service, pageVerificationRepo } = await buildModule({
+        repo: { countPendingReviews: jest.fn().mockResolvedValue(1) },
+      });
+      await service.approve('p1', { id: 'v1' } as any);
+      expect(pageVerificationRepo.flipStatusIfInApproval).not.toHaveBeenCalled();
+    });
+
+    it('leaves status untouched (no ConflictException) when an earlier approval was recorded but reviewers remain pending', async () => {
+      const { service, pageVerificationRepo } = await buildModule({
+        repo: { countPendingReviews: jest.fn().mockResolvedValue(2) },
+      });
+      await expect(
+        service.approve('p1', { id: 'v1' } as any),
+      ).resolves.toBeUndefined();
+      expect(pageVerificationRepo.flipStatusIfInApproval).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('first-decisive-action-wins', () => {
+    it('reject immediately flips status to draft regardless of other pending reviewers', async () => {
+      const { service, pageVerificationRepo } = await buildModule({
+        repo: {
+          flipStatusIfInApproval: jest
+            .fn()
+            .mockResolvedValue({ id: 'pv1', status: 'draft' }),
+          countPendingReviews: jest.fn().mockResolvedValue(2), // other verifiers still pending
+        },
+      });
+      await service.reject({ pageId: 'p1', comment: 'needs work' }, {
+        id: 'v1',
+      } as any);
+      expect(pageVerificationRepo.flipStatusIfInApproval).toHaveBeenCalledWith(
+        'pv1',
+        expect.objectContaining({
+          status: 'draft',
+          rejectedById: 'v1',
+          rejectionComment: 'needs work',
+        }),
+        expect.anything(),
+      );
+      // Reject is decisive: it never even consults the pending count.
+      expect(pageVerificationRepo.countPendingReviews).not.toHaveBeenCalled();
+    });
+
+    it('request-clarification immediately flips status to needs_clarification when unresolved comments exist', async () => {
+      const { service, pageVerificationRepo } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(1) },
+        repo: {
+          flipStatusIfInApproval: jest
+            .fn()
+            .mockResolvedValue({ id: 'pv1', status: 'needs_clarification' }),
+        },
+      });
+      await service.requestClarification('p1', { id: 'v1' } as any);
+      expect(pageVerificationRepo.flipStatusIfInApproval).toHaveBeenCalledWith(
+        'pv1',
+        expect.objectContaining({
+          status: 'needs_clarification',
+          clarificationRequestedById: 'v1',
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('resubmit resets decisions for a fresh cycle', () => {
+    it('submit resets ALL current verifiers to pending, discarding stale prior-cycle state', async () => {
+      const { service, pageVerificationRepo } = await buildModule({
+        repo: {
+          findLatestByPageId: jest.fn().mockResolvedValue({
+            ...baseVerification,
+            status: 'draft',
+          }),
+        },
+      });
+      await service.submit('p1', { id: 'owner' } as any);
+      expect(pageVerificationRepo.resetReviewsForCycle).toHaveBeenCalledWith(
+        'pv1',
+        ['v1', 'v2', 'v3'],
+        expect.anything(),
+      );
+    });
+
+    it('submit resets decisions from a needs_clarification cycle too', async () => {
+      const { service, pageVerificationRepo } = await buildModule({
+        repo: {
+          findLatestByPageId: jest.fn().mockResolvedValue({
+            ...baseVerification,
+            status: 'needs_clarification',
+          }),
+        },
+      });
+      await service.submit('p1', { id: 'owner' } as any);
+      expect(pageVerificationRepo.resetReviewsForCycle).toHaveBeenCalledWith(
+        'pv1',
+        ['v1', 'v2', 'v3'],
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('comment gates', () => {
+    it('blocks approve when unresolved comments exist', async () => {
+      const { service } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(1) },
+      });
+      await expect(
+        service.approve('p1', { id: 'v1' } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('blocks reject when unresolved comments exist', async () => {
+      const { service } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(1) },
+      });
+      await expect(
+        service.reject({ pageId: 'p1', comment: 'x' }, { id: 'v1' } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('blocks request-clarification when there are zero unresolved comments', async () => {
+      const { service } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(0) },
+      });
+      await expect(
+        service.requestClarification('p1', { id: 'v1' } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('allows request-clarification when unresolved comments exist', async () => {
+      const { service } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(3) },
+      });
+      await expect(
+        service.requestClarification('p1', { id: 'v1' } as any),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('race guard: cycle already closed by another verifier', () => {
+    it('approve throws ConflictException when flipStatusIfInApproval finds the cycle already closed', async () => {
+      const { service } = await buildModule({
+        repo: { flipStatusIfInApproval: jest.fn().mockResolvedValue(undefined) },
+      });
+      await expect(
+        service.approve('p1', { id: 'v1' } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('reject throws ConflictException when flipStatusIfInApproval finds the cycle already closed', async () => {
+      const { service } = await buildModule({
+        repo: { flipStatusIfInApproval: jest.fn().mockResolvedValue(undefined) },
+      });
+      await expect(
+        service.reject({ pageId: 'p1', comment: 'x' }, { id: 'v1' } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('request-clarification throws ConflictException when flipStatusIfInApproval finds the cycle already closed', async () => {
+      const { service } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(1) },
+        repo: { flipStatusIfInApproval: jest.fn().mockResolvedValue(undefined) },
+      });
+      await expect(
+        service.requestClarification('p1', { id: 'v1' } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('authorization', () => {
+    it('rejects approve from a non-verifier', async () => {
+      const { service } = await buildModule({
+        repo: { isVerifier: jest.fn().mockResolvedValue(false) },
+      });
+      await expect(
+        service.approve('p1', { id: 'stranger' } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects reject from a non-verifier', async () => {
+      const { service } = await buildModule({
+        repo: { isVerifier: jest.fn().mockResolvedValue(false) },
+      });
+      await expect(
+        service.reject({ pageId: 'p1', comment: 'x' }, {
+          id: 'stranger',
+        } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects request-clarification from a non-verifier', async () => {
+      const { service } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(1) },
+        repo: { isVerifier: jest.fn().mockResolvedValue(false) },
+      });
+      await expect(
+        service.requestClarification('p1', { id: 'stranger' } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    // Regression tests for a bug found while writing this suite: approve()
+    // already checked recordReviewDecision's return value and threw
+    // ForbiddenException when a verifier had no pending row to update (e.g.
+    // they already decided this cycle), but reject() and
+    // requestClarification() did not — see page-verification.service.ts.
+    // Both were fixed alongside this suite to match approve()'s behavior.
+    it('rejects approve from a verifier who already decided this cycle', async () => {
+      const { service } = await buildModule({
+        repo: { recordReviewDecision: jest.fn().mockResolvedValue(undefined) },
+      });
+      await expect(
+        service.approve('p1', { id: 'v1' } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects reject from a verifier who already decided this cycle', async () => {
+      const { service } = await buildModule({
+        repo: { recordReviewDecision: jest.fn().mockResolvedValue(undefined) },
+      });
+      await expect(
+        service.reject({ pageId: 'p1', comment: 'x' }, { id: 'v1' } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects request-clarification from a verifier who already decided this cycle', async () => {
+      const { service } = await buildModule({
+        commentRepo: { countUnresolvedByPageId: jest.fn().mockResolvedValue(1) },
+        repo: { recordReviewDecision: jest.fn().mockResolvedValue(undefined) },
+      });
+      await expect(
+        service.requestClarification('p1', { id: 'v1' } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 });

@@ -606,15 +606,28 @@ export class PageVerificationService {
       user,
     );
 
+    const unresolvedCount = await this.commentRepo.countUnresolvedByPageId(
+      data.pageId,
+    );
+    if (unresolvedCount > 0) {
+      throw new BadRequestException(
+        'Resolve outstanding comments or request clarification instead',
+      );
+    }
+
     await executeTx(this.db, async (trx) => {
       await this.pageVerificationRepo.lockForUpdate(verification.id, trx);
 
-      await this.pageVerificationRepo.recordReviewDecision(
+      const decided = await this.pageVerificationRepo.recordReviewDecision(
         verification.id,
         user.id,
         'rejected',
         trx,
       );
+      if (!decided) {
+        throw new ForbiddenException('No pending decision for this verifier');
+      }
+
       const flipped = await this.pageVerificationRepo.flipStatusIfInApproval(
         verification.id,
         {
@@ -660,12 +673,16 @@ export class PageVerificationService {
     await executeTx(this.db, async (trx) => {
       await this.pageVerificationRepo.lockForUpdate(verification.id, trx);
 
-      await this.pageVerificationRepo.recordReviewDecision(
+      const decided = await this.pageVerificationRepo.recordReviewDecision(
         verification.id,
         user.id,
         'needs_clarification',
         trx,
       );
+      if (!decided) {
+        throw new ForbiddenException('No pending decision for this verifier');
+      }
+
       const flipped = await this.pageVerificationRepo.flipStatusIfInApproval(
         verification.id,
         {
