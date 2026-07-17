@@ -9,16 +9,19 @@ import {
   Stack,
   Text,
   Textarea,
+  Tooltip,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n.ts";
+import { useCommentsQuery } from "@/features/comment/queries/comment-query";
 import {
   useMarkObsoleteMutation,
   usePageVerificationInfoQuery,
   useRejectApprovalMutation,
   useRemoveVerificationMutation,
   useSubmitForApprovalMutation,
+  useSubmitForReviewMutation,
   useUpdateVerificationMutation,
   useVerifyPageMutation,
 } from "@/ee/page-verification/queries/page-verification-query";
@@ -334,6 +337,11 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
   const obsoleteMutation = useMarkObsoleteMutation();
   const removeMutation = useRemoveVerificationMutation();
   const updateMutation = useUpdateVerificationMutation();
+  const { data: comments } = useCommentsQuery({ pageId });
+  const unresolvedCount =
+    comments?.items.filter((c) => !c.parentCommentId && !c.resolvedAt)
+      .length ?? 0;
+  const submitForReviewMutation = useSubmitForReviewMutation();
   const [confirmed, setConfirmed] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectComment, setRejectComment] = useState("");
@@ -349,6 +357,10 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
 
   const handleSubmitForApproval = () => {
     submitMutation.mutate(pageId, { onSuccess: onClose });
+  };
+
+  const handleSubmitForReview = () => {
+    submitForReviewMutation.mutate(pageId, { onSuccess: onClose });
   };
 
   const handleVerify = () => {
@@ -576,13 +588,21 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
 
         <Group gap="xs" ml="auto">
           {status === "draft" && info.permissions?.canSubmitForApproval && (
-            <Button
-              onClick={handleSubmitForApproval}
-              loading={submitMutation.isPending}
-              color="dark"
+            <Tooltip
+              label={t("Resolve {{count}} comment(s) before sending for review", {
+                count: unresolvedCount,
+              })}
+              disabled={unresolvedCount === 0}
             >
-              {t("Submit for approval")}
-            </Button>
+              <Button
+                onClick={handleSubmitForReview}
+                disabled={unresolvedCount > 0}
+                loading={submitForReviewMutation.isPending}
+                color="dark"
+              >
+                {t("Send for Review")}
+              </Button>
+            </Tooltip>
           )}
 
           {status === "in_approval" &&

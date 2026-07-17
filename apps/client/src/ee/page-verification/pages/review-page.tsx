@@ -5,6 +5,7 @@ import { useReviewPageQuery } from "@/ee/page-verification/queries/page-verifica
 import { ReviewActionBar } from "@/ee/page-verification/components/review-action-bar";
 import { ReviewerProgress } from "@/ee/page-verification/components/reviewer-progress";
 import CommentListWithTabs from "@/features/comment/components/comment-list-with-tabs";
+import { useCommentsQuery } from "@/features/comment/queries/comment-query";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
@@ -19,6 +20,7 @@ export default function ReviewPage() {
 
   const { data: payload, isLoading } = useReviewPageQuery(pageId);
   const { data: page } = usePageQuery({ pageId });
+  const { data: comments } = useCommentsQuery({ pageId: pageId! });
   const currentUser = useAtomValue(currentUserAtom);
 
   if (isLoading || !payload) {
@@ -29,7 +31,9 @@ export default function ReviewPage() {
     );
   }
 
-  const unresolvedCommentCount = 0;
+  const unresolvedCommentCount =
+    comments?.items.filter((c) => !c.parentCommentId && !c.resolvedAt)
+      .length ?? 0;
   const myReview = payload.reviews.find(
     (r) => r.verifierId === currentUser?.user?.id,
   );
