@@ -187,6 +187,7 @@ export default function PageEditor({
         name: documentName,
         document: ydoc,
         token: collabQuery?.token,
+        flushDelay: 500,
         onAuthenticationFailed: onAuthenticationFailedHandler,
         onStatus: onStatusHandler,
         onSynced: onSyncedHandler,
