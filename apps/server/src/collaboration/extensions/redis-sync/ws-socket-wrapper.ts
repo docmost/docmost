@@ -2,8 +2,9 @@ import type WebSocket from 'ws';
 import type { WebSocketLike } from '@hocuspocus/server';
 
 /**
- * Wrapper around ws WebSocket that only receives events via emit().
- * This prevents double-handling when used with RedisSyncExtension.
+ * Wrapper around ws WebSocket that Hocuspocus only writes to.
+ * Incoming socket events are forwarded separately by the gateway,
+ * which prevents double-handling with RedisSyncExtension.
  */
 export class WsSocketWrapper implements WebSocketLike {
   private ws: WebSocket;
