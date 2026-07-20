@@ -496,3 +496,178 @@ describe('PageVerificationService aggregate decisions', () => {
     });
   });
 });
+
+function buildBaseProviders(overrides: {
+  pageVerificationRepo?: Record<string, jest.Mock>;
+  commentRepo?: Record<string, jest.Mock>;
+  pageHistoryRepo?: Record<string, jest.Mock>;
+  db?: unknown;
+}) {
+  return [
+    PageVerificationService,
+    { provide: PageVerificationRepo, useValue: overrides.pageVerificationRepo },
+    {
+      provide: PageRepo,
+      useValue: {
+        findById: jest
+          .fn()
+          .mockResolvedValue({ id: 'p1', spaceId: 's1', creatorId: 'u1', deletedAt: null }),
+      },
+    },
+    { provide: CommentRepo, useValue: overrides.commentRepo ?? { countUnresolvedByPageId: jest.fn().mockResolvedValue(0) } },
+    { provide: PageHistoryRepo, useValue: overrides.pageHistoryRepo ?? { findPageLastHistory: jest.fn().mockResolvedValue({ id: 'h1' }) } },
+    { provide: PageAccessService, useValue: { validateCanView: jest.fn(), validateCanEdit: jest.fn() } },
+    { provide: SpaceMemberRepo, useValue: {} },
+    { provide: SpaceAbilityFactory, useValue: { createForUser: jest.fn().mockResolvedValue({ can: () => true }) } },
+    { provide: KYSELY_MODULE_CONNECTION_TOKEN(), useValue: overrides.db ?? {} },
+    { provide: getQueueToken(QueueName.NOTIFICATION_QUEUE), useValue: { add: jest.fn() } },
+  ];
+}
+
+// Regression coverage for Critical Finding 2: submit() must scope its
+// status/pageHistoryId write to the resolved verification row's `id`, not a
+// bare pageId — otherwise it would also flip any retained `approved` audit
+// row for the same page back to `in_approval`.
+describe('PageVerificationService.submit row-scoping', () => {
+  it('writes to the specific verification id returned by findLatestByPageId, not the raw pageId', async () => {
+    const updateSpy = jest.fn().mockResolvedValue(undefined);
+    const pageVerificationRepo = {
+      findLatestByPageId: jest.fn().mockResolvedValue({
+        id: 'pv-current-cycle',
+        type: 'qms',
+        status: 'draft',
+        workspaceId: 'w1',
+      }),
+      getVerifiers: jest.fn().mockResolvedValue([{ id: 'v1' }]),
+      update: updateSpy,
+      resetReviewsForCycle: jest.fn().mockResolvedValue(undefined),
+    };
+    const db = {
+      transaction: () => ({
+        execute: (cb: (trx: unknown) => Promise<unknown>) => cb({}),
+      }),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: buildBaseProviders({ pageVerificationRepo, db }),
+    }).compile();
+
+    const service = module.get(PageVerificationService);
+    await service.submit('p1', { id: 'u1' } as any);
+
+    expect(updateSpy).toHaveBeenCalledWith(
+      'pv-current-cycle',
+      expect.objectContaining({ status: 'in_approval' }),
+      expect.anything(),
+    );
+    // The raw pageId ('p1') must never be passed as the id-scoped argument —
+    // that would match every historical row for the page.
+    expect(updateSpy.mock.calls[0][0]).not.toBe('p1');
+  });
+});
+
+// Regression coverage for Critical Finding 1: the old single-reviewer
+// verify()/submitForApproval()/rejectApproval() endpoints must not be able
+// to bypass the new unanimous multi-reviewer approval requirement for QMS
+// verifications. They should reject with a clear error instead of silently
+// flipping status.
+describe('PageVerificationService old single-reviewer QMS bypass guard', () => {
+  it('verify() throws for a qms verification instead of one-click approving', async () => {
+    const pageVerificationRepo = {
+      findByPageId: jest.fn().mockResolvedValue({
+        id: 'pv1',
+        type: 'qms',
+        status: 'in_approval',
+        workspaceId: 'w1',
+      }),
+      isVerifier: jest.fn().mockResolvedValue(true),
+      update: jest.fn(),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: buildBaseProviders({ pageVerificationRepo }),
+    }).compile();
+
+    const service = module.get(PageVerificationService);
+
+    await expect(
+      service.verify('p1', { id: 'u1' } as any),
+    ).rejects.toThrow(BadRequestException);
+    expect(pageVerificationRepo.update).not.toHaveBeenCalled();
+  });
+
+  it('verify() still works for non-qms (expiring) verifications', async () => {
+    const pageVerificationRepo = {
+      findByPageId: jest.fn().mockResolvedValue({
+        id: 'pv1',
+        type: 'expiring',
+        status: null,
+        mode: 'indefinite',
+        workspaceId: 'w1',
+      }),
+      isVerifier: jest.fn().mockResolvedValue(true),
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: buildBaseProviders({ pageVerificationRepo }),
+    }).compile();
+
+    const service = module.get(PageVerificationService);
+
+    await expect(
+      service.verify('p1', { id: 'u1' } as any),
+    ).resolves.toBeUndefined();
+    expect(pageVerificationRepo.update).toHaveBeenCalledWith(
+      'pv1',
+      expect.objectContaining({ verifiedById: 'u1' }),
+    );
+  });
+
+  it('submitForApproval() throws for a qms verification', async () => {
+    const pageVerificationRepo = {
+      findByPageId: jest.fn().mockResolvedValue({
+        id: 'pv1',
+        type: 'qms',
+        status: 'draft',
+        workspaceId: 'w1',
+      }),
+      update: jest.fn(),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: buildBaseProviders({ pageVerificationRepo }),
+    }).compile();
+
+    const service = module.get(PageVerificationService);
+
+    await expect(
+      service.submitForApproval('p1', { id: 'u1' } as any),
+    ).rejects.toThrow(BadRequestException);
+    expect(pageVerificationRepo.update).not.toHaveBeenCalled();
+  });
+
+  it('rejectApproval() throws for a qms verification instead of one-click rejecting', async () => {
+    const pageVerificationRepo = {
+      findByPageId: jest.fn().mockResolvedValue({
+        id: 'pv1',
+        type: 'qms',
+        status: 'in_approval',
+        workspaceId: 'w1',
+      }),
+      isVerifier: jest.fn().mockResolvedValue(true),
+      update: jest.fn(),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: buildBaseProviders({ pageVerificationRepo }),
+    }).compile();
+
+    const service = module.get(PageVerificationService);
+
+    await expect(
+      service.rejectApproval({ pageId: 'p1', comment: 'no' }, { id: 'u1' } as any),
+    ).rejects.toThrow(BadRequestException);
+    expect(pageVerificationRepo.update).not.toHaveBeenCalled();
+  });
+});

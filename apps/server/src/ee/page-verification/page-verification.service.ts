@@ -270,7 +270,7 @@ export class PageVerificationService {
 
     await executeTx(this.db, async (trx) => {
       if (Object.keys(updates).length > 0) {
-        await this.pageVerificationRepo.update(data.pageId, updates, trx);
+        await this.pageVerificationRepo.update(verification.id, updates, trx);
       }
       if (data.verifierIds) {
         await this.pageVerificationRepo.replaceVerifiers(
@@ -309,18 +309,15 @@ export class PageVerificationService {
     const now = new Date();
 
     if (verification.type === 'qms') {
-      if (verification.status !== 'in_approval') {
-        throw new BadRequestException('Page is not awaiting approval');
-      }
-      await this.pageVerificationRepo.update(pageId, {
-        status: 'approved',
-        verifiedAt: now,
-        verifiedById: user.id,
-        rejectedAt: null,
-        rejectedById: null,
-        rejectionComment: null,
-      });
-      return;
+      // Superseded by the multi-reviewer state machine (design §2/§5):
+      // this old single-reviewer flip set status='approved' directly,
+      // without checking page_verification_reviews at all, so any single
+      // verifier could one-click approve regardless of other reviewers'
+      // pending decisions. QMS approval must go through approve()/reject()/
+      // requestClarification() on the review page instead.
+      throw new BadRequestException(
+        'QMS pages require unanimous review approval; use the review page instead.',
+      );
     }
 
     const expiresAt = this.computeExpiresAt({
@@ -330,7 +327,7 @@ export class PageVerificationService {
       from: now,
     });
 
-    await this.pageVerificationRepo.update(pageId, {
+    await this.pageVerificationRepo.update(verification.id, {
       verifiedAt: now,
       verifiedById: user.id,
       expiresAt,
@@ -338,42 +335,27 @@ export class PageVerificationService {
     });
   }
 
+  // Superseded by submit() (design §2/§5). Kept only so the endpoint returns
+  // a clear error instead of 404ing outright for any stale client still
+  // calling it: it is, and always was, QMS-only (the type guard below is
+  // pre-existing), and unlike submit() it never gated on unresolved
+  // comments, so leaving it live would let a caller bypass that requirement.
   async submitForApproval(pageId: string, user: User) {
-    const page = await this.getPageOrThrow(pageId);
     const verification = await this.pageVerificationRepo.findByPageId(pageId);
     if (!verification || verification.type !== 'qms') {
       throw new BadRequestException('QMS verification required');
     }
-    if (!(await this.canManage(page, user))) {
-      throw new ForbiddenException();
-    }
-    if (verification.status !== 'draft') {
-      throw new BadRequestException('Page is not in draft status');
-    }
-
-    await this.pageVerificationRepo.update(pageId, {
-      status: 'in_approval',
-      requestedAt: new Date(),
-      requestedById: user.id,
-      rejectedAt: null,
-      rejectedById: null,
-      rejectionComment: null,
-    });
-
-    await this.notificationQueue.add(
-      QueueJob.PAGE_APPROVAL_REQUESTED_NOTIFICATION,
-      {
-        pageId: page.id,
-        spaceId: page.spaceId,
-        workspaceId: verification.workspaceId,
-        actorId: user.id,
-        verifierIds: (
-          await this.pageVerificationRepo.getVerifiers(verification.id)
-        ).map((v) => v.id),
-      },
+    throw new BadRequestException(
+      'This action has been replaced by the review workflow; use "Send for Review" instead.',
     );
   }
 
+  // Superseded by reject() (design §2/§5, Critical Finding 1). Kept only so
+  // the endpoint returns a clear error instead of silently flipping status
+  // to 'draft' without checking page_verification_reviews at all — any
+  // single verifier could one-click reject and discard other verifiers'
+  // pending/approved decisions for the cycle. Always QMS-only (pre-existing
+  // guard below); QMS rejection must go through reject() on the review page.
   async rejectApproval(
     data: { pageId: string; comment?: string },
     user: User,
@@ -384,41 +366,20 @@ export class PageVerificationService {
     if (!verification || verification.type !== 'qms') {
       throw new NotFoundException('Verification not found');
     }
-
-    const isVerifier = await this.pageVerificationRepo.isVerifier(
-      verification.id,
-      user.id,
-    );
-    if (!isVerifier) {
-      throw new ForbiddenException();
-    }
-    if (verification.status !== 'in_approval') {
-      throw new BadRequestException('Page is not in approval');
-    }
-
-    await this.pageVerificationRepo.update(data.pageId, {
-      status: 'draft',
-      rejectedAt: new Date(),
-      rejectedById: user.id,
-      rejectionComment: data.comment ?? null,
-    });
-
-    await this.notificationQueue.add(
-      QueueJob.PAGE_APPROVAL_REJECTED_NOTIFICATION,
-      {
-        pageId: verification.pageId,
-        spaceId: verification.spaceId,
-        workspaceId: verification.workspaceId,
-        actorId: user.id,
-        requestedById: verification.requestedById,
-        comment: data.comment,
-      },
+    throw new BadRequestException(
+      'This action has been replaced by the review workflow; use the review page instead.',
     );
   }
 
   async markObsolete(pageId: string, user: User) {
     const page = await this.getPageOrThrow(pageId);
-    const verification = await this.pageVerificationRepo.findByPageId(pageId);
+    // findLatestByPageId, not findByPageId: a page can carry a retained
+    // `approved` audit row alongside a newer `draft` row once its content
+    // has changed post-approval (design §3.1/§4); "obsolete" must apply to
+    // the current/latest cycle, not a nondeterministically-picked one.
+    const verification = await this.pageVerificationRepo.findLatestByPageId(
+      pageId,
+    );
     if (!verification || verification.type !== 'qms') {
       throw new NotFoundException('Verification not found');
     }
@@ -429,7 +390,9 @@ export class PageVerificationService {
       throw new BadRequestException('Only approved documents can be obsolete');
     }
 
-    await this.pageVerificationRepo.update(pageId, { status: 'obsolete' });
+    await this.pageVerificationRepo.update(verification.id, {
+      status: 'obsolete',
+    });
   }
 
   async list(
@@ -511,8 +474,11 @@ export class PageVerificationService {
     );
 
     await executeTx(this.db, async (trx) => {
+      // Scoped by verification.id, not pageId: a bare pageId-scoped update
+      // would also flip any retained `approved` audit row for this page back
+      // to `in_approval`, corrupting it (see design §3.1, Critical Finding 2).
       await this.pageVerificationRepo.update(
-        pageId,
+        verification.id,
         {
           status: 'in_approval',
           submittedAt: new Date(),
