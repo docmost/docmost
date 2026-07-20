@@ -4,8 +4,11 @@ import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertablePageVerification,
+  InsertablePageVerificationReview,
   PageVerification,
+  PageVerificationReview,
   UpdatablePageVerification,
+  UpdatablePageVerificationReview,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
@@ -48,8 +51,14 @@ export class PageVerificationRepo {
       .executeTakeFirst();
   }
 
+  // Scoped by verification `id`, not `pageId`: once a page can have multiple
+  // page_verification rows (approved audit rows retained alongside a fresh
+  // draft cycle — see design doc §3.1/§4), a bare `WHERE page_id = ?` update
+  // would silently mutate every row for that page, including retained
+  // approved/obsolete audit rows. Callers must resolve the specific row
+  // (typically via findLatestByPageId) and pass its `id`.
   async update(
-    pageId: string,
+    id: string,
     data: UpdatablePageVerification,
     trx?: KyselyTransaction,
   ): Promise<PageVerification> {
@@ -57,11 +66,15 @@ export class PageVerificationRepo {
     return db
       .updateTable('pageVerifications')
       .set({ ...data, updatedAt: new Date() })
-      .where('pageId', '=', pageId)
+      .where('id', '=', id)
       .returningAll()
       .executeTakeFirst();
   }
 
+  // Intentionally still scoped by `pageId`, not `id`: "Remove verification"
+  // tears down the entire verification configuration for a page, including
+  // any retained historical/audit rows from prior cycles — unlike `update`,
+  // this is not meant to touch only the "current" row.
   async delete(pageId: string, trx?: KyselyTransaction): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db
@@ -124,6 +137,11 @@ export class PageVerificationRepo {
     return !!row;
   }
 
+  // Ordered `createdAt desc`, matching findLatestByPageId (§3.1): once a page
+  // can have multiple page_verification rows, this must deterministically
+  // resolve to the current/latest cycle, not whichever row Postgres happens
+  // to return first. Used by getInfo()/buildInfo() to render the manage-
+  // verification panel.
   async findDetailByPageId(pageId: string) {
     return this.db
       .selectFrom('pageVerifications')
@@ -149,6 +167,7 @@ export class PageVerificationRepo {
         ).as('rejectedBy'),
       ])
       .where('pageId', '=', pageId)
+      .orderBy('createdAt', 'desc')
       .executeTakeFirst();
   }
 
@@ -277,5 +296,126 @@ export class PageVerificationRepo {
       .where('expiresAt', 'is not', null)
       .where('expiresAt', '<=', now)
       .execute();
+  }
+
+  async findLatestByPageId(
+    pageId: string,
+  ): Promise<PageVerification | undefined> {
+    return this.db
+      .selectFrom('pageVerifications')
+      .selectAll()
+      .where('pageId', '=', pageId)
+      .orderBy('createdAt', 'desc')
+      .executeTakeFirst();
+  }
+
+  async resetReviewsForCycle(
+    pageVerificationId: string,
+    verifierIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('pageVerificationReviews')
+      .where('pageVerificationId', '=', pageVerificationId)
+      .execute();
+
+    if (verifierIds.length === 0) return;
+
+    const values: InsertablePageVerificationReview[] = verifierIds.map(
+      (verifierId) => ({
+        pageVerificationId,
+        verifierId,
+        decision: 'pending',
+      }),
+    );
+    await db.insertInto('pageVerificationReviews').values(values).execute();
+  }
+
+  async recordReviewDecision(
+    pageVerificationId: string,
+    verifierId: string,
+    decision: string,
+    trx?: KyselyTransaction,
+  ): Promise<PageVerificationReview | undefined> {
+    const db = dbOrTx(this.db, trx);
+    const patch: UpdatablePageVerificationReview = {
+      decision,
+      decidedAt: new Date(),
+    };
+    return db
+      .updateTable('pageVerificationReviews')
+      .set(patch)
+      .where('pageVerificationId', '=', pageVerificationId)
+      .where('verifierId', '=', verifierId)
+      .where('decision', '=', 'pending')
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  async countPendingReviews(
+    pageVerificationId: string,
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    const db = dbOrTx(this.db, trx);
+    const row = await db
+      .selectFrom('pageVerificationReviews')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('pageVerificationId', '=', pageVerificationId)
+      .where('decision', '=', 'pending')
+      .executeTakeFirst();
+    return Number(row?.count ?? 0);
+  }
+
+  async findReviewsByVerificationId(pageVerificationId: string) {
+    return this.db
+      .selectFrom('pageVerificationReviews')
+      .innerJoin('users', 'users.id', 'pageVerificationReviews.verifierId')
+      .select([
+        'pageVerificationReviews.id',
+        'pageVerificationReviews.decision',
+        'pageVerificationReviews.decidedAt',
+        'users.id as verifierId',
+        'users.name as verifierName',
+        'users.avatarUrl as verifierAvatarUrl',
+      ])
+      .where('pageVerificationId', '=', pageVerificationId)
+      .execute();
+  }
+
+  // Serializes concurrent decisive actions (approve/reject/requestClarification)
+  // on the same verification cycle. Takes a row lock on the parent
+  // pageVerifications row so that two concurrent transactions acting on the
+  // same verification id cannot both read a stale (pre-commit) view of the
+  // sibling review rows — without this, under READ COMMITTED, two final
+  // `approve()` calls can each see the other's review as still "pending" via
+  // countPendingReviews, and both skip the status flip, leaving the cycle
+  // stuck in `in_approval` forever (write skew). Must be called at the very
+  // start of the transaction, before recordReviewDecision/countPendingReviews.
+  async lockForUpdate(id: string, trx: KyselyTransaction): Promise<void> {
+    await trx
+      .selectFrom('pageVerifications')
+      .select('id')
+      .where('id', '=', id)
+      .forUpdate()
+      .executeTakeFirst();
+  }
+
+  // Atomic race guard (design §2/§5): only succeeds while status is still
+  // in_approval; returns undefined if another verifier's decisive action
+  // already closed the cycle, so the caller can respond 409.
+  async flipStatusIfInApproval(
+    id: string,
+    data: UpdatablePageVerification,
+    trx?: KyselyTransaction,
+  ): Promise<PageVerification | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('pageVerifications')
+      .set({ ...data, updatedAt: new Date() })
+      .where('id', '=', id)
+      .where('status', '=', 'in_approval')
+      .returningAll()
+      .executeTakeFirst();
   }
 }

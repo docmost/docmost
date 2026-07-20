@@ -8,17 +8,18 @@ import {
   Loader,
   Stack,
   Text,
-  Textarea,
+  Tooltip,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import i18n from "@/i18n.ts";
+import { useCommentsQuery } from "@/features/comment/queries/comment-query";
 import {
   useMarkObsoleteMutation,
   usePageVerificationInfoQuery,
-  useRejectApprovalMutation,
   useRemoveVerificationMutation,
-  useSubmitForApprovalMutation,
+  useSubmitForReviewMutation,
   useUpdateVerificationMutation,
   useVerifyPageMutation,
 } from "@/ee/page-verification/queries/page-verification-query";
@@ -328,15 +329,14 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
 
 function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
   const { t } = useTranslation();
-  const verifyMutation = useVerifyPageMutation();
-  const submitMutation = useSubmitForApprovalMutation();
-  const rejectMutation = useRejectApprovalMutation();
   const obsoleteMutation = useMarkObsoleteMutation();
   const removeMutation = useRemoveVerificationMutation();
   const updateMutation = useUpdateVerificationMutation();
-  const [confirmed, setConfirmed] = useState(false);
-  const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectComment, setRejectComment] = useState("");
+  const { data: comments } = useCommentsQuery({ pageId });
+  const unresolvedCount =
+    comments?.items.filter((c) => !c.parentCommentId && !c.resolvedAt)
+      .length ?? 0;
+  const submitForReviewMutation = useSubmitForReviewMutation();
   const verifiedAtAgo = useTimeAgo(info.verifiedAt ?? new Date().toISOString());
   const requestedAtAgo = useTimeAgo(
     info.requestedAt ?? new Date().toISOString(),
@@ -344,33 +344,12 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
   const rejectedAtAgo = useTimeAgo(info.rejectedAt ?? new Date().toISOString());
 
   const status = info.status;
+  const reviewPageUrl = `/review/${pageId}`;
 
   const existingVerifierIds = info.verifiers?.map((v) => v.id) ?? [];
 
-  const handleSubmitForApproval = () => {
-    submitMutation.mutate(pageId, { onSuccess: onClose });
-  };
-
-  const handleVerify = () => {
-    verifyMutation.mutate(pageId, {
-      onSuccess: () => {
-        setConfirmed(false);
-        onClose();
-      },
-    });
-  };
-
-  const handleReject = () => {
-    rejectMutation.mutate(
-      { pageId, comment: rejectComment || undefined },
-      {
-        onSuccess: () => {
-          setShowRejectForm(false);
-          setRejectComment("");
-          onClose();
-        },
-      },
-    );
+  const handleSubmitForReview = () => {
+    submitForReviewMutation.mutate(pageId, { onSuccess: onClose });
   };
 
   const handleMarkObsolete = () => {
@@ -466,6 +445,44 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
               time: requestedAtAgo,
             })}
           </Text>
+          {info.permissions?.canVerify && (
+            <Text size="sm" mt={4}>
+              {t("Review and approve or reject this page on the ")}
+              <Text
+                component={Link}
+                to={reviewPageUrl}
+                onClick={onClose}
+                td="underline"
+                span
+              >
+                {t("review page")}
+              </Text>
+              .
+            </Text>
+          )}
+        </div>
+      )}
+
+      {status === "needs_clarification" && (
+        <div>
+          <Text size="sm" c="orange">
+            {t("A reviewer has requested clarification on this page.")}
+          </Text>
+          {info.permissions?.canVerify && (
+            <Text size="sm" mt={4}>
+              {t("Respond to the outstanding comments on the ")}
+              <Text
+                component={Link}
+                to={reviewPageUrl}
+                onClick={onClose}
+                td="underline"
+                span
+              >
+                {t("review page")}
+              </Text>
+              .
+            </Text>
+          )}
         </div>
       )}
 
@@ -512,55 +529,6 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
         </>
       )}
 
-      {status === "in_approval" && info.permissions?.canVerify && (
-        <>
-          {showRejectForm ? (
-            <div>
-              <Text size="sm" fw={600} mb={4}>
-                {t("Rejection comment")}
-              </Text>
-              <Textarea
-                value={rejectComment}
-                onChange={(e) => setRejectComment(e.currentTarget.value)}
-                placeholder={t("Reason for returning this document...")}
-                minRows={2}
-                variant="filled"
-                maxLength={500}
-              />
-              <Group justify="flex-end" mt="sm" gap="xs">
-                <Button
-                  variant="subtle"
-                  color="gray"
-                  size="compact-sm"
-                  onClick={() => {
-                    setShowRejectForm(false);
-                    setRejectComment("");
-                  }}
-                >
-                  {t("Cancel")}
-                </Button>
-                <Button
-                  color="red"
-                  onClick={handleReject}
-                  loading={rejectMutation.isPending}
-                >
-                  {t("Confirm rejection")}
-                </Button>
-              </Group>
-            </div>
-          ) : (
-            <div>
-              <Checkbox
-                label={t("I've reviewed this page for accuracy")}
-                checked={confirmed}
-                onChange={(event) => setConfirmed(event.currentTarget.checked)}
-                color="dark"
-              />
-            </div>
-          )}
-        </>
-      )}
-
       <Group justify="space-between">
         {info.permissions?.canManage && (
           <Button
@@ -576,48 +544,47 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
 
         <Group gap="xs" ml="auto">
           {status === "draft" && info.permissions?.canSubmitForApproval && (
+            <Tooltip
+              label={t("Resolve {{count}} comment(s) before sending for review", {
+                count: unresolvedCount,
+              })}
+              disabled={unresolvedCount === 0}
+            >
+              <Button
+                onClick={handleSubmitForReview}
+                disabled={unresolvedCount > 0}
+                loading={submitForReviewMutation.isPending}
+                color="dark"
+              >
+                {t("Send for Review")}
+              </Button>
+            </Tooltip>
+          )}
+
+          {status === "in_approval" && info.permissions?.canVerify && (
             <Button
-              onClick={handleSubmitForApproval}
-              loading={submitMutation.isPending}
+              component={Link}
+              to={reviewPageUrl}
+              onClick={onClose}
               color="dark"
             >
-              {t("Submit for approval")}
+              {t("Go to review page")}
             </Button>
           )}
 
-          {status === "in_approval" &&
-            info.permissions?.canVerify &&
-            !showRejectForm && (
-              <>
-                <Button
-                  variant="light"
-                  color="red"
-                  onClick={() => setShowRejectForm(true)}
-                >
-                  {t("Reject")}
-                </Button>
-                <Button
-                  onClick={handleVerify}
-                  disabled={!confirmed}
-                  loading={verifyMutation.isPending}
-                  color="dark"
-                >
-                  {t("Approve")}
-                </Button>
-              </>
-            )}
+          {status === "needs_clarification" && info.permissions?.canVerify && (
+            <Button
+              component={Link}
+              to={reviewPageUrl}
+              onClick={onClose}
+              color="dark"
+            >
+              {t("Go to review page")}
+            </Button>
+          )}
 
           {status === "approved" && (
             <>
-              {info.permissions?.canSubmitForApproval && (
-                <Button
-                  variant="light"
-                  onClick={handleSubmitForApproval}
-                  loading={submitMutation.isPending}
-                >
-                  {t("Re-submit for approval")}
-                </Button>
-              )}
               {info.permissions?.canMarkObsolete && (
                 <Button
                   variant="light"

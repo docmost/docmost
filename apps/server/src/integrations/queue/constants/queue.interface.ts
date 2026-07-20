@@ -114,6 +114,21 @@ export interface IApprovalRejectedNotificationJob {
   comment?: string;
 }
 
+export interface IApprovalClarificationNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  requestedById: string;
+}
+
+export interface IPageReverificationRequiredNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  verifierIds: string[];
+}
+
 export interface IBaseTypeConversionJob {
   pageId: string;
   propertyId: string;

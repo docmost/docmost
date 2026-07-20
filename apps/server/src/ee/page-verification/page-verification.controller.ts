@@ -132,4 +132,54 @@ export class PageVerificationController {
       { spaceIds, verifierId, type },
     );
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('submit-for-review')
+  @RequireFeature(Feature.PAGE_VERIFICATION)
+  async submitForReview(
+    @Body() body: { pageId: string },
+    @AuthUser() user: User,
+  ) {
+    await this.pageVerificationService.submit(body.pageId, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('approve-review')
+  @RequireFeature(Feature.PAGE_VERIFICATION)
+  async approveReview(
+    @Body() body: { pageId: string },
+    @AuthUser() user: User,
+  ) {
+    await this.pageVerificationService.approve(body.pageId, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('reject-review')
+  @RequireFeature(Feature.PAGE_VERIFICATION)
+  async rejectReview(
+    @Body() body: { pageId: string; comment: string },
+    @AuthUser() user: User,
+  ) {
+    await this.pageVerificationService.reject(body, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('request-clarification')
+  @RequireFeature(Feature.PAGE_VERIFICATION)
+  async requestClarification(
+    @Body() body: { pageId: string },
+    @AuthUser() user: User,
+  ) {
+    await this.pageVerificationService.requestClarification(body.pageId, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('review-payload')
+  @RequireFeature(Feature.PAGE_VERIFICATION)
+  async reviewPayload(
+    @Body() body: { pageId: string },
+    @AuthUser() user: User,
+  ) {
+    return this.pageVerificationService.getReviewPayload(body.pageId, user);
+  }
 }

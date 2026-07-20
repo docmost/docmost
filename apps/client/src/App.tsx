@@ -41,6 +41,7 @@ import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
 import BasePage from "@/ee/base/pages/base-page.tsx";
 import AuditLogs from "@/ee/audit/pages/audit-logs.tsx";
 import VerifiedPages from "@/ee/page-verification/pages/verified-pages.tsx";
+import ReviewPage from "@/ee/page-verification/pages/review-page.tsx";
 import TemplateList from "@/ee/template/pages/template-list";
 import TemplateEditor from "@/ee/template/pages/template-editor";
 import FavoritesPage from "@/pages/favorites/favorites-page";
@@ -104,6 +105,7 @@ export default function App() {
           />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
           <Route path={"/s/:spaceSlug/trash"} element={<SpaceTrash />} />
+          <Route path={"/review/:pageSlug"} element={<ReviewPage />} />
           <Route
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={<Page />}

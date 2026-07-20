@@ -19,6 +19,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { CollabHistoryService } from '../services/collab-history.service';
 import { WatcherService } from '../../core/watcher/watcher.service';
 import { isEmptyParagraphDoc } from '../collaboration.util';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../common/events/event.contants';
 
 @Processor(QueueName.HISTORY_QUEUE)
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
@@ -31,6 +33,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
     private readonly watcherService: WatcherService,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -78,8 +81,17 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
             page.workspaceId,
           );
 
-          await this.pageHistoryRepo.saveHistory(page, { contributorIds });
+          const savedHistory = await this.pageHistoryRepo.saveHistory(page, {
+            contributorIds,
+          });
           this.logger.debug(`History created for page: ${pageId}`);
+
+          this.eventEmitter.emit(EventName.PAGE_CONTENT_UPDATED, {
+            pageId,
+            spaceId: page.spaceId,
+            workspaceId: page.workspaceId,
+            historyId: savedHistory.id,
+          });
         } catch (err) {
           await this.collabHistory.addContributors(pageId, contributorIds);
           throw err;
