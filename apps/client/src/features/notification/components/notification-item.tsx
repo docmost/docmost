@@ -60,6 +60,10 @@ export function NotificationItem({
         return "<bold>{{name}}</bold> submitted a page for your approval";
       case "page.approval_rejected":
         return "<bold>{{name}}</bold> returned a page for revision";
+      case "page.approval_clarification_requested":
+        return "<bold>{{name}}</bold> requested clarification on a page";
+      case "page.reverification_required":
+        return "<bold>{{name}}</bold> changed a page, resetting its approval";
       case "page.verification_expiring":
         return "Page verification expires soon";
       case "page.verification_expired":
