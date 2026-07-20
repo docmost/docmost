@@ -64,6 +64,9 @@ importers:
       '@floating-ui/dom':
         specifier: 1.7.3
         version: 1.7.3
+      '@hocuspocus/common':
+        specifier: 4.4.0
+        version: 4.4.0
       '@hocuspocus/provider':
         specifier: 4.4.0
         version: 4.4.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)

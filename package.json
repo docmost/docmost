@@ -23,6 +23,7 @@
     "@casl/ability": "6.8.0",
     "@docmost/editor-ext": "workspace:*",
     "@floating-ui/dom": "1.7.3",
+    "@hocuspocus/common": "4.4.0",
     "@hocuspocus/provider": "4.4.0",
     "@hocuspocus/provider-react": "4.4.0",
     "@hocuspocus/server": "4.4.0",

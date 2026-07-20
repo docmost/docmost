@@ -10,6 +10,7 @@ export class CollabProxySocket implements WebSocketLike {
   private pub: RedisClient;
   private readonly pack: Pack;
   readyState = 1;
+  onClose?: (code?: number, reason?: string) => void;
 
   constructor(pub: RedisClient, pack: Pack, replyTo: string, socketId: string) {
     this.replyTo = replyTo;
@@ -30,13 +31,7 @@ export class CollabProxySocket implements WebSocketLike {
   close(code?: number, reason?: string) {
     if (this.readyState !== 1) return;
     this.readyState = 3;
-    const msg: RSAMessageClose = {
-      type: 'close',
-      code,
-      reason,
-      socketId: this.socketId,
-    };
-    this.publish(msg);
+    this.onClose?.(code, reason);
   }
 
   send(message: Uint8Array) {

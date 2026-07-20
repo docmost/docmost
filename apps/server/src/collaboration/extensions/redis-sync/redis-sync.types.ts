@@ -42,11 +42,6 @@ export type RSAMessageClose = {
   socketId: string;
 };
 
-export type RSAMessagePong = {
-  type: 'pong';
-  socketId: string;
-};
-
 export type RSAMessageSend = {
   type: 'send';
   // @ts-ignore
@@ -74,7 +69,6 @@ export type RSAMessage =
   | RSAMessageCloseProxy
   | RSAMessageUnload
   | RSAMessageClose
-  | RSAMessagePong
   | RSAMessageSend
   | RSAMessageCustomEventStart
   | RSAMessageCustomEventComplete;

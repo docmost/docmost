@@ -8,6 +8,7 @@ import {
   afterUnloadDocumentPayload,
   WebSocketLike,
 } from '@hocuspocus/server';
+import { ConnectionTimeout, Unauthorized } from '@hocuspocus/common';
 import RedisClient from 'ioredis';
 import { CollabProxySocket } from './collab-proxy-socket';
 import {
@@ -15,6 +16,7 @@ import {
   CustomEvents,
   Pack,
   RSAMessage,
+  RSAMessageClose,
   RSAMessageCloseProxy,
   RSAMessageCustomEventComplete,
   RSAMessageCustomEventStart,
@@ -120,6 +122,23 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
         replyTo,
         socketId,
       );
+      // A proxy connection with no live documents (client left the page, auth
+      // failed, or the origin server crashed) is reaped by hocuspocus' message
+      // timeout. Dispose it silently in that case: relaying the timeout close
+      // to the origin would kill the client's real socket, which may be busy
+      // serving other documents. Genuine protocol closes are still relayed.
+      socket.onClose = (code, reason) => {
+        delete this.proxyConnections[socketId];
+        if (code !== ConnectionTimeout.code) {
+          const msg: RSAMessageClose = {
+            type: 'close',
+            code,
+            reason,
+            socketId,
+          };
+          this.pub.publish(replyTo, this.pack(msg));
+        }
+      };
       const clientConnection = this.instance.handleConnection(
         socket,
         toWebRequest(serializedHTTPRequest),
@@ -318,20 +337,28 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
     serializedHTTPRequest: SerializedHTTPRequest,
     detachableMsg: ArrayBuffer,
   ) {
-    const message = new Uint8Array(detachableMsg.slice());
-    const tmpMsg = new IncomingMessage(detachableMsg);
-    const documentNameAndSessionId = tmpMsg.readVarString();
-    // session-aware providers suffix the documentName with \0sessionId
-    const sepIdx = documentNameAndSessionId.indexOf('\0');
-    const documentName =
-      sepIdx === -1
-        ? documentNameAndSessionId
-        : documentNameAndSessionId.slice(0, sepIdx);
-    const isDocLoadedOnInstance = this.instance.documents.has(documentName);
     const socketId = serializedHTTPRequest.headers['sec-websocket-key'];
     const entry = this.originConnections[socketId];
     if (!entry) return;
     const { clientConnection } = entry;
+
+    let message: Uint8Array;
+    let documentName: string;
+    try {
+      message = new Uint8Array(detachableMsg.slice());
+      const tmpMsg = new IncomingMessage(detachableMsg);
+      const documentNameAndSessionId = tmpMsg.readVarString();
+      // session-aware providers suffix the documentName with \0sessionId
+      const sepIdx = documentNameAndSessionId.indexOf('\0');
+      documentName =
+        sepIdx === -1
+          ? documentNameAndSessionId
+          : documentNameAndSessionId.slice(0, sepIdx);
+    } catch (error) {
+      entry.socket.close(Unauthorized.code, Unauthorized.reason);
+      return;
+    }
+    const isDocLoadedOnInstance = this.instance.documents.has(documentName);
 
     if (isDocLoadedOnInstance) {
       clientConnection.handleMessage(message);
@@ -340,6 +367,13 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
 
     const proxyTo = await this.getOrClaimLockThrottled(documentName);
     if (proxyTo && proxyTo !== this.serverId) {
+      // Proxied messages bypass handleMessage, so refresh the connection's
+      // liveness fields manually or hocuspocus' message timeout would reap the
+      // real socket every `timeout` ms. connectionEstablishedAt is the
+      // reference while unauthenticated (auth for remote docs is proxied too)
+      // and is private upstream.
+      clientConnection.lastMessageReceivedAt = Date.now();
+      (clientConnection as any).connectionEstablishedAt = Date.now();
       // another server owns the doc
       const proxyMessage: RSAMessageProxy = {
         serializedHTTPRequest: serializedHTTPRequest,

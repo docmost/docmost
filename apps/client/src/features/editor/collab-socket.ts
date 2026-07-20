@@ -12,7 +12,10 @@ let releaseTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function getCollabSocket(): HocuspocusProviderWebsocket {
   if (!socket) {
-    socket = new HocuspocusProviderWebsocket({ url: getCollaborationUrl() });
+    socket = new HocuspocusProviderWebsocket({
+      url: getCollaborationUrl(),
+      autoConnect: false,
+    });
   }
   return socket;
 }
@@ -24,6 +27,7 @@ export function acquireCollabSocket(): void {
     releaseTimer = null;
   }
   const collabSocket = getCollabSocket();
+  collabSocket.shouldConnect = true;
   if (collabSocket.status === WebSocketStatus.Disconnected) {
     collabSocket.connect();
   }
