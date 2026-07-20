@@ -7,7 +7,7 @@ import { ReviewerProgress } from "@/ee/page-verification/components/reviewer-pro
 import CommentListWithTabs from "@/features/comment/components/comment-list-with-tabs";
 import { useCommentsQuery } from "@/features/comment/queries/comment-query";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor";
-import { usePageQuery } from "@/features/page/queries/page-query";
+import { usePageHistoryQuery } from "@/features/page-history/queries/page-history-query";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { extractPageSlugId } from "@/lib";
 
@@ -19,7 +19,12 @@ export default function ReviewPage() {
   const pageId = extractPageSlugId(pageSlug);
 
   const { data: payload, isLoading } = useReviewPageQuery(pageId);
-  const { data: page } = usePageQuery({ pageId });
+  // Reviewers must see the content AS OF submission (the pageHistoryId
+  // pinned at submit time), not live edits made to the page afterward
+  // (design doc §5) — so this fetches the historical snapshot, not the
+  // live page.
+  const pageHistoryId = payload?.verification?.pageHistoryId ?? undefined;
+  const { data: pageHistory } = usePageHistoryQuery(pageHistoryId!);
   const { data: comments } = useCommentsQuery({ pageId: pageId! });
   const currentUser = useAtomValue(currentUserAtom);
 
@@ -42,13 +47,13 @@ export default function ReviewPage() {
     <Grid p="md">
       <Grid.Col span={8}>
         <Stack>
-          <Title order={3}>{page?.title}</Title>
-          {page && (
+          <Title order={3}>{pageHistory?.title}</Title>
+          {pageHistory && (
             <ReadonlyPageEditor
-              key={page.id}
-              title={page.title}
-              content={page.content}
-              pageId={page.id}
+              key={pageHistory.id}
+              title={pageHistory.title}
+              content={pageHistory.content}
+              pageId={pageId}
             />
           )}
         </Stack>

@@ -44,6 +44,7 @@ export type IPageVerificationInfo = {
   rejectedAt?: string | null;
   rejectedBy?: IUserRef | null;
   rejectionComment?: string | null;
+  pageHistoryId?: string | null;
   verifiers?: IVerifier[];
   permissions?: IPageVerificationPermissions;
 };
