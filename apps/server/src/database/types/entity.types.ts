@@ -17,6 +17,7 @@ import {
   PagePermissions as _PagePermissions,
   PageVerifications as _PageVerifications,
   PageVerifiers as _PageVerifiers,
+  PageVerificationReviews as _PageVerificationReviews,
   Pages,
   Spaces,
   Users,
@@ -226,6 +227,14 @@ export type UpdatablePageVerification = Updateable<Omit<_PageVerifications, 'id'
 // Page Verifier
 export type PageVerifier = Selectable<_PageVerifiers>;
 export type InsertablePageVerifier = Insertable<_PageVerifiers>;
+
+// Page Verification Review
+export type PageVerificationReview = Selectable<_PageVerificationReviews>;
+export type InsertablePageVerificationReview =
+  Insertable<_PageVerificationReviews>;
+export type UpdatablePageVerificationReview = Updateable<
+  Omit<_PageVerificationReviews, 'id'>
+>;
 
 // User Session
 export type UserSession = Selectable<UserSessions>;

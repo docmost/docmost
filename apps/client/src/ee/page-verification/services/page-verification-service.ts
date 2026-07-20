@@ -1,6 +1,7 @@
 import api from "@/lib/api-client";
 import {
   IPageVerificationInfo,
+  IReviewPayload,
   ISetupVerification,
   IUpdateVerification,
   IVerificationListItem,
@@ -57,5 +58,33 @@ export async function getVerificationList(
   params?: IVerificationListParams,
 ): Promise<IPagination<IVerificationListItem>> {
   const req = await api.post("/pages/verifications", { ...params });
+  return req.data;
+}
+
+export async function submitForReview(pageId: string): Promise<void> {
+  await api.post("/pages/submit-for-review", { pageId });
+}
+
+export async function approveReview(pageId: string): Promise<void> {
+  await api.post("/pages/approve-review", { pageId });
+}
+
+export async function rejectReview(data: {
+  pageId: string;
+  comment: string;
+}): Promise<void> {
+  await api.post("/pages/reject-review", data);
+}
+
+export async function requestClarification(pageId: string): Promise<void> {
+  await api.post("/pages/request-clarification", { pageId });
+}
+
+export async function getReviewPayload(
+  pageId: string,
+): Promise<IReviewPayload> {
+  const req = await api.post<IReviewPayload>("/pages/review-payload", {
+    pageId,
+  });
   return req.data;
 }

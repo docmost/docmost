@@ -9,7 +9,9 @@ export type NotificationType =
   | "page.verification_expired"
   | "page.verified"
   | "page.approval_requested"
-  | "page.approval_rejected";
+  | "page.approval_rejected"
+  | "page.approval_clarification_requested"
+  | "page.reverification_required";
 
 export type INotification = {
   id: string;
