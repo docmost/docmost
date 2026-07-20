@@ -2,6 +2,7 @@ import "@/features/editor/styles/index.css";
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -100,11 +101,13 @@ export default function PageEditor({
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const [socket] = useState(getCollabSocket);
+  const hasCollabToken = !!collabQuery?.token;
 
   useEffect(() => {
+    if (!hasCollabToken) return;
     acquireCollabSocket();
     return () => releaseCollabSocket();
-  }, []);
+  }, [hasCollabToken]);
 
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
@@ -321,6 +324,16 @@ function CollabPageEditor({
     },
     [pageId, editable, extensions],
   );
+
+  useLayoutEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      // @ts-ignore
+      setEditor(editor);
+      // @ts-ignore
+      editor.storage.pageId = pageId;
+      editorRef.current = editor;
+    }
+  }, [editor, pageId, setEditor]);
 
   const editorIsEditable = useEditorState({
     editor,

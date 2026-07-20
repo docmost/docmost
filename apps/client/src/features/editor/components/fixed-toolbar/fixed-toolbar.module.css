@@ -6,6 +6,7 @@
   z-index: 99;
   display: flex;
   align-items: center;
+  min-height: 45px;
   background: var(--mantine-color-body);
   border-bottom: 1px solid
     light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
