@@ -51,8 +51,14 @@ export class PageVerificationRepo {
       .executeTakeFirst();
   }
 
+  // Scoped by verification `id`, not `pageId`: once a page can have multiple
+  // page_verification rows (approved audit rows retained alongside a fresh
+  // draft cycle — see design doc §3.1/§4), a bare `WHERE page_id = ?` update
+  // would silently mutate every row for that page, including retained
+  // approved/obsolete audit rows. Callers must resolve the specific row
+  // (typically via findLatestByPageId) and pass its `id`.
   async update(
-    pageId: string,
+    id: string,
     data: UpdatablePageVerification,
     trx?: KyselyTransaction,
   ): Promise<PageVerification> {
@@ -60,11 +66,15 @@ export class PageVerificationRepo {
     return db
       .updateTable('pageVerifications')
       .set({ ...data, updatedAt: new Date() })
-      .where('pageId', '=', pageId)
+      .where('id', '=', id)
       .returningAll()
       .executeTakeFirst();
   }
 
+  // Intentionally still scoped by `pageId`, not `id`: "Remove verification"
+  // tears down the entire verification configuration for a page, including
+  // any retained historical/audit rows from prior cycles — unlike `update`,
+  // this is not meant to touch only the "current" row.
   async delete(pageId: string, trx?: KyselyTransaction): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db
@@ -127,6 +137,11 @@ export class PageVerificationRepo {
     return !!row;
   }
 
+  // Ordered `createdAt desc`, matching findLatestByPageId (§3.1): once a page
+  // can have multiple page_verification rows, this must deterministically
+  // resolve to the current/latest cycle, not whichever row Postgres happens
+  // to return first. Used by getInfo()/buildInfo() to render the manage-
+  // verification panel.
   async findDetailByPageId(pageId: string) {
     return this.db
       .selectFrom('pageVerifications')
@@ -152,6 +167,7 @@ export class PageVerificationRepo {
         ).as('rejectedBy'),
       ])
       .where('pageId', '=', pageId)
+      .orderBy('createdAt', 'desc')
       .executeTakeFirst();
   }
 
@@ -306,16 +322,14 @@ export class PageVerificationRepo {
 
     if (verifierIds.length === 0) return;
 
-    await db
-      .insertInto('pageVerificationReviews')
-      .values(
-        verifierIds.map((verifierId) => ({
-          pageVerificationId,
-          verifierId,
-          decision: 'pending',
-        })),
-      )
-      .execute();
+    const values: InsertablePageVerificationReview[] = verifierIds.map(
+      (verifierId) => ({
+        pageVerificationId,
+        verifierId,
+        decision: 'pending',
+      }),
+    );
+    await db.insertInto('pageVerificationReviews').values(values).execute();
   }
 
   async recordReviewDecision(
@@ -325,9 +339,13 @@ export class PageVerificationRepo {
     trx?: KyselyTransaction,
   ): Promise<PageVerificationReview | undefined> {
     const db = dbOrTx(this.db, trx);
+    const patch: UpdatablePageVerificationReview = {
+      decision,
+      decidedAt: new Date(),
+    };
     return db
       .updateTable('pageVerificationReviews')
-      .set({ decision, decidedAt: new Date() })
+      .set(patch)
       .where('pageVerificationId', '=', pageVerificationId)
       .where('verifierId', '=', verifierId)
       .where('decision', '=', 'pending')
