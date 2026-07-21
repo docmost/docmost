@@ -6,6 +6,15 @@ interface OidcStatePayload {
   state: string;
   redirect?: string;
   codeVerifier?: string;
+  /**
+   * True when this cycle was started via the singleton (no-providerId)
+   * Entra ID login route, whose fixed redirect_uri must be reconstructed
+   * identically at token-exchange time - the OAuth spec requires the
+   * callback's redirect_uri to exactly match the one sent in the
+   * authorization request, so this must survive the round-trip alongside
+   * providerId rather than being re-derived from it.
+   */
+  singleton?: boolean;
 }
 
 function sign(data: string, secret: string): string {
@@ -46,9 +55,9 @@ export function decodeOidcState(
     if (typeof body.exp !== 'number' || body.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
-    const { providerId, nonce, state, redirect, codeVerifier } = body;
+    const { providerId, nonce, state, redirect, codeVerifier, singleton } = body;
     if (!providerId || !nonce || !state) return null;
-    return { providerId, nonce, state, redirect, codeVerifier };
+    return { providerId, nonce, state, redirect, codeVerifier, singleton };
   } catch {
     return null;
   }

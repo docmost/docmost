@@ -34,6 +34,22 @@ describe('oidc state util', () => {
     expect(decoded?.codeVerifier).toBe('verifier-123');
   });
 
+  it('round-trips the singleton flag for the Entra ID login cycle', () => {
+    const token = encodeOidcState(
+      { providerId: 'p1', nonce: 'n1', state: 's1', singleton: true },
+      secret,
+    );
+    expect(decodeOidcState(token, secret)?.singleton).toBe(true);
+  });
+
+  it('defaults singleton to falsy when omitted (generic OIDC cycle)', () => {
+    const token = encodeOidcState(
+      { providerId: 'p1', nonce: 'n1', state: 's1' },
+      secret,
+    );
+    expect(decodeOidcState(token, secret)?.singleton).toBeFalsy();
+  });
+
   it('rejects a tampered token', () => {
     const token = encodeOidcState({ providerId: 'p1', nonce: 'n1', state: 's1' }, secret);
     const tampered = token.slice(0, -1) + (token.endsWith('a') ? 'b' : 'a');

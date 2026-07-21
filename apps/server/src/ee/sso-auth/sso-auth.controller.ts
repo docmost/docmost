@@ -46,12 +46,60 @@ export class SsoAuthController {
     return {};
   }
 
+  // Singleton Entra ID (Azure AD) routes: no providerId path segment, since
+  // Entra app registrations require a fixed, exact redirect URI. The
+  // provider is instead resolved by workspace (see
+  // AuthProviderRepo.findEntraProvider). Must stay registered before the
+  // generic ':providerId'-scoped routes below are matched by Nest, though
+  // segment-count alone already disambiguates them ('oidc/login' vs
+  // 'oidc/:providerId/login').
+  @Get('oidc/login')
+  async oidcEntraLogin(
+    @Query('redirect') redirect: string | undefined,
+    @AuthWorkspace() workspace: Workspace,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    return this.startOidcLogin(undefined, redirect, workspace, res);
+  }
+
+  @Get('oidc/callback')
+  async oidcEntraCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @AuthWorkspace() workspace: Workspace,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Req() req: FastifyRequest,
+  ) {
+    return this.finishOidcLogin(code, state, workspace, res, req);
+  }
+
   @Get('oidc/:providerId/login')
   async oidcLogin(
     @Param('providerId') providerId: string,
     @Query('redirect') redirect: string | undefined,
     @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    return this.startOidcLogin(providerId, redirect, workspace, res);
+  }
+
+  @Get('oidc/:providerId/callback')
+  async oidcCallback(
+    @Param('providerId') _providerId: string,
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @AuthWorkspace() workspace: Workspace,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Req() req: FastifyRequest,
+  ) {
+    return this.finishOidcLogin(code, state, workspace, res, req);
+  }
+
+  private async startOidcLogin(
+    providerId: string | undefined,
+    redirect: string | undefined,
+    workspace: Workspace,
+    res: FastifyReply,
   ) {
     const { url, stateCookie } =
       await this.oidcAuthService.buildAuthorizationUrl(
@@ -68,14 +116,12 @@ export class SsoAuthController {
     return res.redirect(url);
   }
 
-  @Get('oidc/:providerId/callback')
-  async oidcCallback(
-    @Param('providerId') providerId: string,
-    @Query('code') code: string,
-    @Query('state') state: string,
-    @AuthWorkspace() workspace: Workspace,
-    @Res({ passthrough: true }) res: FastifyReply,
-    @Req() req: FastifyRequest,
+  private async finishOidcLogin(
+    code: string,
+    state: string,
+    workspace: Workspace,
+    res: FastifyReply,
+    req: FastifyRequest,
   ) {
     const appUrl = this.environmentService.getAppUrl();
     const stateCookie = req.cookies?.['oidc_state'];

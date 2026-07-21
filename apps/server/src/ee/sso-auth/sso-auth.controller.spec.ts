@@ -126,3 +126,83 @@ describe('SsoAuthController.oidcCallback', () => {
     expect(res.redirect).toHaveBeenCalledWith('http://localhost:3000/dashboard');
   });
 });
+
+describe('SsoAuthController - singleton Entra ID routes', () => {
+  it('oidcEntraLogin calls buildAuthorizationUrl with providerId undefined', async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [SsoAuthController],
+      providers: [
+        { provide: SsoAuthService, useValue: {} },
+        {
+          provide: OidcAuthService,
+          useValue: {
+            buildAuthorizationUrl: jest.fn().mockResolvedValue({
+              url: 'https://login.microsoftonline.com/authorize',
+              stateCookie: 'signed-state-cookie',
+            }),
+          },
+        },
+        {
+          provide: EnvironmentService,
+          useValue: { getAppUrl: () => 'http://localhost:3000' },
+        },
+      ],
+    }).compile();
+
+    const controller = moduleRef.get(SsoAuthController);
+    const oidcAuthService = moduleRef.get(OidcAuthService);
+    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() };
+
+    await controller.oidcEntraLogin('/dashboard', { id: 'ws1' } as any, res);
+
+    expect(oidcAuthService.buildAuthorizationUrl).toHaveBeenCalledWith(
+      undefined,
+      'ws1',
+      '/dashboard',
+    );
+    expect(res.redirect).toHaveBeenCalledWith(
+      'https://login.microsoftonline.com/authorize',
+    );
+  });
+
+  it('oidcEntraCallback behaves identically to the providerId-scoped callback', async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [SsoAuthController],
+      providers: [
+        { provide: SsoAuthService, useValue: {} },
+        {
+          provide: OidcAuthService,
+          useValue: {
+            handleCallback: jest.fn().mockResolvedValue({
+              authToken: 'jwt-token',
+              redirect: '/dashboard',
+            }),
+          },
+        },
+        {
+          provide: EnvironmentService,
+          useValue: {
+            getAppUrl: () => 'http://localhost:3000',
+            getCookieExpiresIn: () => new Date('2030-01-01'),
+            isHttps: () => false,
+          },
+        },
+      ],
+    }).compile();
+
+    const controller = moduleRef.get(SsoAuthController);
+    const oidcAuthService = moduleRef.get(OidcAuthService);
+    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() };
+    const req: any = { cookies: { oidc_state: 'signed-state-cookie' } };
+
+    await controller.oidcEntraCallback('code1', 'state1', { id: 'ws1' } as any, res, req);
+
+    expect(oidcAuthService.handleCallback).toHaveBeenCalledWith({
+      code: 'code1',
+      state: 'state1',
+      stateCookie: 'signed-state-cookie',
+      workspaceId: 'ws1',
+    });
+    expect(res.redirect).toHaveBeenCalledWith('http://localhost:3000/dashboard');
+  });
+});
