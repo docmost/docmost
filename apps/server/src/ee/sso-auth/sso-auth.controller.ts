@@ -113,7 +113,15 @@ export class SsoAuthController {
       path: '/',
       maxAge: 600,
     });
-    return res.redirect(url);
+    // Do NOT `return res.redirect(url)` here: Fastify's reply.redirect()
+    // returns `this` (the reply instance), and with @Res({passthrough:true})
+    // Nest treats any non-undefined return value as a body to additionally
+    // send, re-serializing the response with its own default 200 status -
+    // silently overwriting the 302 + Location header redirect() already set,
+    // so the browser receives 200 OK with a Location header it never
+    // follows (this is exactly the "blank white screen" bug). Call
+    // redirect() as a side effect and return nothing.
+    res.redirect(url);
   }
 
   private async finishOidcLogin(
@@ -143,10 +151,11 @@ export class SsoAuthController {
         secure: this.environmentService.isHttps(),
       });
       res.clearCookie('oidc_state', { path: '/' });
-      return res.redirect(`${appUrl}${redirect ?? '/'}`);
+      // See the comment in startOidcLogin: do not return the redirect() call.
+      res.redirect(`${appUrl}${redirect ?? '/'}`);
     } catch {
       res.clearCookie('oidc_state', { path: '/' });
-      return res.redirect(`${appUrl}/login?error=sso_failed`);
+      res.redirect(`${appUrl}/login?error=sso_failed`);
     }
   }
 }

@@ -28,14 +28,22 @@ describe('SsoAuthController.oidcLogin', () => {
 
     const controller = moduleRef.get(SsoAuthController);
     const oidcAuthService = moduleRef.get(OidcAuthService);
-    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() };
+    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn().mockReturnThis() };
 
-    await controller.oidcLogin(
+    const result = await controller.oidcLogin(
       'p1',
       '/dashboard',
       { id: 'ws1' } as any,
       res,
     );
+
+    // Must NOT return the FastifyReply from res.redirect(): with
+    // @Res({passthrough:true}), Nest re-serializes any non-undefined return
+    // value with its own default 200 status, silently overwriting the 302 +
+    // Location header redirect() already set (this was a real production
+    // bug - the browser received 200 OK with a Location header it never
+    // followed, i.e. a blank white screen instead of a redirect to the IdP).
+    expect(result).toBeUndefined();
 
     expect(oidcAuthService.buildAuthorizationUrl).toHaveBeenCalledWith(
       'p1',
@@ -68,11 +76,12 @@ describe('SsoAuthController.oidcCallback', () => {
     }).compile();
 
     const controller = moduleRef.get(SsoAuthController);
-    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() };
+    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn().mockReturnThis() };
     const req: any = { cookies: {} };
 
-    await controller.oidcCallback('p1', 'code1', 'state1', { id: 'ws1' } as any, res, req);
+    const result = await controller.oidcCallback('p1', 'code1', 'state1', { id: 'ws1' } as any, res, req);
 
+    expect(result).toBeUndefined();
     expect(res.clearCookie).toHaveBeenCalledWith('oidc_state', { path: '/' });
     expect(res.redirect).toHaveBeenCalledWith(
       'http://localhost:3000/login?error=sso_failed',
@@ -106,11 +115,12 @@ describe('SsoAuthController.oidcCallback', () => {
 
     const controller = moduleRef.get(SsoAuthController);
     const oidcAuthService = moduleRef.get(OidcAuthService);
-    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() };
+    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn().mockReturnThis() };
     const req: any = { cookies: { oidc_state: 'signed-state-cookie' } };
 
-    await controller.oidcCallback('p1', 'code1', 'state1', { id: 'ws1' } as any, res, req);
+    const result = await controller.oidcCallback('p1', 'code1', 'state1', { id: 'ws1' } as any, res, req);
 
+    expect(result).toBeUndefined();
     expect(oidcAuthService.handleCallback).toHaveBeenCalledWith({
       code: 'code1',
       state: 'state1',
@@ -151,10 +161,11 @@ describe('SsoAuthController - singleton Entra ID routes', () => {
 
     const controller = moduleRef.get(SsoAuthController);
     const oidcAuthService = moduleRef.get(OidcAuthService);
-    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() };
+    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn().mockReturnThis() };
 
-    await controller.oidcEntraLogin('/dashboard', { id: 'ws1' } as any, res);
+    const result = await controller.oidcEntraLogin('/dashboard', { id: 'ws1' } as any, res);
 
+    expect(result).toBeUndefined();
     expect(oidcAuthService.buildAuthorizationUrl).toHaveBeenCalledWith(
       undefined,
       'ws1',
@@ -192,11 +203,12 @@ describe('SsoAuthController - singleton Entra ID routes', () => {
 
     const controller = moduleRef.get(SsoAuthController);
     const oidcAuthService = moduleRef.get(OidcAuthService);
-    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() };
+    const res: any = { setCookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn().mockReturnThis() };
     const req: any = { cookies: { oidc_state: 'signed-state-cookie' } };
 
-    await controller.oidcEntraCallback('code1', 'state1', { id: 'ws1' } as any, res, req);
+    const result = await controller.oidcEntraCallback('code1', 'state1', { id: 'ws1' } as any, res, req);
 
+    expect(result).toBeUndefined();
     expect(oidcAuthService.handleCallback).toHaveBeenCalledWith({
       code: 'code1',
       state: 'state1',
