@@ -81,6 +81,17 @@ export type DocTreeProps<T extends object> = {
   readOnly?: boolean;
   disableDrag?: (node: TreeNode<T>) => boolean;
   disableDrop?: (node: TreeNode<T>) => boolean;
+  // Extra source-aware drop validation, checked in addition to disableDrop.
+  // Needed when a tree mixes domains that must never intermix via drag (e.g.
+  // flat shortcut rows vs. real hierarchy descendants) — disableDrag/
+  // disableDrop alone can't express "only accept a drop from THIS kind of
+  // source," since they only see the target node. Defaults to always-allow.
+  canDropInto?: (source: TreeNode<T>, target: TreeNode<T>) => boolean;
+  // Blocks one specific drop kind onto a node while leaving others enabled
+  // (disableDrop blocks all kinds at once). E.g. a flat shortcuts row can
+  // accept reorder-before/after from its siblings but should never accept
+  // make-child. Defaults to always-allow.
+  disallowDropKind?: (node: TreeNode<T>, kind: DropOp['kind']) => boolean;
 
   getDragLabel: (node: TreeNode<T>) => string;
   uniqueContextId?: symbol;
@@ -163,6 +174,8 @@ function DocTreeInner<T extends object>(
     readOnly = false,
     disableDrag,
     disableDrop,
+    canDropInto,
+    disallowDropKind,
     getDragLabel,
     uniqueContextId,
     emptyState,
@@ -577,6 +590,8 @@ function DocTreeInner<T extends object>(
                 readOnly={readOnly}
                 disableDrag={disableDrag}
                 disableDrop={disableDrop}
+                canDropInto={canDropInto}
+                disallowDropKind={disallowDropKind}
                 getDragLabel={getDragLabel}
                 contextId={contextId}
                 registerRowElement={registerRowElement}

@@ -243,6 +243,7 @@ export interface Favorites {
   createdAt: Generated<Timestamp>;
   id: Generated<string>;
   pageId: string | null;
+  position: string;
   spaceId: string | null;
   templateId: string | null;
   type: string;

@@ -3,8 +3,13 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { atom, useAtom } from "jotai";
 import { Group, Text } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 
-import { useFavoritesQuery } from "@/features/favorite/queries/favorite-query";
+import {
+  useFavoritesQuery,
+  useMoveFavoriteMutation,
+} from "@/features/favorite/queries/favorite-query";
 import {
   fetchAllAncestorChildren,
   usePageQuery,
@@ -14,6 +19,7 @@ import { extractPageSlugId } from "@/lib";
 import { getPageTitle } from "@/features/page/page.utils";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation";
 import { treeModel, pathKey } from "@/features/page/tree/model/tree-model";
+import type { DropOp } from "@/features/page/tree/model/tree-model.types";
 import { DocTree } from "@/features/page/tree/components/doc-tree";
 import { SpaceTreeRow } from "@/features/page/tree/components/space-tree-row";
 import treeClasses from "@/features/page/tree/styles/tree.module.css";
@@ -40,7 +46,11 @@ export function FavoriteSpaceTree({
 }: FavoriteSpaceTreeProps) {
   const { t } = useTranslation();
   const [data, setData] = useAtom(favTreeDataAtom);
-  const { handleMove } = useTreeMutation(spaceId, favTreeDataAtom);
+  const { handleMove: pageHandleMove } = useTreeMutation(
+    spaceId,
+    favTreeDataAtom,
+  );
+  const moveFavoriteMutation = useMoveFavoriteMutation();
   const [openTreeNodes, setOpenTreeNodes] = useState<Record<string, boolean>>(
     {},
   );
@@ -75,7 +85,7 @@ export function FavoriteSpaceTree({
             name: f.page.title,
             icon: f.page.icon,
             isBase: f.page.isBase,
-            position: f.createdAt,
+            position: f.position,
             spaceId: f.page.spaceId,
             parentPageId: null,
             hasChildren: true,
@@ -126,12 +136,77 @@ export function FavoriteSpaceTree({
     [setData],
   );
 
-  // Root favourites are frozen: their order reflects when they were starred,
-  // not a manually managed hierarchy, so they can't be dragged or targeted by
-  // a drop. Sub-pages (parentPageId set) behave like the main SpaceTree.
+  // Root shortcuts can be dragged to manually reorder the favorites list.
+  // Real descendants (revealed by expanding a starred page) behave like the
+  // main tree — draggable only if the user can edit that page.
   const disableDragDrop = useCallback(
-    (n: SpaceTreeNode) => n.parentPageId === null || n.canEdit === false,
+    (n: SpaceTreeNode) => n.parentPageId !== null && n.canEdit === false,
     [],
+  );
+
+  // Root shortcuts and real descendants are separate domains that must never
+  // intermix via drag: dropping a real page onto a root row (or vice versa)
+  // doesn't correspond to any sensible operation here, and — since a root
+  // row's id is a real page id — could otherwise silently trigger an actual
+  // page move instead of a favorites reorder.
+  const canDropInto = useCallback(
+    (source: SpaceTreeNode, target: SpaceTreeNode) =>
+      (source.parentPageId === null) === (target.parentPageId === null),
+    [],
+  );
+
+  // Root shortcuts only support reordering among themselves — nesting one
+  // favorite under another isn't a concept this flat list has.
+  const disallowDropKind = useCallback(
+    (n: SpaceTreeNode, kind: DropOp["kind"]) =>
+      n.parentPageId === null && kind === "make-child",
+    [],
+  );
+
+  // Real descendants move like the main tree (an actual page move). Root
+  // shortcuts only reorder this user's manual favorites order — the
+  // underlying page's real position/parent is never touched.
+  const handleMove = useCallback(
+    async (sourceId: string, op: DropOp) => {
+      const sourceNode = treeModel.find(data, sourceId) as SpaceTreeNode | null;
+      if (!sourceNode) return;
+
+      if (sourceNode.parentPageId !== null) {
+        await pageHandleMove(sourceId, op);
+        return;
+      }
+
+      // `data`'s top-level entries are always root shortcuts — any real
+      // descendants live nested in `.children` — so this only ever reorders
+      // root favorites.
+      const before = data;
+      const withoutSource = data.filter((n) => n.id !== sourceId);
+      const targetIndex = withoutSource.findIndex((n) => n.id === op.targetId);
+      if (targetIndex === -1) return;
+      const insertAt =
+        op.kind === "reorder-after" ? targetIndex + 1 : targetIndex;
+
+      const prevPosition = withoutSource[insertAt - 1]?.position ?? null;
+      const nextPosition = withoutSource[insertAt]?.position ?? null;
+      const position = generateJitteredKeyBetween(prevPosition, nextPosition);
+
+      setData([
+        ...withoutSource.slice(0, insertAt),
+        { ...sourceNode, position },
+        ...withoutSource.slice(insertAt),
+      ]);
+
+      try {
+        await moveFavoriteMutation.mutateAsync({ pageId: sourceId, position });
+      } catch {
+        setData(before);
+        notifications.show({
+          message: t("Failed to move favorite"),
+          color: "red",
+        });
+      }
+    },
+    [data, pageHandleMove, moveFavoriteMutation, setData, t],
   );
 
   const getDragLabel = useCallback(
@@ -177,6 +252,8 @@ export function FavoriteSpaceTree({
           readOnly={readOnly}
           disableDrag={disableDragDrop}
           disableDrop={disableDragDrop}
+          canDropInto={canDropInto}
+          disallowDropKind={disallowDropKind}
           getDragLabel={getDragLabel}
           aria-label={t("Starred")}
         />

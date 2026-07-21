@@ -56,6 +56,8 @@ type Props<T extends object> = {
   readOnly: boolean;
   disableDrag?: (node: TreeNode<T>) => boolean;
   disableDrop?: (node: TreeNode<T>) => boolean;
+  canDropInto?: (source: TreeNode<T>, target: TreeNode<T>) => boolean;
+  disallowDropKind?: (node: TreeNode<T>, kind: DropOp['kind']) => boolean;
   getDragLabel: (node: TreeNode<T>) => string;
   contextId: symbol;
   registerRowElement: (key: string, el: HTMLElement | null) => void;
@@ -85,6 +87,8 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     readOnly,
     disableDrag,
     disableDrop,
+    canDropInto,
+    disallowDropKind,
     getDragLabel,
     contextId,
     registerRowElement,
@@ -189,6 +193,9 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
       // force users to drop into the folder via 'make-child' instead.
       const block: Instruction['type'][] = ['reparent'];
       if (isOpen && hasChildren) block.push('reorder-below');
+      if (disallowDropKind?.(node, 'make-child')) block.push('make-child');
+      if (disallowDropKind?.(node, 'reorder-before')) block.push('reorder-above');
+      if (disallowDropKind?.(node, 'reorder-after')) block.push('reorder-below');
 
       cleanups.push(
         dropTargetForElements({
@@ -197,6 +204,14 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
             source.data.type === DRAG_TYPE &&
             source.data.uniqueContextId === contextId &&
             source.data.id !== node.id &&
+            (!canDropInto ||
+              (() => {
+                const sourceNode = treeModel.find(
+                  getRootData(),
+                  source.data.id as string,
+                );
+                return !!sourceNode && canDropInto(sourceNode, node);
+              })()) &&
             !treeModel.isDescendant(
               getRootData(),
               source.data.id as string,
@@ -301,6 +316,8 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     readOnly,
     disableDrag,
     disableDrop,
+    canDropInto,
+    disallowDropKind,
     contextId,
     indentPerLevel,
     getDragLabel,
@@ -407,6 +424,8 @@ function arePropsEqual<T extends object>(
   if (prev.onToggle !== next.onToggle) return false;
   if (prev.disableDrag !== next.disableDrag) return false;
   if (prev.disableDrop !== next.disableDrop) return false;
+  if (prev.canDropInto !== next.canDropInto) return false;
+  if (prev.disallowDropKind !== next.disallowDropKind) return false;
   if (prev.getDragLabel !== next.getDragLabel) return false;
   if (prev.registerRowElement !== next.registerRowElement) return false;
   if (prev.getRootData !== next.getRootData) return false;
