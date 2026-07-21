@@ -12,7 +12,6 @@ export enum CoreHooks {
   BEFORE_FORGOT_PASSWORD = 'auth:beforeForgotPassword',
   BEFORE_PASSWORD_RESET = 'auth:beforePasswordReset',
   BEFORE_VERIFY_TOKEN = 'auth:beforeVerifyToken',
-  OIDC_LOGIN = 'auth:oidcLogin',
 
   // MFA events
   BEFORE_MFA_VERIFY = 'mfa:beforeVerify',
