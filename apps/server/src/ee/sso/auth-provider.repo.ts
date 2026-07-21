@@ -51,6 +51,7 @@ export class AuthProviderRepo {
           ]),
         ]),
       )
+      .orderBy('createdAt', 'asc')
       .executeTakeFirst();
   }
 
