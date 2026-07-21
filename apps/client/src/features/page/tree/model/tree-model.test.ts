@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { treeModel } from './tree-model';
+import { treeModel, pathKey } from './tree-model';
 import type { TreeNode } from './tree-model.types';
 
 type N = TreeNode<{ name: string }>;
@@ -325,5 +325,137 @@ describe('treeModel.move', () => {
       targetId: 'ghost',
     });
     expect(out.tree).toBe(fixture);
+  });
+});
+
+// A tree where the same id occupies two positions — the case that motivates
+// path-based keying in the first place (e.g. a page that's independently
+// favorited AND a descendant of another favorited page). Each occurrence of
+// 'y' has its own child, so opening one and not the other is observable.
+const dupFixture: N[] = [
+  {
+    id: 'x',
+    name: 'X',
+    children: [
+      {
+        id: 'y',
+        name: 'Y-nested',
+        children: [{ id: 'y-nested-child', name: 'Y-nested-child' }],
+      },
+    ],
+  },
+  {
+    id: 'y',
+    name: 'Y-root',
+    children: [{ id: 'y-root-child', name: 'Y-root-child' }],
+  },
+];
+
+describe('pathKey', () => {
+  it('a single-segment path equals the bare id', () => {
+    expect(pathKey(['a'])).toBe('a');
+  });
+  it('different paths produce different keys', () => {
+    expect(pathKey(['x', 'y'])).not.toBe(pathKey(['y']));
+  });
+  it('the same path produces the same key', () => {
+    expect(pathKey(['x', 'y'])).toBe(pathKey(['x', 'y']));
+  });
+});
+
+describe('treeModel.findByPath', () => {
+  it('finds a root node by its single-segment path', () => {
+    expect(treeModel.findByPath(fixture, ['a'])?.name).toBe('A');
+  });
+  it('finds a deeply nested node by its full path', () => {
+    expect(treeModel.findByPath(fixture, ['a', 'a1', 'a1a'])?.name).toBe(
+      'A1a',
+    );
+  });
+  it('returns null when a middle segment does not match', () => {
+    expect(treeModel.findByPath(fixture, ['a', 'ghost', 'a1a'])).toBeNull();
+  });
+  it('returns null for an empty path', () => {
+    expect(treeModel.findByPath(fixture, [])).toBeNull();
+  });
+  it('disambiguates a duplicated id by path', () => {
+    expect(treeModel.findByPath(dupFixture, ['y'])?.name).toBe('Y-root');
+    expect(treeModel.findByPath(dupFixture, ['x', 'y'])?.name).toBe(
+      'Y-nested',
+    );
+  });
+});
+
+describe('treeModel.appendChildrenByPath', () => {
+  const kid = (id: string): N => ({ id, name: id });
+
+  it('appends to the node at the given root-level path', () => {
+    const t = treeModel.appendChildrenByPath(fixture, ['a'], [kid('a3')]);
+    expect(treeModel.find(t, 'a')?.children?.map((n) => n.id)).toEqual([
+      'a1', 'a2', 'a3',
+    ]);
+  });
+  it('appends to the node at a nested path', () => {
+    const t = treeModel.appendChildrenByPath(
+      fixture,
+      ['a', 'a1'],
+      [kid('a1b')],
+    );
+    expect(treeModel.find(t, 'a1')?.children?.map((n) => n.id)).toEqual([
+      'a1a', 'a1b',
+    ]);
+  });
+  it('returns same array reference for an unknown path', () => {
+    expect(
+      treeModel.appendChildrenByPath(fixture, ['ghost'], [kid('zz')]),
+    ).toBe(fixture);
+  });
+  it('dedups against existing children by id', () => {
+    const t1 = treeModel.appendChildrenByPath(fixture, ['a'], [kid('a3')]);
+    const t2 = treeModel.appendChildrenByPath(t1, ['a'], [kid('a3')]);
+    expect(t2).toBe(t1);
+  });
+  it('only affects the occurrence at the given path, not a duplicate id elsewhere', () => {
+    const t = treeModel.appendChildrenByPath(dupFixture, ['x', 'y'], [
+      kid('new-nested-child'),
+    ]);
+    expect(
+      treeModel.findByPath(t, ['x', 'y'])?.children?.map((n) => n.id),
+    ).toEqual(['y-nested-child', 'new-nested-child']);
+    expect(
+      treeModel.findByPath(t, ['y'])?.children?.map((n) => n.id),
+    ).toEqual(['y-root-child']);
+  });
+});
+
+describe('treeModel.visibleByPath', () => {
+  it('returns only root nodes when no keys are open', () => {
+    const v = treeModel.visibleByPath(fixture, new Set());
+    expect(v.map((n) => n.id)).toEqual(['a', 'b']);
+  });
+  it('includes children when the root path key is open', () => {
+    const v = treeModel.visibleByPath(fixture, new Set([pathKey(['a'])]));
+    expect(v.map((n) => n.id)).toEqual(['a', 'a1', 'a2', 'b']);
+  });
+  it('recursively descends through chains of open path keys', () => {
+    const v = treeModel.visibleByPath(
+      fixture,
+      new Set([pathKey(['a']), pathKey(['a', 'a1'])]),
+    );
+    expect(v.map((n) => n.id)).toEqual(['a', 'a1', 'a1a', 'a2', 'b']);
+  });
+  it('opening one occurrence of a duplicated id does not open the other', () => {
+    // Opens 'x' (to reach nested 'y' at all) and that nested 'y' itself, but
+    // not the root-level 'y' — its own child must stay collapsed.
+    const v = treeModel.visibleByPath(
+      dupFixture,
+      new Set([pathKey(['x']), pathKey(['x', 'y'])]),
+    );
+    expect(v.map((n) => n.name)).toEqual([
+      'X',
+      'Y-nested',
+      'Y-nested-child',
+      'Y-root',
+    ]);
   });
 });
