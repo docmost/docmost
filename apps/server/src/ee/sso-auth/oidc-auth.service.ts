@@ -10,8 +10,6 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { SessionService } from '../../core/session/session.service';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { encodeOidcState, decodeOidcState } from './oidc-state.util';
-import { runHook } from '../../core/plugins/run-hook';
-import { CoreHooks } from '../../core/plugins/plugin-hooks';
 import { UserRole } from '../../common/helpers/types/permission';
 import { nanoIdGen } from '../../common/helpers';
 
@@ -23,10 +21,6 @@ export class OidcAuthService {
     private readonly sessionService: SessionService,
     private readonly environmentService: EnvironmentService,
   ) {}
-
-  private isEntraIssuer(issuer: string): boolean {
-    return issuer.includes('login.microsoftonline.com');
-  }
 
   private buildCallbackUrl(providerId: string): string {
     return `${this.environmentService.getAppUrl()}/api/sso/oidc/${providerId}/callback`;
@@ -127,30 +121,15 @@ export class OidcAuthService {
       expectedNonce: decoded.nonce,
     });
 
+    // The email/name claims come from the ID token returned by openid-client's
+    // authorizationCodeGrant, which already performs full OIDC validation
+    // (signature, issuer, audience, expiry) regardless of the issuer - Entra ID
+    // included. There is no Entra-specific config (tenantId, group sync rules,
+    // etc.) wired up from the AuthProviders row today, so no additional
+    // provider-specific handling is applied here.
     const claims = tokens.claims();
-    let email = claims?.email as string | undefined;
-    let name = (claims?.name as string | undefined) ?? email;
-
-    if (provider.oidcIssuer && this.isEntraIssuer(provider.oidcIssuer)) {
-      const hookResult = await runHook(CoreHooks.OIDC_LOGIN, {
-        providerId: decoded.providerId,
-        idToken: tokens.id_token,
-        accessToken: tokens.access_token,
-        workspaceId: params.workspaceId,
-        config: provider,
-      });
-      const userInfo = (hookResult as any)?.userInfo;
-      if (userInfo?.email) {
-        // Safe to override the verified ID-token email here: AuthOidcLoginHandler.handle
-        // (apps/server/src/ee/plugins/azure-ad/hooks/auth-oidc-login.handler.ts) re-verifies
-        // the ID token's signature (verifyTokenSignature) and claims (validateToken) before
-        // deriving userInfo whenever `config` is provided - which it always is on this path
-        // (config: provider is passed above) - so userInfo.email is itself cryptographically
-        // verified, not blindly trusted.
-        email = userInfo.email;
-        name = userInfo.name ?? name;
-      }
-    }
+    const email = claims?.email as string | undefined;
+    const name = (claims?.name as string | undefined) ?? email;
 
     if (!email) {
       throw new BadRequestException('SSO provider did not return an email claim');
@@ -172,6 +151,30 @@ export class OidcAuthService {
     }
 
     const authToken = await this.sessionService.createSessionAndToken(user);
-    return { authToken, redirect: decoded.redirect };
+    const redirect = isSafeRedirectPath(decoded.redirect)
+      ? decoded.redirect
+      : '/';
+    return { authToken, redirect };
   }
+}
+
+/**
+ * Validates that a post-login redirect target is a safe, same-origin relative
+ * path - rejecting anything that could be interpreted by a browser as
+ * pointing to a different host (open redirect), such as protocol-relative
+ * URLs (`//evil.com`), values containing a scheme (`http://evil.com`),
+ * userinfo-style hosts (`@evil.com`), or backslashes (`\evil.com`, which some
+ * browsers normalize like forward slashes).
+ */
+export function isSafeRedirectPath(path: string | undefined): path is string {
+  if (!path) {
+    return false;
+  }
+  if (!path.startsWith('/') || path.startsWith('//')) {
+    return false;
+  }
+  if (path.includes('\\') || path.includes('@')) {
+    return false;
+  }
+  return true;
 }

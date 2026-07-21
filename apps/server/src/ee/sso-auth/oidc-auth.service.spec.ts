@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import * as client from 'openid-client';
-import { OidcAuthService } from './oidc-auth.service';
+import { OidcAuthService, isSafeRedirectPath } from './oidc-auth.service';
 import { AuthProviderRepo } from '../sso/auth-provider.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { SessionService } from '../../core/session/session.service';
@@ -178,5 +178,59 @@ describe('OidcAuthService.handleCallback', () => {
       }),
     );
     expect(result.authToken).toBe('session-token');
+  });
+
+  it('falls back to / for an unsafe redirect and passes through a safe one', async () => {
+    const stateCookie = encodeOidcState(
+      {
+        providerId: 'p1',
+        nonce: 'n1',
+        state: 's1',
+        codeVerifier: 'verifier-abc',
+        redirect: '@evil.com',
+      },
+      'test-secret',
+    );
+
+    (client.authorizationCodeGrant as jest.Mock).mockResolvedValue({
+      claims: () => ({ email: 'user@example.com', name: 'User' }),
+      id_token: 'id-token',
+      access_token: 'access-token',
+    });
+
+    const result = await service.handleCallback({
+      code: 'auth-code',
+      state: 's1',
+      stateCookie,
+      workspaceId: 'ws1',
+    });
+
+    expect(result.redirect).toBe('/');
+  });
+});
+
+describe('isSafeRedirectPath', () => {
+  it('accepts a normal relative path', () => {
+    expect(isSafeRedirectPath('/dashboard')).toBe(true);
+  });
+
+  it('rejects protocol-relative urls', () => {
+    expect(isSafeRedirectPath('//evil.com')).toBe(false);
+  });
+
+  it('rejects userinfo-style hosts', () => {
+    expect(isSafeRedirectPath('@evil.com')).toBe(false);
+  });
+
+  it('rejects values containing a scheme', () => {
+    expect(isSafeRedirectPath('http://evil.com')).toBe(false);
+  });
+
+  it('rejects paths containing a backslash', () => {
+    expect(isSafeRedirectPath('/\\evil.com')).toBe(false);
+  });
+
+  it('rejects undefined', () => {
+    expect(isSafeRedirectPath(undefined)).toBe(false);
   });
 });
