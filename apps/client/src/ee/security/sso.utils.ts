@@ -12,12 +12,8 @@ export function buildCallbackUrl(opts: {
     return `${domain}/api/sso/${type}/callback`;
   }
 
-  // Azure AD uses standard OIDC callback URL
-  if (type === SSO_PROVIDER.AZURE_AD) {
-    return `${domain}/api/sso/oidc/callback`;
-  }
-
-  return `${domain}/api/sso/${type}/${providerId}/callback`;
+  // Azure AD (Entra ID) uses the generic OIDC route, scoped by providerId
+  return `${domain}/api/sso/${type === SSO_PROVIDER.AZURE_AD ? "oidc" : type}/${providerId}/callback`;
 }
 
 export function buildSsoLoginUrl(opts: {
@@ -37,16 +33,8 @@ export function buildSsoLoginUrl(opts: {
     return `${getServerAppUrl()}/api/sso/${type}/login?${params.toString()}`;
   }
 
-  // Azure AD uses standard OIDC login URL
-  if (type === SSO_PROVIDER.AZURE_AD) {
-    if (workspaceId) params.set("workspaceId", workspaceId);
-    const query = params.toString();
-    const base = `${getServerAppUrl()}/api/sso/oidc/login`;
-    return query ? `${base}?${query}` : base;
-  }
-
   const query = params.toString();
-  const base = `${domain}/api/sso/${type}/${providerId}/login`;
+  const base = `${domain}/api/sso/${type === SSO_PROVIDER.AZURE_AD ? "oidc" : type}/${providerId}/login`;
   return query ? `${base}?${query}` : base;
 }
 
