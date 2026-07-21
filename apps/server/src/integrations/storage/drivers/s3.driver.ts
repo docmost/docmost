@@ -15,13 +15,21 @@ import { getMimeType } from '../../../common/helpers';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Logger } from '@nestjs/common';
 
+const S3_MAX_SOCKETS = 200;
+
 export class S3Driver implements StorageDriver {
   private readonly s3Client: S3Client;
   private readonly config: S3StorageConfig;
 
   constructor(config: S3StorageConfig) {
-    this.config = config;
-    this.s3Client = new S3Client(config as any);
+    this.config = {
+      ...config,
+      requestHandler: {
+        httpAgent: { maxSockets: S3_MAX_SOCKETS },
+        httpsAgent: { maxSockets: S3_MAX_SOCKETS },
+      },
+    };
+    this.s3Client = new S3Client(this.config as any);
   }
 
   async upload(filePath: string, file: Buffer | Readable): Promise<void> {
