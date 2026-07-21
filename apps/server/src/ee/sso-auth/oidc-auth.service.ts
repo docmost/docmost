@@ -74,7 +74,7 @@ export class OidcAuthService {
     });
 
     const stateCookie = encodeOidcState(
-      { providerId, nonce, state, redirect, codeVerifier } as any,
+      { providerId, nonce, state, redirect, codeVerifier },
       this.environmentService.getAppSecret(),
     );
 
@@ -91,7 +91,7 @@ export class OidcAuthService {
       params.stateCookie,
       this.environmentService.getAppSecret(),
     );
-    if (!decoded || decoded.state !== params.state) {
+    if (!decoded || decoded.state !== params.state || !decoded.codeVerifier) {
       throw new BadRequestException('Invalid or expired SSO state');
     }
 
@@ -121,10 +121,8 @@ export class OidcAuthService {
     currentUrl.searchParams.set('code', params.code);
     currentUrl.searchParams.set('state', params.state);
 
-    const codeVerifier = (decoded as any).codeVerifier as string | undefined;
-
     const tokens = await client.authorizationCodeGrant(config, currentUrl, {
-      pkceCodeVerifier: codeVerifier,
+      pkceCodeVerifier: decoded.codeVerifier,
       expectedState: decoded.state,
       expectedNonce: decoded.nonce,
     });
@@ -143,6 +141,12 @@ export class OidcAuthService {
       });
       const userInfo = (hookResult as any)?.userInfo;
       if (userInfo?.email) {
+        // Safe to override the verified ID-token email here: AuthOidcLoginHandler.handle
+        // (apps/server/src/ee/plugins/azure-ad/hooks/auth-oidc-login.handler.ts) re-verifies
+        // the ID token's signature (verifyTokenSignature) and claims (validateToken) before
+        // deriving userInfo whenever `config` is provided - which it always is on this path
+        // (config: provider is passed above) - so userInfo.email is itself cryptographically
+        // verified, not blindly trusted.
         email = userInfo.email;
         name = userInfo.name ?? name;
       }

@@ -5,6 +5,7 @@ interface OidcStatePayload {
   nonce: string;
   state: string;
   redirect?: string;
+  codeVerifier?: string;
 }
 
 function sign(data: string, secret: string): string {
@@ -45,9 +46,9 @@ export function decodeOidcState(
     if (typeof body.exp !== 'number' || body.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
-    const { providerId, nonce, state, redirect } = body;
+    const { providerId, nonce, state, redirect, codeVerifier } = body;
     if (!providerId || !nonce || !state) return null;
-    return { providerId, nonce, state, redirect };
+    return { providerId, nonce, state, redirect, codeVerifier };
   } catch {
     return null;
   }
