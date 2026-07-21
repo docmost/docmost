@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { atom, useAtom } from "jotai";
+import { useAtom } from "jotai";
 import { Group, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
@@ -20,12 +20,10 @@ import { getPageTitle } from "@/features/page/page.utils";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation";
 import { treeModel, pathKey } from "@/features/page/tree/model/tree-model";
 import type { DropOp } from "@/features/page/tree/model/tree-model.types";
+import { favTreeDataAtom } from "@/features/page/tree/atoms/fav-tree-data-atom";
 import { DocTree } from "@/features/page/tree/components/doc-tree";
 import { SpaceTreeRow } from "@/features/page/tree/components/space-tree-row";
 import treeClasses from "@/features/page/tree/styles/tree.module.css";
-
-// Separate atom for favorite tree data — not shared with the main space tree
-export const favTreeDataAtom = atom<SpaceTreeNode[]>([]);
 
 const ROW_HEIGHT = 32;
 
@@ -144,28 +142,37 @@ export function FavoriteSpaceTree({
     [],
   );
 
-  // Root shortcuts and real descendants are separate domains that must never
-  // intermix via drag: dropping a real page onto a root row (or vice versa)
-  // doesn't correspond to any sensible operation here, and — since a root
-  // row's id is a real page id — could otherwise silently trigger an actual
-  // page move instead of a favorites reorder.
+  // A root shortcut is real-page-backed, so it must never be reordered
+  // relative to a real descendant (that domain never intermixes with a real
+  // descendant as a *source*) — but a real descendant CAN be dropped onto a
+  // root shortcut, which is exactly how you move a page into another starred
+  // page's subtree. disallowDropKind below narrows this further by kind.
   const canDropInto = useCallback(
     (source: SpaceTreeNode, target: SpaceTreeNode) =>
-      (source.parentPageId === null) === (target.parentPageId === null),
+      source.parentPageId !== null || target.parentPageId === null,
     [],
   );
 
-  // Root shortcuts only support reordering among themselves — nesting one
-  // favorite under another isn't a concept this flat list has.
+  // Root shortcuts only reorder among themselves — never nested onto one
+  // another via drag. A real descendant can become a new child of any
+  // starred page (root or nested), same as the main Pages tree, but
+  // reordering it to sit before/after a root shortcut isn't meaningful (root
+  // shortcuts aren't part of the real hierarchy's ordering), so that specific
+  // combination is rejected.
   const disallowDropKind = useCallback(
-    (n: SpaceTreeNode, kind: DropOp["kind"]) =>
-      n.parentPageId === null && kind === "make-child",
+    (source: SpaceTreeNode, target: SpaceTreeNode, kind: DropOp["kind"]) =>
+      source.parentPageId === null
+        ? target.parentPageId === null && kind === "make-child"
+        : target.parentPageId === null && kind !== "make-child",
     [],
   );
 
-  // Real descendants move like the main tree (an actual page move). Root
-  // shortcuts only reorder this user's manual favorites order — the
-  // underlying page's real position/parent is never touched.
+  // A real descendant moves exactly like the main Pages tree — including
+  // becoming a new child of another starred page's real page — since
+  // disallowDropKind already ruled out the one combination (reordering next
+  // to a root shortcut) that wouldn't make sense as a real page move. Root
+  // shortcuts themselves only ever reorder this user's manual favorites
+  // order here; the underlying page's real position/parent is never touched.
   const handleMove = useCallback(
     async (sourceId: string, op: DropOp) => {
       const sourceNode = treeModel.find(data, sourceId) as SpaceTreeNode | null;

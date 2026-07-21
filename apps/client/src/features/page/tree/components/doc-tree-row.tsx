@@ -57,7 +57,11 @@ type Props<T extends object> = {
   disableDrag?: (node: TreeNode<T>) => boolean;
   disableDrop?: (node: TreeNode<T>) => boolean;
   canDropInto?: (source: TreeNode<T>, target: TreeNode<T>) => boolean;
-  disallowDropKind?: (node: TreeNode<T>, kind: DropOp['kind']) => boolean;
+  disallowDropKind?: (
+    source: TreeNode<T>,
+    target: TreeNode<T>,
+    kind: DropOp['kind'],
+  ) => boolean;
   getDragLabel: (node: TreeNode<T>) => string;
   contextId: symbol;
   registerRowElement: (key: string, el: HTMLElement | null) => void;
@@ -188,14 +192,6 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
           : isLastSibling
             ? 'last-in-group'
             : 'standard';
-      // Always block 'reparent' (out of scope per spec).
-      // Block 'reorder-below' when the row is open with children — ambiguous gesture,
-      // force users to drop into the folder via 'make-child' instead.
-      const block: Instruction['type'][] = ['reparent'];
-      if (isOpen && hasChildren) block.push('reorder-below');
-      if (disallowDropKind?.(node, 'make-child')) block.push('make-child');
-      if (disallowDropKind?.(node, 'reorder-before')) block.push('reorder-above');
-      if (disallowDropKind?.(node, 'reorder-after')) block.push('reorder-below');
 
       cleanups.push(
         dropTargetForElements({
@@ -217,8 +213,35 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
               source.data.id as string,
               node.id,
             ),
-          getData: ({ input, element }) =>
-            attachInstruction(
+          // Computed per-hover (not hoisted) because which kinds are
+          // blocked can depend on the drag source, not just this target —
+          // e.g. a flat shortcuts row blocks reordering a real descendant
+          // next to it, but still allows make-child from that same source.
+          getData: ({ input, element, source }) => {
+            // Always block 'reparent' (out of scope per spec).
+            // Block 'reorder-below' when the row is open with children —
+            // ambiguous gesture, force users to drop into the folder via
+            // 'make-child' instead.
+            const block: Instruction['type'][] = ['reparent'];
+            if (isOpen && hasChildren) block.push('reorder-below');
+            if (disallowDropKind) {
+              const sourceNode = treeModel.find(
+                getRootData(),
+                source.data.id as string,
+              );
+              if (sourceNode) {
+                if (disallowDropKind(sourceNode, node, 'make-child')) {
+                  block.push('make-child');
+                }
+                if (disallowDropKind(sourceNode, node, 'reorder-before')) {
+                  block.push('reorder-above');
+                }
+                if (disallowDropKind(sourceNode, node, 'reorder-after')) {
+                  block.push('reorder-below');
+                }
+              }
+            }
+            return attachInstruction(
               { id: node.id, type: DRAG_TYPE },
               {
                 input,
@@ -228,7 +251,8 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
                 mode,
                 block,
               },
-            ),
+            );
+          },
           onDrag: ({ self }) => {
             const inst = extractInstruction(self.data);
             setInstruction(inst);

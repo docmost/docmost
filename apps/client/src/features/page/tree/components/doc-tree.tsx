@@ -87,11 +87,18 @@ export type DocTreeProps<T extends object> = {
   // disableDrop alone can't express "only accept a drop from THIS kind of
   // source," since they only see the target node. Defaults to always-allow.
   canDropInto?: (source: TreeNode<T>, target: TreeNode<T>) => boolean;
-  // Blocks one specific drop kind onto a node while leaving others enabled
-  // (disableDrop blocks all kinds at once). E.g. a flat shortcuts row can
-  // accept reorder-before/after from its siblings but should never accept
-  // make-child. Defaults to always-allow.
-  disallowDropKind?: (node: TreeNode<T>, kind: DropOp['kind']) => boolean;
+  // Blocks one specific drop kind for a given (source, target) pair while
+  // leaving others enabled (disableDrop blocks every kind at once for a
+  // target regardless of source). E.g. a flat shortcuts row should accept
+  // make-child from a real descendant (nest it into that shortcut's real
+  // page) while rejecting make-child between two shortcuts, and rejecting
+  // reorder-before/after from a real descendant entirely. Defaults to
+  // always-allow.
+  disallowDropKind?: (
+    source: TreeNode<T>,
+    target: TreeNode<T>,
+    kind: DropOp['kind'],
+  ) => boolean;
 
   getDragLabel: (node: TreeNode<T>) => string;
   uniqueContextId?: symbol;
