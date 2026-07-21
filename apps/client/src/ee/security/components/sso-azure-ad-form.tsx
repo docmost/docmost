@@ -12,7 +12,6 @@ import {
 } from "@mantine/core";
 import { buildCallbackUrl } from "@/ee/security/sso.utils.ts";
 import { IAuthProvider } from "@/ee/security/types/security.types.ts";
-import { SSO_PROVIDER } from "@/ee/security/contants.ts";
 import CopyTextButton from "@/components/common/copy.tsx";
 import { useTranslation } from "react-i18next";
 import { useUpdateSsoProviderMutation } from "@/ee/security/queries/security-query.ts";
@@ -75,10 +74,10 @@ export function SsoAzureAdForm({ provider, onClose }: Readonly<SsoAzureAdFormPro
       providerId: provider.id,
     };
 
-    // Ensure type is 'oidc' for Azure AD
-    if (provider.type === SSO_PROVIDER.AZURE_AD) {
-      ssoData.type = SSO_PROVIDER.OIDC;
-    }
+    // Keep type as 'azure-ad' - the server accepts both 'oidc' and
+    // 'azure-ad' as OIDC-capable, and the client needs this exact type
+    // value to keep building the singleton (no providerId) login/callback
+    // URL Entra ID's fixed redirect URI requires.
 
     if (form.isDirty("name")) {
       ssoData.name = values.name;

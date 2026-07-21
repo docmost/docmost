@@ -27,6 +27,33 @@ export class AuthProviderRepo {
       .executeTakeFirst();
   }
 
+  /**
+   * Resolves "the" Microsoft Entra ID (Azure AD) provider for a workspace,
+   * without needing a providerId - used by the singleton Entra login/callback
+   * routes, since Entra app registrations require a fixed redirect URI with
+   * no dynamic segment. Matches rows created via the dedicated Azure AD form
+   * (type: 'azure-ad') as well as older rows whose type was normalized to
+   * 'oidc' on save but whose issuer still identifies them as Entra.
+   */
+  async findEntraProvider(workspaceId: string): Promise<AuthProvider | undefined> {
+    return this.db
+      .selectFrom('authProviders')
+      .selectAll()
+      .where('workspaceId', '=', workspaceId)
+      .where('isEnabled', '=', true)
+      .where('deletedAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('type', '=', 'azure-ad'),
+          eb.and([
+            eb('type', '=', 'oidc'),
+            eb('oidcIssuer', 'ilike', '%login.microsoftonline.com%'),
+          ]),
+        ]),
+      )
+      .executeTakeFirst();
+  }
+
   async listPaginated(workspaceId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('authProviders')

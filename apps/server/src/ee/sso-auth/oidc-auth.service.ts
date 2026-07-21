@@ -22,20 +22,31 @@ export class OidcAuthService {
     private readonly environmentService: EnvironmentService,
   ) {}
 
-  private buildCallbackUrl(providerId: string): string {
-    return `${this.environmentService.getAppUrl()}/api/sso/oidc/${providerId}/callback`;
+  private buildCallbackUrl(providerId?: string): string {
+    const base = `${this.environmentService.getAppUrl()}/api/sso/oidc`;
+    return providerId ? `${base}/${providerId}/callback` : `${base}/callback`;
   }
 
+  private isOidcCapable(provider: { type: string } | undefined): boolean {
+    return provider?.type === 'oidc' || provider?.type === 'azure-ad';
+  }
+
+  /**
+   * providerId is omitted for the singleton Entra ID (Azure AD) flow, whose
+   * redirect URI is fixed (no dynamic segment, since Entra app registrations
+   * pin an exact callback URL) - the actual provider is resolved by
+   * workspace instead. It is always present for the generic, providerId-
+   * scoped OIDC flow.
+   */
   async buildAuthorizationUrl(
-    providerId: string,
+    providerId: string | undefined,
     workspaceId: string,
     redirect?: string,
   ): Promise<{ url: string; stateCookie: string }> {
-    const provider = await this.authProviderRepo.findById(
-      providerId,
-      workspaceId,
-    );
-    if (!provider || !provider.isEnabled || provider.type !== 'oidc') {
+    const provider = providerId
+      ? await this.authProviderRepo.findById(providerId, workspaceId)
+      : await this.authProviderRepo.findEntraProvider(workspaceId);
+    if (!provider || !provider.isEnabled || !this.isOidcCapable(provider)) {
       throw new NotFoundException('SSO provider not found');
     }
     if (
@@ -57,6 +68,10 @@ export class OidcAuthService {
     const codeVerifier = client.randomPKCECodeVerifier();
     const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
 
+    // The redirect_uri shape (singleton vs providerId-scoped) mirrors how
+    // this authorization request was reached, not how the provider was
+    // resolved - the singleton /callback route always issues a singleton
+    // redirect_uri, matching the fixed URI registered in Entra.
     const callbackUrl = this.buildCallbackUrl(providerId);
     const authUrl = client.buildAuthorizationUrl(config, {
       redirect_uri: callbackUrl,
@@ -68,7 +83,14 @@ export class OidcAuthService {
     });
 
     const stateCookie = encodeOidcState(
-      { providerId, nonce, state, redirect, codeVerifier },
+      {
+        providerId: provider.id,
+        nonce,
+        state,
+        redirect,
+        codeVerifier,
+        singleton: providerId === undefined,
+      },
       this.environmentService.getAppSecret(),
     );
 
@@ -93,7 +115,7 @@ export class OidcAuthService {
       decoded.providerId,
       params.workspaceId,
     );
-    if (!provider || !provider.isEnabled || provider.type !== 'oidc') {
+    if (!provider || !provider.isEnabled || !this.isOidcCapable(provider)) {
       throw new NotFoundException('SSO provider not found');
     }
     if (
@@ -110,7 +132,13 @@ export class OidcAuthService {
       provider.oidcClientSecret,
     );
 
-    const callbackUrl = this.buildCallbackUrl(decoded.providerId);
+    // Reconstructs the exact redirect_uri sent in the authorization request
+    // (required for the token exchange to match per the OAuth spec) - based
+    // on how this cycle was STARTED (decoded.singleton), not on whether a
+    // providerId happens to be known now.
+    const callbackUrl = this.buildCallbackUrl(
+      decoded.singleton ? undefined : decoded.providerId,
+    );
     const currentUrl = new URL(callbackUrl);
     currentUrl.searchParams.set('code', params.code);
     currentUrl.searchParams.set('state', params.state);
