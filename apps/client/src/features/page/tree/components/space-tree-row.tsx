@@ -19,6 +19,7 @@ import {
   fetchAllAncestorChildren,
 } from "@/features/page/queries/page-query.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import localEmitter from "@/lib/local-emitter.ts";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 
@@ -99,13 +100,19 @@ export function SpaceTreeRow({
       .mutateAsync({ pageId: node.id, icon: emoji.native })
       .then((data) => {
         setTimeout(() => {
-          emit({
-            operation: "updateOne",
+          const event = {
+            operation: "updateOne" as const,
             spaceId: node.spaceId,
             entity: ["pages"],
             id: node.id,
             payload: { icon: emoji.native, parentPageId: data.parentPageId },
-          });
+          };
+          // Only this row's own tree (dataAtom) was patched above — the
+          // other tree (main vs. favorites) needs the same event applied
+          // locally too, since the server never echoes an emit back to the
+          // socket that sent it.
+          localEmitter.emit("message", event);
+          emit(event);
         }, 50);
       });
   };
@@ -115,13 +122,15 @@ export function SpaceTreeRow({
     updatePageMutation.mutateAsync({ pageId: node.id, icon: null });
 
     setTimeout(() => {
-      emit({
-        operation: "updateOne",
+      const event = {
+        operation: "updateOne" as const,
         spaceId: node.spaceId,
         entity: ["pages"],
         id: node.id,
         payload: { icon: null },
-      });
+      };
+      localEmitter.emit("message", event);
+      emit(event);
     }, 50);
   };
 

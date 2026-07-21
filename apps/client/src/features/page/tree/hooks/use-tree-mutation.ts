@@ -20,6 +20,7 @@ import {
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import localEmitter from "@/lib/local-emitter.ts";
 
 export type UseTreeMutation = {
   handleMove: (sourceId: string, op: DropOp) => Promise<void>;
@@ -116,8 +117,8 @@ export function useTreeMutation(
       );
 
       setTimeout(() => {
-        emit({
-          operation: "moveTreeNode",
+        const event = {
+          operation: "moveTreeNode" as const,
           spaceId: spaceId,
           payload: {
             id: sourceId,
@@ -127,7 +128,13 @@ export function useTreeMutation(
             position: payload.position,
             pageData,
           },
-        });
+        };
+        // The server never echoes an emit back to the socket that sent it,
+        // so this tab needs the same event applied locally too — otherwise
+        // whichever tree wasn't the one dragged in (main vs. favorites)
+        // stays stale until a reload.
+        localEmitter.emit("message", event);
+        emit(event);
       }, 50);
     },
     [setData, store, movePageMutation, spaceId, emit, t],
@@ -172,15 +179,17 @@ export function useTreeMutation(
       setData((prev) => treeModel.insert(prev, parentId, newNode, lastIndex));
 
       setTimeout(() => {
-        emit({
-          operation: "addTreeNode",
+        const event = {
+          operation: "addTreeNode" as const,
           spaceId,
           payload: {
             parentId,
             index: lastIndex,
             data: newNode,
           },
-        });
+        };
+        localEmitter.emit("message", event);
+        emit(event);
       }, 50);
 
       const pageUrl = buildPageUrl(
@@ -243,11 +252,13 @@ export function useTreeMutation(
 
         setTimeout(() => {
           if (!node) return;
-          emit({
-            operation: "deleteTreeNode",
+          const event = {
+            operation: "deleteTreeNode" as const,
             spaceId,
             payload: { node },
-          });
+          };
+          localEmitter.emit("message", event);
+          emit(event);
         }, 50);
       } catch (error) {
         console.error("Failed to delete page:", error);
