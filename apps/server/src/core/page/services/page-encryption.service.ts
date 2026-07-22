@@ -18,11 +18,10 @@ import {
   RewrapEncryptionKeyDto,
   UpdateEncryptedPageDto,
 } from '../dto/page-encryption.dto';
-import {
-  createYdocFromJson,
-} from '../../../common/helpers/prosemirror/utils';
+import { createYdocFromJson } from '../../../common/helpers/prosemirror/utils';
 import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import { E2eeRelayService } from '../../../collaboration/e2ee/e2ee-relay.service';
 import { sql } from 'kysely';
 
 @Injectable()
@@ -34,6 +33,7 @@ export class PageEncryptionService {
     private readonly pageRepo: PageRepo,
     private eventEmitter: EventEmitter2,
     private readonly collaborationGateway: CollaborationGateway,
+    private readonly e2eeRelayService: E2eeRelayService,
   ) {}
 
   async getEncryptedBlob(page: Page) {
@@ -231,11 +231,7 @@ export class PageEncryptionService {
       })
       .where('id', '=', page.id)
       .where('isEncrypted', '=', true)
-      .where(
-        sql`encryption_meta->>'wrappedDek'`,
-        '=',
-        dto.currentWrappedDek,
-      )
+      .where(sql`encryption_meta->>'wrappedDek'`, '=', dto.currentWrappedDek)
       .executeTakeFirst();
 
     if (Number(result.numUpdatedRows) === 0) {
@@ -294,6 +290,16 @@ export class PageEncryptionService {
         .where('isEncrypted', '=', true)
         .execute();
     });
+
+    // the page is plaintext now: no encrypted relay session may linger
+    try {
+      await this.e2eeRelayService.closeRoom(page.id);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to close e2ee relay room for decrypted page ${page.id}`,
+        err,
+      );
+    }
 
     this.eventEmitter.emit(EventName.PAGE_UPDATED, {
       pageIds: [page.id],

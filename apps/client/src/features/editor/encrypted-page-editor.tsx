@@ -7,7 +7,12 @@ import React, {
   useState,
 } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { History } from "@tiptap/extension-history";
+import { getSchema } from "@tiptap/core";
+import { prosemirrorJSONToYDoc, ySyncPluginKey } from "y-prosemirror";
+import { Collaboration } from "@tiptap/extension-collaboration";
+import { CollaborationCaret } from "@tiptap/extension-collaboration-caret";
+import * as Y from "yjs";
+import { Awareness } from "y-protocols/awareness";
 import { Alert, Center, Loader } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
@@ -33,6 +38,7 @@ import { platformModifierKey } from "@/lib";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { EncryptionMeta } from "@/features/encryption/types/encryption.types";
 import {
+  requestPageKeyFromTabs,
   usePageKey,
   useUnlockPageKey,
 } from "@/features/encryption/hooks/page-key-store";
@@ -45,6 +51,19 @@ import {
   decryptBytes,
   encryptBytes,
 } from "@/features/encryption/services/crypto";
+import {
+  decodeBlob,
+  encodeYdocBlob,
+} from "@/features/encryption/services/encrypted-blob";
+import { createTabSync } from "@/features/encryption/services/tab-sync";
+import { createE2eeProvider } from "@/features/encryption/services/e2ee-provider";
+import { MERGE_ORIGIN } from "@/features/encryption/services/sync-origins";
+import { useCollabToken } from "@/features/auth/queries/auth-query";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import {
+  randomElement,
+  userColors,
+} from "@/features/editor/extensions/utils.ts";
 import { UnlockPageModal } from "@/features/encryption/components/unlock-page-modal";
 import { LockedPageScreen } from "@/features/encryption/components/locked-page-screen";
 
@@ -66,6 +85,13 @@ export default function EncryptedPageEditor({
   const [unlockOpened, setUnlockOpened] = useState(false);
 
   useAutoLock(pageId);
+
+  // if a sibling tab already holds the DEK, unlock without re-prompting
+  useEffect(() => {
+    if (!dek) {
+      requestPageKeyFromTabs(pageId);
+    }
+  }, [pageId, dek]);
 
   if (!dek) {
     return (
@@ -109,8 +135,18 @@ function BlobLoader({
 }) {
   const { t } = useTranslation();
   const [loaded, setLoaded] = useState<{
-    content: any;
+    ydoc: Y.Doc;
+    // owned here together with the ydoc so both are destroyed only after
+    // DecryptedEditor (and its relay provider) have fully cleaned up —
+    // child effect cleanups always run before the parent's
+    awareness: Awareness;
+    // true when the blob was legacy v1 (ProseMirror JSON): the Y.Doc was
+    // seeded from it and must be re-saved in the v2 ydoc format
+    needsMigration: boolean;
     version: number;
+    // identifies which key produced this state, so a key identity change
+    // never leaves the editor mounted on a stale/destroyed doc
+    dek: CryptoKey;
   } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -118,23 +154,55 @@ function BlobLoader({
   // written to the TanStack Query cache or any browser storage.
   useEffect(() => {
     let cancelled = false;
+    let ydoc: Y.Doc | null = null;
+    let awareness: Awareness | null = null;
     (async () => {
       try {
         const blob = await getEncryptedBlob(pageId);
         if (cancelled) return;
+        ydoc = new Y.Doc();
+        awareness = new Awareness(ydoc);
         if (!blob.encryptedBlob) {
           setLoaded({
-            content: { type: "doc", content: [{ type: "paragraph" }] },
+            ydoc,
+            awareness,
+            needsMigration: false,
             version: blob.version,
+            dek,
           });
           return;
         }
         const bytes = await decryptBytes(dek, blob.encryptedBlob);
         if (cancelled) return;
-        setLoaded({
-          content: JSON.parse(new TextDecoder().decode(bytes)),
-          version: blob.version,
-        });
+        const decoded = decodeBlob(bytes);
+        if (decoded.kind === "ydoc") {
+          Y.applyUpdate(ydoc, decoded.update);
+          setLoaded({
+            ydoc,
+            awareness,
+            needsMigration: false,
+            version: blob.version,
+            dek,
+          });
+        } else {
+          // legacy v1 JSON blob: seed the Y.Doc BEFORE the editor mounts —
+          // replacing a live collaborative doc via setContent crashes the
+          // placeholder extension's position resolution
+          const seededDoc = prosemirrorJSONToYDoc(
+            getSchema(mainExtensions),
+            decoded.content,
+            "default",
+          );
+          Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(seededDoc));
+          seededDoc.destroy();
+          setLoaded({
+            ydoc,
+            awareness,
+            needsMigration: true,
+            version: blob.version,
+            dek,
+          });
+        }
       } catch (err) {
         if (!cancelled) {
           setLoadError(
@@ -145,6 +213,16 @@ function BlobLoader({
     })();
     return () => {
       cancelled = true;
+      // Drop loaded so DecryptedEditor unmounts (provider.destroy runs in
+      // its cleanup). Destroy the doc on the next task so React can finish
+      // that unmount first — flushSync is illegal during lifecycle methods.
+      setLoaded(null);
+      const awarenessToDestroy = awareness;
+      const ydocToDestroy = ydoc;
+      setTimeout(() => {
+        awarenessToDestroy?.destroy();
+        ydocToDestroy?.destroy();
+      }, 0);
     };
   }, [pageId, dek]);
 
@@ -160,7 +238,10 @@ function BlobLoader({
     );
   }
 
-  if (!loaded) {
+  // loaded.dek !== dek covers the render window after a key identity change
+  // but before the load effect replaces the state — the old ydoc may already
+  // be scheduled for destruction and must not stay mounted
+  if (!loaded || loaded.dek !== dek) {
     return (
       <Center py="xl">
         <Loader size="sm" />
@@ -173,7 +254,9 @@ function BlobLoader({
       pageId={pageId}
       dek={dek}
       editable={editable}
-      initialContent={loaded.content}
+      ydoc={loaded.ydoc}
+      awareness={loaded.awareness}
+      needsMigration={loaded.needsMigration}
       initialVersion={loaded.version}
     />
   );
@@ -183,7 +266,9 @@ interface DecryptedEditorProps {
   pageId: string;
   dek: CryptoKey;
   editable: boolean;
-  initialContent: any;
+  ydoc: Y.Doc;
+  awareness: Awareness;
+  needsMigration: boolean;
   initialVersion: number;
 }
 
@@ -191,26 +276,160 @@ function DecryptedEditor({
   pageId,
   dek,
   editable,
-  initialContent,
+  ydoc,
+  awareness,
+  needsMigration,
   initialVersion,
 }: DecryptedEditorProps) {
   const { t } = useTranslation();
   const [, setEditor] = useAtom(pageEditorAtom);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
+  const currentUser = useAtomValue(currentUserAtom);
+  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
+  // UniqueID finds this provider on the caret extension and waits for
+  // "synced" before filling in missing block ids; our doc is fully loaded
+  // before the editor mounts, so report synced on the next tick
+  const [caretProvider] = useState(() => ({
+    awareness,
+    on(event: string, callback: () => void) {
+      if (event === "synced") {
+        window.setTimeout(callback, 0);
+      }
+    },
+    off() {},
+  }));
   const [conflict, setConflict] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  // Both track the window between seeding from a legacy v1 blob and the
+  // first successful save. In that window the seed exists only locally, so
+  // syncing or merging with another client (which may hold an independent
+  // seed of the same document) would duplicate the content: `migrated`
+  // gates tab/relay sync, `unsyncedSeedRef` turns a 409 into a hard
+  // conflict instead of a merge.
+  const [migrated, setMigrated] = useState(!needsMigration);
+  const unsyncedSeedRef = useRef(needsMigration);
   const versionRef = useRef<number>(initialVersion);
   const conflictRef = useRef(false);
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
   const menuContainerRef = useRef(null);
+  // useEditor only reconfigures on pageId, so permission changes are read
+  // from this ref inside onUpdate / persist rather than from the closure
+  const editableRef = useRef(editable);
+  editableRef.current = editable;
+
+  // editorRef + persist must be ready before useEditor: Collaboration's
+  // y-binding can fire onUpdate synchronously during editor creation
+  // (forceRerender), which would hit TDZ if these were declared below.
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+
+  const persist = useCallback(async () => {
+    const ed = editorRef.current;
+    // Never save unless the user can edit and actually changed the document —
+    // this also protects against flushing a half-initialized editor state.
+    if (
+      !editableRef.current ||
+      !ed ||
+      ed.isDestroyed ||
+      conflictRef.current ||
+      !dirtyRef.current
+    ) {
+      return;
+    }
+    if (savingRef.current) {
+      pendingRef.current = true;
+      return;
+    }
+    savingRef.current = true;
+    try {
+      // encode synchronously so the flush-on-unmount snapshot is taken
+      // before the Y.Doc can be destroyed by the parent cleanup
+      const bytes = encodeYdocBlob(ydoc);
+      dirtyRef.current = false;
+      const encryptedBlob = await encryptBytes(dek, bytes);
+
+      const result = await updateEncryptedPage({
+        pageId,
+        encryptedBlob,
+        baseVersion: versionRef.current,
+      });
+      versionRef.current = result.version;
+      unsyncedSeedRef.current = false;
+      setMigrated(true);
+      setSaveError(false);
+    } catch (err: any) {
+      dirtyRef.current = true;
+      if (err?.response?.status === 409) {
+        // Another client saved first. The doc is a CRDT now: pull the remote
+        // state into the local Y.Doc and retry the save with the merged doc.
+        try {
+          const remote = await getEncryptedBlob(pageId);
+          if (remote.encryptedBlob) {
+            const decoded = decodeBlob(
+              await decryptBytes(dek, remote.encryptedBlob),
+            );
+            if (decoded.kind !== "ydoc" || unsyncedSeedRef.current) {
+              // remote was written by a legacy v1 client, or both clients
+              // seeded independently from the same v1 blob — cannot merge
+              throw new Error("cannot merge remote blob");
+            }
+            // MERGE_ORIGIN: peers already have this state — the sync
+            // layers must not rebroadcast it as a local edit
+            Y.applyUpdate(ydoc, decoded.update, MERGE_ORIGIN);
+          }
+          versionRef.current = remote.version;
+          pendingRef.current = true;
+        } catch {
+          conflictRef.current = true;
+          pendingRef.current = false;
+          setConflict(true);
+          editorRef.current?.setEditable(false);
+        }
+      } else {
+        setSaveError(true);
+      }
+    } finally {
+      savingRef.current = false;
+      if (pendingRef.current && !conflictRef.current) {
+        pendingRef.current = false;
+        void persist();
+      }
+    }
+  }, [dek, pageId, ydoc]);
+
+  const debouncedPersist = useDebouncedCallback(() => void persist(), 800);
+  // durability fallback for changes authored elsewhere: normally the author
+  // saves within ~800ms, but if it crashed or went offline before flushing,
+  // this peer persists the merged state instead of losing it on reload
+  const remoteFallbackPersist = useDebouncedCallback(
+    () => void persist(),
+    15000,
+  );
+  // onUpdate is captured once by useEditor ([pageId]); always call through
+  // refs so we hit the latest debounced wrappers / persist closure
+  const debouncedPersistRef = useRef(debouncedPersist);
+  debouncedPersistRef.current = debouncedPersist;
+  const remoteFallbackPersistRef = useRef(remoteFallbackPersist);
+  remoteFallbackPersistRef.current = remoteFallbackPersist;
 
   const editor = useEditor(
     {
-      extensions: [...mainExtensions, History],
+      // Collaboration binds the editor to the local Y.Doc and provides
+      // undo/redo (History must not be used alongside it). CollaborationCaret
+      // renders peer cursors from the awareness carried by the e2ee relay.
+      extensions: [
+        ...mainExtensions,
+        Collaboration.configure({ document: ydoc }),
+        CollaborationCaret.configure({
+          provider: caretProvider as any,
+          user: {
+            name: currentUser?.user?.name ?? "Anonymous",
+            color: randomElement(userColors),
+          },
+        }),
+      ],
       editable,
-      content: initialContent,
       immediatelyRender: true,
       shouldRerenderOnTransaction: false,
       editorProps: {
@@ -245,62 +464,71 @@ function DecryptedEditor({
           editor.storage.pageId = pageId;
         }
       },
-      onUpdate() {
-        dirtyRef.current = true;
-        debouncedPersist();
+      onUpdate({ transaction }) {
+        // Undo/redo also carries ySync meta, so TipTap's isChangeOrigin()
+        // would misclassify it as remote — inspect the meta directly.
+        const syncMeta = transaction.getMeta(ySyncPluginKey);
+        const isRemote =
+          !!syncMeta?.isChangeOrigin && !syncMeta?.isUndoRedoOperation;
+        if (isRemote) {
+          // Viewers receive CRDT updates but cannot persist; only editors
+          // act as durability fallback if the author never flushed.
+          if (!editableRef.current) {
+            return;
+          }
+          dirtyRef.current = true;
+          // The author's client persists its own edits ~800ms after typing;
+          // this slow fallback only lands if the author disappeared before
+          // flushing, keeping remote edits durable at the cost of one
+          // redundant save per burst.
+          remoteFallbackPersistRef.current();
+        } else {
+          dirtyRef.current = true;
+          debouncedPersistRef.current();
+        }
       },
     },
     [pageId],
   );
 
-  const editorRef = useRef(editor);
   editorRef.current = editor;
 
-  const persist = useCallback(async () => {
-    const ed = editorRef.current;
-    // Never save unless the user actually changed the decrypted document —
-    // this also protects against flushing a half-initialized editor state.
-    if (!ed || ed.isDestroyed || conflictRef.current || !dirtyRef.current) {
+  // live sync with other tabs of this browser editing the same page
+  useEffect(() => {
+    if (!migrated) {
       return;
     }
-    if (savingRef.current) {
-      pendingRef.current = true;
-      return;
-    }
-    savingRef.current = true;
-    try {
-      const json = ed.getJSON();
-      dirtyRef.current = false;
-      const bytes = new TextEncoder().encode(JSON.stringify(json));
-      const encryptedBlob = await encryptBytes(dek, bytes);
+    return createTabSync(pageId, ydoc);
+  }, [pageId, ydoc, migrated]);
 
-      const result = await updateEncryptedPage({
-        pageId,
-        encryptedBlob,
-        baseVersion: versionRef.current,
-      });
-      versionRef.current = result.version;
-      setSaveError(false);
-    } catch (err: any) {
+  // live sync with other clients through the server's blind ciphertext relay
+  const collabToken = collabQuery?.token;
+  useEffect(() => {
+    if (!migrated || !collabToken) {
+      return;
+    }
+    const provider = createE2eeProvider({
+      pageId,
+      ydoc,
+      dek,
+      awareness,
+      token: collabToken,
+      // an expired token closes the socket with 4401; refetching yields a
+      // fresh token, which recreates this provider via the effect deps
+      onUnauthorized: () => void refetchCollabToken(),
+    });
+    return () => provider.destroy();
+  }, [pageId, ydoc, dek, awareness, collabToken, migrated, refetchCollabToken]);
+
+  // legacy v1 blob was seeded into the Y.Doc before mount: persist promptly
+  // so the page migrates to the v2 ydoc format (editors only — viewers 403)
+  useEffect(() => {
+    if (needsMigration && editableRef.current) {
       dirtyRef.current = true;
-      if (err?.response?.status === 409) {
-        conflictRef.current = true;
-        pendingRef.current = false;
-        setConflict(true);
-        editorRef.current?.setEditable(false);
-      } else {
-        setSaveError(true);
-      }
-    } finally {
-      savingRef.current = false;
-      if (pendingRef.current && !conflictRef.current) {
-        pendingRef.current = false;
-        void persist();
-      }
+      debouncedPersist();
     }
-  }, [dek, pageId]);
-
-  const debouncedPersist = useDebouncedCallback(() => void persist(), 800);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useLayoutEffect(() => {
     if (editor && !editor.isDestroyed) {

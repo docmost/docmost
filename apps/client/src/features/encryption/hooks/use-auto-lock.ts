@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAtomValue } from "jotai";
 import {
+  broadcastPageLock,
   pageKeysAtom,
   useLockPageKey,
   useTouchPageKey,
@@ -44,6 +45,14 @@ export function useAutoLock(
       lockPageKey(pageId);
       onLockRef.current?.();
     };
+    // Idle timeout locks the page in every tab (cross-tab activity keeps the
+    // timers fresh, so a genuine timeout means the user is idle everywhere).
+    // Closing a tab only drops that tab's in-memory key: it must NOT lock
+    // sibling tabs that are still in use.
+    const lockEverywhere = () => {
+      broadcastPageLock(pageId);
+      lock();
+    };
 
     window.addEventListener("keydown", touch);
     window.addEventListener("pointerdown", touch);
@@ -53,7 +62,7 @@ export function useAutoLock(
     const interval = window.setInterval(() => {
       const last = lastActivityRef.current;
       if (last !== undefined && Date.now() - last > timeoutMs) {
-        lock();
+        lockEverywhere();
       }
     }, CHECK_INTERVAL_MS);
 

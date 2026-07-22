@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { IPage } from "@/features/page/types/page.types";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
 import {
+  broadcastPageLock,
   usePageKey,
   useUnlockPageKey,
   useLockPageKey,
@@ -85,6 +86,7 @@ export function PageEncryptionMenuItems({
           content: pageEditor.getJSON(),
         });
         lockPageKey(page.id);
+        broadcastPageLock(page.id);
         notifications.show({ message: t("Encryption removed") });
         window.location.reload();
       },
@@ -106,7 +108,10 @@ export function PageEncryptionMenuItems({
         <>
           <Menu.Item
             leftSection={<IconLock size={16} />}
-            onClick={() => lockPageKey(page.id)}
+            onClick={() => {
+              lockPageKey(page.id);
+              broadcastPageLock(page.id);
+            }}
           >
             {t("Lock now")}
           </Menu.Item>
