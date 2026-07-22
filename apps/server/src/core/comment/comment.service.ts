@@ -51,6 +51,13 @@ export class CommentService {
     createCommentDto: CreateCommentDto,
   ) {
     const { page, workspaceId, user } = opts;
+
+    if (page.isEncrypted) {
+      throw new BadRequestException(
+        'Comments are not supported on encrypted pages',
+      );
+    }
+
     const commentContent = JSON.parse(createCommentDto.content);
 
     if (createCommentDto.parentCommentId) {

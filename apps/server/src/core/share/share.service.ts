@@ -60,7 +60,11 @@ export class ShareService {
           { includeContent: false },
         );
 
-      return { share, pageTree };
+      return {
+        share,
+        // encrypted pages are never exposed through public shares
+        pageTree: pageTree.filter((page) => !page.isEncrypted),
+      };
     } else {
       return { share, pageTree: [] };
     }
@@ -73,6 +77,10 @@ export class ShareService {
     createShareDto: CreateShareDto;
   }) {
     const { authUserId, workspaceId, page, createShareDto } = opts;
+
+    if (page.isEncrypted) {
+      throw new BadRequestException('Encrypted pages cannot be shared');
+    }
 
     try {
       const shares = await this.shareRepo.findByPageId(page.id);
@@ -126,6 +134,11 @@ export class ShareService {
     });
 
     if (!page || page.deletedAt) {
+      throw new NotFoundException('Shared page not found');
+    }
+
+    // Encrypted pages are never served through public shares
+    if (page.isEncrypted) {
       throw new NotFoundException('Shared page not found');
     }
 

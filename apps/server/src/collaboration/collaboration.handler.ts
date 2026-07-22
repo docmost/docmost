@@ -21,6 +21,13 @@ export class CollaborationHandler {
 
   getHandlers(hocuspocus: Hocuspocus) {
     return {
+      closeDocument: async (
+        documentName: string,
+        payload: Record<string, never>,
+      ) => {
+        this.logger.debug(`Force-closing connections for ${documentName}`);
+        hocuspocus.closeConnections(documentName);
+      },
       alterState: async (documentName: string, payload: { pageId: string }) => {
         // dummy
         // this.logger.log('Processing', documentName, payload);

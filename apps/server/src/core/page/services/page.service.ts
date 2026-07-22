@@ -251,6 +251,11 @@ export class PageService {
       updatePageDto.operation &&
       updatePageDto.format
     ) {
+      if (page.isEncrypted) {
+        throw new BadRequestException(
+          'Cannot update content of an encrypted page server-side',
+        );
+      }
       await this.updatePageContent(
         page.id,
         updatePageDto.content,
@@ -522,6 +527,11 @@ export class PageService {
     targetSpaceId: string | undefined,
     authUser: User,
   ) {
+    if (rootPage.isEncrypted) {
+      throw new BadRequestException(
+        'Encrypted pages cannot be duplicated or copied server-side',
+      );
+    }
     const spaceId = targetSpaceId || rootPage.spaceId;
     const isDuplicateInSameSpace =
       !targetSpaceId || targetSpaceId === rootPage.spaceId;
@@ -536,9 +546,20 @@ export class PageService {
       nextPosition = await this.nextPagePosition(spaceId);
     }
 
-    const allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
+    let allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
     });
+
+    // Encrypted descendants cannot be duplicated server-side; skip them
+    const encryptedIds = new Set(
+      allPages.filter((p) => p.isEncrypted).map((p) => p.id),
+    );
+    if (encryptedIds.size > 0) {
+      this.logger.warn(
+        `Skipping ${encryptedIds.size} encrypted page(s) while duplicating page ${rootPage.id}`,
+      );
+      allPages = allPages.filter((p) => !p.isEncrypted);
+    }
 
     // Filter to only accessible pages while maintaining tree integrity
     const pages = await this.filterAccessibleTreePages(

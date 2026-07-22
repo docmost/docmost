@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -60,6 +61,12 @@ export class ExportController {
 
     if (!page || page.deletedAt) {
       throw new NotFoundException('Page not found');
+    }
+
+    if (page.isEncrypted) {
+      throw new BadRequestException(
+        'Encrypted pages cannot be exported server-side',
+      );
     }
 
     await this.pageAccessService.validateCanView(page, user);

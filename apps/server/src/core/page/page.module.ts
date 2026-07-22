@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PageService } from './services/page.service';
+import { PageEncryptionService } from './services/page-encryption.service';
 import { PageController } from './page.controller';
 import { PageHistoryService } from './services/page-history.service';
 import { TrashCleanupService } from './services/trash-cleanup.service';
@@ -14,6 +15,7 @@ import { LabelModule } from '../label/label.module';
   controllers: [PageController],
   providers: [
     PageService,
+    PageEncryptionService,
     PageHistoryService,
     TrashCleanupService,
     BacklinkService,

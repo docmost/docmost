@@ -1,4 +1,5 @@
 import { ISpace } from "@/features/space/types/space.types.ts";
+import { EncryptionMeta } from "@/features/encryption/types/encryption.types.ts";
 
 export interface IPage {
   id: string;
@@ -13,6 +14,9 @@ export interface IPage {
   workspaceId: string;
   isLocked: boolean;
   isBase: boolean;
+  isEncrypted: boolean;
+  encryptionMeta?: EncryptionMeta;
+  encryptedVersion?: number;
   lastUpdatedById: string;
   createdAt: Date;
   updatedAt: Date;

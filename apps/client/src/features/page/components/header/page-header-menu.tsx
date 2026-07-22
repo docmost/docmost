@@ -60,6 +60,10 @@ import {
   useWatchPageMutation,
   useUnwatchPageMutation,
 } from "@/features/page/queries/watcher-query";
+import {
+  PageEncryptionMenuItems,
+  PageEncryptionModals,
+} from "@/features/encryption/components/page-encryption-menu";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -105,18 +109,20 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       {!readOnly && !page?.isBase && <PageEditModeToggle size="xs" />}
 
-      <PageShareModal readOnly={readOnly} />
+      {!page?.isEncrypted && <PageShareModal readOnly={readOnly} />}
 
-      <Tooltip label={t("Comments")} openDelay={250} withArrow>
-        <ActionIcon
-          variant="subtle"
-          color="dark"
-          aria-label={t("Comments")}
-          {...commentsTriggerProps}
-        >
-          <IconMessage size={20} stroke={2} />
-        </ActionIcon>
-      </Tooltip>
+      {!page?.isEncrypted && (
+        <Tooltip label={t("Comments")} openDelay={250} withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            aria-label={t("Comments")}
+            {...commentsTriggerProps}
+          >
+            <IconMessage size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
 
       {!page?.isBase && (
         <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
@@ -290,7 +296,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          {!page?.isBase && (
+          {!page?.isBase && !page?.isEncrypted && (
             <Menu.Item
               leftSection={<IconHistory size={16} />}
               onClick={openHistoryModal}
@@ -326,12 +332,14 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          <Menu.Item
-            leftSection={<IconFileExport size={16} />}
-            onClick={openExportModal}
-          >
-            {t("Export")}
-          </Menu.Item>
+          {!page?.isEncrypted && (
+            <Menu.Item
+              leftSection={<IconFileExport size={16} />}
+              onClick={openExportModal}
+            >
+              {t("Export")}
+            </Menu.Item>
+          )}
 
           <Menu.Item
             leftSection={<IconPrinter size={16} />}
@@ -339,6 +347,10 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           >
             {t("Print PDF")}
           </Menu.Item>
+
+          {!page?.isBase && (
+            <PageEncryptionMenuItems page={page} readOnly={readOnly} />
+          )}
 
           {!readOnly && (
             <>
@@ -389,6 +401,8 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           </>
         </Menu.Dropdown>
       </Menu>
+
+      <PageEncryptionModals page={page} />
 
       <ExportModal
         type="page"

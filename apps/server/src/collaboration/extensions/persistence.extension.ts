@@ -67,6 +67,13 @@ export class PersistenceExtension implements Extension {
       return;
     }
 
+    if (page.isEncrypted) {
+      this.logger.warn(
+        `Rejected collab session for encrypted page: ${pageId}`,
+      );
+      throw new Error('Encrypted pages cannot be opened for collaboration');
+    }
+
     if (page.ydoc) {
       this.logger.debug(`ydoc loaded from db: ${pageId}`);
 
@@ -124,6 +131,14 @@ export class PersistenceExtension implements Extension {
 
         if (!page) {
           this.logger.error(`Page with id ${pageId} not found`);
+          return;
+        }
+
+        if (page.isEncrypted) {
+          this.logger.warn(
+            `Skipping content store for encrypted page: ${pageId}`,
+          );
+          page = null;
           return;
         }
 

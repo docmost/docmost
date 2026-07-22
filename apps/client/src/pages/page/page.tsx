@@ -177,7 +177,9 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           editable={canEdit}
           creator={page.creator}
           contributors={page.contributors}
-          canComment={canComment}
+          canComment={canComment && !page.isEncrypted}
+          isEncrypted={page.isEncrypted}
+          encryptionMeta={page.encryptionMeta}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

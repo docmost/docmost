@@ -59,6 +59,15 @@ export class AuthenticationExtension implements Extension {
       throw new NotFoundException('Page not found');
     }
 
+    if (page.isEncrypted) {
+      this.logger.debug(
+        `Rejected collab authentication for encrypted page: ${pageId}`,
+      );
+      throw new UnauthorizedException(
+        'Encrypted pages do not support real-time collaboration',
+      );
+    }
+
     const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
       user.id,
       page.spaceId,

@@ -11,7 +11,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PageService } from './services/page.service';
+import { PageEncryptionService } from './services/page-encryption.service';
 import { BacklinkService } from './services/backlink.service';
+import {
+  ConvertToDecryptedDto,
+  ConvertToEncryptedDto,
+  EncryptedBlobDto,
+  RewrapEncryptionKeyDto,
+  UpdateEncryptedPageDto,
+} from './dto/page-encryption.dto';
 import { PageAccessService } from './page-access/page-access.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
@@ -59,6 +67,7 @@ import { getPageTitle } from '../../common/helpers';
 export class PageController {
   constructor(
     private readonly pageService: PageService,
+    private readonly pageEncryptionService: PageEncryptionService,
     private readonly pageRepo: PageRepo,
     private readonly pageHistoryService: PageHistoryService,
     private readonly spaceAbility: SpaceAbilityFactory,
@@ -285,6 +294,12 @@ export class PageController {
       user,
     );
 
+    if (page.isEncrypted && updatePageDto.content !== undefined) {
+      throw new BadRequestException(
+        'Cannot write plaintext content to an encrypted page',
+      );
+    }
+
     const updatedPage = await this.pageService.update(
       page,
       updatePageDto,
@@ -306,6 +321,98 @@ export class PageController {
     }
 
     return { ...updatedPage, permissions };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('encryption/blob')
+  async getEncryptedBlob(@Body() dto: EncryptedBlobDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+    await this.pageAccessService.validateCanView(page, user);
+
+    return this.pageEncryptionService.getEncryptedBlob(page);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('encryption/convert')
+  async convertToEncrypted(
+    @Body() dto: ConvertToEncryptedDto,
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    await this.pageEncryptionService.convertToEncrypted(page, dto, user);
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_ENCRYPTED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      changes: {
+        after: { title: getPageTitle(page.title), isEncrypted: true },
+      },
+    });
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('encryption/update')
+  async updateEncrypted(
+    @Body() dto: UpdateEncryptedPageDto,
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    return this.pageEncryptionService.updateEncrypted(page, dto, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('encryption/rewrap')
+  async rewrapEncryptionKey(
+    @Body() dto: RewrapEncryptionKeyDto,
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    await this.pageEncryptionService.rewrapKey(page, dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('encryption/decrypt')
+  async convertToDecrypted(
+    @Body() dto: ConvertToDecryptedDto,
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    await this.pageEncryptionService.convertToDecrypted(page, dto, user);
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_DECRYPTED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      changes: {
+        after: { title: getPageTitle(page.title), isEncrypted: false },
+      },
+    });
   }
 
   @HttpCode(HttpStatus.OK)

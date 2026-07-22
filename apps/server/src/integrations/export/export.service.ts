@@ -132,6 +132,21 @@ export class ExportService {
       throw new BadRequestException('No pages to export');
     }
 
+    const rootPage = pages.find((p) => p.id === pageId);
+    if (rootPage?.isEncrypted) {
+      throw new BadRequestException(
+        'Encrypted pages cannot be exported server-side',
+      );
+    }
+
+    const encryptedCount = pages.filter((p) => p.isEncrypted).length;
+    if (encryptedCount > 0) {
+      this.logger.warn(
+        `Skipping ${encryptedCount} encrypted page(s) from export of page ${pageId}`,
+      );
+      pages = pages.filter((p) => !p.isEncrypted);
+    }
+
     if (!ignorePermissions && userId) {
       pages = await this.filterPagesForExport(
         pages,
@@ -214,10 +229,23 @@ export class ExportService {
         'pages.workspaceId',
         'pages.createdAt',
         'pages.updatedAt',
+        'pages.isEncrypted',
       ])
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is', null)
       .execute();
+
+    const encryptedCount = pages.filter((p) => p.isEncrypted).length;
+    if (encryptedCount > 0) {
+      this.logger.warn(
+        `Skipping ${encryptedCount} encrypted page(s) from export of space ${spaceId}`,
+      );
+      pages = pages.filter((p) => !p.isEncrypted);
+    }
+
+    if (pages.length === 0) {
+      throw new BadRequestException('No pages to export');
+    }
 
     if (!ignorePermissions && userId) {
       pages = await this.filterPagesForExport(

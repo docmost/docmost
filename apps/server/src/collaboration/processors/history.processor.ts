@@ -51,6 +51,14 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
         return;
       }
 
+      if (page.isEncrypted) {
+        this.logger.debug(
+          `Page ${pageId} is encrypted, skipping history`,
+        );
+        await this.collabHistory.clearContributors(pageId);
+        return;
+      }
+
       const lastHistory = await this.pageHistoryRepo.findPageLastHistory(
         pageId,
         { includeContent: true },

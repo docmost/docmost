@@ -64,6 +64,8 @@ export const AuditEvent = {
   PAGE_RESTORED: 'page.restored',
   PAGE_MOVED_TO_SPACE: 'page.moved_to_space',
   PAGE_DUPLICATED: 'page.duplicated',
+  PAGE_ENCRYPTED: 'page.encrypted',
+  PAGE_DECRYPTED: 'page.decrypted',
   // Page permission
   PAGE_RESTRICTED: 'page.restricted',
   PAGE_RESTRICTION_REMOVED: 'page.restriction_removed',

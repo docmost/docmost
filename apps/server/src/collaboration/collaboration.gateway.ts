@@ -142,6 +142,18 @@ export class CollaborationGateway {
     return this.hocuspocus.getDocumentsCount();
   }
 
+  /**
+   * Disconnect every client from a document (e.g. when a page becomes
+   * encrypted). Routed through redis-sync so the node owning the document
+   * handles it in multi-node deployments.
+   */
+  async closeDocumentConnections(documentName: string) {
+    if (this.redisSync) {
+      return this.redisSync.handleEvent('closeDocument', documentName, {});
+    }
+    this.hocuspocus.closeConnections(documentName);
+  }
+
   handleYjsEvent<TName extends keyof CollabEventHandlers>(
     eventName: TName,
     documentName: string,

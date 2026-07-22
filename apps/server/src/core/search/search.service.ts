@@ -104,6 +104,8 @@ export class SearchService {
         ),
       )
       .where('deletedAt', 'is', null)
+      // encrypted pages must never surface in content search
+      .where('isEncrypted', '=', false)
       .$if(browseByFilters, (qb) => qb.orderBy('updatedAt', 'desc'))
       .$if(!browseByFilters, (qb) => qb.orderBy('rank', 'desc'))
       .limit(searchParams.limit || 25)
@@ -192,6 +194,10 @@ export class SearchService {
     return { items: searchResults };
   }
 
+  // NOTE: encrypted pages are intentionally NOT filtered out of title-based
+  // suggestions below — page titles stay plaintext by design (they are needed
+  // for the sidebar tree, breadcrumbs and mentions). Only content search
+  // (FTS above) excludes encrypted pages.
   async searchSuggestions(
     suggestion: SearchSuggestionDTO,
     userId: string,

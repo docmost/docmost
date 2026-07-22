@@ -296,8 +296,11 @@ export interface PageHistory {
   contributorIds: Generated<string[] | null>;
   coverPhoto: string | null;
   createdAt: Generated<Timestamp>;
+  encryptedBlob: Buffer | null;
+  encryptionMeta: Json | null;
   icon: string | null;
   id: Generated<string>;
+  isEncrypted: Generated<boolean>;
   lastUpdatedById: string | null;
   pageId: string;
   slug: string | null;
@@ -317,10 +320,14 @@ export interface Pages {
   creatorId: string | null;
   deletedAt: Timestamp | null;
   deletedById: string | null;
+  encryptedBlob: Buffer | null;
+  encryptedVersion: Generated<Int8>;
+  encryptionMeta: Json | null;
   icon: string | null;
   id: Generated<string>;
   isBase: Generated<boolean>;
   baseSchemaVersion: Generated<number>;
+  isEncrypted: Generated<boolean>;
   isLocked: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;

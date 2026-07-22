@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { dbOrTx } from '../../utils';
+import { dbOrTx, executeTx } from '../../utils';
 import {
   InsertablePageHistory,
   Page,
@@ -66,18 +66,38 @@ export class PageHistoryRepo {
     page: Page,
     opts?: { contributorIds?: string[]; trx?: KyselyTransaction },
   ): Promise<void> {
-    await this.insertPageHistory(
-      {
-        pageId: page.id,
-        slugId: page.slugId,
-        title: page.title,
-        content: page.content,
-        icon: page.icon,
-        coverPhoto: page.coverPhoto,
-        lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
-        contributorIds: opts?.contributorIds,
-        spaceId: page.spaceId,
-        workspaceId: page.workspaceId,
+    await executeTx(
+      this.db,
+      async (trx) => {
+        // Re-check encryption state under a row lock: the caller's `page`
+        // may be stale, and a concurrent encrypt-conversion must never race
+        // a plaintext snapshot back into page_history after its purge.
+        const current = await trx
+          .selectFrom('pages')
+          .select(['isEncrypted'])
+          .where('id', '=', page.id)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (!current || current.isEncrypted) {
+          return;
+        }
+
+        await this.insertPageHistory(
+          {
+            pageId: page.id,
+            slugId: page.slugId,
+            title: page.title,
+            content: page.content,
+            icon: page.icon,
+            coverPhoto: page.coverPhoto,
+            lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
+            contributorIds: opts?.contributorIds,
+            spaceId: page.spaceId,
+            workspaceId: page.workspaceId,
+          },
+          trx,
+        );
       },
       opts?.trx,
     );

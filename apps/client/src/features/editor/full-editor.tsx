@@ -2,6 +2,8 @@ import classes from "@/features/editor/styles/editor.module.css";
 import React, { useEffect } from "react";
 import { TitleEditor } from "@/features/editor/title-editor";
 import PageEditor from "@/features/editor/page-editor";
+import EncryptedPageEditor from "@/features/editor/encrypted-page-editor";
+import { EncryptionMeta } from "@/features/encryption/types/encryption.types";
 import {
   ActionIcon,
   Container,
@@ -53,6 +55,8 @@ export interface FullEditorProps {
   creator?: PageUser;
   contributors?: IContributor[];
   canComment?: boolean;
+  isEncrypted?: boolean;
+  encryptionMeta?: EncryptionMeta;
 }
 
 export function FullEditor({
@@ -65,6 +69,8 @@ export function FullEditor({
   creator,
   contributors,
   canComment,
+  isEncrypted,
+  encryptionMeta,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
@@ -109,13 +115,24 @@ export function FullEditor({
         contributors={contributors}
         readOnly={!editable}
       />
-      <MemoizedPageEditor
-        pageId={pageId}
-        editable={editable}
-        content={content}
-        canComment={canComment}
-      />
-      <EmptyPageGetStarted pageId={pageId} editable={editable} />
+      {isEncrypted ? (
+        <EncryptedPageEditor
+          pageId={pageId}
+          pageTitle={title}
+          encryptionMeta={encryptionMeta}
+          editable={editable}
+        />
+      ) : (
+        <MemoizedPageEditor
+          pageId={pageId}
+          editable={editable}
+          content={content}
+          canComment={canComment}
+        />
+      )}
+      {!isEncrypted && (
+        <EmptyPageGetStarted pageId={pageId} editable={editable} />
+      )}
     </Container>
   );
 }

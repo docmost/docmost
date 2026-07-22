@@ -39,6 +39,9 @@ export class PageRepo {
     'workspaceId',
     'isLocked',
     'isBase',
+    'isEncrypted',
+    'encryptionMeta',
+    'encryptedVersion',
     'createdAt',
     'updatedAt',
     'deletedAt',
@@ -51,6 +54,7 @@ export class PageRepo {
       includeContent?: boolean;
       includeTextContent?: boolean;
       includeYdoc?: boolean;
+      includeEncryptedBlob?: boolean;
       includeSpace?: boolean;
       includeCreator?: boolean;
       includeLastUpdatedBy?: boolean;
@@ -69,6 +73,7 @@ export class PageRepo {
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
       .$if(opts?.includeTextContent, (qb) => qb.select('textContent'))
+      .$if(opts?.includeEncryptedBlob, (qb) => qb.select('encryptedBlob'))
       .$if(opts?.includeHasChildren, (qb) =>
         qb.select((eb) => this.withHasChildren(eb)),
       );
@@ -506,6 +511,7 @@ export class PageRepo {
             'workspaceId',
             'createdAt',
             'updatedAt',
+            'isEncrypted',
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
@@ -524,6 +530,7 @@ export class PageRepo {
                 'p.workspaceId',
                 'p.createdAt',
                 'p.updatedAt',
+                'p.isEncrypted',
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
@@ -561,6 +568,7 @@ export class PageRepo {
               'pages.parentPageId',
               'pages.spaceId',
               'pages.workspaceId',
+              'pages.isEncrypted',
               sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
             ])
             .$if(opts?.includeContent, (qb) => qb.select('pages.content'))
@@ -580,6 +588,7 @@ export class PageRepo {
                   'p.parentPageId',
                   'p.spaceId',
                   'p.workspaceId',
+                  'p.isEncrypted',
                   sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
                 ])
                 .$if(opts?.includeContent, (qb) => qb.select('p.content'))
@@ -598,6 +607,7 @@ export class PageRepo {
           'parentPageId',
           'spaceId',
           'workspaceId',
+          'isEncrypted',
         ])
         .$if(opts?.includeContent, (qb) => qb.select('content'))
         // Filter out restricted pages from the result
