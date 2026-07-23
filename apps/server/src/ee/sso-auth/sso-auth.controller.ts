@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Post,
   Query,
@@ -19,6 +20,8 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 
 @Controller('sso')
 export class SsoAuthController {
+  private readonly logger = new Logger(SsoAuthController.name);
+
   constructor(
     private readonly ssoAuthService: SsoAuthService,
     private readonly oidcAuthService: OidcAuthService,
@@ -153,7 +156,11 @@ export class SsoAuthController {
       res.clearCookie('oidc_state', { path: '/' });
       // See the comment in startOidcLogin: do not return the redirect() call.
       res.redirect(`${appUrl}${redirect ?? '/'}`);
-    } catch {
+    } catch (error) {
+      this.logger.error(
+        `OIDC callback failed: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       res.clearCookie('oidc_state', { path: '/' });
       res.redirect(`${appUrl}/login?error=sso_failed`);
     }

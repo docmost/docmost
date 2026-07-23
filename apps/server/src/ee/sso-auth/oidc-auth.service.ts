@@ -156,7 +156,12 @@ export class OidcAuthService {
     // etc.) wired up from the AuthProviders row today, so no additional
     // provider-specific handling is applied here.
     const claims = tokens.claims();
-    const email = claims?.email as string | undefined;
+    // Azure AD only guarantees `preferred_username`; the `email` claim is
+    // only emitted when the optional claim is configured on the app
+    // registration and the user has a verified email on that domain.
+    const email =
+      (claims?.email as string | undefined) ??
+      (claims?.preferred_username as string | undefined);
     const name = (claims?.name as string | undefined) ?? email;
 
     if (!email) {
