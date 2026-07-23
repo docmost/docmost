@@ -108,6 +108,10 @@ export type UpdatablePage = Updateable<Omit<Pages, 'id'>>;
 
 // PageHistory
 export type PageHistory = Selectable<History>;
+/** A snapshot as sent to clients: E2EE ciphertext is base64, not raw bytes. */
+export type PageHistoryWithEncodedBlob = Omit<PageHistory, 'encryptedBlob'> & {
+  encryptedBlob: string | null;
+};
 export type InsertablePageHistory = Insertable<History>;
 export type UpdatablePageHistory = Updateable<Omit<History, 'id'>>;
 

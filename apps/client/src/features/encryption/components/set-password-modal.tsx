@@ -93,7 +93,7 @@ export function SetPasswordModal({
       >
         <Text size="sm">
           {t(
-            "If you forget this password, the page content is permanently unrecoverable. The page title stays unencrypted for navigation. Search, export, sharing, comments and page history are disabled for encrypted pages.",
+            "If you forget this password, the page content is permanently unrecoverable. The page title stays unencrypted for navigation. Search, export, sharing and comments are disabled for encrypted pages. Page history is kept encrypted and is only readable while the page is unlocked.",
           )}
         </Text>
       </Alert>

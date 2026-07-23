@@ -19,4 +19,8 @@ export interface IPageHistory {
   updatedAt: string;
   lastUpdatedBy: IPageHistoryUser;
   contributors?: IPageHistoryUser[];
+  // E2EE snapshots carry ciphertext instead of `content`; it is decrypted in
+  // the browser with the page DEK and never enters the query cache decrypted.
+  isEncrypted?: boolean;
+  encryptedBlob?: string | null;
 }

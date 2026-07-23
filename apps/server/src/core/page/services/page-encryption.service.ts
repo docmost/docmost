@@ -8,6 +8,7 @@ import {
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { executeTx } from '@docmost/db/utils';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -23,6 +24,7 @@ import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
 import { E2eeRelayService } from '../../../collaboration/e2ee/e2ee-relay.service';
 import { sql } from 'kysely';
+import { HISTORY_INTERVAL } from '../../../collaboration/constants';
 
 @Injectable()
 export class PageEncryptionService {
@@ -31,6 +33,7 @@ export class PageEncryptionService {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly pageRepo: PageRepo,
+    private readonly pageHistoryRepo: PageHistoryRepo,
     private eventEmitter: EventEmitter2,
     private readonly collaborationGateway: CollaborationGateway,
     private readonly e2eeRelayService: E2eeRelayService,
@@ -140,29 +143,43 @@ export class PageEncryptionService {
    * Save a new ciphertext for an encrypted page with optimistic locking:
    * the write only succeeds if the client's baseVersion matches the stored
    * version, otherwise another client saved first and we return 409.
+   *
+   * Note the page write and the history snapshot are deliberately NOT one
+   * transaction: the snapshot is best-effort and must never be able to fail
+   * the save (nor hold the page row's lock for the length of the history
+   * insert). The crash window is therefore "page updated, snapshot missing" —
+   * benign, since the next eligible save snapshots the newer ciphertext. The
+   * inverse (snapshot without page update) cannot happen: the insert only
+   * runs after the update has committed.
    */
   async updateEncrypted(
     page: Page,
     dto: UpdateEncryptedPageDto,
     user: User,
-  ): Promise<{ version: number }> {
+  ): Promise<{
+    version: number;
+    nextSnapshotInMs?: number;
+    snapshotSaved?: boolean;
+  }> {
     if (!page.isEncrypted) {
       throw new BadRequestException('Page is not encrypted');
     }
 
     const contributors = new Set<string>(page.contributorIds);
     contributors.add(user.id);
+    const contributorIds = Array.from(contributors);
 
     const newVersion = dto.baseVersion + 1;
+    const encryptedBlob = Buffer.from(dto.encryptedBlob, 'base64');
 
     const result = await this.db
       .updateTable('pages')
       .set({
-        encryptedBlob: Buffer.from(dto.encryptedBlob, 'base64'),
+        encryptedBlob,
         encryptedVersion: String(newVersion),
         ...(dto.title !== undefined ? { title: dto.title } : {}),
         lastUpdatedById: user.id,
-        contributorIds: Array.from(contributors),
+        contributorIds,
         updatedAt: new Date(),
       })
       .where('id', '=', page.id)
@@ -176,27 +193,26 @@ export class PageEncryptionService {
       );
     }
 
+    // A failed snapshot must not fail the save — the document itself is
+    // already stored, and the next save will snapshot instead.
+    let nextSnapshotInMs: number | undefined;
+    let snapshotSaved: boolean | undefined;
     if (dto.saveHistory) {
       try {
-        await this.db
-          .insertInto('pageHistory')
-          .values({
-            pageId: page.id,
-            slugId: page.slugId,
-            title: dto.title ?? page.title,
-            icon: page.icon,
-            coverPhoto: page.coverPhoto,
-            isEncrypted: true,
-            encryptedBlob: Buffer.from(dto.encryptedBlob, 'base64'),
-            encryptionMeta: page.encryptionMeta,
+        ({ nextSnapshotInMs, snapshotSaved } =
+          await this.pageHistoryRepo.saveEncryptedHistory(page, {
+            encryptedBlob,
             version: newVersion,
+            title: dto.title ?? page.title,
             lastUpdatedById: user.id,
-            spaceId: page.spaceId,
-            workspaceId: page.workspaceId,
-          })
-          .execute();
+            contributorIds,
+          }));
       } catch (err) {
         this.logger.error('Failed to save encrypted page history', err);
+        // back the client off instead of letting it ask for a snapshot on
+        // every subsequent save while whatever broke here is still broken
+        nextSnapshotInMs = HISTORY_INTERVAL;
+        snapshotSaved = false;
       }
     }
 
@@ -205,7 +221,7 @@ export class PageEncryptionService {
       workspaceId: page.workspaceId,
     });
 
-    return { version: newVersion };
+    return { version: newVersion, nextSnapshotInMs, snapshotSaved };
   }
 
   /**

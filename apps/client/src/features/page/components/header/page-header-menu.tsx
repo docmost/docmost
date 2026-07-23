@@ -64,6 +64,7 @@ import {
   PageEncryptionMenuItems,
   PageEncryptionModals,
 } from "@/features/encryption/components/page-encryption-menu";
+import { usePageKey } from "@/features/encryption/hooks/page-key-store";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -170,6 +171,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     { open: openAttachmentsModal, close: closeAttachmentsModal },
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
+  const isUnlocked = !!usePageKey(page?.id ?? "");
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
   const favoriteIds = useFavoriteIds("page", page?.spaceId);
   const addFavoriteMutation = useAddFavoriteMutation();
@@ -296,7 +298,9 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          {!page?.isBase && !page?.isEncrypted && (
+          {/* encrypted history can only be read while the page is unlocked —
+              the snapshots are decrypted with the in-memory page key */}
+          {!page?.isBase && (!page?.isEncrypted || isUnlocked) && (
             <Menu.Item
               leftSection={<IconHistory size={16} />}
               onClick={openHistoryModal}

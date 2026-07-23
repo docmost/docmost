@@ -31,11 +31,16 @@ export async function updateEncryptedPage(data: {
   baseVersion: number;
   saveHistory?: boolean;
   title?: string;
-}): Promise<{ version: number }> {
-  const req = await api.post<{ version: number }>(
-    "/pages/encryption/update",
-    data,
-  );
+}): Promise<{
+  version: number;
+  nextSnapshotInMs?: number;
+  snapshotSaved?: boolean;
+}> {
+  const req = await api.post<{
+    version: number;
+    nextSnapshotInMs?: number;
+    snapshotSaved?: boolean;
+  }>("/pages/encryption/update", data);
   return req.data;
 }
 

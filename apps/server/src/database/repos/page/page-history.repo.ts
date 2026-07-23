@@ -12,6 +12,11 @@ import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagin
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
+import {
+  HISTORY_FAST_INTERVAL,
+  HISTORY_FAST_THRESHOLD,
+  HISTORY_INTERVAL,
+} from '../../../collaboration/constants';
 
 @Injectable()
 export class PageHistoryRepo {
@@ -29,12 +34,14 @@ export class PageHistoryRepo {
     'spaceId',
     'workspaceId',
     'createdAt',
+    'isEncrypted',
   ];
 
   async findById(
     pageHistoryId: string,
     opts?: {
       includeContent?: boolean;
+      includeEncryptedBlob?: boolean;
       trx?: KyselyTransaction;
     },
   ): Promise<PageHistory> {
@@ -44,6 +51,7 @@ export class PageHistoryRepo {
       .selectFrom('pageHistory')
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
+      .$if(opts?.includeEncryptedBlob, (qb) => qb.select('encryptedBlob'))
       .select((eb) => this.withLastUpdatedBy(eb))
       .select((eb) => this.withContributors(eb))
       .where('id', '=', pageHistoryId)
@@ -101,6 +109,83 @@ export class PageHistoryRepo {
       },
       opts?.trx,
     );
+  }
+
+  /**
+   * Snapshot an E2E-encrypted page. The ciphertext is opaque, so unlike
+   * saveHistory this cannot skip unchanged documents (a fresh IV per save
+   * makes identical documents produce different bytes) — the interval is the
+   * only throttle, and it is checked under the same row lock so concurrent
+   * savers serialize on it. Returns how long until the next snapshot is due
+   * (relative, so client clock skew cannot make it snapshot on every save)
+   * and whether a row was actually written — the client needs the latter to
+   * know its newest content is still unsnapshotted.
+   */
+  async saveEncryptedHistory(
+    page: Page,
+    snapshot: {
+      encryptedBlob: Buffer;
+      version: number;
+      title: string;
+      lastUpdatedById: string;
+      contributorIds: string[];
+    },
+  ): Promise<{ nextSnapshotInMs: number; snapshotSaved: boolean }> {
+    // young pages snapshot more often, mirroring the plaintext collab path
+    const pageAge = Date.now() - new Date(page.createdAt).getTime();
+    const interval =
+      pageAge < HISTORY_FAST_THRESHOLD
+        ? HISTORY_FAST_INTERVAL
+        : HISTORY_INTERVAL;
+
+    return executeTx(this.db, async (trx) => {
+      const current = await trx
+        .selectFrom('pages')
+        .select(['isEncrypted'])
+        .where('id', '=', page.id)
+        .forUpdate()
+        .executeTakeFirst();
+
+      // a decrypt racing this insert must not leave an orphan encrypted
+      // snapshot behind on a now-plaintext page
+      if (!current?.isEncrypted) {
+        return { nextSnapshotInMs: interval, snapshotSaved: false };
+      }
+
+      const last = await this.findPageLastHistory(page.id, { trx });
+      const lastAt = last ? new Date(last.createdAt).getTime() : null;
+
+      if (lastAt !== null && Date.now() - lastAt < interval) {
+        return {
+          nextSnapshotInMs: Math.max(0, lastAt + interval - Date.now()),
+          snapshotSaved: false,
+        };
+      }
+
+      await this.insertPageHistory(
+        {
+          pageId: page.id,
+          slugId: page.slugId,
+          title: snapshot.title,
+          icon: page.icon,
+          coverPhoto: page.coverPhoto,
+          isEncrypted: true,
+          encryptedBlob: snapshot.encryptedBlob,
+          // deliberately no encryptionMeta: snapshots are decrypted with the
+          // page's current DEK, so a copy of the wrap material here is unused
+          // — and after a password change it would keep a DEK wrapped under
+          // the *old* password recoverable from every historic row
+          version: snapshot.version,
+          lastUpdatedById: snapshot.lastUpdatedById,
+          contributorIds: snapshot.contributorIds,
+          spaceId: page.spaceId,
+          workspaceId: page.workspaceId,
+        },
+        trx,
+      );
+
+      return { nextSnapshotInMs: interval, snapshotSaved: true };
+    });
   }
 
   async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {

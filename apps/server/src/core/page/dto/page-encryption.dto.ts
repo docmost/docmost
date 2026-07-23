@@ -1,5 +1,6 @@
 import {
   IsBase64,
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -59,6 +60,7 @@ export class UpdateEncryptedPageDto {
   baseVersion: number;
 
   @IsOptional()
+  @IsBoolean()
   saveHistory?: boolean;
 
   @IsOptional()

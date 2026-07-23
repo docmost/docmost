@@ -309,10 +309,23 @@ function DecryptedEditor({
   const [migrated, setMigrated] = useState(!needsMigration);
   const unsyncedSeedRef = useRef(needsMigration);
   const versionRef = useRef<number>(initialVersion);
+  // When the next history snapshot becomes due, on this client's clock. The
+  // server answers with a *relative* delay so clock skew between the two can
+  // never make this ask on every save; the interval itself lives only on the
+  // server (it can't dedup ciphertext by content, so the interval is the only
+  // throttle). 0 means "ask on the first save".
+  const nextSnapshotAtRef = useRef(0);
+  // True when the content we last saved is newer than the newest history
+  // snapshot. Plaintext pages get a trailing snapshot from a delayed queue
+  // job; encrypted ones are only ever snapshotted by a client request, so
+  // without this the work done after the last snapshot would never enter
+  // history once the user stops typing.
+  const unsnapshottedRef = useRef(false);
+  const snapshotTimerRef = useRef<number | null>(null);
   const conflictRef = useRef(false);
   const dirtyRef = useRef(false);
-  const savingRef = useRef(false);
-  const pendingRef = useRef(false);
+  // tail of the save queue; see persist()
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const menuContainerRef = useRef(null);
   // useEditor only reconfigures on pageId, so permission changes are read
   // from this ref inside onUpdate / persist rather than from the closure
@@ -323,87 +336,168 @@ function DecryptedEditor({
   // y-binding can fire onUpdate synchronously during editor creation
   // (forceRerender), which would hit TDZ if these were declared below.
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  // persist is defined below but referenced by the trailing-snapshot timer
+  const persistRef =
+    useRef<(opts?: { forSnapshot?: boolean }) => Promise<void>>(null);
 
-  const persist = useCallback(async () => {
-    const ed = editorRef.current;
-    // Never save unless the user can edit and actually changed the document —
-    // this also protects against flushing a half-initialized editor state.
-    if (
-      !editableRef.current ||
-      !ed ||
-      ed.isDestroyed ||
-      conflictRef.current ||
-      !dirtyRef.current
-    ) {
+  /**
+   * Re-save once the server's snapshot interval expires, so the content
+   * written after the last snapshot still reaches history when the user
+   * stops editing. Re-armed after every save; disarmed as soon as a save
+   * comes back with snapshotSaved.
+   */
+  const scheduleTrailingSnapshot = useCallback(() => {
+    if (snapshotTimerRef.current !== null) {
+      window.clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
+    }
+    if (!unsnapshottedRef.current || !editableRef.current) {
       return;
     }
-    if (savingRef.current) {
-      pendingRef.current = true;
-      return;
-    }
-    savingRef.current = true;
-    try {
-      // encode synchronously so the flush-on-unmount snapshot is taken
-      // before the Y.Doc can be destroyed by the parent cleanup
-      const bytes = encodeYdocBlob(ydoc);
+    // small margin so the request cannot land a few ms before it is due
+    const delay = Math.max(0, nextSnapshotAtRef.current - Date.now()) + 1000;
+    snapshotTimerRef.current = window.setTimeout(() => {
+      snapshotTimerRef.current = null;
+      persistRef.current?.({ forSnapshot: true }).catch(() => {});
+    }, delay);
+  }, []);
+
+  /**
+   * Save the current document. Calls are serialized: each one queues behind
+   * the save already in flight, so an awaited persist() only settles once
+   * *its own* write has been attempted, and rejects if that write was lost.
+   * Callers that do not care (typing, fallbacks) go through persistQuiet.
+   */
+  const persist = useCallback(
+    (opts?: { forSnapshot?: boolean }): Promise<void> => {
+      const ed = editorRef.current;
+      // A trailing-snapshot save re-sends unchanged content on purpose: the
+      // server only snapshots what a save request carries.
+      const hasWork =
+        dirtyRef.current || (opts?.forSnapshot && unsnapshottedRef.current);
+      // Never save unless the user can edit and actually changed the document —
+      // this also protects against flushing a half-initialized editor state.
+      // A destroyed editor is fine: the bytes come from the Y.Doc, and the
+      // unmount flush is exactly the save that must not be dropped.
+      if (!editableRef.current || !ed || !hasWork) {
+        return Promise.resolve();
+      }
+      if (conflictRef.current) {
+        return Promise.reject(new Error("page is in conflict"));
+      }
+      // Encode synchronously before queueing as an unmount fallback: the
+      // flush-on-unmount save must capture the document while the parent
+      // still owns a live Y.Doc, even when another save is in flight ahead.
+      // Entries that run while the doc is still alive re-encode below so a
+      // later queue entry picks up 409 merges from earlier ones.
+      const fallbackBytes = encodeYdocBlob(ydoc);
       dirtyRef.current = false;
-      const encryptedBlob = await encryptBytes(dek, bytes);
+      // forSnapshot asks unconditionally — the server throttles if it is too
+      // soon, and answers with a fresh delay either way
+      const saveHistory =
+        !!opts?.forSnapshot || Date.now() >= nextSnapshotAtRef.current;
 
-      const result = await updateEncryptedPage({
-        pageId,
-        encryptedBlob,
-        baseVersion: versionRef.current,
-      });
-      versionRef.current = result.version;
-      unsyncedSeedRef.current = false;
-      setMigrated(true);
-      setSaveError(false);
-    } catch (err: any) {
-      dirtyRef.current = true;
-      if (err?.response?.status === 409) {
-        // Another client saved first. The doc is a CRDT now: pull the remote
-        // state into the local Y.Doc and retry the save with the merged doc.
-        try {
-          const remote = await getEncryptedBlob(pageId);
-          if (remote.encryptedBlob) {
-            const decoded = decodeBlob(
-              await decryptBytes(dek, remote.encryptedBlob),
-            );
-            if (decoded.kind !== "ydoc" || unsyncedSeedRef.current) {
-              // remote was written by a legacy v1 client, or both clients
-              // seeded independently from the same v1 blob — cannot merge
-              throw new Error("cannot merge remote blob");
-            }
-            // MERGE_ORIGIN: peers already have this state — the sync
-            // layers must not rebroadcast it as a local edit
-            Y.applyUpdate(ydoc, decoded.update, MERGE_ORIGIN);
-          }
-          versionRef.current = remote.version;
-          pendingRef.current = true;
-        } catch {
-          conflictRef.current = true;
-          pendingRef.current = false;
-          setConflict(true);
-          editorRef.current?.setEditable(false);
+      const run = async () => {
+        if (conflictRef.current) {
+          throw new Error("page is in conflict");
         }
-      } else {
+        // Prefer live state so a later queue entry includes merges from an
+        // earlier 409 retry. Fall back to the pre-queue capture when the doc
+        // was destroyed on unmount before this entry ran.
+        let update = ydoc.isDestroyed
+          ? fallbackBytes
+          : encodeYdocBlob(ydoc);
+        // bounded merge-and-retry: one round per competing writer, so a hot
+        // page cannot spin here forever
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            const encryptedBlob = await encryptBytes(dek, update);
+            const result = await updateEncryptedPage({
+              pageId,
+              encryptedBlob,
+              baseVersion: versionRef.current,
+              saveHistory,
+            });
+            if (typeof result.nextSnapshotInMs === "number") {
+              nextSnapshotAtRef.current = Date.now() + result.nextSnapshotInMs;
+            }
+            // The content just saved is in history only if the server took a
+            // snapshot of it; otherwise arm the trailing snapshot.
+            unsnapshottedRef.current = !result.snapshotSaved;
+            scheduleTrailingSnapshot();
+            versionRef.current = result.version;
+            unsyncedSeedRef.current = false;
+            setMigrated(true);
+            setSaveError(false);
+            return;
+          } catch (err: any) {
+            dirtyRef.current = true;
+            if (err?.response?.status !== 409) {
+              setSaveError(true);
+              throw err;
+            }
+            // Another client saved first. The doc is a CRDT now: pull the
+            // remote state into the local Y.Doc and retry with the merged doc.
+            try {
+              const remote = await getEncryptedBlob(pageId);
+              if (remote.encryptedBlob) {
+                const decoded = decodeBlob(
+                  await decryptBytes(dek, remote.encryptedBlob),
+                );
+                if (decoded.kind !== "ydoc" || unsyncedSeedRef.current) {
+                  // remote was written by a legacy v1 client, or both clients
+                  // seeded independently from the same v1 blob — cannot merge
+                  throw new Error("cannot merge remote blob");
+                }
+                // MERGE_ORIGIN: peers already have this state — the sync
+                // layers must not rebroadcast it as a local edit
+                Y.applyUpdate(ydoc, decoded.update, MERGE_ORIGIN);
+              }
+              versionRef.current = remote.version;
+              // the merged doc supersedes what we tried to send
+              update = encodeYdocBlob(ydoc);
+              dirtyRef.current = false;
+            } catch {
+              conflictRef.current = true;
+              setConflict(true);
+              editorRef.current?.setEditable(false);
+              throw err;
+            }
+          }
+        }
         setSaveError(true);
-      }
-    } finally {
-      savingRef.current = false;
-      if (pendingRef.current && !conflictRef.current) {
-        pendingRef.current = false;
-        void persist();
-      }
-    }
-  }, [dek, pageId, ydoc]);
+        throw new Error("could not save page: too many conflicts");
+      };
 
-  const debouncedPersist = useDebouncedCallback(() => void persist(), 800);
+      const next = saveChainRef.current.then(run, run);
+      // the chain itself must never reject, or one failure would poison every
+      // save queued after it; each caller sees its own result through `next`
+      saveChainRef.current = next.then(
+        () => {},
+        () => {},
+      );
+      return next;
+    },
+    [dek, pageId, ydoc, scheduleTrailingSnapshot],
+  );
+
+  persistRef.current = persist;
+
+  // fire-and-forget saves: failures already surface through the save-error
+  // banner or the conflict state, so keep them out of unhandled rejections
+  const persistQuiet = useCallback(
+    (opts?: { forSnapshot?: boolean }) => {
+      void persist(opts).catch(() => {});
+    },
+    [persist],
+  );
+
+  const debouncedPersist = useDebouncedCallback(() => persistQuiet(), 800);
   // durability fallback for changes authored elsewhere: normally the author
   // saves within ~800ms, but if it crashed or went offline before flushing,
   // this peer persists the merged state instead of losing it on reload
   const remoteFallbackPersist = useDebouncedCallback(
-    () => void persist(),
+    () => persistQuiet(),
     15000,
   );
   // onUpdate is captured once by useEditor ([pageId]); always call through
@@ -539,6 +633,24 @@ function DecryptedEditor({
     }
   }, [editor, pageId, setEditor]);
 
+  // A history restore rewrites the bound Y.Doc directly, which onUpdate can
+  // only see as a remote change — so it would be persisted by the 15s
+  // durability fallback alone, and a reload right after the success toast
+  // would bring back the pre-restore ciphertext. Expose a flush handle so the
+  // restore can make itself durable (and snapshotted) before reporting done.
+  useLayoutEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    // @ts-ignore
+    editor.storage.persistEncrypted = () => {
+      dirtyRef.current = true;
+      return persist({ forSnapshot: true });
+    };
+    return () => {
+      // @ts-ignore
+      delete editor.storage.persistEncrypted;
+    };
+  }, [editor, persist]);
+
   useEffect(() => {
     if (!editor) return;
     editor.setEditable(
@@ -546,12 +658,24 @@ function DecryptedEditor({
     );
   }, [currentPageEditMode, editor, editable, conflict]);
 
-  // flush pending changes when navigating away (no-op unless dirty)
+  // flush pending changes when navigating away (no-op unless dirty). Asks for
+  // a snapshot too: this is the last chance to get the closing state into
+  // history, and the server ignores the request if one was taken recently.
   useEffect(() => {
     return () => {
-      void persist();
+      persistQuiet({ forSnapshot: true });
     };
-  }, [persist]);
+  }, [persistQuiet]);
+
+  // the trailing-snapshot timer must not outlive the editor
+  useEffect(() => {
+    return () => {
+      if (snapshotTimerRef.current !== null) {
+        window.clearTimeout(snapshotTimerRef.current);
+        snapshotTimerRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="editor-container" style={{ position: "relative" }}>
