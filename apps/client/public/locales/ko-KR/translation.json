@@ -1186,8 +1186,8 @@
   "Default value": "기본값",
   "Delete property": "속성 삭제",
   "Delete view": "보기 삭제",
-  "Delete {{count}} rows?_one": "Delete 1 row?",
-  "Delete {{count}} rows?_other": "Delete {{count}} rows?",
+  "Delete {{count}} rows?_one": "1개 행을 삭제하시겠습니까?",
+  "Delete {{count}} rows?_other": "{{count}}개 행을 삭제하시겠습니까?",
   "Descending": "내림차순",
   "Discard": "삭제",
   "Doesn't contain": "포함하지 않음",
@@ -1286,8 +1286,8 @@
   "Value": "값",
   "View updated for everyone": "보기가 모두에게 업데이트되었습니다",
   "You have unsaved changes. Do you want to discard them?": "저장되지 않은 변경 사항이 있습니다. 버리시겠습니까?",
-  "{{count}} rows deleted_one": "1 row deleted",
-  "{{count}} rows deleted_other": "{{count}} rows deleted",
-  "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} rows deleted_one": "1개 행 삭제 완료",
+  "{{count}} rows deleted_other": "{{count}}개 행 삭제 완료",
+  "{{count}} selected_one": "1개 선택됨",
+  "{{count}} selected_other": "{{count}}개 선택됨"
 }
