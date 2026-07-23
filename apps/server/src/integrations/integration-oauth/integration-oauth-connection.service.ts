@@ -13,7 +13,11 @@ import {
 } from './manifest.types';
 import { IntegrationOAuthRegistry } from './manifest.registry';
 import { IntegrationOAuthConnectionRepo } from './integration-oauth-connection.repo';
-import { assertAllowedOutboundUrl } from './outbound-url-guard';
+import {
+  assertAllowedOutboundUrl,
+  outboundFetch,
+  readOutboundBody,
+} from './outbound-url-guard';
 
 const CLIENT_SECRET_ENCRYPTION_INFO = 'integration-oauth-client-secret-v1';
 
@@ -52,6 +56,7 @@ export interface PublicIntegrationOAuthConnection {
   baseUrlPlaceholder?: string;
   oauthClientId?: string;
   hasClientSecret: boolean;
+  automaticClientRegistration: boolean;
   settings?: Record<string, string>;
   settingsFields: PublicIntegrationConnectionSettingField[];
   redirectUri: string;
@@ -61,7 +66,7 @@ export interface PublicIntegrationOAuthConnection {
 export interface SaveIntegrationOAuthConnectionInput {
   enabled?: boolean;
   baseUrl: string;
-  oauthClientId: string;
+  oauthClientId?: string;
   oauthClientSecret?: string | null;
   settings?: Record<string, unknown>;
 }
@@ -105,6 +110,7 @@ export class IntegrationOAuthConnectionService {
           baseUrlPlaceholder: manifest.baseUrlPlaceholder,
           oauthClientId: env?.oauthClientId,
           hasClientSecret: !!env?.oauthClientSecret,
+          automaticClientRegistration: !!manifest.dynamicClientRegistration,
           settings: env?.settings,
           settingsFields: this.publicSettingsFields(manifest),
           redirectUri: this.callbackUrl(manifest.id),
@@ -196,34 +202,50 @@ export class IntegrationOAuthConnectionService {
     } catch (err) {
       throw new BadRequestException((err as Error).message);
     }
-    const oauthClientId = input.oauthClientId.trim();
+    const registeredClient = manifest.dynamicClientRegistration
+      ? await this.resolveDynamicClient(
+          manifest,
+          integrationId,
+          baseUrl,
+          current,
+        )
+      : null;
+    const oauthClientId =
+      registeredClient?.clientId ?? input.oauthClientId?.trim() ?? '';
     if (!oauthClientId) {
       throw new BadRequestException('OAuth client ID is required');
     }
 
-    const envSecret = this.resolveEnv(manifest, workspaceId)?.oauthClientSecret;
-    let oauthClientSecretEncrypted =
-      current?.oauthClientSecretEncrypted ?? null;
-    if (
-      !current &&
-      typeof input.oauthClientSecret === 'undefined' &&
-      envSecret
-    ) {
-      oauthClientSecretEncrypted = encryptString(
-        envSecret,
-        this.environmentService.getAppSecret(),
-        CLIENT_SECRET_ENCRYPTION_INFO,
-      );
-    }
-    if (typeof input.oauthClientSecret !== 'undefined') {
-      const raw = input.oauthClientSecret?.trim() ?? '';
-      oauthClientSecretEncrypted = raw
-        ? encryptString(
-            raw,
-            this.environmentService.getAppSecret(),
-            CLIENT_SECRET_ENCRYPTION_INFO,
-          )
-        : null;
+    let oauthClientSecretEncrypted: string | null;
+    if (registeredClient) {
+      oauthClientSecretEncrypted = null;
+    } else {
+      const envSecret = this.resolveEnv(
+        manifest,
+        workspaceId,
+      )?.oauthClientSecret;
+      oauthClientSecretEncrypted = current?.oauthClientSecretEncrypted ?? null;
+      if (
+        !current &&
+        typeof input.oauthClientSecret === 'undefined' &&
+        envSecret
+      ) {
+        oauthClientSecretEncrypted = encryptString(
+          envSecret,
+          this.environmentService.getAppSecret(),
+          CLIENT_SECRET_ENCRYPTION_INFO,
+        );
+      }
+      if (typeof input.oauthClientSecret !== 'undefined') {
+        const raw = input.oauthClientSecret?.trim() ?? '';
+        oauthClientSecretEncrypted = raw
+          ? encryptString(
+              raw,
+              this.environmentService.getAppSecret(),
+              CLIENT_SECRET_ENCRYPTION_INFO,
+            )
+          : null;
+      }
     }
 
     const settings = this.normalizeSettings(manifest, input.settings);
@@ -263,6 +285,7 @@ export class IntegrationOAuthConnectionService {
       baseUrlPlaceholder: manifest.baseUrlPlaceholder,
       oauthClientId: row.oauthClientId,
       hasClientSecret: !!row.oauthClientSecretEncrypted,
+      automaticClientRegistration: !!manifest.dynamicClientRegistration,
       settings: this.rowSettings(row),
       settingsFields: this.publicSettingsFields(manifest),
       redirectUri: this.callbackUrl(row.integrationId),
@@ -362,6 +385,59 @@ export class IntegrationOAuthConnectionService {
         : undefined,
       settings: {},
     };
+  }
+
+  private async resolveDynamicClient(
+    manifest: IntegrationManifest,
+    integrationId: string,
+    baseUrl: string,
+    current: IntegrationOauthConnection | undefined,
+  ): Promise<{ clientId: string }> {
+    if (
+      current?.baseUrl === baseUrl &&
+      current.oauthClientId &&
+      !current.oauthClientSecretEncrypted
+    ) {
+      return { clientId: current.oauthClientId };
+    }
+
+    const registration = manifest.dynamicClientRegistration!;
+    const registrationUrl = new URL(
+      registration.path,
+      `${baseUrl}/`,
+    ).toString();
+    const payload = {
+      client_name: registration.clientName ?? `Docmost ${manifest.name}`,
+      redirect_uris: [this.callbackUrl(integrationId)],
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
+      scope: manifest.scopes.join(manifest.scopeSeparator ?? ' '),
+    };
+
+    try {
+      const response = await outboundFetch(registrationUrl, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const body = await readOutboundBody(response);
+      if (!response.ok) {
+        throw new Error(`registration endpoint returned ${response.status}`);
+      }
+      const result = JSON.parse(body) as { client_id?: unknown };
+      if (typeof result.client_id !== 'string' || !result.client_id.trim()) {
+        throw new Error('registration response did not include client_id');
+      }
+      return { clientId: result.client_id.trim() };
+    } catch (err) {
+      throw new BadRequestException(
+        `Could not register an OAuth client with ${manifest.name}: ${(err as Error).message}`,
+      );
+    }
   }
 
   private normalizeOptionalBaseUrl(raw: string): string | null {

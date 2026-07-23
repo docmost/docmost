@@ -22,6 +22,17 @@ export interface IntegrationConnectionSettingField {
   transform?: 'uppercase' | 'lowercase';
 }
 
+/**
+ * RFC 7591 registration metadata for providers that issue a public OAuth
+ * client to each Docmost integration connection.
+ */
+export interface IntegrationDynamicClientRegistration {
+  /** Registration endpoint relative to the configured provider base URL. */
+  path: string;
+  /** Optional display name sent to the provider. Defaults to `Docmost <name>`. */
+  clientName?: string;
+}
+
 export interface IntegrationManifest {
   /** Stable identifier — used in URLs, env vars, and the token table. */
   id: string;
@@ -43,6 +54,11 @@ export interface IntegrationManifest {
   extraAuthParams?: Record<string, string>;
   /** PKCE S256. Required for public clients; recommended for confidential. */
   pkce?: boolean;
+  /**
+   * Register a public client automatically when an admin saves the connection.
+   * The resulting client has no secret and users authorize their own accounts.
+   */
+  dynamicClientRegistration?: IntegrationDynamicClientRegistration;
   /** Env var holding the OAuth client_id. */
   clientIdEnv: string;
   /** Env var holding the OAuth client_secret (omit for public clients). */
@@ -56,6 +72,9 @@ export interface IntegrationManifest {
 
 /** Resolves IntegrationManifest.baseUrl whether it's a literal or a thunk. */
 export function resolveBaseUrl(manifest: IntegrationManifest): string {
-  const raw = typeof manifest.baseUrl === 'function' ? manifest.baseUrl() : manifest.baseUrl;
+  const raw =
+    typeof manifest.baseUrl === 'function'
+      ? manifest.baseUrl()
+      : manifest.baseUrl;
   return raw.replace(/\/+$/, '');
 }

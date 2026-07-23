@@ -281,9 +281,14 @@ function AdminIntegrationConnectionForm({
         input: {
           enabled,
           baseUrl,
-          oauthClientId,
-          oauthClientSecret:
-            oauthClientSecret.length > 0 ? oauthClientSecret : undefined,
+          oauthClientId: selectedProvider.automaticClientRegistration
+            ? undefined
+            : oauthClientId,
+          oauthClientSecret: selectedProvider.automaticClientRegistration
+            ? undefined
+            : oauthClientSecret.length > 0
+              ? oauthClientSecret
+              : undefined,
           settings,
         },
       },
@@ -342,24 +347,36 @@ function AdminIntegrationConnectionForm({
             onChange={(event) => setBaseUrl(event.currentTarget.value)}
             required
           />
-          <TextInput
-            label={t("OAuth client ID")}
-            value={oauthClientId}
-            onChange={(event) => setOauthClientId(event.currentTarget.value)}
-            required
-          />
-          <PasswordInput
-            label={t("OAuth client secret")}
-            description={
-              isEdit && connection?.hasClientSecret
-                ? t("Leave blank to keep the stored secret.")
-                : undefined
-            }
-            value={oauthClientSecret}
-            onChange={(event) =>
-              setOauthClientSecret(event.currentTarget.value)
-            }
-          />
+          {selectedProvider.automaticClientRegistration ? (
+            <Alert color="blue">
+              {t(
+                "Docmost will register a public OAuth client automatically. Each member still authorizes their own account.",
+              )}
+            </Alert>
+          ) : (
+            <>
+              <TextInput
+                label={t("OAuth client ID")}
+                value={oauthClientId}
+                onChange={(event) =>
+                  setOauthClientId(event.currentTarget.value)
+                }
+                required
+              />
+              <PasswordInput
+                label={t("OAuth client secret")}
+                description={
+                  isEdit && connection?.hasClientSecret
+                    ? t("Leave blank to keep the stored secret.")
+                    : undefined
+                }
+                value={oauthClientSecret}
+                onChange={(event) =>
+                  setOauthClientSecret(event.currentTarget.value)
+                }
+              />
+            </>
+          )}
           {settingsFields.map((field) => (
             <TextInput
               key={field.key}
@@ -414,7 +431,8 @@ function AdminIntegrationConnectionForm({
             !selectedProvider ||
             !integrationId ||
             !baseUrl.trim() ||
-            !oauthClientId.trim() ||
+            (!selectedProvider.automaticClientRegistration &&
+              !oauthClientId.trim()) ||
             missingRequiredSetting
           }
         >

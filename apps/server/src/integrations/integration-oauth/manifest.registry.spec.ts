@@ -34,6 +34,16 @@ describe('IntegrationOAuthRegistry', () => {
     );
   });
 
+  it('requires PKCE for dynamically registered public clients', () => {
+    expect(() =>
+      registry.register({
+        ...manifest('alpha'),
+        pkce: false,
+        dynamicClientRegistration: { path: '/oauth/register' },
+      }),
+    ).toThrow(/must enable PKCE/);
+  });
+
   it('returns undefined for unknown ids', () => {
     expect(registry.get('nope')).toBeUndefined();
     expect(registry.getForIntegrationId('nope:0000')).toBeUndefined();

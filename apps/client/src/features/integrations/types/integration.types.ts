@@ -46,6 +46,7 @@ export interface IntegrationOAuthConnection {
   baseUrlPlaceholder?: string;
   oauthClientId?: string;
   hasClientSecret: boolean;
+  automaticClientRegistration: boolean;
   settings?: Record<string, string>;
   settingsFields: IntegrationConnectionSettingField[];
   redirectUri: string;
@@ -55,7 +56,7 @@ export interface IntegrationOAuthConnection {
 export interface SaveIntegrationOAuthConnectionInput {
   enabled?: boolean;
   baseUrl: string;
-  oauthClientId: string;
+  oauthClientId?: string;
   oauthClientSecret?: string | null;
   settings?: Record<string, string>;
 }

@@ -18,6 +18,11 @@ export class IntegrationOAuthRegistry {
         `Integration manifest with id="${manifest.id}" is already registered`,
       );
     }
+    if (manifest.dynamicClientRegistration && !manifest.pkce) {
+      throw new Error(
+        `Integration manifest with id="${manifest.id}" must enable PKCE for dynamic public client registration`,
+      );
+    }
     this.manifests.set(manifest.id, manifest);
     this.logger.log(`Registered integration manifest: ${manifest.id}`);
   }

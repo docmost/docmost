@@ -7,9 +7,7 @@ import {
 } from 'class-validator';
 import { SaveIntegrationOAuthConnectionInput } from '../integration-oauth-connection.service';
 
-export class SaveIntegrationOAuthConnectionDto
-  implements SaveIntegrationOAuthConnectionInput
-{
+export class SaveIntegrationOAuthConnectionDto implements SaveIntegrationOAuthConnectionInput {
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
@@ -18,9 +16,10 @@ export class SaveIntegrationOAuthConnectionDto
   @IsNotEmpty()
   baseUrl: string;
 
+  /** Required unless the provider registers a public client automatically. */
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  oauthClientId: string;
+  oauthClientId?: string;
 
   /** Omit to keep the stored secret; empty string clears it. */
   @IsOptional()
