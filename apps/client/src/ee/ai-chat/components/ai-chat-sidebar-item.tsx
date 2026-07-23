@@ -62,8 +62,8 @@ export default function AiChatSidebarItem({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const formattedDate = useMemo(
-    () => formatChatDate(chat.updatedAt, i18n.language),
-    [chat.updatedAt, i18n.language],
+    () => formatChatDate(chat.updatedAt, i18n.resolvedLanguage),
+    [chat.updatedAt, i18n.resolvedLanguage],
   );
 
   const chatTitle = chat.title || t("Untitled chat");

@@ -50,7 +50,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
     editor.chain().focus().setEmbed({ provider }).run();
 
   const insertDate = () => {
-    const currentDate = new Date().toLocaleDateString(i18n.language, {
+    const currentDate = new Date().toLocaleDateString(i18n.resolvedLanguage, {
       year: "numeric",
       month: "long",
       day: "numeric",
