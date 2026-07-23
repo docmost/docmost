@@ -1186,8 +1186,8 @@
   "Default value": "Valeur par défaut",
   "Delete property": "Supprimer la propriété",
   "Delete view": "Supprimer la vue",
-  "Delete {{count}} rows?_one": "Delete 1 row?",
-  "Delete {{count}} rows?_other": "Delete {{count}} rows?",
+  "Delete {{count}} rows?_one": "Supprimer 1 ligne ?",
+  "Delete {{count}} rows?_other": "Supprimer {{count}} lignes ?",
   "Descending": "Décroissant",
   "Discard": "Ignorer",
   "Doesn't contain": "Ne contient pas",
@@ -1286,8 +1286,8 @@
   "Value": "Valeur",
   "View updated for everyone": "Vue mise à jour pour tout le monde",
   "You have unsaved changes. Do you want to discard them?": "Vous avez des modifications non enregistrées. Voulez-vous les ignorer ?",
-  "{{count}} rows deleted_one": "1 row deleted",
-  "{{count}} rows deleted_other": "{{count}} rows deleted",
-  "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} rows deleted_one": "1 ligne supprimée",
+  "{{count}} rows deleted_other": "{{count}} lignes supprimées",
+  "{{count}} selected_one": "1 sélectionné(e)",
+  "{{count}} selected_other": "{{count}} sélectionné(e)s"
 }
