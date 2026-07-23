@@ -4,12 +4,9 @@ import { WINDSHIFT_RESOURCES } from './windshift.resources';
 /**
  * Windshift provider definition. A workspace admin supplies the base connection
  * through Settings → Workspace integrations, or the deployment can provide
- * WINDSHIFT_* env defaults. Either way, users authorize their own Windshift
- * accounts; the admin setup is not a shared bearer token.
- *
- * Register the per-connection redirect URI shown in the admin form
- * (`${APP_URL}/api/integrations/oauth/<integrationId>/callback`) in the
- * matching windshift oauth_clients row.
+ * WINDSHIFT_* env defaults. For workspace configuration, Docmost registers a
+ * public client automatically. Either way, users authorize their own
+ * Windshift accounts; the admin setup is not a shared bearer token.
  */
 export const WINDSHIFT_MANIFEST: IntegrationManifest = {
   id: 'windshift',
@@ -23,6 +20,10 @@ export const WINDSHIFT_MANIFEST: IntegrationManifest = {
   scopes: ['items:read', 'workspaces:read', 'collections:read'],
   scopeSeparator: ' ',
   pkce: true,
+  dynamicClientRegistration: {
+    path: '/api/oauth/register',
+    clientName: 'Docmost Windshift',
+  },
   clientIdEnv: 'WINDSHIFT_OAUTH_CLIENT_ID',
   clientSecretEnv: 'WINDSHIFT_OAUTH_CLIENT_SECRET',
   connectionSettings: [
