@@ -310,6 +310,7 @@ export class PageService {
         'spaceId',
         'creatorId',
         'isBase',
+        'isEncrypted',
         'deletedAt',
       ])
       .select((eb) => this.pageRepo.withHasChildren(eb))
@@ -527,11 +528,6 @@ export class PageService {
     targetSpaceId: string | undefined,
     authUser: User,
   ) {
-    if (rootPage.isEncrypted) {
-      throw new BadRequestException(
-        'Encrypted pages cannot be duplicated or copied server-side',
-      );
-    }
     const spaceId = targetSpaceId || rootPage.spaceId;
     const isDuplicateInSameSpace =
       !targetSpaceId || targetSpaceId === rootPage.spaceId;
@@ -548,18 +544,8 @@ export class PageService {
 
     let allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
+      includeEncryption: true,
     });
-
-    // Encrypted descendants cannot be duplicated server-side; skip them
-    const encryptedIds = new Set(
-      allPages.filter((p) => p.isEncrypted).map((p) => p.id),
-    );
-    if (encryptedIds.size > 0) {
-      this.logger.warn(
-        `Skipping ${encryptedIds.size} encrypted page(s) while duplicating page ${rootPage.id}`,
-      );
-      allPages = allPages.filter((p) => !p.isEncrypted);
-    }
 
     // Filter to only accessible pages while maintaining tree integrity
     const pages = await this.filterAccessibleTreePages(
@@ -587,8 +573,55 @@ export class PageService {
 
     const insertablePages: InsertablePage[] = await Promise.all(
       pages.map(async (page) => {
-        const pageContent = getProsemirrorContent(page.content);
         const pageFromMap = pageMap.get(page.id);
+
+        // Add "Copy of " prefix to the root page title only for duplicates in same space
+        let title = page.title;
+        if (isDuplicateInSameSpace && page.id === rootPage.id) {
+          const originalTitle = getPageTitle(page.title);
+          title = `Copy of ${originalTitle}`;
+        }
+
+        const basePage = {
+          id: pageFromMap.newPageId,
+          slugId: pageFromMap.newSlugId,
+          title: title,
+          icon: page.icon,
+          position: page.id === rootPage.id ? nextPosition : page.position,
+          spaceId: spaceId,
+          workspaceId: page.workspaceId,
+          creatorId: authUser.id,
+          lastUpdatedById: authUser.id,
+          parentPageId:
+            page.id === rootPage.id
+              ? isDuplicateInSameSpace
+                ? rootPage.parentPageId
+                : null
+              : page.parentPageId
+                ? pageMap.get(page.parentPageId)?.newPageId
+                : null,
+        };
+
+        if (page.isEncrypted) {
+          // Encrypted pages are duplicated as opaque ciphertext: the same
+          // wrapped DEK unlocks the copy, and the server never sees
+          // plaintext. Known limitations (contents are opaque, so they
+          // cannot be rewritten): attachment ids, mentions and internal
+          // links inside the ciphertext keep pointing at the original
+          // pages/attachments.
+          return {
+            ...basePage,
+            isEncrypted: true,
+            encryptionMeta: page.encryptionMeta,
+            encryptedBlob: page.encryptedBlob,
+            encryptedVersion: page.encryptedVersion,
+            content: null,
+            textContent: null,
+            ydoc: null,
+          };
+        }
+
+        const pageContent = getProsemirrorContent(page.content);
 
         const doc = jsonToNode(pageContent);
         const prosemirrorDoc = removeMarkTypeFromDoc(doc, 'comment');
@@ -686,34 +719,11 @@ export class PageService {
 
         const prosemirrorJson = prosemirrorDoc.toJSON();
 
-        // Add "Copy of " prefix to the root page title only for duplicates in same space
-        let title = page.title;
-        if (isDuplicateInSameSpace && page.id === rootPage.id) {
-          const originalTitle = getPageTitle(page.title);
-          title = `Copy of ${originalTitle}`;
-        }
-
         return {
-          id: pageFromMap.newPageId,
-          slugId: pageFromMap.newSlugId,
-          title: title,
-          icon: page.icon,
+          ...basePage,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
           ydoc: createYdocFromJson(prosemirrorJson),
-          position: page.id === rootPage.id ? nextPosition : page.position,
-          spaceId: spaceId,
-          workspaceId: page.workspaceId,
-          creatorId: authUser.id,
-          lastUpdatedById: authUser.id,
-          parentPageId:
-            page.id === rootPage.id
-              ? isDuplicateInSameSpace
-                ? rootPage.parentPageId
-                : null
-              : page.parentPageId
-                ? pageMap.get(page.parentPageId)?.newPageId
-                : null,
         };
       }),
     );
@@ -723,13 +733,18 @@ export class PageService {
     // Extract transclusions from every duplicated page and persist them in
     // one statement. Duplication bypasses Yjs onStoreDocument; brand-new
     // pages never have prior rows so we can skip the diff and just bulk-insert.
+    // Encrypted copies carry no plaintext content and are skipped.
+    const plaintextPages = insertablePages
+      .filter((p) => p.content)
+      .map((p) => ({
+        id: p.id,
+        workspaceId: p.workspaceId,
+        content: p.content,
+      }));
+
     try {
       await this.transclusionService.insertTransclusionsForPages(
-        insertablePages.map((p) => ({
-          id: p.id,
-          workspaceId: p.workspaceId,
-          content: p.content,
-        })),
+        plaintextPages,
       );
     } catch (err) {
       this.logger.error(
@@ -739,13 +754,7 @@ export class PageService {
     }
 
     try {
-      await this.transclusionService.insertReferencesForPages(
-        insertablePages.map((p) => ({
-          id: p.id,
-          workspaceId: p.workspaceId,
-          content: p.content,
-        })),
-      );
+      await this.transclusionService.insertReferencesForPages(plaintextPages);
     } catch (err) {
       this.logger.error(
         'Failed to insert transclusion references for duplicated pages',
@@ -884,6 +893,7 @@ export class PageService {
             'title',
             'icon',
             'isBase',
+            'isEncrypted',
             'position',
             'parentPageId',
             'spaceId',
@@ -900,6 +910,7 @@ export class PageService {
                 'p.title',
                 'p.icon',
                 'p.isBase',
+                'p.isEncrypted',
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',

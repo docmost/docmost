@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import * as Y from "yjs";
-import { yDocToProsemirrorJSON } from "y-prosemirror";
 import { IPageHistory } from "@/features/page-history/types/page.types";
 import { usePageKey } from "@/features/encryption/hooks/page-key-store";
-import { decryptBytes } from "@/features/encryption/services/crypto";
-import { decodeBlob } from "@/features/encryption/services/encrypted-blob";
+import { decryptBlobToProsemirrorJSON } from "@/features/encryption/services/encrypted-blob";
 
 export type HistoryContent =
   | { status: "ready"; content: any }
@@ -12,22 +9,6 @@ export type HistoryContent =
   /** the snapshot is encrypted and the page DEK is not in the vault */
   | { status: "locked" }
   | { status: "error" };
-
-/** Decrypt an encrypted snapshot into prosemirror JSON. */
-export async function decryptHistoryContent(
-  dek: CryptoKey,
-  encryptedBlob: string,
-): Promise<any> {
-  const decoded = decodeBlob(await decryptBytes(dek, encryptedBlob));
-  if (decoded.kind !== "ydoc") {
-    return decoded.content;
-  }
-  const doc = new Y.Doc();
-  Y.applyUpdate(doc, decoded.update);
-  const json = yDocToProsemirrorJSON(doc, "default");
-  doc.destroy();
-  return json;
-}
 
 /**
  * Resolves a history snapshot to prosemirror JSON. Plaintext snapshots pass
@@ -57,7 +38,7 @@ export function useHistoryContent(
       return;
     }
     let cancelled = false;
-    decryptHistoryContent(dek, encryptedBlob)
+    decryptBlobToProsemirrorJSON(dek, encryptedBlob)
       .then((content) => {
         if (!cancelled) setResolved({ historyId, content });
       })

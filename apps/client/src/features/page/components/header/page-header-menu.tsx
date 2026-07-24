@@ -336,14 +336,12 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          {!page?.isEncrypted && (
-            <Menu.Item
-              leftSection={<IconFileExport size={16} />}
-              onClick={openExportModal}
-            >
-              {t("Export")}
-            </Menu.Item>
-          )}
+          <Menu.Item
+            leftSection={<IconFileExport size={16} />}
+            onClick={openExportModal}
+          >
+            {t("Export")}
+          </Menu.Item>
 
           <Menu.Item
             leftSection={<IconPrinter size={16} />}
@@ -413,6 +411,8 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         id={page.id}
         open={exportOpened}
         onClose={closeExportModal}
+        pageIsEncrypted={page.isEncrypted}
+        pageTitle={page.title}
       />
 
       <MovePageModal

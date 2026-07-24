@@ -8,12 +8,13 @@ import {
   Divider,
   Tooltip,
   Badge,
+  Alert,
 } from "@mantine/core";
 import {
   exportPage,
   exportPageToDocx,
 } from "@/features/page/services/page-service.ts";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
 import { exportSpace } from "@/features/space/services/space-service";
@@ -21,12 +22,16 @@ import { useTranslation } from "react-i18next";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { usePageKey } from "@/features/encryption/hooks/page-key-store";
 
 interface ExportModalProps {
   id: string;
   type: "space" | "page";
   open: boolean;
   onClose: () => void;
+  /** E2E-encrypted page: export happens client-side and needs the page DEK */
+  pageIsEncrypted?: boolean;
+  pageTitle?: string;
 }
 
 export default function ExportModal({
@@ -34,6 +39,8 @@ export default function ExportModal({
   type,
   open,
   onClose,
+  pageIsEncrypted,
+  pageTitle,
 }: ExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
   const [includeChildren, setIncludeChildren] = useState<boolean>(false);
@@ -44,11 +51,41 @@ export default function ExportModal({
   const isDocx = format === ExportFormat.Docx;
   const docxEntitled = useHasFeature(Feature.DOCX_EXPORT);
   const blockedByLicense = isDocx && !docxEntitled;
+  const isEncryptedPage = type === "page" && !!pageIsEncrypted;
+  const dek = usePageKey(id);
+  const encryptedLocked = isEncryptedPage && !dek;
+
+  // Docx is not offered for encrypted pages; clear a stale selection left over
+  // from a previous plaintext export in this same modal instance.
+  useEffect(() => {
+    if (isEncryptedPage && format === ExportFormat.Docx) {
+      setFormat(ExportFormat.Markdown);
+    }
+  }, [isEncryptedPage, format]);
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      if (type === "page") {
+      if (isEncryptedPage) {
+        if (!dek) {
+          notifications.show({
+            message: t("Unlock this page to export it."),
+            color: "yellow",
+          });
+          return;
+        }
+        // the server only holds ciphertext — decrypt and serialize locally.
+        // Lazy import: keeps the editor extension graph out of this chunk.
+        const { exportEncryptedPage } = await import(
+          "@/features/encryption/services/encrypted-export"
+        );
+        await exportEncryptedPage({
+          pageId: id,
+          title: pageTitle ?? "",
+          dek,
+          format,
+        });
+      } else if (type === "page") {
         if (format === ExportFormat.Docx) {
           await exportPageToDocx({ pageId: id });
         } else {
@@ -59,8 +96,7 @@ export default function ExportModal({
             includeAttachments,
           });
         }
-      }
-      if (type === "space") {
+      } else if (type === "space") {
         await exportSpace({ spaceId: id, format, includeAttachments });
       }
       notifications.show({
@@ -69,7 +105,7 @@ export default function ExportModal({
       onClose();
     } catch (err) {
       notifications.show({
-        message: "Export failed:" + err.response?.data.message,
+        message: "Export failed:" + (err.response?.data?.message ?? err.message),
         color: "red",
       });
       console.error("export error", err);
@@ -107,12 +143,18 @@ export default function ExportModal({
             <ExportFormatSelection
               format={format}
               onChange={handleChange}
-              includeDocx={type === "page"}
+              includeDocx={type === "page" && !isEncryptedPage}
               docxEntitled={docxEntitled}
             />
           </Group>
 
-          {type === "page" && !isDocx && (
+          {encryptedLocked && (
+            <Alert color="yellow" mt="md">
+              {t("Unlock this page to export it.")}
+            </Alert>
+          )}
+
+          {type === "page" && !isDocx && !isEncryptedPage && (
             <>
               <Divider my="sm" />
 
@@ -168,8 +210,8 @@ export default function ExportModal({
               <Button
                 onClick={handleExport}
                 loading={isExporting}
-                disabled={blockedByLicense}
-                data-disabled={blockedByLicense || undefined}
+                disabled={blockedByLicense || encryptedLocked}
+                data-disabled={blockedByLicense || encryptedLocked || undefined}
               >
                 {t("Export")}
               </Button>
@@ -206,7 +248,7 @@ function ExportFormatSelection({
   return (
     <Select
       data={data}
-      defaultValue={format}
+      value={format}
       onChange={onChange}
       styles={{ wrapper: { maxWidth: 140 }, option: { opacity: 1 } }}
       comboboxProps={{ width: 200 }}

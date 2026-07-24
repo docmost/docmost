@@ -194,6 +194,7 @@ export function useRestorePageMutation() {
           parentPageId: restoredPage.parentPageId,
           hasChildren: restoredPage.hasChildren || false,
           isBase: restoredPage.isBase,
+          isEncrypted: restoredPage.isEncrypted,
           children: [],
         };
 

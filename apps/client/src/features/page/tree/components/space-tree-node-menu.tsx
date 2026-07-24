@@ -91,6 +91,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
         parentPageId: duplicatedPage.parentPageId,
         icon: duplicatedPage.icon,
         hasChildren: duplicatedPage.hasChildren,
+        isEncrypted: duplicatedPage.isEncrypted,
         canEdit: true,
         children: [],
       };
@@ -256,6 +257,8 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
         id={node.id}
         open={exportOpened}
         onClose={closeExportModal}
+        pageIsEncrypted={node.isEncrypted}
+        pageTitle={node.name}
       />
     </>
   );

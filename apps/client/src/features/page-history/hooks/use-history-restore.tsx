@@ -16,7 +16,7 @@ import {
   usePageHistoryQuery,
 } from "@/features/page-history/queries/page-history-query";
 import { IPageHistory } from "@/features/page-history/types/page.types";
-import { decryptHistoryContent } from "@/features/page-history/hooks/use-history-content";
+import { decryptBlobToProsemirrorJSON } from "@/features/encryption/services/encrypted-blob";
 import { usePageKey } from "@/features/encryption/hooks/page-key-store";
 import {
   pageEditorAtom,
@@ -114,7 +114,10 @@ export function useHistoryRestore() {
           return;
         }
         try {
-          content = await decryptHistoryContent(dek, historyData.encryptedBlob);
+          content = await decryptBlobToProsemirrorJSON(
+            dek,
+            historyData.encryptedBlob,
+          );
         } catch {
           notifications.show({
             message: t("Failed to decrypt this version."),

@@ -494,7 +494,7 @@ export class PageRepo {
 
   async getPageAndDescendants(
     parentPageId: string,
-    opts: { includeContent: boolean },
+    opts: { includeContent: boolean; includeEncryption?: boolean },
   ) {
     return this.db
       .withRecursive('page_hierarchy', (db) =>
@@ -514,6 +514,9 @@ export class PageRepo {
             'isEncrypted',
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
+          .$if(opts?.includeEncryption, (qb) =>
+            qb.select(['encryptedBlob', 'encryptionMeta', 'encryptedVersion']),
+          )
           .where('id', '=', parentPageId)
           .where('deletedAt', 'is', null)
           .unionAll((exp) =>
@@ -533,6 +536,13 @@ export class PageRepo {
                 'p.isEncrypted',
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
+              .$if(opts?.includeEncryption, (qb) =>
+                qb.select([
+                  'p.encryptedBlob',
+                  'p.encryptionMeta',
+                  'p.encryptedVersion',
+                ]),
+              )
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
               .where('p.deletedAt', 'is', null),
           ),

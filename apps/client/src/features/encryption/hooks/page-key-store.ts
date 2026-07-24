@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { atom, getDefaultStore, useAtomValue, useSetAtom } from "jotai";
+import { selectAtom } from "jotai/utils";
 
 export interface PageKeyEntry {
   dek: CryptoKey;
@@ -133,8 +134,14 @@ export function broadcastPageLock(pageId: string): void {
 }
 
 export function usePageKey(pageId: string): CryptoKey | null {
-  const pageKeys = useAtomValue(pageKeysAtom);
-  return pageKeys[pageId]?.dek ?? null;
+  // Per-page selector: pageKeysAtom is replaced on every (throttled) activity
+  // touch, but the dek's identity is stable while a page stays unlocked (see
+  // storeKey), so subscribers only re-render on actual unlock/lock.
+  const dekAtom = useMemo(
+    () => selectAtom(pageKeysAtom, (keys) => keys[pageId]?.dek ?? null),
+    [pageId],
+  );
+  return useAtomValue(dekAtom);
 }
 
 export function useUnlockPageKey(): (pageId: string, dek: CryptoKey) => void {
