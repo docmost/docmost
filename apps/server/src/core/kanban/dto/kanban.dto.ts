@@ -10,6 +10,11 @@ import {
   Matches,
   MinLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsDueDateInRange } from '../../../common/validators/is-due-date-in-range';
+
+const trim = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim() : value;
 
 export class SpaceBoardDto {
   @IsUUID()
@@ -22,6 +27,7 @@ export class BoardIdDto {
 }
 
 export class CreateBoardDto extends SpaceBoardDto {
+  @Transform(trim)
   @IsString()
   @MinLength(1)
   @MaxLength(120)
@@ -29,6 +35,7 @@ export class CreateBoardDto extends SpaceBoardDto {
 }
 
 export class UpdateBoardDto extends BoardIdDto {
+  @Transform(trim)
   @IsString()
   @MinLength(1)
   @MaxLength(120)
@@ -41,6 +48,7 @@ export class ColumnIdDto extends BoardIdDto {
 }
 
 export class CreateColumnDto extends BoardIdDto {
+  @Transform(trim)
   @IsString()
   @MinLength(1)
   @MaxLength(80)
@@ -60,6 +68,7 @@ export class CreateColumnDto extends BoardIdDto {
 
 export class UpdateColumnDto extends ColumnIdDto {
   @IsOptional()
+  @Transform(trim)
   @IsString()
   @MinLength(1)
   @MaxLength(80)
@@ -86,12 +95,14 @@ export class CardIdDto extends BoardIdDto {
 
 export class CardFieldsDto {
   @IsOptional()
+  @Transform(trim)
   @IsString()
   @MinLength(1)
   @MaxLength(200)
   title?: string;
 
   @IsOptional()
+  @Transform(trim)
   @IsString()
   @MaxLength(10_000)
   description?: string | null;
@@ -106,6 +117,7 @@ export class CardFieldsDto {
 
   @IsOptional()
   @IsDateString({ strict: true })
+  @IsDueDateInRange()
   dueDate?: string | null;
 
   @IsOptional()
@@ -123,6 +135,7 @@ export class CreateCardDto extends CardFieldsDto {
   @IsUUID()
   columnId: string;
 
+  @Transform(trim)
   @IsString()
   @MinLength(1)
   @MaxLength(200)

@@ -124,7 +124,11 @@ function KanbanListContent() {
           <Button variant="default" onClick={() => setOpened(false)}>
             Cancel
           </Button>
-          <Button loading={createBoard.isPending} onClick={submit}>
+          <Button
+            loading={createBoard.isPending}
+            disabled={!title.trim()}
+            onClick={submit}
+          >
             Create
           </Button>
         </Group>

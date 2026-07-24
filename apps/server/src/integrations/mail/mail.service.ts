@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { MAIL_DRIVER_TOKEN } from './mail.constants';
 import { MailDriver } from './drivers/interfaces/mail-driver.interface';
 import { MailMessage } from './interfaces/mail.message';
@@ -10,11 +10,21 @@ import { render } from 'react-email';
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
+
   constructor(
     @Inject(MAIL_DRIVER_TOKEN) private mailDriver: MailDriver,
     private readonly environmentService: EnvironmentService,
     @InjectQueue(QueueName.EMAIL_QUEUE) private emailQueue: Queue,
-  ) {}
+  ) {
+    const driver = this.environmentService.getMailDriver();
+    this.logger.log(`Mail driver: ${driver}`);
+    if (driver === 'log') {
+      this.logger.warn(
+        'MAIL_DRIVER is "log" (default): emails are only logged, not sent. Set MAIL_DRIVER=smtp to deliver mail.',
+      );
+    }
+  }
 
   async sendEmail(message: MailMessage): Promise<void> {
     if (this.isRecipientBlocked(message.to)) {
@@ -60,6 +70,12 @@ export class MailService {
     const blocked = this.environmentService.getMailBlockedRecipientDomains();
     if (blocked.length === 0) return false;
     const domain = to?.split('@')[1]?.toLowerCase();
-    return !!domain && blocked.includes(domain);
+    const isBlocked = !!domain && blocked.includes(domain);
+    if (isBlocked) {
+      this.logger.warn(
+        `Skipped mail to ${to}: domain is in MAIL_BLOCKED_RECIPIENT_DOMAINS`,
+      );
+    }
+    return isBlocked;
   }
 }

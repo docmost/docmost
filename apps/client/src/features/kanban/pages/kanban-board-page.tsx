@@ -609,6 +609,13 @@ function CardEditorModal({
       .flatMap((page) => page.items)
       .filter((member) => member.type === "user") ?? [];
 
+  const minDueDate = "2000-01-01";
+  const maxDueDate = (() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 5);
+    return date.toISOString().slice(0, 10);
+  })();
+
   const submit = () => {
     if (!title.trim()) return;
     const common = {
@@ -678,6 +685,8 @@ function CardEditorModal({
             label="Due date"
             type="date"
             value={dueDate}
+            min={minDueDate}
+            max={maxDueDate}
             onChange={(event) => setDueDate(event.currentTarget.value)}
           />
         </Group>
