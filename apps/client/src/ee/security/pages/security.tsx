@@ -8,6 +8,7 @@ import {
   Divider,
   Group,
   Space,
+  Text,
   Title,
   Tooltip,
 } from "@mantine/core";
@@ -37,6 +38,7 @@ import EnableScim from "@/ee/scim/components/enable-scim";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import Paginate from "@/components/common/paginate";
 import { IScimToken } from "@/ee/scim/types/scim-token.types";
+import FeatureStatus from "@/ee/security/components/feature-status.tsx";
 
 const SCIM_TOKEN_LIMIT = 5;
 
@@ -69,13 +71,45 @@ export default function Security() {
       </Helmet>
       <SettingsTitle title={t("Security")} />
 
+      <Alert
+        icon={<IconInfoCircle size={16} />}
+        color="yellow"
+        variant="light"
+        mb="lg"
+      >
+        <Text size="sm" fw={600} mb={4}>
+          Configurações da edição Enterprise do Docmost
+        </Text>
+        <Text size="sm">
+          Nesta instância, só <b>Retenção da lixeira</b> e{" "}
+          <b>Desativar compartilhamento público</b> funcionam de verdade. Os
+          demais controles aparecem, mas o motor no servidor (módulo <code>ee</code>)
+          não está incluído neste build — salvar não terá efeito.{" "}
+          <b>Não ative o "Exigir MFA": ele não força o segundo fator</b> (login
+          passa direto). Status e pendências em{" "}
+          <code>docs/ee-feature-status.md</code>.
+        </Text>
+      </Alert>
+
+      <FeatureStatus
+        status="insecure"
+        note="Exigiria autenticação em dois fatores (MFA/TOTP) no login. O motor de MFA está no módulo ee ausente: ligar o toggle grava a flag, mas o login NÃO valida o segundo fator. Mantenha desligado."
+      />
       <EnforceMfa />
 
       <Divider my="lg" />
 
+      <FeatureStatus
+        status="working"
+        note="Bloqueia a criação de links de compartilhamento público no workspace (e remove os existentes ao ativar). Enforçado no servidor — funciona."
+      />
       <DisablePublicSharing />
       <Divider my="lg" />
 
+      <FeatureStatus
+        status="working"
+        note="Define por quantos dias páginas na lixeira são mantidas antes da limpeza automática. Job de limpeza roda no servidor — funciona."
+      />
       <TrashRetention />
       <Divider my="lg" />
 
@@ -83,11 +117,20 @@ export default function Security() {
         {t("Single sign-on (SSO)")}
       </Title>
 
+      <FeatureStatus
+        status="partial"
+        note="SSO do Google Workspace funciona via variáveis de ambiente (GOOGLE_SSO_*). Provedores SSO customizados (SAML/OIDC/LDAP) abaixo são indisponíveis: os endpoints /sso/* estão no módulo ee ausente e retornam 404."
+      />
+
       <EnforceSso />
       <Divider my="lg" />
 
       {(isCloud() || hasCustomSso) && (
         <>
+          <FeatureStatus
+            status="unavailable"
+            note="Restringe o SSO a domínios de e-mail específicos. Depende do SSO customizado (indisponível nesta edição)."
+          />
           <AllowedDomains />
           <Divider my="lg" />
         </>
@@ -95,6 +138,10 @@ export default function Security() {
 
       {hasCustomSso && (
         <>
+          <FeatureStatus
+            status="unavailable"
+            note="Cadastro de provedores SSO customizados (SAML/OIDC/LDAP). O backend /sso/create|providers|update|delete não existe neste build — as chamadas dão 404."
+          />
           <CreateSsoProvider />
           <Divider size={0} my="lg" />
         </>
@@ -109,6 +156,11 @@ export default function Security() {
           <Title order={4} my="lg">
             {t("SCIM provisioning")}
           </Title>
+
+          <FeatureStatus
+            status="unavailable"
+            note="Provisionamento automático de usuários/grupos via SCIM. Não há endpoints /scim neste build — habilitar grava a flag, mas nada é provisionado."
+          />
 
           <Alert
             icon={<IconInfoCircle size={16} />}
