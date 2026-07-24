@@ -18,6 +18,17 @@ export class EnvironmentService {
     return this.configService.get<string>('DEBUG_MODE', 'false').toLowerCase() === 'true';
   }
 
+  getSelfHostedUnlockFeatures(): string[] {
+    const raw = this.configService.get<string>(
+      'SELF_HOSTED_UNLOCK_FEATURES',
+      '',
+    );
+    return raw
+      .split(',')
+      .map((f) => f.trim().toLowerCase())
+      .filter(Boolean);
+  }
+
   getAppUrl(): string {
     const rawUrl =
       this.configService.get<string>('APP_URL') ||

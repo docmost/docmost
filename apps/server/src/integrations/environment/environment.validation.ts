@@ -89,6 +89,10 @@ export class EnvironmentVariables {
   STORAGE_DRIVER: string;
 
   @IsOptional()
+  @IsString()
+  SELF_HOSTED_UNLOCK_FEATURES: string;
+
+  @IsOptional()
   @ValidateIf((obj) => obj.COLLAB_URL != '' && obj.COLLAB_URL != null)
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   COLLAB_URL: string;

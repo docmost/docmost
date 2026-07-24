@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { EnvironmentService } from './environment.service';
+import { Feature } from '../../common/features';
 
 @Injectable()
 export class LicenseCheckService {
@@ -9,8 +10,28 @@ export class LicenseCheckService {
     private environmentService: EnvironmentService,
   ) {}
 
+  /**
+   * Self-hosted feature unlock driven by SELF_HOSTED_UNLOCK_FEATURES.
+   * Returns the unlocked feature set (or all features for "*"), or null when
+   * unset / on cloud (where entitlements are plan-driven).
+   */
+  private unlockedFeatures(): string[] | null {
+    if (this.environmentService.isCloud()) {
+      return null;
+    }
+    const unlock = this.environmentService.getSelfHostedUnlockFeatures();
+    if (unlock.length === 0) {
+      return null;
+    }
+    return unlock.includes('*') ? Object.values(Feature) : unlock;
+  }
+
   isValidEELicense(licenseKey: string): boolean {
     if (this.environmentService.isCloud()) {
+      return true;
+    }
+
+    if (this.unlockedFeatures() !== null) {
       return true;
     }
 
@@ -35,6 +56,11 @@ export class LicenseCheckService {
       } catch {
         return false;
       }
+    }
+
+    const unlocked = this.unlockedFeatures();
+    if (unlocked !== null) {
+      return unlocked.includes(feature);
     }
 
     try {
@@ -73,12 +99,21 @@ export class LicenseCheckService {
       }
     }
 
+    const unlocked = this.unlockedFeatures();
+    if (unlocked !== null) {
+      return unlocked;
+    }
+
     return this.getFeatures(licenseKey);
   }
 
   resolveTier(licenseKey: string, plan: string): string {
     if (this.environmentService.isCloud()) {
       return plan ?? 'standard';
+    }
+
+    if (this.unlockedFeatures() !== null) {
+      return 'enterprise';
     }
 
     return this.getLicenseType(licenseKey) ?? 'free';
