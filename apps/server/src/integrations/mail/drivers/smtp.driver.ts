@@ -16,7 +16,7 @@ export class SmtpDriver implements MailDriver {
 
   async sendMail(message: MailMessage): Promise<void> {
     try {
-      await this.transporter.sendMail({
+      const info = await this.transporter.sendMail({
         from: message.from,
         to: message.to,
         subject: message.subject,
@@ -24,9 +24,17 @@ export class SmtpDriver implements MailDriver {
         html: message.html,
       });
 
-      this.logger.debug(`Sent mail to ${message.to}`);
-    } catch (err) {
-      this.logger.warn(`Failed to send mail to ${message.to}: ${err}`);
+      this.logger.log(
+        `Sent mail to ${message.to}: messageId=${info?.messageId} ` +
+          `accepted=${JSON.stringify(info?.accepted)} rejected=${JSON.stringify(info?.rejected)}`,
+      );
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to send mail to ${message.to}: message="${err?.message}" ` +
+          `code=${err?.code} responseCode=${err?.responseCode} ` +
+          `command=${err?.command} response="${err?.response}"`,
+        err?.stack,
+      );
       throw err;
     }
   }

@@ -19,7 +19,11 @@ export class EmailProcessor extends WorkerHost implements OnModuleDestroy {
   async process(job: Job<MailMessage, void>): Promise<void> {
     try {
       await this.mailService.sendEmail(job.data);
-    } catch (err) {
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to send email to ${job.data?.to} (jobId=${job.id}, attempt=${job.attemptsMade}): ${err?.message}`,
+        err?.stack,
+      );
       throw err;
     }
 
@@ -34,19 +38,24 @@ export class EmailProcessor extends WorkerHost implements OnModuleDestroy {
 
   @OnWorkerEvent('active')
   onActive(job: Job) {
-    this.logger.debug(`Processing ${job.name} job`);
+    this.logger.debug(
+      `Processing ${job.name} job (jobId=${job.id}, to=${job.data?.to})`,
+    );
   }
 
   @OnWorkerEvent('failed')
   onError(job: Job) {
     this.logger.error(
-      `Error processing ${job.name} job. Reason: ${job.failedReason}`,
+      `Error processing ${job.name} job (jobId=${job.id}, to=${job.data?.to}, ` +
+        `subject="${job.data?.subject}", attempt=${job.attemptsMade}). Reason: ${job.failedReason}`,
     );
   }
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job) {
-    this.logger.debug(`Completed ${job.name} job`);
+    this.logger.debug(
+      `Completed ${job.name} job (jobId=${job.id}, to=${job.data?.to})`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

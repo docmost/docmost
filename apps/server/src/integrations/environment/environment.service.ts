@@ -14,6 +14,10 @@ export class EnvironmentService {
     return this.getNodeEnv() === 'development';
   }
 
+  isDebugMode(): boolean {
+    return this.configService.get<string>('DEBUG_MODE', 'false').toLowerCase() === 'true';
+  }
+
   getAppUrl(): string {
     const rawUrl =
       this.configService.get<string>('APP_URL') ||

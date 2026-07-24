@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -56,6 +57,8 @@ export class AuthService {
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
+
+  private readonly logger = new Logger(AuthService.name);
 
   async login(loginDto: LoginDto, workspaceId: string) {
     const user = await this.userRepo.findByEmail(loginDto.email, workspaceId, {
@@ -177,8 +180,16 @@ export class AuthService {
     );
 
     if (!user || isUserDisabled(user)) {
+      this.logger.debug(
+        `forgot-password: no reset email sent for "${forgotPasswordDto.email}" — ` +
+          `${!user ? 'no matching user' : 'user disabled'} (silent by design)`,
+      );
       return;
     }
+
+    this.logger.debug(
+      `forgot-password: sending reset email to ${user.email}`,
+    );
 
     const token = nanoIdGen(16);
 

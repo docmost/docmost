@@ -18,10 +18,23 @@ export class MailService {
     @InjectQueue(QueueName.EMAIL_QUEUE) private emailQueue: Queue,
   ) {
     const driver = this.environmentService.getMailDriver();
-    this.logger.log(`Mail driver: ${driver}`);
+    const fromAddress = this.environmentService.getMailFromAddress();
+    this.logger.log(
+      `Mail config resolved: driver=${driver} host=${this.environmentService.getSmtpHost()} ` +
+        `port=${this.environmentService.getSmtpPort()} secure=${this.environmentService.getSmtpSecure()} ` +
+        `ignoreTLS=${this.environmentService.getSmtpIgnoreTLS()} ` +
+        `authUser=${this.environmentService.getSmtpUsername() ? '<set>' : '<none>'} ` +
+        `fromAddress=${fromAddress || '<empty>'} fromName=${this.environmentService.getMailFromName()} ` +
+        `debug=${this.environmentService.isDebugMode()}`,
+    );
     if (driver === 'log') {
       this.logger.warn(
         'MAIL_DRIVER is "log" (default): emails are only logged, not sent. Set MAIL_DRIVER=smtp to deliver mail.',
+      );
+    }
+    if (driver === 'smtp' && !fromAddress) {
+      this.logger.warn(
+        'MAIL_FROM_ADDRESS is empty: the sender becomes "Docmost <undefined>" and most SMTP servers will reject it.',
       );
     }
   }
@@ -63,7 +76,18 @@ export class MailService {
       });
       delete message.template;
     }
-    await this.emailQueue.add(QueueJob.SEND_EMAIL, message);
+
+    this.logger.log(`Queued email to ${message.to} (subject: "${message.subject}")`);
+    try {
+      const job = await this.emailQueue.add(QueueJob.SEND_EMAIL, message);
+      this.logger.log(`Enqueued email to ${message.to} as jobId=${job.id}`);
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to enqueue email to ${message.to}: ${err?.message}`,
+        err?.stack,
+      );
+      throw err;
+    }
   }
 
   private isRecipientBlocked(to: string): boolean {

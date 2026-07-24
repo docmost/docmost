@@ -36,6 +36,7 @@ export const mailDriverConfigProvider = {
             pass: environmentService.getSmtpPassword(),
           };
         }
+        const debug = environmentService.isDebugMode();
         return {
           driver,
           config: {
@@ -45,6 +46,11 @@ export const mailDriverConfigProvider = {
             auth,
             secure: environmentService.getSmtpSecure(),
             ignoreTLS: environmentService.getSmtpIgnoreTLS(),
+            // When DEBUG_MODE=true, nodemailer logs the full SMTP conversation
+            // (EHLO/AUTH/MAIL FROM/RCPT + server response codes) to stdout.
+            // WARNING: this prints base64 AUTH credentials — disable after diagnosis.
+            logger: debug,
+            debug,
           } as SMTPTransport.Options,
         };
       }

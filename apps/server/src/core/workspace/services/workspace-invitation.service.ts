@@ -196,7 +196,12 @@ export class WorkspaceInvitationService {
           invitation.token,
           authUser.name,
           workspace.hostname,
-        );
+        ).catch((err) => {
+          this.logger.error(
+            `Failed to send invitation mail to ${invitation.email}: ${err?.message}`,
+            err?.stack,
+          );
+        });
       });
 
       // Audit log for each invitation created
