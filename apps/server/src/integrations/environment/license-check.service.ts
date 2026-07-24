@@ -1,14 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { EnvironmentService } from './environment.service';
 import { Feature } from '../../common/features';
 
 @Injectable()
-export class LicenseCheckService {
+export class LicenseCheckService implements OnModuleInit {
+  private readonly logger = new Logger(LicenseCheckService.name);
+
   constructor(
     private moduleRef: ModuleRef,
     private environmentService: EnvironmentService,
   ) {}
+
+  onModuleInit(): void {
+    const cloud = this.environmentService.isCloud();
+    const unlock = this.environmentService.getSelfHostedUnlockFeatures();
+    const resolved = this.unlockedFeatures();
+    this.logger.log(
+      `License/entitlement config: cloud=${cloud} ` +
+        `SELF_HOSTED_UNLOCK_FEATURES=${JSON.stringify(unlock)} ` +
+        `unlockActive=${resolved !== null} ` +
+        `tier=${resolved !== null ? 'enterprise' : 'free'} ` +
+        `featureCount=${resolved?.length ?? 0}`,
+    );
+  }
 
   /**
    * Self-hosted feature unlock driven by SELF_HOSTED_UNLOCK_FEATURES.
