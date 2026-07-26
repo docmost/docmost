@@ -8,6 +8,7 @@ import {
   UpdatableAttachment,
 } from '@docmost/db/types/entity.types';
 import { AttachmentType } from '../../../core/attachment/attachment.constants';
+import { sql } from 'kysely';
 
 @Injectable()
 export class AttachmentRepo {
@@ -143,6 +144,38 @@ export class AttachmentRepo {
       .where('id', '=', attachmentId)
       .returning(this.baseFields)
       .executeTakeFirst();
+  }
+
+  async findExpiredOrphans(
+    workspaceId: string,
+    olderThan: Date,
+    limit = 500,
+  ): Promise<Attachment[]> {
+    return this.db
+      .selectFrom('attachments')
+      .select(this.baseFields)
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', AttachmentType.File)
+      .where('deletedAt', 'is not', null)
+      .where('deletedAt', '<', olderThan)
+      .orderBy('deletedAt', 'asc')
+      .limit(limit)
+      .execute();
+  }
+
+  async isReferencedByPageContent(
+    attachmentId: string,
+    workspaceId: string,
+  ): Promise<boolean> {
+    const match = await this.db
+      .selectFrom('pages')
+      .select('id')
+      .where('workspaceId', '=', workspaceId)
+      .where(sql<boolean>`CAST(content AS TEXT) LIKE ${`%${attachmentId}%`}`)
+      .limit(1)
+      .executeTakeFirst();
+
+    return Boolean(match);
   }
 
   async claimAttachmentsForChat(

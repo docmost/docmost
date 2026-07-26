@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
 import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
@@ -28,9 +29,13 @@ import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { createByteCountingStream } from '../../../common/helpers/utils';
 
+const DEFAULT_ORPHAN_RETENTION_DAYS = 30;
+const ORPHAN_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class AttachmentService {
   private readonly logger = new Logger(AttachmentService.name);
+  private orphanCleanupRunning = false;
   constructor(
     private readonly storageService: StorageService,
     private readonly attachmentRepo: AttachmentRepo,
@@ -56,11 +61,12 @@ export class AttachmentService {
 
     let isUpdate = false;
     let attachmentId = null;
+    let existingAttachment: Attachment = null;
 
     // passing attachmentId to allow for updating diagrams
     // instead of creating new files for each save
     if (opts?.attachmentId) {
-      const existingAttachment = await this.attachmentRepo.findById(
+      existingAttachment = await this.attachmentRepo.findById(
         opts.attachmentId,
       );
       if (!existingAttachment) {
@@ -76,13 +82,21 @@ export class AttachmentService {
       ) {
         throw new BadRequestException('File attachment does not match');
       }
+      if (existingAttachment.deletedAt) {
+        await this.attachmentRepo.updateAttachment(
+          { deletedAt: null, updatedAt: new Date() },
+          existingAttachment.id,
+        );
+      }
       attachmentId = opts.attachmentId;
       isUpdate = true;
     } else {
       attachmentId = uuid7();
     }
 
-    const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
+    const filePath =
+      existingAttachment?.filePath ??
+      `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
     const { stream, getBytesRead } = createByteCountingStream(
       preparedFile.multiPartFile.file,
@@ -99,6 +113,7 @@ export class AttachmentService {
         attachment = await this.attachmentRepo.updateAttachment(
           {
             fileSize: preparedFile.fileSize,
+            deletedAt: null,
             updatedAt: new Date(),
           },
           attachmentId,
@@ -422,6 +437,105 @@ export class AttachmentService {
         err,
       );
       throw err;
+    }
+  }
+
+  async scheduleOrphanDeletion(attachment: Attachment): Promise<Attachment> {
+    if (attachment.deletedAt) {
+      return attachment;
+    }
+
+    return this.attachmentRepo.updateAttachment(
+      {
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      },
+      attachment.id,
+    );
+  }
+
+  async purgeOrphanAttachment(attachmentId: string): Promise<boolean> {
+    const attachment = await this.attachmentRepo.findById(attachmentId);
+    if (
+      !attachment ||
+      !attachment.deletedAt ||
+      attachment.type !== AttachmentType.File
+    ) {
+      return false;
+    }
+
+    const isReferenced = await this.attachmentRepo.isReferencedByPageContent(
+      attachment.id,
+      attachment.workspaceId,
+    );
+    if (isReferenced) {
+      await this.attachmentRepo.updateAttachment(
+        { deletedAt: null, updatedAt: new Date() },
+        attachment.id,
+      );
+      return false;
+    }
+
+    const confirmedAttachment = await this.attachmentRepo.findById(
+      attachment.id,
+    );
+    if (
+      !confirmedAttachment?.deletedAt ||
+      confirmedAttachment.deletedAt.getTime() !==
+        attachment.deletedAt.getTime() ||
+      confirmedAttachment.updatedAt.getTime() !== attachment.updatedAt.getTime()
+    ) {
+      return false;
+    }
+
+    await this.storageService.delete(confirmedAttachment.filePath);
+    await this.attachmentRepo.deleteAttachmentById(confirmedAttachment.id);
+    return true;
+  }
+
+  @Interval('orphan-attachment-cleanup', ORPHAN_CLEANUP_INTERVAL_MS)
+  async cleanupExpiredOrphans(): Promise<void> {
+    if (this.orphanCleanupRunning) {
+      return;
+    }
+    this.orphanCleanupRunning = true;
+
+    try {
+      const workspaces = await this.db
+        .selectFrom('workspaces')
+        .select(['id', 'trashRetentionDays'])
+        .where('deletedAt', 'is', null)
+        .execute();
+
+      for (const workspace of workspaces) {
+        const retentionDays =
+          workspace.trashRetentionDays ?? DEFAULT_ORPHAN_RETENTION_DAYS;
+        const olderThan = new Date();
+        olderThan.setDate(olderThan.getDate() - retentionDays);
+
+        const candidates = await this.attachmentRepo.findExpiredOrphans(
+          workspace.id,
+          olderThan,
+        );
+        for (const attachment of candidates) {
+          try {
+            await this.purgeOrphanAttachment(attachment.id);
+          } catch (error) {
+            this.logger.error(
+              `Failed to clean orphan attachment ${attachment.id}: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+            );
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        'Orphan attachment cleanup failed',
+        error instanceof Error ? error.stack : undefined,
+      );
+    } finally {
+      this.orphanCleanupRunning = false;
     }
   }
 

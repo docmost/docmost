@@ -13,6 +13,33 @@ export type CollabEventHandlers = ReturnType<
   CollaborationHandler['getHandlers']
 >;
 
+type YXmlContainer = Y.XmlFragment | Y.XmlElement;
+
+export function removeAttachmentNodes(
+  container: YXmlContainer,
+  attachmentId: string,
+): number {
+  let removed = 0;
+  const children = container.toArray();
+
+  for (let index = children.length - 1; index >= 0; index--) {
+    const child = children[index];
+    if (!(child instanceof Y.XmlElement)) {
+      continue;
+    }
+
+    if (child.getAttribute('attachmentId') === attachmentId) {
+      container.delete(index, 1);
+      removed++;
+      continue;
+    }
+
+    removed += removeAttachmentNodes(child, attachmentId);
+  }
+
+  return removed;
+}
+
 @Injectable()
 export class CollaborationHandler {
   private readonly logger = new Logger(CollaborationHandler.name);
@@ -111,6 +138,30 @@ export class CollaborationHandler {
             }
           },
         );
+      },
+      removeAttachment: async (
+        documentName: string,
+        payload: {
+          attachmentId: string;
+          user: User;
+        },
+      ) => {
+        const { attachmentId, user } = payload;
+        let removed = 0;
+
+        await this.withYdocConnection(
+          hocuspocus,
+          documentName,
+          { user },
+          (doc) => {
+            removed = removeAttachmentNodes(
+              doc.getXmlFragment('default'),
+              attachmentId,
+            );
+          },
+        );
+
+        return removed;
       },
     };
   }

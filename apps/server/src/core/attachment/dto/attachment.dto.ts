@@ -7,6 +7,8 @@ export class AttachmentInfoDto {
   attachmentId: string;
 }
 
+export class RemoveAttachmentDto extends AttachmentInfoDto {}
+
 export class RemoveIconDto {
   @IsEnum(AttachmentType)
   @IsIn([
