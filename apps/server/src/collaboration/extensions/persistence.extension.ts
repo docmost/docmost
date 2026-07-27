@@ -123,11 +123,21 @@ export class PersistenceExtension implements Extension {
         });
 
         if (!page) {
-          this.logger.error(`Page with id ${pageId} not found`);
-          return;
+          // Returning here would commit the transaction and report a
+          // successful store, after which hocuspocus unloads the document and
+          // discards its in-memory Y state — a total, silent loss. Throw so
+          // the document stays in memory and the next change retries.
+          throw new Error(`Page with id ${pageId} not found`);
         }
 
         if (isDeepStrictEqual(tiptapJson, page.content)) {
+          // A store is only ever scheduled after an update was applied, so
+          // landing here means the update produced identical tiptap JSON.
+          // Legitimate for formatting-only Y changes, but it also means ydoc
+          // is left stale, so make it traceable.
+          this.logger.debug(
+            `Page content unchanged, skipping write: ${pageId}`,
+          );
           page = null;
           return;
         }
@@ -146,17 +156,37 @@ export class PersistenceExtension implements Extension {
           //this.logger.debug('Contributors error:' + err?.['message']);
         }
 
-        await this.pageRepo.updatePage(
+        // last_updated_by_id is nullable. hocuspocus hands us an empty
+        // lastContext for origins that are neither 'connection' nor 'local',
+        // and reading .user.id off it throws inside the transaction — losing
+        // the whole write to keep an attribution field. Blank attribution is
+        // the cheaper failure.
+        const lastUpdatedById = lastContext?.user?.id ?? null;
+        if (!lastUpdatedById) {
+          this.logger.warn(
+            `Storing ${pageId} without an editor id (empty lastContext)`,
+          );
+        }
+
+        const result = await this.pageRepo.updatePage(
           {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
-            lastUpdatedById: lastContext.user.id,
+            lastUpdatedById,
             contributorIds: contributorIds,
           },
           pageId,
           trx,
         );
+
+        // A zero-row UPDATE is otherwise indistinguishable from a successful
+        // save all the way up the stack.
+        if (result?.numUpdatedRows === 0n) {
+          throw new Error(
+            `Page update matched no rows: ${pageId} — content not persisted`,
+          );
+        }
 
         this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
       });
