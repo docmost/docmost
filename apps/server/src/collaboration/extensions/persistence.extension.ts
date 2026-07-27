@@ -8,7 +8,13 @@ import {
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { getPageId, jsonToText, tiptapExtensions } from '../collaboration.util';
+import {
+  getPageId,
+  isBlankDoc,
+  jsonToText,
+  tiptapExtensions,
+} from '../collaboration.util';
+import { JSONContent } from '@tiptap/core';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -128,6 +134,33 @@ export class PersistenceExtension implements Extension {
           // discards its in-memory Y state — a total, silent loss. Throw so
           // the document stays in memory and the next change retries.
           throw new Error(`Page with id ${pageId} not found`);
+        }
+
+        // Refuse to blank a page that has content on disk.
+        //
+        // A Y.Doc that arrives empty is almost never a real edit: it is a
+        // client that mounted the collaborative editor before reconciling
+        // with the server, or one replaying delete operations it persisted
+        // in IndexedDB. Writing it back destroys the content for everyone
+        // and, once `content` is blanked, there is nothing left to recover
+        // from. The same guard already protects page history
+        // (history.processor.ts:59).
+        //
+        // Cost: a user who genuinely selects-all-and-deletes has that write
+        // rejected and must delete the page instead. That is the cheaper
+        // failure by a wide margin.
+        if (
+          isBlankDoc(tiptapJson) &&
+          page.content &&
+          !isBlankDoc(page.content as JSONContent)
+        ) {
+          this.logger.warn(
+            `Refusing to overwrite page ${pageId} with an empty document ` +
+              `(stored content is not empty). The in-memory Y state is ` +
+              `discarded; the database keeps the last good content.`,
+          );
+          page = null;
+          return;
         }
 
         if (isDeepStrictEqual(tiptapJson, page.content)) {

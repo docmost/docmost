@@ -153,6 +153,21 @@ export function getPageId(documentName: string) {
   return documentName.split('.')[1];
 }
 
+/**
+ * True when a document carries no content at all.
+ *
+ * Broader than isEmptyParagraphDoc, which only recognises the single-empty-
+ * paragraph shape a fresh editor produces. A Y.Doc whose content was deleted
+ * serialises as `{type:'doc'}` or `{type:'doc', content:[]}`, and those are
+ * exactly the shapes that must never be written over a page that has content.
+ */
+export function isBlankDoc(tiptapJson: JSONContent): boolean {
+  if (!tiptapJson || tiptapJson.type !== 'doc') return false;
+  const content = tiptapJson.content;
+  if (!Array.isArray(content) || content.length === 0) return true;
+  return isEmptyParagraphDoc(tiptapJson);
+}
+
 export function isEmptyParagraphDoc(tiptapJson: JSONContent): boolean {
   if (!tiptapJson || tiptapJson.type !== 'doc') return false;
   const content = tiptapJson.content;

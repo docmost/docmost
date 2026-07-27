@@ -506,25 +506,23 @@ function CollabPageEditor({
       return;
     }
 
-    // Fail open. StaticPageEditor renders the REST `content` prop, which is
-    // whatever the server last persisted — with no connection that is stale,
-    // and the user reads it as "my content disappeared".
+    // Fall back to the local copy ONLY when there is no server to wait for.
     //
-    // Either source having hydrated the Y.Doc means we hold something at least
-    // as fresh, so show the live editor. Requiring a source (rather than the
-    // timer alone) is what keeps us from flashing an empty document; accepting
-    // either one is what keeps a blocked IndexedDB — private windows, storage
-    // policies — from pinning the page read-only while the server is fine.
-    if (fallbackDeadlinePassed && (isLocalSynced || isRemoteSynced)) {
+    // Mounting the collaborative editor against a Y.Doc that has not reconciled
+    // with the server is what destroys content: the editor binds to whatever
+    // IndexedDB replayed — including delete operations from an earlier bad
+    // session — and those deletions then propagate to the server and to every
+    // other editor on the page. Requiring isRemoteSynced whenever we are
+    // connected keeps that window closed.
+    //
+    // Genuinely offline (socket not connected) is different: there is nothing
+    // to reconcile against, the local copy is the best we have, and showing it
+    // read-only beats showing a stale REST snapshot. hasRemoteSyncedOnce keeps
+    // it read-only until the server confirms.
+    if (fallbackDeadlinePassed && !isConnected && isLocalSynced) {
       setShowStatic(false);
     }
-  }, [
-    isConnected,
-    isSynced,
-    isLocalSynced,
-    isRemoteSynced,
-    fallbackDeadlinePassed,
-  ]);
+  }, [isConnected, isSynced, isLocalSynced, fallbackDeadlinePassed]);
 
   if (showStatic) {
     return <StaticPageEditor content={content} ariaLabel={t("Page content")} />;
