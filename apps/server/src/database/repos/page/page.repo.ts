@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { dbOrTx, executeTx } from '../../utils';
@@ -41,6 +41,7 @@ export class PageRepo {
     'isBase',
     'isEncrypted',
     'encryptionMeta',
+    'encryptionRootId',
     'encryptedVersion',
     'createdAt',
     'updatedAt',
@@ -251,7 +252,7 @@ export class PageRepo {
     // First, check if the page being restored has a deleted parent
     const pageToRestore = await this.db
       .selectFrom('pages')
-      .select(['id', 'parentPageId'])
+      .select(['id', 'parentPageId', 'encryptionRootId'])
       .where('id', '=', pageId)
       .executeTakeFirst();
 
@@ -270,6 +271,27 @@ export class PageRepo {
 
       // If parent is deleted, we should detach this page from it
       shouldDetachFromParent = parent?.deletedAt !== null;
+    }
+
+    // A page keyed to an encrypted section must never be detached to the space
+    // root: it would sit outside the section that holds its key, and — because
+    // it still references that root — it would block the eventual hard delete
+    // of the root during trash cleanup. Re-attach it to the root instead.
+    let reattachToPageId: string | null = null;
+    if (shouldDetachFromParent && pageToRestore.encryptionRootId) {
+      const encryptionRoot = await this.db
+        .selectFrom('pages')
+        .select(['id', 'deletedAt'])
+        .where('id', '=', pageToRestore.encryptionRootId)
+        .executeTakeFirst();
+
+      if (!encryptionRoot || encryptionRoot.deletedAt) {
+        throw new BadRequestException(
+          'This page belongs to an encrypted section whose main page is in the trash. Restore that page instead.',
+        );
+      }
+
+      reattachToPageId = encryptionRoot.id;
     }
 
     // Find all descendants to restore
@@ -303,7 +325,7 @@ export class PageRepo {
     if (shouldDetachFromParent) {
       await this.db
         .updateTable('pages')
-        .set({ parentPageId: null })
+        .set({ parentPageId: reattachToPageId })
         .where('id', '=', pageId)
         .execute();
     }
@@ -494,7 +516,17 @@ export class PageRepo {
 
   async getPageAndDescendants(
     parentPageId: string,
-    opts: { includeContent: boolean; includeEncryption?: boolean },
+    opts: {
+      includeContent: boolean;
+      includeEncryption?: boolean;
+      /**
+       * Include soft-deleted pages. Encryption conversions need this: a page
+       * sitting in the trash still belongs to the section, and skipping it
+       * would leave its plaintext behind (or, on decrypt, strand its
+       * ciphertext with no reachable key once it is restored).
+       */
+      includeDeleted?: boolean;
+    },
   ) {
     return this.db
       .withRecursive('page_hierarchy', (db) =>
@@ -512,13 +544,16 @@ export class PageRepo {
             'createdAt',
             'updatedAt',
             'isEncrypted',
+            'encryptionRootId',
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .$if(opts?.includeEncryption, (qb) =>
             qb.select(['encryptedBlob', 'encryptionMeta', 'encryptedVersion']),
           )
           .where('id', '=', parentPageId)
-          .where('deletedAt', 'is', null)
+          .$if(!opts?.includeDeleted, (qb) =>
+            qb.where('deletedAt', 'is', null),
+          )
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
@@ -534,6 +569,7 @@ export class PageRepo {
                 'p.createdAt',
                 'p.updatedAt',
                 'p.isEncrypted',
+                'p.encryptionRootId',
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .$if(opts?.includeEncryption, (qb) =>
@@ -544,7 +580,9 @@ export class PageRepo {
                 ]),
               )
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
-              .where('p.deletedAt', 'is', null),
+              .$if(!opts?.includeDeleted, (qb) =>
+                qb.where('p.deletedAt', 'is', null),
+              ),
           ),
       )
       .selectFrom('page_hierarchy')

@@ -323,6 +323,7 @@ export interface Pages {
   encryptedBlob: Buffer | null;
   encryptedVersion: Generated<Int8>;
   encryptionMeta: Json | null;
+  encryptionRootId: string | null;
   icon: string | null;
   id: Generated<string>;
   isBase: Generated<boolean>;

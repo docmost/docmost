@@ -57,6 +57,7 @@ export interface FullEditorProps {
   canComment?: boolean;
   isEncrypted?: boolean;
   encryptionMeta?: EncryptionMeta;
+  encryptionRootId?: string | null;
 }
 
 export function FullEditor({
@@ -71,6 +72,7 @@ export function FullEditor({
   canComment,
   isEncrypted,
   encryptionMeta,
+  encryptionRootId,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
@@ -120,6 +122,7 @@ export function FullEditor({
           pageId={pageId}
           pageTitle={title}
           encryptionMeta={encryptionMeta}
+          encryptionRootId={encryptionRootId}
           editable={editable}
         />
       ) : (

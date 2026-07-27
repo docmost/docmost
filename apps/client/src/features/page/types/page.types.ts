@@ -16,6 +16,8 @@ export interface IPage {
   isBase: boolean;
   isEncrypted: boolean;
   encryptionMeta?: EncryptionMeta;
+  /** set when this page is keyed to another page's DEK (encrypted section) */
+  encryptionRootId?: string | null;
   encryptedVersion?: number;
   lastUpdatedById: string;
   createdAt: Date;
@@ -91,6 +93,9 @@ export interface IPageInput {
   coverPhoto: string;
   position: string;
   isLocked: boolean;
+  spaceId: string;
+  /** only sent when creating a page inside an encrypted section */
+  encryptedBlob?: string;
 }
 
 export interface IExportPageParams {

@@ -1,5 +1,6 @@
 import { IPage } from "@/features/page/types/page.types.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { registerPageSections } from "@/features/encryption/hooks/page-key-store.ts";
 
 export function sortPositionKeys(keys: any[]) {
   return keys.sort((a, b) => {
@@ -14,6 +15,15 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
 
   const tree: SpaceTreeNode[] = [];
 
+  // the vault is keyed by section, so it needs to know which key opens each
+  // page as soon as the page shows up in the tree
+  registerPageSections(
+    pages.map((page) => ({
+      pageId: page.id,
+      encryptionRootId: page.encryptionRootId,
+    })),
+  );
+
   pages.forEach((page) => {
     pageMap[page.id] = {
       id: page.id,
@@ -26,6 +36,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
       parentPageId: page.parentPageId,
       isBase: page.isBase,
       isEncrypted: page.isEncrypted,
+      encryptionRootId: page.encryptionRootId,
       canEdit: page.canEdit ?? page.permissions?.canEdit,
       children: [],
     };

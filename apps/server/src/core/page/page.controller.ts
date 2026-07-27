@@ -99,6 +99,13 @@ export class PageController {
 
     const permissions = { canEdit, hasRestriction };
 
+    // a page inside an encrypted section has no key metadata of its own; the
+    // client needs the section's to prompt for the password
+    if (page.encryptionRootId) {
+      page.encryptionMeta =
+        await this.pageEncryptionService.getSectionEncryptionMeta(page);
+    }
+
     if (dto.format && dto.format !== 'json' && page.content) {
       const contentOutput =
         dto.format === 'markdown'
@@ -333,6 +340,25 @@ export class PageController {
     await this.pageAccessService.validateCanView(page, user);
 
     return this.pageEncryptionService.getEncryptedBlob(page);
+  }
+
+  /**
+   * Everything the client needs to convert a whole section: the plaintext of
+   * every page to encrypt, or the ciphertext of every page to decrypt.
+   */
+  @HttpCode(HttpStatus.OK)
+  @Post('encryption/section')
+  async getEncryptionSection(
+    @Body() dto: EncryptedBlobDto,
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    return this.pageEncryptionService.getSectionManifest(page, user);
   }
 
   @HttpCode(HttpStatus.OK)

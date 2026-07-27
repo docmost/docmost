@@ -20,6 +20,23 @@ import {
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import {
+  pageKeysAtom,
+  registerPageSection,
+  sectionIdOf,
+} from "@/features/encryption/hooks/page-key-store.ts";
+import { encryptBytes } from "@/features/encryption/services/crypto.ts";
+import {
+  EMPTY_DOC,
+  encodeJsonBlob,
+  encryptSection,
+} from "@/features/encryption/services/section-conversion.ts";
+import {
+  encryptionMessageForCode,
+  getEncryptionErrorMessage,
+  type EncryptionErrorCode,
+} from "@/features/encryption/services/encryption-errors.ts";
+import { confirmModal } from "@/features/page/tree/utils/confirm-modal.tsx";
 
 export type UseTreeMutation = {
   handleMove: (sourceId: string, op: DropOp) => Promise<void>;
@@ -54,6 +71,46 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
       if (!source) return;
       const oldParentId = source.parentPageId ?? null;
 
+      // A move can never change which key a page is encrypted with — the
+      // server refuses those. Dropping plaintext pages into an encrypted
+      // section is the one case we can carry out, by encrypting them with
+      // that section's key as part of the move.
+      const targetParent = payload.parentPageId
+        ? (treeModel.find(before, payload.parentPageId) as SpaceTreeNode | null)
+        : null;
+      const sourceSectionId = sectionIdOf(source);
+      const targetSectionId = sectionIdOf(targetParent);
+
+      let sectionDek: CryptoKey | null = null;
+      if (sourceSectionId !== targetSectionId) {
+        const targetKey = targetSectionId
+          ? store.get(pageKeysAtom)[targetSectionId]
+          : null;
+
+        // an encryption root moving somewhere plaintext is a plain move: it
+        // keeps its own key and its subtree follows
+        const refusal: EncryptionErrorCode | null = source.encryptionRootId
+          ? "ENCRYPTED_PAGE_MOVE_OUT"
+          : sourceSectionId
+            ? targetSectionId
+              ? "ENCRYPTED_SECTION_NESTING"
+              : null
+            : targetKey
+              ? null
+              : "ENCRYPTION_REQUIRED";
+
+        if (refusal) {
+          notifications.show({
+            message: encryptionMessageForCode(refusal, t),
+            color: "orange",
+          });
+          return;
+        }
+        // null when relocating a whole section out to plaintext — that is a
+        // plain move, with nothing to encrypt
+        sectionDek = targetKey?.dek ?? null;
+      }
+
       // optimistic apply with the new position from the payload
       let optimistic = treeModel.update(after, sourceId, {
         position: payload.position,
@@ -80,14 +137,75 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         } as Partial<SpaceTreeNode>);
       }
 
+      if (sectionDek) {
+        const confirmed = await confirmModal({
+          title: t("Encrypt this page and everything under it?"),
+          message: t(
+            "Moving pages into an encrypted section encrypts them with that section's password. They cannot be moved back out without being decrypted first.",
+          ),
+          confirmLabel: t("Encrypt and move"),
+          cancelLabel: t("Cancel"),
+        });
+        if (!confirmed) return;
+      }
+
       setData(optimistic);
 
       try {
+        if (sectionDek) {
+          // conversion and move happen in one server transaction, so a
+          // failure can never leave the subtree encrypted in the wrong place
+          await encryptSection({
+            pageId: sourceId,
+            dek: sectionDek,
+            joinRootId: targetSectionId,
+            move: {
+              parentPageId: payload.parentPageId,
+              position: payload.position,
+            },
+          });
+          // Other clients are not reloading, so tell them about the move
+          // before this tab goes away — otherwise their tree keeps the page
+          // in its old place, and dragging it again would be computed
+          // against a position the server has already changed.
+          emit({
+            operation: "moveTreeNode",
+            spaceId,
+            payload: {
+              id: sourceId,
+              parentId: payload.parentPageId,
+              oldParentId,
+              index: result.index,
+              position: payload.position,
+              pageData: {
+                id: source.id,
+                slugId: source.slugId,
+                title: source.name,
+                icon: source.icon,
+                position: payload.position,
+                spaceId: source.spaceId,
+                parentPageId: payload.parentPageId,
+                hasChildren: source.hasChildren,
+                isEncrypted: true,
+                encryptionRootId: targetSectionId,
+              },
+            },
+          });
+
+          // every page that just changed also lost its plaintext collab
+          // session; reloading rebuilds the tree and the editor from scratch
+          // rather than patching encryption state across the moved subtree
+          window.location.reload();
+          return;
+        }
+
         await movePageMutation.mutateAsync(payload);
-      } catch {
+      } catch (err) {
         setData(before);
+        // a plain move can still be refused on encryption grounds when the
+        // tree was stale, so always let a coded refusal explain itself
         notifications.show({
-          message: t("Failed to move page"),
+          message: getEncryptionErrorMessage(err, t, t("Failed to move page")),
           color: "red",
         });
         return;
@@ -132,8 +250,37 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
 
   const handleCreate = useCallback(
     async (parentId: string | null) => {
-      const payload: { spaceId: string; parentPageId?: string } = { spaceId };
+      const payload: {
+        spaceId: string;
+        parentPageId?: string;
+        encryptedBlob?: string;
+      } = { spaceId };
       if (parentId) payload.parentPageId = parentId;
+
+      // A page nested under an encrypted one joins that section, so it must
+      // be born encrypted — which needs the section key in the vault.
+      const parent = parentId
+        ? (treeModel.find(
+            store.get(treeDataAtom),
+            parentId,
+          ) as SpaceTreeNode | null)
+        : null;
+      const parentSectionId = sectionIdOf(parent);
+
+      if (parentSectionId) {
+        const entry = store.get(pageKeysAtom)[parentSectionId];
+        if (!entry) {
+          notifications.show({
+            message: t("Unlock the encrypted section to add pages to it."),
+            color: "orange",
+          });
+          throw new Error("Encrypted section is locked");
+        }
+        payload.encryptedBlob = await encryptBytes(
+          entry.dek,
+          encodeJsonBlob(EMPTY_DOC),
+        );
+      }
 
       let createdPage: IPage;
       try {
@@ -150,8 +297,11 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         spaceId: createdPage.spaceId,
         parentPageId: createdPage.parentPageId,
         hasChildren: false,
+        isEncrypted: createdPage.isEncrypted,
+        encryptionRootId: createdPage.encryptionRootId,
         children: [],
       };
+      registerPageSection(createdPage.id, createdPage.encryptionRootId);
 
       // Read latest tree at call time. Without this, callers that mutate the
       // tree (e.g. lazy-load children on expand) immediately before calling
@@ -187,7 +337,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
       );
       navigate(pageUrl);
     },
-    [spaceId, createPageMutation, setData, store, emit, navigate, spaceSlug],
+    [spaceId, createPageMutation, setData, store, emit, navigate, spaceSlug, t],
   );
 
   const handleRename = useCallback(

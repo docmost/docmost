@@ -7,7 +7,101 @@ export interface PageKeyEntry {
   lastActivity: number;
 }
 
+/**
+ * Vault entries are keyed by *section* id — the id of the encryption root
+ * holding the wrapped DEK — not by page id. An encrypted folder shares one
+ * DEK across its whole subtree, so unlocking the root unlocks every page in
+ * it with a single entry. A page that is its own root maps to itself, which
+ * keeps single encrypted pages working unchanged.
+ */
 export const pageKeysAtom = atom<Record<string, PageKeyEntry>>({});
+
+/** pageId → section id, learned from page and tree data as it loads */
+export const pageSectionAtom = atom<Record<string, string>>({});
+
+const sectionKeysAtom = atom((get) => ({
+  keys: get(pageKeysAtom),
+  sections: get(pageSectionAtom),
+}));
+
+/**
+ * Resolving is idempotent: a section id maps to itself, so callers may pass
+ * either a page id or a section id.
+ */
+function sectionIdFor(pageId: string): string {
+  return getDefaultStore().get(pageSectionAtom)[pageId] ?? pageId;
+}
+
+export interface PageSectionEntry {
+  pageId: string;
+  encryptionRootId: string | null | undefined;
+}
+
+/**
+ * The client-side mirror of the server's encryptionRootIdOf: which section's
+ * key opens this page, read straight off page or tree data.
+ */
+export function sectionIdOf(page: {
+  id: string;
+  isEncrypted?: boolean;
+  encryptionRootId?: string | null;
+}): string | null {
+  if (!page?.isEncrypted) return null;
+  return page.encryptionRootId ?? page.id;
+}
+
+/**
+ * Record which section a page belongs to. Called wherever page data arrives
+ * (page queries, tree nodes, blob fetches) so the vault can resolve a page id
+ * to the key that opens it.
+ */
+export function registerPageSection(
+  pageId: string,
+  encryptionRootId: string | null | undefined,
+): void {
+  registerPageSections([{ pageId, encryptionRootId }]);
+}
+
+/**
+ * Bulk form of registerPageSection — one atom write for a whole tree load
+ * instead of one per page (each write clones the whole index and notifies
+ * every subscriber).
+ */
+export function registerPageSections(entries: PageSectionEntry[]): void {
+  const store = getDefaultStore();
+  const current = store.get(pageSectionAtom);
+
+  // `undefined` means "this payload carries no encryption info" (an endpoint
+  // that does not select the column) and must leave a known mapping alone —
+  // only an explicit `null` clears it, meaning the page really is its own
+  // root. Treating the two alike would let any such endpoint silently erase
+  // the mapping and re-lock the page the user is reading.
+  const relevant = entries.filter(
+    ({ pageId, encryptionRootId }) => pageId && encryptionRootId !== undefined,
+  );
+
+  const changed = relevant.filter(({ pageId, encryptionRootId }) => {
+    const wanted =
+      !encryptionRootId || encryptionRootId === pageId
+        ? undefined
+        : encryptionRootId;
+    return current[pageId] !== wanted;
+  });
+
+  if (changed.length === 0) return;
+
+  store.set(pageSectionAtom, (prev) => {
+    const next = { ...prev };
+    for (const { pageId, encryptionRootId } of changed) {
+      if (!encryptionRootId || encryptionRootId === pageId) {
+        delete next[pageId];
+      } else {
+        next[pageId] = encryptionRootId;
+      }
+    }
+    return next;
+  });
+}
 
 const TOUCH_THROTTLE_MS = 5000;
 const lastTouchedAt: Record<string, number> = {};
@@ -120,17 +214,33 @@ export function requestPageKeyFromTabs(pageId: string): void {
   if (!vaultChannel) {
     return;
   }
-  pendingKeyRequests.add(pageId);
+  const sectionId = sectionIdFor(pageId);
+  pendingKeyRequests.add(sectionId);
   vaultChannel.postMessage({
     type: "key-request",
-    pageId,
+    pageId: sectionId,
   } satisfies VaultMessage);
-  window.setTimeout(() => pendingKeyRequests.delete(pageId), 5000);
+  window.setTimeout(() => pendingKeyRequests.delete(sectionId), 5000);
 }
 
-/** Lock the page in every other tab too (explicit lock / idle timeout). */
+/** Lock the section in every other tab too (explicit lock / idle timeout). */
 export function broadcastPageLock(pageId: string): void {
-  vaultChannel?.postMessage({ type: "lock", pageId } satisfies VaultMessage);
+  vaultChannel?.postMessage({
+    type: "lock",
+    pageId: sectionIdFor(pageId),
+  } satisfies VaultMessage);
+}
+
+/** the vault key id that opens this page (itself when it is its own root) */
+export function usePageSectionId(pageId: string | null): string | null {
+  const sectionAtom = useMemo(
+    () =>
+      selectAtom(pageSectionAtom, (sections) =>
+        pageId ? (sections[pageId] ?? pageId) : null,
+      ),
+    [pageId],
+  );
+  return useAtomValue(sectionAtom);
 }
 
 export function usePageKey(pageId: string): CryptoKey | null {
@@ -138,7 +248,12 @@ export function usePageKey(pageId: string): CryptoKey | null {
   // touch, but the dek's identity is stable while a page stays unlocked (see
   // storeKey), so subscribers only re-render on actual unlock/lock.
   const dekAtom = useMemo(
-    () => selectAtom(pageKeysAtom, (keys) => keys[pageId]?.dek ?? null),
+    () =>
+      selectAtom(
+        sectionKeysAtom,
+        ({ keys, sections }) =>
+          keys[sections[pageId] ?? pageId]?.dek ?? null,
+      ),
     [pageId],
   );
   return useAtomValue(dekAtom);
@@ -146,11 +261,12 @@ export function usePageKey(pageId: string): CryptoKey | null {
 
 export function useUnlockPageKey(): (pageId: string, dek: CryptoKey) => void {
   return useCallback((pageId: string, dek: CryptoKey) => {
+    const sectionId = sectionIdFor(pageId);
     // storeKey keeps an existing key's identity (see comment there)
-    storeKey(pageId, dek);
+    storeKey(sectionId, dek);
     vaultChannel?.postMessage({
       type: "unlock",
-      pageId,
+      pageId: sectionId,
       dek,
     } satisfies VaultMessage);
   }, []);
@@ -161,13 +277,14 @@ export function useLockPageKey(): (pageId: string) => void {
 
   return useCallback(
     (pageId: string) => {
-      delete lastTouchedAt[pageId];
+      const sectionId = sectionIdFor(pageId);
+      delete lastTouchedAt[sectionId];
       setPageKeys((prev) => {
-        if (!prev[pageId]) {
+        if (!prev[sectionId]) {
           return prev;
         }
         const next = { ...prev };
-        delete next[pageId];
+        delete next[sectionId];
         return next;
       });
     },
@@ -180,25 +297,26 @@ export function useTouchPageKey(): (pageId: string) => void {
 
   return useCallback(
     (pageId: string) => {
+      const sectionId = sectionIdFor(pageId);
       const now = Date.now();
-      if (now - (lastTouchedAt[pageId] ?? 0) < TOUCH_THROTTLE_MS) {
+      if (now - (lastTouchedAt[sectionId] ?? 0) < TOUCH_THROTTLE_MS) {
         return;
       }
-      lastTouchedAt[pageId] = now;
+      lastTouchedAt[sectionId] = now;
 
       setPageKeys((prev) => {
-        if (!prev[pageId]) {
+        if (!prev[sectionId]) {
           return prev;
         }
         return {
           ...prev,
-          [pageId]: { ...prev[pageId], lastActivity: now },
+          [sectionId]: { ...prev[sectionId], lastActivity: now },
         };
       });
       // keep sibling tabs' auto-lock timers fresh while the user is active here
       vaultChannel?.postMessage({
         type: "touch",
-        pageId,
+        pageId: sectionId,
       } satisfies VaultMessage);
     },
     [setPageKeys],

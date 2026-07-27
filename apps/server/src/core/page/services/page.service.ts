@@ -55,6 +55,7 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
+import { encryptionRootIdOf } from '../page-encryption.util';
 
 @Injectable()
 export class PageService {
@@ -95,13 +96,64 @@ export class PageService {
     trx?: KyselyTransaction,
     isBase: boolean = false,
   ): Promise<Page> {
+    // The parent is read FOR UPDATE below, so the insert must share that
+    // transaction or the lock would be released before the row is written.
+    // A caller-supplied transaction is reused as-is.
+    const page = trx
+      ? await this.createInTx(trx, userId, workspaceId, createPageDto, isBase)
+      : await executeTx(this.db, (tx) =>
+          this.createInTx(tx, userId, workspaceId, createPageDto, isBase),
+        );
+
+    if (trx) {
+      // Add the watcher inside the caller's transaction so the async worker
+      // never inserts against an uncommitted page (FK violation on bases).
+      await this.watcherService.addPageWatchers(
+        [userId],
+        page.id,
+        createPageDto.spaceId,
+        workspaceId,
+        trx,
+      );
+    } else {
+      // queued only once the page is committed, so the worker can see it
+      this.generalQueue
+        .add(QueueJob.ADD_PAGE_WATCHERS, {
+          userIds: [userId],
+          pageId: page.id,
+          spaceId: createPageDto.spaceId,
+          workspaceId,
+        })
+        .catch((err) =>
+          this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+        );
+    }
+
+    return page;
+  }
+
+  private async createInTx(
+    trx: KyselyTransaction,
+    userId: string,
+    workspaceId: string,
+    createPageDto: CreatePageDto,
+    isBase: boolean,
+  ): Promise<Page> {
     let parentPageId = undefined;
+    let parentPage: Page = undefined;
 
     // check if parent page exists
     if (createPageDto.parentPageId) {
-      const parentPage = await this.pageRepo.findById(
-        createPageDto.parentPageId,
-      );
+      // Locked read: a conversion of this subtree locks the same rows, so
+      // whichever runs first, the other sees a settled encryption state.
+      // Without this a page could be inserted under a parent mid-conversion
+      // and end up as plaintext inside an encrypted section.
+      parentPage = (await trx
+        .selectFrom('pages')
+        .selectAll()
+        .where('id', '=', createPageDto.parentPageId)
+        .forUpdate()
+        .executeTakeFirst()) as Page;
 
       if (
         !parentPage ||
@@ -112,6 +164,27 @@ export class PageService {
       }
 
       parentPageId = parentPage.id;
+    }
+
+    // A page nested under an encrypted one joins that encrypted section: it
+    // is born encrypted with the section's DEK, never written in plaintext.
+    const encryptionRootId = parentPage ? encryptionRootIdOf(parentPage) : null;
+
+    if (encryptionRootId) {
+      if (!createPageDto.encryptedBlob) {
+        throw new BadRequestException(
+          'A page inside an encrypted section must be created encrypted',
+        );
+      }
+      if (createPageDto.content) {
+        throw new BadRequestException(
+          'Cannot create a plaintext page inside an encrypted section',
+        );
+      }
+    } else if (createPageDto.encryptedBlob) {
+      throw new BadRequestException(
+        'Parent page is not part of an encrypted section',
+      );
     }
 
     let content = undefined;
@@ -146,30 +219,15 @@ export class PageService {
       content,
       textContent,
       ydoc,
+      ...(encryptionRootId
+        ? {
+            isEncrypted: true,
+            encryptionRootId,
+            encryptedBlob: Buffer.from(createPageDto.encryptedBlob, 'base64'),
+            encryptedVersion: '1',
+          }
+        : {}),
     }, trx);
-
-    if (trx) {
-      // Add the watcher inside the caller's transaction so the async worker
-      // never inserts against an uncommitted page (FK violation on bases).
-      await this.watcherService.addPageWatchers(
-        [userId],
-        page.id,
-        createPageDto.spaceId,
-        workspaceId,
-        trx,
-      );
-    } else {
-      this.generalQueue
-        .add(QueueJob.ADD_PAGE_WATCHERS, {
-          userIds: [userId],
-          pageId: page.id,
-          spaceId: createPageDto.spaceId,
-          workspaceId,
-        })
-        .catch((err) =>
-          this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
-        );
-    }
 
     return page;
   }
@@ -311,6 +369,9 @@ export class PageService {
         'creatorId',
         'isBase',
         'isEncrypted',
+        // the sidebar builds the tree, and the client's key vault is keyed by
+        // section: without this every nested encrypted page looks self-rooted
+        'encryptionRootId',
         'deletedAt',
       ])
       .select((eb) => this.pageRepo.withHasChildren(eb))
@@ -399,6 +460,11 @@ export class PageService {
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
     let childPageIds: string[] = [];
 
+    // moving to another space always lands at the space root, so this is the
+    // same question movePage asks with a null parent: a keyed descendant may
+    // not leave, an encryption root may move and take its subtree along
+    this.assertEncryptionMoveAllowed(rootPage, null);
+
     const allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: false,
     });
@@ -419,6 +485,15 @@ export class PageService {
         p.parentPageId &&
         accessibleIds.has(p.parentPageId),
     );
+
+    if (rootPage.isEncrypted && pagesToOrphan.length > 0) {
+      // orphaning would leave those pages keyed to a root in another space
+      throw new BadRequestException({
+        code: 'ENCRYPTED_SECTION_PARTIAL_MOVE',
+        message:
+          'This encrypted section contains pages you cannot access, so it cannot be moved to another space.',
+      });
+    }
 
     await executeTx(this.db, async (trx) => {
       // Orphan inaccessible child pages (make them root pages in original space)
@@ -451,51 +526,78 @@ export class PageService {
         await this.pageRepo.updatePages({ spaceId }, childPageIds, trx);
       }
 
-      if (pageIdsToMove.length > 0) {
+      // The accessible-subtree walk above skips trashed pages, but a trashed
+      // page keyed to this root is still part of the section and is still
+      // decrypted with it. It moves with the section (matched on the key
+      // pointer, which trash does not affect), and its related rows have to
+      // follow too or a later restore lands with attachments, access and
+      // watchers still pointing at the old space.
+      let sectionPageIds = pageIdsToMove;
+      if (rootPage.isEncrypted) {
+        const keyed = await trx
+          .selectFrom('pages')
+          .select('id')
+          .where('encryptionRootId', '=', rootPage.id)
+          .execute();
+
+        await trx
+          .updateTable('pages')
+          .set({ spaceId })
+          .where('encryptionRootId', '=', rootPage.id)
+          .execute();
+
+        const alreadyMoving = new Set(pageIdsToMove);
+        sectionPageIds = [
+          ...pageIdsToMove,
+          ...keyed.map((p) => p.id).filter((id) => !alreadyMoving.has(id)),
+        ];
+      }
+
+      if (sectionPageIds.length > 0) {
         await trx
           .updateTable('pageAccess')
           .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIdsToMove)
+          .where('pageId', 'in', sectionPageIds)
           .execute();
 
         // update spaceId in shares
         await trx
           .updateTable('shares')
           .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIdsToMove)
+          .where('pageId', 'in', sectionPageIds)
           .execute();
 
         // Update comments
         await trx
           .updateTable('comments')
           .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIdsToMove)
+          .where('pageId', 'in', sectionPageIds)
           .execute();
 
         // Update page verifications
         await trx
           .updateTable('pageVerifications')
           .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIdsToMove)
+          .where('pageId', 'in', sectionPageIds)
           .execute();
 
         // Update notifications — access follows the page after a move
         await trx
           .updateTable('notifications')
           .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIdsToMove)
+          .where('pageId', 'in', sectionPageIds)
           .execute();
 
         // Update attachments
         await this.attachmentRepo.updateAttachmentsByPageId(
           { spaceId },
-          pageIdsToMove,
+          sectionPageIds,
           trx,
         );
 
         // Update watchers and remove those without access to new space
         await this.watcherService.movePageWatchersToSpace(
-          pageIdsToMove,
+          sectionPageIds,
           spaceId,
           {
             trx,
@@ -531,6 +633,17 @@ export class PageService {
     const spaceId = targetSpaceId || rootPage.spaceId;
     const isDuplicateInSameSpace =
       !targetSpaceId || targetSpaceId === rootPage.spaceId;
+
+    if (rootPage.encryptionRootId && !isDuplicateInSameSpace) {
+      // the copy would land outside the section, keyed to a root it can no
+      // longer be reached from
+      throw new BadRequestException({
+        code: 'ENCRYPTED_PAGE_MOVE_OUT',
+        encryptionRootId: rootPage.encryptionRootId,
+        message:
+          'A page inside an encrypted section cannot be copied to another space.',
+      });
+    }
 
     let nextPosition: string;
 
@@ -609,10 +722,20 @@ export class PageService {
           // cannot be rewritten): attachment ids, mentions and internal
           // links inside the ciphertext keep pointing at the original
           // pages/attachments.
+          //
+          // Key pointers are rewritten to stay inside the copy: pages keyed
+          // to a root that was itself copied follow the copied root. A page
+          // keyed to a root outside the copy (duplicating a single page of a
+          // section) keeps pointing at the original root — same section,
+          // same key.
           return {
             ...basePage,
             isEncrypted: true,
             encryptionMeta: page.encryptionMeta,
+            encryptionRootId: page.encryptionRootId
+              ? (pageMap.get(page.encryptionRootId)?.newPageId ??
+                page.encryptionRootId)
+              : null,
             encryptedBlob: page.encryptedBlob,
             encryptedVersion: page.encryptedVersion,
             content: null,
@@ -843,6 +966,56 @@ export class PageService {
     };
   }
 
+  /**
+   * A move must never change which key a page is encrypted with, because the
+   * server cannot re-encrypt anything. Everything that would require a rekey
+   * is rejected with a code the client turns into the right prompt.
+   *
+   * Allowed: moves that keep the page in the same encrypted section (or keep
+   * it plaintext), and relocating a whole encrypted section — its descendants
+   * follow through parentPageId without being touched.
+   */
+  private assertEncryptionMoveAllowed(movedPage: Page, parentPage: Page | null) {
+    const sourceRootId = encryptionRootIdOf(movedPage);
+    const targetRootId = parentPage ? encryptionRootIdOf(parentPage) : null;
+
+    if (sourceRootId === targetRootId) return;
+
+    if (!sourceRootId) {
+      // plaintext page dropped into an encrypted section: the client must
+      // encrypt it with that section's key before the move can happen
+      throw new BadRequestException({
+        code: 'ENCRYPTION_REQUIRED',
+        encryptionRootId: targetRootId,
+        message:
+          'Encrypt this page with the section key before moving it there.',
+      });
+    }
+
+    if (movedPage.encryptionRootId) {
+      // a keyed descendant cannot leave: outside its section the wrapped DEK
+      // it depends on is no longer reachable
+      throw new BadRequestException({
+        code: 'ENCRYPTED_PAGE_MOVE_OUT',
+        encryptionRootId: sourceRootId,
+        message:
+          'Decrypt this page before moving it out of its encrypted section.',
+      });
+    }
+
+    if (targetRootId) {
+      // an encryption root moving into another section would need its whole
+      // subtree re-encrypted under the target's key
+      throw new BadRequestException({
+        code: 'ENCRYPTED_SECTION_NESTING',
+        message: 'An encrypted section cannot be nested inside another one.',
+      });
+    }
+
+    // an encryption root moving somewhere plaintext keeps its own key and
+    // takes its subtree with it — nothing to re-encrypt
+  }
+
   async movePage(dto: MovePageDto, movedPage: Page) {
     // validate position value by attempting to generate a key
     try {
@@ -855,31 +1028,59 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    let parentPageId = null;
     if (movedPage.parentPageId === dto.parentPageId) {
-      parentPageId = undefined;
-    } else {
-      // changing the page's parent
+      // position-only move: encryption state cannot change, no locking needed
+      await this.pageRepo.updatePage(
+        { position: dto.position, parentPageId: undefined },
+        dto.pageId,
+      );
+      return;
+    }
+
+    await executeTx(this.db, async (trx) => {
+      // Lock the moved page and its new parent, and re-read their encryption
+      // state under the lock: a conversion of either subtree locks the same
+      // rows, so the move cannot slip in against a stale snapshot and land a
+      // page in a section whose key it does not have.
+      const lockedMovedPage = (await trx
+        .selectFrom('pages')
+        .selectAll()
+        .where('id', '=', dto.pageId)
+        .forUpdate()
+        .executeTakeFirst()) as Page;
+
+      if (!lockedMovedPage || lockedMovedPage.deletedAt) {
+        throw new NotFoundException('Page not found');
+      }
+
+      let parentPage: Page = null;
+      let parentPageId: string = null;
       if (dto.parentPageId) {
-        const parentPage = await this.pageRepo.findById(dto.parentPageId);
+        parentPage = (await trx
+          .selectFrom('pages')
+          .selectAll()
+          .where('id', '=', dto.parentPageId)
+          .forUpdate()
+          .executeTakeFirst()) as Page;
+
         if (
           !parentPage ||
           parentPage.deletedAt ||
-          parentPage.spaceId !== movedPage.spaceId
+          parentPage.spaceId !== lockedMovedPage.spaceId
         ) {
           throw new NotFoundException('Parent page not found');
         }
         parentPageId = parentPage.id;
       }
-    }
 
-    await this.pageRepo.updatePage(
-      {
-        position: dto.position,
-        parentPageId: parentPageId,
-      },
-      dto.pageId,
-    );
+      this.assertEncryptionMoveAllowed(lockedMovedPage, parentPage);
+
+      await this.pageRepo.updatePage(
+        { position: dto.position, parentPageId },
+        dto.pageId,
+        trx,
+      );
+    });
   }
 
   async getPageBreadCrumbs(childPageId: string) {
@@ -894,6 +1095,7 @@ export class PageService {
             'icon',
             'isBase',
             'isEncrypted',
+            'encryptionRootId',
             'position',
             'parentPageId',
             'spaceId',
@@ -911,6 +1113,7 @@ export class PageService {
                 'p.icon',
                 'p.isBase',
                 'p.isEncrypted',
+                'p.encryptionRootId',
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',

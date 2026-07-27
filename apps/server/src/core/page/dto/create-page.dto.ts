@@ -1,4 +1,5 @@
 import {
+  IsBase64,
   IsBoolean,
   IsIn,
   IsOptional,
@@ -33,4 +34,13 @@ export class CreatePageDto {
   @Transform(({ value }) => value?.toLowerCase() ?? 'json')
   @IsIn(['json', 'markdown', 'html'])
   format?: ContentFormat;
+
+  /**
+   * Required when the parent page is encrypted: the new page's initial
+   * ciphertext, encrypted with the parent section's DEK. A page inside an
+   * encrypted section is never created in plaintext.
+   */
+  @IsOptional()
+  @IsBase64()
+  encryptedBlob?: string;
 }

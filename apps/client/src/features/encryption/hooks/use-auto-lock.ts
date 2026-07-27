@@ -4,6 +4,7 @@ import {
   broadcastPageLock,
   pageKeysAtom,
   useLockPageKey,
+  usePageSectionId,
   useTouchPageKey,
 } from "@/features/encryption/hooks/page-key-store";
 
@@ -19,8 +20,14 @@ export function useAutoLock(
   const lockPageKey = useLockPageKey();
   const touchPageKey = useTouchPageKey();
 
-  const hasKey = pageId ? !!pageKeys[pageId] : false;
-  const lastActivity = pageId ? pageKeys[pageId]?.lastActivity : undefined;
+  // the timer belongs to the section, not the page: every page in an
+  // encrypted section shares one key and one idle countdown
+  const sectionId = usePageSectionId(pageId);
+
+  const hasKey = sectionId ? !!pageKeys[sectionId] : false;
+  const lastActivity = sectionId
+    ? pageKeys[sectionId]?.lastActivity
+    : undefined;
 
   const lastActivityRef = useRef(lastActivity);
   lastActivityRef.current = lastActivity;
@@ -29,11 +36,11 @@ export function useAutoLock(
   onLockRef.current = opts?.onLock;
 
   useEffect(() => {
-    if (!pageId || !hasKey) {
+    if (!sectionId || !hasKey) {
       return;
     }
 
-    const touch = () => touchPageKey(pageId);
+    const touch = () => touchPageKey(sectionId);
     // Returning to the tab counts as activity; hiding it must NOT extend
     // the idle timer (the countdown keeps running while the tab is hidden).
     const touchIfVisible = () => {
@@ -42,7 +49,7 @@ export function useAutoLock(
       }
     };
     const lock = () => {
-      lockPageKey(pageId);
+      lockPageKey(sectionId);
       onLockRef.current?.();
     };
     // Idle timeout locks the page in every tab (cross-tab activity keeps the
@@ -50,7 +57,7 @@ export function useAutoLock(
     // Closing a tab only drops that tab's in-memory key: it must NOT lock
     // sibling tabs that are still in use.
     const lockEverywhere = () => {
-      broadcastPageLock(pageId);
+      broadcastPageLock(sectionId);
       lock();
     };
 
@@ -73,5 +80,5 @@ export function useAutoLock(
       window.removeEventListener("beforeunload", lock);
       window.clearInterval(interval);
     };
-  }, [pageId, hasKey, timeoutMs, touchPageKey, lockPageKey]);
+  }, [sectionId, hasKey, timeoutMs, touchPageKey, lockPageKey]);
 }

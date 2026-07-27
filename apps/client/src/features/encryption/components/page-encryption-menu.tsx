@@ -20,16 +20,16 @@ import {
   useUnlockPageKey,
   useLockPageKey,
 } from "@/features/encryption/hooks/page-key-store";
+import { rewrapPageKey } from "@/features/encryption/services/encryption-service";
+import { rewrapDek } from "@/features/encryption/services/crypto";
 import {
-  convertPageToEncrypted,
-  decryptPageToPlaintext,
-  rewrapPageKey,
-} from "@/features/encryption/services/encryption-service";
-import { encryptBytes, rewrapDek } from "@/features/encryption/services/crypto";
+  decryptSection,
+  encryptSection,
+} from "@/features/encryption/services/section-conversion";
+import { getEncryptionErrorMessage as getSectionErrorMessage } from "@/features/encryption/services/encryption-errors";
 import { SetPasswordModal } from "@/features/encryption/components/set-password-modal";
 import { EncryptionMeta } from "@/features/encryption/types/encryption.types";
-
-const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
+import { editorForPage } from "@/features/encryption/utils/editor-for-page";
 
 // Which encryption modal is open. Lives in an atom because the menu items sit
 // inside <Menu.Dropdown>, which unmounts when the menu closes — the modals
@@ -61,35 +61,77 @@ export function PageEncryptionMenuItems({
   }
 
   const handleRemoveEncryption = () => {
-    if (!dek || !pageEditor || pageEditor.isDestroyed) {
+    if (!dek) {
       notifications.show({
         message: t("Unlock the page before removing encryption"),
         color: "orange",
       });
       return;
     }
+    // only this page's editor may contribute unsaved content; without it the
+    // stored ciphertext is decrypted instead, which is always safe
+    const liveEditor = editorForPage(pageEditor, page.id);
+    // decryption always covers the whole section, so say so in the title when
+    // there is more at stake than the page the user clicked
     modals.openConfirmModal({
-      title: t("Remove encryption from this page?"),
+      title: page.hasChildren
+        ? t("Remove encryption from this page and everything under it?")
+        : t("Remove encryption from this page?"),
       children: (
         <Text size="sm">
-          {t(
-            "The page content will be decrypted and stored on the server in plaintext again, readable by anyone with access to the page or the server.",
-          )}
+          {page.hasChildren
+            ? t(
+                "This page and every page nested under it — including any in the trash — will be decrypted and stored on the server in plaintext again, readable by anyone with access to the page or the server.",
+              )
+            : t(
+                "The page content will be decrypted and stored on the server in plaintext again, readable by anyone with access to the page or the server.",
+              )}
         </Text>
       ),
       centered: true,
       labels: { confirm: t("Remove encryption"), cancel: t("Cancel") },
       confirmProps: { color: "red" },
       onConfirm: async () => {
-        await decryptPageToPlaintext({
-          pageId: page.id,
-          content: pageEditor.getJSON(),
-        });
+        try {
+          await decryptSection({
+            pageId: page.id,
+            dek,
+            rootContent: liveEditor?.getJSON(),
+          });
+        } catch (err) {
+          notifications.show({
+            message: getSectionErrorMessage(err, t),
+            color: "red",
+          });
+          return;
+        }
         lockPageKey(page.id);
         broadcastPageLock(page.id);
         notifications.show({ message: t("Encryption removed") });
         window.location.reload();
       },
+    });
+  };
+
+  // encryption always covers the whole subtree: a plaintext page inside an
+  // encrypted section would silently leak what the section is meant to hide
+  const handleEncryptClick = () => {
+    if (!page.hasChildren) {
+      setOpenModal("enable");
+      return;
+    }
+    modals.openConfirmModal({
+      title: t("Encrypt this page and everything under it?"),
+      children: (
+        <Text size="sm">
+          {t(
+            "Every page nested under this one — including any in the trash — will be encrypted with the same password. Pages cannot be moved out of an encrypted section without decrypting them first.",
+          )}
+        </Text>
+      ),
+      centered: true,
+      labels: { confirm: t("Continue"), cancel: t("Cancel") },
+      onConfirm: () => setOpenModal("enable"),
     });
   };
 
@@ -99,9 +141,9 @@ export function PageEncryptionMenuItems({
       {!page.isEncrypted && (
         <Menu.Item
           leftSection={<IconLock size={16} />}
-          onClick={() => setOpenModal("enable")}
+          onClick={handleEncryptClick}
         >
-          {t("Encrypt page")}
+          {page.hasChildren ? t("Encrypt section") : t("Encrypt page")}
         </Menu.Item>
       )}
       {page.isEncrypted && dek && (
@@ -115,18 +157,24 @@ export function PageEncryptionMenuItems({
           >
             {t("Lock now")}
           </Menu.Item>
-          <Menu.Item
-            leftSection={<IconKey size={16} />}
-            onClick={() => setOpenModal("change")}
-          >
-            {t("Change encryption password")}
-          </Menu.Item>
-          <Menu.Item
-            leftSection={<IconLockOff size={16} />}
-            onClick={handleRemoveEncryption}
-          >
-            {t("Remove encryption")}
-          </Menu.Item>
+          {/* the password and the ciphertext of a section are managed on its
+              root page, so these actions only appear there */}
+          {!page.encryptionRootId && (
+            <>
+              <Menu.Item
+                leftSection={<IconKey size={16} />}
+                onClick={() => setOpenModal("change")}
+              >
+                {t("Change encryption password")}
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconLockOff size={16} />}
+                onClick={handleRemoveEncryption}
+              >
+                {t("Remove encryption")}
+              </Menu.Item>
+            </>
+          )}
         </>
       )}
       {page.isEncrypted && !dek && (
@@ -166,24 +214,34 @@ export function PageEncryptionModals({ page }: PageEncryptionModalsProps) {
     dek: CryptoKey | null;
   }) => {
     if (!meta || !newDek) return;
-    // prefer the live editor state over the possibly stale query cache
-    const content =
-      pageEditor && !pageEditor.isDestroyed
-        ? pageEditor.getJSON()
-        : (page.content ?? EMPTY_DOC);
+    // prefer the live editor state over the possibly stale server copy, but
+    // only when the editor really belongs to this page
+    const rootContent = editorForPage(pageEditor, page.id)?.getJSON();
 
-    const bytes = new TextEncoder().encode(JSON.stringify(content));
-    const encryptedBlob = await encryptBytes(newDek, bytes);
-
-    await convertPageToEncrypted({
-      pageId: page.id,
-      encryptionMeta: meta,
-      encryptedBlob,
-    });
+    let pageCount: number;
+    try {
+      ({ pageCount } = await encryptSection({
+        pageId: page.id,
+        dek: newDek,
+        meta,
+        rootContent,
+      }));
+    } catch (err) {
+      notifications.show({
+        message: getSectionErrorMessage(err, t),
+        color: "red",
+      });
+      return;
+    }
 
     unlockPageKey(page.id, newDek);
     setOpenModal(null);
-    notifications.show({ message: t("Page encrypted") });
+    notifications.show({
+      message:
+        pageCount > 1
+          ? t("{{count}} pages encrypted", { count: pageCount })
+          : t("Page encrypted"),
+    });
     // full reload tears down the collaboration session cleanly
     window.location.reload();
   };

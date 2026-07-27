@@ -71,6 +71,8 @@ interface EncryptedPageEditorProps {
   pageId: string;
   pageTitle?: string;
   encryptionMeta: EncryptionMeta;
+  /** set when this page is keyed to an encrypted section's root */
+  encryptionRootId?: string | null;
   editable: boolean;
 }
 
@@ -78,20 +80,24 @@ export default function EncryptedPageEditor({
   pageId,
   pageTitle,
   encryptionMeta,
+  encryptionRootId,
   editable,
 }: EncryptedPageEditorProps) {
   const dek = usePageKey(pageId);
   const unlockPageKey = useUnlockPageKey();
   const [unlockOpened, setUnlockOpened] = useState(false);
+  // the key belongs to the section, so store and fetch it under the section's
+  // id rather than relying on the page→section index being populated first
+  const sectionId = encryptionRootId ?? pageId;
 
   useAutoLock(pageId);
 
   // if a sibling tab already holds the DEK, unlock without re-prompting
   useEffect(() => {
     if (!dek) {
-      requestPageKeyFromTabs(pageId);
+      requestPageKeyFromTabs(sectionId);
     }
-  }, [pageId, dek]);
+  }, [sectionId, dek]);
 
   if (!dek) {
     return (
@@ -106,7 +112,7 @@ export default function EncryptedPageEditor({
           encryptionMeta={encryptionMeta}
           pageTitle={pageTitle}
           onUnlocked={(unlockedDek) => {
-            unlockPageKey(pageId, unlockedDek);
+            unlockPageKey(sectionId, unlockedDek);
             setUnlockOpened(false);
           }}
         />

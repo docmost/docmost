@@ -14,9 +14,11 @@ import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
 import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
 import { IAttachment } from '@/features/attachments/types/attachment.types.ts';
+import { registerPageSection } from "@/features/encryption/hooks/page-key-store";
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/create", data);
+  registerPageSection(req.data.id, req.data.encryptionRootId);
   return req.data;
 }
 
@@ -24,6 +26,10 @@ export async function getPageById(
   pageInput: Partial<IPageInput>,
 ): Promise<IPage> {
   const req = await api.post<IPage>("/pages/info", pageInput);
+  // the vault is keyed by section: opening a page directly (no tree loaded
+  // yet) must still resolve to the key that opens it, or unlocking would
+  // store the DEK under the page's own id and immediately re-lock
+  registerPageSection(req.data.id, req.data.encryptionRootId);
   return req.data;
 }
 

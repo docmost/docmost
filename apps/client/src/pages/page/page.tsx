@@ -180,6 +180,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           canComment={canComment && !page.isEncrypted}
           isEncrypted={page.isEncrypted}
           encryptionMeta={page.encryptionMeta}
+          encryptionRootId={page.encryptionRootId}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>
