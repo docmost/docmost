@@ -1,4 +1,7 @@
 import "@/features/editor/styles/index.css";
+import { Alert } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { IconCloudOff } from "@tabler/icons-react";
 import React, {
   useCallback,
   useEffect,
@@ -15,8 +18,10 @@ import {
 import {
   HocuspocusProviderWebsocketComponent,
   HocuspocusRoom,
+  useHocuspocusConnectionStatus,
   useHocuspocusEvent,
   useHocuspocusProvider,
+  useHocuspocusSyncStatus,
 } from "@hocuspocus/provider-react";
 import {
   Editor,
@@ -36,6 +41,7 @@ import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
   yjsSyncedAtom,
+  yjsUnsyncedAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
@@ -83,6 +89,10 @@ import {
   releaseCollabSocket,
 } from "@/features/editor/collab-socket";
 
+// How long to wait for the server before falling back to the local IndexedDB
+// copy of the document instead of the stale REST snapshot.
+const OFFLINE_FALLBACK_MS = 5000;
+
 interface PageEditorProps {
   pageId: string;
   editable: boolean;
@@ -112,6 +122,18 @@ export default function PageEditor({
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
       const message = JSON.parse(payload);
+
+      if (message?.type === "page.saveFailed") {
+        notifications.show({
+          message: t(
+            "Could not save this page. Your changes are still here — keep this tab open.",
+          ),
+          color: "red",
+          autoClose: false,
+        });
+        return;
+      }
+
       if (message?.type !== "page.updated" || !message.updatedAt) return;
       const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
       if (pageData) {
@@ -186,10 +208,9 @@ function CollabPageEditor({
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
-  const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom,
-  );
+  const [, setYjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
   const [, setYjsSynced] = useAtom(yjsSyncedAtom);
+  const [, setYjsUnsynced] = useAtom(yjsUnsyncedAtom);
   const menuContainerRef = useRef(null);
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
@@ -213,24 +234,58 @@ function CollabPageEditor({
     };
   }, [provider]);
 
-  useHocuspocusEvent("synced", ({ state }) => setIsRemoteSynced(state));
-  useHocuspocusEvent("status", ({ status }) => setYjsConnectionStatus(status));
+  // Snapshot hooks, not events: this editor mounts over a shared singleton
+  // socket, so an edge-triggered listener gets no value when the socket is
+  // already connected.
+  const connectionStatus = useHocuspocusConnectionStatus();
+  const syncStatus = useHocuspocusSyncStatus();
+  const isConnected = connectionStatus === WebSocketStatus.Connected;
 
-  // Only connect/disconnect on tab/idle, not destroy
+  useHocuspocusEvent("synced", ({ state }) => setIsRemoteSynced(state));
+
+  // The provider only ever emits `synced: true` — onClose resets the flag
+  // silently. Without this, isRemoteSynced latches true for the session and
+  // every "are we reconciled?" check below becomes a lie.
+  useEffect(() => {
+    if (!isConnected) setIsRemoteSynced(false);
+  }, [isConnected]);
+
+  useEffect(() => {
+    setYjsConnectionStatus(connectionStatus);
+  }, [connectionStatus, setYjsConnectionStatus]);
+
+  useEffect(() => {
+    setYjsUnsynced(syncStatus === "syncing");
+  }, [syncStatus, setYjsUnsynced]);
+
+  // Last line of defence: unacknowledged edits live only in this browser.
+  useEffect(() => {
+    if (syncStatus !== "syncing") return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [syncStatus]);
+
+  useEffect(() => {
+    return () => setYjsUnsynced(false);
+  }, [setYjsUnsynced]);
+
+  // Only connect/disconnect on tab/idle, not destroy. Read the socket's real
+  // status rather than the atom, which is a mirror and can lag a render.
   useEffect(() => {
     const socket = provider.configuration.websocketProvider;
 
     if (
       isIdle &&
       documentState === "hidden" &&
-      yjsConnectionStatus === WebSocketStatus.Connected
+      socket.status === WebSocketStatus.Connected
     ) {
       socket.disconnect();
       return;
     }
     if (
       documentState === "visible" &&
-      yjsConnectionStatus === WebSocketStatus.Disconnected
+      socket.status === WebSocketStatus.Disconnected
     ) {
       resetIdle();
       socket.connect();
@@ -391,6 +446,28 @@ function CollabPageEditor({
     setAsideState({ tab: "", isAsideOpen: false });
   }, [pageId]);
 
+  // Reconciled with the server at least once for THIS document. Editing before
+  // that means typing into a Y.Doc that may not represent the server's state.
+  const [hasRemoteSyncedOnce, setHasRemoteSyncedOnce] = useState(false);
+  useEffect(() => {
+    if (isRemoteSynced) setHasRemoteSyncedOnce(true);
+  }, [isRemoteSynced]);
+
+  // HocuspocusRoom swaps the provider when the document name changes but does
+  // not remount its children, so every useState here survives navigation.
+  // The reconciliation flags describe one specific room — carrying page A's
+  // "synced" over to page B would mark the new document as reconciled before
+  // it has talked to the server even once.
+  //
+  // showStatic and hasConnectedOnceRef are deliberately NOT reset: the live
+  // editor is already on screen, and dropping back to the static one would
+  // flicker on every navigation.
+  useEffect(() => {
+    setIsLocalSynced(false);
+    setIsRemoteSynced(false);
+    setHasRemoteSyncedOnce(false);
+  }, [pageId]);
+
   const isSynced = isLocalSynced && isRemoteSynced;
 
   useEffect(() => {
@@ -402,32 +479,52 @@ function CollabPageEditor({
   }, [setYjsSynced]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (yjsConnectionStatus === WebSocketStatus.Connecting || !isSynced) {
-        setYjsConnectionStatus(WebSocketStatus.Disconnected);
-      }
-    }, 7500);
-
-    return () => clearTimeout(timeout);
-  }, [yjsConnectionStatus, isSynced]);
-  useEffect(() => {
     if (!editor) return;
-    editor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
-  }, [currentPageEditMode, editor, editable]);
+    editor.setEditable(
+      editable && currentPageEditMode === PageEditMode.Edit && hasRemoteSyncedOnce,
+    );
+  }, [currentPageEditMode, editor, editable, hasRemoteSyncedOnce]);
 
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
+  const [fallbackDeadlinePassed, setFallbackDeadlinePassed] = useState(false);
 
   useEffect(() => {
-    if (
-      !hasConnectedOnceRef.current &&
-      yjsConnectionStatus === WebSocketStatus.Connected &&
-      isSynced
-    ) {
+    const timeout = setTimeout(
+      () => setFallbackDeadlinePassed(true),
+      OFFLINE_FALLBACK_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (hasConnectedOnceRef.current) return;
+
+    if (isConnected && isSynced) {
       hasConnectedOnceRef.current = true;
       setShowStatic(false);
+      return;
     }
-  }, [yjsConnectionStatus, isSynced]);
+
+    // Fail open. StaticPageEditor renders the REST `content` prop, which is
+    // whatever the server last persisted — with no connection that is stale,
+    // and the user reads it as "my content disappeared".
+    //
+    // Either source having hydrated the Y.Doc means we hold something at least
+    // as fresh, so show the live editor. Requiring a source (rather than the
+    // timer alone) is what keeps us from flashing an empty document; accepting
+    // either one is what keeps a blocked IndexedDB — private windows, storage
+    // policies — from pinning the page read-only while the server is fine.
+    if (fallbackDeadlinePassed && (isLocalSynced || isRemoteSynced)) {
+      setShowStatic(false);
+    }
+  }, [
+    isConnected,
+    isSynced,
+    isLocalSynced,
+    isRemoteSynced,
+    fallbackDeadlinePassed,
+  ]);
 
   if (showStatic) {
     return <StaticPageEditor content={content} ariaLabel={t("Page content")} />;
@@ -435,6 +532,19 @@ function CollabPageEditor({
 
   return (
     <div className="editor-container" style={{ position: "relative" }}>
+      {editable && !hasRemoteSyncedOnce && (
+        <Alert
+          variant="light"
+          color="yellow"
+          icon={<IconCloudOff size={18} />}
+          mb="sm"
+          role="status"
+        >
+          {t(
+            "Offline — showing your last local copy. Editing is disabled until the connection is restored.",
+          )}
+        </Alert>
+      )}
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
 

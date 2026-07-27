@@ -12,9 +12,23 @@ let releaseTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function getCollabSocket(): HocuspocusProviderWebsocket {
   if (!socket) {
+    const url = getCollaborationUrl();
     socket = new HocuspocusProviderWebsocket({
-      url: getCollaborationUrl(),
+      url,
       autoConnect: false,
+      // Close codes are how you tell a proxy problem from an app problem:
+      // 1006 = the TCP connection was killed (read timeout / LB idle limit),
+      // 4408 = 30s with no inbound frame on an open socket (proxy buffering),
+      // 1011 = the server refused a frame and forced a resync.
+      // See docs/reverse-proxy.md
+      onClose: ({ event }) => {
+        console.warn("[collab] socket closed", {
+          code: event?.code,
+          reason: event?.reason,
+          url,
+        });
+      },
+      onStatus: ({ status }) => console.info("[collab] status", status),
     });
   }
   return socket;

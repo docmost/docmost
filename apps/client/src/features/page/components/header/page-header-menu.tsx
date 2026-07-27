@@ -15,6 +15,7 @@ import {
   IconStar,
   IconStarFilled,
   IconTrash,
+  IconCloudOff,
   IconWifiOff,
 } from "@tabler/icons-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -38,6 +39,7 @@ import { htmlToMarkdown } from "@docmost/editor-ext";
 import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
+  yjsUnsyncedAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate } from "@/lib/time.ts";
 import { PageEditModeToggle } from "@/features/user/components/page-state-pref.tsx";
@@ -399,29 +401,28 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   );
 }
 
-function ConnectionWarning() {
-  const { t } = useTranslation();
-  const yjsConnectionStatus = useAtomValue(yjsConnectionStatusAtom);
-  const [showWarning, setShowWarning] = useState(false);
+/**
+ * Delays the warning so a normal reconnect blip stays invisible. The unsynced
+ * threshold is longer because the transport can be fine while a frame is still
+ * in flight.
+ */
+function useDelayedFlag(active: boolean, delayMs: number) {
+  const [flag, setFlag] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const isDisconnected = ["disconnected", "connecting"].includes(
-      yjsConnectionStatus,
-    );
-
-    if (isDisconnected) {
+    if (active) {
       if (!timeoutRef.current) {
-        timeoutRef.current = setTimeout(() => setShowWarning(true), 5000);
+        timeoutRef.current = setTimeout(() => setFlag(true), delayMs);
       }
     } else {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      setShowWarning(false);
+      setFlag(false);
     }
-  }, [yjsConnectionStatus]);
+  }, [active, delayMs]);
 
   // Cleanup only on unmount
   useEffect(() => {
@@ -432,22 +433,46 @@ function ConnectionWarning() {
     };
   }, []);
 
-  if (!showWarning) return null;
+  return flag;
+}
+
+function ConnectionWarning() {
+  const { t } = useTranslation();
+  const yjsConnectionStatus = useAtomValue(yjsConnectionStatusAtom);
+  const yjsUnsynced = useAtomValue(yjsUnsyncedAtom);
+
+  const isTransportDown = ["disconnected", "connecting"].includes(
+    yjsConnectionStatus,
+  );
+  const showTransportWarning = useDelayedFlag(isTransportDown, 5000);
+  // Connected but the server has not acknowledged our edits — a proxy eating
+  // frames or the server dropping them looks exactly like this, and it had no
+  // UI at all before.
+  const showUnsyncedWarning = useDelayedFlag(
+    !isTransportDown && yjsUnsynced,
+    10000,
+  );
+
+  if (!showTransportWarning && !showUnsyncedWarning) return null;
+
+  const label = showTransportWarning
+    ? t("Real-time editor connection lost. Retrying...")
+    : t("Your changes are not being saved yet.");
 
   return (
-    <Tooltip
-      label={t("Real-time editor connection lost. Retrying...")}
-      openDelay={250}
-      withArrow
-    >
+    <Tooltip label={label} openDelay={250} withArrow>
       <ThemeIcon
         variant="default"
         c="red"
         role="status"
-        aria-label={t("Real-time editor connection lost. Retrying...")}
+        aria-label={label}
         style={{ border: "none" }}
       >
-        <IconWifiOff size={20} stroke={2} />
+        {showTransportWarning ? (
+          <IconWifiOff size={20} stroke={2} />
+        ) : (
+          <IconCloudOff size={20} stroke={2} />
+        )}
       </ThemeIcon>
     </Tooltip>
   );

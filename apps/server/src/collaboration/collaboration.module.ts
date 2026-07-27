@@ -16,8 +16,16 @@ import { TransclusionService } from '../core/page/transclusion/transclusion.serv
 import { TransclusionModule } from '../core/page/transclusion/transclusion.module';
 import { StorageModule } from '../integrations/storage/storage.module';
 import { EnvironmentModule } from '../integrations/environment/environment.module';
+import { CollaborationController } from './server/collaboration.controller';
 
 @Module({
+  // Opt-in diagnostics. The single-container deployment boots AppModule, not
+  // CollabAppModule, so without this the stats endpoint is unreachable in the
+  // only deployment that needs it to prove websockets survive the proxy.
+  controllers:
+    process.env.COLLAB_SHOW_STATS?.toLowerCase() === 'true'
+      ? [CollaborationController]
+      : [],
   providers: [
     CollaborationGateway,
     AuthenticationExtension,
@@ -59,6 +67,14 @@ export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
 
       client.on('error', (error) => {
         this.logger.error('WebSocket client error:', error);
+      });
+
+      // Close codes are the cheapest way to tell a proxy problem from an app
+      // problem. See the table in docs/reverse-proxy.md.
+      client.on('close', (code: number, reason: Buffer) => {
+        this.logger.debug(
+          `Collab socket closed: code=${code} reason=${reason?.toString() || '<none>'}`,
+        );
       });
     });
 
