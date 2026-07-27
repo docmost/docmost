@@ -1,4 +1,4 @@
-import { markInputRule } from "@tiptap/core";
+import { markInputRule, type Editor } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
@@ -128,6 +128,41 @@ lowlight.register("fortran", fortran);
 lowlight.register("haskell", haskell);
 lowlight.register("scala", scala);
 
+const TIGHT_PLACEHOLDER_PARENTS = new Set([
+  "column",
+  "tableCell",
+  "tableHeader",
+  "callout",
+  "blockquote",
+]);
+
+/**
+ * Placeholder text for an empty paragraph, shortened when it sits inside a
+ * narrow container.
+ *
+ * `pos` belongs to the document the placeholder plugin is scanning, which is
+ * not necessarily `editor.state.doc` (see the call site). Resolving an
+ * out-of-range position throws, and a throw here desyncs the editor from the
+ * Y.Doc and ends in data loss — so this must never throw. When the position
+ * does not belong to the document we can reach, fall back to the generic text.
+ */
+function getParagraphPlaceholder(editor: Editor, pos: number): string {
+  const doc = editor.state?.doc;
+
+  if (doc && pos >= 0 && pos <= doc.content.size) {
+    try {
+      const parentName = doc.resolve(pos).parent.type.name;
+      if (TIGHT_PLACEHOLDER_PARENTS.has(parentName)) {
+        return i18n.t("Write...");
+      }
+    } catch {
+      // Position did not survive into this document — use the generic text.
+    }
+  }
+
+  return i18n.t('Write anything. Enter "/" for commands');
+}
+
 // @ts-ignore
 export const mainExtensions = [
   StarterKit.configure({
@@ -194,18 +229,24 @@ export const mainExtensions = [
         return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        const $pos = editor.state.doc.resolve(pos);
-        const parentName = $pos.parent.type.name;
-        if (
-          parentName === "column" ||
-          parentName === "tableCell" ||
-          parentName === "tableHeader" ||
-          parentName === "callout" ||
-          parentName === "blockquote"
-        ) {
-          return i18n.t("Write...");
-        }
-        return i18n.t('Write anything. Enter "/" for commands');
+        // `pos` indexes the document the placeholder plugin is scanning
+        // (newState.doc), but `editor.state` still points at the pre-
+        // transaction document: tiptap runs applyTransaction before
+        // view.updateState. y-prosemirror replaces the whole document on
+        // every remote update, so right after one arrives `pos` routinely
+        // lands past the old document's end.
+        //
+        // Letting resolve() throw here is a data-loss bug, not a cosmetic
+        // one: the exception aborts dispatchTransaction before the view is
+        // updated, the ProseMirror doc and the Y.Doc diverge, and the next
+        // local edit diffs the stale doc against the Y.Doc and emits
+        // deletions of everyone else's content — which then get persisted.
+        //
+        // The callback only receives { editor, node, pos, hasAnchor }, so
+        // there is no way to reach the document being scanned. Fall back to
+        // the generic text instead; a wrong placeholder for one frame is
+        // the entire cost.
+        return getParagraphPlaceholder(editor, pos);
       }
     },
     includeChildren: true,
