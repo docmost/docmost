@@ -11,6 +11,9 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    # Shutdown flushes pending collab documents to Postgres before unloading them.
+    # Docker's 10s default can SIGKILL mid-flush and drop unsaved edits on every deploy.
+    stop_grace_period: 30s
     volumes:
       - docmost:/app/data/storage
     healthcheck:

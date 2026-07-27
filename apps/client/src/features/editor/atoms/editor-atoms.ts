@@ -12,6 +12,11 @@ export const yjsConnectionStatusAtom = atom<string>("");
 
 export const yjsSyncedAtom = atom<boolean>(false);
 
+// True while the local Y.Doc holds edits the server has not acknowledged.
+// Distinct from yjsSyncedAtom, which means "initial reconciliation happened"
+// and is consumed as such by empty-page-get-started.
+export const yjsUnsyncedAtom = atom<boolean>(false);
+
 export const showAiMenuAtom = atom(false);
 
 export const showLinkMenuAtom = atom(false);

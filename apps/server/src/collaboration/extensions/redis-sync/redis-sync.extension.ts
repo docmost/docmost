@@ -9,6 +9,7 @@ import {
   WebSocketLike,
 } from '@hocuspocus/server';
 import { ConnectionTimeout, Unauthorized } from '@hocuspocus/common';
+import { Logger } from '@nestjs/common';
 import RedisClient from 'ioredis';
 import { CollabProxySocket } from './collab-proxy-socket';
 import {
@@ -35,8 +36,12 @@ type ServerId = string;
 type DocumentName = string;
 type SocketId = string;
 
+const ERROR_LOG_THROTTLE_MS = 10_000;
+
 export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
   priority = 1000;
+  private readonly logger = new Logger('RedisSyncExtension');
+  private lastErrorLoggedAt = 0;
   private readonly pub: RedisClient;
   private sub: RedisClient;
   private readonly pack: Pack;
@@ -87,9 +92,25 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
     this.deriveContext = deriveContext ?? (() => ({}));
     this.sub.subscribe(this.msgChannel, `${this.msgChannel}:${this.serverId}`);
     this.sub.on('messageBuffer', this.handleRedisMessage);
-    this.pub.on('error', () => {});
-    this.sub.on('error', () => {});
+    // Redis being unreachable makes this extension drop Yjs frames. Swallowing
+    // the error silently is why that failure mode is invisible in the logs.
+    this.pub.on('error', (err) => this.logError('redis pub', err));
+    this.sub.on('error', (err) => this.logError('redis sub', err));
   }
+
+  /**
+   * Throttled — an ioredis reconnect storm emits an error per retry, and one
+   * line every 10s is enough to tell that Redis is down.
+   */
+  private logError(context: string, error: unknown) {
+    const now = Date.now();
+    if (now - this.lastErrorLoggedAt < ERROR_LOG_THROTTLE_MS) return;
+    this.lastErrorLoggedAt = now;
+    this.logger.error(
+      `collab ${context} error: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
   private getKey(documentName: string) {
     return `${this.lockPrefix}:${documentName}`;
   }
@@ -136,7 +157,9 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
             reason,
             socketId,
           };
-          this.pub.publish(replyTo, this.pack(msg));
+          this.pub
+            .publish(replyTo, this.pack(msg))
+            .catch((err) => this.logError('publish close', err));
         }
       };
       const clientConnection = this.instance.handleConnection(
@@ -164,6 +187,15 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
       'GET',
     );
     this.lockPromises[documentName] = lockPromise;
+    // A rejected lock must not stay cached: every frame served the cached copy
+    // would reject too, turning one Redis blip into lockTTL/2 of dropped
+    // updates. Evict immediately so the next frame retries.
+    lockPromise.catch((err) => {
+      if (this.lockPromises[documentName] === lockPromise) {
+        delete this.lockPromises[documentName];
+      }
+      this.logError('lock claim', err);
+    });
     // Briefly cache the serverId that claimed the doc to reduce load on redis
     // When the claimant unloads the doc, it will send an unload message to immediately clear this
     // a lockTTL / 2 guarantees stale reads < lockTTL upon server crash
@@ -209,7 +241,9 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
         replyId,
         payload: res,
       };
-      this.pub.publish(`${replyTo}`, this.pack(reply));
+      this.pub
+        .publish(`${replyTo}`, this.pack(reply))
+        .catch((err) => this.logError('publish customEventComplete', err));
       return;
     }
     if (type === 'customEventComplete') {
@@ -296,7 +330,9 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
         type: 'customEventStart',
       };
       const msg = this.pack(proxyMessage);
-      this.pub.publish(`${this.msgChannel}:${proxyTo}`, msg);
+      this.pub
+        .publish(`${this.msgChannel}:${proxyTo}`, msg)
+        .catch((err) => this.logError('publish customEventStart', err));
       // @ts-ignore
       const { promise, resolve, reject } = Promise.withResolvers();
       this.pendingReplies[replyId] = resolve;
@@ -382,7 +418,10 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
         type: 'proxy',
       };
       const msg = this.pack(proxyMessage);
-      this.pub.publish(`${this.msgChannel}:${proxyTo}`, msg);
+      // This carries an actual Yjs update. Await it so a publish failure
+      // propagates to the caller instead of vanishing — the caller closes the
+      // socket and the client replays the frame on reconnect.
+      await this.pub.publish(`${this.msgChannel}:${proxyTo}`, msg);
       return;
     }
     // This server owns the document, but hocuspocus hasn't loaded it yet
@@ -417,7 +456,9 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
     this.releaseLock(documentName);
     // Broadcast to cluster to immediately remove the cached redis value
     const msg: RSAMessageUnload = { type: 'unload', documentName };
-    this.pub.publish(this.msgChannel, this.pack(msg));
+    this.pub
+      .publish(this.msgChannel, this.pack(msg))
+      .catch((err) => this.logError('publish unload', err));
   }
 
   async onDestroy() {

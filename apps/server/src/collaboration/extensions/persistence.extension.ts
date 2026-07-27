@@ -162,6 +162,22 @@ export class PersistenceExtension implements Extension {
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
+
+      // Tell the editors their work is not on disk. handleStateless on the
+      // client ignores payloads it does not recognise, so this is safe for
+      // older clients.
+      try {
+        document.broadcastStateless(
+          JSON.stringify({ type: 'page.saveFailed', pageId }),
+        );
+      } catch {
+        // best effort — the socket may already be gone
+      }
+
+      // Re-throw so hocuspocus keeps the document in memory and retries on the
+      // next change. Swallowing this reports a successful store, after which
+      // the document can unload and take the unsaved state with it.
+      throw err;
     }
 
     if (page) {

@@ -3,7 +3,7 @@ import { IncomingMessage } from 'http';
 import WebSocket from 'ws';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EnvironmentService } from '../integrations/environment/environment.service';
 import {
   createRetryStrategy,
@@ -29,12 +29,14 @@ import {
 
 @Injectable()
 export class CollaborationGateway {
+  private readonly logger = new Logger(CollaborationGateway.name);
   private readonly hocuspocus: Hocuspocus;
   private redisConfig: RedisConfig;
   // @ts-ignore
   private readonly redisSync: RedisSyncExtension<CollabEventHandlers> | null =
     null;
   private readonly withRedis: boolean;
+  private readonly eventHandlers: CollabEventHandlers;
 
   constructor(
     private authenticationExtension: AuthenticationExtension,
@@ -57,6 +59,8 @@ export class CollaborationGateway {
       ],
     });
 
+    this.eventHandlers = this.collabEventsService.getHandlers(this.hocuspocus);
+
     if (this.withRedis) {
       // @ts-ignore
       this.redisSync = new RedisSyncExtension({
@@ -73,7 +77,7 @@ export class CollaborationGateway {
         pack,
         unpack,
         // @ts-ignore
-        customEvents: this.collabEventsService.getHandlers(this.hocuspocus),
+        customEvents: this.eventHandlers,
       });
       this.hocuspocus.configuration.extensions.push(this.redisSync);
       // @ts-ignore
@@ -94,6 +98,26 @@ export class CollaborationGateway {
     };
   }
 
+  /**
+   * A Yjs frame that we fail to apply is gone for good — the provider never
+   * retransmits it, and the client keeps believing it is in sync. Close the
+   * socket instead: the provider reconnects and replays SyncStep1/2 from its
+   * local Y.Doc, which re-sends everything it knows. Silent permanent loss
+   * becomes a visible ~1s reconnect.
+   */
+  private dropFrame(client: WebSocket, socketId: string, error: unknown) {
+    this.logger.error(
+      `Inbound collab frame not applied (socket ${socketId}); ` +
+        `closing to force a resync`,
+      error instanceof Error ? error.stack : String(error),
+    );
+    try {
+      client.close(1011, 'collab sync unavailable');
+    } catch {
+      // socket already torn down
+    }
+  }
+
   handleConnection(client: WebSocket, request: IncomingMessage): any {
     if (this.redisSync) {
       const serializedHTTPRequest = this.serializeRequest(request);
@@ -105,7 +129,9 @@ export class CollaborationGateway {
       this.redisSync.onSocketOpen(wrappedSocket, serializedHTTPRequest);
 
       client.on('message', (data: ArrayBuffer) => {
-        this.redisSync!.onSocketMessage(serializedHTTPRequest, data);
+        this.redisSync!.onSocketMessage(serializedHTTPRequest, data).catch(
+          (error) => this.dropFrame(client, socketId, error),
+        );
       });
 
       client.on('close', (code: number, reason: Buffer) => {
@@ -117,13 +143,19 @@ export class CollaborationGateway {
       });
     } else {
       // Fallback to direct Hocuspocus connection
+      const socketId =
+        request.headers['sec-websocket-key'] ?? '<unknown>';
       const clientConnection = this.hocuspocus.handleConnection(
         client,
         toWebRequest(this.serializeRequest(request)),
       );
 
       client.on('message', (data: Buffer) => {
-        clientConnection.handleMessage(new Uint8Array(data));
+        try {
+          clientConnection.handleMessage(new Uint8Array(data));
+        } catch (error) {
+          this.dropFrame(client, String(socketId), error);
+        }
       });
 
       client.on('close', (code: number, reason: Buffer) => {
@@ -140,12 +172,22 @@ export class CollaborationGateway {
     return this.hocuspocus.getDocumentsCount();
   }
 
+  /**
+   * With Redis, the event may need to run on whichever node owns the document,
+   * so it is routed through the sync extension. Without Redis this node owns
+   * every document — call the handler directly. Optional-chaining the redisSync
+   * here used to make comment marks and REST content writes silent no-ops
+   * whenever COLLAB_DISABLE_REDIS was on.
+   */
   handleYjsEvent<TName extends keyof CollabEventHandlers>(
     eventName: TName,
     documentName: string,
     payload: Parameters<CollabEventHandlers[TName]>[1],
   ) {
-    return this.redisSync?.handleEvent(eventName, documentName, payload);
+    if (this.redisSync) {
+      return this.redisSync.handleEvent(eventName, documentName, payload);
+    }
+    return (this.eventHandlers[eventName] as any)(documentName, payload);
   }
 
   openDirectConnection(documentName: string, context?: any) {
@@ -153,9 +195,11 @@ export class CollaborationGateway {
   }
 
   /*
-   *Can be used before calling openDirectConnection directly
+   *Can be used before calling openDirectConnection directly.
+   *Without Redis there is a single node, so there is nothing to lock against.
    */
   async lockDocument(documentName: string) {
+    if (!this.redisSync) return () => Promise.resolve(0);
     return this.redisSync.lockDocument(documentName);
   }
 
@@ -163,6 +207,7 @@ export class CollaborationGateway {
    *Releases a document lock and stops the interval that maintains it.
    */
   async releaseLock(documentName: string) {
+    if (!this.redisSync) return 0;
     return this.redisSync.releaseLock(documentName);
   }
 

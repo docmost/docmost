@@ -12,9 +12,13 @@ import { useVerificationListQuery } from "@/ee/page-verification/queries/page-ve
 import { IVerificationListParams } from "@/ee/page-verification/types/page-verification.types";
 import VerificationListTable from "@/ee/page-verification/components/verification-list-table";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import FeatureStatus from "@/ee/security/components/feature-status";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
 
 export default function VerifiedPages() {
   const { t } = useTranslation();
+  const hasVerification = useHasFeature(Feature.PAGE_VERIFICATION);
   const { cursor, goNext, goPrev, resetCursor } = useCursorPaginate();
 
   const [searchValue, setSearchValue] = useState("");
@@ -75,6 +79,19 @@ export default function VerifiedPages() {
       </Helmet>
 
       <SettingsTitle title={t("Verified pages")} />
+
+      {/*
+        The sidebar only disables this entry, so the URL stays reachable. Say
+        why the list is empty instead of rendering a table that can never fill.
+      */}
+      {!hasVerification && (
+        <FeatureStatus
+          status="unavailable"
+          note={t(
+            "Page verification is not available in this edition. See docs/ee-feature-status.md.",
+          )}
+        />
+      )}
 
       <Group mb="md" gap="sm">
         <TextInput
