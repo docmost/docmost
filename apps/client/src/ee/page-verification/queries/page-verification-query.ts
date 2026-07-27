@@ -26,14 +26,21 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { IPagination } from "@/lib/types";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
 
+// Page verification is served by the `ee` module. Gate the fetch here rather
+// than at each call site: without the entitlement the endpoints are not
+// registered, and an ungated caller just produces a 404 in the console.
 export function usePageVerificationInfoQuery(
   pageId: string | undefined,
 ): UseQueryResult<IPageVerificationInfo, Error> {
+  const hasFeature = useHasFeature(Feature.PAGE_VERIFICATION);
+
   return useQuery({
     queryKey: ["page-verification-info", pageId],
     queryFn: () => getVerificationInfo(pageId!),
-    enabled: !!pageId,
+    enabled: hasFeature && !!pageId,
   });
 }
 
@@ -194,9 +201,12 @@ export function useMarkObsoleteMutation() {
 export function useVerificationListQuery(
   params?: IVerificationListParams,
 ): UseQueryResult<IPagination<IVerificationListItem>, Error> {
+  const hasFeature = useHasFeature(Feature.PAGE_VERIFICATION);
+
   return useQuery({
     queryKey: ["verification-list", params],
     queryFn: () => getVerificationList(params),
     placeholderData: keepPreviousData,
+    enabled: hasFeature,
   });
 }
