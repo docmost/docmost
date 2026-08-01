@@ -194,16 +194,18 @@ export const mainExtensions = [
         return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        const $pos = editor.state.doc.resolve(pos);
-        const parentName = $pos.parent.type.name;
-        if (
-          parentName === "column" ||
-          parentName === "tableCell" ||
-          parentName === "tableHeader" ||
-          parentName === "callout" ||
-          parentName === "blockquote"
-        ) {
-          return i18n.t("Write...");
+        const doc = editor.state.doc;
+        if (pos >= 0 && pos <= doc.content.size) {
+          const parentName = doc.resolve(pos).parent.type.name;
+          if (
+            parentName === "column" ||
+            parentName === "tableCell" ||
+            parentName === "tableHeader" ||
+            parentName === "callout" ||
+            parentName === "blockquote"
+          ) {
+            return i18n.t("Write...");
+          }
         }
         return i18n.t('Write anything. Enter "/" for commands');
       }
