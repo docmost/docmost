@@ -23,6 +23,7 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import GlobalSidebar from "@/components/layouts/global/global-sidebar.tsx";
 import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
 import { MAIN_CONTENT_ID, SkipToMain } from "@/components/ui/skip-to-main.tsx";
+import { useVaultAutoLock } from "@/features/encryption/hooks/use-auto-lock.ts";
 
 export default function GlobalAppShell({
   children,
@@ -31,6 +32,9 @@ export default function GlobalAppShell({
 }) {
   const { t } = useTranslation();
   useTrialEndAction();
+  // one idle countdown for every unlocked section, so keys keep expiring
+  // after the user navigates away from the encrypted page that unlocked them
+  useVaultAutoLock();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);

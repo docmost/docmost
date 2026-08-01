@@ -16,6 +16,7 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import { MAX_ENCRYPTED_TREE_PAGES } from '../../../core/page/page-encryption.util';
 
 @Injectable()
 export class PageRepo {
@@ -42,6 +43,7 @@ export class PageRepo {
     'isEncrypted',
     'encryptionMeta',
     'encryptionRootId',
+    'encryptedById',
     'encryptedVersion',
     'createdAt',
     'updatedAt',
@@ -381,7 +383,12 @@ export class PageRepo {
     });
   }
 
-  async getCreatedByPages(creatorId: string, requestingUserId: string, pagination: PaginationOptions, spaceId?: string) {
+  async getCreatedByPages(
+    creatorId: string,
+    requestingUserId: string,
+    pagination: PaginationOptions,
+    spaceId?: string,
+  ) {
     let query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
@@ -392,7 +399,11 @@ export class PageRepo {
     if (spaceId) {
       query = query.where('spaceId', '=', spaceId);
     } else {
-      query = query.where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId));
+      query = query.where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId),
+      );
     }
 
     return executeWithCursorPagination(query, {
@@ -548,12 +559,15 @@ export class PageRepo {
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .$if(opts?.includeEncryption, (qb) =>
-            qb.select(['encryptedBlob', 'encryptionMeta', 'encryptedVersion']),
+            qb.select([
+              'encryptedBlob',
+              'encryptionMeta',
+              'encryptedById',
+              'encryptedVersion',
+            ]),
           )
           .where('id', '=', parentPageId)
-          .$if(!opts?.includeDeleted, (qb) =>
-            qb.where('deletedAt', 'is', null),
-          )
+          .$if(!opts?.includeDeleted, (qb) => qb.where('deletedAt', 'is', null))
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
@@ -576,6 +590,7 @@ export class PageRepo {
                 qb.select([
                   'p.encryptedBlob',
                   'p.encryptionMeta',
+                  'p.encryptedById',
                   'p.encryptedVersion',
                 ]),
               )
@@ -662,5 +677,67 @@ export class PageRepo {
         .where('isRestricted', '=', false)
         .execute()
     );
+  }
+
+  /**
+   * How many pages the encrypted section rooted at this page holds, the root
+   * itself included. Counts soft-deleted pages too: they still hold ciphertext
+   * keyed to this root, so they still have to fit in a decrypt request.
+   *
+   * Inside a transaction the root row is locked first, which is what makes the
+   * count usable as a capacity check: without it two requests adding pages to
+   * the same section can both read the same count and both decide they fit.
+   */
+  async countEncryptionSection(
+    rootPageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    const db = dbOrTx(this.db, trx);
+
+    if (trx) {
+      await trx
+        .selectFrom('pages')
+        .select('id')
+        .where('id', '=', rootPageId)
+        .forUpdate()
+        .execute();
+    }
+
+    const { count } = await db
+      .selectFrom('pages')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where((eb) =>
+        eb.or([
+          eb('id', '=', rootPageId),
+          eb('encryptionRootId', '=', rootPageId),
+        ]),
+      )
+      .executeTakeFirst();
+
+    return Number(count);
+  }
+
+  /**
+   * Refuse to grow an encrypted section past the size one request can convert.
+   *
+   * A section is encrypted and decrypted as a whole, in a single request each
+   * way, carrying one blob per page — so it is capped at
+   * MAX_ENCRYPTED_TREE_PAGES. A section allowed past that cap by any other
+   * route is trapped: still perfectly readable, but impossible to ever decrypt
+   * through the API again. Every path that adds pages to an existing section
+   * goes through here — creating a page, duplicating a subtree, and converting
+   * a subtree into an existing section.
+   */
+  async assertSectionHasRoom(
+    encryptionRootId: string,
+    additionalPages: number,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const current = await this.countEncryptionSection(encryptionRootId, trx);
+    if (current + additionalPages > MAX_ENCRYPTED_TREE_PAGES) {
+      throw new BadRequestException(
+        `An encrypted section cannot hold more than ${MAX_ENCRYPTED_TREE_PAGES} pages.`,
+      );
+    }
   }
 }

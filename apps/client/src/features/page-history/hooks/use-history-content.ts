@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { IPageHistory } from "@/features/page-history/types/page.types";
-import { usePageKey } from "@/features/encryption/hooks/page-key-store";
+import {
+  usePageKey,
+  usePageSectionId,
+} from "@/features/encryption/hooks/page-key-store";
 import { decryptBlobToProsemirrorJSON } from "@/features/encryption/services/encrypted-blob";
+import { sectionAad } from "@/features/encryption/services/crypto";
 
 export type HistoryContent =
   | { status: "ready"; content: any }
@@ -20,6 +24,7 @@ export function useHistoryContent(
   history: IPageHistory | undefined,
 ): HistoryContent {
   const dek = usePageKey(history?.pageId ?? "");
+  const sectionId = usePageSectionId(history?.pageId ?? null);
   // keyed by history id so a version switch never shows the previous content
   const [resolved, setResolved] = useState<{
     historyId: string;
@@ -34,11 +39,11 @@ export function useHistoryContent(
     // No key (page locked), no blob, or no version selected: nothing to
     // decrypt. Any previously decrypted content was already dropped by this
     // effect's cleanup, which runs before the re-run that lands here.
-    if (!historyId || !encryptedBlob || !dek) {
+    if (!historyId || !encryptedBlob || !dek || !sectionId) {
       return;
     }
     let cancelled = false;
-    decryptBlobToProsemirrorJSON(dek, encryptedBlob)
+    decryptBlobToProsemirrorJSON(dek, encryptedBlob, sectionAad(sectionId))
       .then((content) => {
         if (!cancelled) setResolved({ historyId, content });
       })
@@ -53,7 +58,7 @@ export function useHistoryContent(
       cancelled = true;
       setResolved(null);
     };
-  }, [historyId, encryptedBlob, dek]);
+  }, [historyId, encryptedBlob, dek, sectionId]);
 
   if (!history?.isEncrypted) {
     return { status: "ready", content: history?.content ?? null };

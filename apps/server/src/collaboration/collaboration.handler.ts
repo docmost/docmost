@@ -21,10 +21,9 @@ export class CollaborationHandler {
 
   getHandlers(hocuspocus: Hocuspocus) {
     return {
-      closeDocument: async (
-        documentName: string,
-        payload: Record<string, never>,
-      ) => {
+      // the payload argument is part of the redis-sync handler signature;
+      // closing a document needs nothing beyond its name
+      closeDocument: async (documentName: string) => {
         this.logger.debug(`Force-closing connections for ${documentName}`);
         hocuspocus.closeConnections(documentName);
       },

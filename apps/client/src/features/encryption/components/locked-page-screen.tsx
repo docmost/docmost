@@ -14,10 +14,18 @@ export function LockedPageScreen({
   const { t } = useTranslation();
 
   return (
-    <Center mih="60vh">
+    <Center
+      mih="60vh"
+      component="section"
+      aria-labelledby="locked-page-heading"
+    >
       <Stack align="center" gap="sm">
-        <IconLock size={48} stroke={1.5} />
-        {pageTitle && <Title order={3}>{pageTitle}</Title>}
+        <IconLock size={48} stroke={1.5} aria-hidden />
+        {/* always a heading, so this screen is reachable by heading navigation
+            even before the page title has loaded */}
+        <Title order={3} id="locked-page-heading">
+          {pageTitle || t("Locked page")}
+        </Title>
         <Text c="dimmed" size="sm">
           {t("This page is encrypted. Enter its password to view it.")}
         </Text>

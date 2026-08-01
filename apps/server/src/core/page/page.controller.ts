@@ -334,7 +334,7 @@ export class PageController {
   @Post('encryption/blob')
   async getEncryptedBlob(@Body() dto: EncryptedBlobDto, @AuthUser() user: User) {
     const page = await this.pageRepo.findById(dto.pageId);
-    if (!page) {
+    if (!page || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
     await this.pageAccessService.validateCanView(page, user);
@@ -373,7 +373,11 @@ export class PageController {
     }
     await this.pageAccessService.validateCanEdit(page, user);
 
-    await this.pageEncryptionService.convertToEncrypted(page, dto, user);
+    const result = await this.pageEncryptionService.convertToEncrypted(
+      page,
+      dto,
+      user,
+    );
 
     this.auditService.log({
       event: AuditEvent.PAGE_ENCRYPTED,
@@ -381,9 +385,18 @@ export class PageController {
       resourceId: page.id,
       spaceId: page.spaceId,
       changes: {
-        after: { title: getPageTitle(page.title), isEncrypted: true },
+        after: {
+          title: getPageTitle(page.title),
+          isEncrypted: true,
+          pageCount: result.pageCount,
+          // what the conversion destroyed; none of it is recoverable from the
+          // trash, so the audit trail is the only record that it existed
+          deleted: result.deleted,
+        },
       },
     });
+
+    return result;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -413,7 +426,7 @@ export class PageController {
     }
     await this.pageAccessService.validateCanEdit(page, user);
 
-    await this.pageEncryptionService.rewrapKey(page, dto);
+    await this.pageEncryptionService.rewrapKey(page, dto, user);
   }
 
   @HttpCode(HttpStatus.OK)

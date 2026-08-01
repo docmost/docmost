@@ -5,6 +5,15 @@ import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { ExportFormat } from "@/features/page/types/page.types";
 import { getEncryptedBlob } from "@/features/encryption/services/encryption-service";
 import { decryptBlobToProsemirrorJSON } from "@/features/encryption/services/encrypted-blob";
+import { sectionAad } from "@/features/encryption/services/crypto";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 /**
  * Client-side export for E2E-encrypted pages. The server only holds
@@ -30,6 +39,7 @@ export async function exportEncryptedPage(opts: {
   const prosemirrorJson = await decryptBlobToProsemirrorJSON(
     dek,
     blob.encryptedBlob,
+    sectionAad(blob.encryptionRootId ?? blob.pageId),
   );
 
   const titleNode = {
@@ -52,7 +62,7 @@ export async function exportEncryptedPage(opts: {
     fileContent = `<!DOCTYPE html>
       <html>
         <head>
-         <title>${safeTitle}</title>
+         <title>${escapeHtml(safeTitle)}</title>
         </head>
         <body>${pageHtml}</body>
       </html>`;

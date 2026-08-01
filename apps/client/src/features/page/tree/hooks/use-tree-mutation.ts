@@ -25,10 +25,13 @@ import {
   registerPageSection,
   sectionIdOf,
 } from "@/features/encryption/hooks/page-key-store.ts";
-import { encryptBytes } from "@/features/encryption/services/crypto.ts";
 import {
+  encryptBytes,
+  sectionAad,
+} from "@/features/encryption/services/crypto.ts";
+import {
+  contentToYdocBlob,
   EMPTY_DOC,
-  encodeJsonBlob,
   encryptSection,
 } from "@/features/encryption/services/section-conversion.ts";
 import {
@@ -141,7 +144,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         const confirmed = await confirmModal({
           title: t("Encrypt this page and everything under it?"),
           message: t(
-            "Moving pages into an encrypted section encrypts them with that section's password. They cannot be moved back out without being decrypted first.",
+            "Moving pages into an encrypted section encrypts them with that section's password. They cannot be moved back out without being decrypted first. Encrypting permanently deletes page history, comments, shares, backlinks, and any files attached to these pages.",
           ),
           confirmLabel: t("Encrypt and move"),
           cancelLabel: t("Cancel"),
@@ -278,7 +281,8 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         }
         payload.encryptedBlob = await encryptBytes(
           entry.dek,
-          encodeJsonBlob(EMPTY_DOC),
+          contentToYdocBlob(EMPTY_DOC),
+          sectionAad(parentSectionId),
         );
       }
 

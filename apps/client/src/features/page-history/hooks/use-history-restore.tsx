@@ -17,7 +17,11 @@ import {
 } from "@/features/page-history/queries/page-history-query";
 import { IPageHistory } from "@/features/page-history/types/page.types";
 import { decryptBlobToProsemirrorJSON } from "@/features/encryption/services/encrypted-blob";
-import { usePageKey } from "@/features/encryption/hooks/page-key-store";
+import {
+  usePageKey,
+  usePageSectionId,
+} from "@/features/encryption/hooks/page-key-store";
+import { sectionAad } from "@/features/encryption/services/crypto";
 import {
   pageEditorAtom,
   titleEditorAtom,
@@ -77,6 +81,7 @@ export function useHistoryRestore() {
   // render: restoring is a click, and the history view already decrypts the
   // version it displays
   const dek = usePageKey(activeHistoryData?.pageId ?? "");
+  const sectionId = usePageSectionId(activeHistoryData?.pageId ?? null);
 
   const mainEditor = useAtomValue(pageEditorAtom);
   const mainEditorTitle = useAtomValue(titleEditorAtom);
@@ -106,7 +111,7 @@ export function useHistoryRestore() {
 
       let content = historyData.content;
       if (historyData.isEncrypted) {
-        if (!dek || !historyData.encryptedBlob) {
+        if (!dek || !sectionId || !historyData.encryptedBlob) {
           notifications.show({
             message: t("Unlock this page before restoring a version."),
             color: "red",
@@ -117,6 +122,7 @@ export function useHistoryRestore() {
           content = await decryptBlobToProsemirrorJSON(
             dek,
             historyData.encryptedBlob,
+            sectionAad(sectionId),
           );
         } catch {
           notifications.show({
@@ -166,7 +172,7 @@ export function useHistoryRestore() {
       setHistoryModalOpen(false);
       notifications.show({ message: t("Successfully restored") });
     },
-    [dek, mainEditor, mainEditorTitle, setHistoryModalOpen, t],
+    [dek, sectionId, mainEditor, mainEditorTitle, setHistoryModalOpen, t],
   );
 
   const confirmRestore = useCallback(

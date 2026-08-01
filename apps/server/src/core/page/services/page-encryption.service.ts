@@ -12,6 +12,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { executeTx } from '@docmost/db/utils';
+import { nanoIdGen } from '../../../common/helpers';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
 import {
@@ -26,7 +27,12 @@ import { CollaborationGateway } from '../../../collaboration/collaboration.gatew
 import { E2eeRelayService } from '../../../collaboration/e2ee/e2ee-relay.service';
 import { sql } from 'kysely';
 import { HISTORY_INTERVAL } from '../../../collaboration/constants';
-import { encryptionRootIdOf } from '../page-encryption.util';
+import {
+  encryptionRootIdOf,
+  MAX_ENCRYPTED_TREE_PAGES,
+  staleSnapshotPageId,
+  staleVersionPageId,
+} from '../page-encryption.util';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import SpaceAbilityFactory from '../../casl/abilities/space-ability.factory';
@@ -34,13 +40,28 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import {
+  QueueJob,
+  QueueName,
+} from '../../../integrations/queue/constants';
 
-/**
- * Upper bound on a single subtree conversion. The whole tree is converted in
- * one transaction, so this caps both the request size and how long the write
- * lock is held. Larger trees are rejected rather than partially converted.
- */
-export const MAX_ENCRYPTED_TREE_PAGES = 200;
+/** what a conversion destroyed, per table (see convertToEncrypted) */
+export interface DeletedOnEncryption {
+  history: number;
+  backlinks: number;
+  transclusions: number;
+  shares: number;
+  comments: number;
+  /** files that lived on the pages; storage is queued for deletion after the TX */
+  attachments: number;
+}
+
+export interface ConvertToEncryptedResult {
+  pageCount: number;
+  deleted: DeletedOnEncryption;
+}
 
 @Injectable()
 export class PageEncryptionService {
@@ -55,6 +76,7 @@ export class PageEncryptionService {
     private readonly collaborationGateway: CollaborationGateway,
     private readonly e2eeRelayService: E2eeRelayService,
     private readonly spaceAbility: SpaceAbilityFactory,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
   /**
@@ -139,15 +161,24 @@ export class PageEncryptionService {
       };
     }
 
-    const subtree = await this.loadConvertibleSubtree(page.id, {
-      includeContent: true,
+    // Load structure first so we can freeze collab before reading content.
+    // Concurrent editors would otherwise keep writing after the client
+    // snapshots, and convert would discard those edits with the plaintext.
+    const structure = await this.loadConvertibleSubtree(page.id, {
+      includeContent: false,
     });
 
     await this.assertCanEditWholeSection(
-      subtree.map((p) => p.id),
+      structure.map((p) => p.id),
       user,
       page.spaceId,
     );
+
+    await this.closePlaintextCollab(structure.map((p) => p.id));
+
+    const subtree = await this.loadConvertibleSubtree(page.id, {
+      includeContent: true,
+    });
 
     return {
       kind: 'plaintext' as const,
@@ -155,8 +186,29 @@ export class PageEncryptionService {
         pageId: p.id,
         title: p.title,
         content: p.content,
+        // Echoed back by the conversion request and compared under the row
+        // locks: kicked collab clients can reconnect while the user types the
+        // passphrase (the pages are still plaintext), and their edits would
+        // otherwise be silently overwritten by ciphertext of this snapshot.
+        updatedAt: p.updatedAt,
       })),
     };
+  }
+
+  /** Kick plaintext collab so a conversion snapshot is not racing live edits. */
+  private async closePlaintextCollab(pageIds: string[]): Promise<void> {
+    await Promise.all(
+      pageIds.map((pageId) =>
+        this.collaborationGateway
+          .closeDocumentConnections(`page.${pageId}`)
+          .catch((err) =>
+            this.logger.warn(
+              `Failed to close collab connections before encrypting page ${pageId}`,
+              err,
+            ),
+          ),
+      ),
+    );
   }
 
   /**
@@ -177,15 +229,38 @@ export class PageEncryptionService {
   private async lockAndVerifySection(
     trx: KyselyTransaction,
     expectedPageIds: string[],
+    expectedSpaceId: string,
     rederive: (trx: KyselyTransaction) => Promise<string[]>,
     conflictMessage: string,
-  ): Promise<void> {
-    await trx
+    // rows to lock and space-check alongside the section without taking part
+    // in the set comparison — the join target, for instance. Locked in the
+    // same statement: a second forUpdate would reintroduce the two-phase
+    // acquisition this fixed ordering exists to prevent.
+    extraLockIds: string[] = [],
+  ) {
+    // updatedAt and encryptedVersion ride along for the callers' freshness
+    // checks — reading them in the same statement that takes the locks means
+    // there is no window for them to go stale afterwards
+    const locked = await trx
       .selectFrom('pages')
-      .select('id')
-      .where('id', 'in', expectedPageIds)
+      .select(['id', 'spaceId', 'updatedAt', 'encryptedVersion'])
+      .where('id', 'in', [...new Set([...expectedPageIds, ...extraLockIds])])
+      // Deterministic lock order. Without it the planner decides, and two
+      // transactions locking overlapping page sets can each hold what the other
+      // wants; Postgres then aborts one with a deadlock error. Ordering by id
+      // means every caller takes the same rows in the same sequence.
+      .orderBy('id')
       .forUpdate()
       .execute();
+
+    // A move to another space keeps ids and parent links intact, so the set
+    // re-derivation below cannot see it — but converting the pages anyway
+    // would key them to a root the new space cannot reach. movePageToSpace
+    // locks these same rows, so by the time this lock is granted the spaceId
+    // it wrote is visible here.
+    if (locked.some((p) => p.spaceId !== expectedSpaceId)) {
+      throw new ConflictException(conflictMessage);
+    }
 
     const actual = await rederive(trx);
     const expected = new Set(expectedPageIds);
@@ -196,6 +271,8 @@ export class PageEncryptionService {
     ) {
       throw new ConflictException(conflictMessage);
     }
+
+    return locked;
   }
 
   /** ids of a page and all its descendants, read inside a transaction */
@@ -323,7 +400,7 @@ export class PageEncryptionService {
     page: Page,
     dto: ConvertToEncryptedDto,
     user: User,
-  ): Promise<void> {
+  ): Promise<ConvertToEncryptedResult> {
     if (page.isEncrypted) {
       throw new BadRequestException('Page is already encrypted');
     }
@@ -351,6 +428,11 @@ export class PageEncryptionService {
     // joining an existing section: validate the target key holder, and that
     // the requested destination really sits inside that section
     let joinRoot: Page = null;
+    // Resolved from the request, which may name the destination by slug id.
+    // Everything downstream writes and compares real ids, so it must go
+    // through this rather than re-reading dto.move.parentPageId — a slug would
+    // slip past the cycle check and then fail as a foreign-key violation.
+    let joinDestination: Page = null;
     if (dto.encryptionRootId) {
       if (!dto.move) {
         throw new BadRequestException(
@@ -392,6 +474,7 @@ export class PageEncryptionService {
       }
 
       joinRoot = root;
+      joinDestination = destination;
     } else if (dto.move) {
       throw new BadRequestException(
         'A move is only allowed when joining an encrypted section',
@@ -405,8 +488,20 @@ export class PageEncryptionService {
     // The client encrypted a snapshot of the tree; if it no longer matches,
     // some page would be left behind in plaintext (or have no ciphertext).
     const blobs = new Map<string, string>([[page.id, dto.encryptedBlob]]);
+    // manifest updatedAt per page, checked under lock alongside the id set:
+    // the id set catches structural drift, this catches content edits made
+    // between the manifest and the conversion write (the pages are still
+    // plaintext then, so kicked collab clients can reconnect and keep editing
+    // while the client encrypts the subtree)
+    const snapshots = new Map<string, number>([
+      [page.id, new Date(dto.snapshotUpdatedAt).getTime()],
+    ]);
     for (const descendant of dto.descendants ?? []) {
       blobs.set(descendant.pageId, descendant.encryptedBlob);
+      snapshots.set(
+        descendant.pageId,
+        new Date(descendant.snapshotUpdatedAt).getTime(),
+      );
     }
 
     const pageIds = subtree.map((p) => p.id);
@@ -419,7 +514,7 @@ export class PageEncryptionService {
     // Cannot happen today (the destination is encrypted and this subtree is
     // all plaintext, so they are disjoint) but this write sets parentPageId
     // directly, and a cycle would detach the subtree from the tree entirely.
-    if (dto.move && pageIds.includes(dto.move.parentPageId)) {
+    if (joinDestination && pageIds.includes(joinDestination.id)) {
       throw new BadRequestException(
         'Cannot move a page inside one of its own sub-pages',
       );
@@ -429,40 +524,69 @@ export class PageEncryptionService {
     // written into: edit rights on the dragged page alone must not be enough
     // to push pages into a section the user may only read
     await this.assertCanEditWholeSection(
-      joinRoot ? [...pageIds, joinRoot.id, dto.move.parentPageId] : pageIds,
+      joinRoot ? [...pageIds, joinRoot.id, joinDestination.id] : pageIds,
       user,
       page.spaceId,
     );
 
+    let deleted: DeletedOnEncryption;
     await executeTx(this.db, async (trx) => {
-      await this.lockAndVerifySection(
+      const lockedRows = await this.lockAndVerifySection(
         trx,
         pageIds,
+        page.spaceId,
         (tx) => this.descendantIdsInTx(tx, page.id),
         'This section changed while it was being encrypted. Reload and try again.',
+        // locked together with the subtree in one ordered statement — locking
+        // them in a second statement here could interleave with a transaction
+        // (movePageToSpace) that locks a superset in one pass, and deadlock
+        joinRoot ? [joinRoot.id, joinDestination.id] : [],
       );
 
+      // The ciphertext encodes the manifest's snapshot of each page. An edit
+      // that landed since (a reconnected collab client, a concurrent API
+      // save) bumped updatedAt; overwriting it would silently destroy the
+      // edit, and the history purge below makes that unrecoverable — so the
+      // conversion is refused instead and the client retries from a fresh
+      // manifest. The rows come from the locking statement itself, so the
+      // values cannot be staler than the locks.
+      if (staleSnapshotPageId(lockedRows, snapshots)) {
+        throw new ConflictException(
+          'This section changed while it was being encrypted. Reload and try again.',
+        );
+      }
+
       if (joinRoot) {
-        // Re-check under row locks: between the validation above and this
-        // write the section could have been decrypted, or the destination
-        // could have been moved or deleted out of it — either would key these
-        // pages to a root their new location cannot reach.
+        // Re-check under the row locks taken above: between the validation
+        // outside the transaction and this write the section could have been
+        // decrypted, or the destination could have been moved or deleted out
+        // of it — either would key these pages to a root their new location
+        // cannot reach.
         const locked = await trx
           .selectFrom('pages')
           .select([
             'id',
+            'spaceId',
             'isEncrypted',
             'encryptionRootId',
             'encryptionMeta',
             'deletedAt',
           ])
-          .where('id', 'in', [joinRoot.id, dto.move.parentPageId])
-          .forUpdate()
+          .where('id', 'in', [joinRoot.id, joinDestination.id])
           .execute();
 
         const root = locked.find((p) => p.id === joinRoot.id);
-        const destination = locked.find(
-          (p) => p.id === dto.move.parentPageId,
+        const destination = locked.find((p) => p.id === joinDestination.id);
+
+        // These pages are being added to a section that already has pages of
+        // its own. The incoming subtree is capped on its own, but the *result*
+        // is what a future decrypt has to carry in one request — so the
+        // combined size is what matters. Same helper as create and duplicate,
+        // so the three cannot drift apart.
+        await this.pageRepo.assertSectionHasRoom(
+          joinRoot.id,
+          pageIds.length,
+          trx,
         );
 
         if (
@@ -470,8 +594,12 @@ export class PageEncryptionService {
           root.encryptionRootId ||
           !root.encryptionMeta ||
           root.deletedAt ||
+          // a concurrent movePageToSpace of the section keeps it intact but
+          // relocates it — joining across spaces would cross-link the trees
+          root.spaceId !== page.spaceId ||
           !destination ||
           destination.deletedAt ||
+          destination.spaceId !== page.spaceId ||
           encryptionRootIdOf(destination as any) !== joinRoot.id
         ) {
           throw new ConflictException(
@@ -480,65 +608,157 @@ export class PageEncryptionService {
         }
       }
 
-      for (const pageId of pageIds) {
+      // One statement for the whole subtree: a per-page UPDATE would hold row
+      // locks across up to MAX_ENCRYPTED_TREE_PAGES round trips.
+      const rows = pageIds.map((pageId) => {
         // when joining a section every page is keyed to it, the dragged page
         // included; when starting one the dragged page becomes the key holder
         const isNewRoot = !joinRoot && pageId === page.id;
         const isMovedPage = pageId === page.id;
+        return sql`(
+          ${pageId}::uuid,
+          ${
+            isNewRoot ? JSON.stringify(dto.encryptionMeta) : null
+          }::text::jsonb,
+          ${isNewRoot ? user.id : null}::uuid,
+          ${isNewRoot ? null : (joinRoot?.id ?? page.id)}::uuid,
+          ${Buffer.from(blobs.get(pageId), 'base64')}::bytea,
+          ${joinDestination && isMovedPage ? joinDestination.id : null}::uuid,
+          ${joinDestination && isMovedPage ? dto.move.position : null}::varchar
+        )`;
+      });
 
-        const result = await trx
-          .updateTable('pages')
-          .set({
-            isEncrypted: true,
-            encryptionMeta: isNewRoot ? { ...dto.encryptionMeta } : null,
-            encryptionRootId: isNewRoot ? null : (joinRoot?.id ?? page.id),
-            encryptedBlob: Buffer.from(blobs.get(pageId), 'base64'),
-            encryptedVersion: '1',
-            content: null,
-            textContent: null,
-            ydoc: null,
-            lastUpdatedById: user.id,
-            updatedAt: new Date(),
-            // a drag into a section converts and relocates in one write
-            ...(dto.move && isMovedPage
-              ? {
-                  parentPageId: dto.move.parentPageId,
-                  position: dto.move.position,
-                }
-              : {}),
-          })
-          .where('id', '=', pageId)
-          .where('isEncrypted', '=', false)
-          .executeTakeFirst();
+      const updated = await sql<{ id: string }>`
+        UPDATE pages SET
+          is_encrypted = true,
+          encryption_meta = v.encryption_meta,
+          encrypted_by_id = v.encrypted_by_id,
+          encryption_root_id = v.encryption_root_id,
+          encrypted_blob = v.encrypted_blob,
+          encrypted_version = 1,
+          content = NULL,
+          text_content = NULL,
+          ydoc = NULL,
+          last_updated_by_id = ${user.id}::uuid,
+          updated_at = NOW(),
+          -- a drag into a section converts and relocates in one write; every
+          -- other row keeps the parent and position it already had
+          parent_page_id = COALESCE(v.parent_page_id, pages.parent_page_id),
+          position = COALESCE(v.position, pages.position)
+        FROM (VALUES ${sql.join(rows)}) AS v(
+          id, encryption_meta, encrypted_by_id, encryption_root_id,
+          encrypted_blob, parent_page_id, position
+        )
+        WHERE pages.id = v.id AND pages.is_encrypted = false
+        RETURNING pages.id
+      `.execute(trx);
 
-        if (Number(result.numUpdatedRows) === 0) {
-          // someone converted (or deleted) a page concurrently — abort so the
-          // side-effect deletes below never run against the wrong state
-          throw new ConflictException(
-            'This section changed while it was being encrypted. Reload and try again.',
-          );
-        }
+      if (updated.rows.length !== pageIds.length) {
+        // someone converted (or deleted) a page concurrently — abort so the
+        // side-effect deletes below never run against the wrong state
+        throw new ConflictException(
+          'This section changed while it was being encrypted. Reload and try again.',
+        );
       }
 
-      // plaintext snapshots must not survive the conversion
-      await trx.deleteFrom('pageHistory').where('pageId', 'in', pageIds).execute();
+      // Data the server cannot re-encrypt, and therefore cannot keep. The
+      // counts are reported back and recorded in the audit entry: this is not
+      // recoverable from the trash, so "what was destroyed" must be visible
+      // afterwards rather than implied by the conversion.
+      const countOf = (result: { numDeletedRows: bigint }[]) =>
+        Number(result[0]?.numDeletedRows ?? 0);
 
-      // link/transclusion data is derived from plaintext content
+      // plaintext snapshots must not survive the conversion
+      const history = countOf(
+        await trx.deleteFrom('pageHistory').where('pageId', 'in', pageIds).execute(),
+      );
+
+      // link graph edges in either direction; inbound links still name
+      // encrypted pages after convert and must not linger as server-side
+      // relationship metadata derived from the old plaintext
+      const backlinks = countOf(
+        await trx
+          .deleteFrom('backlinks')
+          .where((eb) =>
+            eb.or([
+              eb('sourcePageId', 'in', pageIds),
+              eb('targetPageId', 'in', pageIds),
+            ]),
+          )
+          .execute(),
+      );
+      const transclusions = countOf(
+        await trx
+          .deleteFrom('pageTransclusions')
+          .where('pageId', 'in', pageIds)
+          .execute(),
+      );
+      // both sides of a transclusion reference: a source embed or a target
+      // that lives in this section
       await trx
-        .deleteFrom('backlinks')
-        .where('sourcePageId', 'in', pageIds)
-        .execute();
-      await trx
-        .deleteFrom('pageTransclusions')
-        .where('pageId', 'in', pageIds)
+        .deleteFrom('pageTransclusionReferences')
+        .where((eb) =>
+          eb.or([
+            eb('sourcePageId', 'in', pageIds),
+            eb('referencePageId', 'in', pageIds),
+          ]),
+        )
         .execute();
 
       // an encrypted page cannot be publicly shared
-      await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+      const shares = countOf(
+        await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute(),
+      );
 
       // comments may quote page content; they must not survive either
-      await trx.deleteFrom('comments').where('pageId', 'in', pageIds).execute();
+      const comments = countOf(
+        await trx.deleteFrom('comments').where('pageId', 'in', pageIds).execute(),
+      );
+
+      // Attachments are stored outside the page encryption envelope. Leaving
+      // them would publish files the page now implies are protected. Count
+      // here; storage + row deletion is queued after commit (same path as
+      // force-delete) so a failed TX never loses files.
+      const attachmentCountRow = await trx
+        .selectFrom('attachments')
+        .select((eb) => eb.fn.countAll<string>().as('count'))
+        .where('pageId', 'in', pageIds)
+        .executeTakeFirst();
+      const attachments = Number(attachmentCountRow?.count ?? 0);
+
+      deleted = {
+        history,
+        backlinks,
+        transclusions,
+        shares,
+        comments,
+        attachments,
+      };
     });
+
+    // Storage deletion is async; downloads for encrypted pages are also
+    // refused at the attachment controller so residual rows cannot be served.
+    if (deleted.attachments > 0) {
+      // The attachment queue retains completed jobs (removeOnComplete count),
+      // and BullMQ dedups on jobId against retained jobs. A page can be
+      // encrypted, decrypted, and encrypted again, so a static per-page id
+      // would silently drop every purge after the first — suffix a nonce.
+      const purgeNonce = nanoIdGen();
+      for (const id of pageIds) {
+        await this.attachmentQueue.add(
+          QueueJob.DELETE_PAGE_ATTACHMENTS,
+          { pageId: id },
+          {
+            jobId: `delete-page-attachments-encrypt-${id}-${purgeNonce}`,
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 5000,
+            },
+          },
+        );
+      }
+    }
 
     // kick every live collaboration session off the now-encrypted documents
     // so no plaintext ydoc lingers in collab server memory
@@ -555,10 +775,17 @@ export class PageEncryptionService {
       ),
     );
 
-    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+    // Purges these pages from the search index and any AI embeddings: their
+    // plaintext was indexed while they were readable and is still sitting
+    // there. Deliberately the *only* event emitted here — PAGE_UPDATED would
+    // queue a reindex of the same pages, racing this removal and potentially
+    // putting them back.
+    this.eventEmitter.emit(EventName.PAGE_ENCRYPTED, {
       pageIds,
       workspaceId: page.workspaceId,
     });
+
+    return { pageCount: pageIds.length, deleted };
   }
 
   /**
@@ -647,10 +874,44 @@ export class PageEncryptionService {
   }
 
   /**
+   * Gate for the two operations that can destroy an encrypted section outright
+   * — replacing its key, and replacing its ciphertext with plaintext.
+   *
+   * Both are irreversible in a way deleting a page is not: there is no trash to
+   * restore from, and the server can never prove that the caller actually holds
+   * the DEK (it has never seen a key). Edit rights are therefore not enough;
+   * this is limited to whoever encrypted the section, or someone who
+   * administers the space it lives in.
+   */
+  private async assertCanManageSectionKey(
+    page: Page,
+    user: User,
+  ): Promise<void> {
+    // Whoever set the password, not whoever created the page: anyone with edit
+    // rights can encrypt a page someone else wrote, and the original author may
+    // never have known the password. Falls back to the creator only for
+    // sections encrypted before this was recorded.
+    const owner = page.encryptedById ?? page.creatorId;
+    if (owner === user.id) {
+      return;
+    }
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException(
+        'Only the person who encrypted this section, or a space admin, can change or remove its encryption',
+      );
+    }
+  }
+
+  /**
    * Password change: replace the key metadata (re-wrapped DEK). The
    * ciphertext itself is unchanged.
    */
-  async rewrapKey(page: Page, dto: RewrapEncryptionKeyDto): Promise<void> {
+  async rewrapKey(
+    page: Page,
+    dto: RewrapEncryptionKeyDto,
+    user: User,
+  ): Promise<void> {
     if (!page.isEncrypted) {
       throw new BadRequestException('Page is not encrypted');
     }
@@ -661,12 +922,14 @@ export class PageEncryptionService {
       );
     }
 
+    await this.assertCanManageSectionKey(page, user);
+
     // Compare-and-swap on the current wrappedDek: prevents concurrent rewraps
     // from silently clobbering each other, and requires the caller to at
     // least hold the current key metadata. Note the server cannot
-    // cryptographically prove DEK possession (it never sees keys); a
-    // malicious editor could still replace the meta, but that is a lockout
-    // (DoS) equivalent to deleting the page — not a confidentiality issue.
+    // cryptographically prove DEK possession (it never sees keys); the
+    // restriction above is what keeps an arbitrary editor from locking the
+    // section, since possession itself cannot be checked here.
     const result = await this.db
       .updateTable('pages')
       .set({
@@ -728,9 +991,23 @@ export class PageEncryptionService {
       );
     }
 
+    // Same bar as changing the password, for the same reason. The server cannot
+    // prove the caller holds the DEK, and this request replaces the section's
+    // ciphertext with whatever plaintext it carries and drops the encrypted
+    // history — so an editor who never knew the password could otherwise
+    // overwrite the whole section with content of their own, unrecoverably.
+    await this.assertCanManageSectionKey(page, user);
+
     const contents = new Map<string, any>([[page.id, dto.content]]);
+    // manifest encryptedVersion per page, checked under lock: the plaintext
+    // was decrypted from that version's blob, so a newer encrypted save must
+    // refuse the conversion rather than be silently overwritten
+    const baseVersions = new Map<string, number>([
+      [page.id, dto.baseVersion],
+    ]);
     for (const descendant of dto.descendants ?? []) {
       contents.set(descendant.pageId, descendant.content);
+      baseVersions.set(descendant.pageId, descendant.baseVersion);
     }
 
     const pageIds = await this.getKeyedPageIds(page.id);
@@ -767,35 +1044,57 @@ export class PageEncryptionService {
     }
 
     await executeTx(this.db, async (trx) => {
-      await this.lockAndVerifySection(
+      const lockedRows = await this.lockAndVerifySection(
         trx,
         pageIds,
+        page.spaceId,
         (tx) => this.keyedPageIdsInTx(tx, page.id),
         'This section changed while it was being decrypted. Reload and try again.',
       );
 
-      for (const pageId of pageIds) {
-        const result = await trx
-          .updateTable('pages')
-          .set({
-            isEncrypted: false,
-            encryptionMeta: null,
-            encryptionRootId: null,
-            encryptedBlob: null,
-            encryptedVersion: '0',
-            ...plaintext.get(pageId),
-            lastUpdatedById: user.id,
-            updatedAt: new Date(),
-          })
-          .where('id', '=', pageId)
-          .where('isEncrypted', '=', true)
-          .executeTakeFirst();
+      // Same freshness rule as the encrypt direction, keyed on the encrypted
+      // save counter instead of updatedAt: a save that landed after the
+      // manifest bumped encryptedVersion, and this write would replace that
+      // ciphertext with plaintext decrypted from the older blob.
+      if (staleVersionPageId(lockedRows, baseVersions)) {
+        throw new ConflictException(
+          'This section changed while it was being decrypted. Reload and try again.',
+        );
+      }
 
-        if (Number(result.numUpdatedRows) === 0) {
-          throw new ConflictException(
-            'This section changed while it was being decrypted. Reload and try again.',
-          );
-        }
+      // one statement for the whole section, as in convertToEncrypted
+      const rows = pageIds.map((pageId) => {
+        const { content, textContent, ydoc } = plaintext.get(pageId);
+        return sql`(
+          ${pageId}::uuid,
+          ${JSON.stringify(content)}::text::jsonb,
+          ${textContent}::text,
+          ${ydoc}::bytea
+        )`;
+      });
+
+      const updated = await sql<{ id: string }>`
+        UPDATE pages SET
+          is_encrypted = false,
+          encryption_meta = NULL,
+          encrypted_by_id = NULL,
+          encryption_root_id = NULL,
+          encrypted_blob = NULL,
+          encrypted_version = 0,
+          content = v.content,
+          text_content = v.text_content,
+          ydoc = v.ydoc,
+          last_updated_by_id = ${user.id}::uuid,
+          updated_at = NOW()
+        FROM (VALUES ${sql.join(rows)}) AS v(id, content, text_content, ydoc)
+        WHERE pages.id = v.id AND pages.is_encrypted = true
+        RETURNING pages.id
+      `.execute(trx);
+
+      if (updated.rows.length !== pageIds.length) {
+        throw new ConflictException(
+          'This section changed while it was being decrypted. Reload and try again.',
+        );
       }
 
       // encrypted history snapshots are useless without the old key wrapper

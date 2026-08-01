@@ -7,6 +7,8 @@ export enum EventName {
   PAGE_DELETED = 'page.deleted',
   PAGE_SOFT_DELETED = 'page.soft_deleted',
   PAGE_RESTORED = 'page.restored',
+  /** pages became end-to-end encrypted: purge their plaintext from indexes */
+  PAGE_ENCRYPTED = 'page.encrypted',
 
   SPACE_CREATED = 'space.created',
   SPACE_UPDATED = 'space.updated',

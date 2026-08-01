@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button, Group, Modal, PasswordInput, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import {
-  EncryptionMeta,
-  WrongPasswordError,
-} from "@/features/encryption/types/encryption.types";
+import { EncryptionMeta } from "@/features/encryption/types/encryption.types";
 import { unlockDek } from "@/features/encryption/services/crypto";
+import {
+  MalformedEncryptedDataError,
+  UnsupportedEncryptionMetaError,
+  WrongPasswordError,
+} from "@/features/encryption/services/encryption-errors";
 
 interface UnlockPageModalProps {
   opened: boolean;
@@ -49,6 +51,14 @@ export function UnlockPageModal({
     } catch (err) {
       if (err instanceof WrongPasswordError) {
         setError(t("Incorrect password. Please try again."));
+      } else if (err instanceof MalformedEncryptedDataError) {
+        // retyping the password cannot fix stored data that is not a
+        // well-formed encrypted blob — say so rather than blaming the password
+        setError(t("This page's encrypted data is damaged and cannot be read."));
+      } else if (err instanceof UnsupportedEncryptionMetaError) {
+        setError(
+          t("This page uses encryption settings this version cannot open."),
+        );
       } else {
         setError(t("Failed to unlock page."));
       }
@@ -82,6 +92,7 @@ export function UnlockPageModal({
           variant="filled"
           mb="md"
           data-autofocus
+          autoComplete="current-password"
           value={password}
           onChange={(event) => {
             setPassword(event.currentTarget.value);

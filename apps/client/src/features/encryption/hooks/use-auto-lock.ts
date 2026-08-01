@@ -1,46 +1,46 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useAtomValue } from "jotai";
+import { selectAtom } from "jotai/utils";
 import {
-  broadcastPageLock,
+  lockIdleSections,
   pageKeysAtom,
-  useLockPageKey,
-  usePageSectionId,
-  useTouchPageKey,
+  touchAllSections,
 } from "@/features/encryption/hooks/page-key-store";
+
+// only "is anything unlocked at all" — subscribing to the vault itself would
+// re-run the effect on every activity touch and restart the interval below
+// before it ever had a chance to fire
+const hasKeysAtom = selectAtom(
+  pageKeysAtom,
+  (keys) => Object.keys(keys).length > 0,
+);
 
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 const CHECK_INTERVAL_MS = 15 * 1000;
 
-export function useAutoLock(
-  pageId: string | null,
-  opts?: { timeoutMs?: number; onLock?: () => void },
-): void {
+/**
+ * Locks idle encrypted sections, for the whole vault, from one place.
+ *
+ * Mounted once in the authenticated app shell rather than per editor: a key
+ * stays in memory until it times out, so the countdown has to keep running
+ * after the user navigates away from the encrypted page — a per-editor timer
+ * would leave every key held for the rest of the session as soon as the user
+ * opened anything else.
+ *
+ * Locking here is local to this tab. Keys are not shared between tabs, so a
+ * tab that has been idle knows nothing about whether the user is active in
+ * another one, and must not lock a section someone is still editing.
+ */
+export function useVaultAutoLock(opts?: { timeoutMs?: number }): void {
   const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const pageKeys = useAtomValue(pageKeysAtom);
-  const lockPageKey = useLockPageKey();
-  const touchPageKey = useTouchPageKey();
-
-  // the timer belongs to the section, not the page: every page in an
-  // encrypted section shares one key and one idle countdown
-  const sectionId = usePageSectionId(pageId);
-
-  const hasKey = sectionId ? !!pageKeys[sectionId] : false;
-  const lastActivity = sectionId
-    ? pageKeys[sectionId]?.lastActivity
-    : undefined;
-
-  const lastActivityRef = useRef(lastActivity);
-  lastActivityRef.current = lastActivity;
-
-  const onLockRef = useRef(opts?.onLock);
-  onLockRef.current = opts?.onLock;
+  const hasKeys = useAtomValue(hasKeysAtom);
 
   useEffect(() => {
-    if (!sectionId || !hasKey) {
+    if (!hasKeys) {
       return;
     }
 
-    const touch = () => touchPageKey(sectionId);
+    const touch = () => touchAllSections();
     // Returning to the tab counts as activity; hiding it must NOT extend
     // the idle timer (the countdown keeps running while the tab is hidden).
     const touchIfVisible = () => {
@@ -48,37 +48,27 @@ export function useAutoLock(
         touch();
       }
     };
-    const lock = () => {
-      lockPageKey(sectionId);
-      onLockRef.current?.();
-    };
-    // Idle timeout locks the page in every tab (cross-tab activity keeps the
-    // timers fresh, so a genuine timeout means the user is idle everywhere).
-    // Closing a tab only drops that tab's in-memory key: it must NOT lock
-    // sibling tabs that are still in use.
-    const lockEverywhere = () => {
-      broadcastPageLock(sectionId);
-      lock();
-    };
 
+    // wheel and touchmove included so that reading a long page — scrolling
+    // without ever clicking or typing — counts as being at the keyboard
     window.addEventListener("keydown", touch);
     window.addEventListener("pointerdown", touch);
+    window.addEventListener("wheel", touch, { passive: true });
+    window.addEventListener("touchmove", touch, { passive: true });
     document.addEventListener("visibilitychange", touchIfVisible);
-    window.addEventListener("beforeunload", lock);
 
-    const interval = window.setInterval(() => {
-      const last = lastActivityRef.current;
-      if (last !== undefined && Date.now() - last > timeoutMs) {
-        lockEverywhere();
-      }
-    }, CHECK_INTERVAL_MS);
+    const interval = window.setInterval(
+      () => lockIdleSections(timeoutMs),
+      CHECK_INTERVAL_MS,
+    );
 
     return () => {
       window.removeEventListener("keydown", touch);
       window.removeEventListener("pointerdown", touch);
+      window.removeEventListener("wheel", touch);
+      window.removeEventListener("touchmove", touch);
       document.removeEventListener("visibilitychange", touchIfVisible);
-      window.removeEventListener("beforeunload", lock);
       window.clearInterval(interval);
     };
-  }, [sectionId, hasKey, timeoutMs, touchPageKey, lockPageKey]);
+  }, [hasKeys, timeoutMs]);
 }

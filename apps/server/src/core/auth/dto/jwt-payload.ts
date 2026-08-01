@@ -21,6 +21,8 @@ export type JwtCollabPayload = {
   sub: string;
   workspaceId: string;
   type: 'collab';
+  /** standard JWT expiry, in seconds since the epoch */
+  exp?: number;
 };
 
 export type JwtExchangePayload = {

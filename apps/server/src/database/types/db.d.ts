@@ -321,6 +321,7 @@ export interface Pages {
   deletedAt: Timestamp | null;
   deletedById: string | null;
   encryptedBlob: Buffer | null;
+  encryptedById: string | null;
   encryptedVersion: Generated<Int8>;
   encryptionMeta: Json | null;
   encryptionRootId: string | null;

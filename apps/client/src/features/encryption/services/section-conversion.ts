@@ -1,5 +1,14 @@
-import { encryptBytes } from "@/features/encryption/services/crypto";
-import { decryptBlobToProsemirrorJSON } from "@/features/encryption/services/encrypted-blob";
+import { getSchema } from "@tiptap/core";
+import { prosemirrorJSONToYDoc } from "y-prosemirror";
+import { mainExtensions } from "@/features/editor/extensions/extensions";
+import {
+  encryptBytes,
+  sectionAad,
+} from "@/features/encryption/services/crypto";
+import {
+  decryptBlobToProsemirrorJSON,
+  encodeYdocBlob,
+} from "@/features/encryption/services/encrypted-blob";
 import {
   convertPageToEncrypted,
   decryptPageToPlaintext,
@@ -10,10 +19,22 @@ import { registerPageSections } from "@/features/encryption/hooks/page-key-store
 
 export const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
 
-/** blobs are written in the v1 (utf8 prosemirror JSON) format, as the
- * single-page conversion does; the editor migrates them to v2 on first save */
-export function encodeJsonBlob(content: any): Uint8Array {
-  return new TextEncoder().encode(JSON.stringify(content ?? EMPTY_DOC));
+let cachedSchema: ReturnType<typeof getSchema> | null = null;
+
+/**
+ * Encode page content as a v2 blob: a Yjs document in its full state.
+ *
+ * Conversion writes v2 directly rather than plain JSON so a freshly encrypted
+ * page can join the collaboration relay immediately. A v1 blob has no Yjs
+ * state to sync from, so each client would have to seed its own document and
+ * two editors opening the page at once would conflict irreconcilably.
+ */
+export function contentToYdocBlob(content: any): Uint8Array {
+  cachedSchema ??= getSchema(mainExtensions);
+  const doc = prosemirrorJSONToYDoc(cachedSchema, content ?? EMPTY_DOC, "default");
+  const bytes = encodeYdocBlob(doc);
+  doc.destroy();
+  return bytes;
 }
 
 /**
@@ -21,9 +42,12 @@ export function encodeJsonBlob(content: any): Uint8Array {
  * subtree is converted in a single server call, so either all of it becomes
  * encrypted or none of it does.
  *
- * `rootContent` overrides the server's copy of the root page's content — the
- * live editor state is fresher than what the server has when the user
- * encrypts a page they are editing.
+ * `getRootContent` overrides the server's copy of the root page's content
+ * with live editor state — fresher than what the server has when the user
+ * encrypts a page they are editing. It is a thunk, sampled only after the
+ * manifest fetch: the manifest's updatedAt is the staleness token the server
+ * verifies, so content captured before it could lag the very snapshot the
+ * token vouches for and overwrite newer edits without tripping the check.
  */
 export async function encryptSection(options: {
   pageId: string;
@@ -33,27 +57,46 @@ export async function encryptSection(options: {
   /** joins the section keyed to this page, moving the subtree into it */
   joinRootId?: string;
   move?: { parentPageId: string; position: string };
-  rootContent?: any;
+  getRootContent?: () => any;
 }): Promise<{ pageCount: number }> {
-  const { pageId, dek, meta, joinRootId, move, rootContent } = options;
+  const { pageId, dek, meta, joinRootId, move, getRootContent } = options;
 
   const section = await getEncryptionSection(pageId);
   if (section.kind !== "plaintext") {
     throw new Error("This section is already encrypted");
   }
+  const rootContent = getRootContent?.();
 
   let rootBlob: string | null = null;
-  const descendants: { pageId: string; encryptedBlob: string }[] = [];
+  let rootSnapshotUpdatedAt: string | null = null;
+  const descendants: {
+    pageId: string;
+    encryptedBlob: string;
+    snapshotUpdatedAt: string;
+  }[] = [];
+
+  // every blob in the section is bound to the section it lives in
+  const sectionRootId = joinRootId ?? pageId;
+  const aad = sectionAad(sectionRootId);
 
   for (const page of section.pages) {
     const isRoot = page.pageId === pageId;
     const content = isRoot ? (rootContent ?? page.content) : page.content;
-    const encryptedBlob = await encryptBytes(dek, encodeJsonBlob(content));
+    const encryptedBlob = await encryptBytes(
+      dek,
+      contentToYdocBlob(content),
+      aad,
+    );
 
     if (isRoot) {
       rootBlob = encryptedBlob;
+      rootSnapshotUpdatedAt = page.updatedAt;
     } else {
-      descendants.push({ pageId: page.pageId, encryptedBlob });
+      descendants.push({
+        pageId: page.pageId,
+        encryptedBlob,
+        snapshotUpdatedAt: page.updatedAt,
+      });
     }
   }
 
@@ -61,18 +104,22 @@ export async function encryptSection(options: {
     throw new Error("The page to encrypt is missing from its own section");
   }
 
+  // Every path into here goes through a modal or confirmation that spells out
+  // what encrypting discards (history, comments, shares, backlinks, attachments)
+  // — the server refuses the conversion without this acknowledgement.
   await convertPageToEncrypted({
     pageId,
     encryptionMeta: meta,
     encryptionRootId: joinRootId,
     move,
     encryptedBlob: rootBlob,
+    snapshotUpdatedAt: rootSnapshotUpdatedAt,
     descendants,
+    acknowledgeDataDeletion: true,
   });
 
   // the vault entry lives under the section root; point every page at it so
   // they read as unlocked without waiting for a tree refetch
-  const sectionRootId = joinRootId ?? pageId;
   registerPageSections(
     section.pages.map((page) => ({
       pageId: page.pageId,
@@ -90,18 +137,26 @@ export async function encryptSection(options: {
  */
 export async function decryptSection(options: {
   pageId: string;
+  /** the encryption root whose key opens these blobs (the page when self-rooted) */
+  sectionId: string;
   dek: CryptoKey;
-  rootContent?: any;
+  /** sampled after the manifest fetch; see encryptSection */
+  getRootContent?: () => any;
 }): Promise<{ pageCount: number }> {
-  const { pageId, dek, rootContent } = options;
+  const { pageId, sectionId, dek, getRootContent } = options;
 
   const section = await getEncryptionSection(pageId);
   if (section.kind !== "encrypted") {
     throw new Error("This section is not encrypted");
   }
+  const rootContent = getRootContent?.();
+
+  const aad = sectionAad(sectionId);
 
   let rootJson: any = null;
-  const descendants: { pageId: string; content: any }[] = [];
+  let rootBaseVersion: number | null = null;
+  const descendants: { pageId: string; content: any; baseVersion: number }[] =
+    [];
 
   for (const page of section.pages) {
     const isRoot = page.pageId === pageId;
@@ -110,15 +165,20 @@ export async function decryptSection(options: {
     if (isRoot && rootContent) {
       content = rootContent;
     } else if (page.encryptedBlob) {
-      content = await decryptBlobToProsemirrorJSON(dek, page.encryptedBlob);
+      content = await decryptBlobToProsemirrorJSON(dek, page.encryptedBlob, aad);
     } else {
       content = EMPTY_DOC;
     }
 
     if (isRoot) {
       rootJson = content;
+      rootBaseVersion = page.version;
     } else {
-      descendants.push({ pageId: page.pageId, content });
+      descendants.push({
+        pageId: page.pageId,
+        content,
+        baseVersion: page.version,
+      });
     }
   }
 
@@ -126,10 +186,14 @@ export async function decryptSection(options: {
     throw new Error("The page to decrypt is missing from its own section");
   }
 
+  // the menu confirms this destructively and irreversibly replaces the
+  // ciphertext and drops the encrypted history before calling
   await decryptPageToPlaintext({
     pageId,
     content: rootJson,
+    baseVersion: rootBaseVersion,
     descendants,
+    acknowledgeDataDeletion: true,
   });
 
   registerPageSections(

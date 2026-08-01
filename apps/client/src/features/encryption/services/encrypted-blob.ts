@@ -1,11 +1,13 @@
 import * as Y from "yjs";
 import { yDocToProsemirrorJSON } from "y-prosemirror";
 import { decryptBytes } from "@/features/encryption/services/crypto";
+import { MalformedEncryptedDataError } from "@/features/encryption/services/encryption-errors";
 
 // v2 encrypted blobs contain a full-state Yjs update prefixed with this magic
 // marker. v1 blobs are bare utf8 ProseMirror JSON, which always starts with
 // "{" and can never collide with the marker.
 const YDOC_MAGIC = new TextEncoder().encode("DMYD2:");
+const JSON_OPEN_BRACE = 0x7b;
 
 export type DecodedBlob =
   | { kind: "ydoc"; update: Uint8Array }
@@ -26,7 +28,18 @@ export function decodeBlob(bytes: Uint8Array): DecodedBlob {
   if (hasMagic) {
     return { kind: "ydoc", update: bytes.slice(YDOC_MAGIC.length) };
   }
-  return { kind: "json", content: JSON.parse(new TextDecoder().decode(bytes)) };
+  // Anything that is neither the v2 marker nor v1 JSON is a container this
+  // build does not know how to read — most likely written by a newer client.
+  // Say so, rather than letting JSON.parse fail on binary and surface as an
+  // unrelated syntax error.
+  if (bytes[0] !== JSON_OPEN_BRACE) {
+    throw new MalformedEncryptedDataError("Unrecognised encrypted blob format");
+  }
+  try {
+    return { kind: "json", content: JSON.parse(new TextDecoder().decode(bytes)) };
+  } catch {
+    throw new MalformedEncryptedDataError();
+  }
 }
 
 /**
@@ -37,8 +50,10 @@ export function decodeBlob(bytes: Uint8Array): DecodedBlob {
 export async function decryptBlobToProsemirrorJSON(
   dek: CryptoKey,
   encryptedBlob: string,
+  aad: Uint8Array,
 ): Promise<any> {
-  const decoded = decodeBlob(await decryptBytes(dek, encryptedBlob));
+  const bytes = await decryptBytes(dek, encryptedBlob, aad);
+  const decoded = decodeBlob(bytes);
   if (decoded.kind !== "ydoc") {
     return decoded.content;
   }

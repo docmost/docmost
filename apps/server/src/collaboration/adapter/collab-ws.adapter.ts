@@ -4,7 +4,15 @@ export class CollabWsAdapter {
   private readonly wss: WebSocketServer;
 
   constructor() {
-    this.wss = new WebSocketServer({ noServer: true });
+    // Bound what a single frame may buffer before any handler sees it. The
+    // e2ee relay checks a 10 MiB limit itself, but only after the frame has
+    // been fully received; this refuses oversized frames at the protocol
+    // level. Plaintext collaboration sends incremental Yjs updates, which are
+    // orders of magnitude smaller than this.
+    this.wss = new WebSocketServer({
+      noServer: true,
+      maxPayload: 16 * 1024 * 1024,
+    });
   }
 
   handleUpgrade(path: string, httpServer: any) {

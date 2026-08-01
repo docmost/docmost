@@ -1,8 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import { jsonToText } from '../../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import {
   extractZip,
   FileImportSource,
@@ -34,6 +34,7 @@ import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ImportAttachmentService } from './import-attachment.service';
 import { ModuleRef } from '@nestjs/core';
 import { PageService } from '../../../core/page/services/page.service';
+import { encryptionRootIdOf } from '../../../core/page/page-encryption.util';
 import { ImportPageNode } from '../dto/file-task-dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
@@ -79,6 +80,8 @@ export class FileImportTaskService {
       this.logger.log('Imported task already processed.');
       return;
     }
+
+    await this.assertDestinationNotEncrypted(fileTask);
 
     const { path: tmpZipPath, cleanup: cleanupTmpFile } = await tmp.file({
       prefix: 'docmost-import',
@@ -153,6 +156,42 @@ export class FileImportTaskService {
       await cleanupTmpDir();
 
       throw err;
+    }
+  }
+
+  /**
+   * Imported pages are written straight into the pages table as plaintext.
+   * Landing them under an encrypted parent would put unencrypted pages inside
+   * an encrypted section, which the server cannot fix — it has no key to
+   * encrypt them with. (The database CHECK constraints do not catch this: they
+   * constrain a row against itself, not against its parent.)
+   *
+   * Checked up front so a doomed import fails before downloading and extracting
+   * the archive, and again under a row lock at insert time, since the parent
+   * can be encrypted while the extract is still running.
+   */
+  private async assertDestinationNotEncrypted(
+    fileTask: Pick<FileTask, 'id' | 'pageId'>,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (!fileTask.pageId) return;
+
+    const parent = await (trx ?? this.db)
+      .selectFrom('pages')
+      .select(['id', 'isEncrypted', 'encryptionRootId'])
+      .where('id', '=', fileTask.pageId)
+      .$if(!!trx, (qb) => qb.forUpdate())
+      .executeTakeFirst();
+
+    if (parent && encryptionRootIdOf(parent as any)) {
+      const message =
+        'Cannot import pages into an encrypted section. Import them elsewhere and move them in from the page tree.';
+      // inside a transaction the throw rolls the inserts back; the task status
+      // is written by the caller's error handling
+      if (!trx) {
+        await this.updateTaskStatus(fileTask.id, FileTaskStatus.Failed, message);
+      }
+      throw new BadRequestException(message);
     }
   }
 
@@ -470,6 +509,10 @@ export class FileImportTaskService {
 
     try {
       await executeTx(this.db, async (trx) => {
+        // re-checked under a row lock: the destination could have been
+        // encrypted while the archive was being downloaded and extracted
+        await this.assertDestinationNotEncrypted(fileTask, trx);
+
         // Process pages level by level sequentially within the transaction
         for (const level of sortedLevels) {
           const levelPages = pagesByLevel.get(level)!;

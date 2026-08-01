@@ -22,7 +22,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('encrypted_blob', 'bytea', (col) => col)
     .execute();
 
-  // encrypted pages must never enter the full-text search index
+  // encrypted pages must never enter the full-text search index;
+  // otherwise keep the 20250729 definition (f_unaccent + tsvector size cap)
   await sql`CREATE OR REPLACE FUNCTION pages_tsvector_trigger() RETURNS trigger AS $$
         begin
             if new.is_encrypted then
@@ -30,19 +31,20 @@ export async function up(db: Kysely<any>): Promise<void> {
                 return new;
             end if;
             new.tsv :=
-                      setweight(to_tsvector('english', coalesce(new.title, '')), 'A') ||
-                      setweight(to_tsvector('english', coalesce(new.text_content, '')), 'B');
+                      setweight(to_tsvector('english', f_unaccent(coalesce(new.title, ''))), 'A') ||
+                      setweight(to_tsvector('english', f_unaccent(substring(coalesce(new.text_content, ''), 1, 1000000))), 'B');
             return new;
         end;
         $$ LANGUAGE plpgsql;`.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+  // restore the 20250729 definition
   await sql`CREATE OR REPLACE FUNCTION pages_tsvector_trigger() RETURNS trigger AS $$
         begin
             new.tsv :=
-                      setweight(to_tsvector('english', coalesce(new.title, '')), 'A') ||
-                      setweight(to_tsvector('english', coalesce(new.text_content, '')), 'B');
+                      setweight(to_tsvector('english', f_unaccent(coalesce(new.title, ''))), 'A') ||
+                      setweight(to_tsvector('english', f_unaccent(substring(coalesce(new.text_content, ''), 1, 1000000))), 'B');
             return new;
         end;
         $$ LANGUAGE plpgsql;`.execute(db);

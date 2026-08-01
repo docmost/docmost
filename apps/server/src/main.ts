@@ -23,6 +23,13 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({
       trustProxy: true,
+      // Fastify's default is 1 MiB. Encrypted pages post their whole ciphertext
+      // on every save, and a subtree conversion posts one blob per page, so the
+      // limit has to clear a large document while still bounding what a single
+      // request can buffer. This applies to every route, which is broader than
+      // ideal — Fastify sets bodyLimit per route, and Nest does not expose that
+      // — so it is kept as low as the encryption routes allow.
+      bodyLimit: 12 * 1024 * 1024,
       routerOptions: {
         maxParamLength: 1000,
         ignoreTrailingSlash: true,

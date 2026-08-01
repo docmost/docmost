@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -148,12 +149,10 @@ export class PageService {
       // whichever runs first, the other sees a settled encryption state.
       // Without this a page could be inserted under a parent mid-conversion
       // and end up as plaintext inside an encrypted section.
-      parentPage = (await trx
-        .selectFrom('pages')
-        .selectAll()
-        .where('id', '=', createPageDto.parentPageId)
-        .forUpdate()
-        .executeTakeFirst()) as Page;
+      parentPage = (await this.pageRepo.findById(createPageDto.parentPageId, {
+        trx,
+        withLock: true,
+      })) as Page;
 
       if (
         !parentPage ||
@@ -171,6 +170,11 @@ export class PageService {
     const encryptionRootId = parentPage ? encryptionRootIdOf(parentPage) : null;
 
     if (encryptionRootId) {
+      // counted under the section root's lock, inside the same transaction as
+      // the insert below, so concurrent creates cannot both fit into the last
+      // remaining slot
+      await this.pageRepo.assertSectionHasRoom(encryptionRootId, 1, trx);
+
       if (!createPageDto.encryptedBlob) {
         throw new BadRequestException(
           'A page inside an encrypted section must be created encrypted',
@@ -459,6 +463,7 @@ export class PageService {
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
     let childPageIds: string[] = [];
+    let sectionPageIds: string[] = [];
 
     // moving to another space always lands at the space root, so this is the
     // same question movePage asks with a null parent: a keyed descendant may
@@ -486,8 +491,12 @@ export class PageService {
         accessibleIds.has(p.parentPageId),
     );
 
-    if (rootPage.isEncrypted && pagesToOrphan.length > 0) {
-      // orphaning would leave those pages keyed to a root in another space
+    // A keyed page's root is an ancestor inside the moved subtree (sections
+    // are contiguous), so orphaning it would leave it keyed to a root in
+    // another space. Checked on the orphans themselves rather than on
+    // rootPage: the section root may sit anywhere in the subtree, not just
+    // at the page being moved.
+    if (pagesToOrphan.some((p) => p.encryptionRootId)) {
       throw new BadRequestException({
         code: 'ENCRYPTED_SECTION_PARTIAL_MOVE',
         message:
@@ -496,6 +505,81 @@ export class PageService {
     }
 
     await executeTx(this.db, async (trx) => {
+      // Everything above ran on an unlocked snapshot. Encryption conversions
+      // lock the rows they convert (lockAndVerifySection), so locking the
+      // moved subtree here and re-checking makes the two serialize instead of
+      // interleaving — without this, a concurrent join-convert could key a
+      // page in this subtree to a root that stays behind in the old space.
+      const snapshotIds = allPages.map((p) => p.id);
+      const lockedRows = (await trx
+        .selectFrom('pages')
+        .select(['id', 'deletedAt', 'isEncrypted', 'encryptionRootId'])
+        .where('id', 'in', snapshotIds)
+        // same fixed order as movePage/lockAndVerifySection, so overlapping
+        // transactions queue instead of deadlocking
+        .orderBy('id')
+        .forUpdate()
+        .execute()) as Page[];
+
+      const lockedRoot = lockedRows.find((p) => p.id === rootPage.id);
+      if (!lockedRoot || lockedRoot.deletedAt) {
+        throw new NotFoundException('Page not found');
+      }
+      this.assertEncryptionMoveAllowed(lockedRoot, null);
+
+      // the subtree itself must not have changed shape: a page moved in after
+      // the snapshot would be silently left out of the space move, one moved
+      // out would be dragged along, and an internal reparent — same members,
+      // different links — would invalidate the orphan and access pruning
+      // computed from the snapshot above, so parent links are compared too
+      const actualRows = await this.liveSubtreeInTx(trx, rootPage.id);
+      const snapshotIdSet = new Set(snapshotIds);
+      const snapshotParentById = new Map(
+        allPages.map((p) => [p.id, p.parentPageId ?? null]),
+      );
+      if (
+        actualRows.length !== snapshotIds.length ||
+        actualRows.some(
+          (row) =>
+            !snapshotParentById.has(row.id) ||
+            snapshotParentById.get(row.id) !== (row.parentPageId ?? null),
+        )
+      ) {
+        throw new ConflictException(
+          'The page tree changed while it was being moved. Please try again.',
+        );
+      }
+
+      // orphan encryption state was also read pre-lock — re-check it on the
+      // locked rows so a just-keyed orphan cannot be severed from its root
+      const lockedById = new Map(lockedRows.map((p) => [p.id, p]));
+      if (
+        pagesToOrphan.some((p) => lockedById.get(p.id)?.encryptionRootId)
+      ) {
+        throw new BadRequestException({
+          code: 'ENCRYPTED_SECTION_PARTIAL_MOVE',
+          message:
+            'This encrypted section contains pages you cannot access, so it cannot be moved to another space.',
+        });
+      }
+
+      // No moving page may be keyed to a root that stays behind. Section
+      // contiguity plus the checks above should make this unreachable, but a
+      // violation would strand ciphertext without a reachable key, so verify
+      // on the locked rows rather than trust the invariant.
+      if (
+        lockedRows.some(
+          (p) =>
+            accessibleIds.has(p.id) &&
+            p.encryptionRootId &&
+            !snapshotIdSet.has(p.encryptionRootId),
+        )
+      ) {
+        throw new ConflictException(
+          'The page tree changed while it was being moved. Please try again.',
+        );
+      }
+
       // Orphan inaccessible child pages (make them root pages in original space)
       for (const page of pagesToOrphan) {
         const orphanPosition = await this.nextPagePosition(
@@ -527,23 +611,34 @@ export class PageService {
       }
 
       // The accessible-subtree walk above skips trashed pages, but a trashed
-      // page keyed to this root is still part of the section and is still
-      // decrypted with it. It moves with the section (matched on the key
-      // pointer, which trash does not affect), and its related rows have to
-      // follow too or a later restore lands with attachments, access and
-      // watchers still pointing at the old space.
-      let sectionPageIds = pageIdsToMove;
-      if (rootPage.isEncrypted) {
+      // page keyed to an encryption root in this subtree is still part of the
+      // section and is still decrypted with it. It moves with the section
+      // (matched on the key pointer, which trash does not affect), and its
+      // related rows have to follow too or a later restore lands with
+      // attachments, access and watchers still pointing at the old space.
+      // Roots are collected from the moved pages, not just rootPage: a
+      // plaintext page can carry nested encrypted sections in its subtree.
+      // Read from the locked rows, not the pre-lock snapshot — a convert that
+      // committed in the snapshot→lock window can have minted a root whose
+      // trashed keyed pages only the locked state knows about.
+      sectionPageIds = pageIdsToMove;
+      const movedEncryptionRootIds = lockedRows
+        .filter(
+          (p) =>
+            accessibleIds.has(p.id) && p.isEncrypted && !p.encryptionRootId,
+        )
+        .map((p) => p.id);
+      if (movedEncryptionRootIds.length > 0) {
         const keyed = await trx
           .selectFrom('pages')
           .select('id')
-          .where('encryptionRootId', '=', rootPage.id)
+          .where('encryptionRootId', 'in', movedEncryptionRootIds)
           .execute();
 
         await trx
           .updateTable('pages')
           .set({ spaceId })
-          .where('encryptionRootId', '=', rootPage.id)
+          .where('encryptionRootId', 'in', movedEncryptionRootIds)
           .execute();
 
         const alreadyMoving = new Set(pageIdsToMove);
@@ -604,23 +699,38 @@ export class PageService {
           },
         );
 
-        await this.aiQueue.add(
-          QueueJob.PAGE_MOVED_TO_SPACE,
-          {
-            pageIds: pageIdsToMove,
-            spaceId,
-            workspaceId: rootPage.workspaceId,
-          },
-          {
-            attempts: 2,
-            backoff: {
-              type: 'fixed',
-              delay: 2 * 60 * 1000,
-            },
-          },
-        );
       }
     });
+
+    if (sectionPageIds.length > 0) {
+      await this.aiQueue.add(
+        QueueJob.PAGE_MOVED_TO_SPACE,
+        {
+          pageIds: sectionPageIds,
+          spaceId,
+          workspaceId: rootPage.workspaceId,
+        },
+        {
+          attempts: 2,
+          backoff: {
+            type: 'fixed',
+            delay: 2 * 60 * 1000,
+          },
+        },
+      );
+
+      // The pages now answer to a different space's membership. Anything
+      // holding a session authorized against the old one — notably the
+      // encrypted relay — has to re-authorize. Emitted only after the
+      // transaction commits, so a relay rejoin re-authorizes against the new
+      // space rather than the uncommitted row; sectionPageIds rather than
+      // pageIdsToMove, so pointer-moved trashed pages get their rooms closed
+      // too.
+      this.eventEmitter.emit(EventName.PAGE_MOVED_TO_SPACE, {
+        pageIds: sectionPageIds,
+        workspaceId: rootPage.workspaceId,
+      });
+    }
 
     return { childPageIds };
   }
@@ -655,7 +765,7 @@ export class PageService {
       nextPosition = await this.nextPagePosition(spaceId);
     }
 
-    let allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
+    const allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
       includeEncryption: true,
     });
@@ -732,6 +842,9 @@ export class PageService {
             ...basePage,
             isEncrypted: true,
             encryptionMeta: page.encryptionMeta,
+            // the copy opens with the same password, so it keeps the same
+            // person as the one who may change or remove its encryption
+            encryptedById: page.encryptedById,
             encryptionRootId: page.encryptionRootId
               ? (pageMap.get(page.encryptionRootId)?.newPageId ??
                 page.encryptionRootId)
@@ -851,7 +964,22 @@ export class PageService {
       }),
     );
 
-    await this.db.insertInto('pages').values(insertablePages).execute();
+    if (rootPage.encryptionRootId) {
+      // The copies stay keyed to the section they came from — only duplicating
+      // a section *root* produces a new section — so this grows that section by
+      // the size of the subtree. Checked and inserted under the root's lock so
+      // it cannot race another growth path into exceeding the cap.
+      await executeTx(this.db, async (trx) => {
+        await this.pageRepo.assertSectionHasRoom(
+          rootPage.encryptionRootId,
+          insertablePages.length,
+          trx,
+        );
+        await trx.insertInto('pages').values(insertablePages).execute();
+      });
+    } else {
+      await this.db.insertInto('pages').values(insertablePages).execute();
+    }
 
     // Extract transclusions from every duplicated page and persist them in
     // one statement. Duplication bypasses Yjs onStoreDocument; brand-new
@@ -967,6 +1095,35 @@ export class PageService {
   }
 
   /**
+   * A page and its non-trashed descendants with their parent links, read
+   * inside a transaction — the same population getPageAndDescendants returns,
+   * so the two can be compared (membership and structure) after row locks.
+   */
+  private async liveSubtreeInTx(
+    trx: KyselyTransaction,
+    pageId: string,
+  ): Promise<{ id: string; parentPageId: string | null }[]> {
+    return (await trx
+      .withRecursive('subtree', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id', 'parentPageId'])
+          .where('id', '=', pageId)
+          .where('deletedAt', 'is', null)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id', 'p.parentPageId'])
+              .innerJoin('subtree as s', 'p.parentPageId', 's.id')
+              .where('p.deletedAt', 'is', null),
+          ),
+      )
+      .selectFrom('subtree')
+      .selectAll()
+      .execute()) as { id: string; parentPageId: string | null }[];
+  }
+
+  /**
    * A move must never change which key a page is encrypted with, because the
    * server cannot re-encrypt anything. Everything that would require a rekey
    * is rejected with a code the client turns into the right prompt.
@@ -1028,11 +1185,23 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    if (movedPage.parentPageId === dto.parentPageId) {
+    // dto ids may be slugIds; resolve to UUIDs before the locked query below,
+    // which matches on `id` only. The slugId->id mapping is immutable, so an
+    // unlocked resolve cannot go stale.
+    let targetParentId: string | null = null;
+    if (dto.parentPageId) {
+      const targetParent = await this.pageRepo.findById(dto.parentPageId);
+      if (!targetParent || targetParent.deletedAt) {
+        throw new NotFoundException('Parent page not found');
+      }
+      targetParentId = targetParent.id;
+    }
+
+    if (movedPage.parentPageId === targetParentId) {
       // position-only move: encryption state cannot change, no locking needed
       await this.pageRepo.updatePage(
         { position: dto.position, parentPageId: undefined },
-        dto.pageId,
+        movedPage.id,
       );
       return;
     }
@@ -1042,12 +1211,23 @@ export class PageService {
       // state under the lock: a conversion of either subtree locks the same
       // rows, so the move cannot slip in against a stale snapshot and land a
       // page in a section whose key it does not have.
-      const lockedMovedPage = (await trx
+      // Both rows in one statement, ordered by id: taking them one at a time
+      // lets this transaction hold the moved page while another holds the
+      // parent and wants the moved page, which Postgres can only resolve by
+      // aborting one of them. A fixed order means every caller queues instead.
+      const idsToLock = targetParentId
+        ? [movedPage.id, targetParentId]
+        : [movedPage.id];
+
+      const lockedRows = (await trx
         .selectFrom('pages')
         .selectAll()
-        .where('id', '=', dto.pageId)
+        .where('id', 'in', idsToLock)
+        .orderBy('id')
         .forUpdate()
-        .executeTakeFirst()) as Page;
+        .execute()) as Page[];
+
+      const lockedMovedPage = lockedRows.find((p) => p.id === movedPage.id);
 
       if (!lockedMovedPage || lockedMovedPage.deletedAt) {
         throw new NotFoundException('Page not found');
@@ -1055,13 +1235,8 @@ export class PageService {
 
       let parentPage: Page = null;
       let parentPageId: string = null;
-      if (dto.parentPageId) {
-        parentPage = (await trx
-          .selectFrom('pages')
-          .selectAll()
-          .where('id', '=', dto.parentPageId)
-          .forUpdate()
-          .executeTakeFirst()) as Page;
+      if (targetParentId) {
+        parentPage = lockedRows.find((p) => p.id === targetParentId);
 
         if (
           !parentPage ||
@@ -1077,7 +1252,7 @@ export class PageService {
 
       await this.pageRepo.updatePage(
         { position: dto.position, parentPageId },
-        dto.pageId,
+        movedPage.id,
         trx,
       );
     });

@@ -10,6 +10,12 @@ import {
 } from '@/features/page/types/page.types';
 import { QueryParams } from "@/lib/types";
 import { IPagination } from "@/lib/types.ts";
+import { notifications } from "@mantine/notifications";
+import i18n from "@/i18n.ts";
+import {
+  EncryptedPageUploadError,
+  isPageEncrypted,
+} from "@/features/encryption/services/encrypted-pages";
 import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
 import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
@@ -204,6 +210,18 @@ export async function uploadFile(
   pageId: string,
   attachmentId?: string,
 ): Promise<IAttachment> {
+  // Attachments are stored outside the page encryption, so uploading one to an
+  // encrypted page would publish content the page implies is protected. Every
+  // editor entry point (slash menu, media toolbars, paste, drop) reaches
+  // uploads through here, which is why the refusal lives at this level.
+  if (isPageEncrypted(pageId)) {
+    notifications.show({
+      color: "orange",
+      message: i18n.t("Files cannot be added to encrypted pages."),
+    });
+    throw new EncryptedPageUploadError();
+  }
+
   const formData = new FormData();
   if (attachmentId) {
     formData.append("attachmentId", attachmentId);

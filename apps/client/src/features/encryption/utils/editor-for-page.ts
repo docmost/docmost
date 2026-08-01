@@ -12,6 +12,5 @@ export function editorForPage(
   pageId: string,
 ): Editor | null {
   if (!editor || editor.isDestroyed) return null;
-  // @ts-ignore — storage.pageId is stamped by the page editors on create
   return editor.storage?.pageId === pageId ? editor : null;
 }

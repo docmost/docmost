@@ -50,6 +50,22 @@ export class PageListener {
     await this.aiQueue.add(QueueJob.PAGE_DELETED, { pageIds, workspaceId });
   }
 
+  /**
+   * A page that became end-to-end encrypted is treated as deleted by every
+   * index: the server can no longer read its content, but the plaintext it
+   * indexed while the page was readable is still sitting in Typesense and in
+   * the AI embeddings, and nothing else would ever remove it.
+   */
+  @OnEvent(EventName.PAGE_ENCRYPTED)
+  async handlePageEncrypted(event: PageEvent) {
+    const { pageIds, workspaceId } = event;
+    if (this.isTypesense()) {
+      await this.searchQueue.add(QueueJob.PAGE_DELETED, { pageIds });
+    }
+
+    await this.aiQueue.add(QueueJob.PAGE_DELETED, { pageIds, workspaceId });
+  }
+
   @OnEvent(EventName.PAGE_SOFT_DELETED)
   async handlePageSoftDeleted(event: PageEvent) {
     const { pageIds, workspaceId } = event;

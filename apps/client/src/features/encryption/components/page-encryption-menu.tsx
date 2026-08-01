@@ -60,6 +60,9 @@ export function PageEncryptionMenuItems({
     return null;
   }
 
+  // the section whose key opens this page — itself when it is its own root
+  const sectionId = page.encryptionRootId ?? page.id;
+
   const handleRemoveEncryption = () => {
     if (!dek) {
       notifications.show({
@@ -95,8 +98,9 @@ export function PageEncryptionMenuItems({
         try {
           await decryptSection({
             pageId: page.id,
+            sectionId,
             dek,
-            rootContent: liveEditor?.getJSON(),
+            getRootContent: () => liveEditor?.getJSON(),
           });
         } catch (err) {
           notifications.show({
@@ -126,6 +130,10 @@ export function PageEncryptionMenuItems({
         <Text size="sm">
           {t(
             "Every page nested under this one — including any in the trash — will be encrypted with the same password. Pages cannot be moved out of an encrypted section without decrypting them first.",
+          )}
+          {" "}
+          {t(
+            "Encrypting permanently deletes page history, comments, shares, backlinks, and any files attached to these pages.",
           )}
         </Text>
       ),
@@ -214,9 +222,6 @@ export function PageEncryptionModals({ page }: PageEncryptionModalsProps) {
     dek: CryptoKey | null;
   }) => {
     if (!meta || !newDek) return;
-    // prefer the live editor state over the possibly stale server copy, but
-    // only when the editor really belongs to this page
-    const rootContent = editorForPage(pageEditor, page.id)?.getJSON();
 
     let pageCount: number;
     try {
@@ -224,7 +229,9 @@ export function PageEncryptionModals({ page }: PageEncryptionModalsProps) {
         pageId: page.id,
         dek: newDek,
         meta,
-        rootContent,
+        // prefer the live editor state over the possibly stale server copy,
+        // but only when the editor really belongs to this page
+        getRootContent: () => editorForPage(pageEditor, page.id)?.getJSON(),
       }));
     } catch (err) {
       notifications.show({
@@ -246,7 +253,10 @@ export function PageEncryptionModals({ page }: PageEncryptionModalsProps) {
     window.location.reload();
   };
 
-  const handleRewrap = async (newPassword: string) => {
+  const handleRewrap = async (
+    currentPassword: string,
+    newPassword: string,
+  ) => {
     if (!dek || !page.encryptionMeta) {
       notifications.show({
         message: t("Unlock the page before changing its password"),
@@ -255,12 +265,26 @@ export function PageEncryptionModals({ page }: PageEncryptionModalsProps) {
       setOpenModal(null);
       return;
     }
-    const newMeta = await rewrapDek(dek, newPassword);
-    await rewrapPageKey({
-      pageId: page.id,
-      encryptionMeta: newMeta,
-      currentWrappedDek: page.encryptionMeta.wrappedDek,
-    });
+    // WrongPasswordError propagates to the modal, which shows it inline on the
+    // current-password field instead of closing
+    const newMeta = await rewrapDek(
+      currentPassword,
+      page.encryptionMeta,
+      newPassword,
+    );
+    try {
+      await rewrapPageKey({
+        pageId: page.id,
+        encryptionMeta: newMeta,
+        currentWrappedDek: page.encryptionMeta.wrappedDek,
+      });
+    } catch (err) {
+      notifications.show({
+        message: getSectionErrorMessage(err, t),
+        color: "red",
+      });
+      return;
+    }
     await queryClient.invalidateQueries({ queryKey: ["pages"] });
     setOpenModal(null);
     notifications.show({ message: t("Encryption password changed") });
@@ -278,7 +302,9 @@ export function PageEncryptionModals({ page }: PageEncryptionModalsProps) {
         opened={openModal === "change"}
         onClose={() => setOpenModal(null)}
         mode="change"
-        onSubmit={async ({ password }) => handleRewrap(password)}
+        onSubmit={async ({ password, currentPassword }) =>
+          handleRewrap(currentPassword, password)
+        }
       />
     </>
   );

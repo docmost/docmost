@@ -24,6 +24,8 @@ export interface IPlaintextSectionPage {
   pageId: string;
   title: string | null;
   content: any;
+  /** echoed back on convert so the server can refuse a stale snapshot */
+  updatedAt: string;
 }
 
 // string discriminant, not a boolean: this project compiles with
@@ -64,9 +66,34 @@ export async function convertPageToEncrypted(data: {
   /** applied in the conversion transaction when joining a section */
   move?: { parentPageId: string; position: string };
   encryptedBlob: string;
-  descendants?: { pageId: string; encryptedBlob: string }[];
-}): Promise<void> {
-  await api.post<void>("/pages/encryption/convert", data);
+  /** the manifest updatedAt of the root page, verified by the server */
+  snapshotUpdatedAt: string;
+  descendants?: {
+    pageId: string;
+    encryptedBlob: string;
+    snapshotUpdatedAt: string;
+  }[];
+  /** the caller confirmed the warning about data the conversion destroys */
+  acknowledgeDataDeletion: true;
+}): Promise<IConvertToEncryptedResult> {
+  const req = await api.post<IConvertToEncryptedResult>(
+    "/pages/encryption/convert",
+    data,
+  );
+  return req.data;
+}
+
+/** what a conversion destroyed, reported back so the UI can say so */
+export interface IConvertToEncryptedResult {
+  pageCount: number;
+  deleted: {
+    history: number;
+    backlinks: number;
+    transclusions: number;
+    shares: number;
+    comments: number;
+    attachments: number;
+  };
 }
 
 export async function updateEncryptedPage(data: {
@@ -99,7 +126,11 @@ export async function rewrapPageKey(data: {
 export async function decryptPageToPlaintext(data: {
   pageId: string;
   content: any;
-  descendants?: { pageId: string; content: any }[];
+  /** the manifest encryptedVersion of the root page, verified by the server */
+  baseVersion: number;
+  descendants?: { pageId: string; content: any; baseVersion: number }[];
+  /** the caller confirmed the warning about what removing encryption discards */
+  acknowledgeDataDeletion: true;
 }): Promise<void> {
   await api.post<void>("/pages/encryption/decrypt", data);
 }

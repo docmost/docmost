@@ -5,9 +5,11 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   ValidateIf,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { MAX_ENCRYPTED_BLOB_LENGTH } from './page-encryption.dto';
 
 export type ContentFormat = 'json' | 'markdown' | 'html';
 
@@ -42,5 +44,6 @@ export class CreatePageDto {
    */
   @IsOptional()
   @IsBase64()
+  @MaxLength(MAX_ENCRYPTED_BLOB_LENGTH)
   encryptedBlob?: string;
 }

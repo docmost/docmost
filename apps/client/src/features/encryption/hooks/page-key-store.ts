@@ -107,29 +107,27 @@ const TOUCH_THROTTLE_MS = 5000;
 const lastTouchedAt: Record<string, number> = {};
 
 // ---------------------------------------------------------------------------
-// Cross-tab vault sync. The vault behaves as if shared between tabs of the
-// same browser: unlocking a page anywhere unlocks it everywhere, an explicit
-// or idle-timeout lock locks it everywhere, and activity in one tab keeps the
-// auto-lock timer of every tab fresh. Closing a tab only drops that tab's
-// in-memory copy of the key (no broadcast). CryptoKey objects are structured-
-// cloneable, so the DEK itself can travel over the same-origin channel.
+// Cross-tab locking.
+//
+// Key material never leaves the tab that derived it. A BroadcastChannel is
+// same-origin but not same-*context*: anything running in the page — injected
+// script, a compromised dependency, an extension with content-script access —
+// can post to it and listen on it. A channel that carried DEKs would let such
+// code ask sibling tabs to hand over every key they hold, or push a key of its
+// own that the receiving tab would then encrypt the user's next save under.
+//
+// So the channel carries exactly one message, naming a section to forget.
+// Locking is safe to accept from anywhere (the worst an attacker achieves is
+// making the user retype a password), while unlocking always costs a password
+// prompt in each tab.
 // ---------------------------------------------------------------------------
 
-type VaultMessage =
-  | { type: "key-request"; pageId: string }
-  | { type: "key-response"; pageId: string; dek: CryptoKey }
-  | { type: "unlock"; pageId: string; dek: CryptoKey }
-  | { type: "lock"; pageId: string }
-  | { type: "touch"; pageId: string };
+type VaultMessage = { type: "lock"; pageId: string };
 
 const vaultChannel =
   typeof BroadcastChannel !== "undefined"
     ? new BroadcastChannel("docmost-e2ee-vault")
     : null;
-
-// pages this tab has asked sibling tabs for; key-response messages are only
-// accepted while a request is pending (unlike "unlock" announcements)
-const pendingKeyRequests = new Set<string>();
 
 function storeKey(pageId: string, dek: CryptoKey): void {
   lastTouchedAt[pageId] = Date.now();
@@ -160,70 +158,20 @@ function removeKey(pageId: string): void {
 
 if (vaultChannel) {
   vaultChannel.onmessage = (event: MessageEvent<VaultMessage>) => {
-    const msg = event.data;
-    switch (msg.type) {
-      case "key-request": {
-        const entry = getDefaultStore().get(pageKeysAtom)[msg.pageId];
-        if (entry) {
-          vaultChannel.postMessage({
-            type: "key-response",
-            pageId: msg.pageId,
-            dek: entry.dek,
-          } satisfies VaultMessage);
-        }
-        break;
-      }
-      case "key-response": {
-        if (!pendingKeyRequests.has(msg.pageId)) {
-          break;
-        }
-        pendingKeyRequests.delete(msg.pageId);
-        storeKey(msg.pageId, msg.dek);
-        break;
-      }
-      case "unlock": {
-        storeKey(msg.pageId, msg.dek);
-        break;
-      }
-      case "lock": {
-        removeKey(msg.pageId);
-        break;
-      }
-      case "touch": {
-        lastTouchedAt[msg.pageId] = Date.now();
-        getDefaultStore().set(pageKeysAtom, (prev) => {
-          if (!prev[msg.pageId]) {
-            return prev;
-          }
-          return {
-            ...prev,
-            [msg.pageId]: { ...prev[msg.pageId], lastActivity: Date.now() },
-          };
-        });
-        break;
-      }
+    // anything may post here, so trust nothing about the shape
+    if (event.data?.type === "lock" && typeof event.data.pageId === "string") {
+      removeKey(event.data.pageId);
     }
   };
 }
 
 /**
- * Ask sibling tabs for the DEK of a locked page. If another tab holds it,
- * the vault entry appears shortly after and usePageKey re-renders unlocked.
+ * Lock the section in every other tab too.
+ *
+ * Only an *explicit* lock broadcasts. An idle timeout is deliberately local:
+ * each tab tracks its own activity, and a tab that has been idle long enough
+ * to lock has no way to know whether the user is busy in another one.
  */
-export function requestPageKeyFromTabs(pageId: string): void {
-  if (!vaultChannel) {
-    return;
-  }
-  const sectionId = sectionIdFor(pageId);
-  pendingKeyRequests.add(sectionId);
-  vaultChannel.postMessage({
-    type: "key-request",
-    pageId: sectionId,
-  } satisfies VaultMessage);
-  window.setTimeout(() => pendingKeyRequests.delete(sectionId), 5000);
-}
-
-/** Lock the section in every other tab too (explicit lock / idle timeout). */
 export function broadcastPageLock(pageId: string): void {
   vaultChannel?.postMessage({
     type: "lock",
@@ -261,14 +209,10 @@ export function usePageKey(pageId: string): CryptoKey | null {
 
 export function useUnlockPageKey(): (pageId: string, dek: CryptoKey) => void {
   return useCallback((pageId: string, dek: CryptoKey) => {
-    const sectionId = sectionIdFor(pageId);
-    // storeKey keeps an existing key's identity (see comment there)
-    storeKey(sectionId, dek);
-    vaultChannel?.postMessage({
-      type: "unlock",
-      pageId: sectionId,
-      dek,
-    } satisfies VaultMessage);
+    // stays in this tab: unlocking elsewhere requires the password there too
+    // (see the cross-tab locking note above). storeKey keeps an existing key's
+    // identity, so re-unlocking never remounts a live editor.
+    storeKey(sectionIdFor(pageId), dek);
   }, []);
 }
 
@@ -292,33 +236,41 @@ export function useLockPageKey(): (pageId: string) => void {
   );
 }
 
-export function useTouchPageKey(): (pageId: string) => void {
-  const setPageKeys = useSetAtom(pageKeysAtom);
-
-  return useCallback(
-    (pageId: string) => {
-      const sectionId = sectionIdFor(pageId);
-      const now = Date.now();
-      if (now - (lastTouchedAt[sectionId] ?? 0) < TOUCH_THROTTLE_MS) {
-        return;
-      }
-      lastTouchedAt[sectionId] = now;
-
-      setPageKeys((prev) => {
-        if (!prev[sectionId]) {
-          return prev;
-        }
-        return {
-          ...prev,
-          [sectionId]: { ...prev[sectionId], lastActivity: now },
-        };
-      });
-      // keep sibling tabs' auto-lock timers fresh while the user is active here
-      vaultChannel?.postMessage({
-        type: "touch",
-        pageId: sectionId,
-      } satisfies VaultMessage);
-    },
-    [setPageKeys],
-  );
+/**
+ * Drop every section whose key has been idle for longer than `timeoutMs`,
+ * in this tab only. Reads the vault at call time so a caller can poll on a
+ * fixed interval without re-subscribing as activity updates the entries.
+ */
+export function lockIdleSections(timeoutMs: number): void {
+  const now = Date.now();
+  const entries = getDefaultStore().get(pageKeysAtom);
+  for (const [sectionId, entry] of Object.entries(entries)) {
+    if (now - entry.lastActivity > timeoutMs) {
+      removeKey(sectionId);
+    }
+  }
 }
+
+/** Mark activity on every unlocked section (see useVaultAutoLock). */
+export function touchAllSections(): void {
+  const now = Date.now();
+  const store = getDefaultStore();
+  const sectionIds = Object.keys(store.get(pageKeysAtom)).filter(
+    (sectionId) => now - (lastTouchedAt[sectionId] ?? 0) >= TOUCH_THROTTLE_MS,
+  );
+  if (sectionIds.length === 0) return;
+
+  for (const sectionId of sectionIds) {
+    lastTouchedAt[sectionId] = now;
+  }
+  store.set(pageKeysAtom, (prev) => {
+    const next = { ...prev };
+    for (const sectionId of sectionIds) {
+      if (next[sectionId]) {
+        next[sectionId] = { ...next[sectionId], lastActivity: now };
+      }
+    }
+    return next;
+  });
+}
+

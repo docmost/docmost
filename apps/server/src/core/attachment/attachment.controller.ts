@@ -130,6 +130,16 @@ export class AttachmentController {
 
     await this.pageAccessService.validateCanEdit(page, user);
 
+    // Attachments are stored as uploaded, outside the page encryption, so one
+    // added to an encrypted page would publish content the page implies is
+    // protected. The client refuses this too, but the rule has to hold for any
+    // API caller — it is a confidentiality boundary, not a UI affordance.
+    if (page.isEncrypted) {
+      throw new BadRequestException(
+        'Files cannot be added to an encrypted page',
+      );
+    }
+
     const spaceId = page.spaceId;
 
     const attachmentId = file.fields?.attachmentId?.value;
@@ -211,6 +221,13 @@ export class AttachmentController {
         throw new NotFoundException();
       }
 
+      // Attachments on encrypted pages are outside the encryption envelope and
+      // are purged on convert. Refuse while residual rows/storage may still
+      // exist so convert cannot leave a readable plaintext side-channel.
+      if (page.isEncrypted) {
+        throw new NotFoundException();
+      }
+
       await this.pageAccessService.validateCanView(page, user);
     }
 
@@ -259,6 +276,14 @@ export class AttachmentController {
       !attachment.spaceId ||
       jwtPayload.pageId !== attachment.pageId
     ) {
+      throw new NotFoundException('File not found');
+    }
+
+    // Public share rows are deleted on encrypt, but JWTs issued before that
+    // remain valid for up to an hour. Block when the page is now encrypted so
+    // those URLs cannot keep serving attachment plaintext.
+    const page = await this.pageRepo.findById(attachment.pageId);
+    if (!page || page.isEncrypted) {
       throw new NotFoundException('File not found');
     }
 

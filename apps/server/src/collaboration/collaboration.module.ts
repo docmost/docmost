@@ -12,6 +12,7 @@ import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
 import { CollabHistoryService } from './services/collab-history.service';
 import { E2eeRelayService } from './e2ee/e2ee-relay.service';
+import { E2eePageListener } from './e2ee/e2ee-page.listener';
 import { WatcherModule } from '../core/watcher/watcher.module';
 import { TransclusionService } from '../core/page/transclusion/transclusion.service';
 import { TransclusionModule } from '../core/page/transclusion/transclusion.module';
@@ -29,6 +30,7 @@ import { EnvironmentModule } from '../integrations/environment/environment.modul
     CollaborationHandler,
     TransclusionService,
     E2eeRelayService,
+    E2eePageListener,
   ],
   exports: [CollaborationGateway, E2eeRelayService],
   imports: [
