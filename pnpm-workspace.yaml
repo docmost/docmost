@@ -54,7 +54,7 @@ overrides:
   js-yaml@>=3.0.0 <3.15.0: 3.15.0
   js-yaml@>=4.0.0 <=4.1.1: 4.3.0
 shamefullyHoist: true
-minimumReleaseAge: 5760
+minimumReleaseAge: 4320
 allowBuilds:
   '@swc/core': true
   bcrypt: true
