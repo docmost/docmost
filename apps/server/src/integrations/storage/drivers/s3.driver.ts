@@ -15,7 +15,7 @@ import { getMimeType } from '../../../common/helpers';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Logger } from '@nestjs/common';
 
-const S3_MAX_SOCKETS = 200;
+const S3_MAX_SOCKETS = parseInt(process.env.AWS_S3_MAX_SOCKETS) || 200;
 
 export class S3Driver implements StorageDriver {
   private readonly s3Client: S3Client;
