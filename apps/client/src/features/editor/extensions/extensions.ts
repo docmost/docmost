@@ -3,7 +3,8 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
-import { Placeholder, CharacterCount, UndoRedo } from "@tiptap/extensions";
+import { CharacterCount, UndoRedo } from "@tiptap/extensions";
+import { Placeholder } from "@/features/editor/extensions/placeholder";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -194,16 +195,18 @@ export const mainExtensions = [
         return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        const $pos = editor.state.doc.resolve(pos);
-        const parentName = $pos.parent.type.name;
-        if (
-          parentName === "column" ||
-          parentName === "tableCell" ||
-          parentName === "tableHeader" ||
-          parentName === "callout" ||
-          parentName === "blockquote"
-        ) {
-          return i18n.t("Write...");
+        const doc = editor.state.doc;
+        if (pos >= 0 && pos <= doc.content.size) {
+          const parentName = doc.resolve(pos).parent.type.name;
+          if (
+            parentName === "column" ||
+            parentName === "tableCell" ||
+            parentName === "tableHeader" ||
+            parentName === "callout" ||
+            parentName === "blockquote"
+          ) {
+            return i18n.t("Write...");
+          }
         }
         return i18n.t('Write anything. Enter "/" for commands');
       }

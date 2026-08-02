@@ -422,6 +422,8 @@ export const SearchAndReplace = Extension.create<
         state: {
           init: () => DecorationSet.empty,
           apply({ doc, docChanged }, oldState) {
+            const storage = editor.storage.searchAndReplace;
+            if (!storage) return oldState;
             const {
               searchTerm,
               lastSearchTerm,
@@ -429,7 +431,7 @@ export const SearchAndReplace = Extension.create<
               lastCaseSensitive,
               resultIndex,
               lastResultIndex,
-            } = editor.storage.searchAndReplace;
+            } = storage;
 
             if (
               !docChanged &&

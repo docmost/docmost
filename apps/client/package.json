@@ -36,7 +36,7 @@
     "@tanstack/react-table": "8.21.3",
     "@tanstack/react-virtual": "3.14.3",
     "alfaaz": "1.1.0",
-    "axios": "1.16.0",
+    "axios": "1.18.1",
     "blueimp-load-image": "5.16.0",
     "clsx": "2.1.1",
     "file-saver": "2.0.5",

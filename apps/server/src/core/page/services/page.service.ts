@@ -446,10 +446,9 @@ export class PageService {
       }
 
       if (pageIdsToMove.length > 0) {
-        // Clear page-level permissions - moved pages inherit destination space permissions
-        // (page_permissions cascade deletes via foreign key)
         await trx
-          .deleteFrom('pageAccess')
+          .updateTable('pageAccess')
+          .set({ spaceId: spaceId })
           .where('pageId', 'in', pageIdsToMove)
           .execute();
 

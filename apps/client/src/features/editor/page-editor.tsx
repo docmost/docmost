@@ -2,20 +2,22 @@ import "@/features/editor/styles/index.css";
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
-import * as Y from "yjs";
 import {
-  HocuspocusProvider,
-  onStatusParameters,
   WebSocketStatus,
-  HocuspocusProviderWebsocket,
-  onSyncedParameters,
   onStatelessParameters,
 } from "@hocuspocus/provider";
+import {
+  HocuspocusProviderWebsocketComponent,
+  HocuspocusRoom,
+  useHocuspocusEvent,
+  useHocuspocusProvider,
+} from "@hocuspocus/provider-react";
 import {
   Editor,
   EditorContent,
@@ -28,7 +30,6 @@ import {
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
 import { useAtom, useAtomValue } from "jotai";
-import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   currentPageEditModeAtom,
@@ -76,6 +77,11 @@ import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
+import {
+  acquireCollabSocket,
+  getCollabSocket,
+  releaseCollabSocket,
+} from "@/features/editor/collab-socket";
 
 interface PageEditorProps {
   pageId: string;
@@ -91,7 +97,80 @@ export default function PageEditor({
   canComment,
 }: PageEditorProps) {
   const { t } = useTranslation();
-  const collaborationURL = useCollaborationUrl();
+  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
+  const { pageSlug } = useParams();
+  const slugId = extractPageSlugId(pageSlug);
+  const [socket] = useState(getCollabSocket);
+  const hasCollabToken = !!collabQuery?.token;
+
+  useEffect(() => {
+    if (!hasCollabToken) return;
+    acquireCollabSocket();
+    return () => releaseCollabSocket();
+  }, [hasCollabToken]);
+
+  const handleStateless = ({ payload }: onStatelessParameters) => {
+    try {
+      const message = JSON.parse(payload);
+      if (message?.type !== "page.updated" || !message.updatedAt) return;
+      const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
+      if (pageData) {
+        queryClient.setQueryData(["pages", slugId], {
+          ...pageData,
+          updatedAt: message.updatedAt,
+          ...(message.lastUpdatedBy && {
+            lastUpdatedBy: message.lastUpdatedBy,
+          }),
+        });
+      }
+    } catch {
+      // ignore unrelated stateless messages
+    }
+  };
+
+  const handleAuthenticationFailed = () => {
+    const payload = jwtDecode(collabQuery?.token);
+    const now = Date.now().valueOf() / 1000;
+    const isTokenExpired = now >= payload.exp;
+    if (isTokenExpired) {
+      refetchCollabToken();
+    }
+  };
+
+  return (
+    <TransclusionLookupProvider>
+      {collabQuery?.token ? (
+        <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
+          <HocuspocusRoom
+            name={`page.${pageId}`}
+            token={collabQuery.token}
+            flushDelay={500}
+            onStateless={handleStateless}
+            onAuthenticationFailed={handleAuthenticationFailed}
+          >
+            <CollabPageEditor
+              pageId={pageId}
+              editable={editable}
+              content={content}
+              canComment={canComment}
+            />
+          </HocuspocusRoom>
+        </HocuspocusProviderWebsocketComponent>
+      ) : (
+        <StaticPageEditor content={content} ariaLabel={t("Page content")} />
+      )}
+    </TransclusionLookupProvider>
+  );
+}
+
+function CollabPageEditor({
+  pageId,
+  editable,
+  content,
+  canComment,
+}: PageEditorProps) {
+  const { t } = useTranslation();
+  const provider = useHocuspocusProvider();
   const isComponentMounted = useRef(false);
   const editorRef = useRef<Editor | null>(null);
 
@@ -112,7 +191,6 @@ export default function PageEditor({
   );
   const [, setYjsSynced] = useAtom(yjsSyncedAtom);
   const menuContainerRef = useRef(null);
-  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
@@ -123,95 +201,24 @@ export default function PageEditor({
     [isComponentMounted],
   );
   const { handleScrollTo } = useEditorScroll({ canScroll });
-  // Providers only created once per pageId
-  const providersRef = useRef<{
-    local: IndexeddbPersistence;
-    remote: HocuspocusProvider;
-    socket: HocuspocusProviderWebsocket;
-  } | null>(null);
-  const [providersReady, setProvidersReady] = useState(false);
 
   useEffect(() => {
-    if (!providersRef.current) {
-      const documentName = `page.${pageId}`;
-      const ydoc = new Y.Doc();
-      const local = new IndexeddbPersistence(documentName, ydoc);
-      const socket = new HocuspocusProviderWebsocket({
-        url: collaborationURL,
-      });
-      const onLocalSyncedHandler = () => {
-        setIsLocalSynced(true);
-      };
-      const onStatusHandler = (event: onStatusParameters) => {
-        setYjsConnectionStatus(event.status);
-      };
-      const onSyncedHandler = (event: onSyncedParameters) => {
-        setIsRemoteSynced(event.state);
-      };
-      const onStatelessHandler = ({ payload }: onStatelessParameters) => {
-        try {
-          const message = JSON.parse(payload);
-          if (message?.type !== "page.updated" || !message.updatedAt) return;
-          const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
-          if (pageData) {
-            queryClient.setQueryData(["pages", slugId], {
-              ...pageData,
-              updatedAt: message.updatedAt,
-              ...(message.lastUpdatedBy && {
-                lastUpdatedBy: message.lastUpdatedBy,
-              }),
-            });
-          }
-        } catch {
-          // ignore unrelated stateless messages
-        }
-      };
-      const onAuthenticationFailedHandler = () => {
-        const payload = jwtDecode(collabQuery?.token);
-        const now = Date.now().valueOf() / 1000;
-        const isTokenExpired = now >= payload.exp;
-        if (isTokenExpired) {
-          refetchCollabToken().then((result) => {
-            if (result.data?.token) {
-              socket.disconnect();
-              setTimeout(() => {
-                remote.configuration.token = result.data.token;
-                socket.connect();
-              }, 100);
-            }
-          });
-        }
-      };
-      const remote = new HocuspocusProvider({
-        websocketProvider: socket,
-        name: documentName,
-        document: ydoc,
-        token: collabQuery?.token,
-        onAuthenticationFailed: onAuthenticationFailedHandler,
-        onStatus: onStatusHandler,
-        onSynced: onSyncedHandler,
-        onStateless: onStatelessHandler,
-      });
-
-      local.on("synced", onLocalSyncedHandler);
-      providersRef.current = { socket, local, remote };
-      setProvidersReady(true);
-    } else {
-      setProvidersReady(true);
-    }
-    // Only destroy on final unmount
+    const local = new IndexeddbPersistence(
+      provider.configuration.name,
+      provider.document,
+    );
+    local.on("synced", () => setIsLocalSynced(true));
     return () => {
-      providersRef.current?.socket.destroy();
-      providersRef.current?.remote.destroy();
-      providersRef.current?.local.destroy();
-      providersRef.current = null;
+      local.destroy();
     };
-  }, [pageId]);
+  }, [provider]);
+
+  useHocuspocusEvent("synced", ({ state }) => setIsRemoteSynced(state));
+  useHocuspocusEvent("status", ({ status }) => setYjsConnectionStatus(status));
 
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
-    if (!providersReady || !providersRef.current) return;
-    const socket = providersRef.current.socket;
+    const socket = provider.configuration.websocketProvider;
 
     if (
       isIdle &&
@@ -228,23 +235,15 @@ export default function PageEditor({
       resetIdle();
       socket.connect();
     }
-  }, [isIdle, documentState, providersReady, resetIdle]);
-
-  // Attach here, to make sure the connection gets properly established
-  providersRef.current?.remote.attach();
+  }, [isIdle, documentState, provider, resetIdle]);
 
   const extensions = useMemo(() => {
-    if (!providersReady || !providersRef.current || !currentUser?.user) {
+    if (!currentUser?.user) {
       return mainExtensions;
     }
 
-    const remoteProvider = providersRef.current.remote;
-
-    return [
-      ...mainExtensions,
-      ...collabExtensions(remoteProvider, currentUser?.user),
-    ];
-  }, [providersReady, currentUser?.user]);
+    return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
+  }, [provider, currentUser?.user]);
 
   const editor = useEditor(
     {
@@ -325,6 +324,16 @@ export default function PageEditor({
     },
     [pageId, editable, extensions],
   );
+
+  useLayoutEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      // @ts-ignore
+      setEditor(editor);
+      // @ts-ignore
+      editor.storage.pageId = pageId;
+      editorRef.current = editor;
+    }
+  }, [editor, pageId, setEditor]);
 
   const editorIsEditable = useEditorState({
     editor,
@@ -416,65 +425,72 @@ export default function PageEditor({
     }
   }, [yjsConnectionStatus, isSynced]);
 
+  if (showStatic) {
+    return <StaticPageEditor content={content} ariaLabel={t("Page content")} />;
+  }
+
   return (
-    <TransclusionLookupProvider>
-      {showStatic ? (
-        <EditorProvider
-          editable={false}
-          immediatelyRender={true}
-          extensions={mainExtensions}
-          content={content}
-          editorProps={{
-            attributes: {
-              "aria-label": t("Page content"),
-            },
-          }}
-        />
-      ) : (
-        <div className="editor-container" style={{ position: "relative" }}>
-          <div ref={menuContainerRef}>
-            <EditorContent editor={editor} />
+    <div className="editor-container" style={{ position: "relative" }}>
+      <div ref={menuContainerRef}>
+        <EditorContent editor={editor} />
 
-            {editor && (
-              <SearchAndReplaceDialog editor={editor} editable={editable} />
-            )}
+        {editor && (
+          <SearchAndReplaceDialog editor={editor} editable={editable} />
+        )}
 
-            {editor && editorIsEditable && (
-              <div>
-                <EditorAiMenu editor={editor} />
-                <EditorLinkMenu editor={editor} />
-                <EditorBubbleMenu editor={editor} />
-                <TableMenu editor={editor} />
-                <TableHandlesLayer editor={editor} />
-                <ImageMenu editor={editor} />
-                <VideoMenu editor={editor} />
-                <PdfMenu editor={editor} />
-                <CalloutMenu editor={editor} />
-                <SubpagesMenu editor={editor} />
-                <ExcalidrawMenu editor={editor} />
-                <DrawioMenu editor={editor} />
-                <ColumnsMenu editor={editor} />
-              </div>
-            )}
-            {editor &&
-              !editorIsEditable &&
-              (editable || canComment) &&
-              providersRef.current && <ReadonlyBubbleMenu editor={editor} />}
-            {showCommentPopup && (
-              <CommentDialog editor={editor} pageId={pageId} />
-            )}
-            {showReadOnlyCommentPopup && (
-              <CommentDialog editor={editor} pageId={pageId} readOnly />
-            )}
+        {editor && editorIsEditable && (
+          <div>
+            <EditorAiMenu editor={editor} />
+            <EditorLinkMenu editor={editor} />
+            <EditorBubbleMenu editor={editor} />
+            <TableMenu editor={editor} />
+            <TableHandlesLayer editor={editor} />
+            <ImageMenu editor={editor} />
+            <VideoMenu editor={editor} />
+            <PdfMenu editor={editor} />
+            <CalloutMenu editor={editor} />
+            <SubpagesMenu editor={editor} />
+            <ExcalidrawMenu editor={editor} />
+            <DrawioMenu editor={editor} />
+            <ColumnsMenu editor={editor} />
           </div>
-          <div
-            onClick={() => {
-              if (editor && !editor.isDestroyed) editor.commands.focus("end");
-            }}
-            style={{ paddingBottom: "20vh" }}
-          ></div>
-        </div>
-      )}
-    </TransclusionLookupProvider>
+        )}
+        {editor && !editorIsEditable && (editable || canComment) && (
+          <ReadonlyBubbleMenu editor={editor} />
+        )}
+        {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
+        {showReadOnlyCommentPopup && (
+          <CommentDialog editor={editor} pageId={pageId} readOnly />
+        )}
+      </div>
+      <div
+        onClick={() => {
+          if (editor && !editor.isDestroyed) editor.commands.focus("end");
+        }}
+        style={{ paddingBottom: "20vh" }}
+      ></div>
+    </div>
+  );
+}
+
+function StaticPageEditor({
+  content,
+  ariaLabel,
+}: {
+  content: any;
+  ariaLabel: string;
+}) {
+  return (
+    <EditorProvider
+      editable={false}
+      immediatelyRender={true}
+      extensions={mainExtensions}
+      content={content}
+      editorProps={{
+        attributes: {
+          "aria-label": ariaLabel,
+        },
+      }}
+    />
   );
 }
