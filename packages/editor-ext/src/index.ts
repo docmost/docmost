@@ -30,6 +30,7 @@ export * from "./lib/shared-storage";
 export * from "./lib/recreate-transform";
 export * from "./lib/columns";
 export * from "./lib/status";
+export * from "./lib/tabs";
 export * from "./lib/pdf";
 export * from "./lib/page-break";
 export * from "./lib/resizable-nodeview";

@@ -62,6 +62,10 @@ import {
   TransclusionReference,
   TableView,
   BaseEmbed as BaseEmbedNode,
+  Tabs,
+  Tab,
+  TabLabel,
+  TabPanel,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -90,6 +94,7 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import TabsView from "@/features/editor/components/tabs/tabs-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
@@ -289,6 +294,12 @@ export const mainExtensions = [
   Details,
   DetailsSummary,
   DetailsContent,
+  Tabs.configure({
+    view: TabsView,
+  }),
+  Tab,
+  TabLabel,
+  TabPanel,
   Youtube.configure({
     addPasteHandler: false,
     controls: true,

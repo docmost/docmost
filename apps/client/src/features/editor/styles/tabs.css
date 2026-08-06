@@ -1,0 +1,7 @@
+.ProseMirror {
+  [data-type="tabs"] {
+    button {
+      outline: none;
+    }
+  }
+}
