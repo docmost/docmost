@@ -61,7 +61,7 @@
     "react-error-boundary": "6.1.1",
     "react-helmet-async": "3.0.0",
     "react-i18next": "16.5.8",
-    "react-router-dom": "7.18.0",
+    "react-router-dom": "7.18.2",
     "semver": "7.7.4",
     "socket.io-client": "4.8.3",
     "zod": "4.3.6"
@@ -86,7 +86,7 @@
     "globals": "15.13.0",
     "jsdom": "25.0.0",
     "optics-ts": "2.4.1",
-    "postcss": "8.5.14",
+    "postcss": "8.5.25",
     "postcss-preset-mantine": "1.18.0",
     "postcss-simple-vars": "7.0.1",
     "prettier": "3.8.1",

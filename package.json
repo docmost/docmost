@@ -65,7 +65,7 @@
     "date-fns": "4.1.0",
     "diff": "8.0.3",
     "docx": "9.7.1",
-    "dompurify": "3.4.11",
+    "dompurify": "3.4.12",
     "fractional-indexing-jittered": "1.0.0",
     "highlight.js": "11.11.1",
     "image-dimensions": "2.5.0",
@@ -81,12 +81,12 @@
     "yjs": "^13.6.30"
   },
   "devDependencies": {
-    "@nx/js": "22.6.1",
+    "@nx/js": "22.7.2",
     "@types/bytes": "3.1.5",
     "@types/qrcode": "1.5.6",
     "@types/turndown": "5.0.6",
-    "concurrently": "9.2.3",
-    "nx": "22.6.1",
+    "concurrently": "10.0.4",
+    "nx": "22.7.2",
     "tsx": "^4.21.0"
   },
   "workspaces": {
