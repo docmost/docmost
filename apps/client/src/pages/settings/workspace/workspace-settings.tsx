@@ -15,7 +15,7 @@ export default function WorkspaceSettings() {
   return (
     <>
       <Helmet>
-        <title>Workspace Settings - {getAppName()}</title>
+        <title>{`${t("Settings")}`}</title>
       </Helmet>
       <SettingsTitle title={t("General")} />
       <WorkspaceIcon />

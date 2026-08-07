@@ -25,7 +25,7 @@ export default function PasswordReset() {
       <>
         <Helmet>
           <title>
-            {t("Password Reset")} - {getAppName()}
+            {`${t("Password Reset")}`}
           </title>
         </Helmet>
         <Container my={40}>
@@ -51,7 +51,7 @@ export default function PasswordReset() {
     <>
       <Helmet>
         <title>
-          {t("Password Reset")} - {getAppName()}
+            {`${t("Password Reset")}`}
         </title>
       </Helmet>
       <PasswordResetForm resetToken={resetToken} />

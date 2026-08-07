@@ -12,7 +12,7 @@ export default function GroupInfo() {
     <>
       <Helmet>
         <title>
-          {t("Manage Group")} - {getAppName()}
+          {`${t("Manage Group")}`}
         </title>
       </Helmet>
       <SettingsTitle title={t("Manage Group")} />

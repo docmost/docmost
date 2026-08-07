@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color";
 import PageListSkeleton from "@/components/ui/page-list-skeleton";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
+import { Helmet } from "react-helmet-async";
 
 export default function FavoritesPage() {
   const { t } = useTranslation();
@@ -29,9 +30,11 @@ export default function FavoritesPage() {
   if (isLoading) {
     return (
       <Container size={800} py="xl">
-        <Title order={3} mb="lg">
-          {t("Favorites")}
-        </Title>
+        <Helmet>
+          <title>
+            {`${t("Favorites")}`}
+          </title>
+        </Helmet>
         <PageListSkeleton />
       </Container>
     );
@@ -40,9 +43,11 @@ export default function FavoritesPage() {
   if (isError) {
     return (
       <Container size={800} py="xl">
-        <Title order={3} mb="lg">
-          {t("Favorites")}
-        </Title>
+        <Helmet>
+          <title>
+            {`${t("Favorites")}`}
+          </title>
+        </Helmet>
         <Text>{t("Failed to fetch favorite pages")}</Text>
       </Container>
     );
@@ -50,9 +55,11 @@ export default function FavoritesPage() {
 
   return (
     <Container size={800} py="xl">
-      <Title order={1} size="h3" mb="lg">
-        {t("Favorites")}
-      </Title>
+      <Helmet>
+        <title>
+          {`${t("Favorites")}`}
+        </title>
+      </Helmet>
       {favorites.length > 0 ? (
         <>
           <Table.ScrollContainer minWidth={500}>

@@ -9,7 +9,7 @@ export default function InviteSignup() {
   return (
     <>
       <Helmet>
-        <title>{t("Invitation Signup")} - {getAppName()}</title>
+        <title>{`${t("Invitation Signup")}`}</title>
       </Helmet>
       <InviteSignUpForm />
     </>
