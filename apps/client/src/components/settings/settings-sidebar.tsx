@@ -15,6 +15,7 @@ import {
   IconSparkles,
   IconHistory,
   IconShieldCheck,
+  IconPlug,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -74,12 +75,23 @@ const groupedData: DataGroup[] = [
         path: "/settings/account/api-keys",
         feature: Feature.API_KEYS,
       },
+      {
+        label: "Integrations",
+        icon: IconPlug,
+        path: "/settings/account/integrations",
+      },
     ],
   },
   {
     heading: "Workspace",
     items: [
       { label: "General", icon: IconSettings, path: "/settings/workspace" },
+      {
+        label: "Workspace integrations",
+        icon: IconPlug,
+        path: "/settings/workspace-integrations",
+        role: "admin",
+      },
       { label: "Members", icon: IconUsers, path: "/settings/members" },
       {
         label: "Billing",
@@ -168,6 +180,10 @@ export default function SettingsSidebar() {
   const isItemDisabled = (item: DataItem) => {
     if (!item.feature) return false;
     return !hasFeature(item.feature);
+  };
+
+  const isActiveItem = (item: DataItem) => {
+    return active === item.path || active.startsWith(`${item.path}/`);
   };
 
   const menuItems = groupedData.map((group) => {
@@ -261,7 +277,7 @@ export default function SettingsSidebar() {
             <Link
               onMouseEnter={prefetchHandler}
               className={classes.link}
-              data-active={active.startsWith(item.path) || undefined}
+              data-active={isActiveItem(item) || undefined}
               key={item.label}
               to={item.path}
               onClick={() => {
