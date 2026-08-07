@@ -30,8 +30,8 @@ export const TabLabel = Node.create<TabLabelOptions>({
       mergeAttributes(
         {
           "data-type": this.name,
-          hidden: "hidden",
           "aria-hidden": "true",
+          class: "not-draggable-match"
         },
         this.options.HTMLAttributes,
         HTMLAttributes,

@@ -39,7 +39,7 @@ export default function TabsView(props: NodeViewProps) {
     const previous = document.activeElement as HTMLElement | null;
     const input = event.currentTarget;
 
-    if (!previous.contains(input)) {
+    if (!previous?.contains(input)) {
       allowFocusRef.current = true;
       return;
     }
@@ -88,7 +88,7 @@ export default function TabsView(props: NodeViewProps) {
   return (
     <NodeViewWrapper data-type='tabs'>
       <Tabs value={String(activeTab)}>
-        <Tabs.List>
+        <Tabs.List style={{ marginBottom: 10 }}>
           {tabs.map(({ label, id }, index) => (
             <Tabs.Tab
               key={id}

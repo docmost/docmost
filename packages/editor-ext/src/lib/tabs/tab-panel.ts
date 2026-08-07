@@ -27,7 +27,7 @@ export const TabPanel = Node.create<TabPanelOptions>({
     return [
       "div",
       mergeAttributes(
-        { "data-type": this.name, role: "tabpanel" },
+        { "data-type": this.name, role: "tabpanel", class: "not-draggable-match" },
         this.options.HTMLAttributes,
         HTMLAttributes,
       ),

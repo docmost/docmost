@@ -4,4 +4,12 @@
       outline: none;
     }
   }
+  
+  [data-type="tabLabel"] {
+    display: none;
+  }
+
+  [data-type="tabPanel"] {
+    outline: none;
+  }
 }

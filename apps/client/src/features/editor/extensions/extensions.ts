@@ -239,7 +239,7 @@ export const mainExtensions = [
   Typography,
   TrailingNode,
   GlobalDragHandle.configure({
-    customNodes: ["transclusionSource", "transclusionReference"],
+    customNodes: ["transclusionSource", "transclusionReference", "tabPanel"],
     atomNodes: ["base"],
   }),
   TextStyle,
