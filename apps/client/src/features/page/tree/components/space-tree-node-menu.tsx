@@ -10,6 +10,8 @@ import {
   IconDotsVertical,
   IconFileExport,
   IconLink,
+  IconSortAZ,
+  IconSortZA,
   IconStar,
   IconStarFilled,
   IconTrash,
@@ -21,8 +23,13 @@ import CopyPageModal from "@/features/page/components/copy-page-modal.tsx";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getPageTitle } from "@/features/page/page.utils";
-import { duplicatePage } from "@/features/page/services/page-service.ts";
+import {
+  duplicatePage,
+  sortPages,
+} from "@/features/page/services/page-service.ts";
 import { useClipboard } from "@/hooks/use-clipboard";
+import { queryClient } from "@/main.tsx";
+import { updateSortedChildren } from "@/features/page/tree/utils/utils.ts";
 import { getAppUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import {
@@ -70,6 +77,28 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       getAppUrl() + buildPageUrl(spaceSlug, node.slugId, node.name);
     clipboard.copy(pageUrl);
     notifications.show({ message: t("Link copied") });
+  };
+
+  const handleSortChildren = async (direction: 'asc' | 'desc') => {
+    try {
+      const sorted = await sortPages({
+        spaceId: node.spaceId,
+        parentPageId: node.id,
+        direction,
+      });
+      const positionMap = new Map(sorted.map((p) => [p.id, p.position]));
+      setData((prev) =>
+        updateSortedChildren(prev, node.id, direction, positionMap),
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["sidebar-pages", { pageId: node.id }],
+      });
+    } catch (err: any) {
+      notifications.show({
+        message: err?.response?.data?.message || t("Failed to sort pages"),
+        color: "red",
+      });
+    }
   };
 
   const handleDuplicatePage = async () => {
@@ -216,6 +245,31 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
               >
                 {t("Copy to space")}
               </Menu.Item>
+
+              {node.hasChildren && (
+                <>
+                  <Menu.Item
+                    leftSection={<IconSortAZ size={16} />}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSortChildren('asc');
+                    }}
+                  >
+                    {t("Sort subpages A→Z")}
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconSortZA size={16} />}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSortChildren('desc');
+                    }}
+                  >
+                    {t("Sort subpages Z→A")}
+                  </Menu.Item>
+                </>
+              )}
 
               <Menu.Divider />
               <Menu.Item

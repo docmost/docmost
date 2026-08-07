@@ -20,6 +20,7 @@ import {
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { queryClient } from "@/main.tsx";
 
 export type UseTreeMutation = {
   handleMove: (sourceId: string, op: DropOp) => Promise<void>;
@@ -111,6 +112,12 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         payload.parentPageId,
         pageData,
       );
+
+      // Invalidate subpages queries for affected parents so any open Subpages block reflects the new order
+      const affectedParents = new Set([oldParentId, payload.parentPageId].filter(Boolean));
+      affectedParents.forEach((parentId) => {
+        queryClient.invalidateQueries({ queryKey: ["sidebar-pages", { pageId: parentId }] });
+      });
 
       setTimeout(() => {
         emit({
