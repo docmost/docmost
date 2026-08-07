@@ -7,6 +7,7 @@ const envPath = path.resolve(process.cwd(), "..", "..");
 export default defineConfig(({ mode }) => {
   const {
     APP_URL,
+    BACKEND_URL,
     FILE_UPLOAD_SIZE_LIMIT,
     FILE_IMPORT_SIZE_LIMIT,
     DRAWIO_URL,
@@ -56,17 +57,21 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        // Falls back to APP_URL when BACKEND_URL isn't set so the upstream
+        // single-port dev workflow keeps working unchanged. Set BACKEND_URL
+        // explicitly when APP_URL points at the dev server's public origin
+        // (e.g. for OAuth-style flows that round-trip through the browser).
         "/api": {
-          target: APP_URL,
+          target: BACKEND_URL || APP_URL,
           changeOrigin: false,
         },
         "/socket.io": {
-          target: APP_URL,
+          target: BACKEND_URL || APP_URL,
           ws: true,
           rewriteWsOrigin: true,
         },
         "/collab": {
-          target: APP_URL,
+          target: BACKEND_URL || APP_URL,
           ws: true,
           rewriteWsOrigin: true,
         },

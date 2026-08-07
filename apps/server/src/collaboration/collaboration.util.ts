@@ -40,6 +40,7 @@ import {
   Columns,
   Column,
   Status,
+  IntegrationEmbed,
   addUniqueIdsToDoc,
   htmlToMarkdown,
   TransclusionSource,
@@ -110,7 +111,8 @@ export const tiptapExtensions = [
   Status,
   TransclusionSource,
   TransclusionReference,
-  BaseEmbed
+  BaseEmbed,
+  IntegrationEmbed,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
