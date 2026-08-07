@@ -13,6 +13,7 @@ import { FavoriteService } from './services/favorite.service';
 import { AddFavoriteDto, RemoveFavoriteDto } from './dto/favorite.dto';
 import { FavoriteIdsDto } from './dto/favorite-ids.dto';
 import { ListFavoritesDto } from './dto/list-favorites.dto';
+import { MoveFavoriteDto } from './dto/move-favorite.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
@@ -69,6 +70,12 @@ export class FavoriteController {
       spaceId: dto.spaceId,
       templateId: dto.templateId,
     });
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('move')
+  async moveFavorite(@Body() dto: MoveFavoriteDto, @AuthUser() user: User) {
+    await this.favoriteService.moveFavorite(user.id, dto.pageId, dto.position);
   }
 
   @HttpCode(HttpStatus.OK)

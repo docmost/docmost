@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import {
   FavoriteRepo,
   FavoriteType,
@@ -62,6 +67,14 @@ export class FavoriteService {
       templateId?: string;
     },
   ): Promise<void> {
+    // New favorites land at the end of the user's manually-ordered list.
+    const lastPosition = await this.favoriteRepo.getLastPosition(
+      userId,
+      workspaceId,
+      opts.type,
+    );
+    const position = generateJitteredKeyBetween(lastPosition, null);
+
     const favorite: InsertableFavorite = {
       userId,
       pageId: opts.pageId ?? null,
@@ -69,9 +82,31 @@ export class FavoriteService {
       templateId: opts.templateId ?? null,
       type: opts.type,
       workspaceId,
+      position,
     };
 
     await this.favoriteRepo.insert(favorite);
+  }
+
+  async moveFavorite(
+    userId: string,
+    pageId: string,
+    position: string,
+  ): Promise<void> {
+    try {
+      generateJitteredKeyBetween(position, null);
+    } catch (err) {
+      throw new BadRequestException('Invalid move position');
+    }
+
+    const updated = await this.favoriteRepo.updatePosition(
+      userId,
+      pageId,
+      position,
+    );
+    if (!updated) {
+      throw new NotFoundException('Favorite not found');
+    }
   }
 
   async removeFavorite(

@@ -20,6 +20,7 @@ import {
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import localEmitter from "@/lib/local-emitter.ts";
 
 export type UseTreeMutation = {
   handleMove: (sourceId: string, op: DropOp) => Promise<void>;
@@ -28,10 +29,13 @@ export type UseTreeMutation = {
   handleDelete: (id: string) => Promise<void>;
 };
 
-export function useTreeMutation(spaceId: string): UseTreeMutation {
+export function useTreeMutation(
+  spaceId: string,
+  dataAtom = treeDataAtom,
+): UseTreeMutation {
   const { t } = useTranslation();
-  const [, setData] = useAtom(treeDataAtom);
-  // `store` reads the *current* treeDataAtom imperatively in handlers — avoids
+  const [, setData] = useAtom(dataAtom);
+  // `store` reads the *current* dataAtom imperatively in handlers — avoids
   // stale-closure issues when the caller updates the tree (e.g. lazy-load
   // children) and then immediately invokes a handler.
   const store = useStore();
@@ -45,7 +49,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
 
   const handleMove = useCallback(
     async (sourceId: string, op: DropOp) => {
-      const before = store.get(treeDataAtom);
+      const before = store.get(dataAtom);
       const { tree: after, result } = treeModel.move(before, sourceId, op);
       if (after === before) return;
 
@@ -113,8 +117,8 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
       );
 
       setTimeout(() => {
-        emit({
-          operation: "moveTreeNode",
+        const event = {
+          operation: "moveTreeNode" as const,
           spaceId: spaceId,
           payload: {
             id: sourceId,
@@ -124,7 +128,13 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
             position: payload.position,
             pageData,
           },
-        });
+        };
+        // The server never echoes an emit back to the socket that sent it,
+        // so this tab needs the same event applied locally too — otherwise
+        // whichever tree wasn't the one dragged in (main vs. favorites)
+        // stays stale until a reload.
+        localEmitter.emit("message", event);
+        emit(event);
       }, 50);
     },
     [setData, store, movePageMutation, spaceId, emit, t],
@@ -157,7 +167,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
       // tree (e.g. lazy-load children on expand) immediately before calling
       // handleCreate hit a stale closure and compute lastIndex against the
       // pre-load tree, requiring a setTimeout-based wait at the call site.
-      const current = store.get(treeDataAtom);
+      const current = store.get(dataAtom);
       let lastIndex: number;
       if (parentId === null) {
         lastIndex = current.length;
@@ -169,15 +179,17 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
       setData((prev) => treeModel.insert(prev, parentId, newNode, lastIndex));
 
       setTimeout(() => {
-        emit({
-          operation: "addTreeNode",
+        const event = {
+          operation: "addTreeNode" as const,
           spaceId,
           payload: {
             parentId,
             index: lastIndex,
             data: newNode,
           },
-        });
+        };
+        localEmitter.emit("message", event);
+        emit(event);
       }, 50);
 
       const pageUrl = buildPageUrl(
@@ -207,7 +219,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
   const handleDelete = useCallback(
     async (id: string) => {
       const node = treeModel.find(
-        store.get(treeDataAtom),
+        store.get(dataAtom),
         id,
       ) as SpaceTreeNode | null;
       const parentPageId = node?.parentPageId ?? null;
@@ -240,11 +252,13 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
 
         setTimeout(() => {
           if (!node) return;
-          emit({
-            operation: "deleteTreeNode",
+          const event = {
+            operation: "deleteTreeNode" as const,
             spaceId,
             payload: { node },
-          });
+          };
+          localEmitter.emit("message", event);
+          emit(event);
         }, 50);
       } catch (error) {
         console.error("Failed to delete page:", error);
