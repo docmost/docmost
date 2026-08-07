@@ -205,7 +205,7 @@
   "Templates": "Modelli",
   "Theme": "Tema",
   "To change your email, you have to enter your password and new email.": "Per cambiare la tua email, devi inserire la tua password e la nuova email.",
-  "Toggle full page width": "Attiva/disattiva larghezza completa della pagina",
+  "Toggle full page width": "Attiva/disattiva larghezza intera della pagina",
   "Unable to import pages. Please try again.": "Impossibile importare le pagine. Riprova.",
   "untitled": "senza titolo",
   "Untitled": "Senza titolo",
@@ -1186,8 +1186,8 @@
   "Default value": "Valore predefinito",
   "Delete property": "Elimina proprietà",
   "Delete view": "Elimina vista",
-  "Delete {{count}} rows?_one": "Delete 1 row?",
-  "Delete {{count}} rows?_other": "Delete {{count}} rows?",
+  "Delete {{count}} rows?_one": "Eliminare 1 riga?",
+  "Delete {{count}} rows?_other": "Eliminare {{count}} righe?",
   "Descending": "Decrescente",
   "Discard": "Ignora",
   "Doesn't contain": "Non contiene",
@@ -1286,8 +1286,8 @@
   "Value": "Valore",
   "View updated for everyone": "Vista aggiornata per tutti",
   "You have unsaved changes. Do you want to discard them?": "Hai modifiche non salvate. Vuoi ignorarle?",
-  "{{count}} rows deleted_one": "1 row deleted",
-  "{{count}} rows deleted_other": "{{count}} rows deleted",
-  "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} rows deleted_one": "1 riga eliminata",
+  "{{count}} rows deleted_other": "{{count}} righe eliminate",
+  "{{count}} selected_one": "1 selezionato",
+  "{{count}} selected_other": "{{count}} selezionati"
 }
