@@ -46,6 +46,7 @@ import {
   PageBreak,
   SearchAndReplace,
   Mention,
+  LinearIssue,
   TableDndExtension,
   TableHandleCommandsExtension,
   TableHeaderPin,
@@ -108,6 +109,7 @@ import scala from "highlight.js/lib/languages/scala";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion.ts";
 import { ReactNodeViewRenderer, ReactMarkViewRenderer } from "@tiptap/react";
 import MentionView from "@/features/editor/components/mention/mention-view.tsx";
+import LinearIssueView from "@/features/editor/components/linear-issue/linear-issue-view.tsx";
 import LinkView from "@/features/editor/components/link/link-view.tsx";
 import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
@@ -380,6 +382,9 @@ export const mainExtensions = [
   }),
   Status.configure({
     view: StatusView,
+  }),
+  LinearIssue.configure({
+    view: LinearIssueView,
   }),
   TransclusionSource.configure({
     view: TransclusionView,

@@ -3,6 +3,10 @@ import { uploadVideoAction } from "@/features/editor/components/video/upload-vid
 import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
 import { uploadPdfAction } from "../pdf/upload-pdf-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
+import {
+  createLinearIssueAction,
+  getLinearIssueIdentifier,
+} from "@/features/editor/components/linear-issue/linear-issue-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
 import {
@@ -54,6 +58,16 @@ export const handlePaste = (
       creatorId,
       anchorId,
     );
+    return true;
+  }
+
+  const trimmedClipboard = clipboardData.trim();
+  if (getLinearIssueIdentifier(trimmedClipboard)) {
+    const { from: pos, empty } = editor.state.selection;
+    // let the default link extension handle pasting onto a selection
+    if (!empty) return false;
+    event.preventDefault();
+    createLinearIssueAction(trimmedClipboard, editor.view, pos);
     return true;
   }
 
