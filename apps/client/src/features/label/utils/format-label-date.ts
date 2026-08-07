@@ -18,7 +18,7 @@ export function formatLabelListDate(date: Date): string {
     if (locale.code?.startsWith("en")) {
       return formatLocalized(date, "MMM dd", "MMM dd", locale);
     }
-    return new Intl.DateTimeFormat(i18n.language, {
+    return new Intl.DateTimeFormat(i18n.resolvedLanguage, {
       month: "short",
       day: "numeric",
     }).format(date);
