@@ -13,6 +13,7 @@ import {
   IconShieldCheck,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query";
@@ -127,7 +128,7 @@ export function PageVerificationBadge({
     status === "verified" && verificationInfo?.expiresAt
       ? t("Verified until {{date}}", {
           date: new Date(verificationInfo.expiresAt).toLocaleDateString(
-            undefined,
+            i18n.language,
             { month: "long", day: "numeric", year: "numeric" },
           ),
         })

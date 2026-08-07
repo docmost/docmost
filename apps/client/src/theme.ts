@@ -1,8 +1,11 @@
 import {
+  Badge,
   createTheme,
   CSSVariablesResolver,
   MantineColorsTuple,
   Tabs,
+  Tooltip,
+  v8CssVariablesResolver,
 } from "@mantine/core";
 
 const blue: MantineColorsTuple = [
@@ -36,7 +39,22 @@ export const theme = createTheme({
     blue,
     red,
   },
+  defaultRadius: 'sm',
   components: {
+    Tooltip: Tooltip.extend({
+      defaultProps: {
+        events: { hover: true, focus: true, touch: false },
+      },
+    }),
+    // Size badges to their content; fit-content collapses inside table cells.
+    Badge: Badge.extend({
+      styles: (_theme, props) => ({
+        root:
+          props.fullWidth || props.circle
+            ? {}
+            : { width: "max-content", maxWidth: "100%" },
+      }),
+    }),
     Tabs: Tabs.extend({
       vars: (theme, props) => ({
         root: {
@@ -68,9 +86,11 @@ export const theme = createTheme({
 
 export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
   variables: {
+    ...v8CssVariablesResolver(theme).variables,
     "--input-error-size": theme.fontSizes.sm,
   },
   light: {
+    ...v8CssVariablesResolver(theme).light,
     "--mantine-color-dimmed": "#4b5563",
     "--mantine-color-dark-light-color": "#4e5359",
     "--mantine-color-dark-light-hover": "var(--mantine-color-gray-light-hover)",
@@ -103,8 +123,10 @@ export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
     // ~6.8:1. Affects every <Badge color="green" variant="light"> and
     // matching Button / Text usages.
     "--mantine-color-green-light-color": "#1B5E20",
+    "--mantine-color-orange-light-color": "#a63508",
   },
   dark: {
+    ...v8CssVariablesResolver(theme).dark,
     "--mantine-color-dark-light-color": "var(--mantine-color-gray-4)",
     "--mantine-color-dark-light-hover": "var(--mantine-color-default-hover)",
   },

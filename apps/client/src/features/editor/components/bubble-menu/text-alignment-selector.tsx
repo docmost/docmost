@@ -11,6 +11,7 @@ import { Menu, Button, Tooltip, rem } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
+import { isEditorReady } from "@docmost/editor-ext";
 
 interface TextAlignmentProps {
   editor: Editor | null;
@@ -117,7 +118,7 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
               activeItem.name === item.name ? <IconCheck size={16} /> : null
             }
             onClick={() => {
-              item.command();
+              if (isEditorReady(editor)) item.command();
               setIsOpen(false);
             }}
           >

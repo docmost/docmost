@@ -35,6 +35,7 @@ export interface TitleEditorProps {
   title: string;
   spaceSlug: string;
   editable: boolean;
+  isBase?: boolean;
 }
 
 export function TitleEditor({
@@ -43,6 +44,7 @@ export function TitleEditor({
   title,
   spaceSlug,
   editable,
+  isBase,
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const { mutateAsync: updateTitlePageMutationAsync } =
@@ -64,7 +66,7 @@ export function TitleEditor({
       }),
       Text,
       Placeholder.configure({
-        placeholder: t("Untitled"),
+        placeholder: isBase ? t("Untitled base") : t("Untitled"),
         showOnlyWhenEditable: false,
       }),
       History.configure({
@@ -106,11 +108,17 @@ export function TitleEditor({
   });
 
   useEffect(() => {
-    const anchorId = window.location.hash
-      ? window.location.hash.substring(1)
-      : undefined;
-    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchorId);
-    navigate(pageSlug, { replace: true });
+    // Canonicalize only the path slug; keep query params (?row=, ?view=
+    // deep links) and the hash anchor intact.
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title);
+    navigate(
+      {
+        pathname: pageSlug,
+        search: window.location.search,
+        hash: window.location.hash,
+      },
+      { replace: true },
+    );
   }, [title]);
 
   const saveTitle = useCallback(() => {
@@ -152,7 +160,11 @@ export function TitleEditor({
   const debounceUpdate = useDebouncedCallback(saveTitle, 500);
 
   useEffect(() => {
-    if (titleEditor && title !== titleEditor.getText()) {
+    if (
+      titleEditor &&
+      !titleEditor.isDestroyed &&
+      title !== titleEditor.getText()
+    ) {
       titleEditor.commands.setContent(title);
     }
   }, [pageId, title, titleEditor]);

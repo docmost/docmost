@@ -11,7 +11,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { UserRole } from '../../../common/helpers/types/permission';
+import { InviteUserRole } from '../../../common/helpers/types/permission';
 import { NoUrls } from '../../../common/validators/no-urls.validator';
 
 export class InviteUserDto {
@@ -32,7 +32,7 @@ export class InviteUserDto {
   @IsUUID('all', { each: true })
   groupIds: string[];
 
-  @IsEnum(UserRole)
+  @IsEnum(InviteUserRole)
   role: string;
 }
 

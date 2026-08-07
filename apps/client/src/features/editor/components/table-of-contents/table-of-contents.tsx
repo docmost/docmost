@@ -25,7 +25,7 @@ const recalculateLinks = (nodePos: NodePos[]) => {
     (acc, item) => {
       const label = item.node.textContent;
       const level = Number(item.node.attrs.level);
-      if (label.length && level <= 4) {
+      if (label.length && level <= 6) {
         acc.push({
           label,
           level,
@@ -50,6 +50,7 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   const headerPaddingRef = useRef<HTMLDivElement | null>(null);
 
   const handleScrollToHeading = (position: number) => {
+    if (!props.editor || props.editor.isDestroyed) return;
     const { view } = props.editor;
 
     const headerOffset = parseInt(
@@ -73,16 +74,21 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   };
 
   const handleUpdate = () => {
-    const result = recalculateLinks(props.editor?.$nodes("heading"));
+    if (!props.editor || props.editor.isDestroyed) return;
+
+    const result = recalculateLinks(props.editor.$nodes("heading"));
 
     setLinks(result.links);
     setHeadingDOMNodes(result.nodes);
   };
 
   useEffect(() => {
+    // "create" repopulates once the editor view mounts after this component
+    props.editor?.on("create", handleUpdate);
     props.editor?.on("update", handleUpdate);
 
     return () => {
+      props.editor?.off("create", handleUpdate);
       props.editor?.off("update", handleUpdate);
     };
   }, [props.editor]);

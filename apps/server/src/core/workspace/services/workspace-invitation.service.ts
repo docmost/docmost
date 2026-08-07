@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -40,6 +41,10 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import {
+  getWorkspaceDefaultPageEditMode,
+  isAdminActingOnOwner,
+} from '../workspace.util';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -118,6 +123,10 @@ export class WorkspaceInvitationService {
     authUser: User,
   ): Promise<void> {
     const { emails, role, groupIds } = inviteUserDto;
+
+    if (isAdminActingOnOwner(authUser.role, role)) {
+      throw new ForbiddenException();
+    }
 
     let invites: WorkspaceInvitation[] = [];
 
@@ -251,6 +260,7 @@ export class WorkspaceInvitationService {
             workspaceId: workspace.id,
           },
           trx,
+          { pageEditMode: getWorkspaceDefaultPageEditMode(workspace) },
         );
 
         // add user to default group

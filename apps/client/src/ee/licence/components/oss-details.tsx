@@ -17,7 +17,10 @@ const enterpriseFeatures = [
   "Resolve Comments",
   "Confluence Import",
   "PDF & DOCX Import",
+  "Bases",
+  "Kanban",
   "Templates",
+  "Personal Spaces"
 ];
 
 export default function OssDetails() {

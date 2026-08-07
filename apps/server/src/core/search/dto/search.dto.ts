@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 
 export class SearchDTO {
@@ -12,7 +13,7 @@ export class SearchDTO {
   query: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   spaceId: string;
 
   @IsOptional()
@@ -20,7 +21,7 @@ export class SearchDTO {
   shareId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   creatorId?: string;
 
   @IsOptional()
@@ -38,7 +39,7 @@ export class SearchShareDTO extends SearchDTO {
   shareId: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   spaceId: string;
 }
 

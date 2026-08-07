@@ -32,6 +32,12 @@
     margin-bottom: 0.25em;
 }
 
+/* The emoji glyph renders larger than its font-size box; let the transparent
+   ActionIcon overflow so it isn't clipped on the edges. */
+.emojiButton button {
+    overflow: visible;
+}
+
 .titleInput {
     font-size: 2.5rem;
     font-weight: 700;

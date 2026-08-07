@@ -66,6 +66,8 @@ export default function AiChatSidebarItem({
     [chat.updatedAt, i18n.language],
   );
 
+  const chatTitle = chat.title || t("Untitled chat");
+
   useEffect(() => {
     if (renaming) {
       // Wait for the input to be mounted before selecting.
@@ -120,9 +122,7 @@ export default function AiChatSidebarItem({
       className={classes.chatItem}
       data-active={isActive || undefined}
     >
-      <span className={classes.chatItemTitle}>
-        {chat.title || t("Untitled chat")}
-      </span>
+      <span className={classes.chatItemTitle}>{chatTitle}</span>
       <span className={classes.chatItemDate}>{formattedDate}</span>
       <div className={classes.chatItemActions}>
         <Menu position="bottom-end" withinPortal>
@@ -132,7 +132,7 @@ export default function AiChatSidebarItem({
               size="xs"
               color="gray"
               onClick={(e) => e.preventDefault()}
-              aria-label={t("Chat menu")}
+              aria-label={t("Chat menu for {{title}}", { title: chatTitle })}
             >
               <IconDots size={14} />
             </ActionIcon>

@@ -1,3 +1,11 @@
+:root {
+  /* Height of the fixed PageHeader at the top of every page. Used by
+   * standalone base layout (paddingTop) and by sticky bands inside
+   * inline base embeds (top offset). One source of truth; if the
+   * page header ever changes height, edit only this. */
+  --page-header-height: 45px;
+}
+
 .ProseMirror {
   background-color: light-dark(
     var(--mantine-color-white),
@@ -285,4 +293,25 @@
   font-weight: 700;
   margin-top: 0;
   margin-bottom: 0.75em;
+}
+
+/* The full-page base view positions its title with its own outer
+ * wrapper padding (so it can align with the table below). The global
+ * 3rem .ProseMirror padding-x would push the title further in than
+ * the table — drop it inside the base title wrapper only. */
+.base-page-title .ProseMirror {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Definite height so the inner .tableScrollport scrolls and the sticky table
+ * header pins. Flow on print, else it emits a trailing blank page. */
+.base-page-root {
+  height: calc(100dvh - var(--app-shell-header-height, 45px));
+}
+
+@media print {
+  .base-page-root {
+    height: 100%;
+  }
 }

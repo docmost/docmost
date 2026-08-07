@@ -1,0 +1,447 @@
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  max-height: min(86vh, 820px);
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0;
+  flex-shrink: 0;
+}
+
+.topBarGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.iconButton:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.iconButton:disabled:hover {
+  background-color: transparent;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.header {
+  padding: 14px 36px 4px;
+  flex-shrink: 0;
+}
+
+.titleInput {
+  box-sizing: border-box;
+  width: calc(100% + 16px);
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 2px 8px;
+  margin: -2px -8px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  transition: background-color 100ms ease;
+}
+
+.titleInput:hover:not(:focus) {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.titleInput:focus-visible {
+  box-shadow: 0 0 0 2px light-dark(
+    rgba(34, 139, 230, 0.35),
+    rgba(34, 139, 230, 0.45)
+  );
+}
+
+.titleInput::placeholder {
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  font-weight: 700;
+}
+
+.titleStatic {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  word-break: break-word;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  flex-wrap: wrap;
+}
+
+.metaDot {
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+  flex-shrink: 0;
+}
+
+.body {
+  padding: 24px 36px 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.propertyList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.propertyRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 0;
+  border-radius: 8px;
+}
+
+.propertyLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 168px;
+  flex: 0 0 168px;
+  height: 34px;
+  padding-left: 4px;
+  font-size: 13.5px;
+  /* gray-7/dark-1 clear WCAG AA 4.5:1; gray-6/dark-2 do not. */
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+/* The label doubles as the field-menu handle: a quiet button that grows a
+   chevron on hover. */
+.propertyLabelButton {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  padding-right: 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.propertyLabelButton:hover,
+.propertyLabelButton:focus-visible,
+.propertyLabelButton.propertyLabelActive {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+}
+
+.propertyLabelChevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  transition: opacity 100ms ease;
+}
+
+.propertyLabelButton:hover .propertyLabelChevron,
+.propertyLabelButton:focus-visible .propertyLabelChevron,
+.propertyLabelButton.propertyLabelActive .propertyLabelChevron {
+  opacity: 1;
+}
+
+.propertyLabelIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.propertyLabelText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Every value renders inside the same shell: identical padding, identical
+   left edge, identical focus treatment. Fields differ only in content. */
+
+.fieldShell {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  /* Single type-scale declaration; field content inherits. Matches the
+     grid's .cell base so cell components render identically here. */
+  font-size: var(--mantine-font-size-sm);
+  line-height: 22px;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  transition: background-color 100ms ease, border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.fieldShellTop {
+  align-items: flex-start;
+}
+
+.fieldShellText {
+  cursor: text;
+}
+
+.fieldShellPointer {
+  cursor: pointer;
+}
+
+.fieldShellText:hover,
+.fieldShellPointer:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.fieldShell:focus-within,
+.fieldShellActive,
+.fieldShellActive:hover {
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  border-color: light-dark(var(--mantine-color-blue-5), var(--mantine-color-blue-5));
+  box-shadow: 0 0 0 3px light-dark(
+    rgba(34, 139, 230, 0.12),
+    rgba(34, 139, 230, 0.22)
+  );
+}
+
+.fieldShellLocked {
+  cursor: default;
+}
+
+/* Sole read-only indicator on a field — must clear the 3:1 non-text minimum. */
+.fieldLockIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.fieldInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: left;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+.fieldValueText {
+  font-size: inherit;
+  line-height: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fieldValueTextMultiline {
+  font-size: inherit;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.fieldTextarea {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldTextareaInput {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  line-height: 1.5;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+.fieldChips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+}
+
+.fieldCellDisplay {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Grid cells right-align numeric output (.numberValue); inside the modal
+   everything starts from the left. */
+.fieldCellDisplay :global(*) {
+  text-align: left;
+}
+
+.fieldTrailing {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  opacity: 0;
+  transition: opacity 100ms ease, color 100ms ease;
+}
+
+.fieldShell:hover .fieldTrailing,
+.fieldTrailing:focus-visible {
+  opacity: 1;
+}
+
+.fieldTrailing:hover {
+  color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+/* "Add property" rendered as the ghost next row of the ledger. */
+.addPropertyRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 6px;
+  padding: 0 0 0 4px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.addPropertyRow:hover,
+.addPropertyRow:focus-visible {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+}
+
+.addPropertyLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 36px 16px;
+  border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  font-size: 12px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  flex-shrink: 0;
+  min-height: 44px;
+}
+
+.footerStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.savingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--mantine-color-yellow-5);
+  animation: savingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes savingPulse {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 0 rgba(250, 176, 5, 0.45);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 4px rgba(250, 176, 5, 0);
+  }
+}
+
+.lockedHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kbdHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kbdSeparator {
+  width: 1px;
+  height: 12px;
+  margin: 0 2px;
+  background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  box-shadow: 0 1px 0 light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+}

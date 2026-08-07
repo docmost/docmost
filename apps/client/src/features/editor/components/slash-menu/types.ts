@@ -21,6 +21,7 @@ export type SlashMenuItemType = {
   searchTerms: string[];
   command: (props: CommandProps) => void;
   disable?: (editor: ReturnType<typeof useEditor>) => boolean;
+  requiresBases?: true;
 };
 
 export type SlashMenuGroupedItemsType = {

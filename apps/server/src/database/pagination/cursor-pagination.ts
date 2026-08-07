@@ -14,12 +14,14 @@ type SortField<DB, TB extends keyof DB, O> =
         | (StringReference<DB, TB> & `${string}.${keyof O & string}`);
       direction: OrderByDirection;
       orderModifier?: OrderByModifiers;
+      cursorExpression?: ReferenceExpression<DB, TB>;
       key?: keyof O & string;
     }
   | {
       expression: ReferenceExpression<DB, TB>;
       direction: OrderByDirection;
       orderModifier?: OrderByModifiers;
+      cursorExpression?: ReferenceExpression<DB, TB>;
       key: keyof O & string;
     };
 
@@ -202,11 +204,12 @@ export async function executeWithCursorPagination<
 
         const comparison = field.direction === defaultDirection ? '>' : '<';
         const value = cursor[field.key as keyof typeof cursor];
+        const compareExpr = field.cursorExpression ?? field.expression;
 
-        const conditions = [eb(field.expression, comparison, value)];
+        const conditions = [eb(compareExpr, comparison, value)];
 
         if (expression) {
-          conditions.push(and([eb(field.expression, '=', value), expression]));
+          conditions.push(and([eb(compareExpr, '=', value), expression]));
         }
 
         expression = or(conditions);

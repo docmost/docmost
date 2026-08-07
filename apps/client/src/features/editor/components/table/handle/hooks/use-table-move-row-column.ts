@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Editor } from "@tiptap/react";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { TableMap } from "@tiptap/pm/tables";
-import { moveColumn, moveRow } from "@docmost/editor-ext";
+import { isEditorReady, moveColumn, moveRow } from "@docmost/editor-ext";
 
 export type MoveDirection = "left" | "right" | "up" | "down";
 
@@ -25,7 +25,7 @@ export function useTableMoveRowColumn(
   const canMove = target >= 0 && target <= maxIndex;
 
   const handleMove = useCallback(() => {
-    if (!canMove) return;
+    if (!canMove || !isEditorReady(editor)) return;
     const tr = editor.state.tr;
     const moved =
       orientation === "col"

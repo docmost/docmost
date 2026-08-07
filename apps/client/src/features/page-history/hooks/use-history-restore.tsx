@@ -42,6 +42,14 @@ export function useHistoryRestore() {
 
   const handleRestore = useCallback(() => {
     if (!activeHistoryData) return;
+    if (
+      !mainEditor ||
+      mainEditor.isDestroyed ||
+      !mainEditorTitle ||
+      mainEditorTitle.isDestroyed
+    ) {
+      return;
+    }
 
     mainEditorTitle
       .chain()

@@ -3,6 +3,7 @@ import { ActionIcon } from "@mantine/core";
 import { IconChevronRight, IconFileDescription } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { IPage } from "@/features/page/types/page.types";
+import { getPageTitle } from "@/features/page/page.utils";
 import { PageChildren } from "./page-children";
 import classes from "./destination-picker.module.css";
 
@@ -95,7 +96,7 @@ export function PageRow({
         </div>
 
         <div className={classes.pageTitle}>
-          {page.title || t("Untitled")}
+          {getPageTitle(page.title, page.isBase, t)}
         </div>
       </div>
 

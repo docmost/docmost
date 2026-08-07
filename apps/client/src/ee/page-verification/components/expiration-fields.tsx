@@ -1,6 +1,7 @@
 import { Group, NumberInput, Select, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n.ts";
 import {
   ExpirationMode,
   PeriodUnit,
@@ -30,7 +31,7 @@ export function addDays(days: number, from?: Date): Date {
 
 function formatShortDate(date: Date): string {
   const crossesYear = date.getFullYear() !== new Date().getFullYear();
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(i18n.language, {
     month: "short",
     day: "numeric",
     ...(crossesYear && { year: "numeric" }),
@@ -38,7 +39,7 @@ function formatShortDate(date: Date): string {
 }
 
 function formatLongDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(i18n.language, {
     month: "long",
     day: "numeric",
     year: "numeric",

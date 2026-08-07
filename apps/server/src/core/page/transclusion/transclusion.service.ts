@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import { isDeepStrictEqual } from 'node:util';
 import { v7 as uuid7 } from 'uuid';
-import { KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { PageTransclusionsRepo } from '@docmost/db/repos/page-transclusions/page-transclusions.repo';
 import { PageTransclusionReferencesRepo } from '@docmost/db/repos/page-transclusions/page-transclusion-references.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import {
@@ -36,10 +38,12 @@ export class TransclusionService {
   private readonly logger = new Logger(TransclusionService.name);
 
   constructor(
+    @InjectKysely() private readonly db: KyselyDB,
     private readonly pageTransclusionsRepo: PageTransclusionsRepo,
     private readonly pageTransclusionReferencesRepo: PageTransclusionReferencesRepo,
     private readonly pageRepo: PageRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly attachmentRepo: AttachmentRepo,
     private readonly storageService: StorageService,
     private readonly pageAccessService: PageAccessService,
@@ -213,6 +217,40 @@ export class TransclusionService {
     return { inserted: rows.length };
   }
 
+  /**
+   * Resolve viewer access for source page IDs supplied by an authenticated
+   * caller. Restricts candidates to pages the viewer can see at the space
+   * level before applying page-level restrictions, so a workspace member
+   * cannot read a sync block from a private space they don't belong to via
+   * an unrestricted source page.
+   */
+  private async filterViewerAccessiblePageIds(
+    pageIds: string[],
+    viewerUserId: string,
+    workspaceId: string,
+  ): Promise<string[]> {
+    if (pageIds.length === 0) return [];
+
+    const spaceVisible = await this.db
+      .selectFrom('pages')
+      .select('id')
+      .where('id', 'in', pageIds)
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(viewerUserId),
+      )
+      .execute();
+    if (spaceVisible.length === 0) return [];
+
+    return this.pagePermissionRepo.filterAccessiblePageIds({
+      pageIds: spaceVisible.map((r) => r.id),
+      userId: viewerUserId,
+    });
+  }
+
   async lookup(
     references: Array<{ sourcePageId: string; transclusionId: string }>,
     viewerUserId: string,
@@ -224,10 +262,11 @@ export class TransclusionService {
       new Set(references.map((r) => r.sourcePageId)),
     );
     const accessibleSet = new Set(
-      await this.pagePermissionRepo.filterAccessiblePageIds({
-        pageIds: candidatePageIds,
-        userId: viewerUserId,
-      }),
+      await this.filterViewerAccessiblePageIds(
+        candidatePageIds,
+        viewerUserId,
+        workspaceId,
+      ),
     );
 
     return this.lookupWithAccessSet(references, accessibleSet, workspaceId);
@@ -336,10 +375,11 @@ export class TransclusionService {
       new Set([sourcePageId, ...referencePageIds]),
     );
     const accessibleSet = new Set(
-      await this.pagePermissionRepo.filterAccessiblePageIds({
-        pageIds: candidatePageIds,
-        userId: viewerUserId,
-      }),
+      await this.filterViewerAccessiblePageIds(
+        candidatePageIds,
+        viewerUserId,
+        workspaceId,
+      ),
     );
 
     const accessibleIds = candidatePageIds.filter((id) =>

@@ -29,11 +29,17 @@ import UseTemplateModal from "@/ee/template/components/use-template-modal";
 import TemplatePreviewModal from "@/ee/template/components/template-preview-modal";
 import useUserRole from "@/hooks/use-user-role";
 import CreateTemplateModal from "@/ee/template/components/create-template-modal";
+import { useAtomValue } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 
 export default function TemplateList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAdmin: isWorkspaceAdmin } = useUserRole();
+  const workspace = useAtomValue(workspaceAtom);
+  const canCreateTemplate =
+    isWorkspaceAdmin ||
+    workspace?.settings?.templates?.allowMemberTemplates === true;
   const [spaceFilter, setSpaceFilter] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<ITemplate | null>(
     null,
@@ -105,7 +111,7 @@ export default function TemplateList() {
       <Container size="900" pt="xl">
         <Group justify="space-between" mb="xl">
           <Title order={3}>{t("Templates")}</Title>
-          {isWorkspaceAdmin && (
+          {canCreateTemplate && (
             <Button
               leftSection={<IconPlus size={16} />}
               onClick={openCreateModal}

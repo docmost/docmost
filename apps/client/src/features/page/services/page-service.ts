@@ -132,6 +132,25 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
   saveAs(req.data, decodedFileName);
 }
 
+export async function exportPageToDocx(data: { pageId: string }): Promise<void> {
+  const req = await api.post("/docx-export", data, {
+    responseType: "blob",
+  });
+
+  const fileName = req?.headers["content-disposition"]
+    .split("filename=")[1]
+    .replace(/"/g, "");
+
+  let decodedFileName = fileName;
+  try {
+    decodedFileName = decodeURIComponent(fileName);
+  } catch (err) {
+    // fallback to raw filename
+  }
+
+  saveAs(req.data, decodedFileName);
+}
+
 export async function importPage(file: File, spaceId: string) {
   const formData = new FormData();
   formData.append("spaceId", spaceId);

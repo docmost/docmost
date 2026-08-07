@@ -58,6 +58,7 @@ export default function PdfRenderPage() {
         title={data.title}
         content={data.content}
         pageId={data.pageId}
+        printMode
       />
     </Container>
   );

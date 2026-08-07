@@ -80,7 +80,7 @@ export function WorkspaceInviteForm({ onClose }: Props) {
           defaultValue={UserRole.MEMBER}
           allowDeselect={false}
           checkIconPosition="right"
-          onChange={setRole}
+          onChange={(value) => setRole(value)}
         />
 
         <MultiGroupSelect

@@ -14,7 +14,7 @@ import {
   BacklinkDirection,
   IBacklinkPageItem,
 } from "@/features/page-details/types/backlink.types.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { buildPageUrl, getPageTitle } from "@/features/page/page.utils.ts";
 import { getPageIcon } from "@/lib";
 
 interface BacklinksListProps {
@@ -86,7 +86,7 @@ export function BacklinksList({
             {getPageIcon(item.icon ?? "")}
             <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
               <Text size="sm" fw={500} lineClamp={1}>
-                {item.title || t("Untitled")}
+                {getPageTitle(item.title, undefined, t)}
               </Text>
               {item.space?.name && (
                 <Text size="xs" c="dimmed" lineClamp={1}>

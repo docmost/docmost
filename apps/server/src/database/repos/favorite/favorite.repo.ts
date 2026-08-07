@@ -236,6 +236,7 @@ export class FavoriteRepo {
           'pages.slugId',
           'pages.title',
           'pages.icon',
+          'pages.isBase',
           'pages.spaceId',
         ])
         .whereRef('pages.id', '=', 'favorites.pageId'),

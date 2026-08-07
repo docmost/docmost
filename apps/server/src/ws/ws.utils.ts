@@ -16,3 +16,14 @@ export const TREE_EVENTS = new Set([
   'deleteTreeNode',
   'refetchRootTreeNodeEvent',
 ]);
+
+export function getBaseRoomName(pageId: string): string {
+  return `base-${pageId}`;
+}
+
+export const BASE_INBOUND_EVENTS = new Set([
+  'base:subscribe',
+  'base:unsubscribe',
+  'base:presence',
+  'base:presence:leave',
+]);

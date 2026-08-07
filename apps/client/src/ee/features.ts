@@ -19,4 +19,7 @@ export const Feature = {
   SHARING_CONTROLS: 'sharing:controls',
   TEMPLATES: 'templates',
   VIEWER_COMMENTS: 'comment:viewer',
+  PERSONAL_SPACES: 'spaces:personal',
+  DOCX_EXPORT: 'export:docx',
+  BASES: 'bases',
 } as const;

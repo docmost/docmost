@@ -18,7 +18,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useMarkReadMutation } from "../queries/notification-query";
-import { buildPageUrl } from "@/features/page/page.utils";
+import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { formatRelativeTime } from "../notification.utils";
 import classes from "../notification.module.css";
 
@@ -143,7 +143,7 @@ export function NotificationItem({
                 />
               )}
               <Text size="xs" c="dimmed" lineClamp={1}>
-                {notification.page.title || t("Untitled")}
+                {getPageTitle(notification.page.title, undefined, t)}
               </Text>
             </Group>
           )}

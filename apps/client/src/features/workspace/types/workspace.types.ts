@@ -28,6 +28,8 @@ export interface IWorkspace {
   trashRetentionDays?: number;
   restrictApiToAdmins?: boolean;
   allowMemberTemplates?: boolean;
+  allowPersonalSpaces?: boolean;
+  defaultPageEditMode?: string;
   isScimEnabled?: boolean;
 }
 
@@ -36,6 +38,8 @@ export interface IWorkspaceSettings {
   sharing?: IWorkspaceSharingSettings;
   api?: IWorkspaceApiSettings;
   templates?: IWorkspaceTemplateSettings;
+  spaces?: IWorkspaceSpaceSettings;
+  defaultPageEditMode?: string;
 }
 
 export interface IWorkspaceApiSettings {
@@ -55,6 +59,10 @@ export interface IWorkspaceSharingSettings {
 
 export interface IWorkspaceTemplateSettings {
   allowMemberTemplates?: boolean;
+}
+
+export interface IWorkspaceSpaceSettings {
+  allowPersonal?: boolean;
 }
 
 export interface ICreateInvite {

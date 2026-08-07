@@ -1,11 +1,11 @@
 import { ActionIcon, Group, Menu, Table, Text } from "@mantine/core";
 import { IconDots, IconEdit, IconTrash } from "@tabler/icons-react";
-import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { IApiKey } from "@/ee/api-key";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import React from "react";
 import NoTableResults from "@/components/common/no-table-results";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
 
 interface ApiKeyTableProps {
   apiKeys: IApiKey[];
@@ -23,10 +23,11 @@ export function ApiKeyTable({
   onRevoke,
 }: ApiKeyTableProps) {
   const { t } = useTranslation();
+  const locale = useDateFnsLocale();
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return t("Never");
-    return format(new Date(date), "MMM dd, yyyy");
+    return formatLocalized(date, "MMM dd, yyyy", "PP", locale);
   };
 
   const isExpired = (expiresAt: string | null) => {

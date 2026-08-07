@@ -9,7 +9,7 @@ import { Menu, UnstyledButton } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
-import { isCellSelection } from "@docmost/editor-ext";
+import { isCellSelection, isEditorReady } from "@docmost/editor-ext";
 import { CellChevronMenu } from "./menus/cell-chevron-menu";
 import classes from "./handle.module.css";
 
@@ -27,7 +27,9 @@ export const CellChevron = React.memo(function CellChevron({
   tablePos,
 }: CellChevronProps) {
   const { t } = useTranslation();
-  const cellDom = editor.view.nodeDOM(cellPos) as HTMLElement | null;
+  const cellDom = isEditorReady(editor)
+    ? (editor.view.nodeDOM(cellPos) as HTMLElement | null)
+    : null;
 
   const { refs, floatingStyles, middlewareData } = useFloating({
     placement: "top-end",
@@ -61,6 +63,7 @@ export const CellChevron = React.memo(function CellChevron({
   });
 
   const onOpen = useCallback(() => {
+    if (!isEditorReady(editor)) return;
     const current = editor.state.selection;
 
     // Preserve an existing multi-cell CellSelection that already covers
@@ -86,6 +89,7 @@ export const CellChevron = React.memo(function CellChevron({
   }, [editor, cellPos]);
 
   const onClose = useCallback(() => {
+    if (!isEditorReady(editor)) return;
     editor.commands.unfreezeHandles();
   }, [editor]);
 

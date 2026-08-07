@@ -32,6 +32,16 @@ import {
 } from "../queries/template-query";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import useUserRole from "@/hooks/use-user-role";
+import { useAtomValue } from "jotai";
+import { userAtom } from "@/features/user/atoms/current-user-atom";
+import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
+import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
+import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import TableMenu from "@/features/editor/components/table/table-menu.tsx";
+import { TableHandlesLayer } from "@/features/editor/components/table/handle/table-handles-layer";
+import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
+import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 import classes from "./template-editor.module.css";
 
@@ -39,6 +49,9 @@ export default function TemplateEditor() {
   const { t } = useTranslation();
   const { templateId } = useParams<{ templateId: string }>();
   const { isAdmin: isWorkspaceAdmin } = useUserRole();
+  const user = useAtomValue(userAtom);
+  const editorToolbarEnabled =
+    user?.settings?.preferences?.editorToolbar ?? false;
 
   const { data: existingTemplate } = useGetTemplateByIdQuery(templateId || "");
   const { data: spaces } = useGetSpacesQuery({ limit: 100 });
@@ -76,6 +89,8 @@ export default function TemplateEditor() {
     extensions: templateExtensions,
     content: "",
     editorProps: {
+      scrollThreshold: 80,
+      scrollMargin: 80,
       handleDOMEvents: {
         keydown: (_view, event) => {
           if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
@@ -96,7 +111,7 @@ export default function TemplateEditor() {
 
   // Load template data into editor
   useEffect(() => {
-    if (existingTemplate && editor) {
+    if (existingTemplate && editor && !editor.isDestroyed) {
       loadedRef.current = false;
       setTitle(existingTemplate.title || "");
       setIcon(existingTemplate.icon || null);
@@ -238,6 +253,10 @@ export default function TemplateEditor() {
         </title>
       </Helmet>
 
+      {editorToolbarEnabled && editor && (
+        <FixedToolbar editor={editor} templateMode />
+      )}
+
       <div className={classes.header}>
         <Container size={900} h="100%" px={0}>
         <Group justify="space-between" h="100%" wrap="nowrap">
@@ -370,7 +389,8 @@ export default function TemplateEditor() {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                editor?.commands.focus("start");
+                if (editor && !editor.isDestroyed)
+                  editor.commands.focus("start");
               }
             }}
           />
@@ -379,7 +399,23 @@ export default function TemplateEditor() {
           )}
         </div>
         <EditorContent editor={editor} />
-        <div style={{ paddingBottom: "20vh" }} />
+        {editor && (
+          <>
+            <EditorAiMenu editor={editor} />
+            <EditorBubbleMenu editor={editor} templateMode />
+            <EditorLinkMenu editor={editor} />
+            <TableMenu editor={editor} />
+            <TableHandlesLayer editor={editor} />
+            <CalloutMenu editor={editor} />
+            <ColumnsMenu editor={editor} />
+          </>
+        )}
+        <div
+          onClick={() => {
+            if (editor && !editor.isDestroyed) editor.commands.focus("end");
+          }}
+          style={{ paddingBottom: "20vh" }}
+        />
       </Container>
     </>
   );

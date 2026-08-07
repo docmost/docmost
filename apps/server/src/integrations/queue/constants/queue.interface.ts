@@ -113,3 +113,47 @@ export interface IApprovalRejectedNotificationJob {
   requestedById: string;
   comment?: string;
 }
+
+export interface IBaseTypeConversionJob {
+  pageId: string;
+  propertyId: string;
+  workspaceId: string;
+  fromType: string;
+  toType: string;
+  // Snapshots taken at enqueue time so the job stays correct even if the
+  // property's current typeOptions drift while the job waits in the queue.
+  fromTypeOptions: unknown;
+  toTypeOptions: unknown;
+  // When true, the job nulls the cell values for that property instead of
+  // attempting a value conversion. Used for any conversion where the new
+  // type has no meaningful representation of the old value (e.g. involving
+  // a system type).
+  clearMode: boolean;
+  // Staging identity: guards redelivery and failure cleanup against a
+  // same-type re-stage made after this job was enqueued.
+  pendingToken: string;
+  actorId?: string;
+}
+
+export interface IBaseCellGcJob {
+  pageId: string;
+  propertyId: string;
+  workspaceId: string;
+}
+
+export interface IBaseFormulaRecomputeJob {
+  pageId: string;
+  workspaceId: string;
+  propertyIds: string[]; // formula properties to recompute
+  reason:
+    | 'formula_created'
+    | 'formula_edited'
+    | 'dep_type_changed'
+    | 'dep_deleted'
+    | 'bulk_import'
+    | 'manual';
+  actorId?: string | null;
+  // When set, scope recompute to these row IDs instead of the whole base.
+  // Used by the bulk-write path (> FORMULA_INLINE_ROW_THRESHOLD).
+  rowIds?: string[];
+}

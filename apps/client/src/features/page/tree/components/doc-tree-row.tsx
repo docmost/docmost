@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
 import {
@@ -145,7 +146,15 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
               getOffset: pointerOutsideOfPreview({ x: '16px', y: '8px' }),
               render: ({ container }) => {
                 const root = createRoot(container);
-                root.render(<DocTreeDragPreview label={getDragLabel(node)} />);
+                // flushSync forces the preview to paint into `container`
+                // synchronously, before pragmatic-dnd snapshots it for the
+                // native drag image. Without it, createRoot's async render
+                // leaves the container empty at snapshot time, so the browser
+                // falls back to a default snapshot of the source row (and the
+                // stale image can linger on screen).
+                flushSync(() => {
+                  root.render(<DocTreeDragPreview label={getDragLabel(node)} />);
+                });
                 return () => root.unmount();
               },
             });

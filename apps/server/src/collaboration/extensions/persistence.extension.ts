@@ -96,7 +96,7 @@ export class PersistenceExtension implements Extension {
   }
 
   async onStoreDocument(data: onStoreDocumentPayload) {
-    const { documentName, document, context } = data;
+    const { documentName, document, lastContext } = data;
 
     const pageId = getPageId(documentName);
 
@@ -151,7 +151,7 @@ export class PersistenceExtension implements Extension {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
-            lastUpdatedById: context.user.id,
+            lastUpdatedById: lastContext.user.id,
             contributorIds: contributorIds,
           },
           pageId,
@@ -165,6 +165,21 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
+      document.broadcastStateless(
+        JSON.stringify({
+          type: 'page.updated',
+          updatedAt: new Date().toISOString(),
+          lastUpdatedById: lastContext?.user?.id,
+          lastUpdatedBy: lastContext?.user
+            ? {
+                id: lastContext.user?.id,
+                name: lastContext.user?.name,
+                avatarUrl: lastContext.user?.avatarUrl,
+              }
+            : undefined,
+        }),
+      );
+
       await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
     }
 

@@ -10,7 +10,7 @@ import {
   Button,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { buildPageUrl } from "@/features/page/page.utils";
+import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { formattedDate } from "@/lib/time";
 import { useFavoritesQuery } from "@/features/favorite/queries/favorite-query";
 import { IconFileDescription, IconStar } from "@tabler/icons-react";
@@ -82,7 +82,7 @@ export default function FavoritesPage() {
                               </ThemeIcon>
                             )}
                             <Text fw={500} size="md" lineClamp={1}>
-                              {fav.page.title || t("Untitled")}
+                              {getPageTitle(fav.page.title, undefined, t)}
                             </Text>
                           </Group>
                         </UnstyledButton>

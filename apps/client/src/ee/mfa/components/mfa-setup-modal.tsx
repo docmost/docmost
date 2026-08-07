@@ -47,7 +47,6 @@ interface MfaSetupModalProps {
 }
 
 interface SetupData {
-  secret: string;
   qrCode: string;
   manualKey: string;
 }
@@ -101,7 +100,6 @@ export function MfaSetupModal({
   const enableMutation = useMutation({
     mutationFn: (verificationCode: string) =>
       enableMfa({
-        secret: setupData!.secret,
         verificationCode,
       }),
     onSuccess: (data) => {
@@ -193,7 +191,7 @@ export function MfaSetupModal({
                     </Group>
                   </UnstyledButton>
 
-                  <Collapse in={manualEntryOpen}>
+                  <Collapse expanded={manualEntryOpen}>
                     <Alert
                       icon={<IconAlertCircle size={20} />}
                       color="gray"

@@ -1,6 +1,7 @@
 import {
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
@@ -13,6 +14,7 @@ import { OnModuleDestroy } from '@nestjs/common';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { WsService } from './ws.service';
 import { getSpaceRoomName, getUserRoomName } from './ws.utils';
+import { BaseRealtimeBridge } from './base-realtime.bridge';
 import * as cookie from 'cookie';
 
 @WebSocketGateway({
@@ -20,7 +22,11 @@ import * as cookie from 'cookie';
   transports: ['websocket'],
 })
 export class WsGateway
-  implements OnGatewayConnection, OnGatewayInit, OnModuleDestroy
+  implements
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnGatewayInit,
+    OnModuleDestroy
 {
   @WebSocketServer()
   server: Server;
@@ -29,10 +35,12 @@ export class WsGateway
     private tokenService: TokenService,
     private spaceMemberRepo: SpaceMemberRepo,
     private wsService: WsService,
+    private baseRealtime: BaseRealtimeBridge,
   ) {}
 
   afterInit(server: Server): void {
     this.wsService.setServer(server);
+    this.baseRealtime.setServer(server);
   }
 
   async handleConnection(client: Socket, ...args: any[]): Promise<void> {
@@ -47,6 +55,7 @@ export class WsGateway
       const workspaceId = token.workspaceId;
 
       client.data.userId = userId;
+      client.data.workspaceId = workspaceId;
 
       const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
@@ -61,10 +70,19 @@ export class WsGateway
     }
   }
 
+  async handleDisconnect(client: Socket): Promise<void> {
+    await this.baseRealtime.handleDisconnect(client);
+  }
+
   @SubscribeMessage('message')
   async handleMessage(client: Socket, data: any): Promise<void> {
     if (this.wsService.isTreeEvent(data)) {
       await this.wsService.handleTreeEvent(client, data);
+      return;
+    }
+    if (this.baseRealtime.isBaseEvent(data)) {
+      await this.baseRealtime.handleInbound(client, data);
+      return;
     }
   }
 

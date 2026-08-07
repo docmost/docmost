@@ -34,7 +34,7 @@ export function HistoryEditor({
   });
 
   useEffect(() => {
-    if (!editor || !content) return;
+    if (!editor || editor.isDestroyed || !content) return;
 
     let decorationSet = DecorationSet.empty;
     let addedCount = 0;

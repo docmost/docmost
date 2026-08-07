@@ -69,7 +69,7 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
   const [isCountOpen, setIsCountOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const nodesWithMenus = [
     "callout",

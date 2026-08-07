@@ -1,11 +1,11 @@
 import { ActionIcon, Group, Menu, Table, Text } from "@mantine/core";
 import { IconDots, IconEdit, IconTrash } from "@tabler/icons-react";
-import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import React from "react";
 import NoTableResults from "@/components/common/no-table-results";
 import { IScimToken } from "@/ee/scim/types/scim-token.types";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
 
 interface ScimTokenTableProps {
   tokens: IScimToken[];
@@ -21,10 +21,11 @@ export function ScimTokenTable({
   onRevoke,
 }: ScimTokenTableProps) {
   const { t } = useTranslation();
+  const locale = useDateFnsLocale();
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return t("Never");
-    return format(new Date(date), "MMM dd, yyyy");
+    return formatLocalized(date, "MMM dd, yyyy", "PP", locale);
   };
 
   return (

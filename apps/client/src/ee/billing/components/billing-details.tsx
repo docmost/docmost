@@ -4,12 +4,13 @@ import {
 } from "@/ee/billing/queries/billing-query.ts";
 import { Group, Text, SimpleGrid, Paper } from "@mantine/core";
 import classes from "./billing.module.css";
-import { format } from "date-fns";
 import { formatInterval } from "@/ee/billing/utils.ts";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
 
 export default function BillingDetails() {
   const { data: billing } = useBillingQuery();
   const { data: plans } = useBillingPlans();
+  const locale = useDateFnsLocale();
 
   if (!billing || !plans) {
     return null;
@@ -75,7 +76,12 @@ export default function BillingDetails() {
                   : "Renewal date"}
               </Text>
               <Text fw={700} fz="lg">
-                {format(billing.periodEndAt, "dd MMM, yyyy")}
+                {formatLocalized(
+                  billing.periodEndAt,
+                  "dd MMM, yyyy",
+                  "PP",
+                  locale,
+                )}
               </Text>
             </div>
           </Group>

@@ -15,6 +15,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { useCreateCommentMutation } from "@/features/comment/queries/comment-query";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { useEditor } from "@tiptap/react";
+import { isEditorReady } from "@docmost/editor-ext";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { useTranslation } from "react-i18next";
 
@@ -48,11 +49,14 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
       setReadOnlyCommentData(null);
     } else {
       setShowCommentPopup(false);
-      editor.chain().focus().unsetCommentDecoration().run();
+      if (isEditorReady(editor)) {
+        editor.chain().focus().unsetCommentDecoration().run();
+      }
     }
   };
 
   const getSelectedText = () => {
+    if (!isEditorReady(editor)) return "";
     const { from, to } = editor.state.selection;
     return editor.state.doc.textBetween(from, to);
   };
@@ -74,14 +78,18 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
 
       const createdComment =
         await createCommentMutation.mutateAsync(commentData);
-      editor
-        .chain()
-        .setComment(createdComment.id)
-        .unsetCommentDecoration()
-        .run();
+      if (isEditorReady(editor)) {
+        editor
+          .chain()
+          .setComment(createdComment.id)
+          .unsetCommentDecoration()
+          .run();
+        editor.commands.setTextSelection({
+          from: editor.view.state.selection.from,
+          to: editor.view.state.selection.from,
+        });
+      }
       setActiveCommentId(createdComment.id);
-
-      editor.commands.setTextSelection({ from: editor.view.state.selection.from, to: editor.view.state.selection.from });
 
       setAsideState({ tab: "comments", isAsideOpen: true });
       setTimeout(() => {
@@ -89,9 +97,9 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
         const commentElement = document.querySelector(selector);
         commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
 
-        editor.view.dispatch(
-          editor.state.tr.scrollIntoView()
-        );
+        if (isEditorReady(editor)) {
+          editor.view.dispatch(editor.state.tr.scrollIntoView());
+        }
       }, 400);
 
     } finally {

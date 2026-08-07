@@ -1,7 +1,7 @@
-FROM node:22-slim AS base
+FROM node:26-slim AS base
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
-RUN npm install -g pnpm@10.4.0
+RUN npm install -g pnpm@11.15.1
 
 FROM base AS builder
 
@@ -28,11 +28,12 @@ COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
 # Copy packages
 COPY --from=builder /app/packages/editor-ext/dist /app/packages/editor-ext/dist
 COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-ext/package.json
+COPY --from=builder /app/packages/base-formula/dist /app/packages/base-formula/dist
+COPY --from=builder /app/packages/base-formula/package.json /app/packages/base-formula/package.json
 
 # Copy root package files
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/pnpm*.yaml /app/
-COPY --from=builder /app/.npmrc /app/.npmrc
 
 # Copy patches
 COPY --from=builder /app/patches /app/patches

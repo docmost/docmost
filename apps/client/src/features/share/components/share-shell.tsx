@@ -64,7 +64,7 @@ export default function ShareShell({
   const [fullWidth, setFullWidth] = useAtom(sharedPageFullWidthAtom);
   const [sidebarWidth, setSidebarWidth] = useAtom(sidebarWidthAtom);
   const [isResizing, setIsResizing] = useState(false);
-  const sidebarRef = useRef<HTMLElement | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
