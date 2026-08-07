@@ -164,7 +164,12 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   const handleToggle = useCallback(
     async (id: string, isOpen: boolean) => {
-      setOpenTreeNodes((prev) => ({ ...prev, [id]: isOpen }));
+      setOpenTreeNodes((prev) => {
+        if (isOpen) return { ...prev, [id]: true };
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       if (isOpen) {
         const node = treeModel.find(data, id) as SpaceTreeNode | null;
         if (
