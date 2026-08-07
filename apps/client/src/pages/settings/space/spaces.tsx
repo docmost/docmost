@@ -15,7 +15,7 @@ export default function Spaces() {
     <>
       <Helmet>
         <title>
-          {t("Spaces")} - {getAppName()}
+          {`${t("Spaces")}`}
         </title>
       </Helmet>
       <SettingsTitle title={t("Spaces")} />

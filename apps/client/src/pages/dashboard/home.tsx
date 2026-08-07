@@ -13,7 +13,7 @@ export default function Home() {
     <>
       <Helmet>
         <title>
-          {t("Home")} - {getAppName()}
+          {`${getAppName()}`}
         </title>
       </Helmet>
       <Container size={"900"} pt="xl">

@@ -84,7 +84,7 @@ export default function LabelPage() {
     <>
       <Helmet>
         <title>
-          {labelName} - {getAppName()}
+          {`${labelName}`}
         </title>
       </Helmet>
 

@@ -14,7 +14,7 @@ export default function Groups() {
   return (
     <>
         <Helmet>
-            <title>{t("Groups")} - {getAppName()}</title>
+            <title>{`${t("Groups")}`}</title>
         </Helmet>
       <SettingsTitle title={t("Groups")} />
 

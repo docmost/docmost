@@ -14,7 +14,7 @@ export default function Shares() {
     <>
       <Helmet>
         <title>
-          {t("Public sharing")} - {getAppName()}
+          {`${t("Public sharing")}`}
         </title>
       </Helmet>
       <SettingsTitle title={t("Public sharing")} />
