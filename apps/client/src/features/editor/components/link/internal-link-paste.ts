@@ -17,6 +17,27 @@ export interface InternalLinkOptions {
   onResolveLink: (linkedPageId: string, creatorId: string) => Promise<any>;
 }
 
+function getHeadingText(content: string, anchorId: string): string | null {
+  try {
+    const doc = JSON.parse(content);
+    function find(node: any): string | null {
+      if (node.type === "heading" && node.attrs?.id === anchorId) {
+        return node.content?.[0]?.text || null;
+      }
+      if (node.content) {
+        for (const child of node.content) {
+          const result = find(child);
+          if (result) return result;
+        }
+      }
+      return null;
+    }
+    return find(doc);
+  } catch {
+    return null;
+  }
+}
+
 export const handleInternalLink =
   ({ validateFn, onResolveLink }: InternalLinkOptions): LinkFn =>
   async (url: string, view, pos, creatorId, anchorId) => {
@@ -29,9 +50,15 @@ export const handleInternalLink =
       (page: IPage) => {
         const { schema } = view.state;
 
+        let label = page.title || "Untitled";
+        if (anchorId && page.content) {
+          const headingText = getHeadingText(page.content, anchorId);
+          if (headingText) label = headingText;
+        }
+
         const node = schema.nodes.mention.create({
           id: v7(),
-          label: page.title || "Untitled",
+          label,
           entityType: "page",
           entityId: page.id,
           slugId: page.slugId,
@@ -45,7 +72,6 @@ export const handleInternalLink =
         view.dispatch(transaction);
       },
       () => {
-        // on failure, insert as normal link
         const { schema } = view.state;
 
         const transaction = view.state.tr.insertText(url, pos);
@@ -62,7 +88,6 @@ export const handleInternalLink =
 
 export const createMentionAction = handleInternalLink({
   onResolveLink: async (linkedPageId: string): Promise<any> => {
-    // eslint-disable-next-line no-useless-catch
     try {
       return await getPageById({ pageId: linkedPageId });
     } catch (err) {
@@ -70,7 +95,6 @@ export const createMentionAction = handleInternalLink({
     }
   },
   validateFn: (url: string, view: EditorView) => {
-    // validation is already done on the paste handler
     return true;
   },
 });
