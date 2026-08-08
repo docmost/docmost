@@ -257,6 +257,21 @@ export class IntegrationConnectionRepo {
       .executeTakeFirst();
   }
 
+  async findUserLinkByUserId(
+    integrationId: string,
+    userId: string,
+    trx?: KyselyTransaction,
+  ): Promise<IntegrationConnection | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .selectFrom('integrationConnections')
+      .selectAll()
+      .where('integrationId', '=', integrationId)
+      .where('userId', '=', userId)
+      .where('kind', '=', 'user')
+      .executeTakeFirst();
+  }
+
   async deleteUserLink(
     integrationId: string,
     userId: string,
