@@ -424,34 +424,6 @@ export class PageRepo {
     });
   }
 
-  async canPageBeUnfurled(pageId: string, workspaceId: string): Promise<boolean> {
-    const result = await this.db
-      .selectFrom('pages')
-      .innerJoin('spaces', 'spaces.id', 'pages.spaceId')
-      .innerJoin('groups', (join) =>
-        join
-          .onRef('groups.workspaceId', '=', 'spaces.workspaceId')
-          .on('groups.isDefault', '=', true)
-          .on('groups.deletedAt', 'is', null),
-      )
-      .innerJoin('spaceMembers', (join) =>
-        join
-          .onRef('spaceMembers.spaceId', '=', 'spaces.id')
-          .onRef('spaceMembers.groupId', '=', 'groups.id'),
-      )
-      .leftJoin('pageAccess', 'pageAccess.pageId', 'pages.id')
-      .leftJoin('pagePermissions', 'pagePermissions.pageAccessId', 'pageAccess.id')
-      .select(['pages.id'])
-      .where('pages.id', '=', pageId)
-      .where('pages.workspaceId', '=', workspaceId)
-      .where('pages.deletedAt', 'is', null)
-      .where('pagePermissions.id', 'is', null)
-      .limit(1)
-      .executeTakeFirst();
-
-    return !!result;
-  }
-
   withSpace(eb: ExpressionBuilder<DB, 'pages'>) {
     return jsonObjectFrom(
       eb
