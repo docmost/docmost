@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
-import { TextSelection, type EditorState } from '@tiptap/pm/state';
+import { TextSelection, Transaction, type EditorState } from '@tiptap/pm/state';
 import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
 import { generateNodeId } from '../utils';
@@ -14,11 +14,12 @@ declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     tabs: {
       insertTabs: () => ReturnType;
-      setActiveTab: (index: number, tabsPos?: number) => ReturnType;
+      insertTab: (pos: string) => ReturnType;
+      setActiveTab: (index: number, tabsPos: number) => ReturnType;
       updateTabLabel: (
         index: number,
         label: string,
-        tabsPos?: number,
+        tabsPos: number,
       ) => ReturnType;
     };
   }
@@ -85,6 +86,24 @@ export const Tabs = Node.create<TabsOptions>({
       ]);
     };
 
+    const resolveTabs = (state: EditorState) => {
+      const { $from } = state.selection;
+      let depth = $from.depth;
+
+      while (depth >= 0) {
+        const node = $from.node(depth);
+        if (node.type.name === 'tabs') {
+          return {
+            node,
+            pos: $from.before(depth),
+          };
+        }
+        depth--;
+      }
+
+      return null;
+    };
+
     const resolveTarget = (state: EditorState, pos: number) => {
       const node = state.doc.nodeAt(pos);
       return { node, pos: pos };
@@ -93,6 +112,49 @@ export const Tabs = Node.create<TabsOptions>({
     const getTabPos = (doc: PMNode, tabsPos: number, tabIndex: number) => {
       const pos = doc.resolve(tabsPos + 1);
       return pos.posAtIndex(tabIndex, pos.depth);
+    };
+
+    const applyActiveTabState = (
+      tr: Transaction,
+      tabsPos: number,
+      previousIndex: number,
+      nextIndex: number,
+    ) => {
+      const tabsNode = tr.doc.nodeAt(tabsPos);
+      if (tabsNode?.type.name !== 'tabs' || tabsNode.childCount <= 0) {
+        return null;
+      }
+
+      const prev = clampIndex(previousIndex, tabsNode.childCount);
+      const next = clampIndex(nextIndex, tabsNode.childCount);
+
+      tr.setNodeMarkup(tabsPos, undefined, {
+        ...tabsNode.attrs,
+        activeTab: next,
+      });
+
+      const prevTabPos = getTabPos(tr.doc, tabsPos, prev);
+      const nextTabPos = getTabPos(tr.doc, tabsPos, next);
+
+      if (prev !== next) {
+        const prevTabNode = tr.doc.nodeAt(prevTabPos);
+        if (prevTabNode) {
+          tr.setNodeMarkup(prevTabPos, undefined, {
+            ...prevTabNode.attrs,
+            active: false,
+          });
+        }
+      }
+
+      const nextTabNode = tr.doc.nodeAt(nextTabPos);
+      if (nextTabNode) {
+        tr.setNodeMarkup(nextTabPos, undefined, {
+          ...nextTabNode.attrs,
+          active: true,
+        });
+      }
+
+      return nextTabPos;
     };
 
     return {
@@ -128,6 +190,55 @@ export const Tabs = Node.create<TabsOptions>({
           return true;
         },
 
+      insertTab:
+        (pos: string) =>
+        ({ state, tr, dispatch }) => {
+          const tabs = resolveTabs(state);
+          if (!tabs || tabs.node.childCount <= 0) return false;
+
+          const currentTabIndex = clampIndex(
+            tabs.node.attrs.activeTab,
+            tabs.node.childCount,
+          );
+
+          const insertIndex =
+            pos === 'right' ? currentTabIndex + 1 : currentTabIndex;
+
+          const newTab = createTab(state.schema, 'Tab', false);
+          if (!newTab) return false;
+
+          const insertPos = getTabPos(state.doc, tabs.pos, insertIndex);
+          tr.insert(insertPos, newTab);
+
+          const insertedTabPos = getTabPos(tr.doc, tabs.pos, insertIndex);
+          tr.setNodeMarkup(insertedTabPos, undefined, {
+            ...newTab.attrs,
+            active: true,
+          });
+
+          const previousActiveIndex =
+            pos === 'left' ? currentTabIndex + 1 : currentTabIndex;
+
+          const activeTabPos = applyActiveTabState(
+            tr,
+            tabs.pos,
+            previousActiveIndex,
+            insertIndex,
+          );
+          if (activeTabPos == null) return false;
+
+          const tabNode = tr.doc.nodeAt(activeTabPos);
+          const labelSize = tabNode?.child(0).nodeSize ?? 0;
+          const panelContentPos = activeTabPos + 1 + labelSize + 1;
+
+          tr.setSelection(
+            TextSelection.near(tr.doc.resolve(panelContentPos), 1),
+          );
+
+          if (dispatch) dispatch(tr);
+          return true;
+        },
+
       setActiveTab:
         (index, tabsPos) =>
         ({ state, tr, dispatch }) => {
@@ -140,27 +251,17 @@ export const Tabs = Node.create<TabsOptions>({
             target.node.childCount,
           );
 
-          const nextTab = getTabPos(state.doc, target.pos, nextIndex);
-          if (prevIndex !== nextIndex) {
-            const prevTab = getTabPos(state.doc, target.pos, prevIndex);
+          const activeTabPos = applyActiveTabState(
+            tr,
+            target.pos,
+            prevIndex,
+            nextIndex,
+          );
+          if (activeTabPos == null) return false;
 
-            tr.setNodeMarkup(target.pos, undefined, {
-              ...target.node.attrs,
-              activeTab: nextIndex,
-            });
-            tr.setNodeMarkup(prevTab, undefined, {
-              ...target.node.child(prevIndex).attrs,
-              active: false,
-            });
-            tr.setNodeMarkup(nextTab, undefined, {
-              ...target.node.child(nextIndex).attrs,
-              active: true,
-            });
-          }
-
-          const tabNode = state.doc.nodeAt(nextTab);
+          const tabNode = tr.doc.nodeAt(activeTabPos);
           const labelSize = tabNode?.child(0).nodeSize ?? 0;
-          const panelContentPos = nextTab + 1 + labelSize + 1;
+          const panelContentPos = activeTabPos + 1 + labelSize + 1;
 
           tr.setSelection(
             TextSelection.near(tr.doc.resolve(panelContentPos), 1),

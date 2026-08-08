@@ -6,9 +6,9 @@ import React, {
   useRef,
   useState,
   type KeyboardEvent,
-} from 'react';
-import { NodeViewContent, NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
-import { Tabs, TextInput } from '@mantine/core';
+} from "react";
+import { NodeViewContent, NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
+import { Tabs, TextInput } from "@mantine/core";
 
 export default function TabsView(props: NodeViewProps) {
   const { node, editor, getPos } = props;
@@ -22,14 +22,14 @@ export default function TabsView(props: NodeViewProps) {
       const labelId = node.child(index)?.attrs?.id;
 
       return {
-        label: labelText ?? '',
+        label: labelText ?? "",
         id: labelId ?? index,
       };
     });
   }, [node]);
 
   const activeTab = clampIndex(node.attrs.activeTab);
-  const [activeLabel, setActiveLabel] = useState(tabs[activeTab].label ?? '');
+  const [activeLabel, setActiveLabel] = useState(tabs[activeTab].label ?? "");
 
   useEffect(() => {
     setActiveLabel(tabs[activeTab].label);
@@ -67,7 +67,7 @@ export default function TabsView(props: NodeViewProps) {
       setActiveLabel(label);
 
       if (label === tabs[activeTab].label) return;
-      if (typeof getPos === 'function') {
+      if (typeof getPos === "function") {
         editor.commands.updateTabLabel?.(activeTab, label, getPos());
       }
     },
@@ -77,7 +77,7 @@ export default function TabsView(props: NodeViewProps) {
   const handleLabelKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
       event.stopPropagation();
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         event.currentTarget.blur();
       }
@@ -86,7 +86,7 @@ export default function TabsView(props: NodeViewProps) {
   );
 
   return (
-    <NodeViewWrapper data-type='tabs'>
+    <NodeViewWrapper data-type="tabs">
       <Tabs value={String(activeTab)}>
         <Tabs.List style={{ marginBottom: 10 }}>
           {tabs.map(({ label, id }, index) => (
@@ -96,20 +96,20 @@ export default function TabsView(props: NodeViewProps) {
               onFocus={(event) => event.currentTarget.blur()}
               onClick={(e) => {
                 e.preventDefault();
-                if (typeof getPos === 'function') {
+                if (typeof getPos === "function") {
                   editor.commands.setActiveTab?.(index, getPos());
                 }
               }}
             >
               <TextInput
-                aria-label='Edit tab label'
+                aria-label="Edit tab label"
                 onMouseDown={handleMouseDown}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onChange={commitLabel}
                 onKeyDown={handleLabelKeyDown}
-                variant='unstyled'
-                size='xs'
+                variant="unstyled"
+                size="xs"
                 value={
                   index === activeTab && allowFocusRef.current ? activeLabel : label
                 }
@@ -117,7 +117,7 @@ export default function TabsView(props: NodeViewProps) {
                   input: {
                     minWidth: 80,
                     padding: 0,
-                    cursor: 'pointer',
+                    cursor: "pointer",
                   },
                 }}
               />
@@ -126,15 +126,15 @@ export default function TabsView(props: NodeViewProps) {
         </Tabs.List>
       </Tabs>
 
-      <div className='dm-tabs__content'>
-        <NodeViewContent as='div' />
+      <div className="dm-tabs__content">
+        <NodeViewContent as="div" />
       </div>
     </NodeViewWrapper>
   );
 }
 
 const clampIndex = (value: unknown, length = Number.MAX_SAFE_INTEGER) => {
-  const parsed = typeof value === 'number' ? value : Number(value ?? 0);
+  const parsed = typeof value === "number" ? value : Number(value ?? 0);
   if (!Number.isFinite(parsed) || length <= 0) return 0;
   return Math.max(0, Math.min(Math.trunc(parsed), length - 1));
 };
