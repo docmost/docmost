@@ -14,7 +14,8 @@ declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     tabs: {
       insertTabs: () => ReturnType;
-      insertTab: (pos: string) => ReturnType;
+      insertTab: (pos: 'right' | 'left') => ReturnType;
+      moveTab: (pos: 'right' | 'left') => ReturnType;
       setActiveTab: (index: number, tabsPos: number) => ReturnType;
       updateTabLabel: (
         index: number,
@@ -104,11 +105,6 @@ export const Tabs = Node.create<TabsOptions>({
       return null;
     };
 
-    const resolveTarget = (state: EditorState, pos: number) => {
-      const node = state.doc.nodeAt(pos);
-      return { node, pos: pos };
-    };
-
     const getTabPos = (doc: PMNode, tabsPos: number, tabIndex: number) => {
       const pos = doc.resolve(tabsPos + 1);
       return pos.posAtIndex(tabIndex, pos.depth);
@@ -157,6 +153,23 @@ export const Tabs = Node.create<TabsOptions>({
       return nextTabPos;
     };
 
+    const selectTabPanel = (
+      tr: Transaction,
+      tabsPos: number,
+      tabPos: number,
+    ) => {
+      const tabsNode = tr.doc.nodeAt(tabsPos);
+      if (tabsNode?.type.name !== 'tabs' || tabsNode.childCount <= 0) {
+        return null;
+      }
+
+      const tabNode = tr.doc.nodeAt(tabPos);
+      const labelSize = tabNode?.child(0).nodeSize ?? 0;
+      const panelContentPos = tabPos + 1 + labelSize + 1;
+
+      tr.setSelection(TextSelection.near(tr.doc.resolve(panelContentPos), 1));
+    };
+
     return {
       insertTabs:
         () =>
@@ -191,7 +204,7 @@ export const Tabs = Node.create<TabsOptions>({
         },
 
       insertTab:
-        (pos: string) =>
+        (pos: 'left' | 'right') =>
         ({ state, tr, dispatch }) => {
           const tabs = resolveTabs(state);
           if (!tabs || tabs.node.childCount <= 0) return false;
@@ -227,46 +240,74 @@ export const Tabs = Node.create<TabsOptions>({
           );
           if (activeTabPos == null) return false;
 
-          const tabNode = tr.doc.nodeAt(activeTabPos);
-          const labelSize = tabNode?.child(0).nodeSize ?? 0;
-          const panelContentPos = activeTabPos + 1 + labelSize + 1;
+          selectTabPanel(tr, tabs.pos, insertedTabPos);
+          if (dispatch) dispatch(tr);
+          return true;
+        },
 
-          tr.setSelection(
-            TextSelection.near(tr.doc.resolve(panelContentPos), 1),
+      moveTab:
+        (pos: 'left' | 'right') =>
+        ({ state, tr, dispatch }) => {
+          const tabs = resolveTabs(state);
+          if (!tabs || tabs.node.childCount <= 1) return false;
+
+          const currentTabIndex = clampIndex(
+            tabs.node.attrs.activeTab,
+            tabs.node.childCount,
           );
 
-          if (dispatch) dispatch(tr);
+          const targetIndex =
+            pos === 'left' ? currentTabIndex - 1 : currentTabIndex + 1;
+
+          if (targetIndex < 0 || targetIndex >= tabs.node.childCount)
+            return false;
+
+          const currentTabPos = getTabPos(state.doc, tabs.pos, currentTabIndex);
+          const currentTabNode = state.doc.nodeAt(currentTabPos);
+          if (!currentTabNode) return false;
+
+          const mappedCurrentTabPos = tr.mapping.map(currentTabPos);
+          tr.delete(
+            mappedCurrentTabPos,
+            mappedCurrentTabPos + currentTabNode.nodeSize,
+          );
+
+          const insertPos = getTabPos(tr.doc, tabs.pos, targetIndex);
+          tr.insert(insertPos, currentTabNode);
+
+          const movedTabPos = applyActiveTabState(
+            tr,
+            tabs.pos,
+            targetIndex,
+            targetIndex,
+          );
+          selectTabPanel(tr, tabs.pos, movedTabPos);
+
+          if (dispatch) dispatch(tr.scrollIntoView());
           return true;
         },
 
       setActiveTab:
         (index, tabsPos) =>
         ({ state, tr, dispatch }) => {
-          const target = resolveTarget(state, tabsPos);
-          if (!target || target.node.childCount <= 0) return false;
+          const tabsNode = state.doc.nodeAt(tabsPos);
+          if (tabsNode?.childCount <= 0) return false;
 
-          const nextIndex = clampIndex(index, target.node.childCount);
+          const nextIndex = clampIndex(index, tabsNode.childCount);
           const prevIndex = clampIndex(
-            target.node.attrs.activeTab,
-            target.node.childCount,
+            tabsNode.attrs.activeTab,
+            tabsNode.childCount,
           );
 
           const activeTabPos = applyActiveTabState(
             tr,
-            target.pos,
+            tabsPos,
             prevIndex,
             nextIndex,
           );
           if (activeTabPos == null) return false;
 
-          const tabNode = tr.doc.nodeAt(activeTabPos);
-          const labelSize = tabNode?.child(0).nodeSize ?? 0;
-          const panelContentPos = activeTabPos + 1 + labelSize + 1;
-
-          tr.setSelection(
-            TextSelection.near(tr.doc.resolve(panelContentPos), 1),
-          );
-
+          selectTabPanel(tr, tabsPos, activeTabPos);
           if (dispatch) dispatch(tr.scrollIntoView());
           return true;
         },
@@ -274,11 +315,11 @@ export const Tabs = Node.create<TabsOptions>({
       updateTabLabel:
         (index, label, tabsPos) =>
         ({ state, tr, dispatch }) => {
-          const target = resolveTarget(state, tabsPos);
-          if (!target) return false;
+          const tabsNode = state.doc.nodeAt(tabsPos);
+          if (!tabsNode) return false;
 
-          const labelIndex = clampIndex(index, target.node.childCount);
-          const $tabs = state.doc.resolve(target.pos + 1);
+          const labelIndex = clampIndex(index, tabsNode.childCount);
+          const $tabs = state.doc.resolve(tabsPos + 1);
           const tabPos = $tabs.posAtIndex(labelIndex, $tabs.depth);
 
           const labelNode = state.doc.nodeAt(tabPos + 1);
@@ -289,6 +330,54 @@ export const Tabs = Node.create<TabsOptions>({
             labelContentPos + labelNode.content.size,
             state.schema.text(label || ' '),
           );
+
+          if (dispatch) dispatch(tr);
+          return true;
+        },
+
+      deleteTab:
+        () =>
+        ({ state, tr, dispatch }) => {
+          const tabs = resolveTabs(state);
+          if (!tabs || tabs.node.childCount <= 1) return false;
+
+          const currentTabIndex = clampIndex(
+            tabs.node.attrs.activeTab,
+            tabs.node.childCount,
+          );
+
+          const currentTabPos = getTabPos(state.doc, tabs.pos, currentTabIndex);
+          const currentTabNode = state.doc.nodeAt(currentTabPos);
+          if (!currentTabNode) return false;
+
+          const nextTabIndex =
+            currentTabIndex < tabs.node.childCount - 1
+              ? currentTabIndex
+              : currentTabIndex - 1;
+
+          tr.delete(currentTabPos, currentTabPos + currentTabNode.nodeSize);
+
+          const activeTabPos = applyActiveTabState(
+            tr,
+            tabs.pos,
+            nextTabIndex,
+            nextTabIndex,
+          );
+          if (activeTabPos == null) return false;
+
+          selectTabPanel(tr, tabs.pos, activeTabPos);
+
+          if (dispatch) dispatch(tr);
+          return true;
+        },
+
+      delete:
+        () =>
+        ({ state, tr, dispatch }) => {
+          const tabs = resolveTabs(state);
+          if (!tabs || tabs.node.childCount <= 1) return false;
+
+          tr.delete(tabs.pos, tabs.pos + tabs.node.nodeSize);
 
           if (dispatch) dispatch(tr);
           return true;

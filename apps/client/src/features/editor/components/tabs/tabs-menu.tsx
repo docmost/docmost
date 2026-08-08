@@ -61,6 +61,22 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
     editor.chain().focus().insertTab("right").run();
   }, [editor]);
 
+  const handleMoveTabRight = useCallback(() => {
+    editor.chain().focus().moveTab("right").run();
+  }, [editor]);
+
+  const handleMoveTabLeft = useCallback(() => {
+    editor.chain().focus().moveTab("left").run();
+  }, [editor]);
+
+  const handleDeleteTab = useCallback(() => {
+    editor.chain().focus().deleteTab().run();
+  }, [editor]);
+
+  const handleDelete = useCallback(() => {
+    editor.chain().focus().delete().run();
+  }, [editor]);
+
   return (
     <BubbleMenu
       style={{ zIndex: 99 }}
@@ -98,7 +114,7 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
         </Tooltip>
         <Tooltip position="top" label={t("Delete tab")} withinPortal={false}>
           <ActionIcon
-            onClick={handleAddTabLeft}
+            onClick={handleDeleteTab}
             variant="subtle"
             size="lg"
             aria-label={t("Delete tab")}
@@ -111,7 +127,7 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
 
         <Tooltip position="top" label={t("Move tab left")} withinPortal={false}>
           <ActionIcon
-            onClick={handleAddTabLeft}
+            onClick={handleMoveTabLeft}
             variant="subtle"
             size="lg"
             aria-label={t("Move tab left")}
@@ -122,7 +138,7 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
 
         <Tooltip position="top" label={t("Move tab right")} withinPortal={false}>
           <ActionIcon
-            onClick={handleAddTabLeft}
+            onClick={handleMoveTabRight}
             variant="subtle"
             size="lg"
             aria-label={t("Move tab right")}
@@ -130,12 +146,11 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
             <IconChevronRight size={18} />
           </ActionIcon>
         </Tooltip>
-
         <div className={classes.divider} />
 
         <Tooltip position="top" label={t("Delete")} withinPortal={false}>
           <ActionIcon
-            onClick={handleAddTabLeft}
+            onClick={handleDelete}
             variant="subtle"
             size="lg"
             aria-label={t("Delete")}
