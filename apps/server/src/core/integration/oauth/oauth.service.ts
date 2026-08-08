@@ -37,6 +37,9 @@ export type OAuthStatePayload = {
   // accept), and this lets the callback redirect the user back to their own
   // workspace host (subdomain or custom domain) after token exchange.
   returnUrl: string;
+  // Settings page (relative to returnUrl) to land on after the callback.
+  // Derived server-side from the flow that started it, never from user input.
+  returnPath?: string;
   exp: number;
 };
 
@@ -57,6 +60,7 @@ export class OAuthService {
     integrationId: string,
     workspaceId: string,
     userId: string,
+    returnPathOverride?: string,
   ): Promise<{ authorizationUrl: string }> {
     const integration = await this.integrationRepo.findById(integrationId);
     if (!integration || integration.workspaceId !== workspaceId) {
@@ -79,12 +83,22 @@ export class OAuthService {
       workspace ?? { hostname: null, customDomain: null },
     );
 
+    // Per-user connects are initiated from the account connections page;
+    // workspace-scoped authorizes from the admin integrations page. A connect
+    // started elsewhere (e.g. an editor connect card) passes its own path.
+    const returnPath =
+      returnPathOverride ??
+      ((provider.definition.oauth.connectionScope ?? 'user') === 'workspace'
+        ? '/settings/integrations'
+        : '/settings/account/connections');
+
     const state = this.createSignedState({
       integrationId,
       type: integration.type,
       userId,
       workspaceId,
       returnUrl,
+      returnPath,
       exp: Date.now() + 10 * 60 * 1000,
     });
 
@@ -154,6 +168,7 @@ export class OAuthService {
       userId,
       workspaceId,
       returnUrl,
+      returnPath: '/settings/integrations',
       exp: Date.now() + 10 * 60 * 1000,
     });
 

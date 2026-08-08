@@ -6,6 +6,7 @@ import { createMentionAction } from "@/features/editor/components/link/internal-
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
 import { matchIntegrationLink } from "@docmost/editor-ext";
+import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
 import {
   getAttachmentInfo,
   uploadFile,
@@ -34,13 +35,48 @@ export const handlePaste = (
   const integrationMatch = matchIntegrationLink(clipboardData.trim());
   if (integrationMatch && editor.state.selection.empty) {
     event.preventDefault();
+    const pastedUrl = clipboardData.trim();
     editor
       .chain()
       .focus()
       .setIntegrationLink({
-        url: clipboardData.trim(),
+        url: pastedUrl,
         provider: integrationMatch.provider,
         status: "pending",
+      })
+      // Anchor the "Paste as" menu to the inserted node, in the SAME
+      // transaction: BubbleMenu ignores meta-only transactions (it only
+      // re-evaluates when the doc or selection changed). Locate the node via
+      // the range this transaction's own steps touched, never by url, so a
+      // duplicate of the same link elsewhere in the doc can't steal the menu.
+      .command(({ tr }) => {
+        let start: number | null = null;
+        let end: number | null = null;
+        tr.mapping.maps.forEach((map, index) => {
+          const rest = tr.mapping.slice(index + 1);
+          map.forEach((_oldStart, _oldEnd, newStart, newEnd) => {
+            const mappedStart = rest.map(newStart, -1);
+            const mappedEnd = rest.map(newEnd, 1);
+            start = start === null ? mappedStart : Math.min(start, mappedStart);
+            end = end === null ? mappedEnd : Math.max(end, mappedEnd);
+          });
+        });
+        if (start === null || end === null) return true;
+
+        let pastedPos: number | null = null;
+        tr.doc.nodesBetween(
+          start,
+          Math.min(end, tr.doc.content.size),
+          (node, pos) => {
+            if (node.type.name === "integrationLink") {
+              pastedPos = pos;
+            }
+          },
+        );
+        if (pastedPos !== null) {
+          tr.setMeta(integrationPasteMenuKey, { pos: pastedPos });
+        }
+        return true;
       })
       .run();
     return true;

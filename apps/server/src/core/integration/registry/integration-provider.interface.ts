@@ -65,6 +65,23 @@ export type UnfurlOpts = {
   accessToken: string;
   match: RegExpMatchArray;
   patternType: string;
+  settings?: Record<string, any>;
+};
+
+export type LinkDescription = {
+  title: string;
+  description?: string;
+};
+
+// Returned instead of an UnfurlResult when the link needs a per-user
+// connection the requesting user does not have yet.
+export type UnfurlNeedsConnection = {
+  needsConnection: true;
+  integrationId: string;
+  integrationType: string;
+  integrationName: string;
+  title: string;
+  description?: string;
 };
 
 export abstract class IntegrationProvider {
@@ -81,6 +98,14 @@ export abstract class IntegrationProvider {
   onConnected?(opts: ConnectedEvent): Promise<void>;
 
   unfurl?(opts: UnfurlOpts): Promise<UnfurlResult>;
+
+  // Tokenless summary of a matched link (e.g. "Pull Request #13337"),
+  // shown on the connect prompt before the user has authorized.
+  describeLink?(
+    patternType: string,
+    match: RegExpMatchArray,
+    url: string,
+  ): LinkDescription | null;
 
   handleEvent?(opts: HandleEventOpts): Promise<void>;
 }

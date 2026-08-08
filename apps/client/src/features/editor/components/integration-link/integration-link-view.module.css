@@ -12,3 +12,42 @@
 :global([data-mantine-color-scheme="dark"]) .card:hover {
   background-color: var(--mantine-color-dark-5);
 }
+
+.mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  vertical-align: text-bottom;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--mantine-radius-sm);
+}
+
+:global(.node-integrationMention) .mention {
+  border-bottom: none !important;
+  font-weight: 400;
+}
+
+.mention:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
+:global([data-mantine-color-scheme="dark"]) .mention:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+.mentionText {
+  text-decoration: underline;
+  text-decoration-color: var(--mantine-color-gray-4);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+  font-weight: 500;
+}
+
+.mentionIcon {
+  flex-shrink: 0;
+}

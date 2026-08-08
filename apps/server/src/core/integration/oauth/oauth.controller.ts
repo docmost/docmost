@@ -46,6 +46,7 @@ export class OAuthController {
       dto.integrationId,
       workspace.id,
       user.id,
+      dto.returnPath,
     );
 
     return { authorizationUrl };
@@ -94,6 +95,8 @@ export class OAuthController {
     // own hostname/customDomain (canonical DB truth, not user input), then
     // signed into the state JWT. Tampering would invalidate the signature.
     const returnUrl = statePayload.returnUrl;
+    // States signed before returnPath existed fall back to the admin page.
+    const returnPath = statePayload.returnPath ?? '/settings/integrations';
 
     try {
       await this.oauthService.exchangeCodeForTokens(
@@ -104,11 +107,11 @@ export class OAuthController {
         statePayload.workspaceId,
       );
 
-      return res.redirect(`${returnUrl}/settings/integrations`, 302).send();
+      return res.redirect(`${returnUrl}${returnPath}`, 302).send();
     } catch (err) {
       this.logger.error(`OAuth callback error for ${type}: ${(err as Error).message}`);
       return res
-        .redirect(`${returnUrl}/settings/integrations?error=oauth_failed`, 302)
+        .redirect(`${returnUrl}${returnPath}?error=oauth_failed`, 302)
         .send();
     }
   }

@@ -4,6 +4,19 @@ export type IntegrationLinkPattern = {
 };
 
 export const integrationLinkPatterns: IntegrationLinkPattern[] = [
+  // Slack message permalink (host-specific; must precede the host-agnostic
+  // GitHub patterns, whose repo form would swallow /archives/<channel>)
+  {
+    provider: "slack",
+    regex:
+      /^https?:\/\/[a-z0-9-]+\.slack\.com\/archives\/([a-zA-Z0-9-]+)\/p(\d+)(?:\?thread_ts=[\d.]+&cid=[A-Za-z\d]+)?$/,
+  },
+  // Slack channel
+  {
+    provider: "slack",
+    regex:
+      /^https?:\/\/[a-z0-9-]+\.slack\.com\/archives\/([a-zA-Z0-9-]+)\/?$/,
+  },
   // GitHub PR commit (must be before generic PR pattern)
   {
     provider: "github",
@@ -75,6 +88,18 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     provider: "gitlab",
     regex:
       /^https?:\/\/[^\/]+\/(.+)\/-\/issues\/(\d+)/,
+  },
+  // GitLab work item (new URL format for issues)
+  {
+    provider: "gitlab",
+    regex:
+      /^https?:\/\/[^\/]+\/(.+)\/-\/work_items\/(\d+)/,
+  },
+  // GitLab work item opened as a drawer over the list (?show=base64 payload)
+  {
+    provider: "gitlab",
+    regex:
+      /^https?:\/\/[^\/]+\/(.+)\/-\/work_items\/?\?(?:.*&)?show=/,
   },
   // GitLab commit
   {

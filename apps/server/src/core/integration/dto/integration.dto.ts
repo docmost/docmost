@@ -1,4 +1,12 @@
-import { IsBoolean, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 
 export class InstallIntegrationDto {
   @IsNotEmpty()
@@ -42,6 +50,14 @@ export class OAuthAuthorizeDto {
   @IsNotEmpty()
   @IsString()
   integrationId: string;
+
+  // In-app path to land on after OAuth; single leading slash keeps the
+  // redirect on the workspace origin.
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  @Matches(/^\/(?!\/)[^\s\\]*$/)
+  returnPath?: string;
 }
 
 export class OAuthDisconnectDto {

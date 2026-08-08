@@ -1,10 +1,11 @@
-import { Text, Loader, Center, Alert, Stack } from "@mantine/core";
+import { Text, Alert, Stack } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
 import { getAppName } from "@/lib/config";
 import SettingsTitle from "@/components/settings/settings-title";
 import ConnectionRow from "../components/connection-row";
+import IntegrationListSkeleton from "../components/integration-list-skeleton";
 import {
   useAvailableIntegrations,
   useInstalledIntegrations,
@@ -70,9 +71,7 @@ export default function Connections() {
       )}
 
       {isLoading ? (
-        <Center py="xl">
-          <Loader />
-        </Center>
+        <IntegrationListSkeleton rows={3} withBadges={false} />
       ) : !available?.length ? (
         <Text c="dimmed" size="sm">
           {t("No integrations available.")}

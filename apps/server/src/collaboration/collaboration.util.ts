@@ -45,6 +45,8 @@ import {
   TransclusionSource,
   TransclusionReference,
   BaseEmbed,
+  IntegrationLink,
+  IntegrationMention,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -110,7 +112,9 @@ export const tiptapExtensions = [
   Status,
   TransclusionSource,
   TransclusionReference,
-  BaseEmbed
+  BaseEmbed,
+  IntegrationLink,
+  IntegrationMention
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

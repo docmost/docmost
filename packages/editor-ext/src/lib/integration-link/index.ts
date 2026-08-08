@@ -1,8 +1,9 @@
-export { IntegrationLink } from "./integration-link";
+export { IntegrationLink, createIntegrationAttributes } from "./integration-link";
 export type {
   IntegrationLinkOptions,
   IntegrationLinkAttributes,
 } from "./integration-link";
+export { IntegrationMention } from "./integration-mention";
 export {
   integrationLinkPatterns,
   matchIntegrationLink,

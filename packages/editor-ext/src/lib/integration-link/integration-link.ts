@@ -14,6 +14,55 @@ export interface IntegrationLinkAttributes {
   status: "pending" | "loaded" | "error";
 }
 
+// Shared by IntegrationLink (block) and IntegrationMention (inline) so both
+// serialize the same attrs and stay convertible into each other.
+export function createIntegrationAttributes() {
+  return {
+    url: {
+      default: "",
+      parseHTML: (element: HTMLElement) => {
+        const url = element.getAttribute("data-url");
+        return sanitizeUrl(url);
+      },
+      renderHTML: (attributes: IntegrationLinkAttributes) => ({
+        "data-url": sanitizeUrl(attributes.url),
+      }),
+    },
+    provider: {
+      default: "",
+      parseHTML: (element: HTMLElement) => element.getAttribute("data-provider"),
+      renderHTML: (attributes: IntegrationLinkAttributes) => ({
+        "data-provider": attributes.provider,
+      }),
+    },
+    unfurlData: {
+      default: null,
+      parseHTML: (element: HTMLElement) => {
+        const data = element.getAttribute("data-unfurl");
+        if (!data) return null;
+        try {
+          return JSON.parse(data);
+        } catch {
+          return null;
+        }
+      },
+      renderHTML: (attributes: IntegrationLinkAttributes) => ({
+        "data-unfurl": attributes.unfurlData
+          ? JSON.stringify(attributes.unfurlData)
+          : null,
+      }),
+    },
+    status: {
+      default: "pending",
+      parseHTML: (element: HTMLElement) =>
+        element.getAttribute("data-status") ?? "pending",
+      renderHTML: (attributes: IntegrationLinkAttributes) => ({
+        "data-status": attributes.status,
+      }),
+    },
+  };
+}
+
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     integrationLink: {
@@ -41,49 +90,7 @@ export const IntegrationLink = Node.create<IntegrationLinkOptions>({
   },
 
   addAttributes() {
-    return {
-      url: {
-        default: "",
-        parseHTML: (element) => {
-          const url = element.getAttribute("data-url");
-          return sanitizeUrl(url);
-        },
-        renderHTML: (attributes: IntegrationLinkAttributes) => ({
-          "data-url": sanitizeUrl(attributes.url),
-        }),
-      },
-      provider: {
-        default: "",
-        parseHTML: (element) => element.getAttribute("data-provider"),
-        renderHTML: (attributes: IntegrationLinkAttributes) => ({
-          "data-provider": attributes.provider,
-        }),
-      },
-      unfurlData: {
-        default: null,
-        parseHTML: (element) => {
-          const data = element.getAttribute("data-unfurl");
-          if (!data) return null;
-          try {
-            return JSON.parse(data);
-          } catch {
-            return null;
-          }
-        },
-        renderHTML: (attributes: IntegrationLinkAttributes) => ({
-          "data-unfurl": attributes.unfurlData
-            ? JSON.stringify(attributes.unfurlData)
-            : null,
-        }),
-      },
-      status: {
-        default: "pending",
-        parseHTML: (element) => element.getAttribute("data-status") ?? "pending",
-        renderHTML: (attributes: IntegrationLinkAttributes) => ({
-          "data-status": attributes.status,
-        }),
-      },
-    };
+    return createIntegrationAttributes();
   },
 
   parseHTML() {

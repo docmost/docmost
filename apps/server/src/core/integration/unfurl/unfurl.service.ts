@@ -5,6 +5,7 @@ import { IntegrationRepo } from '../repos/integration.repo';
 import { OAuthService } from '../oauth/oauth.service';
 import {
   UnfurlResult,
+  UnfurlNeedsConnection,
   IntegrationProvider,
 } from '../registry/integration-provider.interface';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
@@ -33,7 +34,7 @@ export class UnfurlService {
     url: string,
     userId: string,
     workspaceId: string,
-  ): Promise<UnfurlResult | null> {
+  ): Promise<UnfurlResult | UnfurlNeedsConnection | null> {
     const cacheKey = this.buildCacheKey(workspaceId, userId, url);
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -52,13 +53,30 @@ export class UnfurlService {
       return null;
     }
 
-    const connection = await this.connectionRepo.findByIntegrationAndUser(
-      integration.id,
-      userId,
-    );
+    // Workspace-scoped providers (Slack) share one bot connection that serves
+    // every member; user-scoped providers need the requester's own token.
+    const connectionScope =
+      provider.definition.oauth?.connectionScope ?? 'user';
+    const connection =
+      connectionScope === 'workspace'
+        ? await this.connectionRepo.findWorkspaceConnection(integration.id)
+        : await this.connectionRepo.findByIntegrationAndUser(
+            integration.id,
+            userId,
+          );
 
     if (!connection) {
-      return null;
+      if (connectionScope === 'workspace') {
+        return null;
+      }
+      // Not cached: the card should load as soon as the user connects.
+      return this.buildNeedsConnection(
+        provider,
+        integration.id,
+        patternType,
+        match,
+        url,
+      );
     }
 
     try {
@@ -70,6 +88,7 @@ export class UnfurlService {
         accessToken,
         match,
         patternType,
+        settings: (integration.settings as Record<string, any>) ?? {},
       });
 
       await this.redis.set(
@@ -86,6 +105,34 @@ export class UnfurlService {
     }
   }
 
+  private buildNeedsConnection(
+    provider: IntegrationProvider,
+    integrationId: string,
+    patternType: string,
+    match: RegExpMatchArray,
+    url: string,
+  ): UnfurlNeedsConnection {
+    const described =
+      provider.describeLink?.(patternType, match, url) ?? null;
+
+    let fallbackDescription: string | undefined;
+    try {
+      const parsed = new URL(url);
+      fallbackDescription = `${parsed.host}${parsed.pathname}`;
+    } catch {
+      fallbackDescription = undefined;
+    }
+
+    return {
+      needsConnection: true,
+      integrationId,
+      integrationType: provider.definition.type,
+      integrationName: provider.definition.name,
+      title: described?.title ?? `${provider.definition.name} link`,
+      description: described?.description ?? fallbackDescription,
+    };
+  }
+
   private async resolveProvider(
     url: string,
     workspaceId: string,
@@ -93,7 +140,12 @@ export class UnfurlService {
     provider: IntegrationProvider;
     match: RegExpMatchArray;
     patternType: string;
-    integration: { id: string; isEnabled: boolean; type: string };
+    integration: {
+      id: string;
+      isEnabled: boolean;
+      type: string;
+      settings: unknown;
+    };
   } | null> {
     const staticResult = this.registry.findUnfurlProvider(url);
     if (staticResult) {

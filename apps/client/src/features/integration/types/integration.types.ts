@@ -52,3 +52,14 @@ export type UnfurlResult = {
   authorAvatarUrl?: string;
   metadata?: Record<string, any>;
 };
+
+// Returned when the link's provider needs a per-user connection the
+// requesting user has not authorized yet.
+export type UnfurlNeedsConnection = {
+  needsConnection: true;
+  integrationId: string;
+  integrationType: string;
+  integrationName: string;
+  title: string;
+  description?: string;
+};

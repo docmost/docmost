@@ -5,6 +5,7 @@ import {
   ConnectionStatus,
   UserConnection,
   UnfurlResult,
+  UnfurlNeedsConnection,
 } from "../types/integration.types";
 
 export async function getAvailableIntegrations(): Promise<
@@ -60,6 +61,7 @@ export async function getConnectionStatus(data: {
 
 export async function getOAuthAuthorizeUrl(data: {
   integrationId: string;
+  returnPath?: string;
 }): Promise<{ authorizationUrl: string }> {
   const req = await api.post<{ authorizationUrl: string }>(
     "/integrations/oauth/authorize",
@@ -91,10 +93,9 @@ export async function disconnectIntegration(data: {
 
 export async function unfurlUrl(data: {
   url: string;
-}): Promise<UnfurlResult | null> {
-  const req = await api.post<{ data: UnfurlResult | null }>(
-    "/integrations/unfurl",
-    data,
-  );
+}): Promise<UnfurlResult | UnfurlNeedsConnection | null> {
+  const req = await api.post<{
+    data: UnfurlResult | UnfurlNeedsConnection | null;
+  }>("/integrations/unfurl", data);
   return req.data.data;
 }

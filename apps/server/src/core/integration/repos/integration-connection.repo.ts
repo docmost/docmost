@@ -78,19 +78,24 @@ export class IntegrationConnectionRepo {
     trx?: KyselyTransaction,
   ): Promise<IntegrationConnection> {
     const db = dbOrTx(this.db, trx);
+    // The (integration_id, user_id) unique index is partial on kind='user';
+    // ON CONFLICT must repeat that predicate or Postgres cannot infer it.
     return db
       .insertInto('integrationConnections')
       .values(connection)
       .onConflict((oc) =>
-        oc.columns(['integrationId', 'userId']).doUpdateSet({
-          accessToken: connection.accessToken,
-          refreshToken: connection.refreshToken,
-          tokenExpiresAt: connection.tokenExpiresAt,
-          scopes: connection.scopes,
-          providerUserId: connection.providerUserId,
-          metadata: connection.metadata,
-          updatedAt: new Date(),
-        }),
+        oc
+          .columns(['integrationId', 'userId'])
+          .where(sql.ref('kind'), '=', 'user')
+          .doUpdateSet({
+            accessToken: connection.accessToken,
+            refreshToken: connection.refreshToken,
+            tokenExpiresAt: connection.tokenExpiresAt,
+            scopes: connection.scopes,
+            providerUserId: connection.providerUserId,
+            metadata: connection.metadata,
+            updatedAt: new Date(),
+          }),
       )
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -125,9 +130,9 @@ export class IntegrationConnectionRepo {
       );
     }
 
-    // No need to clear other rows: the migration 20260524T020000 made the
-    // (integration_id, user_id) constraint partial-on-kind='user', so a
-    // workspace insert never conflicts with the installer's user-link row.
+    // No need to clear other rows: the (integration_id, user_id) unique index
+    // is partial on kind='user', so a workspace insert never conflicts with
+    // the installer's user-link row.
 
     return db
       .insertInto('integrationConnections')
