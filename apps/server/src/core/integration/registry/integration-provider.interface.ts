@@ -66,7 +66,23 @@ export type UnfurlOpts = {
   match: RegExpMatchArray;
   patternType: string;
   settings?: Record<string, any>;
+  // The requesting Docmost user and integration. Providers backed by a shared
+  // (workspace) connection MUST authorize the requester against the target
+  // resource before returning content: the shared bot token is not itself
+  // proof that the requester may see it.
+  userId: string;
+  integrationId: string;
 };
+
+// Thrown by a provider's unfurl() when the requesting user is not authorized
+// to view the linked resource. UnfurlService turns it into a null result
+// (no card) rather than logging it as an error.
+export class UnfurlForbiddenError extends Error {
+  constructor(message = 'Not authorized to unfurl this link') {
+    super(message);
+    this.name = 'UnfurlForbiddenError';
+  }
+}
 
 export type LinkDescription = {
   title: string;

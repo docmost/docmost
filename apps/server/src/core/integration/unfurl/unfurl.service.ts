@@ -6,6 +6,7 @@ import { OAuthService } from '../oauth/oauth.service';
 import {
   UnfurlResult,
   UnfurlNeedsConnection,
+  UnfurlForbiddenError,
   IntegrationProvider,
 } from '../registry/integration-provider.interface';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
@@ -89,6 +90,8 @@ export class UnfurlService {
         match,
         patternType,
         settings: (integration.settings as Record<string, any>) ?? {},
+        userId,
+        integrationId: integration.id,
       });
 
       await this.redis.set(
@@ -100,6 +103,11 @@ export class UnfurlService {
 
       return unfurlResult;
     } catch (err) {
+      // Not-authorized is an expected outcome (no card), not an error.
+      if (err instanceof UnfurlForbiddenError) {
+        this.logger.debug(`Unfurl not authorized for ${url}`);
+        return null;
+      }
       this.logger.error(`Unfurl failed for ${url}: ${(err as Error).message}`);
       return null;
     }
