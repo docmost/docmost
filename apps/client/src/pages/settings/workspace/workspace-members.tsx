@@ -11,6 +11,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { useWorkspaceInvitationsQuery } from "@/features/workspace/queries/workspace-query.ts";
 
 export default function WorkspaceMembers() {
   const { t } = useTranslation();
@@ -19,6 +20,8 @@ export default function WorkspaceMembers() {
   const [searchParams] = useSearchParams();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
+  const { data: invitationsData } = useWorkspaceInvitationsQuery({ limit: 100 });
+  const pendingCount = invitationsData?.items.length ?? 0;
 
   useEffect(() => {
     const currentTab = searchParams.get("tab");
@@ -57,7 +60,7 @@ export default function WorkspaceMembers() {
               label: t("Members") + ` (${workspace?.memberCount})`,
               value: "members",
             },
-            { label: t("Pending"), value: "invites" },
+            { label: t("Pending") + (pendingCount > 0 ? ` (${pendingCount})` : ""), value: "invites" },
           ]}
           withItemsBorders={false}
         />
