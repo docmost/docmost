@@ -10,12 +10,12 @@ export interface IntegrationLinkOptions {
 export interface IntegrationLinkAttributes {
   url: string;
   provider: string;
-  unfurlData: Record<string, any> | null;
-  status: "pending" | "loaded" | "error";
 }
 
 // Shared by IntegrationLink (block) and IntegrationMention (inline) so both
-// serialize the same attrs and stay convertible into each other.
+// serialize the same attrs and stay convertible into each other. Unfurl data
+// is intentionally NOT an attribute: it is fetched per viewer at render time
+// so third-party permissions apply on every view.
 export function createIntegrationAttributes() {
   return {
     url: {
@@ -33,31 +33,6 @@ export function createIntegrationAttributes() {
       parseHTML: (element: HTMLElement) => element.getAttribute("data-provider"),
       renderHTML: (attributes: IntegrationLinkAttributes) => ({
         "data-provider": attributes.provider,
-      }),
-    },
-    unfurlData: {
-      default: null,
-      parseHTML: (element: HTMLElement) => {
-        const data = element.getAttribute("data-unfurl");
-        if (!data) return null;
-        try {
-          return JSON.parse(data);
-        } catch {
-          return null;
-        }
-      },
-      renderHTML: (attributes: IntegrationLinkAttributes) => ({
-        "data-unfurl": attributes.unfurlData
-          ? JSON.stringify(attributes.unfurlData)
-          : null,
-      }),
-    },
-    status: {
-      default: "pending",
-      parseHTML: (element: HTMLElement) =>
-        element.getAttribute("data-status") ?? "pending",
-      renderHTML: (attributes: IntegrationLinkAttributes) => ({
-        "data-status": attributes.status,
       }),
     },
   };
