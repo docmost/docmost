@@ -14,7 +14,7 @@ interface TabbedToken {
 }
 
 const HEADER_RE =
-  /^===([!+])?\s*["'“”‘’]((?:\\.|[^"'“”‘’\n])+?)["'“”‘’]\s*$/gm;
+  /^===([!+])?\s*["'“”‘’]((?:\\["\\]|[^\\"'“”‘’\n])+?)["'“”‘’]\s*$/gm;
 
 export const tabsExtension = {
   name: 'tabbed',
