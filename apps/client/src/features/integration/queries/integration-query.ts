@@ -104,6 +104,7 @@ export function useDisconnectIntegration() {
       qc.invalidateQueries({
         queryKey: ["integration-connection", variables.integrationId],
       });
+      qc.removeQueries({ queryKey: ["unfurl"] });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
