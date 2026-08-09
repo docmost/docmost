@@ -11,7 +11,6 @@ type IntegrationRowProps = {
   installation?: Integration;
   onInstall: (type: string) => void;
   onUninstall: (integrationId: string) => void;
-  onConfigure: (integration: Integration) => void;
   onToggle: (integration: Integration, enabled: boolean) => void;
 };
 
@@ -20,7 +19,6 @@ export default function IntegrationRow({
   installation,
   onInstall,
   onUninstall,
-  onConfigure,
   onToggle,
 }: IntegrationRowProps) {
   const { t } = useTranslation();
@@ -64,13 +62,6 @@ export default function IntegrationRow({
                 }
                 size="sm"
               />
-              <Button
-                size="xs"
-                variant="light"
-                onClick={() => onConfigure(installation)}
-              >
-                {t("Configure")}
-              </Button>
               <Button
                 size="xs"
                 variant="subtle"

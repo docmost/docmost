@@ -22,6 +22,8 @@ import { LabelModule } from './label/label.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
 import { IntegrationModule } from './integration/integration.module';
+import { GitHubModule } from './integration/providers/github/github.module';
+import { GitLabModule } from './integration/providers/gitlab/gitlab.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { SessionModule } from './session/session.module';
 import { ClsMiddleware } from 'nestjs-cls';
@@ -45,6 +47,8 @@ import { ClsMiddleware } from 'nestjs-cls';
     NotificationModule,
     WatcherModule,
     IntegrationModule,
+    GitHubModule,
+    GitLabModule,
     SessionModule,
   ],
 })

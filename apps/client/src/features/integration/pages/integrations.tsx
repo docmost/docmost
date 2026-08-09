@@ -1,12 +1,11 @@
 import { Text, Alert, Stack } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { getAppName } from "@/lib/config";
 import SettingsTitle from "@/components/settings/settings-title";
 import IntegrationRow from "../components/integration-row";
 import IntegrationListSkeleton from "../components/integration-list-skeleton";
-import IntegrationSettingsModal from "../components/integration-settings-modal";
 import {
   useAvailableIntegrations,
   useInstalledIntegrations,
@@ -30,8 +29,6 @@ export default function Integrations() {
   const installMutation = useInstallIntegration();
   const uninstallMutation = useUninstallIntegration();
   const updateMutation = useUpdateIntegrationSettings();
-
-  const [configuring, setConfiguring] = useState<Integration | null>(null);
 
   const handleInstall = useCallback(
     async (type: string) => {
@@ -67,10 +64,6 @@ export default function Integrations() {
     },
     [uninstallMutation],
   );
-
-  const handleConfigure = useCallback((integration: Integration) => {
-    setConfiguring(integration);
-  }, []);
 
   const handleToggle = useCallback(
     (integration: Integration, enabled: boolean) => {
@@ -122,19 +115,12 @@ export default function Integrations() {
                 installation={installation}
                 onInstall={handleInstall}
                 onUninstall={handleUninstall}
-                onConfigure={handleConfigure}
                 onToggle={handleToggle}
               />
             );
           })}
         </Stack>
       )}
-
-      <IntegrationSettingsModal
-        integration={configuring}
-        opened={!!configuring}
-        onClose={() => setConfiguring(null)}
-      />
     </>
   );
 }

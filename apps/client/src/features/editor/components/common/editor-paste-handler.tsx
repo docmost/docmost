@@ -7,6 +7,8 @@ import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
 import { matchIntegrationLink } from "@docmost/editor-ext";
 import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
+import { queryClient } from "@/main.tsx";
+import { Integration } from "@/features/integration/types/integration.types";
 import {
   getAttachmentInfo,
   uploadFile,
@@ -24,6 +26,17 @@ const ATTACHMENT_NODE_TYPES = [
 
 const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 
+// Only installed + enabled providers get card treatment; anything else pastes
+// as an ordinary link. The cache is prefetched when the page editor mounts;
+// a cold cache also means ordinary link.
+function isIntegrationInstalled(provider: string): boolean {
+  const installed = queryClient.getQueryData<Integration[]>([
+    "installed-integrations",
+  ]);
+  const integration = installed?.find((i) => i.type === provider);
+  return Boolean(integration?.isEnabled);
+}
+
 export const handlePaste = (
   editor: Editor,
   event: ClipboardEvent,
@@ -33,7 +46,11 @@ export const handlePaste = (
   const clipboardData = event.clipboardData.getData("text/plain");
 
   const integrationMatch = matchIntegrationLink(clipboardData.trim());
-  if (integrationMatch && editor.state.selection.empty) {
+  if (
+    integrationMatch &&
+    editor.state.selection.empty &&
+    isIntegrationInstalled(integrationMatch.provider)
+  ) {
     event.preventDefault();
     const pastedUrl = clipboardData.trim();
     editor

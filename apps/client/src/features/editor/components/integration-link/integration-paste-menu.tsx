@@ -62,7 +62,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
   }, [menuState, dismiss]);
 
   const convert = useCallback(
-    (target: "preview" | "mention" | "url") => {
+    (target: "card" | "mention" | "url") => {
       const found = findTarget();
       if (!found) {
         dismiss();
@@ -74,45 +74,37 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
       const to = pos + node.nodeSize;
       const isBlock = node.type.name === "integrationLink";
 
-      if (target === "preview" && !isBlock) {
-        editor
-          .chain()
-          .focus(undefined, { scrollIntoView: false })
-          .deleteRange({ from, to })
-          .insertContentAt(from, { type: "integrationLink", attrs })
-          .run();
-      } else if (target === "mention" && isBlock) {
-        editor
-          .chain()
-          .focus(undefined, { scrollIntoView: false })
-          .deleteRange({ from, to })
-          .insertContentAt(from, {
-            type: "paragraph",
-            content: [
-              { type: "integrationMention", attrs },
-              { type: "text", text: " " },
-            ],
-          })
-          .run();
-      } else if (target === "url") {
+      // Always replace, even when the node is already in the requested form:
+      // the menu closes via the doc change, and BubbleMenu never re-evaluates
+      // on meta-only transactions, so a bare dismiss would leave it stuck.
+      let content: Record<string, any>;
+      if (target === "card") {
+        content = { type: "integrationLink", attrs };
+      } else if (target === "mention") {
+        const mention = { type: "integrationMention", attrs };
+        content = isBlock
+          ? {
+              type: "paragraph",
+              content: [mention, { type: "text", text: " " }],
+            }
+          : mention;
+      } else {
         const linkText = {
           type: "text",
           text: attrs.url,
           marks: [{ type: "link", attrs: { href: attrs.url } }],
         };
-        editor
-          .chain()
-          .focus(undefined, { scrollIntoView: false })
-          .deleteRange({ from, to })
-          .insertContentAt(
-            from,
-            isBlock ? { type: "paragraph", content: [linkText] } : linkText,
-          )
-          .run();
-      } else {
-        // already in the requested form
-        dismiss();
+        content = isBlock
+          ? { type: "paragraph", content: [linkText] }
+          : linkText;
       }
+
+      editor
+        .chain()
+        .focus(undefined, { scrollIntoView: false })
+        .deleteRange({ from, to })
+        .insertContentAt(from, content)
+        .run();
     },
     [editor, findTarget, dismiss],
   );
@@ -126,6 +118,9 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
       options={{ placement: "bottom-start", flip: true }}
       shouldShow={shouldShow}
     >
+      {/* Content is gated on the plugin state too: meta-only dismissals
+          (Escape) are invisible to BubbleMenu's update cycle. */}
+      {menuState ? (
       <Paper shadow="md" radius="md" withBorder p={4} miw={140}>
         <Text size="xs" c="dimmed" px={8} py={4}>
           {t("Paste as")}
@@ -137,9 +132,9 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
             size="compact-sm"
             fullWidth
             justify="flex-start"
-            onClick={() => convert("preview")}
+            onClick={() => convert("card")}
           >
-            {t("Preview")}
+            {t("Card")}
           </Button>
           <Button
             variant="subtle"
@@ -163,6 +158,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
           </Button>
         </Stack>
       </Paper>
+      ) : null}
     </BaseBubbleMenu>
   );
 }

@@ -17,6 +17,25 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     regex:
       /^https?:\/\/[a-z0-9-]+\.slack\.com\/archives\/([a-zA-Z0-9-]+)\/?$/,
   },
+  // Jira issue (cloud + self-hosted): /browse/KEY-123, tolerating ?atlOrigin=…
+  // Must precede the GitHub repo pattern, which would swallow the two-segment
+  // /browse/KEY path on any host.
+  {
+    provider: "jira",
+    regex: /^https?:\/\/[^\/]+\/browse\/([A-Za-z0-9]+-\d+)/,
+  },
+  // Jira legacy board (cloud + self-hosted): RapidBoard.jspa?…selectedIssue=KEY
+  {
+    provider: "jira",
+    regex:
+      /^https?:\/\/[^\/]+\/secure\/RapidBoard\.jspa\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
+  },
+  // Jira cloud board/backlog with a selected issue
+  {
+    provider: "jira",
+    regex:
+      /^https?:\/\/[a-z0-9-]+\.atlassian\.net\/jira\/software(?:\/c)?\/projects\/[\w-]+\/boards\/\d+(?:\/\w+)?\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
+  },
   // GitHub PR commit (must be before generic PR pattern)
   {
     provider: "github",
@@ -155,11 +174,6 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     provider: "figma",
     regex:
       /^https?:\/\/([\w.-]+\.)?figma\.com\/(file|proto|board|design)\/([0-9a-zA-Z]{22,128})/,
-  },
-  // Jira (cloud + server): /browse/KEY-123
-  {
-    provider: "jira",
-    regex: /^https?:\/\/[^\/]+\/browse\/([A-Z][A-Z0-9]+-\d+)/,
   },
   // Linear issue: /team/issue/KEY-123(/:title-slug)?
   {

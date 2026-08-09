@@ -4,7 +4,7 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { getIntegrationIcon } from "@/features/integration/components/integration-icons";
 import { useUnfurl } from "./use-unfurl";
-import { toBadgeColor } from "./badge-color";
+import { badgeTextColor, toBadgeColor } from "./badge-color";
 import classes from "./integration-link-view.module.css";
 
 function shortUrl(url: string): string {
@@ -40,6 +40,7 @@ function IntegrationMentionView(props: any) {
       size="xs"
       variant="light"
       color={toBadgeColor(data.statusColor)}
+      c={badgeTextColor(toBadgeColor(data.statusColor))}
       className={classes.mentionIcon}
     >
       {data.status}
@@ -80,12 +81,36 @@ function IntegrationMentionView(props: any) {
             size="xs"
             variant="light"
             color="gray"
+            c={badgeTextColor("gray")}
             tt="none"
             className={classes.mentionIcon}
           >
             {data.status}
           </Badge>
         )}
+      </>
+    );
+  } else if (meta.issueKey) {
+    // Jira: type icon leads, provider icon trails.
+    content = (
+      <>
+        {meta.issueTypeIconUrl ? (
+          <img
+            src={meta.issueTypeIconUrl}
+            width={14}
+            height={14}
+            alt=""
+            className={classes.mentionIcon}
+          />
+        ) : (
+          getIntegrationIcon(provider, 14)
+        )}
+        <Text component="span" size="sm" c="dimmed">
+          {meta.issueKey}
+        </Text>
+        <span className={classes.mentionText}>{data.title}</span>
+        {statusBadge}
+        {meta.issueTypeIconUrl && getIntegrationIcon(provider, 14)}
       </>
     );
   } else if (issueNumber) {

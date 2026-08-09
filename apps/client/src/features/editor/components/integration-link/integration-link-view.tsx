@@ -17,7 +17,7 @@ import { getIntegrationIcon } from "@/features/integration/components/integratio
 import { getOAuthAuthorizeUrl } from "@/features/integration/services/integration-service";
 import { timeAgo } from "@/lib/time";
 import { useUnfurl } from "./use-unfurl";
-import { toBadgeColor } from "./badge-color";
+import { badgeTextColor, toBadgeColor } from "./badge-color";
 import classes from "./integration-link-view.module.css";
 
 const SLACK_TEXT_CLAMP_LINES = 4;
@@ -119,6 +119,96 @@ function SlackMessageCard({
           >
             {getIntegrationIcon("slack", 18)}
           </Anchor>
+        </Group>
+      </Card>
+    </NodeViewWrapper>
+  );
+}
+
+function JiraIssueCard({
+  url,
+  unfurlData,
+}: {
+  url: string;
+  unfurlData: Record<string, any>;
+}) {
+  const { t } = useTranslation();
+  const meta = unfurlData.metadata ?? {};
+
+  const infoLine = [
+    meta.issueKey,
+    unfurlData.author
+      ? t("Assigned to {{name}}", { name: unfurlData.author })
+      : t("Unassigned"),
+    meta.updatedAt
+      ? t("Updated {{time}}", { time: timeAgo(new Date(meta.updatedAt)) })
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
+  return (
+    <NodeViewWrapper data-drag-handle="">
+      <Card
+        className={classes.card}
+        withBorder
+        padding="sm"
+        radius="sm"
+        component="a"
+        href={url}
+        target="_blank"
+        rel="noopener"
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <Group gap="sm" wrap="nowrap">
+          {unfurlData.authorAvatarUrl ? (
+            <Avatar
+              src={unfurlData.authorAvatarUrl}
+              size={28}
+              radius="xl"
+              style={{ flexShrink: 0 }}
+            />
+          ) : (
+            <div style={{ flexShrink: 0 }}>{getIntegrationIcon("jira", 28)}</div>
+          )}
+
+          <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+            <Group gap="xs" wrap="nowrap">
+              <Text size="sm" fw={600} truncate>
+                {unfurlData.title}
+              </Text>
+              {unfurlData.status && (
+                <Badge
+                  size="xs"
+                  variant="light"
+                  color={toBadgeColor(unfurlData.statusColor)}
+                  c={badgeTextColor(toBadgeColor(unfurlData.statusColor))}
+                  style={{ flexShrink: 0 }}
+                >
+                  {unfurlData.status}
+                </Badge>
+              )}
+            </Group>
+
+            <Group gap={4} wrap="nowrap">
+              {meta.issueTypeIconUrl && (
+                <img
+                  src={meta.issueTypeIconUrl}
+                  width={14}
+                  height={14}
+                  alt=""
+                  style={{ flexShrink: 0 }}
+                />
+              )}
+              <Text size="xs" c="dimmed" truncate>
+                {infoLine}
+              </Text>
+            </Group>
+          </Stack>
+
+          <div style={{ flexShrink: 0, alignSelf: "center" }}>
+            {getIntegrationIcon("jira", 18)}
+          </div>
         </Group>
       </Card>
     </NodeViewWrapper>
@@ -231,6 +321,10 @@ function IntegrationLinkView(props: any) {
     return <SlackMessageCard url={url} unfurlData={unfurlData} />;
   }
 
+  if (provider === "jira" && unfurlData.metadata?.issueKey) {
+    return <JiraIssueCard url={url} unfurlData={unfurlData} />;
+  }
+
   return (
     <NodeViewWrapper data-drag-handle="">
       <Card
@@ -261,6 +355,7 @@ function IntegrationLinkView(props: any) {
                   size="xs"
                   variant="light"
                   color={toBadgeColor(unfurlData.statusColor)}
+                  c={badgeTextColor(toBadgeColor(unfurlData.statusColor))}
                   style={{ flexShrink: 0 }}
                 >
                   {unfurlData.status}

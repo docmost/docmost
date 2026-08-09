@@ -1,3 +1,31 @@
+// Light-scheme text per hue, measured to pass 4.5:1 on the light-variant
+// badge background; hexes are darkened .9 shades for hues whose scale
+// never gets dark enough.
+const BADGE_TEXT_LIGHT: Record<string, string> = {
+  dark: "var(--mantine-color-dark-9)",
+  gray: "var(--mantine-color-gray-9)",
+  red: "var(--mantine-color-red-9)",
+  pink: "var(--mantine-color-pink-9)",
+  grape: "var(--mantine-color-grape-9)",
+  violet: "var(--mantine-color-violet-9)",
+  indigo: "var(--mantine-color-indigo-9)",
+  blue: "var(--mantine-color-blue-9)",
+  cyan: "var(--mantine-color-cyan-9)",
+  teal: "var(--mantine-color-teal-9)",
+  green: "#277c38",
+  lime: "#4e7e0b",
+  yellow: "#ad5900",
+  orange: "#c3410e",
+};
+
+export function badgeTextColor(color?: string): string | undefined {
+  if (!color) return undefined;
+  const light = BADGE_TEXT_LIGHT[color];
+  if (!light) return undefined;
+  // Dark scheme keeps Mantine's own light-variant text.
+  return `light-dark(${light}, var(--mantine-color-${color}-light-color))`;
+}
+
 export function toBadgeColor(raw?: string): string {
   if (!raw) return "gray";
   const hex = raw.toLowerCase().replace("#", "");

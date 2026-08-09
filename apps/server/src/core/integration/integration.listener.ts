@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QueueJob, QueueName } from '../../integrations/queue/constants/queue.constants';
+import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { EventName } from '../../common/events/event.contants';
 
 const TOKEN_REFRESH_SCHEDULER_ID = 'integration-token-refresh-scheduler';
