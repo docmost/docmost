@@ -216,12 +216,15 @@ function JiraIssueCard({
 }
 
 function IntegrationLinkView(props: any) {
-  const { node, updateAttributes, editor } = props;
-  const { url, provider, unfurlData, status } = node.attrs;
+  const { node } = props;
+  const { url, provider } = node.attrs;
   const { t } = useTranslation();
 
-  const { needsConnection } = useUnfurl(url, status, updateAttributes);
+  const unfurl = useUnfurl(url);
   const [connecting, setConnecting] = useState(false);
+
+  const needsConnection =
+    unfurl.state === "needsConnection" ? unfurl.needsConnection : null;
 
   const handleConnect = useCallback(
     async (event: React.MouseEvent) => {
@@ -287,7 +290,7 @@ function IntegrationLinkView(props: any) {
     );
   }
 
-  if (status === "pending") {
+  if (unfurl.state === "loading") {
     return (
       <NodeViewWrapper data-drag-handle="">
         <Card className={classes.card} withBorder padding="sm" radius="sm">
@@ -303,7 +306,8 @@ function IntegrationLinkView(props: any) {
     );
   }
 
-  if (status === "error" || !unfurlData) {
+  if (unfurl.state !== "loaded") {
+    // anonymous or error: a plain link card, no third-party data
     return (
       <NodeViewWrapper data-drag-handle="">
         <Card className={classes.card} withBorder padding="sm" radius="sm">
@@ -314,6 +318,8 @@ function IntegrationLinkView(props: any) {
       </NodeViewWrapper>
     );
   }
+
+  const unfurlData = unfurl.data;
 
   // metadata.ts marks legacy message unfurls stored before metadata.type existed.
   const slackMeta = provider === "slack" ? unfurlData.metadata : null;

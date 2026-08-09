@@ -59,7 +59,6 @@ export const handlePaste = (
       .setIntegrationLink({
         url: pastedUrl,
         provider: integrationMatch.provider,
-        status: "pending",
       })
       // Anchor the "Paste as" menu to the inserted node, in the SAME
       // transaction: BubbleMenu ignores meta-only transactions (it only

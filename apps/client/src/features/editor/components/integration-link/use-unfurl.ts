@@ -1,44 +1,47 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAtomValue } from "jotai";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { unfurlUrl } from "@/features/integration/services/integration-service";
-import { UnfurlNeedsConnection } from "@/features/integration/types/integration.types";
+import {
+  UnfurlNeedsConnection,
+  UnfurlResult,
+} from "@/features/integration/types/integration.types";
 
-// Fetches the unfurl for a node still in "pending" and writes the result into
-// its attrs. A needs-connection response stays local, never in the attrs: the
-// doc keeps status "pending" so a viewer who IS connected still unfurls and
-// materializes the card for everyone.
-export function useUnfurl(
-  url: string,
-  status: string,
-  updateAttributes: (attrs: Record<string, any>) => void,
-) {
-  const [needsConnection, setNeedsConnection] =
-    useState<UnfurlNeedsConnection | null>(null);
+const UNFURL_STALE_TIME = 5 * 60 * 1000; // mirrors the server-side Redis TTL
 
-  const doUnfurl = useCallback(async () => {
-    if (status !== "pending" || !url) return;
+export type UnfurlState =
+  | { state: "anonymous" }
+  | { state: "loading" }
+  | { state: "error" }
+  | { state: "needsConnection"; needsConnection: UnfurlNeedsConnection }
+  | { state: "loaded"; data: UnfurlResult };
 
-    try {
-      const result = await unfurlUrl({ url });
-      if (result && "needsConnection" in result) {
-        setNeedsConnection(result);
-      } else if (result) {
-        updateAttributes({
-          unfurlData: result,
-          status: "loaded",
-        });
-      } else {
-        updateAttributes({ status: "error" });
-      }
-    } catch {
-      updateAttributes({ status: "error" });
-    }
-  }, [url, status, updateAttributes]);
+// Resolves the unfurl per viewer at render time. Nothing is written back into
+// the document, so third-party permissions are enforced on every view:
+// unconnected viewers get needsConnection and anonymous viewers never fetch.
+export function useUnfurl(url: string): UnfurlState {
+  const currentUser = useAtomValue(currentUserAtom);
+  const isAuthenticated = Boolean(currentUser?.user);
 
-  useEffect(() => {
-    if (status === "pending") {
-      doUnfurl();
-    }
-  }, [status, doUnfurl]);
+  const query = useQuery({
+    queryKey: ["unfurl", url],
+    queryFn: () => unfurlUrl({ url }),
+    enabled: isAuthenticated && Boolean(url),
+    staleTime: UNFURL_STALE_TIME,
+    retry: false,
+  });
 
-  return { needsConnection };
+  if (!isAuthenticated || !url) {
+    return { state: "anonymous" };
+  }
+  if (query.isPending) {
+    return { state: "loading" };
+  }
+  if (query.isError || !query.data) {
+    return { state: "error" };
+  }
+  if ("needsConnection" in query.data) {
+    return { state: "needsConnection", needsConnection: query.data };
+  }
+  return { state: "loaded", data: query.data };
 }

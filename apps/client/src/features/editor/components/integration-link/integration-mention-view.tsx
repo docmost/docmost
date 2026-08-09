@@ -17,13 +17,12 @@ function shortUrl(url: string): string {
 }
 
 function IntegrationMentionView(props: any) {
-  const { node, updateAttributes } = props;
-  const { url, provider, unfurlData, status } = node.attrs;
+  const { node } = props;
+  const { url, provider } = node.attrs;
   const { t } = useTranslation();
 
-  useUnfurl(url, status, updateAttributes);
-
-  const data = unfurlData;
+  const unfurl = useUnfurl(url);
+  const data = unfurl.state === "loaded" ? unfurl.data : null;
   const meta = data?.metadata ?? {};
   const isSlackMessage =
     provider === "slack" && (meta.type === "message" || (!meta.type && meta.ts));
@@ -49,7 +48,7 @@ function IntegrationMentionView(props: any) {
 
   let content;
   if (!data) {
-    // pending / error / needs-connection: a compact link chip
+    // anonymous / loading / error / needs-connection: a compact link chip
     content = (
       <>
         {getIntegrationIcon(provider, 14)}
