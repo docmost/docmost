@@ -15,7 +15,8 @@ export interface TabsOptions {
   view: ComponentType<ReactNodeViewProps<HTMLElement>> | null;
 }
 
-const TAB_INPUT_REGEX = /^\s*===\s*["'“”‘’]((?:\\.|[^"'“”‘’\n])+?)["'“”‘’]\s+$/;
+const TAB_INPUT_REGEX =
+  /^\s*===\s*["'“”‘’]((?:\\["\\]|[^\\"'“”‘’\n])+?)["'“”‘’]\s+$/;
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
