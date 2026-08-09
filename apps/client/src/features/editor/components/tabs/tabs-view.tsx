@@ -134,7 +134,7 @@ export default function TabsView(props: NodeViewProps) {
 }
 
 const clampIndex = (value: unknown, length = Number.MAX_SAFE_INTEGER) => {
-  const parsed = typeof value === "number" ? value : Number(value ?? 0);
+  const parsed = Number(value ?? 0);
   if (!Number.isFinite(parsed) || length <= 0) return 0;
   return Math.max(0, Math.min(Math.trunc(parsed), length - 1));
 };

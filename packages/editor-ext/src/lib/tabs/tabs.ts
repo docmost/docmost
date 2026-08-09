@@ -1,9 +1,4 @@
-import {
-  InputRule,
-  Node,
-  Range,
-  mergeAttributes,
-} from '@tiptap/core';
+import { InputRule, Node, Range, mergeAttributes } from '@tiptap/core';
 import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
 import {
   TextSelection,
@@ -13,6 +8,7 @@ import {
 import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
 import { generateNodeId } from '../utils';
+import { findParentNode } from '../table/utils';
 
 export interface TabsOptions {
   HTMLAttributes: Record<string, unknown>;
@@ -112,24 +108,6 @@ export const Tabs = Node.create<TabsOptions>({
         tabLabel.create(null, schema.text(label || ' ')),
         tabPanel.create(null, paragraph.create()),
       ]);
-    };
-
-    const resolveTabs = (state: EditorState) => {
-      const { $from } = state.selection;
-      let depth = $from.depth;
-
-      while (depth >= 0) {
-        const node = $from.node(depth);
-        if (node.type.name === 'tabs') {
-          return {
-            node,
-            pos: $from.before(depth),
-          };
-        }
-        depth--;
-      }
-
-      return null;
     };
 
     const getTabPos = (doc: PMNode, tabsPos: number, tabIndex: number) => {
@@ -243,7 +221,8 @@ export const Tabs = Node.create<TabsOptions>({
       insertTab:
         (pos: 'left' | 'right') =>
         ({ state, tr, dispatch }) => {
-          const tabs = resolveTabs(state);
+          const { $from } = state.selection;
+          const tabs = findParentNode((node) => node.type.name === this.name, $from);
           if (!tabs || tabs.node.childCount <= 0) return false;
 
           const currentTabIndex = clampIndex(
@@ -285,7 +264,8 @@ export const Tabs = Node.create<TabsOptions>({
       moveTab:
         (pos: 'left' | 'right') =>
         ({ state, tr, dispatch }) => {
-          const tabs = resolveTabs(state);
+          const { $from } = state.selection;
+          const tabs = findParentNode((node) => node.type.name === this.name, $from);
           if (!tabs || tabs.node.childCount <= 1) return false;
 
           const currentTabIndex = clampIndex(
@@ -375,7 +355,8 @@ export const Tabs = Node.create<TabsOptions>({
       deleteTab:
         () =>
         ({ state, tr, dispatch }) => {
-          const tabs = resolveTabs(state);
+          const { $from } = state.selection;
+          const tabs = findParentNode((node) => node.type.name === this.name, $from);
           if (!tabs) return false;
 
           if (tabs.node.childCount < 2) {
@@ -416,7 +397,8 @@ export const Tabs = Node.create<TabsOptions>({
       deleteTabs:
         () =>
         ({ state, tr, dispatch }) => {
-          const tabs = resolveTabs(state);
+          const { $from } = state.selection;
+          const tabs = findParentNode((node) => node.type.name === this.name, $from);
           if (!tabs || tabs.node.childCount < 0) return false;
 
           tr.delete(tabs.pos, tabs.pos + tabs.node.nodeSize);
@@ -426,10 +408,44 @@ export const Tabs = Node.create<TabsOptions>({
         },
     };
   },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: ({ editor }) => {
+        const { state } = editor;
+        const { $from, empty } = state.selection;
+
+        if (!empty) return false;
+        if ($from.parent.content.size > 0) return false;
+        
+        const tabsNode = findParentNode(
+          (node) => node.type.name === this.name,
+          $from,
+        );
+        
+        if (!tabsNode) return false;
+        return editor
+          .chain()
+          .command(({ tr, state }) => {
+            const posAfter = $from.after(tabsNode.depth);
+            tr.delete($from.before(), $from.after());
+
+            const targetPos = tr.mapping.map(posAfter);
+            const paragraph = state.schema.nodes.paragraph.create();
+
+            tr.insert(targetPos, paragraph);
+            tr.setSelection(TextSelection.create(tr.doc, targetPos + 1));
+            return true;
+          })
+          .scrollIntoView()
+          .run();
+      },
+    };
+  },
 });
 
 const clampIndex = (value: unknown, length = Number.MAX_SAFE_INTEGER) => {
-  const parsed = typeof value === 'number' ? value : Number(value ?? 0);
+  const parsed = Number(value ?? 0);
   if (!Number.isFinite(parsed) || length <= 0) return 0;
   return Math.max(0, Math.min(Math.trunc(parsed), length - 1));
 };

@@ -39,6 +39,24 @@ export function htmlToMarkdown(html: string): string {
   return turndownService.turndown(html).replaceAll('<br>', ' ');
 }
 
+const hasPreviousTabs = (node: HTMLElement) => {
+  // we want to make this as cheap as reasonable since it
+  // would be preferable to return a false positive
+  // than to make the editor noticably slower
+  let el = node.previousElementSibling;
+  let checks = 0;
+
+  while (el) {
+    if (el.getAttribute('data-type') === 'tabs') return true;
+    el = el.previousElementSibling;
+    checks += 1;
+
+    if (checks === 100) return true;
+  }
+
+  return false;
+};
+
 function tabs(turndownService: _TurndownService) {
   turndownService.addRule('tabs', {
     filter: (node: HTMLInputElement) =>
@@ -49,7 +67,10 @@ function tabs(turndownService: _TurndownService) {
       );
       if (tabNodes.length === 0) return content;
 
-      const tabBlocks = tabNodes.map((tabNode) => {
+      const isNestedTabsNode =
+        node.parentElement?.closest('div[data-type="tabs"]') !== null;
+        
+      const tabBlocks = tabNodes.map((tabNode, index) => {
         const labelNode = tabNode.querySelector(
           ':scope > div[data-type="tabLabel"]',
         );
@@ -62,7 +83,13 @@ function tabs(turndownService: _TurndownService) {
           ? turndownService.turndown(panelNode.innerHTML).trim()
           : '';
 
-        return `=== "${label}"\n${indentMarkdownBlock(panelMarkdown)}`;
+        const isFirstTabInSet = index === 0;
+        const marker =
+          isFirstTabInSet && !isNestedTabsNode && hasPreviousTabs(node)
+            ? '!'
+            : '';
+
+        return `===${marker} "${label}"\n${indentMarkdownBlock(panelMarkdown)}`;
       });
 
       return `\n\n${tabBlocks.join('\n\n')}\n\n`;
@@ -85,7 +112,9 @@ function listParagraph(turndownService: _TurndownService) {
 function orderedListItem(turndownService: _TurndownService) {
   turndownService.addRule('orderedListItem', {
     filter: function (node: HTMLInputElement) {
-      return node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem';
+      return (
+        node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem'
+      );
     },
     replacement: (content: string, node: HTMLInputElement, options: any) => {
       const parent = node.parentNode as HTMLElement;
@@ -146,9 +175,7 @@ function taskList(turndownService: _TurndownService) {
       const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
 
       return (
-        prefix +
-        text +
-        (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
+        prefix + text + (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
       );
     },
   });
@@ -243,9 +270,7 @@ function video(turndownService: _TurndownService) {
     replacement: function (_content: string, node: HTMLInputElement) {
       const src = node.getAttribute('src') || '';
       const ariaLabel = node.getAttribute('aria-label');
-      const name = sanitizeMdLinkText(
-        ariaLabel || getBasename(src) || src,
-      );
+      const name = sanitizeMdLinkText(ariaLabel || getBasename(src) || src);
       return '[' + name + '](' + src + ')';
     },
   });

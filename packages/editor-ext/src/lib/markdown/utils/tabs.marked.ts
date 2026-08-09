@@ -32,9 +32,8 @@ export const tabsExtension = {
     }> = [];
 
     HEADER_RE.lastIndex = 0;
-    let m: RegExpExecArray | null = null;
 
-    while ((m = HEADER_RE.exec(src)) !== null) {
+    for (let m = HEADER_RE.exec(src); m !== null; m = HEADER_RE.exec(src)) {
       headers.push({
         index: m.index,
         raw: m[0],
@@ -47,6 +46,7 @@ export const tabsExtension = {
 
     const tabs: MarkdownTab[] = [];
     let consumed = 0;
+    let breakOutOfTabSet = false;
 
     for (let i = 0; i < headers.length; i++) {
       const h = headers[i];
@@ -56,15 +56,38 @@ export const tabsExtension = {
       const headerEnd = h.index + h.raw.length;
       const bodyStart =
         src.charCodeAt(headerEnd) === 10 ? headerEnd + 1 : headerEnd;
+
       const next = headers[i + 1];
-      const bodyEnd = next ? next.index : src.length;
+      const bodyLimit = next ? next.index : src.length;
+      let bodyEnd = bodyLimit;
+      let lineStart = bodyStart;
+      
+      while (lineStart < bodyLimit) {
+        const newlineIndex = src.indexOf('\n', lineStart);
+        const lineEnd =
+          newlineIndex === -1 || newlineIndex > bodyLimit
+            ? bodyLimit
+            : newlineIndex;
+
+        const line = src.slice(lineStart, lineEnd);
+        const isBlank = line.trim() === '';
+        const isIndented = /^( {2,4}|\t)/.test(line);
+
+        if (!isBlank && !isIndented) {
+          bodyEnd = lineStart;
+          breakOutOfTabSet = true;
+          break;
+        }
+
+        lineStart = lineEnd < bodyLimit ? lineEnd + 1 : bodyLimit;
+      }
 
       let body = src.slice(bodyStart, bodyEnd).replace(/\n+$/, '');
 
       if (body.length > 0) {
         body = body
           .split('\n')
-          .map((line) => line.replace(/^\s{0,4}/, ''))
+          .map((line) => line.replace(/^\s{2,4}/, ''))
           .join('\n');
       }
 
@@ -75,6 +98,8 @@ export const tabsExtension = {
       });
 
       consumed = bodyEnd;
+
+      if (breakOutOfTabSet) break;
     }
 
     if (tabs.length < 1) return;
