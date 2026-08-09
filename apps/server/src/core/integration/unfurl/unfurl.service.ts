@@ -123,6 +123,7 @@ export class UnfurlService {
         }
       }
     } catch (err) {
+      // best-effort by design: never fail a disconnect on cache purge; the TTL is the backstop
       this.logger.error(
         `Failed to purge unfurl cache for user ${userId}: ${(err as Error).message}`,
       );
