@@ -104,6 +104,8 @@ export function useDisconnectIntegration() {
       qc.invalidateQueries({
         queryKey: ["integration-connection", variables.integrationId],
       });
+      qc.invalidateQueries({ queryKey: ["my-connections"] });
+      // removeQueries, not invalidate: refetchOnMount false would revive stale entries
       qc.removeQueries({ queryKey: ["unfurl"] });
     },
     onError: (error) => {
