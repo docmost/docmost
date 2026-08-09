@@ -113,6 +113,22 @@ export class UnfurlService {
     }
   }
 
+  async purgeUserCache(workspaceId: string, userId: string): Promise<void> {
+    const pattern = `${UNFURL_CACHE_PREFIX}${workspaceId}:${userId}:*`;
+    try {
+      const stream = this.redis.scanStream({ match: pattern, count: 100 });
+      for await (const keys of stream as AsyncIterable<string[]>) {
+        if (keys.length) {
+          await this.redis.unlink(...keys);
+        }
+      }
+    } catch (err) {
+      this.logger.error(
+        `Failed to purge unfurl cache for user ${userId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
   private buildNeedsConnection(
     provider: IntegrationProvider,
     integrationId: string,

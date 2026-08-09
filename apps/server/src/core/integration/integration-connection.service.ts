@@ -2,12 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
 import { IntegrationRepo } from './repos/integration.repo';
 import { IntegrationConnection } from '@docmost/db/types/entity.types';
+import { UnfurlService } from './unfurl/unfurl.service';
 
 @Injectable()
 export class IntegrationConnectionService {
   constructor(
     private readonly connectionRepo: IntegrationConnectionRepo,
     private readonly integrationRepo: IntegrationRepo,
+    private readonly unfurlService: UnfurlService,
   ) {}
 
   async getConnectionStatus(
@@ -79,5 +81,7 @@ export class IntegrationConnectionService {
       integrationId,
       userId,
     );
+
+    await this.unfurlService.purgeUserCache(workspaceId, userId);
   }
 }
