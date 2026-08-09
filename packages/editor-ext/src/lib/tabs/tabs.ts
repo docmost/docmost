@@ -15,7 +15,7 @@ export interface TabsOptions {
   view: ComponentType<ReactNodeViewProps<HTMLElement>> | null;
 }
 
-const TAB_INPUT_REGEX = /^\s*===\s*["'“”‘’]([^"'“”‘’\n]+)["'“”‘’]\s+$/;
+const TAB_INPUT_REGEX = /^\s*===\s*["'“”‘’]((?:\\.|[^"'“”‘’\n])+?)["'“”‘’]\s+$/;
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -85,9 +85,8 @@ export const Tabs = Node.create<TabsOptions>({
       new InputRule({
         find: TAB_INPUT_REGEX,
         handler: ({ range, match }) => {
-          const label = (
-            typeof match[1] === 'string' ? match[1] : 'Tab 1'
-          ).trim();
+          const rawLabel = typeof match[1] === 'string' ? match[1] : 'Tab 1';
+          const label = rawLabel.replace(/\\(["\\])/g, '$1').trim();
 
           this.editor.commands.insertTabs(label, range);
         },
@@ -222,7 +221,10 @@ export const Tabs = Node.create<TabsOptions>({
         (pos: 'left' | 'right') =>
         ({ state, tr, dispatch }) => {
           const { $from } = state.selection;
-          const tabs = findParentNode((node) => node.type.name === this.name, $from);
+          const tabs = findParentNode(
+            (node) => node.type.name === this.name,
+            $from,
+          );
           if (!tabs || tabs.node.childCount <= 0) return false;
 
           const currentTabIndex = clampIndex(
@@ -265,7 +267,10 @@ export const Tabs = Node.create<TabsOptions>({
         (pos: 'left' | 'right') =>
         ({ state, tr, dispatch }) => {
           const { $from } = state.selection;
-          const tabs = findParentNode((node) => node.type.name === this.name, $from);
+          const tabs = findParentNode(
+            (node) => node.type.name === this.name,
+            $from,
+          );
           if (!tabs || tabs.node.childCount <= 1) return false;
 
           const currentTabIndex = clampIndex(
@@ -356,7 +361,10 @@ export const Tabs = Node.create<TabsOptions>({
         () =>
         ({ state, tr, dispatch }) => {
           const { $from } = state.selection;
-          const tabs = findParentNode((node) => node.type.name === this.name, $from);
+          const tabs = findParentNode(
+            (node) => node.type.name === this.name,
+            $from,
+          );
           if (!tabs) return false;
 
           if (tabs.node.childCount < 2) {
@@ -398,8 +406,11 @@ export const Tabs = Node.create<TabsOptions>({
         () =>
         ({ state, tr, dispatch }) => {
           const { $from } = state.selection;
-          const tabs = findParentNode((node) => node.type.name === this.name, $from);
-          if (!tabs || tabs.node.childCount < 0) return false;
+          const tabs = findParentNode(
+            (node) => node.type.name === this.name,
+            $from,
+          );
+          if (tabs?.node.childCount <= 0) return false;
 
           tr.delete(tabs.pos, tabs.pos + tabs.node.nodeSize);
 
@@ -417,12 +428,12 @@ export const Tabs = Node.create<TabsOptions>({
 
         if (!empty) return false;
         if ($from.parent.content.size > 0) return false;
-        
+
         const tabsNode = findParentNode(
           (node) => node.type.name === this.name,
           $from,
         );
-        
+
         if (!tabsNode) return false;
         return editor
           .chain()

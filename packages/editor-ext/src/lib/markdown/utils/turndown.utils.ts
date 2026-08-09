@@ -69,7 +69,7 @@ function tabs(turndownService: _TurndownService) {
 
       const isNestedTabsNode =
         node.parentElement?.closest('div[data-type="tabs"]') !== null;
-        
+
       const tabBlocks = tabNodes.map((tabNode, index) => {
         const labelNode = tabNode.querySelector(
           ':scope > div[data-type="tabLabel"]',
@@ -279,15 +279,16 @@ function video(turndownService: _TurndownService) {
 function sanitizeTabLabel(value: string): string {
   return value
     .replace(/[\r\n]+/g, ' ')
+    .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
     .trim();
 }
 
 function indentMarkdownBlock(content: string): string {
-  if (!content) return '    ';
+  if (!content) return '\t';
 
   return content
     .split('\n')
-    .map((line) => (line.trim() ? `    ${line}` : ''))
+    .map((line) => (line.trim() ? `\t${line}` : ''))
     .join('\n');
 }

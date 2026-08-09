@@ -13,7 +13,8 @@ interface TabbedToken {
   activeTabIndex: number;
 }
 
-const HEADER_RE = /^===([!+])?\s*["'“”‘’]([^"'“”‘’\n]+)["'“”‘’]\s*$/gm;
+const HEADER_RE =
+  /^===([!+])?\s*["'“”‘’]((?:\\.|[^"'“”‘’\n])+?)["'“”‘’]\s*$/gm;
 
 export const tabsExtension = {
   name: 'tabbed',
@@ -38,7 +39,7 @@ export const tabsExtension = {
         index: m.index,
         raw: m[0],
         marker: m[1] ?? '',
-        label: m[2].trim(),
+        label: unescapeTabLabel(m[2].trim()),
       });
     }
 
@@ -87,7 +88,7 @@ export const tabsExtension = {
       if (body.length > 0) {
         body = body
           .split('\n')
-          .map((line) => line.replace(/^\s{2,4}/, ''))
+          .map((line) => line.replace(/^(?:\t| {2,4})/, ''))
           .join('\n');
       }
 
@@ -136,6 +137,10 @@ export const tabsExtension = {
     return `<div data-type="tabs" data-active-tab="${activeTabIndex}">${sections.join('')}</div>`;
   },
 };
+
+function unescapeTabLabel(value: string): string {
+  return value.replace(/\\(["\\])/g, '$1');
+}
 
 function escapeHtml(value: string): string {
   return value
