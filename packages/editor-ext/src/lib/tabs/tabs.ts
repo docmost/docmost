@@ -1,6 +1,15 @@
-import { Node, mergeAttributes } from '@tiptap/core';
+import {
+  InputRule,
+  Node,
+  Range,
+  mergeAttributes,
+} from '@tiptap/core';
 import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
-import { TextSelection, Transaction, type EditorState } from '@tiptap/pm/state';
+import {
+  TextSelection,
+  type Transaction,
+  type EditorState,
+} from '@tiptap/pm/state';
 import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
 import { generateNodeId } from '../utils';
@@ -10,13 +19,16 @@ export interface TabsOptions {
   view: ComponentType<ReactNodeViewProps<HTMLElement>> | null;
 }
 
+const TAB_INPUT_REGEX = /^\s*===\s*["'“”‘’]([^"'“”‘’\n]+)["'“”‘’]\s+$/;
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     tabs: {
-      insertTabs: () => ReturnType;
+      insertTabs: (tabName?: string, range?: Range) => ReturnType;
       insertTab: (pos: 'right' | 'left') => ReturnType;
       moveTab: (pos: 'right' | 'left') => ReturnType;
       setActiveTab: (index: number, tabsPos: number) => ReturnType;
+      deleteTabs: () => ReturnType;
       updateTabLabel: (
         index: number,
         label: string,
@@ -70,6 +82,21 @@ export const Tabs = Node.create<TabsOptions>({
     if (!this.options.view) return undefined;
     this.editor.isInitialized = true;
     return ReactNodeViewRenderer(this.options.view);
+  },
+
+  addInputRules() {
+    return [
+      new InputRule({
+        find: TAB_INPUT_REGEX,
+        handler: ({ range, match }) => {
+          const label = (
+            typeof match[1] === 'string' ? match[1] : 'Tab 1'
+          ).trim();
+
+          this.editor.commands.insertTabs(label, range);
+        },
+      }),
+    ];
   },
 
   addCommands() {
@@ -172,32 +199,42 @@ export const Tabs = Node.create<TabsOptions>({
 
     return {
       insertTabs:
-        () =>
+        (tabName?: string, range?: Range) =>
         ({ tr, state, dispatch }) => {
-          const firstTab = createTab(state.schema, 'Tab 1', true);
-          const secondTab = createTab(state.schema, 'Tab 2', false);
-          if (!firstTab || !secondTab) return false;
+          const firstTab = createTab(state.schema, tabName ?? 'Tab 1', true);
+          if (!firstTab) return false;
 
           const tabsNode = this.type.create(
             {
               activeTab: 0,
             },
-            Fragment.fromArray([firstTab, secondTab]),
+            Fragment.fromArray([firstTab]),
           );
 
           const insertionPos = tr.selection.from;
-          tr.replaceSelectionWith(tabsNode).scrollIntoView();
+
+          if (range) {
+            tr.replaceRangeWith(
+              range.from,
+              range.to,
+              tabsNode,
+            ).scrollIntoView();
+          } else {
+            tr.replaceSelectionWith(tabsNode).scrollIntoView();
+          }
 
           const firstTabPos = getTabPos(tr.doc, insertionPos, 0);
           const firstTabNode = tr.doc.nodeAt(firstTabPos);
           if (!firstTabNode) return false;
 
-          const labelSize = firstTabNode.child(0)?.nodeSize ?? 0;
-          const panelContentPos = firstTabPos + 2 + labelSize + 2;
+          if (!range) {
+            const labelSize = firstTabNode.child(0)?.nodeSize ?? 0;
+            const panelContentPos = firstTabPos + 2 + labelSize + 2;
 
-          tr.setSelection(
-            TextSelection.near(tr.doc.resolve(panelContentPos), 1),
-          );
+            tr.setSelection(
+              TextSelection.near(tr.doc.resolve(panelContentPos), 1),
+            );
+          }
 
           if (dispatch) dispatch(tr);
           return true;
@@ -339,7 +376,12 @@ export const Tabs = Node.create<TabsOptions>({
         () =>
         ({ state, tr, dispatch }) => {
           const tabs = resolveTabs(state);
-          if (!tabs || tabs.node.childCount <= 1) return false;
+          if (!tabs) return false;
+
+          if (tabs.node.childCount < 2) {
+            this.editor.commands.deleteTabs();
+            return true;
+          }
 
           const currentTabIndex = clampIndex(
             tabs.node.attrs.activeTab,
@@ -371,11 +413,11 @@ export const Tabs = Node.create<TabsOptions>({
           return true;
         },
 
-      delete:
+      deleteTabs:
         () =>
         ({ state, tr, dispatch }) => {
           const tabs = resolveTabs(state);
-          if (!tabs || tabs.node.childCount <= 1) return false;
+          if (!tabs || tabs.node.childCount < 0) return false;
 
           tr.delete(tabs.pos, tabs.pos + tabs.node.nodeSize);
 

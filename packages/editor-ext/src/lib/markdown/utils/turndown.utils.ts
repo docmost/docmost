@@ -24,6 +24,7 @@ export function htmlToMarkdown(html: string): string {
     TurndownPluginGfm.tables,
     TurndownPluginGfm.strikethrough,
     TurndownPluginGfm.highlightedCodeBlock,
+    tabs,
     taskList,
     callout,
     preserveDetail,
@@ -36,6 +37,37 @@ export function htmlToMarkdown(html: string): string {
     video,
   ]);
   return turndownService.turndown(html).replaceAll('<br>', ' ');
+}
+
+function tabs(turndownService: _TurndownService) {
+  turndownService.addRule('tabs', {
+    filter: (node: HTMLInputElement) =>
+      node.nodeName === 'DIV' && node.getAttribute('data-type') === 'tabs',
+    replacement: (content: string, node: HTMLInputElement) => {
+      const tabNodes = Array.from(
+        node.querySelectorAll(':scope > div[data-type="tab"]'),
+      );
+      if (tabNodes.length === 0) return content;
+
+      const tabBlocks = tabNodes.map((tabNode) => {
+        const labelNode = tabNode.querySelector(
+          ':scope > div[data-type="tabLabel"]',
+        );
+        const panelNode = tabNode.querySelector(
+          ':scope > div[data-type="tabPanel"]',
+        );
+
+        const label = sanitizeTabLabel(labelNode?.textContent || 'Tab');
+        const panelMarkdown = panelNode
+          ? turndownService.turndown(panelNode.innerHTML).trim()
+          : '';
+
+        return `=== "${label}"\n${indentMarkdownBlock(panelMarkdown)}`;
+      });
+
+      return `\n\n${tabBlocks.join('\n\n')}\n\n`;
+    },
+  });
 }
 
 function listParagraph(turndownService: _TurndownService) {
@@ -217,4 +249,20 @@ function video(turndownService: _TurndownService) {
       return '[' + name + '](' + src + ')';
     },
   });
+}
+
+function sanitizeTabLabel(value: string): string {
+  return value
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/"/g, '\\"')
+    .trim();
+}
+
+function indentMarkdownBlock(content: string): string {
+  if (!content) return '    ';
+
+  return content
+    .split('\n')
+    .map((line) => (line.trim() ? `    ${line}` : ''))
+    .join('\n');
 }

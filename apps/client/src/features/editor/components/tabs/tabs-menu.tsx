@@ -18,6 +18,7 @@ import {
 
 const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
   const { t } = useTranslation();
+
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -74,7 +75,7 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
   }, [editor]);
 
   const handleDelete = useCallback(() => {
-    editor.chain().focus().delete().run();
+    editor.chain().focus().deleteTabs().run();
   }, [editor]);
 
   return (

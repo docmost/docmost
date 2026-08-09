@@ -2,6 +2,7 @@ import { marked } from "marked";
 import { calloutExtension } from "./callout.marked";
 import { mathBlockExtension } from "./math-block.marked";
 import { mathInlineExtension } from "./math-inline.marked";
+import { tabsExtension } from "./tabs.marked";
 
 marked.use({
   renderer: {
@@ -34,7 +35,12 @@ marked.use({
 });
 
 marked.use({
-  extensions: [calloutExtension, mathBlockExtension, mathInlineExtension],
+  extensions: [
+    calloutExtension,
+    mathBlockExtension,
+    mathInlineExtension,
+    tabsExtension,
+  ],
 });
 
 marked.setOptions({ breaks: true });

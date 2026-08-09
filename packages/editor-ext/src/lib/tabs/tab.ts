@@ -1,4 +1,5 @@
 import { mergeAttributes, Node } from '@tiptap/core';
+import { generateNodeId } from "../utils";
 
 export interface TabOptions {
   HTMLAttributes: Record<string, unknown>;
@@ -21,7 +22,7 @@ export const Tab = Node.create<TabOptions>({
       id: {
         default: '',
         parseHTML: (element: HTMLElement) =>
-          element.getAttribute('data-tab-id') ?? '',
+          element.getAttribute('data-tab-id') ?? generateNodeId(),
         renderHTML: (attributes: { id?: string }) => ({
           'data-tab-id': attributes.id ?? '',
         }),
