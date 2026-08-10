@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UnfurlResult } from '../../registry/integration-provider.interface';
 import { relativeTime } from '../../utils/relative-time';
+import { providerApiFetch } from '../../utils/provider-fetch';
 
 @Injectable()
 export class GitLabService {
@@ -240,18 +241,12 @@ export class GitLabService {
     apiBaseUrl: string,
     path: string,
   ): Promise<any> {
-    const response = await fetch(`${apiBaseUrl}${path}`, {
+    const response = await providerApiFetch('GitLab', `${apiBaseUrl}${path}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/json',
       },
     });
-
-    if (!response.ok) {
-      throw new Error(
-        `GitLab API error: ${response.status} ${response.statusText}`,
-      );
-    }
 
     return response.json();
   }

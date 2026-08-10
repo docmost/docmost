@@ -26,15 +26,14 @@ const ATTACHMENT_NODE_TYPES = [
 
 const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 
-// Only installed + enabled providers get card treatment; anything else pastes
-// as an ordinary link. The cache is prefetched when the page editor mounts;
+// Only installed providers get card treatment; anything else pastes as an
+// ordinary link. The cache is prefetched when the page editor mounts;
 // a cold cache also means ordinary link.
 function isIntegrationInstalled(provider: string): boolean {
   const installed = queryClient.getQueryData<Integration[]>([
     "installed-integrations",
   ]);
-  const integration = installed?.find((i) => i.type === provider);
-  return Boolean(integration?.isEnabled);
+  return Boolean(installed?.some((i) => i.type === provider));
 }
 
 export const handlePaste = (

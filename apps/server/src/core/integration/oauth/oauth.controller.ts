@@ -24,6 +24,10 @@ import {
   OAuthInstallDto,
 } from '../dto/integration.dto';
 import { IntegrationConnectionService } from '../integration-connection.service';
+import { IntegrationRegistry } from '../registry/integration-registry';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { Feature } from '../../../common/features';
+import { ForbiddenException } from '@nestjs/common';
 
 @Controller('integrations/oauth')
 export class OAuthController {
@@ -32,6 +36,8 @@ export class OAuthController {
   constructor(
     private readonly oauthService: OAuthService,
     private readonly connectionService: IntegrationConnectionService,
+    private readonly licenseCheckService: LicenseCheckService,
+    private readonly registry: IntegrationRegistry,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -66,6 +72,19 @@ export class OAuthController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    // This flow creates the integration row on callback success; gate it
+    // like a plain install.
+    if (
+      this.registry.getProvider(dto.type)?.definition.requiresLicense &&
+      !this.licenseCheckService.hasFeature(
+        workspace.licenseKey,
+        Feature.INTEGRATIONS,
+        workspace.plan,
+      )
+    ) {
+      throw new ForbiddenException('This feature requires a valid license');
+    }
+
     const { authorizationUrl } = await this.oauthService.getInstallAuthorizationUrl(
       dto.type,
       workspace.id,

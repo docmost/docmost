@@ -215,6 +215,85 @@ function JiraIssueCard({
   );
 }
 
+function FigmaFileCard({
+  url,
+  unfurlData,
+}: {
+  url: string;
+  unfurlData: Record<string, any>;
+}) {
+  const { t } = useTranslation();
+  // Figma thumbnail links are pre-signed and expire; drop the preview rather
+  // than render a broken image.
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const meta = unfurlData.metadata ?? {};
+  const thumbnailUrl: string | undefined = meta.thumbnailUrl;
+  const showThumbnail = Boolean(thumbnailUrl) && !thumbnailFailed;
+
+  const subtitle = [
+    unfurlData.author
+      ? t("Last modified by {{name}}", { name: unfurlData.author })
+      : unfurlData.description,
+    meta.lastModified ? timeAgo(new Date(meta.lastModified)) : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
+  return (
+    <NodeViewWrapper data-drag-handle="">
+      <Card
+        className={classes.card}
+        withBorder
+        padding="sm"
+        radius="sm"
+        component="a"
+        href={url}
+        target="_blank"
+        rel="noopener"
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        {showThumbnail && (
+          <Card.Section withBorder>
+            <img
+              src={thumbnailUrl}
+              alt=""
+              loading="lazy"
+              className={classes.thumbnail}
+              onError={() => setThumbnailFailed(true)}
+            />
+          </Card.Section>
+        )}
+
+        <Group gap="sm" wrap="nowrap" mt={showThumbnail ? "sm" : undefined}>
+          <Avatar
+            src={unfurlData.authorAvatarUrl}
+            size={28}
+            radius="xl"
+            style={{ flexShrink: 0 }}
+          >
+            {(unfurlData.author ?? unfurlData.title ?? "F").charAt(0)}
+          </Avatar>
+
+          <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+            <Text size="sm" fw={600} truncate>
+              {unfurlData.title}
+            </Text>
+            {subtitle && (
+              <Text size="xs" c="dimmed" truncate>
+                {subtitle}
+              </Text>
+            )}
+          </Stack>
+
+          <div style={{ flexShrink: 0, alignSelf: "center" }}>
+            {getIntegrationIcon("figma", 18)}
+          </div>
+        </Group>
+      </Card>
+    </NodeViewWrapper>
+  );
+}
+
 function IntegrationLinkView(props: any) {
   const { node } = props;
   const { url, provider } = node.attrs;
@@ -329,6 +408,10 @@ function IntegrationLinkView(props: any) {
 
   if (provider === "jira" && unfurlData.metadata?.issueKey) {
     return <JiraIssueCard url={url} unfurlData={unfurlData} />;
+  }
+
+  if (provider === "figma") {
+    return <FigmaFileCard url={url} unfurlData={unfurlData} />;
   }
 
   return (

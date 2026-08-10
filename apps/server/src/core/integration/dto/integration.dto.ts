@@ -1,5 +1,4 @@
 import {
-  IsBoolean,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -28,10 +27,6 @@ export class UpdateIntegrationDto {
   @IsOptional()
   @IsObject()
   settings?: Record<string, any>;
-
-  @IsOptional()
-  @IsBoolean()
-  isEnabled?: boolean;
 }
 
 export class IntegrationIdDto {

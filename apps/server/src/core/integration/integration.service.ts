@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { executeTx } from '@docmost/db/utils';
 import { IntegrationRepo } from './repos/integration.repo';
+import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
+import { IntegrationWebhookRepo } from './repos/integration-webhook.repo';
 import { IntegrationRegistry } from './registry/integration-registry';
 import { Integration } from '@docmost/db/types/entity.types';
 import { validateIntegrationSettings } from './dto/integration-settings.schema';
@@ -11,7 +16,10 @@ import { validateIntegrationSettings } from './dto/integration-settings.schema';
 @Injectable()
 export class IntegrationService {
   constructor(
+    @InjectKysely() private readonly db: KyselyDB,
     private readonly integrationRepo: IntegrationRepo,
+    private readonly connectionRepo: IntegrationConnectionRepo,
+    private readonly webhookRepo: IntegrationWebhookRepo,
     private readonly registry: IntegrationRegistry,
   ) {}
 
@@ -33,7 +41,7 @@ export class IntegrationService {
     userId: string,
   ): Promise<Integration> {
     const provider = this.registry.getProvider(type);
-    if (!provider) {
+    if (!provider || provider.definition.hidden) {
       throw new BadRequestException(`Unknown integration type: ${type}`);
     }
 
@@ -59,13 +67,18 @@ export class IntegrationService {
     if (!integration || integration.workspaceId !== workspaceId) {
       throw new NotFoundException('Integration not found');
     }
-    await this.integrationRepo.softDelete(integrationId);
+    // Delete child rows first so no orphan connections keep feeding the token refresh scheduler.
+    await executeTx(this.db, async (trx) => {
+      await this.connectionRepo.deleteByIntegration(integrationId, trx);
+      await this.webhookRepo.deleteByIntegration(integrationId, trx);
+      await this.integrationRepo.softDelete(integrationId, trx);
+    });
   }
 
   async update(
     integrationId: string,
     workspaceId: string,
-    data: { settings?: Record<string, any>; isEnabled?: boolean },
+    data: { settings?: Record<string, any> },
   ): Promise<Integration> {
     const integration = await this.integrationRepo.findById(integrationId);
     if (!integration || integration.workspaceId !== workspaceId) {
@@ -85,7 +98,6 @@ export class IntegrationService {
 
     return this.integrationRepo.update(integrationId, {
       ...(data.settings !== undefined && { settings: data.settings }),
-      ...(data.isEnabled !== undefined && { isEnabled: data.isEnabled }),
     });
   }
 }

@@ -1,5 +1,7 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Logger, NotFoundException } from '@nestjs/common';
+import { IntegrationConnection } from '@docmost/db/types/entity.types';
+import { TokenInvalidError } from './registry/integration-provider.interface';
 import { Job } from 'bullmq';
 import { QueueJob, QueueName } from '../../integrations/queue/constants/queue.constants';
 import { IntegrationRegistry } from './registry/integration-registry';
@@ -35,6 +37,13 @@ export class IntegrationProcessor extends WorkerHost {
     }
   }
 
+  // Route worker-level errors (e.g. lock renewal after laptop sleep) through
+  // the logger instead of bullmq's raw console.error fallback.
+  @OnWorkerEvent('error')
+  onError(err: Error): void {
+    this.logger.error(`Worker error: ${err.message}`);
+  }
+
   private async handleTokenRefresh(): Promise<void> {
     const connections = await this.connectionRepo.findExpiringTokens(
       TOKEN_REFRESH_WINDOW_MS,
@@ -55,6 +64,15 @@ export class IntegrationProcessor extends WorkerHost {
         this.logger.error(
           `Token refresh failed for connection ${connection.id}: ${(err as Error).message}`,
         );
+        // Dead credential or orphaned row: retire it so findExpiringTokens stops selecting it.
+        if (
+          err instanceof NotFoundException ||
+          err instanceof TokenInvalidError
+        ) {
+          await this.connectionRepo
+            .invalidate(connection.id)
+            .catch(() => undefined);
+        }
       }
     }
   }
@@ -67,7 +85,7 @@ export class IntegrationProcessor extends WorkerHost {
     }
 
     const integrations =
-      await this.integrationRepo.findEnabledByWorkspace(workspaceId);
+      await this.integrationRepo.findAllByWorkspace(workspaceId);
 
     for (const integration of integrations) {
       const provider = this.registry.getProvider(integration.type);
@@ -75,12 +93,13 @@ export class IntegrationProcessor extends WorkerHost {
         continue;
       }
 
+      let connection: IntegrationConnection | undefined;
       try {
         const connections = await this.connectionRepo.findByIntegration(
           integration.id,
         );
 
-        const connection = connections[0];
+        connection = connections[0];
         let accessToken: string | undefined;
 
         if (connection) {
@@ -103,6 +122,11 @@ export class IntegrationProcessor extends WorkerHost {
         this.logger.error(
           `Integration event handler failed for ${integration.type}: ${(err as Error).message}`,
         );
+        if (err instanceof TokenInvalidError && connection) {
+          await this.connectionRepo
+            .invalidate(connection.id)
+            .catch(() => undefined);
+        }
       }
     }
   }

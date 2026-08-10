@@ -21,7 +21,9 @@ export class IntegrationRegistry {
   }
 
   getAvailableIntegrations(): IntegrationDefinition[] {
-    return this.getAllProviders().map((p) => p.definition);
+    return this.getAllProviders()
+      .map((p) => p.definition)
+      .filter((definition) => !definition.hidden);
   }
 
   findUnfurlProvider(

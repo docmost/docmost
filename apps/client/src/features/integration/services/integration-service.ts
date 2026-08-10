@@ -35,15 +35,6 @@ export async function uninstallIntegration(data: {
   await api.post("/integrations/uninstall", data);
 }
 
-export async function updateIntegrationSettings(data: {
-  integrationId: string;
-  settings?: Record<string, any>;
-  isEnabled?: boolean;
-}): Promise<Integration> {
-  const req = await api.post<Integration>("/integrations/update", data);
-  return req.data;
-}
-
 export async function getMyConnections(): Promise<UserConnection[]> {
   const req = await api.post<UserConnection[]>("/integrations/connections/mine");
   return req.data;

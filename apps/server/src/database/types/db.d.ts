@@ -510,7 +510,6 @@ export interface Integrations {
   id: Generated<string>;
   workspaceId: string;
   type: string;
-  isEnabled: Generated<boolean>;
   settings: Json | null;
   installedById: string | null;
   createdAt: Generated<Timestamp>;
@@ -527,6 +526,7 @@ export interface IntegrationConnections {
   accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresAt: Timestamp | null;
+  invalidatedAt: Timestamp | null;
   scopes: string | null;
   kind: string;
   metadata: Json | null;

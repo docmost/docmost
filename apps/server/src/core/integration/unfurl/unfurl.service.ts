@@ -7,6 +7,8 @@ import {
   UnfurlResult,
   UnfurlNeedsConnection,
   UnfurlForbiddenError,
+  TokenInvalidError,
+  ProviderApiError,
   IntegrationProvider,
 } from '../registry/integration-provider.interface';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
@@ -14,6 +16,9 @@ import type { Redis } from 'ioredis';
 import * as crypto from 'crypto';
 
 const UNFURL_CACHE_TTL = 300; // 5 minutes
+// Transient failures get a short negative cache so a broken provider is not
+// re-fetched on every view; 404s cache at the normal TTL (the target is gone).
+const UNFURL_ERROR_CACHE_TTL = 60;
 const UNFURL_CACHE_PREFIX = 'unfurl:';
 
 @Injectable()
@@ -66,11 +71,12 @@ export class UnfurlService {
             userId,
           );
 
-    if (!connection) {
+    if (!connection || connection.invalidatedAt) {
+      // Dead workspace connections need an admin re-install; members get no card.
       if (connectionScope === 'workspace') {
         return null;
       }
-      // Not cached: the card should load as soon as the user connects.
+      // Not cached: the card should load as soon as the user (re)connects.
       return this.buildNeedsConnection(
         provider,
         integration.id,
@@ -105,12 +111,43 @@ export class UnfurlService {
     } catch (err) {
       // Not-authorized is an expected outcome (no card), not an error.
       if (err instanceof UnfurlForbiddenError) {
-        this.logger.debug(`Unfurl not authorized for ${url}`);
+        this.logger.debug(
+          `Unfurl not authorized for ${url}: ${(err as Error).message}`,
+        );
+        await this.cacheNull(cacheKey, UNFURL_ERROR_CACHE_TTL);
         return null;
       }
+      if (err instanceof TokenInvalidError) {
+        this.logger.warn(
+          `Retiring connection ${connection.id}: ${(err as Error).message}`,
+        );
+        await this.connectionRepo
+          .invalidate(connection.id)
+          .catch(() => undefined);
+        if (connectionScope === 'workspace') {
+          return null;
+        }
+        // Not cached so the card heals the moment the user reconnects.
+        return this.buildNeedsConnection(
+          provider,
+          integration.id,
+          patternType,
+          match,
+          url,
+        );
+      }
       this.logger.error(`Unfurl failed for ${url}: ${(err as Error).message}`);
+      const ttl =
+        err instanceof ProviderApiError && err.status === 404
+          ? UNFURL_CACHE_TTL
+          : UNFURL_ERROR_CACHE_TTL;
+      await this.cacheNull(cacheKey, ttl);
       return null;
     }
+  }
+
+  private async cacheNull(cacheKey: string, ttl: number): Promise<void> {
+    await this.redis.set(cacheKey, 'null', 'EX', ttl);
   }
 
   async purgeUserCache(workspaceId: string, userId: string): Promise<void> {
@@ -167,7 +204,6 @@ export class UnfurlService {
     patternType: string;
     integration: {
       id: string;
-      isEnabled: boolean;
       type: string;
       settings: unknown;
     };
@@ -178,13 +214,13 @@ export class UnfurlService {
         workspaceId,
         staticResult.provider.definition.type,
       );
-      if (integration && integration.isEnabled) {
+      if (integration) {
         return { ...staticResult, integration };
       }
     }
 
     const integrations =
-      await this.integrationRepo.findEnabledByWorkspace(workspaceId);
+      await this.integrationRepo.findAllByWorkspace(workspaceId);
 
     for (const integration of integrations) {
       const provider = this.registry.getProvider(integration.type);

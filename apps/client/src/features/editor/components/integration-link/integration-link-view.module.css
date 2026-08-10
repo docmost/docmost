@@ -13,6 +13,18 @@
   background-color: var(--mantine-color-dark-5);
 }
 
+.thumbnail {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  background-color: var(--mantine-color-gray-0);
+}
+
+:global([data-mantine-color-scheme="dark"]) .thumbnail {
+  background-color: var(--mantine-color-dark-6);
+}
+
 .mention {
   display: inline-flex;
   align-items: center;

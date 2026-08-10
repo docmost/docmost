@@ -14,13 +14,13 @@ export type IntegrationDefinition = {
   icon: string;
   capabilities: IntegrationCapability[];
   oauth?: OAuthConfig;
+  requiresLicense?: boolean;
 };
 
 export type Integration = {
   id: string;
   workspaceId: string;
   type: string;
-  isEnabled: boolean;
   settings: Record<string, any> | null;
   installedById: string | null;
   createdAt: string;
@@ -35,9 +35,9 @@ export type ConnectionStatus = {
 export type UserConnection = {
   integrationId: string;
   type: string;
-  isEnabled: boolean;
   providerUserId: string | null;
   connectedAt: string;
+  invalidatedAt: string | null;
 };
 
 export type UnfurlResult = {

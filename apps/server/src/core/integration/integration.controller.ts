@@ -19,11 +19,14 @@ import {
   UpdateIntegrationDto,
   IntegrationIdDto,
 } from './dto/integration.dto';
+import { IntegrationRegistry } from './registry/integration-registry';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../casl/interfaces/workspace-ability.type';
+import { LicenseCheckService } from '../../integrations/environment/license-check.service';
+import { Feature } from '../../common/features';
 
 @Controller('integrations')
 export class IntegrationController {
@@ -31,7 +34,21 @@ export class IntegrationController {
     private readonly integrationService: IntegrationService,
     private readonly connectionService: IntegrationConnectionService,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
+    private readonly licenseCheckService: LicenseCheckService,
+    private readonly registry: IntegrationRegistry,
   ) {}
+
+  private assertIntegrationsLicensed(workspace: Workspace) {
+    if (
+      !this.licenseCheckService.hasFeature(
+        workspace.licenseKey,
+        Feature.INTEGRATIONS,
+        workspace.plan,
+      )
+    ) {
+      throw new ForbiddenException('This feature requires a valid license');
+    }
+  }
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -67,6 +84,9 @@ export class IntegrationController {
       throw new ForbiddenException();
     }
 
+    if (this.registry.getProvider(dto.type)?.definition.requiresLicense) {
+      this.assertIntegrationsLicensed(workspace);
+    }
     return this.integrationService.install(dto.type, workspace.id, user.id);
   }
 
@@ -112,7 +132,6 @@ export class IntegrationController {
 
     return this.integrationService.update(dto.integrationId, workspace.id, {
       settings: dto.settings,
-      isEnabled: dto.isEnabled,
     });
   }
 

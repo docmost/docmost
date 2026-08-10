@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UnfurlResult } from '../../registry/integration-provider.interface';
 import { relativeTime } from '../../utils/relative-time';
+import { providerApiFetch } from '../../utils/provider-fetch';
 
 @Injectable()
 export class GitHubService {
@@ -253,19 +254,13 @@ export class GitHubService {
     apiBaseUrl: string,
     path: string,
   ): Promise<any> {
-    const response = await fetch(`${apiBaseUrl}${path}`, {
+    const response = await providerApiFetch('GitHub', `${apiBaseUrl}${path}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'Docmost',
       },
     });
-
-    if (!response.ok) {
-      throw new Error(
-        `GitHub API error: ${response.status} ${response.statusText}`,
-      );
-    }
 
     return response.json();
   }

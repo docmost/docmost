@@ -41,20 +41,6 @@ export class IntegrationRepo {
       .executeTakeFirst();
   }
 
-  async findEnabledByWorkspace(
-    workspaceId: string,
-    trx?: KyselyTransaction,
-  ): Promise<Integration[]> {
-    const db = dbOrTx(this.db, trx);
-    return db
-      .selectFrom('integrations')
-      .selectAll()
-      .where('workspaceId', '=', workspaceId)
-      .where('isEnabled', '=', true)
-      .where('deletedAt', 'is', null)
-      .execute();
-  }
-
   async findAllByWorkspace(
     workspaceId: string,
     trx?: KyselyTransaction,
@@ -91,7 +77,6 @@ export class IntegrationRepo {
       .onConflict((oc) =>
         oc.columns(['type', 'workspaceId']).doUpdateSet({
           deletedAt: null,
-          isEnabled: true,
           installedById: integration.installedById,
           updatedAt: new Date(),
         }),
@@ -135,7 +120,6 @@ export class IntegrationRepo {
       .selectFrom('integrations')
       .selectAll()
       .where('type', '=', type)
-      .where('isEnabled', '=', true)
       .where('deletedAt', 'is', null)
       .where(sql<string>`settings->>${sql.lit(key)}`, '=', value)
       .executeTakeFirst();

@@ -35,6 +35,11 @@ export type IntegrationDefinition = {
   capabilities: IntegrationCapability[];
   oauth?: OAuthConfig;
   unfurlPatterns?: UnfurlPattern[];
+  // Kept out of the available list and refused for install; existing
+  // installations keep unfurling.
+  hidden?: boolean;
+  // Install requires the INTEGRATIONS license feature; unset = free.
+  requiresLicense?: boolean;
 };
 
 export type ConnectedEvent = {
@@ -81,6 +86,26 @@ export class UnfurlForbiddenError extends Error {
   constructor(message = 'Not authorized to unfurl this link') {
     super(message);
     this.name = 'UnfurlForbiddenError';
+  }
+}
+
+// Thrown when the provider definitively rejects the stored credential (API 401,
+// or invalid_grant at the token endpoint). Callers retire the connection.
+export class TokenInvalidError extends Error {
+  constructor(message = 'Integration credential is no longer valid') {
+    super(message);
+    this.name = 'TokenInvalidError';
+  }
+}
+
+export class ProviderApiError extends Error {
+  constructor(
+    readonly provider: string,
+    readonly status: number,
+    statusText = '',
+  ) {
+    super(`${provider} API error: ${status} ${statusText}`.trimEnd());
+    this.name = 'ProviderApiError';
   }
 }
 

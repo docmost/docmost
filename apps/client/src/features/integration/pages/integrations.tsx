@@ -11,13 +11,12 @@ import {
   useInstalledIntegrations,
   useInstallIntegration,
   useUninstallIntegration,
-  useUpdateIntegrationSettings,
 } from "../queries/integration-query";
-import { Integration } from "../types/integration.types";
 import {
   getOAuthAuthorizeUrl,
   getOAuthInstallUrl,
 } from "../services/integration-service";
+import { Integration } from "../types/integration.types";
 import { notifications } from "@mantine/notifications";
 
 export default function Integrations() {
@@ -28,7 +27,6 @@ export default function Integrations() {
     useInstalledIntegrations();
   const installMutation = useInstallIntegration();
   const uninstallMutation = useUninstallIntegration();
-  const updateMutation = useUpdateIntegrationSettings();
 
   const handleInstall = useCallback(
     async (type: string) => {
@@ -50,10 +48,34 @@ export default function Integrations() {
         return;
       }
 
-      // Per-user OAuth providers (Linear, Jira, GitHub, ...): keep existing
-      // two-step flow — create the integration row, then individual users
-      // OAuth-connect from /settings/account/connections.
-      installMutation.mutate({ type });
+      // Per-user OAuth providers (GitLab, Jira, GitHub, ...): create the
+      // integration row, then send the installing admin straight into their
+      // own OAuth so they leave with a working connection. Other members
+      // connect for themselves from /settings/account/connections.
+      let integration: Integration;
+      try {
+        integration = await installMutation.mutateAsync({ type });
+      } catch {
+        return; // the mutation reports its own failure
+      }
+
+      if (!definition?.capabilities?.includes("oauth")) return;
+
+      try {
+        const { authorizationUrl } = await getOAuthAuthorizeUrl({
+          integrationId: integration.id,
+          returnPath: "/settings/integrations",
+        });
+        window.location.href = authorizationUrl;
+      } catch (err: any) {
+        // The integration stays installed; the admin can connect later.
+        notifications.show({
+          message:
+            err?.response?.data?.message ??
+            t("Failed to start OAuth connection"),
+          color: "red",
+        });
+      }
     },
     [installMutation, available, t],
   );
@@ -63,16 +85,6 @@ export default function Integrations() {
       uninstallMutation.mutate({ integrationId });
     },
     [uninstallMutation],
-  );
-
-  const handleToggle = useCallback(
-    (integration: Integration, enabled: boolean) => {
-      updateMutation.mutate({
-        integrationId: integration.id,
-        isEnabled: enabled,
-      });
-    },
-    [updateMutation],
   );
 
   const isLoading = loadingAvailable || loadingInstalled;
@@ -115,7 +127,6 @@ export default function Integrations() {
                 installation={installation}
                 onInstall={handleInstall}
                 onUninstall={handleUninstall}
-                onToggle={handleToggle}
               />
             );
           })}

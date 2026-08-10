@@ -81,8 +81,7 @@ export default function Connections() {
           {available
             .filter((def) => {
               if (!def.capabilities.includes("oauth")) return false;
-              const installation = installed?.find((i) => i.type === def.type);
-              return installation?.isEnabled;
+              return installed?.some((i) => i.type === def.type);
             })
             .map((def) => {
               const connection = myConnections?.find(

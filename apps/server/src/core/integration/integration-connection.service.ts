@@ -28,7 +28,7 @@ export class IntegrationConnectionService {
     );
 
     return {
-      connected: !!connection,
+      connected: !!connection && !connection.invalidatedAt,
       providerUserId: connection?.providerUserId ?? undefined,
     };
   }
@@ -61,9 +61,9 @@ export class IntegrationConnectionService {
     return rows.map((row) => ({
       integrationId: row.integrationId,
       type: row.type,
-      isEnabled: row.isEnabled,
       providerUserId: row.providerUserId ?? null,
       connectedAt: row.createdAt,
+      invalidatedAt: row.invalidatedAt ?? null,
     }));
   }
 

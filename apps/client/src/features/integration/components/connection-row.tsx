@@ -60,10 +60,26 @@ export default function ConnectionRow({
             <>
               {connection ? (
                 <>
-                  <Text size="xs" c="green">
-                    {t("Connected")}
-                    {connection.providerUserId && ` (${connection.providerUserId})`}
-                  </Text>
+                  {connection.invalidatedAt ? (
+                    <>
+                      <Text size="xs" c="orange">
+                        {t("Connection expired")}
+                      </Text>
+                      <Button
+                        size="xs"
+                        variant="light"
+                        color="orange"
+                        onClick={() => onConnect(definition.type)}
+                      >
+                        {t("Reconnect")}
+                      </Button>
+                    </>
+                  ) : (
+                    <Text size="xs" c="green">
+                      {t("Connected")}
+                      {connection.providerUserId && ` (${connection.providerUserId})`}
+                    </Text>
+                  )}
                   <Button
                     size="xs"
                     variant="subtle"

@@ -91,6 +91,7 @@ export class IntegrationConnectionRepo {
             accessToken: connection.accessToken,
             refreshToken: connection.refreshToken,
             tokenExpiresAt: connection.tokenExpiresAt,
+            invalidatedAt: null,
             scopes: connection.scopes,
             providerUserId: connection.providerUserId,
             metadata: connection.metadata,
@@ -123,6 +124,7 @@ export class IntegrationConnectionRepo {
           accessToken: input.accessToken,
           refreshToken: input.refreshToken ?? null,
           tokenExpiresAt: input.tokenExpiresAt ?? null,
+          invalidatedAt: null,
           scopes: input.scopes ?? null,
           userId: input.userId,
         },
@@ -200,9 +202,9 @@ export class IntegrationConnectionRepo {
       .select([
         'integrationConnections.integrationId',
         'integrations.type',
-        'integrations.isEnabled',
         'integrationConnections.providerUserId',
         'integrationConnections.createdAt',
+        'integrationConnections.invalidatedAt',
       ])
       .where('integrationConnections.userId', '=', userId)
       .where('integrations.workspaceId', '=', workspaceId)
@@ -216,10 +218,31 @@ export class IntegrationConnectionRepo {
     const threshold = new Date(Date.now() + expiresBeforeMs);
     return this.db
       .selectFrom('integrationConnections')
-      .selectAll()
-      .where('refreshToken', 'is not', null)
-      .where('tokenExpiresAt', 'is not', null)
-      .where('tokenExpiresAt', '<', threshold)
+      .innerJoin(
+        'integrations',
+        'integrations.id',
+        'integrationConnections.integrationId',
+      )
+      .selectAll('integrationConnections')
+      .where('integrations.deletedAt', 'is', null)
+      .where('integrationConnections.invalidatedAt', 'is', null)
+      .where('integrationConnections.refreshToken', 'is not', null)
+      .where('integrationConnections.tokenExpiresAt', 'is not', null)
+      .where('integrationConnections.tokenExpiresAt', '<', threshold)
+      .execute();
+  }
+
+  // Retire a rejected credential: flag for reconnect UX, drop the dead refresh token; no-op if the row is gone.
+  async invalidate(connectionId: string): Promise<void> {
+    await this.db
+      .updateTable('integrationConnections')
+      .set({
+        invalidatedAt: new Date(),
+        refreshToken: null,
+        tokenExpiresAt: null,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', connectionId)
       .execute();
   }
 

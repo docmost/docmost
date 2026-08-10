@@ -57,25 +57,6 @@ export function useUninstallIntegration() {
   });
 }
 
-export function useUpdateIntegrationSettings() {
-  const qc = useQueryClient();
-  const { t } = useTranslation();
-  return useMutation({
-    mutationFn: integrationService.updateIntegrationSettings,
-    onSuccess: () => {
-      notifications.show({ message: t("Integration updated successfully") });
-      qc.invalidateQueries({ queryKey: ["installed-integrations"] });
-    },
-    onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({
-        message: errorMessage || t("Failed to update integration"),
-        color: "red",
-      });
-    },
-  });
-}
-
 export function useMyConnections() {
   return useQuery({
     queryKey: ["my-connections"],

@@ -1,17 +1,27 @@
-import { Group, Text, Badge, Button, Switch, Box, Stack } from "@mantine/core";
+import {
+  Group,
+  Text,
+  Badge,
+  Button,
+  Box,
+  Stack,
+  Tooltip,
+} from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
   IntegrationDefinition,
   Integration,
 } from "../types/integration.types";
 import { getIntegrationIcon } from "./integration-icons";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 type IntegrationRowProps = {
   definition: IntegrationDefinition;
   installation?: Integration;
   onInstall: (type: string) => void;
   onUninstall: (integrationId: string) => void;
-  onToggle: (integration: Integration, enabled: boolean) => void;
 };
 
 export default function IntegrationRow({
@@ -19,10 +29,12 @@ export default function IntegrationRow({
   installation,
   onInstall,
   onUninstall,
-  onToggle,
 }: IntegrationRowProps) {
   const { t } = useTranslation();
   const isInstalled = !!installation;
+  const hasAccess = useHasFeature(Feature.INTEGRATIONS);
+  const locked = !!definition.requiresLicense && !hasAccess;
+  const upgradeLabel = useUpgradeLabel();
 
   return (
     <Box
@@ -40,6 +52,11 @@ export default function IntegrationRow({
               <Text size="sm" fw={500}>
                 {definition.name}
               </Text>
+              {locked && (
+                <Badge size="xs" variant="light" color="violet">
+                  {t("Paid")}
+                </Badge>
+              )}
               {definition.capabilities.map((cap) => (
                 <Badge key={cap} size="xs" variant="light">
                   {cap}
@@ -54,31 +71,25 @@ export default function IntegrationRow({
 
         <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
           {isInstalled ? (
-            <>
-              <Switch
-                checked={installation.isEnabled}
-                onChange={(e) =>
-                  onToggle(installation, e.currentTarget.checked)
-                }
-                size="sm"
-              />
-              <Button
-                size="xs"
-                variant="subtle"
-                color="red"
-                onClick={() => onUninstall(installation.id)}
-              >
-                {t("Uninstall")}
-              </Button>
-            </>
-          ) : (
             <Button
               size="xs"
-              variant="light"
-              onClick={() => onInstall(definition.type)}
+              variant="subtle"
+              color="red"
+              onClick={() => onUninstall(installation.id)}
             >
-              {t("Install")}
+              {t("Uninstall")}
             </Button>
+          ) : (
+            <Tooltip label={upgradeLabel} disabled={!locked}>
+              <Button
+                size="xs"
+                variant="light"
+                disabled={locked}
+                onClick={() => onInstall(definition.type)}
+              >
+                {t("Install")}
+              </Button>
+            </Tooltip>
           )}
         </Group>
       </Group>

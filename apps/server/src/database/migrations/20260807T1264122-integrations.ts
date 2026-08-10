@@ -11,7 +11,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
     .addColumn('type', 'text', (col) => col.notNull())
-    .addColumn('is_enabled', 'boolean', (col) => col.notNull().defaultTo(true))
     .addColumn('settings', 'jsonb')
     .addColumn('installed_by_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
@@ -50,6 +49,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('access_token', 'text')
     .addColumn('refresh_token', 'text')
     .addColumn('token_expires_at', 'timestamptz')
+    // Set when the provider definitively rejects the credential; a reconnect clears it.
+    .addColumn('invalidated_at', 'timestamptz')
     .addColumn('scopes', 'text')
     .addColumn('metadata', 'jsonb')
     // 'workspace' = one shared bot/app connection per integration (Slack);
