@@ -810,6 +810,10 @@ export class PageService {
       throw new BadRequestException('Invalid move position');
     }
 
+    if (dto.parentPageId && dto.parentPageId === dto.pageId) {
+      throw new BadRequestException('A page cannot be its own parent');
+    }
+
     let parentPageId = null;
     if (movedPage.parentPageId === dto.parentPageId) {
       parentPageId = undefined;

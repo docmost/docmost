@@ -1,17 +1,15 @@
 import { Title, Text, Button, Container, Group } from "@mantine/core";
 import classes from "./error-404.module.css";
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export function Error404() {
   const { t } = useTranslation();
 
   return (
     <>
-      <Helmet>
-        <title>{t("404 page not found")} - Docmost</title>
-      </Helmet>
+      <DocumentTitle title={t("404 page not found")} />
       <Container className={classes.root}>
         <Title className={classes.title}>{t("404 page not found")}</Title>
         <Text c="dimmed" size="lg" ta="center" className={classes.description}>

@@ -22,8 +22,6 @@ import { useTranslation } from "react-i18next";
 import { useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { templateExtensions } from "@/features/editor/extensions/extensions";
 import {
@@ -44,6 +42,7 @@ import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 import classes from "./template-editor.module.css";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function TemplateEditor() {
   const { t } = useTranslation();
@@ -247,11 +246,7 @@ export default function TemplateEditor() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {t("Edit template")} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={t("Edit template")} />
 
       {editorToolbarEnabled && editor && (
         <FixedToolbar editor={editor} templateMode />

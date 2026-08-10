@@ -10,11 +10,9 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { IconSettings } from "@tabler/icons-react";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
 import Paginate from "@/components/common/paginate";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import {
@@ -26,6 +24,7 @@ import { IAuditLogParams } from "@/ee/audit/types/audit.types";
 import { eventFilterOptions } from "@/ee/audit/lib/audit-event-labels";
 import AuditLogsTable from "@/ee/audit/components/audit-logs-table";
 import useUserRole from "@/hooks/use-user-role";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 type RetentionUnit = "days" | "months" | "years";
 
@@ -97,11 +96,7 @@ export default function AuditLogs() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {t("Audit log")} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={t("Audit log")} />
 
       <SettingsTitle title={t("Audit log")} />
 
