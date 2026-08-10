@@ -390,6 +390,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         editor.chain().focus().deleteRange(range).setDetails().run(),
     },
     {
+      title: "Tabs",
+      description: "Insert a multi-tab content block.",
+      searchTerms: ["tabs", "tabbed", "multi", "panel"],
+      icon: IconSitemap,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).insertTabs().run(),
+    },
+    {
       title: "Callout",
       description: "Insert callout notice.",
       searchTerms: [

@@ -5,8 +5,9 @@ import {
   PluginKey,
   TextSelection,
 } from "@tiptap/pm/state";
-import { Fragment, Slice, Node } from "@tiptap/pm/model";
-import { EditorView } from "@tiptap/pm/view";
+import { Fragment, Slice } from "@tiptap/pm/model";
+import type { Node, ResolvedPos } from "@tiptap/pm/model";
+import type { EditorView } from "@tiptap/pm/view";
 
 export interface GlobalDragHandleOptions {
   /**
@@ -150,9 +151,126 @@ function isCustomNodeDOM(
   return false;
 }
 
+function getDirectTarget($pos: ResolvedPos, ancestorDepth: number) {
+  const ancestor = $pos.node(ancestorDepth);
+
+  if (ancestor.childCount === 0) return null;
+
+  if ($pos.depth > ancestorDepth) {
+    const childDepth = ancestorDepth + 1;
+    return {
+      pos: $pos.before(childDepth),
+      node: $pos.node(childDepth),
+    };
+  }
+
+  const index = $pos.index(ancestorDepth);
+  const childIndex = Math.min(index, ancestor.childCount - 1);
+  if (childIndex < 0) return null;
+
+  return {
+    pos: $pos.posAtIndex(childIndex, ancestorDepth),
+    node: ancestor.child(childIndex),
+  };
+}
+
+type DragSource = { from: number; to: number; node: Node };
+
+function dragSourceFromDOM(view: EditorView, dom: Element): DragSource | null {
+  let pos: number;
+  try {
+    pos = view.posAtDOM(dom, 0);
+  } catch {
+    return null;
+  }
+
+  const $pos = view.state.doc.resolve(pos);
+  if ($pos.depth === 0) return null;
+
+  const from = $pos.before($pos.depth);
+  const node = $pos.node($pos.depth);
+  return { from, to: from + node.nodeSize, node };
+}
+
+function resolveMoveSource(
+  view: EditorView,
+  hint: DragSource | null,
+): DragSource | null {
+  const { state } = view;
+
+  if (hint) {
+    const current = state.doc.nodeAt(hint.from);
+    if (current?.eq(hint.node)) return hint;
+  }
+
+  if (state.selection instanceof NodeSelection) {
+    return {
+      from: state.selection.from,
+      to: state.selection.from + state.selection.node.nodeSize,
+      node: state.selection.node,
+    };
+  }
+
+  return null;
+}
+
+function moveNodeWithinTabPanel(
+  view: EditorView,
+  dropPos: number,
+  source: DragSource,
+): boolean {
+  const { state } = view;
+  const { from: sourceFrom, to: sourceTo, node: sourceNode } = source;
+
+  const $drop = state.doc.resolve(dropPos);
+  const panelDepth = view.state.doc.resolve(dropPos).depth
+  if (panelDepth < 0) return false;
+
+  if (dropPos > sourceFrom && dropPos < sourceTo) return false;
+
+  let insertPos: number;
+  const target = getDirectTarget($drop, panelDepth);
+  if (!target) {
+    insertPos = $drop.start(panelDepth);
+  } else {
+    const targetStart = target.pos;
+    const targetEnd = targetStart + target.node.nodeSize;
+    const midpoint = (targetStart + targetEnd) / 2;
+    insertPos = dropPos >= midpoint ? targetEnd : targetStart;
+  }
+
+  // Already in place.
+  if (insertPos === sourceFrom || insertPos === sourceTo) return false;
+
+  const tr = state.tr;
+  tr.delete(sourceFrom, sourceTo);
+
+  const insertAt = tr.mapping.map(insertPos, -1);
+  const $insert = tr.doc.resolve(insertAt);
+  const index = $insert.index();
+
+  if (!$insert.parent.canReplace(index, index, Fragment.from(sourceNode))) {
+    return false;
+  }
+
+  tr.insert(insertAt, sourceNode);
+
+  const $placed = tr.doc.resolve(
+    Math.min(insertAt, tr.doc.content.size),
+  );
+  tr.setSelection(NodeSelection.near($placed));
+  tr.scrollIntoView();
+
+  view.dispatch(tr);
+  return true;
+}
+
+const NON_PROMOTABLE_PARENTS = new Set(["tabs", "tab", "tabPanel"]);
+
 function calcNodePos(pos: number, view: EditorView) {
   const $pos = view.state.doc.resolve(pos);
-  if ($pos.depth > 1) return $pos.before($pos.depth);
+  if ($pos.depth > 1 && !NON_PROMOTABLE_PARENTS.has($pos.node($pos.depth).type.name))
+    return $pos.before($pos.depth);
   return pos;
 }
 
@@ -160,6 +278,8 @@ export function DragHandlePlugin(
   options: GlobalDragHandleOptions & { pluginKey: string },
 ) {
   let listType = "";
+  let dragSource: DragSource | null = null;
+
   function handleDragStart(event: DragEvent, view: EditorView) {
     view.focus();
 
@@ -175,6 +295,8 @@ export function DragHandlePlugin(
     );
 
     if (!(node instanceof Element)) return;
+
+    dragSource = dragSourceFromDOM(view, node);
 
     let draggedNodePos = nodePosAtDOM(node, view, options);
     if (draggedNodePos == null || draggedNodePos < 0) return;
@@ -401,6 +523,7 @@ export function DragHandlePlugin(
           );
 
           const notDragging = node?.closest(".not-draggable");
+          const notDraggingMatch = node?.matches(".not-draggable-match")
           const excludedTagList = options.excludedTags
             .concat(["ol", "ul"])
             .join(", ");
@@ -408,7 +531,8 @@ export function DragHandlePlugin(
           if (
             !(node instanceof Element) ||
             node.matches(excludedTagList) ||
-            notDragging
+            notDragging ||
+            notDraggingMatch
           ) {
             hideDragHandle();
             return;
@@ -496,6 +620,22 @@ export function DragHandlePlugin(
           const isDroppedInsideList =
             resolvedPos.parent.type.name === "listItem";
 
+          const isDroppedInsideTabPanel =
+            resolvedPos.parent.type.name === "tabPanel";
+
+          if (isDroppedInsideTabPanel) {
+            const source = resolveMoveSource(view, dragSource);
+            const moved = source
+              ? moveNodeWithinTabPanel(view, dropPos.pos, source)
+              : false;
+   
+            // even when not moved swallow the drop so ProseMirror doesn't insert a copy.
+            event.preventDefault();
+            view.dragging = null;
+            dragSource = null;
+            return moved;
+          }
+
           // If the selected node is a list item and is not dropped inside a list, we need to wrap it inside <ol> tag otherwise ol list items will be transformed into ul list item when dropped
           if (
             view.state.selection instanceof NodeSelection &&
@@ -513,6 +653,7 @@ export function DragHandlePlugin(
         },
         dragend: (view) => {
           view.dom.classList.remove("dragging");
+          dragSource = null;
         },
       },
     },
@@ -526,6 +667,7 @@ const GlobalDragHandle = Extension.create({
     return {
       dragHandleWidth: 20,
       scrollThreshold: 100,
+      dragHandleSelector: undefined,
       excludedTags: [],
       customNodes: [],
       atomNodes: [],

@@ -45,6 +45,10 @@ import {
   TransclusionSource,
   TransclusionReference,
   BaseEmbed,
+  Tabs,
+  Tab,
+  TabLabel,
+  TabPanel,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -87,6 +91,10 @@ export const tiptapExtensions = [
   Details,
   DetailsContent,
   DetailsSummary,
+  Tabs,
+  Tab,
+  TabLabel,
+  TabPanel,
   CustomTable,
   TableCell,
   TableRow,

@@ -82,6 +82,7 @@ import {
   getCollabSocket,
   releaseCollabSocket,
 } from "@/features/editor/collab-socket";
+import TabsMenu from "./components/tabs/tabs-menu";
 
 interface PageEditorProps {
   pageId: string;
@@ -453,6 +454,7 @@ function CollabPageEditor({
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
+            <TabsMenu editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && (

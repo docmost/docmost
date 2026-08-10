@@ -24,6 +24,7 @@ export function htmlToMarkdown(html: string): string {
     TurndownPluginGfm.tables,
     TurndownPluginGfm.strikethrough,
     TurndownPluginGfm.highlightedCodeBlock,
+    tabs,
     taskList,
     callout,
     preserveDetail,
@@ -36,6 +37,64 @@ export function htmlToMarkdown(html: string): string {
     video,
   ]);
   return turndownService.turndown(html).replaceAll('<br>', ' ');
+}
+
+const hasPreviousTabs = (node: HTMLElement) => {
+  // we want to make this as cheap as reasonable since it
+  // would be preferable to return a false positive
+  // than to make the editor noticably slower
+  let el = node.previousElementSibling;
+  let checks = 0;
+
+  while (el) {
+    if (el.getAttribute('data-type') === 'tabs') return true;
+    el = el.previousElementSibling;
+    checks += 1;
+
+    if (checks === 100) return true;
+  }
+
+  return false;
+};
+
+function tabs(turndownService: _TurndownService) {
+  turndownService.addRule('tabs', {
+    filter: (node: HTMLInputElement) =>
+      node.nodeName === 'DIV' && node.getAttribute('data-type') === 'tabs',
+    replacement: (content: string, node: HTMLInputElement) => {
+      const tabNodes = Array.from(
+        node.querySelectorAll(':scope > div[data-type="tab"]'),
+      );
+      if (tabNodes.length === 0) return content;
+
+      const isNestedTabsNode =
+        node.parentElement?.closest('div[data-type="tabs"]') !== null;
+
+      const tabBlocks = tabNodes.map((tabNode, index) => {
+        const labelNode = tabNode.querySelector(
+          ':scope > div[data-type="tabLabel"]',
+        );
+        const panelNode = tabNode.querySelector(
+          ':scope > div[data-type="tabPanel"]',
+        );
+
+        const label = sanitizeTabLabel(labelNode?.textContent || 'Tab');
+        const panelMarkdown = panelNode
+          ? turndownService.turndown(panelNode.innerHTML).trim()
+          : '';
+
+        const isFirstTabInSet = index === 0;
+        const marker =
+          isFirstTabInSet && !isNestedTabsNode && hasPreviousTabs(node)
+            ? '!'
+            : '';
+
+        return `===${marker} "${label}"\n${indentMarkdownBlock(panelMarkdown)}`;
+      });
+
+      return `\n\n${tabBlocks.join('\n\n')}\n\n`;
+    },
+  });
 }
 
 function listParagraph(turndownService: _TurndownService) {
@@ -53,7 +112,9 @@ function listParagraph(turndownService: _TurndownService) {
 function orderedListItem(turndownService: _TurndownService) {
   turndownService.addRule('orderedListItem', {
     filter: function (node: HTMLInputElement) {
-      return node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem';
+      return (
+        node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem'
+      );
     },
     replacement: (content: string, node: HTMLInputElement, options: any) => {
       const parent = node.parentNode as HTMLElement;
@@ -114,9 +175,7 @@ function taskList(turndownService: _TurndownService) {
       const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
 
       return (
-        prefix +
-        text +
-        (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
+        prefix + text + (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
       );
     },
   });
@@ -211,10 +270,25 @@ function video(turndownService: _TurndownService) {
     replacement: function (_content: string, node: HTMLInputElement) {
       const src = node.getAttribute('src') || '';
       const ariaLabel = node.getAttribute('aria-label');
-      const name = sanitizeMdLinkText(
-        ariaLabel || getBasename(src) || src,
-      );
+      const name = sanitizeMdLinkText(ariaLabel || getBasename(src) || src);
       return '[' + name + '](' + src + ')';
     },
   });
+}
+
+function sanitizeTabLabel(value: string): string {
+  return value
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .trim();
+}
+
+function indentMarkdownBlock(content: string): string {
+  if (!content) return '\t';
+
+  return content
+    .split('\n')
+    .map((line) => (line.trim() ? `\t${line}` : ''))
+    .join('\n');
 }

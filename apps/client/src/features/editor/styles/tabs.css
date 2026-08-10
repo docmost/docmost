@@ -1,0 +1,15 @@
+.ProseMirror {
+  [data-type="tabs"] {
+    button {
+      outline: none;
+    }
+  }
+  
+  [data-type="tabLabel"] {
+    display: none;
+  }
+
+  [data-type="tabPanel"] {
+    outline: none;
+  }
+}
