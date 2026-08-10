@@ -12,8 +12,14 @@ import { IntegrationConnectionRepo } from '../repos/integration-connection.repo'
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { encryptToken, decryptToken } from '../crypto/token-crypto';
 import { IntegrationConnection } from '@docmost/db/types/entity.types';
-import { OAuthConfig } from '../registry/integration-provider.interface';
+import {
+  OAuthConfig,
+  TokenInvalidError,
+} from '../registry/integration-provider.interface';
+import { proxyFetch } from '../../../common/proxy-fetch';
 import * as crypto from 'crypto';
+
+const OAUTH_HTTP_TIMEOUT_MS = 10_000;
 
 type OAuthTokenResponse = {
   access_token: string;
@@ -309,6 +315,9 @@ export class OAuthService {
   async getValidAccessToken(
     connection: IntegrationConnection,
   ): Promise<string> {
+    if (connection.invalidatedAt) {
+      throw new TokenInvalidError();
+    }
     const appSecret = this.environmentService.getAppSecret();
     const accessToken = decryptToken(connection.accessToken, appSecret);
 
@@ -354,16 +363,24 @@ export class OAuthService {
     });
 
     try {
-      const response = await fetch(oauthConfig.tokenUrl, {
+      const response = await proxyFetch(oauthConfig.tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
         body: params.toString(),
+        signal: AbortSignal.timeout(OAUTH_HTTP_TIMEOUT_MS),
       });
 
       if (!response.ok) {
         this.logger.error(
           `Token refresh failed for ${integration.type}: ${response.status}`,
         );
+        // 400/401 from the token endpoint means invalid_grant/invalid_client:
+        // the refresh token is dead, not a transient failure.
+        if (response.status === 400 || response.status === 401) {
+          throw new TokenInvalidError(
+            `Refresh token rejected for ${integration.type}`,
+          );
+        }
         throw new BadRequestException('Token refresh failed');
       }
 
@@ -380,10 +397,14 @@ export class OAuthService {
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         tokenExpiresAt,
+        invalidatedAt: null,
       });
 
       return data.access_token;
     } catch (err) {
+      if (err instanceof TokenInvalidError) {
+        throw err;
+      }
       this.logger.error(`Token refresh error: ${(err as Error).message}`);
       throw new BadRequestException('Failed to refresh token');
     }
@@ -402,10 +423,11 @@ export class OAuthService {
       redirect_uri: this.buildCallbackUrl(type),
     });
 
-    const response = await fetch(oauthConfig.tokenUrl, {
+    const response = await proxyFetch(oauthConfig.tokenUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
       body: params.toString(),
+      signal: AbortSignal.timeout(OAUTH_HTTP_TIMEOUT_MS),
     });
 
     if (!response.ok) {
