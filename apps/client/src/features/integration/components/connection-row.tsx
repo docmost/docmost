@@ -8,7 +8,7 @@ type ConnectionRowProps = {
   connection?: UserConnection;
   onConnect: (type: string) => void;
   onDisconnect: (integrationId: string) => void;
-  isDisconnecting?: boolean;
+  disconnectingId?: string;
 };
 
 export default function ConnectionRow({
@@ -16,7 +16,7 @@ export default function ConnectionRow({
   connection,
   onConnect,
   onDisconnect,
-  isDisconnecting,
+  disconnectingId,
 }: ConnectionRowProps) {
   const { t } = useTranslation();
   const isWorkspaceScoped = definition.oauth?.connectionScope === 'workspace';
@@ -85,7 +85,7 @@ export default function ConnectionRow({
                     variant="subtle"
                     color="red"
                     onClick={() => onDisconnect(connection.integrationId)}
-                    loading={isDisconnecting}
+                    loading={disconnectingId === connection.integrationId}
                   >
                     {t("Disconnect")}
                   </Button>

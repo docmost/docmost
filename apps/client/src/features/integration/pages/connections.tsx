@@ -48,6 +48,11 @@ export default function Connections() {
     disconnectMutation.mutate({ integrationId });
   };
 
+  // Only the row being disconnected shows a loader; isPending alone is shared by every row.
+  const disconnectingId = disconnectMutation.isPending
+    ? disconnectMutation.variables?.integrationId
+    : undefined;
+
   const error = new URLSearchParams(window.location.search).get("error");
 
   return (
@@ -95,7 +100,7 @@ export default function Connections() {
                   connection={connection}
                   onConnect={handleConnect}
                   onDisconnect={handleDisconnect}
-                  isDisconnecting={disconnectMutation.isPending}
+                  disconnectingId={disconnectingId}
                 />
               );
             })}
