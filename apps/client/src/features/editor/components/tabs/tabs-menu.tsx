@@ -8,8 +8,6 @@ import classes from "../common/toolbar-menu.module.css";
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
-  IconChevronLeft,
-  IconChevronRight,
   IconColumnInsertLeft,
   IconColumnInsertRight,
   IconColumnRemove,
@@ -60,14 +58,6 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
 
   const handleAddTabRight = useCallback(() => {
     editor.chain().focus().insertTab("right").run();
-  }, [editor]);
-
-  const handleMoveTabRight = useCallback(() => {
-    editor.chain().focus().moveTab("right").run();
-  }, [editor]);
-
-  const handleMoveTabLeft = useCallback(() => {
-    editor.chain().focus().moveTab("left").run();
   }, [editor]);
 
   const handleDeleteTab = useCallback(() => {
@@ -124,29 +114,6 @@ const TabsMenu = React.memo(({ editor }: EditorMenuProps) => {
           </ActionIcon>
         </Tooltip>
 
-        <div className={classes.divider} />
-
-        <Tooltip position="top" label={t("Move tab left")} withinPortal={false}>
-          <ActionIcon
-            onClick={handleMoveTabLeft}
-            variant="subtle"
-            size="lg"
-            aria-label={t("Move tab left")}
-          >
-            <IconChevronLeft size={18} />
-          </ActionIcon>
-        </Tooltip>
-
-        <Tooltip position="top" label={t("Move tab right")} withinPortal={false}>
-          <ActionIcon
-            onClick={handleMoveTabRight}
-            variant="subtle"
-            size="lg"
-            aria-label={t("Move tab right")}
-          >
-            <IconChevronRight size={18} />
-          </ActionIcon>
-        </Tooltip>
         <div className={classes.divider} />
 
         <Tooltip position="top" label={t("Delete")} withinPortal={false}>

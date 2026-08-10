@@ -1,6 +1,8 @@
 import { InputRule, Node, Range, mergeAttributes } from '@tiptap/core';
 import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
 import {
+  Plugin,
+  PluginKey,
   TextSelection,
   type Transaction,
   type EditorState,
@@ -23,9 +25,10 @@ declare module '@tiptap/core' {
     tabs: {
       insertTabs: (tabName?: string, range?: Range) => ReturnType;
       insertTab: (pos: 'right' | 'left') => ReturnType;
-      moveTab: (pos: 'right' | 'left') => ReturnType;
+      moveTab: (from: number, to: number, tabsPos: number) => ReturnType;
       setActiveTab: (index: number, tabsPos: number) => ReturnType;
       deleteTabs: () => ReturnType;
+      deleteTab: () => ReturnType;
       updateTabLabel: (
         index: number,
         label: string,
@@ -179,17 +182,18 @@ export const Tabs = Node.create<TabsOptions>({
       insertTabs:
         (tabName?: string, range?: Range) =>
         ({ tr, state, dispatch }) => {
-          const firstTab = createTab(state.schema, tabName ?? 'Tab 1', true);
-          if (!firstTab) return false;
+          const firstTab = createTab(state.schema, tabName ?? tabLabelAt(0), true);
+          const secondTab = createTab(state.schema, tabLabelAt(1), false);
+          if (!firstTab || !secondTab) return false;
 
           const tabsNode = this.type.create(
             {
               activeTab: 0,
             },
-            Fragment.fromArray([firstTab]),
+            Fragment.fromArray([firstTab, secondTab]),
           );
 
-          const insertionPos = tr.selection.from;
+          const insertionPos = range ? range.from : tr.selection.from;
 
           if (range) {
             tr.replaceRangeWith(
@@ -201,17 +205,11 @@ export const Tabs = Node.create<TabsOptions>({
             tr.replaceSelectionWith(tabsNode).scrollIntoView();
           }
 
-          const firstTabPos = getTabPos(tr.doc, insertionPos, 0);
-          const firstTabNode = tr.doc.nodeAt(firstTabPos);
-          if (!firstTabNode) return false;
+          const tabsPos = tr.mapping.map(insertionPos, -1);
+          if (tr.doc.nodeAt(tabsPos)?.type !== this.type) return false;
 
           if (!range) {
-            const labelSize = firstTabNode.child(0)?.nodeSize ?? 0;
-            const panelContentPos = firstTabPos + 2 + labelSize + 2;
-
-            tr.setSelection(
-              TextSelection.near(tr.doc.resolve(panelContentPos), 1),
-            );
+            selectTabPanel(tr, tabsPos, getTabPos(tr.doc, tabsPos, 0));
           }
 
           if (dispatch) dispatch(tr);
@@ -236,7 +234,7 @@ export const Tabs = Node.create<TabsOptions>({
           const insertIndex =
             pos === 'right' ? currentTabIndex + 1 : currentTabIndex;
 
-          const newTab = createTab(state.schema, 'Tab', false);
+          const newTab = createTab(state.schema, tabLabelAt(insertIndex), false);
           if (!newTab) return false;
 
           const insertPos = getTabPos(state.doc, tabs.pos, insertIndex);
@@ -265,48 +263,41 @@ export const Tabs = Node.create<TabsOptions>({
         },
 
       moveTab:
-        (pos: 'left' | 'right') =>
+        (from, to, tabsPos) =>
         ({ state, tr, dispatch }) => {
-          const { $from } = state.selection;
-          const tabs = findParentNode(
-            (node) => node.type.name === this.name,
-            $from,
-          );
-          if (!tabs || tabs.node.childCount <= 1) return false;
-
-          const currentTabIndex = clampIndex(
-            tabs.node.attrs.activeTab,
-            tabs.node.childCount,
-          );
-
-          const targetIndex =
-            pos === 'left' ? currentTabIndex - 1 : currentTabIndex + 1;
-
-          if (targetIndex < 0 || targetIndex >= tabs.node.childCount)
+          const tabsNode = state.doc.nodeAt(tabsPos);
+          if (tabsNode?.type !== this.type || tabsNode.childCount <= 1) {
             return false;
+          }
 
-          const currentTabPos = getTabPos(state.doc, tabs.pos, currentTabIndex);
-          const currentTabNode = state.doc.nodeAt(currentTabPos);
-          if (!currentTabNode) return false;
+          const fromIndex = clampIndex(from, tabsNode.childCount);
+          const toIndex = clampIndex(to, tabsNode.childCount);
+          if (fromIndex === toIndex) return false;
 
-          const mappedCurrentTabPos = tr.mapping.map(currentTabPos);
-          tr.delete(
-            mappedCurrentTabPos,
-            mappedCurrentTabPos + currentTabNode.nodeSize,
+          const fromPos = getTabPos(state.doc, tabsPos, fromIndex);
+          const movedTab = state.doc.nodeAt(fromPos);
+          if (!movedTab) return false;
+
+          tr.delete(fromPos, fromPos + movedTab.nodeSize);
+          tr.insert(getTabPos(tr.doc, tabsPos, toIndex), movedTab);
+
+          const activeIndex = indexAfterMove(
+            clampIndex(tabsNode.attrs.activeTab, tabsNode.childCount),
+            fromIndex,
+            toIndex,
           );
 
-          const insertPos = getTabPos(tr.doc, tabs.pos, targetIndex);
-          tr.insert(insertPos, currentTabNode);
-
-          const movedTabPos = applyActiveTabState(
+          const activeTabPos = applyActiveTabState(
             tr,
-            tabs.pos,
-            targetIndex,
-            targetIndex,
+            tabsPos,
+            activeIndex,
+            activeIndex,
           );
-          selectTabPanel(tr, tabs.pos, movedTabPos);
+          if (activeTabPos == null) return false;
 
-          if (dispatch) dispatch(tr.scrollIntoView());
+          selectTabPanel(tr, tabsPos, activeTabPos);
+
+          if (dispatch) dispatch(tr);
           return true;
         },
 
@@ -421,6 +412,30 @@ export const Tabs = Node.create<TabsOptions>({
     };
   },
 
+  addProseMirrorPlugins() {
+    // the tab strip runs its own drag and drop. claim those events so they are
+    // not also treated as a content drag, but let them keep propagating: the
+    // dnd library listens on the window.
+    const inTabStrip = (_view: unknown, event: Event) =>
+      Boolean(
+        (event.target as HTMLElement | null)?.closest?.('[data-tab-strip]'),
+      );
+
+    return [
+      new Plugin({
+        key: new PluginKey('tabsDragGuard'),
+        props: {
+          handleDOMEvents: {
+            dragstart: inTabStrip,
+            dragenter: inTabStrip,
+            dragover: inTabStrip,
+            drop: inTabStrip,
+          },
+        },
+      }),
+    ];
+  },
+
   addKeyboardShortcuts() {
     return {
       Enter: ({ editor }) => {
@@ -455,6 +470,15 @@ export const Tabs = Node.create<TabsOptions>({
     };
   },
 });
+
+const tabLabelAt = (index: number) => `Tab ${index + 1}`;
+
+const indexAfterMove = (index: number, from: number, to: number) => {
+  if (index === from) return to;
+  if (from < index && index <= to) return index - 1;
+  if (to <= index && index < from) return index + 1;
+  return index;
+};
 
 const clampIndex = (value: unknown, length = Number.MAX_SAFE_INTEGER) => {
   const parsed = Number(value ?? 0);

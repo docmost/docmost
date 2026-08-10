@@ -1,10 +1,73 @@
 .ProseMirror {
   [data-type="tabs"] {
+    /* always on, unlike the toggle block, so the block bounds stay visible */
+    padding: 0.5em;
+    border-radius: 4px;
+    border: 1px solid
+      light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-7));
+
     button {
       outline: none;
     }
+
+    .dm-tabs__tab-slot {
+      position: relative;
+      display: inline-flex;
+      flex: 0 0 auto;
+    }
+
+    .dm-tabs__tab-slot[data-dragging] {
+      opacity: 0.4;
+    }
+
+    .dm-tabs__tab-slot[data-closest-edge]::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      border-radius: 1px;
+      background: var(--mantine-primary-color-filled);
+      pointer-events: none;
+    }
+
+    .dm-tabs__tab-slot[data-closest-edge="left"]::after {
+      inset-inline-start: -1px;
+    }
+
+    .dm-tabs__tab-slot[data-closest-edge="right"]::after {
+      inset-inline-end: -1px;
+    }
+
+    /* mirrored label text sets the width, so the input grows with its content.
+       the input needs size="1" or its default 20-character width wins instead */
+    .dm-tabs__tab-label {
+      display: inline-grid;
+      min-width: 2ch;
+    }
+
+    .dm-tabs__tab-label::after,
+    .dm-tabs__tab-input {
+      grid-area: 1 / 1;
+      font: inherit;
+    }
+
+    .dm-tabs__tab-label::after {
+      content: attr(data-value) " ";
+      white-space: pre;
+      visibility: hidden;
+    }
+
+    .dm-tabs__tab-input {
+      width: 100%;
+      padding: 0;
+      border: none;
+      outline: none;
+      background: none;
+      color: inherit;
+    }
   }
-  
+
   [data-type="tabLabel"] {
     display: none;
   }
