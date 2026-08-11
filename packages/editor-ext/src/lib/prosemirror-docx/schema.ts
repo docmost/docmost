@@ -1,4 +1,4 @@
-import { HeadingLevel, ShadingType } from 'docx';
+import { FootnoteReferenceRun, HeadingLevel, Paragraph, ShadingType } from 'docx';
 import { Node } from 'prosemirror-model';
 import {
   DocxSerializerAsync,
@@ -169,15 +169,26 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
     state.closeBlock(node, { pageBreakBefore: true });
   },
   footnoteReference(state, node) {
-    state.addRunOptions({ superScript: true });
-    state.text(`[${node.attrs?.referenceNumber ?? ''}]`);
+    const number =
+      Number(node.attrs?.referenceNumber) || state.$footnoteCounter + 1;
+    state.$footnoteCounter = Math.max(state.$footnoteCounter, number);
+    // seed an empty body so the reference stays valid even if the trailing
+    // footnotes list is missing; the footnotes node overwrites it with content
+    if (!state.footnotes[number]) {
+      state.footnotes[number] = { children: [new Paragraph('')] };
+    }
+    state.current.push(new FootnoteReferenceRun(number));
   },
   async footnotes(state, node) {
-    await state.renderList(node, 'numbered');
+    for (let i = 0; i < node.childCount; i += 1) {
+      const item = node.child(i);
+      const number =
+        Number(String(item.attrs?.id ?? '').replace('fn:', '')) || i + 1;
+      await state.footnoteDefinition(item, number);
+    }
   },
-  async footnote(state, node) {
-    await state.renderListItem(node);
-  },
+  // items are consumed by the footnotes handler above
+  footnote() {},
   // No usable static export representation: skip without failing.
   subpages() {},
   transclusionReference() {},
