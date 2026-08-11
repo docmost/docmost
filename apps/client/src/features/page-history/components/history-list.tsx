@@ -159,7 +159,7 @@ function HistoryList({ pageId }: Props) {
             >
               {t("Cancel")}
             </Button>
-            <Button size="compact-md" onClick={confirmRestore}>
+            <Button size="compact-md" onClick={() => confirmRestore()}>
               {t("Restore")}
             </Button>
           </Group>

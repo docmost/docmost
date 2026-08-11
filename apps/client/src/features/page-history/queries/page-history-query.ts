@@ -23,6 +23,14 @@ export function prefetchPageHistory(historyId: string) {
   });
 }
 
+export function fetchPageHistory(historyId: string): Promise<IPageHistory> {
+  return queryClient.fetchQuery({
+    queryKey: ["page-history", historyId],
+    queryFn: () => getPageHistoryById(historyId),
+    staleTime: HISTORY_STALE_TIME,
+  });
+}
+
 export function usePageHistoryListQuery(
   pageId: string,
 ): UseInfiniteQueryResult<InfiniteData<IPagination<IPageHistory>, unknown>> {
