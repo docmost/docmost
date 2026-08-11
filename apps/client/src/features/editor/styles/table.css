@@ -86,6 +86,16 @@
 .ProseMirror {
   table {
     @mixin dark {
+      /* Arbitrary (imported) colors: derive a dark variant; the hand-tuned
+         palette rules below override this for native colors. */
+      td[data-background-color],
+      th[data-background-color] {
+        background-color: oklch(
+          from var(--cell-bg, #fff) min(l, clamp(0.28, calc(1.22 - l), 0.45))
+            min(calc(c * 1.8), 0.09) h
+        ) !important;
+      }
+
       /* Blue */
       td[data-background-color="#b4d5ff"],
       th[data-background-color="#b4d5ff"] {
