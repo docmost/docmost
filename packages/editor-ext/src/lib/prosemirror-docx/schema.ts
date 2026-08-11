@@ -168,6 +168,16 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   pageBreak(state, node) {
     state.closeBlock(node, { pageBreakBefore: true });
   },
+  footnoteReference(state, node) {
+    state.addRunOptions({ superScript: true });
+    state.text(`[${node.attrs?.referenceNumber ?? ''}]`);
+  },
+  async footnotes(state, node) {
+    await state.renderList(node, 'numbered');
+  },
+  async footnote(state, node) {
+    await state.renderListItem(node);
+  },
   // No usable static export representation: skip without failing.
   subpages() {},
   transclusionReference() {},
