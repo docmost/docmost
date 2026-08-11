@@ -76,7 +76,7 @@ export default function HistoryModalBody({ pageId }: Props) {
       </nav>
 
       <div style={{ position: "relative", flex: 1 }}>
-        {comparePair && compareLabel && (
+        {comparePair && (
           <Group
             justify="space-between"
             wrap="nowrap"
@@ -85,7 +85,7 @@ export default function HistoryModalBody({ pageId }: Props) {
             className={classes.compareBanner}
           >
             <Text size="sm" fw={500} lineClamp={1}>
-              {compareLabel}
+              {compareLabel ?? t("Compare versions")}
             </Text>
             <CloseButton
               size="sm"
