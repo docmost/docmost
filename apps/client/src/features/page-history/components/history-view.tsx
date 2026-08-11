@@ -7,21 +7,29 @@ import {
   activeHistoryPrevIdAtom,
 } from "@/features/page-history/atoms/history-atoms";
 
-function HistoryView() {
+interface Props {
+  historyId?: string;
+  prevHistoryId?: string;
+}
+
+function HistoryView({ historyId, prevHistoryId }: Props) {
   const { t } = useTranslation();
-  const historyId = useAtomValue(activeHistoryIdAtom);
-  const prevHistoryId = useAtomValue(activeHistoryPrevIdAtom);
+  const activeId = useAtomValue(activeHistoryIdAtom);
+  const activePrevId = useAtomValue(activeHistoryPrevIdAtom);
+
+  const resolvedId = historyId ?? activeId;
+  const resolvedPrevId = prevHistoryId ?? activePrevId;
 
   const {
     data,
     isLoading: isLoadingCurrent,
     isError: isErrorCurrent,
-  } = usePageHistoryQuery(historyId);
+  } = usePageHistoryQuery(resolvedId);
   const {
     data: prevData,
     isLoading: isLoadingPrev,
     isError: isErrorPrev,
-  } = usePageHistoryQuery(prevHistoryId);
+  } = usePageHistoryQuery(resolvedPrevId);
 
   if (isLoadingCurrent || isLoadingPrev) {
     return <></>;
