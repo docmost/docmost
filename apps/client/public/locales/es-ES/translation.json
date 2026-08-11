@@ -1186,8 +1186,8 @@
   "Default value": "Valor predeterminado",
   "Delete property": "Eliminar propiedad",
   "Delete view": "Eliminar vista",
-  "Delete {{count}} rows?_one": "Delete 1 row?",
-  "Delete {{count}} rows?_other": "Delete {{count}} rows?",
+  "Delete {{count}} rows?_one": "¿Eliminar 1 fila?",
+  "Delete {{count}} rows?_other": "¿Eliminar {{count}} filas?",
   "Descending": "Descendente",
   "Discard": "Descartar",
   "Doesn't contain": "No contiene",
@@ -1286,8 +1286,8 @@
   "Value": "Valor",
   "View updated for everyone": "Vista actualizada para todos",
   "You have unsaved changes. Do you want to discard them?": "Tiene cambios no guardados. ¿Quiere descartarlos?",
-  "{{count}} rows deleted_one": "1 row deleted",
-  "{{count}} rows deleted_other": "{{count}} rows deleted",
-  "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} rows deleted_one": "1 fila eliminada",
+  "{{count}} rows deleted_other": "{{count}} filas eliminadas",
+  "{{count}} selected_one": "1 seleccionado",
+  "{{count}} selected_other": "{{count}} seleccionadas"
 }
