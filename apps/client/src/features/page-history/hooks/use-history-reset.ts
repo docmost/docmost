@@ -31,7 +31,6 @@ export function useHistoryReset(pageId: string) {
 
     setActiveHistoryId("");
     setActiveHistoryPrevId("");
-    // @ts-ignore
     setDiffCounts(null);
     resetCompare();
 
