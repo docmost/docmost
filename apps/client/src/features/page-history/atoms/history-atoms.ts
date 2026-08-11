@@ -11,4 +11,6 @@ export const diffCountsAtom = atom<DiffCounts | null>(null);
 export type ComparePair = { newerId: string; olderId: string };
 export const compareModeAtom = atom<boolean>(false);
 export const compareSelectionAtom = atom<string[]>([]);
-export const comparePairAtom = atom<ComparePair | null>(null);
+export const comparePairAtom = atom<ComparePair | null>(
+  null as ComparePair | null,
+);

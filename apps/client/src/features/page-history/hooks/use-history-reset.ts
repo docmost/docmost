@@ -26,7 +26,6 @@ export function useHistoryReset(pageId: string) {
     const resetCompare = () => {
       setCompareMode(false);
       setCompareSelection([]);
-      // @ts-ignore
       setComparePair(null);
     };
 

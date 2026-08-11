@@ -38,7 +38,6 @@ function HistoryList({ pageId }: Props) {
   const setHistoryModalOpen = useSetAtom(historyAtoms);
   const [compareMode, setCompareMode] = useAtom(compareModeAtom);
   const [compareSelection, setCompareSelection] = useAtom(compareSelectionAtom);
-  // @ts-ignore
   const setComparePair = useSetAtom(comparePairAtom);
 
   const {
@@ -87,7 +86,6 @@ function HistoryList({ pageId }: Props) {
 
   const handleSelect = useCallback(
     (id: string, index: number) => {
-      // @ts-ignore
       setComparePair(null);
       setActiveHistoryId(id);
       setActiveHistoryPrevId(historyItems[index + 1]?.id ?? "");
@@ -108,7 +106,6 @@ function HistoryList({ pageId }: Props) {
 
   const handleStartCompare = useCallback(
     (id: string) => {
-      // @ts-ignore
       setComparePair(null);
       setCompareMode(true);
       setCompareSelection([id]);
