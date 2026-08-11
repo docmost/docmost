@@ -229,7 +229,7 @@ function HistoryList({ pageId }: Props) {
               disabled={compareSelection.length !== 2}
               onClick={handleConfirmCompare}
             >
-              {t("Compare versions")}
+              {t("Compare")}
             </Button>
           </Group>
         </>
