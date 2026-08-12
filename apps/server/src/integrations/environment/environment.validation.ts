@@ -58,6 +58,10 @@ export class EnvironmentVariables {
   COLLAB_URL: string;
 
   @IsOptional()
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  CUSTOM_CSS_URL: string;
+
+  @IsOptional()
   CLOUD: boolean;
 
   @IsOptional()

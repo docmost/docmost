@@ -53,12 +53,19 @@ export class StaticModule implements OnModuleInit {
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;
 
+      const customCssUrl = this.environmentService.getCustomCssUrl();
+      const customCssTag = customCssUrl
+        ? `<link rel="stylesheet" href="${customCssUrl}" />`
+        : '';
+
       if (!fs.existsSync(indexTemplateFilePath)) {
         fs.copyFileSync(indexFilePath, indexTemplateFilePath);
       }
 
       const html = fs.readFileSync(indexTemplateFilePath, 'utf8');
-      const transformedHtml = html.replace(windowVar, windowScriptContent);
+      const transformedHtml = html
+        .replace(windowVar, windowScriptContent)
+        .replace('<!--custom-css-->', customCssTag);
 
       fs.writeFileSync(indexFilePath, transformedHtml);
 

@@ -203,6 +203,10 @@ export class EnvironmentService {
     return this.configService.get<string>('DRAWIO_URL');
   }
 
+  getCustomCssUrl(): string {
+    return this.configService.get<string>('CUSTOM_CSS_URL');
+  }
+
   isCloud(): boolean {
     const cloudConfig = this.configService
       .get<string>('CLOUD', 'false')

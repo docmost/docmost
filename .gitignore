@@ -41,3 +41,6 @@ lerna-debug.log*
 .nx
 .nx/installation
 .nx/cache
+
+# Custom theme overrides (loaded via CUSTOM_CSS_URL env var)
+custom-theme.css
