@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "Insira um divisor horizontal",
   "Page break": "Quebra de página",
   "Insert a page break for printing.": "Insira uma quebra de página para impressão.",
+  "Footnote": "Footnote",
+  "Insert a footnote reference.": "Insert a footnote reference.",
   "Upload any image from your device.": "Envie qualquer imagem do seu dispositivo.",
   "Upload any video from your device.": "Envie qualquer vídeo do seu dispositivo.",
   "Upload any audio from your device.": "Envie qualquer áudio do seu dispositivo.",
@@ -1289,5 +1291,11 @@
   "{{count}} rows deleted_one": "1 row deleted",
   "{{count}} rows deleted_other": "{{count}} rows deleted",
   "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} selected_other": "{{count}} selected",
+  "Compare": "Compare",
+  "Compare versions": "Compare versions",
+  "Select version from {{date}}": "Select version from {{date}}",
+  "Version actions for {{date}}": "Version actions for {{date}}",
+  "Comparing {{newer}} and {{older}}": "Comparing {{newer}} and {{older}}",
+  "Exit compare": "Exit compare"
 }
