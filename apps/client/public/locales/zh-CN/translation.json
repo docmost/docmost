@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "插入水平分割线",
   "Page break": "分页符",
   "Insert a page break for printing.": "插入一个用于打印的分页符。",
+  "Footnote": "Footnote",
+  "Insert a footnote reference.": "Insert a footnote reference.",
   "Upload any image from your device.": "从设备上传任何图像",
   "Upload any video from your device.": "从设备上传任何视频",
   "Upload any audio from your device.": "从您的设备上传任意音频文件。",
@@ -1289,5 +1291,11 @@
   "{{count}} rows deleted_one": "已删除 1 行",
   "{{count}} rows deleted_other": "已删除 {{count}} 行",
   "{{count}} selected_one": "已选择 1 项",
-  "{{count}} selected_other": "已选择 {{count}} 项"
+  "{{count}} selected_other": "已选择 {{count}} 项",
+  "Compare": "Compare",
+  "Compare versions": "Compare versions",
+  "Select version from {{date}}": "Select version from {{date}}",
+  "Version actions for {{date}}": "Version actions for {{date}}",
+  "Comparing {{newer}} and {{older}}": "Comparing {{newer}} and {{older}}",
+  "Exit compare": "Exit compare"
 }
