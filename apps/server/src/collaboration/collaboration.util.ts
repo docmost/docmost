@@ -50,7 +50,12 @@ import {
   Footnote,
   FootnoteReference,
 } from '@docmost/editor-ext';
-import { generateText, getSchema, JSONContent } from '@tiptap/core';
+import {
+  extensions as coreExtensions,
+  generateText,
+  getSchema,
+  JSONContent,
+} from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 // @tiptap/html library works best for generating prosemirror json state but not HTML
 // see: https://github.com/ueberdosis/tiptap/issues/5352
@@ -61,6 +66,7 @@ import * as Y from 'yjs';
 import { Logger } from '@nestjs/common';
 
 export const tiptapExtensions = [
+  coreExtensions.TextDirection.configure({ direction: 'auto' }),
   StarterKit.configure({
     document: false,
     codeBlock: false,

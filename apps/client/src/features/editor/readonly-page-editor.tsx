@@ -85,6 +85,7 @@ export default function ReadonlyPageEditor({
         <EditorProvider
           editable={false}
           immediatelyRender={true}
+          textDirection="auto"
           extensions={titleExtensions}
           content={title}
         ></EditorProvider>
@@ -93,6 +94,7 @@ export default function ReadonlyPageEditor({
       <EditorProvider
         editable={false}
         immediatelyRender={true}
+        textDirection="auto"
         extensions={extensions}
         content={content}
         onCreate={({ editor }) => {
