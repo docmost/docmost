@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { sql } from 'kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
@@ -8,6 +9,8 @@ import {
   UpdatableAttachment,
 } from '@docmost/db/types/entity.types';
 import { AttachmentType } from '../../../core/attachment/attachment.constants';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 
 @Injectable()
 export class AttachmentRepo {
@@ -87,6 +90,31 @@ export class AttachmentRepo {
       .select(this.baseFields)
       .where('spaceId', '=', spaceId)
       .execute();
+  }
+
+  async findPageAttachments(pageId: string, pagination: PaginationOptions) {
+    let query = this.db
+      .selectFrom('attachments')
+      .select(this.baseFields)
+      .where('pageId', '=', pageId)
+      .where('type', '=', AttachmentType.File)
+      .where('deletedAt', 'is', null);
+
+    if (pagination.query) {
+      query = query.where(
+        sql`f_unaccent(file_name)`,
+        'ilike',
+        sql`f_unaccent(${'%' + pagination.query + '%'})`,
+      );
+    }
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
+    });
   }
 
   async findByIds(
