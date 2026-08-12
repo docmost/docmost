@@ -6,8 +6,12 @@ import HistoryItem from "@/features/page-history/components/history-item";
 import {
   activeHistoryIdAtom,
   activeHistoryPrevIdAtom,
+  compareModeAtom,
+  comparePairAtom,
+  compareSelectionAtom,
   historyAtoms,
 } from "@/features/page-history/atoms/history-atoms";
+import { resolveComparePair } from "@/features/page-history/utils/resolve-compare-pair";
 import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
@@ -32,6 +36,9 @@ function HistoryList({ pageId }: Props) {
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
   const setActiveHistoryPrevId = useSetAtom(activeHistoryPrevIdAtom);
   const setHistoryModalOpen = useSetAtom(historyAtoms);
+  const [compareMode, setCompareMode] = useAtom(compareModeAtom);
+  const [compareSelection, setCompareSelection] = useAtom(compareSelectionAtom);
+  const setComparePair = useSetAtom(comparePairAtom);
 
   const {
     data: pageHistoryData,
@@ -79,10 +86,58 @@ function HistoryList({ pageId }: Props) {
 
   const handleSelect = useCallback(
     (id: string, index: number) => {
+      setComparePair(null);
       setActiveHistoryId(id);
       setActiveHistoryPrevId(historyItems[index + 1]?.id ?? "");
     },
-    [historyItems, setActiveHistoryId, setActiveHistoryPrevId],
+    [historyItems, setActiveHistoryId, setActiveHistoryPrevId, setComparePair],
+  );
+
+  const handleToggleCompare = useCallback(
+    (id: string) => {
+      setCompareSelection((prev) => {
+        if (prev.includes(id)) return prev.filter((item) => item !== id);
+        if (prev.length >= 2) return prev;
+        return [...prev, id];
+      });
+    },
+    [setCompareSelection],
+  );
+
+  const handleStartCompare = useCallback(
+    (id: string) => {
+      setComparePair(null);
+      setCompareMode(true);
+      setCompareSelection([id]);
+    },
+    [setComparePair, setCompareMode, setCompareSelection],
+  );
+
+  const handleCancelCompare = useCallback(() => {
+    setCompareMode(false);
+    setCompareSelection([]);
+  }, [setCompareMode, setCompareSelection]);
+
+  const handleConfirmCompare = useCallback(() => {
+    const pair = resolveComparePair(historyItems, compareSelection);
+    if (!pair) return;
+    setComparePair(pair);
+    setCompareMode(false);
+    setCompareSelection([]);
+  }, [
+    historyItems,
+    compareSelection,
+    setComparePair,
+    setCompareMode,
+    setCompareSelection,
+  ]);
+
+  const handleRestoreItem = useCallback(
+    (id: string, index: number) => {
+      handleSelect(id, index);
+      confirmRestore(id);
+    },
+    [handleSelect, confirmRestore],
   );
 
   useEffect(() => {
@@ -138,6 +193,16 @@ function HistoryList({ pageId }: Props) {
             onHover={handleHover}
             onHoverEnd={clearPrefetchTimeout}
             isActive={historyItem.id === activeHistoryId}
+            compareMode={compareMode}
+            isChecked={compareSelection.includes(historyItem.id)}
+            isCheckboxDisabled={
+              !compareSelection.includes(historyItem.id) &&
+              compareSelection.length >= 2
+            }
+            canCompare={historyItems.length >= 2}
+            onToggleCompare={handleToggleCompare}
+            onStartCompare={handleStartCompare}
+            onRestore={canRestore ? handleRestoreItem : undefined}
           />
         ))}
         {hasNextPage && <div ref={loadMoreRef} style={{ height: 1 }} />}
@@ -148,22 +213,44 @@ function HistoryList({ pageId }: Props) {
         )}
       </ScrollArea>
 
-      {canRestore && (
+      {compareMode ? (
         <>
           <Divider />
           <Group p="xs" wrap="nowrap">
             <Button
               variant="default"
               size="compact-md"
-              onClick={() => setHistoryModalOpen(false)}
+              onClick={handleCancelCompare}
             >
               {t("Cancel")}
             </Button>
-            <Button size="compact-md" onClick={confirmRestore}>
-              {t("Restore")}
+            <Button
+              size="compact-md"
+              disabled={compareSelection.length !== 2}
+              onClick={handleConfirmCompare}
+            >
+              {t("Compare")}
             </Button>
           </Group>
         </>
+      ) : (
+        canRestore && (
+          <>
+            <Divider />
+            <Group p="xs" wrap="nowrap">
+              <Button
+                variant="default"
+                size="compact-md"
+                onClick={() => setHistoryModalOpen(false)}
+              >
+                {t("Cancel")}
+              </Button>
+              <Button size="compact-md" onClick={() => confirmRestore()}>
+                {t("Restore")}
+              </Button>
+            </Group>
+          </>
+        )
       )}
     </div>
   );

@@ -824,6 +824,29 @@ export class DocxSerializerStateAsync {
     this.current.push(new FootnoteReferenceRun(this.$footnoteCounter));
   }
 
+  // Fills the footnote body for an already-referenced footnote number from a
+  // node holding block content (Docmost keeps footnote text in a trailing
+  // list, separate from the inline reference).
+  async footnoteDefinition(node: Node, number: number) {
+    const { current, children, nextRunOpts, nextParentParagraphOpts } = this;
+    this.current = [];
+    this.children = [];
+    delete this.nextRunOpts;
+    delete this.nextParentParagraphOpts;
+
+    await this.renderContent(node);
+    this.footnotes[number] = {
+      children: this.children.filter(
+        (child): child is Paragraph => child instanceof Paragraph,
+      ),
+    };
+
+    this.current = current;
+    this.children = children;
+    this.nextRunOpts = nextRunOpts;
+    this.nextParentParagraphOpts = nextParentParagraphOpts;
+  }
+
   closeBlock(node: Node, props?: IParagraphOptions) {
     const paragraph = new Paragraph({
       children: this.current,

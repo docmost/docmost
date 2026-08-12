@@ -170,7 +170,6 @@ export function HistoryEditor({
     }
 
     const total = addedCount + deletedCount;
-    // @ts-ignore
     setDiffCounts({ added: addedCount, deleted: deletedCount, total });
 
     editor.setOptions({

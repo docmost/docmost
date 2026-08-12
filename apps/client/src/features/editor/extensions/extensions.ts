@@ -1,5 +1,6 @@
 import { markInputRule } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
+import { Document } from "@tiptap/extension-document";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
@@ -63,6 +64,9 @@ import {
   TransclusionReference,
   TableView,
   BaseEmbed as BaseEmbedNode,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -132,6 +136,7 @@ lowlight.register("scala", scala);
 // @ts-ignore
 export const mainExtensions = [
   StarterKit.configure({
+    document: false,
     heading: false,
     undoRedo: false,
     link: false,
@@ -142,6 +147,9 @@ export const mainExtensions = [
     },
     codeBlock: false,
     code: false,
+  }),
+  Document.extend({
+    content: "block+ footnotes?",
   }),
   // Override TipTap's Code extension to fix the inline code input rule.
   // The upstream regex /(^|[^`])`([^`]+)`(?!`)$/ captures the character
@@ -203,7 +211,8 @@ export const mainExtensions = [
             parentName === "tableCell" ||
             parentName === "tableHeader" ||
             parentName === "callout" ||
-            parentName === "blockquote"
+            parentName === "blockquote" ||
+            parentName === "footnote"
           ) {
             return i18n.t("Write...");
           }
@@ -417,6 +426,9 @@ export const mainExtensions = [
   }).configure(),
   Columns,
   Column,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
   AutoJoiner.configure({
     elementsToJoin: [],
   }),

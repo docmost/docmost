@@ -2,6 +2,12 @@ import { marked } from "marked";
 import { calloutExtension } from "./callout.marked";
 import { mathBlockExtension } from "./math-block.marked";
 import { mathInlineExtension } from "./math-inline.marked";
+import {
+  footnoteDefExtension,
+  footnoteRefExtension,
+  renderFootnotesList,
+  resetFootnotes,
+} from "./footnotes.marked";
 
 marked.use({
   renderer: {
@@ -34,7 +40,13 @@ marked.use({
 });
 
 marked.use({
-  extensions: [calloutExtension, mathBlockExtension, mathInlineExtension],
+  extensions: [
+    calloutExtension,
+    mathBlockExtension,
+    mathInlineExtension,
+    footnoteDefExtension,
+    footnoteRefExtension,
+  ],
 });
 
 marked.setOptions({ breaks: true });
@@ -48,5 +60,7 @@ export function markdownToHtml(
     .replace(YAML_FONT_MATTER_REGEX, "")
     .trimStart();
 
-  return marked.parse(markdown).toString();
+  resetFootnotes();
+  const html = marked.parse(markdown).toString();
+  return html + renderFootnotesList();
 }
