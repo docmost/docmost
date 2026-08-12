@@ -1291,5 +1291,11 @@
   "{{count}} rows deleted_one": "1 row deleted",
   "{{count}} rows deleted_other": "{{count}} rows deleted",
   "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} selected_other": "{{count}} selected",
+  "Compare": "Compare",
+  "Compare versions": "Compare versions",
+  "Select version from {{date}}": "Select version from {{date}}",
+  "Version actions for {{date}}": "Version actions for {{date}}",
+  "Comparing {{newer}} and {{older}}": "Comparing {{newer}} and {{older}}",
+  "Exit compare": "Exit compare"
 }
