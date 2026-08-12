@@ -4,6 +4,7 @@ export enum QueueName {
   GENERAL_QUEUE = '{general-queue}',
   BILLING_QUEUE = '{billing-queue}',
   FILE_TASK_QUEUE = '{file-task-queue}',
+  CONFLUENCE_IMPORT_QUEUE = '{confluence-import-queue}',
   SEARCH_QUEUE = '{search-queue}',
   AI_QUEUE = '{ai-queue}',
   HISTORY_QUEUE = '{history-queue}',
