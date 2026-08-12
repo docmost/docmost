@@ -192,6 +192,7 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   // No usable static export representation: skip without failing.
   subpages() {},
   transclusionReference() {},
+  base() {},
 };
 
 export const defaultMarks: MarkSerializer = {
