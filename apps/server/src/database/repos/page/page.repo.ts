@@ -16,6 +16,7 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 
 @Injectable()
 export class PageRepo {
@@ -604,5 +605,28 @@ export class PageRepo {
         .where('isRestricted', '=', false)
         .execute()
     );
+  }
+
+  async nextPagePosition(
+    spaceId: string,
+    parentPageId?: string,
+  ): Promise<string> {
+    const lastPageQuery = this.db
+      .selectFrom('pages')
+      .select(['position'])
+      .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is', null)
+      .orderBy('position', (ob) => ob.collate('C').desc())
+      .limit(1);
+
+    const lastPage = parentPageId
+      ? await lastPageQuery
+          .where('parentPageId', '=', parentPageId)
+          .executeTakeFirst()
+      : await lastPageQuery
+          .where('parentPageId', 'is', null)
+          .executeTakeFirst();
+
+    return generateJitteredKeyBetween(lastPage?.position ?? null, null);
   }
 }

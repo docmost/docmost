@@ -175,44 +175,7 @@ export class PageService {
   }
 
   async nextPagePosition(spaceId: string, parentPageId?: string) {
-    let pagePosition: string;
-
-    const lastPageQuery = this.db
-      .selectFrom('pages')
-      .select(['position'])
-      .where('spaceId', '=', spaceId)
-      .where('deletedAt', 'is', null)
-      .orderBy('position', (ob) => ob.collate('C').desc())
-      .limit(1);
-
-    if (parentPageId) {
-      // check for children of this page
-      const lastPage = await lastPageQuery
-        .where('parentPageId', '=', parentPageId)
-        .executeTakeFirst();
-
-      if (!lastPage) {
-        pagePosition = generateJitteredKeyBetween(null, null);
-      } else {
-        // if there is an existing page, we should get a position below it
-        pagePosition = generateJitteredKeyBetween(lastPage.position, null);
-      }
-    } else {
-      // for root page
-      const lastPage = await lastPageQuery
-        .where('parentPageId', 'is', null)
-        .executeTakeFirst();
-
-      // if no existing page, make this the first
-      if (!lastPage) {
-        pagePosition = generateJitteredKeyBetween(null, null); // we expect "a0"
-      } else {
-        // if there is an existing page, we should get a position below it
-        pagePosition = generateJitteredKeyBetween(lastPage.position, null);
-      }
-    }
-
-    return pagePosition;
+    return this.pageRepo.nextPagePosition(spaceId, parentPageId);
   }
 
   async update(
