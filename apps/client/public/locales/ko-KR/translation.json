@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "가로 구분선 삽입",
   "Page break": "페이지 나누기",
   "Insert a page break for printing.": "인쇄용 페이지 나누기를 삽입합니다.",
+  "Footnote": "Footnote",
+  "Insert a footnote reference.": "Insert a footnote reference.",
   "Upload any image from your device.": "기기에서 이미지를 업로드하세요.",
   "Upload any video from your device.": "기기에서 비디오를 업로드하세요.",
   "Upload any audio from your device.": "기기에서 오디오를 업로드하세요.",
@@ -1289,5 +1291,11 @@
   "{{count}} rows deleted_one": "1개 행 삭제 완료",
   "{{count}} rows deleted_other": "{{count}}개 행 삭제 완료",
   "{{count}} selected_one": "1개 선택됨",
-  "{{count}} selected_other": "{{count}}개 선택됨"
+  "{{count}} selected_other": "{{count}}개 선택됨",
+  "Compare": "Compare",
+  "Compare versions": "Compare versions",
+  "Select version from {{date}}": "Select version from {{date}}",
+  "Version actions for {{date}}": "Version actions for {{date}}",
+  "Comparing {{newer}} and {{older}}": "Comparing {{newer}} and {{older}}",
+  "Exit compare": "Exit compare"
 }
