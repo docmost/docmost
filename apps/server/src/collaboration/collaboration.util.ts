@@ -1,4 +1,5 @@
 import { StarterKit } from '@tiptap/starter-kit';
+import { Document } from '@tiptap/extension-document';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
@@ -45,6 +46,9 @@ import {
   TransclusionSource,
   TransclusionReference,
   BaseEmbed,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -58,10 +62,14 @@ import { Logger } from '@nestjs/common';
 
 export const tiptapExtensions = [
   StarterKit.configure({
+    document: false,
     codeBlock: false,
     link: false,
     trailingNode: false,
     heading: false,
+  }),
+  Document.extend({
+    content: 'block+ footnotes?',
   }),
   Heading,
   UniqueID.configure({
@@ -110,7 +118,10 @@ export const tiptapExtensions = [
   Status,
   TransclusionSource,
   TransclusionReference,
-  BaseEmbed
+  BaseEmbed,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
