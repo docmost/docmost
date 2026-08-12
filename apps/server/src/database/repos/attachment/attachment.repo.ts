@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { sql } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { DB } from '@docmost/db/types/db';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
@@ -96,6 +98,7 @@ export class AttachmentRepo {
     let query = this.db
       .selectFrom('attachments')
       .select(this.baseFields)
+      .select((eb) => this.withCreator(eb))
       .where('pageId', '=', pageId)
       .where('type', '=', AttachmentType.File)
       .where('deletedAt', 'is', null);
@@ -112,9 +115,18 @@ export class AttachmentRepo {
       perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
-      fields: [{ expression: 'id', direction: 'asc' }],
+      fields: [{ expression: 'id', direction: 'desc' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
     });
+  }
+
+  withCreator(eb: ExpressionBuilder<DB, 'attachments'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'attachments.creatorId'),
+    ).as('creator');
   }
 
   async findByIds(

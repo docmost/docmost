@@ -1297,5 +1297,10 @@
   "Select version from {{date}}": "Select version from {{date}}",
   "Version actions for {{date}}": "Version actions for {{date}}",
   "Comparing {{newer}} and {{older}}": "Comparing {{newer}} and {{older}}",
-  "Exit compare": "Exit compare"
+  "Exit compare": "Exit compare",
+  "Search attachments...": "Search attachments...",
+  "Error loading attachments.": "Error loading attachments.",
+  "No attachments on this page yet.": "No attachments on this page yet.",
+  "Uploaded by {{name}}": "Uploaded by {{name}}",
+  "Download {{name}}": "Download {{name}}"
 }
