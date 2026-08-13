@@ -15,6 +15,7 @@ export const Feature = {
   SCIM: 'scim',
   PAGE_VERIFICATION: 'page:verification',
   AUDIT_LOGS: 'audit:logs',
+  PAGE_ANALYTICS: 'analytics:page-views',
   RETENTION: 'retention',
   SHARING_CONTROLS: 'sharing:controls',
   TEMPLATES: 'templates',

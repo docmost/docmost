@@ -52,6 +52,10 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import {
+  PAGE_VIEW_SERVICE,
+  IPageViewService,
+} from '../../integrations/page-view/page-view.service';
 import { getPageTitle } from '../../common/helpers';
 
 @UseGuards(JwtAuthGuard)
@@ -66,6 +70,7 @@ export class PageController {
     private readonly backlinkService: BacklinkService,
     private readonly labelService: LabelService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    @Inject(PAGE_VIEW_SERVICE) private readonly pageViewService: IPageViewService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -89,6 +94,13 @@ export class PageController {
       await this.pageAccessService.validateCanViewWithPermissions(page, user);
 
     const permissions = { canEdit, hasRestriction };
+
+    void this.pageViewService.track({
+      pageId: page.id,
+      workspaceId: page.workspaceId,
+      spaceId: page.spaceId,
+      userId: user.id,
+    });
 
     if (dto.format && dto.format !== 'json' && page.content) {
       const contentOutput =

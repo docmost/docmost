@@ -5,7 +5,7 @@ import {
 } from "@/ee/billing/services/billing-service.ts";
 import { getSpaces } from "@/features/space/services/space-service.ts";
 import { getGroups } from "@/features/group/services/group-service.ts";
-import { QueryParams } from "@/lib/types.ts";
+import type { QueryParams } from "@/lib/types.ts";
 import { getWorkspaceMembers } from "@/features/workspace/services/workspace-service.ts";
 import { getLicenseInfo } from "@/ee/licence/services/license-service.ts";
 import { getSsoProviders } from "@/ee/security/services/security-service.ts";
@@ -14,6 +14,11 @@ import { getApiKeys } from "@/ee/api-key";
 import { getAuditLogs } from "@/ee/audit/services/audit-service";
 import { getVerificationList } from "@/ee/page-verification/services/page-verification-service";
 import { getScimTokens } from "@/ee/scim/services/scim-token-service";
+import {
+  getWorkspacePageViewDailyStats,
+  getWorkspacePageViewTopPages,
+  getWorkspacePageViewTotals,
+} from "@/ee/page-view/services/page-view-analytics-service";
 
 export const prefetchWorkspaceMembers = () => {
   const params: QueryParams = { limit: 100, query: "" };
@@ -97,6 +102,31 @@ export const prefetchVerifiedPages = () => {
   queryClient.prefetchQuery({
     queryKey: ["verification-list", params],
     queryFn: () => getVerificationList(params),
+  });
+};
+
+export const prefetchPageAnalytics = () => {
+  const dateRange = {
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10),
+    endDate: new Date().toISOString().slice(0, 10),
+  };
+  const listParams = { ...dateRange, cursor: undefined, limit: 10 };
+
+  queryClient.prefetchQuery({
+    queryKey: ["workspace-page-view-totals", dateRange],
+    queryFn: () => getWorkspacePageViewTotals(dateRange),
+  });
+
+  queryClient.prefetchQuery({
+    queryKey: ["workspace-page-view-top-pages", listParams],
+    queryFn: () => getWorkspacePageViewTopPages(listParams),
+  });
+
+  queryClient.prefetchQuery({
+    queryKey: ["workspace-page-view-daily-stats", listParams],
+    queryFn: () => getWorkspacePageViewDailyStats(listParams),
   });
 };
 

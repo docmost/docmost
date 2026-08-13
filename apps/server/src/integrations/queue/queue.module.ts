@@ -95,6 +95,14 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
       },
     }),
     BullModule.registerQueue({
+      name: QueueName.PAGE_VIEW_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+        attempts: 3,
+      },
+    }),
+    BullModule.registerQueue({
       name: QueueName.SIEM_QUEUE,
       defaultJobOptions: {
         removeOnComplete: true,

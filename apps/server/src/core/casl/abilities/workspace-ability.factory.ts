@@ -42,6 +42,7 @@ function buildWorkspaceOwnerAbility() {
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Attachment);
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.API);
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Audit);
+  can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.PageAnalytics);
 
   return build();
 }
