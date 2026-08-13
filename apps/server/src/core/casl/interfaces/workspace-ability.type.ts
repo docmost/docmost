@@ -13,7 +13,7 @@ export enum WorkspaceCaslSubject {
   Attachment = 'attachment',
   API = 'api_key',
   Audit = 'audit',
-  PageAnalytics = "page_analytics"
+  PageAnalytics = 'page_analytics'
 }
 
 export type IWorkspaceAbility =
