@@ -16,6 +16,10 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('space_id', 'uuid', (col) =>
       col.references('spaces.id').onDelete('cascade'),
     )
+    .addColumn('user_id', 'uuid', (col) =>
+      col.references('users.id').onDelete('set null'),
+    )
+    .addColumn('share_id', 'uuid')
     .addColumn('visitor_id', 'varchar', (col) => col.notNull())
     .addColumn('view_date', 'varchar', (col) => col.notNull())
     .addColumn('hits', 'int8', (col) => col.notNull().defaultTo(1))
