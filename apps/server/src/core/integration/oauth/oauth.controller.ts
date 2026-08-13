@@ -1,0 +1,159 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Param,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { FastifyReply } from 'fastify';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { AuthUser } from '../../../common/decorators/auth-user.decorator';
+import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
+import { User, Workspace } from '@docmost/db/types/entity.types';
+import { OAuthService } from './oauth.service';
+import {
+  OAuthAuthorizeDto,
+  OAuthDisconnectDto,
+  OAuthInstallDto,
+} from '../dto/integration.dto';
+import { IntegrationConnectionService } from '../integration-connection.service';
+import { IntegrationRegistry } from '../registry/integration-registry';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { Feature } from '../../../common/features';
+import { ForbiddenException } from '@nestjs/common';
+
+@Controller('integrations/oauth')
+export class OAuthController {
+  private readonly logger = new Logger(OAuthController.name);
+
+  constructor(
+    private readonly oauthService: OAuthService,
+    private readonly connectionService: IntegrationConnectionService,
+    private readonly licenseCheckService: LicenseCheckService,
+    private readonly registry: IntegrationRegistry,
+  ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('authorize')
+  async authorize(
+    @Body() dto: OAuthAuthorizeDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const { authorizationUrl } = await this.oauthService.getAuthorizationUrl(
+      dto.integrationId,
+      workspace.id,
+      user.id,
+      dto.returnPath,
+    );
+
+    return { authorizationUrl };
+  }
+
+  /**
+   * Install-and-authorize: the install flow for every OAuth provider. The
+   * integration row is only created on callback after a successful token
+   * exchange; a cancelled or failed flow persists nothing.
+   */
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('install')
+  async installAndAuthorize(
+    @Body() dto: OAuthInstallDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    // This flow creates the integration row on callback success; gate it
+    // like a plain install.
+    if (
+      this.registry.getProvider(dto.type)?.definition.requiresLicense &&
+      !this.licenseCheckService.hasFeature(
+        workspace.licenseKey,
+        Feature.INTEGRATIONS,
+        workspace.plan,
+      )
+    ) {
+      throw new ForbiddenException('This feature requires a valid license');
+    }
+
+    const { authorizationUrl } = await this.oauthService.getInstallAuthorizationUrl(
+      dto.type,
+      workspace.id,
+      user.id,
+    );
+
+    return { authorizationUrl };
+  }
+
+  @Get(':type/callback')
+  async callback(
+    @Param('type') type: string,
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res: FastifyReply,
+  ) {
+    if (!state) {
+      throw new BadRequestException('Missing state parameter');
+    }
+
+    const statePayload = this.oauthService.verifySignedState(state);
+    if (!statePayload) {
+      throw new BadRequestException('Invalid or expired OAuth state');
+    }
+
+    // returnUrl is derived server-side at authorize time from the workspace's
+    // own hostname/customDomain (canonical DB truth, not user input), then
+    // signed into the state JWT. Tampering would invalidate the signature.
+    const returnUrl = statePayload.returnUrl;
+    // States signed before returnPath existed fall back to the admin page.
+    const returnPath = statePayload.returnPath ?? '/settings/integrations';
+
+    // Consent denied or cancelled at the provider: no code comes back.
+    if (!code) {
+      return res
+        .redirect(`${returnUrl}${returnPath}?error=oauth_failed`, 302)
+        .send();
+    }
+
+    try {
+      await this.oauthService.exchangeCodeForTokens(
+        type,
+        code,
+        statePayload.integrationId,
+        statePayload.userId,
+        statePayload.workspaceId,
+      );
+
+      return res.redirect(`${returnUrl}${returnPath}`, 302).send();
+    } catch (err) {
+      this.logger.error(`OAuth callback error for ${type}: ${(err as Error).message}`);
+      return res
+        .redirect(`${returnUrl}${returnPath}?error=oauth_failed`, 302)
+        .send();
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('disconnect')
+  async disconnect(
+    @Body() dto: OAuthDisconnectDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    await this.connectionService.disconnect(
+      dto.integrationId,
+      user.id,
+      workspace.id,
+    );
+    return { success: true };
+  }
+}

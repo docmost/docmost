@@ -13,6 +13,7 @@ import {
   IconKey,
   IconWorld,
   IconSparkles,
+  IconPlug,
   IconHistory,
   IconShieldCheck,
 } from "@tabler/icons-react";
@@ -74,6 +75,11 @@ const groupedData: DataGroup[] = [
         path: "/settings/account/api-keys",
         feature: Feature.API_KEYS,
       },
+      {
+        label: "Connections",
+        icon: IconPlug,
+        path: "/settings/account/connections",
+      },
     ],
   },
   {
@@ -124,6 +130,12 @@ const groupedData: DataGroup[] = [
         feature: Feature.AUDIT_LOGS,
         role: "owner",
         env: "selfhosted",
+      },
+      {
+        label: "Integrations",
+        icon: IconPlug,
+        path: "/settings/integrations",
+        role: "admin",
       },
     ],
   },

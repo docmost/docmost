@@ -5,6 +5,10 @@ import { uploadPdfAction } from "../pdf/upload-pdf-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
+import { matchIntegrationLink } from "@docmost/editor-ext";
+import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
+import { queryClient } from "@/main.tsx";
+import { Integration } from "@/features/integration/types/integration.types";
 import {
   getAttachmentInfo,
   uploadFile,
@@ -22,6 +26,16 @@ const ATTACHMENT_NODE_TYPES = [
 
 const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 
+// Only installed providers get card treatment; anything else pastes as an
+// ordinary link. The cache is prefetched when the page editor mounts;
+// a cold cache also means ordinary link.
+function isIntegrationInstalled(provider: string): boolean {
+  const installed = queryClient.getQueryData<Integration[]>([
+    "installed-integrations",
+  ]);
+  return Boolean(installed?.some((i) => i.type === provider));
+}
+
 export const handlePaste = (
   editor: Editor,
   event: ClipboardEvent,
@@ -29,6 +43,59 @@ export const handlePaste = (
   creatorId?: string,
 ) => {
   const clipboardData = event.clipboardData.getData("text/plain");
+
+  const integrationMatch = matchIntegrationLink(clipboardData.trim());
+  if (
+    integrationMatch &&
+    editor.state.selection.empty &&
+    isIntegrationInstalled(integrationMatch.provider)
+  ) {
+    event.preventDefault();
+    const pastedUrl = clipboardData.trim();
+    editor
+      .chain()
+      .focus()
+      .setIntegrationLink({
+        url: pastedUrl,
+        provider: integrationMatch.provider,
+      })
+      // Anchor the "Paste as" menu to the inserted node, in the SAME
+      // transaction: BubbleMenu ignores meta-only transactions (it only
+      // re-evaluates when the doc or selection changed). Locate the node via
+      // the range this transaction's own steps touched, never by url, so a
+      // duplicate of the same link elsewhere in the doc can't steal the menu.
+      .command(({ tr }) => {
+        let start: number | null = null;
+        let end: number | null = null;
+        tr.mapping.maps.forEach((map, index) => {
+          const rest = tr.mapping.slice(index + 1);
+          map.forEach((_oldStart, _oldEnd, newStart, newEnd) => {
+            const mappedStart = rest.map(newStart, -1);
+            const mappedEnd = rest.map(newEnd, 1);
+            start = start === null ? mappedStart : Math.min(start, mappedStart);
+            end = end === null ? mappedEnd : Math.max(end, mappedEnd);
+          });
+        });
+        if (start === null || end === null) return true;
+
+        let pastedPos: number | null = null;
+        tr.doc.nodesBetween(
+          start,
+          Math.min(end, tr.doc.content.size),
+          (node, pos) => {
+            if (node.type.name === "integrationLink") {
+              pastedPos = pos;
+            }
+          },
+        );
+        if (pastedPos !== null) {
+          tr.setMeta(integrationPasteMenuKey, { pos: pastedPos });
+        }
+        return true;
+      })
+      .run();
+    return true;
+  }
 
   if (INTERNAL_LINK_REGEX.test(clipboardData)) {
     // we have to do this validation here to allow the default link extension to takeover if needs be

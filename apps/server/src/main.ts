@@ -118,6 +118,10 @@ async function bootstrap() {
         '/api/workspace/create',
         '/api/workspace/joined',
         '/api/workspace/find-by-email',
+        '/api/integrations/oauth',
+        '/api/integrations/slack/events',
+        '/api/integrations/slack/commands',
+        '/api/integrations/slack/interactivity',
       ];
 
       if (

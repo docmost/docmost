@@ -107,7 +107,6 @@ export const EXCLUDED_AUDIT_EVENTS: Set<string> = new Set([
   AuditEvent.PAGE_CREATED,
   AuditEvent.PAGE_MOVED_TO_SPACE,
   AuditEvent.PAGE_DUPLICATED,
-  AuditEvent.COMMENT_CREATED,
   AuditEvent.COMMENT_UPDATED,
   AuditEvent.COMMENT_RESOLVED,
   AuditEvent.COMMENT_REOPENED,

@@ -102,6 +102,19 @@ export class PageAccessService {
     return { hasRestriction: hasAnyRestriction };
   }
 
+  /**
+   * Validate user can create a root page in the space, throws if not.
+   * Mirrors the space-level check the HTTP create endpoint enforces so
+   * non-HTTP callers (Slack, integrations) cannot bypass it. A non-member
+   * (including a space in another workspace) throws from createForUser.
+   */
+  async validateCanCreate(spaceId: string, user: User): Promise<void> {
+    const ability = await this.spaceAbility.createForUser(user, spaceId);
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+  }
+
   async validateCanComment(
     page: Page,
     user: User,

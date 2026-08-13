@@ -38,6 +38,9 @@ import SpaceTrash from "@/pages/space/space-trash.tsx";
 import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
 import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
 import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
+import Integrations from "@/features/integration/pages/integrations.tsx";
+import Connections from "@/features/integration/pages/connections.tsx";
+import SlackLinkPage from "@/features/integration/pages/slack-link.tsx";
 import BasePage from "@/ee/base/pages/base-page.tsx";
 import AuditLogs from "@/ee/audit/pages/audit-logs.tsx";
 import VerifiedPages from "@/ee/page-verification/pages/verified-pages.tsx";
@@ -87,6 +90,7 @@ export default function App() {
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />
         <Route path={"/share/:shareId"} element={<ShareRedirect />} />
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
+        <Route path={"/integrations/slack/link"} element={<SlackLinkPage />} />
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
@@ -116,6 +120,7 @@ export default function App() {
               element={<AccountPreferences />}
             />
             <Route path={"account/api-keys"} element={<UserApiKeys />} />
+            <Route path={"account/connections"} element={<Connections />} />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
             <Route path={"api-keys"} element={<WorkspaceApiKeys />} />
@@ -128,6 +133,7 @@ export default function App() {
             <Route path={"ai/mcp"} element={<AiSettings />} />
             <Route path={"audit"} element={<AuditLogs />} />
             <Route path={"verifications"} element={<VerifiedPages />} />
+            <Route path={"integrations"} element={<Integrations />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>

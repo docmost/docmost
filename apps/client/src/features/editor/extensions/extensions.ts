@@ -57,6 +57,8 @@ import {
   Indent,
   UniqueID,
   SharedStorage,
+  IntegrationLink,
+  IntegrationMention,
   Columns,
   Column,
   Status,
@@ -95,6 +97,9 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import IntegrationLinkView from "@/features/editor/components/integration-link/integration-link-view.tsx";
+import IntegrationMentionView from "@/features/editor/components/integration-link/integration-mention-view.tsx";
+import { IntegrationPasteMenuExtension } from "@/features/editor/extensions/integration-paste-menu";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
@@ -387,6 +392,13 @@ export const mainExtensions = [
   Subpages.configure({
     view: SubpagesView,
   }),
+  IntegrationLink.configure({
+    view: IntegrationLinkView,
+  }),
+  IntegrationMention.configure({
+    view: IntegrationMentionView,
+  }),
+  IntegrationPasteMenuExtension,
   Status.configure({
     view: StatusView,
   }),

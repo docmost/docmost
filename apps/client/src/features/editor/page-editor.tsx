@@ -75,6 +75,8 @@ import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
+import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
+import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
 import {
@@ -326,6 +328,18 @@ function CollabPageEditor({
     [pageId, editable, extensions],
   );
 
+  useEffect(() => {
+    // Warm the cache the paste handler reads to decide whether a pasted
+    // integration url becomes a card or stays an ordinary link. gcTime
+    // Infinity: no observer holds this query, and the default 5-minute gc
+    // would evict it mid-session, silently downgrading pastes to plain links.
+    queryClient.prefetchQuery({
+      queryKey: ["installed-integrations"],
+      queryFn: getInstalledIntegrations,
+      gcTime: Infinity,
+    });
+  }, []);
+
   useLayoutEffect(() => {
     if (editor && !editor.isDestroyed) {
       // @ts-ignore
@@ -454,6 +468,7 @@ function CollabPageEditor({
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
+            <IntegrationPasteMenu editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && (

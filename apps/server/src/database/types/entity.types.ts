@@ -8,6 +8,8 @@ import {
   BaseViews,
   Comments,
   Groups,
+  Integrations as _Integrations,
+  IntegrationConnections as _IntegrationConnections,
   Labels,
   Notifications,
   PageLabels,
@@ -198,6 +200,19 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Integration
+export type Integration = Selectable<_Integrations>;
+export type InsertableIntegration = Insertable<_Integrations>;
+export type UpdatableIntegration = Updateable<Omit<_Integrations, 'id'>>;
+
+// Integration Connection
+export type IntegrationConnection = Selectable<_IntegrationConnections>;
+export type InsertableIntegrationConnection =
+  Insertable<_IntegrationConnections>;
+export type UpdatableIntegrationConnection = Updateable<
+  Omit<_IntegrationConnections, 'id'>
+>;
 
 // Label
 export type Label = Selectable<Labels>;

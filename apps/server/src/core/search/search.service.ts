@@ -27,6 +27,7 @@ export class SearchService {
     opts: {
       userId?: string;
       workspaceId: string;
+      titlesOnly?: boolean;
     },
   ): Promise<{ items: SearchResponseDto[] }> {
     const { query } = searchParams;
@@ -34,6 +35,12 @@ export class SearchService {
     if (query.length < 1) {
       return { items: [] };
     }
+
+    // Use ILIKE titles-only search if titlesOnly flag is set
+    if (opts.titlesOnly) {
+      return this.searchPageTitlesOnly(searchParams, opts);
+    }
+
     const searchQuery = tsquery(query.trim() + '*');
 
     let queryResults = this.db
@@ -149,6 +156,71 @@ export class SearchService {
     });
 
     return { items: searchResults };
+  }
+
+  private async searchPageTitlesOnly(
+    searchParams: SearchDTO,
+    opts: {
+      userId?: string;
+      workspaceId: string;
+    },
+  ): Promise<{ items: SearchResponseDto[] }> {
+    const { query } = searchParams;
+
+    let queryResults = this.db
+      .selectFrom('pages')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'parentPageId',
+        'creatorId',
+        'createdAt',
+        'updatedAt',
+      ])
+      .where('title', 'ilike', `%${query}%`)
+      .where('deletedAt', 'is', null)
+      .orderBy('updatedAt', 'desc')
+      .limit(searchParams.limit || 10)
+      .offset(searchParams.offset || 0);
+
+    if (searchParams.spaceId) {
+      // search by spaceId
+      queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
+    } else if (opts.userId) {
+      // only search spaces the user is a member of
+      queryResults = queryResults
+        .where(
+          'spaceId',
+          'in',
+          this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId),
+        )
+        .where('workspaceId', '=', opts.workspaceId);
+    } else {
+      return { items: [] };
+    }
+
+    queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
+
+    //@ts-ignore
+    let results: any[] = await queryResults.execute();
+
+    // Filter results by page-level permissions (if user is authenticated)
+    if (opts.userId && results.length > 0) {
+      const pageIds = results.map((r: any) => r.id);
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds,
+          userId: opts.userId,
+          spaceId: searchParams.spaceId,
+        });
+      const accessibleSet = new Set(accessibleIds);
+      results = results.filter((r: any) => accessibleSet.has(r.id));
+    }
+
+    //@ts-ignore
+    return { items: results };
   }
 
   async searchSuggestions(

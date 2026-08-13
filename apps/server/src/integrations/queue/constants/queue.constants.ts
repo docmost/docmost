@@ -8,7 +8,15 @@ export enum QueueName {
   AI_QUEUE = '{ai-queue}',
   HISTORY_QUEUE = '{history-queue}',
   NOTIFICATION_QUEUE = '{notification-queue}',
+  INTEGRATION_QUEUE = '{integration-queue}',
   AUDIT_QUEUE = '{audit-queue}',
+  SLACK_INBOUND = '{slack-inbound}',
+  // Separate queue for /docmost ask: AI work takes seconds and would
+  // otherwise starve fast inbound event dispatch.
+  SLACK_ASK = '{slack-ask}',
+  // Outbound notification DMs; isolated so Slack API latency and retries
+  // never block inbound event dispatch.
+  SLACK_NOTIFY = '{slack-notify}',
   BASE_QUEUE = '{base-queue}',
 }
 
@@ -84,6 +92,12 @@ export enum QueueJob {
 
   PDF_EXPORT_TASK = 'pdf-export-task',
   PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',
+
+  INTEGRATION_EVENT = 'integration-event',
+  INTEGRATION_TOKEN_REFRESH = 'integration-token-refresh',
+  SLACK_EVENT = 'slack-event',
+  SLACK_ASK = 'slack-ask',
+  SLACK_NOTIFICATION = 'slack-notification',
 
   BASE_TYPE_CONVERSION = 'base-type-conversion',
   BASE_CELL_GC = 'base-cell-gc',

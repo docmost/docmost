@@ -360,4 +360,8 @@ export class EnvironmentService {
       .map((o) => o.trim())
       .filter(Boolean);
   }
+
+  getSlackSigningSecret(): string | undefined {
+    return this.configService.get<string>('INTEGRATION_SLACK_SIGNING_SECRET');
+  }
 }

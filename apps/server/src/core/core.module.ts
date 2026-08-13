@@ -21,6 +21,9 @@ import { ShareModule } from './share/share.module';
 import { LabelModule } from './label/label.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
+import { IntegrationModule } from './integration/integration.module';
+import { GitHubModule } from './integration/providers/github/github.module';
+import { GitLabModule } from './integration/providers/gitlab/gitlab.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { SessionModule } from './session/session.module';
 import { ClsMiddleware } from 'nestjs-cls';
@@ -43,6 +46,9 @@ import { ClsMiddleware } from 'nestjs-cls';
     LabelModule,
     NotificationModule,
     WatcherModule,
+    IntegrationModule,
+    GitHubModule,
+    GitLabModule,
     SessionModule,
   ],
 })
@@ -53,6 +59,7 @@ export class CoreModule implements NestModule {
       { path: 'health', method: RequestMethod.GET },
       { path: 'health/live', method: RequestMethod.GET },
       { path: 'billing/stripe/webhook', method: RequestMethod.POST },
+      { path: 'integrations/oauth/*/callback', method: RequestMethod.GET },
     ];
 
     consumer
