@@ -11,11 +11,13 @@ import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import AsideChatPanel from "@/ee/ai-chat/components/aside-chat-panel";
 import { PageDetailsAside } from "@/features/page-details/components/page-details-aside.tsx";
 import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
+import { useCanViewComments } from "@/features/comment/hooks/use-can-view-comments.ts";
 
 export default function Aside() {
   const [{ tab, isAsideOpen }, setAsideState] = useAtom(asideStateAtom);
   const { t } = useTranslation();
   const pageEditor = useAtomValue(pageEditorAtom);
+  const canViewComments = useCanViewComments();
   const closeAside = () => setAsideState((s) => ({ ...s, isAsideOpen: false }));
 
   useEffect(() => {
@@ -23,12 +25,18 @@ export default function Aside() {
     document.getElementById(ASIDE_PANEL_ID)?.focus();
   }, [isAsideOpen, tab]);
 
+  useEffect(() => {
+    if (isAsideOpen && tab === "comments" && !canViewComments) {
+      setAsideState({ tab: "", isAsideOpen: false });
+    }
+  }, [isAsideOpen, tab, canViewComments, setAsideState]);
+
   let title: string;
   let component: ReactNode;
 
   switch (tab) {
     case "comments":
-      component = <CommentListWithTabs />;
+      component = canViewComments ? <CommentListWithTabs /> : null;
       title = "Comments";
       break;
     case "toc":

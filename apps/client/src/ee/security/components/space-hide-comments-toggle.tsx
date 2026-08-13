@@ -7,24 +7,24 @@ import { useHasFeature } from "@/ee/hooks/use-feature.ts";
 import { Feature } from "@/ee/features.ts";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label.ts";
 
-type SpaceViewerCommentsToggleProps = {
+type SpaceHideCommentsToggleProps = {
   space: ISpace;
 };
 
-export default function SpaceViewerCommentsToggle({
+export default function SpaceHideCommentsToggle({
   space,
-}: SpaceViewerCommentsToggleProps) {
+}: SpaceHideCommentsToggleProps) {
   const { t } = useTranslation();
-  const hasViewerComments = useHasFeature(Feature.VIEWER_COMMENTS);
+  const hasHideComments = useHasFeature(Feature.HIDE_COMMENTS);
   const upgradeLabel = useUpgradeLabel();
-  const hideCommentsEnabled =
-    space.settings?.comments?.hideCommentsFromViewers === true;
-  const isDisabled = !hasViewerComments || hideCommentsEnabled;
-  const tooltipLabel = !hasViewerComments
+  const allowViewerCommentsEnabled =
+    space.settings?.comments?.allowViewerComments === true;
+  const isDisabled = !hasHideComments || allowViewerCommentsEnabled;
+  const tooltipLabel = !hasHideComments
     ? upgradeLabel
-    : t("Turn off 'Hide comments from viewers' first");
+    : t("Turn off 'Allow viewers to comment' first");
   const [checked, setChecked] = useState(
-    space.settings?.comments?.allowViewerComments === true,
+    space.settings?.comments?.hideCommentsFromViewers === true,
   );
   const updateSpaceMutation = useUpdateSpaceMutation();
 
@@ -33,7 +33,7 @@ export default function SpaceViewerCommentsToggle({
     try {
       await updateSpaceMutation.mutateAsync({
         spaceId: space.id,
-        allowViewerComments: value,
+        hideCommentsFromViewers: value,
       });
       setChecked(value);
     } catch {
@@ -44,21 +44,17 @@ export default function SpaceViewerCommentsToggle({
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
       <div>
-        <Text size="md">{t("Allow viewers to comment")}</Text>
+        <Text size="md">{t("Hide comments from viewers")}</Text>
         <Text size="sm" c="dimmed">
-          {t("Allow viewers to add comments on pages in this space.")}
+          {t("Viewers cannot see or add comments on pages in this space.")}
         </Text>
       </div>
-      <Tooltip
-        label={tooltipLabel}
-        disabled={!isDisabled}
-        refProp="rootRef"
-      >
+      <Tooltip label={tooltipLabel} disabled={!isDisabled} refProp="rootRef">
         <Switch
           checked={checked}
           onChange={handleChange}
           disabled={isDisabled}
-          aria-label={t("Toggle viewer comments")}
+          aria-label={t("Toggle hide comments from viewers")}
         />
       </Tooltip>
     </Group>

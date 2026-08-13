@@ -20,6 +20,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { SpaceRole } from '../../../common/helpers/types/permission';
 
 @Injectable()
 export class SpaceMemberRepo {
@@ -272,6 +273,32 @@ export class SpaceMemberRepo {
           .select('groupUsers.userId')
           .where('groupUsers.userId', 'in', userIds)
           .where('spaceMembers.spaceId', '=', spaceId),
+      )
+      .execute();
+
+    return new Set(rows.map((r) => r.userId));
+  }
+
+  async getUserIdsWithSpaceEditAccess(
+    userIds: string[],
+    spaceId: string,
+  ): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+
+    const rows = await this.db
+      .selectFrom('spaceMembers')
+      .select('userId')
+      .where('userId', 'in', userIds)
+      .where('spaceId', '=', spaceId)
+      .where('spaceMembers.role', 'in', [SpaceRole.ADMIN, SpaceRole.WRITER])
+      .unionAll(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select('groupUsers.userId')
+          .where('groupUsers.userId', 'in', userIds)
+          .where('spaceMembers.spaceId', '=', spaceId)
+          .where('spaceMembers.role', 'in', [SpaceRole.ADMIN, SpaceRole.WRITER]),
       )
       .execute();
 

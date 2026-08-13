@@ -58,6 +58,7 @@ import {
   useWatchPageMutation,
   useUnwatchPageMutation,
 } from "@/features/page/queries/watcher-query";
+import { useCanViewComments } from "@/features/comment/hooks/use-can-view-comments.ts";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -65,6 +66,7 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const commentsTriggerProps = useAsideTriggerProps("comments");
+  const canViewComments = useCanViewComments();
   const tocTriggerProps = useAsideTriggerProps("toc");
   const { pageSlug } = useParams();
   const { data: page } = usePageQuery({
@@ -105,16 +107,18 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       <PageShareModal readOnly={readOnly} />
 
-      <Tooltip label={t("Comments")} openDelay={250} withArrow>
-        <ActionIcon
-          variant="subtle"
-          color="dark"
-          aria-label={t("Comments")}
-          {...commentsTriggerProps}
-        >
-          <IconMessage size={20} stroke={2} />
-        </ActionIcon>
-      </Tooltip>
+      {canViewComments && (
+        <Tooltip label={t("Comments")} openDelay={250} withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            aria-label={t("Comments")}
+            {...commentsTriggerProps}
+          >
+            <IconMessage size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
 
       {!page?.isBase && (
         <Tooltip label={t("Table of contents")} openDelay={250} withArrow>

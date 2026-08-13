@@ -14,6 +14,7 @@ import { CommentMentionEmail } from '@docmost/transactional/emails/comment-menti
 import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
 import { CommentResolvedEmail } from '@docmost/transactional/emails/comment-resolved-email';
 import { getPageTitle } from '../../../common/helpers';
+import { PageAccessService } from '../../page/page-access/page-access.service';
 
 @Injectable()
 export class CommentNotificationService {
@@ -25,6 +26,7 @@ export class CommentNotificationService {
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly watcherRepo: WatcherRepo,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   async processComment(data: ICommentNotificationJob, appUrl: string) {
@@ -48,7 +50,7 @@ export class CommentNotificationService {
     );
     if (!context) return;
 
-    const { actor, pageTitle, pageUrl } = context;
+    const { actor, pageTitle, pageUrl, spaceSettings } = context;
     const notifiedUserIds = new Set<string>();
     notifiedUserIds.add(actorId);
 
@@ -72,7 +74,16 @@ export class CommentNotificationService {
         pageId,
         [...usersWithSpaceAccess],
       );
-    const usersWithAccess = new Set(usersWithPageAccess);
+    let accessibleUserIds = usersWithPageAccess;
+    if (spaceSettings?.comments?.hideCommentsFromViewers === true) {
+      accessibleUserIds =
+        await this.pageAccessService.filterUserIdsWithPageEditAccess(
+          spaceId,
+          pageId,
+          accessibleUserIds,
+        );
+    }
+    const usersWithAccess = new Set(accessibleUserIds);
 
     for (const userId of mentionedUserIds) {
       if (!usersWithAccess.has(userId)) continue;
@@ -145,7 +156,7 @@ export class CommentNotificationService {
     );
     if (!context) return;
 
-    const { actor, pageTitle, pageUrl } = context;
+    const { actor, pageTitle, pageUrl, spaceSettings } = context;
 
     const roles = await this.spaceMemberRepo.getUserSpaceRoles(
       commentCreatorId,
@@ -165,6 +176,16 @@ export class CommentNotificationService {
         [commentCreatorId],
       );
     if (hasPageAccess.length === 0) return;
+
+    if (spaceSettings?.comments?.hideCommentsFromViewers === true) {
+      const editCapable =
+        await this.pageAccessService.filterUserIdsWithPageEditAccess(
+          spaceId,
+          pageId,
+          [commentCreatorId],
+        );
+      if (editCapable.length === 0) return;
+    }
 
     const notification = await this.notificationService.create({
       userId: commentCreatorId,
@@ -225,7 +246,7 @@ export class CommentNotificationService {
         .executeTakeFirst(),
       this.db
         .selectFrom('spaces')
-        .select(['id', 'slug'])
+        .select(['id', 'slug', 'settings'])
         .where('id', '=', spaceId)
         .executeTakeFirst(),
     ]);
@@ -236,6 +257,11 @@ export class CommentNotificationService {
 
     const pageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
 
-    return { actor, pageTitle: getPageTitle(page.title), pageUrl };
+    return {
+      actor,
+      pageTitle: getPageTitle(page.title),
+      pageUrl,
+      spaceSettings: (space.settings ?? null) as Record<string, any> | null,
+    };
   }
 }

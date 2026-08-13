@@ -7,6 +7,7 @@ import {
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
 export class PageAccessService {
@@ -14,6 +15,7 @@ export class PageAccessService {
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly spaceRepo: SpaceRepo,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
   /**
@@ -118,8 +120,68 @@ export class PageAccessService {
 
     const space = await this.spaceRepo.findById(page.spaceId, workspaceId);
     const settings = space?.settings as Record<string, any> | null;
-    if (!settings?.comments?.allowViewerComments) {
+    if (
+      !settings?.comments?.allowViewerComments ||
+      settings?.comments?.hideCommentsFromViewers
+    ) {
       throw new ForbiddenException();
     }
+  }
+
+  async validateCanViewComments(
+    page: Page,
+    user: User,
+    workspaceId: string,
+  ): Promise<void> {
+    const { canEdit } = await this.validateCanViewWithPermissions(page, user);
+    if (canEdit) {
+      return;
+    }
+
+    const space = await this.spaceRepo.findById(page.spaceId, workspaceId);
+    const settings = space?.settings as Record<string, any> | null;
+    if (settings?.comments?.hideCommentsFromViewers) {
+      throw new ForbiddenException();
+    }
+  }
+
+  /**
+   * Callers must pass userIds that already have space access (WS room members / pre-filtered notification recipients).
+   */
+  async filterUserIdsWithPageEditAccess(
+    spaceId: string,
+    pageId: string,
+    userIds: string[],
+  ): Promise<string[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const spaceHasRestrictedPages =
+      await this.pagePermissionRepo.hasRestrictedPagesInSpace(spaceId);
+    const hasRestriction =
+      spaceHasRestrictedPages &&
+      (await this.pagePermissionRepo.hasRestrictedAncestor(pageId));
+
+    if (!hasRestriction) {
+      const editCapableIds =
+        await this.spaceMemberRepo.getUserIdsWithSpaceEditAccess(
+          userIds,
+          spaceId,
+        );
+      return userIds.filter((id) => editCapableIds.has(id));
+    }
+
+    const results = await Promise.all(
+      userIds.map(async (userId) => {
+        const { canEdit } = await this.pagePermissionRepo.canUserEditPage(
+          userId,
+          pageId,
+        );
+        return canEdit ? userId : null;
+      }),
+    );
+
+    return results.filter((id): id is string => id !== null);
   }
 }

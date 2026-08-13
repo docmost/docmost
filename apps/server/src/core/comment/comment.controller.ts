@@ -89,20 +89,29 @@ export class CommentController {
     @Body()
     pagination: PaginationOptions,
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const page = await this.pageRepo.findById(input.pageId);
     if (!page) {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanView(page, user);
+    await this.pageAccessService.validateCanViewComments(
+      page,
+      user,
+      workspace.id,
+    );
 
     return this.commentService.findByPageId(page.id, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('info')
-  async findOne(@Body() input: CommentIdDto, @AuthUser() user: User) {
+  async findOne(
+    @Body() input: CommentIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const comment = await this.commentRepo.findById(input.commentId);
     if (!comment) {
       throw new NotFoundException('Comment not found');
@@ -113,7 +122,11 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanView(page, user);
+    await this.pageAccessService.validateCanViewComments(
+      page,
+      user,
+      workspace.id,
+    );
 
     return comment;
   }

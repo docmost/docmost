@@ -18,6 +18,7 @@ export const Feature = {
   RETENTION: 'retention',
   SHARING_CONTROLS: 'sharing:controls',
   VIEWER_COMMENTS: 'comment:viewer',
+  HIDE_COMMENTS: 'comment:hide',
   TEMPLATES: 'templates',
   PDF_EXPORT: 'export:pdf',
   PERSONAL_SPACES: 'spaces:personal',

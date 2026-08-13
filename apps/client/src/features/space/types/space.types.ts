@@ -11,6 +11,7 @@ export interface ISpaceSharingSettings {
 
 export interface ISpaceCommentsSettings {
   allowViewerComments?: boolean;
+  hideCommentsFromViewers?: boolean;
 }
 
 export interface ISpaceSettings {
@@ -36,6 +37,7 @@ export interface ISpace {
   // for updates
   disablePublicSharing?: boolean;
   allowViewerComments?: boolean;
+  hideCommentsFromViewers?: boolean;
 }
 
 interface IMembership {

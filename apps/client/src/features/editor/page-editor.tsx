@@ -82,6 +82,8 @@ import {
   getCollabSocket,
   releaseCollabSocket,
 } from "@/features/editor/collab-socket";
+import clsx from "clsx";
+import { useCanViewComments } from "@/features/comment/hooks/use-can-view-comments.ts";
 
 interface PageEditorProps {
   pageId: string;
@@ -196,6 +198,7 @@ function CollabPageEditor({
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
+  const canViewComments = useCanViewComments();
   const canScroll = useCallback(
     () => Boolean(isComponentMounted.current && editorRef.current),
     [isComponentMounted],
@@ -372,6 +375,7 @@ function CollabPageEditor({
   };
 
   useEffect(() => {
+    if (!canViewComments) return;
     document.addEventListener("ACTIVE_COMMENT_EVENT", handleActiveCommentEvent);
     return () => {
       document.removeEventListener(
@@ -379,7 +383,7 @@ function CollabPageEditor({
         handleActiveCommentEvent,
       );
     };
-  }, []);
+  }, [canViewComments]);
 
   useEffect(() => {
     setActiveCommentId(null);
@@ -430,7 +434,13 @@ function CollabPageEditor({
   }
 
   return (
-    <div className="editor-container" style={{ position: "relative" }}>
+    <div
+      className={clsx(
+        "editor-container",
+        !canViewComments && "comments-hidden",
+      )}
+      style={{ position: "relative" }}
+    >
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
 
@@ -480,17 +490,21 @@ function StaticPageEditor({
   content: any;
   ariaLabel: string;
 }) {
+  const canViewComments = useCanViewComments();
+
   return (
-    <EditorProvider
-      editable={false}
-      immediatelyRender={true}
-      extensions={mainExtensions}
-      content={content}
-      editorProps={{
-        attributes: {
-          "aria-label": ariaLabel,
-        },
-      }}
-    />
+    <div className={clsx(!canViewComments && "comments-hidden")}>
+      <EditorProvider
+        editable={false}
+        immediatelyRender={true}
+        extensions={mainExtensions}
+        content={content}
+        editorProps={{
+          attributes: {
+            "aria-label": ariaLabel,
+          },
+        }}
+      />
+    </div>
   );
 }

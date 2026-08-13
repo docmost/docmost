@@ -149,6 +149,17 @@ export class SpaceRepo {
       .executeTakeFirst();
   }
 
+  async getSpaceSettings(
+    spaceId: string,
+  ): Promise<Record<string, any> | null> {
+    const row = await this.db
+      .selectFrom('spaces')
+      .select('settings')
+      .where('id', '=', spaceId)
+      .executeTakeFirst();
+    return (row?.settings as Record<string, any> | undefined) ?? null;
+  }
+
   async insertSpace(
     insertableSpace: InsertableSpace,
     trx?: KyselyTransaction,

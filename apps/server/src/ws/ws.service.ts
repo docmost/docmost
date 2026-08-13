@@ -3,6 +3,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { PageAccessService } from '../core/page/page-access/page-access.service';
 import {
   TREE_EVENTS,
   WS_SPACE_RESTRICTION_CACHE_PREFIX,
@@ -17,6 +19,8 @@ export class WsService {
 
   constructor(
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly spaceRepo: SpaceRepo,
+    private readonly pageAccessService: PageAccessService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
@@ -67,8 +71,23 @@ export class WsService {
     spaceId: string,
     pageId: string,
     data: any,
+    opts?: { bypassVisibilityCheck?: boolean },
   ): Promise<void> {
     const room = getSpaceRoomName(spaceId);
+
+    if (
+      !opts?.bypassVisibilityCheck &&
+      (await this.spaceHidesCommentsFromViewers(spaceId))
+    ) {
+      await this.broadcastToUsersMatching(room, null, data, (candidateIds) =>
+        this.pageAccessService.filterUserIdsWithPageEditAccess(
+          spaceId,
+          pageId,
+          candidateIds,
+        ),
+      );
+      return;
+    }
 
     const hasRestrictions = await this.spaceHasRestrictions(spaceId);
     if (!hasRestrictions) {
@@ -119,6 +138,17 @@ export class WsService {
     pageId: string,
     data: any,
   ): Promise<void> {
+    await this.broadcastToUsersMatching(room, excludeSocketId, data, (ids) =>
+      this.pagePermissionRepo.getUserIdsWithPageAccess(pageId, ids),
+    );
+  }
+
+  private async broadcastToUsersMatching(
+    room: string,
+    excludeSocketId: string | null,
+    data: any,
+    filterUserIds: (candidateUserIds: string[]) => Promise<string[]>,
+  ): Promise<void> {
     const sockets = await this.server.in(room).fetchSockets();
 
     // Exclude only the originating socket, not every socket of the originating
@@ -144,15 +174,9 @@ export class WsService {
     const candidateUserIds = Array.from(userSocketMap.keys());
     if (candidateUserIds.length === 0) return;
 
-    const authorizedUserIds =
-      await this.pagePermissionRepo.getUserIdsWithPageAccess(
-        pageId,
-        candidateUserIds,
-      );
-
-    const authorizedSet = new Set(authorizedUserIds);
+    const allowedSet = new Set(await filterUserIds(candidateUserIds));
     for (const [userId, userSockets] of userSocketMap) {
-      if (authorizedSet.has(userId)) {
+      if (allowedSet.has(userId)) {
         for (const socket of userSockets) {
           socket.emit('message', data);
         }
@@ -174,6 +198,13 @@ export class WsService {
     await this.cacheManager.set(cacheKey, hasRestrictions, WS_CACHE_TTL_MS);
 
     return hasRestrictions;
+  }
+
+  private async spaceHidesCommentsFromViewers(
+    spaceId: string,
+  ): Promise<boolean> {
+    const settings = await this.spaceRepo.getSpaceSettings(spaceId);
+    return settings?.comments?.hideCommentsFromViewers === true;
   }
 
   private extractPageId(data: any): string | null {

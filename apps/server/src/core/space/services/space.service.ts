@@ -30,6 +30,35 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 
+export function validateExclusiveCommentSettings(
+  dto: Partial<
+    Pick<UpdateSpaceDto, 'allowViewerComments' | 'hideCommentsFromViewers'>
+  >,
+  settingsBefore: Record<string, any>,
+): void {
+  if (
+    dto.allowViewerComments === undefined &&
+    dto.hideCommentsFromViewers === undefined
+  ) {
+    return;
+  }
+
+  const allowViewerComments =
+    dto.allowViewerComments ??
+    settingsBefore.comments?.allowViewerComments ??
+    false;
+  const hideCommentsFromViewers =
+    dto.hideCommentsFromViewers ??
+    settingsBefore.comments?.hideCommentsFromViewers ??
+    false;
+
+  if (allowViewerComments && hideCommentsFromViewers) {
+    throw new BadRequestException(
+      "'Allow viewers to comment' and 'Hide comments from viewers' cannot both be enabled",
+    );
+  }
+}
+
 @Injectable()
 export class SpaceService {
   constructor(
@@ -141,7 +170,8 @@ export class SpaceService {
 
     if (
       typeof updateSpaceDto.disablePublicSharing !== 'undefined' ||
-      typeof updateSpaceDto.allowViewerComments !== 'undefined'
+      typeof updateSpaceDto.allowViewerComments !== 'undefined' ||
+      typeof updateSpaceDto.hideCommentsFromViewers !== 'undefined'
     ) {
       const workspace = await this.workspaceRepo.findById(workspaceId, {
         withLicenseKey: true,
@@ -168,6 +198,17 @@ export class SpaceService {
       ) {
         throw new ForbiddenException('This feature requires a valid license');
       }
+
+      if (
+        updateSpaceDto.hideCommentsFromViewers === true &&
+        !this.licenseCheckService.hasFeature(
+          workspace.licenseKey,
+          Feature.HIDE_COMMENTS,
+          workspace.plan,
+        )
+      ) {
+        throw new ForbiddenException('This feature requires a valid license');
+      }
     }
 
     const spaceBefore = await this.spaceRepo.findById(
@@ -175,6 +216,8 @@ export class SpaceService {
       workspaceId,
     );
     const settingsBefore = (spaceBefore?.settings ?? {}) as Record<string, any>;
+
+    validateExclusiveCommentSettings(updateSpaceDto, settingsBefore);
 
     const before: Record<string, any> = {};
     const after: Record<string, any> = {};
@@ -214,6 +257,23 @@ export class SpaceService {
           workspaceId,
           'allowViewerComments',
           updateSpaceDto.allowViewerComments,
+          trx,
+        );
+      }
+
+      if (typeof updateSpaceDto.hideCommentsFromViewers !== 'undefined') {
+        const prev = settingsBefore?.comments?.hideCommentsFromViewers ?? false;
+        if (prev !== updateSpaceDto.hideCommentsFromViewers) {
+          before.hideCommentsFromViewers = prev;
+          after.hideCommentsFromViewers =
+            updateSpaceDto.hideCommentsFromViewers;
+        }
+
+        await this.spaceRepo.updateCommentSettings(
+          updateSpaceDto.spaceId,
+          workspaceId,
+          'hideCommentsFromViewers',
+          updateSpaceDto.hideCommentsFromViewers,
           trx,
         );
       }
