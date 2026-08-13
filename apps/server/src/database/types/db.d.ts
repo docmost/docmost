@@ -544,6 +544,20 @@ export interface PagePermissions {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface PageViews {
+  id: Generated<string>;
+  workspaceId: string;
+  pageId: string;
+  spaceId: string | null;
+  shareId: string | null;
+  userId: string | null;
+  visitorId: string;
+  viewDate: string;
+  hits: Generated<number>;
+  lastViewedAt: Generated<Timestamp>;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface PageVerifications {
   id: Generated<string>;
   pageId: string;
@@ -662,6 +676,7 @@ export interface DB {
   pagePermissions: PagePermissions;
   pageHistory: PageHistory;
   pageLabels: PageLabels;
+  pageViews: PageViews;
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
   pages: Pages;

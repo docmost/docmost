@@ -35,6 +35,10 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import {
+  PAGE_VIEW_SERVICE,
+  IPageViewService,
+} from '../../integrations/page-view/page-view.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -47,6 +51,7 @@ export class ShareController {
     private readonly pageAccessService: PageAccessService,
     private readonly licenseCheckService: LicenseCheckService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    @Inject(PAGE_VIEW_SERVICE) private readonly pageViewService: IPageViewService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -70,6 +75,14 @@ export class ShareController {
     }
 
     const shareData = await this.shareService.getSharedPage(dto, workspace.id);
+
+    void this.pageViewService.track({
+      pageId: shareData.page.id,
+      workspaceId: workspace.id,
+      spaceId: shareData.page.spaceId,
+      shareId: shareData.share.id,
+      userId: null,
+    });
 
     const sharingAllowed = await this.shareService.isSharingAllowed(
       workspace.id,
