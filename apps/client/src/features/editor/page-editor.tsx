@@ -251,6 +251,7 @@ function CollabPageEditor({
     {
       extensions,
       editable,
+      textDirection: "auto",
       immediatelyRender: true,
       shouldRerenderOnTransaction: false,
       editorProps: {
@@ -496,6 +497,7 @@ function StaticPageEditor({
     <EditorProvider
       editable={false}
       immediatelyRender={true}
+      textDirection="auto"
       extensions={mainExtensions}
       content={content}
       editorProps={{

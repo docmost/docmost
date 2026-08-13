@@ -42,7 +42,7 @@ RUN chown -R node:node /app
 
 USER node
 
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod && rm -rf /home/node/.cache/pnpm
 
 RUN mkdir -p /app/data/storage
 

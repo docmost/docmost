@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Anchor, Alert, Button, Group, Space, Text } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { Helmet } from "react-helmet-async";
 import { Trans, useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName, getAppUrl } from "@/lib/config";
+import { getAppUrl } from "@/lib/config";
 import { ApiKeyTable } from "@/ee/api-key/components/api-key-table";
 import { CreateApiKeyModal } from "@/ee/api-key/components/create-api-key-modal";
 import { ApiKeyCreatedModal } from "@/ee/api-key/components/api-key-created-modal";
@@ -17,6 +16,7 @@ import { IApiKey } from "@/ee/api-key";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function UserApiKeys() {
   const { t } = useTranslation();
@@ -49,11 +49,7 @@ export default function UserApiKeys() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {t("API keys")} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={t("API keys")} />
 
       <SettingsTitle title={t("API keys")} />
 

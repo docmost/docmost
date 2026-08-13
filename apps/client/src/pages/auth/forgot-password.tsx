@@ -1,13 +1,10 @@
 import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-form";
-import { getAppName } from "@/lib/config";
-import { Helmet } from "react-helmet-async";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function ForgotPassword() {
     return (
         <>
-            <Helmet>
-                <title>Forgot Password - {getAppName()}</title>
-            </Helmet>
+            <DocumentTitle title="Forgot Password" />
             <ForgotPasswordForm />
         </>
     );
