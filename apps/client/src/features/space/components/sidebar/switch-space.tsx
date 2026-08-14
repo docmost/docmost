@@ -70,6 +70,7 @@ export function SwitchSpace({
           onChange={(space) => handleSelect(space.slug)}
           width={300}
           opened={true}
+          withinPortal={false}
         />
       </Popover.Dropdown>
     </Popover>
