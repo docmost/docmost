@@ -581,7 +581,7 @@ export interface PagePermissions {
   updatedAt: Generated<Timestamp>;
 }
 
-export interface PageViews {
+export interface PageAnalytics {
   id: Generated<string>;
   workspaceId: string;
   pageId: string;
@@ -770,7 +770,7 @@ export interface DB {
   pagePermissions: PagePermissions;
   pageHistory: PageHistory;
   pageLabels: PageLabels;
-  pageViews: PageViews;
+  pageAnalytics: PageAnalytics;
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
   pages: Pages;

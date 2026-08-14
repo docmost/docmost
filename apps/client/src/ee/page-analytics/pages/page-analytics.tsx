@@ -16,10 +16,10 @@ import { getAppName } from "@/lib/config";
 import Paginate from "@/components/common/paginate";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import {
-  useWorkspacePageViewDailyStatsQuery,
-  useWorkspacePageViewTopPagesQuery,
-  useWorkspacePageViewTotalsQuery,
-} from "@/ee/page-view/queries/page-view-analytics-query";
+  useWorkspacePageAnalyticsDailyStatsQuery,
+  useWorkspacePageAnalyticsTopPagesQuery,
+  useWorkspacePageAnalyticsTotalsQuery,
+} from "@/ee/page-analytics/queries/page-analytics-query";
 import { Link } from "react-router-dom";
 import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale";
 
@@ -39,7 +39,7 @@ function formatNumber(value: number | null | undefined): string {
   return Number(value ?? 0).toLocaleString();
 }
 
-export default function PageViewAnalytics() {
+export default function PageAnalytics() {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
   const [rangePreset, setRangePreset] = useState<RangePreset>("30");
@@ -97,11 +97,11 @@ export default function PageViewAnalytics() {
     [dateRange, dailyCursor]
   );
 
-  const { data: totalsData } = useWorkspacePageViewTotalsQuery(dateRange);
+  const { data: totalsData } = useWorkspacePageAnalyticsTotalsQuery(dateRange);
   const { data: topPagesData, isLoading: isTopPagesLoading } =
-    useWorkspacePageViewTopPagesQuery(topPagesParams);
+    useWorkspacePageAnalyticsTopPagesQuery(topPagesParams);
   const { data: dailyData, isLoading: isDailyLoading } =
-    useWorkspacePageViewDailyStatsQuery(dailyParams);
+    useWorkspacePageAnalyticsDailyStatsQuery(dailyParams);
 
   const handleRangeChange = (value: RangePreset) => {
     if (value) {

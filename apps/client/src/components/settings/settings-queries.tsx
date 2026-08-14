@@ -15,10 +15,10 @@ import { getAuditLogs } from "@/ee/audit/services/audit-service";
 import { getVerificationList } from "@/ee/page-verification/services/page-verification-service";
 import { getScimTokens } from "@/ee/scim/services/scim-token-service";
 import {
-  getWorkspacePageViewDailyStats,
-  getWorkspacePageViewTopPages,
-  getWorkspacePageViewTotals,
-} from "@/ee/page-view/services/page-view-analytics-service";
+  getWorkspacePageAnalyticsDailyStats,
+  getWorkspacePageAnalyticsTopPages,
+  getWorkspacePageAnalyticsTotals,
+} from "@/ee/page-analytics/services/page-analytics-service";
 
 export const prefetchWorkspaceMembers = () => {
   const params: QueryParams = { limit: 100, query: "" };
@@ -115,18 +115,18 @@ export const prefetchPageAnalytics = () => {
   const listParams = { ...dateRange, cursor: undefined, limit: 10 };
 
   queryClient.prefetchQuery({
-    queryKey: ["workspace-page-view-totals", dateRange],
-    queryFn: () => getWorkspacePageViewTotals(dateRange),
+    queryKey: ["workspace-page-analytics-totals", dateRange],
+    queryFn: () => getWorkspacePageAnalyticsTotals(dateRange),
   });
 
   queryClient.prefetchQuery({
-    queryKey: ["workspace-page-view-top-pages", listParams],
-    queryFn: () => getWorkspacePageViewTopPages(listParams),
+    queryKey: ["workspace-page-analytics-top-pages", listParams],
+    queryFn: () => getWorkspacePageAnalyticsTopPages(listParams),
   });
 
   queryClient.prefetchQuery({
-    queryKey: ["workspace-page-view-daily-stats", listParams],
-    queryFn: () => getWorkspacePageViewDailyStats(listParams),
+    queryKey: ["workspace-page-analytics-daily-stats", listParams],
+    queryFn: () => getWorkspacePageAnalyticsDailyStats(listParams),
   });
 };
 

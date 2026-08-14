@@ -2,7 +2,7 @@ import { Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
-    .createTable('page_views')
+    .createTable('page_analytics')
     .ifNotExists()
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
@@ -32,16 +32,16 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('idx_page_views_workspace_page_date')
+    .createIndex('idx_page_analytics_workspace_page_date')
     .ifNotExists()
-    .on('page_views')
+    .on('page_analytics')
     .columns(['workspace_id', 'page_id', 'view_date'])
     .execute();
 
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS
-      uq_page_views_workspace_page_identity
-    ON page_views (
+      uq_page_analytics_workspace_page_identity
+    ON page_analytics (
       workspace_id,
       page_id,
       COALESCE(user_id::text, visitor_id)
@@ -50,5 +50,5 @@ export async function up(db: Kysely<any>): Promise<void> {
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropTable('page_views').ifExists().execute();
+  await db.schema.dropTable('page_analytics').ifExists().execute();
 }

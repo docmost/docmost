@@ -72,7 +72,7 @@ const WorkspaceApiKeys = lazy(
 const AiSettings = lazy(() => import("@/ee/ai/pages/ai-settings.tsx"));
 const BasePage = lazy(() => import("@/ee/base/pages/base-page.tsx"));
 const AuditLogs = lazy(() => import("@/ee/audit/pages/audit-logs.tsx"));
-const PageViewAnalytics = lazy(() => import("@/ee/page-view/pages/page-view-analytics.tsx"))
+const PageViewAnalytics = lazy(() => import("@/ee/page-analytics/pages/page-analytics.tsx"))
 const VerifiedPages = lazy(
   () => import("@/ee/page-verification/pages/verified-pages.tsx"),
 );

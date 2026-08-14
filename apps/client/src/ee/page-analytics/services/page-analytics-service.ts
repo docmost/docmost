@@ -6,25 +6,25 @@ import type {
   WorkspaceAnalyticsParams,
   WorkspaceAnalyticsTopPage,
   WorkspaceAnalyticsTotals,
-} from "@/ee/page-view/types/page-view-analytics.types";
+} from "@/ee/page-analytics/types/page-analytics.types";
 
-export async function getWorkspacePageViewTotals(
+export async function getWorkspacePageAnalyticsTotals(
   params?: WorkspaceAnalyticsParams,
 ): Promise<WorkspaceAnalyticsTotals> {
-  const req = await api.post("/page-views/workspace-stats", params);
+  const req = await api.post("/page-analytics/workspace-stats", params);
   return req.data;
 }
 
-export async function getWorkspacePageViewDailyStats(
+export async function getWorkspacePageAnalyticsDailyStats(
   params?: WorkspaceAnalyticsListParams,
 ): Promise<IPagination<WorkspaceAnalyticsDailyStat>> {
-  const req = await api.post("/page-views/workspace-daily-stats", params);
+  const req = await api.post("/page-analytics/workspace-daily-stats", params);
   return req.data;
 }
 
-export async function getWorkspacePageViewTopPages(
+export async function getWorkspacePageAnalyticsTopPages(
   params?: WorkspaceAnalyticsListParams,
 ): Promise<IPagination<WorkspaceAnalyticsTopPage>> {
-  const req = await api.post("/page-views/workspace-top-pages", params);
+  const req = await api.post("/page-analytics/workspace-top-pages", params);
   return req.data;
 }
