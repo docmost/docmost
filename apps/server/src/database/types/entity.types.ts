@@ -40,6 +40,8 @@ import {
   Watchers,
   Audit as _Audit,
   Templates,
+  IntegrationConnections,
+  IntegrationSettings,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -198,6 +200,20 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Integration connections (provider-keyed: linear, etc.)
+export type IntegrationConnection = Selectable<IntegrationConnections>;
+export type InsertableIntegrationConnection =
+  Insertable<IntegrationConnections>;
+export type UpdatableIntegrationConnection = Updateable<
+  Omit<IntegrationConnections, 'id'>
+>;
+
+export type IntegrationSetting = Selectable<IntegrationSettings>;
+export type InsertableIntegrationSetting = Insertable<IntegrationSettings>;
+export type UpdatableIntegrationSetting = Updateable<
+  Omit<IntegrationSettings, 'id'>
+>;
 
 // Label
 export type Label = Selectable<Labels>;
