@@ -28,3 +28,16 @@ export async function getWorkspacePageAnalyticsTopPages(
   const req = await api.post("/page-analytics/workspace-top-pages", params);
   return req.data;
 }
+
+export async function getPageAnalyticsRetention(): Promise<{ retentionDays: number }> {
+  const req = await api.post("/page-analytics/retention");
+  return req.data;
+}
+
+export async function updatePageAnalyticsRetention(data: {
+  pageAnalyticsRetentionDays: number;
+}): Promise<{ retentionDays: number }> {
+
+  const req = await api.post("/page-analytics/retention/update", data);
+  return req.data;
+}
