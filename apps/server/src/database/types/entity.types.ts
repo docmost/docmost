@@ -1,7 +1,7 @@
 import { Insertable, Selectable, Updateable } from 'kysely';
 import {
   AiChats,
-  PageViews,
+  PageAnalytics as _PageAnalytics,
   AiChatMessages,
   Attachments,
   BaseProperties,
@@ -108,9 +108,9 @@ export type PageHistory = Selectable<History>;
 export type InsertablePageHistory = Insertable<History>;
 export type UpdatablePageHistory = Updateable<Omit<History, 'id'>>;
 
-export type PageView = Selectable<PageViews>;
-export type InsertablePageView = Insertable<PageViews>;
-export type UpdatablePageView = Updateable<Omit<PageViews, 'id'>>;
+export type PageAnalytics = Selectable<_PageAnalytics>;
+export type InsertablePageAnalytics = Insertable<_PageAnalytics>;
+export type UpdatablePageAnalytics = Updateable<Omit<_PageAnalytics, 'id'>>;
 
 // Comment
 export type Comment = Selectable<Comments>;

@@ -93,7 +93,7 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
       },
     }),
     BullModule.registerQueue({
-      name: QueueName.PAGE_VIEW_QUEUE,
+      name: QueueName.PAGE_ANALYTICS_QUEUE,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,

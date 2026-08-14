@@ -9,7 +9,7 @@ export enum QueueName {
   HISTORY_QUEUE = '{history-queue}',
   NOTIFICATION_QUEUE = '{notification-queue}',
   AUDIT_QUEUE = '{audit-queue}',
-  PAGE_VIEW_QUEUE = '{page-view-queue}',
+  PAGE_ANALYTICS_QUEUE = '{page-analytics-queue}',
   BASE_QUEUE = '{base-queue}',
 }
 
@@ -82,8 +82,8 @@ export enum QueueJob {
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',
-  PAGE_VIEW_TRACK = 'page-view-track',
-  PAGE_VIEW_CLEANUP = 'page-view-cleanup',
+  PAGE_ANALYTICS_TRACK = 'page-analytics-track',
+  PAGE_ANALYTICS_CLEANUP = 'page-analytics-cleanup',
 
   PDF_EXPORT_TASK = 'pdf-export-task',
   PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',

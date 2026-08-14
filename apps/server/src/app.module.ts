@@ -26,7 +26,7 @@ import KeyvRedis from '@keyv/redis';
 import { LoggerModule } from './common/logger/logger.module';
 import { ClsModule } from 'nestjs-cls';
 import { NoopAuditModule } from './integrations/audit/audit.module';
-import { NoopPageViewModule } from './integrations/page-view/page-view.module';
+import { NoopPageAnalyticsModule } from './integrations/page-analytics/page-analytics.module';
 import { ThrottleModule } from './integrations/throttle/throttle.module';
 
 const enterpriseModules = [];
@@ -51,7 +51,7 @@ try {
     }),
     LoggerModule,
     NoopAuditModule,
-    NoopPageViewModule,
+    NoopPageAnalyticsModule,
     CoreModule,
     DatabaseModule,
     EnvironmentModule,

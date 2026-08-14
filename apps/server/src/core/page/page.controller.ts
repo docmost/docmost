@@ -52,9 +52,9 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 import {
-  PAGE_VIEW_SERVICE,
-  IPageViewService,
-} from '../../integrations/page-view/page-view.service';
+  PAGE_ANALYTICS_SERVICE,
+  IPageAnalyticsService,
+} from '../../integrations/page-analytics/page-analytics.service';
 import { getPageTitle } from '../../common/helpers';
 
 @UseGuards(JwtAuthGuard)
@@ -69,7 +69,7 @@ export class PageController {
     private readonly backlinkService: BacklinkService,
     private readonly labelService: LabelService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
-    @Inject(PAGE_VIEW_SERVICE) private readonly pageViewService: IPageViewService,
+    @Inject(PAGE_ANALYTICS_SERVICE) private readonly pageAnalyticsService: IPageAnalyticsService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -93,7 +93,7 @@ export class PageController {
 
     const permissions = { canEdit, hasRestriction };
 
-    void this.pageViewService.track({
+    void this.pageAnalyticsService.track({
       pageId: page.id,
       workspaceId: page.workspaceId,
       spaceId: page.spaceId,
