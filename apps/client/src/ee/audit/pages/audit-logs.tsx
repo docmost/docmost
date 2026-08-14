@@ -26,24 +26,8 @@ import { IAuditLogParams } from "@/ee/audit/types/audit.types";
 import { eventFilterOptions } from "@/ee/audit/lib/audit-event-labels";
 import AuditLogsTable from "@/ee/audit/components/audit-logs-table";
 import useUserRole from "@/hooks/use-user-role";
+import { daysToRetention, retentionToDays, RetentionUnit } from "@/ee/utils";
 
-type RetentionUnit = "days" | "months" | "years";
-
-function daysToRetention(days: number): { amount: number; unit: RetentionUnit } {
-  if (days >= 365 && days % 365 === 0) {
-    return { amount: days / 365, unit: "years" };
-  }
-  if (days >= 30 && days % 30 === 0) {
-    return { amount: days / 30, unit: "months" };
-  }
-  return { amount: days, unit: "days" };
-}
-
-function retentionToDays(amount: number, unit: RetentionUnit): number {
-  if (unit === "years") return amount * 365;
-  if (unit === "months") return amount * 30;
-  return amount;
-}
 
 export default function AuditLogs() {
   const { t } = useTranslation();

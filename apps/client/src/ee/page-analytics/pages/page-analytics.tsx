@@ -1,13 +1,18 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActionIcon,
   Badge,
+  Button,
   Card,
   Group,
+  NumberInput,
+  Popover,
   Select,
   SimpleGrid,
   Stack,
   Table,
   Text,
+  Tooltip,
 } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
@@ -16,34 +21,59 @@ import { getAppName } from "@/lib/config";
 import Paginate from "@/components/common/paginate";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import {
+  usePageAnalyticsRetentionQuery,
+  useUpdatePageAnalyticsRetentionMutation,
   useWorkspacePageAnalyticsDailyStatsQuery,
   useWorkspacePageAnalyticsTopPagesQuery,
   useWorkspacePageAnalyticsTotalsQuery,
 } from "@/ee/page-analytics/queries/page-analytics-query";
 import { Link } from "react-router-dom";
 import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale";
+import { IconSettings } from "@tabler/icons-react";
+import {
+  daysToRetention,
+  formatNumber,
+  retentionToDays,
+  RetentionUnit,
+  toISODate,
+} from "@/ee/utils";
 
 type RangePreset = "7" | "30" | "90";
 
 const DAILY_PAGE_SIZE = 10;
-
-function toISODate(daysAgo: number | string): string {
-  const daysNum = Number(daysAgo);
-
-  return new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-}
-
-function formatNumber(value: number | null | undefined): string {
-  return Number(value ?? 0).toLocaleString();
-}
 
 export default function PageAnalytics() {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
   const [rangePreset, setRangePreset] = useState<RangePreset>("30");
   const [topPagesLimit, setTopPagesLimit] = useState("10");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const { data: retentionData } = usePageAnalyticsRetentionQuery();
+  const updateRetention = useUpdatePageAnalyticsRetentionMutation();
+
+  const parsed = useMemo(
+    () => daysToRetention(retentionData?.retentionDays ?? 365),
+    [retentionData]
+  );
+
+  useEffect(() => {
+    if (settingsOpen) return;
+
+    setRetentionAmount(parsed.amount);
+    setRetentionUnit(parsed.unit);
+  }, [parsed]);
+
+  const [retentionAmount, setRetentionAmount] = useState<number | string>(
+    parsed.amount
+  );
+  const [retentionUnit, setRetentionUnit] = useState<RetentionUnit>(parsed.unit);
+
+  const resetRetentionForm = useCallback(() => {
+    const { amount, unit } = daysToRetention(retentionData?.retentionDays ?? 365);
+    setRetentionAmount(amount);
+    setRetentionUnit(unit);
+  }, [setRetentionAmount, setRetentionUnit, retentionData]);
 
   const {
     cursor: topPagesCursor,
@@ -129,9 +159,6 @@ export default function PageAnalytics() {
       <SettingsTitle title={t("Page analytics")} />
 
       <Group justify="space-between" mb="md">
-        <Text c="dimmed" size="sm">
-          {t("Unique visitors and view volume for your workspace pages.")}
-        </Text>
         <Select
           value={rangePreset}
           onChange={handleRangeChange}
@@ -144,6 +171,96 @@ export default function PageAnalytics() {
           size="sm"
           allowDeselect={false}
         />
+        <Popover
+          position="bottom-end"
+          shadow="md"
+          width={260}
+          withArrow
+          opened={settingsOpen}
+          onChange={(opened) => {
+            if (!opened) resetRetentionForm();
+            setSettingsOpen(opened);
+          }}
+        >
+          <Popover.Target>
+            <Tooltip label={t("Audit settings")}>
+              <ActionIcon
+                variant="default"
+                size="input-sm"
+                ml="auto"
+                onClick={() => setSettingsOpen((o) => !o)}
+              >
+                <IconSettings size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <Text fz="sm" fw={500} mb={4}>
+              {t("Retention")}
+            </Text>
+            <Text fz="xs" c="dimmed" mb="sm">
+              {t("Logs older than this period are automatically deleted.")}
+            </Text>
+            <Group gap="xs" wrap="nowrap" mb="sm">
+              <NumberInput
+                value={retentionAmount}
+                onChange={(val) => setRetentionAmount(val)}
+                min={1}
+                hideControls
+                size="sm"
+                w={60}
+              />
+              <Select
+                data={[
+                  { value: "days", label: t("days") },
+                  { value: "months", label: t("months") },
+                  { value: "years", label: t("years") },
+                ]}
+                value={retentionUnit}
+                onChange={(value) => {
+                  if (value === "days" || value === "months" || value === "years") {
+                    setRetentionUnit(value);
+                  }
+                }}
+                size="sm"
+                style={{ flex: 1 }}
+                comboboxProps={{ withinPortal: false }}
+              />
+            </Group>
+            <Group gap="xs" grow>
+              <Button
+                size="xs"
+                variant="default"
+                onClick={() => {
+                  resetRetentionForm();
+                  setSettingsOpen(false);
+                }}
+              >
+                {t("Cancel")}
+              </Button>
+              <Button
+                size="xs"
+                onClick={() => {
+                  const num =
+                    typeof retentionAmount === "number" ? retentionAmount : 1;
+                  const clamped = Math.max(1, num);
+                  setRetentionAmount(clamped);
+                  const days = retentionToDays(clamped, retentionUnit);
+
+                  if (days !== (retentionData?.retentionDays ?? 365)) {
+                    updateRetention.mutate({
+                      pageAnalyticsRetentionDays: Number(days),
+                    });
+                  }
+                  setSettingsOpen(false);
+                }}
+                loading={updateRetention.isPending}
+              >
+                {t("Save")}
+              </Button>
+            </Group>
+          </Popover.Dropdown>
+        </Popover>
       </Group>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="md">

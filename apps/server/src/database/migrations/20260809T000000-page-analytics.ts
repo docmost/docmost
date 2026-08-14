@@ -47,8 +47,18 @@ export async function up(db: Kysely<any>): Promise<void> {
       COALESCE(user_id::text, visitor_id)
     )
   `.execute(db);
+
+  await db.schema
+    .alterTable('workspaces')
+    .addColumn('page_analytics_retention_days', 'int8', (col) => col)
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+  await db.schema
+    .alterTable('workspaces')
+    .dropColumn('page_analytics_retention_days')
+    .execute();
+
   await db.schema.dropTable('page_analytics').ifExists().execute();
 }

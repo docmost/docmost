@@ -437,6 +437,7 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
+  pageAnalyticsRetentionDays: Generated<number>;
   auditRetentionDays: Generated<number>;
   trashRetentionDays: Generated<number>;
   billingEmail: string | null;
