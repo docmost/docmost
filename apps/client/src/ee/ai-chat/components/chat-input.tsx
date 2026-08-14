@@ -255,6 +255,7 @@ export default function ChatInput({
     },
     content: "",
     editable: true,
+    textDirection: "auto",
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
     autofocus: autofocus ? "end" : false,

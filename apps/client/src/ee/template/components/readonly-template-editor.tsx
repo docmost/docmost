@@ -41,6 +41,7 @@ export default function ReadonlyTemplateEditor({
       <EditorProvider
         editable={false}
         immediatelyRender={true}
+        textDirection="auto"
         extensions={extensions}
         content={template.content}
       />

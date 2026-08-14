@@ -87,6 +87,7 @@ export default function TemplateEditor() {
   const editor = useEditor({
     extensions: templateExtensions,
     content: "",
+    textDirection: "auto",
     editorProps: {
       scrollThreshold: 80,
       scrollMargin: 80,

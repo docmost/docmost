@@ -31,6 +31,7 @@ export function HistoryEditor({
   const editor = useEditor({
     extensions: mainExtensions,
     editable: false,
+    textDirection: "auto",
   });
 
   useEffect(() => {
