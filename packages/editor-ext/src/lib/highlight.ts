@@ -16,9 +16,11 @@ export const Highlight = TiptapHighlight.extend<HighlightOptions>({
             return {};
           }
 
+          // --mark-bg lets CSS derive a legible dark-mode variant for
+          // arbitrary (imported) colors.
           return {
             "data-color": attributes.color,
-            style: `background-color: ${attributes.color}; color: inherit`,
+            style: `background-color: ${attributes.color}; --mark-bg: ${attributes.color}; color: inherit`,
           };
         },
       },

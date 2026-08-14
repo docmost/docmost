@@ -1,6 +1,46 @@
 /* Highlight colors with dark mode support */
 
 .ProseMirror {
+  @mixin dark {
+    /* Arbitrary (imported) colors have no hand-tuned dark variant, so derive
+       one: cap lightness and chroma so the fill sits on the dark surface.
+       Our own palette opts out and keeps the values below. */
+    mark[data-color]:not(
+        [data-color="#98d8f2" i],
+        [data-color="#7edb6c" i],
+        [data-color="#e0d6ed" i],
+        [data-color="#ffc6c2" i],
+        [data-color="#faf594" i],
+        [data-color="#f5c8a9" i],
+        [data-color="#f5cfe0" i],
+        [data-color="#dfdfd7" i],
+        [data-color="#d7c4b7" i]
+      ) {
+      background-color: oklch(
+        from var(--mark-bg, #fff) min(l, clamp(0.28, calc(1.22 - l), 0.45))
+          min(calc(c * 1.8), 0.09) h
+      ) !important;
+    }
+
+    /* Imported text colors are picked for a light page and go unreadable on
+       the dark surface, so lift their lightness. */
+    span[data-text-color]:not(
+        [data-text-color="#2563EB" i],
+        [data-text-color="#008A00" i],
+        [data-text-color="#9333EA" i],
+        [data-text-color="#E00000" i],
+        [data-text-color="#EAB308" i],
+        [data-text-color="#FFA500" i],
+        [data-text-color="#BA4081" i],
+        [data-text-color="#A8A29E" i],
+        [data-text-color="#92400E" i]
+      ) {
+      color: oklch(
+        from var(--text-color, currentcolor) max(l, 0.72) min(c, 0.16) h
+      ) !important;
+    }
+  }
+
   /* Blue */
   mark[data-color="#98d8f2"] {
     background-color: light-dark(
