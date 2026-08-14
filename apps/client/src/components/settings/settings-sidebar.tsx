@@ -133,6 +133,7 @@ const groupedData: DataGroup[] = [
         path: "/settings/import/confluence",
         feature: Feature.CONFLUENCE_API_IMPORT,
         role: "admin",
+        env: "selfhosted",
         show: () => isBetaConfluenceImporter(),
       },
     ],
