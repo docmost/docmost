@@ -64,12 +64,15 @@ export function SwitchSpace({
         </Button>
       </Popover.Target>
       <Popover.Dropdown>
+        {/* keep the options dropdown inside the popover; a portaled dropdown
+            registers as an outside click and closes the popover mid-selection */}
         <SpaceSelect
           label={spaceName}
           value={spaceSlug}
           onChange={(space) => handleSelect(space.slug)}
           width={300}
           opened={true}
+          withinPortal={false}
         />
       </Popover.Dropdown>
     </Popover>
