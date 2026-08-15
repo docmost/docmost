@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsNumber,
@@ -23,6 +24,11 @@ export class SearchDTO {
   @IsOptional()
   @IsUUID()
   creatorId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  labelIds?: string[];
 
   @IsOptional()
   @IsNumber()

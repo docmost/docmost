@@ -1,7 +1,7 @@
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch, IconSparkles } from "@tabler/icons-react";
 import { Group, Button, VisuallyHidden } from "@mantine/core";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
@@ -26,6 +26,8 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   const [filters, setFilters] = useState<{
     spaceId?: string | null;
     contentType?: string;
+    creatorId?: string | null;
+    labelIds?: string[];
   }>({
     contentType: "page",
   });
@@ -41,6 +43,14 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     // Handle space filtering - only pass spaceId if a specific space is selected
     if (filters.spaceId) {
       params.spaceId = filters.spaceId;
+    }
+
+    if (filters.creatorId) {
+      params.creatorId = filters.creatorId;
+    }
+
+    if (filters.labelIds?.length) {
+      params.labelIds = filters.labelIds;
     }
 
     return params;
@@ -96,9 +106,9 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     />
   ));
 
-  const handleFiltersChange = (newFilters: any) => {
+  const handleFiltersChange = useCallback((newFilters: any) => {
     setFilters(newFilters);
-  };
+  }, [setFilters]);
 
   const handleAskClick = () => {
     setIsAiMode(!isAiMode);

@@ -35,6 +35,7 @@ export class SearchService {
       return { items: [] };
     }
     const searchQuery = tsquery(query.trim() + '*');
+    const labelIds = [...new Set(searchParams.labelIds ?? [])];
 
     let queryResults = this.db
       .selectFrom('pages')
@@ -61,6 +62,22 @@ export class SearchService {
       )
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
+      )
+      .$if(labelIds?.length > 0, (qb) =>
+        qb.where(
+          'id',
+          'in',
+          this.db
+            .selectFrom('pageLabels')
+            .select('pageId')
+            .where('labelId', 'in', labelIds)
+            .groupBy('pageId')
+            .having(
+              sql<number>`count(distinct "label_id")`,
+              '=',
+              labelIds.length,
+            ),
+        ),
       )
       .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
