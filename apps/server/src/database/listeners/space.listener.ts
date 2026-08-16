@@ -8,6 +8,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 
 export class SpaceEvent {
   spaceId: string;
+  workspaceId: string;
 }
 
 @Injectable()
@@ -22,12 +23,12 @@ export class SpaceListener {
 
   @OnEvent(EventName.SPACE_DELETED)
   async handleSpaceDeleted(event: SpaceEvent) {
-    const { spaceId } = event;
+    const { spaceId, workspaceId } = event;
     if (this.isTypesense()) {
       await this.searchQueue.add(QueueJob.SPACE_DELETED, { spaceId });
     }
 
-    await this.aiQueue.add(QueueJob.SPACE_DELETED, { spaceId });
+    await this.aiQueue.add(QueueJob.SPACE_DELETED, { spaceId, workspaceId });
   }
 
   isTypesense(): boolean {
