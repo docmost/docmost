@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MinLength,
   ValidateIf,
   validateSync,
@@ -137,6 +138,10 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  @Matches(/^[A-Za-z0-9\-_.]{1,90}$/, {
+    message:
+      'TURBOPUFFER_NAMESPACE_PREFIX may only contain letters, digits, dot, dash, underscore (max 90 chars)',
+  })
   TURBOPUFFER_NAMESPACE_PREFIX: string;
 
   @IsOptional()
