@@ -15,7 +15,6 @@ export enum EventName {
   WORKSPACE_CREATED = 'workspace.created',
   WORKSPACE_UPDATED = 'workspace.updated',
   WORKSPACE_DELETED = 'workspace.deleted',
-  USER_SESSION_STARTED = 'user.session.started',
 
   BASE_CREATED = 'base.created',
   BASE_UPDATED = 'base.updated',
