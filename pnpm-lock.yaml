@@ -593,6 +593,9 @@ importers:
       '@socket.io/redis-adapter':
         specifier: 8.3.0
         version: 8.3.0(socket.io-adapter@2.5.4(supports-color@10.2.2))(supports-color@10.2.2)
+      '@turbopuffer/turbopuffer':
+        specifier: ^2.8.0
+        version: 2.8.0
       ai:
         specifier: 6.0.134
         version: 6.0.134(zod@4.3.6)
@@ -4382,6 +4385,9 @@ packages:
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
 
+  '@turbopuffer/turbopuffer@2.8.0':
+    resolution: {integrity: sha512-lurmVByLynuWtPtVl7SBEJ0bNakb8bs4KsafKzeLWnXA6BsQiGS9obT/7ExQVb9/yecyRn/grj8VgwUzi2xMyg==}
+
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
 
@@ -5698,6 +5704,7 @@ packages:
   cron-parser@4.9.0:
     resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
     engines: {node: '>=12.0.0'}
+    deprecated: v4 is no longer maintained, upgrade to v5
 
   cron@4.4.0:
     resolution: {integrity: sha512-fkdfq+b+AHI4cKdhZlppHveI/mgz2qpiYxcm+t5E5TsxX7QrLS1VE0+7GENEk9z0EeGPcpSciGv6ez24duWhwQ==}
@@ -8167,6 +8174,9 @@ packages:
 
   pako@2.0.3:
     resolution: {integrity: sha512-WjR1hOeg+kki3ZIOjaf4b5WVcay1jaliKSYiEaB1XzwhMQZJxRdQRv0V31EKBYlxb4T7SK3hjfc/jxyU64BoSw==}
+
+  pako@2.2.0:
+    resolution: {integrity: sha512-zJq6RP/5q+TO2OpFV3FHzlPnFjmkb7Nc99a5SNjJE+uu/PkpChs+NIZSSzbBoD+6kjiISXjfYdwj1ZRQ81dz/w==}
 
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
@@ -14341,6 +14351,11 @@ snapshots:
 
   '@tsconfig/node16@1.0.4': {}
 
+  '@turbopuffer/turbopuffer@2.8.0':
+    dependencies:
+      pako: 2.2.0
+      undici: 7.29.0
+
   '@tybys/wasm-util@0.10.2':
     dependencies:
       tslib: 2.8.1
@@ -18748,6 +18763,8 @@ snapshots:
   pako@1.0.11: {}
 
   pako@2.0.3: {}
+
+  pako@2.2.0: {}
 
   parent-module@1.0.1:
     dependencies:
