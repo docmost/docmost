@@ -30,7 +30,7 @@ export class LabelService {
           LabelType.PAGE,
           trx,
         );
-        await this.labelRepo.addLabelToPage(pageId, label.id, trx);
+        await this.labelRepo.addLabelToPage(pageId, label.id, workspaceId, trx);
         attached.push(label);
       }
     });

@@ -8,6 +8,8 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { normalizeLabelName } from '../../../core/label/utils';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from 'src/common/events/event.contants';
 
 export const LabelType = {
   PAGE: 'page',
@@ -21,6 +23,7 @@ export class LabelRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findById(
@@ -166,6 +169,7 @@ export class LabelRepo {
   async addLabelToPage(
     pageId: string,
     labelId: string,
+    workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
@@ -174,6 +178,11 @@ export class LabelRepo {
       .values({ pageId, labelId })
       .onConflict((oc) => oc.doNothing())
       .execute();
+
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: [pageId],
+      workspaceId: workspaceId,
+    });
   }
 
   async removeLabelFromPage(
@@ -197,6 +206,11 @@ export class LabelRepo {
         ),
       )
       .execute();
+
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: [pageId],
+      workspaceId: workspaceId,
+    });
   }
 
   async getPageLabelCount(
