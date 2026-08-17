@@ -7,12 +7,15 @@ import { executeTx } from '@docmost/db/utils';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { normalizeLabelName } from './utils';
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { EventName } from "src/common/events/event.contants";
 
 @Injectable()
 export class LabelService {
   constructor(
     private readonly labelRepo: LabelRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly eventEmitter: EventEmitter2,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -30,10 +33,16 @@ export class LabelService {
           LabelType.PAGE,
           trx,
         );
-        await this.labelRepo.addLabelToPage(pageId, label.id, workspaceId, trx);
+        await this.labelRepo.addLabelToPage(pageId, label.id, trx);
         attached.push(label);
       }
     });
+
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: [pageId],
+      workspaceId: workspaceId,
+    });
+    
     return attached;
   }
 
@@ -63,6 +72,11 @@ export class LabelService {
       if (count === 0) {
         await this.labelRepo.deleteLabel(labelId, workspaceId, trx);
       }
+    });
+
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: [pageId],
+      workspaceId: workspaceId,
     });
   }
 
