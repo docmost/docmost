@@ -1,4 +1,4 @@
-import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   searchPage,
   searchAttachments,
@@ -40,5 +40,6 @@ export function useUnifiedSearch(
       }
     },
     enabled: !!params.query && enabled,
+    placeholderData: params.query.length > 0 ? keepPreviousData: undefined
   });
 }

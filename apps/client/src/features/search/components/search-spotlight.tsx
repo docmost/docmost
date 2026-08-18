@@ -1,6 +1,6 @@
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch, IconSparkles } from "@tabler/icons-react";
-import { Group, Button, VisuallyHidden } from "@mantine/core";
+import { Group, Button, VisuallyHidden, Text } from "@mantine/core";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
@@ -56,7 +56,10 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     return params;
   }, [debouncedSearchQuery, filters]);
 
-  const { data: searchResults, isLoading } = useUnifiedSearch(
+  const {
+    data: searchResults,
+    isFetching,
+  } = useUnifiedSearch(
     searchParams,
     !isAiMode // Disable regular search when in AI mode
   );
@@ -177,7 +180,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
             ? query.length > 0 && !isAiLoading && !aiSearchResult
               ? t("No answer available")
               : ""
-            : query.length > 0 && !isLoading
+            : query.length > 0 && !isFetching
               ? resultItems.length === 0
                 ? t("No results found")
                 : t("{{count}} results found", { count: resultItems.length })
@@ -208,11 +211,19 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
                 <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
               )}
 
-              {query.length > 0 && !isLoading && resultItems.length === 0 && (
+              {query.length > 0 && !isFetching && resultItems.length === 0 && (
                 <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
               )}
 
               {resultItems.length > 0 && <>{resultItems}</>}
+
+              {query.length > 0 && isFetching && (
+                <Spotlight.Empty>
+                  <Text size="sm" style={{ marginTop: 10 }}>
+                    {t("Searching...")}
+                  </Text>
+                </Spotlight.Empty>
+              )}
             </>
           )}
         </Spotlight.ActionsList>

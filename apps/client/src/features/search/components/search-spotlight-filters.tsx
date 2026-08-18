@@ -124,8 +124,17 @@ export function SearchSpotlightFilters({
             color="blue"
             labelPosition="left"
             styles={{
-              root: { display: "flex", alignItems: "center" },
-              label: { paddingRight: "8px", fontSize: "13px", fontWeight: 500 },
+              root: {
+                display: "flex",
+                alignItems: "center",
+                flexShrink: 0,
+              },
+              label: {
+                whiteSpace: "nowrap",
+                paddingRight: "8px",
+                fontSize: "13px",
+                fontWeight: 500,
+              },
             }}
           />
         </div>

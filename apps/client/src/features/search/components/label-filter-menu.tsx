@@ -91,6 +91,7 @@ export function LabelFilterMenu({
             return (
               <Menu.Item
                 key={label.id}
+                type="button"
                 component={CheckboxMenuItem}
                 aria-checked={isChecked}
                 onClick={() => toggleLabel(label.id)}
