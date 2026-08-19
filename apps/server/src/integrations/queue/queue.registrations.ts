@@ -12,6 +12,7 @@ export const bullConfigFactory = (environmentService: EnvironmentService) => {
       password: redisConfig.password,
       db: redisConfig.db,
       family: redisConfig.family,
+      tls: redisConfig.tls,
       retryStrategy: createRetryStrategy(),
     },
     defaultJobOptions: {

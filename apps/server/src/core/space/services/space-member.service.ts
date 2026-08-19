@@ -339,15 +339,25 @@ export class SpaceMemberService {
       return;
     }
 
-    if (spaceMember.role === SpaceRole.ADMIN) {
-      await this.validateLastAdmin(dto.spaceId);
-    }
+    await executeTx(this.db, async (trx) => {
+      await trx
+        .selectFrom('spaces')
+        .select('id')
+        .where('id', '=', dto.spaceId)
+        .forUpdate()
+        .executeTakeFirst();
 
-    await this.spaceMemberRepo.updateSpaceMember(
-      { role: dto.role },
-      spaceMember.id,
-      dto.spaceId,
-    );
+      if (spaceMember.role === SpaceRole.ADMIN) {
+        await this.validateLastAdmin(dto.spaceId, trx);
+      }
+
+      await this.spaceMemberRepo.updateSpaceMember(
+        { role: dto.role },
+        spaceMember.id,
+        dto.spaceId,
+        trx,
+      );
+    });
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,
@@ -368,10 +378,14 @@ export class SpaceMemberService {
     });
   }
 
-  async validateLastAdmin(spaceId: string): Promise<void> {
+  async validateLastAdmin(
+    spaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
     const spaceOwnerCount = await this.spaceMemberRepo.roleCountBySpaceId(
       SpaceRole.ADMIN,
       spaceId,
+      trx,
     );
     if (spaceOwnerCount === 1) {
       throw new BadRequestException(

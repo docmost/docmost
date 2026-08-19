@@ -15,6 +15,14 @@ export interface IAiSearchResponse {
   }>;
 }
 
+export async function hintVectorCache(): Promise<void> {
+  try {
+    await api.post("/ai/vector-cache-hint");
+  } catch {
+    // best-effort cache hint
+  }
+}
+
 export async function aiAnswers(
   params: IPageSearchParams,
   onChunk?: (chunk: { content?: string; sources?: any[] }) => void,

@@ -43,6 +43,10 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
+export function getAiVectorDriver(): string {
+  return getConfigValue("AI_VECTOR_DRIVER");
+}
+
 export function isBetaConfluenceImporter(): boolean {
   return castToBoolean(getConfigValue("BETA_CONFLUENCE_IMPORTER"));
 }

@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
     BILLING_TRIAL_DAYS,
     POSTHOG_HOST,
     POSTHOG_KEY,
+    AI_VECTOR_DRIVER,
     BETA_CONFLUENCE_IMPORTER,
   } = loadEnv(mode, envPath, "");
 
@@ -32,6 +33,7 @@ export default defineConfig(({ mode }) => {
         BILLING_TRIAL_DAYS,
         POSTHOG_HOST,
         POSTHOG_KEY,
+        AI_VECTOR_DRIVER,
         BETA_CONFLUENCE_IMPORTER
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
@@ -57,7 +59,6 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      allowedHosts: ['docmost.nz'],
       proxy: {
         "/api": {
           target: APP_URL,
