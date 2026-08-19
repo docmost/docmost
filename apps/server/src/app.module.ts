@@ -60,14 +60,18 @@ try {
       isGlobal: true,
       useFactory: async (environmentService: EnvironmentService) => {
         const redisUrl = environmentService.getRedisUrl();
-        const { family } = parseRedisUrl(redisUrl);
+        const { family, tls } = parseRedisUrl(redisUrl);
 
         return {
           ttl: 5 * 1000,
           stores: [
             new KeyvRedis({
               url: redisUrl,
-              socket: { family, reconnectStrategy: defaultReconnectStrategy },
+              socket: {
+                family,
+                reconnectStrategy: defaultReconnectStrategy,
+                ...tls,
+              },
             }),
           ],
         };
