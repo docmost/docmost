@@ -18,6 +18,7 @@ export class RedisConfigService implements RedisOptionsFactory {
         port: redisConfig.port,
         password: redisConfig.password,
         db: redisConfig.db,
+        username: redisConfig.username,
         family: redisConfig.family,
         retryStrategy: createRetryStrategy(),
       },
