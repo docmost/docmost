@@ -13,11 +13,16 @@ import { SearchResultItem } from "./search-result-item.tsx";
 import { AiSearchResult } from "../../../ee/ai/components/ai-search-result.tsx";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
+import { useAtomValue } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { hintVectorCache } from "@/ee/ai/services/ai-search-service.ts";
+import { getAiVectorDriver } from "@/lib/config.ts";
 
 interface SearchSpotlightProps {
   spaceId?: string;
 }
 export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
+  const workspace = useAtomValue(workspaceAtom);
   const { t } = useTranslation();
   const hasAiFeature = useHasFeature(Feature.AI);
   const hasAttachmentIndexing = useHasFeature(Feature.ATTACHMENT_INDEXING);
@@ -96,6 +101,15 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     />
   ));
 
+  const handleSpotlightOpen = () => {
+    if (
+      workspace?.settings?.ai?.search === true &&
+      getAiVectorDriver() === "turbopuffer"
+    ) {
+      hintVectorCache();
+    }
+  };
+
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
   };
@@ -115,6 +129,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
       <Spotlight.Root
         size="xl"
         maxHeight={600}
+        onSpotlightOpen={handleSpotlightOpen}
         store={searchSpotlightStore}
         query={query}
         onQueryChange={setQuery}
