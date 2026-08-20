@@ -71,6 +71,16 @@ export class StaticModule implements OnModuleInit {
       await app.register(fastifyStatic, {
         root: clientDistPath,
         wildcard: false,
+        preCompressed: true,
+        setHeaders: (reply: any, pathName: string) => {
+          // Vite content-hashes everything under /assets, so they can be cached forever
+          if (/[\\/]assets[\\/]/.test(pathName)) {
+            reply.header(
+              'Cache-Control',
+              'public, max-age=31536000, immutable',
+            );
+          }
+        },
       });
 
       app.get(RENDER_PATH, (req: any, res: any) => {
