@@ -53,6 +53,9 @@ const NO_VALUE_OPERATORS: FilterOperator[] = ["isEmpty", "isNotEmpty"];
 // stored value so a stale shape isn't sent to the engine.
 function valueClass(op: FilterOperator, inputKind: string): string {
   if (NO_VALUE_OPERATORS.includes(op)) return "none";
+  if (inputKind === "choices") {
+    return op === "any" || op === "none" ? "choicesMulti" : "choicesSingle";
+  }
   if (inputKind === "person") {
     return op === "any" || op === "none" ? "personMulti" : "personSingle";
   }
