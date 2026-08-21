@@ -34,7 +34,11 @@ export class SearchService {
     if (query.length < 1) {
       return { items: [] };
     }
-    const searchQuery = tsquery(query.trim() + '*');
+    const trimmedQuery = query.trim();
+    // With * : used only for ts_rank and ts_headline (prefix-aware scoring/highlights)
+    const searchQuery = tsquery(trimmedQuery + '*');
+    // Without * : used for content FTS filter to avoid stemming-based false positives
+    const filterQuery = tsquery(trimmedQuery);
 
     let queryResults = this.db
       .selectFrom('pages')
@@ -54,10 +58,21 @@ export class SearchService {
           'highlight',
         ),
       ])
-      .where(
-        'tsv',
-        '@@',
-        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+      .where((eb) =>
+        eb.or([
+          // Title: raw text substring match — no stemming, no false positives
+          eb(
+            sql`LOWER(f_unaccent(pages.title))`,
+            'like',
+            sql`LOWER(f_unaccent(${`%${trimmedQuery}%`}))`,
+          ),
+          // Content: FTS without prefix wildcard to avoid stem-level false positives
+          eb(
+            'tsv',
+            '@@',
+            sql<string>`to_tsquery('english', f_unaccent(${filterQuery}))`,
+          ),
+        ]),
       )
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
@@ -91,20 +106,22 @@ export class SearchService {
         return { items: [] };
       }
 
-      const isRestricted =
-        await this.pagePermissionRepo.hasRestrictedAncestor(share.pageId);
+      const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
+        share.pageId,
+      );
       if (isRestricted) {
         return { items: [] };
       }
 
       const pageIdsToSearch = [];
       if (share.includeSubPages) {
-        const pageList = await this.pageRepo.getPageAndDescendantsExcludingRestricted(
-          share.pageId,
-          {
-            includeContent: false,
-          },
-        );
+        const pageList =
+          await this.pageRepo.getPageAndDescendantsExcludingRestricted(
+            share.pageId,
+            {
+              includeContent: false,
+            },
+          );
 
         pageIdsToSearch.push(...pageList.map((page) => page.id));
       } else {
