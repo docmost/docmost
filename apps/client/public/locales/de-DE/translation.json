@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "Horizontale Trennlinie einfügen",
   "Page break": "Seitenumbruch",
   "Insert a page break for printing.": "Einen Seitenumbruch zum Drucken einfügen.",
+  "Footnote": "Fußnote",
+  "Insert a footnote reference.": "Einen Fußnotenverweis einfügen.",
   "Upload any image from your device.": "Laden Sie ein beliebiges Bild von Ihrem Gerät hoch.",
   "Upload any video from your device.": "Laden Sie ein beliebiges Video von Ihrem Gerät hoch.",
   "Upload any audio from your device.": "Laden Sie beliebige Audiodateien von Ihrem Gerät hoch.",
@@ -1289,5 +1291,16 @@
   "{{count}} rows deleted_one": "1 row deleted",
   "{{count}} rows deleted_other": "{{count}} rows deleted",
   "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} selected_other": "{{count}} selected",
+  "Compare": "Vergleichen",
+  "Compare versions": "Versionen vergleichen",
+  "Select version from {{date}}": "Version vom {{date}} auswählen",
+  "Version actions for {{date}}": "Versionsaktionen für {{date}}",
+  "Comparing {{newer}} and {{older}}": "{{newer}} und {{older}} werden verglichen",
+  "Exit compare": "Vergleich beenden",
+  "Search attachments...": "Search attachments...",
+  "Error loading attachments.": "Error loading attachments.",
+  "No attachments on this page yet.": "No attachments on this page yet.",
+  "Uploaded by {{name}}": "Uploaded by {{name}}",
+  "Download {{name}}": "Download {{name}}"
 }

@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "插入水平分割线",
   "Page break": "分页符",
   "Insert a page break for printing.": "插入一个用于打印的分页符。",
+  "Footnote": "脚注",
+  "Insert a footnote reference.": "插入脚注引用。",
   "Upload any image from your device.": "从设备上传任何图像",
   "Upload any video from your device.": "从设备上传任何视频",
   "Upload any audio from your device.": "从您的设备上传任意音频文件。",
@@ -1289,5 +1291,16 @@
   "{{count}} rows deleted_one": "已删除 1 行",
   "{{count}} rows deleted_other": "已删除 {{count}} 行",
   "{{count}} selected_one": "已选择 1 项",
-  "{{count}} selected_other": "已选择 {{count}} 项"
+  "{{count}} selected_other": "已选择 {{count}} 项",
+  "Compare": "比较",
+  "Compare versions": "比较版本",
+  "Select version from {{date}}": "选择 {{date}} 的版本",
+  "Version actions for {{date}}": "{{date}} 的版本操作",
+  "Comparing {{newer}} and {{older}}": "正在比较 {{newer}} 和 {{older}}",
+  "Exit compare": "退出比较",
+  "Search attachments...": "Search attachments...",
+  "Error loading attachments.": "Error loading attachments.",
+  "No attachments on this page yet.": "No attachments on this page yet.",
+  "Uploaded by {{name}}": "Uploaded by {{name}}",
+  "Download {{name}}": "Download {{name}}"
 }

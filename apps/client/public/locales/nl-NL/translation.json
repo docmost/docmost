@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "Horizontale lijn invoegen",
   "Page break": "Pagina-einde",
   "Insert a page break for printing.": "Voeg een pagina-einde in voor het afdrukken.",
+  "Footnote": "Voetnoot",
+  "Insert a footnote reference.": "Voeg een voetnootverwijzing in.",
   "Upload any image from your device.": "Upload een afbeelding vanaf uw apparaat.",
   "Upload any video from your device.": "Upload een video vanaf uw apparaat.",
   "Upload any audio from your device.": "Upload een audio vanaf uw apparaat.",
@@ -1289,5 +1291,16 @@
   "{{count}} rows deleted_one": "1 rij verwijderd",
   "{{count}} rows deleted_other": "{{count}} rijen verwijderd",
   "{{count}} selected_one": "1 geselecteerd",
-  "{{count}} selected_other": "{{count}} geselecteerd"
+  "{{count}} selected_other": "{{count}} geselecteerd",
+  "Compare": "Vergelijken",
+  "Compare versions": "Versies vergelijken",
+  "Select version from {{date}}": "Selecteer versie van {{date}}",
+  "Version actions for {{date}}": "Versieacties voor {{date}}",
+  "Comparing {{newer}} and {{older}}": "{{newer}} en {{older}} vergelijken",
+  "Exit compare": "Vergelijken afsluiten",
+  "Search attachments...": "Search attachments...",
+  "Error loading attachments.": "Error loading attachments.",
+  "No attachments on this page yet.": "No attachments on this page yet.",
+  "Uploaded by {{name}}": "Uploaded by {{name}}",
+  "Download {{name}}": "Download {{name}}"
 }

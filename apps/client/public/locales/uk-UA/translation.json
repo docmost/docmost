@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "Вставити горизонтальний роздільник",
   "Page break": "Розрив сторінки",
   "Insert a page break for printing.": "Вставте розрив сторінки для друку.",
+  "Footnote": "Виноска",
+  "Insert a footnote reference.": "Вставити посилання на виноску.",
   "Upload any image from your device.": "Завантажити будь-яке зображення з вашого пристрою.",
   "Upload any video from your device.": "Завантажити будь-яке відео з вашого пристрою.",
   "Upload any audio from your device.": "Завантажте будь-який аудіофайл зі свого пристрою.",
@@ -1289,5 +1291,16 @@
   "{{count}} rows deleted_one": "1 row deleted",
   "{{count}} rows deleted_other": "{{count}} rows deleted",
   "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} selected_other": "{{count}} selected",
+  "Compare": "Порівняти",
+  "Compare versions": "Порівняти версії",
+  "Select version from {{date}}": "Виберіть версію від {{date}}",
+  "Version actions for {{date}}": "Дії з версією від {{date}}",
+  "Comparing {{newer}} and {{older}}": "Порівняння {{newer}} і {{older}}",
+  "Exit compare": "Вийти з режиму порівняння",
+  "Search attachments...": "Search attachments...",
+  "Error loading attachments.": "Error loading attachments.",
+  "No attachments on this page yet.": "No attachments on this page yet.",
+  "Uploaded by {{name}}": "Uploaded by {{name}}",
+  "Download {{name}}": "Download {{name}}"
 }
