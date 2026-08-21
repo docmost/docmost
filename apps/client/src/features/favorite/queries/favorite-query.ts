@@ -8,9 +8,11 @@ import {
 import {
   addFavorite,
   removeFavorite,
+  moveFavorite,
   getFavorites,
   getFavoriteIds,
   ToggleFavoriteParams,
+  MoveFavoriteParams,
 } from "../services/favorite-service";
 import { FavoriteType } from "../types/favorite.types";
 
@@ -64,6 +66,20 @@ export function useAddFavoriteMutation() {
       queryClient.invalidateQueries({
         queryKey: ["favorites", variables.type],
       });
+    },
+  });
+}
+
+// Only persists the new position — the caller (favorite-space-tree.tsx) owns
+// the optimistic reordering of its own local tree atom and rolls it back on
+// failure, mirroring how page moves work in useTreeMutation.
+export function useMoveFavoriteMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, MoveFavoriteParams>({
+    mutationFn: (data) => moveFavorite(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["favorites", "page"] });
     },
   });
 }

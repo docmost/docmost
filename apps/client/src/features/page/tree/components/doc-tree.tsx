@@ -11,8 +11,9 @@ import {
 } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
+import clsx from 'clsx';
 import type { TreeNode, DropOp } from '../model/tree-model.types';
-import { treeModel } from '../model/tree-model';
+import { treeModel, pathKey } from '../model/tree-model';
 import { DocTreeRow } from './doc-tree-row';
 import styles from '../styles/tree.module.css';
 
@@ -43,6 +44,10 @@ export type RenderRowProps<T extends object> = {
     'aria-current'?: 'page';
     'aria-label': string;
     'data-row-id': string;
+    // Internal bookkeeping key for this row's position — equal to node.id
+    // unless keyByPath is set, in which case it's the ancestor-id path. Not
+    // meant for consumer use; DocTree's own keyboard/focus handling reads it.
+    'data-row-key': string;
   };
   toggleOpen: () => void;
 };
@@ -56,17 +61,56 @@ export type DocTreeProps<T extends object> = {
   indentPerLevel?: number;
   rowHeight?: number;
   emptyState?: ReactNode;
+  // Appended to the scroll container's className — e.g. to opt out of the
+  // default internal scrollbar for a tree that's sized to its content.
+  className?: string;
 
   onMove: (sourceId: string, op: DropOp) => void | Promise<void>;
-  onToggle: (id: string, isOpen: boolean) => void;
+  // node/path are always the real node and its ancestor-id chain, regardless
+  // of keyByPath. Most consumers only need `id`; a consumer that opts into
+  // keyByPath (because the same id can appear more than once in its data)
+  // uses `path` to unambiguously target the exact occurrence that toggled.
+  onToggle: (
+    id: string,
+    isOpen: boolean,
+    node: TreeNode<T>,
+    path: string[],
+  ) => void;
   onSelect?: (id: string) => void;
 
   readOnly?: boolean;
   disableDrag?: (node: TreeNode<T>) => boolean;
   disableDrop?: (node: TreeNode<T>) => boolean;
+  // Extra source-aware drop validation, checked in addition to disableDrop.
+  // Needed when a tree mixes domains that must never intermix via drag (e.g.
+  // flat shortcut rows vs. real hierarchy descendants) — disableDrag/
+  // disableDrop alone can't express "only accept a drop from THIS kind of
+  // source," since they only see the target node. Defaults to always-allow.
+  canDropInto?: (source: TreeNode<T>, target: TreeNode<T>) => boolean;
+  // Blocks one specific drop kind for a given (source, target) pair while
+  // leaving others enabled (disableDrop blocks every kind at once for a
+  // target regardless of source). E.g. a flat shortcuts row should accept
+  // make-child from a real descendant (nest it into that shortcut's real
+  // page) while rejecting make-child between two shortcuts, and rejecting
+  // reorder-before/after from a real descendant entirely. Defaults to
+  // always-allow.
+  disallowDropKind?: (
+    source: TreeNode<T>,
+    target: TreeNode<T>,
+    kind: DropOp['kind'],
+  ) => boolean;
 
   getDragLabel: (node: TreeNode<T>) => string;
   uniqueContextId?: symbol;
+
+  // When the same id can appear more than once in `data` (e.g. a page that's
+  // independently favorited AND a descendant of another favorited page), set
+  // this so open/selected-focus/DOM bookkeeping is tracked per row position
+  // (the ancestor-id path) instead of colliding on the shared id. `openIds`
+  // must then contain pathKey(...) values rather than bare ids. Leave unset
+  // for normal, duplicate-free trees — behavior is identical to today's
+  // id-based keying.
+  keyByPath?: boolean;
 
   // Accessible name for the tree itself (e.g. "Pages"). Rendered as
   // aria-label on the <ul role="tree"> so screen readers announce what
@@ -87,26 +131,34 @@ type FlatRow<T extends object> = {
   node: TreeNode<T>;
   level: number;
   isLastSibling: boolean;
+  // Ancestor-id chain down to and including this node.
+  path: string[];
+  // Row identity used for open/select-focus/DOM bookkeeping — node.id unless
+  // keyByPath is set, in which case it's pathKey(path).
+  key: string;
 };
 
 // DFS-walk the tree, emitting only the visible nodes (root nodes always, plus
-// the descendants of nodes whose id is in `openIds`). Each emitted row carries
-// the precomputed `level` and `isLastSibling` it needs.
+// the descendants of nodes whose row key is in `openIds`). Each emitted row
+// carries the precomputed `level`, `isLastSibling`, `path` and `key` it needs.
 function flattenVisible<T extends object>(
   data: TreeNode<T>[],
   openIds: ReadonlySet<string>,
+  keyByPath: boolean,
 ): FlatRow<T>[] {
   const out: FlatRow<T>[] = [];
-  const walk = (nodes: TreeNode<T>[], level: number) => {
+  const walk = (nodes: TreeNode<T>[], level: number, parentPath: string[]) => {
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      out.push({ node, level, isLastSibling: i === nodes.length - 1 });
-      if (openIds.has(node.id) && node.children?.length) {
-        walk(node.children, level + 1);
+      const path = [...parentPath, node.id];
+      const key = keyByPath ? pathKey(path) : node.id;
+      out.push({ node, level, isLastSibling: i === nodes.length - 1, path, key });
+      if (openIds.has(key) && node.children?.length) {
+        walk(node.children, level + 1, path);
       }
     }
   };
-  walk(data, 0);
+  walk(data, 0, []);
   return out;
 }
 
@@ -129,9 +181,13 @@ function DocTreeInner<T extends object>(
     readOnly = false,
     disableDrag,
     disableDrop,
+    canDropInto,
+    disallowDropKind,
     getDragLabel,
     uniqueContextId,
     emptyState,
+    className,
+    keyByPath = false,
     'aria-label': ariaLabel,
   } = props;
 
@@ -179,22 +235,27 @@ function DocTreeInner<T extends object>(
   // Flat visible list drives virtualization. Re-flattens on data or openIds
   // change — cheap O(N) walk of the loaded tree.
   const flat = useMemo(
-    () => flattenVisible(data, openIds),
-    [data, openIds],
+    () => flattenVisible(data, openIds, keyByPath),
+    [data, openIds, keyByPath],
   );
 
-  // Membership lookup for the flat list. Used to validate activeId/selectedId
-  // before promoting them to the effective active row.
-  const flatIds = useMemo(() => new Set(flat.map((r) => r.node.id)), [flat]);
+  // Membership lookup for the flat list, keyed by row (not node.id — with
+  // keyByPath, the same id can occupy more than one row). Used to validate
+  // activeId before promoting it to the effective active row.
+  const flatIds = useMemo(() => new Set(flat.map((r) => r.key)), [flat]);
 
   // Effective active row for tabindex purposes. Prefers user-focused row,
-  // then the currently selected page, then the first visible row. The user's
-  // arrow / Home / End / typeahead navigation updates activeId via the focus
-  // event delegated on the <ul>; explicit clicks also flow through focus.
+  // then the row showing the currently selected page, then the first visible
+  // row. The user's arrow / Home / End / typeahead navigation updates
+  // activeId via the focus event delegated on the <ul>; explicit clicks also
+  // flow through focus.
   const effectiveActiveId = useMemo(() => {
     if (activeId && flatIds.has(activeId)) return activeId;
-    if (selectedId && flatIds.has(selectedId)) return selectedId;
-    return flat[0]?.node.id;
+    if (selectedId) {
+      const match = flat.find((r) => r.node.id === selectedId);
+      if (match) return match.key;
+    }
+    return flat[0]?.key;
   }, [activeId, selectedId, flatIds, flat]);
 
   const virtualizer = useVirtualizer({
@@ -207,20 +268,25 @@ function DocTreeInner<T extends object>(
   useImperativeHandle(
     ref,
     (): DocTreeApi => ({
+      // id-based; if the id occupies more than one row (keyByPath), this
+      // resolves to the first match.
       select: (id, opts) => {
         onSelect?.(id);
         const idx = flat.findIndex((r) => r.node.id === id);
         if (idx >= 0 && opts?.scrollIntoView) {
           virtualizer.scrollToIndex(idx, { align: 'auto' });
         }
-        if (opts?.focus) rowElementsRef.current.get(id)?.focus();
+        if (opts?.focus) {
+          rowElementsRef.current.get(flat[idx]?.key ?? id)?.focus();
+        }
       },
       scrollTo: (id) => {
         const idx = flat.findIndex((r) => r.node.id === id);
         if (idx >= 0) virtualizer.scrollToIndex(idx, { align: 'auto' });
       },
       focus: (id) => {
-        rowElementsRef.current.get(id)?.focus();
+        const match = flat.find((r) => r.node.id === id);
+        rowElementsRef.current.get(match?.key ?? id)?.focus();
       },
     }),
     [onSelect, flat, virtualizer],
@@ -306,22 +372,22 @@ function DocTreeInner<T extends object>(
 
       const target = e.target as HTMLElement;
       if (target.matches('input, textarea, [contenteditable="true"]')) return;
-      const rowEl = target.closest('[data-row-id]');
+      const rowEl = target.closest('[data-row-key]');
       if (!rowEl) return;
-      const id = rowEl.getAttribute('data-row-id');
-      if (!id) return;
+      const key = rowEl.getAttribute('data-row-key');
+      if (!key) return;
 
-      const idx = flat.findIndex((r) => r.node.id === id);
+      const idx = flat.findIndex((r) => r.key === key);
       if (idx < 0) return;
 
       const focusByIndex = (targetIdx: number) => {
         if (targetIdx < 0 || targetIdx >= flat.length) return;
-        const targetId = flat[targetIdx].node.id;
-        const existing = rowElementsRef.current.get(targetId);
+        const targetKey = flat[targetIdx].key;
+        const existing = rowElementsRef.current.get(targetKey);
         if (existing) {
           existing.focus();
         } else {
-          pendingFocusIdRef.current = targetId;
+          pendingFocusIdRef.current = targetKey;
           virtualizer.scrollToIndex(targetIdx, { align: 'auto' });
         }
       };
@@ -331,7 +397,7 @@ function DocTreeInner<T extends object>(
       // button (chevron, +, menu) — those handle Space via native button
       // semantics, and intercepting here would block their default behavior.
       if (isActivateKey) {
-        const registered = rowElementsRef.current.get(id);
+        const registered = rowElementsRef.current.get(key);
         if (target === registered) {
           e.preventDefault();
           registered.click();
@@ -375,22 +441,28 @@ function DocTreeInner<T extends object>(
       const hasChildren =
         (row.node.children && row.node.children.length > 0) ||
         (row.node as { hasChildren?: boolean }).hasChildren === true;
-      const isOpen = openIds.has(row.node.id);
+      const isOpen = openIds.has(row.key);
 
       // Asterisk: expand every sibling subtree at the focused row's level.
       // Walks the authoritative tree (not flat, which only carries visible
       // rows) so we also expand siblings whose own subtree is currently
       // collapsed. Focus and selection stay put per the WAI-ARIA pattern.
+      // Note: siblingsOf resolves row.node.id via first-match, so in a
+      // keyByPath tree where that id also occupies another row, this can act
+      // on the wrong occurrence's siblings — a narrow, accepted limitation.
       if (isStarKey) {
         e.preventDefault();
         const info = treeModel.siblingsOf(rootDataRef.current, row.node.id);
         if (info) {
+          const parentPath = row.path.slice(0, -1);
           for (const sib of info.siblings) {
             const sibHasChildren =
               (sib.children && sib.children.length > 0) ||
               (sib as { hasChildren?: boolean }).hasChildren === true;
-            if (sibHasChildren && !openIds.has(sib.id)) {
-              onToggle(sib.id, true);
+            const sibPath = [...parentPath, sib.id];
+            const sibKey = keyByPath ? pathKey(sibPath) : sib.id;
+            if (sibHasChildren && !openIds.has(sibKey)) {
+              onToggle(sib.id, true, sib, sibPath);
             }
           }
         }
@@ -409,7 +481,7 @@ function DocTreeInner<T extends object>(
         case 'ArrowRight':
           e.preventDefault();
           if (hasChildren && !isOpen) {
-            onToggle(row.node.id, true);
+            onToggle(row.node.id, true, row.node, row.path);
           } else if (
             isOpen &&
             row.node.children &&
@@ -421,7 +493,7 @@ function DocTreeInner<T extends object>(
         case 'ArrowLeft': {
           e.preventDefault();
           if (isOpen && hasChildren) {
-            onToggle(row.node.id, false);
+            onToggle(row.node.id, false, row.node, row.path);
           } else {
             // Move to parent — first preceding row with smaller level.
             // Bounded by sibling-count to parent in the flat list; tree depth
@@ -446,7 +518,7 @@ function DocTreeInner<T extends object>(
           break;
       }
     },
-    [flat, openIds, onToggle, virtualizer, getDragLabel],
+    [flat, openIds, onToggle, virtualizer, getDragLabel, keyByPath],
   );
 
   // Clear the typeahead timer if the component unmounts mid-buffer.
@@ -463,9 +535,9 @@ function DocTreeInner<T extends object>(
   // by click, arrow nav, or focusByIndex's programmatic .focus() call.
   const handleFocusIn = useCallback(
     (e: React.FocusEvent<HTMLUListElement>) => {
-      const rowEl = (e.target as HTMLElement).closest('[data-row-id]');
-      const id = rowEl?.getAttribute('data-row-id');
-      if (id) setActiveId(id);
+      const rowEl = (e.target as HTMLElement).closest('[data-row-key]');
+      const key = rowEl?.getAttribute('data-row-key');
+      if (key) setActiveId(key);
     },
     [],
   );
@@ -478,7 +550,7 @@ function DocTreeInner<T extends object>(
   const totalSize = virtualizer.getTotalSize();
 
   return (
-    <div ref={scrollRef} className={styles.treeContainer}>
+    <div ref={scrollRef} className={clsx(styles.treeContainer, className)}>
       <ul
         role="tree"
         aria-label={ariaLabel}
@@ -496,7 +568,7 @@ function DocTreeInner<T extends object>(
           const row = flat[virtualItem.index];
           return (
             <li
-              key={row.node.id}
+              key={row.key}
               // role="none" — the treeitem role lives on the focusable child
               // (the row's <a>), so screen readers announce "treeitem" on
               // navigation. The <li> is just layout glue.
@@ -513,6 +585,8 @@ function DocTreeInner<T extends object>(
                 node={row.node}
                 level={row.level}
                 isLastSibling={row.isLastSibling}
+                path={row.path}
+                rowKey={row.key}
                 openIds={openIds}
                 selectedId={selectedId}
                 activeId={effectiveActiveId}
@@ -523,6 +597,8 @@ function DocTreeInner<T extends object>(
                 readOnly={readOnly}
                 disableDrag={disableDrag}
                 disableDrop={disableDrop}
+                canDropInto={canDropInto}
+                disallowDropKind={disallowDropKind}
                 getDragLabel={getDragLabel}
                 contextId={contextId}
                 registerRowElement={registerRowElement}

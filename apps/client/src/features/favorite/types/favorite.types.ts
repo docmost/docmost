@@ -8,6 +8,7 @@ export type IFavorite = {
   templateId: string | null;
   type: FavoriteType;
   workspaceId: string;
+  position: string;
   createdAt: string;
   page?: {
     id: string;

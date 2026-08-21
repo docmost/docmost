@@ -25,6 +25,7 @@ import { duplicatePage } from "@/features/page/services/page-service.ts";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { getAppUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import localEmitter from "@/lib/local-emitter.ts";
 import {
   useFavoriteIds,
   useAddFavoriteMutation,
@@ -100,15 +101,20 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       );
 
       setTimeout(() => {
-        emit({
-          operation: "addTreeNode",
+        const event = {
+          operation: "addTreeNode" as const,
           spaceId: node.spaceId,
           payload: {
             parentId,
             index: newIndex,
             data: treeNodeData,
           },
-        });
+        };
+        // Lets the favorites tree pick up the duplicate too, if its parent
+        // happens to be expanded there — the server never echoes an emit
+        // back to the socket that sent it.
+        localEmitter.emit("message", event);
+        emit(event);
       }, 50);
 
       notifications.show({ message: t("Page duplicated successfully") });

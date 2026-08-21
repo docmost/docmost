@@ -12,6 +12,13 @@
     overflow-x: hidden;
 }
 
+/* Opt-out for trees sized exactly to their content (e.g. the Starred tree,
+   height is precomputed from the visible row count) — no internal scrollbar,
+   the tree just sits at its natural height above the next sidebar section. */
+.treeContainerNoScroll {
+    overflow: visible;
+}
+
 .node {
     position: relative;
     border-radius: 4px;
