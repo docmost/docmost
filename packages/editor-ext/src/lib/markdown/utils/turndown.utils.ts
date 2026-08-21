@@ -37,7 +37,7 @@ export function htmlToMarkdown(html: string): string {
     footnoteRef,
     footnotesList,
   ]);
-  return turndownService.turndown(html).replaceAll('<br>', ' ');
+  return turndownService.turndown(html);
 }
 
 function listParagraph(turndownService: _TurndownService) {
