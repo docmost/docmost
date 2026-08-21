@@ -96,7 +96,7 @@ export class ExportController {
       res.headers({
         'Content-Type': contentType,
         'Content-Disposition':
-          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+          `attachment; filename="export${ext}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       });
 
       res.send(result.content);
@@ -108,7 +108,7 @@ export class ExportController {
       res.headers({
         'Content-Type': 'application/zip',
         'Content-Disposition':
-          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+          `attachment; filename="export.zip"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       });
 
       res.send(result.stream);
@@ -150,11 +150,9 @@ export class ExportController {
     res.headers({
       'Content-Type': 'application/zip',
       'Content-Disposition':
-        'attachment; filename="' +
-        encodeURIComponent(
+        `attachment; filename="export.zip"; filename*=UTF-8''${encodeURIComponent(
           sanitizeFileName(exportFile.fileName, { preserveSpaces: true }),
-        ) +
-        '"',
+        )}`,
     });
 
     res.send(exportFile.fileStream);
