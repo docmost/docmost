@@ -396,7 +396,10 @@ export class WorkspaceService {
       }
     }
 
-    if (updateWorkspaceDto.aiSearch) {
+    if (
+      updateWorkspaceDto.aiSearch &&
+      this.environmentService.getAiVectorDriver() !== 'turbopuffer'
+    ) {
       const tableExists = await isPageEmbeddingsTableExists(this.db);
       if (!tableExists) {
         throw new BadRequestException(
