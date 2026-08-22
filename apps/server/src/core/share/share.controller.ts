@@ -65,8 +65,11 @@ export class ShareController {
     @Body() dto: ShareInfoDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    if (!dto.pageId && !dto.shareId) {
-      throw new BadRequestException();
+    // getSharedPage only ever resolves by pageId, so require it explicitly
+    // instead of accepting shareId as a stand-in — passing shareId alone
+    // used to reach the DB driver as an undefined pageId and surface as a 500.
+    if (!dto.pageId) {
+      throw new BadRequestException('pageId is required');
     }
 
     const shareData = await this.shareService.getSharedPage(dto, workspace.id);
