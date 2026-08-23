@@ -8,7 +8,7 @@ import Download from "yet-another-react-lightbox/plugins/download";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Video from "yet-another-react-lightbox/plugins/video";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import i18n from "@/i18n.ts";
 import { useTranslation } from "react-i18next";
 
@@ -95,12 +95,37 @@ export default function LightboxView({
 }: LightboxViewProps) {
   const { i18n: i18nInstance } = useTranslation();
 
-  const slides = useMemo(
-    () => getPageMedia(editor),
-    [editor, open, i18nInstance.language]
+  const selectedSlide = useMemo(
+    () => getMedia(src, type),
+    [src, type, i18nInstance.language]
   );
 
+  const [pageSlides, setPageSlides] = useState<Slide[]>([]);
+  const [loadedMediaKey, setLoadedMediaKey] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    if (!open) return;
+
+    setLoadedMediaKey(null);
+
+    const frame = requestAnimationFrame(() => {
+      const slides = getPageMedia(editor);
+
+      setPageSlides(slides);
+      setLoadedMediaKey(`${type}:${src}`);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [editor, open, type, src]);
+
+  const slides = loadedMediaKey === `${type}:${src}` ? pageSlides : [selectedSlide];
+
   const index = useMemo(() => {
+    if (!(pageSlides.length > 0)) {
+      return 0;
+    }
+
     const idx = slides.findIndex((slide) =>
       type === "video"
         ? "sources" in slide && slide.sources.some((s) => s.src === src)
@@ -113,7 +138,7 @@ export default function LightboxView({
     <Lightbox
       open={open}
       close={onClose}
-      index={index >= 0 ? index : 0}
+      index={index}
       slides={slides}
       plugins={[Captions, Download, Fullscreen, Video, Zoom]}
       captions={{ descriptionTextAlign: "center" }}
