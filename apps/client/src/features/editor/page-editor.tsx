@@ -33,6 +33,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   currentPageEditModeAtom,
+  lightboxRequestAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
   yjsSyncedAtom,
@@ -53,6 +54,7 @@ import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
+import LightboxView from "@/features/editor/components/common/lightbox-view";
 import {
   handleFileDrop,
   handlePaste,
@@ -184,6 +186,7 @@ function CollabPageEditor({
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
+  const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
@@ -458,6 +461,15 @@ function CollabPageEditor({
         )}
         {editor && !editorIsEditable && (editable || canComment) && (
           <ReadonlyBubbleMenu editor={editor} />
+        )}
+        {editor && (
+          <LightboxView
+            editor={editor}
+            open={!!lightboxRequest}
+            src={lightboxRequest?.src ?? ""}
+            type={lightboxRequest?.type ?? "image"}
+            onClose={() => setLightboxRequest(null)}
+          />
         )}
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
         {showReadOnlyCommentPopup && (
