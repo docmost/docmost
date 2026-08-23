@@ -213,10 +213,6 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
       });
 
-      await this.aiQueue.add(QueueJob.GENERATE_PAGE_EMBEDDINGS, {
-        pageId
-      })
-
       await this.enqueuePageHistory(page);
     }
   }

@@ -1,25 +1,14 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ~/.ollama:/root/.ollama
   docmost:
     image: docmost/docmost:latest
     depends_on:
       - db
       - redis
     environment:
-      APP_URL: "http://localhost:3000"
-      APP_SECRET: "6ee0204759950f97cecfaf4ae7ce8ddbe2cd99707870015471ee632d90aa0df5"
-      DATABASE_URL: "postgresql://docmost:12345@db:5432/docmost"
-      REDIS_URL: "redis://redis:6379"
-      AI_DRIVER: "ollama"
-      OLLAMA_API_URL: "http://localhost:11434"
-      AI_EMBEDDING_MODEL: "nomic-embed-text"
-      AI_COMPLETION_MODEL: "qwen2.5-coder:7b"
-      AI_EMBEDDING_DIMENSION: "768"
+      APP_URL: 'http://localhost:3000'
+      APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
+      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost'
+      REDIS_URL: 'redis://redis:6379'
     ports:
       - "3000:3000"
     restart: unless-stopped
@@ -27,27 +16,18 @@ services:
       - docmost:/app/data/storage
 
   db:
-    image: pgvector/pgvector:pg18-trixie
-    ports:
-      - "5432:5432"
+    image: postgres:18
     environment:
       POSTGRES_DB: docmost
       POSTGRES_USER: docmost
-      POSTGRES_PASSWORD: 12345
+      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
     restart: unless-stopped
     volumes:
       - db_data:/var/lib/postgresql
 
   redis:
     image: redis:8
-    command:
-      - redis-server
-      - --appendonly
-      - "yes"
-      - --maxmemory-policy
-      - noeviction
-    ports:
-      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     restart: unless-stopped
     volumes:
       - redis_data:/data
