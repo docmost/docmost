@@ -255,7 +255,7 @@ export function SearchSpotlightFilters({
         </Menu.Dropdown>
       </Menu>
 
-      {contentType !== "attachment" && !isAiMode && (
+      {!isAiMode && (
         <Button
           variant={titleOnly ? "light" : "subtle"}
           color={titleOnly ? "blue" : "gray"}
@@ -270,7 +270,9 @@ export function SearchSpotlightFilters({
           aria-pressed={titleOnly}
           onClick={() => setTitleOnly(!titleOnly)}
         >
-          {t("Title only")}
+          {contentType === "attachment"
+            ? t("File name only")
+            : t("Title only")}
         </Button>
       )}
 
