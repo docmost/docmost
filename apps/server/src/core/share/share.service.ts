@@ -20,6 +20,7 @@ import {
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { MAX_PAGE_TREE_DEPTH } from '@docmost/db/repos/page/constants';
 import { updateAttachmentAttr } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
 import { validate as isValidUUID } from 'uuid';
@@ -247,6 +248,7 @@ export class ShareService {
                   .else(false)
                   .end()
                   .as('found'),
+              sql<number>`0`.as('depth'),
             ])
             .where(isValidUUID(childPageId) ? 'id' : 'slugId', '=', childPageId)
             .unionAll((exp) =>
@@ -266,14 +268,16 @@ export class ShareService {
                       .else(false)
                       .end()
                       .as('found'),
+                  sql<number>`pa.depth + 1`.as('depth'),
                 ])
                 .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
                 // Continue recursing only when the target ancestor hasn't been found on that branch.
-                .where('pa.found', '=', false),
+                .where('pa.found', '=', false)
+                .where('pa.depth', '<', MAX_PAGE_TREE_DEPTH),
             ),
         )
         .selectFrom('page_ancestors')
-        .selectAll()
+        .select(['id', 'slugId', 'title', 'parentPageId', 'spaceId'])
         .where('found', '=', true)
         .limit(1)
         .executeTakeFirst();

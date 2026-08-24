@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { MAX_PAGE_TREE_DEPTH } from '@docmost/db/repos/page/constants';
+import { sql } from 'kysely';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
@@ -76,17 +78,18 @@ export class TrashCleanupService {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select(['id', sql<number>`0`.as('depth')])
           .where('id', '=', pageId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .select(['p.id', sql<number>`pd.depth + 1`.as('depth')])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .where('pd.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('page_descendants')
-      .selectAll()
+      .select(['id'])
       .execute();
 
     const pageIds = descendants.map((d) => d.id);

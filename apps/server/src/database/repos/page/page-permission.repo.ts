@@ -24,6 +24,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { MAX_PAGE_TREE_DEPTH } from './constants';
 
 export { PagePermissionMember } from './types/page-permission.types';
 
@@ -350,7 +351,8 @@ export class PagePermissionRepo {
                 'pages.id as ancestorId',
                 'pages.parentPageId',
                 sql<number>`ancestors.depth + 1`.as('depth'),
-              ]),
+              ])
+              .where('ancestors.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('ancestors')
@@ -405,6 +407,7 @@ export class PagePermissionRepo {
             SELECT p.id, p.parent_page_id, a.depth + 1
             FROM pages p
             JOIN ancestors a ON a.parent_page_id = p.id
+            WHERE a.depth < ${MAX_PAGE_TREE_DEPTH}
           )
           SELECT
             bool_and(pp.id IS NOT NULL) AS "canAccess",
@@ -471,7 +474,8 @@ export class PagePermissionRepo {
                 'pages.id as ancestorId',
                 'pages.parentPageId',
                 sql<number>`ancestors.depth + 1`.as('depth'),
-              ]),
+              ])
+              .where('ancestors.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('pages')
@@ -676,6 +680,7 @@ export class PagePermissionRepo {
             'pages.id as pageId',
             'pages.id as ancestorId',
             'pages.parentPageId',
+            sql<number>`0`.as('depth'),
           ])
           .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
           .unionAll((eb) =>
@@ -690,7 +695,9 @@ export class PagePermissionRepo {
                 'allAncestors.pageId',
                 'pages.id as ancestorId',
                 'pages.parentPageId',
-              ]),
+                sql<number>`all_ancestors.depth + 1`.as('depth'),
+              ])
+              .where('allAncestors.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('pages')
@@ -760,7 +767,8 @@ export class PagePermissionRepo {
                 'pages.id as ancestorId',
                 'pages.parentPageId',
                 sql<number>`all_ancestors.depth + 1`.as('depth'),
-              ]),
+              ])
+              .where('allAncestors.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('pages')
@@ -865,13 +873,22 @@ export class PagePermissionRepo {
       .withRecursive('ancestors', (qb) =>
         qb
           .selectFrom('pages')
-          .select(['pages.id as ancestorId', 'pages.parentPageId'])
+          .select([
+            'pages.id as ancestorId',
+            'pages.parentPageId',
+            sql<number>`0`.as('depth'),
+          ])
           .where('pages.id', '=', pageId)
           .unionAll((eb) =>
             eb
               .selectFrom('pages')
               .innerJoin('ancestors', 'ancestors.parentPageId', 'pages.id')
-              .select(['pages.id as ancestorId', 'pages.parentPageId']),
+              .select([
+                'pages.id as ancestorId',
+                'pages.parentPageId',
+                sql<number>`ancestors.depth + 1`.as('depth'),
+              ])
+              .where('ancestors.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('ancestors')
@@ -921,6 +938,7 @@ export class PagePermissionRepo {
             'child.id as childId',
             'child.id as ancestorId',
             'child.parentPageId as ancestorParentId',
+            sql<number>`0`.as('depth'),
           ])
           .where('child.parentPageId', 'in', parentIds)
           .where('child.deletedAt', 'is', null)
@@ -936,7 +954,9 @@ export class PagePermissionRepo {
                 'childAncestors.childId',
                 'pages.id as ancestorId',
                 'pages.parentPageId as ancestorParentId',
-              ]),
+                sql<number>`child_ancestors.depth + 1`.as('depth'),
+              ])
+              .where('childAncestors.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('pages as child')
@@ -988,7 +1008,11 @@ export class PagePermissionRepo {
       .withRecursive('descendants', (qb) =>
         qb
           .selectFrom('pages')
-          .select(['pages.id as descendantId', 'pages.parentPageId'])
+          .select([
+            'pages.id as descendantId',
+            'pages.parentPageId',
+            sql<number>`0`.as('depth'),
+          ])
           .where('pages.id', '=', rootPageId)
           .unionAll((eb) =>
             eb
@@ -998,8 +1022,13 @@ export class PagePermissionRepo {
                 'descendants.descendantId',
                 'pages.parentPageId',
               )
-              .select(['pages.id as descendantId', 'pages.parentPageId'])
-              .where('pages.deletedAt', 'is', null),
+              .select([
+                'pages.id as descendantId',
+                'pages.parentPageId',
+                sql<number>`descendants.depth + 1`.as('depth'),
+              ])
+              .where('pages.deletedAt', 'is', null)
+              .where('descendants.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .withRecursive('descendantAncestors', (qb) =>
@@ -1010,6 +1039,7 @@ export class PagePermissionRepo {
             'descendants.descendantId',
             'pages.id as ancestorId',
             'pages.parentPageId as ancestorParentId',
+            sql<number>`0`.as('depth'),
           ])
           .unionAll((eb) =>
             eb
@@ -1023,7 +1053,9 @@ export class PagePermissionRepo {
                 'descendantAncestors.descendantId',
                 'pages.id as ancestorId',
                 'pages.parentPageId as ancestorParentId',
-              ]),
+                sql<number>`descendant_ancestors.depth + 1`.as('depth'),
+              ])
+              .where('descendantAncestors.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('descendantAncestors')
@@ -1052,13 +1084,14 @@ export class PagePermissionRepo {
 
     const results = await sql<{ userId: string }>`
       WITH RECURSIVE ancestors AS (
-        SELECT id AS ancestor_id, parent_page_id
+        SELECT id AS ancestor_id, parent_page_id, 0 AS depth
         FROM pages
         WHERE id = ${pageId}::uuid
         UNION ALL
-        SELECT p.id, p.parent_page_id
+        SELECT p.id, p.parent_page_id, a.depth + 1
         FROM pages p
         JOIN ancestors a ON a.parent_page_id = p.id
+        WHERE a.depth < ${MAX_PAGE_TREE_DEPTH}
       )
       SELECT cu.user_id AS "userId"
       FROM unnest(${userIds}::uuid[]) AS cu(user_id)

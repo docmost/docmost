@@ -7,6 +7,7 @@ import {
 import { CreatePageDto, ContentFormat } from '../dto/create-page.dto';
 import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { MAX_PAGE_TREE_DEPTH } from '@docmost/db/repos/page/constants';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
@@ -109,6 +110,14 @@ export class PageService {
         parentPage.spaceId !== createPageDto.spaceId
       ) {
         throw new NotFoundException('Parent page not found');
+      }
+
+      const ancestorIds = await this.pageRepo.getAncestorPageIds(
+        parentPage.id,
+        trx,
+      );
+      if (ancestorIds.length >= MAX_PAGE_TREE_DEPTH) {
+        throw new BadRequestException('Page nesting is too deep');
       }
 
       parentPageId = parentPage.id;
@@ -839,6 +848,18 @@ export class PageService {
         ) {
           throw new NotFoundException('Parent page not found');
         }
+
+        const ancestorIds = await this.pageRepo.getAncestorPageIds(
+          parentPage.id,
+        );
+        if (ancestorIds.includes(movedPage.id)) {
+          throw new BadRequestException(
+            'Cannot move a page under its own descendant',
+          );
+        }
+        if (ancestorIds.length >= MAX_PAGE_TREE_DEPTH) {
+          throw new BadRequestException('Page nesting is too deep');
+        }
         parentPageId = parentPage.id;
       }
     }
@@ -868,6 +889,7 @@ export class PageService {
             'spaceId',
             'deletedAt',
           ])
+          .select(sql<number>`0`.as('depth'))
           .where('id', '=', childPageId)
           .where('deletedAt', 'is', null)
           .unionAll((exp) =>
@@ -884,12 +906,24 @@ export class PageService {
                 'p.spaceId',
                 'p.deletedAt',
               ])
+              .select(sql<number>`pa.depth + 1`.as('depth'))
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .where('pa.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('page_ancestors')
-      .selectAll('page_ancestors')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'isBase',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'deletedAt',
+      ])
       .select((eb) =>
         eb
           .exists(
@@ -1009,17 +1043,18 @@ export class PageService {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select(['id', sql<number>`0`.as('depth')])
           .where('id', '=', pageId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .select(['p.id', sql<number>`pd.depth + 1`.as('depth')])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .where('pd.depth', '<', MAX_PAGE_TREE_DEPTH),
           ),
       )
       .selectFrom('page_descendants')
-      .selectAll()
+      .select(['id'])
       .execute();
 
     const pageIds = descendants.map((d) => d.id);
