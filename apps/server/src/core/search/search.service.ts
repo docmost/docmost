@@ -96,13 +96,7 @@ export class SearchService {
           this.db
             .selectFrom('pageLabels')
             .select('pageId')
-            .where('labelId', 'in', labelIds)
-            .groupBy('pageId')
-            .having(
-              sql<number>`count(distinct "label_id")`,
-              '=',
-              labelIds.length,
-            ),
+            .where('labelId', 'in', labelIds),
         ),
       )
       .where('deletedAt', 'is', null)
