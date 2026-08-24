@@ -31,6 +31,7 @@ export interface IWorkspace {
   allowPersonalSpaces?: boolean;
   defaultPageEditMode?: string;
   isScimEnabled?: boolean;
+  trustedOauthClients?: ITrustedOAuthClient[];
 }
 
 export interface IWorkspaceSettings {
@@ -40,6 +41,11 @@ export interface IWorkspaceSettings {
   templates?: IWorkspaceTemplateSettings;
   spaces?: IWorkspaceSpaceSettings;
   defaultPageEditMode?: string;
+}
+
+export interface ITrustedOAuthClient {
+  origin: string;
+  name: string;
 }
 
 export interface IWorkspaceApiSettings {

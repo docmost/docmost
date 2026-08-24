@@ -47,6 +47,7 @@ import FavoritesPage from "@/pages/favorites/favorites-page";
 import AiChat from "@/ee/ai-chat/pages/ai-chat.tsx";
 import VerifyEmail from "@/ee/pages/verify-email.tsx";
 import LabelPage from "@/pages/label/label-page";
+import OAuthConsent from "@/ee/oauth/pages/oauth-consent.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -63,6 +64,7 @@ export default function App() {
         <Route path={"/password-reset"} element={<PasswordReset />} />
         <Route path={"/login/mfa"} element={<MfaChallengePage />} />
         <Route path={"/login/mfa/setup"} element={<MfaSetupRequiredPage />} />
+        <Route path={"/oauth/consent"} element={<OAuthConsent />} />
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
@@ -116,6 +118,10 @@ export default function App() {
               element={<AccountPreferences />}
             />
             <Route path={"account/api-keys"} element={<UserApiKeys />} />
+            <Route
+              path={"account/api-keys/authorized-apps"}
+              element={<UserApiKeys />}
+            />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
             <Route path={"api-keys"} element={<WorkspaceApiKeys />} />

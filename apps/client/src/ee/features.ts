@@ -22,4 +22,5 @@ export const Feature = {
   PERSONAL_SPACES: 'spaces:personal',
   DOCX_EXPORT: 'export:docx',
   BASES: 'bases',
+  OAUTH: 'oauth',
 } as const;

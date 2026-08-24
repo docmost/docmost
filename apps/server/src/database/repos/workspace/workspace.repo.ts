@@ -20,6 +20,7 @@ export class WorkspaceRepo {
     'hostname',
     'customDomain',
     'settings',
+    'trustedOauthClients',
     'defaultRole',
     'emailDomains',
     'defaultSpaceId',
