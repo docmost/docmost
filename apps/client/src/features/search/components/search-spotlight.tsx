@@ -106,6 +106,8 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     }
   }, [aiSearchError, t]);
 
+  const isLabelBrowse = (filters.labelIds?.length ?? 0) > 0;
+
   // Determine result type for rendering
   const isAttachmentSearch =
     filters.contentType === "attachment" && hasAttachmentIndexing;
@@ -227,17 +229,19 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
             </>
           ) : (
             <>
-              {query.length === 0 && resultItems.length === 0 && (
+              {query.length === 0 && !isLabelBrowse && resultItems.length === 0 && (
                 <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
               )}
 
-              {query.length > 0 && !isFetching && resultItems.length === 0 && (
-                <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
-              )}
+              {(query.length > 0 || isLabelBrowse) &&
+                !isFetching &&
+                resultItems.length === 0 && (
+                  <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
+                )}
 
               {resultItems.length > 0 && <>{resultItems}</>}
 
-              {query.length > 0 && isFetching && (
+              {(query.length > 0 || isLabelBrowse) && isFetching && (
                 <Spotlight.Empty>
                   <Text size="sm" style={{ marginTop: 10 }}>
                     {t("Searching...")}

@@ -9,9 +9,9 @@ import {
 } from 'class-validator';
 
 export class SearchDTO {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  query: string;
+  query?: string;
 
   @IsOptional()
   @IsUUID()

@@ -39,11 +39,11 @@ export function useUnifiedSearch(
         return await searchPage(backendParams);
       }
     },
-    enabled: !!params.query && enabled,
+    enabled: (!!params.query || (params.labelIds?.length ?? 0) > 0) && enabled,
     // keep previous results only within the same search type; page results
     // rendered as attachments (or vice versa) crash on missing fields
     placeholderData: (previousData, previousQuery) => {
-      if (params.query.length < 1) return undefined;
+      if (!params.query && !params.labelIds?.length) return undefined;
       if (previousQuery && previousQuery.queryKey[1] !== searchType) {
         return undefined;
       }
