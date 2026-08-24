@@ -21,6 +21,8 @@ type CreatorFilterMenuProps = {
     | "top-end"
     | "top";
   zIndex?: number;
+  opened?: boolean;
+  onOpenChange?: (opened: boolean) => void;
 };
 
 export function CreatorFilterMenu({
@@ -30,6 +32,8 @@ export function CreatorFilterMenu({
   width = 280,
   position = "bottom-end",
   zIndex,
+  opened,
+  onOpenChange,
 }: CreatorFilterMenuProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +50,14 @@ export function CreatorFilterMenu({
   const users: IUser[] = (suggestion?.users as IUser[]) ?? [];
 
   return (
-    <Menu shadow="md" width={width} position={position} zIndex={zIndex}>
+    <Menu
+      shadow="md"
+      width={width}
+      position={position}
+      zIndex={zIndex}
+      opened={opened}
+      onChange={onOpenChange}
+    >
       <Menu.Target>{children}</Menu.Target>
       <Menu.Dropdown>
         <TextInput

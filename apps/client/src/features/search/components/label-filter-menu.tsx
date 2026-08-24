@@ -27,6 +27,8 @@ type LabelFilterMenuProps = {
     | "top-end"
     | "top";
   zIndex?: number;
+  opened?: boolean;
+  onOpenChange?: (opened: boolean) => void;
 };
 
 export function LabelFilterMenu({
@@ -36,6 +38,8 @@ export function LabelFilterMenu({
   width = 280,
   position = "bottom-end",
   zIndex,
+  opened,
+  onOpenChange,
 }: LabelFilterMenuProps) {
   const { t } = useTranslation();
   const scheme = useComputedColorScheme("light");
@@ -61,6 +65,8 @@ export function LabelFilterMenu({
       width={width}
       position={position}
       zIndex={zIndex}
+      opened={opened}
+      onChange={onOpenChange}
       closeOnItemClick={false}
     >
       <Menu.Target>{children}</Menu.Target>

@@ -11,6 +11,7 @@ import {
 import {
   IconChevronDown,
   IconBuilding,
+  IconPlus,
   IconFileDescription,
   IconCheck,
   IconUser,
@@ -52,6 +53,7 @@ export function SearchSpotlightFilters({
     null
   );
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [openedFilter, setOpenedFilter] = useState<string | null>(null);
   const [workspace] = useAtom(workspaceAtom);
 
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
@@ -103,6 +105,24 @@ export function SearchSpotlightFilters({
       setSelectedLabelIds([]);
     }
   };
+
+  const showCreatorFilter = !!selectedCreatorId || openedFilter === "creator";
+  const showLabelFilter =
+    contentType !== "attachment" &&
+    (selectedLabelIds.length > 0 || openedFilter === "labels");
+
+  const addableFilters: { key: string; label: string; icon: typeof IconUser }[] =
+    [];
+  if (!showCreatorFilter) {
+    addableFilters.push({
+      key: "creator",
+      label: t("Created by"),
+      icon: IconUser,
+    });
+  }
+  if (contentType !== "attachment" && !showLabelFilter) {
+    addableFilters.push({ key: "labels", label: t("Labels"), icon: IconTag });
+  }
 
   return (
     <div className={classes.filtersContainer}>
@@ -219,35 +239,41 @@ export function SearchSpotlightFilters({
         </Menu.Dropdown>
       </Menu>
 
-      <CreatorFilterMenu
-        value={selectedCreatorId}
-        onChange={handleCreatorSelect}
-        position="bottom-start"
-        width={250}
-        zIndex={getDefaultZIndex("max")}
-      >
-        <Button
-          variant="subtle"
-          color="gray"
-          size="sm"
-          rightSection={<IconChevronDown size={14} />}
-          leftSection={<IconUser size={16} />}
-          className={classes.filterButton}
-          fw={500}
+      {showCreatorFilter && (
+        <CreatorFilterMenu
+          value={selectedCreatorId}
+          onChange={handleCreatorSelect}
+          position="bottom-start"
+          width={250}
+          zIndex={getDefaultZIndex("max")}
+          opened={openedFilter === "creator"}
+          onOpenChange={(opened) => setOpenedFilter(opened ? "creator" : null)}
         >
-          {selectedCreatorId
-            ? `${t("Created by")}: ${selectedCreatorName || t("Unknown")}`
-            : `${t("Created by")}: ${t("Anyone")}`}
-        </Button>
-      </CreatorFilterMenu>
+          <Button
+            variant="subtle"
+            color="gray"
+            size="sm"
+            rightSection={<IconChevronDown size={14} />}
+            leftSection={<IconUser size={16} />}
+            className={classes.filterButton}
+            fw={500}
+          >
+            {selectedCreatorId
+              ? `${t("Created by")}: ${selectedCreatorName || t("Unknown")}`
+              : `${t("Created by")}: ${t("Anyone")}`}
+          </Button>
+        </CreatorFilterMenu>
+      )}
 
-      {contentType !== "attachment" && (
+      {showLabelFilter && (
         <LabelFilterMenu
           value={selectedLabelIds}
           onChange={handleLabelsSelect}
           position="bottom-start"
           width={250}
           zIndex={getDefaultZIndex("max")}
+          opened={openedFilter === "labels"}
+          onOpenChange={(opened) => setOpenedFilter(opened ? "labels" : null)}
         >
           <Button
             variant="subtle"
@@ -263,6 +289,40 @@ export function SearchSpotlightFilters({
               : t("Labels")}
           </Button>
         </LabelFilterMenu>
+      )}
+
+      {addableFilters.length > 0 && (
+        <Menu
+          shadow="md"
+          width={200}
+          position="bottom-end"
+          zIndex={getDefaultZIndex("max")}
+        >
+          <Menu.Target>
+            <Button
+              variant="subtle"
+              color="gray"
+              size="sm"
+              leftSection={<IconPlus size={16} />}
+              className={classes.filterButton}
+              style={{ marginLeft: "auto" }}
+              fw={500}
+            >
+              {t("Filter")}
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            {addableFilters.map((filter) => (
+              <Menu.Item
+                key={filter.key}
+                leftSection={<filter.icon size={16} />}
+                onClick={() => setOpenedFilter(filter.key)}
+              >
+                {filter.label}
+              </Menu.Item>
+            ))}
+          </Menu.Dropdown>
+        </Menu>
       )}
     </div>
   );
