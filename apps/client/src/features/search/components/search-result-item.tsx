@@ -125,7 +125,7 @@ export function SearchResultItem({
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" wrap="nowrap" gap="xs">
-              <Text truncate>{pageResult.title}</Text>
+              <Text truncate>{pageResult.title || t("Untitled")}</Text>
               <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
                 {timeAgo(pageResult.updatedAt)}
               </Text>
