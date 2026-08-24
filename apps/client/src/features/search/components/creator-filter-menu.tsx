@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { Divider, Group, Menu, ScrollArea, Text, TextInput } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
@@ -7,6 +7,8 @@ import { useSearchSuggestionsQuery } from "@/features/search/queries/search-quer
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { IUser } from "@/features/user/types/user.types.ts";
+import { useAtomValue } from "jotai";
+import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 type CreatorFilterMenuProps = {
   value: string | null;
@@ -48,6 +50,19 @@ export function CreatorFilterMenu({
   });
 
   const users: IUser[] = (suggestion?.users as IUser[]) ?? [];
+  const currentUser = useAtomValue(userAtom);
+
+  // pin the signed-in user on top so they never have to search themselves
+  const displayUsers = useMemo(() => {
+    if (!currentUser) return users;
+    const others = users.filter((user) => user.id !== currentUser.id);
+    const q = debouncedQuery.trim().toLowerCase();
+    const matchesQuery =
+      !q ||
+      currentUser.name?.toLowerCase().includes(q) ||
+      currentUser.email?.toLowerCase().includes(q);
+    return matchesQuery ? [currentUser as IUser, ...others] : users;
+  }, [users, currentUser, debouncedQuery]);
 
   return (
     <Menu
@@ -91,13 +106,13 @@ export function CreatorFilterMenu({
 
           <Divider my="xs" />
 
-          {users.length === 0 && (
+          {displayUsers.length === 0 && (
             <Text size="xs" c="dimmed" px="xs" py="sm">
               {isLoading ? t("Loading...") : t("No users found")}
             </Text>
           )}
 
-          {users.map((user) => (
+          {displayUsers.map((user) => (
             <Menu.Item
               key={user.id}
               component={RadioMenuItem}
@@ -112,7 +127,9 @@ export function CreatorFilterMenu({
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Text size="sm" fw={500} truncate>
-                    {user.name}
+                    {user.id === currentUser?.id
+                      ? `${user.name} (${t("you")})`
+                      : user.name}
                   </Text>
                   {user.email && (
                     <Text size="xs" c="dimmed" truncate>
