@@ -73,8 +73,8 @@ export default function Aside() {
           ) : (
             <ScrollArea
               style={{ height: "85vh" }}
-              scrollbarSize={5}
-              type="scroll"
+              scrollbarSize={8}
+              type="hover"
             >
               <div style={{ paddingBottom: "200px" }}>{component}</div>
             </ScrollArea>
