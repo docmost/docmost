@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { SearchDTO, SearchSuggestionDTO } from './dto/search.dto';
-import { SearchResponseDto } from './dto/search-response.dto';
+import {
+  BreadcrumbItemDto,
+  SearchResponseDto,
+} from './dto/search-response.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { sql } from 'kysely';
@@ -138,6 +141,15 @@ export class SearchService {
       results = results.filter((r: any) => accessibleSet.has(r.id));
     }
 
+    const pageIdsWithParent = results
+      .filter((r: any) => r.parentPageId)
+      .map((r: any) => r.id);
+
+    const breadcrumbMap =
+      pageIdsWithParent.length > 0
+        ? await this.getBreadcrumbsForPages(pageIdsWithParent)
+        : new Map<string, BreadcrumbItemDto[]>();
+
     //@ts-ignore
     const searchResults = results.map((result: SearchResponseDto) => {
       if (result.highlight) {
@@ -145,6 +157,7 @@ export class SearchService {
           .replace(/\r\n|\r|\n/g, ' ')
           .replace(/\s+/g, ' ');
       }
+      result.breadcrumbs = breadcrumbMap.get(result.id) ?? [];
       return result;
     });
 
@@ -246,5 +259,59 @@ export class SearchService {
     }
 
     return { users, groups, pages };
+  }
+
+  private async getBreadcrumbsForPages(
+    pageIds: string[],
+  ): Promise<Map<string, BreadcrumbItemDto[]>> {
+    // Single recursive CTE to fetch all ancestors for all given page IDs at once.
+    // Each row carries origin_id (the result page it belongs to) for grouping.
+    const rows = await this.db
+      .withRecursive('page_ancestors', (db) =>
+        db
+          .selectFrom('pages')
+          .select([
+            'id',
+            'slugId',
+            'title',
+            'icon',
+            'parentPageId',
+            sql<string>`id`.as('origin_id'),
+          ])
+          .where('id', 'in', pageIds)
+          .where('deletedAt', 'is', null)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select([
+                'p.id',
+                'p.slugId',
+                'p.title',
+                'p.icon',
+                'p.parentPageId',
+                sql<string>`pa."origin_id"`.as('origin_id'),
+              ])
+              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
+              .where('p.deletedAt', 'is', null),
+          ),
+      )
+      .selectFrom('page_ancestors')
+      .select(['id', 'slugId', 'title', 'icon', sql<string>`"origin_id"`.as('originId')])
+      // Exclude the page itself — only keep its ancestors
+      .where(sql<boolean>`page_ancestors.id != page_ancestors."origin_id"`)
+      .execute();
+
+    // Group ancestor rows by originId; reverse so root comes first
+    const map = new Map<string, BreadcrumbItemDto[]>();
+    for (const row of rows as any[]) {
+      const list = map.get(row.originId) ?? [];
+      list.push({ id: row.id, slugId: row.slugId, title: row.title, icon: row.icon });
+      map.set(row.originId, list);
+    }
+    // The CTE walks child→parent, so rows are deepest-first; reverse for root-first order
+    for (const [key, list] of map.entries()) {
+      map.set(key, list.reverse());
+    }
+    return map;
   }
 }
