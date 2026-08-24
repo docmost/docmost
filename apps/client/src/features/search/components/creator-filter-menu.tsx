@@ -127,9 +127,13 @@ export function CreatorFilterMenu({
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Text size="sm" fw={500} truncate>
-                    {user.id === currentUser?.id
-                      ? `${user.name} (${t("you")})`
-                      : user.name}
+                    {user.name}
+                    {user.id === currentUser?.id && (
+                      <Text span size="sm" c="dimmed" fw={400}>
+                        {" "}
+                        ({t("you")})
+                      </Text>
+                    )}
                   </Text>
                   {user.email && (
                     <Text size="xs" c="dimmed" truncate>
