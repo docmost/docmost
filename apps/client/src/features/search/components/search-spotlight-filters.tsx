@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import cx from "clsx";
 import {
   Button,
   Menu,
@@ -255,52 +256,22 @@ export function SearchSpotlightFilters({
       </Menu>
 
       {contentType !== "attachment" && !isAiMode && (
-        <Menu
-          shadow="md"
-          width={200}
-          position="bottom-start"
-          zIndex={getDefaultZIndex("max")}
+        <Button
+          variant={titleOnly ? "light" : "subtle"}
+          color={titleOnly ? "blue" : "gray"}
+          size="sm"
+          radius="xl"
+          leftSection={<IconLetterCase size={16} />}
+          className={cx(
+            classes.filterButton,
+            titleOnly && classes.filterButtonActive,
+          )}
+          fw={500}
+          aria-pressed={titleOnly}
+          onClick={() => setTitleOnly(!titleOnly)}
         >
-          <Menu.Target>
-            <Button
-              variant="subtle"
-              color="gray"
-              size="sm"
-              rightSection={<IconChevronDown size={14} />}
-              leftSection={<IconLetterCase size={16} />}
-              className={classes.filterButton}
-              fw={500}
-            >
-              {`${t("Match")}: ${titleOnly ? t("Title only") : t("Everything")}`}
-            </Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item
-              component={RadioMenuItem}
-              aria-checked={!titleOnly}
-              onClick={() => setTitleOnly(false)}
-            >
-              <Group flex="1" gap="xs">
-                <Text size="sm" style={{ flex: 1 }}>
-                  {t("Everything")}
-                </Text>
-                {!titleOnly && <IconCheck size={20} aria-hidden />}
-              </Group>
-            </Menu.Item>
-            <Menu.Item
-              component={RadioMenuItem}
-              aria-checked={titleOnly}
-              onClick={() => setTitleOnly(true)}
-            >
-              <Group flex="1" gap="xs">
-                <Text size="sm" style={{ flex: 1 }}>
-                  {t("Title only")}
-                </Text>
-                {titleOnly && <IconCheck size={20} aria-hidden />}
-              </Group>
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
+          {t("Title only")}
+        </Button>
       )}
 
       {orderedVisibleFilters.map((filterKey) => {
