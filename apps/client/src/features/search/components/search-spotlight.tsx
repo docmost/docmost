@@ -107,6 +107,8 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   }, [aiSearchError, t]);
 
   const isLabelBrowse = (filters.labelIds?.length ?? 0) > 0;
+  // while the debounce is pending the empty list is not a settled "no results"
+  const isQuerySettled = query === debouncedSearchQuery;
 
   // Determine result type for rendering
   const isAttachmentSearch =
@@ -235,6 +237,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
               {(query.length > 0 || isLabelBrowse) &&
                 !isFetching &&
+                isQuerySettled &&
                 resultItems.length === 0 && (
                   <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
                 )}
