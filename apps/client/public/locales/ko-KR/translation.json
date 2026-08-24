@@ -698,7 +698,7 @@
   "Upgrade your plan": "요금제를 업그레이드하세요",
   "Available with a paid license": "유료 라이선스에서만 사용 가능합니다",
   "Upgrade your license tier.": "라이선스 등급을 업그레이드하세요.",
-  "AI is only available in the Docmost enterprise edition. Contact sales@docmost.com.": "AI는 Docmost 엔터프라이즈 에디션에서만 제공됩니다. sales@docmost.com으로 문의하세요.",
+  "AI is available in the Docmost paid editions. Contact sales@docmost.com.": "AI는 Docmost 유료 에디션에서 제공됩니다. sales@docmost.com으로 문의하세요.",
   "AI & MCP": "AI 및 MCP",
   "AI": "AI",
   "MCP": "MCP",
@@ -1302,5 +1302,11 @@
   "Error loading attachments.": "Error loading attachments.",
   "No attachments on this page yet.": "No attachments on this page yet.",
   "Uploaded by {{name}}": "Uploaded by {{name}}",
-  "Download {{name}}": "Download {{name}}"
+  "Download {{name}}": "Download {{name}}",
+  "Workspace knowledge only": "Workspace knowledge only",
+  "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.": "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.",
+  "Toggle workspace knowledge only": "Toggle workspace knowledge only",
+  "Read-only mode": "Read-only mode",
+  "AI Chat can search and read workspace content, but cannot create or edit pages.": "AI Chat can search and read workspace content, but cannot create or edit pages.",
+  "Toggle AI Chat read-only mode": "Toggle AI Chat read-only mode"
 }
