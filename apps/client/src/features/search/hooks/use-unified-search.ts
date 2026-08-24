@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery, UseQueryResult } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   searchPage,
   searchAttachments,
@@ -40,6 +40,14 @@ export function useUnifiedSearch(
       }
     },
     enabled: !!params.query && enabled,
-    placeholderData: params.query.length > 0 ? keepPreviousData: undefined
+    // keep previous results only within the same search type; page results
+    // rendered as attachments (or vice versa) crash on missing fields
+    placeholderData: (previousData, previousQuery) => {
+      if (params.query.length < 1) return undefined;
+      if (previousQuery && previousQuery.queryKey[1] !== searchType) {
+        return undefined;
+      }
+      return previousData;
+    },
   });
 }
