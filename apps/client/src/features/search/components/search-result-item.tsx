@@ -26,6 +26,14 @@ interface SearchResultItemProps {
   showSpace?: boolean;
 }
 
+// Spotlight hardcodes tabIndex={-1} after spreading props; a ref wins and
+// React never writes -1 back because the prop value never changes
+const makeActionTabbable = (el: HTMLElement | null) => {
+  if (el) {
+    el.tabIndex = 0;
+  }
+};
+
 export function SearchResultItem({
   result,
   isAttachmentResult,
@@ -46,6 +54,7 @@ export function SearchResultItem({
     return (
       <Spotlight.Action
         component={Link}
+        ref={makeActionTabbable}
         //@ts-ignore
         to={buildPageUrl(
           attachmentResult.space.slug,
@@ -96,6 +105,7 @@ export function SearchResultItem({
     return (
       <Spotlight.Action
         component={Link}
+        ref={makeActionTabbable}
         //@ts-ignore
         to={buildPageUrl(
           pageResult.space.slug,

@@ -50,3 +50,14 @@
   --action-description-color: var(--mantine-color-dimmed);
   --action-description-opacity: 1;
 }
+
+/* Result actions are tab stops (tabIndex restored via ref); give keyboard
+ * focus the same gray treatment as arrow-key selection so both navigation
+ * modes read identically (WCAG 2.4.7 focus visible).
+ */
+.mantine-Spotlight-action:focus-visible {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+}
