@@ -36,6 +36,21 @@ export class SearchService {
     }
     const searchQuery = tsquery(query.trim() + '*');
     const labelIds = [...new Set(searchParams.labelIds ?? [])];
+    const titleOnly = searchParams.titleOnly === true;
+    const titleQuery = query.trim();
+
+    const rankColumn = titleOnly
+      ? sql<number>`word_similarity(lower(f_unaccent(${titleQuery})), lower(f_unaccent(pages.title)))`.as(
+          'rank',
+        )
+      : sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
+          'rank',
+        );
+    const highlightColumn = titleOnly
+      ? sql<string>`''`.as('highlight')
+      : sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+          'highlight',
+        );
 
     let queryResults = this.db
       .selectFrom('pages')
@@ -48,17 +63,24 @@ export class SearchService {
         'creatorId',
         'createdAt',
         'updatedAt',
-        sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
-          'rank',
-        ),
-        sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
-          'highlight',
-        ),
+        rankColumn,
+        highlightColumn,
       ])
-      .where(
-        'tsv',
-        '@@',
-        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+      .$if(!titleOnly, (qb) =>
+        qb.where(
+          'tsv',
+          '@@',
+          sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+        ),
+      )
+      .$if(titleOnly, (qb) =>
+        qb.where((eb) =>
+          eb(
+            sql`lower(f_unaccent(pages.title))`,
+            'like',
+            sql`lower(f_unaccent(${`%${titleQuery}%`}))`,
+          ),
+        ),
       )
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),

@@ -33,6 +33,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     contentType?: string;
     creatorId?: string | null;
     labelIds?: string[];
+    titleOnly?: boolean;
   }>({
     contentType: "page",
   });
@@ -56,6 +57,10 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
     if (filters.labelIds?.length) {
       params.labelIds = filters.labelIds;
+    }
+
+    if (filters.titleOnly) {
+      params.titleOnly = true;
     }
 
     return params;

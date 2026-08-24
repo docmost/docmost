@@ -31,6 +31,10 @@ export class SearchDTO {
   labelIds?: string[];
 
   @IsOptional()
+  @IsBoolean()
+  titleOnly?: boolean;
+
+  @IsOptional()
   @IsNumber()
   limit?: number;
 

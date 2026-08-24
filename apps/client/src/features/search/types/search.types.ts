@@ -38,6 +38,7 @@ export interface IPageSearchParams {
   shareId?: string;
   creatorId?: string;
   labelIds?: string[];
+  titleOnly?: boolean;
 }
 
 export interface IAttachmentSearch {

@@ -16,6 +16,7 @@ import {
   IconCheck,
   IconUser,
   IconTag,
+  IconLetterCase,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
@@ -53,6 +54,7 @@ export function SearchSpotlightFilters({
     null
   );
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [titleOnly, setTitleOnly] = useState(false);
   const [openedFilter, setOpenedFilter] = useState<string | null>(null);
   const [visibleFilters, setVisibleFilters] = useState<string[]>([]);
   const [workspace] = useAtom(workspaceAtom);
@@ -77,12 +79,14 @@ export function SearchSpotlightFilters({
       contentType,
       creatorId: selectedCreatorId,
       labelIds: selectedLabelIds,
+      titleOnly,
     });
   }, [
     selectedSpaceId,
     contentType,
     selectedCreatorId,
     selectedLabelIds,
+    titleOnly,
     onFiltersChange,
   ]);
 
@@ -249,6 +253,55 @@ export function SearchSpotlightFilters({
           ))}
         </Menu.Dropdown>
       </Menu>
+
+      {contentType !== "attachment" && !isAiMode && (
+        <Menu
+          shadow="md"
+          width={200}
+          position="bottom-start"
+          zIndex={getDefaultZIndex("max")}
+        >
+          <Menu.Target>
+            <Button
+              variant="subtle"
+              color="gray"
+              size="sm"
+              rightSection={<IconChevronDown size={14} />}
+              leftSection={<IconLetterCase size={16} />}
+              className={classes.filterButton}
+              fw={500}
+            >
+              {`${t("Match")}: ${titleOnly ? t("Title only") : t("Everything")}`}
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              component={RadioMenuItem}
+              aria-checked={!titleOnly}
+              onClick={() => setTitleOnly(false)}
+            >
+              <Group flex="1" gap="xs">
+                <Text size="sm" style={{ flex: 1 }}>
+                  {t("Everything")}
+                </Text>
+                {!titleOnly && <IconCheck size={20} aria-hidden />}
+              </Group>
+            </Menu.Item>
+            <Menu.Item
+              component={RadioMenuItem}
+              aria-checked={titleOnly}
+              onClick={() => setTitleOnly(true)}
+            >
+              <Group flex="1" gap="xs">
+                <Text size="sm" style={{ flex: 1 }}>
+                  {t("Title only")}
+                </Text>
+                {titleOnly && <IconCheck size={20} aria-hidden />}
+              </Group>
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      )}
 
       {orderedVisibleFilters.map((filterKey) => {
         if (filterKey === "creator") {
