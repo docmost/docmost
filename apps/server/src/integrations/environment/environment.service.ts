@@ -310,6 +310,31 @@ export class EnvironmentService {
     return val === 'true';
   }
 
+  getAiVectorDriver(): string {
+    return this.configService
+      .get<string>('AI_VECTOR_DRIVER', 'pgvector')
+      .toLowerCase();
+  }
+
+  getTurbopufferApiKey(): string {
+    return this.configService.get<string>('TURBOPUFFER_API_KEY');
+  }
+
+  getTurbopufferRegion(): string {
+    return this.configService.get<string>('TURBOPUFFER_REGION');
+  }
+
+  getTurbopufferBaseUrl(): string {
+    return this.configService.get<string>('TURBOPUFFER_BASE_URL');
+  }
+
+  getTurbopufferNamespacePrefix(): string {
+    return this.configService.get<string>(
+      'TURBOPUFFER_NAMESPACE_PREFIX',
+      'docmost',
+    );
+  }
+
   getOpenAiApiKey(): string {
     return this.configService.get<string>('OPENAI_API_KEY');
   }

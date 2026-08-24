@@ -496,10 +496,21 @@ export class PageService {
           },
         );
 
-        await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
-          pageIds: pageIdsToMove,
-          workspaceId: rootPage.workspaceId,
-        });
+        await this.aiQueue.add(
+          QueueJob.PAGE_MOVED_TO_SPACE,
+          {
+            pageIds: pageIdsToMove,
+            spaceId,
+            workspaceId: rootPage.workspaceId,
+          },
+          {
+            attempts: 2,
+            backoff: {
+              type: 'fixed',
+              delay: 2 * 60 * 1000,
+            },
+          },
+        );
       }
     });
 

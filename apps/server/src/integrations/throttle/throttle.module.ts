@@ -3,7 +3,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { EnvironmentService } from '../environment/environment.service';
 import { EnvironmentModule } from '../environment/environment.module';
-import { parseRedisUrl } from '../../common/helpers';
+import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { AUTH_THROTTLER, AI_CHAT_THROTTLER } from './throttler-names';
 import Redis from 'ioredis';
 
@@ -27,6 +27,8 @@ import Redis from 'ioredis';
               password: redisConfig.password,
               db: redisConfig.db,
               family: redisConfig.family,
+              tls: redisConfig.tls,
+              retryStrategy: createRetryStrategy(),
               keyPrefix: 'throttle:',
             }),
           ),
