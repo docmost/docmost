@@ -698,7 +698,7 @@
   "Upgrade your plan": "Обновите свой тарифный план",
   "Available with a paid license": "Доступно с платной лицензией",
   "Upgrade your license tier.": "Обновите уровень вашей лицензии.",
-  "AI is only available in the Docmost enterprise edition. Contact sales@docmost.com.": "ИИ доступен только в корпоративной версии Docmost. Свяжитесь по адресу sales@docmost.com.",
+  "AI is available in the Docmost paid editions. Contact sales@docmost.com.": "ИИ доступен в платных версиях Docmost. Свяжитесь по адресу sales@docmost.com.",
   "AI & MCP": "ИИ и MCP",
   "AI": "ИИ",
   "MCP": "MCP",
@@ -1302,5 +1302,11 @@
   "Error loading attachments.": "Ошибка при загрузке вложений.",
   "No attachments on this page yet.": "На этой странице пока нет вложений.",
   "Uploaded by {{name}}": "Загружено пользователем {{name}}",
-  "Download {{name}}": "Скачать {{name}}"
+  "Download {{name}}": "Скачать {{name}}",
+  "Workspace knowledge only": "Workspace knowledge only",
+  "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.": "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.",
+  "Toggle workspace knowledge only": "Toggle workspace knowledge only",
+  "Read-only mode": "Read-only mode",
+  "AI Chat can search and read workspace content, but cannot create or edit pages.": "AI Chat can search and read workspace content, but cannot create or edit pages.",
+  "Toggle AI Chat read-only mode": "Toggle AI Chat read-only mode"
 }
