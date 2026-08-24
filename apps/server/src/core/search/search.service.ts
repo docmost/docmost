@@ -31,17 +31,19 @@ export class SearchService {
   ): Promise<{ items: SearchResponseDto[] }> {
     const query = searchParams.query?.trim() ?? '';
     const labelIds = [...new Set(searchParams.labelIds ?? [])];
-    // selected labels are browsable without a query
-    const browseByLabels = query.length < 1 && labelIds.length > 0;
+    // selected filters (labels, creator) are browsable without a query
+    const browseByFilters =
+      query.length < 1 &&
+      (labelIds.length > 0 || Boolean(searchParams.creatorId));
 
-    if (query.length < 1 && !browseByLabels) {
+    if (query.length < 1 && !browseByFilters) {
       return { items: [] };
     }
     const searchQuery = tsquery(query + '*');
     const titleOnly = searchParams.titleOnly === true;
     const titleQuery = query;
 
-    const rankColumn = browseByLabels
+    const rankColumn = browseByFilters
       ? sql<number>`0`.as('rank')
       : titleOnly
         ? sql<number>`word_similarity(lower(f_unaccent(${titleQuery})), lower(f_unaccent(pages.title)))`.as(
@@ -50,7 +52,7 @@ export class SearchService {
         : sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
             'rank',
           );
-    const highlightColumn = browseByLabels || titleOnly
+    const highlightColumn = browseByFilters || titleOnly
       ? sql<string>`''`.as('highlight')
       : sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
           'highlight',
@@ -70,14 +72,14 @@ export class SearchService {
         rankColumn,
         highlightColumn,
       ])
-      .$if(!browseByLabels && !titleOnly, (qb) =>
+      .$if(!browseByFilters && !titleOnly, (qb) =>
         qb.where(
           'tsv',
           '@@',
           sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
         ),
       )
-      .$if(!browseByLabels && titleOnly, (qb) =>
+      .$if(!browseByFilters && titleOnly, (qb) =>
         qb.where((eb) =>
           eb(
             sql`lower(f_unaccent(pages.title))`,
@@ -100,8 +102,8 @@ export class SearchService {
         ),
       )
       .where('deletedAt', 'is', null)
-      .$if(browseByLabels, (qb) => qb.orderBy('updatedAt', 'desc'))
-      .$if(!browseByLabels, (qb) => qb.orderBy('rank', 'desc'))
+      .$if(browseByFilters, (qb) => qb.orderBy('updatedAt', 'desc'))
+      .$if(!browseByFilters, (qb) => qb.orderBy('rank', 'desc'))
       .limit(searchParams.limit || 25)
       .offset(searchParams.offset || 0);
 

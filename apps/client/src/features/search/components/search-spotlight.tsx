@@ -106,7 +106,8 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     }
   }, [aiSearchError, t]);
 
-  const isLabelBrowse = (filters.labelIds?.length ?? 0) > 0;
+  const isFilterBrowse =
+    (filters.labelIds?.length ?? 0) > 0 || !!filters.creatorId;
   // while the debounce is pending the empty list is not a settled "no results"
   const isQuerySettled = query === debouncedSearchQuery;
 
@@ -231,11 +232,11 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
             </>
           ) : (
             <>
-              {query.length === 0 && !isLabelBrowse && resultItems.length === 0 && (
+              {query.length === 0 && !isFilterBrowse && resultItems.length === 0 && (
                 <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
               )}
 
-              {(query.length > 0 || isLabelBrowse) &&
+              {(query.length > 0 || isFilterBrowse) &&
                 !isFetching &&
                 isQuerySettled &&
                 resultItems.length === 0 && (
@@ -244,7 +245,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
               {resultItems.length > 0 && <>{resultItems}</>}
 
-              {(query.length > 0 || isLabelBrowse) && isFetching && (
+              {(query.length > 0 || isFilterBrowse) && isFetching && (
                 <Spotlight.Empty>
                   <Text size="sm" style={{ marginTop: 10 }}>
                     {t("Searching...")}
