@@ -270,9 +270,7 @@ export function SearchSpotlightFilters({
           aria-pressed={titleOnly}
           onClick={() => setTitleOnly(!titleOnly)}
         >
-          {contentType === "attachment"
-            ? t("File name only")
-            : t("Title only")}
+          {t("Title only")}
         </Button>
       )}
 
