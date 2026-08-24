@@ -334,7 +334,9 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
       typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
       typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
-      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined'
+      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
+      typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
+      typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -367,6 +369,21 @@ export class WorkspaceService {
           !this.licenseCheckService.hasFeature(
             ws.licenseKey,
             Feature.PERSONAL_SPACES,
+            ws.plan,
+          )
+        ) {
+          throw new ForbiddenException('This feature requires a valid license');
+        }
+      }
+
+      if (
+        typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
+        typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined'
+      ) {
+        if (
+          !this.licenseCheckService.hasFeature(
+            ws.licenseKey,
+            Feature.AI_CONTROLS,
             ws.plan,
           )
         ) {
@@ -516,6 +533,34 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined') {
+        const prev = settingsBefore?.ai?.chatReadOnly ?? false;
+        if (prev !== updateWorkspaceDto.aiChatReadOnly) {
+          before.aiChatReadOnly = prev;
+          after.aiChatReadOnly = updateWorkspaceDto.aiChatReadOnly;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'chatReadOnly',
+          updateWorkspaceDto.aiChatReadOnly,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined') {
+        const prev = settingsBefore?.ai?.chatWorkspaceKnowledgeOnly ?? false;
+        if (prev !== updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly) {
+          before.aiChatWorkspaceKnowledgeOnly = prev;
+          after.aiChatWorkspaceKnowledgeOnly = updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'chatWorkspaceKnowledgeOnly',
+          updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
         const prev = settingsBefore?.spaces?.allowPersonal ?? false;
         if (prev !== updateWorkspaceDto.allowPersonalSpaces) {
@@ -553,6 +598,8 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
       delete updateWorkspaceDto.defaultPageEditMode;
+      delete updateWorkspaceDto.aiChatReadOnly;
+      delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,
