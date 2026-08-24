@@ -13,14 +13,17 @@ import {
 import { useTranslation } from "react-i18next";
 import { sortPositionKeys } from "@/features/page/tree/utils/utils";
 import { useSharedPageSubpages } from "@/features/share/hooks/use-shared-page-subpages";
+import { extractPageSlugId } from "@/lib";
 
 export default function SubpagesView(props: NodeViewProps) {
   const { editor } = props;
-  const { spaceSlug, shareId } = useParams();
+  const { spaceSlug, shareId, pageSlug } = useParams();
   const { t } = useTranslation();
-
-  //@ts-ignore
-  const currentPageId = editor.storage.pageId;
+  
+  // @ts-ignore
+  const storagePageId = editor.storage.pageId;
+  const routePageId = extractPageSlugId(pageSlug);
+  const currentPageId = storagePageId ?? routePageId;
 
   // Get subpages from shared tree if we're in a shared context
   const sharedSubpages = useSharedPageSubpages(currentPageId);
