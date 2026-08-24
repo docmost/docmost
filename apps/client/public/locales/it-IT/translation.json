@@ -698,7 +698,7 @@
   "Upgrade your plan": "Aggiorna il tuo piano",
   "Available with a paid license": "Disponibile con una licenza a pagamento",
   "Upgrade your license tier.": "Aggiorna il livello della tua licenza.",
-  "AI is only available in the Docmost enterprise edition. Contact sales@docmost.com.": "L'IA è disponibile solo nell'edizione Enterprise di Docmost. Contatta sales@docmost.com.",
+  "AI is available in the Docmost paid editions. Contact sales@docmost.com.": "L'IA è disponibile nelle edizioni a pagamento di Docmost. Contatta sales@docmost.com.",
   "AI & MCP": "IA e MCP",
   "AI": "IA",
   "MCP": "MCP",
@@ -1302,5 +1302,11 @@
   "Error loading attachments.": "Error loading attachments.",
   "No attachments on this page yet.": "No attachments on this page yet.",
   "Uploaded by {{name}}": "Uploaded by {{name}}",
-  "Download {{name}}": "Download {{name}}"
+  "Download {{name}}": "Download {{name}}",
+  "Workspace knowledge only": "Workspace knowledge only",
+  "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.": "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.",
+  "Toggle workspace knowledge only": "Toggle workspace knowledge only",
+  "Read-only mode": "Read-only mode",
+  "AI Chat can search and read workspace content, but cannot create or edit pages.": "AI Chat can search and read workspace content, but cannot create or edit pages.",
+  "Toggle AI Chat read-only mode": "Toggle AI Chat read-only mode"
 }
