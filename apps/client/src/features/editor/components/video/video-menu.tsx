@@ -15,8 +15,8 @@ import {
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
   IconDownload,
-  IconMaximize,
   IconTrash,
+  IconZoomIn,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
@@ -145,25 +145,6 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         altTextPanel
       ) : (
         <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Open video")} withinPortal={false}>
-          <ActionIcon
-            onClick={() =>
-              editorState?.src &&
-              setLightboxRequest({
-                src: getFileUrl(editorState.src),
-                type: "video",
-              })
-            }
-            size="lg"
-            aria-label={t("Open video")}
-            variant="subtle"
-          >
-            <IconMaximize size={18} />
-          </ActionIcon>
-        </Tooltip>
-
-        <div className={classes.divider} />
-
         <Tooltip position="top" label={t("Align left")} withinPortal={false}>
           <ActionIcon
             onClick={alignLeft}
@@ -205,6 +186,23 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         {altTextButton}
 
         <div className={classes.divider} />
+
+        <Tooltip position="top" label={t("Expand")} withinPortal={false}>
+          <ActionIcon
+            onClick={() =>
+              editorState?.src &&
+              setLightboxRequest({
+                src: getFileUrl(editorState.src),
+                type: "video",
+              })
+            }
+            size="lg"
+            aria-label={t("Expand")}
+            variant="subtle"
+          >
+            <IconZoomIn size={18} />
+          </ActionIcon>
+        </Tooltip>
 
         <Tooltip position="top" label={t("Download")} withinPortal={false}>
           <ActionIcon

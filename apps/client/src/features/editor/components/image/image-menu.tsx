@@ -15,9 +15,9 @@ import {
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
   IconDownload,
-  IconMaximize,
   IconRefresh,
   IconTrash,
+  IconZoomIn,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
@@ -169,25 +169,6 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         altTextPanel
       ) : (
         <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Open image")} withinPortal={false}>
-          <ActionIcon
-            onClick={() =>
-              editorState?.src &&
-              setLightboxRequest({
-                src: getFileUrl(editorState.src),
-                type: "image",
-              })
-            }
-            size="lg"
-            aria-label={t("Open image")}
-            variant="subtle"
-          >
-            <IconMaximize size={18} />
-          </ActionIcon>
-        </Tooltip>
-
-        <div className={classes.divider} />
-
         <Tooltip position="top" label={t("Align left")} withinPortal={false}>
           <ActionIcon
             onClick={alignImageLeft}
@@ -229,6 +210,23 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         {altTextButton}
 
         <div className={classes.divider} />
+
+        <Tooltip position="top" label={t("Expand")} withinPortal={false}>
+          <ActionIcon
+            onClick={() =>
+              editorState?.src &&
+              setLightboxRequest({
+                src: getFileUrl(editorState.src),
+                type: "image",
+              })
+            }
+            size="lg"
+            aria-label={t("Expand")}
+            variant="subtle"
+          >
+            <IconZoomIn size={18} />
+          </ActionIcon>
+        </Tooltip>
 
         <Tooltip position="top" label={t("Download")} withinPortal={false}>
           <ActionIcon

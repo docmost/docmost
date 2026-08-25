@@ -91,7 +91,12 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
       onChange={setIsOpen}
     >
       <Menu.Target>
-        <Tooltip label={t("Text align")} withArrow disabled={isOpen}>
+        <Tooltip
+          label={t("Text align")}
+          withArrow
+          disabled={isOpen}
+          withinPortal={false}
+        >
           <Button
             variant="default"
             style={{ border: "none", height: "34px" }}

@@ -1,6 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSetAtom } from "jotai";
 import { Node as PMNode } from "@tiptap/pm/model";
 import { isEditorReady } from "@docmost/editor-ext";
 import {
@@ -25,6 +26,7 @@ import {
   IconDownload,
   IconEdit,
   IconTrash,
+  IconZoomIn,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
@@ -37,6 +39,7 @@ import ReactClearModal from "react-clear-modal";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
+import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
 import classes from "../common/toolbar-menu.module.css";
 
 const ExcalidrawComponent = lazy(() =>
@@ -47,6 +50,7 @@ const ExcalidrawComponent = lazy(() =>
 
 export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
+  const setLightboxRequest = useSetAtom(lightboxRequestAtom);
   const [opened, { open, close }] = useDisclosure(false);
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI>(null);
@@ -358,6 +362,23 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           {altTextButton}
 
           <div className={classes.divider} />
+
+          <Tooltip position="top" label={t("Expand")} withinPortal={false}>
+            <ActionIcon
+              onClick={() =>
+                editorState?.src &&
+                setLightboxRequest({
+                  src: getFileUrl(editorState.src),
+                  type: "image",
+                })
+              }
+              size="lg"
+              aria-label={t("Expand")}
+              variant="subtle"
+            >
+              <IconZoomIn size={18} />
+            </ActionIcon>
+          </Tooltip>
 
           <Tooltip position="top" label={t("Edit")} withinPortal={false}>
             <ActionIcon

@@ -54,7 +54,9 @@ import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
-import LightboxView from "@/features/editor/components/common/lightbox-view";
+import LightboxView, {
+  getLightboxClickRequest,
+} from "@/features/editor/components/common/lightbox-view";
 import {
   handleFileDrop,
   handlePaste,
@@ -308,6 +310,22 @@ function CollabPageEditor({
 
           return handleFileDrop(editorRef.current, event, moved, pageId);
         },
+        handleClickOn: (view, _pos, node) => {
+          if (view.editable) return false;
+
+          const request = getLightboxClickRequest(node);
+          if (!request) return false;
+
+          setLightboxRequest(request);
+          return true;
+        },
+        handleDoubleClickOn: (_view, _pos, node) => {
+          const request = getLightboxClickRequest(node);
+          if (!request) return false;
+
+          setLightboxRequest(request);
+          return true;
+        },
       },
       onCreate({ editor }) {
         if (editor) {
@@ -389,6 +407,7 @@ function CollabPageEditor({
     setActiveCommentId(null);
     setShowCommentPopup(false);
     setAsideState({ tab: "", isAsideOpen: false });
+    setLightboxRequest(null);
   }, [pageId]);
 
   const isSynced = isLocalSynced && isRemoteSynced;

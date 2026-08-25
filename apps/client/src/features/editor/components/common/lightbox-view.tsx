@@ -1,5 +1,7 @@
 import type { Editor } from "@tiptap/react";
+import type { Node as PMNode } from "@tiptap/pm/model";
 import Lightbox, { type Slide } from "yet-another-react-lightbox";
+import type { LightboxRequest } from "@/features/editor/atoms/editor-atoms";
 import { getFileUrl } from "@/lib/config.ts";
 import "yet-another-react-lightbox/styles.css";
 import "yet-another-react-lightbox/plugins/captions.css";
@@ -71,16 +73,36 @@ function getMedia(rawSrc: string, type?: string, alt?: string): Slide {
   }
 }
 
+const LIGHTBOX_NODE_TYPES: Record<string, "image" | "video"> = {
+  image: "image",
+  video: "video",
+  drawio: "image",
+  excalidraw: "image",
+};
+
+// video is excluded: clicks there operate the native controls
+const CLICK_TO_EXPAND_NODE_TYPES = new Set(["image", "drawio", "excalidraw"]);
+
+export function getLightboxClickRequest(node: PMNode): LightboxRequest {
+  if (!CLICK_TO_EXPAND_NODE_TYPES.has(node.type.name)) return null;
+
+  const src = typeof node.attrs.src === "string" ? node.attrs.src : "";
+  if (!src) return null;
+
+  return { src: getFileUrl(src), type: "image" };
+}
+
 function getPageMedia(editor: Editor): Slide[] {
   const media: Slide[] = [];
 
   editor.state.doc.descendants((node) => {
-    if (node.type.name !== "image" && node.type.name !== "video") return;
+    const type = LIGHTBOX_NODE_TYPES[node.type.name];
+    if (!type) return;
 
     const rawSrc = typeof node.attrs.src === "string" ? node.attrs.src : "";
     if (!rawSrc) return;
 
-    media.push(getMedia(rawSrc, node.type.name, node.attrs.alt));
+    media.push(getMedia(rawSrc, type, node.attrs.alt));
   });
 
   return media;
@@ -102,7 +124,6 @@ export default function LightboxView({
 
   const [pageSlides, setPageSlides] = useState<Slide[]>([]);
   const [loadedMediaKey, setLoadedMediaKey] = useState<string | null>(null);
-
 
   useEffect(() => {
     if (!open) return;
@@ -141,6 +162,7 @@ export default function LightboxView({
       index={index}
       slides={slides}
       plugins={[Captions, Download, Fullscreen, Video, Zoom]}
+      styles={{ container: { backgroundColor: "rgba(0, 0, 0, 0.8)" } }}
       captions={{ descriptionTextAlign: "center" }}
       video={{ controls: true, playsInline: true }}
       zoom={{
