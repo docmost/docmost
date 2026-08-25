@@ -250,6 +250,17 @@ function CollabPageEditor({
     return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
   }, [provider, currentUser?.user]);
 
+  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
+    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
+
+    if (pageData) {
+      queryClient.setQueryData(["pages", slugId], {
+        ...pageData,
+        content: newContent,
+      });
+    }
+  }, 3000);
+
   const editor = useEditor(
     {
       extensions,
@@ -363,17 +374,6 @@ function CollabPageEditor({
       return ctx.editor?.isEditable ?? false;
     },
   });
-
-  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
-    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
-
-    if (pageData) {
-      queryClient.setQueryData(["pages", slugId], {
-        ...pageData,
-        content: newContent,
-      });
-    }
-  }, 3000);
 
   const handleActiveCommentEvent = (event) => {
     const { commentId, resolved } = event.detail;
