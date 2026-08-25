@@ -1,12 +1,12 @@
 import { type Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
-  await sql`CREATE INDEX IF NOT EXISTS pages_title_trgm_idx ON pages USING gin (lower(f_unaccent(title)) gin_trgm_ops)`.execute(
+  await sql`CREATE INDEX IF NOT EXISTS pages_title_trgm_idx ON pages USING gin (lower(title) gin_trgm_ops)`.execute(
     db,
   );
 
   // separators normalized to spaces so space-typed queries match How_to_export.pdf
-  await sql`CREATE INDEX IF NOT EXISTS attachments_file_name_trgm_idx ON attachments USING gin (lower(f_unaccent(translate(file_name, '_.-', '   '))) gin_trgm_ops)`.execute(
+  await sql`CREATE INDEX IF NOT EXISTS attachments_file_name_trgm_idx ON attachments USING gin (lower(translate(file_name, '_.-', '   ')) gin_trgm_ops)`.execute(
     db,
   );
 }

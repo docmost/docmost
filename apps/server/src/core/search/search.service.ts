@@ -48,7 +48,7 @@ export class SearchService {
     const rankColumn = browseByFilters
       ? sql<number>`0`.as('rank')
       : titleOnly
-        ? sql<number>`word_similarity(lower(f_unaccent(${titleQuery})), lower(f_unaccent(pages.title)))`.as(
+        ? sql<number>`word_similarity(lower(${titleQuery}), lower(pages.title))`.as(
             'rank',
           )
         : sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
@@ -84,9 +84,9 @@ export class SearchService {
       .$if(!browseByFilters && titleOnly, (qb) =>
         qb.where((eb) =>
           eb(
-            sql`lower(f_unaccent(pages.title))`,
+            sql`lower(pages.title)`,
             'like',
-            sql`lower(f_unaccent(${`%${titleLikeQuery}%`}))`,
+            sql`lower(${`%${titleLikeQuery}%`})`,
           ),
         ),
       )
