@@ -4,7 +4,7 @@
   "version": "0.95.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/compress-dist.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "format": "prettier --write \"src/**/*.tsx\" \"src/**/*.ts\"",

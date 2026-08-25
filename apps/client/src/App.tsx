@@ -1,60 +1,92 @@
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import SetupWorkspace from "@/pages/auth/setup-workspace.tsx";
-import LoginPage from "@/pages/auth/login";
-import Home from "@/pages/dashboard/home";
-import Page from "@/pages/page/page";
-import AccountSettings from "@/pages/settings/account/account-settings";
-import WorkspaceMembers from "@/pages/settings/workspace/workspace-members";
-import WorkspaceSettings from "@/pages/settings/workspace/workspace-settings";
-import Groups from "@/pages/settings/group/groups";
-import GroupInfo from "./pages/settings/group/group-info";
-import Spaces from "@/pages/settings/space/spaces.tsx";
-import { Error404 } from "@/components/ui/error-404.tsx";
-import AccountPreferences from "@/pages/settings/account/account-preferences.tsx";
-import SpaceHome from "@/pages/space/space-home.tsx";
-import PageRedirect from "@/pages/page/page-redirect.tsx";
 import Layout from "@/components/layouts/global/layout.tsx";
-import InviteSignup from "@/pages/auth/invite-signup.tsx";
-import ForgotPassword from "@/pages/auth/forgot-password.tsx";
-import PasswordReset from "./pages/auth/password-reset";
-import Billing from "@/ee/billing/pages/billing.tsx";
-import CloudLogin from "@/ee/pages/cloud-login.tsx";
-import CreateWorkspace from "@/ee/pages/create-workspace.tsx";
+import { Error404 } from "@/components/ui/error-404.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
-import Security from "@/ee/security/pages/security.tsx";
-import License from "@/ee/licence/pages/license.tsx";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
-import SharedPage from "@/pages/share/shared-page.tsx";
-import PdfRenderPage from "@/ee/pdf-export/pdf-render-page.tsx";
-import Shares from "@/pages/settings/shares/shares.tsx";
-import ShareLayout from "@/features/share/components/share-layout.tsx";
-import ShareRedirect from "@/pages/share/share-redirect.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
-import SpacesPage from "@/pages/spaces/spaces.tsx";
-import { MfaChallengePage } from "@/ee/mfa/pages/mfa-challenge-page";
-import { MfaSetupRequiredPage } from "@/ee/mfa/pages/mfa-setup-required-page";
-import SpaceTrash from "@/pages/space/space-trash.tsx";
-import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
-import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
-import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
-import BasePage from "@/ee/base/pages/base-page.tsx";
-import AuditLogs from "@/ee/audit/pages/audit-logs.tsx";
-import VerifiedPages from "@/ee/page-verification/pages/verified-pages.tsx";
-import TemplateList from "@/ee/template/pages/template-list";
-import TemplateEditor from "@/ee/template/pages/template-editor";
-import FavoritesPage from "@/pages/favorites/favorites-page";
-import AiChat from "@/ee/ai-chat/pages/ai-chat.tsx";
-import VerifyEmail from "@/ee/pages/verify-email.tsx";
-import LabelPage from "@/pages/label/label-page";
+
+const SetupWorkspace = lazy(() => import("@/pages/auth/setup-workspace.tsx"));
+const LoginPage = lazy(() => import("@/pages/auth/login"));
+const Home = lazy(() => import("@/pages/dashboard/home"));
+const Page = lazy(() => import("@/pages/page/page"));
+const AccountSettings = lazy(
+  () => import("@/pages/settings/account/account-settings"),
+);
+const WorkspaceMembers = lazy(
+  () => import("@/pages/settings/workspace/workspace-members"),
+);
+const WorkspaceSettings = lazy(
+  () => import("@/pages/settings/workspace/workspace-settings"),
+);
+const Groups = lazy(() => import("@/pages/settings/group/groups"));
+const GroupInfo = lazy(() => import("./pages/settings/group/group-info"));
+const Spaces = lazy(() => import("@/pages/settings/space/spaces.tsx"));
+const AccountPreferences = lazy(
+  () => import("@/pages/settings/account/account-preferences.tsx"),
+);
+const SpaceHome = lazy(() => import("@/pages/space/space-home.tsx"));
+const PageRedirect = lazy(() => import("@/pages/page/page-redirect.tsx"));
+const InviteSignup = lazy(() => import("@/pages/auth/invite-signup.tsx"));
+const ForgotPassword = lazy(() => import("@/pages/auth/forgot-password.tsx"));
+const PasswordReset = lazy(() => import("./pages/auth/password-reset"));
+const Billing = lazy(() => import("@/ee/billing/pages/billing.tsx"));
+const CloudLogin = lazy(() => import("@/ee/pages/cloud-login.tsx"));
+const CreateWorkspace = lazy(() => import("@/ee/pages/create-workspace.tsx"));
+const Security = lazy(() => import("@/ee/security/pages/security.tsx"));
+const License = lazy(() => import("@/ee/licence/pages/license.tsx"));
+const SharedPage = lazy(() => import("@/pages/share/shared-page.tsx"));
+const PdfRenderPage = lazy(() => import("@/ee/pdf-export/pdf-render-page.tsx"));
+const Shares = lazy(() => import("@/pages/settings/shares/shares.tsx"));
+const ShareLayout = lazy(
+  () => import("@/features/share/components/share-layout.tsx"),
+);
+const ShareRedirect = lazy(() => import("@/pages/share/share-redirect.tsx"));
+const SpacesPage = lazy(() => import("@/pages/spaces/spaces.tsx"));
+const MfaChallengePage = lazy(() =>
+  import("@/ee/mfa/pages/mfa-challenge-page").then((m) => ({
+    default: m.MfaChallengePage,
+  })),
+);
+const MfaSetupRequiredPage = lazy(() =>
+  import("@/ee/mfa/pages/mfa-setup-required-page").then((m) => ({
+    default: m.MfaSetupRequiredPage,
+  })),
+);
+const SpaceTrash = lazy(() => import("@/pages/space/space-trash.tsx"));
+const UserApiKeys = lazy(() => import("@/ee/api-key/pages/user-api-keys"));
+const WorkspaceApiKeys = lazy(
+  () => import("@/ee/api-key/pages/workspace-api-keys"),
+);
+const AiSettings = lazy(() => import("@/ee/ai/pages/ai-settings.tsx"));
+const BasePage = lazy(() => import("@/ee/base/pages/base-page.tsx"));
+const AuditLogs = lazy(() => import("@/ee/audit/pages/audit-logs.tsx"));
+const VerifiedPages = lazy(
+  () => import("@/ee/page-verification/pages/verified-pages.tsx"),
+);
+const TemplateList = lazy(() => import("@/ee/template/pages/template-list"));
+const TemplateEditor = lazy(
+  () => import("@/ee/template/pages/template-editor"),
+);
+const FavoritesPage = lazy(() => import("@/pages/favorites/favorites-page"));
+const AiChat = lazy(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
+const VerifyEmail = lazy(() => import("@/ee/pages/verify-email.tsx"));
+const LabelPage = lazy(() => import("@/pages/label/label-page"));
 
 export default function App() {
   const { t } = useTranslation();
   useRedirectToCloudSelect();
   useTrackOrigin();
 
+  useEffect(() => {
+    // warm the editor chunk so opening a page doesn't wait on the network
+    const timer = setTimeout(() => import("@/pages/page/page"), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <>
+    <Suspense fallback={null}>
       <Routes>
         <Route index element={<Navigate to="/home" />} />
         <Route path={"/login"} element={<LoginPage />} />
@@ -135,6 +167,6 @@ export default function App() {
 
         <Route path="*" element={<Error404 />} />
       </Routes>
-    </>
+    </Suspense>
   );
 }
