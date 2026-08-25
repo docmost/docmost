@@ -294,6 +294,7 @@
   "Export space": "Экспорт пространства",
   "Export {{type}}": "Экспорт {{type}}",
   "File exceeds the {{limit}} attachment limit": "Файл превышает лимит вложений {{limit}}",
+  "Media": "Media",
   "Align left": "По левому краю",
   "Align right": "По правому краю",
   "Align center": "По центру",
