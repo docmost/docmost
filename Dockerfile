@@ -1,7 +1,7 @@
 FROM node:26-slim AS base
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
-RUN npm install -g pnpm@11.15.1
+RUN npm install -g pnpm@11.23.0
 
 FROM base AS builder
 
