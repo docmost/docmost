@@ -294,6 +294,7 @@
   "Export space": "Exportar espacio",
   "Export {{type}}": "Exportar {{type}}",
   "File exceeds the {{limit}} attachment limit": "El archivo supera el límite de {{limit}} adjuntos",
+  "Media": "Media",
   "Align left": "Alinear a la izquierda",
   "Align right": "Alinear a la derecha",
   "Align center": "Alinear al centro",
