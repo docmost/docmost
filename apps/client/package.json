@@ -64,6 +64,7 @@
     "react-router-dom": "7.18.2",
     "semver": "7.7.4",
     "socket.io-client": "4.8.3",
+    "yet-another-react-lightbox": "^3.32.2",
     "zod": "4.3.6"
   },
   "devDependencies": {
