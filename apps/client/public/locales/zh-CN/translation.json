@@ -294,6 +294,7 @@
   "Export space": "导出空间",
   "Export {{type}}": "导出为 {{type}}",
   "File exceeds the {{limit}} attachment limit": "文件超出了 {{limit}} 类型附件限制",
+  "Media": "Media",
   "Align left": "靠左对齐",
   "Align right": "靠右对齐",
   "Align center": "居中对齐",
