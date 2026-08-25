@@ -18,6 +18,15 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends curl bash \
   && rm -rf /var/lib/apt/lists/*
 
+# drop npm and corepack
+RUN rm -rf /usr/local/lib/node_modules/npm \
+  && rm -rf /usr/local/lib/node_modules/corepack \
+  && rm -rf /usr/local/bin/npm \
+  && rm -rf /usr/local/bin/npx \
+  && rm -rf /usr/local/bin/corepack \
+  && rm -rf /root/.npm \
+  && rm -rf /root/.node-gyp
+
 WORKDIR /app
 
 # Copy apps

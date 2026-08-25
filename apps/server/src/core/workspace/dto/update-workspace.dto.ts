@@ -68,4 +68,12 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsString()
   @IsIn(['read', 'edit'])
   defaultPageEditMode: string;
+
+  @IsOptional()
+  @IsBoolean()
+  aiChatReadOnly: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  aiChatWorkspaceKnowledgeOnly: boolean;
 }

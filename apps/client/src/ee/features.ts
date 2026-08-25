@@ -22,4 +22,5 @@ export const Feature = {
   PERSONAL_SPACES: 'spaces:personal',
   DOCX_EXPORT: 'export:docx',
   BASES: 'bases',
+  AI_CONTROLS: 'ai:controls',
 } as const;
