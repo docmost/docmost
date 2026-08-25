@@ -274,7 +274,8 @@ export function SearchSpotlightFilters({
         </Button>
       )}
 
-      {orderedVisibleFilters.map((filterKey) => {
+      {!isAiMode &&
+        orderedVisibleFilters.map((filterKey) => {
         if (filterKey === "creator") {
           return (
             <CreatorFilterMenu
@@ -340,7 +341,7 @@ export function SearchSpotlightFilters({
         return null;
       })}
 
-      {addableFilters.length > 0 && (
+      {!isAiMode && addableFilters.length > 0 && (
         <Menu
           shadow="md"
           width={200}

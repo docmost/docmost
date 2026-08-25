@@ -42,6 +42,8 @@ export class SearchService {
     const searchQuery = tsquery(query + '*');
     const titleOnly = searchParams.titleOnly === true;
     const titleQuery = query;
+    // escape LIKE wildcards; ranking keeps the raw query
+    const titleLikeQuery = query.replace(/[\\%_]/g, '\\$&');
 
     const rankColumn = browseByFilters
       ? sql<number>`0`.as('rank')
@@ -84,7 +86,7 @@ export class SearchService {
           eb(
             sql`lower(f_unaccent(pages.title))`,
             'like',
-            sql`lower(f_unaccent(${`%${titleQuery}%`}))`,
+            sql`lower(f_unaccent(${`%${titleLikeQuery}%`}))`,
           ),
         ),
       )
@@ -111,8 +113,7 @@ export class SearchService {
       queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
     }
 
-    if (searchParams.spaceId) {
-      // search by spaceId
+    if (searchParams.spaceId && opts.userId) {
       queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
     } else if (opts.userId && !searchParams.spaceId) {
       // only search spaces the user is a member of

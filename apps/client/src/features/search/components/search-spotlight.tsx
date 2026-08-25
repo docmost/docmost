@@ -205,7 +205,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
             ? query.length > 0 && !isAiLoading && !aiSearchResult
               ? t("No answer available")
               : ""
-            : query.length > 0 && !isFetching
+            : (query.length > 0 || isFilterBrowse) && !isFetching
               ? resultItems.length === 0
                 ? t("No results found")
                 : t("{{count}} results found", { count: resultItems.length })
@@ -245,7 +245,9 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
               {resultItems.length > 0 && <>{resultItems}</>}
 
-              {(query.length > 0 || isFilterBrowse) && isFetching && (
+              {(query.length > 0 || isFilterBrowse) &&
+                isFetching &&
+                resultItems.length === 0 && (
                 <Spotlight.Empty>
                   <Text size="sm" style={{ marginTop: 10 }}>
                     {t("Searching...")}
