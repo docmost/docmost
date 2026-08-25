@@ -294,6 +294,7 @@
   "Export space": "Space 내보내기",
   "Export {{type}}": "{{type}} 내보내기",
   "File exceeds the {{limit}} attachment limit": "첨부 파일 크기 제한 {{limit}}을 초과했습니다",
+  "Media": "Media",
   "Align left": "왼쪽 정렬",
   "Align right": "오른쪽 정렬",
   "Align center": "가운데 정렬",
