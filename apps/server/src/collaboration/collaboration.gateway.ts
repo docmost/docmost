@@ -63,6 +63,7 @@ export class CollaborationGateway {
         redis: new RedisClient({
           host: this.redisConfig.host,
           port: this.redisConfig.port,
+          username: this.redisConfig.username,
           password: this.redisConfig.password,
           db: this.redisConfig.db,
           family: this.redisConfig.family,

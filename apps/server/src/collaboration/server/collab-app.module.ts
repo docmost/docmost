@@ -14,7 +14,8 @@ import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from '../../integrations/redis/redis-config.service';
 import { CaslModule } from '../../core/casl/casl.module';
 import { CacheModule } from '@nestjs/cache-manager';
-import KeyvRedis from '@keyv/redis';
+import KeyvRedis, { defaultReconnectStrategy } from '@keyv/redis';
+import { parseRedisUrl } from '../../common/helpers';
 
 @Module({
   imports: [
@@ -33,10 +34,20 @@ import KeyvRedis from '@keyv/redis';
       isGlobal: true,
       useFactory: async (environmentService: EnvironmentService) => {
         const redisUrl = environmentService.getRedisUrl();
+        const { family, tls } = parseRedisUrl(redisUrl);
 
         return {
           ttl: 5 * 1000,
-          stores: [new KeyvRedis(redisUrl)],
+          stores: [
+            new KeyvRedis({
+              url: redisUrl,
+              socket: {
+                family,
+                reconnectStrategy: defaultReconnectStrategy,
+                ...tls,
+              },
+            }),
+          ],
         };
       },
       inject: [EnvironmentService],
