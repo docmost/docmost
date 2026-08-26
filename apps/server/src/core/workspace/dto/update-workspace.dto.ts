@@ -79,5 +79,5 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
 
   @IsOptional()
   @IsBoolean()
-  mcpOauthOnly: boolean;
+  enforceMcpOauth: boolean;
 }

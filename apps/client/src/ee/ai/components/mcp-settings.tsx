@@ -111,7 +111,7 @@ export default function McpSettings() {
             {t("Connect AI assistants with your Docmost account via OAuth.")}
           </Text>
 
-          <McpOauthOnlySetting />
+          <McpEnforceOauthSetting />
 
           <div>
             <Text size="sm" fw={500} mt="md" mb={4}>
@@ -156,17 +156,17 @@ export default function McpSettings() {
   );
 }
 
-function McpOauthOnlySetting() {
+function McpEnforceOauthSetting() {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
-  const [checked, setChecked] = useState(workspace?.settings?.ai?.mcpOauthOnly);
+  const [checked, setChecked] = useState(workspace?.settings?.ai?.enforceMcpOauth);
   const hasAccess = useHasFeature(Feature.MCP_CONTROLS);
   const upgradeLabel = useUpgradeLabel();
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
     try {
-      const updatedWorkspace = await updateWorkspace({ mcpOauthOnly: value });
+      const updatedWorkspace = await updateWorkspace({ enforceMcpOauth: value });
       setChecked(value);
       setWorkspace(updatedWorkspace);
     } catch (err) {
@@ -182,7 +182,7 @@ function McpOauthOnlySetting() {
       <div>
         <Group gap="xs" align="center">
           <Text size="sm" fw={500}>
-            {t("Require OAuth")}
+            {t("Enforce OAuth")}
           </Text>
           {!hasAccess && (
             <Badge variant="light" size="sm" radius="sm">
@@ -202,7 +202,7 @@ function McpOauthOnlySetting() {
           defaultChecked={checked}
           onChange={handleChange}
           disabled={!hasAccess}
-          aria-label={t("Toggle require OAuth for MCP")}
+          aria-label={t("Toggle enforce OAuth for MCP")}
         />
       </Tooltip>
     </Group>

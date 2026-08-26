@@ -337,7 +337,7 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
       typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
       typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined' ||
-      typeof updateWorkspaceDto.mcpOauthOnly !== 'undefined'
+      typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -392,7 +392,7 @@ export class WorkspaceService {
         }
       }
 
-      if (typeof updateWorkspaceDto.mcpOauthOnly !== 'undefined') {
+      if (typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined') {
         if (
           !this.licenseCheckService.hasFeature(
             ws.licenseKey,
@@ -574,16 +574,16 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.mcpOauthOnly !== 'undefined') {
-        const prev = settingsBefore?.ai?.mcpOauthOnly ?? false;
-        if (prev !== updateWorkspaceDto.mcpOauthOnly) {
-          before.mcpOauthOnly = prev;
-          after.mcpOauthOnly = updateWorkspaceDto.mcpOauthOnly;
+      if (typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined') {
+        const prev = settingsBefore?.ai?.enforceMcpOauth ?? false;
+        if (prev !== updateWorkspaceDto.enforceMcpOauth) {
+          before.enforceMcpOauth = prev;
+          after.enforceMcpOauth = updateWorkspaceDto.enforceMcpOauth;
         }
         await this.workspaceRepo.updateAiSettings(
           workspaceId,
-          'mcpOauthOnly',
-          updateWorkspaceDto.mcpOauthOnly,
+          'enforceMcpOauth',
+          updateWorkspaceDto.enforceMcpOauth,
           trx,
         );
       }
@@ -627,7 +627,7 @@ export class WorkspaceService {
       delete updateWorkspaceDto.defaultPageEditMode;
       delete updateWorkspaceDto.aiChatReadOnly;
       delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
-      delete updateWorkspaceDto.mcpOauthOnly;
+      delete updateWorkspaceDto.enforceMcpOauth;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,
