@@ -57,6 +57,7 @@ import {
   JSONContent,
 } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
+import { collapseBlankLines } from '../common/helpers';
 // @tiptap/html library works best for generating prosemirror json state but not HTML
 // see: https://github.com/ueberdosis/tiptap/issues/5352
 // see:https://github.com/ueberdosis/tiptap/issues/4089
@@ -146,7 +147,7 @@ export function htmlToJson(html: string) {
 }
 
 export function jsonToText(tiptapJson: JSONContent) {
-  return generateText(tiptapJson, tiptapExtensions);
+  return collapseBlankLines(generateText(tiptapJson, tiptapExtensions));
 }
 
 export function jsonToNode(tiptapJson: JSONContent) {

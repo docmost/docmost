@@ -46,8 +46,9 @@ export class ShareService {
       throw new NotFoundException('Share not found');
     }
 
-    const isRestricted =
-      await this.pagePermissionRepo.hasRestrictedAncestor(share.pageId);
+    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
+      share.pageId,
+    );
     if (isRestricted) {
       throw new NotFoundException('Share not found');
     }
@@ -110,6 +111,9 @@ export class ShareService {
   }
 
   async getSharedPage(dto: ShareInfoDto, workspaceId: string) {
+    //TODO: we should resolve the page from the share id
+    if (!dto.pageId) throw new NotFoundException('Shared page not found');
+
     const share = await this.getShareForPage(dto.pageId, workspaceId);
 
     if (!share) {
@@ -126,8 +130,9 @@ export class ShareService {
     }
 
     // Block access to restricted pages
-    const isRestricted =
-      await this.pagePermissionRepo.hasRestrictedAncestor(page.id);
+    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
+      page.id,
+    );
     if (isRestricted) {
       throw new NotFoundException('Shared page not found');
     }

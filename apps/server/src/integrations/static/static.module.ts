@@ -49,6 +49,10 @@ export class StaticModule implements OnModuleInit {
           : undefined,
         POSTHOG_HOST: this.environmentService.getPostHogHost(),
         POSTHOG_KEY: this.environmentService.getPostHogKey(),
+        AI_VECTOR_DRIVER:
+          this.environmentService.getAiVectorDriver() === 'turbopuffer'
+            ? 'turbopuffer'
+            : undefined,
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;
@@ -67,6 +71,15 @@ export class StaticModule implements OnModuleInit {
       await app.register(fastifyStatic, {
         root: clientDistPath,
         wildcard: false,
+        setHeaders: (reply: any, pathName: string) => {
+          // Vite content-hashes everything under /assets, so they can be cached forever
+          if (/[\\/]assets[\\/]/.test(pathName)) {
+            reply.header(
+              'Cache-Control',
+              'public, max-age=31536000, immutable',
+            );
+          }
+        },
       });
 
       app.get(RENDER_PATH, (req: any, res: any) => {

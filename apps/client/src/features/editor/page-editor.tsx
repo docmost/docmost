@@ -33,6 +33,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   currentPageEditModeAtom,
+  lightboxRequestAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
   yjsSyncedAtom,
@@ -53,6 +54,9 @@ import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
+import LightboxView, {
+  getLightboxClickRequest,
+} from "@/features/editor/components/common/lightbox-view";
 import {
   handleFileDrop,
   handlePaste,
@@ -184,6 +188,7 @@ function CollabPageEditor({
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
+  const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
@@ -245,6 +250,17 @@ function CollabPageEditor({
     return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
   }, [provider, currentUser?.user]);
 
+  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
+    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
+
+    if (pageData) {
+      queryClient.setQueryData(["pages", slugId], {
+        ...pageData,
+        content: newContent,
+      });
+    }
+  }, 3000);
+
   const editor = useEditor(
     {
       extensions,
@@ -305,6 +321,22 @@ function CollabPageEditor({
 
           return handleFileDrop(editorRef.current, event, moved, pageId);
         },
+        handleClickOn: (view, _pos, node) => {
+          if (view.editable) return false;
+
+          const request = getLightboxClickRequest(node);
+          if (!request) return false;
+
+          setLightboxRequest(request);
+          return true;
+        },
+        handleDoubleClickOn: (_view, _pos, node) => {
+          const request = getLightboxClickRequest(node);
+          if (!request) return false;
+
+          setLightboxRequest(request);
+          return true;
+        },
       },
       onCreate({ editor }) {
         if (editor) {
@@ -343,17 +375,6 @@ function CollabPageEditor({
     },
   });
 
-  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
-    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
-
-    if (pageData) {
-      queryClient.setQueryData(["pages", slugId], {
-        ...pageData,
-        content: newContent,
-      });
-    }
-  }, 3000);
-
   const handleActiveCommentEvent = (event) => {
     const { commentId, resolved } = event.detail;
 
@@ -386,6 +407,7 @@ function CollabPageEditor({
     setActiveCommentId(null);
     setShowCommentPopup(false);
     setAsideState({ tab: "", isAsideOpen: false });
+    setLightboxRequest(null);
   }, [pageId]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
@@ -458,6 +480,15 @@ function CollabPageEditor({
         )}
         {editor && !editorIsEditable && (editable || canComment) && (
           <ReadonlyBubbleMenu editor={editor} />
+        )}
+        {editor && (
+          <LightboxView
+            editor={editor}
+            open={!!lightboxRequest}
+            src={lightboxRequest?.src ?? ""}
+            type={lightboxRequest?.type ?? "image"}
+            onClose={() => setLightboxRequest(null)}
+          />
         )}
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
         {showReadOnlyCommentPopup && (

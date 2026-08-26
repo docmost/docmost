@@ -294,6 +294,7 @@
   "Export space": "Export space",
   "Export {{type}}": "Export {{type}}",
   "File exceeds the {{limit}} attachment limit": "File exceeds the {{limit}} attachment limit",
+  "Media": "Media",
   "Align left": "Align left",
   "Align right": "Align right",
   "Align center": "Align center",
@@ -698,7 +699,7 @@
   "Upgrade your plan": "Upgrade your plan",
   "Available with a paid license": "Available with a paid license",
   "Upgrade your license tier.": "Upgrade your license tier.",
-  "AI is only available in the Docmost enterprise edition. Contact sales@docmost.com.": "AI is only available in the Docmost enterprise edition. Contact sales@docmost.com.",
+  "AI is available in the Docmost paid editions. Contact sales@docmost.com.": "AI is available in the Docmost paid editions. Contact sales@docmost.com.",
   "AI & MCP": "AI & MCP",
   "AI": "AI",
   "MCP": "MCP",
@@ -1332,5 +1333,13 @@
   "Applications and AI assistants you have authorized to access your account.": "Applications and AI assistants you have authorized to access your account.",
   "Your workspace has MCP enabled. Connect AI assistants with your Docmost account, or with an API key.": "Your workspace has MCP enabled. Connect AI assistants with your Docmost account, or with an API key.",
   "Authorized apps": "Authorized apps",
-  "No authorized apps yet.": "No authorized apps yet."
+  "No authorized apps yet.": "No authorized apps yet.",
+  "Workspace knowledge only": "Workspace knowledge only",
+  "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.": "Restrict AI Chat to answering from your workspace pages and uploaded files only. It will not use outside knowledge.",
+  "Toggle workspace knowledge only": "Toggle workspace knowledge only",
+  "Read-only mode": "Read-only mode",
+  "AI Chat can search and read workspace content, but cannot create or edit pages.": "AI Chat can search and read workspace content, but cannot create or edit pages.",
+  "Toggle AI Chat read-only mode": "Toggle AI Chat read-only mode",
+  "Title only": "Title only",
+  "you": "you"
 }

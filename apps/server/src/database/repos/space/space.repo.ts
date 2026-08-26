@@ -230,6 +230,7 @@ export class SpaceRepo {
 
     this.eventEmitter.emit(EventName.SPACE_DELETED, {
       spaceId,
+      workspaceId,
     });
   }
 }

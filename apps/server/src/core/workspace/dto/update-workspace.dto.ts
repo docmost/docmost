@@ -92,4 +92,12 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @ValidateNested({ each: true })
   @Type(() => TrustedOAuthClientDto)
   trustedOauthClients?: TrustedOAuthClient[];
+
+  @IsOptional()
+  @IsBoolean()
+  aiChatReadOnly: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  aiChatWorkspaceKnowledgeOnly: boolean;
 }

@@ -23,4 +23,5 @@ export const Feature = {
   DOCX_EXPORT: 'export:docx',
   BASES: 'bases',
   OAUTH: 'oauth',
+  AI_CONTROLS: 'ai:controls',
 } as const;
