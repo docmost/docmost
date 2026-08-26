@@ -92,7 +92,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       this.sessionActivityService.trackActivity(sessionId, payload.sub, payload.workspaceId);
     }
 
-    return { user, workspace };
+    return { user, workspace, authType: JwtType.ACCESS };
   }
 
   private async validateApiKey(req: any, payload: JwtApiKeyPayload) {

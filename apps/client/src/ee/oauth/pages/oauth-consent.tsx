@@ -20,7 +20,6 @@ import { notifications } from "@mantine/notifications";
 import {
   IconAlertTriangle,
   IconEye,
-  IconInfoCircle,
   IconPencil,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
@@ -174,7 +173,6 @@ function ConsentCard({ info, currentUser, params }: ConsentCardProps) {
     info.scopes.filter((scope) => scope === "read" || scope === "write"),
   );
   const [submitting, setSubmitting] = useState<"approve" | "deny" | null>(null);
-  const [acknowledged, setAcknowledged] = useState(false);
 
   const scopeRows = [
     {
@@ -306,24 +304,10 @@ function ConsentCard({ info, currentUser, params }: ConsentCardProps) {
         <Alert
           variant="light"
           color="yellow"
-          icon={<IconInfoCircle size={16} />}
+          py="xs"
+          icon={<IconAlertTriangle size={16} />}
         >
-          <Stack gap="xs">
-            <Text size="sm">
-              {t(
-                "Make sure you trust this application before authorizing it.",
-              )}
-            </Text>
-            <Checkbox
-              size="sm"
-              checked={acknowledged}
-              disabled={submitting !== null}
-              onChange={(event) =>
-                setAcknowledged(event.currentTarget.checked)
-              }
-              label={t("I trust this application and want to continue")}
-            />
-          </Stack>
+          {t("Make sure you trust this application before authorizing it.")}
         </Alert>
       )}
 
@@ -339,11 +323,7 @@ function ConsentCard({ info, currentUser, params }: ConsentCardProps) {
         <Button
           onClick={() => submitDecision(true)}
           loading={submitting === "approve"}
-          disabled={
-            approvedScopes.length === 0 ||
-            (!info.verified && !acknowledged) ||
-            submitting === "deny"
-          }
+          disabled={approvedScopes.length === 0 || submitting === "deny"}
         >
           {t("Authorize")}
         </Button>

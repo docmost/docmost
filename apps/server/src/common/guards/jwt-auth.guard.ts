@@ -51,7 +51,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       [ctx.getHandler(), ctx.getClass()],
     );
     if (requiresSession && user.authType !== JwtType.ACCESS) {
-      this.logger.warn(
+      this.logger.debug(
         `session-only endpoint ${ctx.getClass()?.name}.${ctx.getHandler()?.name} refused authType ${user.authType}`,
       );
       throw new ForbiddenException(
