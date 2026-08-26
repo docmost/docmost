@@ -4,11 +4,8 @@ import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { ActionIcon, rem } from "@mantine/core";
 import {
-  IconChevronDown,
-  IconChevronRight,
   IconFileDescription,
   IconPlus,
-  IconPointFilled,
   IconTable,
 } from "@tabler/icons-react";
 
@@ -22,6 +19,7 @@ import {
   fetchAllAncestorChildren,
 } from "@/features/page/queries/page-query.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import localEmitter from "@/lib/local-emitter.ts";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 
@@ -31,11 +29,14 @@ import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import type { RenderRowProps } from "./doc-tree";
 import { NodeMenu } from "./space-tree-node-menu";
+import { PageArrow } from "./page-arrow";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { updateTreeNodeIcon } from "@/features/page/tree/utils/utils.ts";
 
 type SpaceTreeRowProps = RenderRowProps<SpaceTreeNode> & {
   readOnly: boolean;
+  dataAtom?: typeof treeDataAtom;
+  hideCreateButton?: boolean;
 };
 
 export function SpaceTreeRow({
@@ -47,11 +48,13 @@ export function SpaceTreeRow({
   tabIndex,
   treeItemProps,
   readOnly,
+  dataAtom = treeDataAtom,
+  hideCreateButton = false,
 }: SpaceTreeRowProps) {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const updatePageMutation = useUpdatePageMutation();
-  const [, setTreeData] = useAtom(treeDataAtom);
+  const [, setTreeData] = useAtom(dataAtom);
   const emit = useQueryEmit();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
@@ -97,13 +100,19 @@ export function SpaceTreeRow({
       .mutateAsync({ pageId: node.id, icon: emoji.native })
       .then((data) => {
         setTimeout(() => {
-          emit({
-            operation: "updateOne",
+          const event = {
+            operation: "updateOne" as const,
             spaceId: node.spaceId,
             entity: ["pages"],
             id: node.id,
             payload: { icon: emoji.native, parentPageId: data.parentPageId },
-          });
+          };
+          // Only this row's own tree (dataAtom) was patched above — the
+          // other tree (main vs. favorites) needs the same event applied
+          // locally too, since the server never echoes an emit back to the
+          // socket that sent it.
+          localEmitter.emit("message", event);
+          emit(event);
         }, 50);
       });
   };
@@ -113,13 +122,15 @@ export function SpaceTreeRow({
     updatePageMutation.mutateAsync({ pageId: node.id, icon: null });
 
     setTimeout(() => {
-      emit({
-        operation: "updateOne",
+      const event = {
+        operation: "updateOne" as const,
         spaceId: node.spaceId,
         entity: ["pages"],
         id: node.id,
         payload: { icon: null },
-      });
+      };
+      localEmitter.emit("message", event);
+      emit(event);
     }, 50);
   };
 
@@ -182,7 +193,7 @@ export function SpaceTreeRow({
       <div className={classes.actions}>
         <NodeMenu node={node} canEdit={canEdit} />
 
-        {canEdit && (
+        {canEdit && !hideCreateButton && (
           <CreateNode
             node={node}
             isOpen={isOpen}
@@ -193,58 +204,6 @@ export function SpaceTreeRow({
         )}
       </div>
     </Link>
-  );
-}
-
-interface PageArrowProps {
-  isOpen: boolean;
-  hasChildren: boolean;
-  onToggle: () => void;
-}
-
-function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
-  const { t } = useTranslation();
-
-  if (!hasChildren) {
-    return (
-      <span
-        aria-hidden
-        className={classes.actionIcon}
-        style={{
-          width: 20,
-          height: 20,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <IconPointFilled size={8} />
-      </span>
-    );
-  }
-
-  return (
-    <ActionIcon
-      size={20}
-      variant="subtle"
-      color="gray"
-      className={classes.actionIcon}
-      aria-label={isOpen ? t("Collapse") : t("Expand")}
-      aria-expanded={isOpen}
-      tabIndex={-1}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onToggle();
-      }}
-    >
-      {isOpen ? (
-        <IconChevronDown stroke={2} size={18} />
-      ) : (
-        <IconChevronRight stroke={2} size={18} />
-      )}
-    </ActionIcon>
   );
 }
 

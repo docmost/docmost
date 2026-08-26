@@ -14,6 +14,60 @@ function findInternal<T extends object>(
   return null;
 }
 
+// Ids are UUIDs, which can't contain this character — safe as a join
+// separator with zero real-world collision risk.
+const PATH_KEY_SEPARATOR = '\u0000';
+
+// Joins an ancestor-id chain (root..node) into a single string identity for
+// a specific tree position. Used by trees where the same id can legitimately
+// appear more than once (e.g. a page that's independently favorited AND a
+// descendant of another favorited page) — keying by path instead of bare id
+// lets each occurrence carry independent open/selected/focus state instead
+// of colliding on one shared id.
+export function pathKey(path: string[]): string {
+  return path.join(PATH_KEY_SEPARATOR);
+}
+
+function findByPathInternal<T extends object>(
+  nodes: TreeNode<T>[] | undefined,
+  path: string[],
+): TreeNode<T> | null {
+  let found: TreeNode<T> | null = null;
+  let level = nodes;
+  for (const id of path) {
+    found = level?.find((n) => n.id === id) ?? null;
+    if (!found) return null;
+    level = found.children;
+  }
+  return found;
+}
+
+function appendChildrenByPathInternal<T extends object>(
+  nodes: TreeNode<T>[],
+  path: string[],
+  children: TreeNode<T>[],
+): TreeNode<T>[] {
+  if (path.length === 0) return nodes;
+  const [id, ...rest] = path;
+  let touched = false;
+  const out = nodes.map((n) => {
+    if (n.id !== id) return n;
+    if (rest.length === 0) {
+      const existing = n.children ?? [];
+      const existingIds = new Set(existing.map((c) => c.id));
+      const fresh = children.filter((c) => !existingIds.has(c.id));
+      if (fresh.length === 0) return n;
+      touched = true;
+      return { ...n, children: [...existing, ...fresh] };
+    }
+    const next = appendChildrenByPathInternal(n.children ?? [], rest, children);
+    if (next === n.children) return n;
+    touched = true;
+    return { ...n, children: next };
+  });
+  return touched ? out : nodes;
+}
+
 export const treeModel = {
   find<T extends object>(tree: TreeNode<T>[], id: string): TreeNode<T> | null {
     return findInternal(tree, id)?.node ?? null;
@@ -64,6 +118,47 @@ export const treeModel = {
     };
     walk(tree);
     return out;
+  },
+
+  // Path-aware variant of `visible` for trees where openIds/openKeys are
+  // keyed by pathKey(...) rather than bare id (see pathKey above) — needed
+  // whenever the same id can occupy more than one row.
+  visibleByPath<T extends object>(
+    tree: TreeNode<T>[],
+    openKeys: ReadonlySet<string>,
+  ): TreeNode<T>[] {
+    const out: TreeNode<T>[] = [];
+    const walk = (nodes: TreeNode<T>[], parentPath: string[]) => {
+      for (const node of nodes) {
+        const path = [...parentPath, node.id];
+        out.push(node);
+        if (openKeys.has(pathKey(path)) && node.children?.length) {
+          walk(node.children, path);
+        }
+      }
+    };
+    walk(tree, []);
+    return out;
+  },
+
+  // Path-aware variant of `find` — locates the exact occurrence at `path`
+  // (root..node id chain) rather than the first node matching a bare id.
+  findByPath<T extends object>(
+    tree: TreeNode<T>[],
+    path: string[],
+  ): TreeNode<T> | null {
+    return findByPathInternal(tree, path);
+  },
+
+  // Path-aware variant of `appendChildren` — targets the exact occurrence at
+  // `path` so lazily-loaded children land on the row the user actually
+  // toggled, not just the first node sharing its id.
+  appendChildrenByPath<T extends object>(
+    tree: TreeNode<T>[],
+    path: string[],
+    children: TreeNode<T>[],
+  ): TreeNode<T>[] {
+    return appendChildrenByPathInternal(tree, path, children);
   },
 
   insert<T extends object>(

@@ -141,11 +141,57 @@ export class FavoriteRepo {
       perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
-      fields: [{ expression: 'favorites.id', direction: 'desc' }],
+      fields: [
+        {
+          expression: 'favorites.position',
+          direction: 'asc',
+          orderModifier: (ob) => ob.collate('C').asc(),
+        },
+        { expression: 'favorites.id', direction: 'desc' },
+      ],
       parseCursor: (cursor) => ({
+        position: cursor.position,
         id: cursor.id,
       }),
     });
+  }
+
+  // Highest existing position for this (user, workspace, type) group — used
+  // to place a newly-added favorite at the end of the user's manual order.
+  async getLastPosition(
+    userId: string,
+    workspaceId: string,
+    type: FavoriteType,
+  ): Promise<string | null> {
+    const result = await this.db
+      .selectFrom('favorites')
+      .select('position')
+      .where('userId', '=', userId)
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', type)
+      .orderBy(sql`position collate "C"`, 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    return result?.position ?? null;
+  }
+
+  // Keyed by (userId, pageId), matching deleteByUserAndPage's convention —
+  // scoped by userId so one user's page favorite can't be repositioned by
+  // another.
+  async updatePosition(
+    userId: string,
+    pageId: string,
+    position: string,
+  ): Promise<boolean> {
+    const result = await this.db
+      .updateTable('favorites')
+      .set({ position })
+      .where('pageId', '=', pageId)
+      .where('userId', '=', userId)
+      .executeTakeFirst();
+
+    return result.numUpdatedRows > 0n;
   }
 
   async deleteByUsersWithoutSpaceAccess(
