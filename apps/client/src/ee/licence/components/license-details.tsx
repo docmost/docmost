@@ -34,6 +34,7 @@ export default function LicenseDetails() {
             <Table.Td>
               {license.licenseType === "business" ? "Business" : "Enterprise"}{" "}
               {license.trial && <Badge color="green">Trial</Badge>}
+              {license.lifetime && <Badge color="blue">Lifetime</Badge>}
             </Table.Td>
           </Table.Tr>
 
@@ -59,7 +60,14 @@ export default function LicenseDetails() {
           <Table.Tr>
             <Table.Th>Expires at</Table.Th>
             <Table.Td>
-              {formatLocalized(license.expiresAt, "dd MMMM, yyyy", "PPP", locale)}
+              {license.lifetime
+                ? "Never"
+                : formatLocalized(
+                    license.expiresAt,
+                    "dd MMMM, yyyy",
+                    "PPP",
+                    locale,
+                  )}
             </Table.Td>
           </Table.Tr>
           <Table.Tr>

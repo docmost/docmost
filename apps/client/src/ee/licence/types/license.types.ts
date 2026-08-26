@@ -6,6 +6,7 @@ export interface ILicenseInfo {
   seatCount: number;
   licenseType: LicenseType;
   issuedAt: Date;
-  expiresAt: Date;
+  expiresAt: Date | null;
   trial: boolean;
+  lifetime: boolean;
 }

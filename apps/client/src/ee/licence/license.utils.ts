@@ -4,10 +4,12 @@ import { differenceInDays, isAfter } from "date-fns";
 export const GRACE_PERIOD_DAYS = 10;
 
 export function isLicenseExpired(license: ILicenseInfo): boolean {
+  if (license.lifetime) return false;
   return isAfter(new Date(), license.expiresAt);
 }
 
 export function daysToExpire(license: ILicenseInfo): number {
+  if (license.lifetime) return Infinity;
   const days = differenceInDays(license.expiresAt, new Date());
   return days > 0 ? days : 0;
 }
