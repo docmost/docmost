@@ -527,6 +527,9 @@ importers:
       '@fastify/static':
         specifier: 10.1.3
         version: 10.1.3
+      '@jmondi/oauth2-server':
+        specifier: ^4.3.7
+        version: 4.3.7
       '@keyv/redis':
         specifier: 5.1.6
         version: 5.1.6(keyv@5.6.0)
@@ -2524,6 +2527,10 @@ packages:
   '@jest/types@30.3.0':
     resolution: {integrity: sha512-JHm87k7bA33hpBngtU8h6UBub/fqqA9uXfw+21j5Hmk7ooPHlboRNxHq0JcMtC+n8VJGP1mcfnD3Mk+XKe1oSw==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  '@jmondi/oauth2-server@4.3.7':
+    resolution: {integrity: sha512-Mo0HHIB/TVRETVSxzvmyclfNPn0HnvSyrLoqvrtlk0z3oWMUr1CFRc7msDNQm6vRJIbRGnCbNKuAwXiNaS6xfw==}
+    engines: {node: '>=16'}
 
   '@joplin/turndown-plugin-gfm@1.0.64':
     resolution: {integrity: sha512-8GJ7f9OenE3zkSVII5B6qzIkvgF7C/a20gaASEjM6jWPLPJFFQ2nQ3Ou/kXH1mPUTs9dC9VYs8QXVPvZabKXBQ==}
@@ -4994,6 +5001,7 @@ packages:
   '@xmldom/xmldom@0.8.13':
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -6322,6 +6330,7 @@ packages:
   eslint@9.28.0:
     resolution: {integrity: sha512-ocgh41VhRlf9+fVpe7QKzwLj9c92fDiqOj8Y3Sd4/ZmVA4Btx4PlUYPq4pp9JDyupkf1upbEXecxL2mwNV7jPQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -12410,6 +12419,12 @@ snapshots:
       '@types/node': 25.5.0
       '@types/yargs': 17.0.35
       chalk: 4.1.2
+
+  '@jmondi/oauth2-server@4.3.7':
+    dependencies:
+      jsonwebtoken: 9.0.3
+      ms: 2.1.3
+      uri-js: 4.4.1
 
   '@joplin/turndown-plugin-gfm@1.0.64': {}
 

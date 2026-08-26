@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
 
+
 const SetupWorkspace = lazy(() => import("@/pages/auth/setup-workspace.tsx"));
 const LoginPage = lazy(() => import("@/pages/auth/login"));
 const Home = lazy(() => import("@/pages/dashboard/home"));
@@ -73,6 +74,7 @@ const FavoritesPage = lazy(() => import("@/pages/favorites/favorites-page"));
 const AiChat = lazy(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
 const VerifyEmail = lazy(() => import("@/ee/pages/verify-email.tsx"));
 const LabelPage = lazy(() => import("@/pages/label/label-page"));
+const OAuthConsent = lazy(() => import("@/ee/oauth/pages/oauth-consent.tsx"));
 
 export default function App() {
   const { t } = useTranslation();
@@ -95,6 +97,7 @@ export default function App() {
         <Route path={"/password-reset"} element={<PasswordReset />} />
         <Route path={"/login/mfa"} element={<MfaChallengePage />} />
         <Route path={"/login/mfa/setup"} element={<MfaSetupRequiredPage />} />
+        <Route path={"/oauth/consent"} element={<OAuthConsent />} />
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
@@ -148,6 +151,10 @@ export default function App() {
               element={<AccountPreferences />}
             />
             <Route path={"account/api-keys"} element={<UserApiKeys />} />
+            <Route
+              path={"account/api-keys/authorized-apps"}
+              element={<UserApiKeys />}
+            />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
             <Route path={"api-keys"} element={<WorkspaceApiKeys />} />

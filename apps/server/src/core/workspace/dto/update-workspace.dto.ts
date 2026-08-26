@@ -76,4 +76,8 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
   @IsBoolean()
   aiChatWorkspaceKnowledgeOnly: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  mcpOauthOnly: boolean;
 }

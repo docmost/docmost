@@ -43,6 +43,7 @@
     "@fastify/cookie": "11.1.2",
     "@fastify/multipart": "10.1.1",
     "@fastify/static": "10.1.3",
+    "@jmondi/oauth2-server": "^4.3.7",
     "@keyv/redis": "5.1.6",
     "@langchain/core": "1.1.46",
     "@langchain/textsplitters": "1.0.1",

@@ -40,6 +40,10 @@ import {
   Watchers,
   Audit as _Audit,
   Templates,
+  OauthClients,
+  OauthAuthorizationCodes,
+  OauthGrants,
+  OauthTokens,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -183,6 +187,13 @@ export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 export type ScimToken = Selectable<ScimTokens>;
 export type InsertableScimToken = Insertable<ScimTokens>;
 export type UpdatableScimToken = Updateable<Omit<ScimTokens, 'id'>>;
+
+// OAuth
+export type OAuthClient = Selectable<OauthClients>;
+export type InsertableOAuthClient = Insertable<OauthClients>;
+export type OAuthGrant = Selectable<OauthGrants>;
+export type OAuthAuthorizationCode = Selectable<OauthAuthorizationCodes>;
+export type OAuthToken = Selectable<OauthTokens>;
 
 // Page Embedding
 export type PageEmbedding = Selectable<PageEmbeddings>;
