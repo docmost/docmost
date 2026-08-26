@@ -4,8 +4,6 @@ import Lightbox, { type Slide } from "yet-another-react-lightbox";
 import type { LightboxRequest } from "@/features/editor/atoms/editor-atoms";
 import { getFileUrl } from "@/lib/config.ts";
 import "yet-another-react-lightbox/styles.css";
-import "yet-another-react-lightbox/plugins/captions.css";
-import Captions from "yet-another-react-lightbox/plugins/captions";
 import Download from "yet-another-react-lightbox/plugins/download";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Video from "yet-another-react-lightbox/plugins/video";
@@ -53,13 +51,11 @@ function getFilename(src: string) {
 function getMedia(rawSrc: string, type?: string, alt?: string): Slide {
   const src = getFileUrl(rawSrc);
   const filename = getFilename(rawSrc);
-  const caption = alt || filename;
 
   if (type === "video") {
     return {
       type: "video",
       sources: [{ src, type: getVideoMimeType(rawSrc) }],
-      title: caption,
       download: { url: src, filename },
     };
   } else {
@@ -67,7 +63,6 @@ function getMedia(rawSrc: string, type?: string, alt?: string): Slide {
       type: "image",
       src,
       alt: alt || undefined,
-      title: caption,
       download: { url: src, filename },
     };
   }
@@ -124,6 +119,11 @@ export default function LightboxView({
 
   const [pageSlides, setPageSlides] = useState<Slide[]>([]);
   const [loadedMediaKey, setLoadedMediaKey] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!open) setIsFullscreen(false);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -161,9 +161,21 @@ export default function LightboxView({
       close={onClose}
       index={index}
       slides={slides}
-      plugins={[Captions, Download, Fullscreen, Video, Zoom]}
-      styles={{ container: { backgroundColor: "rgba(0, 0, 0, 0.8)" } }}
-      captions={{ descriptionTextAlign: "center" }}
+      plugins={[Download, Fullscreen, Video, Zoom]}
+      styles={{
+        container: { backgroundColor: "rgba(0, 0, 0, 0.8)" },
+        icon: { width: 24, height: 24 },
+        toolbar: {
+          margin: 8,
+          borderRadius: 8,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+        },
+      }}
+      controller={{ closeOnBackdropClick: !isFullscreen }}
+      on={{
+        enterFullscreen: () => setIsFullscreen(true),
+        exitFullscreen: () => setIsFullscreen(false),
+      }}
       video={{ controls: true, playsInline: true }}
       zoom={{
         scrollToZoom: true,
