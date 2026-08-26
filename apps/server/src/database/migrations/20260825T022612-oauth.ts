@@ -78,17 +78,9 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema.createIndex('oauth_tokens_access_expires_at_idx').on('oauth_tokens').column('access_expires_at').execute();
   await db.schema.createIndex('oauth_tokens_refresh_expires_at_idx').on('oauth_tokens').column('refresh_expires_at').execute();
   await db.schema.createIndex('oauth_tokens_revoked_at_idx').on('oauth_tokens').column('revoked_at').execute();
-
-  await db.schema
-    .alterTable('workspaces')
-    .addColumn('trusted_oauth_clients', 'jsonb', (col) => col.defaultTo(sql`'[]'::jsonb`))
-    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await sql`ALTER TABLE workspaces DROP COLUMN IF EXISTS trusted_oauth_clients`.execute(
-    db,
-  );
   await db.schema.dropTable('oauth_tokens').execute();
   await db.schema.dropTable('oauth_grants').execute();
   await db.schema.dropTable('oauth_authorization_codes').execute();

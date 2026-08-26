@@ -460,7 +460,6 @@ export interface Workspaces {
   status: string | null;
   stripeCustomerId: string | null;
   trialEndAt: Timestamp | null;
-  trustedOauthClients: Generated<Json | null>;
   updatedAt: Generated<Timestamp>;
 }
 

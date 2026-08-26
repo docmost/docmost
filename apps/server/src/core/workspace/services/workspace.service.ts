@@ -30,10 +30,7 @@ import { DomainService } from '../../../integrations/environment/domain.service'
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
 import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
-import {
-  isAdminActingOnOwner,
-  normalizeTrustedOAuthClients,
-} from '../workspace.util';
+import { isAdminActingOnOwner } from '../workspace.util';
 import { v4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
@@ -317,12 +314,6 @@ export class WorkspaceService {
         .filter(Boolean);
     }
 
-    if (typeof updateWorkspaceDto.trustedOauthClients !== 'undefined') {
-      updateWorkspaceDto.trustedOauthClients = normalizeTrustedOAuthClients(
-        updateWorkspaceDto.trustedOauthClients,
-      );
-    }
-
     if (updateWorkspaceDto.hostname) {
       const hostname = updateWorkspaceDto.hostname;
       if (DISALLOWED_HOSTNAMES.includes(hostname)) {
@@ -344,9 +335,9 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
       typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
       typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
-      typeof updateWorkspaceDto.trustedOauthClients !== 'undefined' ||
       typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
-      typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined'
+      typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined' ||
+      typeof updateWorkspaceDto.mcpOauthOnly !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -374,18 +365,6 @@ export class WorkspaceService {
         }
       }
 
-      if (typeof updateWorkspaceDto.trustedOauthClients !== 'undefined') {
-        if (
-          !this.licenseCheckService.hasFeature(
-            ws.licenseKey,
-            Feature.OAUTH,
-            ws.plan,
-          )
-        ) {
-          throw new ForbiddenException('This feature requires a valid license');
-        }
-      }
-
       if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
         if (
           !this.licenseCheckService.hasFeature(
@@ -406,6 +385,18 @@ export class WorkspaceService {
           !this.licenseCheckService.hasFeature(
             ws.licenseKey,
             Feature.AI_CONTROLS,
+            ws.plan,
+          )
+        ) {
+          throw new ForbiddenException('This feature requires a valid license');
+        }
+      }
+
+      if (typeof updateWorkspaceDto.mcpOauthOnly !== 'undefined') {
+        if (
+          !this.licenseCheckService.hasFeature(
+            ws.licenseKey,
+            Feature.MCP_CONTROLS,
             ws.plan,
           )
         ) {
@@ -583,6 +574,20 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.mcpOauthOnly !== 'undefined') {
+        const prev = settingsBefore?.ai?.mcpOauthOnly ?? false;
+        if (prev !== updateWorkspaceDto.mcpOauthOnly) {
+          before.mcpOauthOnly = prev;
+          after.mcpOauthOnly = updateWorkspaceDto.mcpOauthOnly;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'mcpOauthOnly',
+          updateWorkspaceDto.mcpOauthOnly,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
         const prev = settingsBefore?.spaces?.allowPersonal ?? false;
         if (prev !== updateWorkspaceDto.allowPersonalSpaces) {
@@ -622,6 +627,7 @@ export class WorkspaceService {
       delete updateWorkspaceDto.defaultPageEditMode;
       delete updateWorkspaceDto.aiChatReadOnly;
       delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
+      delete updateWorkspaceDto.mcpOauthOnly;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,
@@ -661,7 +667,6 @@ export class WorkspaceService {
         'enforceMfa',
         'emailDomains',
         'isScimEnabled',
-        'trustedOauthClients',
       ],
       updateWorkspaceDto,
       workspaceBefore,

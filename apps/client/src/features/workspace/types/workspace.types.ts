@@ -27,13 +27,13 @@ export interface IWorkspace {
   mcpEnabled?: boolean;
   aiChatReadOnly?: boolean;
   aiChatWorkspaceKnowledgeOnly?: boolean;
+  mcpOauthOnly?: boolean;
   trashRetentionDays?: number;
   restrictApiToAdmins?: boolean;
   allowMemberTemplates?: boolean;
   allowPersonalSpaces?: boolean;
   defaultPageEditMode?: string;
   isScimEnabled?: boolean;
-  trustedOauthClients?: ITrustedOAuthClient[];
 }
 
 export interface IWorkspaceSettings {
@@ -45,11 +45,6 @@ export interface IWorkspaceSettings {
   defaultPageEditMode?: string;
 }
 
-export interface ITrustedOAuthClient {
-  origin: string;
-  name: string;
-}
-
 export interface IWorkspaceApiSettings {
   restrictToAdmins?: boolean;
 }
@@ -58,6 +53,7 @@ export interface IWorkspaceAiSettings {
   search?: boolean;
   generative?: boolean;
   mcp?: boolean;
+  mcpOauthOnly?: boolean;
   chat?: boolean;
   chatReadOnly?: boolean;
   chatWorkspaceKnowledgeOnly?: boolean;

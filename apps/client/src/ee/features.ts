@@ -24,4 +24,5 @@ export const Feature = {
   BASES: 'bases',
   OAUTH: 'oauth',
   AI_CONTROLS: 'ai:controls',
+  MCP_CONTROLS: 'mcp:controls',
 } as const;

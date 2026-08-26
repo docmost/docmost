@@ -311,7 +311,7 @@ function ConsentCard({ info, currentUser, params }: ConsentCardProps) {
           <Stack gap="xs">
             <Text size="sm">
               {t(
-                "This application is not on your workspace's trusted list. Authorize only if you recognize it.",
+                "Make sure you trust this application before authorizing it.",
               )}
             </Text>
             <Checkbox
@@ -321,7 +321,7 @@ function ConsentCard({ info, currentUser, params }: ConsentCardProps) {
               onChange={(event) =>
                 setAcknowledged(event.currentTarget.checked)
               }
-              label={t("I recognize this application and want to continue")}
+              label={t("I trust this application and want to continue")}
             />
           </Stack>
         </Alert>

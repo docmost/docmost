@@ -1,9 +1,8 @@
 import {
   Anchor,
-  Button,
+  Badge,
   Group,
   List,
-  Table,
   Text,
   Switch,
   TextInput,
@@ -17,32 +16,13 @@ import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import React, { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
-import { ITrustedOAuthClient } from "@/features/workspace/types/workspace.types.ts";
 import { notifications } from "@mantine/notifications";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { getAppUrl } from "@/lib/config.ts";
-import {
-  IconCheck,
-  IconCopy,
-  IconInfoCircle,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
 import { CopyButton } from "@/components/common/copy-button.tsx";
-
-// Mirrors the server rule: an exact https origin, tolerating only a trailing slash.
-function parseTrustedOrigin(value: string): string | null {
-  const input = value.trim().toLowerCase();
-  try {
-    const url = new URL(input);
-    if (url.protocol !== "https:") return null;
-    if (input !== url.origin && input !== `${url.origin}/`) return null;
-    return url.origin;
-  } catch {
-    return null;
-  }
-}
 
 export default function McpSettings() {
   const { t } = useTranslation();
@@ -51,14 +31,7 @@ export default function McpSettings() {
   const hasAccess = useHasFeature(Feature.MCP);
   const upgradeLabel = useUpgradeLabel();
 
-  const [newClientName, setNewClientName] = useState("");
-  const [newClientOrigin, setNewClientOrigin] = useState("");
-
   const mcpUrl = `${getAppUrl()}/mcp`;
-  const storedTrustedClients = workspace?.trustedOauthClients;
-  const trustedClients = Array.isArray(storedTrustedClients)
-    ? storedTrustedClients
-    : [];
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
@@ -72,51 +45,6 @@ export default function McpSettings() {
         color: "red",
       });
     }
-  };
-
-  const saveTrustedClients = async (next: ITrustedOAuthClient[]) => {
-    try {
-      const updatedWorkspace = await updateWorkspace({
-        trustedOauthClients: next,
-      });
-      setWorkspace(updatedWorkspace);
-      return true;
-    } catch (err) {
-      notifications.show({
-        message: err?.response?.data?.message,
-        color: "red",
-      });
-      return false;
-    }
-  };
-
-  const handleAddTrustedClient = async () => {
-    const name = newClientName.trim();
-    const origin = parseTrustedOrigin(newClientOrigin);
-    if (!origin) {
-      notifications.show({
-        message: t("Enter the app's callback origin, e.g. https://app.yourcompany.com"),
-        color: "red",
-      });
-      return;
-    }
-    if (trustedClients.some((client) => client.origin.toLowerCase() === origin)) {
-      notifications.show({
-        message: t("This origin is already trusted."),
-        color: "red",
-      });
-      return;
-    }
-    if (await saveTrustedClients([...trustedClients, { origin, name }])) {
-      setNewClientName("");
-      setNewClientOrigin("");
-    }
-  };
-
-  const handleRemoveTrustedClient = (origin: string) => {
-    void saveTrustedClients(
-      trustedClients.filter((client) => client.origin !== origin),
-    );
   };
 
   return (
@@ -180,10 +108,10 @@ export default function McpSettings() {
             </CopyButton>
           </Group>
           <Text size="sm" c="dimmed" mt="xs">
-            {t(
-              "Connect with your Docmost account via OAuth when your client supports it, or use an API key from your account settings.",
-            )}
+            {t("Connect AI assistants with your Docmost account via OAuth.")}
           </Text>
+
+          <McpOauthOnlySetting />
 
           <div>
             <Text size="sm" fw={500} mt="md" mb={4}>
@@ -222,83 +150,61 @@ export default function McpSettings() {
               </List.Item>
             </List>
           </div>
-
-          <div>
-            <Text size="sm" fw={500} mt="md" mb={4}>
-              {t("Trusted applications")}
-            </Text>
-            <Text size="sm" c="dimmed" mb="xs">
-              {t(
-                "Applications with these callback origins are trusted. Members will not see a warning when authorizing them.",
-              )}
-            </Text>
-
-            {trustedClients.length > 0 && (
-              <Table verticalSpacing="xs" mb="xs">
-                <Table.Tbody>
-                  {trustedClients.map((client) => (
-                    <Table.Tr key={client.origin}>
-                      <Table.Td>
-                        <Text size="sm" fw={500}>
-                          {client.name}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm" c="dimmed">
-                          {client.origin}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td w={40}>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          aria-label={t("Remove {{name}}", {
-                            name: client.name,
-                          })}
-                          onClick={() =>
-                            handleRemoveTrustedClient(client.origin)
-                          }
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            )}
-
-            <Group gap="xs">
-              <TextInput
-                value={newClientName}
-                onChange={(event) =>
-                  setNewClientName(event.currentTarget.value)
-                }
-                placeholder={t("Name")}
-                aria-label={t("Trusted application name")}
-                maxLength={64}
-                style={{ flex: 1 }}
-              />
-              <TextInput
-                value={newClientOrigin}
-                onChange={(event) =>
-                  setNewClientOrigin(event.currentTarget.value)
-                }
-                placeholder="https://app.yourcompany.com"
-                aria-label={t("Trusted application origin")}
-                style={{ flex: 2 }}
-              />
-              <Button
-                variant="default"
-                onClick={handleAddTrustedClient}
-                disabled={!newClientName.trim() || !newClientOrigin.trim()}
-              >
-                {t("Add")}
-              </Button>
-            </Group>
-          </div>
         </div>
       )}
     </Stack>
+  );
+}
+
+function McpOauthOnlySetting() {
+  const { t } = useTranslation();
+  const [workspace, setWorkspace] = useAtom(workspaceAtom);
+  const [checked, setChecked] = useState(workspace?.settings?.ai?.mcpOauthOnly);
+  const hasAccess = useHasFeature(Feature.MCP_CONTROLS);
+  const upgradeLabel = useUpgradeLabel();
+
+  const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.currentTarget.checked;
+    try {
+      const updatedWorkspace = await updateWorkspace({ mcpOauthOnly: value });
+      setChecked(value);
+      setWorkspace(updatedWorkspace);
+    } catch (err) {
+      notifications.show({
+        message: err?.response?.data?.message,
+        color: "red",
+      });
+    }
+  };
+
+  return (
+    <Group justify="space-between" wrap="nowrap" gap="xl" mt="md">
+      <div>
+        <Group gap="xs" align="center">
+          <Text size="sm" fw={500}>
+            {t("Require OAuth")}
+          </Text>
+          {!hasAccess && (
+            <Badge variant="light" size="sm" radius="sm">
+              {t("Enterprise")}
+            </Badge>
+          )}
+        </Group>
+        <Text size="sm" c="dimmed">
+          {t(
+            "AI assistants must connect with a Docmost account via OAuth. API keys cannot be used with the MCP server.",
+          )}
+        </Text>
+      </div>
+
+      <Tooltip label={upgradeLabel} disabled={hasAccess} refProp="rootRef">
+        <Switch
+          defaultChecked={checked}
+          onChange={handleChange}
+          disabled={!hasAccess}
+          aria-label={t("Toggle require OAuth for MCP")}
+        />
+      </Tooltip>
+    </Group>
   );
 }
