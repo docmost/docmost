@@ -134,19 +134,12 @@ export class PageController {
 
     await this.pageAccessService.validateCanEdit(page, user);
 
-    return this.labelService.addLabelsToPage(
-      page.id,
-      dto.names,
-      workspace.id,
-    );
+    return this.labelService.addLabelsToPage(page.id, dto.names, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('labels/remove')
-  async removePageLabel(
-    @Body() dto: RemoveLabelDto,
-    @AuthUser() user: User,
-  ) {
+  async removePageLabel(@Body() dto: RemoveLabelDto, @AuthUser() user: User) {
     const page = await this.pageRepo.findById(dto.pageId);
     if (!page || page.deletedAt) {
       throw new NotFoundException('Page not found');
@@ -448,17 +441,19 @@ export class PageController {
     const targetUserId = dto.userId ?? user.id;
 
     if (dto.spaceId) {
-      const ability = await this.spaceAbility.createForUser(
-        user,
-        dto.spaceId,
-      );
+      const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
 
       if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
         throw new ForbiddenException();
       }
     }
 
-    return this.pageService.getCreatedByPages(targetUserId, user.id, pagination, dto.spaceId);
+    return this.pageService.getCreatedByPages(
+      targetUserId,
+      user.id,
+      pagination,
+      dto.spaceId,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -746,6 +741,15 @@ export class PageController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    return this.pageService.getPageBreadCrumbs(page.id);
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    const spaceCanEdit = ability.can(
+      SpaceCaslAction.Edit,
+      SpaceCaslSubject.Page,
+    );
+
+    return this.pageService.getPageBreadCrumbs(page.id, {
+      userId: user.id,
+      spaceCanEdit,
+    });
   }
 }

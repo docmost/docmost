@@ -129,24 +129,27 @@ export class PageService {
       ydoc = createYdocFromJson(prosemirrorJson);
     }
 
-    const page = await this.pageRepo.insertPage({
-      slugId: generateSlugId(),
-      title: createPageDto.title,
-      position: await this.nextPagePosition(
-        createPageDto.spaceId,
-        parentPageId,
-      ),
-      icon: createPageDto.icon,
-      parentPageId: parentPageId,
-      spaceId: createPageDto.spaceId,
-      creatorId: userId,
-      workspaceId: workspaceId,
-      lastUpdatedById: userId,
-      isBase,
-      content,
-      textContent,
-      ydoc,
-    }, trx);
+    const page = await this.pageRepo.insertPage(
+      {
+        slugId: generateSlugId(),
+        title: createPageDto.title,
+        position: await this.nextPagePosition(
+          createPageDto.spaceId,
+          parentPageId,
+        ),
+        icon: createPageDto.icon,
+        parentPageId: parentPageId,
+        spaceId: createPageDto.spaceId,
+        creatorId: userId,
+        workspaceId: workspaceId,
+        lastUpdatedById: userId,
+        isBase,
+        content,
+        textContent,
+        ydoc,
+      },
+      trx,
+    );
 
     if (trx) {
       // Add the watcher inside the caller's transaction so the async worker
@@ -852,7 +855,10 @@ export class PageService {
     );
   }
 
-  async getPageBreadCrumbs(childPageId: string) {
+  async getPageBreadCrumbs(
+    childPageId: string,
+    opts?: { userId?: string; spaceCanEdit?: boolean },
+  ) {
     const ancestors = await this.db
       .withRecursive('page_ancestors', (db) =>
         db
@@ -903,7 +909,40 @@ export class PageService {
       )
       .execute();
 
-    return ancestors.reverse();
+    const rows = ancestors.reverse() as Array<
+      (typeof ancestors)[number] & { canEdit?: boolean }
+    >;
+
+    // Attach the requesting user's effective edit permission so clients can
+    // build sidebar nodes that carry a correct canEdit flag (e.g. to disable
+    // drag-and-drop of read-only pages). Mirrors getSidebarPages.
+    if (opts?.userId && rows.length > 0) {
+      const spaceId = rows[0].spaceId;
+      const spaceCanEdit = opts.spaceCanEdit ?? true;
+      const hasRestrictions =
+        await this.pagePermissionRepo.hasRestrictedPagesInSpace(spaceId);
+
+      if (!hasRestrictions) {
+        for (const row of rows) {
+          row.canEdit = spaceCanEdit;
+        }
+      } else {
+        const accessiblePages =
+          await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+            rows.map((row) => row.id),
+            opts.userId,
+          );
+        const permissionMap = new Map(
+          accessiblePages.map((p) => [p.id, p.canEdit]),
+        );
+
+        for (const row of rows) {
+          row.canEdit = permissionMap.get(row.id) && spaceCanEdit;
+        }
+      }
+    }
+
+    return rows;
   }
 
   async getRecentSpacePages(
