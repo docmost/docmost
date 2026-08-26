@@ -15,9 +15,11 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
           connection: {
             host: redisConfig.host,
             port: redisConfig.port,
+            username: redisConfig.username,
             password: redisConfig.password,
             db: redisConfig.db,
             family: redisConfig.family,
+            tls: redisConfig.tls,
             retryStrategy: createRetryStrategy(),
           },
           defaultJobOptions: {

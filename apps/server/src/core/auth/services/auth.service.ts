@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -40,9 +41,13 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private signupService: SignupService,
     private tokenService: TokenService,
@@ -53,6 +58,7 @@ export class AuthService {
     private mailService: MailService,
     private domainService: DomainService,
     private environmentService: EnvironmentService,
+    private eventEmitter: EventEmitter2,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -260,6 +266,19 @@ export class AuthService {
     });
 
     await this.userSessionRepo.deleteByUserId(user.id, workspace.id);
+
+    // A failed revocation must not block the reset itself; log loudly instead.
+    try {
+      await this.eventEmitter.emitAsync(EventName.USER_PASSWORD_RESET, {
+        userId: user.id,
+        workspaceId: workspace.id,
+      });
+    } catch (err) {
+      this.logger.error(
+        `failed to revoke oauth grants for user ${user.id} after password reset`,
+        err,
+      );
+    }
 
     this.auditService.setActorId(user.id);
     this.auditService.log({
