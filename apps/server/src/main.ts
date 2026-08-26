@@ -13,7 +13,10 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyIp from 'fastify-ip';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
 import { EnvironmentService } from './integrations/environment/environment.service';
-import { resolveFrameHeader } from './common/helpers';
+import {
+  resolveFrameHeader,
+  resolveFrameHeadersForPath,
+} from './common/helpers';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -39,7 +42,14 @@ async function bootstrap() {
   app.useLogger(app.get(PinoLogger));
 
   app.setGlobalPrefix('api', {
-    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug', 'mcp'],
+    exclude: [
+      'robots.txt',
+      'share/:shareId/p/:pageSlug',
+      'mcp',
+      '.well-known/oauth-authorization-server',
+      '.well-known/oauth-protected-resource',
+      '.well-known/oauth-protected-resource/mcp',
+    ],
   });
 
   const reflector = app.get(Reflector);
@@ -57,22 +67,24 @@ async function bootstrap() {
     environmentService.isIframeEmbedAllowed(),
     environmentService.getIframeAllowedOrigins(),
   );
-  if (frameHeader) {
-    // Skipped routes:
-    //   /api/files/ - attachment controller sets its own CSP we'd overwrite
-    //   /share/     0 public share pages are safe to embed
-    const frameHeaderSkippedPrefixes = ['/api/files/', '/share/'];
-    app
-      .getHttpAdapter()
-      .getInstance()
-      .addHook('onSend', (req, reply, payload, done) => {
-        if (frameHeaderSkippedPrefixes.some((p) => req.url.startsWith(p))) {
-          return done(null, payload);
-        }
-        reply.header(frameHeader.name, frameHeader.value);
-        done(null, payload);
-      });
-  }
+  // Skipped routes:
+  //   /api/files/ - attachment controller sets its own CSP we'd overwrite
+  //   /share/     - public share pages are safe to embed
+  const frameHeaderSkippedPrefixes = ['/api/files/', '/share/'];
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onSend', (req, reply, payload, done) => {
+      if (frameHeaderSkippedPrefixes.some((p) => req.url.startsWith(p))) {
+        return done(null, payload);
+      }
+      const path = req.url.split('?')[0];
+      // Force-denies the oauth consent screen even when the global frame header is absent.
+      for (const header of resolveFrameHeadersForPath(path, frameHeader)) {
+        reply.header(header.name, header.value);
+      }
+      done(null, payload);
+    });
 
   app
     .getHttpAdapter()

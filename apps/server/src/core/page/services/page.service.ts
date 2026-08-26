@@ -446,10 +446,9 @@ export class PageService {
       }
 
       if (pageIdsToMove.length > 0) {
-        // Clear page-level permissions - moved pages inherit destination space permissions
-        // (page_permissions cascade deletes via foreign key)
         await trx
-          .deleteFrom('pageAccess')
+          .updateTable('pageAccess')
+          .set({ spaceId: spaceId })
           .where('pageId', 'in', pageIdsToMove)
           .execute();
 
@@ -497,10 +496,21 @@ export class PageService {
           },
         );
 
-        await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
-          pageIds: pageIdsToMove,
-          workspaceId: rootPage.workspaceId,
-        });
+        await this.aiQueue.add(
+          QueueJob.PAGE_MOVED_TO_SPACE,
+          {
+            pageIds: pageIdsToMove,
+            spaceId,
+            workspaceId: rootPage.workspaceId,
+          },
+          {
+            attempts: 2,
+            backoff: {
+              type: 'fixed',
+              delay: 2 * 60 * 1000,
+            },
+          },
+        );
       }
     });
 
@@ -809,6 +819,10 @@ export class PageService {
       generateJitteredKeyBetween(dto.position, null);
     } catch (err) {
       throw new BadRequestException('Invalid move position');
+    }
+
+    if (dto.parentPageId && dto.parentPageId === dto.pageId) {
+      throw new BadRequestException('A page cannot be its own parent');
     }
 
     let parentPageId = null;

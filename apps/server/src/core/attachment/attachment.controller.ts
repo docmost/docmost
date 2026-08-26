@@ -24,6 +24,7 @@ import * as bytes from 'bytes';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
 import { StorageService } from '../../integrations/storage/storage.service';
 import {
@@ -53,8 +54,14 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
-import { AttachmentInfoDto, RemoveIconDto } from './dto/attachment.dto';
+import {
+  AttachmentInfoDto,
+  PageIdDto,
+  RemoveIconDto,
+} from './dto/attachment.dto';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PageAccessService } from '../page/page-access/page-access.service';
+import { DomainService } from '../../integrations/environment/domain.service';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import {
   AUDIT_SERVICE,
@@ -75,6 +82,7 @@ export class AttachmentController {
     private readonly environmentService: EnvironmentService,
     private readonly tokenService: TokenService,
     private readonly pageAccessService: PageAccessService,
+    private readonly domainService: DomainService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
@@ -151,7 +159,10 @@ export class AttachmentController {
         },
       });
 
-      return res.send(fileResponse);
+      return res.send({
+        ...fileResponse,
+        url: this.buildFileUrl(workspace, fileResponse),
+      });
     } catch (err: any) {
       if (err?.statusCode === 413) {
         const errMessage = `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`;
@@ -165,6 +176,7 @@ export class AttachmentController {
 
   @UseGuards(JwtAuthGuard)
   @Get('/files/:fileId/:fileName')
+  @OAuthScope('read')
   async getFile(
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
@@ -411,7 +423,38 @@ export class AttachmentController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    return attachment;
+    return { ...attachment, url: this.buildFileUrl(workspace, attachment) };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('pages/attachments')
+  @OAuthScope('read')
+  async getPageAttachments(
+    @Body() dto: PageIdDto,
+    @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.workspaceId !== workspace.id) {
+      throw new NotFoundException('Page not found');
+    }
+
+    await this.pageAccessService.validateCanView(page, user);
+
+    const result = await this.attachmentRepo.findPageAttachments(
+      page.id,
+      pagination,
+    );
+
+    return {
+      ...result,
+      items: result.items.map((attachment) => ({
+        ...attachment,
+        url: this.buildFileUrl(workspace, attachment),
+      })),
+    };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -463,6 +506,10 @@ export class AttachmentController {
       await this.attachmentService.removeWorkspaceIcon(workspace);
       return;
     }
+  }
+
+  private buildFileUrl(workspace: Workspace, attachment: Attachment): string {
+    return `${this.domainService.getUrl(workspace.hostname)}/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`;
   }
 
   private async sendFileResponse(

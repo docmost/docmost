@@ -636,6 +636,63 @@ export interface UserSessions {
   createdAt: Generated<Timestamp>;
 }
 
+export interface OauthAuthorizationCodes {
+  clientId: string;
+  codeChallenge: string | null;
+  codeChallengeMethod: string | null;
+  codeHash: string;
+  consumedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  id: Generated<string>;
+  redirectUri: string;
+  scopes: Json;
+  userId: string;
+  workspaceId: string;
+}
+
+export interface OauthClients {
+  clientUri: string | null;
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  grantTypes: Json;
+  id: Generated<string>;
+  isDynamic: Generated<boolean>;
+  logoUri: string | null;
+  name: string;
+  redirectUris: Json;
+  scopes: Json;
+  secretHash: string | null;
+  tokenEndpointAuthMethod: Generated<string>;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface OauthGrants {
+  clientId: string;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  lastUsedAt: Timestamp | null;
+  revokedAt: Timestamp | null;
+  scopes: Json;
+  updatedAt: Generated<Timestamp>;
+  userId: string;
+  workspaceId: string;
+}
+
+export interface OauthTokens {
+  accessExpiresAt: Timestamp;
+  accessTokenJti: string;
+  createdAt: Generated<Timestamp>;
+  grantId: string;
+  id: Generated<string>;
+  refreshExpiresAt: Timestamp | null;
+  refreshTokenHash: string | null;
+  revokedAt: Timestamp | null;
+  scopes: Json;
+  workspaceId: string;
+}
+
 export interface DB {
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
@@ -677,4 +734,8 @@ export interface DB {
   watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
+  oauthAuthorizationCodes: OauthAuthorizationCodes;
+  oauthClients: OauthClients;
+  oauthGrants: OauthGrants;
+  oauthTokens: OauthTokens;
 }

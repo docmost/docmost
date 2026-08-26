@@ -1,7 +1,7 @@
-FROM node:22-slim AS base
+FROM node:26-slim AS base
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
-RUN npm install -g pnpm@10.4.0
+RUN npm install -g pnpm@11.23.0
 
 FROM base AS builder
 
@@ -17,6 +17,15 @@ FROM base AS installer
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl bash \
   && rm -rf /var/lib/apt/lists/*
+
+# drop npm and corepack
+RUN rm -rf /usr/local/lib/node_modules/npm \
+  && rm -rf /usr/local/lib/node_modules/corepack \
+  && rm -rf /usr/local/bin/npm \
+  && rm -rf /usr/local/bin/npx \
+  && rm -rf /usr/local/bin/corepack \
+  && rm -rf /root/.npm \
+  && rm -rf /root/.node-gyp
 
 WORKDIR /app
 
@@ -34,7 +43,6 @@ COPY --from=builder /app/packages/base-formula/package.json /app/packages/base-f
 # Copy root package files
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/pnpm*.yaml /app/
-COPY --from=builder /app/.npmrc /app/.npmrc
 
 # Copy patches
 COPY --from=builder /app/patches /app/patches
@@ -43,7 +51,7 @@ RUN chown -R node:node /app
 
 USER node
 
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod && rm -rf /home/node/.cache/pnpm
 
 RUN mkdir -p /app/data/storage
 

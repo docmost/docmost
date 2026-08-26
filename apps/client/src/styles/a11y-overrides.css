@@ -33,3 +33,31 @@
   color: var(--mantine-color-dimmed);
   -webkit-text-fill-color: var(--mantine-color-dimmed);
 }
+
+/* Spotlight's selected action ships as primary-filled blue with white text,
+ * but our custom action children (gray badge, dimmed snippet, gray icons)
+ * keep their light-surface colors on it and drop below WCAG AA 4.5:1
+ * (WCAG 1.4.3). Use a gray selection one step above the gray-0/dark-6
+ * hover instead - it matches the app's selection styling (we use no blue
+ * fills) and keeps every child at its already-passing resting contrast.
+ */
+.mantine-Spotlight-action[data-selected] {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  color: var(--mantine-color-text);
+  --action-description-color: var(--mantine-color-dimmed);
+  --action-description-opacity: 1;
+}
+
+/* Result actions are tab stops (tabIndex restored via ref); give keyboard
+ * focus the same gray treatment as arrow-key selection so both navigation
+ * modes read identically (WCAG 2.4.7 focus visible).
+ */
+.mantine-Spotlight-action:focus-visible {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+}

@@ -1,7 +1,7 @@
 .history {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
-  padding: var(--mantine-spacing-md);
   color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
 
   @mixin hover {
@@ -10,6 +10,28 @@
       var(--mantine-color-dark-8)
     );
   }
+}
+
+.historyButton {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+}
+
+.compareCheckbox {
+  padding-left: var(--mantine-spacing-xs);
+}
+
+.itemMenu {
+  opacity: 0;
+  margin-right: var(--mantine-spacing-xs);
+}
+
+.history:hover .itemMenu,
+.history:focus-within .itemMenu,
+.history.active .itemMenu,
+.itemMenu[aria-expanded="true"] {
+  opacity: 1;
 }
 
 .historyEditor {
@@ -76,4 +98,9 @@
 .sidebarRightSection {
   flex: 1;
   padding: rem(16px) rem(40px);
+}
+
+.compareBanner {
+  border-bottom: rem(1px) solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 }

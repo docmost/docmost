@@ -7,6 +7,7 @@ export enum JwtType {
   API_KEY = 'api_key',
   PDF_RENDER = 'pdf_render',
   PDF_EXPORT_DOWNLOAD = 'pdf_export_download',
+  OAUTH_ACCESS = 'oauth_access',
 }
 export type JwtPayload = {
   sub: string;
@@ -58,4 +59,15 @@ export type JwtPdfExportDownloadPayload = {
   fileTaskId: string;
   workspaceId: string;
   type: 'pdf_export_download';
+};
+
+export type JwtOAuthPayload = {
+  sub: string;
+  workspaceId: string;
+  grantId: string;
+  scope: string;
+  aud: string;
+  iss: string;
+  jti: string;
+  type: JwtType.OAUTH_ACCESS;
 };

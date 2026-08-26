@@ -17,6 +17,7 @@ import {
 } from './dto/search.dto';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import {
@@ -42,6 +43,7 @@ export class SearchController {
 
   @HttpCode(HttpStatus.OK)
   @Post()
+  @OAuthScope('read')
   async pageSearch(
     @Body() searchDto: SearchDTO,
     @AuthUser() user: User,
@@ -75,6 +77,7 @@ export class SearchController {
 
   @HttpCode(HttpStatus.OK)
   @Post('suggest')
+  @OAuthScope('read')
   async searchSuggestions(
     @Body() dto: SearchSuggestionDTO,
     @AuthUser() user: User,

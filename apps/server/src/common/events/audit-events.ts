@@ -23,6 +23,11 @@ export const AuditEvent = {
   API_KEY_UPDATED: 'api_key.updated',
   API_KEY_DELETED: 'api_key.deleted',
 
+  // OAuth
+  OAUTH_CLIENT_REGISTERED: 'oauth_client.registered',
+  OAUTH_GRANT_CREATED: 'oauth_grant.created',
+  OAUTH_GRANT_REVOKED: 'oauth_grant.revoked',
+
   // SCIM Tokens
   SCIM_TOKEN_CREATED: 'scim_token.created',
   SCIM_TOKEN_UPDATED: 'scim_token.updated',
@@ -124,6 +129,8 @@ export const AuditResource = {
   COMMENT: 'comment',
   SHARE: 'share',
   API_KEY: 'api_key',
+  OAUTH_CLIENT: 'oauth_client',
+  OAUTH_GRANT: 'oauth_grant',
   SCIM_TOKEN: 'scim_token',
   SSO_PROVIDER: 'sso_provider',
   WORKSPACE_INVITATION: 'workspace_invitation',
