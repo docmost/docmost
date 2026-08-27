@@ -106,3 +106,19 @@ describe('rankRole', () => {
     expect(rankRole('nonsense')).toBe(0);
   });
 });
+
+describe("empty Google results are not treated as authoritative", () => {
+  // Guards the misconfiguration case: a scoping or permission error looks
+  // identical to "this user is in no groups", and must not strip access.
+  it("still computes removals normally when the group list is non-empty", () => {
+    const result = reconcileGroupMembers({
+      desiredUserIds: [],
+      syncedMemberIds: ["a"],
+      manualMemberIds: [],
+    });
+
+    // reconcile itself is pure; the empty-list guard lives in the caller,
+    // so this documents that reconcile alone WOULD remove.
+    expect(result.toRemove).toEqual(["a"]);
+  });
+});

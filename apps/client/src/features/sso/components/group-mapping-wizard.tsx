@@ -15,7 +15,11 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconInfoCircle, IconWand } from "@tabler/icons-react";
+import {
+  IconAlertTriangle,
+  IconInfoCircle,
+  IconWand,
+} from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useGetGroupsQuery } from "@/features/group/queries/group-query.ts";
 import { IGroup } from "@/features/group/types/group.types.ts";
@@ -170,6 +174,17 @@ export default function GroupMappingWizard() {
                 "Leave a row blank to skip it. Existing members you added by hand are never removed.",
               )}
             </Text>
+
+            <Alert
+              variant="light"
+              color="yellow"
+              icon={<IconAlertTriangle />}
+              mb="sm"
+            >
+              {t(
+                "Assigning a role only ever raises it. Removing someone from the Google group will not lower their role again, so grant Admin sparingly.",
+              )}
+            </Alert>
 
             <ScrollArea.Autosize mah={360}>
               <Table verticalSpacing="xs">

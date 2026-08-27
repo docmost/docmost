@@ -1,6 +1,11 @@
 import { Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
+  // Adding a NOT NULL column with a default is metadata-only on PG 11+, so
+  // there is no rewrite — but the brief ACCESS EXCLUSIVE lock can still queue
+  // behind a long reader. Fail fast rather than blocking writes.
+  await sql`SET LOCAL lock_timeout = '5s'`.execute(db);
+
   // Track how a group membership came to exist. Existing rows default to
   // 'manual' so nothing already in the database can ever be auto-removed
   // by a sync.
@@ -15,6 +20,20 @@ export async function up(db: Kysely<any>): Promise<void> {
     .alterTable('group_users')
     .addColumn('synced_at', 'timestamptz')
     .execute();
+
+  await sql`
+    ALTER TABLE group_users
+    ADD CONSTRAINT group_users_source_check
+    CHECK (source IN ('manual', 'google'))
+  `.execute(db);
+
+  // Stops two concurrent first-visits to the settings page from creating two
+  // Google provider rows, which would make lookups nondeterministic.
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_providers_workspace_type
+    ON auth_providers (workspace_id, type)
+    WHERE type = 'google' AND deleted_at IS NULL
+  `.execute(db);
 
   await db.schema
     .createTable('auth_provider_group_mappings')
@@ -64,6 +83,10 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('auth_provider_group_mappings').execute();
+  await sql`DROP INDEX IF EXISTS idx_auth_providers_workspace_type`.execute(db);
+  await sql`
+    ALTER TABLE group_users DROP CONSTRAINT IF EXISTS group_users_source_check
+  `.execute(db);
   await db.schema.alterTable('group_users').dropColumn('synced_at').execute();
   await db.schema.alterTable('group_users').dropColumn('source').execute();
 }

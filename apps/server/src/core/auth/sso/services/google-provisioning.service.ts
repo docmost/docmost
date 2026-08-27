@@ -17,6 +17,13 @@ import { WorkspaceService } from '../../../workspace/services/workspace.service'
 import { GroupUserService } from '../../../group/services/group-user.service';
 import { nanoIdGen } from '../../../../common/helpers/nanoid.utils';
 import { GoogleIdentity } from './google-oauth.service';
+
+/** Thrown when Google identity matches a privileged password account. */
+export class PrivilegedLinkBlockedError extends Error {
+  constructor() {
+    super('Cannot link a Google account to an existing admin account.');
+  }
+}
 import { MembershipSource } from '../sso.constants';
 
 /** Higher wins. Used to make role mapping promote-only. */
@@ -118,7 +125,22 @@ export class GoogleProvisioningService {
     );
 
     if (existing) {
-      await this.linkAccount(existing.id, provider.id, identity.sub, workspace.id);
+      // Refuse to take over a privileged account that has its own password.
+      // Matching on a verified Google email only proves control of the
+      // mailbox, which is a weaker claim than that account's own credentials.
+      if (
+        !existing.hasGeneratedPassword &&
+        (existing.role === UserRole.OWNER || existing.role === UserRole.ADMIN)
+      ) {
+        throw new PrivilegedLinkBlockedError();
+      }
+
+      await this.linkAccount(
+        existing.id,
+        provider.id,
+        identity.sub,
+        workspace.id,
+      );
       return existing;
     }
 
@@ -129,6 +151,10 @@ export class GoogleProvisioningService {
     return this.provisionUser(identity, provider, workspace);
   }
 
+  /**
+   * Raised when a Google identity matches an existing admin/owner who signs in
+   * with a password. Linking is refused rather than silently allowed.
+   */
   private async linkAccount(
     userId: string,
     authProviderId: string,
@@ -198,43 +224,50 @@ export class GoogleProvisioningService {
     const mappings = await this.mappingRepo.findByProvider(provider.id);
     if (mappings.length === 0) return;
 
+    // An empty result is ambiguous: genuine non-membership looks identical to
+    // a scoping or permission misconfiguration. Add-only in that case, so a
+    // misconfigured service account cannot strip everyone's groups.
+    const removalsAllowed = googleGroupEmails.length > 0;
+
     const memberOf = new Set(googleGroupEmails.map((e) => e.toLowerCase()));
     const currentGroupIds = new Set(
       await this.groupUserRepo.getUserGroupIds(user.id),
     );
 
-    const matched: AuthProviderGroupMapping[] = [];
+    const matched = mappings.filter((m) =>
+      memberOf.has(m.externalGroupKey.toLowerCase()),
+    );
 
-    for (const mapping of mappings) {
-      const inGoogleGroup = memberOf.has(
-        mapping.externalGroupKey.toLowerCase(),
+    // Several Google groups may target the same Docmost group. Decide per
+    // target group, not per mapping, or two mappings would undo each other.
+    const desiredGroupIds = new Set(matched.map((m) => m.groupId));
+    const mappedGroupIds = new Set(mappings.map((m) => m.groupId));
+
+    for (const groupId of desiredGroupIds) {
+      if (currentGroupIds.has(groupId)) continue;
+      await this.groupUserService.addUsersToGroupBatch(
+        [user.id],
+        groupId,
+        user.workspaceId,
+        undefined,
+        { source: MembershipSource.GOOGLE },
       );
+    }
 
-      if (inGoogleGroup) {
-        matched.push(mapping);
-        if (!currentGroupIds.has(mapping.groupId)) {
-          await this.groupUserService.addUsersToGroupBatch(
-            [user.id],
-            mapping.groupId,
-            user.workspaceId,
-            undefined,
-            { source: MembershipSource.GOOGLE },
-          );
-        }
-        continue;
-      }
+    for (const groupId of mappedGroupIds) {
+      if (!removalsAllowed) break;
+      if (desiredGroupIds.has(groupId)) continue;
 
-      // Not in the Google group any more: drop the membership, but only if
-      // sync is the one that created it.
+      // Drop it only if sync created it; a manual membership stays put.
       const membership = await this.groupUserRepo.getGroupUserById(
         user.id,
-        mapping.groupId,
+        groupId,
       );
 
       if (membership?.source === MembershipSource.GOOGLE) {
         await this.groupUserService.removeUsersFromGroupBatch(
           [user.id],
-          mapping.groupId,
+          groupId,
         );
       }
     }
@@ -275,6 +308,9 @@ export class GoogleProvisioningService {
   ): Promise<{ added: number; removed: number; skipped: number }> {
     const normalized = memberEmails.map((e) => e.toLowerCase());
 
+    // See syncUser: an empty member list is not trusted to mean "empty group".
+    const removalsAllowed = normalized.length > 0;
+
     const matchedUsers = normalized.length
       ? await this.db
           .selectFrom('users')
@@ -311,7 +347,7 @@ export class GoogleProvisioningService {
       );
     }
 
-    if (toRemove.length) {
+    if (removalsAllowed && toRemove.length) {
       await this.groupUserService.removeUsersFromGroupBatch(
         toRemove,
         mapping.groupId,
@@ -333,7 +369,7 @@ export class GoogleProvisioningService {
 
     return {
       added: toAdd.length,
-      removed: toRemove.length,
+      removed: removalsAllowed ? toRemove.length : 0,
       skipped: normalized.length - matchedUsers.length,
     };
   }

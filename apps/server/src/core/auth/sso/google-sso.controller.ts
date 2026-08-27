@@ -21,16 +21,25 @@ import { TokenService } from '../services/token.service';
 import { JwtType } from '../dto/jwt-payload';
 import { GoogleOauthService } from './services/google-oauth.service';
 import { GoogleGroupsService } from './services/google-groups.service';
-import { GoogleProvisioningService } from './services/google-provisioning.service';
+import {
+  GoogleProvisioningService,
+  PrivilegedLinkBlockedError,
+} from './services/google-provisioning.service';
 import { GoogleCallbackDto, GoogleLoginDto } from './dto/google-sso.dto';
 import { safeRedirectPath } from './sso.util';
 import { validateAllowedEmail } from '../auth.util';
+import { isUserDisabled } from '../../../common/helpers';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
 import { Inject } from '@nestjs/common';
 import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+
+/** Short-lived cookie binding the OAuth `state` to the browser that began it. */
+const SSO_NONCE_COOKIE = 'ssoNonce';
 
 @SkipThrottle({ [AI_CHAT_THROTTLER]: true })
 @UseGuards(ThrottlerGuard)
@@ -39,6 +48,7 @@ export class GoogleSsoController {
   private readonly logger = new Logger(GoogleSsoController.name);
 
   constructor(
+    @InjectKysely() private readonly db: KyselyDB,
     private readonly environmentService: EnvironmentService,
     private readonly workspaceRepo: WorkspaceRepo,
     private readonly userRepo: UserRepo,
@@ -70,11 +80,24 @@ export class GoogleSsoController {
       return this.redirectWithError(res, 'google_sso_disabled');
     }
 
+    const nonce = randomUUID();
+
     const state = await this.tokenService.generateSsoStateToken({
       workspaceId: workspace.id,
       providerId: provider.id,
       redirect: safeRedirectPath(dto.redirect),
-      nonce: randomUUID(),
+      nonce,
+    });
+
+    // Binds the state to THIS browser. Without it, anyone can mint a valid
+    // state and feed their own `code` to a victim, silently signing the
+    // victim into the attacker's account (login CSRF).
+    res.setCookie(SSO_NONCE_COOKIE, nonce, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 10,
+      secure: this.environmentService.isHttps(),
     });
 
     res.redirect(this.googleOauthService.buildAuthorizationUrl(state), 302);
@@ -91,10 +114,22 @@ export class GoogleSsoController {
       return this.redirectWithError(res, 'google_sign_in_cancelled');
     }
 
-    let state: { workspaceId: string; providerId: string; redirect: string };
+    let state: {
+      workspaceId: string;
+      providerId: string;
+      redirect: string;
+      nonce: string;
+    };
     try {
       state = await this.tokenService.verifyJwt(dto.state, JwtType.SSO_STATE);
     } catch {
+      return this.redirectWithError(res, 'invalid_state');
+    }
+
+    const nonceCookie = req.cookies?.[SSO_NONCE_COOKIE];
+    res.clearCookie(SSO_NONCE_COOKIE, { path: '/' });
+
+    if (!nonceCookie || nonceCookie !== state.nonce) {
       return this.redirectWithError(res, 'invalid_state');
     }
 
@@ -127,14 +162,35 @@ export class GoogleSsoController {
       return this.redirectWithError(res, 'email_domain_not_allowed');
     }
 
-    const user = await this.provisioningService.resolveUser(
-      identity,
-      provider,
-      workspace,
-    );
+    let user: Awaited<
+      ReturnType<GoogleProvisioningService['resolveUser']>
+    >;
+    try {
+      user = await this.provisioningService.resolveUser(
+        identity,
+        provider,
+        workspace,
+      );
+    } catch (err: any) {
+      if (err instanceof PrivilegedLinkBlockedError) {
+        return this.redirectWithError(res, 'admin_link_not_allowed');
+      }
+      throw err;
+    }
 
     if (!user) {
       return this.redirectWithError(res, 'signup_not_allowed');
+    }
+
+    if (isUserDisabled(user)) {
+      return this.redirectWithError(res, 'account_disabled');
+    }
+
+    // MFA is enforced on the password path via the EE module. That module is
+    // not reachable from here, so rather than silently issuing a session that
+    // skips a second factor, refuse and send the user to password login.
+    if (await this.requiresMfa(user.id, workspace)) {
+      return this.redirectWithError(res, 'mfa_required');
     }
 
     // Group sync must never be able to block a login.
@@ -177,6 +233,27 @@ export class GoogleSsoController {
 
     const target = safeRedirectPath(state.redirect) ?? '/home';
     res.redirect(`${this.environmentService.getAppUrl()}${target}`, 302);
+  }
+
+  /**
+   * True when this workspace enforces MFA, or the user has a factor enrolled.
+   * Either way the Google path must not mint a session on its own.
+   */
+  private async requiresMfa(
+    userId: string,
+    workspace: { id: string; enforceMfa?: boolean },
+  ): Promise<boolean> {
+    if (workspace.enforceMfa) return true;
+
+    const mfa = await this.db
+      .selectFrom('userMfa')
+      .select('id')
+      .where('userId', '=', userId)
+      .where('workspaceId', '=', workspace.id)
+      .where('isEnabled', '=', true)
+      .executeTakeFirst();
+
+    return Boolean(mfa);
   }
 
   private redirectWithError(res: FastifyReply, code: string): void {

@@ -148,7 +148,11 @@ export class GoogleGroupsService {
       pageToken = body.nextPageToken;
     } while (pageToken);
 
-    await this.cacheManager.set(cacheKey, groups, USER_GROUPS_TTL_MS);
+    // Never cache an empty result: if it came from a misconfiguration rather
+    // than genuine non-membership, caching would make the wrong answer stick.
+    if (groups.length > 0) {
+      await this.cacheManager.set(cacheKey, groups, USER_GROUPS_TTL_MS);
+    }
     return groups;
   }
 

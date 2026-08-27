@@ -146,9 +146,7 @@ export class SsoConfigController {
     );
 
     if (dto.runSync) {
-      await this.generalQueue.add(QueueJob.GOOGLE_GROUP_SYNC, {
-        workspaceId: workspace.id,
-      });
+      await this.enqueueSync(workspace.id);
     }
 
     return { created: created.length, syncQueued: Boolean(dto.runSync) };
@@ -169,11 +167,26 @@ export class SsoConfigController {
       );
     }
 
-    await this.generalQueue.add(QueueJob.GOOGLE_GROUP_SYNC, {
-      workspaceId: workspace.id,
-      mappingId: dto.mappingId,
-    });
+    await this.enqueueSync(workspace.id, dto.mappingId);
 
     return { queued: true };
+  }
+
+  /**
+   * A deterministic jobId collapses duplicates, so a double-click or a wizard
+   * sync overlapping a manual resync cannot run two reconciliations at once.
+   */
+  private async enqueueSync(
+    workspaceId: string,
+    mappingId?: string,
+  ): Promise<void> {
+    await this.generalQueue.add(
+      QueueJob.GOOGLE_GROUP_SYNC,
+      { workspaceId, mappingId },
+      {
+        jobId: `google-group-sync:${workspaceId}:${mappingId ?? 'all'}`,
+        removeOnComplete: true,
+      },
+    );
   }
 }

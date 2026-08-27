@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { sql } from 'kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -20,6 +20,8 @@ import {
 
 @Injectable()
 export class SsoConfigService {
+  private readonly logger = new Logger(SsoConfigService.name);
+
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly authProviderRepo: AuthProviderRepo,
@@ -133,8 +135,13 @@ export class SsoConfigService {
         dto.externalGroupKey,
       );
     } catch (err: any) {
+      // The raw body names the service account, project and missing IAM
+      // permission; keep that in the logs rather than the HTTP response.
+      this.logger.error(
+        `Cloud Identity preview failed for ${dto.externalGroupKey}: ${err?.message}`,
+      );
       throw new BadRequestException(
-        `Could not read the Google group: ${err?.message}`,
+        "Could not read that Google group. Check the group email and the service account's Cloud Identity access.",
       );
     }
 
