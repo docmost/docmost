@@ -100,7 +100,7 @@ export function normalizeTableColumnWidths(
       const slice = colWidths.slice(col, col + colspan);
       col += colspan;
       if (slice.length === 0 || slice.every((w) => w === null)) return;
-      const values = slice.map((w) => (w == null ? 100 : w));
+      const values = slice.map((w) => w ?? DEFAULT_IMPORT_COL_WIDTH_PX);
       cell.attr('colwidth', values.join(','));
     });
   });
