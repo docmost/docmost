@@ -85,7 +85,7 @@ export function normalizeTableColumnWidths(
       firstRow.children('td, th').each(function () {
         count += parseInt($(this).attr('colspan') || '1', 10) || 1;
       });
-      if (count < 6) return;
+      if (count === 0) return;
       colWidths = new Array(count).fill(DEFAULT_IMPORT_COL_WIDTH_PX);
     }
 
@@ -100,7 +100,7 @@ export function normalizeTableColumnWidths(
       const slice = colWidths.slice(col, col + colspan);
       col += colspan;
       if (slice.length === 0 || slice.every((w) => w === null)) return;
-      const values = slice.map((w) => w ?? DEFAULT_IMPORT_COL_WIDTH_PX);
+      const values = slice.map((w) => (w == null ? 100 : w));
       cell.attr('colwidth', values.join(','));
     });
   });
