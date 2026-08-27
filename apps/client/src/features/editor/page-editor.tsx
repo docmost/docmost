@@ -463,7 +463,7 @@ function CollabPageEditor({
 
         {editor && editorIsEditable && (
           <div>
-            <EditorAiMenu editor={editor} />
+            <EditorAiMenu editor={editor} pageId={pageId} />
             <EditorLinkMenu editor={editor} />
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />

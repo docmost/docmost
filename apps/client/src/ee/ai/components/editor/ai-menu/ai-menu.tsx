@@ -23,12 +23,84 @@ import { marked } from "marked";
 import { DOMSerializer } from "@tiptap/pm/model";
 import { copyToClipboard, htmlToMarkdown, isEditorReady } from "@docmost/editor-ext";
 import { useLocation } from "react-router-dom";
+import { queryClient } from "@/main.tsx";
+import { InfiniteData } from "@tanstack/react-query";
+import { IComment } from "@/features/comment/types/comment.types";
+import { RQ_KEY } from "@/features/comment/queries/comment-query";
+import { IPagination } from "@/lib/types.ts";
 
 interface EditorAiMenuProps {
   editor: Editor | null;
+  /** Optional page ID used to include page comments as AI context. */
+  pageId?: string;
 }
 
-const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
+/**
+ * Reads unresolved, non-deleted comments for a page from the React Query
+ * cache and formats them as a markdown context block. Returns an empty
+ * string when there are no comments or pageId is absent.
+ */
+function buildCommentsContext(pageId: string | undefined): string {
+  if (!pageId) return "";
+
+  const cached = queryClient.getQueryData<InfiniteData<IPagination<IComment>>>(
+    RQ_KEY(pageId),
+  );
+  if (!cached) return "";
+
+  // Flatten all pages and filter to unresolved, top-level comments only
+  const allComments: IComment[] = cached.pages.flatMap((p) => p.items);
+  const topLevel = allComments.filter(
+    (c) => !c.parentCommentId && !c.resolvedAt && !c.deletedAt,
+  );
+
+  if (topLevel.length === 0) return "";
+
+  const lines: string[] = ["\n\n---", "## Comments on this page", ""];
+
+  for (const comment of topLevel) {
+    const author = comment.creator?.name ?? "Unknown";
+    const date = new Date(comment.createdAt).toLocaleDateString();
+    // comment.content is a Tiptap JSON doc; extract plain text for AI context
+    const text = extractPlainText(comment.content);
+    lines.push(`**${author}** _(${date})_:`);
+    lines.push(`> ${text}`);
+
+    // Append direct replies (child comments)
+    const replies = allComments.filter(
+      (r) => r.parentCommentId === comment.id && !r.deletedAt,
+    );
+    for (const reply of replies) {
+      const replyAuthor = reply.creator?.name ?? "Unknown";
+      const replyText = extractPlainText(reply.content);
+      lines.push(`  - **${replyAuthor}**: ${replyText}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Extracts plain text from a Tiptap / ProseMirror JSON document.
+ * Falls back to a JSON dump if the content is not in the expected format.
+ */
+function extractPlainText(content: any): string {
+  if (!content) return "";
+  if (typeof content === "string") return content;
+  try {
+    const collect = (node: any): string => {
+      if (node.type === "text") return node.text ?? "";
+      if (node.content) return node.content.map(collect).join("");
+      return "";
+    };
+    return collect(content).trim();
+  } catch {
+    return JSON.stringify(content);
+  }
+}
+
+const EditorAiMenu = ({ editor, pageId }: EditorAiMenuProps): JSX.Element | null => {
   const aiGenerateStreamMutation = useAiGenerateStreamMutation();
   const location = useLocation();
   const isSmBreakpoint = useMediaQuery("(max-width: 48em)");
@@ -123,7 +195,14 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
       const fragment = serializer.serializeFragment(slice.content);
       const wrapper = document.createElement("div");
       wrapper.appendChild(fragment);
-      const content = htmlToMarkdown(wrapper.innerHTML);
+      const selectedText = htmlToMarkdown(wrapper.innerHTML);
+
+      // Append any unresolved page comments from the cache as extra context
+      // so the AI can reference ongoing discussions when generating a response.
+      const commentsContext = buildCommentsContext(pageId);
+      const content = commentsContext
+        ? `${selectedText}${commentsContext}`
+        : selectedText;
 
       setOutput("");
       setIsLoading(true);
