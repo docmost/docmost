@@ -85,7 +85,7 @@ export function normalizeTableColumnWidths(
       firstRow.children('td, th').each(function () {
         count += parseInt($(this).attr('colspan') || '1', 10) || 1;
       });
-      if (count < 5) return;
+      if (count < 6) return;
       colWidths = new Array(count).fill(DEFAULT_IMPORT_COL_WIDTH_PX);
     }
 
