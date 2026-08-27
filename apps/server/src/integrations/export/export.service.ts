@@ -39,6 +39,7 @@ import {
   getProsemirrorContent,
 } from '../../common/helpers/prosemirror/utils';
 import { htmlToMarkdown } from '@docmost/editor-ext';
+import { replacePlantumlBlocksWithImages } from './plantuml.util';
 
 type AllowedAttachment = { id: string; fileName: string; filePath: string };
 
@@ -80,20 +81,30 @@ export class ExportService {
       prosemirrorJson.content.unshift(titleNode);
     }
 
-    const pageHtml = jsonToHtml(prosemirrorJson);
-
     if (format === ExportFormat.HTML) {
+      // HTML has no way to show a diagram from its source, so PlantUML blocks
+      // are rendered to images here. Markdown deliberately keeps the source:
+      // a fenced plantuml block stays editable and diffable, which is the
+      // point of exporting Markdown at all.
+      const exportJson = await replacePlantumlBlocksWithImages(
+        prosemirrorJson,
+        {
+          baseUrl: this.environmentService.getPlantumlUrl(),
+          format: this.environmentService.getPlantumlFormat(),
+        },
+      );
+
       return `<!DOCTYPE html>
       <html>
         <head>
          <title>${getPageTitle(page.title)}</title>
         </head>
-        <body>${pageHtml}</body>
+        <body>${jsonToHtml(exportJson)}</body>
       </html>`;
     }
 
     if (format === ExportFormat.Markdown) {
-      const newPageHtml = pageHtml.replace(
+      const newPageHtml = jsonToHtml(prosemirrorJson).replace(
         /<colgroup[^>]*>[\s\S]*?<\/colgroup>/gim,
         '',
       );
