@@ -103,6 +103,7 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
+  googleSsoEnabled: boolean;
 }
 
 export interface IVersion {

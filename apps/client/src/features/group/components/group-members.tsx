@@ -1,4 +1,12 @@
-import { Group, Table, Text, Badge, Menu, ActionIcon } from "@mantine/core";
+import {
+  Group,
+  Table,
+  Text,
+  Badge,
+  Menu,
+  ActionIcon,
+  Tooltip,
+} from "@mantine/core";
 import {
   useGroupMembersQuery,
   useRemoveGroupMemberMutation,
@@ -10,7 +18,7 @@ import { modals } from "@mantine/modals";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
-import { IUser } from "@/features/user/types/user.types.ts";
+import { IGroupMember } from "@/features/group/types/group.types.ts";
 import Paginate from "@/components/common/paginate.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 
@@ -59,7 +67,7 @@ export default function GroupMembersList() {
           </Table.Thead>
 
           <Table.Tbody>
-            {data?.items.map((user: IUser, index: number) => (
+            {data?.items.map((user: IGroupMember, index: number) => (
               <Table.Tr key={index}>
                 <Table.Td>
                   <Group gap="sm" wrap="nowrap">
@@ -75,7 +83,25 @@ export default function GroupMembersList() {
                   </Group>
                 </Table.Td>
                 <Table.Td>
-                  <Badge variant="light">{t("Active")}</Badge>
+                  {user.source === "google" ? (
+                    <Tooltip
+                      label={t(
+                        "Added by Google group sync. Removing them from the Google group removes them here.",
+                      )}
+                    >
+                      <Badge variant="light" color="blue">
+                        {t("Synced")}
+                      </Badge>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip
+                      label={t(
+                        "Added manually. Group sync will never remove them.",
+                      )}
+                    >
+                      <Badge variant="light">{t("Manual")}</Badge>
+                    </Tooltip>
+                  )}
                 </Table.Td>
                 <Table.Td>
                   {isAdmin && (

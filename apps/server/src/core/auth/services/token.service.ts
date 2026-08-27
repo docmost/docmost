@@ -15,6 +15,7 @@ import {
   JwtPayload,
   JwtPdfExportDownloadPayload,
   JwtPdfRenderPayload,
+  JwtSsoStatePayload,
   JwtType,
 } from '../dto/jwt-payload';
 import { User } from '@docmost/db/types/entity.types';
@@ -94,6 +95,22 @@ export class TokenService {
       type: JwtType.MFA_TOKEN,
     };
     return this.jwtService.sign(payload, { expiresIn: '5m' });
+  }
+
+  async generateSsoStateToken(opts: {
+    workspaceId: string;
+    providerId: string;
+    redirect: string | null;
+    nonce: string;
+  }): Promise<string> {
+    const payload: JwtSsoStatePayload = {
+      workspaceId: opts.workspaceId,
+      providerId: opts.providerId,
+      redirect: opts.redirect,
+      nonce: opts.nonce,
+      type: JwtType.SSO_STATE,
+    };
+    return this.jwtService.sign(payload, { expiresIn: '10m' });
   }
 
   async generateApiToken(opts: {

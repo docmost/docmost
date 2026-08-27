@@ -206,6 +206,21 @@ export class EnvironmentVariables {
     },
   )
   CLICKHOUSE_URL: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_ID: string;
+
+  @ValidateIf((obj) => obj.GOOGLE_CLIENT_ID)
+  @IsNotEmpty({
+    message: 'GOOGLE_CLIENT_SECRET is required when GOOGLE_CLIENT_ID is set',
+  })
+  @IsString()
+  GOOGLE_CLIENT_SECRET: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_SERVICE_ACCOUNT_KEY: string;
 }
 
 export function validate(config: Record<string, any>) {

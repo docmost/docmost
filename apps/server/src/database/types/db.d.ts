@@ -117,6 +117,20 @@ export interface AuthProviders {
   workspaceId: string;
 }
 
+export interface AuthProviderGroupMappings {
+  authProviderId: string;
+  createdAt: Generated<Timestamp>;
+  externalGroupKey: string;
+  groupId: string;
+  id: Generated<string>;
+  lastSyncError: string | null;
+  lastSyncStatus: string | null;
+  lastSyncedAt: Timestamp | null;
+  role: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Backlinks {
   createdAt: Generated<Timestamp>;
   id: Generated<string>;
@@ -268,6 +282,8 @@ export interface GroupUsers {
   createdAt: Generated<Timestamp>;
   groupId: string;
   id: Generated<string>;
+  source: Generated<string>;
+  syncedAt: Timestamp | null;
   updatedAt: Generated<Timestamp>;
   userId: string;
 }
@@ -643,6 +659,7 @@ export interface DB {
   attachments: Attachments;
   audit: Audit;
   authAccounts: AuthAccounts;
+  authProviderGroupMappings: AuthProviderGroupMappings;
   authProviders: AuthProviders;
   backlinks: Backlinks;
   baseProperties: BaseProperties;

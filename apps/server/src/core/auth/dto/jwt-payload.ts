@@ -7,6 +7,7 @@ export enum JwtType {
   API_KEY = 'api_key',
   PDF_RENDER = 'pdf_render',
   PDF_EXPORT_DOWNLOAD = 'pdf_export_download',
+  SSO_STATE = 'sso_state',
 }
 export type JwtPayload = {
   sub: string;
@@ -58,4 +59,12 @@ export type JwtPdfExportDownloadPayload = {
   fileTaskId: string;
   workspaceId: string;
   type: 'pdf_export_download';
+};
+
+export type JwtSsoStatePayload = {
+  workspaceId: string;
+  providerId: string;
+  redirect: string | null;
+  nonce: string;
+  type: 'sso_state';
 };

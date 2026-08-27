@@ -52,6 +52,8 @@ export class GroupUserRepo {
       .selectFrom('groupUsers')
       .innerJoin('users', 'users.id', 'groupUsers.userId')
       .selectAll('users')
+      // membership provenance, so the UI can tell synced from manual members
+      .select('groupUsers.source')
       .where('groupId', '=', groupId);
 
     if (pagination.query) {

@@ -76,6 +76,7 @@ export enum QueueJob {
   PAGE_VERIFICATION_EXPIRING = 'page-verification-expiring',
   PAGE_VERIFICATION_EXPIRED = 'page-verification-expired',
   VERIFICATION_RECONCILE = 'verification-reconcile',
+  GOOGLE_GROUP_SYNC = 'google-group-sync',
   PAGE_VERIFIED_NOTIFICATION = 'page-verified-notification',
   PAGE_APPROVAL_REQUESTED_NOTIFICATION = 'page-approval-requested-notification',
   PAGE_APPROVAL_REJECTED_NOTIFICATION = 'page-approval-rejected-notification',

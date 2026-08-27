@@ -4,6 +4,7 @@ import { Job } from 'bullmq';
 import { QueueJob, QueueName } from '../constants';
 import {
   IAddPageWatchersJob,
+  IGoogleGroupSyncJob,
   IPageBacklinkJob,
 } from '../constants/queue.interface';
 import { InjectKysely } from 'nestjs-kysely';
@@ -15,6 +16,12 @@ import {
 } from '@docmost/db/repos/watcher/watcher.repo';
 import { InsertableWatcher } from '@docmost/db/types/entity.types';
 import { processBacklinks } from '../tasks/backlinks.task';
+import { processGoogleGroupSync } from '../tasks/google-group-sync.task';
+import { ModuleRef } from '@nestjs/core';
+import { AuthProviderRepo } from '@docmost/db/repos/auth-provider/auth-provider.repo';
+import { AuthProviderGroupMappingRepo } from '@docmost/db/repos/auth-provider/auth-provider-group-mapping.repo';
+import { GoogleGroupsService } from '../../../core/auth/sso/services/google-groups.service';
+import { GoogleProvisioningService } from '../../../core/auth/sso/services/google-provisioning.service';
 
 @Processor(QueueName.GENERAL_QUEUE)
 export class GeneralQueueProcessor
@@ -26,6 +33,9 @@ export class GeneralQueueProcessor
     @InjectKysely() private readonly db: KyselyDB,
     private readonly backlinkRepo: BacklinkRepo,
     private readonly watcherRepo: WatcherRepo,
+    private readonly authProviderRepo: AuthProviderRepo,
+    private readonly mappingRepo: AuthProviderGroupMappingRepo,
+    private readonly moduleRef: ModuleRef,
   ) {
     super();
   }
@@ -53,6 +63,26 @@ export class GeneralQueueProcessor
             this.db,
             this.backlinkRepo,
             job.data as IPageBacklinkJob,
+          );
+          break;
+        }
+
+        case QueueJob.GOOGLE_GROUP_SYNC: {
+          // Resolved lazily: this processor lives in a global module, so
+          // injecting the SSO services would be circular.
+          await processGoogleGroupSync(
+            {
+              authProviderRepo: this.authProviderRepo,
+              mappingRepo: this.mappingRepo,
+              googleGroupsService: this.moduleRef.get(GoogleGroupsService, {
+                strict: false,
+              }),
+              provisioningService: this.moduleRef.get(
+                GoogleProvisioningService,
+                { strict: false },
+              ),
+            },
+            job.data as IGoogleGroupSyncJob,
           );
           break;
         }

@@ -29,6 +29,7 @@ import {
   Backlinks,
   Billing as BillingSubscription,
   AuthProviders,
+  AuthProviderGroupMappings,
   AuthAccounts,
   Shares,
   Favorites,
@@ -138,6 +139,14 @@ export type InsertableAuthProvider = Insertable<AuthProviders>;
 export type UpdatableAuthProvider = Updateable<Omit<AuthProviders, 'id'>>;
 
 // Auth Account
+export type AuthProviderGroupMapping = Selectable<AuthProviderGroupMappings>;
+export type InsertableAuthProviderGroupMapping =
+  Insertable<AuthProviderGroupMappings>;
+export type UpdatableAuthProviderGroupMapping = Updateable<
+  Omit<AuthProviderGroupMappings, 'id'>
+>;
+
+// AuthAccount
 export type AuthAccount = Selectable<AuthAccounts>;
 export type InsertableAuthAccount = Insertable<AuthAccounts>;
 export type UpdatableAuthAccount = Updateable<Omit<AuthAccounts, 'id'>>;

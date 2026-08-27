@@ -378,6 +378,31 @@ export class EnvironmentService {
     return allowed === 'true';
   }
 
+  getGoogleClientId(): string {
+    return this.configService.get<string>('GOOGLE_CLIENT_ID');
+  }
+
+  getGoogleClientSecret(): string {
+    return this.configService.get<string>('GOOGLE_CLIENT_SECRET');
+  }
+
+  /**
+   * Base64-encoded service account JSON used to read Google groups via the
+   * Cloud Identity Groups API. No domain-wide delegation is involved; the
+   * service account is granted an org-level IAM role instead.
+   */
+  getGoogleServiceAccountKey(): string {
+    return this.configService.get<string>('GOOGLE_SERVICE_ACCOUNT_KEY');
+  }
+
+  isGoogleSsoEnabled(): boolean {
+    return Boolean(this.getGoogleClientId() && this.getGoogleClientSecret());
+  }
+
+  isGoogleGroupSyncConfigured(): boolean {
+    return Boolean(this.getGoogleServiceAccountKey());
+  }
+
   getIframeAllowedOrigins(): string[] {
     const raw = this.configService.get<string>('IFRAME_ALLOWED_ORIGINS', '');
     return raw

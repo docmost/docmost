@@ -102,6 +102,10 @@ export class WorkspaceService {
               'authProviders.type',
             ])
             .where('authProviders.isEnabled', '=', true)
+            // Google is surfaced through `googleSsoEnabled` and its own
+            // first-party button, so it must not also appear here or the
+            // login page would render two Google buttons.
+            .where('authProviders.type', '!=', 'google')
             .where('workspaceId', '=', workspaceId),
         ).as('authProviders'),
       )
@@ -112,9 +116,22 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
+    const googleProvider = await this.db
+      .selectFrom('authProviders')
+      .select('id')
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', 'google')
+      .where('isEnabled', '=', true)
+      .where('deletedAt', 'is', null)
+      .executeTakeFirst();
+
     const { licenseKey, plan, ...rest } = workspace;
 
-    return rest;
+    return {
+      ...rest,
+      googleSsoEnabled:
+        Boolean(googleProvider) && this.environmentService.isGoogleSsoEnabled(),
+    };
   }
 
   async create(

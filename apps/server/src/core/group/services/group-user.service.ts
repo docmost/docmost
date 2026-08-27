@@ -56,6 +56,7 @@ export class GroupUserService {
     groupId: string,
     workspaceId: string,
     trx?: KyselyTransaction,
+    opts?: { source?: 'manual' | 'google' },
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await this.groupService.findAndValidateGroup(groupId, workspaceId, trx);
@@ -73,11 +74,14 @@ export class GroupUserService {
     if (validUsers.length === 0) return;
 
     // prepare users to add to group
+    const source = opts?.source ?? 'manual';
     const groupUsersToInsert = [];
     for (const user of validUsers) {
       groupUsersToInsert.push({
         userId: user.id,
         groupId: groupId,
+        source,
+        syncedAt: source === 'manual' ? null : new Date(),
       });
     }
 
@@ -101,6 +105,41 @@ export class GroupUserService {
         },
       });
     }
+  }
+
+  /**
+   * Deletes memberships and cleans up watchers/favorites for users who lose
+   * access to the group's spaces as a result. Shared by the manual removal
+   * path and by Google group sync, so both stay consistent.
+   */
+  async removeUsersFromGroupBatch(
+    userIds: string[],
+    groupId: string,
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+
+    const spaceIds = await this.spaceMemberRepo.getSpaceIdsByGroupId(groupId);
+
+    // TODO: use queue instead
+    await executeTx(this.db, async (trx) => {
+      for (const userId of userIds) {
+        await this.groupUserRepo.delete(userId, groupId, { trx });
+      }
+
+      for (const spaceId of spaceIds) {
+        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+          userIds,
+          spaceId,
+          { trx },
+        );
+
+        await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
+          userIds,
+          spaceId,
+          { trx },
+        );
+      }
+    });
   }
 
   async removeUserFromGroup(
@@ -134,26 +173,7 @@ export class GroupUserService {
       throw new BadRequestException('Group member not found');
     }
 
-    const spaceIds = await this.spaceMemberRepo.getSpaceIdsByGroupId(groupId);
-
-    // TODO: use queue instead
-    await executeTx(this.db, async (trx) => {
-      await this.groupUserRepo.delete(userId, groupId, { trx });
-
-      for (const spaceId of spaceIds) {
-        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
-          [userId],
-          spaceId,
-          { trx },
-        );
-
-        await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
-          [userId],
-          spaceId,
-          { trx },
-        );
-      }
-    });
+    await this.removeUsersFromGroupBatch([userId], groupId);
 
     this.auditService.log({
       event: AuditEvent.GROUP_MEMBER_REMOVED,

@@ -157,3 +157,9 @@ export interface IBaseFormulaRecomputeJob {
   // Used by the bulk-write path (> FORMULA_INLINE_ROW_THRESHOLD).
   rowIds?: string[];
 }
+
+export interface IGoogleGroupSyncJob {
+  workspaceId: string;
+  /** When omitted, every mapping in the workspace is resynced. */
+  mappingId?: string;
+}
