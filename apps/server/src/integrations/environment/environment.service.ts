@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
+import {
+  normalizePlantumlFormat,
+  PLANTUML_DEFAULT_URL,
+} from '@docmost/editor-ext';
 
 @Injectable()
 export class EnvironmentService {
@@ -201,6 +205,30 @@ export class EnvironmentService {
 
   getDrawioUrl(): string {
     return this.configService.get<string>('DRAWIO_URL');
+  }
+
+  getPlantumlUrl(): string {
+    const configured = this.configService.get<string>('PLANTUML_URL');
+    if (!configured) return PLANTUML_DEFAULT_URL;
+
+    // The server fetches this URL itself during export, so only allow
+    // http(s) and reject anything malformed.
+    try {
+      const parsed = new URL(configured);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return PLANTUML_DEFAULT_URL;
+      }
+      return configured;
+    } catch {
+      return PLANTUML_DEFAULT_URL;
+    }
+  }
+
+
+  getPlantumlFormat(): string {
+    return normalizePlantumlFormat(
+      this.configService.get<string>('PLANTUML_FORMAT'),
+    );
   }
 
   isCloud(): boolean {

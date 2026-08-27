@@ -1,7 +1,11 @@
 import bytes from "bytes";
 import { castToBoolean } from "@/lib/utils.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
-import { sanitizeUrl } from "@docmost/editor-ext";
+import {
+  normalizePlantumlFormat,
+  PLANTUML_DEFAULT_URL,
+  sanitizeUrl,
+} from "@docmost/editor-ext";
 
 declare global {
   interface Window {
@@ -86,6 +90,14 @@ export function getFileImportSizeLimit() {
 
 export function getDrawioUrl() {
   return getConfigValue("DRAWIO_URL", "https://embed.diagrams.net");
+}
+
+export function getPlantumlUrl() {
+  return getConfigValue("PLANTUML_URL", PLANTUML_DEFAULT_URL);
+}
+
+export function getPlantumlFormat() {
+  return normalizePlantumlFormat(getConfigValue("PLANTUML_FORMAT"));
 }
 
 export function getBillingTrialDays() {
