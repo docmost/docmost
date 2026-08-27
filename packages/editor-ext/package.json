@@ -5,12 +5,16 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc --build",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "vitest run"
   },
   "main": "dist/index.js",
   "module": "./src/index.ts",
   "types": "dist/index.d.ts",
   "dependencies": {
     "marked": "17.0.5"
+  },
+  "devDependencies": {
+    "vitest": "4.1.6"
   }
 }
