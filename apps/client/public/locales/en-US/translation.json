@@ -387,6 +387,8 @@
   "Insert horizontal rule divider": "Insert horizontal rule divider",
   "Page break": "Page break",
   "Insert a page break for printing.": "Insert a page break for printing.",
+  "Footnote": "Footnote",
+  "Insert a footnote reference.": "Insert a footnote reference.",
   "Upload any image from your device.": "Upload any image from your device.",
   "Upload any video from your device.": "Upload any video from your device.",
   "Upload any audio from your device.": "Upload any audio from your device.",
@@ -1289,5 +1291,16 @@
   "{{count}} rows deleted_one": "1 row deleted",
   "{{count}} rows deleted_other": "{{count}} rows deleted",
   "{{count}} selected_one": "1 selected",
-  "{{count}} selected_other": "{{count}} selected"
+  "{{count}} selected_other": "{{count}} selected",
+  "Compare": "Compare",
+  "Compare versions": "Compare versions",
+  "Select version from {{date}}": "Select version from {{date}}",
+  "Version actions for {{date}}": "Version actions for {{date}}",
+  "Comparing {{newer}} and {{older}}": "Comparing {{newer}} and {{older}}",
+  "Exit compare": "Exit compare",
+  "Search attachments...": "Search attachments...",
+  "Error loading attachments.": "Error loading attachments.",
+  "No attachments on this page yet.": "No attachments on this page yet.",
+  "Uploaded by {{name}}": "Uploaded by {{name}}",
+  "Download {{name}}": "Download {{name}}"
 }

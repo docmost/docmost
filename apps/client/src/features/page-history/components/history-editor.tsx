@@ -31,6 +31,7 @@ export function HistoryEditor({
   const editor = useEditor({
     extensions: mainExtensions,
     editable: false,
+    textDirection: "auto",
   });
 
   useEffect(() => {
@@ -170,7 +171,6 @@ export function HistoryEditor({
     }
 
     const total = addedCount + deletedCount;
-    // @ts-ignore
     setDiffCounts({ added: addedCount, deleted: deletedCount, total });
 
     editor.setOptions({

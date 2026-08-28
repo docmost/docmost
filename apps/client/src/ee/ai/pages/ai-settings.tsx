@@ -1,5 +1,3 @@
-import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import React from "react";
 import useUserRole from "@/hooks/use-user-role.tsx";
@@ -15,6 +13,7 @@ import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { isCloud } from "@/lib/config.ts";
 import { useLocation, useNavigate } from "react-router-dom";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function AiSettings() {
   const { t } = useTranslation();
@@ -40,9 +39,7 @@ export default function AiSettings() {
 
   return (
     <>
-      <Helmet>
-        <title>AI settings - {getAppName()}</title>
-      </Helmet>
+      <DocumentTitle title="AI settings" />
       <SettingsTitle title={t("AI settings")} />
 
       <Tabs color="dark" value={activeTab} onChange={handleTabChange}>

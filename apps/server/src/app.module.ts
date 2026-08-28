@@ -22,11 +22,13 @@ import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
 import { CacheModule } from '@nestjs/cache-manager';
-import KeyvRedis from '@keyv/redis';
+import KeyvRedis, { defaultReconnectStrategy } from '@keyv/redis';
+import { parseRedisUrl } from './common/helpers';
 import { LoggerModule } from './common/logger/logger.module';
 import { ClsModule } from 'nestjs-cls';
 import { NoopAuditModule } from './integrations/audit/audit.module';
 import { ThrottleModule } from './integrations/throttle/throttle.module';
+import { EncryptionModule } from './integrations/encryption/encryption.module';
 
 const enterpriseModules = [];
 try {
@@ -53,6 +55,7 @@ try {
     CoreModule,
     DatabaseModule,
     EnvironmentModule,
+    EncryptionModule,
     RedisModule.forRootAsync({
       useClass: RedisConfigService,
     }),
@@ -60,10 +63,20 @@ try {
       isGlobal: true,
       useFactory: async (environmentService: EnvironmentService) => {
         const redisUrl = environmentService.getRedisUrl();
+        const { family, tls } = parseRedisUrl(redisUrl);
 
         return {
           ttl: 5 * 1000,
-          stores: [new KeyvRedis(redisUrl)],
+          stores: [
+            new KeyvRedis({
+              url: redisUrl,
+              socket: {
+                family,
+                reconnectStrategy: defaultReconnectStrategy,
+                ...tls,
+              },
+            }),
+          ],
         };
       },
       inject: [EnvironmentService],

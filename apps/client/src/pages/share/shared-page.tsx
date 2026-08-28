@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useSharePageQuery } from "@/features/share/queries/share-query.ts";
 import { Container } from "@mantine/core";
@@ -14,6 +13,7 @@ import {
   sharedTreeDataAtom,
 } from "@/features/share/atoms/shared-page-atom.ts";
 import { isPageInTree } from "@/features/share/utils.ts";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function SharedPage() {
   const { t } = useTranslation();
@@ -56,12 +56,14 @@ export default function SharedPage() {
 
   return (
     <div>
-      <Helmet>
-        <title>{`${data?.page?.title || t("untitled")}`}</title>
+      <DocumentTitle
+        title={data?.page?.title || t("untitled")}
+        withAppName={false}
+      >
         {!data?.share.searchIndexing && (
           <meta name="robots" content="noindex" />
         )}
-      </Helmet>
+      </DocumentTitle>
 
       <Container fluid={fullWidth} size={fullWidth ? undefined : 900} p={0}>
         <ReadonlyPageEditor

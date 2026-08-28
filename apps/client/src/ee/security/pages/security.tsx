@@ -1,5 +1,4 @@
-import { Helmet } from "react-helmet-async";
-import { getAppName, isCloud } from "@/lib/config.ts";
+import { isCloud } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import {
   Alert,
@@ -37,6 +36,7 @@ import EnableScim from "@/ee/scim/components/enable-scim";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import Paginate from "@/components/common/paginate";
 import { IScimToken } from "@/ee/scim/types/scim-token.types";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 const SCIM_TOKEN_LIMIT = 5;
 
@@ -64,9 +64,7 @@ export default function Security() {
 
   return (
     <>
-      <Helmet>
-        <title>Security - {getAppName()}</title>
-      </Helmet>
+      <DocumentTitle title="Security" />
       <SettingsTitle title={t("Security")} />
 
       <EnforceMfa />
