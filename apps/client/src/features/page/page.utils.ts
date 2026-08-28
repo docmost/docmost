@@ -30,6 +30,7 @@ export const buildPageUrl = (
   pageSlugId: string,
   pageTitle?: string,
   anchorId?: string,
+  searchString?: string
 ): string => {
   let url: string;
   if (spaceName === undefined) {
@@ -37,6 +38,11 @@ export const buildPageUrl = (
   } else {
     url = `/s/${spaceName}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
+
+  if (searchString) {
+    url += `?q=${encodeURIComponent(searchString)}`;
+  }
+
   return anchorId ? `${url}#${anchorId}` : url;
 };
 
@@ -45,13 +51,19 @@ export const buildSharedPageUrl = (opts: {
   pageSlugId: string;
   pageTitle?: string;
   anchorId?: string;
+  searchString?: string
 }): string => {
-  const { shareId, pageSlugId, pageTitle, anchorId } = opts;
+  const { shareId, pageSlugId, pageTitle, anchorId, searchString } = opts;
   let url: string;
   if (!shareId) {
     url = `/share/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   } else {
     url = `/share/${shareId}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
+
+  if (searchString) {
+    url += `?q=${encodeURIComponent(searchString)}`;
+  }
+
   return anchorId ? `${url}#${anchorId}` : url;
 };

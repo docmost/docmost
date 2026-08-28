@@ -14,6 +14,7 @@ export interface IPageSearch {
   updatedAt: Date;
   rank: string;
   highlight: string;
+  matchedText: string;
   space: Partial<ISpace>;
 }
 

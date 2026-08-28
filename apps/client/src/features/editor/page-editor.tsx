@@ -65,7 +65,7 @@ import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
 import { IPage } from "@/features/page/types/page.types.ts";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
@@ -194,6 +194,8 @@ function CollabPageEditor({
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
+  const [searchParams] = useSearchParams();
+  const q = searchParams.get("q");
   const slugId = extractPageSlugId(pageSlug);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
   const canScroll = useCallback(
@@ -414,6 +416,37 @@ function CollabPageEditor({
 
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
+
+  const appliedSearchRef = useRef(false);
+  
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (showStatic || !isSynced) return;
+    if (!q?.trim() || appliedSearchRef.current) return;
+    
+    const frame = requestAnimationFrame(() => {
+      if (!editor || editor.isDestroyed || !editor.view.dom.isConnected) return;
+  
+      editor.commands.setSearchTerm(q);
+      editor.commands.resetIndex();
+  
+      const { results, resultIndex } = editor.storage.searchAndReplace;
+      const position = results[resultIndex];
+  
+      if (!position) return;
+  
+      appliedSearchRef.current = true;
+  
+      editor.commands.setSearchTerm(q)
+      editor.commands.setWholeWord(true);
+      const element = document.querySelector(".search-result-current");
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      editor.commands.setTextSelection(0)
+    });
+  
+  
+    return () => cancelAnimationFrame(frame);
+  }, [editor, isSynced, showStatic, q]);
 
   useEffect(() => {
     if (

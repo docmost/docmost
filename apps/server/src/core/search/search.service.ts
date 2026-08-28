@@ -144,6 +144,11 @@ export class SearchService {
         result.highlight = result.highlight
           .replace(/\r\n|\r|\n/g, ' ')
           .replace(/\s+/g, ' ');
+
+      const matchedText = result.highlight.match(/<b>([^<]*)<\/b>/i);
+      result.matchedText = matchedText?.[1] ?? null;
+      } else {
+        result.matchedText = null;
       }
       return result;
     });
