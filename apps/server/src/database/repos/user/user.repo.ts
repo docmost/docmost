@@ -14,10 +14,14 @@ import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagin
 import { ExpressionBuilder, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { NotificationSettingKey } from '../../../core/notification/notification.constants';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 @Injectable()
 export class UserRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly environmentService: EnvironmentService,
+  ) {}
 
   public baseFields: Array<keyof Users> = [
     'id',
@@ -119,7 +123,7 @@ export class UserRepo {
         insertableUser.name || insertableUser.email.split('@')[0].toLowerCase(),
       email: insertableUser.email.toLowerCase(),
       password: await hashPassword(insertableUser.password),
-      locale: 'en-US',
+      locale: this.environmentService.getDefaultLocale(),
       role: insertableUser?.role,
       lastLoginAt: new Date(),
     };
