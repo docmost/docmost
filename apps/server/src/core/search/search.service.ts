@@ -140,6 +140,7 @@ export class SearchService {
 
     //@ts-ignore
     const searchResults = results.map((result: SearchResponseDto) => {
+      result.wholeWord = true
       if (!result.highlight) {
         result.matchedText = [];
         return result;
@@ -158,7 +159,6 @@ export class SearchService {
         ),
       ];
 
-      result.wholeWord = true
       return result;
     });
 
