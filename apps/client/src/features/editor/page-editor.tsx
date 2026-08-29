@@ -61,6 +61,7 @@ import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu-lazy";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
+import SearchNavigationDialog from "@/features/editor/components/search-and-replace/search-navigation-dialog.tsx";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
@@ -195,7 +196,7 @@ function CollabPageEditor({
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
-  const searchQueries = searchParams.getAll("q")
+  const searchQueries = searchParams.getAll("q");
   const slugId = extractPageSlugId(pageSlug);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
   const canScroll = useCallback(
@@ -423,28 +424,16 @@ function CollabPageEditor({
     if (!editor || editor.isDestroyed) return;
     if (showStatic || !isSynced) return;
     if (!searchQueries.length || appliedSearchRef.current) return;
-    
-    const frame = requestAnimationFrame(() => {
-      if (!editor || editor.isDestroyed || !editor.view.dom.isConnected) return;
-  
-      editor.commands.setSearchTerms(searchQueries);
-      editor.commands.setWholeWord(true);
-      editor.commands.resetIndex();
-  
-      const { results, resultIndex } = editor.storage.searchAndReplace;
-      const position = results[resultIndex];
-  
-      if (!position) return;
-  
-      appliedSearchRef.current = true;
-  
-      const element = document.querySelector(".search-result-current");
-      element?.scrollIntoView({ behavior: "smooth", block: "center" });
-      editor.commands.setTextSelection(0)
-    });
-  
-  
-    return () => cancelAnimationFrame(frame);
+    if (!editor || editor.isDestroyed || !editor.view.dom.isConnected) return;
+
+    appliedSearchRef.current = true;
+
+    document.dispatchEvent(
+      new CustomEvent("openSearchNavigationDialog", {
+        detail: { searchTerms: searchQueries, wholeWord: true },
+      })
+    );
+
   }, [editor, isSynced, showStatic, searchQueries]);
 
   useEffect(() => {
@@ -470,6 +459,7 @@ function CollabPageEditor({
         {editor && (
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
+        {editor && <SearchNavigationDialog editor={editor} />}
 
         {editor && editorIsEditable && (
           <div>

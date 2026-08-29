@@ -62,7 +62,7 @@ export const buildSharedPageUrl = (opts: {
   pageSlugId: string;
   pageTitle?: string;
   anchorId?: string;
-  search?: string[]
+  search?: string[];
 }): string => {
   const { shareId, pageSlugId, pageTitle, anchorId, search } = opts;
   let url: string;
