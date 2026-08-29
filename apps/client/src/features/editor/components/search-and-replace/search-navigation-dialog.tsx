@@ -1,6 +1,6 @@
 import { ActionIcon, Dialog, Flex, Text, Tooltip } from "@mantine/core";
 import { IconArrowNarrowDown, IconArrowNarrowUp, IconX } from "@tabler/icons-react";
-import { Editor, useEditor } from "@tiptap/react";
+import {  useEditor } from "@tiptap/react";
 import { isEditorReady } from "@docmost/editor-ext";
 import React, { useEffect, useState } from "react";
 import classes from "./search-replace.module.css";
@@ -20,18 +20,10 @@ interface SearchNavigationEvent extends CustomEvent {
 function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
   const {t} = useTranslation()
   const [open, setOpen] = useState(false);
-  const [searchTerms, setSearchTerms] = useState<string[]>([]);
   const [resultState, setResultState] = useState({
     resultIndex: 0,
     resultsLength: 0,
   });
-
-  const handleSetSearchTerms = (editor: Editor, terms: string[]) => {
-    setSearchTerms(terms);
-    if (isEditorReady(editor)) {
-      editor.commands.setSearchTerms(terms);
-    }
-  };
 
   const goToSelection = () => {
     if (!isEditorReady(editor)) return;
@@ -73,7 +65,7 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
       if (!terms?.length || !isEditorReady(editor)) return;
 
       setOpen(true);
-      handleSetSearchTerms(editor, terms);
+      editor.commands.setSearchTerms(terms);
       editor.commands.setWholeWord(wholeWord);
       editor.commands.resetIndex();
 
@@ -116,7 +108,7 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
   }, [editor, open]);
 
   const close = () => {
-    handleSetSearchTerms(editor, [""]);
+    editor.commands.setSearchTerms([""]);
     setOpen(false);
   };
 

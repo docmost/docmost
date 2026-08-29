@@ -25,12 +25,34 @@ const buildPageSlug = (pageSlugId: string, pageTitle?: string): string => {
   return `${titleSlug}-${pageSlugId}`;
 };
 
+function appendSearchParams(
+  url: string,
+  search?: string[],
+  wholeWord?: boolean,
+): string {
+  const params = new URLSearchParams();
+
+  search
+    ?.map((term) => term.trim())
+    .filter(Boolean)
+    .forEach((term) => params.append("q", term));
+
+  if (wholeWord) {
+    params.set("m", "whole");
+  }
+
+  const queryString = params.toString();
+
+  return queryString ? `${url}?${queryString}` : url;
+}
+
 export const buildPageUrl = (
   spaceName: string,
   pageSlugId: string,
   pageTitle?: string,
   anchorId?: string,
   search?: string[],
+  wholeWord?: boolean,
 ): string => {
   let url: string;
   if (spaceName === undefined) {
@@ -39,20 +61,7 @@ export const buildPageUrl = (
     url = `/s/${spaceName}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
 
-  if (search?.length > 0) {
-    const params = new URLSearchParams();
-
-    search
-      .map((term) => term.trim())
-      .filter(Boolean)
-      .forEach((term) => params.append("q", term));
-
-    const queryString = params.toString();
-
-    if (queryString) {
-      url += `?${queryString}`;
-    }
-  }
+  url = appendSearchParams(url, search, wholeWord);
 
   return anchorId ? `${url}#${anchorId}` : url;
 };
@@ -63,8 +72,9 @@ export const buildSharedPageUrl = (opts: {
   pageTitle?: string;
   anchorId?: string;
   search?: string[];
+  wholeWord?: boolean;
 }): string => {
-  const { shareId, pageSlugId, pageTitle, anchorId, search } = opts;
+  const { shareId, pageSlugId, pageTitle, anchorId, search, wholeWord } = opts;
   let url: string;
   if (!shareId) {
     url = `/share/p/${buildPageSlug(pageSlugId, pageTitle)}`;
@@ -72,20 +82,7 @@ export const buildSharedPageUrl = (opts: {
     url = `/share/${shareId}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
 
-  if (search?.length > 0) {
-    const params = new URLSearchParams();
-
-    search
-      .map((term) => term.trim())
-      .filter(Boolean)
-      .forEach((term) => params.append("q", term));
-
-    const queryString = params.toString();
-
-    if (queryString) {
-      url += `?${queryString}`;
-    }
-  }
+  url = appendSearchParams(url, search, wholeWord);
 
   return anchorId ? `${url}#${anchorId}` : url;
 };

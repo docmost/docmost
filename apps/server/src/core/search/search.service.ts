@@ -149,11 +149,16 @@ export class SearchService {
         .replace(/\r\n|\r|\n/g, ' ')
         .replace(/\s+/g, ' ');
 
-      result.matchedText = Array.from(
-        result.highlight.matchAll(/<b>([^<]*)<\/b>/gi),
-        (match) => match[1],
-      );
+      result.matchedText = [
+        ...new Set(
+          Array.from(
+            result.highlight.matchAll(/<b>([^<]*)<\/b>/gi),
+            (match) => match[1],
+          ),
+        ),
+      ];
 
+      result.wholeWord = true
       return result;
     });
 

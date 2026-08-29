@@ -102,7 +102,8 @@ export function SearchResultItem({
           pageResult.slugId,
           pageResult.title,
           undefined,
-          pageResult.matchedText
+          pageResult.matchedText,
+          pageResult.wholeWord
         )}
         style={{ userSelect: "none" }}
       >

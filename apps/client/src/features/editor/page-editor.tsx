@@ -196,7 +196,6 @@ function CollabPageEditor({
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
-  const searchQueries = searchParams.getAll("q");
   const slugId = extractPageSlugId(pageSlug);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
   const canScroll = useCallback(
@@ -419,6 +418,8 @@ function CollabPageEditor({
   const [showStatic, setShowStatic] = useState(true);
 
   const appliedSearchRef = useRef(false);
+  const searchQueries = searchParams.getAll("q");
+  const match = searchParams.get("m");
   
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
@@ -430,7 +431,7 @@ function CollabPageEditor({
 
     document.dispatchEvent(
       new CustomEvent("openSearchNavigationDialog", {
-        detail: { searchTerms: searchQueries, wholeWord: true },
+        detail: { searchTerms: searchQueries, wholeWord: match === "whole" },
       })
     );
 
