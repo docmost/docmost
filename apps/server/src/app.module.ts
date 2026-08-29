@@ -30,6 +30,7 @@ import { NoopAuditModule } from './integrations/audit/audit.module';
 import { ThrottleModule } from './integrations/throttle/throttle.module';
 import { EncryptionModule } from './integrations/encryption/encryption.module';
 import { OutgoingWebhookModule } from './integrations/outgoing-webhook/outgoing-webhook.module';
+import { OutgoingWebhookProcessorModule } from './integrations/outgoing-webhook/outgoing-webhook-processor.module';
 
 const enterpriseModules = [];
 try {
@@ -100,6 +101,7 @@ try {
     TelemetryModule,
     ThrottleModule,
     OutgoingWebhookModule,
+    OutgoingWebhookProcessorModule,
     ...enterpriseModules,
   ],
   controllers: [AppController],

@@ -64,4 +64,21 @@ describe('OutgoingWebhookService', () => {
       }),
     ).rejects.toThrow('HTTP 503');
   });
+
+  it('fails queued jobs when delivery configuration is unavailable', async () => {
+    const env = {
+      getOutgoingWebhookUrl: () => undefined,
+      getOutgoingWebhookSecret: () => undefined,
+    } as EnvironmentService;
+    const service = new OutgoingWebhookService(env);
+
+    await expect(
+      service.deliver({
+        deliveryId: 'delivery-1',
+        event: 'page.created',
+        occurredAt: '2026-08-29T12:00:00.000Z',
+        pageId: 'page-1',
+      }),
+    ).rejects.toThrow('delivery is not configured');
+  });
 });

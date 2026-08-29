@@ -14,6 +14,11 @@ interface PageEvent {
   workspaceId?: string;
 }
 
+// Database events are best-effort until their BullMQ insertion completes.
+// Nest logs subscriber errors; webhook consumers must periodically reconcile
+// source state to recover an event lost before durable queue insertion.
+const pageEventOptions = { suppressErrors: true } as const;
+
 @Injectable()
 export class OutgoingWebhookListener {
   constructor(
@@ -21,32 +26,32 @@ export class OutgoingWebhookListener {
     @InjectQueue(QueueName.WEBHOOK_QUEUE) private readonly webhookQueue: Queue,
   ) {}
 
-  @OnEvent(EventName.PAGE_CREATED)
+  @OnEvent(EventName.PAGE_CREATED, pageEventOptions)
   handleCreated(event: PageEvent) {
     return this.enqueue('page.created', event);
   }
 
-  @OnEvent(EventName.PAGE_UPDATED)
+  @OnEvent(EventName.PAGE_UPDATED, pageEventOptions)
   handleUpdated(event: PageEvent) {
     return this.enqueue('page.updated', event, 10_000);
   }
 
-  @OnEvent(EventName.PAGE_MOVED_TO_SPACE)
+  @OnEvent(EventName.PAGE_MOVED_TO_SPACE, pageEventOptions)
   handleMoved(event: PageEvent) {
     return this.enqueue('page.moved', event);
   }
 
-  @OnEvent(EventName.PAGE_SOFT_DELETED)
+  @OnEvent(EventName.PAGE_SOFT_DELETED, pageEventOptions)
   handleSoftDeleted(event: PageEvent) {
     return this.enqueue('page.deleted', event);
   }
 
-  @OnEvent(EventName.PAGE_DELETED)
+  @OnEvent(EventName.PAGE_DELETED, pageEventOptions)
   handleDeleted(event: PageEvent) {
     return this.enqueue('page.deleted', event);
   }
 
-  @OnEvent(EventName.PAGE_RESTORED)
+  @OnEvent(EventName.PAGE_RESTORED, pageEventOptions)
   handleRestored(event: PageEvent) {
     return this.enqueue('page.restored', event);
   }
@@ -76,10 +81,14 @@ export class OutgoingWebhookListener {
 
         return this.webhookQueue.add(QueueJob.DELIVER_OUTGOING_WEBHOOK, data, {
           delay,
-          // BullMQ custom job IDs must not contain colons.
-          jobId:
+          deduplication:
             delay > 0
-              ? `${eventName.replaceAll('.', '-')}-${pageId}-${Math.floor(occurredAt.getTime() / delay)}`
+              ? {
+                  id: `${eventName}-${pageId}`,
+                  ttl: delay,
+                  extend: true,
+                  replace: true,
+                }
               : undefined,
         });
       }),

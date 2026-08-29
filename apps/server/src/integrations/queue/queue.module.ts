@@ -105,8 +105,10 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
     BullModule.registerQueue({
       name: QueueName.WEBHOOK_QUEUE,
       defaultJobOptions: {
-        attempts: 5,
-        backoff: { type: 'exponential', delay: 1000 },
+        // Retry immediate failures for several hours instead of exhausting
+        // every attempt during a short receiver restart.
+        attempts: 12,
+        backoff: { type: 'exponential', delay: 10_000, jitter: 0.5 },
         removeOnComplete: { count: 200 },
         removeOnFail: { count: 500 },
       },

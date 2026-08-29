@@ -16,8 +16,12 @@ export class OutgoingWebhookService {
     const url = this.environmentService.getOutgoingWebhookUrl();
     const secret = this.environmentService.getOutgoingWebhookSecret();
 
-    // Configuration can be removed while already queued deliveries remain.
-    if (!url || !secret) return;
+    // Never acknowledge a queued delivery merely because this process has
+    // stale or incomplete configuration. Throwing keeps the job retryable and
+    // makes deployment drift observable in the failed-jobs set and logs.
+    if (!url || !secret) {
+      throw new Error('Outgoing webhook delivery is not configured');
+    }
 
     const payload: OutgoingWebhookPayload = {
       version: '1',
