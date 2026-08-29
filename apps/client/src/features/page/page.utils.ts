@@ -30,8 +30,11 @@ function appendSearchParams(
   search?: string[],
   wholeWord?: boolean,
 ): string {
-  const params = new URLSearchParams();
+  if(search.length === 0){
+    return url;
+  }
 
+  const params = new URLSearchParams();
   search
     ?.map((term) => term.trim())
     .filter(Boolean)
