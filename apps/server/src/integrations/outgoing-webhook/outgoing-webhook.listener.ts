@@ -18,6 +18,7 @@ interface PageEvent {
 // Nest logs subscriber errors; webhook consumers must periodically reconcile
 // source state to recover an event lost before durable queue insertion.
 const pageEventOptions = { suppressErrors: true } as const;
+const enqueueBatchSize = 100;
 
 @Injectable()
 export class OutgoingWebhookListener {
@@ -68,30 +69,36 @@ export class OutgoingWebhookListener {
       return;
     }
 
-    await Promise.all(
-      event.pageIds.map((pageId) => {
-        const occurredAt = new Date();
-        const data: IOutgoingWebhookJob = {
-          deliveryId: randomUUID(),
-          event: eventName,
-          occurredAt: occurredAt.toISOString(),
-          workspaceId: event.workspaceId,
-          pageId,
-        };
+    const jobs = event.pageIds.map((pageId) => {
+      const data: IOutgoingWebhookJob = {
+        deliveryId: randomUUID(),
+        event: eventName,
+        occurredAt: new Date().toISOString(),
+        workspaceId: event.workspaceId,
+        pageId,
+      };
 
-        return this.webhookQueue.add(QueueJob.DELIVER_OUTGOING_WEBHOOK, data, {
-          delay,
-          deduplication:
-            delay > 0
-              ? {
+      return {
+        name: QueueJob.DELIVER_OUTGOING_WEBHOOK,
+        data,
+        opts:
+          delay > 0
+            ? {
+                delay,
+                deduplication: {
                   id: `${eventName}-${pageId}`,
-                  ttl: delay,
-                  extend: true,
                   replace: true,
-                }
-              : undefined,
-        });
-      }),
-    );
+                  keepLastIfActive: true,
+                },
+              }
+            : undefined,
+      };
+    });
+
+    for (let offset = 0; offset < jobs.length; offset += enqueueBatchSize) {
+      await this.webhookQueue.addBulk(
+        jobs.slice(offset, offset + enqueueBatchSize),
+      );
+    }
   }
 }

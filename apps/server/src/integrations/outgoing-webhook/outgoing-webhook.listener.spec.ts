@@ -3,13 +3,13 @@ import { QueueJob } from '../queue/constants';
 import { OutgoingWebhookListener } from './outgoing-webhook.listener';
 
 describe('OutgoingWebhookListener', () => {
-  const queue = { add: jest.fn().mockResolvedValue(undefined) };
+  const queue = { addBulk: jest.fn().mockResolvedValue(undefined) };
 
   beforeEach(() => {
-    queue.add.mockReset().mockResolvedValue(undefined);
+    queue.addBulk.mockReset().mockResolvedValue(undefined);
   });
 
-  it('debounces page updates by extending and replacing the delayed job', async () => {
+  it('keeps the latest page update when the previous job is active', async () => {
     const env = {
       getOutgoingWebhookUrl: () => 'https://example.com/events',
       getOutgoingWebhookEvents: () => ['page.updated'],
@@ -21,23 +21,24 @@ describe('OutgoingWebhookListener', () => {
       workspaceId: 'workspace-1',
     });
 
-    expect(queue.add).toHaveBeenCalledWith(
-      QueueJob.DELIVER_OUTGOING_WEBHOOK,
-      expect.objectContaining({
-        event: 'page.updated',
-        pageId: 'page-1',
-        workspaceId: 'workspace-1',
-      }),
+    expect(queue.addBulk).toHaveBeenCalledWith([
       {
-        delay: 10_000,
-        deduplication: {
-          id: 'page.updated-page-1',
-          ttl: 10_000,
-          extend: true,
-          replace: true,
+        name: QueueJob.DELIVER_OUTGOING_WEBHOOK,
+        data: expect.objectContaining({
+          event: 'page.updated',
+          pageId: 'page-1',
+          workspaceId: 'workspace-1',
+        }),
+        opts: {
+          delay: 10_000,
+          deduplication: {
+            id: 'page.updated-page-1',
+            replace: true,
+            keepLastIfActive: true,
+          },
         },
       },
-    );
+    ]);
   });
 
   it('ignores disabled events', async () => {
@@ -49,11 +50,11 @@ describe('OutgoingWebhookListener', () => {
 
     await listener.handleUpdated({ pageIds: ['page-1'] });
 
-    expect(queue.add).not.toHaveBeenCalled();
+    expect(queue.addBulk).not.toHaveBeenCalled();
   });
 
   it('does not acknowledge queue insertion failures inside the listener', async () => {
-    queue.add.mockRejectedValueOnce(new Error('Redis unavailable'));
+    queue.addBulk.mockRejectedValueOnce(new Error('Redis unavailable'));
     const env = {
       getOutgoingWebhookUrl: () => 'https://example.com/events',
       getOutgoingWebhookEvents: () => ['page.created'],
@@ -63,5 +64,21 @@ describe('OutgoingWebhookListener', () => {
     await expect(
       listener.handleCreated({ pageIds: ['page-1'] }),
     ).rejects.toThrow('Redis unavailable');
+  });
+
+  it('inserts large page events in bounded batches', async () => {
+    const env = {
+      getOutgoingWebhookUrl: () => 'https://example.com/events',
+      getOutgoingWebhookEvents: () => ['page.created'],
+    } as EnvironmentService;
+    const listener = new OutgoingWebhookListener(env, queue as never);
+    const pageIds = Array.from({ length: 201 }, (_, index) => `page-${index}`);
+
+    await listener.handleCreated({ pageIds });
+
+    expect(queue.addBulk).toHaveBeenCalledTimes(3);
+    expect(queue.addBulk.mock.calls.map(([jobs]) => jobs.length)).toEqual([
+      100, 100, 1,
+    ]);
   });
 });
