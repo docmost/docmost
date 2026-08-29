@@ -226,6 +226,26 @@ export class EnvironmentService {
     return this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
   }
 
+  getOutgoingWebhookUrl(): string | undefined {
+    return this.configService.get<string>('OUTGOING_WEBHOOK_URL');
+  }
+
+  getOutgoingWebhookSecret(): string | undefined {
+    return this.configService.get<string>('OUTGOING_WEBHOOK_SECRET');
+  }
+
+  getOutgoingWebhookEvents(): string[] {
+    const raw = this.configService.get<string>(
+      'OUTGOING_WEBHOOK_EVENTS',
+      'page.created,page.updated,page.moved,page.deleted,page.restored',
+    );
+
+    return raw
+      .split(',')
+      .map((event) => event.trim())
+      .filter(Boolean);
+  }
+
   getBillingTrialDays(): number {
     return parseInt(this.configService.get<string>('BILLING_TRIAL_DAYS', '14'));
   }

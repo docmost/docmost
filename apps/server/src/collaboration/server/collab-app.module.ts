@@ -16,6 +16,7 @@ import { CaslModule } from '../../core/casl/casl.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis, { defaultReconnectStrategy } from '@keyv/redis';
 import { parseRedisUrl } from '../../common/helpers';
+import { OutgoingWebhookModule } from '../../integrations/outgoing-webhook/outgoing-webhook.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { parseRedisUrl } from '../../common/helpers';
     QueueModule,
     HealthModule,
     EventEmitterModule.forRoot(),
+    OutgoingWebhookModule,
     RedisModule.forRootAsync({
       useClass: RedisConfigService,
     }),

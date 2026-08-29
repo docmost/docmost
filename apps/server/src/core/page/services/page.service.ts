@@ -514,6 +514,11 @@ export class PageService {
       }
     });
 
+    this.eventEmitter.emit(EventName.PAGE_MOVED_TO_SPACE, {
+      pageIds: [rootPage.id, ...childPageIds],
+      workspaceId: rootPage.workspaceId,
+    });
+
     return { childPageIds };
   }
 

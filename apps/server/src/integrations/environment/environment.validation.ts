@@ -54,6 +54,24 @@ export class EnvironmentVariables {
   STORAGE_DRIVER: string;
 
   @IsOptional()
+  @ValidateIf(
+    (obj) => obj.OUTGOING_WEBHOOK_URL != '' && obj.OUTGOING_WEBHOOK_URL != null,
+  )
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  OUTGOING_WEBHOOK_URL: string;
+
+  @ValidateIf(
+    (obj) => obj.OUTGOING_WEBHOOK_URL != '' && obj.OUTGOING_WEBHOOK_URL != null,
+  )
+  @IsString()
+  @MinLength(32)
+  OUTGOING_WEBHOOK_SECRET: string;
+
+  @IsOptional()
+  @IsString()
+  OUTGOING_WEBHOOK_EVENTS: string;
+
+  @IsOptional()
   @ValidateIf((obj) => obj.COLLAB_URL != '' && obj.COLLAB_URL != null)
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   COLLAB_URL: string;

@@ -10,6 +10,7 @@ export enum QueueName {
   NOTIFICATION_QUEUE = '{notification-queue}',
   AUDIT_QUEUE = '{audit-queue}',
   BASE_QUEUE = '{base-queue}',
+  WEBHOOK_QUEUE = '{webhook-queue}',
 }
 
 export enum QueueJob {
@@ -82,6 +83,8 @@ export enum QueueJob {
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',
+
+  DELIVER_OUTGOING_WEBHOOK = 'deliver-outgoing-webhook',
 
   PDF_EXPORT_TASK = 'pdf-export-task',
   PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',
