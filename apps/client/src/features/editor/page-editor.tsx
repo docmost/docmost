@@ -417,25 +417,31 @@ function CollabPageEditor({
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
 
-  const appliedSearchRef = useRef(false);
-  const searchQueries = searchParams.getAll("q");
-  const match = searchParams.get("m");
+  const appliedSearchKeyRef = useRef<string | null>(null);
+  const searchKey = `${pageId}:${searchParams.toString()}`;
   
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
-    if (showStatic || !isSynced) return;
-    if (!searchQueries.length || appliedSearchRef.current) return;
-    if (!editor || editor.isDestroyed || !editor.view.dom.isConnected) return;
+    if (
+      !editor ||
+      editor.isDestroyed ||
+      !editor.view.dom.isConnected ||
+      appliedSearchKeyRef.current === searchKey
+    ) {
+      return;
+    }
 
-    appliedSearchRef.current = true;
+    const searchQueries = searchParams.getAll("q");
+    const match = searchParams.get("m");
+    if (!searchQueries.length) return;
+
+    appliedSearchKeyRef.current = searchKey;
 
     document.dispatchEvent(
       new CustomEvent("openSearchNavigationDialog", {
         detail: { searchTerms: searchQueries, wholeWord: match === "whole" },
       })
     );
-
-  }, [editor, isSynced, showStatic, searchQueries]);
+  }, [editor, isSynced, showStatic, searchKey, searchParams]);
 
   useEffect(() => {
     if (
