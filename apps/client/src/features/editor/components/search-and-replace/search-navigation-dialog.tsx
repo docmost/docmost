@@ -170,11 +170,6 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
           </ActionIcon>
         </Tooltip>
       </Flex>
-      {searchTerms.length > 0 && (
-        <Text size="xs" c="dimmed" mt="xs" lineClamp={1}>
-          {searchTerms.join(", ")}
-        </Text>
-      )}
     </Dialog>
   );
 }
