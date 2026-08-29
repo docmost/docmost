@@ -195,7 +195,7 @@ function CollabPageEditor({
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
-  const q = searchParams.get("q");
+  const searchQueries = searchParams.getAll("q")
   const slugId = extractPageSlugId(pageSlug);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
   const canScroll = useCallback(
@@ -422,12 +422,13 @@ function CollabPageEditor({
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     if (showStatic || !isSynced) return;
-    if (!q?.trim() || appliedSearchRef.current) return;
+    if (!searchQueries.length || appliedSearchRef.current) return;
     
     const frame = requestAnimationFrame(() => {
       if (!editor || editor.isDestroyed || !editor.view.dom.isConnected) return;
   
-      editor.commands.setSearchTerm(q);
+      editor.commands.setSearchTerms(searchQueries);
+      editor.commands.setWholeWord(true);
       editor.commands.resetIndex();
   
       const { results, resultIndex } = editor.storage.searchAndReplace;
@@ -437,8 +438,6 @@ function CollabPageEditor({
   
       appliedSearchRef.current = true;
   
-      editor.commands.setSearchTerm(q)
-      editor.commands.setWholeWord(true);
       const element = document.querySelector(".search-result-current");
       element?.scrollIntoView({ behavior: "smooth", block: "center" });
       editor.commands.setTextSelection(0)
@@ -446,7 +445,7 @@ function CollabPageEditor({
   
   
     return () => cancelAnimationFrame(frame);
-  }, [editor, isSynced, showStatic, q]);
+  }, [editor, isSynced, showStatic, searchQueries]);
 
   useEffect(() => {
     if (

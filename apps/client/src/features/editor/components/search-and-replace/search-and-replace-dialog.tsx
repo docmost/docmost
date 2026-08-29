@@ -66,7 +66,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     }
     // Clear search term in editor
     if (isEditorReady(editor)) {
-      editor.commands.setSearchTerm("");
+      editor.commands.setSearchTerms([""]);
     }
   };
 
@@ -117,7 +117,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
 
   useEffect(() => {
     if (!isEditorReady(editor)) return;
-    editor.commands.setSearchTerm(searchText);
+    editor.commands.setSearchTerms([searchText]);
     editor.commands.resetIndex();
     editor.commands.selectCurrentItem();
   }, [searchText]);

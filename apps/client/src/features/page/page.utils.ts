@@ -30,7 +30,7 @@ export const buildPageUrl = (
   pageSlugId: string,
   pageTitle?: string,
   anchorId?: string,
-  searchString?: string
+  search?: string[],
 ): string => {
   let url: string;
   if (spaceName === undefined) {
@@ -39,8 +39,19 @@ export const buildPageUrl = (
     url = `/s/${spaceName}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
 
-  if (searchString) {
-    url += `?q=${encodeURIComponent(searchString)}`;
+  if (search?.length > 0) {
+    const params = new URLSearchParams();
+
+    search
+      .map((term) => term.trim())
+      .filter(Boolean)
+      .forEach((term) => params.append("q", term));
+
+    const queryString = params.toString();
+
+    if (queryString) {
+      url += `?${queryString}`;
+    }
   }
 
   return anchorId ? `${url}#${anchorId}` : url;
@@ -51,9 +62,9 @@ export const buildSharedPageUrl = (opts: {
   pageSlugId: string;
   pageTitle?: string;
   anchorId?: string;
-  searchString?: string
+  search?: string[]
 }): string => {
-  const { shareId, pageSlugId, pageTitle, anchorId, searchString } = opts;
+  const { shareId, pageSlugId, pageTitle, anchorId, search } = opts;
   let url: string;
   if (!shareId) {
     url = `/share/p/${buildPageSlug(pageSlugId, pageTitle)}`;
@@ -61,8 +72,19 @@ export const buildSharedPageUrl = (opts: {
     url = `/share/${shareId}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
 
-  if (searchString) {
-    url += `?q=${encodeURIComponent(searchString)}`;
+  if (search?.length > 0) {
+    const params = new URLSearchParams();
+
+    search
+      .map((term) => term.trim())
+      .filter(Boolean)
+      .forEach((term) => params.append("q", term));
+
+    const queryString = params.toString();
+
+    if (queryString) {
+      url += `?${queryString}`;
+    }
   }
 
   return anchorId ? `${url}#${anchorId}` : url;

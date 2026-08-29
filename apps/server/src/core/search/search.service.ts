@@ -140,16 +140,20 @@ export class SearchService {
 
     //@ts-ignore
     const searchResults = results.map((result: SearchResponseDto) => {
-      if (result.highlight) {
-        result.highlight = result.highlight
-          .replace(/\r\n|\r|\n/g, ' ')
-          .replace(/\s+/g, ' ');
-
-      const matchedText = result.highlight.match(/<b>([^<]*)<\/b>/i);
-      result.matchedText = matchedText?.[1] ?? null;
-      } else {
-        result.matchedText = null;
+      if (!result.highlight) {
+        result.matchedText = [];
+        return result;
       }
+
+      result.highlight = result.highlight
+        .replace(/\r\n|\r|\n/g, ' ')
+        .replace(/\s+/g, ' ');
+
+      result.matchedText = Array.from(
+        result.highlight.matchAll(/<b>([^<]*)<\/b>/gi),
+        (match) => match[1],
+      );
+
       return result;
     });
 

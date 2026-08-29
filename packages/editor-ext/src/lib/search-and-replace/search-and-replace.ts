@@ -39,7 +39,7 @@ declare module "@tiptap/core" {
       /**
        * @description Set search term in extension.
        */
-      setSearchTerm: (searchTerm: string) => ReturnType;
+      setSearchTerms: (searchTerms: string[]) => ReturnType;
       /**
        * @description Set whole word search in extension.
        */
@@ -86,14 +86,18 @@ interface TextNodesWithPosition {
 }
 
 const getRegex = (
-  s: string,
+  searchTerms: string[],
   disableRegex: boolean,
   caseSensitive: boolean,
   wholeWord: boolean,
 ): RegExp => {
-  const pattern = disableRegex
-    ? s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    : s;
+  const terms = searchTerms.filter(Boolean).sort((a, b) => b.length - a.length);
+
+  const pattern = terms
+    .map((term) =>
+      disableRegex ? term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : term,
+    )
+    .join("|");
 
   const finalPattern = wholeWord
     ? `(?<![\\p{L}\\p{N}_])(?:${pattern})(?![\\p{L}\\p{N}_])`
@@ -268,10 +272,10 @@ export interface SearchAndReplaceOptions {
 }
 
 export interface SearchAndReplaceStorage {
-  searchTerm: string;
+  searchTerms: string[];
   replaceTerm: string;
   results: Range[];
-  lastSearchTerm: string;
+  lastSearchTerms: string[];
   caseSensitive: boolean;
   lastCaseSensitive: boolean;
   wholeWord: boolean;
@@ -295,10 +299,10 @@ export const SearchAndReplace = Extension.create<
 
   addStorage() {
     return {
-      searchTerm: "",
+      searchTerms: [],
       replaceTerm: "",
       results: [],
-      lastSearchTerm: "",
+      lastSearchTerms: [],
       caseSensitive: false,
       wholeWord: false,
       lastWholeWord: false,
@@ -310,10 +314,10 @@ export const SearchAndReplace = Extension.create<
 
   addCommands() {
     return {
-      setSearchTerm:
-        (searchTerm: string) =>
+      setSearchTerms:
+        (searchTerms: string[]) =>
         ({ editor }) => {
-          editor.storage.searchAndReplace.searchTerm = searchTerm;
+          editor.storage.searchAndReplace.searchTerms = searchTerms.filter(Boolean);
 
           // clear whole word by default
           // should remove if whole word toggle is added to search and replace dialog
@@ -321,7 +325,7 @@ export const SearchAndReplace = Extension.create<
 
           return false;
         },
-        setWholeWord:
+      setWholeWord:
         (wholeWord: boolean) =>
         ({ editor }) => {
           editor.storage.searchAndReplace.wholeWord = wholeWord;
@@ -437,8 +441,8 @@ export const SearchAndReplace = Extension.create<
     const editor = this.editor;
     const { searchResultClass, disableRegex } = this.options;
 
-    const setLastSearchTerm = (t: string) =>
-      (editor.storage.searchAndReplace.lastSearchTerm = t);
+    const setLastSearchTerms = (terms: string[]) =>
+      (editor.storage.searchAndReplace.lastSearchTerms = [...terms]);
     const setLastWholeWord = (t: boolean) =>
       (editor.storage.searchAndReplace.lastWholeWord = t);
     const setLastCaseSensitive = (t: boolean) =>
@@ -455,10 +459,10 @@ export const SearchAndReplace = Extension.create<
             const storage = editor.storage.searchAndReplace;
             if (!storage) return oldState;
             const {
-              searchTerm,
-              lastSearchTerm,
-              caseSensitive,
+              searchTerms,
               lastCaseSensitive,
+              lastSearchTerms,
+              caseSensitive,
               wholeWord,
               lastWholeWord,
               resultIndex,
@@ -467,26 +471,32 @@ export const SearchAndReplace = Extension.create<
 
             if (
               !docChanged &&
-              lastSearchTerm === searchTerm &&
+              searchTerms.length === lastSearchTerms.length &&
+              searchTerms.every((term, index) => term === lastSearchTerms[index]) &&
               lastCaseSensitive === caseSensitive &&
               lastWholeWord === wholeWord &&
               lastResultIndex === resultIndex
             )
               return oldState;
 
-            setLastSearchTerm(searchTerm);
+            setLastSearchTerms(searchTerms);
             setLastCaseSensitive(caseSensitive);
             setLastWholeWord(wholeWord);
             setLastResultIndex(resultIndex);
 
-            if (!searchTerm) {
+            if (searchTerms.length === 0) {
               editor.storage.searchAndReplace.results = [];
               return DecorationSet.empty;
             }
 
             const { decorationsToReturn, results } = processSearches(
             doc,
-            getRegex(searchTerm, disableRegex, caseSensitive, wholeWord),
+              getRegex(
+                searchTerms,
+                disableRegex,
+                caseSensitive,
+                wholeWord,
+              ),
             searchResultClass,
             resultIndex,
           );

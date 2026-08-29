@@ -8,7 +8,7 @@ export class SearchResponseDto {
   creatorId: string;
   rank: number;
   highlight: string;
-  matchedText?: string;
+  matchedText?: string[];
   createdAt: Date;
   updatedAt: Date;
   space: Partial<Space>;
