@@ -7,6 +7,7 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import localEmitter from "@/lib/local-emitter.ts";
+import { getPageById } from "@/features/page/services/page-service.ts";
 
 export const useTreeSocket = () => {
   const [socket] = useAtom(socketAtom);
@@ -76,6 +77,29 @@ export const useTreeSocket = () => {
             }
             return next;
           });
+          // The emitting client's snapshot carries no per-user permissions.
+          // Backfill this user's effective edit permission so restricted or
+          // read-only pages are never draggable/droppable in the sidebar.
+          void getPageById({ pageId: event.payload.data.id })
+            .then((page) => {
+              setTreeData((prev) => {
+                if (!treeModel.find(prev, page.id)) return prev;
+                return treeModel.update(prev, page.id, {
+                  canEdit: page.permissions?.canEdit ?? true,
+                } as Partial<SpaceTreeNode>);
+              });
+            })
+            .catch((err: any) => {
+              // This user cannot view the new page (e.g. it was created
+              // inside a restricted branch) — remove it from the tree.
+              // Other failures (network blips) leave the optimistic node.
+              const status = err?.response?.status;
+              if (status === 403 || status === 404) {
+                setTreeData((prev) =>
+                  treeModel.remove(prev, event.payload.data.id),
+                );
+              }
+            });
           break;
         case "moveTreeNode":
           setTreeData((prev) => {
