@@ -137,3 +137,40 @@ export async function readDocmostMetadata(
     return null;
   }
 }
+
+export function extractMarkdownFrontMatter(
+  markdownInput: string,
+): { title?: string; [key: string]: any } {
+  if (!markdownInput) return {};
+
+  const match = markdownInput.match(/^\s*---\r?\n([\s\S]*?)\r?\n---\s*/);
+  if (!match) return {};
+
+  const frontMatterBlock = match[1];
+  const properties: Record<string, string> = {};
+
+  const lines = frontMatterBlock.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const colonIdx = line.indexOf(':');
+    if (colonIdx === -1) continue;
+
+    const key = line.substring(0, colonIdx).trim();
+    let value = line.substring(colonIdx + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.substring(1, value.length - 1);
+    }
+
+    if (key) {
+      properties[key] = value;
+    }
+  }
+
+  return properties;
+}
