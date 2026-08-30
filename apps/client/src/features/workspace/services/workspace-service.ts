@@ -89,7 +89,7 @@ export async function getInviteLink(data: {
   invitationId: string;
 }): Promise<IInvitationLink> {
   const req = await api.post("/workspace/invites/link", data);
-  return req.data;
+  return req;
 }
 
 export async function resendInvitation(data: {
@@ -108,7 +108,7 @@ export async function getInvitationById(data: {
   invitationId: string;
 }): Promise<IInvitation> {
   const req = await api.post("/workspace/invites/info", data);
-  return req.data;
+  return req;
 }
 
 export async function createWorkspace(
