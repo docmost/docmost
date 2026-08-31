@@ -30,7 +30,7 @@ function appendSearchParams(
   search?: string[],
   wholeWord?: boolean,
 ): string {
-  if(search.length === 0){
+  if(search?.length === 0){
     return url;
   }
 
