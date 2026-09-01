@@ -30,7 +30,7 @@ export function RowDetailTitle({
     onEditingChange?.(false);
     if (cancelRef.current) {
       cancelRef.current = false;
-      setValue(initial)
+      setValue(initial);
       return;
     }
     if (value !== initial) onCommit(value);
