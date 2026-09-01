@@ -55,6 +55,10 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
+import {
+  assertAcyclicPageTraversal,
+  stripPageTraversalMetadata,
+} from '../../../database/helpers/page-hierarchy-cycle';
 
 @Injectable()
 export class PageService {
@@ -867,6 +871,8 @@ export class PageService {
             'parentPageId',
             'spaceId',
             'deletedAt',
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where('id', '=', childPageId)
           .where('deletedAt', 'is', null)
@@ -883,13 +889,27 @@ export class PageService {
                 'p.parentPageId',
                 'p.spaceId',
                 'p.deletedAt',
+                sql<string[]>`pa.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(pa.traversal_path)`.as('isCycle'),
               ])
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .where('pa.isCycle', '=', false),
           ),
       )
       .selectFrom('page_ancestors')
-      .selectAll('page_ancestors')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'isBase',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'deletedAt',
+        'isCycle',
+      ])
       .select((eb) =>
         eb
           .exists(
@@ -903,7 +923,9 @@ export class PageService {
       )
       .execute();
 
-    return ancestors.reverse();
+    assertAcyclicPageTraversal(ancestors, childPageId);
+
+    return ancestors.reverse().map(stripPageTraversalMetadata);
   }
 
   async getRecentSpacePages(

@@ -26,6 +26,7 @@ import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
+import { stripPageTraversalMetadata } from '../../database/helpers/page-hierarchy-cycle';
 
 @Injectable()
 export class ShareService {
@@ -144,7 +145,7 @@ export class ShareService {
 
   async getShareForPage(pageId: string, workspaceId: string) {
     // here we try to check if a page was shared directly or if it inherits the share from its closest shared ancestor
-    const share = await this.db
+    const traversal = await this.db
       .withRecursive('page_hierarchy', (cte) =>
         cte
           .selectFrom('pages')
@@ -164,41 +165,67 @@ export class ShareService {
             'shares.spaceId',
             'shares.workspaceId',
             'shares.createdAt',
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where(isValidUUID(pageId) ? 'pages.id' : 'pages.slugId', '=', pageId)
           .where('pages.deletedAt', 'is', null)
-          .unionAll(
-            (union) =>
-              union
-                .selectFrom('pages as p')
-                .innerJoin('page_hierarchy as ph', 'ph.parentPageId', 'p.id')
-                .leftJoin('shares as s', 's.pageId', 'p.id')
-                .select([
-                  'p.id',
-                  'p.slugId',
-                  'p.title',
-                  'p.icon',
-                  'p.parentPageId',
-                  sql`ph.level + 1`.as('level'),
-                  's.id as shareId',
-                  's.key as shareKey',
-                  's.includeSubPages',
-                  's.searchIndexing',
-                  's.creatorId',
-                  's.spaceId',
-                  's.workspaceId',
-                  's.createdAt',
-                ])
-                .where('p.deletedAt', 'is', null)
-                .where(sql`ph.share_id`, 'is', null) // stop if share found
-                .where(sql`ph.level`, '<', sql`25`), // prevent loop
+          .unionAll((union) =>
+            union
+              .selectFrom('pages as p')
+              .innerJoin('page_hierarchy as ph', 'ph.parentPageId', 'p.id')
+              .leftJoin('shares as s', 's.pageId', 'p.id')
+              .select([
+                'p.id',
+                'p.slugId',
+                'p.title',
+                'p.icon',
+                'p.parentPageId',
+                sql`ph.level + 1`.as('level'),
+                's.id as shareId',
+                's.key as shareKey',
+                's.includeSubPages',
+                's.searchIndexing',
+                's.creatorId',
+                's.spaceId',
+                's.workspaceId',
+                's.createdAt',
+                sql<string[]>`ph.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(ph.traversal_path)`.as('isCycle'),
+              ])
+              .where('p.deletedAt', 'is', null)
+              .where(sql`ph.share_id`, 'is', null) // stop if share found
+              .where('ph.isCycle', '=', false),
           ),
       )
       .selectFrom('page_hierarchy')
-      .selectAll()
-      .where('shareId', 'is not', null)
-      .limit(1)
-      .executeTakeFirst();
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'parentPageId',
+        'level',
+        'shareId',
+        'shareKey',
+        'includeSubPages',
+        'searchIndexing',
+        'creatorId',
+        'spaceId',
+        'workspaceId',
+        'createdAt',
+        'isCycle',
+      ])
+      .execute();
+
+    if (traversal.some((row) => row.isCycle)) {
+      return undefined;
+    }
+
+    const matchedShare = traversal.find((row) => row.shareId !== null);
+    const share = matchedShare
+      ? stripPageTraversalMetadata(matchedShare)
+      : undefined;
 
     if (!share || share.workspaceId !== workspaceId) {
       return undefined;
