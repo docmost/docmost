@@ -14,10 +14,10 @@ import {
 } from "@hocuspocus/provider";
 import {
   HocuspocusProviderWebsocketComponent,
-  HocuspocusRoom,
   useHocuspocusEvent,
   useHocuspocusProvider,
 } from "@hocuspocus/provider-react";
+import CollabRoom from "@/features/editor/collab-room.tsx";
 import {
   Editor,
   EditorContent,
@@ -145,7 +145,7 @@ export default function PageEditor({
     <TransclusionLookupProvider>
       {collabQuery?.token ? (
         <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
-          <HocuspocusRoom
+          <CollabRoom
             name={`page.${pageId}`}
             token={collabQuery.token}
             flushDelay={500}
@@ -158,7 +158,7 @@ export default function PageEditor({
               content={content}
               canComment={canComment}
             />
-          </HocuspocusRoom>
+          </CollabRoom>
         </HocuspocusProviderWebsocketComponent>
       ) : (
         <StaticPageEditor content={content} ariaLabel={t("Page content")} />
