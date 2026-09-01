@@ -374,7 +374,7 @@ export function RowDetailModal({
                 <>
                   <span className={classes.kbdGroup}>
                     <kbd className={classes.kbd}>Ctrl/Cmd</kbd>
-                    <span>+</span>
+                    <span className={classes.kbdPlus} >+</span>
                     <kbd className={classes.kbd}>Enter</kbd>
                     <span>{t("to save")}</span>
                   </span>
