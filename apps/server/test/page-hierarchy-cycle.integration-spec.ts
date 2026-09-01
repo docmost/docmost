@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { createCache } from 'cache-manager';
 import { PageService } from '../src/core/page/services/page.service';
 import { ShareService } from '../src/core/share/share.service';
 import { PageHierarchyCycleError } from '../src/database/helpers/page-hierarchy-cycle';
+import { PagePermissionRepo } from '../src/database/repos/page/page-permission.repo';
 import { KyselyDB } from '../src/database/types/kysely.types';
 import { db, withStatementTimeout } from './support/database';
 import {
@@ -36,6 +38,72 @@ function createShareService(connection: KyselyDB): ShareService {
     undefined as never,
     undefined as never,
   );
+}
+
+function createPagePermissionRepo(connection: KyselyDB): PagePermissionRepo {
+  return new PagePermissionRepo(connection, undefined as never, createCache());
+}
+
+async function insertTestUser(pageId: string): Promise<string> {
+  const { workspaceId } = await db
+    .selectFrom('pages')
+    .select('workspaceId')
+    .where('id', '=', pageId)
+    .executeTakeFirstOrThrow();
+
+  const user = await db
+    .insertInto('users')
+    .values({
+      email: `cycle-test-${randomUUID()}@example.com`,
+      name: 'Page hierarchy test user',
+      workspaceId,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+
+  return user.id;
+}
+
+async function restrictPage(
+  pageId: string,
+  permittedUserId?: string,
+): Promise<{
+  accessLevel: string;
+  pageAccessId: string;
+  pageId: string;
+}> {
+  const page = await db
+    .selectFrom('pages')
+    .select(['spaceId', 'workspaceId'])
+    .where('id', '=', pageId)
+    .executeTakeFirstOrThrow();
+  const pageAccess = await db
+    .insertInto('pageAccess')
+    .values({
+      accessLevel: 'restricted',
+      pageId,
+      spaceId: page.spaceId,
+      workspaceId: page.workspaceId,
+    })
+    .returning(['accessLevel', 'id', 'pageId'])
+    .executeTakeFirstOrThrow();
+
+  if (permittedUserId) {
+    await db
+      .insertInto('pagePermissions')
+      .values({
+        pageAccessId: pageAccess.id,
+        role: 'writer',
+        userId: permittedUserId,
+      })
+      .execute();
+  }
+
+  return {
+    accessLevel: pageAccess.accessLevel,
+    pageAccessId: pageAccess.id,
+    pageId: pageAccess.pageId,
+  };
 }
 
 async function insertShare(pageId: string, includeSubPages: boolean) {
@@ -222,6 +290,187 @@ describe('cycle-safe page hierarchy reads', () => {
         await expect(
           shareService.getShareForPage(a.id, workspaceId),
         ).resolves.toBeUndefined();
+      });
+    });
+  });
+
+  describe('single-page permissions', () => {
+    it('preserves unrestricted acyclic access', async () => {
+      const { grandchild } = await seedAcyclicPageChain();
+      const userId = await insertTestUser(grandchild.id);
+      const repo = createPagePermissionRepo(db);
+
+      await expect(
+        repo.canUserEditPage(userId, grandchild.id),
+      ).resolves.toEqual({
+        hasAnyRestriction: false,
+        canAccess: true,
+        canEdit: true,
+      });
+      await expect(
+        repo.getUserPageAccessLevel(userId, grandchild.id),
+      ).resolves.toEqual({
+        hasDirectRestriction: false,
+        hasInheritedRestriction: false,
+        hasAnyRestriction: false,
+        canAccess: true,
+        canEdit: true,
+      });
+      await expect(repo.hasRestrictedAncestor(grandchild.id)).resolves.toBe(
+        false,
+      );
+      await expect(
+        repo.getUserIdsWithPageAccess(grandchild.id, [userId]),
+      ).resolves.toEqual([userId]);
+      await expect(
+        repo.findRestrictedAncestor(grandchild.id),
+      ).resolves.toBeUndefined();
+    });
+
+    it('preserves permitted acyclic access', async () => {
+      const { root, grandchild } = await seedAcyclicPageChain();
+      const userId = await insertTestUser(grandchild.id);
+      const restriction = await restrictPage(root.id, userId);
+      const repo = createPagePermissionRepo(db);
+
+      await expect(
+        repo.canUserEditPage(userId, grandchild.id),
+      ).resolves.toEqual({
+        hasAnyRestriction: true,
+        canAccess: true,
+        canEdit: true,
+      });
+      await expect(
+        repo.getUserPageAccessLevel(userId, grandchild.id),
+      ).resolves.toEqual({
+        hasDirectRestriction: false,
+        hasInheritedRestriction: true,
+        hasAnyRestriction: true,
+        canAccess: true,
+        canEdit: true,
+      });
+      await expect(repo.hasRestrictedAncestor(grandchild.id)).resolves.toBe(
+        true,
+      );
+      await expect(
+        repo.getUserIdsWithPageAccess(grandchild.id, [userId]),
+      ).resolves.toEqual([userId]);
+      await expect(repo.findRestrictedAncestor(grandchild.id)).resolves.toEqual(
+        { ...restriction, depth: 2 },
+      );
+    });
+
+    it('preserves denied acyclic access', async () => {
+      const { root, grandchild } = await seedAcyclicPageChain();
+      const userId = await insertTestUser(grandchild.id);
+      const restriction = await restrictPage(root.id);
+      const repo = createPagePermissionRepo(db);
+
+      await expect(
+        repo.canUserEditPage(userId, grandchild.id),
+      ).resolves.toEqual({
+        hasAnyRestriction: true,
+        canAccess: false,
+        canEdit: false,
+      });
+      await expect(
+        repo.getUserPageAccessLevel(userId, grandchild.id),
+      ).resolves.toEqual({
+        hasDirectRestriction: false,
+        hasInheritedRestriction: true,
+        hasAnyRestriction: true,
+        canAccess: false,
+        canEdit: false,
+      });
+      await expect(repo.hasRestrictedAncestor(grandchild.id)).resolves.toBe(
+        true,
+      );
+      await expect(
+        repo.getUserIdsWithPageAccess(grandchild.id, [userId]),
+      ).resolves.toEqual([]);
+      await expect(repo.findRestrictedAncestor(grandchild.id)).resolves.toEqual(
+        { ...restriction, depth: 2 },
+      );
+    });
+
+    describe.each([
+      ['a self-cycle', async () => (await seedSelfCycle()).self.id],
+      ['a two-page cycle', async () => (await seedTwoPageCycle()).a.id],
+    ])('%s', (_cycleName, seedCycle) => {
+      it('fails canUserEditPage closed', async () => {
+        const pageId = await seedCycle();
+        const userId = await insertTestUser(pageId);
+
+        await withStatementTimeout(async (connection) => {
+          const repo = createPagePermissionRepo(connection);
+
+          await expect(repo.canUserEditPage(userId, pageId)).resolves.toEqual({
+            hasAnyRestriction: true,
+            canAccess: false,
+            canEdit: false,
+          });
+        });
+      });
+
+      it('fails getUserPageAccessLevel closed', async () => {
+        const pageId = await seedCycle();
+        const userId = await insertTestUser(pageId);
+
+        await withStatementTimeout(async (connection) => {
+          const repo = createPagePermissionRepo(connection);
+
+          await expect(
+            repo.getUserPageAccessLevel(userId, pageId),
+          ).resolves.toEqual(
+            expect.objectContaining({
+              hasAnyRestriction: true,
+              canAccess: false,
+              canEdit: false,
+            }),
+          );
+        });
+      });
+
+      it('treats a cycle as a restricted ancestor', async () => {
+        const pageId = await seedCycle();
+
+        await withStatementTimeout(async (connection) => {
+          const repo = createPagePermissionRepo(connection);
+
+          await expect(repo.hasRestrictedAncestor(pageId)).resolves.toBe(true);
+        });
+      });
+
+      it('filters every candidate user from a cycle', async () => {
+        const pageId = await seedCycle();
+        const userId = await insertTestUser(pageId);
+
+        await withStatementTimeout(async (connection) => {
+          const repo = createPagePermissionRepo(connection);
+
+          await expect(
+            repo.getUserIdsWithPageAccess(pageId, [userId]),
+          ).resolves.toEqual([]);
+        });
+      });
+
+      it('raises PageHierarchyCycleError from findRestrictedAncestor', async () => {
+        const pageId = await seedCycle();
+
+        await withStatementTimeout(async (connection) => {
+          const repo = createPagePermissionRepo(connection);
+          const restrictedAncestor = repo.findRestrictedAncestor(pageId);
+
+          await expect(restrictedAncestor).rejects.toBeInstanceOf(
+            PageHierarchyCycleError,
+          );
+          await expect(restrictedAncestor).rejects.toEqual(
+            expect.objectContaining({
+              code: 'PAGE_HIERARCHY_CYCLE',
+              rootPageId: pageId,
+            }) satisfies Partial<PageHierarchyCycleError>,
+          );
+        });
       });
     });
   });
