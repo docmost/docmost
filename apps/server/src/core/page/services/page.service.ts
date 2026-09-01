@@ -873,6 +873,7 @@ export class PageService {
             'deletedAt',
             sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
             sql<boolean>`false`.as('isCycle'),
+            sql<number>`0`.as('traversalDepth'),
           ])
           .where('id', '=', childPageId)
           .where('deletedAt', 'is', null)
@@ -891,6 +892,7 @@ export class PageService {
                 'p.deletedAt',
                 sql<string[]>`pa.traversal_path || p.id`.as('traversalPath'),
                 sql<boolean>`p.id = ANY(pa.traversal_path)`.as('isCycle'),
+                sql<number>`pa.traversal_depth + 1`.as('traversalDepth'),
               ])
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
               .where('p.deletedAt', 'is', null)
@@ -921,11 +923,12 @@ export class PageService {
           )
           .as('hasChildren'),
       )
+      .orderBy('traversalDepth', 'desc')
       .execute();
 
     assertAcyclicPageTraversal(ancestors, childPageId);
 
-    return ancestors.reverse().map(stripPageTraversalMetadata);
+    return ancestors.map(stripPageTraversalMetadata);
   }
 
   async getRecentSpacePages(

@@ -84,8 +84,12 @@ describe('cycle-safe page hierarchy reads', () => {
 
       await withStatementTimeout(async (connection) => {
         const pageService = createPageService(connection);
+        const breadcrumbs = pageService.getPageBreadCrumbs(self.id);
 
-        await expect(pageService.getPageBreadCrumbs(self.id)).rejects.toEqual(
+        await expect(breadcrumbs).rejects.toBeInstanceOf(
+          PageHierarchyCycleError,
+        );
+        await expect(breadcrumbs).rejects.toEqual(
           expect.objectContaining({
             code: 'PAGE_HIERARCHY_CYCLE',
             rootPageId: self.id,
@@ -99,8 +103,12 @@ describe('cycle-safe page hierarchy reads', () => {
 
       await withStatementTimeout(async (connection) => {
         const pageService = createPageService(connection);
+        const breadcrumbs = pageService.getPageBreadCrumbs(a.id);
 
-        await expect(pageService.getPageBreadCrumbs(a.id)).rejects.toEqual(
+        await expect(breadcrumbs).rejects.toBeInstanceOf(
+          PageHierarchyCycleError,
+        );
+        await expect(breadcrumbs).rejects.toEqual(
           expect.objectContaining({
             code: 'PAGE_HIERARCHY_CYCLE',
             rootPageId: a.id,
@@ -119,8 +127,9 @@ describe('cycle-safe page hierarchy reads', () => {
         .where('id', '=', root.id)
         .executeTakeFirstOrThrow();
       let descendantId = grandchild.id;
+      let nearerSharedAncestorId: string;
 
-      for (let depth = 3; depth <= 26; depth += 1) {
+      for (let depth = 3; depth <= 52; depth += 1) {
         const descendant = await db
           .insertInto('pages')
           .values({
@@ -133,9 +142,13 @@ describe('cycle-safe page hierarchy reads', () => {
           .returning('id')
           .executeTakeFirstOrThrow();
         descendantId = descendant.id;
+        if (depth === 26) {
+          nearerSharedAncestorId = descendant.id;
+        }
       }
 
-      const storedShare = await insertShare(root.id, true);
+      const fartherShare = await insertShare(root.id, true);
+      const nearerShare = await insertShare(nearerSharedAncestorId, true);
       const shareService = createShareService(db);
 
       const share = await shareService.getShareForPage(
@@ -145,11 +158,54 @@ describe('cycle-safe page hierarchy reads', () => {
 
       expect(share).toEqual(
         expect.objectContaining({
-          id: storedShare.id,
-          pageId: root.id,
+          id: nearerShare.id,
+          pageId: nearerSharedAncestorId,
           level: 26,
         }),
       );
+      expect(share.id).not.toBe(fartherShare.id);
+    });
+
+    it('returns a direct share without traversing corrupt parents', async () => {
+      const { self } = await seedSelfCycle();
+      const storedShare = await insertShare(self.id, false);
+
+      await withStatementTimeout(async (connection) => {
+        const shareService = createShareService(connection);
+
+        await expect(
+          shareService.getShareForPage(self.id, storedShare.workspaceId),
+        ).resolves.toEqual(
+          expect.objectContaining({
+            id: storedShare.id,
+            pageId: self.id,
+            level: 0,
+          }),
+        );
+      });
+    });
+
+    it('rejects a share from a different workspace', async () => {
+      const { root } = await seedAcyclicPageChain();
+      await insertShare(root.id, true);
+      const shareService = createShareService(db);
+
+      await expect(
+        shareService.getShareForPage(root.id, randomUUID()),
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects an inherited share that excludes subpages', async () => {
+      const { root, grandchild } = await seedAcyclicPageChain();
+      const storedShare = await insertShare(root.id, false);
+      const shareService = createShareService(db);
+
+      await expect(
+        shareService.getShareForPage(
+          grandchild.id,
+          storedShare.workspaceId,
+        ),
+      ).resolves.toBeUndefined();
     });
 
     it('returns undefined for a cyclic chain with no reachable share', async () => {
