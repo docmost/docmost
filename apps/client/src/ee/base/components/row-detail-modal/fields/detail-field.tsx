@@ -18,6 +18,7 @@ export type FieldProps = {
   rowId: string;
   readOnly: boolean;
   onChange: (value: unknown) => void;
+  onEditingChange?: (editing: boolean) => void;
 };
 
 type FieldShellProps = {
@@ -99,9 +100,10 @@ type DetailFieldProps = {
   row: IBaseRow;
   readOnly: boolean;
   onUpdate: (propertyId: string, value: unknown) => void;
+  onEditingChange: (editing: boolean) => void;
 };
 
-export function DetailField({ property, row, readOnly, onUpdate }: DetailFieldProps) {
+export function DetailField({ property, row, readOnly, onUpdate, onEditingChange }: DetailFieldProps) {
   const descriptor = getDescriptor(property.type);
   const value = descriptor?.systemAccessor
     ? descriptor.systemAccessor(row)
@@ -112,6 +114,7 @@ export function DetailField({ property, row, readOnly, onUpdate }: DetailFieldPr
     rowId: row.id,
     readOnly,
     onChange: (next: unknown) => onUpdate(property.id, next),
+    onEditingChange
   };
 
   switch (property.type) {
