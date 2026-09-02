@@ -31,6 +31,8 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
+import { ImportAttachmentService } from './import-attachment.service';
+import { executeTx } from "@docmost/db/utils";
 
 @Injectable()
 export class ImportService {
@@ -43,6 +45,7 @@ export class ImportService {
     @InjectQueue(QueueName.FILE_TASK_QUEUE)
     private readonly fileTaskQueue: Queue,
     private moduleRef: ModuleRef,
+    private readonly importAttachmentService: ImportAttachmentService,
   ) {}
 
   async importPage(
@@ -62,79 +65,87 @@ export class ImportService {
     let prosemirrorState = null;
     let createdPage = null;
 
-    // For DOCX, we need the page ID upfront so images can reference it
-    const pageId =
-      fileExtension === '.docx' || fileExtension === '.pdf'
-        ? uuid7()
-        : undefined;
+    // Generate the page ID upfront so imported attachments can reference it.
+    const pageId = uuid7();
 
     try {
-      if (fileExtension.endsWith('.md')) {
-        prosemirrorState = await this.processMarkdown(fileContent);
-      } else if (fileExtension.endsWith('.html')) {
-        prosemirrorState = await this.processHTML(fileContent);
-      } else if (fileExtension.endsWith('.docx')) {
-        prosemirrorState = await this.processDocx(
-          fileBuffer,
-          workspaceId,
-          spaceId,
-          pageId,
-          userId,
+      createdPage = await executeTx(this.db, async (trx) => {
+
+        if (fileExtension.endsWith('.md') || fileExtension.endsWith('.html')) {
+          const rawHtml = fileExtension.endsWith('.md')
+            ? await markdownToHtml(fileContent)
+            : fileContent;
+
+          const processedHtml =
+            await this.importAttachmentService.processEmbeddedAttachments({
+              html: rawHtml,
+              pageId,
+              workspaceId,
+              spaceId,
+              creatorId: userId,
+              trx,
+            });
+
+          prosemirrorState = await this.processHTML(processedHtml);
+        } else if (fileExtension.endsWith('.docx')) {
+          prosemirrorState = await this.processDocx(
+            fileBuffer,
+            workspaceId,
+            spaceId,
+            pageId,
+            userId,
+          );
+        } else if (fileExtension.endsWith('.pdf')) {
+          prosemirrorState = await this.processPdf(
+            fileBuffer,
+            workspaceId,
+            spaceId,
+            pageId,
+            userId,
+          );
+        }
+
+        if (!prosemirrorState) {
+          const message = 'Failed to create ProseMirror state';
+          this.logger.error(message);
+          throw new BadRequestException(message);
+        }
+
+        const { title, prosemirrorJson } = this.extractTitleAndRemoveHeading(
+          prosemirrorState,
+          { anyHeadingLevel: true },
         );
-      } else if (fileExtension.endsWith('.pdf')) {
-        prosemirrorState = await this.processPdf(
-          fileBuffer,
-          workspaceId,
-          spaceId,
-          pageId,
-          userId,
-        );
-      }
-    } catch (err) {
-      const message = 'Error processing file content';
-      this.logger.error(message, err);
-      throw new BadRequestException(message);
-    }
 
-    if (!prosemirrorState) {
-      const message = 'Failed to create ProseMirror state';
-      this.logger.error(message);
-      throw new BadRequestException(message);
-    }
-
-    const { title, prosemirrorJson } = this.extractTitleAndRemoveHeading(
-      prosemirrorState,
-      { anyHeadingLevel: true },
-    );
-
-    const pageTitle = title || fileName;
-
-    if (prosemirrorJson) {
-      try {
+        const pageTitle = title || fileName;
         const pagePosition = await this.getNewPagePosition(spaceId);
 
-        createdPage = await this.pageRepo.insertPage({
-          ...(pageId ? { id: pageId } : {}),
-          slugId: generateSlugId(),
-          title: pageTitle,
-          content: prosemirrorJson,
-          textContent: jsonToText(prosemirrorJson),
-          ydoc: await this.createYdoc(prosemirrorJson),
-          position: pagePosition,
-          spaceId: spaceId,
-          creatorId: userId,
-          workspaceId: workspaceId,
-          lastUpdatedById: userId,
-        });
+        const page = await this.pageRepo.insertPage(
+          {
+            id: pageId,
+            slugId: generateSlugId(),
+            title: pageTitle,
+            content: prosemirrorJson,
+            textContent: jsonToText(prosemirrorJson),
+            ydoc: await this.createYdoc(prosemirrorJson),
+            position: pagePosition,
+            spaceId: spaceId,
+            creatorId: userId,
+            workspaceId: workspaceId,
+            lastUpdatedById: userId,
+          },
+          trx,
+        );
 
         this.logger.debug(
-          `Successfully imported "${title}${fileExtension}. ID: ${createdPage.id} - SlugId: ${createdPage.slugId}"`,
+          `Successfully imported "${title}${fileExtension}. ID: ${page.id} - SlugId: ${page.slugId}"`,
         );
-      } catch (err) {
-        const message = 'Failed to create imported page';
-        this.logger.error(message, err);
-        throw new BadRequestException(message);
-      }
+
+        return page;
+      });
+    } catch (err) {
+      const message = 'Failed to create imported page';
+      this.logger.error(message, err);
+      throw new BadRequestException(message);
     }
 
     return createdPage;
