@@ -65,6 +65,45 @@ async function insertTestUser(pageId: string): Promise<string> {
   return user.id;
 }
 
+async function insertTwoPageCycleInPageSpace(
+  pageId: string,
+): Promise<{ cyclePageId: string; spaceId: string }> {
+  const context = await db
+    .selectFrom('pages')
+    .select(['spaceId', 'workspaceId'])
+    .where('id', '=', pageId)
+    .executeTakeFirstOrThrow();
+  const a = await db
+    .insertInto('pages')
+    .values({
+      slugId: randomUUID(),
+      spaceId: context.spaceId,
+      title: 'Same-space cycle A',
+      workspaceId: context.workspaceId,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+  const b = await db
+    .insertInto('pages')
+    .values({
+      parentPageId: a.id,
+      slugId: randomUUID(),
+      spaceId: context.spaceId,
+      title: 'Same-space cycle B',
+      workspaceId: context.workspaceId,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+
+  await db
+    .updateTable('pages')
+    .set({ parentPageId: b.id })
+    .where('id', '=', a.id)
+    .execute();
+
+  return { cyclePageId: a.id, spaceId: context.spaceId };
+}
+
 async function restrictPage(
   pageId: string,
   permittedUserId?: string,
@@ -474,6 +513,29 @@ describe('cycle-safe page hierarchy reads', () => {
   });
 
   describe('bulk permissions', () => {
+    it('excludes a cyclic page from the unrestricted-space fast path', async () => {
+      const { grandchild } = await seedAcyclicPageChain();
+      const { cyclePageId, spaceId } = await insertTwoPageCycleInPageSpace(
+        grandchild.id,
+      );
+      const userId = await insertTestUser(grandchild.id);
+
+      await withStatementTimeout(async (connection) => {
+        const repo = createPagePermissionRepo(connection);
+
+        await expect(repo.hasRestrictedPagesInSpace(spaceId)).resolves.toBe(
+          false,
+        );
+        await expect(
+          repo.filterAccessiblePageIds({
+            pageIds: [grandchild.id, cyclePageId],
+            userId,
+            spaceId,
+          }),
+        ).resolves.toEqual([grandchild.id]);
+      });
+    });
+
     it('keeps an accessible acyclic page while excluding a cyclic page', async () => {
       const { grandchild } = await seedAcyclicPageChain();
       const { a } = await seedTwoPageCycle();

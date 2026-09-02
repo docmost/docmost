@@ -728,7 +728,48 @@ export class PagePermissionRepo {
     if (spaceId) {
       const hasRestrictions = await this.hasRestrictedPagesInSpace(spaceId);
       if (!hasRestrictions) {
-        return pageIds;
+        const cyclicPages = await this.db
+          .withRecursive('allAncestors', (qb) =>
+            qb
+              .selectFrom('pages')
+              .select([
+                'pages.id as pageId',
+                'pages.id as ancestorId',
+                'pages.parentPageId',
+                sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+                sql<boolean>`false`.as('isCycle'),
+              ])
+              .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+              .unionAll((eb) =>
+                eb
+                  .selectFrom('pages')
+                  .innerJoin(
+                    'allAncestors',
+                    'allAncestors.parentPageId',
+                    'pages.id',
+                  )
+                  .select([
+                    'allAncestors.pageId',
+                    'pages.id as ancestorId',
+                    'pages.parentPageId',
+                    sql<string[]>`all_ancestors.traversal_path || pages.id`.as(
+                      'traversalPath',
+                    ),
+                    sql<boolean>`pages.id = ANY(all_ancestors.traversal_path)`.as(
+                      'isCycle',
+                    ),
+                  ])
+                  .where('allAncestors.isCycle', '=', false),
+              ),
+          )
+          .selectFrom('allAncestors')
+          .select('allAncestors.pageId')
+          .distinct()
+          .where('allAncestors.isCycle', '=', true)
+          .execute();
+        const cyclicPageIds = new Set(cyclicPages.map((page) => page.pageId));
+
+        return pageIds.filter((pageId) => !cyclicPageIds.has(pageId));
       }
     }
 
