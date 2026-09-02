@@ -5,7 +5,10 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
-import { assertAcyclicPageTraversal } from '../../../database/helpers/page-hierarchy-cycle';
+import {
+  assertAcyclicPageTraversal,
+  PageHierarchyCycleError,
+} from '../../../database/helpers/page-hierarchy-cycle';
 import { sql } from 'kysely';
 
 const DEFAULT_RETENTION_DAYS = 30;
@@ -30,8 +33,15 @@ export class TrashCleanupService {
         .where('deletedAt', 'is', null)
         .execute();
 
-      let totalCleaned = 0;
+      const cleanupCandidates: Array<{
+        pageId: string;
+        pageIds: string[];
+      }> = [];
+      const excludedPageIds = new Set<string>();
 
+      // Preflight every candidate before any cleanup mutates the snapshot.
+      // This lets a corrupt root exclude its whole reachable component even
+      // when one of its descendants is also an independently expired page.
       for (const workspace of workspaces) {
         const retentionDays =
           workspace.trashRetentionDays ?? DEFAULT_RETENTION_DAYS;
@@ -47,15 +57,47 @@ export class TrashCleanupService {
           .execute();
 
         for (const page of oldDeletedPages) {
+          let descendants: Array<{ id: string; isCycle: boolean }> | undefined;
+
           try {
-            await this.cleanupPage(page.id);
-            totalCleaned++;
+            descendants = await this.getPageDescendants(page.id);
+            assertAcyclicPageTraversal(descendants, page.id);
+            cleanupCandidates.push({
+              pageId: page.id,
+              pageIds: descendants.map((descendant) => descendant.id),
+            });
           } catch (error) {
-            this.logger.error(
-              `Failed to cleanup page ${page.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              error instanceof Error ? error.stack : undefined,
-            );
+            if (error instanceof PageHierarchyCycleError) {
+              for (const descendant of descendants ?? []) {
+                excludedPageIds.add(descendant.id);
+              }
+            }
+            this.logCleanupError(page.id, error);
           }
+        }
+      }
+
+      let totalCleaned = 0;
+      const cleanedPageIds = new Set<string>();
+
+      for (const candidate of cleanupCandidates) {
+        const pageIds = candidate.pageIds.filter(
+          (pageId) =>
+            !excludedPageIds.has(pageId) && !cleanedPageIds.has(pageId),
+        );
+
+        if (pageIds.length === 0) {
+          continue;
+        }
+
+        try {
+          await this.cleanupPage(candidate.pageId, pageIds);
+          for (const pageId of pageIds) {
+            cleanedPageIds.add(pageId);
+          }
+          totalCleaned++;
+        } catch (error) {
+          this.logCleanupError(candidate.pageId, error);
         }
       }
 
@@ -72,9 +114,9 @@ export class TrashCleanupService {
     }
   }
 
-  private async cleanupPage(pageId: string) {
+  private async getPageDescendants(pageId: string) {
     // Get all descendants using recursive CTE (including the page itself)
-    const descendants = await this.db
+    return this.db
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
@@ -99,10 +141,9 @@ export class TrashCleanupService {
       .selectFrom('page_descendants')
       .select(['id', 'isCycle'])
       .execute();
+  }
 
-    assertAcyclicPageTraversal(descendants, pageId);
-    const pageIds = descendants.map((d) => d.id);
-
+  private async cleanupPage(pageId: string, pageIds: string[]) {
     this.logger.debug(
       `Cleaning up page ${pageId} with ${pageIds.length - 1} descendants`,
     );
@@ -135,5 +176,12 @@ export class TrashCleanupService {
         `Error deleting pages, they may have been already deleted: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+  private logCleanupError(pageId: string, error: unknown) {
+    this.logger.error(
+      `Failed to cleanup page ${pageId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error instanceof Error ? error.stack : undefined,
+    );
   }
 }

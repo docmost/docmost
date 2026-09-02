@@ -384,12 +384,53 @@ describe('cycle-safe page hierarchy reads', () => {
 
     it('trash cleanup logs and skips a corrupt root before continuing with acyclic trash', async () => {
       const { self } = await seedSelfCycle();
-      const { root, child, grandchild } = await seedAcyclicPageChain();
+      const context = await db
+        .selectFrom('pages')
+        .select(['spaceId', 'workspaceId'])
+        .where('id', '=', self.id)
+        .executeTakeFirstOrThrow();
+      const corruptSideChild = await db
+        .insertInto('pages')
+        .values({
+          parentPageId: self.id,
+          slugId: randomUUID(),
+          spaceId: context.spaceId,
+          title: 'Corrupt side child',
+          workspaceId: context.workspaceId,
+        })
+        .returning(['id', 'parentPageId'])
+        .executeTakeFirstOrThrow();
+      const healthyRoot = await db
+        .insertInto('pages')
+        .values({
+          slugId: randomUUID(),
+          spaceId: context.spaceId,
+          title: 'Healthy cleanup root',
+          workspaceId: context.workspaceId,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+      const healthyChild = await db
+        .insertInto('pages')
+        .values({
+          parentPageId: healthyRoot.id,
+          slugId: randomUUID(),
+          spaceId: context.spaceId,
+          title: 'Healthy cleanup child',
+          workspaceId: context.workspaceId,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
       const expiredAt = new Date('2024-01-02T03:04:05.000Z');
       await db
         .updateTable('pages')
         .set({ deletedAt: expiredAt })
-        .where('id', 'in', [self.id, root.id])
+        .where('id', 'in', [
+          self.id,
+          corruptSideChild.id,
+          healthyRoot.id,
+          healthyChild.id,
+        ])
         .execute();
       const attachmentQueue = { add: jest.fn() };
       const loggerError = jest
@@ -404,26 +445,48 @@ describe('cycle-safe page hierarchy reads', () => {
         await timeoutCleanupService.cleanupOldTrash();
       });
 
-      const corruptPage = await db
+      const corruptPages = await db
         .selectFrom('pages')
-        .select(['id', 'deletedAt'])
-        .where('id', '=', self.id)
-        .executeTakeFirst();
-      const cleanedPageIds = await db
+        .select(['id', 'parentPageId', 'deletedAt'])
+        .where('id', 'in', [self.id, corruptSideChild.id])
+        .orderBy('id')
+        .execute();
+      const healthyPages = await db
         .selectFrom('pages')
         .select('id')
-        .where('id', 'in', [root.id, child.id, grandchild.id])
+        .where('id', 'in', [healthyRoot.id, healthyChild.id])
         .execute();
 
-      expect(corruptPage).toEqual({ id: self.id, deletedAt: expiredAt });
-      expect(cleanedPageIds).toEqual([]);
-      expect(attachmentQueue.add).toHaveBeenCalledTimes(3);
-      expect(
-        attachmentQueue.add.mock.calls.map(([, payload]) => payload.pageId),
-      ).toEqual(expect.arrayContaining([root.id, child.id, grandchild.id]));
+      expect(corruptPages).toEqual(
+        [
+          { id: self.id, parentPageId: self.id, deletedAt: expiredAt },
+          {
+            id: corruptSideChild.id,
+            parentPageId: self.id,
+            deletedAt: expiredAt,
+          },
+        ].sort((left, right) => left.id.localeCompare(right.id)),
+      );
+      expect(healthyPages).toEqual([]);
+      expect(attachmentQueue.add).toHaveBeenCalledTimes(2);
+      const queuedPageIds = attachmentQueue.add.mock.calls.map(
+        ([, payload]) => payload.pageId,
+      );
+      expect(queuedPageIds).toEqual(
+        expect.arrayContaining([healthyRoot.id, healthyChild.id]),
+      );
+      expect(queuedPageIds).not.toEqual(
+        expect.arrayContaining([self.id, corruptSideChild.id]),
+      );
+      expect(loggerError).toHaveBeenCalledTimes(1);
       expect(loggerError).toHaveBeenCalledWith(
-        expect.stringContaining(`Failed to cleanup page ${self.id}`),
-        expect.any(String),
+        `Failed to cleanup page ${self.id}: Cyclic page hierarchy detected`,
+        expect.stringContaining(
+          'PageHierarchyCycleError: Cyclic page hierarchy detected',
+        ),
+      );
+      expect(loggerError.mock.invocationCallOrder[0]).toBeLessThan(
+        attachmentQueue.add.mock.invocationCallOrder[0],
       );
     });
   });
