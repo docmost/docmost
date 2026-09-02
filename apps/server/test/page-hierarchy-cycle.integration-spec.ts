@@ -1,6 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { ForbiddenException, Logger } from '@nestjs/common';
+import { ExecutionContext, Logger } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
+import { Test } from '@nestjs/testing';
 import { createCache } from 'cache-manager';
+import * as request from 'supertest';
+import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
+import { TransformHttpResponseInterceptor } from '../src/common/interceptors/http-response.interceptor';
 import { PageController } from '../src/core/page/page.controller';
 import { PageAccessService } from '../src/core/page/page-access/page-access.service';
 import { PageService } from '../src/core/page/services/page.service';
@@ -69,7 +78,14 @@ function createPagePermissionRepo(connection: KyselyDB): PagePermissionRepo {
   return new PagePermissionRepo(connection, undefined as never, createCache());
 }
 
-function createBreadcrumbController(connection: KyselyDB): PageController {
+async function createBreadcrumbHttpApp(
+  connection: KyselyDB,
+  user: User,
+): Promise<{
+  app: NestFastifyApplication;
+  authGuard: { canActivate: jest.Mock };
+  getPageBreadCrumbs: jest.SpiedFunction<PageService['getPageBreadCrumbs']>;
+}> {
   const cacheManager = createCache();
   const pagePermissionRepo = new PagePermissionRepo(
     connection,
@@ -88,17 +104,45 @@ function createBreadcrumbController(connection: KyselyDB): PageController {
     spaceAbility,
     undefined as never,
   );
+  const pageService = createPageService(connection);
+  const getPageBreadCrumbs = jest.spyOn(pageService, 'getPageBreadCrumbs');
+  const authGuard = {
+    canActivate: jest.fn((context: ExecutionContext) => {
+      const httpRequest = context.switchToHttp().getRequest();
+      if (httpRequest.headers.authorization !== 'Bearer integration-test') {
+        return false;
+      }
 
-  return new PageController(
-    createPageService(connection),
-    createPageRepo(connection),
-    undefined as never,
-    spaceAbility,
-    pageAccessService,
-    undefined as never,
-    undefined as never,
-    undefined as never,
+      httpRequest.user = { user };
+      return true;
+    }),
+  };
+  const module = await Test.createTestingModule({
+    controllers: [HealthController, PageController],
+    providers: [
+      { provide: PageService, useValue: pageService },
+      { provide: PageRepo, useValue: createPageRepo(connection) },
+      { provide: PageAccessService, useValue: pageAccessService },
+      { provide: SpaceAbilityFactory, useValue: spaceAbility },
+    ],
+  })
+    .useMocker(() => ({}))
+    .overrideGuard(JwtAuthGuard)
+    .useValue(authGuard)
+    .compile();
+  const app = module.createNestApplication<NestFastifyApplication>(
+    new FastifyAdapter(),
+    { logger: false },
   );
+
+  app.setGlobalPrefix('api');
+  app.useGlobalInterceptors(
+    new TransformHttpResponseInterceptor(app.get(Reflector)),
+  );
+  await app.init();
+  await app.getHttpAdapter().getInstance().ready();
+
+  return { app, authGuard, getPageBreadCrumbs };
 }
 
 async function insertControllerUser(pageId: string): Promise<User> {
@@ -127,44 +171,6 @@ async function insertControllerUser(pageId: string): Promise<User> {
     .execute();
 
   return user;
-}
-
-async function captureBeforeClientDeadline<T>(
-  operation: () => Promise<T>,
-): Promise<{
-  error?: unknown;
-  value?: T;
-}> {
-  let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<never>((_, reject) => {
-    deadlineTimer = setTimeout(
-      () => reject(new Error('Client deadline exceeded')),
-      CLIENT_DEADLINE_MS,
-    );
-  });
-
-  try {
-    const value = await Promise.race([operation(), deadline]);
-    return {
-      value,
-    };
-  } catch (error) {
-    return {
-      error,
-    };
-  } finally {
-    if (deadlineTimer) clearTimeout(deadlineTimer);
-  }
-}
-
-async function expectLiveHealthCheck(): Promise<void> {
-  const healthController = new HealthController(
-    undefined as never,
-    undefined as never,
-    undefined as never,
-  );
-
-  await expect(healthController.checkLive()).resolves.toBe('ok');
 }
 
 function silenceTrashCleanupDebugLogs(): void {
@@ -793,50 +799,92 @@ describe('cycle-safe page hierarchy reads', () => {
         };
       },
     },
-  ])('PageController.getPageBreadcrumbs with $name', (cycle) => {
-    it('fails closed with a cold permission cache before the statement timeout', async () => {
+  ])('POST /api/pages/breadcrumbs with $name', (cycle) => {
+    it('fails closed over HTTP with a cold permission cache and stays live', async () => {
       const pageId = await cycle.seedColdCycle();
       const user = await insertControllerUser(pageId);
 
       await withStatementTimeout(async (connection) => {
-        const controller = createBreadcrumbController(connection);
-        const outcome = await captureBeforeClientDeadline(() =>
-          controller.getPageBreadcrumbs({ pageId }, user),
-        );
+        const { app, authGuard, getPageBreadCrumbs } =
+          await createBreadcrumbHttpApp(connection, user);
 
-        expect(outcome.value).toBeUndefined();
-        expect(outcome.error).toBeInstanceOf(ForbiddenException);
-        await expectLiveHealthCheck();
+        try {
+          const response = await request(app.getHttpServer())
+            .post('/api/pages/breadcrumbs')
+            .set('Authorization', 'Bearer integration-test')
+            .send({ pageId })
+            .timeout(CLIENT_DEADLINE_MS);
+
+          expect(response.status).toBe(403);
+          expect(response.body).not.toHaveProperty('data');
+          expect(response.text).not.toContain(pageId);
+          expect(authGuard.canActivate).toHaveBeenCalledTimes(1);
+          expect(getPageBreadCrumbs).not.toHaveBeenCalled();
+
+          const health = await request(app.getHttpServer())
+            .get('/api/health/live')
+            .timeout(CLIENT_DEADLINE_MS);
+          expect(health.status).toBe(200);
+          expect(health.body).toEqual(
+            expect.objectContaining({ data: 'ok', success: true }),
+          );
+        } finally {
+          await app.close();
+        }
       });
     });
 
-    it('rejects without a partial payload after warming the permission cache and stays live', async () => {
+    it('rejects over HTTP without a partial payload after warming the permission cache and stays live', async () => {
       const { pageId, corrupt } = await cycle.seedWarmCycle();
       const user = await insertControllerUser(pageId);
 
       await withStatementTimeout(async (connection) => {
-        const controller = createBreadcrumbController(connection);
-        const warmBreadcrumbs = await controller.getPageBreadcrumbs(
-          { pageId },
-          user,
-        );
-        expect(warmBreadcrumbs.map((page) => page.id)).toEqual([pageId]);
+        const { app, authGuard, getPageBreadCrumbs } =
+          await createBreadcrumbHttpApp(connection, user);
 
-        await corrupt(connection);
+        try {
+          const warmResponse = await request(app.getHttpServer())
+            .post('/api/pages/breadcrumbs')
+            .set('Authorization', 'Bearer integration-test')
+            .send({ pageId })
+            .timeout(CLIENT_DEADLINE_MS);
+          expect(warmResponse.status).toBe(200);
+          expect(
+            warmResponse.body.data.map((page: { id: string }) => page.id),
+          ).toEqual([pageId]);
 
-        const outcome = await captureBeforeClientDeadline(() =>
-          controller.getPageBreadcrumbs({ pageId }, user),
-        );
+          await corrupt(connection);
 
-        expect(outcome.value).toBeUndefined();
-        expect(outcome.error).toBeInstanceOf(PageHierarchyCycleError);
-        expect(outcome.error).toEqual(
-          expect.objectContaining({
-            code: 'PAGE_HIERARCHY_CYCLE',
-            rootPageId: pageId,
-          }) satisfies Partial<PageHierarchyCycleError>,
-        );
-        await expectLiveHealthCheck();
+          const cycleResponse = await request(app.getHttpServer())
+            .post('/api/pages/breadcrumbs')
+            .set('Authorization', 'Bearer integration-test')
+            .send({ pageId })
+            .timeout(CLIENT_DEADLINE_MS);
+
+          expect(cycleResponse.status).toBe(500);
+          expect(cycleResponse.body).not.toHaveProperty('data');
+          expect(cycleResponse.text).not.toContain(pageId);
+          expect(authGuard.canActivate).toHaveBeenCalledTimes(2);
+          expect(getPageBreadCrumbs).toHaveBeenCalledTimes(2);
+          await expect(
+            getPageBreadCrumbs.mock.results[1].value,
+          ).rejects.toEqual(
+            expect.objectContaining({
+              code: 'PAGE_HIERARCHY_CYCLE',
+              rootPageId: pageId,
+            }) satisfies Partial<PageHierarchyCycleError>,
+          );
+
+          const health = await request(app.getHttpServer())
+            .get('/api/health/live')
+            .timeout(CLIENT_DEADLINE_MS);
+          expect(health.status).toBe(200);
+          expect(health.body).toEqual(
+            expect.objectContaining({ data: 'ok', success: true }),
+          );
+        } finally {
+          await app.close();
+        }
       });
     });
   });
