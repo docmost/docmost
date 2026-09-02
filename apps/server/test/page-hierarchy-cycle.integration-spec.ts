@@ -8,6 +8,7 @@ import { KyselyDB } from '../src/database/types/kysely.types';
 import { db, withStatementTimeout } from './support/database';
 import {
   seedAcyclicPageChain,
+  seedBranchingDescendantTree,
   seedSelfCycle,
   seedTwoPageCycle,
 } from './support/page-hierarchy-fixtures';
@@ -269,10 +270,7 @@ describe('cycle-safe page hierarchy reads', () => {
       const shareService = createShareService(db);
 
       await expect(
-        shareService.getShareForPage(
-          grandchild.id,
-          storedShare.workspaceId,
-        ),
+        shareService.getShareForPage(grandchild.id, storedShare.workspaceId),
       ).resolves.toBeUndefined();
     });
 
@@ -471,6 +469,87 @@ describe('cycle-safe page hierarchy reads', () => {
             }) satisfies Partial<PageHierarchyCycleError>,
           );
         });
+      });
+    });
+  });
+
+  describe('bulk permissions', () => {
+    it('keeps an accessible acyclic page while excluding a cyclic page', async () => {
+      const { grandchild } = await seedAcyclicPageChain();
+      const { a } = await seedTwoPageCycle();
+      const userId = await insertTestUser(grandchild.id);
+
+      await withStatementTimeout(async (connection) => {
+        const repo = createPagePermissionRepo(connection);
+
+        await expect(
+          repo.filterAccessiblePageIds({
+            pageIds: [grandchild.id, a.id],
+            userId,
+          }),
+        ).resolves.toEqual([grandchild.id]);
+      });
+    });
+
+    it('keeps acyclic permission details while excluding a cyclic page', async () => {
+      const { grandchild } = await seedAcyclicPageChain();
+      const { a } = await seedTwoPageCycle();
+      const userId = await insertTestUser(grandchild.id);
+
+      await withStatementTimeout(async (connection) => {
+        const repo = createPagePermissionRepo(connection);
+
+        await expect(
+          repo.filterAccessiblePageIdsWithPermissions(
+            [grandchild.id, a.id],
+            userId,
+          ),
+        ).resolves.toEqual([{ id: grandchild.id, canEdit: true }]);
+      });
+    });
+
+    it('keeps a parent with an accessible child while excluding a cyclic child', async () => {
+      const { root, child } = await seedAcyclicPageChain();
+      const { a } = await seedTwoPageCycle();
+      const userId = await insertTestUser(child.id);
+
+      await withStatementTimeout(async (connection) => {
+        const repo = createPagePermissionRepo(connection);
+
+        await expect(
+          repo.getParentIdsWithAccessibleChildren([root.id, a.id], userId),
+        ).resolves.toEqual([root.id]);
+      });
+    });
+
+    it('keeps independent acyclic seeds that share ancestors accessible', async () => {
+      const { firstChild, secondChild, grandchild } =
+        await seedBranchingDescendantTree();
+      const userId = await insertTestUser(grandchild.id);
+      const pageIds = [firstChild.id, secondChild.id, grandchild.id];
+      const expectedPageIds = [...pageIds].sort();
+
+      await withStatementTimeout(async (connection) => {
+        const repo = createPagePermissionRepo(connection);
+
+        const accessiblePageIds = await repo.filterAccessiblePageIds({
+          pageIds,
+          userId,
+        });
+        const permissionDetails =
+          await repo.filterAccessiblePageIdsWithPermissions(pageIds, userId);
+
+        expect(accessiblePageIds.sort()).toEqual(expectedPageIds);
+        expect(
+          permissionDetails
+            .map(({ id, canEdit }) => ({ id, canEdit }))
+            .sort((left, right) => left.id.localeCompare(right.id)),
+        ).toEqual(
+          expectedPageIds.map((id) => ({
+            id,
+            canEdit: true,
+          })),
+        );
       });
     });
   });

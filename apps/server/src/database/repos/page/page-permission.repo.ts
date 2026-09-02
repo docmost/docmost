@@ -740,6 +740,8 @@ export class PagePermissionRepo {
             'pages.id as pageId',
             'pages.id as ancestorId',
             'pages.parentPageId',
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
           .unionAll((eb) =>
@@ -754,12 +756,29 @@ export class PagePermissionRepo {
                 'allAncestors.pageId',
                 'pages.id as ancestorId',
                 'pages.parentPageId',
-              ]),
+                sql<string[]>`all_ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(all_ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('allAncestors.isCycle', '=', false),
           ),
       )
       .selectFrom('pages')
       .select('pages.id')
       .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('allAncestors')
+              .select('allAncestors.ancestorId')
+              .whereRef('allAncestors.pageId', '=', 'pages.id')
+              .where('allAncestors.isCycle', '=', true),
+          ),
+        ),
+      )
       .where(({ not, exists, selectFrom }) =>
         not(
           exists(
@@ -809,6 +828,8 @@ export class PagePermissionRepo {
             'pages.id as ancestorId',
             'pages.parentPageId',
             sql<number>`0`.as('depth'),
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
           .unionAll((eb) =>
@@ -824,7 +845,14 @@ export class PagePermissionRepo {
                 'pages.id as ancestorId',
                 'pages.parentPageId',
                 sql<number>`all_ancestors.depth + 1`.as('depth'),
-              ]),
+                sql<string[]>`all_ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(all_ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('allAncestors.isCycle', '=', false),
           ),
       )
       .selectFrom('pages')
@@ -885,6 +913,16 @@ export class PagePermissionRepo {
           .as('canEdit'),
       )
       .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('allAncestors')
+              .select('allAncestors.ancestorId')
+              .whereRef('allAncestors.pageId', '=', 'pages.id')
+              .where('allAncestors.isCycle', '=', true),
+          ),
+        ),
+      )
       // view filter: no restricted ancestor without any permission
       .where(({ not, exists, selectFrom }) =>
         not(
@@ -1003,6 +1041,8 @@ export class PagePermissionRepo {
             'child.id as childId',
             'child.id as ancestorId',
             'child.parentPageId as ancestorParentId',
+            sql<string[]>`ARRAY[child.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where('child.parentPageId', 'in', parentIds)
           .where('child.deletedAt', 'is', null)
@@ -1018,7 +1058,14 @@ export class PagePermissionRepo {
                 'childAncestors.childId',
                 'pages.id as ancestorId',
                 'pages.parentPageId as ancestorParentId',
-              ]),
+                sql<string[]>`child_ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(child_ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('childAncestors.isCycle', '=', false),
           ),
       )
       .selectFrom('pages as child')
@@ -1026,6 +1073,16 @@ export class PagePermissionRepo {
       .distinct()
       .where('child.parentPageId', 'in', parentIds)
       .where('child.deletedAt', 'is', null)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('childAncestors')
+              .select('childAncestors.ancestorId')
+              .whereRef('childAncestors.childId', '=', 'child.id')
+              .where('childAncestors.isCycle', '=', true),
+          ),
+        ),
+      )
       .where(({ not, exists, selectFrom }) =>
         not(
           exists(
