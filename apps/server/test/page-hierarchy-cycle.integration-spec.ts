@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import { createCache } from 'cache-manager';
+import { sql } from 'kysely';
 import { PageService } from '../src/core/page/services/page.service';
 import { TrashCleanupService } from '../src/core/page/services/trash-cleanup.service';
 import { ShareService } from '../src/core/share/share.service';
@@ -392,6 +393,7 @@ describe('cycle-safe page hierarchy reads', () => {
       const corruptSideChild = await db
         .insertInto('pages')
         .values({
+          id: 'dddddddd-dddd-4ddd-bddd-dddddddddddd',
           parentPageId: self.id,
           slugId: randomUUID(),
           spaceId: context.spaceId,
@@ -403,6 +405,7 @@ describe('cycle-safe page hierarchy reads', () => {
       const healthyRoot = await db
         .insertInto('pages')
         .values({
+          id: 'eeeeeeee-eeee-4eee-beee-eeeeeeeeeeee',
           slugId: randomUUID(),
           spaceId: context.spaceId,
           title: 'Healthy cleanup root',
@@ -413,6 +416,7 @@ describe('cycle-safe page hierarchy reads', () => {
       const healthyChild = await db
         .insertInto('pages')
         .values({
+          id: 'ffffffff-ffff-4fff-bfff-ffffffffffff',
           parentPageId: healthyRoot.id,
           slugId: randomUUID(),
           spaceId: context.spaceId,
@@ -478,15 +482,121 @@ describe('cycle-safe page hierarchy reads', () => {
       expect(queuedPageIds).not.toEqual(
         expect.arrayContaining([self.id, corruptSideChild.id]),
       );
-      expect(loggerError).toHaveBeenCalledTimes(1);
+      expect(loggerError).toHaveBeenCalledTimes(2);
       expect(loggerError).toHaveBeenCalledWith(
         `Failed to cleanup page ${self.id}: Cyclic page hierarchy detected`,
         expect.stringContaining(
           'PageHierarchyCycleError: Cyclic page hierarchy detected',
         ),
       );
-      expect(loggerError.mock.invocationCallOrder[0]).toBeLessThan(
+      expect(loggerError).toHaveBeenCalledWith(
+        `Failed to cleanup page ${corruptSideChild.id}: Cyclic page hierarchy detected`,
+        expect.stringContaining(
+          'PageHierarchyCycleError: Cyclic page hierarchy detected',
+        ),
+      );
+      expect(Math.max(...loggerError.mock.invocationCallOrder)).toBeLessThan(
         attachmentQueue.add.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('trash cleanup aborts before later mutation when hierarchy validation unexpectedly fails', async () => {
+      const { root } = await seedAcyclicPageChain();
+      const context = await db
+        .selectFrom('pages')
+        .select(['spaceId', 'workspaceId'])
+        .where('id', '=', root.id)
+        .executeTakeFirstOrThrow();
+      const expiredAt = new Date('2024-01-02T03:04:05.000Z');
+      const slowRootId = '00000000-0000-4000-8000-000000000001';
+      const firstHealthyRootId = 'eeeeeeee-eeee-4eee-beee-eeeeeeeeeeee';
+      const secondHealthyRootId = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
+      await db
+        .insertInto('pages')
+        .values([
+          {
+            deletedAt: expiredAt,
+            id: slowRootId,
+            slugId: randomUUID(),
+            spaceId: context.spaceId,
+            title: 'Slow validation root',
+            workspaceId: context.workspaceId,
+          },
+          {
+            deletedAt: expiredAt,
+            id: firstHealthyRootId,
+            slugId: randomUUID(),
+            spaceId: context.spaceId,
+            title: 'First later healthy root',
+            workspaceId: context.workspaceId,
+          },
+          {
+            deletedAt: expiredAt,
+            id: secondHealthyRootId,
+            slugId: randomUUID(),
+            spaceId: context.spaceId,
+            title: 'Second later healthy root',
+            workspaceId: context.workspaceId,
+          },
+        ])
+        .execute();
+      const chainSeed = randomUUID();
+      await sql`
+        INSERT INTO pages (
+          id,
+          slug_id,
+          title,
+          parent_page_id,
+          space_id,
+          workspace_id
+        )
+        SELECT
+          md5(${chainSeed} || '-page-' || step::text)::uuid,
+          md5(${chainSeed} || '-slug-' || step::text)::uuid,
+          'Slow validation descendant ' || step::text,
+          CASE
+            WHEN step = 1 THEN ${slowRootId}::uuid
+            ELSE md5(${chainSeed} || '-page-' || (step - 1)::text)::uuid
+          END,
+          ${context.spaceId}::uuid,
+          ${context.workspaceId}::uuid
+        FROM generate_series(1, 10000) AS step
+      `.execute(db);
+      const attachmentQueue = { add: jest.fn() };
+      const loggerError = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation();
+
+      await withStatementTimeout(async (connection) => {
+        await sql`SET statement_timeout = '25ms'`.execute(connection);
+        const cleanupService = new TrashCleanupService(
+          connection,
+          attachmentQueue as never,
+        );
+
+        await cleanupService.cleanupOldTrash();
+      });
+
+      const storedExpiredIds = await db
+        .selectFrom('pages')
+        .select('id')
+        .where('id', 'in', [
+          slowRootId,
+          firstHealthyRootId,
+          secondHealthyRootId,
+        ])
+        .orderBy('id')
+        .execute();
+
+      expect(storedExpiredIds).toEqual([
+        { id: slowRootId },
+        { id: firstHealthyRootId },
+        { id: secondHealthyRootId },
+      ]);
+      expect(attachmentQueue.add).not.toHaveBeenCalled();
+      expect(loggerError).toHaveBeenCalledWith(
+        'Trash cleanup job failed',
+        expect.stringContaining('canceling statement due to statement timeout'),
       );
     });
   });

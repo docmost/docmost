@@ -33,15 +33,8 @@ export class TrashCleanupService {
         .where('deletedAt', 'is', null)
         .execute();
 
-      const cleanupCandidates: Array<{
-        pageId: string;
-        pageIds: string[];
-      }> = [];
-      const excludedPageIds = new Set<string>();
+      let totalCleaned = 0;
 
-      // Preflight every candidate before any cleanup mutates the snapshot.
-      // This lets a corrupt root exclude its whole reachable component even
-      // when one of its descendants is also an independently expired page.
       for (const workspace of workspaces) {
         const retentionDays =
           workspace.trashRetentionDays ?? DEFAULT_RETENTION_DAYS;
@@ -54,50 +47,36 @@ export class TrashCleanupService {
           .select(['id'])
           .where('workspaceId', '=', workspace.id)
           .where('deletedAt', '<', retentionDate)
+          .orderBy('id')
           .execute();
 
         for (const page of oldDeletedPages) {
-          let descendants: Array<{ id: string; isCycle: boolean }> | undefined;
+          let pageIds: string[];
 
           try {
-            descendants = await this.getPageDescendants(page.id);
+            const ancestors = await this.getPageAncestors(page.id);
+            assertAcyclicPageTraversal(ancestors, page.id);
+
+            const descendants = await this.getPageDescendants(page.id);
             assertAcyclicPageTraversal(descendants, page.id);
-            cleanupCandidates.push({
-              pageId: page.id,
-              pageIds: descendants.map((descendant) => descendant.id),
-            });
+            pageIds = descendants.map((descendant) => descendant.id);
           } catch (error) {
             if (error instanceof PageHierarchyCycleError) {
-              for (const descendant of descendants ?? []) {
-                excludedPageIds.add(descendant.id);
-              }
+              this.logCleanupError(page.id, error);
+              continue;
             }
+            throw error;
+          }
+
+          if (pageIds.length === 0) {
+            continue;
+          }
+
+          try {
+            totalCleaned += await this.cleanupPage(page.id, pageIds);
+          } catch (error) {
             this.logCleanupError(page.id, error);
           }
-        }
-      }
-
-      let totalCleaned = 0;
-      const cleanedPageIds = new Set<string>();
-
-      for (const candidate of cleanupCandidates) {
-        const pageIds = candidate.pageIds.filter(
-          (pageId) =>
-            !excludedPageIds.has(pageId) && !cleanedPageIds.has(pageId),
-        );
-
-        if (pageIds.length === 0) {
-          continue;
-        }
-
-        try {
-          await this.cleanupPage(candidate.pageId, pageIds);
-          for (const pageId of pageIds) {
-            cleanedPageIds.add(pageId);
-          }
-          totalCleaned++;
-        } catch (error) {
-          this.logCleanupError(candidate.pageId, error);
         }
       }
 
@@ -112,6 +91,36 @@ export class TrashCleanupService {
         error instanceof Error ? error.stack : undefined,
       );
     }
+  }
+
+  private async getPageAncestors(pageId: string) {
+    return this.db
+      .withRecursive('page_ancestors', (db) =>
+        db
+          .selectFrom('pages')
+          .select([
+            'id',
+            'parentPageId',
+            sql<string[]>`ARRAY[id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+          ])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select([
+                'p.id',
+                'p.parentPageId',
+                sql<string[]>`pa.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(pa.traversal_path)`.as('isCycle'),
+              ])
+              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
+              .where('pa.isCycle', '=', false),
+          ),
+      )
+      .selectFrom('page_ancestors')
+      .select(['id', 'isCycle'])
+      .execute();
   }
 
   private async getPageDescendants(pageId: string) {
@@ -167,14 +176,17 @@ export class TrashCleanupService {
     }
 
     try {
-      if (pageIds.length > 0) {
-        await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
-      }
+      const result = await this.db
+        .deleteFrom('pages')
+        .where('id', 'in', pageIds)
+        .executeTakeFirst();
+      return Number(result.numDeletedRows);
     } catch (error) {
       // Log but don't throw - pages might have been deleted by another node
       this.logger.warn(
         `Error deleting pages, they may have been already deleted: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+      return 0;
     }
   }
 
