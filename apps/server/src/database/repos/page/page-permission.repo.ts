@@ -1159,67 +1159,6 @@ export class PagePermissionRepo {
   }
 
   /**
-   * Get all page IDs within a subtree that are restricted OR are descendants of restricted pages.
-   * Used to filter pages from public shares - if a page is restricted, it and all its
-   * children should be hidden.
-   */
-  async getRestrictedSubtreeIds(rootPageId: string): Promise<string[]> {
-    const results = await this.db
-      .withRecursive('descendants', (qb) =>
-        qb
-          .selectFrom('pages')
-          .select(['pages.id as descendantId', 'pages.parentPageId'])
-          .where('pages.id', '=', rootPageId)
-          .unionAll((eb) =>
-            eb
-              .selectFrom('pages')
-              .innerJoin(
-                'descendants',
-                'descendants.descendantId',
-                'pages.parentPageId',
-              )
-              .select(['pages.id as descendantId', 'pages.parentPageId'])
-              .where('pages.deletedAt', 'is', null),
-          ),
-      )
-      .withRecursive('descendantAncestors', (qb) =>
-        qb
-          .selectFrom('descendants')
-          .innerJoin('pages', 'pages.id', 'descendants.descendantId')
-          .select([
-            'descendants.descendantId',
-            'pages.id as ancestorId',
-            'pages.parentPageId as ancestorParentId',
-          ])
-          .unionAll((eb) =>
-            eb
-              .selectFrom('pages')
-              .innerJoin(
-                'descendantAncestors',
-                'descendantAncestors.ancestorParentId',
-                'pages.id',
-              )
-              .select([
-                'descendantAncestors.descendantId',
-                'pages.id as ancestorId',
-                'pages.parentPageId as ancestorParentId',
-              ]),
-          ),
-      )
-      .selectFrom('descendantAncestors')
-      .innerJoin(
-        'pageAccess',
-        'pageAccess.pageId',
-        'descendantAncestors.ancestorId',
-      )
-      .select('descendantAncestors.descendantId')
-      .distinct()
-      .execute();
-
-    return results.map((r) => r.descendantId);
-  }
-
-  /**
    * Given a pageId and a set of candidate userIds, return the subset who can
    * access the page (have permission on ALL restricted ancestors).
    * Returns all userIds if the page has no restricted ancestors.

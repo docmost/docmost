@@ -255,67 +255,6 @@ export class ShareService {
     };
   }
 
-  async getShareAncestorPage(
-    ancestorPageId: string,
-    childPageId: string,
-  ): Promise<any> {
-    let ancestor = null;
-    try {
-      ancestor = await this.db
-        .withRecursive('page_ancestors', (db) =>
-          db
-            .selectFrom('pages')
-            .select([
-              'id',
-              'slugId',
-              'title',
-              'parentPageId',
-              'spaceId',
-              (eb) =>
-                eb
-                  .case()
-                  .when(eb.ref('id'), '=', ancestorPageId)
-                  .then(true)
-                  .else(false)
-                  .end()
-                  .as('found'),
-            ])
-            .where(isValidUUID(childPageId) ? 'id' : 'slugId', '=', childPageId)
-            .unionAll((exp) =>
-              exp
-                .selectFrom('pages as p')
-                .select([
-                  'p.id',
-                  'p.slugId',
-                  'p.title',
-                  'p.parentPageId',
-                  'p.spaceId',
-                  (eb) =>
-                    eb
-                      .case()
-                      .when(eb.ref('p.id'), '=', ancestorPageId)
-                      .then(true)
-                      .else(false)
-                      .end()
-                      .as('found'),
-                ])
-                .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
-                // Continue recursing only when the target ancestor hasn't been found on that branch.
-                .where('pa.found', '=', false),
-            ),
-        )
-        .selectFrom('page_ancestors')
-        .selectAll()
-        .where('found', '=', true)
-        .limit(1)
-        .executeTakeFirst();
-    } catch (err) {
-      // empty
-    }
-
-    return ancestor;
-  }
-
   /**
    * Resolve transclusion content for a public share viewer. Each requested
    * source page must itself be reachable via the share graph (its own share
