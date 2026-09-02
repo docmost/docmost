@@ -23,7 +23,11 @@ import { SpaceMemberRepo } from '../src/database/repos/space/space-member.repo';
 import { User } from '../src/database/types/entity.types';
 import { KyselyDB } from '../src/database/types/kysely.types';
 import { HealthController } from '../src/integrations/health/health.controller';
-import { db, withStatementTimeout } from './support/database';
+import {
+  assertDisposableTestDatabaseUrl,
+  db,
+  withStatementTimeout,
+} from './support/database';
 import {
   seedAcyclicPageChain,
   seedBranchingDescendantTree,
@@ -322,6 +326,25 @@ afterEach(() => {
 });
 
 describe('cycle-safe page hierarchy reads', () => {
+  describe('integration database safety', () => {
+    it.each([
+      'postgresql://docmost:docmost@127.0.0.1:55432/docmost',
+      'postgresql://docmost:docmost@database.example/docmost_cycle_test',
+    ])('rejects a non-disposable database URL: %s', (unsafeUrl) => {
+      expect(() => assertDisposableTestDatabaseUrl(unsafeUrl)).toThrow(
+        'Integration tests require the loopback database docmost_cycle_test',
+      );
+    });
+
+    it('accepts the dedicated loopback integration database URL', () => {
+      expect(() =>
+        assertDisposableTestDatabaseUrl(
+          'postgresql://docmost:docmost@127.0.0.1:55432/docmost_cycle_test',
+        ),
+      ).not.toThrow();
+    });
+  });
+
   describe('descendant traversal', () => {
     it('returns every page in an acyclic branching tree exactly once without internal metadata', async () => {
       const { root, firstChild, secondChild, grandchild } =

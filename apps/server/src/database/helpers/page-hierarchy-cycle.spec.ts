@@ -36,13 +36,18 @@ describe('page hierarchy cycle contract', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(PageHierarchyCycleError);
       expect((error as PageHierarchyCycleError).rootPageId).toBe('root-page');
-      expect((error as PageHierarchyCycleError).code).toBe('PAGE_HIERARCHY_CYCLE');
+      expect((error as PageHierarchyCycleError).code).toBe(
+        'PAGE_HIERARCHY_CYCLE',
+      );
     }
   });
 
   it('removes traversal metadata without changing the public row fields', () => {
     const row = { id: 'page-1', title: 'Root', isCycle: false };
 
-    expect(stripPageTraversalMetadata(row)).toEqual({ id: 'page-1', title: 'Root' });
+    expect(stripPageTraversalMetadata(row)).toEqual({
+      id: 'page-1',
+      title: 'Root',
+    });
   });
 });
