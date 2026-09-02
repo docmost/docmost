@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import { Logger } from '@nestjs/common';
 import { createCache } from 'cache-manager';
 import { PageService } from '../src/core/page/services/page.service';
+import { TrashCleanupService } from '../src/core/page/services/trash-cleanup.service';
 import { ShareService } from '../src/core/share/share.service';
 import { PageHierarchyCycleError } from '../src/database/helpers/page-hierarchy-cycle';
 import { PagePermissionRepo } from '../src/database/repos/page/page-permission.repo';
+import { PageRepo } from '../src/database/repos/page/page.repo';
 import { KyselyDB } from '../src/database/types/kysely.types';
 import { db, withStatementTimeout } from './support/database';
 import {
@@ -13,21 +16,34 @@ import {
   seedTwoPageCycle,
 } from './support/page-hierarchy-fixtures';
 
-function createPageService(connection: KyselyDB): PageService {
+function createPageService(
+  connection: KyselyDB,
+  dependencies: {
+    attachmentQueue?: { add: jest.Mock };
+    eventEmitter?: { emit: jest.Mock };
+  } = {},
+): PageService {
   return new PageService(
     undefined as never,
     undefined as never,
     undefined as never,
     connection,
     undefined as never,
+    dependencies.attachmentQueue as never,
     undefined as never,
     undefined as never,
-    undefined as never,
-    undefined as never,
+    dependencies.eventEmitter as never,
     undefined as never,
     undefined as never,
     undefined as never,
   );
+}
+
+function createPageRepo(
+  connection: KyselyDB,
+  eventEmitter: { emit: jest.Mock } = { emit: jest.fn() },
+): PageRepo {
+  return new PageRepo(connection, undefined as never, eventEmitter as never);
 }
 
 function createShareService(connection: KyselyDB): ShareService {
@@ -167,7 +183,251 @@ async function insertShare(pageId: string, includeSubPages: boolean) {
     .executeTakeFirstOrThrow();
 }
 
+async function expectPageHierarchyCycle(
+  operation: Promise<unknown>,
+  rootPageId: string,
+): Promise<void> {
+  const error = await operation.then(
+    () => undefined,
+    (reason: unknown) => reason,
+  );
+
+  expect(error).toBeInstanceOf(PageHierarchyCycleError);
+  expect(error).toEqual(
+    expect.objectContaining({
+      code: 'PAGE_HIERARCHY_CYCLE',
+      rootPageId,
+    }) satisfies Partial<PageHierarchyCycleError>,
+  );
+}
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe('cycle-safe page hierarchy reads', () => {
+  describe('descendant traversal', () => {
+    it('returns every page in an acyclic branching tree exactly once without internal metadata', async () => {
+      const { root, firstChild, secondChild, grandchild } =
+        await seedBranchingDescendantTree();
+      const repo = createPageRepo(db);
+
+      const pages = await repo.getPageAndDescendants(root.id, {
+        includeContent: false,
+      });
+
+      expect(pages.map((page) => page.id).sort()).toEqual(
+        [root.id, firstChild.id, secondChild.id, grandchild.id].sort(),
+      );
+      expect(pages).toHaveLength(4);
+      for (const page of pages) {
+        expect(page).not.toHaveProperty('isCycle');
+        expect(page).not.toHaveProperty('traversalPath');
+      }
+    });
+
+    describe.each([
+      ['a self-cycle', async () => (await seedSelfCycle()).self.id],
+      ['a two-page cycle', async () => (await seedTwoPageCycle()).a.id],
+    ])('%s', (_cycleName, seedCycle) => {
+      it('raises PageHierarchyCycleError from the structural descendant read', async () => {
+        const pageId = await seedCycle();
+
+        await withStatementTimeout(async (connection) => {
+          const repo = createPageRepo(connection);
+
+          await expectPageHierarchyCycle(
+            repo.getPageAndDescendants(pageId, { includeContent: false }),
+            pageId,
+          );
+        });
+      });
+
+      it('raises PageHierarchyCycleError from the restricted descendant read', async () => {
+        const pageId = await seedCycle();
+
+        await withStatementTimeout(async (connection) => {
+          const repo = createPageRepo(connection);
+
+          await expectPageHierarchyCycle(
+            repo.getPageAndDescendantsExcludingRestricted(pageId, {
+              includeContent: false,
+            }),
+            pageId,
+          );
+        });
+      });
+    });
+
+    it('preserves restricted-subtree exclusion for an acyclic tree', async () => {
+      const { root, firstChild, secondChild, grandchild } =
+        await seedBranchingDescendantTree();
+      await restrictPage(firstChild.id);
+      const repo = createPageRepo(db);
+
+      const pages = await repo.getPageAndDescendantsExcludingRestricted(
+        root.id,
+        { includeContent: false },
+      );
+
+      expect(pages.map((page) => page.id).sort()).toEqual(
+        [root.id, secondChild.id].sort(),
+      );
+      expect(pages.map((page) => page.id)).not.toContain(firstChild.id);
+      expect(pages.map((page) => page.id)).not.toContain(grandchild.id);
+      for (const page of pages) {
+        expect(page).not.toHaveProperty('isCycle');
+        expect(page).not.toHaveProperty('isRestricted');
+        expect(page).not.toHaveProperty('traversalPath');
+      }
+    });
+
+    it('removePage leaves pages and shares unchanged and emits no event on a cycle', async () => {
+      const { a, b } = await seedTwoPageCycle();
+      const deletedById = await insertTestUser(a.id);
+      const share = await insertShare(b.id, true);
+      const eventEmitter = { emit: jest.fn() };
+
+      await withStatementTimeout(async (connection) => {
+        const repo = createPageRepo(connection, eventEmitter);
+
+        await expectPageHierarchyCycle(
+          repo.removePage(a.id, deletedById, share.workspaceId),
+          a.id,
+        );
+      });
+
+      const storedPages = await db
+        .selectFrom('pages')
+        .select(['id', 'deletedAt', 'deletedById'])
+        .where('id', 'in', [a.id, b.id])
+        .orderBy('id')
+        .execute();
+      const storedShare = await db
+        .selectFrom('shares')
+        .select('id')
+        .where('id', '=', share.id)
+        .executeTakeFirst();
+
+      expect(storedPages).toEqual(
+        [a.id, b.id]
+          .sort()
+          .map((id) => ({ id, deletedAt: null, deletedById: null })),
+      );
+      expect(storedShare).toEqual({ id: share.id });
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('restorePage leaves deleted pages unchanged and emits no event on a cycle', async () => {
+      const { a, b } = await seedTwoPageCycle();
+      const deletedAt = new Date('2024-01-02T03:04:05.000Z');
+      await db
+        .updateTable('pages')
+        .set({ deletedAt })
+        .where('id', 'in', [a.id, b.id])
+        .execute();
+      const eventEmitter = { emit: jest.fn() };
+
+      await withStatementTimeout(async (connection) => {
+        const repo = createPageRepo(connection, eventEmitter);
+
+        await expectPageHierarchyCycle(
+          repo.restorePage(a.id, randomUUID()),
+          a.id,
+        );
+      });
+
+      const storedPages = await db
+        .selectFrom('pages')
+        .select(['id', 'parentPageId', 'deletedAt'])
+        .where('id', 'in', [a.id, b.id])
+        .orderBy('id')
+        .execute();
+
+      expect(storedPages).toEqual(
+        [
+          { id: a.id, parentPageId: b.id, deletedAt },
+          { id: b.id, parentPageId: a.id, deletedAt },
+        ].sort((left, right) => left.id.localeCompare(right.id)),
+      );
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('forceDelete leaves pages intact and enqueues and emits nothing on a cycle', async () => {
+      const { a, b } = await seedTwoPageCycle();
+      const attachmentQueue = { add: jest.fn() };
+      const eventEmitter = { emit: jest.fn() };
+
+      await withStatementTimeout(async (connection) => {
+        const pageService = createPageService(connection, {
+          attachmentQueue,
+          eventEmitter,
+        });
+
+        await expectPageHierarchyCycle(
+          pageService.forceDelete(a.id, randomUUID()),
+          a.id,
+        );
+      });
+
+      const storedPageIds = await db
+        .selectFrom('pages')
+        .select('id')
+        .where('id', 'in', [a.id, b.id])
+        .orderBy('id')
+        .execute();
+
+      expect(storedPageIds).toEqual([a.id, b.id].sort().map((id) => ({ id })));
+      expect(attachmentQueue.add).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('trash cleanup logs and skips a corrupt root before continuing with acyclic trash', async () => {
+      const { self } = await seedSelfCycle();
+      const { root, child, grandchild } = await seedAcyclicPageChain();
+      const expiredAt = new Date('2024-01-02T03:04:05.000Z');
+      await db
+        .updateTable('pages')
+        .set({ deletedAt: expiredAt })
+        .where('id', 'in', [self.id, root.id])
+        .execute();
+      const attachmentQueue = { add: jest.fn() };
+      const loggerError = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation();
+
+      await withStatementTimeout(async (connection) => {
+        const timeoutCleanupService = new TrashCleanupService(
+          connection,
+          attachmentQueue as never,
+        );
+        await timeoutCleanupService.cleanupOldTrash();
+      });
+
+      const corruptPage = await db
+        .selectFrom('pages')
+        .select(['id', 'deletedAt'])
+        .where('id', '=', self.id)
+        .executeTakeFirst();
+      const cleanedPageIds = await db
+        .selectFrom('pages')
+        .select('id')
+        .where('id', 'in', [root.id, child.id, grandchild.id])
+        .execute();
+
+      expect(corruptPage).toEqual({ id: self.id, deletedAt: expiredAt });
+      expect(cleanedPageIds).toEqual([]);
+      expect(attachmentQueue.add).toHaveBeenCalledTimes(3);
+      expect(
+        attachmentQueue.add.mock.calls.map(([, payload]) => payload.pageId),
+      ).toEqual(expect.arrayContaining([root.id, child.id, grandchild.id]));
+      expect(loggerError).toHaveBeenCalledWith(
+        expect.stringContaining(`Failed to cleanup page ${self.id}`),
+        expect.any(String),
+      );
+    });
+  });
+
   describe('PageService.getPageBreadCrumbs', () => {
     it('returns every acyclic breadcrumb exactly once in root-to-child order', async () => {
       const { root, child, grandchild } = await seedAcyclicPageChain();

@@ -5,6 +5,8 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { assertAcyclicPageTraversal } from '../../../database/helpers/page-hierarchy-cycle';
+import { sql } from 'kysely';
 
 const DEFAULT_RETENTION_DAYS = 30;
 
@@ -76,19 +78,29 @@ export class TrashCleanupService {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select([
+            'id',
+            sql<string[]>`ARRAY[id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+          ])
           .where('id', '=', pageId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .select([
+                'p.id',
+                sql<string[]>`pd.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(pd.traversal_path)`.as('isCycle'),
+              ])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .where('pd.isCycle', '=', false),
           ),
       )
       .selectFrom('page_descendants')
-      .selectAll()
+      .select(['id', 'isCycle'])
       .execute();
 
+    assertAcyclicPageTraversal(descendants, pageId);
     const pageIds = descendants.map((d) => d.id);
 
     this.logger.debug(
