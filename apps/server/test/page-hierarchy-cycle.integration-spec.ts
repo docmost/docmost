@@ -1,13 +1,19 @@
 import { randomUUID } from 'node:crypto';
-import { Logger } from '@nestjs/common';
+import { ForbiddenException, Logger } from '@nestjs/common';
 import { createCache } from 'cache-manager';
+import { PageController } from '../src/core/page/page.controller';
+import { PageAccessService } from '../src/core/page/page-access/page-access.service';
 import { PageService } from '../src/core/page/services/page.service';
 import { TrashCleanupService } from '../src/core/page/services/trash-cleanup.service';
 import { ShareService } from '../src/core/share/share.service';
+import SpaceAbilityFactory from '../src/core/casl/abilities/space-ability.factory';
 import { PageHierarchyCycleError } from '../src/database/helpers/page-hierarchy-cycle';
 import { PagePermissionRepo } from '../src/database/repos/page/page-permission.repo';
 import { PageRepo } from '../src/database/repos/page/page.repo';
+import { SpaceMemberRepo } from '../src/database/repos/space/space-member.repo';
+import { User } from '../src/database/types/entity.types';
 import { KyselyDB } from '../src/database/types/kysely.types';
+import { HealthController } from '../src/integrations/health/health.controller';
 import { db, withStatementTimeout } from './support/database';
 import {
   seedAcyclicPageChain,
@@ -15,6 +21,8 @@ import {
   seedSelfCycle,
   seedTwoPageCycle,
 } from './support/page-hierarchy-fixtures';
+
+const CLIENT_DEADLINE_MS = 1_000;
 
 function createPageService(
   connection: KyselyDB,
@@ -59,6 +67,108 @@ function createShareService(connection: KyselyDB): ShareService {
 
 function createPagePermissionRepo(connection: KyselyDB): PagePermissionRepo {
   return new PagePermissionRepo(connection, undefined as never, createCache());
+}
+
+function createBreadcrumbController(connection: KyselyDB): PageController {
+  const cacheManager = createCache();
+  const pagePermissionRepo = new PagePermissionRepo(
+    connection,
+    undefined as never,
+    cacheManager,
+  );
+  const spaceMemberRepo = new SpaceMemberRepo(
+    connection,
+    undefined as never,
+    undefined as never,
+    cacheManager,
+  );
+  const spaceAbility = new SpaceAbilityFactory(spaceMemberRepo);
+  const pageAccessService = new PageAccessService(
+    pagePermissionRepo,
+    spaceAbility,
+    undefined as never,
+  );
+
+  return new PageController(
+    createPageService(connection),
+    createPageRepo(connection),
+    undefined as never,
+    spaceAbility,
+    pageAccessService,
+    undefined as never,
+    undefined as never,
+    undefined as never,
+  );
+}
+
+async function insertControllerUser(pageId: string): Promise<User> {
+  const page = await db
+    .selectFrom('pages')
+    .select(['spaceId', 'workspaceId'])
+    .where('id', '=', pageId)
+    .executeTakeFirstOrThrow();
+  const user = await db
+    .insertInto('users')
+    .values({
+      email: `breadcrumb-controller-${randomUUID()}@example.com`,
+      name: 'Breadcrumb controller test user',
+      workspaceId: page.workspaceId,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  await db
+    .insertInto('spaceMembers')
+    .values({
+      role: 'reader',
+      spaceId: page.spaceId,
+      userId: user.id,
+    })
+    .execute();
+
+  return user;
+}
+
+async function captureBeforeClientDeadline<T>(
+  operation: () => Promise<T>,
+): Promise<{
+  error?: unknown;
+  value?: T;
+}> {
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    deadlineTimer = setTimeout(
+      () => reject(new Error('Client deadline exceeded')),
+      CLIENT_DEADLINE_MS,
+    );
+  });
+
+  try {
+    const value = await Promise.race([operation(), deadline]);
+    return {
+      value,
+    };
+  } catch (error) {
+    return {
+      error,
+    };
+  } finally {
+    if (deadlineTimer) clearTimeout(deadlineTimer);
+  }
+}
+
+async function expectLiveHealthCheck(): Promise<void> {
+  const healthController = new HealthController(
+    undefined as never,
+    undefined as never,
+    undefined as never,
+  );
+
+  await expect(healthController.checkLive()).resolves.toBe('ok');
+}
+
+function silenceTrashCleanupDebugLogs(): void {
+  jest.spyOn(Logger.prototype, 'debug').mockImplementation();
 }
 
 async function insertTestUser(pageId: string): Promise<string> {
@@ -383,6 +493,7 @@ describe('cycle-safe page hierarchy reads', () => {
     });
 
     it('trash cleanup logs and skips a corrupt root before continuing with acyclic trash', async () => {
+      silenceTrashCleanupDebugLogs();
       const { self } = await seedSelfCycle();
       const context = await db
         .selectFrom('pages')
@@ -500,6 +611,7 @@ describe('cycle-safe page hierarchy reads', () => {
     });
 
     it('trash cleanup aborts before later mutation when hierarchy validation unexpectedly fails', async () => {
+      silenceTrashCleanupDebugLogs();
       const { root } = await seedAcyclicPageChain();
       const context = await db
         .selectFrom('pages')
@@ -640,6 +752,91 @@ describe('cycle-safe page hierarchy reads', () => {
             rootPageId: a.id,
           }) satisfies Partial<PageHierarchyCycleError>,
         );
+      });
+    });
+  });
+
+  describe.each([
+    {
+      name: 'a self-cycle',
+      seedColdCycle: async () => (await seedSelfCycle()).self.id,
+      seedWarmCycle: async () => {
+        const { root } = await seedAcyclicPageChain();
+
+        return {
+          pageId: root.id,
+          corrupt: async (connection: KyselyDB) => {
+            await connection
+              .updateTable('pages')
+              .set({ parentPageId: root.id })
+              .where('id', '=', root.id)
+              .execute();
+          },
+        };
+      },
+    },
+    {
+      name: 'a two-page cycle',
+      seedColdCycle: async () => (await seedTwoPageCycle()).a.id,
+      seedWarmCycle: async () => {
+        const { root, child } = await seedAcyclicPageChain();
+
+        return {
+          pageId: root.id,
+          corrupt: async (connection: KyselyDB) => {
+            await connection
+              .updateTable('pages')
+              .set({ parentPageId: child.id })
+              .where('id', '=', root.id)
+              .execute();
+          },
+        };
+      },
+    },
+  ])('PageController.getPageBreadcrumbs with $name', (cycle) => {
+    it('fails closed with a cold permission cache before the statement timeout', async () => {
+      const pageId = await cycle.seedColdCycle();
+      const user = await insertControllerUser(pageId);
+
+      await withStatementTimeout(async (connection) => {
+        const controller = createBreadcrumbController(connection);
+        const outcome = await captureBeforeClientDeadline(() =>
+          controller.getPageBreadcrumbs({ pageId }, user),
+        );
+
+        expect(outcome.value).toBeUndefined();
+        expect(outcome.error).toBeInstanceOf(ForbiddenException);
+        await expectLiveHealthCheck();
+      });
+    });
+
+    it('rejects without a partial payload after warming the permission cache and stays live', async () => {
+      const { pageId, corrupt } = await cycle.seedWarmCycle();
+      const user = await insertControllerUser(pageId);
+
+      await withStatementTimeout(async (connection) => {
+        const controller = createBreadcrumbController(connection);
+        const warmBreadcrumbs = await controller.getPageBreadcrumbs(
+          { pageId },
+          user,
+        );
+        expect(warmBreadcrumbs.map((page) => page.id)).toEqual([pageId]);
+
+        await corrupt(connection);
+
+        const outcome = await captureBeforeClientDeadline(() =>
+          controller.getPageBreadcrumbs({ pageId }, user),
+        );
+
+        expect(outcome.value).toBeUndefined();
+        expect(outcome.error).toBeInstanceOf(PageHierarchyCycleError);
+        expect(outcome.error).toEqual(
+          expect.objectContaining({
+            code: 'PAGE_HIERARCHY_CYCLE',
+            rootPageId: pageId,
+          }) satisfies Partial<PageHierarchyCycleError>,
+        );
+        await expectLiveHealthCheck();
       });
     });
   });
