@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import { createCache } from 'cache-manager';
-import { sql } from 'kysely';
 import { PageService } from '../src/core/page/services/page.service';
 import { TrashCleanupService } from '../src/core/page/services/trash-cleanup.service';
 import { ShareService } from '../src/core/share/share.service';
@@ -508,7 +507,7 @@ describe('cycle-safe page hierarchy reads', () => {
         .where('id', '=', root.id)
         .executeTakeFirstOrThrow();
       const expiredAt = new Date('2024-01-02T03:04:05.000Z');
-      const slowRootId = '00000000-0000-4000-8000-000000000001';
+      const failedRootId = '00000000-0000-4000-8000-000000000001';
       const firstHealthyRootId = 'eeeeeeee-eeee-4eee-beee-eeeeeeeeeeee';
       const secondHealthyRootId = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
       await db
@@ -516,10 +515,10 @@ describe('cycle-safe page hierarchy reads', () => {
         .values([
           {
             deletedAt: expiredAt,
-            id: slowRootId,
+            id: failedRootId,
             slugId: randomUUID(),
             spaceId: context.spaceId,
-            title: 'Slow validation root',
+            title: 'Failed validation root',
             workspaceId: context.workspaceId,
           },
           {
@@ -540,48 +539,32 @@ describe('cycle-safe page hierarchy reads', () => {
           },
         ])
         .execute();
-      const chainSeed = randomUUID();
-      await sql`
-        INSERT INTO pages (
-          id,
-          slug_id,
-          title,
-          parent_page_id,
-          space_id,
-          workspace_id
-        )
-        SELECT
-          md5(${chainSeed} || '-page-' || step::text)::uuid,
-          md5(${chainSeed} || '-slug-' || step::text)::uuid,
-          'Slow validation descendant ' || step::text,
-          CASE
-            WHEN step = 1 THEN ${slowRootId}::uuid
-            ELSE md5(${chainSeed} || '-page-' || (step - 1)::text)::uuid
-          END,
-          ${context.spaceId}::uuid,
-          ${context.workspaceId}::uuid
-        FROM generate_series(1, 10000) AS step
-      `.execute(db);
       const attachmentQueue = { add: jest.fn() };
       const loggerError = jest
         .spyOn(Logger.prototype, 'error')
         .mockImplementation();
+      const cleanupService = new TrashCleanupService(
+        db,
+        attachmentQueue as never,
+      );
+      const validationError = new Error('Controlled validation failure');
+      const validationBoundary = jest.spyOn(
+        cleanupService as unknown as {
+          getPageAncestors: (
+            pageId: string,
+          ) => Promise<Array<{ id: string; isCycle: boolean }>>;
+        },
+        'getPageAncestors',
+      );
+      validationBoundary.mockRejectedValueOnce(validationError);
 
-      await withStatementTimeout(async (connection) => {
-        await sql`SET statement_timeout = '25ms'`.execute(connection);
-        const cleanupService = new TrashCleanupService(
-          connection,
-          attachmentQueue as never,
-        );
-
-        await cleanupService.cleanupOldTrash();
-      });
+      await cleanupService.cleanupOldTrash();
 
       const storedExpiredIds = await db
         .selectFrom('pages')
         .select('id')
         .where('id', 'in', [
-          slowRootId,
+          failedRootId,
           firstHealthyRootId,
           secondHealthyRootId,
         ])
@@ -589,14 +572,16 @@ describe('cycle-safe page hierarchy reads', () => {
         .execute();
 
       expect(storedExpiredIds).toEqual([
-        { id: slowRootId },
+        { id: failedRootId },
         { id: firstHealthyRootId },
         { id: secondHealthyRootId },
       ]);
       expect(attachmentQueue.add).not.toHaveBeenCalled();
+      expect(validationBoundary).toHaveBeenCalledTimes(1);
+      expect(validationBoundary).toHaveBeenCalledWith(failedRootId);
       expect(loggerError).toHaveBeenCalledWith(
         'Trash cleanup job failed',
-        expect.stringContaining('canceling statement due to statement timeout'),
+        validationError.stack,
       );
     });
   });
