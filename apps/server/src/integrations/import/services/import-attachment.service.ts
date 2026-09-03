@@ -21,7 +21,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
 import { isBase64 } from "class-validator";
-import { EnvironmentService } from "src/integrations/environment/environment.service";
+import { EnvironmentService } from '../../environment/environment.service';
 import * as bytes from 'bytes';
 import * as mimeTypes from 'mime-types';
 import { dbOrTx } from '@docmost/db/utils';
@@ -78,7 +78,6 @@ export class ImportAttachmentService {
    * Archive imports use processAttachments() because their files already
    * exist on disk; standalone imports need to materialize these payloads.
    */
-
   async processEmbeddedAttachments(
     opts: AttachmentMeta & { html: string },
   ): Promise<string> {
@@ -86,18 +85,25 @@ export class ImportAttachmentService {
     const $ = load(html);
     const processed = new Map<string, string>();
 
+    const resolveUri = async (uri: string): Promise<string | null> => {
+      const normalized = uri?.trim();
+      if (!normalized) return null;
+      if (processed.has(normalized)) return processed.get(normalized);
+
+      const apiFilePath = await this.uploadDataUri({
+        uri: normalized,
+        ...rest,
+      });
+      if (apiFilePath) processed.set(normalized, apiFilePath);
+      return apiFilePath;
+    };
+
+    // img/video/audio/source: src attribute
     for (const element of $(
       'img[src], video[src], audio[src], source[src]',
     ).toArray()) {
       const $element = $(element);
-      const src = $element.attr('src');
-      const normalized = src.trim();
-
-      let apiFilePath = processed.get(normalized);
-      if (!apiFilePath) {
-        apiFilePath = await this.uploadDataUri({ uri: normalized, ...rest });
-        processed.set(normalized, apiFilePath);
-      }
+      const apiFilePath = await resolveUri($element.attr('src'));
       if (!apiFilePath) continue;
 
       $element
@@ -108,16 +114,134 @@ export class ImportAttachmentService {
       }
     }
 
+    // video poster (thumbnail image, often a separate data URI)
+    for (const element of $('video[poster]').toArray()) {
+      const $element = $(element);
+      const apiFilePath = await resolveUri($element.attr('poster'));
+
+      console.log({apiFilePath})
+      if (apiFilePath) {
+        $element
+          .attr('poster', apiFilePath)
+          .attr('src', apiFilePath)
+          .attr('preload', 'metadata')
+          .attr('controls')
+      };
+    }
+
+    // the client does not currently support srcset.
+    // so we upload only the highest resolution, or the first image
+    for (const element of $('img[srcset]').toArray()) {
+      const $element = $(element);
+      const srcset = $element.attr('srcset');
+      if (!srcset) continue;
+
+      const candidates = srcset.split(/,\s+(?=\S)/);
+
+      let firstEmbeddedCandidate: string | undefined;
+      let bestWidthCandidate: any;
+      let bestDensityCandidate: any;
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+
+        const trimmed = candidate.trim();
+        const match = trimmed.match(/^(\S+)(?:\s+(\d+(?:\.\d+)?)(w|x))?$/i);
+        if (!match) continue;
+
+        const [, uri, descriptorValue, descriptorType] = match;
+        if (!uri.toLowerCase().startsWith('data:')) {
+          continue;
+        }
+
+        const value = descriptorValue ? Number(descriptorValue) : undefined;
+        const type = descriptorType?.toLowerCase();
+
+        // Keep the first embedded image as the final fallback.
+        if (!firstEmbeddedCandidate) {
+          firstEmbeddedCandidate = uri;
+          if (type !== "w" && type !== "x"){
+            break;
+          }
+        }
+
+        if (
+          type === 'w' &&
+          value !== undefined &&
+          (!bestWidthCandidate || value > bestWidthCandidate.width)
+        ) {
+          bestWidthCandidate = {
+            uri,
+            width: value,
+          };
+        }
+
+        if (
+          type === 'x' &&
+          value !== undefined &&
+          (!bestDensityCandidate || value > bestDensityCandidate.density)
+        ) {
+          bestDensityCandidate = {
+            uri,
+            density: value,
+          };
+        }
+      }
+
+      const selectedUri =
+        bestWidthCandidate?.uri ??
+        bestDensityCandidate?.uri ??
+        firstEmbeddedCandidate;
+
+      const apiFilePath = await resolveUri(selectedUri);
+      if (!apiFilePath) continue;
+
+      $element
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', apiFilePath.split('/')[3])
+        .attr('data-align', $element.attr('data-align') ?? 'center');
+    }
+
+    // the client represents embeds as iframes.
+    // so we convert embeds and objects as iframes
+    for (const element of $('object[data], embed[src]').toArray()) {
+      const $element = $(element);
+      const sourceAttribute = $element.is('object') ? 'data' : 'src';
+      const uri = $element.attr(sourceAttribute);
+
+      const apiFilePath = await resolveUri(uri);
+      if (!apiFilePath) continue;
+
+      const $iframe = $('<iframe>')
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', apiFilePath.split('/')[3]);
+
+      for (const attribute of ['width', 'height', 'title']) {
+        const value = $element.attr(attribute);
+        if (value) {
+          $iframe.attr(attribute, value);
+        }
+      }
+
+      $element.replaceWith($iframe);
+    }
+
+    // Rewrite existing iframe data URIs.
+    for (const element of $('iframe[src]').toArray()) {
+      const $iframe = $(element);
+      const uri = $iframe.attr('src');
+
+      const apiFilePath = await resolveUri(uri);
+      if (!apiFilePath) continue;
+
+      $iframe
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', apiFilePath.split('/')[3]);
+    }
+
+    // anchors
     for (const element of $('a[href]').toArray()) {
       const $element = $(element);
-      const href = $element.attr('href');
-      const normalized = href.trim();
-
-      let apiFilePath = processed.get(normalized);
-      if (!apiFilePath) {
-        apiFilePath = await this.uploadDataUri({ uri: normalized, ...rest });
-        processed.set(normalized, apiFilePath);
-      }
+      const apiFilePath = await resolveUri($element.attr('href'));
       if (apiFilePath) $element.attr('href', apiFilePath);
     }
 
@@ -753,7 +877,7 @@ export class ImportAttachmentService {
     workspaceId,
     pageId,
     spaceId,
-    trx
+    trx,
   }: AttachmentMeta & { uri: string }): Promise<string | null> => {
     if (!uri.toLowerCase().startsWith('data:')) {
       return null;
@@ -805,7 +929,7 @@ export class ImportAttachmentService {
     }
 
     const attachmentId = v7();
-    const fileName = `imported-${attachmentId}` + fileExt;
+    const fileName = `${attachmentId}` + fileExt;
     const storageFilePath = `${getAttachmentFolderPath(
       AttachmentType.File,
       workspaceId,
@@ -813,7 +937,7 @@ export class ImportAttachmentService {
     const apiFilePath = `/api/files/${attachmentId}/${fileName}`;
 
     await this.storageService.upload(storageFilePath, buffer);
-    const db = dbOrTx(this.db, trx)
+    const db = dbOrTx(this.db, trx);
     await db
       .insertInto('attachments')
       .values({
