@@ -219,6 +219,13 @@ export class AuthService {
       subject: 'Reset your password',
       template: emailTemplate,
     });
+
+    this.auditService.log({
+      event: AuditEvent.USER_PASSWORD_RESET_REQUESTED,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      metadata: { source: 'forgot_password' },
+    });
   }
 
   async passwordReset(

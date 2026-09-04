@@ -385,4 +385,8 @@ export class EnvironmentService {
       .map((o) => o.trim())
       .filter(Boolean);
   }
+
+  getAllowedPrivateNetworks(): string {
+    return this.configService.get<string>('ALLOWED_PRIVATE_NETWORKS', 'none');
+  }
 }

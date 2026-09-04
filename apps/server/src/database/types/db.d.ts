@@ -74,6 +74,7 @@ export interface Audit {
   resourceId: string | null;
   resourceType: string;
   spaceId: string | null;
+  userAgent: string | null;
   workspaceId: string;
 }
 
@@ -359,6 +360,30 @@ export interface SpaceMembers {
   spaceId: string;
   updatedAt: Generated<Timestamp>;
   userId: string | null;
+}
+
+export interface SiemDestinations {
+  config: Json;
+  consecutiveFailures: Generated<number>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  cursorCreatedAt: Generated<Timestamp>;
+  cursorId: Generated<string>;
+  cursorSnapshot: string | null;
+  enabled: Generated<boolean>;
+  failingSince: Timestamp | null;
+  id: Generated<string>;
+  lastDeliveredAt: Timestamp | null;
+  lastError: string | null;
+  lastErrorAt: Timestamp | null;
+  name: string;
+  nextAttemptAt: Timestamp | null;
+  secrets: string;
+  status: Generated<string>;
+  type: string;
+  updatedAt: Generated<Timestamp>;
+  version: Generated<number>;
+  workspaceId: string;
 }
 
 export interface Spaces {
@@ -724,6 +749,7 @@ export interface DB {
   pages: Pages;
   scimTokens: ScimTokens;
   shares: Shares;
+  siemDestinations: SiemDestinations;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
   templates: Templates;
