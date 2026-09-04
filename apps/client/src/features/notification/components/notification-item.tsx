@@ -63,6 +63,12 @@ export function NotificationItem({
         return "Page verification expires soon";
       case "page.verification_expired":
         return "Page verification has expired";
+      case "siem_destination.failing":
+        return "SIEM destination <bold>{{name}}</bold> is failing";
+      case "siem_destination.disabled":
+        return "SIEM destination <bold>{{name}}</bold> was disabled after 24 hours of failures";
+      case "siem_destination.recovered":
+        return "SIEM destination <bold>{{name}}</bold> recovered";
       default:
         return "";
     }
@@ -76,6 +82,19 @@ export function NotificationItem({
           notification.page.title,
         )
       : undefined;
+
+  const isSiemDestination = notification.type.startsWith("siem_destination.");
+  const destinationName =
+    typeof notification.data?.destinationName === "string"
+      ? notification.data.destinationName
+      : "";
+  const lastError =
+    (notification.type === "siem_destination.failing" ||
+      notification.type === "siem_destination.disabled") &&
+    typeof notification.data?.lastError === "string"
+      ? notification.data.lastError
+      : null;
+  const linkUrl = isSiemDestination ? "/settings/audit/siem" : pageUrl;
 
   const markReadIfNeeded = () => {
     if (isUnread) {
@@ -97,7 +116,7 @@ export function NotificationItem({
   return (
     <UnstyledButton
       component={Link}
-      to={pageUrl ?? ""}
+      to={linkUrl ?? ""}
       onClick={handleClick}
       // auxclick fires for all non-primary buttons; guard to middle-click only (button 1)
       // so that right-click (button 2, context menu) does not mark as read
@@ -124,10 +143,20 @@ export function NotificationItem({
           <Text size="sm" lineClamp={2}>
             <Trans
               i18nKey={getNotificationMessageKey()}
-              values={{ name: notification.actor?.name }}
+              values={{
+                name: isSiemDestination
+                  ? destinationName
+                  : notification.actor?.name,
+              }}
               components={{ bold: <Text span fw={600} /> }}
             />
           </Text>
+
+          {lastError && (
+            <Text size="xs" c="dimmed" lineClamp={1} mt={2}>
+              {lastError}
+            </Text>
+          )}
 
           {notification.page && (
             <Group gap={4} mt={2} wrap="nowrap">

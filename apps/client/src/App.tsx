@@ -166,6 +166,11 @@ export default function App() {
             <Route path={"ai"} element={<AiSettings />} />
             <Route path={"ai/mcp"} element={<AiSettings />} />
             <Route path={"audit"} element={<AuditLogs />} />
+            <Route path={"audit/siem"} element={<AuditLogs />} />
+            <Route
+              path={"siem"}
+              element={<Navigate to="/settings/audit/siem" replace />}
+            />
             <Route path={"verifications"} element={<VerifiedPages />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
