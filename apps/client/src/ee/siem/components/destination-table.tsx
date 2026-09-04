@@ -110,7 +110,7 @@ export function DestinationTable({
                 <Table.Td>
                   <Menu shadow="md" width={200}>
                     <Menu.Target>
-                      <ActionIcon variant="subtle" aria-label={t("Actions")}>
+                      <ActionIcon variant="subtle" color="gray" aria-label={t("Actions")}>
                         <IconDots size={18} />
                       </ActionIcon>
                     </Menu.Target>
