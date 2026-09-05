@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Anchor, Alert, Button, Group, Space, Text } from "@mantine/core";
+import { Anchor, Alert, Button, Group, Space, Tabs, Text } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { Trans, useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
@@ -17,6 +17,8 @@ import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { useLocation, useNavigate } from "react-router-dom";
+import { AuthorizedAppsPanel } from "@/ee/oauth/components/authorized-apps-panel.tsx";
 
 export default function UserApiKeys() {
   const { t } = useTranslation();
@@ -29,6 +31,11 @@ export default function UserApiKeys() {
   const { data, isLoading } = useGetApiKeysQuery({ cursor });
   const [workspace] = useAtom(workspaceAtom);
   const { isAdmin } = useUserRole();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = location.pathname.endsWith("/authorized-apps")
+    ? "authorized-apps"
+    : "api-keys";
   const mcpEnabled = workspace?.settings?.ai?.mcp === true;
   const restrictToAdmins = workspace?.settings?.api?.restrictToAdmins === true;
   const canCreate = !restrictToAdmins || isAdmin;
@@ -47,26 +54,27 @@ export default function UserApiKeys() {
     setRevokeModalOpened(true);
   };
 
+  const handleTabChange = (value: string | null) => {
+    navigate(
+      value === "authorized-apps"
+        ? "/settings/account/api-keys/authorized-apps"
+        : "/settings/account/api-keys",
+    );
+  };
+
   return (
     <>
-      <DocumentTitle title={t("API keys")} />
+      <DocumentTitle
+        title={activeTab === "authorized-apps" ? t("Authorized apps") : t("API keys")}
+      />
 
       <SettingsTitle title={t("API keys")} />
 
-      <Text size="sm" c="dimmed" mb="md">
-        <Trans
-          i18nKey="View the <anchor>API documentation</anchor> for usage details."
-          components={{
-            anchor: <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm" />,
-          }}
-        />
-      </Text>
-
-      {mcpEnabled && canCreate && (
+      {mcpEnabled && (
         <Alert variant="light" color="blue" mb="md" p="sm" icon={<IconInfoCircle />}>
           <Text size="sm">
             {t(
-              "Your workspace has MCP enabled. Use your API key to connect AI assistants.",
+              "Your workspace has MCP enabled. Connect AI assistants with your Docmost account via OAuth.",
             )}{" "}
             <Anchor
               href="https://docmost.com/docs/user-guide/mcp"
@@ -85,37 +93,70 @@ export default function UserApiKeys() {
         </Alert>
       )}
 
-      {canCreate ? (
-        <Group justify="flex-end" mb="md">
-          <Button onClick={() => setCreateModalOpened(true)}>
-            {t("Create API Key")}
-          </Button>
-        </Group>
-      ) : restrictToAdmins ? (
-        <Alert variant="light" color="yellow" mb="md" p="sm" icon={<IconInfoCircle />}>
-          <Text size="sm">
-            {t("API key creation is restricted to admins by your workspace administrator.")}
+      <Tabs color="dark" value={activeTab} onChange={handleTabChange}>
+        <Tabs.List>
+          <Tabs.Tab fw={500} value="api-keys">
+            {t("API keys")}
+          </Tabs.Tab>
+          <Tabs.Tab fw={500} value="authorized-apps">
+            {t("Authorized apps")}
+          </Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value="api-keys" pt="md">
+
+        <Group justify="space-between" align="center" mb="md">
+          <Text size="sm" c="dimmed">
+            <Trans
+              i18nKey="View the <anchor>API documentation</anchor> for usage details."
+              components={{
+                anchor: <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm" />,
+              }}
+            />
           </Text>
-        </Alert>
-      ) : null}
 
-      <ApiKeyTable
-        apiKeys={data?.items || []}
-        isLoading={isLoading}
-        onUpdate={handleUpdate}
-        onRevoke={handleRevoke}
-      />
+          {canCreate && (
+            <Button
+              onClick={() => setCreateModalOpened(true)}
+              style={{ flexShrink: 0 }}
+            >
+              {t("Create API Key")}
+            </Button>
+          )}
+        </Group>
 
-      <Space h="md" />
+        {!canCreate && restrictToAdmins && (
+          <Alert variant="light" color="yellow" mb="md" p="sm" icon={<IconInfoCircle />}>
+            <Text size="sm">
+              {t("API key creation is restricted to admins by your workspace administrator.")}
+            </Text>
+          </Alert>
+        )}
 
-      {data?.items.length > 0 && (
-        <Paginate
-          hasPrevPage={data?.meta?.hasPrevPage}
-          hasNextPage={data?.meta?.hasNextPage}
-          onNext={() => goNext(data?.meta?.nextCursor)}
-          onPrev={goPrev}
+        <ApiKeyTable
+          apiKeys={data?.items || []}
+          isLoading={isLoading}
+          onUpdate={handleUpdate}
+          onRevoke={handleRevoke}
         />
-      )}
+
+        <Space h="md" />
+
+        {data?.items.length > 0 && (
+          <Paginate
+            hasPrevPage={data?.meta?.hasPrevPage}
+            hasNextPage={data?.meta?.hasNextPage}
+            onNext={() => goNext(data?.meta?.nextCursor)}
+            onPrev={goPrev}
+          />
+        )}
+
+        </Tabs.Panel>
+
+        <Tabs.Panel value="authorized-apps" pt="md">
+          <AuthorizedAppsPanel />
+        </Tabs.Panel>
+      </Tabs>
 
       <CreateApiKeyModal
         opened={createModalOpened}

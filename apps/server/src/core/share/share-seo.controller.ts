@@ -85,8 +85,8 @@ export class ShareSeoController {
 
       const html = fs.readFileSync(indexFilePath, 'utf8');
       const transformedHtml = html
-        .replace(/<title>[\s\S]*?<\/title>/i, `<title>${metaTitle}</title>`)
-        .replace(metaTagVar, metaTags);
+        .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${metaTitle}</title>`)
+        .replace(metaTagVar, () => metaTags);
 
       res.type('text/html').send(transformedHtml);
     }

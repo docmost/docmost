@@ -1,15 +1,27 @@
 import "@/features/editor/styles/index.css";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { EditorProvider } from "@tiptap/react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Editor, EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
 import { Heading, UniqueID } from "@docmost/editor-ext";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtom } from "jotai";
-import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import {
+  lightboxRequestAtom,
+  readOnlyEditorAtom,
+} from "@/features/editor/atoms/editor-atoms.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
+import LightboxView, {
+  getLightboxClickRequest,
+} from "@/features/editor/components/common/lightbox-view";
 
 interface PageEditorProps {
   title: string;
@@ -23,6 +35,16 @@ interface PageEditorProps {
    * that isn't itself shared.
    */
   shareId?: string;
+  /**
+   * When rendering inside a public space, pass the space slug. Transclusion
+   * lookups then resolve against the published space instead of the viewer's
+   * personal permissions.
+   */
+  spaceSlug?: string;
+  /** Rendered between the title and the content. */
+  byline?: React.ReactNode;
+  /** Set false when the consumer renders its own end matter (e.g. prev/next). */
+  trailingSpace?: boolean;
 }
 
 export default function ReadonlyPageEditor({
@@ -31,10 +53,16 @@ export default function ReadonlyPageEditor({
   pageId,
   printMode = false,
   shareId,
+  spaceSlug,
+  byline,
+  trailingSpace = true,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
+  const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
+  const [contentEditor, setContentEditor] = useState<Editor | null>(null);
   const isComponentMounted = useRef(false);
   const editorCreated = useRef(false);
+  const isPublicView = Boolean(shareId || spaceSlug);
 
   const canScroll = useCallback(
     () => isComponentMounted.current && editorCreated.current,
@@ -48,6 +76,11 @@ export default function ReadonlyPageEditor({
   useEffect(() => {
     isComponentMounted.current = true;
   }, []);
+
+  useEffect(() => {
+    if (!isPublicView) return;
+    setLightboxRequest(null);
+  }, [pageId, isPublicView]);
 
   const extensions = useMemo(() => {
     const excludedExtensions = new Set([
@@ -80,7 +113,7 @@ export default function ReadonlyPageEditor({
   ];
 
   return (
-    <TransclusionLookupProvider shareId={shareId}>
+    <TransclusionLookupProvider shareId={shareId} spaceSlug={spaceSlug}>
       <div className="page-title">
         <EditorProvider
           editable={false}
@@ -91,12 +124,27 @@ export default function ReadonlyPageEditor({
         ></EditorProvider>
       </div>
 
+      {byline}
+
       <EditorProvider
         editable={false}
         immediatelyRender={true}
         textDirection="auto"
         extensions={extensions}
         content={content}
+        editorProps={
+          isPublicView
+            ? {
+                handleClickOn: (_view, _pos, node) => {
+                  const request = getLightboxClickRequest(node);
+                  if (!request) return false;
+
+                  setLightboxRequest(request);
+                  return true;
+                },
+              }
+            : undefined
+        }
         onCreate={({ editor }) => {
           if (editor) {
             if (pageId) {
@@ -105,13 +153,23 @@ export default function ReadonlyPageEditor({
             }
             // @ts-ignore
             setReadOnlyEditor(editor);
+            setContentEditor(editor);
 
             handleScrollTo(editor);
             editorCreated.current = true;
           }
         }}
       ></EditorProvider>
-      <div style={{ paddingBottom: "20vh" }}></div>
+      {isPublicView && contentEditor && (
+        <LightboxView
+          editor={contentEditor}
+          open={!!lightboxRequest}
+          src={lightboxRequest?.src ?? ""}
+          type={lightboxRequest?.type ?? "image"}
+          onClose={() => setLightboxRequest(null)}
+        />
+      )}
+      {trailingSpace && <div style={{ paddingBottom: "20vh" }}></div>}
     </TransclusionLookupProvider>
   );
 }

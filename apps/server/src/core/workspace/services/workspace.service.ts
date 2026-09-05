@@ -42,6 +42,7 @@ import {
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -65,6 +66,7 @@ export class WorkspaceService {
     private domainService: DomainService,
     private licenseCheckService: LicenseCheckService,
     private shareRepo: ShareRepo,
+    private readonly publicSpaceRepo: PublicSpaceRepo,
     private watcherRepo: WatcherRepo,
     private favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
@@ -334,7 +336,10 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
       typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
       typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
-      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined'
+      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
+      typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
+      typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined' ||
+      typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -367,6 +372,33 @@ export class WorkspaceService {
           !this.licenseCheckService.hasFeature(
             ws.licenseKey,
             Feature.PERSONAL_SPACES,
+            ws.plan,
+          )
+        ) {
+          throw new ForbiddenException('This feature requires a valid license');
+        }
+      }
+
+      if (
+        typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
+        typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined'
+      ) {
+        if (
+          !this.licenseCheckService.hasFeature(
+            ws.licenseKey,
+            Feature.AI_CONTROLS,
+            ws.plan,
+          )
+        ) {
+          throw new ForbiddenException('This feature requires a valid license');
+        }
+      }
+
+      if (typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined') {
+        if (
+          !this.licenseCheckService.hasFeature(
+            ws.licenseKey,
+            Feature.MCP_CONTROLS,
             ws.plan,
           )
         ) {
@@ -474,6 +506,47 @@ export class WorkspaceService {
         }
       }
 
+      if (
+        !this.environmentService.isBetaPublicSpaces() &&
+        (typeof updateWorkspaceDto.allowPublicSpaces !== 'undefined' ||
+          typeof updateWorkspaceDto.publicSpacesDirectory !== 'undefined')
+      ) {
+        throw new ForbiddenException(
+          'Public spaces are not enabled on this instance',
+        );
+      }
+
+      if (typeof updateWorkspaceDto.allowPublicSpaces !== 'undefined') {
+        const prev = settingsBefore?.publicSpaces?.enabled ?? false;
+        if (prev !== updateWorkspaceDto.allowPublicSpaces) {
+          before.allowPublicSpaces = prev;
+          after.allowPublicSpaces = updateWorkspaceDto.allowPublicSpaces;
+        }
+        await this.workspaceRepo.updatePublicSpacesSettings(
+          workspaceId,
+          'enabled',
+          updateWorkspaceDto.allowPublicSpaces,
+          trx,
+        );
+        if (!updateWorkspaceDto.allowPublicSpaces) {
+          await this.publicSpaceRepo.disableByWorkspaceId(workspaceId, trx);
+        }
+      }
+
+      if (typeof updateWorkspaceDto.publicSpacesDirectory !== 'undefined') {
+        const prev = settingsBefore?.publicSpaces?.directory ?? false;
+        if (prev !== updateWorkspaceDto.publicSpacesDirectory) {
+          before.publicSpacesDirectory = prev;
+          after.publicSpacesDirectory = updateWorkspaceDto.publicSpacesDirectory;
+        }
+        await this.workspaceRepo.updatePublicSpacesSettings(
+          workspaceId,
+          'directory',
+          updateWorkspaceDto.publicSpacesDirectory,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
         const prev = settingsBefore?.ai?.mcp ?? false;
         if (prev !== updateWorkspaceDto.mcpEnabled) {
@@ -516,6 +589,48 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined') {
+        const prev = settingsBefore?.ai?.chatReadOnly ?? false;
+        if (prev !== updateWorkspaceDto.aiChatReadOnly) {
+          before.aiChatReadOnly = prev;
+          after.aiChatReadOnly = updateWorkspaceDto.aiChatReadOnly;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'chatReadOnly',
+          updateWorkspaceDto.aiChatReadOnly,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined') {
+        const prev = settingsBefore?.ai?.chatWorkspaceKnowledgeOnly ?? false;
+        if (prev !== updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly) {
+          before.aiChatWorkspaceKnowledgeOnly = prev;
+          after.aiChatWorkspaceKnowledgeOnly = updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'chatWorkspaceKnowledgeOnly',
+          updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined') {
+        const prev = settingsBefore?.ai?.enforceMcpOauth ?? false;
+        if (prev !== updateWorkspaceDto.enforceMcpOauth) {
+          before.enforceMcpOauth = prev;
+          after.enforceMcpOauth = updateWorkspaceDto.enforceMcpOauth;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'enforceMcpOauth',
+          updateWorkspaceDto.enforceMcpOauth,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
         const prev = settingsBefore?.spaces?.allowPersonal ?? false;
         if (prev !== updateWorkspaceDto.allowPersonalSpaces) {
@@ -548,11 +663,16 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
       delete updateWorkspaceDto.disablePublicSharing;
+      delete updateWorkspaceDto.allowPublicSpaces;
+      delete updateWorkspaceDto.publicSpacesDirectory;
       delete updateWorkspaceDto.mcpEnabled;
       delete updateWorkspaceDto.allowMemberTemplates;
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
       delete updateWorkspaceDto.defaultPageEditMode;
+      delete updateWorkspaceDto.aiChatReadOnly;
+      delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
+      delete updateWorkspaceDto.enforceMcpOauth;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,

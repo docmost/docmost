@@ -21,6 +21,7 @@
     "@docmost/base-formula": "workspace:*",
     "@docmost/editor-ext": "workspace:*",
     "@excalidraw/excalidraw": "0.18.0-3a5ef40",
+    "@fontsource-variable/inter": "5.3.0",
     "@mantine/core": "9.3.2",
     "@mantine/dates": "9.3.2",
     "@mantine/form": "9.3.2",
@@ -64,6 +65,7 @@
     "react-router-dom": "7.18.2",
     "semver": "7.7.4",
     "socket.io-client": "4.8.3",
+    "yet-another-react-lightbox": "^3.32.2",
     "zod": "4.3.6"
   },
   "devDependencies": {

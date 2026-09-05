@@ -1,0 +1,902 @@
+/* Design tokens for the public docs surface. Declared on :root (not .root)
+ * because mobile drawers and the spotlight render in portals outside the shell
+ * subtree. The accent pair is overridden at runtime by docs-theme.ts. */
+/* light-dark() cannot live in a bare :root block (the transform emits a
+ * descendant selector that never matches :root), so dark values get their own
+ * attribute-qualified block; flipping semantics ride Mantine's own vars. */
+:root {
+  --docs-header-h: 56px;
+  --docs-sidebar-w: 280px;
+  --docs-toc-w: 240px;
+  --docs-site-max: 96rem;
+  --docs-content-max: 54rem;
+  --docs-radius: 6px;
+
+  --docs-accent: #2b7af1;
+  --docs-accent-soft: color-mix(in srgb, var(--docs-accent) 10%, transparent);
+
+  /* Cloudflare-style single-ink model: one foreground for headings, bold, and
+   * body on a just-off-white page; neither end of the scale is pure. */
+  --docs-bg: oklch(99% 0 0);
+  --docs-fg: oklch(21% 0 0);
+  --docs-content-fg: var(--docs-fg);
+  --docs-nav-fg: oklch(47% 0 0);
+  --docs-muted: var(--mantine-color-dimmed);
+  --docs-hover: var(--mantine-color-default-hover);
+  --docs-faint: var(--mantine-color-gray-6);
+  --docs-border: var(--mantine-color-gray-2);
+  --docs-header-bg: color-mix(in srgb, var(--docs-bg) 78%, transparent);
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  --docs-bg: var(--mantine-color-body);
+  --docs-fg: oklch(90% 0 0);
+  --docs-nav-fg: oklch(72% 0 0);
+  --docs-faint: var(--mantine-color-dark-2);
+  --docs-border: var(--mantine-color-dark-5);
+}
+
+.root {
+  min-height: 100dvh;
+  background-color: var(--docs-bg);
+  color: var(--docs-fg);
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  height: var(--docs-header-h);
+  padding-inline: rem(20px);
+  background-color: var(--docs-header-bg);
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--docs-border);
+}
+
+.headerInner {
+  max-width: var(--docs-site-max);
+  margin-inline: auto;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: rem(16px);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: rem(10px);
+  min-width: 0;
+}
+
+.headerCenter {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: rem(4px);
+}
+
+.searchSlot {
+  @media (max-width: $mantine-breakpoint-sm) {
+    display: none;
+  }
+}
+
+.mobileOnly {
+  display: inline-flex;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    display: none;
+  }
+}
+
+/* Plain space name in the header, used only when there is no sidebar to
+ * carry it. The brand slot is reserved for future org logo/name support. */
+.headerSpaceName {
+  font-size: rem(14.5px);
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  color: var(--docs-fg);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--docs-radius);
+  padding: rem(4px) rem(6px);
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: 1px;
+  }
+}
+
+/* Burger appears only once the sidebar column is collapsed. */
+@media (min-width: 64em) {
+  .sidebarToggle {
+    display: none !important;
+  }
+}
+
+.headerAction {
+  color: var(--docs-faint);
+  border-radius: var(--docs-radius);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-fg);
+      background-color: var(--docs-hover);
+    }
+  }
+}
+
+/* ---------- Search ---------- */
+
+.searchButton {
+  display: flex;
+  align-items: center;
+  gap: rem(8px);
+  width: rem(320px);
+  height: rem(34px);
+  padding-inline: rem(10px);
+  border: 1px solid var(--docs-border);
+  border-radius: rem(8px);
+  background-color: var(--docs-bg);
+  color: var(--docs-muted);
+  font-size: rem(13px);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: light-dark(
+        var(--mantine-color-gray-4),
+        var(--mantine-color-dark-3)
+      );
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: 1px;
+  }
+
+  @media (max-width: 62em) {
+    width: rem(220px);
+  }
+}
+
+.searchLabel {
+  flex: 1;
+  text-align: left;
+}
+
+.searchKbd {
+  font-size: rem(11px);
+  font-weight: 500;
+  color: var(--docs-faint);
+  border: 1px solid var(--docs-border);
+  border-radius: rem(4px);
+  padding: rem(1px) rem(5px);
+  line-height: 1.4;
+}
+
+/* Quiet bordered chip in the docs palette instead of Mantine's full-ink default. */
+.copyPageButton {
+  color: var(--docs-muted);
+  border-color: var(--docs-border);
+  background-color: transparent;
+  font-size: rem(13px);
+  font-weight: 500;
+  border-radius: var(--docs-radius);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-fg);
+      background-color: var(--docs-hover);
+    }
+  }
+}
+
+/* Page actions pinned to the article's top-right corner; on small viewports
+ * they drop into flow above the content so breadcrumbs never run under them. */
+.articleActions {
+  position: absolute;
+  top: rem(30px);
+  right: rem(24px);
+  display: inline-flex;
+  align-items: center;
+  gap: rem(6px);
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    position: static;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: rem(4px);
+  }
+}
+
+/* Below the rail breakpoint the toc opens as a drawer overlay instead. */
+.tocOverlayControl {
+  display: inline-flex;
+
+  @media (min-width: 75em) {
+    display: none;
+  }
+}
+
+/* ---------- Body grid ---------- */
+
+/* Contained site layout: rails anchor the edges of a centered max-width
+ * container, the article centers itself in the fixed middle track. Hiding a
+ * rail keeps its track, so toggling never moves the content column. */
+.body {
+  max-width: var(--docs-site-max);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns:
+    var(--docs-sidebar-w)
+    minmax(0, 1fr)
+    var(--docs-toc-w);
+  align-items: start;
+}
+
+.sidebar {
+  grid-column: 1;
+  width: var(--docs-sidebar-w);
+  position: sticky;
+  top: var(--docs-header-h);
+  height: calc(100dvh - var(--docs-header-h));
+  display: flex;
+  flex-direction: column;
+  padding: rem(20px) rem(10px) rem(16px) rem(20px);
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.sidebar[data-hidden="true"] {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(rem(-8px));
+}
+
+.sidebarTitle {
+  display: block;
+  font-size: rem(14px);
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  color: var(--docs-fg);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--docs-radius);
+  padding: rem(5px) rem(8px);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-accent);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: -2px;
+  }
+}
+
+.sidebarDivider {
+  height: 1px;
+  background-color: var(--docs-border);
+  margin: rem(10px) 0 rem(14px);
+  flex-shrink: 0;
+}
+
+.sidebarScroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.main {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.article {
+  max-width: var(--docs-content-max);
+  margin-inline: auto;
+  padding: rem(36px) rem(32px) rem(72px);
+  position: relative;
+}
+
+.toc {
+  grid-column: 3;
+  width: var(--docs-toc-w);
+  position: sticky;
+  top: var(--docs-header-h);
+  max-height: calc(100dvh - var(--docs-header-h));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: rem(36px) rem(16px) rem(24px) rem(4px);
+}
+
+@media (max-width: 75em) {
+  .body {
+    grid-template-columns: var(--docs-sidebar-w) minmax(0, 1fr);
+  }
+
+  .toc {
+    display: none;
+  }
+}
+
+/* Below 64em the sidebar collapses into the burger drawer. */
+@media (max-width: 64em) {
+  .body {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: $mantine-breakpoint-sm) {
+  .article {
+    padding: rem(24px) rem(20px) rem(56px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body,
+  .sidebar,
+  .toc,
+  .searchButton {
+    transition: none;
+  }
+}
+
+/* ---------- Sidebar tree ---------- */
+
+/* Applied through DocTree's rowClassName onto the engine wrapper that carries
+ * data-selected. Class doubled to outrank the engine's own module styles. */
+.treeNodeChrome.treeNodeChrome {
+  border-radius: var(--docs-radius);
+  color: var(--docs-nav-fg);
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--docs-hover);
+      color: var(--docs-fg);
+    }
+  }
+}
+
+.treeNodeChrome.treeNodeChrome[data-selected="true"] {
+  background-color: var(--docs-accent-soft);
+}
+
+.treeRow {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: rem(8px);
+  width: 100%;
+  min-width: 0;
+  min-height: rem(32px);
+  padding: rem(6px) rem(4px) rem(6px) rem(8px);
+  text-decoration: none;
+  color: inherit;
+  font-size: rem(14px);
+  font-weight: 400;
+  line-height: 1.45;
+  border-radius: var(--docs-radius);
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: -2px;
+  }
+}
+
+/* Expanded parents read as section headers, Cloudflare-style. */
+.treeRow[data-open-parent="true"] {
+  color: var(--docs-fg);
+  font-weight: 500;
+}
+
+.treeRow[data-selected="true"] {
+  color: var(--docs-accent);
+  font-weight: 500;
+}
+
+.treeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: rem(18px);
+  font-size: rem(14px);
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: rem(2px);
+}
+
+/* Names wrap instead of truncating: the sidebar has a fixed width, so an
+ * ellipsis would permanently hide the tail of long titles. */
+.treeText {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Nesting rail: each row draws its ancestors' segments in the indent gutter;
+ * the -2px bleed covers the engine's row padding so segments connect. */
+.treeGuide {
+  position: absolute;
+  top: 0;
+  bottom: rem(-2px);
+  width: 1px;
+  background-color: var(--docs-border);
+  pointer-events: none;
+}
+
+.treeChevron {
+  flex-shrink: 0;
+  color: var(--docs-faint);
+  transition: transform 140ms ease;
+}
+
+.treeChevron[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .treeChevron {
+    transition: none;
+  }
+}
+
+/* ---------- Table of contents ---------- */
+
+.tocLabel {
+  display: block;
+  font-size: rem(11px);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--docs-muted);
+  margin-bottom: rem(10px);
+}
+
+.tocList {
+  border-left: 1px solid var(--docs-border);
+}
+
+.tocLink {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  margin-left: -1px;
+  padding: rem(4px) rem(8px) rem(4px) rem(11px);
+  font-size: rem(13px);
+  line-height: 1.45;
+  color: var(--docs-muted);
+  cursor: pointer;
+  overflow-wrap: break-word;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-fg);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: -2px;
+    border-radius: rem(2px);
+  }
+}
+
+.tocLink[data-active="true"] {
+  color: var(--docs-accent);
+  border-left-color: var(--docs-accent);
+  font-weight: 500;
+}
+
+/* ---------- Edit page (signed-in visitors) ---------- */
+
+.editPageLink {
+  display: flex;
+  align-items: center;
+  gap: rem(6px);
+  margin-top: rem(16px);
+  padding-top: rem(14px);
+  border-top: 1px solid var(--docs-border);
+  font-size: rem(13px);
+  color: var(--docs-muted);
+  text-decoration: none;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-fg);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: 2px;
+    border-radius: rem(2px);
+  }
+}
+
+/* ---------- Sidebar branding experiments (GitBook card / ReadMe line) ---------- */
+
+/* ---------- Footer branding ---------- */
+
+.footer {
+  margin-top: rem(40px);
+  padding-top: rem(16px);
+  border-top: 1px solid var(--docs-border);
+}
+
+.footerBranding {
+  font-size: rem(14px);
+  color: var(--docs-muted);
+  text-decoration: none;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-fg);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: 2px;
+    border-radius: rem(2px);
+  }
+}
+
+/* ---------- Breadcrumbs ---------- */
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: rem(4px);
+  font-size: rem(13px);
+  color: var(--docs-muted);
+  margin-bottom: rem(6px);
+  /* keep long trails clear of the pinned page actions */
+  padding-right: rem(160px);
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    padding-right: 0;
+  }
+}
+
+.crumbLink {
+  color: var(--docs-muted);
+  text-decoration: none;
+  border-radius: rem(4px);
+  padding: rem(1px) rem(3px);
+  max-width: rem(220px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-accent);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: 0;
+  }
+}
+
+.crumbSeparator {
+  color: light-dark(
+    var(--mantine-color-gray-4),
+    var(--mantine-color-dark-3)
+  );
+  user-select: none;
+}
+
+.crumbEllipsis {
+  color: var(--docs-muted);
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: rem(4px);
+  padding: rem(1px) rem(4px);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--docs-accent);
+      background-color: var(--docs-hover);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: 0;
+  }
+}
+
+/* ---------- Byline ---------- */
+
+/* Pulled up into the title's own bottom margin so it reads as one block. */
+.byline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: rem(8px);
+  margin-top: rem(-16px);
+  margin-bottom: rem(28px);
+  font-size: rem(13px);
+  color: var(--docs-muted);
+}
+
+.bylineAuthor {
+  display: inline-flex;
+  align-items: center;
+  gap: rem(6px);
+}
+
+.bylineDot {
+  color: var(--docs-faint);
+  user-select: none;
+}
+
+/* ---------- Prev / next ---------- */
+
+.pageNav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: rem(12px);
+  margin-top: rem(48px);
+}
+
+.pageNavCard {
+  display: flex;
+  flex-direction: column;
+  gap: rem(4px);
+  padding: rem(12px) rem(16px);
+  border: 1px solid var(--docs-border);
+  border-radius: rem(10px);
+  text-decoration: none;
+  min-width: 0;
+  transition: border-color 120ms ease;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--docs-accent);
+    }
+
+    &:hover .pageNavTitle {
+      color: var(--docs-accent);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-accent);
+    outline-offset: 1px;
+  }
+}
+
+.pageNavCard[data-direction="next"] {
+  grid-column: 2;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.pageNavLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: rem(4px);
+  font-size: rem(12px);
+  color: var(--docs-muted);
+}
+
+.pageNavTitle {
+  font-size: rem(14px);
+  font-weight: 500;
+  color: var(--docs-fg);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 120ms ease;
+}
+
+@media (max-width: $mantine-breakpoint-sm) {
+  .pageNav {
+    grid-template-columns: 1fr;
+  }
+
+  .pageNavCard[data-direction="next"] {
+    grid-column: auto;
+  }
+}
+
+/* ---------- Content ---------- */
+
+/* Reading typography: body copy softens to a blue-gray with relaxed leading
+ * while headings and bold keep full contrast. Class doubled to outrank the
+ * shared .public-typography metrics regardless of stylesheet order. */
+.root.root :global(.ProseMirror) {
+  color: var(--docs-content-fg);
+  line-height: 1.75;
+  letter-spacing: normal;
+  /* The article owns horizontal spacing here; the editor's 3rem gutter would
+   * misalign content with the breadcrumb, and its own background bands
+   * against the off-white page. */
+  padding-left: 0;
+  padding-right: 0;
+  background-color: transparent;
+}
+
+/* Wide columns bleed into the editor gutter that no longer exists here. */
+.root.root :global(div[data-type="columns"][data-width-mode="wide"]) {
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
+}
+
+/* One ink by inheritance: Mantine's baseline gives headings an explicit
+ * color, which forks them from the body. Neutralize instead of re-declaring,
+ * so changing the single content foreground repaints all text. */
+.root.root :global(.ProseMirror) h1,
+.root.root :global(.ProseMirror) h2,
+.root.root :global(.ProseMirror) h3,
+.root.root :global(.ProseMirror) h4,
+.root.root :global(.ProseMirror) h5,
+.root.root :global(.ProseMirror) h6,
+.root.root :global(.ProseMirror) strong {
+  color: inherit;
+}
+
+/* Modest semibold heading scale (Cloudflare-style); class doubled to outrank
+ * the shared editor and .public-typography rules. */
+.root.root :global(.ProseMirror) h1 {
+  font-size: 2.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.root.root :global(.ProseMirror) h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.4;
+}
+
+.root.root :global(.ProseMirror) h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.root.root :global(.ProseMirror) h4,
+.root.root :global(.ProseMirror) h5,
+.root.root :global(.ProseMirror) h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.root.root :global(.ProseMirror) strong {
+  font-weight: 600;
+}
+
+.root.root :global(.page-title .ProseMirror) h1 {
+  font-size: 2.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.root :global(.ProseMirror) a {
+  color: var(--docs-accent);
+}
+
+/* Internal page links (mentions, subpages lists) follow the accent like any
+ * other link; the app skin pins them to ink with !important, hence the
+ * counter-!important, and the underline tint softens to match. */
+.root :global(.ProseMirror) a[class*="pageMentionLink"] {
+  color: var(--docs-accent) !important;
+}
+
+.root :global(.ProseMirror) [class*="pageMentionText"] {
+  border-bottom-color: color-mix(in srgb, var(--docs-accent) 40%, transparent);
+}
+
+.root :global(.ProseMirror) h1,
+.root :global(.ProseMirror) h2,
+.root :global(.ProseMirror) h3,
+.root :global(.ProseMirror) h4 {
+  scroll-margin-top: calc(var(--docs-header-h) + rem(16px));
+}
+
+/* ---------- Content tables ---------- */
+
+/* The wrapper carries the rounded outer border so border-collapse never
+ * fights border-radius; its overflow-x clips the corners. */
+.root.root :global(.ProseMirror .tableWrapper) {
+  border: 1px solid var(--docs-border);
+  border-radius: rem(10px);
+}
+
+.root.root :global(.ProseMirror table td),
+.root.root :global(.ProseMirror table th) {
+  border: 0;
+  border-bottom: 1px solid var(--docs-border);
+  border-right: 1px solid var(--docs-border);
+  padding: rem(10px) rem(14px);
+}
+
+.root.root :global(.ProseMirror table :is(td, th):last-child) {
+  border-right: 0;
+}
+
+.root.root :global(.ProseMirror table tr:last-child td),
+.root.root :global(.ProseMirror table tr:last-child th) {
+  border-bottom: 0;
+}
+
+.root.root :global(.ProseMirror table th) {
+  background-color: var(--docs-hover);
+  color: var(--docs-fg);
+  font-weight: 600;
+}
+
+/* Round the corner cells too for the no-overflow (pinned header) variant,
+ * where the wrapper does not clip. */
+.root.root :global(.ProseMirror table tr:first-child :is(th, td):first-child) {
+  border-top-left-radius: rem(9px);
+}
+
+.root.root :global(.ProseMirror table tr:first-child :is(th, td):last-child) {
+  border-top-right-radius: rem(9px);
+}
+
+.root.root :global(.ProseMirror table tr:last-child :is(th, td):first-child) {
+  border-bottom-left-radius: rem(9px);
+}
+
+.root.root :global(.ProseMirror table tr:last-child :is(th, td):last-child) {
+  border-bottom-right-radius: rem(9px);
+}
+
+.emptyState {
+  padding-top: rem(96px);
+  text-align: center;
+  color: var(--docs-muted);
+}
+
+/* ---------- Mobile drawers ---------- */
+
+.drawerTree {
+  height: calc(100dvh - rem(60px));
+  display: flex;
+  flex-direction: column;
+}

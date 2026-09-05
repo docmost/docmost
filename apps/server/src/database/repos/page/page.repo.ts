@@ -605,4 +605,83 @@ export class PageRepo {
         .execute()
     );
   }
+
+  /**
+   * All pages of a space excluding restricted subtrees.
+   * Used by public spaces; a restricted page hides its whole subtree.
+   */
+  async getSpacePagesExcludingRestricted(spaceId: string) {
+    return this.db
+      .withRecursive('page_hierarchy', (db) =>
+        db
+          .selectFrom('pages')
+          .leftJoin('pageAccess', 'pageAccess.pageId', 'pages.id')
+          .select([
+            'pages.id',
+            'pages.slugId',
+            'pages.title',
+            'pages.icon',
+            'pages.position',
+            'pages.parentPageId',
+            'pages.spaceId',
+            'pages.workspaceId',
+            sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+          ])
+          .where('pages.spaceId', '=', spaceId)
+          .where('pages.parentPageId', 'is', null)
+          .where('pages.deletedAt', 'is', null)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
+              .leftJoin('pageAccess', 'pageAccess.pageId', 'p.id')
+              .select([
+                'p.id',
+                'p.slugId',
+                'p.title',
+                'p.icon',
+                'p.position',
+                'p.parentPageId',
+                'p.spaceId',
+                'p.workspaceId',
+                sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+              ])
+              .where('p.deletedAt', 'is', null)
+              .where('ph.isRestricted', '=', false),
+          ),
+      )
+      .selectFrom('page_hierarchy')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'workspaceId',
+      ])
+      .where('isRestricted', '=', false)
+      .execute();
+  }
+
+  async getFirstUnrestrictedRootPage(spaceId: string) {
+    return this.db
+      .selectFrom('pages')
+      .select(['id', 'slugId'])
+      .where('spaceId', '=', spaceId)
+      .where('parentPageId', 'is', null)
+      .where('deletedAt', 'is', null)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('pageAccess')
+              .select('pageAccess.id')
+              .whereRef('pageAccess.pageId', '=', 'pages.id'),
+          ),
+        ),
+      )
+      .orderBy('position', (ob) => ob.collate('C').asc())
+      .executeTakeFirst();
+  }
 }

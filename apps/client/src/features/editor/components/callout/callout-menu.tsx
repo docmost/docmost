@@ -121,12 +121,14 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     <BaseBubbleMenu
       editor={editor}
       pluginKey={`callout-menu`}
+      ref={(element) => {
+        if (element) element.style.zIndex = "99";
+      }}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
         placement: "bottom",
         // offset: 233, //      //         offset: [0, 10],
-        // zIndex: 99,
         flip: false,
       }}
       shouldShow={shouldShow}

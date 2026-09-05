@@ -89,3 +89,16 @@ export const buildSharedPageUrl = (opts: {
 
   return anchorId ? `${url}#${anchorId}` : url;
 };
+
+export const buildPublicSpaceUrl = (opts: {
+  spaceSlug: string;
+  pageSlugId?: string;
+  pageTitle?: string;
+  anchorId?: string;
+}): string => {
+  const { spaceSlug, pageSlugId, pageTitle, anchorId } = opts;
+  const url = pageSlugId
+    ? `/docs/${spaceSlug}/${buildPageSlug(pageSlugId, pageTitle)}`
+    : `/docs/${spaceSlug}`;
+  return anchorId ? `${url}#${anchorId}` : url;
+};

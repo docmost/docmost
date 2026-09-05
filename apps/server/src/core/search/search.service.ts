@@ -27,14 +27,39 @@ export class SearchService {
     opts: {
       userId?: string;
       workspaceId: string;
+      publicPageIds?: string[];
     },
   ): Promise<{ items: SearchResponseDto[] }> {
-    const { query } = searchParams;
+    const query = searchParams.query?.trim() ?? '';
+    const labelIds = [...new Set(searchParams.labelIds ?? [])];
+    // selected filters (labels, creator) are browsable without a query
+    const browseByFilters =
+      query.length < 1 &&
+      (labelIds.length > 0 || Boolean(searchParams.creatorId));
 
-    if (query.length < 1) {
+    if (query.length < 1 && !browseByFilters) {
       return { items: [] };
     }
-    const searchQuery = tsquery(query.trim() + '*');
+    const searchQuery = tsquery(query + '*');
+    const titleOnly = searchParams.titleOnly === true;
+    const titleQuery = query;
+    // escape LIKE wildcards; ranking keeps the raw query
+    const titleLikeQuery = query.replace(/[\\%_]/g, '\\$&');
+
+    const rankColumn = browseByFilters
+      ? sql<number>`0`.as('rank')
+      : titleOnly
+        ? sql<number>`word_similarity(lower(${titleQuery}), lower(pages.title))`.as(
+            'rank',
+          )
+        : sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
+            'rank',
+          );
+    const highlightColumn = browseByFilters || titleOnly
+      ? sql<string>`''`.as('highlight')
+      : sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+          'highlight',
+        );
 
     let queryResults = this.db
       .selectFrom('pages')
@@ -47,32 +72,49 @@ export class SearchService {
         'creatorId',
         'createdAt',
         'updatedAt',
-        sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
-          'rank',
-        ),
-        sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
-          'highlight',
-        ),
+        rankColumn,
+        highlightColumn,
       ])
-      .where(
-        'tsv',
-        '@@',
-        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+      .$if(!browseByFilters && !titleOnly, (qb) =>
+        qb.where(
+          'tsv',
+          '@@',
+          sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+        ),
+      )
+      .$if(!browseByFilters && titleOnly, (qb) =>
+        qb.where((eb) =>
+          eb(
+            sql`lower(pages.title)`,
+            'like',
+            sql`lower(${`%${titleLikeQuery}%`})`,
+          ),
+        ),
       )
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
       )
+      .$if(labelIds?.length > 0, (qb) =>
+        qb.where(
+          'id',
+          'in',
+          this.db
+            .selectFrom('pageLabels')
+            .select('pageId')
+            .where('labelId', 'in', labelIds),
+        ),
+      )
       .where('deletedAt', 'is', null)
-      .orderBy('rank', 'desc')
+      .$if(browseByFilters, (qb) => qb.orderBy('updatedAt', 'desc'))
+      .$if(!browseByFilters, (qb) => qb.orderBy('rank', 'desc'))
       .limit(searchParams.limit || 25)
       .offset(searchParams.offset || 0);
 
-    if (!searchParams.shareId) {
+    if (!searchParams.shareId && !opts.publicPageIds) {
       queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
     }
 
-    if (searchParams.spaceId) {
-      // search by spaceId
+    if (searchParams.spaceId && opts.userId) {
       queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
     } else if (opts.userId && !searchParams.spaceId) {
       // only search spaces the user is a member of
@@ -82,6 +124,15 @@ export class SearchService {
           'in',
           this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId),
         )
+        .where('workspaceId', '=', opts.workspaceId);
+    } else if (opts.publicPageIds && !opts.userId) {
+      // Public space search: the allowed id set is computed from live DB
+      // state by the controller on every request.
+      if (opts.publicPageIds.length === 0) {
+        return { items: [] };
+      }
+      queryResults = queryResults
+        .where('id', 'in', opts.publicPageIds)
         .where('workspaceId', '=', opts.workspaceId);
     } else if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
       // search in shares
