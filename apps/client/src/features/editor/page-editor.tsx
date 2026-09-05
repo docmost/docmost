@@ -62,6 +62,7 @@ import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 import SearchNavigationDialog from "@/features/editor/components/search-and-replace/search-navigation-dialog.tsx";
+import { useSearchNavigationParams } from "@/features/editor/components/search-and-replace/use-search-navigation-params.ts";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
@@ -417,31 +418,13 @@ function CollabPageEditor({
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
 
-  const appliedSearchKeyRef = useRef<string | null>(null);
-  const searchKey = `${pageId}:${searchParams.toString()}`;
-  
-  useEffect(() => {
-    if (
-      !editor ||
-      editor.isDestroyed ||
-      !editor.view.dom.isConnected ||
-      appliedSearchKeyRef.current === searchKey
-    ) {
-      return;
-    }
-
-    const searchQueries = searchParams.getAll("q");
-    const match = searchParams.get("m");
-    if (!searchQueries.length) return;
-
-    appliedSearchKeyRef.current = searchKey;
-
-    document.dispatchEvent(
-      new CustomEvent("openSearchNavigationDialog", {
-        detail: { searchTerms: searchQueries, wholeWord: match === "whole" },
-      })
-    );
-  }, [editor, isSynced, showStatic, searchKey, searchParams]);
+  useSearchNavigationParams({
+    editor,
+    isSynced,
+    pageId,
+    searchParams,
+    showStatic,
+  });
 
   useEffect(() => {
     if (

@@ -1,10 +1,15 @@
 import { ActionIcon, Dialog, Flex, Text, Tooltip } from "@mantine/core";
-import { IconArrowNarrowDown, IconArrowNarrowUp, IconX } from "@tabler/icons-react";
-import {  useEditor } from "@tiptap/react";
+import {
+  IconArrowNarrowDown,
+  IconArrowNarrowUp,
+  IconX,
+} from "@tabler/icons-react";
+import { useEditor } from "@tiptap/react";
 import { isEditorReady } from "@docmost/editor-ext";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import classes from "./search-replace.module.css";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface SearchNavigationDialogProps {
   editor: ReturnType<typeof useEditor>;
@@ -18,8 +23,11 @@ interface SearchNavigationEvent extends CustomEvent {
 }
 
 function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
-  const {t} = useTranslation()
+  const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const openRef = useRef(false);
   const [resultState, setResultState] = useState({
     resultIndex: 0,
     resultsLength: 0,
@@ -56,6 +64,28 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
     goToSelection();
   };
 
+  const close = useCallback(() => {
+    if (!openRef.current) return;
+
+    openRef.current = false;
+    setOpen(false);
+    if (isEditorReady(editor)) {
+      editor.commands.setSearchTerms([""]);
+    }
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.delete("q");
+    nextParams.delete("m");
+    const nextSearch = nextParams.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : "",
+        hash: location.hash,
+      },
+      { replace: true },
+    );
+  }, [editor, location.hash, location.pathname, location.search, navigate]);
+
   useEffect(() => {
     const handleOpen = (event: Event) => {
       const { searchTerms: terms, wholeWord = true } = (
@@ -64,12 +94,19 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
 
       if (!terms?.length || !isEditorReady(editor)) return;
 
-      setOpen(true);
+      openRef.current = false;
       editor.commands.setSearchTerms(terms);
       editor.commands.setWholeWord(wholeWord);
       editor.commands.resetIndex();
 
       const { results, resultIndex } = editor.storage.searchAndReplace;
+      openRef.current = true;
+      if (results.length === 0) {
+        close();
+        return;
+      }
+
+      setOpen(true);
       setResultState({
         resultIndex,
         resultsLength: results.length,
@@ -79,25 +116,29 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
     };
 
     const handleClose = () => {
-      setOpen(false);
+      if (openRef.current) {
+        close();
+      }
     };
 
     document.addEventListener("openSearchNavigationDialog", handleOpen);
     document.addEventListener("openFindDialogFromEditor", handleClose);
+    document.addEventListener("closeFindDialogFromEditor", handleClose);
 
     return () => {
       document.removeEventListener("openSearchNavigationDialog", handleOpen);
       document.removeEventListener("openFindDialogFromEditor", handleClose);
+      document.removeEventListener("closeFindDialogFromEditor", handleClose);
     };
-  }, [editor]);
+  }, [close, editor]);
 
   useEffect(() => {
     const handleTransaction = () => {
-      if (!open || editor.isDestroyed) return;
+      if (!openRef.current || editor.isDestroyed) return;
 
       const { results } = editor.storage.searchAndReplace;
       if (results.length === 0) {
-        setOpen(false);
+        close();
       }
     };
 
@@ -105,12 +146,7 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
     return () => {
       editor.off("transaction", handleTransaction);
     };
-  }, [editor, open]);
-
-  const close = () => {
-    editor.commands.setSearchTerms([""]);
-    setOpen(false);
-  };
+  }, [close, editor]);
 
   return (
     <Dialog

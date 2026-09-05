@@ -181,10 +181,10 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
 
   const location = useLocation();
   useEffect(() => {
-    if(pageFindState.isOpen){
+    if (pageFindState.isOpen) {
       closeDialog();
     }
-  }, [location]);
+  }, [location.pathname]);
 
   return (
     <Dialog
