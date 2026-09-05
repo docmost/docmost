@@ -53,6 +53,12 @@ export class SearchShareDTO extends SearchDTO {
   spaceId: string;
 }
 
+export class SearchPublicSpaceDTO extends SearchDTO {
+  @IsNotEmpty()
+  @IsString()
+  spaceSlug: string;
+}
+
 export class SearchSuggestionDTO {
   @IsString()
   query: string;

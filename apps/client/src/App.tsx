@@ -44,6 +44,15 @@ const ShareLayout = lazy(
   () => import("@/features/share/components/share-layout.tsx"),
 );
 const ShareRedirect = lazy(() => import("@/pages/share/share-redirect.tsx"));
+const PublicSpacePage = lazy(
+  () => import("@/pages/public-space/public-space-page.tsx"),
+);
+const PublicSpaceLayout = lazy(
+  () => import("@/features/public-space/components/public-space-layout.tsx"),
+);
+const PublicSpaceDirectoryPage = lazy(
+  () => import("@/pages/public-space/public-space-directory-page.tsx"),
+);
 const SpacesPage = lazy(() => import("@/pages/spaces/spaces.tsx"));
 const MfaChallengePage = lazy(() =>
   import("@/ee/mfa/pages/mfa-challenge-page").then((m) => ({
@@ -117,6 +126,15 @@ export default function App() {
             element={<SharedPage />}
           />
           <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
+        </Route>
+
+        <Route path={"/docs"} element={<PublicSpaceDirectoryPage />} />
+        <Route element={<PublicSpaceLayout />}>
+          <Route path={"/docs/:spaceSlug"} element={<PublicSpacePage />} />
+          <Route
+            path={"/docs/:spaceSlug/:pageSlug"}
+            element={<PublicSpacePage />}
+          />
         </Route>
 
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />

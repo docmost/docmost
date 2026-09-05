@@ -248,6 +248,13 @@ export class EnvironmentService {
     return disable === 'true';
   }
 
+  isBetaPublicSpaces(): boolean {
+    const enabled = this.configService
+      .get<string>('BETA_PUBLIC_SPACES', 'false')
+      .toLowerCase();
+    return enabled === 'true';
+  }
+
   getPostHogHost(): string {
     return this.configService.get<string>('POSTHOG_HOST');
   }

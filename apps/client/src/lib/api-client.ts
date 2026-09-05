@@ -32,6 +32,13 @@ api.interceptors.response.use(
           const url = new URL(error.request.responseURL)?.pathname;
           if (url === "/api/auth/collab-token") return;
           if (window.location.pathname.startsWith("/share/")) return;
+          // public docs probe authed endpoints; reject without the login redirect
+          if (
+            window.location.pathname === "/docs" ||
+            window.location.pathname.startsWith("/docs/")
+          ) {
+            break;
+          }
 
           // Handle unauthorized error
           redirectToLogin();

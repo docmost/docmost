@@ -27,6 +27,7 @@ export class SearchService {
     opts: {
       userId?: string;
       workspaceId: string;
+      publicPageIds?: string[];
     },
   ): Promise<{ items: SearchResponseDto[] }> {
     const query = searchParams.query?.trim() ?? '';
@@ -109,7 +110,7 @@ export class SearchService {
       .limit(searchParams.limit || 25)
       .offset(searchParams.offset || 0);
 
-    if (!searchParams.shareId) {
+    if (!searchParams.shareId && !opts.publicPageIds) {
       queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
     }
 
@@ -123,6 +124,15 @@ export class SearchService {
           'in',
           this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId),
         )
+        .where('workspaceId', '=', opts.workspaceId);
+    } else if (opts.publicPageIds && !opts.userId) {
+      // Public space search: the allowed id set is computed from live DB
+      // state by the controller on every request.
+      if (opts.publicPageIds.length === 0) {
+        return { items: [] };
+      }
+      queryResults = queryResults
+        .where('id', 'in', opts.publicPageIds)
         .where('workspaceId', '=', opts.workspaceId);
     } else if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
       // search in shares

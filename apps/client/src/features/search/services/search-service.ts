@@ -28,6 +28,16 @@ export async function searchShare(
   return req.data.items;
 }
 
+export async function searchPublicSpace(
+  params: IPageSearchParams & { spaceSlug: string },
+): Promise<IPageSearch[]> {
+  const req = await api.post<{ items: IPageSearch[] }>(
+    "/search/public-space-search",
+    params,
+  );
+  return req.data.items;
+}
+
 export async function searchAttachments(
   params: IPageSearchParams,
 ): Promise<IAttachmentSearch[]> {

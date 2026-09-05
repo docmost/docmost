@@ -35,6 +35,16 @@ interface PageEditorProps {
    * that isn't itself shared.
    */
   shareId?: string;
+  /**
+   * When rendering inside a public space, pass the space slug. Transclusion
+   * lookups then resolve against the published space instead of the viewer's
+   * personal permissions.
+   */
+  spaceSlug?: string;
+  /** Rendered between the title and the content. */
+  byline?: React.ReactNode;
+  /** Set false when the consumer renders its own end matter (e.g. prev/next). */
+  trailingSpace?: boolean;
 }
 
 export default function ReadonlyPageEditor({
@@ -43,12 +53,16 @@ export default function ReadonlyPageEditor({
   pageId,
   printMode = false,
   shareId,
+  spaceSlug,
+  byline,
+  trailingSpace = true,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [contentEditor, setContentEditor] = useState<Editor | null>(null);
   const isComponentMounted = useRef(false);
   const editorCreated = useRef(false);
+  const isPublicView = Boolean(shareId || spaceSlug);
 
   const canScroll = useCallback(
     () => isComponentMounted.current && editorCreated.current,
@@ -64,9 +78,9 @@ export default function ReadonlyPageEditor({
   }, []);
 
   useEffect(() => {
-    if (!shareId) return;
+    if (!isPublicView) return;
     setLightboxRequest(null);
-  }, [pageId, shareId]);
+  }, [pageId, isPublicView]);
 
   const extensions = useMemo(() => {
     const excludedExtensions = new Set([
@@ -99,7 +113,7 @@ export default function ReadonlyPageEditor({
   ];
 
   return (
-    <TransclusionLookupProvider shareId={shareId}>
+    <TransclusionLookupProvider shareId={shareId} spaceSlug={spaceSlug}>
       <div className="page-title">
         <EditorProvider
           editable={false}
@@ -110,6 +124,8 @@ export default function ReadonlyPageEditor({
         ></EditorProvider>
       </div>
 
+      {byline}
+
       <EditorProvider
         editable={false}
         immediatelyRender={true}
@@ -117,7 +133,7 @@ export default function ReadonlyPageEditor({
         extensions={extensions}
         content={content}
         editorProps={
-          shareId
+          isPublicView
             ? {
                 handleClickOn: (_view, _pos, node) => {
                   const request = getLightboxClickRequest(node);
@@ -144,7 +160,7 @@ export default function ReadonlyPageEditor({
           }
         }}
       ></EditorProvider>
-      {shareId && contentEditor && (
+      {isPublicView && contentEditor && (
         <LightboxView
           editor={contentEditor}
           open={!!lightboxRequest}
@@ -153,7 +169,7 @@ export default function ReadonlyPageEditor({
           onClose={() => setLightboxRequest(null)}
         />
       )}
-      <div style={{ paddingBottom: "20vh" }}></div>
+      {trailingSpace && <div style={{ paddingBottom: "20vh" }}></div>}
     </TransclusionLookupProvider>
   );
 }

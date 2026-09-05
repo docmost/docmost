@@ -335,6 +335,18 @@ export interface Pages {
   ydoc: Buffer | null;
 }
 
+export interface PublicSpaces {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  enabled: Generated<boolean>;
+  id: Generated<string>;
+  searchIndexing: Generated<boolean>;
+  settings: Json | null;
+  spaceId: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Shares {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
@@ -722,6 +734,7 @@ export interface DB {
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
   pages: Pages;
+  publicSpaces: PublicSpaces;
   scimTokens: ScimTokens;
   shares: Shares;
   spaceMembers: SpaceMembers;

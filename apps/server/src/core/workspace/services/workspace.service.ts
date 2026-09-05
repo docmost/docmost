@@ -42,6 +42,7 @@ import {
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -65,6 +66,7 @@ export class WorkspaceService {
     private domainService: DomainService,
     private licenseCheckService: LicenseCheckService,
     private shareRepo: ShareRepo,
+    private readonly publicSpaceRepo: PublicSpaceRepo,
     private watcherRepo: WatcherRepo,
     private favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
@@ -504,6 +506,47 @@ export class WorkspaceService {
         }
       }
 
+      if (
+        !this.environmentService.isBetaPublicSpaces() &&
+        (typeof updateWorkspaceDto.allowPublicSpaces !== 'undefined' ||
+          typeof updateWorkspaceDto.publicSpacesDirectory !== 'undefined')
+      ) {
+        throw new ForbiddenException(
+          'Public spaces are not enabled on this instance',
+        );
+      }
+
+      if (typeof updateWorkspaceDto.allowPublicSpaces !== 'undefined') {
+        const prev = settingsBefore?.publicSpaces?.enabled ?? false;
+        if (prev !== updateWorkspaceDto.allowPublicSpaces) {
+          before.allowPublicSpaces = prev;
+          after.allowPublicSpaces = updateWorkspaceDto.allowPublicSpaces;
+        }
+        await this.workspaceRepo.updatePublicSpacesSettings(
+          workspaceId,
+          'enabled',
+          updateWorkspaceDto.allowPublicSpaces,
+          trx,
+        );
+        if (!updateWorkspaceDto.allowPublicSpaces) {
+          await this.publicSpaceRepo.disableByWorkspaceId(workspaceId, trx);
+        }
+      }
+
+      if (typeof updateWorkspaceDto.publicSpacesDirectory !== 'undefined') {
+        const prev = settingsBefore?.publicSpaces?.directory ?? false;
+        if (prev !== updateWorkspaceDto.publicSpacesDirectory) {
+          before.publicSpacesDirectory = prev;
+          after.publicSpacesDirectory = updateWorkspaceDto.publicSpacesDirectory;
+        }
+        await this.workspaceRepo.updatePublicSpacesSettings(
+          workspaceId,
+          'directory',
+          updateWorkspaceDto.publicSpacesDirectory,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
         const prev = settingsBefore?.ai?.mcp ?? false;
         if (prev !== updateWorkspaceDto.mcpEnabled) {
@@ -620,6 +663,8 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
       delete updateWorkspaceDto.disablePublicSharing;
+      delete updateWorkspaceDto.allowPublicSpaces;
+      delete updateWorkspaceDto.publicSpacesDirectory;
       delete updateWorkspaceDto.mcpEnabled;
       delete updateWorkspaceDto.allowMemberTemplates;
       delete updateWorkspaceDto.aiChat;

@@ -41,6 +41,14 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
 
   @IsOptional()
   @IsBoolean()
+  allowPublicSpaces: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  publicSpacesDirectory: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   mcpEnabled: boolean;
 
   @IsOptional()
