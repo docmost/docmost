@@ -185,18 +185,19 @@ export class FavoriteRepo {
       .where((eb) =>
         eb.or([
           eb('spaceId', '=', spaceId),
-          eb(
-            'pageId',
-            'in',
-            eb.selectFrom('pages').select('id').where('spaceId', '=', spaceId),
+          eb.exists(
+            eb
+              .selectFrom('pages')
+              .select(sql`1`.as('one'))
+              .whereRef('pages.id', '=', 'favorites.pageId')
+              .where('pages.spaceId', '=', spaceId),
           ),
-          eb(
-            'templateId',
-            'in',
+          eb.exists(
             eb
               .selectFrom('templates')
-              .select('id')
-              .where('spaceId', '=', spaceId),
+              .select(sql`1`.as('one'))
+              .whereRef('templates.id', '=', 'favorites.templateId')
+              .where('templates.spaceId', '=', spaceId),
           ),
         ]),
       )
