@@ -132,6 +132,9 @@ export function VideoMenu({ editor }: EditorMenuProps) {
     <BaseBubbleMenu
       editor={editor}
       pluginKey={`video-menu`}
+      ref={(element) => {
+        if (element) element.style.zIndex = "99";
+      }}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{

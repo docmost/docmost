@@ -35,7 +35,7 @@ import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { getSpaceUrl } from "@/lib/config.ts";
+import { getSpaceUrl, isBetaPublicSpaces } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
@@ -106,6 +106,7 @@ export function SpaceSidebar() {
               spaceName={space?.name}
               spaceSlug={space?.slug}
               spaceIcon={space?.logo}
+              isPublished={isBetaPublicSpaces() && space?.isPublished}
             />
           </Group>
         </div>

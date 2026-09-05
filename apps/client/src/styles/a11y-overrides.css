@@ -61,3 +61,13 @@
     var(--mantine-color-dark-5)
   );
 }
+
+/* The skip-link target main is tabindex="-1", so clicks in readonly content
+ * focus it and overlays (e.g. the lightbox) return focus to it on close,
+ * ringing the whole content region. The skip link's purpose is reading
+ * position, not a visible ring around everything, so suppress the outline.
+ */
+#main-content:focus,
+#main-content:focus-visible {
+  outline: none;
+}

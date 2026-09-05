@@ -24,6 +24,8 @@ export interface IWorkspace {
   aiSearch?: boolean;
   generativeAi?: boolean;
   disablePublicSharing?: boolean;
+  allowPublicSpaces?: boolean;
+  publicSpacesDirectory?: boolean;
   mcpEnabled?: boolean;
   aiChatReadOnly?: boolean;
   aiChatWorkspaceKnowledgeOnly?: boolean;
@@ -42,6 +44,7 @@ export interface IWorkspaceSettings {
   api?: IWorkspaceApiSettings;
   templates?: IWorkspaceTemplateSettings;
   spaces?: IWorkspaceSpaceSettings;
+  publicSpaces?: IWorkspacePublicSpacesSettings;
   defaultPageEditMode?: string;
 }
 
@@ -69,6 +72,11 @@ export interface IWorkspaceTemplateSettings {
 
 export interface IWorkspaceSpaceSettings {
   allowPersonal?: boolean;
+}
+
+export interface IWorkspacePublicSpacesSettings {
+  enabled?: boolean;
+  directory?: boolean;
 }
 
 export interface ICreateInvite {

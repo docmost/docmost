@@ -21,6 +21,7 @@
     "@docmost/base-formula": "workspace:*",
     "@docmost/editor-ext": "workspace:*",
     "@excalidraw/excalidraw": "0.18.0-3a5ef40",
+    "@fontsource-variable/inter": "5.3.0",
     "@mantine/core": "9.3.2",
     "@mantine/dates": "9.3.2",
     "@mantine/form": "9.3.2",

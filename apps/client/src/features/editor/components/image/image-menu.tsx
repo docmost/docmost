@@ -156,6 +156,9 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     <BaseBubbleMenu
       editor={editor}
       pluginKey={`image-menu`}
+      ref={(element) => {
+        if (element) element.style.zIndex = "99";
+      }}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{

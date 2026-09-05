@@ -49,6 +49,9 @@ async function bootstrap() {
       '.well-known/oauth-authorization-server',
       '.well-known/oauth-protected-resource',
       '.well-known/oauth-protected-resource/mcp',
+      'docs',
+      'docs/:spaceSlug',
+      'docs/:spaceSlug/:pageSlug',
     ],
   });
 
@@ -70,7 +73,8 @@ async function bootstrap() {
   // Skipped routes:
   //   /api/files/ - attachment controller sets its own CSP we'd overwrite
   //   /share/     - public share pages are safe to embed
-  const frameHeaderSkippedPrefixes = ['/api/files/', '/share/'];
+  //   /docs/      - public space pages are safe to embed
+  const frameHeaderSkippedPrefixes = ['/api/files/', '/share/', '/docs/'];
   app
     .getHttpAdapter()
     .getInstance()
