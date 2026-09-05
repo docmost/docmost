@@ -8,6 +8,7 @@ import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { ExpressionBuilder, SelectQueryBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { dbOrTx } from '@docmost/db/utils';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 export const FavoriteType = {
   PAGE: 'page',
@@ -19,7 +20,10 @@ export type FavoriteType = (typeof FavoriteType)[keyof typeof FavoriteType];
 
 @Injectable()
 export class FavoriteRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
+  ) {}
 
   async insert(favorite: InsertableFavorite): Promise<Favorite | undefined> {
     try {
@@ -82,6 +86,8 @@ export class FavoriteRepo {
       .where('favorites.workspaceId', '=', workspaceId)
       .where('favorites.type', '=', type);
 
+    query = this.applyMembershipFilter(query, userId);
+
     if (spaceId) {
       query = this.applySpaceFilter(query, type, spaceId);
     }
@@ -112,6 +118,8 @@ export class FavoriteRepo {
       .selectAll('favorites')
       .where('favorites.userId', '=', userId)
       .where('favorites.workspaceId', '=', workspaceId);
+
+    query = this.applyMembershipFilter(query, userId);
 
     if (type) {
       query = query.where('favorites.type', '=', type);
@@ -155,7 +163,7 @@ export class FavoriteRepo {
   ): Promise<void> {
     if (userIds.length === 0) return;
 
-    const { trx } = opts;
+    const { trx } = opts ?? {};
     const db = dbOrTx(this.db, trx);
 
     const usersWithAccess = db
@@ -174,7 +182,24 @@ export class FavoriteRepo {
     await db
       .deleteFrom('favorites')
       .where('userId', 'in', userIds)
-      .where('spaceId', '=', spaceId)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', '=', spaceId),
+          eb(
+            'pageId',
+            'in',
+            eb.selectFrom('pages').select('id').where('spaceId', '=', spaceId),
+          ),
+          eb(
+            'templateId',
+            'in',
+            eb
+              .selectFrom('templates')
+              .select('id')
+              .where('spaceId', '=', spaceId),
+          ),
+        ]),
+      )
       .where('userId', 'not in', usersWithAccess)
       .execute();
   }
@@ -192,6 +217,46 @@ export class FavoriteRepo {
       .where('userId', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .execute();
+  }
+
+  private applyMembershipFilter<Q extends SelectQueryBuilder<any, any, any>>(
+    query: Q,
+    userId: string,
+  ): Q {
+    const spaceIds = this.spaceMemberRepo.getUserSpaceIdsQuery(userId);
+    return query.where((eb: any) =>
+      eb.or([
+        eb.and([
+          eb('favorites.type', '=', FavoriteType.SPACE),
+          eb('favorites.spaceId', 'in', spaceIds),
+        ]),
+        eb.and([
+          eb('favorites.type', '=', FavoriteType.PAGE),
+          eb.exists(
+            eb
+              .selectFrom('pages')
+              .select(sql`1`.as('one'))
+              .whereRef('pages.id', '=', 'favorites.pageId')
+              .where('pages.spaceId', 'in', spaceIds),
+          ),
+        ]),
+        eb.and([
+          eb('favorites.type', '=', FavoriteType.TEMPLATE),
+          eb.exists(
+            eb
+              .selectFrom('templates')
+              .select(sql`1`.as('one'))
+              .whereRef('templates.id', '=', 'favorites.templateId')
+              .where((e: any) =>
+                e.or([
+                  e('templates.spaceId', 'is', null),
+                  e('templates.spaceId', 'in', spaceIds),
+                ]),
+              ),
+          ),
+        ]),
+      ]),
+    ) as Q;
   }
 
   private applySpaceFilter<Q extends SelectQueryBuilder<any, any, any>>(
@@ -239,7 +304,8 @@ export class FavoriteRepo {
           'pages.isBase',
           'pages.spaceId',
         ])
-        .whereRef('pages.id', '=', 'favorites.pageId'),
+        .whereRef('pages.id', '=', 'favorites.pageId')
+        .where(sql.ref('favorites.type'), '=', FavoriteType.PAGE),
     ).as('page');
   }
 
@@ -269,8 +335,8 @@ export class FavoriteRepo {
         .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
         .where(({ or, ref }) =>
           or([
-            sql<boolean>`${ref('spaces.id')} = ${ref('favorites.spaceId')}`,
-            sql<boolean>`${ref('spaces.id')} = (SELECT pages.space_id FROM pages WHERE pages.id = ${ref('favorites.pageId')})`,
+            sql<boolean>`${ref('favorites.type')} = ${FavoriteType.SPACE} and ${ref('spaces.id')} = ${ref('favorites.spaceId')}`,
+            sql<boolean>`${ref('favorites.type')} = ${FavoriteType.PAGE} and ${ref('spaces.id')} = (SELECT pages.space_id FROM pages WHERE pages.id = ${ref('favorites.pageId')})`,
           ]),
         ),
     ).as('space');
@@ -287,7 +353,8 @@ export class FavoriteRepo {
           'templates.icon',
           'templates.spaceId',
         ])
-        .whereRef('templates.id', '=', 'favorites.templateId'),
+        .whereRef('templates.id', '=', 'favorites.templateId')
+        .where(sql.ref('favorites.type'), '=', FavoriteType.TEMPLATE),
     ).as('template');
   }
 }
