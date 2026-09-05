@@ -25,6 +25,8 @@ import { SearchMobileControl } from "@/features/search/components/search-control
 import styles from "./docs.module.css";
 
 const MemoizedDocsSidebarTree = React.memo(DocsSidebarTree);
+const MANTINE_COLOR_SCHEME_ATTRIBUTE = "data-mantine-color-scheme";
+const DOCS_PRINT_COLOR_SCHEME_ATTRIBUTE = "data-docs-print-color-scheme";
 
 type DocsShellProps = {
   surface: DocsSurface;
@@ -46,6 +48,45 @@ export default function DocsShell({
     docsMobileSidebarAtom,
   );
   const [mobileTocOpen, setMobileTocOpen] = useAtom(docsMobileTocAtom);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    let previousColorScheme: string | null = null;
+    let isPrinting = false;
+
+    const restoreColorScheme = () => {
+      if (!isPrinting) return;
+
+      if (previousColorScheme === null) {
+        root.removeAttribute(MANTINE_COLOR_SCHEME_ATTRIBUTE);
+      } else {
+        root.setAttribute(MANTINE_COLOR_SCHEME_ATTRIBUTE, previousColorScheme);
+      }
+      root.removeAttribute(DOCS_PRINT_COLOR_SCHEME_ATTRIBUTE);
+      isPrinting = false;
+    };
+
+    const useLightPrintTheme = () => {
+      if (isPrinting) return;
+
+      previousColorScheme = root.getAttribute(MANTINE_COLOR_SCHEME_ATTRIBUTE);
+      root.setAttribute(
+        DOCS_PRINT_COLOR_SCHEME_ATTRIBUTE,
+        previousColorScheme ?? "light",
+      );
+      root.setAttribute(MANTINE_COLOR_SCHEME_ATTRIBUTE, "light");
+      isPrinting = true;
+    };
+
+    window.addEventListener("beforeprint", useLightPrintTheme);
+    window.addEventListener("afterprint", restoreColorScheme);
+
+    return () => {
+      window.removeEventListener("beforeprint", useLightPrintTheme);
+      window.removeEventListener("afterprint", restoreColorScheme);
+      restoreColorScheme();
+    };
+  }, []);
 
   return (
     <DocsSurfaceProvider value={surface}>

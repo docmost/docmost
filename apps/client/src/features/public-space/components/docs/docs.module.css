@@ -900,3 +900,59 @@
   display: flex;
   flex-direction: column;
 }
+
+/* ---------- Print ---------- */
+
+@page public-doc {
+  background-color: #fff;
+}
+
+/* Only the article prints; the body grid collapses so it takes the page width. */
+@media print {
+  :global(html):has(.root),
+  :global(body):has(.root) {
+    page: public-doc;
+    background-color: #fff !important;
+  }
+
+  :global(html[data-docs-print-color-scheme="dark"])
+    .root.root
+    :global(.codeBlock svg) {
+    filter: invert(1) hue-rotate(180deg);
+  }
+
+  .header,
+  .sidebar,
+  .toc,
+  .articleActions,
+  .breadcrumbs,
+  .pageNav,
+  .footer {
+    display: none !important;
+  }
+
+  .root {
+    --docs-bg: #fff;
+    --docs-fg: #1f1f1f;
+    --docs-content-fg: var(--docs-fg);
+    --docs-nav-fg: #495057;
+    --docs-muted: #5f6368;
+    --docs-hover: #f1f3f5;
+    --docs-faint: #868e96;
+    --docs-border: #dee2e6;
+    --docs-header-bg: #fff;
+
+    min-height: 0;
+    background-color: #fff;
+    color: var(--docs-fg);
+  }
+
+  .body {
+    display: block;
+  }
+
+  .article {
+    max-width: none;
+    padding: 0;
+  }
+}
