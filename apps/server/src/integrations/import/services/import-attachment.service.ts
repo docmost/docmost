@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { cleanUrlString } from '../utils/file.utils';
 import { StorageService } from '../../storage/storage.service';
 import { createReadStream } from 'node:fs';
@@ -20,6 +20,11 @@ import pLimit from 'p-limit';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
+import { isBase64 } from "class-validator";
+import { EnvironmentService } from '../../environment/environment.service';
+import * as bytes from 'bytes';
+import * as mimeTypes from 'mime-types';
+import { dbOrTx } from '@docmost/db/utils';
 
 interface AttachmentInfo {
   href: string;
@@ -33,6 +38,27 @@ interface DrawioPair {
   baseName: string;
 }
 
+interface AttachmentMeta {
+  pageId: string;
+  workspaceId: string;
+  spaceId: string;
+  creatorId: string;
+  trx: KyselyTransaction
+}
+
+const MIME_EXTENSION_OVERRIDES: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'audio/mpeg': '.mp3',
+};
+
+function resolveExtensionForMimeType(mimeType: string): string | null {
+  const override = MIME_EXTENSION_OVERRIDES[mimeType];
+  if (override) return override;
+
+  const ext = mimeTypes.extension(mimeType);
+  return ext ? `.${ext}` : null;
+}
+
 @Injectable()
 export class ImportAttachmentService {
   private readonly logger = new Logger(ImportAttachmentService.name);
@@ -42,9 +68,185 @@ export class ImportAttachmentService {
 
   constructor(
     private readonly storageService: StorageService,
+    private readonly environmentService: EnvironmentService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
+
+  /**
+   * Replaces Base64 data URIs in standalone page imports with stored files.
+   * Archive imports use processAttachments() because their files already
+   * exist on disk; standalone imports need to materialize these payloads.
+   */
+  async processEmbeddedAttachments(
+    opts: AttachmentMeta & { html: string },
+  ): Promise<string> {
+    const { html, ...rest } = opts;
+    const $ = load(html);
+    const processed = new Map<string, string>();
+
+    const resolveUri = async (uri: string): Promise<string | null> => {
+      const normalized = uri?.trim();
+      if (!normalized) return null;
+      if (processed.has(normalized)) return processed.get(normalized);
+
+      const apiFilePath = await this.uploadDataUri({
+        uri: normalized,
+        ...rest,
+      });
+      if (apiFilePath) processed.set(normalized, apiFilePath);
+      return apiFilePath;
+    };
+
+    // img/video/audio/source: src attribute
+    for (const element of $(
+      'img[src], video[src], audio[src], source[src]',
+    ).toArray()) {
+      const $element = $(element);
+      const apiFilePath = await resolveUri($element.attr('src'));
+      if (!apiFilePath) continue;
+
+      $element
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', apiFilePath.split('/')[3]);
+      if ($element.is('img')) {
+        $element.attr('data-align', $element.attr('data-align') ?? 'center');
+      }
+    }
+
+    // video poster (thumbnail image, often a separate data URI)
+    for (const element of $('video[poster]').toArray()) {
+      const $element = $(element);
+      const apiFilePath = await resolveUri($element.attr('poster'));
+
+      console.log({apiFilePath})
+      if (apiFilePath) {
+        $element
+          .attr('poster', apiFilePath)
+          .attr('src', apiFilePath)
+          .attr('preload', 'metadata')
+          .attr('controls')
+      };
+    }
+
+    // the client does not currently support srcset.
+    // so we upload only the highest resolution, or the first image
+    for (const element of $('img[srcset]').toArray()) {
+      const $element = $(element);
+      const srcset = $element.attr('srcset');
+      if (!srcset) continue;
+
+      const candidates = srcset.split(/,\s+(?=\S)/);
+
+      let firstEmbeddedCandidate: string | undefined;
+      let bestWidthCandidate: any;
+      let bestDensityCandidate: any;
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+
+        const trimmed = candidate.trim();
+        const match = trimmed.match(/^(\S+)(?:\s+(\d+(?:\.\d+)?)(w|x))?$/i);
+        if (!match) continue;
+
+        const [, uri, descriptorValue, descriptorType] = match;
+        if (!uri.toLowerCase().startsWith('data:')) {
+          continue;
+        }
+
+        const value = descriptorValue ? Number(descriptorValue) : undefined;
+        const type = descriptorType?.toLowerCase();
+
+        // Keep the first embedded image as the final fallback.
+        if (!firstEmbeddedCandidate) {
+          firstEmbeddedCandidate = uri;
+          if (type !== "w" && type !== "x"){
+            break;
+          }
+        }
+
+        if (
+          type === 'w' &&
+          value !== undefined &&
+          (!bestWidthCandidate || value > bestWidthCandidate.width)
+        ) {
+          bestWidthCandidate = {
+            uri,
+            width: value,
+          };
+        }
+
+        if (
+          type === 'x' &&
+          value !== undefined &&
+          (!bestDensityCandidate || value > bestDensityCandidate.density)
+        ) {
+          bestDensityCandidate = {
+            uri,
+            density: value,
+          };
+        }
+      }
+
+      const selectedUri =
+        bestWidthCandidate?.uri ??
+        bestDensityCandidate?.uri ??
+        firstEmbeddedCandidate;
+
+      const apiFilePath = await resolveUri(selectedUri);
+      if (!apiFilePath) continue;
+
+      $element
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', apiFilePath.split('/')[3])
+        .attr('data-align', $element.attr('data-align') ?? 'center');
+    }
+
+    // the client represents embeds as iframes.
+    // so we convert embeds and objects as iframes
+    for (const element of $('object[data], embed[src]').toArray()) {
+      const $element = $(element);
+      const sourceAttribute = $element.is('object') ? 'data' : 'src';
+      const uri = $element.attr(sourceAttribute);
+
+      const apiFilePath = await resolveUri(uri);
+      if (!apiFilePath) continue;
+
+      const $iframe = $('<iframe>')
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', apiFilePath.split('/')[3]);
+
+      for (const attribute of ['width', 'height', 'title']) {
+        const value = $element.attr(attribute);
+        if (value) {
+          $iframe.attr(attribute, value);
+        }
+      }
+
+      $element.replaceWith($iframe);
+    }
+
+    // Rewrite existing iframe data URIs.
+    for (const element of $('iframe[src]').toArray()) {
+      const $iframe = $(element);
+      const uri = $iframe.attr('src');
+
+      const apiFilePath = await resolveUri(uri);
+      if (!apiFilePath) continue;
+
+      $iframe
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', apiFilePath.split('/')[3]);
+    }
+
+    // anchors
+    for (const element of $('a[href]').toArray()) {
+      const $element = $(element);
+      const apiFilePath = await resolveUri($element.attr('href'));
+      if (apiFilePath) $element.attr('href', apiFilePath);
+    }
+
+    return $.root().html() || '';
+  }
 
   async processAttachments(opts: {
     html: string;
@@ -668,6 +870,93 @@ export class ImportAttachmentService {
 
     return $.root().html() || '';
   }
+
+  private uploadDataUri = async ({
+    uri,
+    creatorId,
+    workspaceId,
+    pageId,
+    spaceId,
+    trx,
+  }: AttachmentMeta & { uri: string }): Promise<string | null> => {
+    if (!uri.toLowerCase().startsWith('data:')) {
+      return null;
+    }
+
+    const commaIndex = uri.indexOf(',');
+    if (commaIndex === -1) return null;
+
+    const metadata = uri.slice(5, commaIndex);
+    const encoded = uri.slice(commaIndex + 1).replace(/\s/g, '');
+
+    const metadataParts = metadata.split(';');
+    const mimeType = metadataParts.shift()?.toLowerCase();
+
+    if (!mimeType || !metadataParts.includes('base64')) {
+      return null;
+    }
+
+    const fileExt = resolveExtensionForMimeType(mimeType);
+    if (!fileExt) {
+      this.logger.warn(`Skipping unsupported embedded MIME type: ${mimeType}`);
+      return null;
+    }
+
+    if (!isBase64(encoded)) {
+      this.logger.warn(`Skipping malformed embedded ${mimeType} payload`);
+      return null;
+    }
+
+    const maxFileSize = bytes(this.environmentService.getFileUploadSizeLimit());
+
+    // before allocation a buffer to decode
+    // we want to reject obviously oversized files
+    const estimatedSize = Math.floor(encoded.length * 0.75);
+    if (estimatedSize > maxFileSize) {
+      this.logger.warn(
+        `Skipping embedded ${mimeType} payload exceeding size limit (${estimatedSize} bytes)`,
+      );
+      return null;
+    }
+
+    const buffer = Buffer.from(encoded, 'base64');
+    if (buffer.length === 0) return null;
+    if (buffer.length > maxFileSize) {
+      this.logger.warn(
+        `Skipping embedded ${mimeType} payload exceeding size limit (${buffer.length} bytes)`,
+      );
+      return null;
+    }
+
+    const attachmentId = v7();
+    const fileName = `${attachmentId}` + fileExt;
+    const storageFilePath = `${getAttachmentFolderPath(
+      AttachmentType.File,
+      workspaceId,
+    )}/${attachmentId}/${fileName}`;
+    const apiFilePath = `/api/files/${attachmentId}/${fileName}`;
+
+    await this.storageService.upload(storageFilePath, buffer);
+    const db = dbOrTx(this.db, trx);
+    await db
+      .insertInto('attachments')
+      .values({
+        id: attachmentId,
+        filePath: storageFilePath,
+        fileName,
+        fileSize: buffer.length,
+        mimeType,
+        type: 'file',
+        fileExt: fileExt,
+        creatorId,
+        workspaceId,
+        pageId,
+        spaceId,
+      })
+      .execute();
+
+    return apiFilePath;
+  };
 
   private analyzeAttachments(
     attachments: AttachmentInfo[],
