@@ -900,3 +900,37 @@
   display: flex;
   flex-direction: column;
 }
+
+/* ---------- Print ---------- */
+
+/* Only the article prints; the body grid collapses so it takes the page width. */
+@media print {
+  .header,
+  .sidebar,
+  .toc,
+  .articleActions,
+  .breadcrumbs,
+  .pageNav,
+  .footer {
+    display: none !important;
+  }
+
+  .root {
+    --docs-bg: #fff;
+    --docs-fg: #1f1f1f;
+    --docs-content-fg: var(--docs-fg);
+
+    min-height: 0;
+    background-color: #fff;
+    color: var(--docs-fg);
+  }
+
+  .body {
+    display: block;
+  }
+
+  .article {
+    max-width: none;
+    padding: 0;
+  }
+}
