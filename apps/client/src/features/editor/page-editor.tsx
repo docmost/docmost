@@ -65,11 +65,13 @@ import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu-lazy";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
+import SearchNavigationDialog from "@/features/editor/components/search-and-replace/search-navigation-dialog.tsx";
+import { useSearchNavigationParams } from "@/features/editor/components/search-and-replace/use-search-navigation-params.ts";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
 import { IPage } from "@/features/page/types/page.types.ts";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
@@ -199,6 +201,7 @@ function CollabPageEditor({
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
+  const [searchParams] = useSearchParams();
   const slugId = extractPageSlugId(pageSlug);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
   const canScroll = useCallback(
@@ -437,6 +440,14 @@ function CollabPageEditor({
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
 
+  useSearchNavigationParams({
+    editor,
+    isSynced,
+    pageId,
+    searchParams,
+    showStatic,
+  });
+
   useEffect(() => {
     if (
       !hasConnectedOnceRef.current &&
@@ -460,6 +471,7 @@ function CollabPageEditor({
         {editor && (
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
+        {editor && <SearchNavigationDialog editor={editor} />}
 
         {editor && editorIsEditable && (
           <div>

@@ -117,6 +117,9 @@ export function SearchResultItem({
           pageResult.space.slug,
           pageResult.slugId,
           pageResult.title,
+          undefined,
+          pageResult.matchedText,
+          pageResult.wholeWord
         )}
         style={{ userSelect: "none" }}
       >
