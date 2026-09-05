@@ -38,6 +38,7 @@ import {
   UserSessions,
   ApiKeys,
   ScimTokens,
+  SiemDestinations,
   Watchers,
   Audit as _Audit,
   Templates,
@@ -273,3 +274,8 @@ export type UpdatableBaseRow = Updateable<Omit<BaseRows, 'id'>>;
 export type BaseView = Selectable<BaseViews>;
 export type InsertableBaseView = Insertable<BaseViews>;
 export type UpdatableBaseView = Updateable<Omit<BaseViews, 'id'>>;
+
+// SIEM destinations
+export type SiemDestination = Selectable<SiemDestinations>;
+export type InsertableSiemDestination = Insertable<SiemDestinations>;
+export type UpdatableSiemDestination = Updateable<Omit<SiemDestinations, 'id'>>;

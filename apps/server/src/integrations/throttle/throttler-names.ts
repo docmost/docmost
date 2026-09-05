@@ -3,6 +3,7 @@ export const AI_CHAT_THROTTLER = 'ai-chat';
 export const OAUTH_REGISTER_THROTTLER = 'oauth-register';
 export const OAUTH_TOKEN_THROTTLER = 'oauth-token';
 export const OAUTH_AUTHORIZE_THROTTLER = 'oauth-authorize';
+export const SIEM_TEST_THROTTLER = 'siem-test';
 
 // Every named throttler must appear here; spread it in @SkipThrottle and re-enable per name with false.
 export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
@@ -11,4 +12,5 @@ export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
   [OAUTH_REGISTER_THROTTLER]: true,
   [OAUTH_TOKEN_THROTTLER]: true,
   [OAUTH_AUTHORIZE_THROTTLER]: true,
+  [SIEM_TEST_THROTTLER]: true,
 };

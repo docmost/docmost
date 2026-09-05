@@ -26,4 +26,5 @@ export const Feature = {
   AI_CONTROLS: 'ai:controls',
   MCP_CONTROLS: 'mcp:controls',
   PUBLIC_SPACE_APPEARANCE: 'public-space:appearance',
+  SIEM: 'siem',
 } as const;
