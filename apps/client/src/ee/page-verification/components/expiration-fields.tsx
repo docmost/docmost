@@ -31,7 +31,7 @@ export function addDays(days: number, from?: Date): Date {
 
 function formatShortDate(date: Date): string {
   const crossesYear = date.getFullYear() !== new Date().getFullYear();
-  return date.toLocaleDateString(i18n.language, {
+  return date.toLocaleDateString(i18n.resolvedLanguage, {
     month: "short",
     day: "numeric",
     ...(crossesYear && { year: "numeric" }),
@@ -39,7 +39,7 @@ function formatShortDate(date: Date): string {
 }
 
 function formatLongDate(date: Date): string {
-  return date.toLocaleDateString(i18n.language, {
+  return date.toLocaleDateString(i18n.resolvedLanguage, {
     month: "long",
     day: "numeric",
     year: "numeric",
