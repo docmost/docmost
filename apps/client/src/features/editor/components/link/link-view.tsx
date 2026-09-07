@@ -224,6 +224,16 @@ export default function LinkView(props: MarkViewProps) {
   const handleNavigate = useCallback(() => {
     if (!href) return;
 
+    if (href.startsWith("#")) {
+      const anchor = href.slice(1);
+      const element =
+        document.querySelector(`[id="${anchor}"]`) ||
+        document.querySelector(`[data-id="${anchor}"]`);
+      element?.scrollIntoView({ behavior: "smooth", block: "start" });
+      navigate(`${location.pathname}#${anchor}`, { replace: true });
+      return;
+    }
+
     if (isInternal) {
       let targetPath = href;
       let anchor = "";

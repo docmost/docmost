@@ -15,6 +15,7 @@ export default function MentionView(props: NodeViewProps) {
   const { node } = props;
   const { label, entityType, entityId, slugId, anchorId } = node.attrs;
   const isPageMention = entityType === "page";
+  const hasTarget = isPageMention && !!slugId;
   const { spaceSlug, pageSlug } = useParams();
   const { shareId } = useParams();
   const navigate = useNavigate();
@@ -63,7 +64,22 @@ export default function MentionView(props: NodeViewProps) {
         </Text>
       )}
 
-      {isPageMention && isShareRoute && (
+      {isPageMention && !hasTarget && (
+        <Text component="span" fw={500} className={classes.pageMentionLink}>
+          <ActionIcon
+            variant="transparent"
+            color="gray"
+            component="span"
+            size={18}
+            style={{ verticalAlign: "text-bottom" }}
+          >
+            <IconFileDescription size={18} />
+          </ActionIcon>
+          <span className={classes.pageMentionText}>{label}</span>
+        </Text>
+      )}
+
+      {hasTarget && isShareRoute && (
         <Anchor
           component={Link}
           fw={500}
@@ -87,7 +103,7 @@ export default function MentionView(props: NodeViewProps) {
         </Anchor>
       )}
 
-      {isPageMention && !isShareRoute && isError && (
+      {hasTarget && !isShareRoute && isError && (
         <Anchor
           component={Link}
           fw={500}
@@ -111,7 +127,7 @@ export default function MentionView(props: NodeViewProps) {
         </Anchor>
       )}
 
-      {isPageMention && !isShareRoute && !isError && (
+      {hasTarget && !isShareRoute && !isError && (
         <Anchor
           component={Link}
           fw={500}
