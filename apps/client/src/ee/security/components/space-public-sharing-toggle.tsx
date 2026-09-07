@@ -82,6 +82,7 @@ export default function SpacePublicSharingToggle({
           checked={checked}
           onChange={handleChange}
           disabled={isDisabled}
+          size={"xs"}
           aria-label={t("Toggle space public sharing")}
         />
       </Tooltip>

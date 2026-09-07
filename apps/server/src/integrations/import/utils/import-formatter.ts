@@ -100,17 +100,26 @@ export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
 import { applyConfluenceMarginLeftIndent } from './confluence-indent';
 export { applyConfluenceMarginLeftIndent };
 
+function isBareLink($el: Cheerio<any>): boolean {
+  const href = $el.attr("href")?.trim();
+  const text = $el.text().trim();
+
+  if(!text || !href) return false
+
+  return text === href;
+}
+
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
   normalizeTableColumnWidths($, $root);
   applyConfluenceMarginLeftIndent($, $root);
 
-  // Auto-embed only when the <a> is the sole meaningful child of its parent
-  // block. A link mixed with surrounding text stays an inline link.
+  // Auto-embed only bare links (text equals href) that are the sole meaningful
+  // child of their parent block. Anything else stays an inline link.
   $root.find('a[href]').each((_, el) => {
     const $el = $(el);
     const url = $el.attr('href')!;
     const { provider } = getEmbedUrlAndProvider(url);
-    if (provider === 'iframe') return;
+    if (provider === 'iframe' || !isBareLink($el)) return;
     if (!isSoleMeaningfulChild($el, el)) return;
 
     const embed = `<div data-type=\"embed\" data-src=\"${url}\" data-provider=\"${provider}\" data-align=\"center\" data-width=\"640\" data-height=\"480\"></div>`;

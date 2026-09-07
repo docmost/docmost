@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   lookupTransclusion,
+  lookupTransclusionForPublicSpace,
   lookupTransclusionForShare,
 } from "@/features/transclusion/services/transclusion-api";
 import type { TransclusionLookup } from "@/features/transclusion/types/transclusion.types";
@@ -38,6 +39,7 @@ const TransclusionLookupContext = createContext<ContextValue | null>(null);
 export function TransclusionLookupProvider({
   children,
   shareId,
+  spaceSlug,
 }: {
   children: React.ReactNode;
   /**
@@ -47,6 +49,11 @@ export function TransclusionLookupProvider({
    * app, where personal permissions gate access.
    */
   shareId?: string;
+  /**
+   * When set, lookups go through the public-space endpoint and are gated by
+   * the published space. Used by the public docs viewer.
+   */
+  spaceSlug?: string;
 }) {
   const subscribersRef = useRef(new Map<LookupKey, Subscriber[]>());
   const queueRef = useRef(new Set<LookupKey>());
@@ -55,6 +62,8 @@ export function TransclusionLookupProvider({
   // memoized callbacks (and thus doesn't re-render every consumer).
   const shareIdRef = useRef<string | undefined>(shareId);
   shareIdRef.current = shareId;
+  const spaceSlugRef = useRef<string | undefined>(spaceSlug);
+  spaceSlugRef.current = spaceSlug;
   // Last looked-up value for each key. Re-subscribers (e.g. when the editor
   // remounts after switching from static to live) get this immediately
   // instead of triggering a duplicate fetch.
@@ -91,12 +100,18 @@ export function TransclusionLookupProvider({
 
     try {
       const activeShareId = shareIdRef.current;
+      const activeSpaceSlug = spaceSlugRef.current;
       const { items } = activeShareId
         ? await lookupTransclusionForShare({
             shareId: activeShareId,
             references,
           })
-        : await lookupTransclusion({ references });
+        : activeSpaceSlug
+          ? await lookupTransclusionForPublicSpace({
+              spaceSlug: activeSpaceSlug,
+              references,
+            })
+          : await lookupTransclusion({ references });
       for (const r of items) {
         const key = `${r.sourcePageId}::${r.transclusionId}`;
         resultCacheRef.current.set(key, r);

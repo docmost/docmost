@@ -33,6 +33,7 @@ export class SpaceRepo {
       .selectFrom('spaces')
       .selectAll('spaces')
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
+      .select((eb) => this.withIsPublished(eb))
       .where('workspaceId', '=', workspaceId);
 
     if (isValidUUID(spaceId)) {
@@ -52,6 +53,7 @@ export class SpaceRepo {
       .selectFrom('spaces')
       .selectAll('spaces')
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
+      .select((eb) => this.withIsPublished(eb))
       .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -170,6 +172,7 @@ export class SpaceRepo {
       .selectFrom('spaces')
       .selectAll('spaces')
       .select((eb) => [this.withMemberCount(eb)])
+      .select((eb) => this.withIsPublished(eb))
       .where('workspaceId', '=', workspaceId);
 
     if (pagination.query) {
@@ -219,6 +222,18 @@ export class SpaceRepo {
       .selectFrom(subquery)
       .select((eb) => eb.fn.count('userId').as('count'))
       .as('memberCount');
+  }
+
+  withIsPublished(eb: ExpressionBuilder<DB, 'spaces'>) {
+    return eb
+      .exists(
+        eb
+          .selectFrom('publicSpaces')
+          .select('publicSpaces.id')
+          .whereRef('publicSpaces.spaceId', '=', 'spaces.id')
+          .where('publicSpaces.enabled', '=', true),
+      )
+      .as('isPublished');
   }
 
   async deleteSpace(spaceId: string, workspaceId: string): Promise<void> {

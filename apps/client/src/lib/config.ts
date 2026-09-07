@@ -43,6 +43,10 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
+export function isBetaPublicSpaces(): boolean {
+  return castToBoolean(getConfigValue("BETA_PUBLIC_SPACES"));
+}
+
 export function getAiVectorDriver(): string {
   return getConfigValue("AI_VECTOR_DRIVER");
 }

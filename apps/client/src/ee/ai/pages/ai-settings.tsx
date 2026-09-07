@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next";
 import EnableAiSearch from "@/ee/ai/components/enable-ai-search.tsx";
 import EnableGenerativeAi from "@/ee/ai/components/enable-generative-ai.tsx";
 import EnableAiChat from "@/ee/ai-chat/components/enable-ai-chat.tsx";
+import AiChatReadOnly from "@/ee/ai-chat/components/ai-chat-read-only.tsx";
+import AiChatWorkspaceKnowledgeOnly from "@/ee/ai-chat/components/ai-chat-workspace-knowledge-only.tsx";
 import McpSettings from "@/ee/ai/components/mcp-settings.tsx";
-import { Alert, Stack, Tabs } from "@mantine/core";
+import { Alert, Collapse, Stack, Tabs } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
@@ -14,12 +16,16 @@ import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { isCloud } from "@/lib/config.ts";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { useAtomValue } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 export default function AiSettings() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
   const hasAccess = useHasFeature(Feature.AI);
   const upgradeLabel = useUpgradeLabel();
+  const workspace = useAtomValue(workspaceAtom);
+  const aiChatEnabled = workspace?.settings?.ai?.chat === true;
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -61,7 +67,7 @@ export default function AiSettings() {
               mb="lg"
             >
               {t(
-                "AI is only available in the Docmost enterprise edition. Contact sales@docmost.com.",
+                "AI is available in the Docmost paid editions. Contact sales@docmost.com.",
               )}
             </Alert>
           )}
@@ -70,6 +76,20 @@ export default function AiSettings() {
             {!isCloud() && <EnableAiSearch />}
             <EnableGenerativeAi />
             <EnableAiChat />
+            <Collapse expanded={aiChatEnabled}>
+              <Stack
+                gap="md"
+                pl="md"
+                ml="xs"
+                style={{
+                  borderLeft:
+                    "2px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))",
+                }}
+              >
+                <AiChatReadOnly />
+                <AiChatWorkspaceKnowledgeOnly />
+              </Stack>
+            </Collapse>
           </Stack>
         </Tabs.Panel>
 

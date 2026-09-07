@@ -9,6 +9,7 @@ export const bullConfigFactory = (environmentService: EnvironmentService) => {
     connection: {
       host: redisConfig.host,
       port: redisConfig.port,
+      username: redisConfig.username,
       password: redisConfig.password,
       db: redisConfig.db,
       family: redisConfig.family,
@@ -85,6 +86,14 @@ export const createQueueRegistrations = () => [
       removeOnComplete: true,
       removeOnFail: true,
       attempts: 3,
+    },
+  }),
+  BullModule.registerQueue({
+    name: QueueName.SIEM_QUEUE,
+    defaultJobOptions: {
+      removeOnComplete: true,
+      removeOnFail: true,
+      attempts: 1,
     },
   }),
   BullModule.registerQueue({

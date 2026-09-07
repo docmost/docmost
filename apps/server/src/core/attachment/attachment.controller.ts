@@ -24,6 +24,7 @@ import * as bytes from 'bytes';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
 import { StorageService } from '../../integrations/storage/storage.service';
 import {
@@ -175,6 +176,7 @@ export class AttachmentController {
 
   @UseGuards(JwtAuthGuard)
   @Get('/files/:fileId/:fileName')
+  @OAuthScope('read')
   async getFile(
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
@@ -427,6 +429,7 @@ export class AttachmentController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('pages/attachments')
+  @OAuthScope('read')
   async getPageAttachments(
     @Body() dto: PageIdDto,
     @Body() pagination: PaginationOptions,

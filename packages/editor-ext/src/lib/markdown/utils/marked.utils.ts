@@ -61,6 +61,11 @@ export function markdownToHtml(
     .trimStart();
 
   resetFootnotes();
-  const html = marked.parse(markdown).toString();
+  // marked always closes fenced code with a newline that the editor keeps as
+  // an empty trailing line inside the code block.
+  const html = marked
+    .parse(markdown)
+    .toString()
+    .replace(/\n<\/code><\/pre>/g, "</code></pre>");
   return html + renderFootnotesList();
 }

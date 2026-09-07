@@ -56,6 +56,18 @@ export type DocTreeProps<T extends object> = {
   indentPerLevel?: number;
   rowHeight?: number;
   emptyState?: ReactNode;
+  // Extra class for the engine's row wrapper (the div carrying data-selected /
+  // data-dragging), letting consumers restyle hover/selected states.
+  rowClassName?: string;
+  // Extra vertical space above a row (e.g. to separate top-level groups).
+  // Added to the row's virtualized slot and applied as padding above it.
+  rowGap?: (node: TreeNode<T>, level: number, index: number) => number;
+  // Measure real row heights so rows may wrap to multiple lines; rowHeight
+  // then only seeds the estimate. Off by default (fixed-slot fast path).
+  dynamicRowHeight?: boolean;
+  // Rendered inside the scroll container after the last row, so it flows
+  // with the tree content instead of pinning to the container edge.
+  footer?: ReactNode;
 
   onMove: (sourceId: string, op: DropOp) => void | Promise<void>;
   onToggle: (id: string, isOpen: boolean) => void;
@@ -123,6 +135,9 @@ function DocTreeInner<T extends object>(
     renderRow,
     indentPerLevel = 16,
     rowHeight = 32,
+    rowClassName,
+    rowGap,
+    dynamicRowHeight = false,
     onMove,
     onToggle,
     onSelect,
@@ -132,6 +147,7 @@ function DocTreeInner<T extends object>(
     getDragLabel,
     uniqueContextId,
     emptyState,
+    footer,
     'aria-label': ariaLabel,
   } = props;
 
@@ -197,10 +213,20 @@ function DocTreeInner<T extends object>(
     return flat[0]?.node.id;
   }, [activeId, selectedId, flatIds, flat]);
 
+  // Keyed by node id so measured sizes follow their rows across
+  // expand/collapse instead of sticking to positions. Never reset the
+  // measurement cache wholesale: ResizeObserver only re-reports elements
+  // whose size changed, so unchanged mounted rows would be left positioned
+  // by the estimate and overlap their neighbors.
   const virtualizer = useVirtualizer({
     count: flat.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => rowHeight,
+    getItemKey: (index) => flat[index].node.id,
+    estimateSize: (index) => {
+      const row = flat[index];
+      const gap = row && rowGap ? rowGap(row.node, row.level, index) : 0;
+      return rowHeight + gap;
+    },
     overscan: 10,
   });
 
@@ -471,7 +497,12 @@ function DocTreeInner<T extends object>(
   );
 
   if (data.length === 0 && emptyState) {
-    return <div className={styles.treeContainer}>{emptyState}</div>;
+    return (
+      <div className={styles.treeContainer}>
+        {emptyState}
+        {footer}
+      </div>
+    );
   }
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -494,6 +525,9 @@ function DocTreeInner<T extends object>(
       >
         {virtualItems.map((virtualItem) => {
           const row = flat[virtualItem.index];
+          const gap = rowGap
+            ? rowGap(row.node, row.level, virtualItem.index)
+            : 0;
           return (
             <li
               key={row.node.id}
@@ -501,12 +535,15 @@ function DocTreeInner<T extends object>(
               // (the row's <a>), so screen readers announce "treeitem" on
               // navigation. The <li> is just layout glue.
               role="none"
+              ref={dynamicRowHeight ? virtualizer.measureElement : undefined}
+              data-index={dynamicRowHeight ? virtualItem.index : undefined}
               style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 width: '100%',
                 transform: `translateY(${virtualItem.start}px)`,
+                ...(gap > 0 ? { paddingTop: gap } : {}),
               }}
             >
               <DocTreeRow
@@ -518,6 +555,7 @@ function DocTreeInner<T extends object>(
                 activeId={effectiveActiveId}
                 renderRow={renderRow}
                 indentPerLevel={indentPerLevel}
+                rowClassName={rowClassName}
                 onMove={onMove}
                 onToggle={onToggle}
                 readOnly={readOnly}
@@ -532,6 +570,7 @@ function DocTreeInner<T extends object>(
           );
         })}
       </ul>
+      {footer}
     </div>
   );
 }

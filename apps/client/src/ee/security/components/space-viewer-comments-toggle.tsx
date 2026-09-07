@@ -53,6 +53,7 @@ export default function SpaceViewerCommentsToggle({
           checked={checked}
           onChange={handleChange}
           disabled={isDisabled}
+          size={"xs"}
           aria-label={t("Toggle viewer comments")}
         />
       </Tooltip>

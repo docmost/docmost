@@ -33,6 +33,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   currentPageEditModeAtom,
+  lightboxRequestAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
   yjsSyncedAtom,
@@ -53,6 +54,9 @@ import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
+import LightboxView, {
+  getLightboxClickRequest,
+} from "@/features/editor/components/common/lightbox-view";
 import {
   handleFileDrop,
   handlePaste,
@@ -61,11 +65,13 @@ import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu-lazy";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
+import SearchNavigationDialog from "@/features/editor/components/search-and-replace/search-navigation-dialog.tsx";
+import { useSearchNavigationParams } from "@/features/editor/components/search-and-replace/use-search-navigation-params.ts";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
 import { IPage } from "@/features/page/types/page.types.ts";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
@@ -184,6 +190,7 @@ function CollabPageEditor({
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
+  const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
@@ -194,6 +201,7 @@ function CollabPageEditor({
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
+  const [searchParams] = useSearchParams();
   const slugId = extractPageSlugId(pageSlug);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
   const canScroll = useCallback(
@@ -244,6 +252,17 @@ function CollabPageEditor({
 
     return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
   }, [provider, currentUser?.user]);
+
+  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
+    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
+
+    if (pageData) {
+      queryClient.setQueryData(["pages", slugId], {
+        ...pageData,
+        content: newContent,
+      });
+    }
+  }, 3000);
 
   const editor = useEditor(
     {
@@ -305,6 +324,22 @@ function CollabPageEditor({
 
           return handleFileDrop(editorRef.current, event, moved, pageId);
         },
+        handleClickOn: (view, _pos, node) => {
+          if (view.editable) return false;
+
+          const request = getLightboxClickRequest(node);
+          if (!request) return false;
+
+          setLightboxRequest(request);
+          return true;
+        },
+        handleDoubleClickOn: (_view, _pos, node) => {
+          const request = getLightboxClickRequest(node);
+          if (!request) return false;
+
+          setLightboxRequest(request);
+          return true;
+        },
       },
       onCreate({ editor }) {
         if (editor) {
@@ -343,17 +378,6 @@ function CollabPageEditor({
     },
   });
 
-  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
-    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
-
-    if (pageData) {
-      queryClient.setQueryData(["pages", slugId], {
-        ...pageData,
-        content: newContent,
-      });
-    }
-  }, 3000);
-
   const handleActiveCommentEvent = (event) => {
     const { commentId, resolved } = event.detail;
 
@@ -386,6 +410,7 @@ function CollabPageEditor({
     setActiveCommentId(null);
     setShowCommentPopup(false);
     setAsideState({ tab: "", isAsideOpen: false });
+    setLightboxRequest(null);
   }, [pageId]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
@@ -415,6 +440,14 @@ function CollabPageEditor({
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
 
+  useSearchNavigationParams({
+    editor,
+    isSynced,
+    pageId,
+    searchParams,
+    showStatic,
+  });
+
   useEffect(() => {
     if (
       !hasConnectedOnceRef.current &&
@@ -438,6 +471,7 @@ function CollabPageEditor({
         {editor && (
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
+        {editor && <SearchNavigationDialog editor={editor} />}
 
         {editor && editorIsEditable && (
           <div>
@@ -458,6 +492,15 @@ function CollabPageEditor({
         )}
         {editor && !editorIsEditable && (editable || canComment) && (
           <ReadonlyBubbleMenu editor={editor} />
+        )}
+        {editor && (
+          <LightboxView
+            editor={editor}
+            open={!!lightboxRequest}
+            src={lightboxRequest?.src ?? ""}
+            type={lightboxRequest?.type ?? "image"}
+            onClose={() => setLightboxRequest(null)}
+          />
         )}
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
         {showReadOnlyCommentPopup && (

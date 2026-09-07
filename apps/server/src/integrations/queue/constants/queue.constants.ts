@@ -11,6 +11,7 @@ export enum QueueName {
   NOTIFICATION_QUEUE = '{notification-queue}',
   AUDIT_QUEUE = '{audit-queue}',
   BASE_QUEUE = '{base-queue}',
+  SIEM_QUEUE = '{siem-queue}',
 }
 
 export enum QueueJob {
@@ -84,6 +85,9 @@ export enum QueueJob {
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',
+
+  SIEM_SWEEP = 'siem-sweep',
+  SIEM_DELIVER = 'siem-deliver',
 
   PDF_EXPORT_TASK = 'pdf-export-task',
   PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',
