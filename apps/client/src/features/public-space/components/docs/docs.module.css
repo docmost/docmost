@@ -776,10 +776,10 @@
 /* Modest semibold heading scale (Cloudflare-style); class doubled to outrank
  * the shared editor and .public-typography rules. */
 .root.root :global(.ProseMirror) h1 {
-  font-size: 2.1875rem;
+  font-size: 1.75rem;
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 .root.root :global(.ProseMirror) h2 {
