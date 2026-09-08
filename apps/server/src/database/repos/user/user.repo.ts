@@ -145,12 +145,16 @@ export class UserRepo {
   async roleCountByWorkspaceId(
     role: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ): Promise<number> {
-    const { count } = await this.db
+    const db = dbOrTx(this.db, trx);
+    const { count } = await db
       .selectFrom('users')
       .select((eb) => eb.fn.count('role').as('count'))
       .where('role', '=', role)
       .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .where('deactivatedAt', 'is', null)
       .executeTakeFirst();
 
     return count as number;

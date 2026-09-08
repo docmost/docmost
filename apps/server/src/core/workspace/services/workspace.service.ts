@@ -747,44 +747,61 @@ export class WorkspaceService {
     userRoleDto: UpdateWorkspaceUserRoleDto,
     workspaceId: string,
   ) {
-    const user = await this.userRepo.findById(userRoleDto.userId, workspaceId);
-
     const newRole = userRoleDto.role.toLowerCase();
+    const result = await executeTx(this.db, async (trx) => {
+      const workspace = await this.workspaceRepo.findById(workspaceId, {
+        withLock: true,
+        trx,
+      });
+      if (!workspace) {
+        throw new NotFoundException('Workspace not found');
+      }
 
-    if (!user) {
-      throw new BadRequestException('Workspace member not found');
-    }
-
-    // prevent ADMIN from managing OWNER role
-    if (
-      isAdminActingOnOwner(authUser.role, newRole) ||
-      isAdminActingOnOwner(authUser.role, user.role)
-    ) {
-      throw new ForbiddenException();
-    }
-
-    if (user.role === newRole) {
-      return user;
-    }
-
-    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
-      UserRole.OWNER,
-      workspaceId,
-    );
-
-    if (user.role === UserRole.OWNER && workspaceOwnerCount === 1) {
-      throw new BadRequestException(
-        'There must be at least one workspace owner',
+      const user = await this.userRepo.findById(
+        userRoleDto.userId,
+        workspaceId,
+        { trx },
       );
+      if (!user) {
+        throw new BadRequestException('Workspace member not found');
+      }
+
+      if (
+        isAdminActingOnOwner(authUser.role, newRole) ||
+        isAdminActingOnOwner(authUser.role, user.role)
+      ) {
+        throw new ForbiddenException();
+      }
+
+      if (user.role === newRole) {
+        return { changed: false, user };
+      }
+
+      if (
+        user.role === UserRole.OWNER &&
+        !user.deletedAt &&
+        !user.deactivatedAt
+      ) {
+        await this.validateLastWorkspaceOwner(workspaceId, trx);
+      }
+
+      await this.userRepo.updateUser(
+        {
+          role: newRole,
+        },
+        user.id,
+        workspaceId,
+        trx,
+      );
+
+      return { changed: true, user };
+    });
+
+    if (!result.changed) {
+      return result.user;
     }
 
-    await this.userRepo.updateUser(
-      {
-        role: newRole,
-      },
-      user.id,
-      workspaceId,
-    );
+    const { user } = result;
 
     this.auditService.log({
       event: AuditEvent.USER_ROLE_CHANGED,
@@ -848,40 +865,38 @@ export class WorkspaceService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const user = await executeTx(this.db, async (trx) => {
+      const workspace = await this.workspaceRepo.findById(workspaceId, {
+        withLock: true,
+        trx,
+      });
+      if (!workspace) {
+        throw new NotFoundException('Workspace not found');
+      }
 
-    if (!user || user.deletedAt) {
-      throw new BadRequestException('Workspace member not found');
-    }
+      const user = await this.userRepo.findById(userId, workspaceId, { trx });
+      if (!user || user.deletedAt) {
+        throw new BadRequestException('Workspace member not found');
+      }
 
-    if (user.deactivatedAt) {
-      throw new BadRequestException('User is already deactivated');
-    }
+      if (user.deactivatedAt) {
+        throw new BadRequestException('User is already deactivated');
+      }
 
-    if (authUser.id === userId) {
-      throw new BadRequestException('You cannot deactivate yourself');
-    }
+      if (authUser.id === userId) {
+        throw new BadRequestException('You cannot deactivate yourself');
+      }
 
-    if (isAdminActingOnOwner(authUser.role, user.role)) {
-      throw new BadRequestException(
-        'You cannot deactivate a user with owner role',
-      );
-    }
-
-    if (user.role === UserRole.OWNER) {
-      const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
-        UserRole.OWNER,
-        workspaceId,
-      );
-
-      if (workspaceOwnerCount === 1) {
+      if (isAdminActingOnOwner(authUser.role, user.role)) {
         throw new BadRequestException(
-          'There must be at least one workspace owner',
+          'You cannot deactivate a user with owner role',
         );
       }
-    }
 
-    await executeTx(this.db, async (trx) => {
+      if (user.role === UserRole.OWNER) {
+        await this.validateLastWorkspaceOwner(workspaceId, trx);
+      }
+
       await this.userRepo.updateUser(
         { deactivatedAt: new Date() },
         userId,
@@ -889,6 +904,8 @@ export class WorkspaceService {
         trx,
       );
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+
+      return user;
     });
 
     this.auditService.log({
@@ -951,32 +968,34 @@ export class WorkspaceService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const user = await executeTx(this.db, async (trx) => {
+      const workspace = await this.workspaceRepo.findById(workspaceId, {
+        withLock: true,
+        trx,
+      });
+      if (!workspace) {
+        throw new NotFoundException('Workspace not found');
+      }
 
-    if (!user || user.deletedAt) {
-      throw new BadRequestException('Workspace member not found');
-    }
+      const user = await this.userRepo.findById(userId, workspaceId, { trx });
+      if (!user || user.deletedAt) {
+        throw new BadRequestException('Workspace member not found');
+      }
 
-    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
-      UserRole.OWNER,
-      workspaceId,
-    );
+      if (authUser.id === userId) {
+        throw new BadRequestException('You cannot delete yourself');
+      }
 
-    if (user.role === UserRole.OWNER && workspaceOwnerCount === 1) {
-      throw new BadRequestException(
-        'There must be at least one workspace owner',
-      );
-    }
+      if (isAdminActingOnOwner(authUser.role, user.role)) {
+        throw new BadRequestException(
+          'You cannot delete a user with owner role',
+        );
+      }
 
-    if (authUser.id === userId) {
-      throw new BadRequestException('You cannot delete yourself');
-    }
+      if (user.role === UserRole.OWNER && !user.deactivatedAt) {
+        await this.validateLastWorkspaceOwner(workspaceId, trx);
+      }
 
-    if (isAdminActingOnOwner(authUser.role, user.role)) {
-      throw new BadRequestException('You cannot delete a user with owner role');
-    }
-
-    await executeTx(this.db, async (trx) => {
       await this.userRepo.updateUser(
         {
           name: 'Deleted user',
@@ -1009,6 +1028,8 @@ export class WorkspaceService {
       });
 
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+
+      return user;
     });
 
     this.auditService.log({
@@ -1028,6 +1049,22 @@ export class WorkspaceService {
       await this.attachmentQueue.add(QueueJob.DELETE_USER_AVATARS, user);
     } catch (err) {
       // empty
+    }
+  }
+
+  private async validateLastWorkspaceOwner(
+    workspaceId: string,
+    trx: KyselyTransaction,
+  ): Promise<void> {
+    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
+      UserRole.OWNER,
+      workspaceId,
+      trx,
+    );
+    if (workspaceOwnerCount <= 1) {
+      throw new BadRequestException(
+        'There must be at least one workspace owner',
+      );
     }
   }
 }
