@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, Box, Modal, Text, Title, Tooltip } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight, IconX } from "@tabler/icons-react";
 import { useHotkeys } from "@mantine/hooks";
-import { EditorProvider, type JSONContent } from "@tiptap/react";
+import { EditorProvider, isNodeEmpty, type JSONContent } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
@@ -18,6 +18,8 @@ type MeasuredContentSlide = {
   scrollable: boolean;
 };
 
+type MeasuredNode = { node: JSONContent; rect: DOMRect };
+
 interface PresentationModalProps {
   title: string;
   content: JSONContent;
@@ -30,6 +32,23 @@ const excludedExtensionNames = new Set([
   "tableHeaderPin",
   "tableReadonlySort",
 ]);
+
+const isEmptyJsonNode = (node: JSONContent) =>
+  node.type === "paragraph" && !node.text?.trim() && !node.content?.length;
+
+const isDivider = (node: JSONContent) => node.type === "horizontalRule";
+
+const isSectionHeading = (node: JSONContent) =>
+  node.type === "heading" && node.attrs?.level === 1;
+
+function getAvailableHeight(area: HTMLElement): number {
+  const styles = window.getComputedStyle(area);
+  return (
+    area.clientHeight -
+    parseFloat(styles.paddingTop) -
+    parseFloat(styles.paddingBottom)
+  );
+}
 
 export default function PresentationModal({
   title,
@@ -103,47 +122,55 @@ export default function PresentationModal({
         return;
       }
 
-      const editorElement = editor.view.dom;
-      const renderedNodes = Array.from(editorElement.children) as HTMLElement[];
+      const renderedNodes = Array.from(editor.view.dom.children) as HTMLElement[];
+      if (!renderedNodes.length) {
+        setContentSlides([]);
+        return;
+      }
 
-      const areaStyles = window.getComputedStyle(area);
-      const availableHeight =
-        area.clientHeight -
-        parseFloat(areaStyles.paddingTop) -
-        parseFloat(areaStyles.paddingBottom);
+      const availableHeight = getAvailableHeight(area);
       const slides: MeasuredContentSlide[] = [];
       let currentSlide: JSONContent[] = [];
-      let currentSlideTop = renderedNodes[0].getBoundingClientRect().top;
-      let currentSlideBottom = currentSlideTop;
+      let currentSlideTop = 0;
+      let currentSlideBottom = 0;
 
       const saveCurrentSlide = () => {
-        if (currentSlide.length === 0) return;
+        if (!currentSlide.length) return;
 
         slides.push({
           doc: { type: "doc", content: currentSlide },
           scrollable: currentSlideBottom - currentSlideTop > availableHeight,
         });
+        currentSlide = [];
       };
 
-      renderedNodes.forEach((renderedNode, index) => {
+      for (let index = 0; index < renderedNodes.length; index++) {
         const node = nodes[index];
-        const nodeRect = renderedNode.getBoundingClientRect();
-        const startsNewSection =
-          node.type === "horizontalRule" ||
-          (node.type === "heading" && node.attrs?.level === 1);
-        const exceedsPage =
-          currentSlide.length > 0 &&
-          nodeRect.bottom - currentSlideTop > availableHeight;
+        const renderedNode = renderedNodes[index];
+        if (!node || !renderedNode || isEmptyJsonNode(node)) continue;
 
-        if (currentSlide.length > 0 && (startsNewSection || exceedsPage)) {
+        const rect = renderedNode.getBoundingClientRect();
+
+        if (isDivider(node)) {
           saveCurrentSlide();
-          currentSlide = [];
-          currentSlideTop = nodeRect.top;
+          currentSlideTop = rect.bottom;
+          currentSlideBottom = rect.bottom;
+          continue;
+        }
+
+        if (currentSlide.length === 0) {
+          currentSlideTop = rect.top;
+        } else if (
+          isSectionHeading(node) ||
+          rect.bottom - currentSlideTop > availableHeight
+        ) {
+          saveCurrentSlide();
+          currentSlideTop = rect.top;
         }
 
         currentSlide.push(node);
-        currentSlideBottom = nodeRect.bottom;
-      });
+        currentSlideBottom = rect.bottom;
+      }
 
       saveCurrentSlide();
       setContentSlides(slides);
