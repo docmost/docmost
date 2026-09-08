@@ -3,6 +3,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { SpaceRole } from '../common/helpers/types/permission';
 import {
   TREE_EVENTS,
   WS_SPACE_RESTRICTION_CACHE_PREFIX,
@@ -18,6 +20,7 @@ export class WsService {
   constructor(
     private readonly pagePermissionRepo: PagePermissionRepo,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
   setServer(server: Server): void {
@@ -28,6 +31,18 @@ export class WsService {
     const room = getSpaceRoomName(data.spaceId);
 
     if (!client.rooms.has(room)) {
+      return;
+    }
+
+    const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
+      client.data.userId,
+      data.spaceId,
+    );
+    const canPublish = userSpaceRoles?.some(
+      ({ role }) => role === SpaceRole.ADMIN || role === SpaceRole.WRITER,
+    );
+
+    if (!canPublish) {
       return;
     }
 
