@@ -24,6 +24,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { assertAcyclicPageTraversal } from '../../helpers/page-hierarchy-cycle';
 
 export { PagePermissionMember } from './types/page-permission.types';
 
@@ -332,7 +333,7 @@ export class PagePermissionRepo {
       }
     | undefined
   > {
-    return this.db
+    const ancestors = await this.db
       .withRecursive('ancestors', (qb) =>
         qb
           .selectFrom('pages')
@@ -340,6 +341,8 @@ export class PagePermissionRepo {
             'pages.id as ancestorId',
             'pages.parentPageId',
             sql<number>`0`.as('depth'),
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where('pages.id', '=', pageId)
           .unionAll((eb) =>
@@ -350,19 +353,41 @@ export class PagePermissionRepo {
                 'pages.id as ancestorId',
                 'pages.parentPageId',
                 sql<number>`ancestors.depth + 1`.as('depth'),
-              ]),
+                sql<string[]>`ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('ancestors.isCycle', '=', false),
           ),
       )
       .selectFrom('ancestors')
-      .innerJoin('pageAccess', 'pageAccess.pageId', 'ancestors.ancestorId')
+      .leftJoin('pageAccess', 'pageAccess.pageId', 'ancestors.ancestorId')
       .select([
         'pageAccess.id as pageAccessId',
         'pageAccess.pageId',
         'pageAccess.accessLevel',
         'ancestors.depth',
+        'ancestors.isCycle',
       ])
       .orderBy('ancestors.depth', 'asc')
-      .executeTakeFirst();
+      .execute();
+
+    assertAcyclicPageTraversal(ancestors, pageId);
+
+    const restrictedAncestor = ancestors.find(
+      (ancestor) => ancestor.pageAccessId !== null,
+    );
+    if (!restrictedAncestor) return undefined;
+
+    return {
+      pageAccessId: restrictedAncestor.pageAccessId,
+      pageId: restrictedAncestor.pageId,
+      accessLevel: restrictedAncestor.accessLevel,
+      depth: restrictedAncestor.depth,
+    };
   }
 
   /**
@@ -396,17 +421,30 @@ export class PagePermissionRepo {
         const result = await sql<{
           canAccess: boolean | null;
           canEdit: boolean | null;
+          hasHierarchyCycle: boolean | null;
         }>`
           WITH RECURSIVE ancestors AS (
-            SELECT id AS ancestor_id, parent_page_id, 0 AS depth
+            SELECT
+              id AS ancestor_id,
+              parent_page_id,
+              0 AS depth,
+              ARRAY[id]::uuid[] AS traversal_path,
+              false AS is_cycle
             FROM pages
             WHERE id = ${pageId}::uuid
             UNION ALL
-            SELECT p.id, p.parent_page_id, a.depth + 1
+            SELECT
+              p.id,
+              p.parent_page_id,
+              a.depth + 1,
+              a.traversal_path || p.id,
+              p.id = ANY(a.traversal_path) AS is_cycle
             FROM pages p
             JOIN ancestors a ON a.parent_page_id = p.id
+            WHERE NOT a.is_cycle
           )
           SELECT
+            (SELECT bool_or(is_cycle) FROM ancestors) AS "hasHierarchyCycle",
             bool_and(pp.id IS NOT NULL) AS "canAccess",
             -- nearest restricted ancestor's highest role wins (DESC: 'writer' > 'reader', NULLS LAST: no-permission after real roles)
             (array_agg(pp.role ORDER BY a.depth ASC, pp.role DESC NULLS LAST))[1] = 'writer' AS "canEdit"
@@ -422,6 +460,13 @@ export class PagePermissionRepo {
         `.execute(this.db);
 
         const row = result.rows[0];
+        if (row?.hasHierarchyCycle) {
+          return {
+            hasAnyRestriction: true,
+            canAccess: false,
+            canEdit: false,
+          };
+        }
         if (!row || row.canAccess === null) {
           return { hasAnyRestriction: false, canAccess: true, canEdit: true };
         }
@@ -461,6 +506,8 @@ export class PagePermissionRepo {
             'pages.id as ancestorId',
             'pages.parentPageId',
             sql<number>`0`.as('depth'),
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where('pages.id', '=', pageId)
           .unionAll((eb) =>
@@ -471,7 +518,14 @@ export class PagePermissionRepo {
                 'pages.id as ancestorId',
                 'pages.parentPageId',
                 sql<number>`ancestors.depth + 1`.as('depth'),
-              ]),
+                sql<string[]>`ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('ancestors.isCycle', '=', false),
           ),
       )
       .selectFrom('pages')
@@ -511,6 +565,14 @@ export class PagePermissionRepo {
           .else(false)
           .end()
           .as('hasInheritedRestriction'),
+        eb
+          .exists(
+            eb
+              .selectFrom('ancestors')
+              .select('ancestors.ancestorId')
+              .where('ancestors.isCycle', '=', true),
+          )
+          .as('hasHierarchyCycle'),
         // canAccess: no restricted ancestor without ANY permission
         eb
           .case()
@@ -638,13 +700,15 @@ export class PagePermissionRepo {
 
     const hasDirectRestriction = Boolean(result?.hasDirectRestriction);
     const hasInheritedRestriction = Boolean(result?.hasInheritedRestriction);
+    const hasHierarchyCycle = Boolean(result?.hasHierarchyCycle);
 
     return {
       hasDirectRestriction,
       hasInheritedRestriction,
-      hasAnyRestriction: hasDirectRestriction || hasInheritedRestriction,
-      canAccess: Boolean(result?.canAccess),
-      canEdit: Boolean(result?.canEdit),
+      hasAnyRestriction:
+        hasDirectRestriction || hasInheritedRestriction || hasHierarchyCycle,
+      canAccess: !hasHierarchyCycle && Boolean(result?.canAccess),
+      canEdit: !hasHierarchyCycle && Boolean(result?.canEdit),
     };
   }
 
@@ -676,6 +740,8 @@ export class PagePermissionRepo {
             'pages.id as pageId',
             'pages.id as ancestorId',
             'pages.parentPageId',
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
           .unionAll((eb) =>
@@ -690,12 +756,29 @@ export class PagePermissionRepo {
                 'allAncestors.pageId',
                 'pages.id as ancestorId',
                 'pages.parentPageId',
-              ]),
+                sql<string[]>`all_ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(all_ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('allAncestors.isCycle', '=', false),
           ),
       )
       .selectFrom('pages')
       .select('pages.id')
       .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('allAncestors')
+              .select('allAncestors.ancestorId')
+              .whereRef('allAncestors.pageId', '=', 'pages.id')
+              .where('allAncestors.isCycle', '=', true),
+          ),
+        ),
+      )
       .where(({ not, exists, selectFrom }) =>
         not(
           exists(
@@ -745,6 +828,8 @@ export class PagePermissionRepo {
             'pages.id as ancestorId',
             'pages.parentPageId',
             sql<number>`0`.as('depth'),
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
           .unionAll((eb) =>
@@ -760,7 +845,14 @@ export class PagePermissionRepo {
                 'pages.id as ancestorId',
                 'pages.parentPageId',
                 sql<number>`all_ancestors.depth + 1`.as('depth'),
-              ]),
+                sql<string[]>`all_ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(all_ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('allAncestors.isCycle', '=', false),
           ),
       )
       .selectFrom('pages')
@@ -821,6 +913,16 @@ export class PagePermissionRepo {
           .as('canEdit'),
       )
       .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('allAncestors')
+              .select('allAncestors.ancestorId')
+              .whereRef('allAncestors.pageId', '=', 'pages.id')
+              .where('allAncestors.isCycle', '=', true),
+          ),
+        ),
+      )
       // view filter: no restricted ancestor without any permission
       .where(({ not, exists, selectFrom }) =>
         not(
@@ -865,21 +967,39 @@ export class PagePermissionRepo {
       .withRecursive('ancestors', (qb) =>
         qb
           .selectFrom('pages')
-          .select(['pages.id as ancestorId', 'pages.parentPageId'])
+          .select([
+            'pages.id as ancestorId',
+            'pages.parentPageId',
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+          ])
           .where('pages.id', '=', pageId)
           .unionAll((eb) =>
             eb
               .selectFrom('pages')
               .innerJoin('ancestors', 'ancestors.parentPageId', 'pages.id')
-              .select(['pages.id as ancestorId', 'pages.parentPageId']),
+              .select([
+                'pages.id as ancestorId',
+                'pages.parentPageId',
+                sql<string[]>`ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('ancestors.isCycle', '=', false),
           ),
       )
       .selectFrom('ancestors')
-      .innerJoin('pageAccess', 'pageAccess.pageId', 'ancestors.ancestorId')
-      .select('pageAccess.id')
+      .leftJoin('pageAccess', 'pageAccess.pageId', 'ancestors.ancestorId')
+      .select([
+        sql<boolean>`bool_or(ancestors.is_cycle)`.as('hasHierarchyCycle'),
+        sql<boolean>`bool_or(page_access.id IS NOT NULL)`.as('hasPageAccess'),
+      ])
       .executeTakeFirst();
 
-    return !!result;
+    return Boolean(result?.hasHierarchyCycle || result?.hasPageAccess);
   }
 
   /**
@@ -921,6 +1041,8 @@ export class PagePermissionRepo {
             'child.id as childId',
             'child.id as ancestorId',
             'child.parentPageId as ancestorParentId',
+            sql<string[]>`ARRAY[child.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .where('child.parentPageId', 'in', parentIds)
           .where('child.deletedAt', 'is', null)
@@ -936,7 +1058,14 @@ export class PagePermissionRepo {
                 'childAncestors.childId',
                 'pages.id as ancestorId',
                 'pages.parentPageId as ancestorParentId',
-              ]),
+                sql<string[]>`child_ancestors.traversal_path || pages.id`.as(
+                  'traversalPath',
+                ),
+                sql<boolean>`pages.id = ANY(child_ancestors.traversal_path)`.as(
+                  'isCycle',
+                ),
+              ])
+              .where('childAncestors.isCycle', '=', false),
           ),
       )
       .selectFrom('pages as child')
@@ -944,6 +1073,16 @@ export class PagePermissionRepo {
       .distinct()
       .where('child.parentPageId', 'in', parentIds)
       .where('child.deletedAt', 'is', null)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('childAncestors')
+              .select('childAncestors.ancestorId')
+              .whereRef('childAncestors.childId', '=', 'child.id')
+              .where('childAncestors.isCycle', '=', true),
+          ),
+        ),
+      )
       .where(({ not, exists, selectFrom }) =>
         not(
           exists(
@@ -979,67 +1118,6 @@ export class PagePermissionRepo {
   }
 
   /**
-   * Get all page IDs within a subtree that are restricted OR are descendants of restricted pages.
-   * Used to filter pages from public shares - if a page is restricted, it and all its
-   * children should be hidden.
-   */
-  async getRestrictedSubtreeIds(rootPageId: string): Promise<string[]> {
-    const results = await this.db
-      .withRecursive('descendants', (qb) =>
-        qb
-          .selectFrom('pages')
-          .select(['pages.id as descendantId', 'pages.parentPageId'])
-          .where('pages.id', '=', rootPageId)
-          .unionAll((eb) =>
-            eb
-              .selectFrom('pages')
-              .innerJoin(
-                'descendants',
-                'descendants.descendantId',
-                'pages.parentPageId',
-              )
-              .select(['pages.id as descendantId', 'pages.parentPageId'])
-              .where('pages.deletedAt', 'is', null),
-          ),
-      )
-      .withRecursive('descendantAncestors', (qb) =>
-        qb
-          .selectFrom('descendants')
-          .innerJoin('pages', 'pages.id', 'descendants.descendantId')
-          .select([
-            'descendants.descendantId',
-            'pages.id as ancestorId',
-            'pages.parentPageId as ancestorParentId',
-          ])
-          .unionAll((eb) =>
-            eb
-              .selectFrom('pages')
-              .innerJoin(
-                'descendantAncestors',
-                'descendantAncestors.ancestorParentId',
-                'pages.id',
-              )
-              .select([
-                'descendantAncestors.descendantId',
-                'pages.id as ancestorId',
-                'pages.parentPageId as ancestorParentId',
-              ]),
-          ),
-      )
-      .selectFrom('descendantAncestors')
-      .innerJoin(
-        'pageAccess',
-        'pageAccess.pageId',
-        'descendantAncestors.ancestorId',
-      )
-      .select('descendantAncestors.descendantId')
-      .distinct()
-      .execute();
-
-    return results.map((r) => r.descendantId);
-  }
-
-  /**
    * Given a pageId and a set of candidate userIds, return the subset who can
    * access the page (have permission on ALL restricted ancestors).
    * Returns all userIds if the page has no restricted ancestors.
@@ -1052,17 +1130,27 @@ export class PagePermissionRepo {
 
     const results = await sql<{ userId: string }>`
       WITH RECURSIVE ancestors AS (
-        SELECT id AS ancestor_id, parent_page_id
+        SELECT
+          id AS ancestor_id,
+          parent_page_id,
+          ARRAY[id]::uuid[] AS traversal_path,
+          false AS is_cycle
         FROM pages
         WHERE id = ${pageId}::uuid
         UNION ALL
-        SELECT p.id, p.parent_page_id
+        SELECT
+          p.id,
+          p.parent_page_id,
+          a.traversal_path || p.id,
+          p.id = ANY(a.traversal_path) AS is_cycle
         FROM pages p
         JOIN ancestors a ON a.parent_page_id = p.id
+        WHERE NOT a.is_cycle
       )
       SELECT cu.user_id AS "userId"
       FROM unnest(${userIds}::uuid[]) AS cu(user_id)
-      WHERE NOT EXISTS (
+      WHERE NOT EXISTS (SELECT 1 FROM ancestors WHERE is_cycle)
+      AND NOT EXISTS (
         SELECT 1
         FROM ancestors a
         JOIN page_access pa ON pa.page_id = a.ancestor_id

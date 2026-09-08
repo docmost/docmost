@@ -55,6 +55,10 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
+import {
+  assertAcyclicPageTraversal,
+  stripPageTraversalMetadata,
+} from '../../../database/helpers/page-hierarchy-cycle';
 
 @Injectable()
 export class PageService {
@@ -129,24 +133,27 @@ export class PageService {
       ydoc = createYdocFromJson(prosemirrorJson);
     }
 
-    const page = await this.pageRepo.insertPage({
-      slugId: generateSlugId(),
-      title: createPageDto.title,
-      position: await this.nextPagePosition(
-        createPageDto.spaceId,
-        parentPageId,
-      ),
-      icon: createPageDto.icon,
-      parentPageId: parentPageId,
-      spaceId: createPageDto.spaceId,
-      creatorId: userId,
-      workspaceId: workspaceId,
-      lastUpdatedById: userId,
-      isBase,
-      content,
-      textContent,
-      ydoc,
-    }, trx);
+    const page = await this.pageRepo.insertPage(
+      {
+        slugId: generateSlugId(),
+        title: createPageDto.title,
+        position: await this.nextPagePosition(
+          createPageDto.spaceId,
+          parentPageId,
+        ),
+        icon: createPageDto.icon,
+        parentPageId: parentPageId,
+        spaceId: createPageDto.spaceId,
+        creatorId: userId,
+        workspaceId: workspaceId,
+        lastUpdatedById: userId,
+        isBase,
+        content,
+        textContent,
+        ydoc,
+      },
+      trx,
+    );
 
     if (trx) {
       // Add the watcher inside the caller's transaction so the async worker
@@ -867,6 +874,9 @@ export class PageService {
             'parentPageId',
             'spaceId',
             'deletedAt',
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+            sql<number>`0`.as('traversalDepth'),
           ])
           .where('id', '=', childPageId)
           .where('deletedAt', 'is', null)
@@ -883,13 +893,28 @@ export class PageService {
                 'p.parentPageId',
                 'p.spaceId',
                 'p.deletedAt',
+                sql<string[]>`pa.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(pa.traversal_path)`.as('isCycle'),
+                sql<number>`pa.traversal_depth + 1`.as('traversalDepth'),
               ])
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .where('pa.isCycle', '=', false),
           ),
       )
       .selectFrom('page_ancestors')
-      .selectAll('page_ancestors')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'isBase',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'deletedAt',
+        'isCycle',
+      ])
       .select((eb) =>
         eb
           .exists(
@@ -901,9 +926,12 @@ export class PageService {
           )
           .as('hasChildren'),
       )
+      .orderBy('traversalDepth', 'desc')
       .execute();
 
-    return ancestors.reverse();
+    assertAcyclicPageTraversal(ancestors, childPageId);
+
+    return ancestors.map(stripPageTraversalMetadata);
   }
 
   async getRecentSpacePages(
@@ -1009,19 +1037,29 @@ export class PageService {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select([
+            'id',
+            sql<string[]>`ARRAY[id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+          ])
           .where('id', '=', pageId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .select([
+                'p.id',
+                sql<string[]>`pd.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(pd.traversal_path)`.as('isCycle'),
+              ])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .where('pd.isCycle', '=', false),
           ),
       )
       .selectFrom('page_descendants')
-      .selectAll()
+      .select(['id', 'isCycle'])
       .execute();
 
+    assertAcyclicPageTraversal(descendants, pageId);
     const pageIds = descendants.map((d) => d.id);
 
     // Queue attachment deletion for all pages with unique job IDs to prevent duplicates

@@ -16,6 +16,10 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import {
+  assertAcyclicPageTraversal,
+  stripPageTraversalMetadata,
+} from '../../helpers/page-hierarchy-cycle';
 
 @Injectable()
 export class PageRepo {
@@ -203,21 +207,31 @@ export class PageRepo {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select([
+            'id',
+            sql<string[]>`ARRAY[id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+          ])
           .where('id', '=', pageId)
           .where('deletedAt', 'is', null)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
+              .select([
+                'p.id',
+                sql<string[]>`pd.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(pd.traversal_path)`.as('isCycle'),
+              ])
               .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .where('pd.isCycle', '=', false),
           ),
       )
       .selectFrom('page_descendants')
-      .selectAll()
+      .select(['id', 'isCycle'])
       .execute();
 
+    assertAcyclicPageTraversal(descendants, pageId);
     const pageIds = descendants.map((d) => d.id);
 
     if (pageIds.length > 0) {
@@ -272,19 +286,29 @@ export class PageRepo {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select([
+            'id',
+            sql<string[]>`ARRAY[id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+          ])
           .where('id', '=', pageId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .select([
+                'p.id',
+                sql<string[]>`pd.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(pd.traversal_path)`.as('isCycle'),
+              ])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .where('pd.isCycle', '=', false),
           ),
       )
       .selectFrom('page_descendants')
-      .selectAll()
+      .select(['id', 'isCycle'])
       .execute();
 
+    assertAcyclicPageTraversal(pages, pageId);
     const pageIds = pages.map((p) => p.id);
 
     // Restore all pages, but only detach the root page if its parent is deleted
@@ -354,7 +378,12 @@ export class PageRepo {
     });
   }
 
-  async getCreatedByPages(creatorId: string, requestingUserId: string, pagination: PaginationOptions, spaceId?: string) {
+  async getCreatedByPages(
+    creatorId: string,
+    requestingUserId: string,
+    pagination: PaginationOptions,
+    spaceId?: string,
+  ) {
     let query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
@@ -365,7 +394,11 @@ export class PageRepo {
     if (spaceId) {
       query = query.where('spaceId', '=', spaceId);
     } else {
-      query = query.where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId));
+      query = query.where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId),
+      );
     }
 
     return executeWithCursorPagination(query, {
@@ -491,7 +524,7 @@ export class PageRepo {
     parentPageId: string,
     opts: { includeContent: boolean },
   ) {
-    return this.db
+    const pages = await this.db
       .withRecursive('page_hierarchy', (db) =>
         db
           .selectFrom('pages')
@@ -506,6 +539,8 @@ export class PageRepo {
             'workspaceId',
             'createdAt',
             'updatedAt',
+            sql<string[]>`ARRAY[id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
@@ -524,15 +559,34 @@ export class PageRepo {
                 'p.workspaceId',
                 'p.createdAt',
                 'p.updatedAt',
+                sql<string[]>`ph.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(ph.traversal_path)`.as('isCycle'),
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .where('ph.isCycle', '=', false),
           ),
       )
       .selectFrom('page_hierarchy')
-      .selectAll()
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'workspaceId',
+        'createdAt',
+        'updatedAt',
+        'isCycle',
+      ])
+      .$if(opts?.includeContent, (qb) => qb.select('content'))
       .execute();
+
+    assertAcyclicPageTraversal(pages, parentPageId);
+    return pages.map((page) => stripPageTraversalMetadata(page));
   }
 
   /**
@@ -540,69 +594,82 @@ export class PageRepo {
    * More efficient than getPageAndDescendants + filtering because:
    * 1. Single DB query (no separate restricted IDs query)
    * 2. Stops traversing at restricted pages (doesn't fetch data to discard)
-   * 3. No in-memory filtering needed
+   * 3. Filters the bounded traversal only after hierarchy validation
    */
   async getPageAndDescendantsExcludingRestricted(
     parentPageId: string,
     opts: { includeContent: boolean },
   ) {
-    return (
-      this.db
-        .withRecursive('page_hierarchy', (db) =>
-          db
-            .selectFrom('pages')
-            .leftJoin('pageAccess', 'pageAccess.pageId', 'pages.id')
-            .select([
-              'pages.id',
-              'pages.slugId',
-              'pages.title',
-              'pages.icon',
-              'pages.position',
-              'pages.parentPageId',
-              'pages.spaceId',
-              'pages.workspaceId',
-              sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
-            ])
-            .$if(opts?.includeContent, (qb) => qb.select('pages.content'))
-            .where('pages.id', '=', parentPageId)
-            .where('pages.deletedAt', 'is', null)
-            .unionAll((exp) =>
-              exp
-                .selectFrom('pages as p')
-                .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
-                .leftJoin('pageAccess', 'pageAccess.pageId', 'p.id')
-                .select([
-                  'p.id',
-                  'p.slugId',
-                  'p.title',
-                  'p.icon',
-                  'p.position',
-                  'p.parentPageId',
-                  'p.spaceId',
-                  'p.workspaceId',
-                  sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
-                ])
-                .$if(opts?.includeContent, (qb) => qb.select('p.content'))
-                .where('p.deletedAt', 'is', null)
-                // Only recurse into children of non-restricted pages
-                .where('ph.isRestricted', '=', false),
-            ),
-        )
-        .selectFrom('page_hierarchy')
-        .select([
-          'id',
-          'slugId',
-          'title',
-          'icon',
-          'position',
-          'parentPageId',
-          'spaceId',
-          'workspaceId',
-        ])
-        .$if(opts?.includeContent, (qb) => qb.select('content'))
-        // Filter out restricted pages from the result
-        .where('isRestricted', '=', false)
-        .execute()
-    );
+    const pages = await this.db
+      .withRecursive('page_hierarchy', (db) =>
+        db
+          .selectFrom('pages')
+          .leftJoin('pageAccess', 'pageAccess.pageId', 'pages.id')
+          .select([
+            'pages.id',
+            'pages.slugId',
+            'pages.title',
+            'pages.icon',
+            'pages.position',
+            'pages.parentPageId',
+            'pages.spaceId',
+            'pages.workspaceId',
+            sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+            sql<string[]>`ARRAY[pages.id]::uuid[]`.as('traversalPath'),
+            sql<boolean>`false`.as('isCycle'),
+          ])
+          .$if(opts?.includeContent, (qb) => qb.select('pages.content'))
+          .where('pages.id', '=', parentPageId)
+          .where('pages.deletedAt', 'is', null)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
+              .leftJoin('pageAccess', 'pageAccess.pageId', 'p.id')
+              .select([
+                'p.id',
+                'p.slugId',
+                'p.title',
+                'p.icon',
+                'p.position',
+                'p.parentPageId',
+                'p.spaceId',
+                'p.workspaceId',
+                sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+                sql<string[]>`ph.traversal_path || p.id`.as('traversalPath'),
+                sql<boolean>`p.id = ANY(ph.traversal_path)`.as('isCycle'),
+              ])
+              .$if(opts?.includeContent, (qb) => qb.select('p.content'))
+              .where('p.deletedAt', 'is', null)
+              // Only recurse into children of non-restricted pages
+              .where('ph.isRestricted', '=', false)
+              .where('ph.isCycle', '=', false),
+          ),
+      )
+      .selectFrom('page_hierarchy')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'workspaceId',
+        'isRestricted',
+        'isCycle',
+      ])
+      .$if(opts?.includeContent, (qb) => qb.select('content'))
+      .execute();
+
+    assertAcyclicPageTraversal(pages, parentPageId);
+    return pages
+      .filter((page) => !page.isRestricted)
+      .map((page) => {
+        const withoutCycleMetadata = stripPageTraversalMetadata(page);
+        const { isRestricted: _isRestricted, ...publicPage } =
+          withoutCycleMetadata;
+        return publicPage;
+      });
   }
 }
