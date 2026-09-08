@@ -494,7 +494,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["date", "today"],
       icon: IconCalendar,
       command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString(i18n.language, {
+        const currentDate = new Date().toLocaleDateString(i18n.resolvedLanguage, {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -514,7 +514,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["time", "now", "clock"],
       icon: IconClock,
       command: ({ editor, range }: CommandProps) => {
-        const currentTime = new Date().toLocaleTimeString(i18n.language, {
+        const currentTime = new Date().toLocaleTimeString(i18n.resolvedLanguage, {
           hour: "numeric",
           minute: "numeric",
         });

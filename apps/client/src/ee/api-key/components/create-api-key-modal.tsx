@@ -59,7 +59,7 @@ export function CreateApiKeyModal({
   const getExpirationLabel = (days: number) => {
     const date = new Date();
     date.setDate(date.getDate() + days);
-    const formatted = date.toLocaleDateString(i18n.language, {
+    const formatted = date.toLocaleDateString(i18n.resolvedLanguage, {
       month: "short",
       day: "2-digit",
       year: "numeric",
