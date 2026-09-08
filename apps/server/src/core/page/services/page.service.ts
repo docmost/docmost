@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -20,7 +21,7 @@ import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { generateSlugId } from '../../../common/helpers';
 import { getPageTitle } from '../../../common/helpers';
-import { executeTx } from '@docmost/db/utils';
+import { dbOrTx, executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { v7 as uuid7 } from 'uuid';
 import {
@@ -174,10 +175,14 @@ export class PageService {
     return page;
   }
 
-  async nextPagePosition(spaceId: string, parentPageId?: string) {
+  async nextPagePosition(
+    spaceId: string,
+    parentPageId?: string,
+    trx?: KyselyTransaction,
+  ) {
     let pagePosition: string;
 
-    const lastPageQuery = this.db
+    const lastPageQuery = dbOrTx(this.db, trx)
       .selectFrom('pages')
       .select(['position'])
       .where('spaceId', '=', spaceId)
@@ -391,35 +396,46 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
-    let childPageIds: string[] = [];
+    return executeTx(this.db, async (trx) => {
+      await this.pageRepo.lockPageHierarchySpaces(
+        [rootPage.spaceId, spaceId],
+        trx,
+      );
 
-    const allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
-      includeContent: false,
-    });
+      const currentRootPage = await this.pageRepo.findById(rootPage.id, {
+        trx,
+      });
+      if (!currentRootPage || currentRootPage.deletedAt) {
+        throw new NotFoundException('Page to move not found');
+      }
+      if (currentRootPage.spaceId !== rootPage.spaceId) {
+        throw new ConflictException('Page location changed; retry the move');
+      }
 
-    // Filter to only accessible pages while maintaining tree integrity
-    const accessiblePages = await this.filterAccessibleTreePages(
-      allPages,
-      rootPage.id,
-      userId,
-      rootPage.spaceId,
-    );
-    const accessibleIds = new Set(accessiblePages.map((p) => p.id));
+      const allPages = await this.pageRepo.getPageAndDescendants(
+        currentRootPage.id,
+        { includeContent: false, trx },
+      );
+      const accessiblePages = await this.filterAccessibleTreePages(
+        allPages,
+        currentRootPage.id,
+        userId,
+        currentRootPage.spaceId,
+      );
+      const accessibleIds = new Set(accessiblePages.map((p) => p.id));
+      const pagesToOrphan = allPages.filter(
+        (p) =>
+          !accessibleIds.has(p.id) &&
+          p.parentPageId &&
+          accessibleIds.has(p.parentPageId),
+      );
 
-    // Find inaccessible pages whose parent is being moved - these need to be orphaned
-    const pagesToOrphan = allPages.filter(
-      (p) =>
-        !accessibleIds.has(p.id) &&
-        p.parentPageId &&
-        accessibleIds.has(p.parentPageId),
-    );
-
-    await executeTx(this.db, async (trx) => {
       // Orphan inaccessible child pages (make them root pages in original space)
       for (const page of pagesToOrphan) {
         const orphanPosition = await this.nextPagePosition(
-          rootPage.spaceId,
+          currentRootPage.spaceId,
           null,
+          trx,
         );
         await this.pageRepo.updatePage(
           { parentPageId: null, position: orphanPosition },
@@ -429,16 +445,18 @@ export class PageService {
       }
 
       // Update root page
-      const nextPosition = await this.nextPagePosition(spaceId);
+      const nextPosition = await this.nextPagePosition(spaceId, null, trx);
       await this.pageRepo.updatePage(
         { spaceId, parentPageId: null, position: nextPosition },
-        rootPage.id,
+        currentRootPage.id,
         trx,
       );
 
       const pageIdsToMove = accessiblePages.map((p) => p.id);
 
-      childPageIds = pageIdsToMove.filter((id) => id !== rootPage.id);
+      const childPageIds = pageIdsToMove.filter(
+        (id) => id !== currentRootPage.id,
+      );
 
       if (pageIdsToMove.length > 1) {
         // Update sub pages (all accessible pages except root)
@@ -501,7 +519,7 @@ export class PageService {
           {
             pageIds: pageIdsToMove,
             spaceId,
-            workspaceId: rootPage.workspaceId,
+            workspaceId: currentRootPage.workspaceId,
           },
           {
             attempts: 2,
@@ -512,9 +530,9 @@ export class PageService {
           },
         );
       }
-    });
 
-    return { childPageIds };
+      return { childPageIds };
+    });
   }
 
   async duplicatePage(
@@ -825,31 +843,59 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    let parentPageId = null;
-    if (movedPage.parentPageId === dto.parentPageId) {
-      parentPageId = undefined;
-    } else {
-      // changing the page's parent
-      if (dto.parentPageId) {
-        const parentPage = await this.pageRepo.findById(dto.parentPageId);
-        if (
-          !parentPage ||
-          parentPage.deletedAt ||
-          parentPage.spaceId !== movedPage.spaceId
-        ) {
-          throw new NotFoundException('Parent page not found');
-        }
-        parentPageId = parentPage.id;
-      }
-    }
+    await executeTx(this.db, async (trx) => {
+      await this.pageRepo.lockPageHierarchySpaces(
+        [movedPage.spaceId],
+        trx,
+      );
 
-    await this.pageRepo.updatePage(
-      {
-        position: dto.position,
-        parentPageId: parentPageId,
-      },
-      dto.pageId,
-    );
+      const currentPage = await this.pageRepo.findById(dto.pageId, { trx });
+      if (!currentPage || currentPage.deletedAt) {
+        throw new NotFoundException('Moved page not found');
+      }
+      if (currentPage.spaceId !== movedPage.spaceId) {
+        throw new ConflictException('Page location changed; retry the move');
+      }
+
+      let parentPageId = null;
+      if (currentPage.parentPageId === dto.parentPageId) {
+        parentPageId = undefined;
+      } else {
+        if (dto.parentPageId) {
+          const parentPage = await this.pageRepo.findById(dto.parentPageId, {
+            trx,
+          });
+          if (
+            !parentPage ||
+            parentPage.deletedAt ||
+            parentPage.spaceId !== currentPage.spaceId
+          ) {
+            throw new NotFoundException('Parent page not found');
+          }
+          if (
+            await this.pageRepo.isPageDescendant(
+              dto.pageId,
+              parentPage.id,
+              trx,
+            )
+          ) {
+            throw new BadRequestException(
+              'A page cannot be moved under its descendant',
+            );
+          }
+          parentPageId = parentPage.id;
+        }
+      }
+
+      await this.pageRepo.updatePage(
+        {
+          position: dto.position,
+          parentPageId: parentPageId,
+        },
+        dto.pageId,
+        trx,
+      );
+    });
   }
 
   async getPageBreadCrumbs(childPageId: string) {
