@@ -1,0 +1,91 @@
+.content {
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  overflow: hidden;
+}
+
+.body {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.slideArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  padding: 6vh 5vw 10vh;
+}
+
+.scrollable {
+  overflow-y: auto;
+}
+
+.measurementArea {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  padding: 6vh 5vw 10vh;
+  overflow: visible;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.slideArea :global(.ProseMirror) {
+  width: 100%;
+  max-width: 900px;
+  font-size: 1.3rem;
+  line-height: 1.6;
+}
+
+.slideArea :global(.ProseMirror) h1 {
+  font-size: 3rem;
+}
+
+.slideArea :global(.ProseMirror) h2 {
+  font-size: 2.25rem;
+}
+
+.slideArea :global(.ProseMirror) h3 {
+  font-size: 1.75rem;
+}
+
+.titleSlide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+}
+
+.titleSlideText {
+  font-size: 3.5rem;
+  font-weight: 700;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0 20px;
+}
+
+.slideCounter {
+  min-width: 100px;
+  text-align: center;
+}
