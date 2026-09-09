@@ -34,7 +34,7 @@ const excludedExtensionNames = new Set([
 ]);
 
 const isEmptyJsonNode = (node: JSONContent) =>
-  node.type === "paragraph" && !node.text?.trim() && !node.content?.length;
+  node?.type === "paragraph" && !node.text?.trim() && !node.content?.length;
 
 const isDivider = (node: JSONContent) => node.type === "horizontalRule";
 
@@ -147,7 +147,7 @@ export default function PresentationModal({
       for (let index = 0; index < renderedNodes.length; index++) {
         const node = nodes[index];
         const renderedNode = renderedNodes[index];
-        if (!node || !renderedNode || isEmptyJsonNode(node)) continue;
+        if (!renderedNode || isEmptyJsonNode(node)) continue;
 
         const rect = renderedNode.getBoundingClientRect();
 
@@ -194,17 +194,21 @@ export default function PresentationModal({
     setSlideIndex(slides.length - 1);
   }, [slides.length]);
 
-  useHotkeys([
-    ["ArrowRight", goToNext, { preventDefault: true }],
-    ["ArrowDown", goToNext, { preventDefault: true }],
-    ["PageDown", goToNext, { preventDefault: true }],
-    ["space", goToNext, { preventDefault: true }],
-    ["ArrowLeft", goToPrevious, { preventDefault: true }],
-    ["ArrowUp", goToPrevious, { preventDefault: true }],
-    ["PageUp", goToPrevious, { preventDefault: true }],
-    ["Home", goToFirst, { preventDefault: true }],
-    ["End", goToLast, { preventDefault: true }],
-  ]);
+  useHotkeys(
+    opened
+      ? [
+          ["ArrowRight", goToNext, { preventDefault: true }],
+          ["ArrowDown", goToNext, { preventDefault: true }],
+          ["PageDown", goToNext, { preventDefault: true }],
+          ["space", goToNext, { preventDefault: true }],
+          ["ArrowLeft", goToPrevious, { preventDefault: true }],
+          ["ArrowUp", goToPrevious, { preventDefault: true }],
+          ["PageUp", goToPrevious, { preventDefault: true }],
+          ["Home", goToFirst, { preventDefault: true }],
+          ["End", goToLast, { preventDefault: true }],
+        ]
+      : []
+  );
 
   const currentSlide = slides[slideIndex];
 
