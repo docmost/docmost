@@ -25,11 +25,14 @@
   overflow: hidden;
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 6vh 5vw 10vh;
 }
 
 .scrollable {
   overflow-y: auto;
+  align-items: flex-start;
+  zoom: 0.85;
 }
 
 .measurementArea {

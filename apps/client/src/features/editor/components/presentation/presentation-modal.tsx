@@ -3,11 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, Box, Modal, Text, Title, Tooltip } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight, IconX } from "@tabler/icons-react";
 import { useHotkeys } from "@mantine/hooks";
-import { EditorProvider, isNodeEmpty, type JSONContent } from "@tiptap/react";
+import { EditorProvider, type JSONContent } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import classes from "./presentation-modal.module.css";
+import { useParams } from "react-router-dom";
 
 type PresentationSlide =
   | { kind: "title" }
@@ -17,8 +18,6 @@ type MeasuredContentSlide = {
   doc: JSONContent;
   scrollable: boolean;
 };
-
-type MeasuredNode = { node: JSONContent; rect: DOMRect };
 
 interface PresentationModalProps {
   title: string;
@@ -41,6 +40,9 @@ const isDivider = (node: JSONContent) => node.type === "horizontalRule";
 const isSectionHeading = (node: JSONContent) =>
   node.type === "heading" && node.attrs?.level === 1;
 
+const isEndOfSection = (node: JSONContent) =>
+  node.type === "base" || node.type === "table";
+
 function getAvailableHeight(area: HTMLElement): number {
   const styles = window.getComputedStyle(area);
   return (
@@ -57,16 +59,23 @@ export default function PresentationModal({
   onClose,
 }: PresentationModalProps) {
   const { t } = useTranslation();
+  const { pageSlug } = useParams();
   const [slideIndex, setSlideIndex] = useState(0);
-  const [contentSlides, setContentSlides] = useState<MeasuredContentSlide[] | null>(
-    null
-  );
+  const [contentSlides, setContentSlides] = useState<
+    MeasuredContentSlide[] | null
+  >(null);
   const slideAreaRef = useRef<HTMLDivElement>(null);
 
   const extensions = useMemo(
     () => mainExtensions.filter((ext) => !excludedExtensionNames.has(ext.name)),
     []
   );
+
+  useEffect(() => {
+    if (opened) {
+      onClose();
+    }
+  }, [pageSlug]);
 
   useEffect(() => {
     if (opened) {
@@ -122,7 +131,9 @@ export default function PresentationModal({
         return;
       }
 
-      const renderedNodes = Array.from(editor.view.dom.children) as HTMLElement[];
+      const renderedNodes = Array.from(
+        editor.view.dom.children
+      ) as HTMLElement[];
       if (!renderedNodes.length) {
         setContentSlides([]);
         return;
@@ -170,6 +181,10 @@ export default function PresentationModal({
 
         currentSlide.push(node);
         currentSlideBottom = rect.bottom;
+
+        if (isEndOfSection(node)) {
+          saveCurrentSlide();
+        }
       }
 
       saveCurrentSlide();
@@ -211,6 +226,7 @@ export default function PresentationModal({
   );
 
   const currentSlide = slides[slideIndex];
+  const scrollable = currentSlide.kind === "content" && currentSlide.scrollable;
 
   return (
     <Modal.Root
@@ -237,10 +253,9 @@ export default function PresentationModal({
           </Tooltip>
 
           <Box
+            onClick={goToNext}
             className={`${classes.slideArea} ${
-              currentSlide?.kind === "content" && currentSlide.scrollable
-                ? classes.scrollable
-                : ""
+              scrollable ? classes.scrollable : ""
             }`}
             ref={slideAreaRef}
           >
