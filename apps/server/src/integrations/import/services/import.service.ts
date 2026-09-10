@@ -70,7 +70,6 @@ export class ImportService {
 
     try {
       createdPage = await executeTx(this.db, async (trx) => {
-
         if (fileExtension.endsWith('.md') || fileExtension.endsWith('.html')) {
           const rawHtml = fileExtension.endsWith('.md')
             ? await markdownToHtml(fileContent)

@@ -46,6 +46,13 @@ interface AttachmentMeta {
   trx: KyselyTransaction
 }
 
+interface UploadStats {
+  total: number;
+  completed: number;
+  failed: number;
+  failedFiles: string[];
+}
+
 const MIME_EXTENSION_OVERRIDES: Record<string, string> = {
   'image/jpeg': '.jpg',
   'audio/mpeg': '.mp3',
@@ -73,60 +80,108 @@ export class ImportAttachmentService {
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
-  /**
-   * Replaces Base64 data URIs in standalone page imports with stored files.
-   * Archive imports use processAttachments() because their files already
-   * exist on disk; standalone imports need to materialize these payloads.
-   */
   async processEmbeddedAttachments(
     opts: AttachmentMeta & { html: string },
   ): Promise<string> {
     const { html, ...rest } = opts;
     const $ = load(html);
-    const processed = new Map<string, string>();
+    const limit = pLimit(this.CONCURRENT_UPLOADS);
 
-    const resolveUri = async (uri: string): Promise<string | null> => {
-      const normalized = uri?.trim();
-      if (!normalized) return null;
-      if (processed.has(normalized)) return processed.get(normalized);
-
-      const apiFilePath = await this.uploadDataUri({
-        uri: normalized,
-        ...rest,
-      });
-      if (apiFilePath) processed.set(normalized, apiFilePath);
-      return apiFilePath;
+    const uploadStats: UploadStats = {
+      total: 0,
+      completed: 0,
+      failed: 0,
+      failedFiles: [],
     };
+
+    type UploadedEmbed = {
+      apiFilePath: string;
+      attachmentId: string;
+      fileName: string;
+    } | null;
+
+    const processed = new Map<string, Promise<UploadedEmbed>>();
+
+    const resolveUri = (uri?: string): Promise<UploadedEmbed> => {
+      const normalized = uri?.trim();
+      if (!normalized || !normalized.toLowerCase().startsWith('data:')) {
+        return Promise.resolve(null);
+      }
+
+      const existing = processed.get(normalized);
+      if (existing) {
+        return existing;
+      }
+
+      const task = limit(async () => {
+        try {
+          const result = await this.uploadDataUri({
+            uri: normalized,
+            ...rest,
+          });
+
+          if (result) {
+            uploadStats.completed++;
+          }
+
+          return result;
+        } catch (error) {
+          uploadStats.failed++;
+          uploadStats.failedFiles.push(normalized.slice(0, 80));
+
+          this.logger.error(
+            `Failed to process embedded attachment: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+
+          return null;
+        }
+      });
+
+      processed.set(normalized, task);
+      return task;
+    };
+
+    const attributeReplacements: Array<{
+      element: ReturnType<typeof $>;
+      attribute: string;
+      promise: Promise<UploadedEmbed>;
+      isImage?: boolean;
+    }> = [];
+
+    const posterReplacements: Array<{
+      element: ReturnType<typeof $>;
+      promise: Promise<UploadedEmbed>;
+    }> = [];
+
+    const embedReplacements: Array<{
+      element: ReturnType<typeof $>;
+      promise: Promise<UploadedEmbed>;
+    }> = [];
 
     // img/video/audio/source: src attribute
     for (const element of $(
       'img[src], video[src], audio[src], source[src]',
     ).toArray()) {
       const $element = $(element);
-      const apiFilePath = await resolveUri($element.attr('src'));
-      if (!apiFilePath) continue;
 
-      $element
-        .attr('src', apiFilePath)
-        .attr('data-attachment-id', apiFilePath.split('/')[3]);
-      if ($element.is('img')) {
-        $element.attr('data-align', $element.attr('data-align') ?? 'center');
-      }
+      attributeReplacements.push({
+        element: $element,
+        attribute: 'src',
+        promise: resolveUri($element.attr('src')),
+        isImage: $element.is('img'),
+      });
     }
 
     // video poster (thumbnail image, often a separate data URI)
     for (const element of $('video[poster]').toArray()) {
       const $element = $(element);
-      const apiFilePath = await resolveUri($element.attr('poster'));
 
-      console.log({apiFilePath})
-      if (apiFilePath) {
-        $element
-          .attr('poster', apiFilePath)
-          .attr('src', apiFilePath)
-          .attr('preload', 'metadata')
-          .attr('controls')
-      };
+      posterReplacements.push({
+        element: $element,
+        promise: resolveUri($element.attr('poster')),
+      });
     }
 
     // the client does not currently support srcset.
@@ -159,7 +214,7 @@ export class ImportAttachmentService {
         // Keep the first embedded image as the final fallback.
         if (!firstEmbeddedCandidate) {
           firstEmbeddedCandidate = uri;
-          if (type !== "w" && type !== "x"){
+          if (type !== 'w' && type !== 'x') {
             break;
           }
         }
@@ -192,13 +247,12 @@ export class ImportAttachmentService {
         bestDensityCandidate?.uri ??
         firstEmbeddedCandidate;
 
-      const apiFilePath = await resolveUri(selectedUri);
-      if (!apiFilePath) continue;
-
-      $element
-        .attr('src', apiFilePath)
-        .attr('data-attachment-id', apiFilePath.split('/')[3])
-        .attr('data-align', $element.attr('data-align') ?? 'center');
+      attributeReplacements.push({
+        element: $element,
+        attribute: 'src',
+        promise: resolveUri(selectedUri),
+        isImage: true,
+      });
     }
 
     // the client represents embeds as iframes.
@@ -206,43 +260,91 @@ export class ImportAttachmentService {
     for (const element of $('object[data], embed[src]').toArray()) {
       const $element = $(element);
       const sourceAttribute = $element.is('object') ? 'data' : 'src';
-      const uri = $element.attr(sourceAttribute);
 
-      const apiFilePath = await resolveUri(uri);
-      if (!apiFilePath) continue;
-
-      const $iframe = $('<iframe>')
-        .attr('src', apiFilePath)
-        .attr('data-attachment-id', apiFilePath.split('/')[3]);
-
-      for (const attribute of ['width', 'height', 'title']) {
-        const value = $element.attr(attribute);
-        if (value) {
-          $iframe.attr(attribute, value);
-        }
-      }
-
-      $element.replaceWith($iframe);
+      embedReplacements.push({
+        element: $element,
+        promise: resolveUri($element.attr(sourceAttribute)),
+      });
     }
 
-    // Rewrite existing iframe data URIs.
     for (const element of $('iframe[src]').toArray()) {
       const $iframe = $(element);
-      const uri = $iframe.attr('src');
 
-      const apiFilePath = await resolveUri(uri);
-      if (!apiFilePath) continue;
-
-      $iframe
-        .attr('src', apiFilePath)
-        .attr('data-attachment-id', apiFilePath.split('/')[3]);
+      attributeReplacements.push({
+        element: $iframe,
+        attribute: 'src',
+        promise: resolveUri($iframe.attr('src')),
+      });
     }
 
     // anchors
     for (const element of $('a[href]').toArray()) {
       const $element = $(element);
-      const apiFilePath = await resolveUri($element.attr('href'));
-      if (apiFilePath) $element.attr('href', apiFilePath);
+
+      attributeReplacements.push({
+        element: $element,
+        attribute: 'href',
+        promise: resolveUri($element.attr('href')),
+      });
+    }
+
+    uploadStats.total = processed.size;
+
+    await Promise.all([
+      ...attributeReplacements.map(
+        async ({ element, attribute, promise, isImage }) => {
+          const result = await promise;
+          if (!result) return;
+
+          element
+            .attr(attribute, result.apiFilePath)
+            .attr('data-attachment-id', result.attachmentId);
+
+          if (isImage) {
+            element.attr('data-align', element.attr('data-align') ?? 'center');
+          }
+        },
+      ),
+      ...posterReplacements.map(async ({ element, promise }) => {
+        const result = await promise;
+        if (!result) return;
+
+        element
+          .attr('poster', result.apiFilePath)
+          .attr('src', result.apiFilePath)
+          .attr('preload', 'metadata')
+          .attr('controls');
+      }),
+      ...embedReplacements.map(async ({ element, promise }) => {
+        const result = await promise;
+        if (!result) return;
+
+        const $iframe = $('<iframe>')
+          .attr('src', result.apiFilePath)
+          .attr('data-attachment-id', result.attachmentId);
+
+        for (const attribute of ['width', 'height', 'title']) {
+          const value = element.attr(attribute);
+          if (value) {
+            $iframe.attr(attribute, value);
+          }
+        }
+
+        element.replaceWith($iframe);
+      }),
+    ]);
+
+    if (uploadStats.total > 0) {
+      this.logger.debug(
+        `Embedded upload completed: ${uploadStats.completed}/${uploadStats.total} successful, ${uploadStats.failed} failed`,
+      );
+
+      if (uploadStats.failed > 0) {
+        this.logger.warn(
+          `Failed to upload ${uploadStats.failed} embedded attachments:`,
+          uploadStats.failedFiles,
+        );
+      }
     }
 
     return $.root().html() || '';
@@ -871,6 +973,36 @@ export class ImportAttachmentService {
     return $.root().html() || '';
   }
 
+  private async uploadStorageWithRetry(
+    storageFilePath: string,
+    content: Buffer,
+  ): Promise<void> {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        await this.storageService.upload(storageFilePath, content);
+        return;
+      } catch (error) {
+        lastError = error;
+
+        this.logger.warn(
+          `Storage upload attempt ${attempt}/${this.MAX_RETRIES} failed for ${storageFilePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
+        if (attempt < this.MAX_RETRIES) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.RETRY_DELAY * attempt),
+          );
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
   private uploadDataUri = async ({
     uri,
     creatorId,
@@ -878,7 +1010,11 @@ export class ImportAttachmentService {
     pageId,
     spaceId,
     trx,
-  }: AttachmentMeta & { uri: string }): Promise<string | null> => {
+  }: AttachmentMeta & { uri: string }): Promise<{
+    apiFilePath: string;
+    attachmentId: string;
+    fileName: string;
+  } | null> => {
     if (!uri.toLowerCase().startsWith('data:')) {
       return null;
     }
@@ -936,7 +1072,7 @@ export class ImportAttachmentService {
     )}/${attachmentId}/${fileName}`;
     const apiFilePath = `/api/files/${attachmentId}/${fileName}`;
 
-    await this.storageService.upload(storageFilePath, buffer);
+    await this.uploadStorageWithRetry(storageFilePath, buffer);
     const db = dbOrTx(this.db, trx);
     await db
       .insertInto('attachments')
@@ -955,7 +1091,11 @@ export class ImportAttachmentService {
       })
       .execute();
 
-    return apiFilePath;
+    return {
+      apiFilePath,
+      attachmentId,
+      fileName,
+    };
   };
 
   private analyzeAttachments(
