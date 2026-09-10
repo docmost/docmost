@@ -505,8 +505,19 @@ export class FileImportTaskService {
                 attachmentCandidates,
               });
 
+
+            const processedHTML =
+              await this.importAttachmentService.processEmbeddedAttachments({
+                html: htmlContent,
+                pageId: page.id,
+                workspaceId: fileTask.workspaceId,
+                spaceId: fileTask.spaceId,
+                creatorId: fileTask.creatorId,
+                trx,
+              });
+
             const { html, backlinks, pageIcon } = await formatImportHtml({
-              html: htmlContent,
+              html: processedHTML,
               currentFilePath: page.filePath,
               filePathToPageMetaMap: filePathToPageMetaMap,
               creatorId: fileTask.creatorId,
