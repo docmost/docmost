@@ -371,7 +371,12 @@ export class ExportService {
           const fileBuffer = await this.storageService.read(
             attachment.filePath,
           );
-          const filePath = `/files/${attachment.id}/${attachment.fileName}`;
+          // Use a relative path (no leading slash). A leading slash produces an
+          // absolute zip entry, which violates the ZIP spec (APPNOTE 4.4.17) and
+          // is rejected by tools like Windows Explorer. It also has to match the
+          // relative "files/..." URLs written by updateAttachmentUrlsToLocalPaths
+          // so the links resolve after extraction.
+          const filePath = `files/${attachment.id}/${attachment.fileName}`;
           zip.file(filePath, fileBuffer);
         } catch (err) {
           this.logger.debug(`Attachment export error ${attachment.id}`, err);
