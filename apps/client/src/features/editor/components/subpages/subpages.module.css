@@ -7,3 +7,27 @@
     border: none !important;
   }
 }
+
+.item {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+}
+
+.toggle {
+  flex: 0 0 24px;
+  margin-right: 2px;
+}
+
+.togglePlaceholder {
+  display: inline-block;
+  flex: 0 0 26px;
+}
+
+.icon {
+  margin-right: 4px;
+}
