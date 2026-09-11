@@ -8,7 +8,6 @@ import {
   ISpaceMember,
 } from "@/features/space/types/space.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
-import { saveAs } from "file-saver";
 
 export async function getSpaces(
   params?: QueryParams,
@@ -65,16 +64,28 @@ export async function exportSpace(data: IExportSpaceParams): Promise<void> {
     responseType: "blob",
   });
 
-  const fileName = req?.headers["content-disposition"]
-    .split("filename=")[1]
-    .replace(/"/g, "");
+  const contentDisposition = req?.headers?.["content-disposition"] as string | undefined;
+  let fileName = `export.${data.format || "html"}`;
 
-  let decodedFileName = fileName;
-  try {
-    decodedFileName = decodeURIComponent(fileName);
-  } catch (err) {
-    // fallback to raw filename
+  if (contentDisposition) {
+    const rfcMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
+    const fallbackMatch = contentDisposition.match(/filename="([^"]+)"/);
+    const raw = rfcMatch?.[1] || fallbackMatch?.[1];
+    if (raw) {
+      try {
+        fileName = decodeURIComponent(raw);
+      } catch {
+        fileName = raw;
+      }
+    }
   }
 
-  saveAs(req.data, decodedFileName);
+  const blobUrl = URL.createObjectURL(req.data);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(blobUrl);
 }
