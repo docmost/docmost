@@ -112,7 +112,7 @@ export default function GlobalSidebar() {
             </Text>
           ) : (
             <>
-              {sortedFavoriteSpaces.slice(0, 10).map((fav) => (
+              {sortedFavoriteSpaces.slice(0, 20).map((fav) => (
                 <Link
                   key={fav.id}
                   className={classes.spaceItem}
@@ -132,7 +132,7 @@ export default function GlobalSidebar() {
                   </Text>
                 </Link>
               ))}
-              {sortedFavoriteSpaces.length > 10 && (
+              {sortedFavoriteSpaces.length > 20 && (
                 <Link
                   className={classes.spaceItem}
                   to="/spaces"
