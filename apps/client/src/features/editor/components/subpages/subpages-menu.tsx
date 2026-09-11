@@ -110,7 +110,7 @@ export const SubpagesMenu = React.memo(
               leftSection={sortBy === "default" ? <IconCheck size={14} /> : null}
               onClick={() => updateSort("default")}
             >
-              {t("default")}
+              {t("Default")}
             </Menu.Item>
             <Menu.Item
               leftSection={sortBy === "title-asc" ? <IconCheck size={14} /> : null}

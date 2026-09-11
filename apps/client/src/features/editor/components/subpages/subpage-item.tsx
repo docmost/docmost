@@ -137,7 +137,7 @@ export default function SubpageItem({
           <Stack gap={5}>
             {isLoading ? (
               <div style={{ paddingLeft: `${(depth + 2) * 20 + 4}px` }}>
-                ...{t("loading")}
+                {t("Loading")}...
               </div>
             ) : (
               children.map((child) => (

@@ -22,8 +22,8 @@ export function sortSubpages(
   }
 
   return sortedItems.sort((a, b) => {
-    const result = (a.title || "untitled").localeCompare(
-      b.title || "untitled",
+    const result = (a.title || "").localeCompare(
+      b.title || "",
       undefined,
       {
         sensitivity: "base",
