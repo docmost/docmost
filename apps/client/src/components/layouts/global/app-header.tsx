@@ -117,7 +117,7 @@ export function AppHeader() {
           </Group>
         </div>
 
-        <Group px={"xl"} wrap="nowrap">
+        <Group px={{ base: 0, sm: "xl" }} wrap="nowrap">
           {aiChatEnabled && (
             <>
               <UnstyledButton
