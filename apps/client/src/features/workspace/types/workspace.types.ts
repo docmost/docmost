@@ -19,6 +19,7 @@ export interface IWorkspace {
   updatedAt: Date;
   emailDomains: string[];
   memberCount?: number;
+  invitationCount?: number;
   plan?: string;
   enforceMfa?: boolean;
   aiSearch?: boolean;
