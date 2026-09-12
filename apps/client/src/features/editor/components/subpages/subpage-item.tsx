@@ -80,6 +80,7 @@ export default function SubpageItem({
             className={classes.toggle}
             onClick={toggleOpened}
             aria-label={opened ? t("Collapse") : t("Expand")}
+            aria-expanded={opened}
           >
             {opened ? (
               <IconChevronDown size={16} />
