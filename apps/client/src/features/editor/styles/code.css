@@ -1,16 +1,28 @@
 .ProseMirror {
   .codeBlock {
-    padding: 4px;
-    border-radius: var(--mantine-radius-default);
-    background-color: light-dark(var(--mantine-color-gray-0),  var(--mantine-color-dark-8));
-    }
+    position: relative;
+    overflow: hidden;
+    border: 1px solid light-dark(
+      var(--mantine-color-gray-3),
+      var(--mantine-color-dark-5)
+    );
+    border-radius: var(--mantine-radius-md);
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-8)
+    );
+  }
 
-  pre {
-    padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
-    margin: 4px;
+  .codeBlock pre {
+    overflow-x: auto;
+    padding: var(--mantine-spacing-md) 150px var(--mantine-spacing-md)
+      var(--mantine-spacing-md);
+    margin: 0;
     font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
-    border-radius: var(--mantine-radius-default);
+    line-height: 1.6;
+    border-radius: 0;
     tab-size: 4;
+    background: transparent;
 
     @mixin light {
       background-color: var(--mantine-color-gray-0);
@@ -92,6 +104,13 @@
 
     .hljs-strong {
       font-weight: 700;
+    }
+  }
+
+  @media (max-width: 36em) {
+    .codeBlock pre {
+      padding-top: 48px;
+      padding-right: var(--mantine-spacing-md);
     }
   }
 
