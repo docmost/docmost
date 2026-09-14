@@ -14,7 +14,7 @@ export function formatRelativeTime(dateStr: string): string {
   if (diffHours < 24) return `${diffHours}h`;
   if (diffDays < 7) return `${diffDays}d`;
 
-  return new Intl.DateTimeFormat(i18n.language, {
+  return new Intl.DateTimeFormat(i18n.resolvedLanguage, {
     month: "short",
     day: "numeric",
   }).format(date);

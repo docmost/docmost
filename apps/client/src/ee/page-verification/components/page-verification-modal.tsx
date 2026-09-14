@@ -128,7 +128,7 @@ export function PageVerificationBadge({
     status === "verified" && verificationInfo?.expiresAt
       ? t("Verified until {{date}}", {
           date: new Date(verificationInfo.expiresAt).toLocaleDateString(
-            i18n.language,
+            i18n.resolvedLanguage,
             { month: "long", day: "numeric", year: "numeric" },
           ),
         })

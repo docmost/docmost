@@ -199,7 +199,7 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
               <Text size="xs" c="dimmed">
                 {t(status === "expired" ? "Expired {{date}}" : "Expires {{date}}", {
                   date: new Date(info.expiresAt).toLocaleDateString(
-                    i18n.language,
+                    i18n.resolvedLanguage,
                     {
                       month: "long",
                       day: "numeric",
