@@ -75,6 +75,7 @@ export function RowDetailModal({
 
   const isSaving = updateRowMutation.isPending;
   const opened = !!openRowId;
+  const [editingField, setEditingField] = useState(false);
 
   // One field menu open at a time, mirroring the grid header's semantics.
   // The shared closeRequest atom asks an open dirty PropertyMenuContent to
@@ -90,6 +91,7 @@ export function RowDetailModal({
   useEffect(() => {
     setOpenMenuId(null);
     menuDirtyRef.current = false;
+    setEditingField(false);
   }, [openRowId]);
 
   const handleMenuDirtyChange = useCallback((dirty: boolean) => {
@@ -293,7 +295,7 @@ export function RowDetailModal({
             row={row}
             primaryProperty={primaryProperty}
             canEdit={canEdit}
-            onClose={onClose}
+            onEditingChange={setEditingField}
             onCommit={(value) => {
               if (!primaryProperty) return;
               updateRowMutation.mutate({
@@ -317,6 +319,7 @@ export function RowDetailModal({
                     autoFocusValue={property.id === newPropertyId}
                     onAutoFocused={clearNewProperty}
                     menuOpened={openMenuId === property.id}
+                    onEditingChange={setEditingField}
                     onMenuOpenChange={(nextOpened) =>
                       handleMenuOpenChange(property.id, nextOpened)
                     }
@@ -367,16 +370,38 @@ export function RowDetailModal({
               ) : null}
             </div>
             <div className={classes.kbdHint}>
-              {rowIndex >= 0 && rows.length > 1 && (
+              {editingField ? (
                 <>
-                  <kbd className={classes.kbd}>↑</kbd>
-                  <kbd className={classes.kbd}>↓</kbd>
-                  <span>{t("to navigate")}</span>
+                  <span className={classes.kbdGroup}>
+                    <kbd className={classes.kbd}>Ctrl/Cmd</kbd>
+                    <span className={classes.kbdPlus} >+</span>
+                    <kbd className={classes.kbd}>Enter</kbd>
+                    <span>{t("to save")}</span>
+                  </span>
+
                   <span className={classes.kbdSeparator} />
+
+                  <span className={classes.kbdGroup}>
+                    <kbd className={classes.kbd}>Esc</kbd>
+                    <span>{t("to reset")}</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  {rowIndex >= 0 && rows.length > 1 && (
+                    <>
+                      <kbd className={classes.kbd}>↑</kbd>
+                      <kbd className={classes.kbd}>↓</kbd>
+                      <span>{t("to navigate")}</span>
+                      <span className={classes.kbdSeparator} />
+                    </>
+                  )}
+                  <>
+                    <kbd className={classes.kbd}>Esc</kbd>
+                    <span>{t("to close")}</span>
+                  </>
                 </>
               )}
-              <kbd className={classes.kbd}>Esc</kbd>
-              <span>{t("to close")}</span>
             </div>
           </footer>
         </>

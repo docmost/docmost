@@ -16,6 +16,7 @@ import { PageIdDto, CommentIdDto } from './dto/comments.input';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
@@ -48,13 +49,14 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post('create')
+  @OAuthScope('write')
   async create(
     @Body() createCommentDto: CreateCommentDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
     const page = await this.pageRepo.findById(createCommentDto.pageId);
-    if (!page || page.deletedAt) {
+    if (!page || page.workspaceId !== workspace.id || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 
@@ -84,14 +86,16 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post('/')
+  @OAuthScope('read')
   async findPageComments(
     @Body() input: PageIdDto,
     @Body()
     pagination: PaginationOptions,
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const page = await this.pageRepo.findById(input.pageId);
-    if (!page) {
+    if (!page || page.workspaceId !== workspace.id || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 
@@ -102,14 +106,18 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post('info')
-  async findOne(@Body() input: CommentIdDto, @AuthUser() user: User) {
+  async findOne(
+    @Body() input: CommentIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const comment = await this.commentRepo.findById(input.commentId);
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
 
     const page = await this.pageRepo.findById(comment.pageId);
-    if (!page) {
+    if (!page || page.workspaceId !== workspace.id || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 
@@ -120,6 +128,7 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
+  @OAuthScope('write')
   async update(@Body() dto: UpdateCommentDto, @AuthUser() user: User, @AuthWorkspace() workspace: Workspace) {
     const comment = await this.commentRepo.findById(dto.commentId, {
       includeCreator: true,
@@ -130,7 +139,7 @@ export class CommentController {
     }
 
     const page = await this.pageRepo.findById(comment.pageId);
-    if (!page) {
+    if (!page || page.workspaceId !== workspace.id || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 
@@ -148,7 +157,7 @@ export class CommentController {
     }
 
     const page = await this.pageRepo.findById(comment.pageId);
-    if (!page) {
+    if (!page || page.workspaceId !== workspace.id || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 

@@ -5,7 +5,13 @@ import classes from "@/ee/base/styles/row-detail-modal.module.css";
 
 const toText = (value: unknown) => (typeof value === "string" ? value : "");
 
-export function FieldText({ property, value, readOnly, onChange }: FieldProps) {
+export function FieldText({
+  property,
+  value,
+  readOnly,
+  onChange,
+  onEditingChange,
+}: FieldProps) {
   const text = toText(value);
   const [draft, setDraft] = useState(text);
   const [focused, setFocused] = useState(false);
@@ -20,6 +26,7 @@ export function FieldText({ property, value, readOnly, onChange }: FieldProps) {
 
   const commit = () => {
     setFocused(false);
+    onEditingChange?.(false);
     if (cancelRef.current) {
       cancelRef.current = false;
       setDraft(text);
@@ -54,7 +61,10 @@ export function FieldText({ property, value, readOnly, onChange }: FieldProps) {
         className={classes.fieldInput}
         value={draft}
         maxLength={1000}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true);
+          onEditingChange?.(true);
+        }}
         onChange={(e) => setDraft(e.currentTarget.value)}
         onBlur={commit}
         onKeyDown={(e) => {

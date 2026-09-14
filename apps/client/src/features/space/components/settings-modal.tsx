@@ -4,6 +4,8 @@ import AddSpaceMembersModal from "@/features/space/components/add-space-members-
 import React from "react";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
 import SpaceSecuritySettings from "@/features/space/components/space-security-settings.tsx";
+import PublishSpaceSettings from "@/features/public-space/components/publish-space-settings.tsx";
+import { isPublicSpacesAllowed } from "@/features/public-space/utils/public-space-access.ts";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
@@ -11,6 +13,8 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
+import { useAtom } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface SpaceSettingsModalProps {
   spaceId: string;
@@ -28,6 +32,13 @@ export default function SpaceSettingsModal({
 
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
+
+  const [workspace] = useAtom(workspaceAtom);
+  const allowPublicSpaces = isPublicSpacesAllowed(workspace);
+  const canManageSettings = spaceAbility.can(
+    SpaceCaslAction.Manage,
+    SpaceCaslSubject.Settings,
+  );
 
   return (
     <>
@@ -60,10 +71,12 @@ export default function SpaceSettingsModal({
                   <Tabs.Tab fw={500} value="members">
                     {t("Members")}
                   </Tabs.Tab>
-                  {spaceAbility.can(
-                    SpaceCaslAction.Manage,
-                    SpaceCaslSubject.Settings,
-                  ) && (
+                  {canManageSettings && allowPublicSpaces && (
+                    <Tabs.Tab fw={500} value="publish">
+                      {t("Publish")}
+                    </Tabs.Tab>
+                  )}
+                  {canManageSettings && (
                     <Tabs.Tab fw={500} value="security">
                       {t("Security")}
                     </Tabs.Tab>
@@ -111,6 +124,16 @@ export default function SpaceSettingsModal({
                           SpaceCaslSubject.Settings,
                         )}
                       />
+                    </div>
+                  </ScrollArea>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="publish">
+                  <ScrollArea h={580} scrollbarSize={5} pr={8}>
+                    <div style={{ paddingBottom: "100px" }}>
+                      {canManageSettings && allowPublicSpaces && (
+                        <PublishSpaceSettings space={space} />
+                      )}
                     </div>
                   </ScrollArea>
                 </Tabs.Panel>

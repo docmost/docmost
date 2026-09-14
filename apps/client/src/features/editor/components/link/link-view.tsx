@@ -26,7 +26,12 @@ import { INTERNAL_LINK_REGEX } from "@/lib/constants";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { useSharePageQuery } from "@/features/share/queries/share-query.ts";
-import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
+import { usePublicSpacePageQuery } from "@/features/public-space/queries/public-space-query.ts";
+import {
+  buildPageUrl,
+  buildPublicSpaceUrl,
+  buildSharedPageUrl,
+} from "@/features/page/page.utils.ts";
 import { extractPageSlugId } from "@/lib";
 import { sanitizeUrl, copyToClipboard, isEditorReady } from "@docmost/editor-ext";
 import { normalizeUrl } from "@/lib/utils";
@@ -60,9 +65,10 @@ export default function LinkView(props: MarkViewProps) {
   const href = mark.attrs.href as string;
   const navigate = useNavigate();
   const location = useLocation();
-  const { shareId, pageSlug } = useParams();
+  const { shareId, spaceSlug, pageSlug } = useParams();
   const { t } = useTranslation();
   const isShareRoute = location.pathname.startsWith("/share");
+  const isPublicSpaceRoute = location.pathname.startsWith("/docs/");
 
   const [popoverState, setPopoverState] = useState<
     "closed" | "preview" | "edit"
@@ -84,16 +90,33 @@ export default function LinkView(props: MarkViewProps) {
   const activeView = isPopoverVisible ? popoverState : lastOpenState.current;
 
   const { data: linkedPage } = usePageQuery({
-    pageId: isPopoverVisible && slugId && !isShareRoute ? slugId : null,
+    pageId:
+      isPopoverVisible && slugId && !isShareRoute && !isPublicSpaceRoute
+        ? slugId
+        : null,
   });
 
   const { data: sharedPageData } = useSharePageQuery({
     pageId: isPopoverVisible && slugId && isShareRoute ? slugId : null,
   });
 
-  const pageTitle = isShareRoute
-    ? sharedPageData?.page?.title
-    : linkedPage?.title;
+  // Resolved eagerly (not gated on the popover): an unresolvable target must
+  // render as inert text rather than a link that dead-ends at /login.
+  const { data: publicSpacePageData } = usePublicSpacePageQuery({
+    spaceSlug: isPublicSpaceRoute && slugId ? spaceSlug : undefined,
+    pageSlugId: slugId,
+    contentless: true,
+  });
+
+  const isUnresolvedPublicLink =
+    isPublicSpaceRoute && isInternal && !publicSpacePageData?.page && !slugId;
+
+  let pageTitle = linkedPage?.title;
+  if (isShareRoute) {
+    pageTitle = sharedPageData?.page?.title;
+  } else if (isPublicSpaceRoute) {
+    pageTitle = publicSpacePageData?.page?.title;
+  }
 
   const pendingTitleRef = useRef<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -260,6 +283,27 @@ export default function LinkView(props: MarkViewProps) {
           anchorId: anchor || undefined,
         });
         navigate(sharedUrl);
+      } else if (isPublicSpaceRoute) {
+        if (slugId && publicSpacePageData?.page) {
+          navigate(
+            buildPublicSpaceUrl({
+              // cross-space targets resolve to their own space's public URL
+              spaceSlug: publicSpacePageData.space?.slug ?? spaceSlug,
+              pageSlugId: slugId,
+              pageTitle: pageTitle,
+              anchorId: anchor || undefined,
+            }),
+          );
+        } else if (slugId) {
+          // no public URL: the /p/ resolver redirects members straight to the
+          // page and funnels anonymous visitors through login first; a new tab
+          // keeps the docs tab's history intact through that redirect chain
+          window.open(
+            buildPageUrl(undefined, slugId, pageTitle, anchor || undefined),
+            "_blank",
+            "noopener,noreferrer",
+          );
+        }
       } else {
         navigate(anchor ? `${targetPath}#${anchor}` : targetPath);
       }
@@ -276,8 +320,11 @@ export default function LinkView(props: MarkViewProps) {
     location.pathname,
     isInternal,
     isShareRoute,
+    isPublicSpaceRoute,
     slugId,
     shareId,
+    spaceSlug,
+    publicSpacePageData,
     pageTitle,
     pageSlug,
   ]);
@@ -319,12 +366,18 @@ export default function LinkView(props: MarkViewProps) {
     setPopoverState("closed");
   }, [editor]);
 
+  const internalHref = () => {
+    if (isShareRoute && slugId) {
+      return buildSharedPageUrl({ shareId, pageSlugId: slugId, pageTitle });
+    }
+    if (isPublicSpaceRoute && slugId && publicSpacePageData?.page) {
+      return buildPublicSpaceUrl({ spaceSlug, pageSlugId: slugId, pageTitle });
+    }
+    return href;
+  };
+
   const displayHref = sanitizeUrl(
-    isInternal
-      ? isShareRoute && slugId
-        ? buildSharedPageUrl({ shareId, pageSlugId: slugId, pageTitle })
-        : href
-      : normalizeUrl(href),
+    isInternal ? internalHref() : normalizeUrl(href),
   );
 
   const linkTitleInput = (
@@ -373,6 +426,16 @@ export default function LinkView(props: MarkViewProps) {
       />
     </>
   );
+
+  // Targets outside the published space have no public URL, so the label is
+  // rendered as inert text instead of a link that dead-ends at /login.
+  if (isUnresolvedPublicLink) {
+    return (
+      <span ref={wrapperRef} className={classes.linkWrapper}>
+        <MarkViewContent />
+      </span>
+    );
+  }
 
   return (
     <Popover

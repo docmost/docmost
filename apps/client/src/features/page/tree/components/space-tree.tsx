@@ -16,6 +16,8 @@ import {
   buildTree,
   buildTreeWithChildren,
   mergeRootTrees,
+  spaceRoots,
+  updateSpaceRoots,
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { getPageTitle } from "@/features/page/page.utils";
@@ -66,18 +68,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     const allItems = pagesData.pages.flatMap((page) => page.items);
     const treeData = buildTree(allItems);
 
-    setData((prev) => {
-      // Keep nodes belonging to other spaces — filteredData filters by spaceId
-      // for rendering, so accumulating is safe. Preserves lazy-loaded children
-      // and open-state when the user returns to a previously-visited space.
-      const otherSpaces = prev.filter((n) => n?.spaceId !== spaceId);
-      const currentSpace = prev.filter((n) => n?.spaceId === spaceId);
-      const refreshed =
-        currentSpace.length > 0
-          ? mergeRootTrees(currentSpace, treeData)
-          : treeData;
-      return [...otherSpaces, ...refreshed];
-    });
+    // Keep nodes belonging to other spaces — filteredData filters by spaceId
+    // for rendering, so accumulating is safe. Preserves lazy-loaded children
+    // and open-state when the user returns to a previously-visited space.
+    setData((prev) =>
+      updateSpaceRoots(prev, spaceId, (roots) =>
+        roots.length > 0 ? mergeRootTrees(roots, treeData) : treeData,
+      ),
+    );
     setIsDataLoaded(true);
   }, [pagesData, hasNextPage, spaceId]);
 
@@ -183,7 +181,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   );
 
   const filteredData = useMemo(
-    () => data.filter((node) => node?.spaceId === spaceId),
+    () => spaceRoots(data, spaceId),
     [data, spaceId],
   );
 

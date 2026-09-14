@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { Group, Select, SelectProps, Text } from "@mantine/core";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
@@ -14,6 +14,7 @@ interface SpaceSelectProps {
   width?: number;
   opened?: boolean;
   clearable?: boolean;
+  withinPortal?: boolean;
 }
 
 const renderSelectOption: SelectProps["renderOption"] = ({ option }) => (
@@ -41,6 +42,7 @@ export function SpaceSelect({
   width,
   opened,
   clearable,
+  withinPortal = true,
 }: SpaceSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
@@ -50,9 +52,13 @@ export function SpaceSelect({
     limit: 50,
   });
   const [data, setData] = useState([]);
+  const fetchedSpaces = useRef(new Map<string, ISpace>());
 
   useEffect(() => {
     if (spaces) {
+      spaces.items.forEach((space: ISpace) =>
+        fetchedSpaces.current.set(space.slug, space),
+      );
       const spaceData = spaces?.items
         .filter((space: ISpace) => space.slug !== value)
         .map((space: ISpace) => {
@@ -83,14 +89,19 @@ export function SpaceSelect({
       onSearchChange={setSearchValue}
       clearable={clearable}
       variant="filled"
-      onChange={(slug) =>
-        onChange(spaces.items?.find((item) => item.slug === slug))
-      }
+      onChange={(slug) => {
+        // options accumulate across fetches; resolve against everything
+        // fetched, not just the latest query result
+        const space = slug && fetchedSpaces.current.get(slug);
+        if (space) {
+          onChange(space);
+        }
+      }}
       onClick={(e) => e.stopPropagation()}
       nothingFoundMessage={t("No space found")}
       limit={50}
       checkIconPosition="right"
-      comboboxProps={{ width, withinPortal: true, position: "bottom", keepMounted: false, dropdownPadding: 0 }}
+      comboboxProps={{ width, withinPortal, position: "bottom", keepMounted: false, dropdownPadding: 0 }}
       dropdownOpened={opened}
     />
   );

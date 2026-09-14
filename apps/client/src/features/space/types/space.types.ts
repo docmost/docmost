@@ -30,6 +30,7 @@ export interface ISpace {
   createdAt: Date;
   updatedAt: Date;
   memberCount?: number;
+  isPublished?: boolean;
   spaceId?: string;
   membership?: IMembership;
   settings?: ISpaceSettings;

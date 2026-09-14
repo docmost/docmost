@@ -1,17 +1,16 @@
 import { useState, useMemo } from "react";
 import { Group, MultiSelect, Select, Space, TextInput } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { IconSearch } from "@tabler/icons-react";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
 import Paginate from "@/components/common/paginate";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useVerificationListQuery } from "@/ee/page-verification/queries/page-verification-query";
 import { IVerificationListParams } from "@/ee/page-verification/types/page-verification.types";
 import VerificationListTable from "@/ee/page-verification/components/verification-list-table";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function VerifiedPages() {
   const { t } = useTranslation();
@@ -68,11 +67,7 @@ export default function VerifiedPages() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {t("Verified pages")} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={t("Verified pages")} />
 
       <SettingsTitle title={t("Verified pages")} />
 

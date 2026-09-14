@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsNumber,
@@ -8,9 +9,9 @@ import {
 } from 'class-validator';
 
 export class SearchDTO {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  query: string;
+  query?: string;
 
   @IsOptional()
   @IsUUID()
@@ -23,6 +24,15 @@ export class SearchDTO {
   @IsOptional()
   @IsUUID()
   creatorId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  labelIds?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  titleOnly?: boolean;
 
   @IsOptional()
   @IsNumber()
@@ -41,6 +51,12 @@ export class SearchShareDTO extends SearchDTO {
   @IsOptional()
   @IsUUID()
   spaceId: string;
+}
+
+export class SearchPublicSpaceDTO extends SearchDTO {
+  @IsNotEmpty()
+  @IsString()
+  spaceSlug: string;
 }
 
 export class SearchSuggestionDTO {

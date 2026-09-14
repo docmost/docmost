@@ -106,6 +106,9 @@ export function PdfMenu({ editor }: EditorMenuProps) {
     <BaseBubbleMenu
       editor={editor}
       pluginKey={`pdf-menu`}
+      ref={(element) => {
+        if (element) element.style.zIndex = "99";
+      }}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{

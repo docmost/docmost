@@ -161,6 +161,22 @@ export class PageRepo {
     return result;
   }
 
+  async lockPageHierarchySpaces(
+    spaceIds: string[],
+    trx: KyselyTransaction,
+  ): Promise<void> {
+    const sortedSpaceIds = [...new Set(spaceIds)].sort();
+
+    for (const spaceId of sortedSpaceIds) {
+      await sql`
+        SELECT pg_advisory_xact_lock(
+          hashtext('page-hierarchy'),
+          hashtext(${spaceId})
+        )
+      `.execute(trx);
+    }
+  }
+
   async insertPage(
     insertablePage: InsertablePage,
     trx?: KyselyTransaction,
@@ -489,9 +505,9 @@ export class PageRepo {
 
   async getPageAndDescendants(
     parentPageId: string,
-    opts: { includeContent: boolean },
+    opts: { includeContent: boolean; trx?: KyselyTransaction },
   ) {
-    return this.db
+    return dbOrTx(this.db, opts.trx)
       .withRecursive('page_hierarchy', (db) =>
         db
           .selectFrom('pages')
@@ -533,6 +549,36 @@ export class PageRepo {
       .selectFrom('page_hierarchy')
       .selectAll()
       .execute();
+  }
+
+  async isPageDescendant(
+    ancestorPageId: string,
+    descendantPageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<boolean> {
+    const result = await dbOrTx(this.db, trx)
+      .withRecursive('page_ancestors', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id', 'parentPageId'])
+          .where('id', '=', descendantPageId)
+          .union((exp) =>
+            exp
+              .selectFrom('pages as parent')
+              .select(['parent.id', 'parent.parentPageId'])
+              .innerJoin(
+                'page_ancestors as ancestor',
+                'ancestor.parentPageId',
+                'parent.id',
+              ),
+          ),
+      )
+      .selectFrom('page_ancestors')
+      .select('id')
+      .where('id', '=', ancestorPageId)
+      .executeTakeFirst();
+
+    return Boolean(result);
   }
 
   /**
@@ -604,5 +650,84 @@ export class PageRepo {
         .where('isRestricted', '=', false)
         .execute()
     );
+  }
+
+  /**
+   * All pages of a space excluding restricted subtrees.
+   * Used by public spaces; a restricted page hides its whole subtree.
+   */
+  async getSpacePagesExcludingRestricted(spaceId: string) {
+    return this.db
+      .withRecursive('page_hierarchy', (db) =>
+        db
+          .selectFrom('pages')
+          .leftJoin('pageAccess', 'pageAccess.pageId', 'pages.id')
+          .select([
+            'pages.id',
+            'pages.slugId',
+            'pages.title',
+            'pages.icon',
+            'pages.position',
+            'pages.parentPageId',
+            'pages.spaceId',
+            'pages.workspaceId',
+            sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+          ])
+          .where('pages.spaceId', '=', spaceId)
+          .where('pages.parentPageId', 'is', null)
+          .where('pages.deletedAt', 'is', null)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
+              .leftJoin('pageAccess', 'pageAccess.pageId', 'p.id')
+              .select([
+                'p.id',
+                'p.slugId',
+                'p.title',
+                'p.icon',
+                'p.position',
+                'p.parentPageId',
+                'p.spaceId',
+                'p.workspaceId',
+                sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+              ])
+              .where('p.deletedAt', 'is', null)
+              .where('ph.isRestricted', '=', false),
+          ),
+      )
+      .selectFrom('page_hierarchy')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'workspaceId',
+      ])
+      .where('isRestricted', '=', false)
+      .execute();
+  }
+
+  async getFirstUnrestrictedRootPage(spaceId: string) {
+    return this.db
+      .selectFrom('pages')
+      .select(['id', 'slugId'])
+      .where('spaceId', '=', spaceId)
+      .where('parentPageId', 'is', null)
+      .where('deletedAt', 'is', null)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('pageAccess')
+              .select('pageAccess.id')
+              .whereRef('pageAccess.pageId', '=', 'pages.id'),
+          ),
+        ),
+      )
+      .orderBy('position', (ob) => ob.collate('C').asc())
+      .executeTakeFirst();
   }
 }

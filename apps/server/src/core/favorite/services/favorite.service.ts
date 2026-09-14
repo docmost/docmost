@@ -6,14 +6,12 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { InsertableFavorite } from '@docmost/db/types/entity.types';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
 export class FavoriteService {
   constructor(
     private readonly favoriteRepo: FavoriteRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
-    private readonly spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
   async getFavoriteIds(
@@ -41,12 +39,6 @@ export class FavoriteService {
         });
       const accessibleSet = new Set(accessibleIds);
       result.items = result.items.filter((id) => accessibleSet.has(id));
-    }
-
-    if (type === FavoriteType.SPACE) {
-      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
-      const spaceSet = new Set(userSpaceIds);
-      result.items = result.items.filter((id) => spaceSet.has(id));
     }
 
     return result;
@@ -111,9 +103,6 @@ export class FavoriteService {
       return result;
     }
 
-    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
-    const spaceSet = new Set(userSpaceIds);
-
     const pageFavorites = result.items.filter(
       (f) => f.type === FavoriteType.PAGE && f.pageId,
     );
@@ -129,19 +118,11 @@ export class FavoriteService {
       accessiblePageSet = new Set(accessibleIds);
     }
 
-    result.items = result.items.filter((f) => {
-      if (f.type === FavoriteType.PAGE) {
-        return f.pageId && accessiblePageSet?.has(f.pageId);
-      }
-      if (f.type === FavoriteType.SPACE) {
-        return f.spaceId && spaceSet.has(f.spaceId);
-      }
-      if (f.type === FavoriteType.TEMPLATE) {
-        const templateSpaceId = (f as any).template?.spaceId;
-        return !templateSpaceId || spaceSet.has(templateSpaceId);
-      }
-      return true;
-    });
+    result.items = result.items.filter(
+      (f) =>
+        f.type !== FavoriteType.PAGE ||
+        (f.pageId && accessiblePageSet?.has(f.pageId)),
+    );
 
     return result;
   }

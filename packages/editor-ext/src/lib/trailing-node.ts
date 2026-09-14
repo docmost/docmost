@@ -7,7 +7,17 @@ export interface TrailingNodeExtensionOptions {
 }
 
 function nodeEqualsType({ types, node }: { types: any, node: any }) {
+  if (!node) return false
   return (Array.isArray(types) && types.includes(node.type)) || node.type === types
+}
+
+// footnotes must stay the last doc child, so the trailing node goes before it
+function lastNodeBeforeFootnotes(doc: any) {
+  const lastChild = doc.lastChild
+  if (lastChild?.type.name === 'footnotes') {
+    return doc.childCount > 1 ? doc.child(doc.childCount - 2) : null
+  }
+  return lastChild
 }
 
 // @ts-ignore
@@ -40,19 +50,23 @@ export const TrailingNode = Extension.create<TrailingNodeExtensionOptions>({
         appendTransaction: (_, __, state) => {
           const { doc, tr, schema } = state;
           const shouldInsertNodeAtEnd = plugin.getState(state);
-          const endPosition = doc.content.size;
           const type = schema.nodes[this.options.node]
 
           if (!shouldInsertNodeAtEnd) {
             return;
           }
 
+          const lastChild = doc.lastChild
+          const endPosition = lastChild?.type.name === 'footnotes'
+            ? doc.content.size - lastChild.nodeSize
+            : doc.content.size
+
           return tr.insert(endPosition, type.create());
         },
         state: {
           init: (_, state) => {
             try {
-              const lastNode = state.tr.doc.lastChild
+              const lastNode = lastNodeBeforeFootnotes(state.tr.doc)
               return !nodeEqualsType({ node: lastNode, types: disabledNodes })
             } catch (err){
               console.log(err)
@@ -70,7 +84,7 @@ export const TrailingNode = Extension.create<TrailingNodeExtensionOptions>({
               return value
             }
 
-            const lastNode = tr.doc.lastChild
+            const lastNode = lastNodeBeforeFootnotes(tr.doc)
             return !nodeEqualsType({ node: lastNode, types: disabledNodes })
           },
         },

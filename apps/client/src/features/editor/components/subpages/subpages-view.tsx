@@ -3,30 +3,59 @@ import { Stack, Text, Anchor, ActionIcon } from "@mantine/core";
 import { IconFileDescription } from "@tabler/icons-react";
 import { useGetSidebarPagesQuery } from "@/features/page/queries/page-query";
 import { useMemo } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import classes from "./subpages.module.css";
 import styles from "../mention/mention.module.css";
 import {
   buildPageUrl,
+  buildPublicSpaceUrl,
   buildSharedPageUrl,
 } from "@/features/page/page.utils.ts";
 import { useTranslation } from "react-i18next";
 import { sortPositionKeys } from "@/features/page/tree/utils/utils";
 import { useSharedPageSubpages } from "@/features/share/hooks/use-shared-page-subpages";
+import { useAtomValue } from "jotai";
+import { publicSpaceTreeDataAtom } from "@/features/public-space/atoms/public-space-atoms.ts";
+import { findSubpagesInTree } from "@/features/share/utils";
+import { extractPageSlugId } from "@/lib";
 
 export default function SubpagesView(props: NodeViewProps) {
   const { editor } = props;
-  const { spaceSlug, shareId } = useParams();
+  const { spaceSlug, shareId, pageSlug } = useParams();
   const { t } = useTranslation();
+  const location = useLocation();
+  const isPublicSpaceRoute = location.pathname.startsWith("/docs/");
 
-  //@ts-ignore
-  const currentPageId = editor.storage.pageId;
+  const publicSpaceTreeData = useAtomValue(publicSpaceTreeDataAtom);
+
+  // @ts-ignore
+  const storagePageId = editor.storage.pageId;
+  const routePageId = extractPageSlugId(pageSlug);
+  let currentPageId = storagePageId;
+
+  if (shareId){
+    currentPageId = routePageId;
+  }
+
+  // Public docs must resolve the page from the route, not editor storage:
+  // storage.pageId is set after this view's first render and is not reactive,
+  // which froze the list at "No subpages" until something re-rendered it. The
+  // space home renders at the bare URL, so it falls back to the first root.
+  if (isPublicSpaceRoute) {
+    currentPageId = routePageId ?? publicSpaceTreeData?.[0]?.slugId;
+  }
 
   // Get subpages from shared tree if we're in a shared context
   const sharedSubpages = useSharedPageSubpages(currentPageId);
+  const publicSpaceSubpages = useMemo(
+    () => findSubpagesInTree(publicSpaceTreeData, currentPageId),
+    [publicSpaceTreeData, currentPageId],
+  );
+
+  const isPublicView = Boolean(shareId) || isPublicSpaceRoute;
 
   const { data, isLoading, error } = useGetSidebarPagesQuery(
-    shareId ? null : { pageId: currentPageId },
+    isPublicView ? null : { pageId: currentPageId },
   );
 
   const subpages = useMemo(() => {
@@ -41,17 +70,33 @@ export default function SubpagesView(props: NodeViewProps) {
       }));
     }
 
+    if (isPublicSpaceRoute) {
+      return publicSpaceSubpages.map((node) => ({
+        id: node.value,
+        slugId: node.slugId,
+        title: node.name,
+        icon: node.icon,
+        position: node.position,
+      }));
+    }
+
     // Otherwise use the API data
     if (!data?.pages) return [];
     const allPages = data.pages.flatMap((page) => page.items);
     return sortPositionKeys(allPages);
-  }, [data, shareId, sharedSubpages]);
+  }, [
+    data,
+    shareId,
+    sharedSubpages,
+    isPublicSpaceRoute,
+    publicSpaceSubpages,
+  ]);
 
-  if (isLoading && !shareId) {
+  if (isLoading && !isPublicView) {
     return null;
   }
 
-  if (error && !shareId) {
+  if (error && !isPublicView) {
     return (
       <NodeViewWrapper data-drag-handle>
         <Text c="dimmed" size="md" py="md">
@@ -89,7 +134,13 @@ export default function SubpagesView(props: NodeViewProps) {
                       pageSlugId: page.slugId,
                       pageTitle: page.title,
                     })
-                  : buildPageUrl(spaceSlug, page.slugId, page.title)
+                  : isPublicSpaceRoute
+                    ? buildPublicSpaceUrl({
+                        spaceSlug,
+                        pageSlugId: page.slugId,
+                        pageTitle: page.title,
+                      })
+                    : buildPageUrl(spaceSlug, page.slugId, page.title)
               }
               underline="never"
               className={styles.pageMentionLink}

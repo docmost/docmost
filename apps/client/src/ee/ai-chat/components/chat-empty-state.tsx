@@ -6,7 +6,10 @@ import {
   IconFileText,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import ChatInput from "./chat-input";
+import { useAtomValue } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { useRef } from "react";
+import ChatInput, { ChatInputHandle } from "./chat-input";
 import type { ChatAttachment, PageMention } from "../types/ai-chat.types";
 import classes from "../styles/ai-chat.module.css";
 
@@ -14,6 +17,7 @@ type Suggestion = {
   icon: React.ReactNode;
   text: string;
   prompt: string;
+  write?: boolean;
 };
 
 const SUGGESTIONS: Suggestion[] = [
@@ -26,6 +30,7 @@ const SUGGESTIONS: Suggestion[] = [
     icon: <IconFilePlus size={16} />,
     text: "Create a new page",
     prompt: "Create a new page titled ",
+    write: true,
   },
   {
     icon: <IconFileText size={16} />,
@@ -36,6 +41,7 @@ const SUGGESTIONS: Suggestion[] = [
     icon: <IconEdit size={16} />,
     text: "Update page content",
     prompt: "Update the page @",
+    write: true,
   },
 ];
 
@@ -47,9 +53,13 @@ type Props = {
 
 export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
   const { t } = useTranslation();
+  const workspace = useAtomValue(workspaceAtom);
+  const writesDisabled = workspace?.settings?.ai?.chatReadOnly === true;
+
+  const inputRef = useRef<ChatInputHandle>(null);
 
   const handleSuggestionClick = (prompt: string) => {
-    onSend(prompt, [], []);
+    inputRef.current?.prefill(prompt);
   };
 
   return (
@@ -62,6 +72,7 @@ export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
 
       <div className={classes.emptyStateInput}>
         <ChatInput
+          ref={inputRef}
           isStreaming={isStreaming}
           onSend={onSend}
           onStop={onStop}
@@ -73,7 +84,7 @@ export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
       <div className={classes.suggestionsSection}>
         <h2 className={classes.suggestionsLabel}>{t("Get started")}</h2>
         <div className={classes.suggestionsGrid}>
-          {SUGGESTIONS.map((s) => (
+          {SUGGESTIONS.filter((s) => !writesDisabled || !s.write).map((s) => (
             <button
               key={s.text}
               type="button"

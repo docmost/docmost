@@ -1,5 +1,6 @@
 import {
   Anchor,
+  Badge,
   Group,
   List,
   Text,
@@ -107,10 +108,10 @@ export default function McpSettings() {
             </CopyButton>
           </Group>
           <Text size="sm" c="dimmed" mt="xs">
-            {t(
-              "Use your API key for authentication. You can manage API keys in your account settings.",
-            )}
+            {t("Connect AI assistants with your Docmost account via OAuth.")}
           </Text>
+
+          <McpEnforceOauthSetting />
 
           <div>
             <Text size="sm" fw={500} mt="md" mb={4}>
@@ -152,5 +153,58 @@ export default function McpSettings() {
         </div>
       )}
     </Stack>
+  );
+}
+
+function McpEnforceOauthSetting() {
+  const { t } = useTranslation();
+  const [workspace, setWorkspace] = useAtom(workspaceAtom);
+  const [checked, setChecked] = useState(workspace?.settings?.ai?.enforceMcpOauth);
+  const hasAccess = useHasFeature(Feature.MCP_CONTROLS);
+  const upgradeLabel = useUpgradeLabel();
+
+  const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.currentTarget.checked;
+    try {
+      const updatedWorkspace = await updateWorkspace({ enforceMcpOauth: value });
+      setChecked(value);
+      setWorkspace(updatedWorkspace);
+    } catch (err) {
+      notifications.show({
+        message: err?.response?.data?.message,
+        color: "red",
+      });
+    }
+  };
+
+  return (
+    <Group justify="space-between" wrap="nowrap" gap="xl" mt="md">
+      <div>
+        <Group gap="xs" align="center">
+          <Text size="sm" fw={500}>
+            {t("Enforce OAuth")}
+          </Text>
+          {!hasAccess && (
+            <Badge variant="light" size="sm" radius="sm">
+              {t("Enterprise")}
+            </Badge>
+          )}
+        </Group>
+        <Text size="sm" c="dimmed">
+          {t(
+            "AI assistants must connect with a Docmost account via OAuth. API keys cannot be used with the MCP server.",
+          )}
+        </Text>
+      </div>
+
+      <Tooltip label={upgradeLabel} disabled={hasAccess} refProp="rootRef">
+        <Switch
+          defaultChecked={checked}
+          onChange={handleChange}
+          disabled={!hasAccess}
+          aria-label={t("Toggle enforce OAuth for MCP")}
+        />
+      </Tooltip>
+    </Group>
   );
 }

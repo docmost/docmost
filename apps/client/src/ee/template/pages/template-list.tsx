@@ -13,11 +13,9 @@ import {
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { IconPlus } from "@tabler/icons-react";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useDisclosure } from "@mantine/hooks";
-import { getAppName } from "@/lib/config";
 import {
   useGetTemplatesQuery,
   useDeleteTemplateMutation,
@@ -31,6 +29,7 @@ import useUserRole from "@/hooks/use-user-role";
 import CreateTemplateModal from "@/ee/template/components/create-template-modal";
 import { useAtomValue } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function TemplateList() {
   const { t } = useTranslation();
@@ -102,11 +101,7 @@ export default function TemplateList() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {t("Templates")} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={t("Templates")} />
 
       <Container size="900" pt="xl">
         <Group justify="space-between" mb="xl">

@@ -32,6 +32,13 @@ api.interceptors.response.use(
           const url = new URL(error.request.responseURL)?.pathname;
           if (url === "/api/auth/collab-token") return;
           if (window.location.pathname.startsWith("/share/")) return;
+          // public docs probe authed endpoints; reject without the login redirect
+          if (
+            window.location.pathname === "/docs" ||
+            window.location.pathname.startsWith("/docs/")
+          ) {
+            break;
+          }
 
           // Handle unauthorized error
           redirectToLogin();
@@ -76,6 +83,8 @@ function redirectToLogin() {
     APP_ROUTE.AUTH.MFA_CHALLENGE,
     APP_ROUTE.AUTH.MFA_SETUP_REQUIRED,
     "/invites",
+    // the oauth consent page redirects to login itself, preserving its query string
+    "/oauth/consent",
   ];
   if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
     const redirectTo = window.location.pathname;
