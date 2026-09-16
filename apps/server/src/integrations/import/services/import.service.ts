@@ -31,6 +31,11 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
+import { getMimeType } from '../../../common/helpers';
+import {
+  getAttachmentFolderPath,
+} from '../../../core/attachment/attachment.utils';
+import { AttachmentType } from '../../../core/attachment/attachment.constants';
 
 @Injectable()
 export class ImportService {
@@ -202,33 +207,106 @@ export class ImportService {
     pageId: string,
     userId: string,
   ): Promise<any> {
-    let PdfImportModule: any;
+    let processPdfWithImages: any;
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      PdfImportModule = require('./../../../ee/document-import/pdf-import.service');
+      const pdfInspector = require('@docmost/pdf-inspector');
+      processPdfWithImages = pdfInspector.processPdfWithImages;
     } catch (err) {
       this.logger.error(
-        'PDF import requested but EE module not bundled in this build',
+        'PDF import requested but @docmost/pdf-inspector is not installed',
+        err,
       );
       throw new BadRequestException(
-        'This feature requires a valid enterprise license.',
+        'PDF import is not available. @docmost/pdf-inspector is not installed.',
       );
     }
 
-    const pdfImportService = this.moduleRef.get(
-      PdfImportModule.PdfImportService,
-      { strict: false },
-    );
+    const result = processPdfWithImages(fileBuffer);
+    let markdown: string = result.markdown ?? '';
 
-    const html = await pdfImportService.convertPdfToHtml(
-      fileBuffer,
-      workspaceId,
-      spaceId,
-      pageId,
-      userId,
-    );
+    if (!markdown || !markdown.trim()) {
+      return this.processHTML('<p></p>');
+    }
 
+    if (result.images && result.images.length > 0) {
+      markdown = await this.rewritePdfImagePlaceholders(
+        markdown,
+        result.images,
+        workspaceId,
+        spaceId,
+        pageId,
+        userId,
+      );
+    }
+
+    const html = await markdownToHtml(markdown);
     return this.processHTML(html);
+  }
+
+  async rewritePdfImagePlaceholders(
+    markdown: string,
+    images: Array<{
+      data: Buffer;
+      format: string;
+      width: number;
+      height: number;
+      page: number;
+    }>,
+    workspaceId: string,
+    spaceId: string,
+    pageId: string,
+    userId: string,
+  ): Promise<string> {
+    let result = markdown;
+
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const placeholder = `pdf-image://${i}`;
+      if (!result.includes(placeholder)) continue;
+
+      const attachmentId = uuid7();
+      const ext = img.format === 'Jpeg' ? '.jpg' : '.png';
+      const fileName = `${attachmentId}${ext}`;
+      const storageFilePath = `${getAttachmentFolderPath(
+        AttachmentType.File,
+        workspaceId,
+      )}/${attachmentId}/${fileName}`;
+      const apiFilePath = `/api/files/${attachmentId}/${fileName}`;
+
+      try {
+        await this.storageService.upload(storageFilePath, img.data);
+
+        await this.db
+          .insertInto('attachments')
+          .values({
+            id: attachmentId,
+            filePath: storageFilePath,
+            fileName,
+            fileSize: img.data.length,
+            mimeType: getMimeType(fileName),
+            type: AttachmentType.File,
+            fileExt: ext,
+            creatorId: userId,
+            workspaceId,
+            pageId,
+            spaceId,
+          })
+          .execute();
+
+        const width = img.width || 600;
+        const imgTag = `<img src="${apiFilePath}" data-attachment-id="${attachmentId}" width="${width}" data-align="center" alt="PDF image ${i + 1}">`;
+
+        result = result.split(placeholder).join(imgTag);
+      } catch (err: any) {
+        this.logger.error(
+          `Failed to upload PDF image ${i}: ${err?.message ?? err}`,
+        );
+        result = result.split(placeholder).join('');
+      }
+    }
+
+    return result;
   }
 
   async createYdoc(prosemirrorJson: any): Promise<Buffer | null> {
