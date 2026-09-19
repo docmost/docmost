@@ -44,6 +44,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     ON page_analytics (
       workspace_id,
       page_id,
+      view_date,
       COALESCE(user_id::text, visitor_id)
     )
   `.execute(db);

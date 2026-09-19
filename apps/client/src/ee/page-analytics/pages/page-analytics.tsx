@@ -37,8 +37,10 @@ import {
   RetentionUnit,
   toISODate,
 } from "@/ee/utils";
+import { DatePickerInput } from "@mantine/dates";
+import { parseISO } from "date-fns";
 
-type RangePreset = "7" | "30" | "90";
+type RangePreset = "7" | "30" | "90" | "custom";
 
 const DAILY_PAGE_SIZE = 10;
 
@@ -46,6 +48,12 @@ export default function PageAnalytics() {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
   const [rangePreset, setRangePreset] = useState<RangePreset>("30");
+  const [customStartDate, setCustomStartDate] = useState<Date | null>(() =>
+    parseISO(toISODate(30))
+  );
+  const [customEndDate, setCustomEndDate] = useState<Date | null>(
+    () => new Date()
+  );
   const [topPagesLimit, setTopPagesLimit] = useState("10");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -89,13 +97,26 @@ export default function PageAnalytics() {
     resetCursor: resetDailyCursor,
   } = useCursorPaginate();
 
-  const dateRange = useMemo(
-    () => ({
+  const resetCursors = () => {
+    resetTopPagesCursor();
+    resetDailyCursor();
+  }
+
+  const dateRange = useMemo(() => {
+    const defaultEnd = new Date().toISOString().slice(0, 10);
+
+    if (rangePreset === "custom" && customStartDate) {
+      return {
+        startDate: customStartDate?.toISOString().slice(0, 10),
+        endDate: customEndDate?.toISOString().slice(0, 10) ?? defaultEnd,
+      };
+    }
+
+    return {
       startDate: toISODate(rangePreset),
-      endDate: new Date().toISOString().slice(0, 10),
-    }),
-    [rangePreset]
-  );
+      endDate: defaultEnd,
+    };
+  }, [rangePreset, customStartDate, customEndDate]);
 
   const topPagesParams = useMemo(
     () => ({
@@ -136,8 +157,7 @@ export default function PageAnalytics() {
   const handleRangeChange = (value: RangePreset) => {
     if (value) {
       setRangePreset(value);
-      resetTopPagesCursor();
-      resetDailyCursor();
+      resetCursors();
     }
   };
 
@@ -166,11 +186,42 @@ export default function PageAnalytics() {
             { value: "7", label: t("Last 7 days") },
             { value: "30", label: t("Last 30 days") },
             { value: "90", label: t("Last 90 days") },
+            { value: "custom", label: t("Custom range") },
           ]}
           w={160}
           size="sm"
           allowDeselect={false}
         />
+        {rangePreset === "custom" && (
+          <Group gap="xs">
+            <DatePickerInput
+              type="default"
+              value={customStartDate}
+              onChange={(value) => {
+                setCustomStartDate(value ? parseISO(value) : null);
+                resetCursors();
+              }}
+              valueFormat="MMM DD, YYYY"
+              placeholder={t("Start date")}
+              maxDate={customEndDate}
+              size="sm"
+            />
+
+            <DatePickerInput
+              type="default"
+              value={customEndDate}
+              onChange={(value) => {
+                setCustomEndDate(value ? parseISO(value) : null);
+                resetCursors();
+              }}
+              valueFormat="MMM DD, YYYY"
+              placeholder={t("End date")}
+              minDate={customStartDate}
+              maxDate={new Date()}
+              size="sm"
+            />
+          </Group>
+        )}
         <Popover
           position="bottom-end"
           shadow="md"
