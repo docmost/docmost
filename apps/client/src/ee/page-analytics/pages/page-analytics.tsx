@@ -29,7 +29,7 @@ import {
 } from "@/ee/page-analytics/queries/page-analytics-query";
 import { Link } from "react-router-dom";
 import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale";
-import { IconSettings } from "@tabler/icons-react";
+import { IconArrowRight, IconSettings } from "@tabler/icons-react";
 import {
   daysToRetention,
   formatNumber,
@@ -194,32 +194,36 @@ export default function PageAnalytics() {
         />
         {rangePreset === "custom" && (
           <Group gap="xs">
-            <DatePickerInput
-              type="default"
-              value={customStartDate}
-              onChange={(value) => {
-                setCustomStartDate(value ? parseISO(value) : null);
-                resetCursors();
-              }}
-              valueFormat="MMM DD, YYYY"
-              placeholder={t("Start date")}
-              maxDate={customEndDate}
-              size="sm"
-            />
-
-            <DatePickerInput
-              type="default"
-              value={customEndDate}
-              onChange={(value) => {
-                setCustomEndDate(value ? parseISO(value) : null);
-                resetCursors();
-              }}
-              valueFormat="MMM DD, YYYY"
-              placeholder={t("End date")}
-              minDate={customStartDate}
-              maxDate={new Date()}
-              size="sm"
-            />
+            <Tooltip label={t("Start date")}>
+              <DatePickerInput
+                type="default"
+                value={customStartDate}
+                onChange={(value) => {
+                  setCustomStartDate(value ? parseISO(value) : null);
+                  resetCursors();
+                }}
+                valueFormat="MMM DD, YYYY"
+                placeholder={t("Start date")}
+                maxDate={customEndDate}
+                size="sm"
+              />
+            </Tooltip>
+            <IconArrowRight size={12} />
+            <Tooltip label={t("End date")}>
+              <DatePickerInput
+                type="default"
+                value={customEndDate}
+                onChange={(value) => {
+                  setCustomEndDate(value ? parseISO(value) : null);
+                  resetCursors();
+                }}
+                valueFormat="MMM DD, YYYY"
+                placeholder={t("End date")}
+                minDate={customStartDate}
+                maxDate={new Date()}
+                size="sm"
+              />
+            </Tooltip>
           </Group>
         )}
         <Popover
