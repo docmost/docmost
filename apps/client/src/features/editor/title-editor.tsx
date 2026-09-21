@@ -1,5 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
@@ -54,6 +54,10 @@ export function TitleEditor({
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
+  // The title we last pushed to the server. Lets the reconcile effect below
+  // tell our own save echo apart from a genuine remote rename.
+  const lastSentTitleRef = useRef<string | null>(title);
+  const syncedPageIdRef = useRef(pageId);
   const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
 
   const titleEditor = useEditor({
@@ -132,9 +136,12 @@ export function TitleEditor({
       return;
     }
 
+    const outgoingTitle = titleEditor.getText();
+    lastSentTitleRef.current = outgoingTitle;
+
     updateTitlePageMutationAsync({
       pageId: pageId,
-      title: titleEditor.getText(),
+      title: outgoingTitle,
     }).then((page) => {
       const event: UpdateEvent = {
         operation: "updateOne",
@@ -161,13 +168,21 @@ export function TitleEditor({
   const debounceUpdate = useDebouncedCallback(saveTitle, 500);
 
   useEffect(() => {
-    if (
-      titleEditor &&
-      !titleEditor.isDestroyed &&
-      title !== titleEditor.getText()
-    ) {
-      titleEditor.commands.setContent(title);
-    }
+    const pageChanged = syncedPageIdRef.current !== pageId;
+    syncedPageIdRef.current = pageId;
+
+    if (!titleEditor || titleEditor.isDestroyed) return;
+    if (title === titleEditor.getText()) return;
+
+    // A save response lands asynchronously: the mutation's `.then` checks the
+    // editor text, but this effect only runs after React re-renders, so a
+    // keystroke can slip into that gap. Adopting the cached title then would
+    // drop the character just typed and reset the caret. Our own echo is
+    // always stale in that window, so only a remote rename (or an actual page
+    // switch) may replace what's in the editor.
+    if (!pageChanged && title === lastSentTitleRef.current) return;
+
+    titleEditor.commands.setContent(title);
   }, [pageId, title, titleEditor]);
 
   useEffect(() => {
