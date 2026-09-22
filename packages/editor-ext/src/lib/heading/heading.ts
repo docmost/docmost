@@ -65,6 +65,18 @@ export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
       }),
     ];
   },
+  parseHTML() {
+    return [
+      {
+        tag: 'h1',
+        attrs: { level: this.options.levels[0] },
+      },
+      ...this.options.levels.map((level: number) => ({
+        tag: `h${level}`,
+        attrs: { level },
+      })),
+    ];
+  },
   renderHTML({ node, HTMLAttributes }) {
     const hasLevel = this.options.levels.includes(node.attrs.level);
     const level = hasLevel ? node.attrs.level : this.options.levels[0];

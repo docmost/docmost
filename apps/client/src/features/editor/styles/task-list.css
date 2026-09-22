@@ -14,6 +14,7 @@ ul[data-type="taskList"] {
             flex: 0 0 auto;
             margin-right: 0.5rem;
             user-select: none;
+            pointer-events: none;
         }
 
         > div {
@@ -35,5 +36,6 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     width: 1em;
     height: 1em;
     cursor: pointer;
+    pointer-events: auto;
 }
 
