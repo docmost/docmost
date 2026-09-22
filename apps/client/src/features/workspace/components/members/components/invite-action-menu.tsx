@@ -26,13 +26,20 @@ export default function InviteActionMenu({ invitationId }: Props) {
   const handleCopyLink = async (invitationId: string) => {
     try {
       const link = await getInviteLink({ invitationId });
-      const url = new URL(link.inviteLink);
-      const inviteLink = `${window.location.origin}${url.pathname}${url.search}`;
+      let inviteLink = link?.inviteLink || "";
+      try {
+        const url = new URL(link.inviteLink);
+        inviteLink = `${window.location.origin}${url.pathname}${url.search}`;
+      } catch {
+        if (inviteLink.startsWith("/")) {
+          inviteLink = `${window.location.origin}${inviteLink}`;
+        }
+      }
       clipboard.copy(inviteLink);
       notifications.show({ message: t("Link copied") });
     } catch (err) {
       notifications.show({
-        message: err["response"]?.data?.message,
+        message: err["response"]?.data?.message || t("Failed to copy link"),
         color: "red",
       });
     }
