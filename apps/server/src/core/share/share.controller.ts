@@ -35,6 +35,10 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import {
+  PAGE_ANALYTICS_SERVICE,
+  IPageAnalyticsService,
+} from '../../integrations/page-analytics/page-analytics.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -47,6 +51,8 @@ export class ShareController {
     private readonly pageAccessService: PageAccessService,
     private readonly licenseCheckService: LicenseCheckService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    @Inject(PAGE_ANALYTICS_SERVICE)
+    private readonly pageAnalyticsService: IPageAnalyticsService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -78,6 +84,14 @@ export class ShareController {
     if (!sharingAllowed) {
       throw new NotFoundException('Shared page not found');
     }
+
+    void this.pageAnalyticsService.track({
+      pageId: shareData.page.id,
+      workspaceId: workspace.id,
+      spaceId: shareData.page.spaceId,
+      shareId: shareData.share.id,
+      userId: null,
+    });
 
     return {
       ...shareData,

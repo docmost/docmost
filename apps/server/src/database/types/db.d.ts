@@ -474,6 +474,7 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
+  pageAnalyticsRetentionDays: Generated<number>;
   auditRetentionDays: Generated<number>;
   trashRetentionDays: Generated<number>;
   billingEmail: string | null;
@@ -579,6 +580,20 @@ export interface PagePermissions {
   addedById: string | null;
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
+}
+
+export interface PageAnalytics {
+  id: Generated<string>;
+  workspaceId: string;
+  pageId: string;
+  spaceId: string | null;
+  shareId: string | null;
+  userId: string | null;
+  visitorId: string;
+  viewDate: string;
+  hits: Generated<number>;
+  lastViewedAt: Generated<Timestamp>;
+  createdAt: Generated<Timestamp>;
 }
 
 export interface PageVerifications {
@@ -756,6 +771,7 @@ export interface DB {
   pagePermissions: PagePermissions;
   pageHistory: PageHistory;
   pageLabels: PageLabels;
+  pageAnalytics: PageAnalytics;
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
   pages: Pages;
