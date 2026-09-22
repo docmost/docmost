@@ -412,8 +412,8 @@ importers:
         specifier: 9.28.0
         version: 9.28.0
       '@tanstack/eslint-plugin-query':
-        specifier: 5.94.4
-        version: 5.94.4(eslint@9.28.0(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+        specifier: 5.94.5
+        version: 5.94.5(eslint@9.28.0(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
       '@testing-library/jest-dom':
         specifier: 6.6.0
         version: 6.6.0
@@ -4060,8 +4060,8 @@ packages:
   '@tabler/icons@3.40.0':
     resolution: {integrity: sha512-V/Q4VgNPKubRTiLdmWjV/zscYcj5IIk+euicUtaVVqF6luSC9rDngYWgST5/yh3Mrg/mYUwRv1YVTk71Jp0twQ==}
 
-  '@tanstack/eslint-plugin-query@5.94.4':
-    resolution: {integrity: sha512-iWebDii7oy+izhlMnmQDBkaDuXd1YlrUJNtK3x4lO4uGyZOn4VdCRIhTfA2SJLDsPTbxK+7a6rkDbKma+8IHWA==}
+  '@tanstack/eslint-plugin-query@5.94.5':
+    resolution: {integrity: sha512-r3yV8xItL6YuyF3oRYL/lVudq7oONceJGy+suFoicPwUAmWqHJ1yrsXGs3WAs7MSPEqwkxcOTseUn6VzLLJmew==}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
       typescript: ^5.4.0
@@ -14011,7 +14011,7 @@ snapshots:
 
   '@tabler/icons@3.40.0': {}
 
-  '@tanstack/eslint-plugin-query@5.94.4(eslint@9.28.0(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)':
+  '@tanstack/eslint-plugin-query@5.94.5(eslint@9.28.0(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)':
     dependencies:
       '@typescript-eslint/utils': 8.57.1(eslint@9.28.0(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
       eslint: 9.28.0(jiti@2.4.2)(supports-color@10.2.2)

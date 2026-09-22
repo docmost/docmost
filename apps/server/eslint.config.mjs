@@ -29,6 +29,7 @@ export default [
       'prefer-rest-params': 'off',
       'no-useless-catch': 'off',
       'no-useless-escape': 'off',
+      '@typescript-eslint/no-require-imports': ['error', { allowAsImport: true }],
     },
   },
 ];
