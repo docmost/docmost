@@ -1,12 +1,13 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
-import { posToDOMRect, findParentNode } from "@tiptap/react";
+import { posToDOMRect, findParentNode, useEditorState } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import React, { useCallback, type JSX } from "react";
-import { ActionIcon, Tooltip } from "@mantine/core";
-import { IconTrash } from "@tabler/icons-react";
+import { ActionIcon, Menu, Tooltip } from "@mantine/core";
+import { IconArrowsSort, IconCheck, IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tiptap/core";
 import { isEditorReady } from "@docmost/editor-ext";
+import type { SubpagesSortBy } from "./subpages.utils";
 
 interface SubpagesMenuProps {
   editor: Editor;
@@ -57,6 +58,30 @@ export const SubpagesMenu = React.memo(
         .run();
     }, [editor]);
 
+    const editorState = useEditorState({
+      editor,
+      selector: (ctx) => {
+        if (!ctx.editor) return { sortBy: "default" };
+        return {
+          sortBy: (ctx.editor.getAttributes("subpages").sortBy ||
+            "default"),
+        };
+      },
+    });
+
+    const sortBy = editorState?.sortBy || "default";
+
+    const updateSort = useCallback(
+      (value: SubpagesSortBy) => {
+        editor
+          .chain()
+          .focus(undefined, { scrollIntoView: false })
+          .setSubpagesSortBy(value)
+          .run();
+      },
+      [editor],
+    );
+
     return (
       <BaseBubbleMenu
         editor={editor}
@@ -67,6 +92,40 @@ export const SubpagesMenu = React.memo(
         updateDelay={0}
         shouldShow={shouldShow}
       >
+        <Menu shadow="md" position="top-start" withinPortal>
+          <Menu.Target>
+            <Tooltip position="top" label={t("Sort")}>
+              <ActionIcon
+                variant="default"
+                size="lg"
+                aria-label={t("Sort")}
+              >
+                <IconArrowsSort size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Label>{t("Sort by")}</Menu.Label>
+            <Menu.Item
+              leftSection={sortBy === "default" ? <IconCheck size={14} /> : null}
+              onClick={() => updateSort("default")}
+            >
+              {t("Default")}
+            </Menu.Item>
+            <Menu.Item
+              leftSection={sortBy === "title-asc" ? <IconCheck size={14} /> : null}
+              onClick={() => updateSort("title-asc")}
+            >
+              {t("Sort A → Z")}
+            </Menu.Item>
+            <Menu.Item
+              leftSection={sortBy === "title-desc" ? <IconCheck size={14} /> : null}
+              onClick={() => updateSort("title-desc")}
+            >
+              {t("Sort Z → A")}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
         <Tooltip position="top" label={t("Delete")}>
           <ActionIcon
             onClick={deleteNode}

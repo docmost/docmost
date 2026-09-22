@@ -6,12 +6,17 @@ export interface SubpagesOptions {
   view: any;
 }
 
-export interface SubpagesAttributes {}
+export type SubpagesSortBy = "default" | "title-asc" | "title-desc";
+
+export interface SubpagesAttributes {
+  sortBy?: SubpagesSortBy;
+}
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     subpages: {
       insertSubpages: (attributes?: SubpagesAttributes) => ReturnType;
+      setSubpagesSortBy: (sortBy: SubpagesSortBy) => ReturnType;
     };
   }
 }
@@ -23,6 +28,19 @@ export const Subpages = Node.create<SubpagesOptions>({
     return {
       HTMLAttributes: {},
       view: null,
+    };
+  },
+
+  addAttributes() {
+    return {
+      sortBy: {
+        default: "default",
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-sort-by") || "default",
+        renderHTML: (attributes: SubpagesAttributes) => ({
+          "data-sort-by": attributes.sortBy || "default",
+        }),
+      },
     };
   },
 
@@ -59,6 +77,19 @@ export const Subpages = Node.create<SubpagesOptions>({
             type: this.name,
             attrs: attributes,
           });
+        },
+
+      setSubpagesSortBy:
+        (sortBy) =>
+        ({ commands }) => {
+          if (
+            sortBy !== 'default' &&
+            sortBy !== 'title-asc' &&
+            sortBy !== 'title-desc'
+          ) {
+            return;
+          }
+          return commands.updateAttributes(this.name, { sortBy });
         },
     };
   },
