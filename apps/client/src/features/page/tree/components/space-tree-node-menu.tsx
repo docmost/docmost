@@ -33,6 +33,10 @@ import {
 
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
+import {
+  spaceRoots,
+  updateSpaceRoots,
+} from "@/features/page/tree/utils/utils.ts";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import classes from "@/features/page/tree/styles/tree.module.css";
@@ -77,7 +81,10 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       const duplicatedPage = await duplicatePage({ pageId: node.id });
 
       // figure out parent + insertion index
-      const siblings = treeModel.siblingsOf(data, node.id);
+      const siblings = treeModel.siblingsOf(
+        spaceRoots(data, node.spaceId),
+        node.id,
+      );
       const parentId = siblings?.parentId ?? null;
       const currentIndex = siblings?.index ?? 0;
       const newIndex = currentIndex + 1;
@@ -96,7 +103,9 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       };
 
       setData((prev) =>
-        treeModel.insert(prev, parentId, treeNodeData, newIndex),
+        updateSpaceRoots(prev, node.spaceId, (roots) =>
+          treeModel.insert(roots, parentId, treeNodeData, newIndex),
+        ),
       );
 
       setTimeout(() => {

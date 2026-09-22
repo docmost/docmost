@@ -9,7 +9,13 @@ const normalize = (s: string) => {
   return trimmed.length ? trimmed : null;
 };
 
-export function FieldLongText({ property, value, readOnly, onChange }: FieldProps) {
+export function FieldLongText({
+  property,
+  value,
+  readOnly,
+  onChange,
+  onEditingChange,
+}: FieldProps) {
   const text = toText(value);
   const [draft, setDraft] = useState(text);
   const [focused, setFocused] = useState(false);
@@ -23,6 +29,7 @@ export function FieldLongText({ property, value, readOnly, onChange }: FieldProp
 
   const commit = () => {
     setFocused(false);
+    onEditingChange?.(false);
     if (cancelRef.current) {
       cancelRef.current = false;
       setDraft(text);
@@ -50,7 +57,10 @@ export function FieldLongText({ property, value, readOnly, onChange }: FieldProp
         className={classes.fieldTextarea}
         classNames={{ input: classes.fieldTextareaInput }}
         value={draft}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true);
+          onEditingChange?.(true);
+        }}
         onChange={(e) => setDraft(e.currentTarget.value)}
         onBlur={commit}
         onKeyDown={(e) => {

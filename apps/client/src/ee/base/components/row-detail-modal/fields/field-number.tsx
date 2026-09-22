@@ -11,7 +11,13 @@ import classes from "@/ee/base/styles/row-detail-modal.module.css";
 const toDraft = (value: unknown) =>
   typeof value === "number" ? String(value) : "";
 
-export function FieldNumber({ property, value, readOnly, onChange }: FieldProps) {
+export function FieldNumber({
+  property,
+  value,
+  readOnly,
+  onChange,
+  onEditingChange,
+}: FieldProps) {
   const typeOptions = property.typeOptions as NumberTypeOptions | undefined;
   const numValue = typeof value === "number" ? value : null;
   const [draft, setDraft] = useState(toDraft(value));
@@ -36,6 +42,7 @@ export function FieldNumber({ property, value, readOnly, onChange }: FieldProps)
 
   const commit = () => {
     setFocused(false);
+    onEditingChange?.(false);
     if (cancelRef.current) {
       cancelRef.current = false;
       setDraft(toDraft(value));
@@ -54,6 +61,7 @@ export function FieldNumber({ property, value, readOnly, onChange }: FieldProps)
         onFocus={() => {
           setDraft(toDraft(value));
           setFocused(true);
+          onEditingChange?.(true);
         }}
         onChange={(e) => {
           const v = e.target.value;

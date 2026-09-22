@@ -162,6 +162,22 @@ export class PageRepo {
     return result;
   }
 
+  async lockPageHierarchySpaces(
+    spaceIds: string[],
+    trx: KyselyTransaction,
+  ): Promise<void> {
+    const sortedSpaceIds = [...new Set(spaceIds)].sort();
+
+    for (const spaceId of sortedSpaceIds) {
+      await sql`
+        SELECT pg_advisory_xact_lock(
+          hashtext('page-hierarchy'),
+          hashtext(${spaceId})
+        )
+      `.execute(trx);
+    }
+  }
+
   async insertPage(
     insertablePage: InsertablePage,
     trx?: KyselyTransaction,
@@ -490,9 +506,9 @@ export class PageRepo {
 
   async getPageAndDescendants(
     parentPageId: string,
-    opts: { includeContent: boolean },
+    opts: { includeContent: boolean; trx?: KyselyTransaction },
   ) {
-    return this.db
+    return dbOrTx(this.db, opts.trx)
       .withRecursive('page_hierarchy', (db) =>
         db
           .selectFrom('pages')
@@ -534,6 +550,36 @@ export class PageRepo {
       .selectFrom('page_hierarchy')
       .selectAll()
       .execute();
+  }
+
+  async isPageDescendant(
+    ancestorPageId: string,
+    descendantPageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<boolean> {
+    const result = await dbOrTx(this.db, trx)
+      .withRecursive('page_ancestors', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id', 'parentPageId'])
+          .where('id', '=', descendantPageId)
+          .union((exp) =>
+            exp
+              .selectFrom('pages as parent')
+              .select(['parent.id', 'parent.parentPageId'])
+              .innerJoin(
+                'page_ancestors as ancestor',
+                'ancestor.parentPageId',
+                'parent.id',
+              ),
+          ),
+      )
+      .selectFrom('page_ancestors')
+      .select('id')
+      .where('id', '=', ancestorPageId)
+      .executeTakeFirst();
+
+    return Boolean(result);
   }
 
   /**
@@ -610,8 +656,9 @@ export class PageRepo {
   async nextPagePosition(
     spaceId: string,
     parentPageId?: string,
+    trx?: KyselyTransaction,
   ): Promise<string> {
-    const lastPageQuery = this.db
+    const lastPageQuery = dbOrTx(this.db, trx)
       .selectFrom('pages')
       .select(['position'])
       .where('spaceId', '=', spaceId)

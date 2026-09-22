@@ -15,8 +15,6 @@
   --docs-accent: #2b7af1;
   --docs-accent-soft: color-mix(in srgb, var(--docs-accent) 10%, transparent);
 
-  /* Cloudflare-style single-ink model: one foreground for headings, bold, and
-   * body on a just-off-white page; neither end of the scale is pure. */
   --docs-bg: oklch(99% 0 0);
   --docs-fg: oklch(21% 0 0);
   --docs-content-fg: var(--docs-fg);
@@ -410,7 +408,7 @@
   }
 }
 
-/* Expanded parents read as section headers, Cloudflare-style. */
+/* Expanded parents read as section headers. */
 .treeRow[data-open-parent="true"] {
   color: var(--docs-fg);
   font-weight: 500;
@@ -542,8 +540,6 @@
     border-radius: rem(2px);
   }
 }
-
-/* ---------- Sidebar branding experiments (GitBook card / ReadMe line) ---------- */
 
 /* ---------- Footer branding ---------- */
 
@@ -773,13 +769,11 @@
   color: inherit;
 }
 
-/* Modest semibold heading scale (Cloudflare-style); class doubled to outrank
- * the shared editor and .public-typography rules. */
 .root.root :global(.ProseMirror) h1 {
-  font-size: 2.1875rem;
+  font-size: 1.75rem;
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 .root.root :global(.ProseMirror) h2 {

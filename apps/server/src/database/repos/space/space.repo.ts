@@ -25,7 +25,11 @@ export class SpaceRepo {
   async findById(
     spaceId: string,
     workspaceId: string,
-    opts?: { includeMemberCount?: boolean; trx?: KyselyTransaction },
+    opts?: {
+      includeMemberCount?: boolean;
+      withLock?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<Space> {
     const db = dbOrTx(this.db, opts?.trx);
 
@@ -41,6 +45,11 @@ export class SpaceRepo {
     } else {
       query = query.where(sql`LOWER(slug)`, '=', sql`LOWER(${spaceId})`);
     }
+
+    if (opts?.withLock && opts?.trx) {
+      query = query.forUpdate();
+    }
+
     return query.executeTakeFirst();
   }
 

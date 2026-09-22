@@ -10,7 +10,7 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { AddSpaceMembersDto } from '../dto/add-space-members.dto';
 import { InjectKysely } from 'nestjs-kysely';
-import { Space, SpaceMember, User } from '@docmost/db/types/entity.types';
+import { Space, User } from '@docmost/db/types/entity.types';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
@@ -218,39 +218,16 @@ export class SpaceMemberService {
     dto: RemoveSpaceMemberDto,
     workspaceId: string,
   ): Promise<void> {
-    const space = await this.spaceRepo.findById(dto.spaceId, workspaceId);
-    if (!space) {
-      throw new NotFoundException('Space not found');
-    }
+    const memberTypeId = dto.userId
+      ? { userId: dto.userId }
+      : dto.groupId
+        ? { groupId: dto.groupId }
+        : null;
 
-    let spaceMember: SpaceMember = null;
-
-    if (dto.userId) {
-      spaceMember = await this.spaceMemberRepo.getSpaceMemberByTypeId(
-        dto.spaceId,
-        {
-          userId: dto.userId,
-        },
-      );
-    } else if (dto.groupId) {
-      spaceMember = await this.spaceMemberRepo.getSpaceMemberByTypeId(
-        dto.spaceId,
-        {
-          groupId: dto.groupId,
-        },
-      );
-    } else {
+    if (!memberTypeId) {
       throw new BadRequestException(
         'Please provide a valid userId or groupId to remove',
       );
-    }
-
-    if (!spaceMember) {
-      throw new NotFoundException('Space membership not found');
-    }
-
-    if (spaceMember.role === SpaceRole.ADMIN) {
-      await this.validateLastAdmin(dto.spaceId);
     }
 
     let affectedUserIds: string[] = [];
@@ -262,7 +239,29 @@ export class SpaceMemberService {
       );
     }
 
-    await executeTx(this.db, async (trx) => {
+    const { space, spaceMember } = await executeTx(this.db, async (trx) => {
+      const space = await this.spaceRepo.findById(
+        dto.spaceId,
+        workspaceId,
+        { withLock: true, trx },
+      );
+      if (!space) {
+        throw new NotFoundException('Space not found');
+      }
+
+      const spaceMember = await this.spaceMemberRepo.getSpaceMemberByTypeId(
+        dto.spaceId,
+        memberTypeId,
+        trx,
+      );
+      if (!spaceMember) {
+        throw new NotFoundException('Space membership not found');
+      }
+
+      if (spaceMember.role === SpaceRole.ADMIN) {
+        await this.validateLastAdmin(dto.spaceId, trx);
+      }
+
       await this.spaceMemberRepo.removeSpaceMemberById(
         spaceMember.id,
         dto.spaceId,
@@ -280,6 +279,8 @@ export class SpaceMemberService {
         dto.spaceId,
         { trx },
       );
+
+      return { space, spaceMember };
     });
 
     this.auditService.log({
@@ -304,48 +305,40 @@ export class SpaceMemberService {
     dto: UpdateSpaceMemberRoleDto,
     workspaceId: string,
   ): Promise<void> {
-    const space = await this.spaceRepo.findById(dto.spaceId, workspaceId);
-    if (!space) {
-      throw new NotFoundException('Space not found');
-    }
+    const memberTypeId = dto.userId
+      ? { userId: dto.userId }
+      : dto.groupId
+        ? { groupId: dto.groupId }
+        : null;
 
-    let spaceMember: SpaceMember = null;
-
-    if (dto.userId) {
-      spaceMember = await this.spaceMemberRepo.getSpaceMemberByTypeId(
-        dto.spaceId,
-        {
-          userId: dto.userId,
-        },
-      );
-    } else if (dto.groupId) {
-      spaceMember = await this.spaceMemberRepo.getSpaceMemberByTypeId(
-        dto.spaceId,
-        {
-          groupId: dto.groupId,
-        },
-      );
-    } else {
+    if (!memberTypeId) {
       throw new BadRequestException(
         'Please provide a valid userId or groupId to remove',
       );
     }
 
-    if (!spaceMember) {
-      throw new NotFoundException('Space membership not found');
-    }
+    const result = await executeTx(this.db, async (trx) => {
+      const space = await this.spaceRepo.findById(
+        dto.spaceId,
+        workspaceId,
+        { withLock: true, trx },
+      );
+      if (!space) {
+        throw new NotFoundException('Space not found');
+      }
 
-    if (spaceMember.role === dto.role) {
-      return;
-    }
+      const spaceMember = await this.spaceMemberRepo.getSpaceMemberByTypeId(
+        dto.spaceId,
+        memberTypeId,
+        trx,
+      );
+      if (!spaceMember) {
+        throw new NotFoundException('Space membership not found');
+      }
 
-    await executeTx(this.db, async (trx) => {
-      await trx
-        .selectFrom('spaces')
-        .select('id')
-        .where('id', '=', dto.spaceId)
-        .forUpdate()
-        .executeTakeFirst();
+      if (spaceMember.role === dto.role) {
+        return { changed: false, space, spaceMember };
+      }
 
       if (spaceMember.role === SpaceRole.ADMIN) {
         await this.validateLastAdmin(dto.spaceId, trx);
@@ -357,7 +350,15 @@ export class SpaceMemberService {
         dto.spaceId,
         trx,
       );
+
+      return { changed: true, space, spaceMember };
     });
+
+    if (!result.changed) {
+      return;
+    }
+
+    const { space, spaceMember } = result;
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,
@@ -387,7 +388,7 @@ export class SpaceMemberService {
       spaceId,
       trx,
     );
-    if (spaceOwnerCount === 1) {
+    if (spaceOwnerCount <= 1) {
       throw new BadRequestException(
         'There must be at least one space admin with full access',
       );
