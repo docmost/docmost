@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import clsx from "clsx";
 import { Divider, Popover, Stack, Text } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { LabelChip } from "@/features/label/components/label-chip.tsx";
@@ -20,6 +22,8 @@ type LabelsSectionProps = {
 export function LabelsSection({ pageId, canEdit }: LabelsSectionProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isCoarsePointer = useMediaQuery("(pointer: coarse)");
 
   const { data } = usePageLabelsQuery(pageId);
   const addMutation = useAddLabelsMutation(pageId);
@@ -37,6 +41,22 @@ export function LabelsSection({ pageId, canEdit }: LabelsSectionProps) {
 
   const handleRemove = (labelId: string) => {
     removeMutation.mutate({ pageId, labelId });
+  };
+
+  const focusInput = () => {
+    inputRef.current?.focus({ preventScroll: true });
+  };
+
+  const togglePicker = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+
+    flushSync(() => setOpen(true));
+    if (!isCoarsePointer) {
+      focusInput();
+    }
   };
 
   return (
@@ -61,6 +81,8 @@ export function LabelsSection({ pageId, canEdit }: LabelsSectionProps) {
               onChange={setOpen}
               position="bottom-end"
               shadow="lg"
+              hideDetached={false}
+              trapFocus={!isCoarsePointer}
               withinPortal
               offset={6}
             >
@@ -68,7 +90,12 @@ export function LabelsSection({ pageId, canEdit }: LabelsSectionProps) {
                 <button
                   type="button"
                   className={clsx(classes.addBtn, open && classes.addBtnOpen)}
-                  onClick={() => setOpen((v) => !v)}
+                  onPointerDown={(e) => {
+                    if (e.pointerType === "mouse") {
+                      e.preventDefault();
+                    }
+                  }}
+                  onClick={togglePicker}
                 >
                   <IconPlus size={12} stroke={2} />
                   <span>
@@ -79,7 +106,9 @@ export function LabelsSection({ pageId, canEdit }: LabelsSectionProps) {
               <Popover.Dropdown p={0} className={classes.popover}>
                 <LabelPicker
                   applied={labels}
+                  autoFocusInput={!isCoarsePointer}
                   enabled={open}
+                  inputRef={inputRef}
                   onAdd={(name) => handleAdd(name)}
                   onClose={() => setOpen(false)}
                 />
