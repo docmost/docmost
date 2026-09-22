@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @docmost/editor-ext build
+
+      - run: pnpm --filter @docmost/base-formula build
+
+      - run: pnpm --filter client test
+
+      - run: >
+          pnpm --filter server test --runInBand --silent
+          --testPathPatterns='src/(common|core/(public-space/public-space.service|page/(services/backlink.service|transclusion/spec/transclusion))|integrations/(encryption|outbound|storage/drivers))'
+
+      - run: pnpm build
