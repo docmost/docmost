@@ -8,7 +8,8 @@ export function updateAttachmentAttr(
   const attrVal = node.attrs[attr];
   if (
     attrVal &&
-    (attrVal.startsWith('/files') || attrVal.startsWith('/api/files'))
+    !attrVal.includes('/files/public/') &&
+    (attrVal.includes('/api/files/') || attrVal.includes('/files/'))
   ) {
     // @ts-ignore
     node.attrs[attr] = updateAttachmentUrl(attrVal, token);
