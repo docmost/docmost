@@ -14,3 +14,12 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t docmost:test .
+
+      - name: Scan Docker image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: docmost:test
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
