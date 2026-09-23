@@ -84,8 +84,10 @@ export class AzureDriver implements StorageDriver {
 
   async copy(fromFilePath: string, toFilePath: string): Promise<void> {
     try {
+      // Fail loudly on a missing source instead of silently leaving the
+      // duplicated page with a dangling attachment reference (#2010).
       if (!(await this.exists(fromFilePath))) {
-        return;
+        throw new Error(`File not found: ${fromFilePath}`);
       }
       const sourceUrl = await this.getSignedUrl(fromFilePath, 60);
       const dest = this.blockBlob(toFilePath);

@@ -94,15 +94,24 @@ export class S3Driver implements StorageDriver {
 
   async copy(fromFilePath: string, toFilePath: string): Promise<void> {
     try {
-      if (await this.exists(fromFilePath)) {
-        await this.s3Client.send(
-          new CopyObjectCommand({
-            Bucket: this.config.bucket,
-            CopySource: `${this.config.bucket}/${fromFilePath}`,
-            Key: toFilePath,
-          }),
-        );
+      if (!(await this.exists(fromFilePath))) {
+        throw new Error(`File not found: ${fromFilePath}`);
       }
+      // S3 requires CopySource to be URL-encoded. Raw non-ASCII (e.g. CJK
+      // filenames), spaces or "+" break signing/parsing otherwise, so the
+      // duplicate-page copy failed exactly for those attachments (#2010).
+      // Encode per segment to preserve "/" separators.
+      const encodedSource = fromFilePath
+        .split('/')
+        .map(encodeURIComponent)
+        .join('/');
+      await this.s3Client.send(
+        new CopyObjectCommand({
+          Bucket: this.config.bucket,
+          CopySource: `${this.config.bucket}/${encodedSource}`,
+          Key: toFilePath,
+        }),
+      );
     } catch (err) {
       throw new Error(`Failed to copy file: ${(err as Error).message}`);
     }
