@@ -1,0 +1,42 @@
+# Dev-only compose stack for VS Code Dev Containers.
+# Unlike the root docker-compose.yml (production image), this runs the
+# workspace source directly: Node 24 in `app`, plus Postgres and Redis.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces/docmost:cached
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "3000:3000" # NestJS server (APP_URL)
+      - "5173:5173" # Vite dev server
+    environment:
+      # Fallbacks in case no .env file exists yet; the post-create script
+      # generates a proper .env from .env.example on first start.
+      DATABASE_URL: postgresql://docmost:docmost@db:5432/docmost?schema=public
+      REDIS_URL: redis://redis:6379
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: docmost
+      POSTGRES_USER: docmost
+      POSTGRES_PASSWORD: docmost
+    restart: unless-stopped
+    volumes:
+      - db_data:/var/lib/postgresql
+
+  redis:
+    image: redis:8
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  db_data:
+  redis_data:

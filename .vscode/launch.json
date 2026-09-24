@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Start the server once with: pnpm nx run server:start:debug
+      // (listens with --inspect on port 9229), then launch this.
+      "name": "Server: attach to NestJS (debug)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "cwd": "${workspaceFolder}/apps/server"
+    },
+    {
+      "name": "Client: Chrome (Vite)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/apps/client/src"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Fullstack: Chrome + Server attach",
+      "configurations": ["Client: Chrome (Vite)", "Server: attach to NestJS (debug)"]
+    }
+  ]
+}
