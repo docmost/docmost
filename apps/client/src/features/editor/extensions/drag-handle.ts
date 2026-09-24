@@ -156,6 +156,58 @@ function calcNodePos(pos: number, view: EditorView) {
   return pos;
 }
 
+function findScrollableAncestor(el: Element | null): HTMLElement | null {
+  let parent = el?.parentElement ?? null;
+  while (parent) {
+    const style = window.getComputedStyle(parent);
+    const overflowY = style.overflowY;
+    if (
+      (overflowY === "auto" || overflowY === "scroll") &&
+      parent.scrollHeight > parent.clientHeight + 1
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
+function autoScrollOnDrag(
+  clientY: number,
+  scrollThreshold: number,
+  view: EditorView,
+) {
+  // Native HTML5 `drag` events fire with clientX/clientY = 0 when the
+  // pointer leaves the viewport, the drag ends, or the browser emits a
+  // synthetic tick without coordinates. Without this guard `0 < threshold`
+  // is always true and the page scrolls up on every drag tick, making
+  // precise block placement impossible (see #2492).
+  if (!clientY || clientY <= 0) return;
+
+  const scrollStep = 20;
+  const scroller = findScrollableAncestor(view.dom);
+
+  if (
+    !scroller ||
+    scroller === document.body ||
+    scroller === document.documentElement
+  ) {
+    if (clientY < scrollThreshold) {
+      window.scrollBy({ top: -scrollStep, behavior: "auto" });
+    } else if (window.innerHeight - clientY < scrollThreshold) {
+      window.scrollBy({ top: scrollStep, behavior: "auto" });
+    }
+    return;
+  }
+
+  const rect = scroller.getBoundingClientRect();
+  if (clientY - rect.top < scrollThreshold) {
+    scroller.scrollTop -= scrollStep;
+  } else if (rect.bottom - clientY < scrollThreshold) {
+    scroller.scrollTop += scrollStep;
+  }
+}
+
 export function DragHandlePlugin(
   options: GlobalDragHandleOptions & { pluginKey: string },
 ) {
@@ -346,12 +398,7 @@ export function DragHandlePlugin(
 
       function onDragHandleDrag(e: DragEvent) {
         hideDragHandle();
-        let scrollY = window.scrollY;
-        if (e.clientY < options.scrollThreshold) {
-          window.scrollTo({ top: scrollY - 30, behavior: "smooth" });
-        } else if (window.innerHeight - e.clientY < options.scrollThreshold) {
-          window.scrollTo({ top: scrollY + 30, behavior: "smooth" });
-        }
+        autoScrollOnDrag(e.clientY, options.scrollThreshold, view);
       }
 
       dragHandleElement.addEventListener("drag", onDragHandleDrag);
