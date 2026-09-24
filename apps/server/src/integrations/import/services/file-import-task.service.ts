@@ -121,8 +121,17 @@ export class FileImportTaskService {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           ConfluenceModule = require('./../../../ee/confluence-import/confluence-import.service');
         } catch (err) {
-          this.logger.error(
-            'Confluence import requested but EE module not bundled in this build',
+          const message =
+            'Confluence import is not available in this build';
+          this.logger.error(`${message} (EE module not bundled)`);
+          // Mark the task as failed instead of returning silently: otherwise
+          // the task stays 'processing' forever, the job completes
+          // successfully, and the client keeps showing the import as
+          // in progress indefinitely.
+          await this.updateTaskStatus(
+            fileTaskId,
+            FileTaskStatus.Failed,
+            message,
           );
           return;
         }
