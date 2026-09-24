@@ -16,7 +16,10 @@ type LabelPickerProps = {
   onClose: () => void;
 };
 
-const NAME_PATTERN = /^[a-z0-9_-][a-z0-9_~-]*$/;
+// Unicode-aware: \p{L} covers letters in any script (e.g. ä, é, ñ, CJK,
+// Hebrew), \p{N} covers numbers in any script. Keeps the previous rules
+// otherwise: no leading tilde, max length enforced separately.
+const NAME_PATTERN = /^[\p{L}\p{N}_-][\p{L}\p{N}_~-]*$/u;
 const MAX_LABEL_NAME_LENGTH = 100;
 
 function isValidLabelName(name: string): boolean {
