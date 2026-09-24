@@ -22,6 +22,10 @@ export default function CodeBlockView(props: NodeViewProps) {
   const [isSelected, setIsSelected] = useState(false);
 
   useEffect(() => {
+    setLanguageValue(language || null);
+  }, [language]);
+
+  useEffect(() => {
     const updateSelection = () => {
       const { state } = editor;
       const { from, to } = state.selection;
@@ -38,7 +42,7 @@ export default function CodeBlockView(props: NodeViewProps) {
     };
   }, [editor, getPos(), node.nodeSize]);
 
-  function changeLanguage(language: string) {
+  function changeLanguage(language: string | null) {
     setLanguageValue(language);
     updateAttributes({
       language: language,
@@ -59,6 +63,8 @@ export default function CodeBlockView(props: NodeViewProps) {
           value={languageValue}
           onChange={changeLanguage}
           searchable
+          clearable
+          allowDeselect
           style={{ maxWidth: "130px" }}
           classNames={{ input: classes.selectInput }}
           disabled={!editor.isEditable}
