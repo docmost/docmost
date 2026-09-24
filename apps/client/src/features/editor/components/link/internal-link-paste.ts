@@ -17,6 +17,24 @@ export interface InternalLinkOptions {
   onResolveLink: (linkedPageId: string, creatorId: string) => Promise<any>;
 }
 
+// Resolves an anchor id (e.g. a heading id copied via the heading link
+// button) against the currently open document and returns the referenced
+// node's text, if found. Used to label pasted anchor links with the heading
+// text instead of the page title.
+function findAnchorText(
+  view: EditorView,
+  anchorId: string,
+): string | undefined {
+  let text: string | undefined;
+  view.state.doc.descendants((node) => {
+    if (text === undefined && node.attrs?.id === anchorId) {
+      const candidate = node.textContent?.trim();
+      if (candidate) text = candidate;
+    }
+  });
+  return text;
+}
+
 export const handleInternalLink =
   ({ validateFn, onResolveLink }: InternalLinkOptions): LinkFn =>
   async (url: string, view, pos, creatorId, anchorId) => {
@@ -29,9 +47,16 @@ export const handleInternalLink =
       (page: IPage) => {
         const { schema } = view.state;
 
+        // Anchor links pasted within the same page reference a heading in
+        // the open document: show the heading text, not the page title.
+        // Anchors from other pages keep the page title fallback.
+        const anchorText = anchorId
+          ? findAnchorText(view, anchorId)
+          : undefined;
+
         const node = schema.nodes.mention.create({
           id: v7(),
-          label: page.title || "Untitled",
+          label: anchorText || page.title || "Untitled",
           entityType: "page",
           entityId: page.id,
           slugId: page.slugId,
