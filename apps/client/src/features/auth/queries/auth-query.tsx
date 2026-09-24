@@ -1,7 +1,10 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { useCallback, useRef, useState } from "react";
 import { getCollabToken, verifyUserToken } from "../services/auth-service";
 import { ICollabToken, IVerifyUserToken } from "../types/auth.types";
 import { isAxiosError } from "axios";
+
+const COLLAB_AUTH_MAX_RETRIES = 3;
 
 export function useVerifyUserTokenQuery(
   verify: IVerifyUserToken,
@@ -24,14 +27,74 @@ export function useCollabToken(): UseQueryResult<ICollabToken, Error> {
     refetchOnMount: true,
     //@ts-ignore
     retry: (failureCount, error) => {
-      if (isAxiosError(error) && error.response.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         return false;
       }
-      return 10;
+      return failureCount < COLLAB_AUTH_MAX_RETRIES;
     },
-    retryDelay: (retryAttempt) => {
-      // Exponential backoff: 5s, 10s, 20s, etc.
-      return 5000 * Math.pow(2, retryAttempt - 1);
-    },
+    retryDelay: (retryAttempt) => Math.min(1000 * 2 ** retryAttempt, 5000),
   });
+}
+
+export function useCollabAuthenticationRecovery({
+  token,
+  refetch,
+}: {
+  token?: string;
+  refetch: () => Promise<{ data?: ICollabToken }>;
+}) {
+  const tokenRef = useRef(token);
+  const refetchRef = useRef(refetch);
+  const recoveryScheduled = useRef(false);
+  const refetchInFlight = useRef(false);
+  const retriesSinceAuthentication = useRef(0);
+  const [recoveryRevision, setRecoveryRevision] = useState(0);
+  const [isRecoveryExhausted, setIsRecoveryExhausted] = useState(false);
+
+  tokenRef.current = token;
+  refetchRef.current = refetch;
+
+  const handleAuthenticationFailed = useCallback(() => {
+    if (refetchInFlight.current || recoveryScheduled.current) {
+      return;
+    }
+
+    if (retriesSinceAuthentication.current >= COLLAB_AUTH_MAX_RETRIES) {
+      setIsRecoveryExhausted(true);
+      return;
+    }
+
+    recoveryScheduled.current = true;
+    retriesSinceAuthentication.current += 1;
+    setRecoveryRevision((revision) => revision + 1);
+  }, []);
+
+  const getToken = useCallback(async () => {
+    if (!recoveryScheduled.current || refetchInFlight.current) {
+      return tokenRef.current || "";
+    }
+
+    recoveryScheduled.current = false;
+    refetchInFlight.current = true;
+
+    try {
+      const result = await refetchRef.current();
+      return result.data?.token || tokenRef.current || "";
+    } finally {
+      refetchInFlight.current = false;
+    }
+  }, [recoveryRevision]);
+
+  const handleAuthenticated = useCallback(() => {
+    recoveryScheduled.current = false;
+    retriesSinceAuthentication.current = 0;
+    setIsRecoveryExhausted(false);
+  }, []);
+
+  return {
+    getToken,
+    handleAuthenticationFailed,
+    handleAuthenticated,
+    isRecoveryExhausted,
+  };
 }

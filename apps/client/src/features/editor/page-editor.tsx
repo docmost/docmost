@@ -63,7 +63,10 @@ import {
 } from "@/features/editor/components/common/editor-paste-handler.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu-lazy";
 import DrawioMenu from "./components/drawio/drawio-menu";
-import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import {
+  useCollabAuthenticationRecovery,
+  useCollabToken,
+} from "@/features/auth/queries/auth-query.tsx";
 import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 import SearchNavigationDialog from "@/features/editor/components/search-and-replace/search-navigation-dialog.tsx";
 import { useSearchNavigationParams } from "@/features/editor/components/search-and-replace/use-search-navigation-params.ts";
@@ -75,7 +78,6 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
-import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
@@ -96,6 +98,10 @@ interface PageEditorProps {
   canComment?: boolean;
 }
 
+function setEditorPageId(editor: Editor, pageId: string) {
+  Object.assign(editor.storage, { pageId });
+}
+
 export default function PageEditor({
   pageId,
   editable,
@@ -104,16 +110,25 @@ export default function PageEditor({
 }: PageEditorProps) {
   const { t } = useTranslation();
   const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
+  const {
+    getToken: getCollabRecoveryToken,
+    handleAuthenticationFailed,
+    handleAuthenticated,
+    isRecoveryExhausted,
+  } = useCollabAuthenticationRecovery({
+    token: collabQuery?.token,
+    refetch: refetchCollabToken,
+  });
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const [socket] = useState(getCollabSocket);
   const hasCollabToken = !!collabQuery?.token;
 
   useEffect(() => {
-    if (!hasCollabToken) return;
+    if (!hasCollabToken || isRecoveryExhausted) return;
     acquireCollabSocket();
     return () => releaseCollabSocket();
-  }, [hasCollabToken]);
+  }, [hasCollabToken, isRecoveryExhausted]);
 
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
@@ -134,25 +149,17 @@ export default function PageEditor({
     }
   };
 
-  const handleAuthenticationFailed = () => {
-    const payload = jwtDecode(collabQuery?.token);
-    const now = Date.now().valueOf() / 1000;
-    const isTokenExpired = now >= payload.exp;
-    if (isTokenExpired) {
-      refetchCollabToken();
-    }
-  };
-
   return (
     <TransclusionLookupProvider>
-      {collabQuery?.token ? (
+      {collabQuery?.token && !isRecoveryExhausted ? (
         <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
           <HocuspocusRoom
             name={`page.${pageId}`}
-            token={collabQuery.token}
+            token={getCollabRecoveryToken}
             flushDelay={500}
             onStateless={handleStateless}
             onAuthenticationFailed={handleAuthenticationFailed}
+            onAuthenticated={handleAuthenticated}
           >
             <CollabPageEditor
               pageId={pageId}
@@ -345,8 +352,7 @@ function CollabPageEditor({
         if (editor) {
           // @ts-ignore
           setEditor(editor);
-          // @ts-ignore
-          editor.storage.pageId = pageId;
+          setEditorPageId(editor, pageId);
           handleScrollTo(editor);
           editorRef.current = editor;
         }
@@ -365,8 +371,7 @@ function CollabPageEditor({
     if (editor && !editor.isDestroyed) {
       // @ts-ignore
       setEditor(editor);
-      // @ts-ignore
-      editor.storage.pageId = pageId;
+      setEditorPageId(editor, pageId);
       editorRef.current = editor;
     }
   }, [editor, pageId, setEditor]);
