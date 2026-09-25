@@ -17,7 +17,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 ## Features
 
 - Real-time collaboration
-- Diagrams (Draw.io, Excalidraw and Mermaid)
+- Diagrams (Draw.io, Excalidraw, Mermaid and PlantUML)
 - Spaces
 - Permissions management
 - Groups

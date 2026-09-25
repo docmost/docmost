@@ -40,6 +40,8 @@ export class StaticModule implements OnModuleInit {
         FILE_IMPORT_SIZE_LIMIT:
           this.environmentService.getFileImportSizeLimit(),
         DRAWIO_URL: this.environmentService.getDrawioUrl(),
+        PLANTUML_URL: this.environmentService.getPlantumlUrl(),
+        PLANTUML_FORMAT: this.environmentService.getPlantumlFormat(),
         SUBDOMAIN_HOST: this.environmentService.isCloud()
           ? this.environmentService.getSubdomainHost()
           : undefined,

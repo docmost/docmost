@@ -5,6 +5,7 @@ import { GapCursor } from '@tiptap/pm/gapcursor';
 
 import { LowlightPlugin } from './lowlight-plugin.js';
 import { ReactNodeViewRenderer } from '@tiptap/react';
+import { isDiagramLanguage } from '../plantuml/diagram-languages';
 
 export interface CodeBlockLowlightOptions extends CodeBlockOptions {
   /**
@@ -21,7 +22,7 @@ const TAB_CHAR = '\u00A0\u00A0';
  * @see https://tiptap.dev/api/nodes/code-block-lowlight
  */
 export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
-  // Run ahead of Gapcursor (100) so the mermaid arrow-into-source plugin
+  // Run ahead of Gapcursor (100) so the diagram arrow-into-source plugin
   // can intercept before gapcursor takes over.
   priority: 101,
   selectable: true,
@@ -41,12 +42,12 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
   },
 
   addKeyboardShortcuts() {
-    const isMermaid = (node: any) =>
-      node?.type === this.type && node.attrs.language === 'mermaid';
+    const isDiagramBlock = (node: any) =>
+      node?.type === this.type && isDiagramLanguage(node.attrs.language);
 
     return {
       ...this.parent?.(),
-      // Stop at the gap (or enter mermaid source) instead of jumping
+      // Stop at the gap (or enter diagram source) instead of jumping
       // straight into the next block, so the user can place a cursor
       // between two adjacent isolating blocks.
       ArrowDown: ({ editor }) => {
@@ -65,7 +66,7 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
         const $after = doc.resolve(after);
         const nodeAfter = $after.nodeAfter;
 
-        if (isMermaid(nodeAfter)) {
+        if (isDiagramBlock(nodeAfter)) {
           return editor.commands.command(({ tr }) => {
             tr.setSelection(TextSelection.create(tr.doc, after + 1));
             return true;
@@ -102,7 +103,7 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
         const $before = doc.resolve(before);
         const nodeBefore = $before.nodeBefore;
 
-        if (isMermaid(nodeBefore)) {
+        if (isDiagramBlock(nodeBefore)) {
           return editor.commands.command(({ tr }) => {
             tr.setSelection(TextSelection.create(tr.doc, before - 1));
             return true;
@@ -176,7 +177,7 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
         lowlight: this.options.lowlight,
         defaultLanguage: this.options.defaultLanguage,
       }),
-      // Mermaid hides its <pre> when unselected, so the browser's native
+      // Diagram blocks hide their <pre> when unselected, so the browser's native
       // vertical caret movement skips past it. Land the cursor inside the
       // source explicitly.
       new Plugin({
@@ -200,14 +201,15 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
             const dir = event.key === 'ArrowUp' ? 'up' : 'down';
             if (!view.endOfTextblock(dir)) return false;
 
-            const isMermaid = (node: any) =>
-              node?.type === codeBlockType && node.attrs.language === 'mermaid';
+            const isDiagramBlock = (node: any) =>
+              node?.type === codeBlockType &&
+              isDiagramLanguage(node.attrs.language);
 
             if (event.key === 'ArrowUp') {
               if ($from.parentOffset !== 0) return false;
               const beforePos = $from.before();
               const prev = state.doc.resolve(beforePos).nodeBefore;
-              if (!isMermaid(prev)) return false;
+              if (!isDiagramBlock(prev)) return false;
               const endPos = beforePos - 1;
               view.dispatch(
                 state.tr.setSelection(
@@ -219,7 +221,7 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
             if ($from.parentOffset !== $from.parent.nodeSize - 2) return false;
             const afterPos = $from.after();
             const next = state.doc.resolve(afterPos).nodeAfter;
-            if (!isMermaid(next)) return false;
+            if (!isDiagramBlock(next)) return false;
             const startPos = afterPos + 1;
             view.dispatch(
               state.tr.setSelection(
