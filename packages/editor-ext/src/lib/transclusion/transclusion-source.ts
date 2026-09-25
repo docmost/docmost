@@ -72,15 +72,26 @@ export const TransclusionSource = Node.create<TransclusionSourceOptions>({
         (attributes) =>
         ({ commands, state, chain }) => {
           const { $from } = state.selection;
-          for (let depth = $from.depth; depth > 0; depth -= 1) {
-            if ($from.node(depth).type.name === this.name) return false;
-          }
 
           const node = {
             type: this.name,
             attrs: attributes ?? {},
             content: [{ type: "paragraph" }],
           };
+
+          // Sync blocks cannot nest: the content expression rejects a
+          // transclusionSource as a child, so there is nowhere to insert while
+          // the cursor sits inside one. Rather than bailing out silently, add
+          // the new block as a sibling directly after the enclosing one, which
+          // is what the user is asking for anyway.
+          let depth = $from.depth;
+          while (depth > 0 && $from.node(depth).type.name !== this.name) {
+            depth -= 1;
+          }
+
+          if (depth > 0) {
+            return commands.insertContentAt($from.after(depth), node);
+          }
 
           const parent = $from.parent;
           const isEmptyParagraph =
