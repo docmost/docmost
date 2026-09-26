@@ -474,35 +474,12 @@ export class ShareService {
     const pmJson = getProsemirrorContent(content);
     const attachmentIds = getAttachmentIds(pmJson);
 
-    // Attachments pasted from another page (or older docs) are still owned
-    // by their original page. The public file endpoint enforces
-    // `attachment.pageId === token.pageId`, so scope each token to the
-    // attachment's actual owner page when known (same workspace only).
-    // Falls back to the host/source page otherwise.
-    const ownerPageByAttachmentId = new Map<string, string>();
-    if (attachmentIds.length > 0) {
-      try {
-        const rows = await this.db
-          .selectFrom('attachments')
-          .select(['id', 'pageId'])
-          .where('workspaceId', '=', workspaceId)
-          .where('id', 'in', attachmentIds)
-          .execute();
-        for (const row of rows) {
-          if (row.pageId) ownerPageByAttachmentId.set(row.id, row.pageId);
-        }
-      } catch (err) {
-        this.logger.error('Failed to resolve attachment owner pages', err);
-      }
-    }
-
     const tokenMap = new Map<string, string>();
     await Promise.all(
       attachmentIds.map(async (attachmentId: string) => {
         const token = await this.tokenService.generateAttachmentToken({
           attachmentId,
-          pageId:
-            ownerPageByAttachmentId.get(attachmentId) ?? attachmentOwnerPageId,
+          pageId: attachmentOwnerPageId,
           workspaceId,
         });
         tokenMap.set(attachmentId, token);
