@@ -54,12 +54,9 @@ export class LocalDriver implements StorageDriver {
       const fromFullPath = this._fullPath(fromFilePath);
       const toFullPath = this._fullPath(toFilePath);
 
-      // Fail loudly on a missing source instead of silently leaving the
-      // duplicated page with a dangling attachment reference (#2010).
-      if (!(await this.exists(fromFilePath))) {
-        throw new Error(`File not found: ${fromFilePath}`);
+      if (await this.exists(fromFilePath)) {
+        await fs.copy(fromFullPath, toFullPath);
       }
-      await fs.copy(fromFullPath, toFullPath);
     } catch (err) {
       throw new Error(`Failed to copy file: ${(err as Error).message}`);
     }
