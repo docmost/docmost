@@ -41,3 +41,29 @@ lerna-debug.log*
 .nx
 .nx/installation
 .nx/cache
+
+# Terraform downloaded providers and modules
+**/.terraform/*
+
+# Terraform state can contain infrastructure details and sensitive values
+*.tfstate
+*.tfstate.*
+
+# Saved Terraform plans
+*.tfplan
+
+# Local variable files may contain passwords or email addresses
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Terraform crash logs
+crash.log
+crash.*.log
+
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
