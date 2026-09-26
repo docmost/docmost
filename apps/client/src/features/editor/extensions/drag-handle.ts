@@ -338,7 +338,16 @@ export function DragHandlePlugin(
       dragHandleElement.dataset.dragHandle = "";
       dragHandleElement.classList.add("drag-handle");
 
+      // Firefox reports clientY = 0 on every `drag` event (Mozilla bug 505521),
+      // so fall back to the pointer position from `dragover`.
+      let dragOverClientY = 0;
+
+      function onDocumentDragOver(e: DragEvent) {
+        dragOverClientY = e.clientY;
+      }
+
       function onDragHandleDragStart(e: DragEvent) {
+        dragOverClientY = e.clientY;
         handleDragStart(e, view);
       }
 
@@ -346,15 +355,18 @@ export function DragHandlePlugin(
 
       function onDragHandleDrag(e: DragEvent) {
         hideDragHandle();
+        const clientY = e.clientY || dragOverClientY;
+        if (!clientY) return;
         let scrollY = window.scrollY;
-        if (e.clientY < options.scrollThreshold) {
+        if (clientY < options.scrollThreshold) {
           window.scrollTo({ top: scrollY - 30, behavior: "smooth" });
-        } else if (window.innerHeight - e.clientY < options.scrollThreshold) {
+        } else if (window.innerHeight - clientY < options.scrollThreshold) {
           window.scrollTo({ top: scrollY + 30, behavior: "smooth" });
         }
       }
 
       dragHandleElement.addEventListener("drag", onDragHandleDrag);
+      document.addEventListener("dragover", onDocumentDragOver);
 
       hideDragHandle();
 
@@ -372,6 +384,7 @@ export function DragHandlePlugin(
             dragHandleElement?.remove?.();
           }
           dragHandleElement?.removeEventListener("drag", onDragHandleDrag);
+          document.removeEventListener("dragover", onDocumentDragOver);
           dragHandleElement?.removeEventListener(
             "dragstart",
             onDragHandleDragStart,
