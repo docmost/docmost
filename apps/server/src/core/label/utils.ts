@@ -1,3 +1,3 @@
 export function normalizeLabelName(name: string): string {
-  return name.trim().replace(/\s+/g, '-').toLowerCase();
+  return name.normalize('NFC').trim().replace(/\s+/g, '-').toLowerCase();
 }
