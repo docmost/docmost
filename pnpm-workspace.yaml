@@ -9,7 +9,7 @@ overrides:
   ws: 8.21.3
   dompurify: 3.4.13
   mermaid: 11.16.1
-  undici: 7.29.0
+  undici: 7.29.1
   tmp: 0.2.7
   nanoid@^3: 3.3.18
   lodash-es: 4.18.1
@@ -20,7 +20,7 @@ overrides:
   yaml@>=2.0.0 <2.8.3: 2.8.3
   brace-expansion@^5: 5.0.9
   axios: 1.18.1
-  ip-address: 10.3.1
+  ip-address: 10.5.1
   fast-uri: 3.1.7
   form-data@>=4.0.0 <4.0.6: 4.0.6
   nanoid@>=4.0.0 <5.1.16: 5.1.16
@@ -28,6 +28,7 @@ overrides:
   '@opentelemetry/core@>=2.0.0 <2.8.0': 2.9.0
   js-yaml@>=3.0.0 <3.15.2: 3.15.2
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
+  smol-toml@<1.7.1: 1.7.1
 shamefullyHoist: true
 minimumReleaseAge: 4320
 allowBuilds:
