@@ -1,5 +1,6 @@
 import {
   afterUnloadDocumentPayload,
+  beforeHandleAwarenessPayload,
   Extension,
   onChangePayload,
   onLoadDocumentPayload,
@@ -8,7 +9,12 @@ import {
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { getPageId, jsonToText, tiptapExtensions } from '../collaboration.util';
+import {
+  getPageId,
+  isRenderableObject,
+  jsonToText,
+  tiptapExtensions,
+} from '../collaboration.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -214,6 +220,28 @@ export class PersistenceExtension implements Extension {
       });
 
       await this.enqueuePageHistory(page);
+    }
+  }
+
+  // Drop malformed awareness before it is broadcast
+  async beforeHandleAwareness({ states }: beforeHandleAwarenessPayload) {
+    for (const [clientId, state] of states) {
+      if (!isRenderableObject(state)) {
+        states.delete(clientId);
+        continue;
+      }
+
+      if ('user' in state && !isRenderableObject(state.user)) {
+        delete state.user;
+      }
+
+      if (
+        'cursor' in state &&
+        state.cursor !== null &&
+        !isRenderableObject(state.cursor)
+      ) {
+        delete state.cursor;
+      }
     }
   }
 
