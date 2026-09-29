@@ -471,7 +471,9 @@ export const collabExtensions: CollabExtensions = (provider, user) => [
   CollaborationCaret.configure({
     provider,
     user: {
+      id: user.id,
       name: user.name,
+      avatarUrl: user.avatarUrl,
       color: randomElement(userColors),
     },
   }),

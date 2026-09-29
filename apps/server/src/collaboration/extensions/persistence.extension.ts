@@ -224,7 +224,12 @@ export class PersistenceExtension implements Extension {
   }
 
   // Drop malformed awareness before it is broadcast
-  async beforeHandleAwareness({ states }: beforeHandleAwarenessPayload) {
+  async beforeHandleAwareness({
+    states,
+    context,
+  }: beforeHandleAwarenessPayload) {
+    const user = context?.user;
+
     for (const [clientId, state] of states) {
       if (!isRenderableObject(state)) {
         states.delete(clientId);
@@ -233,6 +238,11 @@ export class PersistenceExtension implements Extension {
 
       if ('user' in state && !isRenderableObject(state.user)) {
         delete state.user;
+      }
+
+      if (state.user && user) {
+        state.user.id = user.id;
+        state.user.avatarUrl = user.avatarUrl ?? null;
       }
 
       if (
