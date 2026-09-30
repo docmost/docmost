@@ -138,6 +138,8 @@ export class PersistenceExtension implements Extension {
           return;
         }
 
+        await this.collabHistory.addContributors(pageId, editingUserIds);
+
         let contributorIds = undefined;
         try {
           const existingContributors = page.contributorIds || [];
@@ -168,6 +170,10 @@ export class PersistenceExtension implements Extension {
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
+      page = null;
+      editingUserIds.forEach((userId) =>
+        this.trackContributor(documentName, userId),
+      );
     }
 
     if (page) {
@@ -190,8 +196,6 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
-      await this.collabHistory.addContributors(pageId, editingUserIds);
-
       const mentions = extractMentions(tiptapJson);
 
       const userMentions = extractUserMentions(mentions);
@@ -256,11 +260,12 @@ export class PersistenceExtension implements Extension {
   }
 
   async onChange(data: onChangePayload) {
-    const documentName = data.documentName;
     const userId = data.context?.user?.id;
-
     if (!userId) return;
+    this.trackContributor(data.documentName, userId);
+  }
 
+  private trackContributor(documentName: string, userId: string) {
     if (!this.contributors.has(documentName)) {
       this.contributors.set(documentName, new Set());
     }

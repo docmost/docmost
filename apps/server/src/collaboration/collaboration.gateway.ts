@@ -146,8 +146,14 @@ export class CollaborationGateway {
     eventName: TName,
     documentName: string,
     payload: Parameters<CollabEventHandlers[TName]>[1],
+    onlyIfOpen = false,
   ) {
-    return this.redisSync?.handleEvent(eventName, documentName, payload);
+    return this.redisSync?.handleEvent(
+      eventName,
+      documentName,
+      payload,
+      onlyIfOpen,
+    );
   }
 
   openDirectConnection(documentName: string, context?: any) {

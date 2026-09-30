@@ -37,6 +37,14 @@ async function bootstrap() {
 
   const logger = new Logger('CollabServer');
 
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error(`UnhandledRejection, reason: ${reason}`, promise);
+  });
+
+  process.on('uncaughtException', (error) => {
+    logger.error('UncaughtException:', error);
+  });
+
   const port = process.env.COLLAB_PORT || 3001;
   const host = process.env.HOST || '0.0.0.0';
   await app.listen(port, host, () => {
