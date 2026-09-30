@@ -1,6 +1,13 @@
 .selectInput {
-    height: 25px;
-    min-height: 25px;
+    width: 104px;
+    height: 28px;
+    min-height: 28px;
+    border-color: transparent;
+    background-color: light-dark(
+        var(--mantine-color-white),
+        var(--mantine-color-dark-6)
+    );
+    font-size: var(--mantine-font-size-xs);
 }
 
 .error {
@@ -18,6 +25,19 @@
 }
 
 .menuGroup {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    gap: 4px;
+    opacity: 0.72;
+    transition: opacity 150ms ease;
+
+    &:hover,
+    &:focus-within {
+        opacity: 1;
+    }
+
     @media print {
         display: none;
     }
