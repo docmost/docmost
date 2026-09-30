@@ -14,6 +14,8 @@ import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB } from '@docmost/db/types/kysely.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
@@ -21,6 +23,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly workspaceRepo: WorkspaceRepo,
+    @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -34,11 +37,19 @@ export class UserController {
       workspace.id,
     );
 
+    const invitationResult = await this.db
+      .selectFrom('workspaceInvitations')
+      .select((eb) => eb.fn.countAll().as('count'))
+      .where('workspaceId', '=', workspace.id)
+      .executeTakeFirst();
+    const invitationCount = Number(invitationResult?.count ?? 0);
+
     const { licenseKey, ...rest } = workspace;
 
     const workspaceInfo = {
       ...rest,
       memberCount,
+      invitationCount,
     };
 
     return { user: authUser, workspace: workspaceInfo };
