@@ -56,6 +56,7 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
+import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 
 @Injectable()
 export class PageService {
@@ -74,6 +75,7 @@ export class PageService {
     private collaborationGateway: CollaborationGateway,
     private readonly watcherService: WatcherService,
     private readonly transclusionService: TransclusionService,
+    private readonly labelRepo: LabelRepo,
   ) {}
 
   async findById(
@@ -715,7 +717,13 @@ export class PageService {
       }),
     );
 
-    await this.db.insertInto('pages').values(insertablePages).execute();
+    await executeTx(this.db, async (trx) => {
+      await trx.insertInto('pages').values(insertablePages).execute();
+      await this.labelRepo.copyLabelsToPages(
+        new Map([...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId])),
+        trx,
+      );
+    });
 
     // Extract transclusions from every duplicated page and persist them in
     // one statement. Duplication bypasses Yjs onStoreDocument; brand-new
