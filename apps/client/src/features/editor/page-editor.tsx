@@ -279,7 +279,13 @@ function CollabPageEditor({
         },
         handleDOMEvents: {
           keydown: (_view, event) => {
-            if (platformModifierKey(event) && event.code === "KeyS") {
+            // Block the browser's "Save page" dialog, but let Mod-Shift-s
+            // through to the strikethrough shortcut.
+            if (
+              platformModifierKey(event) &&
+              !event.shiftKey &&
+              event.code === "KeyS"
+            ) {
               event.preventDefault();
               return true;
             }
