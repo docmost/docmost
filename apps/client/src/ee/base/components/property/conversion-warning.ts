@@ -2,6 +2,7 @@ import type { BasePropertyType } from "@/ee/base/types/base.types";
 
 export const NON_USER_TARGET_TYPES = new Set<BasePropertyType>([
   "createdAt",
+  "createdBy",
   "lastEditedAt",
   "lastEditedBy",
   "formula",

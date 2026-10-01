@@ -6,6 +6,7 @@ import {
   IconCalendar,
   IconCaretRightFilled,
   IconChevronDown,
+  IconForms,
   IconInfoCircle,
   IconLayoutKanban,
   IconMath,
@@ -152,6 +153,28 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               }}
             >
               {t("Kanban")}
+            </Menu.Item>
+          </Tooltip>
+        )}
+        {!templateMode && (
+          <Tooltip label={upgradeLabel} disabled={hasBases} position="right">
+            <Menu.Item
+              leftSection={<IconForms size={16} />}
+              aria-disabled={!hasBases}
+              closeMenuOnClick={hasBases}
+              style={{ opacity: hasBases ? undefined : 0.7 }}
+              rightSection={
+                !hasBases && (
+                  <Badge size="xs" variant="light" color="gray">
+                    {t("Upgrade")}
+                  </Badge>
+                )
+              }
+              onClick={() => {
+                if (hasBases) insertBaseEmbedBlock(editor, { template: "form" });
+              }}
+            >
+              {t("Form")}
             </Menu.Item>
           </Tooltip>
         )}

@@ -4,7 +4,7 @@ import { useReferenceStore } from "@/ee/base/reference/reference-store";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
-type CellLastEditedByProps = {
+type CellSystemUserProps = {
   value: unknown;
   property: IBaseProperty;
   rowId: string;
@@ -13,7 +13,7 @@ type CellLastEditedByProps = {
   onCancel: () => void;
 };
 
-export function CellLastEditedBy({ value, property }: CellLastEditedByProps) {
+export function CellSystemUser({ value, property }: CellSystemUserProps) {
   const userId = typeof value === "string" ? value : null;
 
   const store = useReferenceStore(property.pageId);

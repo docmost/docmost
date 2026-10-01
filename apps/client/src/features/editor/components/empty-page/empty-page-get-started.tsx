@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@mantine/core";
-import { IconTable, IconLayoutKanban } from "@tabler/icons-react";
+import { IconTable, IconLayoutKanban, IconForms } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
 import { useConvertPageToBaseMutation } from "@/ee/base/queries/base-query";
@@ -55,6 +55,13 @@ export function EmptyPageGetStarted({
       label: t("Kanban"),
       icon: IconLayoutKanban,
       onClick: () => convertMutation.mutate({ pageId, template: "kanban" }),
+      disabled: convertMutation.isPending,
+    },
+    {
+      key: "form",
+      label: t("Form"),
+      icon: IconForms,
+      onClick: () => convertMutation.mutate({ pageId, template: "form" }),
       disabled: convertMutation.isPending,
     },
   ];

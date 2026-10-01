@@ -20,12 +20,15 @@ export type BasePropertyType =
   | 'url'
   | 'email'
   | 'createdAt'
+  | 'createdBy'
   | 'lastEditedAt'
   | 'lastEditedBy'
   | 'formula'
   | 'longText';
 
-export type BaseViewType = 'table' | 'kanban' | 'calendar';
+export type BaseViewType = 'table' | 'kanban' | 'calendar' | 'form';
+
+export type BaseTemplate = 'kanban' | 'form';
 
 export type Choice = {
   id: string;
@@ -124,7 +127,7 @@ export type IBaseRow = {
   pageId: string;
   cells: Record<string, unknown>;
   position: string;
-  creatorId: string;
+  creatorId: string | null;
   lastUpdatedById: string | null;
   workspaceId: string;
   createdAt: string;
@@ -214,6 +217,113 @@ export type ViewConfig = {
   groupByPropertyId?: string;
   hiddenChoiceIds?: string[];
   choiceOrder?: string[];
+  form?: FormConfig;
+};
+
+export type FormFieldConfig = {
+  propertyId: string;
+  label?: string;
+  description?: string;
+  required?: boolean;
+};
+
+export type FormConfig = {
+  title?: string;
+  description?: string;
+  fields?: FormFieldConfig[];
+  submitLabel?: string;
+  successTitle?: string;
+  successMessage?: string;
+  allowResubmit?: boolean;
+};
+
+export type FormAccess = 'none' | 'workspace' | 'public';
+
+export type FormShareInfo = {
+  viewId: string;
+  access: FormAccess;
+  key: string | null;
+  publicSharingAllowed: boolean;
+};
+
+export type UpdateFormShareInput = {
+  pageId: string;
+  viewId: string;
+  access: FormAccess;
+  requestId?: string;
+};
+
+export type FormFieldType =
+  | 'text'
+  | 'longText'
+  | 'number'
+  | 'select'
+  | 'multiSelect'
+  | 'date'
+  | 'checkbox'
+  | 'url'
+  | 'email'
+  | 'person';
+
+export type FormFieldError = 'required' | 'invalid';
+
+export type PublicFormChoice = { id: string; name: string; color: string };
+
+export type PublicFormNumberFormat = {
+  format?: NumberTypeOptions['format'];
+  precision?: number;
+  currencyCode?: string;
+  currencySymbol?: string;
+};
+
+export type PublicFormField = {
+  propertyId: string;
+  type: FormFieldType;
+  label: string;
+  description: string | null;
+  required: boolean;
+  defaultValue: unknown;
+  choices?: PublicFormChoice[];
+  numberFormat?: PublicFormNumberFormat;
+  allowMultiple?: boolean;
+};
+
+export type PublicForm = {
+  title: string | null;
+  description: string | null;
+  submitLabel: string | null;
+  successTitle: string | null;
+  successMessage: string | null;
+  allowResubmit: boolean;
+  access: Exclude<FormAccess, 'none'>;
+  fields: PublicFormField[];
+};
+
+export type FormRespondent = {
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+};
+
+export type PublicFormResponse =
+  | {
+      status: 'open';
+      form: PublicForm;
+      respondent: FormRespondent | null;
+      users: Record<string, UserRef>;
+    }
+  | { status: 'closed' }
+  | { status: 'signInRequired'; workspaceName: string };
+
+export type SubmitPublicFormInput = {
+  key: string;
+  answers: Record<string, unknown>;
+};
+
+export type SubmitFormPreviewInput = {
+  pageId: string;
+  viewId: string;
+  answers: Record<string, unknown>;
 };
 
 export type ViewConfigPatch = {
@@ -357,6 +467,7 @@ export type UpdateViewInput = {
   type?: BaseViewType;
   config?: ViewConfigPatch;
   position?: string;
+  requestId?: string;
 };
 
 export type DeleteViewInput = {

@@ -37,6 +37,7 @@ export enum EventName {
   BASE_VIEW_CREATED = 'base.view.created',
   BASE_VIEW_UPDATED = 'base.view.updated',
   BASE_VIEW_DELETED = 'base.view.deleted',
+  BASE_VIEW_SHARE_UPDATED = 'base.view.share.updated',
 
   BASE_SCHEMA_BUMPED = 'base.schema.bumped',
   BASE_ROWS_UPDATED = 'base.rows.updated',

@@ -1,12 +1,18 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useAtom } from "jotai";
 import { Menu, ActionIcon, Tooltip } from "@mantine/core";
-import { IconPlus, IconTable, IconLayoutKanban, IconArrowLeft } from "@tabler/icons-react";
+import { IconPlus, IconArrowLeft } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { IBase } from "@/ee/base/types/base.types";
+import { BaseViewType, IBase, ViewConfig } from "@/ee/base/types/base.types";
 import { useCreateViewMutation } from "@/ee/base/queries/base-view-query";
 import { activeViewIdAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { getDescriptor } from "@/ee/base/property-types/property-type.registry";
+import { VIEW_TYPE_ICONS } from "@/ee/base/components/views/view-type-icon";
+import {
+  MAX_FORM_FIELDS,
+  isFormFieldProperty,
+} from "@/ee/base/components/form/form-definition";
+import { usePageQuery } from "@/features/page/queries/page-query";
 
 type Panel = "types" | "groupBy";
 
@@ -21,6 +27,7 @@ export function ViewCreateMenu({ base, pageId }: ViewCreateMenuProps) {
   const [panel, setPanel] = useState<Panel>("types");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const createViewMutation = useCreateViewMutation();
+  const { data: page } = usePageQuery({ pageId });
   const [, setActiveViewId] = useAtom(
     activeViewIdAtomFamily(pageId),
   ) as unknown as [string | null, (val: string | null) => void];
@@ -35,7 +42,7 @@ export function ViewCreateMenu({ base, pageId }: ViewCreateMenuProps) {
   }, []);
 
   const submitView = useCallback(
-    (input: { name: string; type: "table" | "kanban"; config?: Record<string, unknown> }) => {
+    (input: { name: string; type: BaseViewType; config?: ViewConfig }) => {
       createViewMutation.mutate(
         { pageId, ...input },
         { onSuccess: (created) => setActiveViewId(created.id) },
@@ -60,6 +67,23 @@ export function ViewCreateMenu({ base, pageId }: ViewCreateMenuProps) {
       setPanel("groupBy");
     }
   }, [groupable, submitView, t]);
+
+  const handleCreateForm = useCallback(() => {
+    const title = page?.title?.trim().slice(0, 300);
+    submitView({
+      name: t("Form"),
+      type: "form",
+      config: {
+        form: {
+          ...(title ? { title } : {}),
+          fields: base.properties
+            .filter(isFormFieldProperty)
+            .slice(0, MAX_FORM_FIELDS)
+            .map((property) => ({ propertyId: property.id })),
+        },
+      },
+    });
+  }, [base.properties, page?.title, submitView, t]);
 
   const handleGroupByPick = useCallback(
     (propertyId: string) => {
@@ -105,11 +129,14 @@ export function ViewCreateMenu({ base, pageId }: ViewCreateMenuProps) {
       <Menu.Dropdown ref={dropdownRef}>
         {panel === "types" && (
           <>
-            <Menu.Item leftSection={<IconTable size={14} />} onClick={handleCreateTable}>
+            <Menu.Item leftSection={<VIEW_TYPE_ICONS.table size={14} />} onClick={handleCreateTable}>
               {t("Table")}
             </Menu.Item>
-            <Menu.Item leftSection={<IconLayoutKanban size={14} />} onClick={handleBoardClick}>
+            <Menu.Item leftSection={<VIEW_TYPE_ICONS.kanban size={14} />} onClick={handleBoardClick}>
               {t("Kanban")}
+            </Menu.Item>
+            <Menu.Item leftSection={<VIEW_TYPE_ICONS.form size={14} />} onClick={handleCreateForm}>
+              {t("Form")}
             </Menu.Item>
           </>
         )}

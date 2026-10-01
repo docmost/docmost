@@ -1,10 +1,12 @@
 import { useState, useCallback, useMemo } from "react";
-import { ActionIcon, Tooltip, Badge } from "@mantine/core";
+import { useAtom } from "jotai";
+import { ActionIcon, Button, Tooltip, Badge } from "@mantine/core";
 import { Table } from "@tanstack/react-table";
 import {
   IconSortAscending,
   IconFilter,
   IconEye,
+  IconEyeOff,
   IconDownload,
   IconArrowsDiagonal,
   IconLayoutColumns,
@@ -27,6 +29,10 @@ import { ViewFilterConfigPopover } from "@/ee/base/components/views/view-filter-
 import { ViewPropertyVisibility } from "@/ee/base/components/views/view-property-visibility";
 import { KanbanGroupByPicker } from "@/ee/base/components/kanban/kanban-group-by-picker";
 import { KanbanCardProperties } from "@/ee/base/components/kanban/kanban-card-properties";
+import { FormSettingsPopover } from "@/ee/base/components/form/form-settings-popover";
+import { FormSharePopover } from "@/ee/base/components/form/form-share-popover";
+import { formPreviewAtomFamily } from "@/ee/base/atoms/base-atoms";
+import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useTranslation } from "react-i18next";
 import classes from "@/ee/base/styles/grid.module.css";
 import toolbarClasses from "@/ee/base/styles/base-toolbar.module.css";
@@ -68,6 +74,11 @@ export function BaseToolbar({
   const [exporting, setExporting] = useState(false);
 
   const isKanban = activeView?.type === "kanban";
+  const isForm = activeView?.type === "form";
+  const editable = useBaseEditable();
+  const [formPreview, setFormPreview] = useAtom(
+    formPreviewAtomFamily(activeView?.id ?? ""),
+  );
 
   const handleExport = useCallback(async () => {
     if (exporting) return;
@@ -149,34 +160,59 @@ export function BaseToolbar({
           </ActionIcon>
         </Tooltip>
 
-        <ViewFilterConfigPopover
-          opened={filterOpened}
-          onClose={() => setFilterOpened(false)}
-          conditions={conditions}
-          properties={base.properties}
-          onChange={handleFiltersChange}
-        >
-          <Tooltip label={t("Filter")}>
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              color={conditions.length > 0 ? "blue" : "gray"}
-              onClick={() => openToolbar("filter")}
+        {!isForm && (
+          <ViewFilterConfigPopover
+            opened={filterOpened}
+            onClose={() => setFilterOpened(false)}
+            conditions={conditions}
+            properties={base.properties}
+            onChange={handleFiltersChange}
+          >
+            <Tooltip label={t("Filter")}>
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                color={conditions.length > 0 ? "blue" : "gray"}
+                onClick={() => openToolbar("filter")}
+              >
+                <IconFilter size={16} />
+                {conditions.length > 0 && (
+                  <Badge
+                    size="xs"
+                    circle
+                    color="blue"
+                    className={toolbarClasses.badgeDot}
+                  >
+                    {conditions.length}
+                  </Badge>
+                )}
+              </ActionIcon>
+            </Tooltip>
+          </ViewFilterConfigPopover>
+        )}
+
+        {isForm && activeView && editable && (
+          <>
+            <FormSettingsPopover pageId={base.id} view={activeView} />
+            <Button
+              size="compact-sm"
+              variant="default"
+              fw={500}
+              leftSection={
+                formPreview ? (
+                  <IconEyeOff size={16} stroke={1.75} />
+                ) : (
+                  <IconEye size={16} stroke={1.75} />
+                )
+              }
+              aria-pressed={formPreview}
+              onClick={() => setFormPreview(!formPreview)}
             >
-              <IconFilter size={16} />
-              {conditions.length > 0 && (
-                <Badge
-                  size="xs"
-                  circle
-                  color="blue"
-                  className={toolbarClasses.badgeDot}
-                >
-                  {conditions.length}
-                </Badge>
-              )}
-            </ActionIcon>
-          </Tooltip>
-        </ViewFilterConfigPopover>
+              {formPreview ? t("Exit preview") : t("Preview")}
+            </Button>
+            <FormSharePopover pageId={base.id} view={activeView} />
+          </>
+        )}
 
         {isKanban && activeView && (
           <>
@@ -213,7 +249,7 @@ export function BaseToolbar({
           </>
         )}
 
-        {!isKanban && (
+        {!isKanban && !isForm && (
           <>
             <ViewSortConfigPopover
               opened={sortOpened}

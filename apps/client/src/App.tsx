@@ -54,6 +54,7 @@ const PublicSpaceDirectoryPage = lazy(
   () => import("@/pages/public-space/public-space-directory-page.tsx"),
 );
 const SpacesPage = lazy(() => import("@/pages/spaces/spaces.tsx"));
+const PublicFormPage = lazy(() => import("@/ee/base/pages/public-form-page.tsx"));
 const MfaChallengePage = lazy(() =>
   import("@/ee/mfa/pages/mfa-challenge-page").then((m) => ({
     default: m.MfaChallengePage,
@@ -136,6 +137,8 @@ export default function App() {
             element={<PublicSpacePage />}
           />
         </Route>
+
+        <Route path={"/forms/:formKey"} element={<PublicFormPage />} />
 
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />
         <Route path={"/share/:shareId"} element={<ShareRedirect />} />

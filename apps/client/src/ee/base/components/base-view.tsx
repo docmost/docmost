@@ -50,6 +50,7 @@ import { useNavigate } from "react-router-dom";
 import classes from "@/ee/base/styles/grid.module.css";
 import viewClasses from "@/ee/base/styles/base-view.module.css";
 import kanbanClasses from "@/ee/base/styles/kanban.module.css";
+import formClasses from "@/ee/base/styles/form.module.css";
 
 type BaseViewProps = {
   pageId: string;
@@ -150,6 +151,8 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
   // Gate on base to avoid a "bland" list request before the active view's
   // config resolves, which would double network traffic for sorted/filtered views.
   const isKanban = activeView?.type === "kanban";
+  const isForm = activeView?.type === "form";
+  const loadsRows = !isKanban && !isForm;
 
   const {
     data: rowsData,
@@ -157,7 +160,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useBaseRowsQuery(base && !isKanban ? pageId : undefined, activeFilter, activeSorts);
+  } = useBaseRowsQuery(base && loadsRows ? pageId : undefined, activeFilter, activeSorts);
 
   const updateRowMutation = useUpdateRowMutation();
   const createRowMutation = useCreateRowMutation();
@@ -373,7 +376,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     [editable, pageId, reorderRow],
   );
 
-  if (baseLoading || (!isKanban && rowsLoading)) {
+  if (baseLoading || (loadsRows && rowsLoading)) {
     return <BaseTableSkeleton />;
   }
   if (baseError) {
@@ -415,7 +418,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     />
   );
 
-  const kanbanBand = (
+  const band = (
     <div className={kanbanClasses.bandWrap}>
       {embedded ? null : titleSlot}
       {banner}
@@ -449,12 +452,32 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     />
   );
 
+  if (isForm) {
+    return (
+      <BaseEditableProvider editable={editable}>
+        {embedded ? (
+          <>
+            {band}
+            {viewRenderer(null)}
+          </>
+        ) : (
+          <div className={viewClasses.fullHeight}>
+            <div className={formClasses.scroll}>
+              {band}
+              {viewRenderer(null)}
+            </div>
+          </div>
+        )}
+      </BaseEditableProvider>
+    );
+  }
+
   if (embedded) {
     if (isKanban) {
       return (
         <BaseEditableProvider editable={editable}>
           <RowExpandProvider value={handleExpandRow}>
-            {kanbanBand}
+            {band}
             {viewRenderer(null)}
           </RowExpandProvider>
           <RowDetailModal
@@ -497,7 +520,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
       <BaseEditableProvider editable={editable}>
         <div className={kanbanClasses.standalone}>
           <RowExpandProvider value={handleExpandRow}>
-            {kanbanBand}
+            {band}
             {viewRenderer(null)}
           </RowExpandProvider>
         </div>

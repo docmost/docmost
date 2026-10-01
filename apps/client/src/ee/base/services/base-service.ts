@@ -19,6 +19,7 @@ import {
   CreateViewInput,
   UpdateViewInput,
   DeleteViewInput,
+  BaseTemplate,
   UpdatePropertyResult,
   FilterNode,
   ViewSortConfig,
@@ -51,7 +52,7 @@ export async function deleteBase(pageId: string): Promise<void> {
 
 export async function convertPageToBase(
   pageId: string,
-  template?: "kanban",
+  template?: BaseTemplate,
 ): Promise<IBase> {
   const req = await api.post<IBase>("/bases/convert", { pageId, template });
   return req.data;

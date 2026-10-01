@@ -19,6 +19,7 @@ const enterpriseFeatures = [
   "PDF & DOCX Import",
   "Bases",
   "Kanban",
+  "Forms",
   "Templates",
   "Personal Spaces"
 ];

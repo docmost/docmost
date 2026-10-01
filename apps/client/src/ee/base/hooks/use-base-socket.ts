@@ -7,16 +7,26 @@ import {
   IBaseProperty,
   IBaseRow,
   IBaseView,
+  RowReferences,
 } from "@/ee/base/types/base.types";
 import { selectedRowIdsAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { formulaRecomputeAtom } from "@/ee/base/atoms/formula-recompute-atom";
+import {
+  mergeReferences,
+  referenceStoreAtomFamily,
+} from "@/ee/base/atoms/reference-store-atom";
 import { IPagination } from "@/lib/types";
 import { invalidateBaseRows } from "@/ee/base/queries/base-row-query";
+import {
+  formShareQueryKey,
+  invalidatePublicFormForView,
+} from "@/ee/base/queries/base-form-query";
 
 type BaseRowCreated = {
   operation: "base:row:created";
   pageId: string;
   row: IBaseRow;
+  references?: RowReferences;
   requestId?: string | null;
 };
 
@@ -72,6 +82,13 @@ type BaseViewEvent = {
   viewId?: string;
 };
 
+type BaseViewShareUpdated = {
+  operation: "base:view:share:updated";
+  pageId: string;
+  viewId: string;
+  requestId?: string | null;
+};
+
 type BaseRowsUpdated = {
   operation: "base:rows:updated";
   pageId: string;
@@ -121,6 +138,7 @@ type BaseInboundEvent =
   | BaseSubscribed
   | BasePropertyEvent
   | BaseViewEvent
+  | BaseViewShareUpdated
   | { operation: string; pageId: string };
 
 // Module-level set of requestIds we've just sent. When the socket echoes back
@@ -162,9 +180,31 @@ export function useBaseSocket(pageId: string | undefined): void {
       switch (event.operation) {
         case "base:row:created": {
           const e = event as BaseRowCreated;
+          const store = getDefaultStore();
+          const referencesAtom = referenceStoreAtomFamily(pageId);
+          if (e.references && Object.keys(e.references.users).length > 0) {
+            store.set(
+              referencesAtom,
+              mergeReferences(store.get(referencesAtom), e.references),
+            );
+          }
           const baseForCreate = queryClient.getQueryData<IBase>(["bases", pageId]);
           const hasKanbanForCreate = (baseForCreate?.views ?? []).some((v) => v.type === "kanban");
-          if (hasKanbanForCreate) {
+          const createProperties = baseForCreate?.properties ?? [];
+          const showsRowUsers = createProperties.some(
+            (p) => p.type === "createdBy" || p.type === "lastEditedBy",
+          );
+          const knownUsers = store.get(referencesAtom).users;
+          const referencedUserIds = [
+            ...(showsRowUsers ? [e.row.creatorId, e.row.lastUpdatedById] : []),
+            ...createProperties
+              .filter((p) => p.type === "person")
+              .flatMap((p) => e.row.cells?.[p.id] ?? []),
+          ];
+          const usersUnresolved = referencedUserIds.some(
+            (id) => typeof id === "string" && !knownUsers[id],
+          );
+          if (hasKanbanForCreate || usersUnresolved) {
             invalidateBaseRows(pageId);
           } else {
             queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
@@ -364,7 +404,35 @@ export function useBaseSocket(pageId: string | undefined): void {
         case "base:view:updated":
         case "base:view:deleted": {
           // Schema/metadata events only affect properties/views, not cell data.
+          const e = event as BasePropertyEvent | BaseViewEvent;
+          const cachedBase = queryClient.getQueryData<IBase>(["bases", pageId]);
           queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+          if (e.operation === "base:property:updated" && e.property) {
+            const propertyId = e.property.id;
+            for (const view of cachedBase?.views ?? []) {
+              if (
+                view.config?.form?.fields?.some(
+                  (field) => field.propertyId === propertyId,
+                )
+              ) {
+                invalidatePublicFormForView(pageId, view.id);
+              }
+            }
+          } else if (e.operation === "base:view:updated" && e.view?.type === "form") {
+            invalidatePublicFormForView(pageId, e.view.id);
+          } else if (e.operation === "base:view:deleted" && e.viewId) {
+            queryClient.invalidateQueries({
+              queryKey: formShareQueryKey(pageId, e.viewId),
+            });
+          }
+          break;
+        }
+        case "base:view:share:updated": {
+          const e = event as BaseViewShareUpdated;
+          invalidatePublicFormForView(pageId, e.viewId);
+          queryClient.invalidateQueries({
+            queryKey: formShareQueryKey(pageId, e.viewId),
+          });
           break;
         }
         default:

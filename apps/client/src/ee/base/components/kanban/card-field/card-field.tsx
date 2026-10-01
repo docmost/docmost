@@ -55,8 +55,9 @@ export function CardField({ property, value, pageId }: CardFieldProps) {
       return <TimestampField value={value} />;
     case "person":
       return <PersonField value={value} pageId={pageId} />;
+    case "createdBy":
     case "lastEditedBy":
-      return <LastEditedByField value={value} pageId={pageId} />;
+      return <SystemUserField value={value} pageId={pageId} />;
     case "file":
       return <FileField value={value} />;
     case "page":
@@ -170,7 +171,7 @@ function PersonField({ value, pageId }: { value: unknown; pageId: string }) {
   return <PersonReadList personIds={personIds} users={store.users} />;
 }
 
-function LastEditedByField({ value, pageId }: { value: unknown; pageId: string }) {
+function SystemUserField({ value, pageId }: { value: unknown; pageId: string }) {
   const userId = typeof value === "string" ? value : null;
   const store = useReferenceStore(pageId);
   if (!userId) return null;

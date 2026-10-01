@@ -74,7 +74,13 @@ async function bootstrap() {
   //   /api/files/ - attachment controller sets its own CSP we'd overwrite
   //   /share/     - public share pages are safe to embed
   //   /docs/      - public space pages are safe to embed
-  const frameHeaderSkippedPrefixes = ['/api/files/', '/share/', '/docs/'];
+  //   /forms/     - public forms are safe to embed
+  const frameHeaderSkippedPrefixes = [
+    '/api/files/',
+    '/share/',
+    '/docs/',
+    '/forms/',
+  ];
   app
     .getHttpAdapter()
     .getInstance()

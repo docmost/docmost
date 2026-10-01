@@ -34,14 +34,17 @@ type CreatePropertyPopoverProps = {
   onPropertyCreated?: (property: IBaseProperty) => void;
   /** Custom trigger; must return a ref-forwarding element for Popover.Target.
    *  Defaults to the grid's + column button. */
-  renderTarget?: (open: () => void) => React.ReactElement;
+  renderTarget?: (
+    open: (trigger?: React.SyntheticEvent | HTMLElement) => void,
+  ) => React.ReactElement;
+  excludeTypes?: Set<BasePropertyType>;
 };
 
 type Panel = "typePicker" | "configure" | "confirmDiscard";
 
 const noop = () => {};
 
-export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, renderTarget }: CreatePropertyPopoverProps) {
+export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, renderTarget, excludeTypes }: CreatePropertyPopoverProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
   const [panel, setPanel] = useState<Panel>("typePicker");
@@ -99,11 +102,14 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
   }, []);
 
   const handleOpen = useCallback(
-    (event?: React.SyntheticEvent) => {
+    (trigger?: React.SyntheticEvent | HTMLElement) => {
       resetState();
-      const trigger = event?.currentTarget as HTMLElement | undefined;
-      if (trigger) {
-        const rect = trigger.getBoundingClientRect();
+      const anchor =
+        trigger instanceof HTMLElement
+          ? trigger
+          : (trigger?.currentTarget as HTMLElement | undefined);
+      if (anchor) {
+        const rect = anchor.getBoundingClientRect();
         const spaceAbove = rect.top;
         const spaceBelow = window.innerHeight - rect.bottom;
         setPosition(spaceAbove > spaceBelow ? "top-start" : "bottom-start");
@@ -284,6 +290,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
               >
                 <PropertyTypePicker
                   onSelect={handleTypeSelect}
+                  excludeTypes={excludeTypes}
                   showSearch
                 />
               </ScrollArea.Autosize>

@@ -13,6 +13,7 @@ import {
   IconLink,
   IconMail,
   IconClockPlus,
+  IconUserPlus,
   IconClockEdit,
   IconUserEdit,
   IconMathFunction,
@@ -36,7 +37,7 @@ import { CellFile } from "@/ee/base/components/cells/cell-file";
 import { CellPage } from "@/ee/base/components/cells/cell-page";
 import { CellCreatedAt } from "@/ee/base/components/cells/cell-created-at";
 import { CellLastEditedAt } from "@/ee/base/components/cells/cell-last-edited-at";
-import { CellLastEditedBy } from "@/ee/base/components/cells/cell-last-edited-by";
+import { CellSystemUser } from "@/ee/base/components/cells/cell-system-user";
 import { CellFormula } from "@/ee/base/components/cells/cell-formula";
 import { defaultStatusChoices } from "@/ee/base/components/property/choice-editor";
 import type { ClientPropertyTypeDescriptor } from "./property-type.descriptor";
@@ -205,6 +206,17 @@ export const PROPERTY_TYPE_REGISTRY: Record<
     hasOptions: false,
     systemAccessor: (row) => row.createdAt,
   },
+  createdBy: {
+    type: "createdBy",
+    cellComponent: CellSystemUser,
+    icon: IconUserPlus,
+    labelKey: "Created by",
+    filterOperators: ["eq", "neq", "any", "none", "isEmpty", "isNotEmpty"],
+    filterInput: "person",
+    isSystem: true,
+    hasOptions: false,
+    systemAccessor: (row) => row.creatorId,
+  },
   lastEditedAt: {
     type: "lastEditedAt",
     cellComponent: CellLastEditedAt,
@@ -218,7 +230,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
   },
   lastEditedBy: {
     type: "lastEditedBy",
-    cellComponent: CellLastEditedBy,
+    cellComponent: CellSystemUser,
     icon: IconUserEdit,
     labelKey: "Last edited by",
     filterOperators: ["eq", "neq", "any", "none", "isEmpty", "isNotEmpty"],
@@ -246,7 +258,7 @@ export const DEFAULT_FILTER_OPERATORS = ["eq", "neq", "isEmpty", "isNotEmpty"];
 export const PROPERTY_PICKER_ORDER: BasePropertyType[] = [
   "text", "longText", "number", "select", "status", "multiSelect", "date",
   "person", "file", "formula", "page", "checkbox", "url", "email",
-  "createdAt", "lastEditedAt", "lastEditedBy",
+  "createdAt", "createdBy", "lastEditedAt", "lastEditedBy",
 ];
 
 export const propertyTypes = PROPERTY_PICKER_ORDER.map((type) => {

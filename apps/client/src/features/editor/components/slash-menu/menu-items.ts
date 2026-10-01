@@ -7,6 +7,7 @@ import {
   IconH2,
   IconH3,
   IconInfoCircle,
+  IconForms,
   IconLayoutKanban,
   IconList,
   IconListNumbers,
@@ -390,6 +391,16 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       requiresBases: true,
       command: ({ editor, range }: CommandProps) => {
         insertBaseEmbedBlock(editor, { range, template: "kanban" });
+      },
+    },
+    {
+      title: "Form",
+      description: "Insert a form that collects responses into a base",
+      searchTerms: ["form", "survey", "questionnaire", "responses", "database"],
+      icon: IconForms,
+      requiresBases: true,
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range, template: "form" });
       },
     },
     {

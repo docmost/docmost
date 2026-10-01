@@ -443,7 +443,8 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Audio",
   "Synced block",
   "Base (Inline)",
-  "Kanban"
+  "Kanban",
+  "Form"
 ]);
 
 const TemplateSlashCommand = Command.configure({

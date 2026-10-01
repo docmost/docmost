@@ -53,3 +53,7 @@ export type PendingTypeInsert = {
 } | null;
 
 export const pendingTypeInsertAtom = atom<PendingTypeInsert>(null);
+
+export const formPreviewAtomFamily = atomFamily((_viewId: string) =>
+  atom<boolean>(false),
+);

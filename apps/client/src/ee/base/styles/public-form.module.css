@@ -1,0 +1,50 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--mantine-color-body);
+}
+
+.topBar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 688px;
+  margin: 0 auto;
+  padding: 16px 24px 64px;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 688px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.branding {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+  text-decoration: none;
+}
+
+.branding:hover {
+  color: var(--mantine-color-text);
+}
+
+@media (max-width: 600px) {
+  .main,
+  .footer {
+    padding-inline: 16px;
+  }
+}

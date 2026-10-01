@@ -158,6 +158,18 @@ export interface BaseRows {
   workspaceId: string;
 }
 
+export interface BaseViewShares {
+  access: Generated<string>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  id: Generated<string>;
+  key: string;
+  pageId: string;
+  updatedAt: Generated<Timestamp>;
+  viewId: string;
+  workspaceId: string;
+}
+
 export interface BaseViews {
   config: Generated<Json>;
   createdAt: Generated<Timestamp>;
@@ -741,6 +753,7 @@ export interface DB {
   backlinks: Backlinks;
   baseProperties: BaseProperties;
   baseRows: BaseRows;
+  baseViewShares: BaseViewShares;
   baseViews: BaseViews;
   billing: Billing;
   comments: Comments;

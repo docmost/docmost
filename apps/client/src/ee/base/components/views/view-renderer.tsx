@@ -7,6 +7,7 @@ import {
 } from "@/ee/base/types/base.types";
 import { BaseTable } from "@/ee/base/components/base-table";
 import { BaseKanban } from "@/ee/base/components/kanban/base-kanban";
+import { BaseForm } from "@/ee/base/components/form/base-form";
 
 type ViewRendererProps = {
   base: IBase;
@@ -47,6 +48,19 @@ export function ViewRenderer(props: ViewRendererProps) {
         embedded={props.embedded}
         editable={props.editable}
         viewFilter={props.kanbanFilter}
+      />
+    );
+  }
+
+  if (viewType === "form") {
+    return (
+      <BaseForm
+        key={props.effectiveView!.id}
+        base={props.base}
+        view={props.effectiveView!}
+        pageId={props.pageId}
+        editable={props.editable}
+        embedded={props.embedded}
       />
     );
   }

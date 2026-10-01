@@ -12,6 +12,7 @@ import {
 } from "@/ee/base/services/base-service";
 import {
   IBase,
+  BaseTemplate,
   CreateBaseInput,
   UpdateBaseInput,
 } from "@/ee/base/types/base.types";
@@ -60,7 +61,7 @@ export function useConvertPageToBaseMutation() {
   const [, setTreeData] = useAtom(treeDataAtom);
   const [socket] = useAtom(socketAtom);
 
-  return useMutation<IBase, Error, { pageId: string; template?: "kanban" }>({
+  return useMutation<IBase, Error, { pageId: string; template?: BaseTemplate }>({
     mutationFn: ({ pageId, template }) => convertPageToBase(pageId, template),
     onSuccess: (base) => {
       const markAsBase = (old?: IPage) => (old ? { ...old, isBase: true } : old);

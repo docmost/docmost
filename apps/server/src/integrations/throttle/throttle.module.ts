@@ -11,6 +11,8 @@ import {
   OAUTH_TOKEN_THROTTLER,
   OAUTH_AUTHORIZE_THROTTLER,
   SIEM_TEST_THROTTLER,
+  BASE_FORM_SUBMIT_THROTTLER,
+  BASE_FORM_KEY_THROTTLER,
 } from './throttler-names';
 import Redis from 'ioredis';
 
@@ -29,6 +31,8 @@ import Redis from 'ioredis';
             { name: OAUTH_TOKEN_THROTTLER, ttl: 60_000, limit: 60 },
             { name: OAUTH_AUTHORIZE_THROTTLER, ttl: 60_000, limit: 30 },
             { name: SIEM_TEST_THROTTLER, ttl: 60_000, limit: 10 },
+            { name: BASE_FORM_SUBMIT_THROTTLER, ttl: 60_000, limit: 30 },
+            { name: BASE_FORM_KEY_THROTTLER, ttl: 60_000, limit: 600 },
           ],
           errorMessage: 'Too many requests',
           storage: new ThrottlerStorageRedisService(

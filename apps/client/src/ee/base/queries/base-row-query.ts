@@ -49,7 +49,7 @@ export function normalizeFilter(filter: FilterNode | undefined): FilterNode | un
 }
 
 // Pre-register the requestId as outbound so the socket echo is suppressed by useBaseSocket.
-function newRequestId(): string {
+export function newRequestId(): string {
   const id = uuid7();
   markRequestIdOutbound(id);
   return id;
