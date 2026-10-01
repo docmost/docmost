@@ -57,6 +57,12 @@ import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { PageAccessService } from '../page-access/page-access.service';
+import {
+  getReferencedAttachmentIds,
+  replaceAttachmentIds,
+} from '../../../common/helpers/prosemirror/attachment-refs';
 
 @Injectable()
 export class PageService {
@@ -76,6 +82,8 @@ export class PageService {
     private readonly watcherService: WatcherService,
     private readonly transclusionService: TransclusionService,
     private readonly labelRepo: LabelRepo,
+    private readonly userRepo: UserRepo,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   async findById(
@@ -150,6 +158,22 @@ export class PageService {
       textContent,
       ydoc,
     }, trx);
+
+    if (content) {
+      const boundContent = await this.bindAttachmentsToPage(
+        content,
+        page,
+        userId,
+        trx,
+      );
+      if (boundContent !== content) {
+        await this.pageRepo.updatePage(
+          { content: boundContent, ydoc: createYdocFromJson(boundContent) },
+          page.id,
+          trx,
+        );
+      }
+    }
 
     if (trx) {
       // Add the watcher inside the caller's transaction so the async worker
@@ -283,7 +307,12 @@ export class PageService {
     format: ContentFormat,
     user: User,
   ): Promise<void> {
-    const prosemirrorJson = await this.parseProsemirrorContent(content, format);
+    const page = await this.pageRepo.findById(pageId);
+    const prosemirrorJson = await this.bindAttachmentsToPage(
+      await this.parseProsemirrorContent(content, format),
+      page,
+      user.id,
+    );
 
     const documentName = `page.${pageId}`;
     await this.collaborationGateway.handleYjsEvent(
@@ -1143,6 +1172,98 @@ export class PageService {
     }
 
     return prosemirrorJson;
+  }
+
+  /**
+   * Content sent through the API can reference attachments by url only (e.g.
+   * markdown images) or point to attachments of other pages. Public shares
+   * only serve attachments that belong to the shared page, so bind the
+   * references to `page`: fill in the missing `attachmentId` of its own
+   * attachments and copy attachments of other pages the user can view.
+   * Other references are left unchanged.
+   */
+  private async bindAttachmentsToPage(
+    prosemirrorJson: any,
+    page: Page,
+    userId: string,
+    trx?: KyselyTransaction,
+  ): Promise<any> {
+    const attachmentIds = getReferencedAttachmentIds(prosemirrorJson);
+    if (attachmentIds.length === 0) return prosemirrorJson;
+
+    const attachments = await this.attachmentRepo.findByIds(attachmentIds, {
+      trx,
+    });
+    const idMap = new Map<string, string>();
+    const canViewByPageId = new Map<string, boolean>();
+    let user: User;
+
+    for (const attachment of attachments) {
+      if (attachment.workspaceId !== page.workspaceId || !attachment.pageId) {
+        continue;
+      }
+
+      if (attachment.pageId === page.id) {
+        idMap.set(attachment.id, attachment.id);
+        continue;
+      }
+
+      if (!canViewByPageId.has(attachment.pageId)) {
+        user ??= await this.userRepo.findById(userId, page.workspaceId);
+        canViewByPageId.set(
+          attachment.pageId,
+          await this.canViewPage(attachment.pageId, user),
+        );
+      }
+      if (!canViewByPageId.get(attachment.pageId)) continue;
+
+      const newAttachmentId = uuid7();
+      const newFilePath = attachment.filePath.replace(
+        attachment.id,
+        newAttachmentId,
+      );
+
+      try {
+        await this.storageService.copy(attachment.filePath, newFilePath);
+        await this.attachmentRepo.insertAttachment(
+          {
+            id: newAttachmentId,
+            type: attachment.type,
+            filePath: newFilePath,
+            fileName: attachment.fileName,
+            fileSize: attachment.fileSize,
+            mimeType: attachment.mimeType,
+            fileExt: attachment.fileExt,
+            creatorId: userId,
+            workspaceId: page.workspaceId,
+            pageId: page.id,
+            spaceId: page.spaceId,
+          },
+          trx,
+        );
+        idMap.set(attachment.id, newAttachmentId);
+      } catch (err) {
+        this.logger.error(
+          `Failed to copy attachment ${attachment.id} to page ${page.id}`,
+          err,
+        );
+      }
+    }
+
+    if (idMap.size === 0) return prosemirrorJson;
+    return replaceAttachmentIds(prosemirrorJson, idMap);
+  }
+
+  private async canViewPage(pageId: string, user: User): Promise<boolean> {
+    const page = await this.pageRepo.findById(pageId);
+    if (!page || page.deletedAt || !user) return false;
+
+    try {
+      await this.pageAccessService.validateCanView(page, user);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
