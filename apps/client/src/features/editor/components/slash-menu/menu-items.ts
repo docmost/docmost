@@ -43,6 +43,7 @@ import { uploadAttachmentAction } from "@/features/editor/components/attachment/
 import { uploadPdfAction } from "@/features/editor/components/pdf/upload-pdf-action.tsx";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
+import IconPlantuml from "@/components/icons/icon-plantuml";
 import IconDrawio from "@/components/icons/icon-drawio";
 import { IconColumns4 } from "@/components/icons/icon-columns-4";
 import { IconColumns5 } from "@/components/icons/icon-columns-5";
@@ -470,6 +471,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .setCodeBlock({ language: "mermaid" })
           .insertContent("flowchart LR\n" + "    A --> B")
+          .run(),
+    },
+    {
+      title: "PlantUML diagram",
+      description: "Insert plantuml diagram",
+      searchTerms: ["plantuml", "uml", "diagram", "sequence", "class"],
+      icon: IconPlantuml,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setCodeBlock({ language: "plantuml" })
+          .insertContent("@startuml\nAlice -> Bob: Hello\n@enduml")
           .run(),
     },
     {
