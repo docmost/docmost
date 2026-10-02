@@ -8,28 +8,29 @@ const ATTACHMENT_URL_REGEX =
 export function getAttachmentIdFromUrl(url: unknown): string | undefined {
   if (typeof url !== 'string') return undefined;
   const id = ATTACHMENT_URL_REGEX.exec(url)?.[1];
-  return isValidUUID(id) ? id : undefined;
+  return isValidUUID(id) ? id.toLowerCase() : undefined;
 }
 
 /**
- * The attachment a node points to: its `attachmentId`, or the id in its
- * `src`/`url` when only the file url is known (e.g. content from markdown).
+ * The attachment a node points to, in lowercase: its `attachmentId`, or the
+ * id in its `src`/`url` when only the file url is known (e.g. content from
+ * markdown).
  */
 function getReferencedAttachmentId(
   attrs: Record<string, any>,
 ): string | undefined {
-  if (isValidUUID(attrs.attachmentId)) return attrs.attachmentId;
+  if (isValidUUID(attrs.attachmentId)) return attrs.attachmentId.toLowerCase();
   return getAttachmentIdFromUrl(attrs.src) ?? getAttachmentIdFromUrl(attrs.url);
 }
 
 function visitAttachmentNodes(
   node: any,
-  fn: (attrs: Record<string, any>) => void,
+  fn: (attrs: Record<string, any>, nodeType: string) => void,
 ): void {
   if (!node || typeof node !== 'object') return;
 
   if (typeof node.type === 'string' && isAttachmentNode(node.type)) {
-    if (node.attrs) fn(node.attrs);
+    if (node.attrs) fn(node.attrs, node.type);
   }
 
   if (Array.isArray(node.content)) {
@@ -38,12 +39,17 @@ function visitAttachmentNodes(
 }
 
 /**
- * Unique ids of the attachments referenced by attachment nodes, including
- * nodes without an `attachmentId` whose url points to an attachment.
+ * Unique ids of the attachments referenced by attachment nodes (only nodes of
+ * `nodeTypes` if given), including nodes without an `attachmentId` whose url
+ * points to an attachment.
  */
-export function getReferencedAttachmentIds(prosemirrorJson: unknown): string[] {
+export function getReferencedAttachmentIds(
+  prosemirrorJson: unknown,
+  nodeTypes?: string[],
+): string[] {
   const ids = new Set<string>();
-  visitAttachmentNodes(prosemirrorJson, (attrs) => {
+  visitAttachmentNodes(prosemirrorJson, (attrs, nodeType) => {
+    if (nodeTypes && !nodeTypes.includes(nodeType)) return;
     const id = getReferencedAttachmentId(attrs);
     if (id) ids.add(id);
   });
@@ -54,7 +60,8 @@ export function getReferencedAttachmentIds(prosemirrorJson: unknown): string[] {
  * Returns a copy of the content where every attachment node that references
  * an id in `idMap` points to the mapped id, in `attachmentId` and inside
  * `src`/`url`. Mapping an id to itself only fills in a missing
- * `attachmentId`. Does not mutate the input.
+ * `attachmentId`. Ids are matched regardless of case, `idMap` keys are
+ * lowercase. Does not mutate the input.
  */
 export function replaceAttachmentIds<T>(
   prosemirrorJson: T,
@@ -70,7 +77,8 @@ export function replaceAttachmentIds<T>(
     attrs.attachmentId = newId;
     for (const key of ['src', 'url']) {
       if (typeof attrs[key] === 'string') {
-        attrs[key] = attrs[key].split(oldId).join(newId);
+        // oldId is a validated uuid, so it is safe to use as a pattern.
+        attrs[key] = attrs[key].replace(new RegExp(oldId, 'gi'), newId);
       }
     }
   });

@@ -23,7 +23,7 @@ import { generateSlugId } from '../../../common/helpers';
 import { getPageTitle } from '../../../common/helpers';
 import { dbOrTx, executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { v7 as uuid7 } from 'uuid';
+import { v5 as uuid5, v7 as uuid7 } from 'uuid';
 import {
   createYdocFromJson,
   getAttachmentIds,
@@ -1194,6 +1194,26 @@ export class PageService {
     const attachments = await this.attachmentRepo.findByIds(attachmentIds, {
       trx,
     });
+
+    // A copy's id is derived from the source attachment and this page, so
+    // saving the same content again reuses the copy instead of adding one.
+    // Diagrams are edited in place under their id, so they are copied on
+    // every save: with a shared copy, editing one would change the others.
+    const diagramIds = new Set(
+      getReferencedAttachmentIds(prosemirrorJson, ['drawio', 'excalidraw']),
+    );
+    const copyIdOf = (attachmentId: string) => uuid5(attachmentId, page.id);
+    const existingCopies = await this.attachmentRepo.findByIds(
+      attachments
+        .filter((attachment) => !diagramIds.has(attachment.id))
+        .map((attachment) => copyIdOf(attachment.id)),
+      { trx },
+    );
+    const existingCopyIds = new Set(
+      existingCopies
+        .filter((copy) => copy.pageId === page.id)
+        .map((copy) => copy.id),
+    );
     const idMap = new Map<string, string>();
     const canViewByPageId = new Map<string, boolean>();
     let user: User;
@@ -1217,17 +1237,22 @@ export class PageService {
       }
       if (!canViewByPageId.get(attachment.pageId)) continue;
 
-      const newAttachmentId = uuid7();
-      const newFilePath = attachment.filePath.replace(
-        attachment.id,
-        newAttachmentId,
-      );
+      const copyId = diagramIds.has(attachment.id)
+        ? uuid7()
+        : copyIdOf(attachment.id);
+      if (existingCopyIds.has(copyId)) {
+        idMap.set(attachment.id, copyId);
+        continue;
+      }
+
+      const newFilePath = attachment.filePath.replace(attachment.id, copyId);
 
       try {
         await this.storageService.copy(attachment.filePath, newFilePath);
-        await this.attachmentRepo.insertAttachment(
-          {
-            id: newAttachmentId,
+        const inserted = await dbOrTx(this.db, trx)
+          .insertInto('attachments')
+          .values({
+            id: copyId,
             type: attachment.type,
             filePath: newFilePath,
             fileName: attachment.fileName,
@@ -1238,10 +1263,16 @@ export class PageService {
             workspaceId: page.workspaceId,
             pageId: page.id,
             spaceId: page.spaceId,
-          },
-          trx,
-        );
-        idMap.set(attachment.id, newAttachmentId);
+          })
+          // A concurrent save of the same content may have added the copy.
+          .onConflict((oc) => oc.column('id').doNothing())
+          .returning('id')
+          .executeTakeFirst();
+        if (!inserted) {
+          const copy = await this.attachmentRepo.findById(copyId, { trx });
+          if (copy?.pageId !== page.id) continue;
+        }
+        idMap.set(attachment.id, copyId);
       } catch (err) {
         this.logger.error(
           `Failed to copy attachment ${attachment.id} to page ${page.id}`,

@@ -30,6 +30,12 @@ describe('getAttachmentIdFromUrl', () => {
   ])('ignores %s', (url) => {
     expect(getAttachmentIdFromUrl(url)).toBeUndefined();
   });
+
+  it('returns the id in lowercase', () => {
+    expect(
+      getAttachmentIdFromUrl(`/api/files/${ID_A.toUpperCase()}/cat.png`),
+    ).toBe(ID_A);
+  });
 });
 
 describe('getReferencedAttachmentIds', () => {
@@ -66,6 +72,18 @@ describe('getReferencedAttachmentIds', () => {
 
     expect(getReferencedAttachmentIds(content)).toEqual([]);
   });
+
+  it('only collects ids of the given node types', () => {
+    const content = doc(
+      image({ attachmentId: ID_A, src: `/api/files/${ID_A}/a.png` }),
+      {
+        type: 'drawio',
+        attrs: { attachmentId: ID_B, src: `/api/files/${ID_B}/d.drawio.svg` },
+      },
+    );
+
+    expect(getReferencedAttachmentIds(content, ['drawio'])).toEqual([ID_B]);
+  });
 });
 
 describe('replaceAttachmentIds', () => {
@@ -96,6 +114,19 @@ describe('replaceAttachmentIds', () => {
     expect(result.content[1].attrs).toEqual({
       attachmentId: ID_NEW,
       url: `/api/files/${ID_NEW}/a.png`,
+    });
+  });
+
+  it('matches ids regardless of case', () => {
+    const upper = ID_A.toUpperCase();
+    const content = doc(
+      image({ attachmentId: upper, src: `/api/files/${upper}/a.png` }),
+    );
+    const result = replaceAttachmentIds(content, new Map([[ID_A, ID_NEW]]));
+
+    expect(result.content[0].attrs).toEqual({
+      attachmentId: ID_NEW,
+      src: `/api/files/${ID_NEW}/a.png`,
     });
   });
 
