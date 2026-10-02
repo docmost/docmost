@@ -18,6 +18,11 @@
   }
 
   .tableWrapper {
-    overflow: hidden !important;
+    overflow: visible !important;
+    max-width: 100%;
+  }
+
+  table {
+    page-break-inside: avoid;
   }
 }
