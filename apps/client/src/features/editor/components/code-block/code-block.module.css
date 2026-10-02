@@ -22,3 +22,38 @@
         display: none;
     }
 }
+
+pre {
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+    margin: 0;
+    padding: 0.5rem;
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    border-radius: var(--mantine-radius-sm);
+}
+
+pre code {
+    white-space: pre;
+    display: block;
+}
+
+/* Custom scrollbar styling */
+pre::-webkit-scrollbar {
+    height: 6px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+    border-radius: 3px;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-4));
+    border-radius: 3px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-3));
+    cursor: default;
+}
