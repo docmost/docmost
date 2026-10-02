@@ -152,7 +152,8 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
   // config resolves, which would double network traffic for sorted/filtered views.
   const isKanban = activeView?.type === "kanban";
   const isForm = activeView?.type === "form";
-  const loadsRows = !isKanban && !isForm;
+  const isCalendar = activeView?.type === "calendar";
+  const loadsRows = !isKanban && !isForm && !isCalendar;
 
   const {
     data: rowsData,
@@ -447,7 +448,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
       onRowReorder={editable ? handleRowReorder : undefined}
       persistViewConfig={guardedPersistViewConfig}
       scrollportRef={scrollportRef}
-      kanbanFilter={activeFilter}
+      activeFilter={activeFilter}
       aboveBand={folded}
     />
   );
@@ -466,6 +467,24 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
               {band}
               {viewRenderer(null)}
             </div>
+          </div>
+        )}
+      </BaseEditableProvider>
+    );
+  }
+
+  if (isCalendar) {
+    return (
+      <BaseEditableProvider editable={editable}>
+        {embedded ? (
+          <>
+            {band}
+            {viewRenderer(null)}
+          </>
+        ) : (
+          <div className={kanbanClasses.standalone}>
+            {band}
+            {viewRenderer(null)}
           </div>
         )}
       </BaseEditableProvider>

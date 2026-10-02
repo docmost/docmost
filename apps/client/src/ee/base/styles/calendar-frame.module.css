@@ -1,0 +1,39 @@
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+}
+
+.calendarFullPage {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: var(--mantine-spacing-md);
+}
+
+.calendarEmbed {
+  padding-bottom: var(--mantine-spacing-xs);
+}
+
+.surface {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+}
+
+.calendarFullPage .surface {
+  flex: 1;
+}
+
+.calendarEmbed .surface {
+  height: 640px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  min-height: 32px;
+}

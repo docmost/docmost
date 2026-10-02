@@ -23,6 +23,7 @@ import {
   IconMenu4,
   IconPageBreak,
   IconCalendar,
+  IconCalendarMonth,
   IconClock,
   IconAppWindow,
   IconSitemap,
@@ -391,6 +392,16 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       requiresBases: true,
       command: ({ editor, range }: CommandProps) => {
         insertBaseEmbedBlock(editor, { range, template: "kanban" });
+      },
+    },
+    {
+      title: "Calendar",
+      description: "Insert a calendar on this page",
+      searchTerms: ["calendar", "schedule", "events", "planner", "database"],
+      icon: IconCalendarMonth,
+      requiresBases: true,
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range, template: "calendar" });
       },
     },
     {

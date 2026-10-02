@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import {
   BasePropertyType,
+  DateTypeOptions,
   FormConfig,
   FormFieldConfig,
   FormFieldError,
@@ -13,6 +14,7 @@ import {
   PublicFormField,
   SelectTypeOptions,
 } from "@/ee/base/types/base.types";
+import { parseDateValue } from "@/ee/base/utils/date-value";
 
 export type FormAnswers = Record<string, unknown>;
 
@@ -52,9 +54,6 @@ const TEXT_MAX_LENGTH: Partial<Record<FormFieldType, number>> = {
   email: 320,
 };
 
-const ISO_DATE =
-  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?$/;
-
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function isFormFieldProperty(property: IBaseProperty): boolean {
@@ -90,6 +89,10 @@ export function toFormField(
   if (type === "person") {
     field.allowMultiple =
       (property.typeOptions as PersonTypeOptions)?.allowMultiple === true;
+  }
+  if (type === "date") {
+    field.includeTime =
+      (property.typeOptions as DateTypeOptions)?.includeTime === true;
   }
 
   return field;
@@ -142,6 +145,8 @@ function orderedChoices(
 }
 
 function resolveFieldDefault(property: IBaseProperty): unknown {
+  if (property.type === "date") return null;
+
   const options = (property.typeOptions ?? {}) as {
     defaultValue?: unknown;
     choices?: { id: string }[];
@@ -191,8 +196,9 @@ export function initialAnswer(field: PublicFormField): unknown {
       }
       return typeof field.defaultValue === "string" ? field.defaultValue : null;
     case "select":
-    case "date":
       return typeof field.defaultValue === "string" ? field.defaultValue : null;
+    case "date":
+      return null;
     case "number":
       return typeof field.defaultValue === "number" ? field.defaultValue : "";
     default:
@@ -259,7 +265,9 @@ function isValidAnswer(field: PublicFormField, value: unknown): boolean {
       );
     }
     case "date":
-      return isIsoDate(value);
+      return (
+        parseDateValue(value) !== null && !(value as { end?: unknown }).end
+      );
     case "url":
       return isHttpUrl(value);
     case "email":
@@ -273,17 +281,6 @@ function isValidAnswer(field: PublicFormField, value: unknown): boolean {
             value.every((id) => typeof id === "string")
         : typeof value === "string";
   }
-}
-
-function isIsoDate(value: unknown): boolean {
-  if (typeof value !== "string" || !ISO_DATE.test(value)) return false;
-  const day = value.slice(0, 10);
-  const calendarDay = new Date(`${day}T00:00:00Z`);
-  return (
-    !Number.isNaN(calendarDay.getTime()) &&
-    calendarDay.toISOString().slice(0, 10) === day &&
-    Number.isFinite(Date.parse(value))
-  );
 }
 
 function isHttpUrl(value: unknown): boolean {

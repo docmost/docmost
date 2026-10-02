@@ -14,6 +14,7 @@ type Props = {
   rowId: string;
   isEditing: boolean;
   onCommit: (value: unknown) => void;
+  onValueChange: (value: unknown) => void;
   onCancel: () => void;
 };
 

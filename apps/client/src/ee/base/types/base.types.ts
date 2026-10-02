@@ -1,4 +1,5 @@
 import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
+import type { DateFormat } from "@/ee/base/utils/date-value";
 
 export type UserRef = { id: string; name: string | null; avatarUrl: string | null };
 export type RowReferences = {
@@ -28,7 +29,7 @@ export type BasePropertyType =
 
 export type BaseViewType = 'table' | 'kanban' | 'calendar' | 'form';
 
-export type BaseTemplate = 'kanban' | 'form';
+export type BaseTemplate = 'kanban' | 'calendar' | 'form';
 
 export type Choice = {
   id: string;
@@ -62,7 +63,7 @@ export type NumberTypeOptions = {
 };
 
 export type DateTypeOptions = {
-  dateFormat?: string;
+  dateFormat?: DateFormat;
   timeFormat?: '12h' | '24h';
   includeTime?: boolean;
   defaultValue?: string | null;
@@ -185,7 +186,8 @@ export type DateFilterRange =
 export type DateFilterValue =
   | { mode: 'exact'; date: string }
   | { mode: 'relative'; preset: DateFilterAnchor }
-  | { mode: 'range'; preset: DateFilterRange };
+  | { mode: 'range'; preset: DateFilterRange }
+  | { mode: 'exactRange'; from: string; to: string };
 
 export type FilterCondition = {
   propertyId: string;
@@ -206,6 +208,14 @@ export const KANBAN_CARD_DRAG_TYPE = "base-kanban-card";
 export const KANBAN_COLUMN_DRAG_TYPE = "base-kanban-column";
 export type KanbanColumn = { key: string; name: string; color?: string; isNoValue: boolean };
 
+export type CalendarLayout = 'month' | 'week';
+
+export type CalendarViewConfig = {
+  datePropertyId?: string;
+  layout?: CalendarLayout;
+  showWeekends?: boolean;
+};
+
 export type ViewConfig = {
   sorts?: ViewSortConfig[];
   filter?: FilterGroup;
@@ -218,6 +228,7 @@ export type ViewConfig = {
   hiddenChoiceIds?: string[];
   choiceOrder?: string[];
   form?: FormConfig;
+  calendar?: CalendarViewConfig;
 };
 
 export type FormFieldConfig = {
@@ -286,6 +297,7 @@ export type PublicFormField = {
   choices?: PublicFormChoice[];
   numberFormat?: PublicFormNumberFormat;
   allowMultiple?: boolean;
+  includeTime?: boolean;
 };
 
 export type PublicForm = {

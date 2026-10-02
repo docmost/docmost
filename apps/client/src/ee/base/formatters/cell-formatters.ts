@@ -1,7 +1,7 @@
 import { formatNumber } from "@/ee/base/components/cells/cell-number";
-import { formatDateDisplay } from "@/ee/base/components/cells/cell-date";
+import { formatDateValue, parseDateValue } from "@/ee/base/utils/date-value";
 
-export { formatNumber, formatDateDisplay };
+export { formatNumber, formatDateValue, parseDateValue };
 
 export function formatTimestamp(value: string | null | undefined): string {
   if (typeof value !== "string" || !value) return "";

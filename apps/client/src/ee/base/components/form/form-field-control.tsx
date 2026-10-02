@@ -8,7 +8,7 @@ import {
   TextInput,
   UnstyledButton,
 } from "@mantine/core";
-import { DatePickerInput } from "@mantine/dates";
+import { DatePickerInput, DateTimePicker } from "@mantine/dates";
 import { IconCalendar } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,7 +22,15 @@ import {
   CHOICE_LIST_LIMIT,
 } from "@/ee/base/components/form/form-definition";
 import { FormPersonPicker } from "@/ee/base/components/form/form-person-picker";
-import { toDateCellValue, toISODateString } from "@/ee/base/utils/date-cell";
+import {
+  isDateOnly,
+  localPartsToInstant,
+  MAX_PICKER_DATE,
+  MIN_PICKER_DATE,
+  parseDateValue,
+  partToLocalYmd,
+  resolveTimeFormat,
+} from "@/ee/base/utils/date-value";
 import classes from "@/ee/base/styles/form.module.css";
 
 type FormFieldControlProps = {
@@ -64,6 +72,25 @@ function numberAffixes(format: PublicFormNumberFormat | undefined) {
   return { prefix: undefined, suffix: undefined };
 }
 
+const DEFAULT_TIME = "09:00";
+const LOCAL_DATE_TIME = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})/;
+
+function toLocalDateTime(part: string | null): string | null {
+  if (!part) return null;
+  const time = isDateOnly(part)
+    ? "00:00"
+    : new Date(part).toTimeString().slice(0, 5);
+  return `${partToLocalYmd(part)} ${time}:00`;
+}
+
+function fromLocalDateTime(local: string | null): { start: string } | null {
+  const match = local ? LOCAL_DATE_TIME.exec(local) : null;
+  if (!match) return null;
+  return {
+    start: localPartsToInstant(match[1], Number(match[2]), Number(match[3])),
+  };
+}
+
 function rovingTabIndex(
   choices: PublicFormChoice[],
   choiceId: string,
@@ -83,7 +110,7 @@ export function FormFieldControl({
   invalid,
   users,
 }: FormFieldControlProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const labelling = {
     "aria-labelledby": ariaLabelledBy,
     "aria-describedby": ariaDescribedBy,
@@ -246,20 +273,50 @@ export function FormFieldControl({
       );
     }
 
-    case "date":
+    case "date": {
+      const start = parseDateValue(value)?.start ?? null;
+      const dateInputProps = {
+        ...inputProps,
+        clearable: true,
+        minDate: MIN_PICKER_DATE,
+        maxDate: MAX_PICKER_DATE,
+        leftSection: <IconCalendar size={16} stroke={1.75} />,
+        leftSectionPointerEvents: "none" as const,
+        popoverProps: { shadow: "md", radius: "md" },
+      };
+      if (field.includeTime) {
+        const timeFormat = resolveTimeFormat(undefined, i18n.language);
+        return (
+          <DateTimePicker
+            {...dateInputProps}
+            placeholder={t("Pick a date and time")}
+            defaultTimeValue={start ? undefined : DEFAULT_TIME}
+            valueFormat={
+              timeFormat === "12h" ? "MMM D, YYYY h:mm A" : "MMM D, YYYY HH:mm"
+            }
+            timePickerProps={{
+              format: timeFormat,
+              hoursInputLabel: t("Hours"),
+              minutesInputLabel: t("Minutes"),
+              amPmInputLabel: t("AM/PM"),
+              amPmLabels: { am: t("AM"), pm: t("PM") },
+            }}
+            submitButtonProps={{ "aria-label": t("Confirm") }}
+            value={toLocalDateTime(start)}
+            onChange={(next) => onChange(fromLocalDateTime(next))}
+          />
+        );
+      }
       return (
         <DatePickerInput
-          {...inputProps}
-          clearable
-          valueFormat="MMM D, YYYY"
+          {...dateInputProps}
           placeholder={t("Pick a date")}
-          leftSection={<IconCalendar size={16} stroke={1.75} />}
-          leftSectionPointerEvents="none"
-          popoverProps={{ shadow: "md", radius: "md" }}
-          value={toISODateString(typeof value === "string" ? value : null)}
-          onChange={(next) => onChange(next ? toDateCellValue(next) : null)}
+          valueFormat="MMM D, YYYY"
+          value={start ? partToLocalYmd(start) : null}
+          onChange={(next) => onChange(next ? { start: next } : null)}
         />
       );
+    }
 
     case "checkbox":
       return (

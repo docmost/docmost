@@ -16,7 +16,12 @@ import {
   referenceStoreAtomFamily,
 } from "@/ee/base/atoms/reference-store-atom";
 import { IPagination } from "@/lib/types";
-import { invalidateBaseRows } from "@/ee/base/queries/base-row-query";
+import {
+  invalidateBaseRows,
+  invalidateCalendarRows,
+  isCalendarRelevantChange,
+} from "@/ee/base/queries/base-row-query";
+import { ROW_UPDATE_MUTATION_KEY } from "@/ee/base/queries/row-update-chain";
 import {
   formShareQueryKey,
   invalidatePublicFormForView,
@@ -146,6 +151,8 @@ type BaseInboundEvent =
 // already updated the cache. Bounded to prevent unbounded growth on long tabs.
 const outboundRequestIds = new Set<string>();
 const OUTBOUND_MAX = 256;
+const CALENDAR_REFRESH_DELAY_MS = 300;
+const CALENDAR_REFRESH_MAX_DEFERRALS = 10;
 
 export function markRequestIdOutbound(requestId: string): void {
   outboundRequestIds.add(requestId);
@@ -155,8 +162,9 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
-// Realtime bridge for a single base. Joins the base-{pageId} room on mount,
-// leaves on unmount, and reconciles React Query caches on inbound events.
+// Realtime bridge for a single base. Joins the base-{pageId} room on mount and
+// on every reconnect, leaves on unmount, and reconciles React Query caches on
+// inbound events.
 export function useBaseSocket(pageId: string | undefined): void {
   const socket = useAtomValue(socketAtom);
   const queryClient = useQueryClient();
@@ -164,7 +172,39 @@ export function useBaseSocket(pageId: string | undefined): void {
   useEffect(() => {
     if (!socket || !pageId) return;
 
-    socket.emit("message", { operation: "base:subscribe", pageId });
+    let missedEvents = false;
+    const subscribe = () => {
+      socket.emit("message", { operation: "base:subscribe", pageId });
+    };
+    const markMissedEvents = () => {
+      missedEvents = true;
+    };
+
+    if (socket.connected) subscribe();
+
+    let calendarRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+    let calendarRefreshDeferrals = 0;
+    const scheduleCalendarRefresh = () => {
+      clearTimeout(calendarRefreshTimer);
+      calendarRefreshTimer = setTimeout(() => {
+        const updatingRows = queryClient.isMutating({
+          mutationKey: ROW_UPDATE_MUTATION_KEY,
+          predicate: (mutation) =>
+            (mutation.state.variables as { pageId?: string } | undefined)
+              ?.pageId === pageId,
+        });
+        if (
+          updatingRows > 0 &&
+          calendarRefreshDeferrals < CALENDAR_REFRESH_MAX_DEFERRALS
+        ) {
+          calendarRefreshDeferrals += 1;
+          scheduleCalendarRefresh();
+          return;
+        }
+        calendarRefreshDeferrals = 0;
+        invalidateCalendarRows(pageId);
+      }, CALENDAR_REFRESH_DELAY_MS);
+    };
 
     const handler = (raw: unknown) => {
       if (!raw || typeof raw !== "object") return;
@@ -222,6 +262,7 @@ export function useBaseSocket(pageId: string | undefined): void {
                 };
               },
             );
+            scheduleCalendarRefresh();
           }
           break;
         }
@@ -252,6 +293,14 @@ export function useBaseSocket(pageId: string | undefined): void {
                       })),
                     },
             );
+            if (
+              isCalendarRelevantChange(
+                baseForUpdate,
+                Object.keys(e.updatedCells ?? {}),
+              )
+            ) {
+              scheduleCalendarRefresh();
+            }
           }
           break;
         }
@@ -370,7 +419,11 @@ export function useBaseSocket(pageId: string | undefined): void {
         case "base:subscribed": {
           const e = event as BaseSubscribed;
           const cached = queryClient.getQueryData<IBase>(["bases", pageId]);
-          if (cached && cached.baseSchemaVersion !== e.schemaVersion) {
+          if (
+            missedEvents ||
+            (cached && cached.baseSchemaVersion !== e.schemaVersion)
+          ) {
+            missedEvents = false;
             queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
             queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
           }
@@ -441,9 +494,14 @@ export function useBaseSocket(pageId: string | undefined): void {
     };
 
     socket.on("message", handler);
+    socket.on("connect", subscribe);
+    socket.on("disconnect", markMissedEvents);
 
     return () => {
+      clearTimeout(calendarRefreshTimer);
       socket.off("message", handler);
+      socket.off("connect", subscribe);
+      socket.off("disconnect", markMissedEvents);
       socket.emit("message", { operation: "base:unsubscribe", pageId });
     };
   }, [socket, pageId, queryClient]);

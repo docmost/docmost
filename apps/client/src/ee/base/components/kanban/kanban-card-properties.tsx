@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { IBase, IBaseProperty, IBaseView } from "@/ee/base/types/base.types";
 import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
 import { propertyTypes } from "@/ee/base/property-types/property-type.registry";
+import { orderProperties } from "@/ee/base/utils/property-order";
 import { BaseDropEdgeIndicator } from "@/ee/base/components/grid/base-drop-edge-indicator";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
@@ -46,13 +47,10 @@ export function KanbanCardProperties({
   const nonPrimaryProperties = base.properties.filter((p) => !p.isPrimary);
   const visibleIds = view.config?.visiblePropertyIds ?? [];
 
-  const savedOrder = view.config?.propertyOrder ?? [];
-  const orderedProperties = [
-    ...savedOrder
-      .map((id) => nonPrimaryProperties.find((p) => p.id === id))
-      .filter((p): p is IBaseProperty => p !== undefined),
-    ...nonPrimaryProperties.filter((p) => !savedOrder.includes(p.id)),
-  ];
+  const orderedProperties = orderProperties(
+    nonPrimaryProperties,
+    view.config?.propertyOrder,
+  );
 
   const primaryProperty = base.properties.find((p) => p.isPrimary);
   const PrimaryIcon = primaryProperty

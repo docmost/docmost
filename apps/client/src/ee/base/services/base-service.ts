@@ -26,6 +26,7 @@ import {
   RowReferences,
 } from "@/ee/base/types/base.types";
 import { IPagination } from "@/lib/types";
+import { getBrowserTimeZone } from "@/ee/base/utils/date-value";
 
 export type IBaseRowsPage = IPagination<IBaseRow> & {
   references?: RowReferences;
@@ -127,7 +128,9 @@ export async function getRowInfo(
 }
 
 export async function updateRow(data: UpdateRowInput): Promise<IBaseRow> {
-  const req = await api.post<IBaseRow>("/bases/rows/update", data);
+  const req = await api.post<IBaseRow>("/bases/rows/update", data, {
+    timeout: 30_000,
+  });
   return req.data;
 }
 
@@ -148,7 +151,11 @@ export async function listRows(
     sorts?: ViewSortConfig[];
   },
 ): Promise<IBaseRowsPage> {
-  const req = await api.post("/bases/rows", { pageId, ...params });
+  const req = await api.post("/bases/rows", {
+    pageId,
+    ...params,
+    timeZone: getBrowserTimeZone(),
+  });
   return req.data;
 }
 

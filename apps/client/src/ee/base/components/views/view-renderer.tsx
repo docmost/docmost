@@ -1,4 +1,7 @@
+import { lazy, Suspense, useState } from "react";
 import { Table } from "@tanstack/react-table";
+import { Center, Loader } from "@mantine/core";
+import { ErrorBoundary } from "react-error-boundary";
 import {
   IBase,
   IBaseRow,
@@ -8,6 +11,49 @@ import {
 import { BaseTable } from "@/ee/base/components/base-table";
 import { BaseKanban } from "@/ee/base/components/kanban/base-kanban";
 import { BaseForm } from "@/ee/base/components/form/base-form";
+import { CalendarFrame } from "@/ee/base/components/calendar/calendar-frame";
+import { CalendarErrorFallback } from "@/ee/base/components/calendar/calendar-error-fallback";
+
+const loadBaseCalendar = () =>
+  import("@/ee/base/components/calendar/base-calendar").then((m) => ({
+    default: m.BaseCalendar,
+  }));
+const BaseCalendar = lazy(loadBaseCalendar);
+
+type CalendarBoundaryProps = {
+  base: IBase;
+  view: IBaseView;
+  pageId: string;
+  embedded?: boolean;
+  viewFilter: FilterGroup | undefined;
+};
+
+function CalendarBoundary({ view, embedded, ...props }: CalendarBoundaryProps) {
+  const [Calendar, setCalendar] = useState(() => BaseCalendar);
+  return (
+    <ErrorBoundary
+      resetKeys={[view.id]}
+      onReset={() => setCalendar(() => lazy(loadBaseCalendar))}
+      fallbackRender={({ resetErrorBoundary }) => (
+        <CalendarFrame embedded={embedded}>
+          <CalendarErrorFallback onRetry={resetErrorBoundary} />
+        </CalendarFrame>
+      )}
+    >
+      <Suspense
+        fallback={
+          <CalendarFrame embedded={embedded}>
+            <Center h="100%">
+              <Loader size="sm" />
+            </Center>
+          </CalendarFrame>
+        }
+      >
+        <Calendar key={view.id} view={view} embedded={embedded} {...props} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
 
 type ViewRendererProps = {
   base: IBase;
@@ -33,7 +79,7 @@ type ViewRendererProps = {
   persistViewConfig: () => void;
   scrollportRef: React.RefObject<HTMLDivElement>;
   aboveBand?: React.ReactNode;
-  kanbanFilter?: FilterGroup | undefined;
+  activeFilter?: FilterGroup | undefined;
 };
 
 export function ViewRenderer(props: ViewRendererProps) {
@@ -47,7 +93,7 @@ export function ViewRenderer(props: ViewRendererProps) {
         pageId={props.pageId}
         embedded={props.embedded}
         editable={props.editable}
-        viewFilter={props.kanbanFilter}
+        viewFilter={props.activeFilter}
       />
     );
   }
@@ -61,6 +107,18 @@ export function ViewRenderer(props: ViewRendererProps) {
         pageId={props.pageId}
         editable={props.editable}
         embedded={props.embedded}
+      />
+    );
+  }
+
+  if (viewType === "calendar") {
+    return (
+      <CalendarBoundary
+        base={props.base}
+        view={props.effectiveView!}
+        pageId={props.pageId}
+        embedded={props.embedded}
+        viewFilter={props.activeFilter}
       />
     );
   }

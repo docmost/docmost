@@ -98,6 +98,7 @@ import SubpagesView from "@/features/editor/components/subpages/subpages-view.ts
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
+import { isCalendarEventDrag } from "@/ee/base/components/calendar/calendar-frame";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -396,7 +397,13 @@ export const mainExtensions = [
   }),
   BaseEmbedNode.extend({
     addNodeView() {
-      return ReactNodeViewRenderer(BaseEmbedView);
+      return (props) => {
+        const nodeView = ReactNodeViewRenderer(BaseEmbedView)(props);
+        const defaultStopEvent = nodeView.stopEvent?.bind(nodeView);
+        nodeView.stopEvent = (event) =>
+          isCalendarEventDrag(event) || !!defaultStopEvent?.(event);
+        return nodeView;
+      };
     },
   }),
   MarkdownClipboard.configure({
@@ -444,6 +451,7 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Synced block",
   "Base (Inline)",
   "Kanban",
+  "Calendar",
   "Form"
 ]);
 

@@ -68,6 +68,7 @@ function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, as
   if (ctx.memo.has(id)) return ctx.memo.get(id)!;
   const prop = ctx.properties.get(id);
   if (!prop) return makeErrorCell("MISSING_PROP", `missing property ${id}`);
+  if (prop.type === "date") return dateCellToFormulaValue(row[id] ?? null);
   if (prop.type !== "formula") return normalize(row[id] ?? null);
   // astDepth continues (not reset) across the nested-formula boundary.
   if (ctx.depth >= ctx.maxDepth) return makeErrorCell("DEPTH_EXCEEDED", `max depth ${ctx.maxDepth}`);
@@ -76,6 +77,30 @@ function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, as
   const v = evaluate(opts.ast, row, nested, astDepth);
   ctx.memo.set(id, v);
   return v;
+}
+
+const YMD_PREFIX_RE = /^(\d{4})-(\d{2})-(\d{2})/;
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+
+function isRealYmdPrefix(s: string): boolean {
+  const m = YMD_PREFIX_RE.exec(s);
+  if (!m) return false;
+  const probe = new Date(0);
+  probe.setUTCFullYear(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return (
+    probe.getUTCFullYear() === Number(m[1]) &&
+    probe.getUTCMonth() === Number(m[2]) - 1 &&
+    probe.getUTCDate() === Number(m[3])
+  );
+}
+
+function dateCellToFormulaValue(cell: unknown): Value {
+  const start =
+    typeof cell === "object" && cell !== null ? (cell as { start?: unknown }).start : cell;
+  if (typeof start !== "string" || !isRealYmdPrefix(start)) return null;
+  if (DATE_ONLY_RE.test(start)) return `${start}T00:00:00.000Z`;
+  return INSTANT_RE.test(start) && !isNaN(Date.parse(start)) ? start : null;
 }
 
 function normalize(v: unknown): Value {

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@mantine/core";
-import { IconTable, IconLayoutKanban, IconForms } from "@tabler/icons-react";
+import {
+  IconTable,
+  IconLayoutKanban,
+  IconCalendar,
+  IconForms,
+} from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
 import { useConvertPageToBaseMutation } from "@/ee/base/queries/base-query";
@@ -47,6 +52,7 @@ export function EmptyPageGetStarted({
       key: "base",
       label: t("Base"),
       icon: IconTable,
+      color: "blue",
       onClick: () => convertMutation.mutate({ pageId }),
       disabled: convertMutation.isPending,
     },
@@ -54,13 +60,23 @@ export function EmptyPageGetStarted({
       key: "kanban",
       label: t("Kanban"),
       icon: IconLayoutKanban,
+      color: "violet",
       onClick: () => convertMutation.mutate({ pageId, template: "kanban" }),
+      disabled: convertMutation.isPending,
+    },
+    {
+      key: "calendar",
+      label: t("Calendar"),
+      icon: IconCalendar,
+      color: "orange",
+      onClick: () => convertMutation.mutate({ pageId, template: "calendar" }),
       disabled: convertMutation.isPending,
     },
     {
       key: "form",
       label: t("Form"),
       icon: IconForms,
+      color: "green",
       onClick: () => convertMutation.mutate({ pageId, template: "form" }),
       disabled: convertMutation.isPending,
     },
@@ -73,10 +89,17 @@ export function EmptyPageGetStarted({
         {chips.map((chip) => (
           <Button
             key={chip.key}
-            variant="default"
-            size="xs"
-            radius="xl"
-            leftSection={<chip.icon size={16} />}
+            variant="subtle"
+            color="gray"
+            size="sm"
+            radius="md"
+            className={classes.chip}
+            leftSection={
+              <chip.icon
+                size={18}
+                color={`var(--mantine-color-${chip.color}-6)`}
+              />
+            }
             onClick={chip.onClick}
             disabled={chip.disabled}
           >

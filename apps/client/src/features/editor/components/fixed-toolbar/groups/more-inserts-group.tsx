@@ -4,6 +4,7 @@ import { ActionIcon, Badge, Menu, Tooltip } from "@mantine/core";
 import {
   IconAppWindow,
   IconCalendar,
+  IconCalendarMonth,
   IconCaretRightFilled,
   IconChevronDown,
   IconForms,
@@ -153,6 +154,28 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               }}
             >
               {t("Kanban")}
+            </Menu.Item>
+          </Tooltip>
+        )}
+        {!templateMode && (
+          <Tooltip label={upgradeLabel} disabled={hasBases} position="right">
+            <Menu.Item
+              leftSection={<IconCalendarMonth size={16} />}
+              aria-disabled={!hasBases}
+              closeMenuOnClick={hasBases}
+              style={{ opacity: hasBases ? undefined : 0.7 }}
+              rightSection={
+                !hasBases && (
+                  <Badge size="xs" variant="light" color="gray">
+                    {t("Upgrade")}
+                  </Badge>
+                )
+              }
+              onClick={() => {
+                if (hasBases) insertBaseEmbedBlock(editor, { template: "calendar" });
+              }}
+            >
+              {t("Calendar")}
             </Menu.Item>
           </Tooltip>
         )}

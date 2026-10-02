@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
             groups: [
               {
                 name: "vendor-mantine",
-                test: /[\\/]node_modules[\\/]@mantine[\\/]/,
+                test: /[\\/]node_modules[\\/]@mantine[\\/](?!schedule[\\/])/,
               },
             ],
           },

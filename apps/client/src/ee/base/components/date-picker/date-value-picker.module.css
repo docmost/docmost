@@ -1,0 +1,161 @@
+.root {
+  width: 280px;
+  max-width: 100%;
+}
+
+.header {
+  padding: 8px 8px 0;
+}
+
+.endField {
+  padding-top: 6px;
+}
+
+.field {
+  display: flex;
+  align-items: stretch;
+  height: 32px;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  transition:
+    border-color 100ms ease,
+    background-color 100ms ease,
+    box-shadow 100ms ease;
+}
+
+.field[data-active] {
+  border-color: var(--mantine-primary-color-filled);
+  background-color: var(--mantine-color-body);
+  box-shadow: 0 0 0 3px var(--mantine-primary-color-light);
+}
+
+.dateButton {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: var(--mantine-radius-sm);
+  font-size: var(--mantine-font-size-sm);
+  color: var(--mantine-color-text);
+}
+
+.field .dateButton:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.dateText,
+.placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--mantine-color-dimmed);
+}
+
+.timeRoot {
+  flex: none;
+  border-inline-start: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.timeRoot .timeInput {
+  height: 30px;
+  min-height: 30px;
+  padding-inline: 8px;
+  font-size: var(--mantine-font-size-sm);
+  cursor: text;
+}
+
+.calendar {
+  padding: 10px 8px 6px;
+}
+
+.calendar .day {
+  height: 32px;
+  min-height: 32px;
+  aspect-ratio: auto;
+}
+
+.calendar .headerControl,
+.calendar .headerLevel {
+  height: 30px;
+}
+
+.calendar .headerControl {
+  width: 30px;
+}
+
+.section {
+  padding: 4px;
+  border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.toggle {
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.toggle:hover {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+}
+
+.toggle .toggleLabelWrapper {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.25;
+  color: var(--mantine-color-text);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--mantine-radius-sm);
+  font-size: var(--mantine-font-size-sm);
+  color: var(--mantine-color-text);
+  transition: background-color 100ms ease;
+}
+
+.row:hover,
+.row[data-expanded] {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+}
+
+.rowLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mantine-color-dimmed);
+}
+
+.rowChevron {
+  flex: none;
+  color: var(--mantine-color-dimmed);
+}
+
+.example {
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+}

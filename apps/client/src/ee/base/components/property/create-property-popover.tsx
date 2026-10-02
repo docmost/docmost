@@ -26,6 +26,7 @@ import {
   propertyTypes,
 } from "@/ee/base/property-types/property-type.registry";
 import { FormulaEditor } from "../formula/formula-editor";
+import { getAvailablePropertyName } from "@/ee/base/utils/property-name";
 import classes from "@/ee/base/styles/grid.module.css";
 
 type CreatePropertyPopoverProps = {
@@ -81,18 +82,10 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
   }, [name, properties]);
 
   // Fall back to the type label when Name is blank, suffixing a counter if taken.
-  const fallbackName = useMemo(() => {
-    const base = selectedTypeLabel || "Property";
-    const existing = new Set(
-      (properties ?? []).map((p) => p.name.trim().toLowerCase()),
-    );
-    if (!existing.has(base.toLowerCase())) return base;
-    for (let i = 1; i < 1000; i++) {
-      const candidate = `${base} ${i}`;
-      if (!existing.has(candidate.toLowerCase())) return candidate;
-    }
-    return `${base} ${Date.now()}`;
-  }, [selectedTypeLabel, properties]);
+  const fallbackName = useMemo(
+    () => getAvailablePropertyName(selectedTypeLabel || "Property", properties),
+    [selectedTypeLabel, properties],
+  );
 
   const resetState = useCallback(() => {
     setPanel("typePicker");

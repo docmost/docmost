@@ -29,6 +29,7 @@ import { ViewFilterConfigPopover } from "@/ee/base/components/views/view-filter-
 import { ViewPropertyVisibility } from "@/ee/base/components/views/view-property-visibility";
 import { KanbanGroupByPicker } from "@/ee/base/components/kanban/kanban-group-by-picker";
 import { KanbanCardProperties } from "@/ee/base/components/kanban/kanban-card-properties";
+import { CalendarSettingsMenu } from "@/ee/base/components/calendar/calendar-settings-menu";
 import { FormSettingsPopover } from "@/ee/base/components/form/form-settings-popover";
 import { FormSharePopover } from "@/ee/base/components/form/form-share-popover";
 import { formPreviewAtomFamily } from "@/ee/base/atoms/base-atoms";
@@ -75,7 +76,9 @@ export function BaseToolbar({
 
   const isKanban = activeView?.type === "kanban";
   const isForm = activeView?.type === "form";
+  const isCalendar = activeView?.type === "calendar";
   const editable = useBaseEditable();
+  const showCardProperties = isKanban || (isCalendar && editable);
   const [formPreview, setFormPreview] = useAtom(
     formPreviewAtomFamily(activeView?.id ?? ""),
   );
@@ -215,41 +218,45 @@ export function BaseToolbar({
         )}
 
         {isKanban && activeView && (
-          <>
-            <KanbanGroupByPicker base={base} view={activeView} pageId={base.id}>
-              <Tooltip label={t("Group by")}>
-                <ActionIcon
-                  variant="subtle"
-                  size="sm"
-                  color="gray"
-                >
-                  <IconLayoutColumns size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </KanbanGroupByPicker>
-
-            <KanbanCardProperties
-              opened={cardPropertiesOpened}
-              onClose={() => setCardPropertiesOpened(false)}
-              base={base}
-              view={activeView}
-              pageId={base.id}
-            >
-              <Tooltip label={t("Card properties")}>
-                <ActionIcon
-                  variant="subtle"
-                  size="sm"
-                  color="gray"
-                  onClick={() => setCardPropertiesOpened((v) => !v)}
-                >
-                  <IconAdjustments size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </KanbanCardProperties>
-          </>
+          <KanbanGroupByPicker base={base} view={activeView} pageId={base.id}>
+            <Tooltip label={t("Group by")}>
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                color="gray"
+              >
+                <IconLayoutColumns size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </KanbanGroupByPicker>
         )}
 
-        {!isKanban && !isForm && (
+        {isCalendar && activeView && editable && (
+          <CalendarSettingsMenu base={base} view={activeView} pageId={base.id} />
+        )}
+
+        {showCardProperties && activeView && (
+          <KanbanCardProperties
+            opened={cardPropertiesOpened}
+            onClose={() => setCardPropertiesOpened(false)}
+            base={base}
+            view={activeView}
+            pageId={base.id}
+          >
+            <Tooltip label={t("Card properties")}>
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                color="gray"
+                onClick={() => setCardPropertiesOpened((v) => !v)}
+              >
+                <IconAdjustments size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </KanbanCardProperties>
+        )}
+
+        {!isKanban && !isForm && !isCalendar && (
           <>
             <ViewSortConfigPopover
               opened={sortOpened}

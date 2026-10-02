@@ -55,6 +55,10 @@ function describeConversion(
     }
   }
 
+  if (from === "date" && to !== "date" && to !== "text" && to !== "longText") {
+    return { message: "All data in this column will be lost.", lossy: true };
+  }
+
   if (to === "select" && from === "multiSelect") {
     return {
       message:

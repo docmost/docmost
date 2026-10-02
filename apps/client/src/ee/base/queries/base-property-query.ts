@@ -1,4 +1,4 @@
-import { InfiniteData, useMutation } from "@tanstack/react-query";
+import { InfiniteData, MutationKey, useMutation } from "@tanstack/react-query";
 import {
   createProperty,
   updateProperty,
@@ -21,9 +21,10 @@ import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { IPagination } from "@/lib/types";
 
-export function useCreatePropertyMutation() {
+export function useCreatePropertyMutation(mutationKey?: MutationKey) {
   const { t } = useTranslation();
   return useMutation<IBaseProperty, Error, CreatePropertyInput>({
+    mutationKey,
     mutationFn: (data) => createProperty(data),
     onSuccess: (newProperty) => {
       queryClient.setQueryData<IBase>(

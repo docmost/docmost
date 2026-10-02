@@ -12,6 +12,7 @@ import {
   VisibilityState,
   ColumnOrderState,
   ColumnPinningState,
+  SortingFn,
   Table,
 } from "@tanstack/react-table";
 import {
@@ -24,6 +25,11 @@ import {
 } from "@/ee/base/types/base.types";
 import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
 import { systemAccessorFor } from "@/ee/base/property-types/property-type.registry";
+import {
+  compareDateValues,
+  DateValue,
+  parseDateValue,
+} from "@/ee/base/utils/date-value";
 
 const DEFAULT_COLUMN_WIDTH = 180;
 const MIN_COLUMN_WIDTH = 80;
@@ -31,6 +37,22 @@ const MAX_COLUMN_WIDTH = 600;
 const ROW_NUMBER_COLUMN_WIDTH = 64;
 
 const columnHelper = createColumnHelper<IBaseRow>();
+
+const parsedDateCells = new WeakMap<object, DateValue | null>();
+
+function parseDateCell(value: unknown): DateValue | null {
+  if (typeof value !== "object" || value === null) return parseDateValue(value);
+  if (!parsedDateCells.has(value)) {
+    parsedDateCells.set(value, parseDateValue(value));
+  }
+  return parsedDateCells.get(value);
+}
+
+const sortByDateValue: SortingFn<IBaseRow> = (a, b, id) =>
+  compareDateValues(
+    parseDateCell(a.getValue(id)),
+    parseDateCell(b.getValue(id)),
+  );
 
 function buildColumns(properties: IBaseProperty[]): ColumnDef<IBaseRow, unknown>[] {
   const rowNumberColumn = columnHelper.display({
@@ -60,17 +82,27 @@ function buildColumns(properties: IBaseProperty[]): ColumnDef<IBaseRow, unknown>
       });
     }
 
-    return columnHelper.accessor((row) => row.cells[property.id], {
-      id: property.id,
-      header: property.name,
-      size: DEFAULT_COLUMN_WIDTH,
-      minSize: MIN_COLUMN_WIDTH,
-      maxSize: MAX_COLUMN_WIDTH,
-      enableResizing: true,
-      enableSorting: true,
-      enableHiding: !property.isPrimary,
-      meta: { property },
-    });
+    const isDate = property.type === "date";
+    return columnHelper.accessor(
+      (row) => {
+        const value = row.cells[property.id];
+        return isDate && !parseDateCell(value) ? undefined : value;
+      },
+      {
+        id: property.id,
+        header: property.name,
+        size: DEFAULT_COLUMN_WIDTH,
+        minSize: MIN_COLUMN_WIDTH,
+        maxSize: MAX_COLUMN_WIDTH,
+        enableResizing: true,
+        enableSorting: true,
+        enableHiding: !property.isPrimary,
+        ...(isDate
+          ? { sortingFn: sortByDateValue, sortUndefined: "last" as const }
+          : {}),
+        meta: { property },
+      },
+    );
   });
 
   return [rowNumberColumn, ...propertyColumns];

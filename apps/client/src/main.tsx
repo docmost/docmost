@@ -22,6 +22,7 @@ import {
   isPostHogEnabled,
 } from "@/lib/config.ts";
 import posthog from "posthog-js";
+import { DatesLocaleProvider } from "@/components/dates-locale-provider";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,16 +50,18 @@ const root = (container as any).__reactRoot ??= ReactDOM.createRoot(container);
 root.render(
   <BrowserRouter>
     <MantineProvider theme={theme} cssVariablesResolver={mantineCssResolver}>
-      <ModalsProvider>
-        <QueryClientProvider client={queryClient}>
-          <Notifications position="bottom-center" limit={3} zIndex={10000} />
-          <HelmetProvider>
-            <PostHogProvider client={posthog}>
-              <App />
-            </PostHogProvider>
-          </HelmetProvider>
-        </QueryClientProvider>
-      </ModalsProvider>
+      <DatesLocaleProvider>
+        <ModalsProvider>
+          <QueryClientProvider client={queryClient}>
+            <Notifications position="bottom-center" limit={3} zIndex={10000} />
+            <HelmetProvider>
+              <PostHogProvider client={posthog}>
+                <App />
+              </PostHogProvider>
+            </HelmetProvider>
+          </QueryClientProvider>
+        </ModalsProvider>
+      </DatesLocaleProvider>
     </MantineProvider>
   </BrowserRouter>,
 );

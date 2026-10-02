@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   createView,
@@ -7,6 +8,7 @@ import {
 import {
   IBase,
   IBaseView,
+  CalendarViewConfig,
   CreateViewInput,
   UpdateViewInput,
   DeleteViewInput,
@@ -127,6 +129,24 @@ export function useUpdateViewMutation() {
       );
     },
   });
+}
+
+export function useUpdateCalendarConfig(pageId: string, viewId: string) {
+  const { mutate } = useUpdateViewMutation();
+  return useCallback(
+    (patch: CalendarViewConfig) => {
+      const view = queryClient
+        .getQueryData<IBase>(["bases", pageId])
+        ?.views.find((v) => v.id === viewId);
+      if (!view) return;
+      mutate({
+        viewId,
+        pageId,
+        config: { calendar: { ...view.config?.calendar, ...patch } },
+      });
+    },
+    [pageId, viewId, mutate],
+  );
 }
 
 export function useDeleteViewMutation() {

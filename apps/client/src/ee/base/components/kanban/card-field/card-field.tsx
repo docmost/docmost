@@ -18,7 +18,8 @@ import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { useReferenceStore, useResolvePage } from "@/ee/base/reference/reference-store";
 import {
   formatNumber,
-  formatDateDisplay,
+  formatDateValue,
+  parseDateValue,
   formatTimestamp,
   formatLongTextPreview,
 } from "@/ee/base/formatters/cell-formatters";
@@ -49,7 +50,12 @@ export function CardField({ property, value, pageId }: CardFieldProps) {
     case "multiSelect":
       return <MultiSelectField value={value} property={property} />;
     case "date":
-      return <DateField value={value} property={property} />;
+      return (
+        <DateField
+          value={value}
+          typeOptions={property.typeOptions as DateTypeOptions | undefined}
+        />
+      );
     case "createdAt":
     case "lastEditedAt":
       return <TimestampField value={value} />;
@@ -139,9 +145,13 @@ function MultiSelectField({ value, property }: { value: unknown; property: IBase
   );
 }
 
-function DateField({ value, property }: { value: unknown; property: IBaseProperty }) {
-  const dateStr = typeof value === "string" ? value : null;
-  const formatted = formatDateDisplay(dateStr, property.typeOptions as DateTypeOptions | undefined);
+function DateField({ value, typeOptions }: { value: unknown; typeOptions?: DateTypeOptions }) {
+  const { i18n } = useTranslation();
+  const formatted = formatDateValue(parseDateValue(value), {
+    dateFormat: typeOptions?.dateFormat,
+    timeFormat: typeOptions?.timeFormat,
+    locale: i18n.language,
+  });
   if (!formatted) return null;
   return (
     <Text size="xs" c="dimmed">
@@ -327,7 +337,7 @@ function FormulaField({ value, property }: { value: unknown; property: IBaseProp
     return <CheckboxField value={value} />;
   }
   if (resultType === "date") {
-    return <DateField value={value} property={property} />;
+    return <DateField value={value} />;
   }
 
   const text = typeof value === "string" ? value : value != null ? String(value) : null;

@@ -4,6 +4,7 @@ import {
   useMutation,
   useQuery,
   InfiniteData,
+  QueryKey,
 } from "@tanstack/react-query";
 import {
   createRow,
@@ -35,6 +36,18 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { useHydrateReferences } from "@/ee/base/reference/reference-store";
 import { markRequestIdOutbound } from "@/ee/base/hooks/use-base-socket";
 import { v7 as uuid7 } from "uuid";
+import {
+  BASE_ROW_MUTATION_KEY,
+  beginRowUpdate,
+  endRowUpdateChain,
+  enqueueRowUpdate,
+  getRowUpdateChain,
+  mapCachedRow,
+  reconcileRow,
+  revertRowUpdate,
+  ROW_UPDATE_MUTATION_KEY,
+  RowUpdateContext,
+} from "@/ee/base/queries/row-update-chain";
 
 type RowCacheContext = {
   snapshots: [readonly unknown[], InfiniteData<IBaseRowsPage> | undefined][];
@@ -53,6 +66,36 @@ export function newRequestId(): string {
   const id = uuid7();
   markRequestIdOutbound(id);
   return id;
+}
+
+const cancelledCalendarRefreshes = new Set<string>();
+
+function cancelLoadedBaseRows(pageId: string) {
+  if (
+    !cancelledCalendarRefreshes.has(pageId) &&
+    queryClient.isFetching({
+      queryKey: ["base-rows", pageId, "calendar"],
+      predicate: (query) => query.state.data !== undefined,
+    }) > 0
+  ) {
+    cancelledCalendarRefreshes.add(pageId);
+    const unsubscribe = queryClient.getMutationCache().subscribe(() => {
+      const mutatingRows = queryClient.isMutating({
+        mutationKey: BASE_ROW_MUTATION_KEY,
+        predicate: (mutation) =>
+          (mutation.state.variables as { pageId?: string } | undefined)
+            ?.pageId === pageId,
+      });
+      if (mutatingRows > 0) return;
+      unsubscribe();
+      cancelledCalendarRefreshes.delete(pageId);
+      invalidateCalendarRows(pageId);
+    });
+  }
+  return queryClient.cancelQueries({
+    queryKey: ["base-rows", pageId],
+    predicate: (query) => query.state.data !== undefined,
+  });
 }
 
 export function baseRowsQueryKey(
@@ -180,16 +223,25 @@ export function useBaseRowQuery(
 
 export function useUpdateRowMutation() {
   const { t } = useTranslation();
-  return useMutation<IBaseRow, Error, UpdateRowInput, RowCacheContext>({
-    mutationFn: (data) => updateRow({ ...data, requestId: newRequestId() }),
+  return useMutation<IBaseRow, Error, UpdateRowInput, RowUpdateContext>({
+    mutationKey: ROW_UPDATE_MUTATION_KEY,
+    mutationFn: (data) =>
+      enqueueRowUpdate(data.rowId, () =>
+        updateRow({ ...data, requestId: newRequestId() }),
+      ),
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.pageId],
-      });
+      const { seq, supersedes } = beginRowUpdate(variables.rowId);
 
-      const snapshots = queryClient.getQueriesData<
-        InfiniteData<IBaseRowsPage>
-      >({ queryKey: ["base-rows", variables.pageId] });
+      await cancelLoadedBaseRows(variables.pageId);
+
+      const previousRows = queryClient
+        .getQueriesData<InfiniteData<IBaseRowsPage>>({
+          queryKey: ["base-rows", variables.pageId],
+        })
+        .flatMap(([key, data]): [QueryKey, IBaseRow][] => {
+          const row = findRowInInfinite(data, variables.rowId);
+          return row ? [[key, row]] : [];
+        });
 
       queryClient.setQueriesData<InfiniteData<IBaseRowsPage>>(
         { queryKey: ["base-rows", variables.pageId] },
@@ -223,23 +275,55 @@ export function useUpdateRowMutation() {
             : old,
       );
 
-      return { snapshots };
+      return { previousRows, seq, supersedes };
     },
     onError: (error, variables, context) => {
-      if (context?.snapshots) {
-        for (const [key, data] of context.snapshots) {
-          queryClient.setQueryData(key, data);
+      const chain = getRowUpdateChain(variables.rowId);
+      const isLatest = !chain || chain.seq === context?.seq;
+      if (isLatest) {
+        for (const [key, previous] of context?.previousRows ?? []) {
+          queryClient.setQueryData<InfiniteData<IBaseRowsPage>>(key, (old) =>
+            mapCachedRow(old, variables.rowId, (row) =>
+              revertRowUpdate(row, previous, variables),
+            ),
+          );
         }
       }
-      queryClient.invalidateQueries({
-        queryKey: ["base-row", variables.pageId, variables.rowId],
-      });
+      if (chain && (!isLatest || context?.supersedes)) {
+        chain.reconcile = true;
+      }
+      if (!chain?.reconcile) {
+        queryClient.invalidateQueries({
+          queryKey: ["base-row", variables.pageId, variables.rowId],
+        });
+        invalidateCalendarRows(variables.pageId);
+      }
       notifications.show({
         message: getApiErrorMessage(error, t("Failed to update row")),
         color: "red",
       });
     },
-    onSuccess: (updatedRow, variables) => {
+    onSuccess: (updatedRow, variables, context) => {
+      const base = queryClient.getQueryData<IBase>(["bases", variables.pageId]);
+      const kanbanGroupByIds = new Set(
+        (base?.views ?? [])
+          .filter((v) => v.type === "kanban")
+          .map((v) => v.config?.groupByPropertyId)
+          .filter(Boolean) as string[],
+      );
+      const changedPropertyIds = Object.keys(variables.cells ?? {});
+
+      const chain = getRowUpdateChain(variables.rowId);
+      if (chain) {
+        if (changedPropertyIds.some((id) => kanbanGroupByIds.has(id))) {
+          chain.regrouped = true;
+        }
+        if (isCalendarRelevantChange(base, changedPropertyIds)) {
+          chain.calendarTouched = true;
+        }
+      }
+      if (chain && chain.seq !== context?.seq) return;
+
       queryClient.setQueriesData<InfiniteData<IBaseRowsPage>>(
         { queryKey: ["base-rows", updatedRow.pageId] },
         (old) => {
@@ -264,17 +348,15 @@ export function useUpdateRowMutation() {
             ? { ...old, ...updatedRow, cells: { ...old.cells, ...updatedRow.cells } }
             : old,
       );
-
-      const base = queryClient.getQueryData<IBase>(["bases", variables.pageId]);
-      const kanbanGroupByIds = new Set(
-        (base?.views ?? [])
-          .filter((v) => v.type === "kanban")
-          .map((v) => v.config?.groupByPropertyId)
-          .filter(Boolean) as string[],
-      );
-      const changedPropertyIds = Object.keys(variables.cells ?? {});
-      if (changedPropertyIds.some((id) => kanbanGroupByIds.has(id))) {
-        invalidateBaseRows(variables.pageId);
+    },
+    onSettled: (_data, _error, variables, context) => {
+      const chain = getRowUpdateChain(variables.rowId);
+      if (!chain || chain.seq !== context?.seq) return;
+      endRowUpdateChain(variables.rowId);
+      if (chain.reconcile) reconcileRow(variables.pageId, variables.rowId);
+      if (chain.regrouped) invalidateBaseRows(variables.pageId);
+      else if (chain.calendarTouched) {
+        invalidateCalendarRows(variables.pageId, "none");
       }
     },
   });
@@ -283,11 +365,10 @@ export function useUpdateRowMutation() {
 export function useDeleteRowMutation() {
   const { t } = useTranslation();
   return useMutation<void, Error, DeleteRowInput, RowCacheContext>({
+    mutationKey: BASE_ROW_MUTATION_KEY,
     mutationFn: (data) => deleteRow({ ...data, requestId: newRequestId() }),
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.pageId],
-      });
+      await cancelLoadedBaseRows(variables.pageId);
 
       const snapshots = queryClient.getQueriesData<
         InfiniteData<IBaseRowsPage>
@@ -326,11 +407,10 @@ export function useDeleteRowMutation() {
 export function useDeleteRowsMutation() {
   const { t } = useTranslation();
   return useMutation<void, Error, DeleteRowsInput, RowCacheContext>({
+    mutationKey: BASE_ROW_MUTATION_KEY,
     mutationFn: (data) => deleteRows({ ...data, requestId: newRequestId() }),
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.pageId],
-      });
+      await cancelLoadedBaseRows(variables.pageId);
 
       const snapshots = queryClient.getQueriesData<
         InfiniteData<IBaseRowsPage>
@@ -373,11 +453,10 @@ export function useDeleteRowsMutation() {
 export function useReorderRowMutation() {
   const { t } = useTranslation();
   return useMutation<void, Error, ReorderRowInput, RowCacheContext>({
+    mutationKey: BASE_ROW_MUTATION_KEY,
     mutationFn: (data) => reorderRow({ ...data, requestId: newRequestId() }),
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({
-        queryKey: ["base-rows", variables.pageId],
-      });
+      await cancelLoadedBaseRows(variables.pageId);
 
       const snapshots = queryClient.getQueriesData<
         InfiniteData<IBaseRowsPage>
@@ -435,6 +514,7 @@ type KanbanMoveCardContext = {
 export function useKanbanMoveCardMutation() {
   const { t } = useTranslation();
   return useMutation<IBaseRow, Error, KanbanMoveCardInput, KanbanMoveCardContext>({
+    mutationKey: BASE_ROW_MUTATION_KEY,
     mutationFn: ({ pageId, rowId, columnChanged, groupByPropertyId, destChoiceValue, position }) =>
       updateRow({
         pageId,
@@ -446,7 +526,7 @@ export function useKanbanMoveCardMutation() {
     onMutate: async (variables) => {
       const { pageId, rowId, sourceColumnFilter, destColumnFilter, columnChanged, groupByPropertyId, destChoiceValue, position } = variables;
 
-      await queryClient.cancelQueries({ queryKey: ["base-rows", pageId] });
+      await cancelLoadedBaseRows(pageId);
 
       const sourceKey = baseRowsQueryKey(pageId, sourceColumnFilter, undefined);
       const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined);
@@ -569,6 +649,54 @@ export function useKanbanCreateCardMutation() {
   });
 }
 
+function removeInactiveCalendarRows(pageId: string) {
+  queryClient.removeQueries({
+    queryKey: ["base-rows", pageId, "calendar"],
+    type: "inactive",
+  });
+}
+
 export function invalidateBaseRows(pageId: string) {
+  removeInactiveCalendarRows(pageId);
   queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+}
+
+export function invalidateCalendarRows(
+  pageId: string,
+  refetchType: "active" | "none" = "active",
+) {
+  removeInactiveCalendarRows(pageId);
+  queryClient.invalidateQueries({
+    queryKey: ["base-rows", pageId, "calendar"],
+    refetchType,
+  });
+}
+
+export function isCalendarRelevantChange(
+  base: IBase | undefined,
+  changedPropertyIds: string[],
+): boolean {
+  if (!base) return false;
+  const relevantIds = new Set<string>();
+  const addFilterPropertyIds = (node: FilterNode | undefined) => {
+    if (!node) return;
+    if ("children" in node) node.children.forEach(addFilterPropertyIds);
+    else relevantIds.add(node.propertyId);
+  };
+  for (const view of base.views) {
+    if (view.type !== "calendar") continue;
+    const datePropertyId = view.config?.calendar?.datePropertyId;
+    if (!datePropertyId) continue;
+    const dateProperty = base.properties.find((p) => p.id === datePropertyId);
+    if (dateProperty?.type === "lastEditedAt") return true;
+    relevantIds.add(datePropertyId);
+    addFilterPropertyIds(view.config?.filter);
+  }
+  const calendarQueries = queryClient
+    .getQueryCache()
+    .findAll({ queryKey: ["base-rows", base.id, "calendar"] });
+  for (const query of calendarQueries) {
+    addFilterPropertyIds(query.queryKey[6] as FilterNode | undefined);
+  }
+  return changedPropertyIds.some((id) => relevantIds.has(id));
 }
