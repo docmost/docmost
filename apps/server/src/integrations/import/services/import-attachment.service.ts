@@ -210,7 +210,7 @@ export class ImportAttachmentService {
       extractDir,
       pageId,
       fileTask,
-      attachmentCandidates,
+      attachmentCandidates = new Map(),
       pageAttachments = [],
       isConfluenceImport,
     } = opts;

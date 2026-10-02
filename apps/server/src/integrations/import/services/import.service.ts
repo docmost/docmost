@@ -31,7 +31,7 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
-import { ImportAttachmentService } from "./import-attachment.service";
+import { ImportAttachmentService } from './import-attachment.service';
 
 @Injectable()
 export class ImportService {
