@@ -2,6 +2,7 @@ import { Group, Center, Text } from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch } from "@tabler/icons-react";
 import React, { useState } from "react";
+import classes from "./search-spotlight.module.css";
 import { Link } from "react-router-dom";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useShareSearchQuery } from "@/features/search/queries/search-query";
@@ -72,11 +73,14 @@ export function ShareSearchSpotlight({ shareId }: ShareSearchSpotlightProps) {
           backgroundOpacity: 0.55,
         }}
       >
-        <Spotlight.Search
-          placeholder={t("Search...")}
-          aria-label={t("Search")}
-          leftSection={<IconSearch size={20} stroke={1.5} />}
-        />
+        <div className={classes.searchHeader} style={{ padding: "var(--mantine-spacing-sm)", paddingBottom: "var(--mantine-spacing-xs)" }}>
+          <Spotlight.Search
+            placeholder={t("Search...")}
+            aria-label={t("Search")}
+            leftSection={<IconSearch size={20} stroke={1.5} />}
+            classNames={{ input: classes.searchInput }}
+          />
+        </div>
         <Spotlight.ActionsList>
           {query.length === 0 && pages.length === 0 && (
             <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
