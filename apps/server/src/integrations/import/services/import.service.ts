@@ -31,6 +31,7 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
+import { ImportAttachmentService } from './import-attachment.service';
 
 @Injectable()
 export class ImportService {
@@ -43,6 +44,7 @@ export class ImportService {
     @InjectQueue(QueueName.FILE_TASK_QUEUE)
     private readonly fileTaskQueue: Queue,
     private moduleRef: ModuleRef,
+    private readonly importAttachmentService: ImportAttachmentService,
   ) {}
 
   async importPage(
@@ -62,17 +64,24 @@ export class ImportService {
     let prosemirrorState = null;
     let createdPage = null;
 
-    // For DOCX, we need the page ID upfront so images can reference it
-    const pageId =
-      fileExtension === '.docx' || fileExtension === '.pdf'
-        ? uuid7()
-        : undefined;
+    // Generate the page ID upfront so imported attachments can reference it.
+    const pageId = uuid7();
 
     try {
-      if (fileExtension.endsWith('.md')) {
-        prosemirrorState = await this.processMarkdown(fileContent);
-      } else if (fileExtension.endsWith('.html')) {
-        prosemirrorState = await this.processHTML(fileContent);
+      if (fileExtension.endsWith('.md') || fileExtension.endsWith('.html')) {
+        const rawHtml = fileExtension.endsWith('.md')
+          ? await markdownToHtml(fileContent)
+          : fileContent;
+
+        const processedHtml =
+          await this.importAttachmentService.processAttachments({
+            html: rawHtml,
+            pageId,
+            pageRelativePath: '',
+            fileTask: { workspaceId, spaceId, creatorId: userId },
+          });
+
+        prosemirrorState = await this.processHTML(processedHtml);
       } else if (fileExtension.endsWith('.docx')) {
         prosemirrorState = await this.processDocx(
           fileBuffer,
@@ -114,7 +123,7 @@ export class ImportService {
         const pagePosition = await this.getNewPagePosition(spaceId);
 
         createdPage = await this.pageRepo.insertPage({
-          ...(pageId ? { id: pageId } : {}),
+          id: pageId,
           slugId: generateSlugId(),
           title: pageTitle,
           content: prosemirrorJson,
