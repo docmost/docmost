@@ -368,7 +368,7 @@ export class DocxSerializerState {
     this.maxImageWidth = MAX_IMAGE_WIDTH;
     const table = new Table({ ...tableOptions, rows });
     actualChildren.push(table);
-    // If there are multiple tables, this seperates them
+    // If there are multiple tables, this separates them
     actualChildren.push(new Paragraph(''));
     this.children = actualChildren;
   }
