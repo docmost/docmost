@@ -465,7 +465,7 @@ export class ImportAttachmentService {
     };
 
     const resolveSource = (raw?: string): ResolvedFile | null => {
-      const src = raw.trim()
+      const src = raw?.trim()
       if (src.toLowerCase().startsWith('data:')) {
         return resolveEmbeddedFile(src);
       }
