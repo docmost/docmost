@@ -7,6 +7,18 @@ export function normalizeFileUrl(src: string): string {
   return src || "";
 }
 
+// HTML attributes are strings; numeric node attributes must not come back as
+// "123" after an HTML (or markdown) round-trip.
+export function parseNumericAttr(
+  element: HTMLElement,
+  name: string,
+): number | null {
+  const raw = element.getAttribute(name);
+  if (raw === null || raw === "") return null;
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : null;
+}
+
 export function syncAltBadge(wrapper: HTMLElement, alt: unknown): void {
   const existing = wrapper.querySelector<HTMLElement>(
     ":scope > .media-alt-badge",

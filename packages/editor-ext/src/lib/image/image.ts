@@ -7,7 +7,7 @@ import {
 } from "@tiptap/core";
 import { ResizableNodeView } from "../resizable-nodeview";
 import type { ResizableNodeViewDirection } from "../resizable-nodeview";
-import { normalizeFileUrl, syncAltBadge } from "../media-utils";
+import { normalizeFileUrl, syncAltBadge, parseNumericAttr } from "../media-utils";
 
 export type ImageResizeOptions = {
   enabled: boolean;
@@ -132,14 +132,14 @@ export const TiptapImage = Image.extend<ImageOptions>({
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-size"),
+        parseHTML: (element) => parseNumericAttr(element, "data-size"),
         renderHTML: (attributes: ImageAttributes) => ({
           "data-size": attributes.size,
         }),
       },
       aspectRatio: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-aspect-ratio"),
+        parseHTML: (element) => parseNumericAttr(element, "data-aspect-ratio"),
         renderHTML: (attributes: ImageAttributes) => ({
           "data-aspect-ratio": attributes.aspectRatio,
         }),

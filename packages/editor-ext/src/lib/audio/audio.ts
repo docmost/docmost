@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { normalizeFileUrl } from "../media-utils";
+import { normalizeFileUrl, parseNumericAttr } from "../media-utils";
 import { sanitizeUrl, isInternalFileUrl } from "../utils";
 
 export interface AudioOptions {
@@ -66,7 +66,7 @@ export const TiptapAudio = Node.create<AudioOptions>({
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-size"),
+        parseHTML: (element) => parseNumericAttr(element, "data-size"),
         renderHTML: (attributes: AudioAttributes) => ({
           "data-size": attributes.size,
         }),

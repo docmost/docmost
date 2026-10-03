@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import { parseNumericAttr } from "./media-utils";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { sanitizeUrl } from "./utils";
 
@@ -65,14 +66,14 @@ export const Embed = Node.create<EmbedOptions>({
       },
       width: {
         default: 800,
-        parseHTML: (element) => element.getAttribute("data-width"),
+        parseHTML: (element) => parseNumericAttr(element, "data-width"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-width": attributes.width,
         }),
       },
       height: {
         default: 600,
-        parseHTML: (element) => element.getAttribute("data-height"),
+        parseHTML: (element) => parseNumericAttr(element, "data-height"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-height": attributes.height,
         }),

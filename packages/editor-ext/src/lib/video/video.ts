@@ -2,7 +2,7 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 import { Range, Node, mergeAttributes } from "@tiptap/core";
 import { ResizableNodeView } from "../resizable-nodeview";
 import type { ResizableNodeViewDirection } from "../resizable-nodeview";
-import { normalizeFileUrl } from "../media-utils";
+import { normalizeFileUrl, parseNumericAttr } from "../media-utils";
 
 export type VideoResizeOptions = {
   enabled: boolean;
@@ -121,7 +121,7 @@ export const TiptapVideo = Node.create<VideoOptions>({
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-size"),
+        parseHTML: (element) => parseNumericAttr(element, "data-size"),
         renderHTML: (attributes: VideoAttributes) => ({
           "data-size": attributes.size,
         }),
@@ -135,7 +135,7 @@ export const TiptapVideo = Node.create<VideoOptions>({
       },
       aspectRatio: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-aspect-ratio"),
+        parseHTML: (element) => parseNumericAttr(element, "data-aspect-ratio"),
         renderHTML: (attributes: VideoAttributes) => ({
           "data-aspect-ratio": attributes.aspectRatio,
         }),

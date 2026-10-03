@@ -1,4 +1,5 @@
 import { Token, marked } from 'marked';
+import { getValidCalloutType } from '../../callout/utils';
 
 interface CalloutToken {
   type: 'callout';
@@ -17,16 +18,10 @@ export const calloutExtension = {
     const rule = /^:::([a-zA-Z0-9]+)\s+([\s\S]+?):::/;
     const match = rule.exec(src);
 
-    const validCalloutTypes = ['info', 'success', 'warning', 'danger'];
-
     if (match) {
-      let type = match[1];
-      if (!validCalloutTypes.includes(type)) {
-        type = 'info';
-      }
       return {
         type: 'callout',
-        calloutType: type,
+        calloutType: getValidCalloutType(match[1]),
         raw: match[0],
         text: match[2].trim(),
       };
