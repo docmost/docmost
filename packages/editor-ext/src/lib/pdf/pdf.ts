@@ -1,4 +1,5 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import { parseNumericAttr } from "../media-utils";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { sanitizeUrl, isInternalFileUrl } from "../utils";
 
@@ -73,7 +74,7 @@ export const TiptapPdf = Node.create<PdfOptions>({
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-size"),
+        parseHTML: (element) => parseNumericAttr(element, "data-size"),
         renderHTML: (attributes: PdfAttributes) => ({
           "data-size": attributes.size,
         }),

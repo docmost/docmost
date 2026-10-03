@@ -10,7 +10,9 @@ export const Highlight = TiptapHighlight.extend<HighlightOptions>({
       color: {
         default: null,
         parseHTML: (element) =>
-          element.getAttribute("data-color") || element.style.backgroundColor,
+          element.getAttribute("data-color") ||
+          element.style.backgroundColor ||
+          null,
         renderHTML: (attributes) => {
           if (!attributes.color) {
             return {};

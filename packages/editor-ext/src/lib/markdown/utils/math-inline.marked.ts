@@ -1,4 +1,5 @@
-import { Token, marked } from 'marked';
+import { Token } from 'marked';
+import { escapeHtml } from './escape-html';
 
 interface MathInlineToken {
   type: 'mathInline';
@@ -44,11 +45,9 @@ export const mathInlineExtension = {
   },
   renderer(token: Token) {
     const mathInlineToken = token as MathInlineToken;
-    // parse to prevent escaping slashes
-    const latex = marked
-      .parse(mathInlineToken.text)
-      .toString()
-      .replace(/<(\/)?p>/g, '');
+    // LaTeX is raw text: never run it through the markdown parser, which
+    // would unescape `\*`, turn `_x_` into emphasis and append newlines.
+    const latex = escapeHtml(mathInlineToken.text);
 
     return `<span data-type="${mathInlineToken.type}" data-katex="true">${latex}</span>`;
   },
