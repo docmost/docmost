@@ -69,7 +69,6 @@ import { useParams } from "react-router-dom";
 import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
-import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
@@ -129,13 +128,8 @@ export default function PageEditor({
   };
 
   const handleAuthenticationFailed = () => {
-    const payload = jwtDecode(collabQuery?.token);
-    const now = Date.now().valueOf() / 1000;
-    const isTokenExpired = now >= payload.exp;
-    if (isTokenExpired) {
-      refetchCollabToken();
-    }
-  };
+  refetchCollabToken();
+};
 
   return (
     <TransclusionLookupProvider>
