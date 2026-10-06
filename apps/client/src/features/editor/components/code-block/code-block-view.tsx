@@ -7,9 +7,14 @@ import classes from "./code-block.module.css";
 import React from "react";
 import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import { isDiagramLanguage } from "@docmost/editor-ext";
 
 const MermaidView = React.lazy(
   () => import("@/features/editor/components/code-block/mermaid-view.tsx"),
+);
+
+const PlantumlView = React.lazy(
+  () => import("@/features/editor/components/code-block/plantuml-view.tsx"),
 );
 
 export default function CodeBlockView(props: NodeViewProps) {
@@ -86,8 +91,8 @@ export default function CodeBlockView(props: NodeViewProps) {
       <pre
         spellCheck="false"
         hidden={
-          ((language === "mermaid" && !editor.isEditable) ||
-            (language === "mermaid" && !isSelected)) &&
+          isDiagramLanguage(language) &&
+          (!editor.isEditable || !isSelected) &&
           node.textContent.length > 0
         }
       >
@@ -98,6 +103,12 @@ export default function CodeBlockView(props: NodeViewProps) {
       {language === "mermaid" && (
         <Suspense fallback={null}>
           <MermaidView props={props} />
+        </Suspense>
+      )}
+
+      {language === "plantuml" && (
+        <Suspense fallback={null}>
+          <PlantumlView props={props} />
         </Suspense>
       )}
     </NodeViewWrapper>
