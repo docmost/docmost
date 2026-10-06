@@ -14,6 +14,10 @@
 
 To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
 
+### Self-hosted LDAP
+
+Self-hosted deployments can optionally use LDAP as their only interactive sign-in method. See the [LDAP authentication guide](LDAP_AUTH.md) for configuration, bootstrap, security behavior, and recovery details.
+
 ## Features
 
 - Real-time collaboration

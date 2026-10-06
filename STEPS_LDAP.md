@@ -101,10 +101,15 @@ Directory-specific search-filter and stable-subject attribute values are supplie
 
 ## 9. Document Operations
 
-- [ ] Add the LDAP environment section to `.env.example` with safe placeholders and comments.
-- [ ] Document required LDAP permissions, search filter syntax, attribute mappings, TLS/CA setup, and timeouts.
-- [ ] Document enabling/disabling LDAP-only mode, initial workspace bootstrap/owner assignment, outage behavior, and recovery.
-- [ ] State explicitly that disabling LDAP mode restores the existing interactive authentication options.
+- [x] Add the LDAP environment section to `.env.example` with safe placeholders and comments.
+- [x] Document required LDAP permissions, search filter syntax, attribute mappings, TLS/CA setup, and timeouts in [LDAP_AUTH.md](LDAP_AUTH.md).
+- [x] Document enabling/disabling LDAP-only mode, including that it is self-hosted-only and leaves OAuth/API-key credentials available.
+- [x] Document initial workspace bootstrap: the authenticated first LDAP user becomes owner, later provisioned users are members, and repeated/concurrent setup attempts are rejected.
+- [x] Document the Phase 8 security outcomes: rejected interactive routes, account-collision handling, workspace isolation, secret-safe errors/logs, and LDAP-disabled compatibility.
+- [x] Document MFA behavior, including the required EE integration and fail-closed behavior when that integration is unavailable.
+- [x] Record current Phase 7/8 test, build, and deployment verification status, including remaining limitations; update this record when checks are run.
+- [x] Document LDAP outage behavior and operator recovery steps.
+- [x] State explicitly that disabling LDAP mode restores the existing interactive authentication options.
 
 (0.5-1 day)
 
