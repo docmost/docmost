@@ -40,19 +40,19 @@ Directory-specific search-filter and stable-subject attribute values are supplie
 
 **Verification pending:** Focused LDAP service Jest tests were added, but cannot be run because `pnpm` and workspace-local Jest binaries are unavailable. Editor diagnostics report no errors. (1.5-2 days)
 
-## 4. Persist Identity and Provision Users
+## 4. Phase 4 Implementation Complete: Persist Identity and Provision Users
 
-- [ ] Add the dedicated LDAP identity table with a stable subject ID, workspace and user references, and uniqueness constraints decided in Phase 1.
-- [ ] After successful LDAP verification, look up the identity link within the resolved workspace.
-- [ ] If no link exists, validate required LDAP attributes and create a passwordless Docmost user.
-- [ ] Mark the LDAP-provided email as verified on account creation.
-- [ ] Reject provisioning if the email collides with an existing unlinked local account; do not auto-link by email.
-- [ ] Store the stable directory subject identifier for subsequent logins; do not use mutable email as the sole identity key.
-- [ ] Update user insertion and password login to handle `password = null` safely.
-- [ ] Add a forward/down migration and regenerate database types.
-- [ ] Confirm the same LDAP identity cannot resolve to a user in another workspace.
+- [x] Add the dedicated LDAP identity table with stable subject ID, workspace and user references, and unique workspace-scoped subject/user constraints.
+- [x] After successful LDAP verification, look up the identity link within the resolved workspace.
+- [x] If no link exists, validate identity attributes from the LDAP service and create a passwordless Docmost member.
+- [x] Mark the LDAP-provided email as verified on account creation.
+- [x] Reject provisioning if the email collides with an existing unlinked local account; do not auto-link by email.
+- [x] Store the stable directory subject identifier for subsequent logins; do not use mutable email as the sole identity key.
+- [x] Update user insertion and password login/change-password to handle `password = null` safely.
+- [x] Add a forward/down migration and update Kysely database/entity types.
+- [x] Scope identity lookup and provisioning to the requested workspace.
 
-**Verification:** Test first-login provisioning, repeat login, required attributes, email collision, concurrent first login, disabled users, passwordless login rejection, and workspace isolation. (1-2 days)
+**Verification pending:** Focused signup and provisioning tests were added but could not be run because `pnpm` and workspace-local Jest binaries are unavailable. The Kysely types were updated manually; code generation and database-backed concurrent provisioning verification remain pending. (1-2 days)
 
 ## 5. Add Login and Enforce LDAP-Only Mode
 
