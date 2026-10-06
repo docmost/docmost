@@ -31,9 +31,16 @@ const formSchema = z.object({
 });
 type FormValues = z.infer<typeof formSchema>;
 
-export function SetupWorkspaceForm() {
+const ldapFormSchema = z.object({
+  workspaceName: z.string().trim().max(50).optional(),
+  username: z.string().trim().min(1, { message: "Username is required" }),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+type LdapFormValues = z.infer<typeof ldapFormSchema>;
+
+export function SetupWorkspaceForm({ ldapOnly = false }: { ldapOnly?: boolean } = {}) {
   const { t } = useTranslation();
-  const { setupWorkspace, isLoading } = useAuth();
+  const { setupWorkspace, setupWorkspaceWithLdap, isLoading } = useAuth();
   // useRedirectIfAuthenticated();
 
   const form = useForm<FormValues>({
@@ -45,9 +52,21 @@ export function SetupWorkspaceForm() {
       password: "",
     },
   });
+  const ldapForm = useForm<LdapFormValues>({
+    validate: zod4Resolver(ldapFormSchema),
+    initialValues: {
+      workspaceName: "",
+      username: "",
+      password: "",
+    },
+  });
 
   async function onSubmit(data: FormValues) {
     await setupWorkspace(data);
+  }
+
+  async function onLdapSubmit(data: LdapFormValues) {
+    await setupWorkspaceWithLdap(data);
   }
 
   return (
@@ -58,10 +77,10 @@ export function SetupWorkspaceForm() {
             {t("Create workspace")}
           </Title>
 
-          {isCloud() && <SsoCloudSignup />}
+          {isCloud() && !ldapOnly && <SsoCloudSignup />}
 
-          <form onSubmit={form.onSubmit(onSubmit)}>
-            {!isCloud() && (
+          {ldapOnly ? (
+            <form onSubmit={ldapForm.onSubmit(onLdapSubmit)}>
               <TextInput
                 id="workspaceName"
                 type="text"
@@ -69,46 +88,84 @@ export function SetupWorkspaceForm() {
                 placeholder={t("e.g ACME Inc")}
                 variant="filled"
                 mt="md"
-                {...form.getInputProps("workspaceName")}
+                {...ldapForm.getInputProps("workspaceName")}
               />
-            )}
-
-            <TextInput
-              id="name"
-              type="text"
-              label={t("Your Name")}
-              placeholder={t("enter your full name")}
-              variant="filled"
-              mt="md"
-              {...form.getInputProps("name")}
-            />
-
-            <TextInput
-              id="email"
-              type="email"
-              label={t("Your Email")}
-              placeholder="email@example.com"
-              variant="filled"
-              mt="md"
-              {...form.getInputProps("email")}
-            />
-
-            <PasswordInput
-              label={t("Password")}
-              placeholder={t("Enter a strong password")}
-              variant="filled"
-              mt="md"
-              visibilityToggleButtonProps={{
-                "aria-label": t("Toggle password visibility"),
-                "aria-hidden": false,
-                tabIndex: 0,
-              }}
-              {...form.getInputProps("password")}
-            />
-            <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-              {t("Create workspace")}
-            </Button>
-          </form>
+              <TextInput
+                id="ldap-username"
+                label={t("LDAP username")}
+                placeholder={t("Enter your LDAP username")}
+                variant="filled"
+                mt="md"
+                autoComplete="username"
+                data-autofocus
+                {...ldapForm.getInputProps("username")}
+              />
+              <PasswordInput
+                id="ldap-password"
+                label={t("LDAP password")}
+                placeholder={t("Enter your LDAP password")}
+                variant="filled"
+                mt="md"
+                autoComplete="current-password"
+                visibilityToggleButtonProps={{
+                  "aria-label": t("Toggle password visibility"),
+                  "aria-hidden": false,
+                  tabIndex: 0,
+                }}
+                {...ldapForm.getInputProps("password")}
+              />
+              <Button type="submit" fullWidth mt="xl" loading={isLoading}>
+                {t("Create workspace")}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={form.onSubmit(onSubmit)}>
+              {!isCloud() && (
+                <TextInput
+                  id="workspaceName"
+                  type="text"
+                  label={t("Workspace Name")}
+                  placeholder={t("e.g ACME Inc")}
+                  variant="filled"
+                  mt="md"
+                  {...form.getInputProps("workspaceName")}
+                />
+              )}
+              <TextInput
+                id="name"
+                type="text"
+                label={t("Your Name")}
+                placeholder={t("enter your full name")}
+                variant="filled"
+                mt="md"
+                {...form.getInputProps("name")}
+              />
+              <TextInput
+                id="email"
+                type="email"
+                label={t("Your Email")}
+                placeholder="email@example.com"
+                variant="filled"
+                mt="md"
+                {...form.getInputProps("email")}
+              />
+              <PasswordInput
+                label={t("Password")}
+                placeholder={t("Enter a strong password")}
+                variant="filled"
+                mt="md"
+                visibilityToggleButtonProps={{
+                  "aria-label": t("Toggle password visibility"),
+                  "aria-hidden": false,
+                  tabIndex: 0,
+                }}
+                {...form.getInputProps("password")}
+              />
+              <Button type="submit" fullWidth mt="xl" loading={isLoading}>
+                {t("Create workspace")}
+              </Button>
+            </form>
+          )}
         </Box>
       </Container>
       {isCloud() && (

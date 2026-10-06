@@ -3,11 +3,23 @@ import { z } from "zod/v4";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import useAuth from "@/features/auth/hooks/use-auth";
-import { Box, Button, Container, Text, TextInput, Title } from "@mantine/core";
+import {
+  Alert,
+  Anchor,
+  Box,
+  Button,
+  Container,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 import { useTranslation } from "react-i18next";
 import { AuthLayout } from "./auth-layout.tsx";
+import { useAuthModeQuery } from "@/features/auth/queries/auth-query.tsx";
+import { Link } from "react-router-dom";
+import APP_ROUTE from "@/lib/app-route.ts";
 
 const formSchema = z.object({
   email: z
@@ -19,6 +31,7 @@ type FormValues = z.infer<typeof formSchema>;
 export function ForgotPasswordForm() {
   const { t } = useTranslation();
   const { forgotPassword, isLoading } = useAuth();
+  const authModeQuery = useAuthModeQuery();
   const [isTokenSent, setIsTokenSent] = useState<boolean>(false);
   useRedirectIfAuthenticated();
 
@@ -33,6 +46,29 @@ export function ForgotPasswordForm() {
     if (await forgotPassword(data)) {
       setIsTokenSent(true);
     }
+  }
+
+  if (authModeQuery.isLoading) {
+    return null;
+  }
+
+  if (authModeQuery.isError || !authModeQuery.data) {
+    return <div>{t("Unable to load sign-in settings")}</div>;
+  }
+
+  if (authModeQuery.data.ldapOnly) {
+    return (
+      <AuthLayout>
+        <Container size={420} className={classes.container}>
+          <Alert color="blue" title={t("Password recovery unavailable")}>
+            {t("Sign in using your LDAP credentials instead.")}
+            <Anchor component={Link} to={APP_ROUTE.AUTH.LOGIN} display="block" mt="md">
+              {t("Sign in")}
+            </Anchor>
+          </Alert>
+        </Container>
+      </AuthLayout>
+    );
   }
 
   return (

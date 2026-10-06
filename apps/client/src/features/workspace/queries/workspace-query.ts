@@ -39,13 +39,16 @@ export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   });
 }
 
-export function useWorkspacePublicDataQuery(): UseQueryResult<
+export function useWorkspacePublicDataQuery(
+  enabled = true,
+): UseQueryResult<
   IPublicWorkspace,
   Error
 > {
   return useQuery({
     queryKey: ["workspace-public"],
     queryFn: () => getWorkspacePublicData(),
+    enabled,
   });
 }
 

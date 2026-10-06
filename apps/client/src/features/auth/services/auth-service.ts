@@ -6,6 +6,8 @@ import {
   IAuthMode,
   ILogin,
   ILoginResponse,
+  ILdapLogin,
+  ILdapSetup,
   IPasswordReset,
   ISetupWorkspace,
   IVerifyUserToken,
@@ -19,6 +21,11 @@ export async function getAuthMode(): Promise<IAuthMode> {
 
 export async function login(data: ILogin): Promise<ILoginResponse> {
   const response = await api.post<ILoginResponse>("/auth/login", data);
+  return response.data;
+}
+
+export async function ldapLogin(data: ILdapLogin): Promise<ILoginResponse> {
+  const response = await api.post<ILoginResponse>("/auth/ldap/login", data);
   return response.data;
 }
 
@@ -38,6 +45,16 @@ export async function setupWorkspace(
 ): Promise<IWorkspace> {
   const req = await api.post<IWorkspace>("/auth/setup", data);
   return req.data;
+}
+
+export async function setupWorkspaceWithLdap(
+  data: ILdapSetup,
+): Promise<IWorkspace | ILoginResponse> {
+  const response = await api.post<IWorkspace | ILoginResponse>(
+    "/auth/ldap/setup",
+    data,
+  );
+  return response.data;
 }
 
 export async function forgotPassword(data: IForgotPassword): Promise<void> {

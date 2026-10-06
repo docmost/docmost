@@ -3,6 +3,15 @@ export interface ILogin {
   password: string;
 }
 
+export interface ILdapLogin {
+  username: string;
+  password: string;
+}
+
+export interface ILdapSetup extends ILdapLogin {
+  workspaceName?: string;
+}
+
 export interface IRegister {
   name?: string;
   email: string;

@@ -5,6 +5,9 @@ import { useNavigate } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 import { useTranslation } from "react-i18next";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { useAuthModeQuery } from "@/features/auth/queries/auth-query.tsx";
+import { Alert, Button, Container } from "@mantine/core";
+import { AuthLayout } from "@/features/auth/components/auth-layout.tsx";
 
 export default function SetupWorkspace() {
   const { t } = useTranslation();
@@ -14,6 +17,7 @@ export default function SetupWorkspace() {
     isError,
     error,
   } = useWorkspacePublicDataQuery();
+  const authModeQuery = useAuthModeQuery();
 
   const navigate = useNavigate();
 
@@ -23,8 +27,26 @@ export default function SetupWorkspace() {
     }
   }, [isLoading, workspace]);
 
-  if (isLoading) {
+  if (isLoading || authModeQuery.isLoading) {
     return <div></div>;
+  }
+
+  if (authModeQuery.isError || !authModeQuery.data) {
+    return (
+      <AuthLayout>
+        <Container size={420}>
+          <Alert title={t("Unable to load sign-in settings")} color="red">
+            <Button
+              variant="subtle"
+              onClick={() => void authModeQuery.refetch()}
+              mt="sm"
+            >
+              {t("Retry")}
+            </Button>
+          </Alert>
+        </Container>
+      </AuthLayout>
+    );
   }
 
   if (
@@ -35,7 +57,7 @@ export default function SetupWorkspace() {
     return (
       <>
         <DocumentTitle title={t("Setup Workspace")} />
-        <SetupWorkspaceForm />
+        <SetupWorkspaceForm ldapOnly={authModeQuery.data.ldapOnly} />
       </>
     );
   }

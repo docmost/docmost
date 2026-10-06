@@ -67,16 +67,16 @@ Directory-specific search-filter and stable-subject attribute values are supplie
 
 **Verification pending:** Controller tests were added but could not be run because `pnpm` and workspace-local Jest binaries are unavailable. The EE MFA hook must be implemented before LDAP can be used with an EE MFA build; its verifier must issue the post-challenge session and call `AuthService.recordSuccessfulLdapLogin` only after MFA succeeds. Until then, LDAP login fails closed in that build. Editor diagnostics report no errors. (1-1.5 days)
 
-## 6. Update Client Login and Bootstrap UI
+## 6. Phase 6 Implementation Complete: Client Login and Bootstrap UI
 
-- [ ] Use the server-reported non-secret auth mode to decide which sign-in UI to render.
-- [ ] Replace the existing provider-ID LDAP modal flow with a deployment-level LDAP login form; no provider ID or LDAP secrets should be required in the browser.
-- [ ] Hide password and other interactive provider controls while LDAP-only mode is enabled.
-- [ ] Add the LDAP credential step to initial workspace setup. The authenticated bootstrap user becomes owner; subsequent users do not receive elevated roles.
-- [ ] Keep the existing password/SSO experience unchanged when LDAP is disabled.
-- [ ] Handle LDAP failures with useful generic messages and preserve loading/accessibility behavior.
+- [x] Use the server-reported non-secret auth mode to decide which sign-in UI to render; fail closed if mode lookup fails.
+- [x] Replace the provider-ID LDAP modal path in LDAP-only mode with a deployment-level LDAP login form; no LDAP configuration or secrets are sent to the browser.
+- [x] Hide local password, SSO, invitation-password, forgot-password, and reset-password controls while LDAP-only mode is enabled.
+- [x] Add LDAP credentials to initial workspace setup; the authenticated bootstrap user becomes owner through the server flow.
+- [x] Keep the existing password/SSO and Cloud setup experiences unchanged when LDAP is disabled.
+- [x] Handle login/setup failures with user-facing errors and loading states.
 
-**Verification:** Client tests cover mode-specific rendering, login request, bootstrap flow, error states, and no regression with LDAP disabled. (0.75-1.25 days)
+**Verification pending:** Editor diagnostics found no errors. Client tests and production build were not run because `pnpm` and workspace-local binaries are unavailable; this client has no existing auth-component test harness. (0.75-1.25 days)
 
 ## 7. Verify Initial Owner Bootstrap
 

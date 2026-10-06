@@ -2,9 +2,11 @@ import { useState } from "react";
 import {
   forgotPassword,
   login,
+  ldapLogin,
   logout,
   passwordReset,
   setupWorkspace,
+  setupWorkspaceWithLdap,
   verifyUserToken,
 } from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +15,8 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   IForgotPassword,
   ILogin,
+  ILdapLogin,
+  ILdapSetup,
   IPasswordReset,
   ISetupWorkspace,
   IVerifyUserToken,
@@ -35,6 +39,16 @@ export default function useAuth() {
   const navigate = useNavigate();
   const [, setCurrentUser] = useAtom(currentUserAtom);
 
+  const navigateAfterLogin = (response?: { userHasMfa?: boolean; requiresMfaSetup?: boolean }) => {
+    if (response?.userHasMfa) {
+      navigate(APP_ROUTE.AUTH.MFA_CHALLENGE + window.location.search);
+    } else if (response?.requiresMfaSetup) {
+      navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED + window.location.search);
+    } else {
+      navigate(getPostLoginRedirect());
+    }
+  };
+
   const handleSignIn = async (data: ILogin) => {
     setIsLoading(true);
 
@@ -42,14 +56,7 @@ export default function useAuth() {
       const response = await login(data);
       setIsLoading(false);
 
-      // Check if MFA is required
-      if (response?.userHasMfa) {
-        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE + window.location.search);
-      } else if (response?.requiresMfaSetup) {
-        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED + window.location.search);
-      } else {
-        navigate(getPostLoginRedirect());
-      }
+      navigateAfterLogin(response);
     } catch (err) {
       setIsLoading(false);
 
@@ -64,6 +71,21 @@ export default function useAuth() {
 
       notifications.show({
         message,
+        color: "red",
+      });
+    }
+  };
+
+  const handleLdapSignIn = async (data: ILdapLogin) => {
+    setIsLoading(true);
+    try {
+      const response = await ldapLogin(data);
+      setIsLoading(false);
+      navigateAfterLogin(response);
+    } catch (err) {
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data?.message || t("Authentication failed"),
         color: "red",
       });
     }
@@ -129,6 +151,25 @@ export default function useAuth() {
       setIsLoading(false);
       notifications.show({
         message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
+  const handleSetupWorkspaceWithLdap = async (data: ILdapSetup) => {
+    setIsLoading(true);
+    try {
+      const response = await setupWorkspaceWithLdap(data);
+      setIsLoading(false);
+      if ("userHasMfa" in response || "requiresMfaSetup" in response) {
+        navigateAfterLogin(response);
+      } else {
+        navigate(APP_ROUTE.HOME);
+      }
+    } catch (err) {
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data?.message || t("Unable to create workspace"),
         color: "red",
       });
     }
@@ -207,8 +248,10 @@ export default function useAuth() {
 
   return {
     signIn: handleSignIn,
+    ldapSignIn: handleLdapSignIn,
     invitationSignup: handleInvitationSignUp,
     setupWorkspace: handleSetupWorkspace,
+    setupWorkspaceWithLdap: handleSetupWorkspaceWithLdap,
     forgotPassword: handleForgotPassword,
     passwordReset: handlePasswordReset,
     verifyUserToken: handleVerifyUserToken,
