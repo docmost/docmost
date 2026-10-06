@@ -28,17 +28,17 @@ Directory-specific search-filter and stable-subject attribute values are supplie
 
 **Verification pending:** Environment-validation and service/controller Jest tests were added, but could not be run because `pnpm` and workspace-local Jest binaries are unavailable. Editor diagnostics report no errors. (0.75-1 day)
 
-## 3. Implement LDAP Connectivity and Credential Verification
+## 3. Phase 3 Implementation Complete: LDAP Connectivity and Credential Verification
 
-- [ ] Add an injectable LDAP service in the core server using the existing `ldapts` dependency.
-- [ ] Connect with the configured service account and search for the supplied login identifier.
-- [ ] Escape user-provided values before inserting them into LDAP filters; require exactly one matching entry.
-- [ ] Bind as the matched user to verify credentials.
-- [ ] Enforce verified TLS according to configuration and use bounded connect/search timeouts.
-- [ ] Close LDAP clients/connections on success and failure paths.
-- [ ] Return generic login errors to the client while logging only secret-safe diagnostic context.
+- [x] Add an injectable LDAP service in the core server using the existing `ldapts` dependency.
+- [x] Connect with the configured service account and search for the supplied login identifier.
+- [x] Escape user-provided values before inserting them into LDAP filters; require exactly one matching entry.
+- [x] Bind as the matched user to verify credentials.
+- [x] Enforce verified TLS according to configuration and use bounded connect/search timeouts.
+- [x] Close LDAP clients/connections on success and failure paths.
+- [x] Return generic login errors to the client while logging only secret-safe diagnostic context.
 
-**Verification:** Unit-test invalid credentials, no result, multiple results, LDAP unavailability, timeouts, filter escaping, TLS errors, and connection cleanup. (1.5-2 days)
+**Verification pending:** Focused LDAP service Jest tests were added, but cannot be run because `pnpm` and workspace-local Jest binaries are unavailable. Editor diagnostics report no errors. (1.5-2 days)
 
 ## 4. Persist Identity and Provision Users
 
