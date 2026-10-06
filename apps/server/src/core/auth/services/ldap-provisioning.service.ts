@@ -1,8 +1,13 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { sql } from 'kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { User } from '@docmost/db/types/entity.types';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 import { executeTx } from '@docmost/db/utils';
 import { isUserDisabled } from '../../../common/helpers';
 import { LdapIdentityRepo } from '../../../database/repos/ldap-identity/ldap-identity.repo';
@@ -87,5 +92,58 @@ export class LdapProvisioningService {
     }
 
     return result.user;
+  }
+
+  async setupFirstWorkspace(
+    identity: LdapAuthenticatedIdentity,
+    workspaceName?: string,
+  ): Promise<{ user: User; workspace: Workspace }> {
+    const result = await executeTx(this.db, async (trx) => {
+      await sql`
+        select pg_advisory_xact_lock(hashtextextended('ldap-workspace-bootstrap', 0))
+      `.execute(trx);
+
+      const existingWorkspace = await trx
+        .selectFrom('workspaces')
+        .select('id')
+        .limit(1)
+        .executeTakeFirst();
+      if (existingWorkspace) {
+        throw new ForbiddenException('Workspace setup already completed');
+      }
+
+      const { user, workspace } = await this.signupService.initialLdapSetup(
+        identity,
+        workspaceName,
+        trx,
+      );
+
+      await this.ldapIdentityRepo.insertIdentity(
+        {
+          workspaceId: workspace.id,
+          userId: user.id,
+          subjectId: identity.subjectId,
+        },
+        trx,
+      );
+
+      return { user, workspace };
+    });
+
+    this.auditService.log({
+      event: AuditEvent.USER_CREATED,
+      resourceType: AuditResource.USER,
+      resourceId: result.user.id,
+      changes: {
+        after: {
+          name: result.user.name,
+          email: result.user.email,
+          role: result.user.role,
+        },
+      },
+      metadata: { source: 'ldap_setup' },
+    });
+
+    return result;
   }
 }

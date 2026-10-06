@@ -43,6 +43,8 @@ import {
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import { LdapAuthService } from './ldap-auth.service';
+import { LdapProvisioningService } from './ldap-provisioning.service';
 
 @Injectable()
 export class AuthService {
@@ -61,6 +63,8 @@ export class AuthService {
     private eventEmitter: EventEmitter2,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly ldapAuthService: LdapAuthService,
+    private readonly ldapProvisioningService: LdapProvisioningService,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
@@ -103,6 +107,32 @@ export class AuthService {
     return this.sessionService.createSessionAndToken(user);
   }
 
+  async loginLdap(username: string, password: string, workspaceId: string) {
+    if (!this.environmentService.isLdapEnabled()) {
+      throw new UnauthorizedException('LDAP authentication is disabled');
+    }
+
+    const identity = await this.ldapAuthService.authenticate(username, password);
+    const user = await this.ldapProvisioningService.findOrProvisionMember(
+      identity,
+      workspaceId,
+    );
+    return user;
+  }
+
+  async setupLdap(username: string, password: string, workspaceName?: string) {
+    if (!this.environmentService.isLdapEnabled()) {
+      throw new UnauthorizedException('LDAP authentication is disabled');
+    }
+
+    const identity = await this.ldapAuthService.authenticate(username, password);
+    const result = await this.ldapProvisioningService.setupFirstWorkspace(
+      identity,
+      workspaceName,
+    );
+    return result;
+  }
+
   async register(createUserDto: CreateUserDto, workspaceId: string) {
     const user = await this.signupService.signup(createUserDto, workspaceId);
     return this.sessionService.createSessionAndToken(user);
@@ -114,6 +144,22 @@ export class AuthService {
 
     const authToken = await this.sessionService.createSessionAndToken(user);
     return { workspace, authToken };
+  }
+
+  async recordSuccessfulLdapLogin(user: User): Promise<void> {
+    const workspaceId = user.workspaceId;
+    if (!workspaceId) {
+      throw new UnauthorizedException('LDAP account is unavailable');
+    }
+
+    user.lastLoginAt = new Date();
+    await this.userRepo.updateLastLogin(user.id, workspaceId);
+    this.auditService.log({
+      event: AuditEvent.USER_LOGIN,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      metadata: { source: 'ldap' },
+    });
   }
 
   async changePassword(

@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
   Inject,
   Post,
   Req,
   Res,
+  ServiceUnavailableException,
   UseGuards,
   Logger,
 } from '@nestjs/common';
@@ -29,6 +31,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
+import { LdapLoginDto } from './dto/ldap-login.dto';
+import { LdapSetupDto } from './dto/ldap-setup.dto';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
 import { ModuleRef } from '@nestjs/core';
@@ -59,12 +63,39 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('ldap/login')
+  async ldapLogin(
+    @Body() dto: LdapLoginDto,
+    @AuthWorkspace() workspace: Workspace,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    if (!this.environmentService.isLdapEnabled()) {
+      throw new ForbiddenException('LDAP authentication is disabled');
+    }
+
+    const user = await this.authService.loginLdap(
+      dto.username,
+      dto.password,
+      workspace.id,
+    );
+    const mfaResult = await this.checkLdapMfaRequirements(user, workspace, res);
+    if (mfaResult) {
+      return mfaResult;
+    }
+
+    await this.authService.recordSuccessfulLdapLogin(user);
+    const authToken = await this.sessionService.createSessionAndToken(user);
+    this.setAuthCookie(res, authToken);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
     @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
     @Body() loginInput: LoginDto,
   ) {
+    this.assertPasswordAuthenticationAllowed();
     validateSsoEnforcement(workspace);
 
     let MfaModule: any;
@@ -117,9 +148,37 @@ export class AuthController {
     @Res({ passthrough: true }) res: FastifyReply,
     @Body() createAdminUserDto: CreateAdminUserDto,
   ) {
+    this.assertPasswordAuthenticationAllowed();
     const { workspace, authToken } =
       await this.authService.setup(createAdminUserDto);
 
+    this.setAuthCookie(res, authToken);
+    return workspace;
+  }
+
+  @UseGuards(SetupGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('ldap/setup')
+  async setupWorkspaceWithLdap(
+    @Body() dto: LdapSetupDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    if (!this.environmentService.isLdapEnabled()) {
+      throw new ForbiddenException('LDAP authentication is disabled');
+    }
+
+    const { user, workspace } = await this.authService.setupLdap(
+      dto.username,
+      dto.password,
+      dto.workspaceName,
+    );
+    const mfaResult = await this.checkLdapMfaRequirements(user, workspace, res);
+    if (mfaResult) {
+      return mfaResult;
+    }
+
+    await this.authService.recordSuccessfulLdapLogin(user);
+    const authToken = await this.sessionService.createSessionAndToken(user);
     this.setAuthCookie(res, authToken);
     return workspace;
   }
@@ -134,6 +193,7 @@ export class AuthController {
     @AuthWorkspace() workspace: Workspace,
     @Req() req: FastifyRequest,
   ) {
+    this.assertPasswordAuthenticationAllowed();
     const currentSessionId = (req.raw as any).sessionId;
     return this.authService.changePassword(
       dto,
@@ -149,6 +209,7 @@ export class AuthController {
     @Body() forgotPasswordDto: ForgotPasswordDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    this.assertPasswordAuthenticationAllowed();
     validateSsoEnforcement(workspace);
     return this.authService.forgotPassword(forgotPasswordDto, workspace);
   }
@@ -160,6 +221,7 @@ export class AuthController {
     @Body() passwordResetDto: PasswordResetDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    this.assertPasswordAuthenticationAllowed();
     const result = await this.authService.passwordReset(
       passwordResetDto,
       workspace,
@@ -184,6 +246,7 @@ export class AuthController {
     @Body() verifyUserTokenDto: VerifyUserTokenDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    this.assertPasswordAuthenticationAllowed();
     return this.authService.verifyUserToken(verifyUserTokenDto, workspace.id);
   }
 
@@ -233,5 +296,60 @@ export class AuthController {
       expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
     });
+  }
+
+  private assertPasswordAuthenticationAllowed(): void {
+    if (this.environmentService.isLdapEnabled()) {
+      throw new ForbiddenException(
+        'Password authentication is disabled when LDAP mode is enabled',
+      );
+    }
+  }
+
+  private async checkLdapMfaRequirements(
+    user: User,
+    workspace: Workspace,
+    res: FastifyReply,
+  ): Promise<Record<string, boolean> | null> {
+    let MfaModule: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      MfaModule = require('./../../ee/mfa/services/mfa.service');
+    } catch {
+      if ((workspace as Workspace & { enforceMfa?: boolean }).enforceMfa) {
+        throw new ServiceUnavailableException(
+          'LDAP MFA integration is unavailable',
+        );
+      }
+      return null;
+    }
+
+    const mfaService = this.moduleRef.get(MfaModule.MfaService, {
+      strict: false,
+    });
+    if (typeof mfaService.checkLdapMfaRequirements !== 'function') {
+      throw new ServiceUnavailableException(
+        'LDAP MFA integration is unavailable',
+      );
+    }
+
+    const result = await mfaService.checkLdapMfaRequirements(
+      user,
+      workspace,
+      res,
+    );
+    if (result?.userHasMfa || result?.requiresMfaSetup) {
+      return {
+        userHasMfa: !!result.userHasMfa,
+        requiresMfaSetup: !!result.requiresMfaSetup,
+        isMfaEnforced: !!result.isMfaEnforced,
+      };
+    }
+    if (result === null || result?.mfaRequired === false) {
+      return null;
+    }
+    throw new ServiceUnavailableException(
+      'LDAP MFA integration did not complete verification',
+    );
   }
 }

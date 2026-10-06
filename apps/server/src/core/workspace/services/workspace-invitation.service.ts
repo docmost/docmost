@@ -227,6 +227,12 @@ export class WorkspaceInvitationService {
     requiresLogin?: boolean;
     message?: string;
   }> {
+    if (this.environmentService.isLdapEnabled()) {
+      throw new ForbiddenException(
+        'Password-based invitation signup is disabled when LDAP mode is enabled',
+      );
+    }
+
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
       .selectAll()

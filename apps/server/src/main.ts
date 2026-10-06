@@ -4,7 +4,12 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Logger,
+  NotFoundException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
@@ -124,10 +129,20 @@ async function bootstrap() {
       this.send('');
     })
     .addHook('preHandler', function (req, reply, done) {
+      if (
+        environmentService.isLdapEnabled() &&
+        req.originalUrl.startsWith('/api/sso/')
+      ) {
+        throw new ForbiddenException(
+          'Interactive SSO providers are disabled when LDAP mode is enabled',
+        );
+      }
+
       // don't require workspaceId for the following paths
       const excludedPaths = [
         '/api/auth/setup',
         '/api/auth/mode',
+        '/api/auth/ldap/setup',
         '/api/health',
         '/api/billing/stripe/webhook',
         '/api/workspace/check-hostname',

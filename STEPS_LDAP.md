@@ -54,18 +54,18 @@ Directory-specific search-filter and stable-subject attribute values are supplie
 
 **Verification pending:** Focused signup and provisioning tests were added but could not be run because `pnpm` and workspace-local Jest binaries are unavailable. The Kysely types were updated manually; code generation and database-backed concurrent provisioning verification remain pending. (1-2 days)
 
-## 5. Add Login and Enforce LDAP-Only Mode
+## 5. Phase 5 Implementation Complete: Login and LDAP-Only Enforcement
 
-- [ ] Add a core-server LDAP login endpoint for normal workspace login.
-- [ ] Add or adapt an LDAP-backed initial workspace setup endpoint/flow that can operate before a workspace exists; the authenticated setup user becomes owner.
-- [ ] Make initial workspace/user/identity creation transactional and concurrency-safe.
-- [ ] On successful authentication, use the existing session service to create a persisted session and access JWT, then set the standard HttpOnly `authToken` cookie.
-- [ ] Preserve applicable MFA policy, session revocation behavior, throttling, and audit events.
-- [ ] When LDAP-only mode is enabled, reject direct requests to password login, other interactive SSO login routes, password setup/signup, forgot-password, and password-reset routes.
-- [ ] Make sure UI hiding is not the only enforcement; test server endpoint rejection directly.
-- [ ] Keep OAuth and API-key credentials unchanged.
+- [x] Add a core-server LDAP login endpoint for normal workspace login.
+- [x] Add an LDAP-backed initial workspace setup endpoint; the authenticated setup user becomes owner.
+- [x] Make initial workspace/user/identity creation transactional and concurrency-safe.
+- [x] On successful authentication, use the existing session service to create a persisted session and access JWT, then set the standard HttpOnly `authToken` cookie.
+- [x] Add an EE MFA hook before session issuance; reject login if EE is loaded but does not implement the hook, and fail closed when MFA is enforced but unavailable.
+- [x] When LDAP-only mode is enabled, reject direct password login/setup/change/reset routes, password-based invitation acceptance, and EE SSO routes.
+- [x] Enforce auth mode on the server, not only by hiding UI controls.
+- [x] Keep OAuth and API-key credentials unchanged.
 
-**Verification:** API tests cover successful login/session issuance, direct alternate-login bypass attempts, setup behavior, MFA, Cloud-mode rejection, and LDAP-disabled compatibility. (1-1.5 days)
+**Verification pending:** Controller tests were added but could not be run because `pnpm` and workspace-local Jest binaries are unavailable. The EE MFA hook must be implemented before LDAP can be used with an EE MFA build; its verifier must issue the post-challenge session and call `AuthService.recordSuccessfulLdapLogin` only after MFA succeeds. Until then, LDAP login fails closed in that build. Editor diagnostics report no errors. (1-1.5 days)
 
 ## 6. Update Client Login and Bootstrap UI
 

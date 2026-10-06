@@ -135,6 +135,42 @@ export class SignupService {
     return { user, workspace };
   }
 
+  async initialLdapSetup(
+    identity: { email: string; name?: string },
+    workspaceName?: string,
+    trx?: KyselyTransaction,
+  ): Promise<{ user: User; workspace: Workspace }> {
+    let user: User;
+    let workspace: Workspace;
+
+    await executeTx(
+      this.db,
+      async (trx) => {
+        user = await this.userRepo.insertUser(
+          {
+            name: identity.name,
+            email: identity.email,
+            password: null,
+            role: UserRole.OWNER,
+            emailVerifiedAt: new Date(),
+          },
+          trx,
+        );
+
+        workspace = await this.workspaceService.create(
+          user,
+          { name: workspaceName || 'My workspace' },
+          trx,
+        );
+        user.workspaceId = workspace.id;
+        return user;
+      },
+      trx,
+    );
+
+    return { user, workspace };
+  }
+
   private async createWorkspaceMember(
     insertableUser: InsertableUser,
     workspaceId: string,
