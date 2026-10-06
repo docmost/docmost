@@ -503,7 +503,8 @@ export class ExportService {
     ) => {
       const linkTitle = title || 'untitled';
       const truncatedTitle = linkTitle?.substring(0, 70);
-      const pageSlug = `${slugify(truncatedTitle)}-${slugId}`;
+      const titleSlug = slugify(truncatedTitle);
+      const pageSlug = titleSlug ? `${titleSlug}-${slugId}` : slugId;
 
       const link = `${baseUrl}/s/${spaceSlug}/p/${pageSlug}`;
 

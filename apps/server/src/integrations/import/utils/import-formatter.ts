@@ -394,7 +394,7 @@ export async function rewriteInternalLinksToMentionHtml(
       $a.replaceWith($mention);
     } else {
       const titleSlug = slugify(meta.title?.substring(0, 70) || 'untitled');
-      const pageSlug = `${titleSlug}-${meta.slugId}`;
+      const pageSlug = titleSlug ? `${titleSlug}-${meta.slugId}` : meta.slugId;
       const internalHref = spaceSlug
         ? `/s/${spaceSlug}/p/${pageSlug}`
         : `/p/${pageSlug}`;

@@ -3,6 +3,7 @@ import { getPageById } from "@/features/page/services/page-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { v7 } from "uuid";
 import { extractPageSlugId } from "@/lib";
+import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 
 export type LinkFn = (
   url: string,
@@ -23,7 +24,10 @@ export const handleInternalLink =
     const validated = validateFn(url, view);
     if (!validated) return;
 
-    const linkedPageId = extractPageSlugId(url);
+    // Parse only the /p/ segment: a bare slugId has no "-", so the full URL
+    // would otherwise be returned as the id.
+    const slug = INTERNAL_LINK_REGEX.exec(url)?.[5] ?? url;
+    const linkedPageId = extractPageSlugId(slug);
 
     await onResolveLink(linkedPageId, creatorId).then(
       (page: IPage) => {
