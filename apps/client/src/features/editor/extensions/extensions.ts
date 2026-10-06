@@ -109,6 +109,7 @@ import clojure from "highlight.js/lib/languages/clojure";
 import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
+import dart from "highlight.js/lib/languages/dart";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion.ts";
 import { ReactNodeViewRenderer, ReactMarkViewRenderer } from "@tiptap/react";
 import MentionView from "@/features/editor/components/mention/mention-view.tsx";
@@ -132,6 +133,7 @@ lowlight.register("clojure", clojure);
 lowlight.register("fortran", fortran);
 lowlight.register("haskell", haskell);
 lowlight.register("scala", scala);
+lowlight.register("dart", dart);
 
 // @ts-ignore
 export const mainExtensions = [
