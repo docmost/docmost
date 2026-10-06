@@ -9,6 +9,7 @@ import {
   Comments,
   Groups,
   Labels,
+  LdapIdentities,
   Notifications,
   PageLabels,
   PageAccess as _PageAccess,
@@ -221,6 +222,10 @@ export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
 export type Label = Selectable<Labels>;
 export type InsertableLabel = Insertable<Labels>;
 export type UpdatableLabel = Updateable<Omit<Labels, 'id'>>;
+
+// LDAP Identity
+export type LdapIdentity = Selectable<LdapIdentities>;
+export type InsertableLdapIdentity = Insertable<LdapIdentities>;
 
 // PageLabel
 export type PageLabel = Selectable<PageLabels>;

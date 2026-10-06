@@ -118,7 +118,10 @@ export class UserRepo {
       name:
         insertableUser.name || insertableUser.email.split('@')[0].toLowerCase(),
       email: insertableUser.email.toLowerCase(),
-      password: await hashPassword(insertableUser.password),
+      password:
+        insertableUser.password == null
+          ? null
+          : await hashPassword(insertableUser.password),
       locale: 'en-US',
       role: insertableUser?.role,
       lastLoginAt: new Date(),

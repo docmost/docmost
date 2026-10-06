@@ -69,7 +69,7 @@ export class AuthService {
     });
 
     const errorMessage = 'Email or password does not match';
-    if (!user || isUserDisabled(user)) {
+    if (!user || isUserDisabled(user) || !user.password) {
       throw new UnauthorizedException(errorMessage);
     }
 
@@ -128,6 +128,12 @@ export class AuthService {
 
     if (!user || isUserDisabled(user)) {
       throw new NotFoundException('User not found');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException(
+        'Password authentication is unavailable for this account',
+      );
     }
 
     const comparePasswords = await comparePasswordHash(

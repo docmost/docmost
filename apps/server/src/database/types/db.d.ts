@@ -552,6 +552,14 @@ export interface Labels {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface LdapIdentities {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  subjectId: string;
+  userId: string;
+  workspaceId: string;
+}
+
 export interface PageAccess {
   id: Generated<string>;
   pageId: string;
@@ -749,6 +757,7 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   labels: Labels;
+  ldapIdentities: LdapIdentities;
   notifications: Notifications;
   pageAccess: PageAccess;
   pageTransclusionReferences: PageTransclusionReferences;

@@ -9,7 +9,7 @@ import { getWorkspaceDefaultPageEditMode } from '../../workspace/workspace.util'
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import { InsertableUser, User, Workspace } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { UserRole } from '../../../common/helpers/types/permission';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -47,56 +47,49 @@ export class SignupService {
 
     const user = await executeTx(
       this.db,
-      async (trx) => {
-        // create user
-        const workspace = await this.workspaceRepo.findById(workspaceId, {
-          trx,
-        });
-        const user = await this.userRepo.insertUser(
-          {
-            ...createUserDto,
-            workspaceId: workspaceId,
-          },
-          trx,
-          { pageEditMode: getWorkspaceDefaultPageEditMode(workspace) },
-        );
-
-        // add user to workspace
-        await this.workspaceService.addUserToWorkspace(
-          user.id,
-          workspaceId,
-          undefined,
-          trx,
-        );
-
-        // add user to default group
-        await this.groupUserRepo.addUserToDefaultGroup(
-          user.id,
+      (trx) =>
+        this.createWorkspaceMember(
+          { ...createUserDto, workspaceId },
           workspaceId,
           trx,
-        );
-        return user;
-      },
+        ),
       trx,
     );
 
-    this.auditService.log({
-      event: AuditEvent.USER_CREATED,
-      resourceType: AuditResource.USER,
-      resourceId: user.id,
-      changes: {
-        after: {
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      },
-      metadata: {
-        source: 'signup',
-      },
-    });
+    this.logUserCreated(user, 'signup');
 
     return user;
+  }
+
+  async signupLdapUser(
+    identity: { email: string; name?: string },
+    workspaceId: string,
+    trx: KyselyTransaction,
+  ): Promise<User> {
+    const existingUser = await this.userRepo.findByEmail(
+      identity.email,
+      workspaceId,
+      { trx },
+    );
+    if (existingUser) {
+      throw new BadRequestException(
+        'An account with this email already exists in this workspace',
+      );
+    }
+
+    return this.createWorkspaceMember(
+      {
+        email: identity.email,
+        name: identity.name,
+        password: null,
+        emailVerifiedAt: new Date(),
+        role: UserRole.MEMBER,
+        workspaceId,
+      },
+      workspaceId,
+      trx,
+      UserRole.MEMBER,
+    );
   }
 
   async initialSetup(
@@ -140,5 +133,44 @@ export class SignupService {
     );
 
     return { user, workspace };
+  }
+
+  private async createWorkspaceMember(
+    insertableUser: InsertableUser,
+    workspaceId: string,
+    trx: KyselyTransaction,
+    assignedRole?: UserRole,
+  ): Promise<User> {
+    const workspace = await this.workspaceRepo.findById(workspaceId, { trx });
+    const user = await this.userRepo.insertUser(
+      insertableUser,
+      trx,
+      { pageEditMode: getWorkspaceDefaultPageEditMode(workspace) },
+    );
+
+    await this.workspaceService.addUserToWorkspace(
+      user.id,
+      workspaceId,
+      assignedRole,
+      trx,
+    );
+    await this.groupUserRepo.addUserToDefaultGroup(user.id, workspaceId, trx);
+    return user;
+  }
+
+  private logUserCreated(user: User, source: 'signup' | 'ldap'): void {
+    this.auditService.log({
+      event: AuditEvent.USER_CREATED,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      changes: {
+        after: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      },
+      metadata: { source },
+    });
   }
 }
