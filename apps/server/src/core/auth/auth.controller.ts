@@ -53,6 +53,12 @@ export class AuthController {
   ) {}
 
   @HttpCode(HttpStatus.OK)
+  @Post('mode')
+  getAuthMode() {
+    return { ldapOnly: this.environmentService.isLdapEnabled() };
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
     @AuthWorkspace() workspace: Workspace,

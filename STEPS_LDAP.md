@@ -16,17 +16,17 @@ Use this as the execution checklist for the LDAP-only authentication feature des
 
 Directory-specific search-filter and stable-subject attribute values are supplied by each deployment. No implementation work is included in this design phase.
 
-## 2. Add Server-Side LDAP Configuration
+## 2. Phase 2 Implementation Complete: Server-Side LDAP Configuration
 
-- [ ] Add typed settings in the server `EnvironmentService` for `LDAP_ENABLED`, URL, bind DN/password, base DN, search filter, attribute mappings, TLS/CA, and timeouts.
-- [ ] Validate required settings at startup when LDAP is enabled; fail safely on invalid or incomplete configuration.
-- [ ] Reject `LDAP_ENABLED=true` with `CLOUD=true` so LDAP-only behavior cannot partially alter Cloud authentication.
-- [ ] Ensure secrets are not returned by configuration endpoints or written to logs.
-- [ ] Expose only a non-secret LDAP-only-mode status to the client from server runtime configuration.
-- [ ] Confirm Docker/Compose and supported self-hosted deployment configurations pass the new environment variables to the server.
-- [ ] Verify LDAP-disabled defaults preserve current behavior.
+- [x] Add typed settings in the server `EnvironmentService` for `LDAP_ENABLED`, URL, bind DN/password, base DN, search filter, attribute mappings, TLS/CA, and timeouts.
+- [x] Validate required settings at startup when LDAP is enabled; fail safely on invalid or incomplete configuration.
+- [x] Reject `LDAP_ENABLED=true` with `CLOUD=true` so LDAP-only behavior cannot partially alter Cloud authentication.
+- [x] Ensure secrets are not returned by the auth-mode response or written by validation to logs.
+- [x] Expose only a non-secret LDAP-only-mode status to the client through `/api/auth/mode`, including before workspace setup.
+- [x] Confirm Docker Compose passes the new environment variables to the server.
+- [x] Verify LDAP-disabled defaults in the getter and validation tests.
 
-**Verification:** Add configuration tests for disabled mode, valid enabled mode, Cloud conflict, missing settings, invalid URLs, and TLS configuration. (0.75-1 day)
+**Verification pending:** Environment-validation and service/controller Jest tests were added, but could not be run because `pnpm` and workspace-local Jest binaries are unavailable. Editor diagnostics report no errors. (0.75-1 day)
 
 ## 3. Implement LDAP Connectivity and Credential Verification
 

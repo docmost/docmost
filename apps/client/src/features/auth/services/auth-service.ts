@@ -3,6 +3,7 @@ import {
   IChangePassword,
   ICollabToken,
   IForgotPassword,
+  IAuthMode,
   ILogin,
   ILoginResponse,
   IPasswordReset,
@@ -10,6 +11,11 @@ import {
   IVerifyUserToken,
 } from "@/features/auth/types/auth.types";
 import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
+
+export async function getAuthMode(): Promise<IAuthMode> {
+  const response = await api.post<IAuthMode>("/auth/mode");
+  return response.data;
+}
 
 export async function login(data: ILogin): Promise<ILoginResponse> {
   const response = await api.post<ILoginResponse>("/auth/login", data);

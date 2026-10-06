@@ -2,9 +2,68 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 
+export interface LdapEnvironmentConfig {
+  enabled: boolean;
+  url?: string;
+  bindDn?: string;
+  bindPassword?: string;
+  baseDn?: string;
+  userSearchFilter?: string;
+  userIdAttribute?: string;
+  userEmailAttribute: string;
+  userNameAttribute: string;
+  startTls: boolean;
+  tlsCaCertPath?: string;
+  connectTimeoutMs: number;
+  searchTimeoutMs: number;
+}
+
 @Injectable()
 export class EnvironmentService {
   constructor(private configService: ConfigService) {}
+
+  isLdapEnabled(): boolean {
+    return this.configService
+      .get<string>('LDAP_ENABLED', 'false')
+      .toLowerCase() === 'true';
+  }
+
+  getLdapConfig(): LdapEnvironmentConfig {
+    return {
+      enabled: this.isLdapEnabled(),
+      url: this.configService.get<string>('LDAP_URL'),
+      bindDn: this.configService.get<string>('LDAP_BIND_DN'),
+      bindPassword: this.configService.get<string>('LDAP_BIND_PASSWORD'),
+      baseDn: this.configService.get<string>('LDAP_BASE_DN'),
+      userSearchFilter: this.configService.get<string>(
+        'LDAP_USER_SEARCH_FILTER',
+      ),
+      userIdAttribute: this.configService.get<string>(
+        'LDAP_USER_ID_ATTRIBUTE',
+      ),
+      userEmailAttribute: this.configService.get<string>(
+        'LDAP_USER_EMAIL_ATTRIBUTE',
+        'mail',
+      ),
+      userNameAttribute: this.configService.get<string>(
+        'LDAP_USER_NAME_ATTRIBUTE',
+        'displayName',
+      ),
+      startTls:
+        this.configService
+          .get<string>('LDAP_STARTTLS', 'false')
+          .toLowerCase() === 'true',
+      tlsCaCertPath: this.configService.get<string>('LDAP_TLS_CA_CERT_PATH'),
+      connectTimeoutMs: Number.parseInt(
+        this.configService.get<string>('LDAP_CONNECT_TIMEOUT_MS', '5000'),
+        10,
+      ),
+      searchTimeoutMs: Number.parseInt(
+        this.configService.get<string>('LDAP_SEARCH_TIMEOUT_MS', '5000'),
+        10,
+      ),
+    };
+  }
 
   getNodeEnv(): string {
     return this.configService.get<string>('NODE_ENV', 'development');

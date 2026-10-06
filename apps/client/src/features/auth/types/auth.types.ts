@@ -45,3 +45,7 @@ export interface ILoginResponse {
   mfaToken?: string;
   isMfaEnforced?: boolean;
 }
+
+export interface IAuthMode {
+  ldapOnly: boolean;
+}

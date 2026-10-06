@@ -1,7 +1,24 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { getCollabToken, verifyUserToken } from "../services/auth-service";
-import { ICollabToken, IVerifyUserToken } from "../types/auth.types";
+import {
+  getAuthMode,
+  getCollabToken,
+  verifyUserToken,
+} from "../services/auth-service";
+import {
+  IAuthMode,
+  ICollabToken,
+  IVerifyUserToken,
+} from "../types/auth.types";
 import { isAxiosError } from "axios";
+
+export function useAuthModeQuery(): UseQueryResult<IAuthMode, Error> {
+  return useQuery({
+    queryKey: ["auth-mode"],
+    queryFn: getAuthMode,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
 
 export function useVerifyUserTokenQuery(
   verify: IVerifyUserToken,

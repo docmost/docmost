@@ -1,18 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 
-describe('AuthController', () => {
-  let controller: AuthController;
+describe('AuthController.getAuthMode', () => {
+  it.each([true, false])('returns ldapOnly=%s without exposing settings', (ldapOnly) => {
+    const controller = Object.create(AuthController.prototype) as AuthController;
+    Object.defineProperty(controller, 'environmentService', {
+      value: { isLdapEnabled: () => ldapOnly },
+    });
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AuthController],
-    }).compile();
-
-    controller = module.get<AuthController>(AuthController);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(controller.getAuthMode()).toEqual({ ldapOnly });
   });
 });

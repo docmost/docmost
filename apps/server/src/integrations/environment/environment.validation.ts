@@ -14,6 +14,70 @@ import { plainToInstance } from 'class-transformer';
 import { IsISO6391 } from '../../common/validators/is-iso6391';
 
 export class EnvironmentVariables {
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  LDAP_ENABLED: string;
+
+  @ValidateIf((obj) => obj.LDAP_ENABLED === 'true')
+  @IsNotEmpty()
+  @IsUrl({
+    protocols: ['ldap', 'ldaps'],
+    require_tld: false,
+    allow_underscores: true,
+  })
+  LDAP_URL: string;
+
+  @ValidateIf((obj) => obj.LDAP_ENABLED === 'true')
+  @IsNotEmpty()
+  @IsString()
+  LDAP_BIND_DN: string;
+
+  @ValidateIf((obj) => obj.LDAP_ENABLED === 'true')
+  @IsNotEmpty()
+  @IsString()
+  LDAP_BIND_PASSWORD: string;
+
+  @ValidateIf((obj) => obj.LDAP_ENABLED === 'true')
+  @IsNotEmpty()
+  @IsString()
+  LDAP_BASE_DN: string;
+
+  @ValidateIf((obj) => obj.LDAP_ENABLED === 'true')
+  @IsNotEmpty()
+  @Matches(/\{\{username\}\}/)
+  LDAP_USER_SEARCH_FILTER: string;
+
+  @ValidateIf((obj) => obj.LDAP_ENABLED === 'true')
+  @IsNotEmpty()
+  @IsString()
+  LDAP_USER_ID_ATTRIBUTE: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  LDAP_USER_EMAIL_ATTRIBUTE: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  LDAP_USER_NAME_ATTRIBUTE: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  LDAP_STARTTLS: string;
+
+  @IsOptional()
+  @IsString()
+  LDAP_TLS_CA_CERT_PATH: string;
+
+  @IsOptional()
+  @Matches(/^[1-9]\d{0,4}$/)
+  LDAP_CONNECT_TIMEOUT_MS: string;
+
+  @IsOptional()
+  @Matches(/^[1-9]\d{0,4}$/)
+  LDAP_SEARCH_TIMEOUT_MS: string;
+
   @IsNotEmpty()
   @IsUrl(
     {
@@ -208,12 +272,50 @@ export class EnvironmentVariables {
   CLICKHOUSE_URL: string;
 }
 
+export function getLdapEnvironmentErrors(
+  config: Record<string, unknown>,
+): string[] {
+  if (String(config.LDAP_ENABLED).toLowerCase() !== 'true') {
+    return [];
+  }
+
+  const errors: string[] = [];
+  if (String(config.CLOUD).toLowerCase() === 'true') {
+    errors.push('LDAP_ENABLED=true is not supported when CLOUD=true');
+  }
+
+  let protocol: string;
+  try {
+    protocol = new URL(String(config.LDAP_URL)).protocol;
+  } catch {
+    return errors;
+  }
+
+  const startTls = String(config.LDAP_STARTTLS).toLowerCase() === 'true';
+  if (protocol === 'ldaps:' && startTls) {
+    errors.push('LDAP_STARTTLS cannot be enabled with an ldaps:// LDAP_URL');
+  }
+
+  const nodeEnv = String(config.NODE_ENV ?? '').toLowerCase();
+  if (
+    protocol === 'ldap:' &&
+    !startTls &&
+    nodeEnv !== 'development' &&
+    nodeEnv !== 'test'
+  ) {
+    errors.push('LDAP must use TLS in non-development environments');
+  }
+
+  return errors;
+}
+
 export function validate(config: Record<string, any>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config);
 
   const errors = validateSync(validatedConfig);
+  const ldapErrors = getLdapEnvironmentErrors(config);
 
-  if (errors.length > 0) {
+  if (errors.length > 0 || ldapErrors.length > 0) {
     console.error(
       'The Environment variables has failed the following validations:',
     );
@@ -221,6 +323,7 @@ export function validate(config: Record<string, any>) {
     errors.map((error) => {
       console.error(JSON.stringify(error.constraints));
     });
+    ldapErrors.forEach((error) => console.error(error));
 
     console.error(
       'Please fix the environment variables and try again. Exiting program...',
