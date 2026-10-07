@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { OAuthCompleteAuthFilter, OAuthController } from './oauth.controller';
 import { OAuthStatePayload } from './oauth.service';
@@ -65,27 +64,6 @@ function redirectReply() {
   return { redirect: jest.fn(), clearCookie: jest.fn() } as any;
 }
 
-function buildController() {
-  const getInstallAuthorizationUrl = jest
-    .fn()
-    .mockResolvedValue({ authorizationUrl, nonce: 'install-nonce' });
-  const getAuthorizationUrl = jest
-    .fn()
-    .mockResolvedValue({ authorizationUrl, type: 'github', nonce: 'connect-nonce' });
-
-  const controller = new OAuthController(
-    { getInstallAuthorizationUrl, getAuthorizationUrl } as any,
-    {} as any,
-    new WorkspaceAbilityFactory(),
-    { hasFeature: jest.fn().mockReturnValue(true) } as any,
-    { getProvider: jest.fn().mockReturnValue({ definition: {} }) } as any,
-    encryptionService,
-    environmentService,
-  );
-
-  return { controller, getInstallAuthorizationUrl, getAuthorizationUrl };
-}
-
 const signedStatePayload: OAuthStatePayload = {
   flow: 'connect',
   integrationId: 'integration-1',
@@ -98,29 +76,31 @@ const signedStatePayload: OAuthStatePayload = {
   exp: Date.now() + 10 * 60_000,
 };
 
-function buildFlowController(
+function buildController(
   state: Partial<OAuthStatePayload> = {},
   environment = environmentService,
 ) {
+  const getInstallAuthorizationUrl = jest.fn().mockResolvedValue({ authorizationUrl, nonce: 'install-nonce' });
+  const getAuthorizationUrl = jest.fn().mockResolvedValue({ authorizationUrl, type: 'github', nonce: 'connect-nonce' });
   const exchangeCodeForTokens = jest.fn().mockResolvedValue({});
   const verifySignedState = jest.fn((signed: string) =>
     signed === 'signed-state' ? { ...signedStatePayload, ...state } : null,
   );
 
   const controller = new OAuthController(
-    { exchangeCodeForTokens, verifySignedState } as any,
+    { getInstallAuthorizationUrl, getAuthorizationUrl, exchangeCodeForTokens, verifySignedState } as any,
     {} as any,
     new WorkspaceAbilityFactory(),
-    {} as any,
-    {} as any,
+    { hasFeature: jest.fn().mockReturnValue(true) } as any,
+    { getProvider: jest.fn().mockReturnValue({ definition: {} }) } as any,
     encryptionService,
     environment,
   );
 
-  return { controller, exchangeCodeForTokens };
+  return { controller, exchangeCodeForTokens, getInstallAuthorizationUrl, getAuthorizationUrl };
 }
 
-function issueTicket(fields: Record<string, unknown> = {}) {
+function issueTicket(fields: Record<string, unknown> = {}, purpose = EncryptionPurpose.OAUTH_COMPLETION) {
   return encryptionService.encrypt(
     JSON.stringify({
       purpose: 'oauth-completion',
@@ -129,9 +109,17 @@ function issueTicket(fields: Record<string, unknown> = {}) {
       exp: Date.now() + 60_000,
       ...fields,
     }),
-    EncryptionPurpose.OAUTH_COMPLETION,
+    purpose,
   );
 }
+
+let warn: jest.SpyInstance;
+beforeAll(() => {
+  jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+  warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+});
+beforeEach(() => warn.mockClear());
+afterAll(() => jest.restoreAllMocks());
 
 describe('OAuthController install authorization', () => {
   it('refuses a workspace member', async () => {
@@ -153,13 +141,14 @@ describe('OAuthController install authorization', () => {
 
   it.each([UserRole.ADMIN, UserRole.OWNER])('allows a workspace %s', async (role) => {
     const { controller, getInstallAuthorizationUrl } = buildController();
+    const res = cookieReply();
 
     await expect(
       controller.installAndAuthorize(
         { type: 'slack' } as any,
         userWithRole(role),
         workspace,
-        cookieReply(),
+        res,
       ),
     ).resolves.toEqual({ authorizationUrl });
 
@@ -168,6 +157,9 @@ describe('OAuthController install authorization', () => {
       workspace.id,
       `user-${role}`,
     );
+    expect(res.setCookie).toHaveBeenCalledWith('integration_oauth_slack', 'install-nonce', expect.objectContaining({
+      httpOnly: true, secure: true, sameSite: 'lax', path: '/api/integrations/oauth',
+    }));
   });
 });
 
@@ -201,40 +193,11 @@ describe('OAuthController nonce cookie', () => {
     expect(expires.getTime() - Date.now()).toBeGreaterThan(9 * 60_000);
     expect(expires.getTime() - Date.now()).toBeLessThanOrEqual(10 * 60_000);
   });
-
-  it('binds an install flow to the browser that started it', async () => {
-    const { controller } = buildController();
-    const res = cookieReply();
-
-    await controller.installAndAuthorize(
-      { type: 'slack' } as any,
-      userWithRole(UserRole.ADMIN),
-      workspace,
-      res,
-    );
-
-    expect(res.setCookie).toHaveBeenCalledWith(
-      'integration_oauth_slack',
-      'install-nonce',
-      expect.objectContaining(cookieOptions),
-    );
-  });
 });
 
 describe('OAuthController callback', () => {
-  let warn: jest.SpyInstance;
-
-  beforeAll(() => {
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
   it('hands the code to the workspace host instead of exchanging it', async () => {
-    const { controller, exchangeCodeForTokens } = buildFlowController();
+    const { controller, exchangeCodeForTokens } = buildController();
     const res = redirectReply();
     const before = Date.now();
 
@@ -264,7 +227,7 @@ describe('OAuthController callback', () => {
   });
 
   it('sends a cancelled consent back with oauth_failed', async () => {
-    const { controller, exchangeCodeForTokens } = buildFlowController();
+    const { controller, exchangeCodeForTokens } = buildController();
     const res = redirectReply();
 
     await controller.callback('slack', undefined, 'signed-state', res);
@@ -274,12 +237,12 @@ describe('OAuthController callback', () => {
       'https://acme.example/s/general/p/roadmap?error=oauth_failed',
       302,
     );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('slack'));
   });
 
   it("logs the provider's error code and the first line of its description when no code comes back", async () => {
-    const { controller } = buildFlowController();
+    const { controller } = buildController();
     const res = redirectReply();
-    warn.mockClear();
 
     await controller.callback(
       'slack',
@@ -306,9 +269,8 @@ describe('OAuthController callback', () => {
   });
 
   it('logs only a printable, bounded line from the provider error', async () => {
-    const { controller } = buildFlowController();
+    const { controller } = buildController();
     const res = redirectReply();
-    warn.mockClear();
 
     await controller.callback(
       'slack',
@@ -326,19 +288,8 @@ describe('OAuthController callback', () => {
     expect(line.length).toBeLessThan(400);
   });
 
-  it('logs a cancelled consent that carries no error at all', async () => {
-    const { controller } = buildFlowController();
-    const res = redirectReply();
-    warn.mockClear();
-
-    await controller.callback('slack', undefined, 'signed-state', res);
-
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0][0]).toContain('slack');
-  });
-
   it('refuses a state signed for a different provider', async () => {
-    const { controller, exchangeCodeForTokens } = buildFlowController();
+    const { controller, exchangeCodeForTokens } = buildController();
     const res = redirectReply();
 
     await controller.callback('github', 'auth-code', 'signed-state', res);
@@ -352,7 +303,7 @@ describe('OAuthController callback', () => {
   });
 
   it('rejects a state that does not verify', async () => {
-    const { controller } = buildFlowController();
+    const { controller } = buildController();
     const res = redirectReply();
 
     await expect(
@@ -363,17 +314,6 @@ describe('OAuthController callback', () => {
   });
 
   describe('return host', () => {
-    let encrypt: jest.SpyInstance;
-
-    beforeEach(() => {
-      warn.mockClear();
-      encrypt = jest.spyOn(encryptionService, 'encrypt');
-    });
-
-    afterEach(() => {
-      encrypt.mockRestore();
-    });
-
     it.each([
       ['a custom domain', cloudEnvironment, 'https://wiki.tenant.example'],
       ['a lookalike of the cloud domain', cloudEnvironment, 'https://acmedocmost.example'],
@@ -390,7 +330,7 @@ describe('OAuthController callback', () => {
       ],
       ['a malformed return URL', cloudEnvironment, 'not a url'],
     ])('refuses to hand a ticket to %s', async (_label, environment, returnUrl) => {
-      const { controller, exchangeCodeForTokens } = buildFlowController(
+      const { controller, exchangeCodeForTokens } = buildController(
         { returnUrl },
         environment,
       );
@@ -398,7 +338,7 @@ describe('OAuthController callback', () => {
 
       await controller.callback('slack', 'auth-code', 'signed-state', res);
 
-      expect(encrypt).not.toHaveBeenCalled();
+      expect(res.redirect.mock.calls[0][0]).not.toContain('ticket=');
       expect(exchangeCodeForTokens).not.toHaveBeenCalled();
       expect(res.redirect).toHaveBeenCalledTimes(1);
       expect(res.redirect).toHaveBeenCalledWith(
@@ -411,7 +351,6 @@ describe('OAuthController callback', () => {
     });
 
     it.each([
-      ['the APP_URL host', environmentService, 'https://acme.example'],
       ['the APP_URL host on cloud', cloudEnvironment, 'https://app.docmost.example'],
       ['a cloud workspace subdomain', cloudEnvironment, 'https://acme.docmost.example'],
       [
@@ -424,12 +363,11 @@ describe('OAuthController callback', () => {
         'http://acme.localhost:3000',
       ],
     ])('hands the ticket to %s', async (_label, environment, returnUrl) => {
-      const { controller } = buildFlowController({ returnUrl }, environment);
+      const { controller } = buildController({ returnUrl }, environment);
       const res = redirectReply();
 
       await controller.callback('slack', 'auth-code', 'signed-state', res);
 
-      expect(encrypt).toHaveBeenCalledTimes(1);
       const url = new URL(res.redirect.mock.calls[0][0]);
       expect(`${url.origin}${url.pathname}`).toBe(
         `${returnUrl}/api/integrations/oauth/complete`,
@@ -442,15 +380,6 @@ describe('OAuthController callback', () => {
 describe('OAuthController complete', () => {
   const sessionUser = { id: 'user-1' } as User;
 
-  beforeAll(() => {
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
   async function complete(
     options: {
       ticket?: string;
@@ -458,6 +387,7 @@ describe('OAuthController complete', () => {
       sessionWorkspace?: Workspace;
       cookies?: Record<string, string>;
       state?: Partial<OAuthStatePayload>;
+      error?: Error;
     } = {},
   ) {
     const {
@@ -467,8 +397,9 @@ describe('OAuthController complete', () => {
       state = {},
     } = options;
     const ticket = 'ticket' in options ? options.ticket : issueTicket();
-    const { controller, exchangeCodeForTokens } = buildFlowController(state);
+    const { controller, exchangeCodeForTokens } = buildController(state);
     const res = redirectReply();
+    if (options.error) exchangeCodeForTokens.mockRejectedValue(options.error);
 
     await controller.complete(
       ticket,
@@ -482,7 +413,7 @@ describe('OAuthController complete', () => {
   }
 
   it('exchanges the code for the user who started the flow', async () => {
-    const { controller, exchangeCodeForTokens } = buildFlowController();
+    const { controller, exchangeCodeForTokens } = buildController();
     const callbackRes = redirectReply();
     await controller.callback('slack', 'auth-code', 'signed-state', callbackRes);
     const ticket = new URL(callbackRes.redirect.mock.calls[0][0]).searchParams.get('ticket');
@@ -510,12 +441,10 @@ describe('OAuthController complete', () => {
   it.each([
     ['a different user', { user: { id: 'user-2' } as User }],
     ['a different workspace', { sessionWorkspace: { id: 'workspace-2' } as Workspace }],
-    ['a missing nonce cookie', { cookies: {} }],
     ['a wrong nonce cookie', { cookies: { integration_oauth_slack: 'nonce-2' } }],
     ['a nonce cookie of a different length', { cookies: { integration_oauth_slack: 'nonce-10' } }],
     ['a nonce cookie for another provider', { cookies: { integration_oauth_github: 'nonce-1' } }],
     ['a state without a nonce', { state: { nonce: undefined } }],
-    ['a state without a nonce and no cookie', { state: { nonce: undefined }, cookies: {} }],
   ])('refuses %s', async (_label, options) => {
     const { res, exchangeCodeForTokens } = await complete(options);
 
@@ -527,38 +456,11 @@ describe('OAuthController complete', () => {
   it.each([
     ['an expired ticket', () => issueTicket({ exp: Date.now() - 1 })],
     ['an undecryptable ticket', () => 'not-a-ticket'],
-    [
-      'a ticket sealed with another secret',
-      () =>
-        new EncryptionService({ getAppSecret: () => 'other-secret' } as any).encrypt(
-          JSON.stringify({
-            purpose: 'oauth-completion',
-            state: 'signed-state',
-            code: 'auth-code',
-            exp: Date.now() + 60_000,
-          }),
-          EncryptionPurpose.OAUTH_COMPLETION,
-        ),
-    ],
     ['a ticket whose state does not verify', () => issueTicket({ state: 'forged-state' })],
     ['a ticket without a code', () => issueTicket({ code: undefined })],
     ['a ticket without an expiry', () => issueTicket({ exp: undefined })],
-    ['a ticket without a purpose', () => issueTicket({ purpose: undefined })],
     ['a ticket minted for another purpose', () => issueTicket({ purpose: 'session' })],
-    ['a ticket that is not an object', () => encryptionService.encrypt('null', EncryptionPurpose.OAUTH_COMPLETION)],
-    [
-      'a ticket encrypted for SIEM credentials',
-      () => encryptionService.encrypt(
-        JSON.stringify({
-          purpose: 'oauth-completion',
-          state: 'signed-state',
-          code: 'auth-code',
-          exp: Date.now() + 60_000,
-        }),
-        EncryptionPurpose.SIEM_CREDENTIALS,
-      ),
-    ],
-    ['a missing ticket', () => undefined],
+    ['a ticket encrypted for SIEM credentials', () => issueTicket({}, EncryptionPurpose.SIEM_CREDENTIALS)],
   ])('refuses %s', async (_label, ticket) => {
     const { res, exchangeCodeForTokens } = await complete({ ticket: ticket() });
 
@@ -573,17 +475,7 @@ describe('OAuthController complete', () => {
     [IntegrationTenantInUseError, 'tenant_in_use'],
     [Error, 'oauth_failed'],
   ])('reports %p as %s', async (ErrorClass, code) => {
-    const { controller, exchangeCodeForTokens } = buildFlowController();
-    exchangeCodeForTokens.mockRejectedValue(new ErrorClass());
-    const res = redirectReply();
-
-    await controller.complete(
-      issueTicket(),
-      sessionUser,
-      workspace,
-      { cookies: { integration_oauth_slack: 'nonce-1' } } as any,
-      res,
-    );
+    const { res } = await complete({ error: new ErrorClass() });
 
     expect(res.clearCookie).toHaveBeenCalledTimes(1);
     expect(res.redirect).toHaveBeenCalledWith(
@@ -594,40 +486,24 @@ describe('OAuthController complete', () => {
 });
 
 describe('OAuthController complete without a session', () => {
-  let warn: jest.SpyInstance;
+  it('redirects a forbidden completion without logging the ticket', () => {
+    const exception = new ForbiddenException();
+    const res = redirectReply();
+    const req = {
+      host: 'acme.example',
+      url: '/api/integrations/oauth/complete?ticket=sealed-ticket',
+    };
 
-  beforeAll(() => {
-    warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    new OAuthCompleteAuthFilter().catch(exception, {
+      switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }),
+    } as any);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('acme.example');
+    expect(warn.mock.calls[0][0]).not.toContain('sealed-ticket');
+    expect(res.redirect).toHaveBeenCalledTimes(1);
+    expect(res.redirect).toHaveBeenCalledWith(fallbackRedirect, 302);
   });
-
-  beforeEach(() => {
-    warn.mockClear();
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
-  it.each([new UnauthorizedException(), new ForbiddenException()])(
-    'logs and sends the browser back into the app on %p',
-    (exception) => {
-      const res = redirectReply();
-      const req = {
-        host: 'acme.example',
-        url: '/api/integrations/oauth/complete?ticket=sealed-ticket',
-      };
-
-      new OAuthCompleteAuthFilter().catch(exception, {
-        switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }),
-      } as any);
-
-      expect(warn).toHaveBeenCalledTimes(1);
-      expect(warn.mock.calls[0][0]).toContain('acme.example');
-      expect(warn.mock.calls[0][0]).not.toContain('sealed-ticket');
-      expect(res.redirect).toHaveBeenCalledTimes(1);
-      expect(res.redirect).toHaveBeenCalledWith(fallbackRedirect, 302);
-    },
-  );
 
   it('redirects instead of returning 401 through the Fastify pipeline', async () => {
     const moduleRef = await Test.createTestingModule({

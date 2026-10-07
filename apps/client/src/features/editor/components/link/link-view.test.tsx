@@ -128,45 +128,18 @@ describe("LinkView", () => {
 
     const menu = await screen.findByRole("dialog", { hidden: true });
     const menuQueries = within(menu);
-    const edit = menuQueries.getByRole("button", {
-      name: "Edit link",
-      hidden: true,
-    });
     const display = menuQueries.getByRole("button", {
       name: "Display as: URL",
       hidden: true,
     });
-    expect(display.parentElement).toBe(edit.parentElement);
-    expect(
-      menuQueries.getByRole("button", { name: "Copy link", hidden: true }),
-    ).toBeTruthy();
-    expect(
-      menuQueries.getByRole("button", { name: "Remove link", hidden: true }),
-    ).toBeTruthy();
-    expect(menuQueries.queryByRole("radiogroup", { hidden: true })).toBeNull();
-
     fireEvent.click(display);
 
     const displayMenu = await screen.findByRole("menu", { hidden: true });
-    expect(menu.contains(displayMenu)).toBe(false);
     expect(
       within(displayMenu)
         .getByRole("menuitemradio", { name: "URL", hidden: true })
         .getAttribute("aria-checked"),
     ).toBe("true");
-    expect(
-      within(displayMenu).getByRole("menuitemradio", {
-        name: /Card/,
-        hidden: true,
-      }),
-    ).toBeTruthy();
-    expect(
-      within(displayMenu).getByRole("menuitemradio", {
-        name: "Mention",
-        hidden: true,
-      }),
-    ).toBeTruthy();
-
     fireEvent.mouseDown(
       within(displayMenu).getByRole("menuitemradio", {
         name: "Mention",

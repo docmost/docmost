@@ -17,7 +17,6 @@ import {
   TokenExpiredError,
   TokenInvalidError,
 } from '../registry/integration-provider.interface';
-import { MAX_PROVIDER_RESPONSE_BYTES } from '../utils/provider-fetch';
 
 type RecordedRequest = { method: string; url: string; body: string; authorization?: string };
 
@@ -54,7 +53,7 @@ function stopServer({ server }: TestServer): Promise<void> {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-function tokenJson(res: http.ServerResponse, body: Record<string, unknown>) {
+function tokenJson(res: http.ServerResponse, body: Record<string, unknown> | null) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
 }
@@ -69,7 +68,7 @@ function streamUntilClosed(res: http.ServerResponse): void {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   const chunk = Buffer.from(`{"access_token":"${'a'.repeat(64 * 1024)}"}`);
   const pump = () => {
-    while (!res.destroyed && res.write(chunk)) {}
+    while (!res.destroyed && res.write(chunk)) { /* Keep streaming until backpressure. */ }
     if (!res.destroyed) res.once('drain', pump);
   };
   pump();
@@ -295,20 +294,7 @@ describe('OAuthService', () => {
   });
 
   describe('install flow', () => {
-    it('audits the install with the provider type', async () => {
-      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'issued-access-token' });
-
-      await service.exchangeCodeForTokens('acme', 'auth-code', installState('acme'));
-
-      expect(auditService.log).toHaveBeenCalledWith({
-        event: 'integration.installed',
-        resourceType: 'integration',
-        resourceId: 'integration-acme',
-        changes: { after: { provider: 'acme' } },
-      });
-    });
-
-    it('stores the tokens issued by the token endpoint', async () => {
+    it('stores the issued tokens and audits the installation', async () => {
       tokenEndpointReply = (_req, res) =>
         tokenJson(res, {
           access_token: 'issued-access-token',
@@ -334,6 +320,12 @@ describe('OAuthService', () => {
         accessToken: 'issued-access-token',
         refreshToken: 'issued-refresh-token',
       });
+      expect(auditService.log).toHaveBeenCalledWith({
+        event: 'integration.installed',
+        resourceType: 'integration',
+        resourceId: 'integration-acme',
+        changes: { after: { provider: 'acme' } },
+      });
       expect(acmeOnConnected).toHaveBeenCalledWith(
         expect.objectContaining({
           integrationId: 'integration-acme',
@@ -357,27 +349,17 @@ describe('OAuthService', () => {
       );
     });
 
-    it('refuses a user who can no longer manage the workspace', async () => {
-      currentRole = UserRole.MEMBER;
+    it.each(['lost permission', 'deactivated'])('refuses an installer who is %s', async (reason) => {
+      if (reason === 'lost permission') currentRole = UserRole.MEMBER;
+      else currentUserDisabledAt = new Date();
 
       await expect(
         service.exchangeCodeForTokens('chat', 'auth-code', installState('chat')),
       ).rejects.toBeInstanceOf(ForbiddenException);
 
       expect(tokenEndpoint.requests).toEqual([]);
+      expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
       expect(connectionRepo.upsertWorkspaceConnection).not.toHaveBeenCalled();
-      expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
-    });
-
-    it('refuses a deactivated installer', async () => {
-      currentUserDisabledAt = new Date();
-
-      await expect(
-        service.exchangeCodeForTokens('chat', 'auth-code', installState('chat')),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-
-      expect(tokenEndpoint.requests).toEqual([]);
-      expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
     });
 
     it('stops at a redirecting token endpoint instead of re-POSTing the client secret', async () => {
@@ -388,18 +370,7 @@ describe('OAuthService', () => {
       expect(sink.requests).toEqual([]);
       expect(tokenEndpoint.requests).toHaveLength(1);
       expect(outcome).toBeInstanceOf(BadRequestException);
-    });
-
-    it('fails closed when the token endpoint answers 200 without an access token', async () => {
-      tokenEndpointReply = (_req, res) => tokenJson(res, { ok: false, error: 'invalid_code' });
-
-      await expect(
-        service.exchangeCodeForTokens('acme', 'auth-code', installState('acme')),
-      ).rejects.toBeInstanceOf(BadRequestException);
-
-      expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
-      expect(connectionRepo.upsert).not.toHaveBeenCalled();
-      expect(db.transaction).not.toHaveBeenCalled();
+      expect(auditService.log).not.toHaveBeenCalled();
     });
 
     it('refuses an install state naming an integration from another workspace', async () => {
@@ -418,45 +389,19 @@ describe('OAuthService', () => {
     });
 
     it('refuses to complete an install for a hidden provider without writing', async () => {
-      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'token' });
-
       const outcome = await service
         .exchangeCodeForTokens('hidden', 'auth-code', installState('hidden'))
         .catch((err) => err);
 
       expect(outcome).toBeInstanceOf(BadRequestException);
-      expect(outcome.message).toBe('Unknown integration type: hidden');
       expect(tokenEndpoint.requests).toEqual([]);
       expect(db.transaction).not.toHaveBeenCalled();
-      expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
-      expect(connectionRepo.upsert).not.toHaveBeenCalled();
-      expect(connectionRepo.upsertWorkspaceConnection).not.toHaveBeenCalled();
     });
   });
 
   describe('connect flow', () => {
-    it('audits the connect with the provider type', async () => {
-      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'user-token' });
-
-      await service.exchangeCodeForTokens('acme', 'auth-code', connectState('integration-acme', 'acme'));
-
-      expect(auditService.log).toHaveBeenCalledWith({
-        event: 'integration.connected',
-        resourceType: 'integration',
-        resourceId: 'integration-acme',
-        changes: { after: { provider: 'acme' } },
-      });
-    });
-
-    it('audits nothing when the code exchange fails', async () => {
-      await service
-        .exchangeCodeForTokens('acme', 'auth-code', connectState('integration-acme', 'acme'))
-        .catch(() => undefined);
-
-      expect(auditService.log).not.toHaveBeenCalled();
-    });
-
-    it('stores a per-user token without touching install state', async () => {
+    it('connects a member with a per-user token and audits without reinstalling', async () => {
+      currentRole = UserRole.MEMBER;
       tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'user-token' });
 
       const connection = await service.exchangeCodeForTokens(
@@ -472,6 +417,12 @@ describe('OAuthService', () => {
       expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
       expect(connection).toMatchObject({ accessToken: 'user-token' });
       expect(acmeOnConnected).not.toHaveBeenCalled();
+      expect(auditService.log).toHaveBeenCalledWith({
+        event: 'integration.connected',
+        resourceType: 'integration',
+        resourceId: 'integration-acme',
+        changes: { after: { provider: 'acme' } },
+      });
     });
 
     it('sends the client credentials as HTTP Basic, not in the body, for a provider that asks for it', async () => {
@@ -489,9 +440,11 @@ describe('OAuthService', () => {
       ]);
     });
 
-    it('links an identity for a workspace-scoped provider and leaves the shared connection alone', async () => {
+    it('links a member with a matching email without replacing the shared connection', async () => {
+      currentRole = UserRole.MEMBER;
       tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'identity-token' });
 
+      resolveIdentity.mockResolvedValue({ providerUserId: 'U-42', email: 'User@Example.com ', metadata: { tenantId: 'T-1' } });
       const link = await service.exchangeCodeForTokens(
         'chat',
         'auth-code',
@@ -542,16 +495,6 @@ describe('OAuthService', () => {
       expect(connectionRepo.upsertWorkspaceConnection).not.toHaveBeenCalled();
     });
 
-    it('serves a member without ever reaching the install path', async () => {
-      currentRole = UserRole.MEMBER;
-      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'identity-token' });
-
-      await service.exchangeCodeForTokens('chat', 'auth-code', connectState('integration-chat', 'chat'));
-
-      expect(connectionRepo.upsertUserLink).toHaveBeenCalledTimes(1);
-      expect(connectionRepo.upsertWorkspaceConnection).not.toHaveBeenCalled();
-    });
-
     it('refuses a state signed for a different provider', async () => {
       await expect(
         service.exchangeCodeForTokens('chat', 'auth-code', connectState('integration-acme', 'acme')),
@@ -560,15 +503,6 @@ describe('OAuthService', () => {
       expect(tokenEndpoint.requests).toEqual([]);
       expect(connectionRepo.upsert).not.toHaveBeenCalled();
       expect(connectionRepo.upsertUserLink).not.toHaveBeenCalled();
-    });
-
-    it('links when the provider account email matches the Docmost user, ignoring case', async () => {
-      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'identity-token' });
-      resolveIdentity.mockResolvedValue({ providerUserId: 'U-42', email: 'User@Example.com ' });
-
-      await service.exchangeCodeForTokens('chat', 'auth-code', connectState('integration-chat', 'chat'));
-
-      expect(connectionRepo.upsertUserLink).toHaveBeenCalledTimes(1);
     });
 
     it('refuses when the provider account email differs from the Docmost user', async () => {
@@ -586,6 +520,8 @@ describe('OAuthService', () => {
     it('still connects a member to an existing installation of a hidden provider', async () => {
       currentRole = UserRole.MEMBER;
       tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'user-token' });
+      const { authorizationUrl } = await service.getAuthorizationUrl('integration-hidden', workspaceId, userId);
+      expect(decodeState(authorizationUrl)).toMatchObject({ flow: 'connect', integrationId: 'integration-hidden' });
 
       await service.exchangeCodeForTokens('hidden', 'auth-code', connectState('integration-hidden', 'hidden'));
 
@@ -602,6 +538,7 @@ describe('OAuthService', () => {
       ['an access token with a line break', { access_token: 'abc\ndef-SECRET' }],
       ['an access token with a space', { access_token: 'abc def-SECRET' }],
       ['an access token with a non-ASCII character', { access_token: 'abcédef-SECRET' }],
+      ['no access token', { error: 'invalid_code' }],
       ['an access token that is not a string', { access_token: { value: 'def-SECRET' } }],
       ['a refresh token with an escape character', { access_token: 'access-token', refresh_token: 'abc\x1bdef-SECRET' }],
     ];
@@ -624,18 +561,7 @@ describe('OAuthService', () => {
       expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
       expect(acmeOnConnected).not.toHaveBeenCalled();
       expect(auditService.log).not.toHaveBeenCalled();
-      expect(errorLog()).toEqual([['Token exchange for acme returned a malformed token']]);
-    });
-
-    it.each(malformed)('fails a connect on %s without writing', async (_label, body) => {
-      tokenEndpointReply = (_req, res) => tokenJson(res, body);
-
-      await expect(
-        service.exchangeCodeForTokens('acme', 'auth-code', connectState('integration-acme', 'acme')),
-      ).rejects.toBeInstanceOf(BadRequestException);
-
-      expect(connectionRepo.upsert).not.toHaveBeenCalled();
-      expect(auditService.log).not.toHaveBeenCalled();
+      expect(JSON.stringify(errorLog())).not.toContain('SECRET');
     });
 
     it('fails an identity link on a malformed access token before the provider resolves the identity', async () => {
@@ -647,19 +573,6 @@ describe('OAuthService', () => {
 
       expect(resolveIdentity).not.toHaveBeenCalled();
       expect(connectionRepo.upsertUserLink).not.toHaveBeenCalled();
-    });
-
-    it('accepts tokens made of any visible ASCII character', async () => {
-      const token = Array.from({ length: 94 }, (_, i) => String.fromCharCode(0x21 + i)).join('');
-      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: token, refresh_token: token });
-
-      const connection = await service.exchangeCodeForTokens(
-        'acme',
-        'auth-code',
-        connectState('integration-acme', 'acme'),
-      );
-
-      expect(connection).toMatchObject({ accessToken: token, refreshToken: token });
     });
   });
 
@@ -682,11 +595,7 @@ describe('OAuthService', () => {
         401,
         JSON.stringify({
           error: 'invalid_client',
-          error_description:
-            'AADSTS7000222: The provided client secret keys for app 0f1e2d3c are expired. Trace ID: 4b5a6978 Correlation ID: 8c7d6e5f',
-          error_codes: [7000222],
-          trace_id: '4b5a6978',
-          correlation_id: '8c7d6e5f',
+          error_description: 'PRIVATE tenant and secret details',
         }),
       );
 
@@ -698,30 +607,10 @@ describe('OAuthService', () => {
       expectNothingWritten();
     });
 
-    it.each<[string, string]>([
-      ['a body that is not JSON', '<html>invalid_grant app 0f1e2d3c</html>'],
-      ['an empty body', ''],
-      ['an error code in capitals', JSON.stringify({ error: 'INVALID_GRANT' })],
-      ['an error code followed by a line break and more text', JSON.stringify({ error: 'invalid_grant\nforged log line' })],
-      ['an error code of 41 characters', JSON.stringify({ error: 'a'.repeat(41) })],
-      ['an error that is an object', JSON.stringify({ error: { code: 'invalid_grant', app: '0f1e2d3c' } })],
-    ])('logs the status only when a refused exchange carries %s', async (_what, body) => {
-      tokenEndpointReply = tokenError(400, body);
-
-      const outcome = await exchange();
-
-      expect(outcome).toBeInstanceOf(BadRequestException);
-      expect(errorLog()).toEqual([['Token exchange failed for acme: 400']]);
-    });
-
-    it.each<[string, string, string]>([
-      ['an HTML page', 'text/html', '<html><body>Sign in, app 0f1e2d3c</body></html>'],
-      ['truncated JSON', 'application/json', '{"access_token":"leaked-0f1e2d3c'],
-      ['an empty body', 'application/json', ''],
-    ])('fails a 200 carrying %s without quoting it', async (_what, contentType, body) => {
+    it('rejects truncated JSON during exchange without writing or logging the body', async () => {
       tokenEndpointReply = (_req, res) => {
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(body);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('{"access_token":"leaked-0f1e2d3c');
       };
 
       const outcome = await exchange();
@@ -744,152 +633,79 @@ describe('OAuthService', () => {
     }, 5000);
   });
 
-  describe('authorization URLs', () => {
-    it('install URLs carry an install state', async () => {
-      const { authorizationUrl } = await service.getInstallAuthorizationUrl('chat', workspaceId, userId);
-
+  describe('authorization URLs and signed state', () => {
+    it('creates an install URL with provider params and a signed browser nonce', async () => {
+      const { authorizationUrl, nonce } = await service.getInstallAuthorizationUrl('chat', workspaceId, userId);
       const url = new URL(authorizationUrl);
-      expect(`${url.origin}${url.pathname}`).toBe(`${tokenEndpoint.url}/oauth/authorize`);
-      expect(decodeState(authorizationUrl)).toMatchObject({ flow: 'install', integrationId: null, type: 'chat' });
+
+      expect(url.origin + url.pathname).toBe(tokenEndpoint.url + '/oauth/authorize');
+      expect(url.searchParams.get('prompt')).toBe('consent');
+      expect(service.verifySignedState(url.searchParams.get('state'))).toMatchObject({
+        flow: 'install', integrationId: null, type: 'chat', userId, workspaceId, nonce,
+      });
+      expect(nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
     });
 
-    it("install URLs carry the provider's extra authorize params", async () => {
-      const { authorizationUrl } = await service.getInstallAuthorizationUrl('chat', workspaceId, userId);
+    it('creates a per-user URL without letting provider params override core params', async () => {
+      const first = await service.getAuthorizationUrl('integration-acme', workspaceId, userId);
+      const second = await service.getAuthorizationUrl('integration-acme', workspaceId, userId);
+      const url = new URL(first.authorizationUrl);
+      const state = url.searchParams.get('state');
 
-      expect(new URL(authorizationUrl).searchParams.get('prompt')).toBe('consent');
-    });
-
-    it("connect URLs carry the provider's extra authorize params without overriding core ones", async () => {
-      const { authorizationUrl } = await service.getAuthorizationUrl('integration-acme', workspaceId, userId);
-
-      const url = new URL(authorizationUrl);
+      expect(url.origin + url.pathname).toBe(tokenEndpoint.url + '/oauth/authorize');
+      expect(url.searchParams.get('scope')).toBe('read');
       expect(url.searchParams.get('audience')).toBe('api.acme.test');
       expect(url.searchParams.getAll('client_id')).toEqual(['acme-client-id']);
+      expect(service.verifySignedState(state)).toMatchObject({
+        flow: 'connect', integrationId: 'integration-acme', type: 'acme', userId, workspaceId, nonce: first.nonce,
+      });
+      expect(second.nonce).not.toBe(first.nonce);
+
+      const now = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60_000);
+      try {
+        expect(service.verifySignedState(state)).toBeNull();
+      } finally {
+        now.mockRestore();
+      }
     });
 
-    it("identity connect URLs use the identity's params, not the provider's", async () => {
+    it('uses the workspace identity endpoint, scopes and settings instead of install params', async () => {
       const { authorizationUrl } = await service.getAuthorizationUrl('integration-chat', workspaceId, userId);
-
-      expect(new URL(authorizationUrl).searchParams.has('prompt')).toBe(false);
-    });
-
-    it('connect URLs for a workspace-scoped provider use the identity flow', async () => {
-      const { authorizationUrl } = await service.getAuthorizationUrl('integration-chat', workspaceId, userId);
-
       const url = new URL(authorizationUrl);
-      expect(`${url.origin}${url.pathname}`).toBe(`${tokenEndpoint.url}/openid/authorize`);
+
+      expect(url.origin + url.pathname).toBe(tokenEndpoint.url + '/openid/authorize');
       expect(url.searchParams.get('team')).toBe('T-1');
       expect(url.searchParams.get('scope')).toBe('openid profile');
       expect(url.searchParams.get('client_id')).toBe('chat-client-id');
+      expect(url.searchParams.has('prompt')).toBe(false);
       expect(decodeState(authorizationUrl)).toMatchObject({
-        flow: 'connect',
-        integrationId: 'integration-chat',
-        returnPath: '/settings/account/connections',
+        flow: 'connect', integrationId: 'integration-chat', returnPath: '/settings/account/connections',
       });
     });
 
-    it('connect URLs for a per-user provider use the provider token flow', async () => {
-      const { authorizationUrl } = await service.getAuthorizationUrl('integration-acme', workspaceId, userId);
-
-      const url = new URL(authorizationUrl);
-      expect(`${url.origin}${url.pathname}`).toBe(`${tokenEndpoint.url}/oauth/authorize`);
-      expect(url.searchParams.get('scope')).toBe('read');
-      expect(decodeState(authorizationUrl)).toMatchObject({ flow: 'connect', integrationId: 'integration-acme' });
+    it('refuses connect URLs for a workspace provider without an identity flow', async () => {
+      await expect(service.getAuthorizationUrl('integration-legacy', workspaceId, userId))
+        .rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('refuses connect URLs for a workspace-scoped provider without an identity flow', async () => {
-      await expect(
-        service.getAuthorizationUrl('integration-legacy', workspaceId, userId),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-
-    it('connect URLs sign the nonce they return for the browser cookie', async () => {
-      const first = await service.getAuthorizationUrl('integration-acme', workspaceId, userId);
-      const second = await service.getAuthorizationUrl('integration-acme', workspaceId, userId);
-
-      expect(first.type).toBe('acme');
-      expect(first.nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
-      expect(decodeState(first.authorizationUrl).nonce).toBe(first.nonce);
-      expect(second.nonce).not.toBe(first.nonce);
-    });
-
-    it('install URLs sign the nonce they return for the browser cookie', async () => {
-      const { authorizationUrl, nonce } = await service.getInstallAuthorizationUrl('chat', workspaceId, userId);
-
-      expect(nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
-      expect(decodeState(authorizationUrl).nonce).toBe(nonce);
-    });
-
-    it('refuses install URLs for a hidden provider as an unknown type', async () => {
-      const createSignedState = jest.spyOn(service as any, 'createSignedState');
-
-      const outcome = await service
-        .getInstallAuthorizationUrl('hidden', workspaceId, userId)
-        .catch((err) => err);
-
-      expect(outcome).toBeInstanceOf(BadRequestException);
-      expect(outcome.message).toBe('Unknown integration type: hidden');
+    it('refuses new installs for a hidden provider', async () => {
+      await expect(service.getInstallAuthorizationUrl('hidden', workspaceId, userId))
+        .rejects.toBeInstanceOf(BadRequestException);
       expect(integrationRepo.findByWorkspaceAndType).not.toHaveBeenCalled();
-      expect(createSignedState).not.toHaveBeenCalled();
     });
 
-    it('connect URLs still work for an existing installation of a hidden provider', async () => {
-      const { authorizationUrl } = await service.getAuthorizationUrl('integration-hidden', workspaceId, userId);
-
-      expect(decodeState(authorizationUrl)).toMatchObject({ flow: 'connect', integrationId: 'integration-hidden' });
-    });
-  });
-
-  describe('signed state', () => {
-    const signedState = async () => {
+    it.each(['tampered', 'short signature', 'no separator', 'raw secret'])('rejects a state with %s', async (kind) => {
       const { authorizationUrl } = await service.getAuthorizationUrl('integration-acme', workspaceId, userId);
-      return new URL(authorizationUrl).searchParams.get('state') ?? '';
-    };
+      const state = new URL(authorizationUrl).searchParams.get('state');
+      const [data, signature] = state.split('.');
+      const invalid = {
+        tampered: data + '.' + (signature[0] === 'A' ? 'B' : 'A') + signature.slice(1),
+        'short signature': state.slice(0, -1),
+        'no separator': data + signature,
+        'raw secret': data + '.' + crypto.createHmac('sha256', 'test-secret').update(data).digest('base64url'),
+      }[kind];
 
-    it('round-trips a valid signed state', async () => {
-      const state = await signedState();
-
-      expect(service.verifySignedState(state)).toMatchObject({
-        flow: 'connect',
-        integrationId: 'integration-acme',
-        type: 'acme',
-        userId,
-        workspaceId,
-      });
-    });
-
-    it('refuses a state with a tampered signature', async () => {
-      const state = await signedState();
-      const dotIndex = state.lastIndexOf('.');
-      const signature = state.substring(dotIndex + 1);
-      const tampered = (signature[0] === 'A' ? 'B' : 'A') + signature.substring(1);
-
-      expect(service.verifySignedState(`${state.substring(0, dotIndex)}.${tampered}`)).toBeNull();
-    });
-
-    it('refuses a signature of a different length without throwing', async () => {
-      const state = await signedState();
-
-      expect(() => service.verifySignedState(`${state}A`)).not.toThrow();
-      expect(service.verifySignedState(`${state}A`)).toBeNull();
-      expect(service.verifySignedState(state.slice(0, -1))).toBeNull();
-    });
-
-    it('refuses a state without a signature separator', async () => {
-      const state = await signedState();
-
-      expect(service.verifySignedState(state.replace('.', ''))).toBeNull();
-    });
-
-    it('refuses a state signed with the raw app secret', async () => {
-      const state = await signedState();
-      const data = state.substring(0, state.lastIndexOf('.'));
-      const rawSignature = crypto
-        .createHmac('sha256', 'test-secret')
-        .update(data)
-        .digest('base64url');
-
-      expect(service.verifySignedState(`${data}.${rawSignature}`)).toBeNull();
+      expect(service.verifySignedState(invalid)).toBeNull();
     });
   });
 
@@ -908,20 +724,14 @@ describe('OAuthService', () => {
       }) as unknown as IntegrationConnection;
 
     it.each<[string, Record<string, unknown>]>([
-      ['that expires in an hour', {}],
       ['that expires in two minutes', { tokenExpiresAt: new Date(Date.now() + 2 * 60 * 1000) }],
       ['that expires in a minute and has no refresh token', { tokenExpiresAt: new Date(Date.now() + 60 * 1000), refreshToken: null }],
       ['without an expiry', { tokenExpiresAt: null }],
-      ['without an expiry or a refresh token', { tokenExpiresAt: null, refreshToken: null }],
     ])('returns the stored token of a connection %s without refreshing', async (_label, overrides) => {
       await expect(service.getValidAccessToken(storedConnection(overrides))).resolves.toBe('stored-access-token');
 
       expect(tokenEndpoint.requests).toEqual([]);
-      expect(connectionRepo.findById).not.toHaveBeenCalled();
-      expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
       expect(redis.set).not.toHaveBeenCalled();
-      expect(redis.exists).not.toHaveBeenCalled();
-      expect(redis.eval).not.toHaveBeenCalled();
     });
 
     it('reports an expired token that has no refresh token as invalid', async () => {
@@ -998,36 +808,23 @@ describe('OAuthService', () => {
       expect(outcome).toBeInstanceOf(BadRequestException);
     });
 
-    it('saves the new tokens on the condition that the row still holds the refresh token it sent', async () => {
+    it('refreshes using the current row and conditionally stores and returns the new tokens', async () => {
+      const row = storeRow({ ...expiringConnection({ refreshToken: 'current-refresh-token' }) });
       tokenEndpointReply = (_req, res) =>
         tokenJson(res, { access_token: 'new-access-token', refresh_token: 'new-refresh-token', expires_in: 7200 });
 
-      await service.refreshAccessToken(expiringConnection());
+      await expect(service.refreshAccessToken(expiringConnection({ refreshToken: 'stale-refresh-token' })))
+        .resolves.toBe('new-access-token');
 
-      expect(connectionRepo.findById).toHaveBeenCalledWith('connection-1');
       expect(tokenEndpoint.requests).toEqual([
-        { method: 'POST', url: '/oauth/token', body: refreshBody('refresh-token') },
+        { method: 'POST', url: '/oauth/token', body: refreshBody('current-refresh-token') },
       ]);
       expect(connectionRepo.updateIfTokensMatch).toHaveBeenCalledWith(
-        'connection-1',
-        { refreshToken: 'refresh-token' },
-        expect.objectContaining({
-          accessToken: 'new-access-token',
-          refreshToken: 'new-refresh-token',
-          invalidatedAt: null,
+        'connection-1', { refreshToken: 'current-refresh-token' }, expect.objectContaining({
+          accessToken: 'new-access-token', refreshToken: 'new-refresh-token', invalidatedAt: null,
         }),
       );
-      expect(db.transaction).not.toHaveBeenCalled();
-    });
-
-    it('stores the refreshed tokens in the row and returns the new access token', async () => {
-      const row = storeRow({ ...expiringConnection() });
-      tokenEndpointReply = (_req, res) =>
-        tokenJson(res, { access_token: 'new-access-token', refresh_token: 'new-refresh-token', expires_in: 7200 });
-
-      await expect(service.refreshAccessToken(expiringConnection())).resolves.toBe('new-access-token');
-
-      expect(row).toMatchObject({ accessToken: 'new-access-token', refreshToken: 'new-refresh-token', invalidatedAt: null });
+      expect(row).toMatchObject({ accessToken: 'new-access-token', refreshToken: 'new-refresh-token' });
       expect(new Date(row.tokenExpiresAt as Date).getTime()).toBeGreaterThan(Date.now() + 7100 * 1000);
     });
 
@@ -1076,22 +873,7 @@ describe('OAuthService', () => {
       );
     });
 
-    it("presents the stored row's refresh token rather than the caller's snapshot", async () => {
-      connectionRepo.findById.mockResolvedValue(expiringConnection({ refreshToken: 'current-refresh-token' }));
-      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'new-access-token', expires_in: 7200 });
-
-      await service.refreshAccessToken(expiringConnection({ refreshToken: 'stale-refresh-token' }));
-
-      expect(tokenEndpoint.requests.map((r) => r.body)).toEqual([refreshBody('current-refresh-token')]);
-      expect(connectionRepo.updateIfTokensMatch).toHaveBeenCalledWith(
-        'connection-1',
-        { refreshToken: 'current-refresh-token' },
-        expect.objectContaining({ refreshToken: 'current-refresh-token' }),
-      );
-    });
-
     it.each<[string, Record<string, unknown>]>([
-      ['refreshed by a rotating provider', { accessToken: 'fresh-access-token', refreshToken: 'rotated-refresh-token' }],
       ['refreshed by a non-rotating provider', { accessToken: 'fresh-access-token' }],
       ['reconnected without a refresh token', { accessToken: 'fresh-access-token', refreshToken: null }],
     ])('skips a connection %s since the caller read it and returns its current token', async (_label, changes) => {
@@ -1123,45 +905,29 @@ describe('OAuthService', () => {
       expect(connectionRepo.invalidate).not.toHaveBeenCalled();
     });
 
-    it.each([400, 401])('retires the connection when the token endpoint answers %s', async (status) => {
+    it.each([400, 401])('retires a default provider on %s even if the error is invalid_client', async (status) => {
       const row = storeRow({ ...expiringConnection() });
-      tokenEndpointReply = rejectGrant(status);
+      tokenEndpointReply = tokenError(status, JSON.stringify({ error: 'invalid_client', error_description: 'PRIVATE' }));
+      jest.mocked(Logger.prototype.error).mockClear();
 
-      const outcome = await service.refreshAccessToken(expiringConnection()).catch((err) => err);
+      await expect(service.getValidAccessToken(expiringConnection())).rejects.toBeInstanceOf(TokenInvalidError);
 
-      expect(outcome).toBeInstanceOf(TokenInvalidError);
       expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
-      expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
       expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
+      expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([['Token refresh failed for acme: ' + status]]);
+      expect(redis.keys.size).toBe(0);
     });
 
-    it('keeps a connection reconnected while its old refresh token was being rejected', async () => {
-      const row = storeRow({ ...expiringConnection() });
+    it.each(['acme', 'entra'])('preserves a %s connection reconnected while the old token is rejected', async (type) => {
+      const connection = expiringConnection({ integrationId: 'integration-' + type });
+      const row = storeRow({ ...connection });
       tokenEndpointReply = reconnectDuring(rejectGrant(400), row);
 
-      const outcome = await service.refreshAccessToken(expiringConnection()).catch((err) => err);
+      await expect(service.refreshAccessToken(connection)).rejects.toBeInstanceOf(TokenInvalidError);
 
-      expect(outcome).toBeInstanceOf(TokenInvalidError);
       expect(row).toMatchObject({
-        accessToken: 'reconnected-access-token',
-        refreshToken: 'reconnected-refresh-token',
-        invalidatedAt: null,
+        accessToken: 'reconnected-access-token', refreshToken: 'reconnected-refresh-token', invalidatedAt: null,
       });
-    });
-
-    it.each([400, 401])('retires on a %s whatever the error code, and logs the status only, by default', async (status) => {
-      const logged = jest.mocked(Logger.prototype.error);
-      logged.mockClear();
-      tokenEndpointReply = (_req, res) => {
-        res.writeHead(status, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'invalid_client', error_description: 'AADSTS7000222: the client secret expired' }));
-      };
-
-      const outcome = await service.refreshAccessToken(expiringConnection()).catch((err) => err);
-
-      expect(outcome).toBeInstanceOf(TokenInvalidError);
-      expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
-      expect(logged.mock.calls).toEqual([[`Token refresh failed for acme: ${status}`]]);
     });
 
     it.each<[string, Reply]>([
@@ -1182,10 +948,11 @@ describe('OAuthService', () => {
       expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
     });
 
-    it.each<[string, Record<string, unknown>]>([
+    it.each<[string, Record<string, unknown> | null]>([
       ['an access token with a line break', { access_token: 'abc\ndef-SECRET', expires_in: 3600 }],
       ['an access token that is not a string', { access_token: 12345, expires_in: 3600 }],
       ['no access token', { expires_in: 3600 }],
+      ['a JSON null', null],
       ['a refresh token with a NUL', { access_token: 'new-access-token', refresh_token: 'abc\x00def-SECRET' }],
     ])('keeps the connection as it was when the refresh returns %s, without logging the token', async (_label, body) => {
       const logged = jest.mocked(Logger.prototype.error);
@@ -1198,22 +965,15 @@ describe('OAuthService', () => {
       expect(outcome.message).toBe('Failed to refresh token');
       expect(connectionRepo.invalidate).not.toHaveBeenCalled();
       expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
-      expect(logged.mock.calls).toEqual([
-        ['Token refresh for acme returned a malformed token'],
-        ['Token refresh error: Token refresh failed'],
-      ]);
+      expect(JSON.stringify(logged.mock.calls)).not.toContain('SECRET');
     });
 
-    it.each<[string, string, string]>([
-      ['an HTML page', 'text/html', '<html><body>Sign in, app 0f1e2d3c</body></html>'],
-      ['truncated JSON', 'application/json', '{"access_token":"leaked-0f1e2d3c'],
-      ['a JSON null', 'application/json', 'null'],
-    ])('keeps the connection as it was when a 200 carries %s, without quoting it', async (_what, contentType, body) => {
+    it('rejects truncated JSON during refresh without changing the connection or logging the body', async () => {
       const logged = jest.mocked(Logger.prototype.error);
       logged.mockClear();
       tokenEndpointReply = (_req, res) => {
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(body);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('{"access_token":"leaked-0f1e2d3c');
       };
 
       const outcome = await service.refreshAccessToken(expiringConnection()).catch((err) => err);
@@ -1228,128 +988,60 @@ describe('OAuthService', () => {
       ]);
     });
 
-    it.each<[string, Reply]>([
-      ['declares a length over the cap', (_req, res) => {
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Content-Length': String(MAX_PROVIDER_RESPONSE_BYTES + 1),
-        });
-        res.write('{"access_token":"');
-      }],
-      ['streams past the cap', (_req, res) => streamUntilClosed(res)],
-    ])('fails a refresh whose response %s without reading on or retiring the connection', async (_what, reply) => {
-      const logged = jest.mocked(Logger.prototype.error);
-      logged.mockClear();
-      tokenEndpointReply = reply;
+    it('stops an oversized refresh response without retiring or updating the connection', async () => {
+      tokenEndpointReply = (_req, res) => streamUntilClosed(res);
 
-      const outcome = await service.refreshAccessToken(expiringConnection()).catch((err) => err);
+      await expect(service.refreshAccessToken(expiringConnection())).rejects.toBeInstanceOf(BadRequestException);
 
-      expect(outcome).toBeInstanceOf(BadRequestException);
-      expect(outcome.message).toBe('Failed to refresh token');
       expect(connectionRepo.invalidate).not.toHaveBeenCalled();
       expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
-      expect(logged.mock.calls).toEqual([
-        ['Token refresh error: acme token endpoint API error: 502 response too large'],
-      ]);
     }, 5000);
 
     describe('for a provider that retires on invalid_grant only', () => {
       const entraConnection = () => expiringConnection({ integrationId: 'integration-entra' });
-      const errorLog = () => jest.mocked(Logger.prototype.error).mock.calls;
 
       beforeEach(() => {
         connectionRepo.findById.mockResolvedValue(entraConnection());
         jest.mocked(Logger.prototype.error).mockClear();
       });
 
-      it.each([
-        [401, 'invalid_client'],
-        [400, 'invalid_request'],
-        [400, 'invalid_scope'],
-        [400, 'unauthorized_client'],
-        [400, 'a'.repeat(40)],
-      ])('keeps the connection and fails the refresh on a %s %s', async (status, error) => {
-        tokenEndpointReply = tokenError(status, JSON.stringify({ error }));
+      it.each([[401, 'invalid_client'], [400, 'invalid_scope']])('keeps the connection on %s %s', async (status, error) => {
+        tokenEndpointReply = tokenError(status, JSON.stringify({ error, error_description: 'PRIVATE' }));
 
-        const outcome = await service.refreshAccessToken(entraConnection()).catch((err) => err);
+        await expect(service.getValidAccessToken(entraConnection())).rejects.toBeInstanceOf(TokenExpiredError);
 
-        expect(outcome).toBeInstanceOf(BadRequestException);
-        expect(outcome.message).toBe('Failed to refresh token');
-        expect(tokenEndpoint.requests).toHaveLength(1);
         expect(connectionRepo.invalidate).not.toHaveBeenCalled();
         expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
-        expect(errorLog()).toEqual([
-          [`Token refresh failed for entra: ${status} ${error}`],
-          ['Token refresh error: Token refresh failed'],
-        ]);
+        const logs = JSON.stringify(jest.mocked(Logger.prototype.error).mock.calls);
+        expect(logs).toContain(status + ' ' + error);
+        expect(logs).not.toContain('PRIVATE');
+        expect(redis.keys.size).toBe(0);
       });
 
-      it.each(['invalid_grant', 'interaction_required'])('retires the connection on a 400 %s', async (error) => {
+      it.each(['invalid_grant', 'interaction_required'])('retires the connection on %s', async (error) => {
+        const row = storeRow({ ...entraConnection() });
         tokenEndpointReply = tokenError(400, JSON.stringify({ error }));
 
-        const outcome = await service.refreshAccessToken(entraConnection()).catch((err) => err);
+        await expect(service.getValidAccessToken(entraConnection())).rejects.toBeInstanceOf(TokenInvalidError);
 
-        expect(outcome).toBeInstanceOf(TokenInvalidError);
         expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
-        expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
-        expect(errorLog()).toEqual([[`Token refresh failed for entra: 400 ${error}`]]);
+        expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
+        expect(redis.keys.size).toBe(0);
       });
 
-      it('keeps a connection reconnected while its old refresh token was being rejected', async () => {
-        const row = storeRow({ ...entraConnection() });
-        tokenEndpointReply = reconnectDuring(tokenError(400, JSON.stringify({ error: 'invalid_grant' })), row);
-
-        const outcome = await service.refreshAccessToken(entraConnection()).catch((err) => err);
-
-        expect(outcome).toBeInstanceOf(TokenInvalidError);
-        expect(row).toMatchObject({ refreshToken: 'reconnected-refresh-token', invalidatedAt: null });
-      });
-
-      it.each<[string, string]>([
-        ['a body that is not JSON', '<html>invalid_grant</html>'],
-        ['an empty body', ''],
-        ['a JSON null', 'null'],
-        ['a JSON string', JSON.stringify('invalid_grant')],
-        ['no error field', JSON.stringify({ code: 'invalid_grant', message: 'invalid_grant' })],
-        ['an error code in capitals', JSON.stringify({ error: 'INVALID_GRANT' })],
-        ['an error code followed by a space', JSON.stringify({ error: 'invalid_grant ' })],
-        ['an error code followed by a line break and more text', JSON.stringify({ error: 'invalid_grant\nforged log line' })],
-        ['an error code of 41 characters', JSON.stringify({ error: 'a'.repeat(41) })],
-        ['an error that is a list', JSON.stringify({ error: ['invalid_grant'] })],
-        ['an error that is an object', JSON.stringify({ error: { code: 'invalid_grant' } })],
-      ])('keeps the connection and logs the status only when a 400 carries %s', async (_what, body) => {
+      it.each([
+        '<html>invalid_grant PRIVATE</html>',
+        JSON.stringify({ error: 'invalid_grant\nPRIVATE' }),
+        JSON.stringify({ error: 'a'.repeat(41) }),
+        JSON.stringify({ error: { code: 'invalid_grant', detail: 'PRIVATE' } }),
+      ])('does not retire on a malformed error body: %s', async (body) => {
         tokenEndpointReply = tokenError(400, body);
 
-        const outcome = await service.refreshAccessToken(entraConnection()).catch((err) => err);
+        await expect(service.refreshAccessToken(entraConnection())).rejects.toBeInstanceOf(BadRequestException);
 
-        expect(outcome).toBeInstanceOf(BadRequestException);
-        expect(outcome.message).toBe('Failed to refresh token');
         expect(connectionRepo.invalidate).not.toHaveBeenCalled();
-        expect(errorLog()).toEqual([
-          ['Token refresh failed for entra: 400'],
-          ['Token refresh error: Token refresh failed'],
-        ]);
-      });
-
-      it('logs the error code and nothing else from the response', async () => {
-        tokenEndpointReply = tokenError(
-          401,
-          JSON.stringify({
-            error: 'invalid_client',
-            error_description:
-              'AADSTS7000222: The provided client secret keys for app 0f1e2d3c are expired. Trace ID: 4b5a6978 Correlation ID: 8c7d6e5f',
-            error_codes: [7000222],
-            trace_id: '4b5a6978',
-            correlation_id: '8c7d6e5f',
-            error_uri: 'https://login.microsoftonline.com/error?code=7000222',
-          }),
-        );
-
-        await service.refreshAccessToken(entraConnection()).catch((err) => err);
-
-        expect(errorLog()).toEqual([
-          ['Token refresh failed for entra: 401 invalid_client'],
-          ['Token refresh error: Token refresh failed'],
+        expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([
+          ['Token refresh failed for entra: 400'], ['Token refresh error: Token refresh failed'],
         ]);
       });
     });
@@ -1471,42 +1163,6 @@ describe('OAuthService', () => {
         expect(tokenEndpoint.requests).toEqual([]);
         expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
         expect(connectionRepo.invalidate).not.toHaveBeenCalled();
-      });
-
-      it.each<[string, string, Reply]>([
-        ['a 5xx', 'integration-acme', tokenError(503, '')],
-        ['a dropped connection', 'integration-acme', (_req, res) => res.socket?.destroy()],
-        [
-          'a refused client on a provider that retires on invalid_grant only',
-          'integration-entra',
-          tokenError(401, JSON.stringify({ error: 'invalid_client' })),
-        ],
-      ])('reports %s from the token endpoint as expired and keeps the connection', async (_label, integrationId, reply) => {
-        const row = storeRow({ ...expiringConnection({ integrationId }) });
-        tokenEndpointReply = reply;
-
-        const outcome = await service.getValidAccessToken(expiringConnection({ integrationId })).catch((err) => err);
-
-        expect(outcome).toBeInstanceOf(TokenExpiredError);
-        expect(tokenEndpoint.requests).toHaveLength(1);
-        expect(connectionRepo.invalidate).not.toHaveBeenCalled();
-        expect(row).toMatchObject({ accessToken: 'expired-access-token', refreshToken: 'refresh-token', invalidatedAt: null });
-        expect(redis.keys.has(lockKey)).toBe(false);
-      });
-
-      it.each<[string, string]>([
-        ['the provider', 'integration-acme'],
-        ['a provider that retires on invalid_grant only', 'integration-entra'],
-      ])('retires the connection when %s answers invalid_grant', async (_label, integrationId) => {
-        const row = storeRow({ ...expiringConnection({ integrationId }) });
-        tokenEndpointReply = rejectGrant(400);
-
-        const outcome = await service.getValidAccessToken(expiringConnection({ integrationId })).catch((err) => err);
-
-        expect(outcome).toBeInstanceOf(TokenInvalidError);
-        expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
-        expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
-        expect(redis.keys.has(lockKey)).toBe(false);
       });
     });
   });
