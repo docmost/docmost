@@ -1,4 +1,4 @@
-import { Group, Text, Button, Box } from "@mantine/core";
+import { Group, Text, Button, Box, Stack } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { IntegrationDefinition, UserConnection } from "../types/integration.types";
 import { getIntegrationIcon } from "./integration-icons";
@@ -31,46 +31,44 @@ export default function ConnectionRow({
       }}
     >
       <Group justify="space-between" wrap="nowrap">
-        <Group gap="sm" wrap="nowrap">
+        <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
           {getIntegrationIcon(definition.type, 28)}
-          <div>
+          <Stack gap={2} style={{ minWidth: 0 }}>
             <Text size="sm" fw={500}>
               {definition.name}
             </Text>
-            <Text size="xs" c="dimmed">
-              {definition.description}
-            </Text>
-          </div>
+            {connection?.invalidatedAt ? (
+              <Text size="xs" c="orange">
+                {t("Connection expired")}
+              </Text>
+            ) : connection && connectedLabel ? (
+              <Text size="xs" c="dimmed" truncate>
+                {t("Connected as {{label}}", { label: connectedLabel })}
+              </Text>
+            ) : (
+              <Text size="xs" c="dimmed" truncate>
+                {definition.description}
+              </Text>
+            )}
+          </Stack>
         </Group>
 
         <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
           {connection ? (
             <>
-              {connection.invalidatedAt ? (
-                <>
-                  <Text size="xs" c="orange">
-                    {t("Connection expired")}
-                  </Text>
-                  <Button
-                    size="xs"
-                    variant="light"
-                    color="orange"
-                    onClick={() => onConnect(definition.type)}
-                  >
-                    {t("Reconnect")}
-                  </Button>
-                </>
-              ) : (
-                <Text size="xs" c="green">
-                  {connectedLabel
-                    ? t("Connected as {{label}}", { label: connectedLabel })
-                    : t("Connected")}
-                </Text>
+              {connection.invalidatedAt && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  color="orange"
+                  onClick={() => onConnect(definition.type)}
+                >
+                  {t("Reconnect")}
+                </Button>
               )}
               <Button
                 size="xs"
-                variant="subtle"
-                color="red"
+                variant="default"
                 onClick={() => onDisconnect(connection.integrationId)}
                 loading={disconnectingId === connection.integrationId}
               >

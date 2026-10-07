@@ -78,8 +78,7 @@ export default function IntegrationRow({
           {isInstalled ? (
             <Button
               size="xs"
-              variant="subtle"
-              color="red"
+              variant="default"
               onClick={() => onUninstall(installation.id)}
             >
               {t("Uninstall")}
