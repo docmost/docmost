@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { sql } from 'kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { Json } from '@docmost/db/types/db';
 import {
   IntegrationConnection,
   InsertableIntegrationConnection,
@@ -63,8 +64,8 @@ export class IntegrationConnectionRepo {
             tokenExpiresAt: connection.tokenExpiresAt,
             invalidatedAt: null,
             scopes: connection.scopes,
-            providerUserId: connection.providerUserId,
-            metadata: connection.metadata,
+            providerUserId: connection.providerUserId ?? null,
+            metadata: this.mergedMetadata(),
             updatedAt: new Date(),
           }),
       )
@@ -355,11 +356,16 @@ export class IntegrationConnectionRepo {
           .where(sql.ref('kind'), '=', 'user')
           .doUpdateSet({
             providerUserId: input.providerUserId,
-            metadata: input.metadata as any,
+            metadata: this.mergedMetadata(),
             updatedAt: new Date(),
           }),
       )
       .returningAll()
       .executeTakeFirstOrThrow();
+  }
+
+  // Swaps the account and keeps keys this write leaves out, such as Slack's notifyEnabled.
+  private mergedMetadata() {
+    return sql<Json>`(coalesce(${sql.ref('integrationConnections.metadata')}, '{}'::jsonb) - 'account') || coalesce(${sql.ref('excluded.metadata')}, '{}'::jsonb)`;
   }
 }

@@ -161,3 +161,76 @@ describe('IntegrationConnectionRepo token writes', () => {
     );
   });
 });
+
+describe('IntegrationConnectionRepo metadata on reconnect', () => {
+  const MERGE =
+    `"metadata" = (coalesce("integration_connections"."metadata", '{}'::jsonb) - 'account') || coalesce("excluded"."metadata", '{}'::jsonb)`;
+
+  function conflictParam(sql: string, parameters: readonly unknown[], column: string) {
+    const setClause = sql.slice(sql.indexOf('do update set'));
+    const index = Number(setClause.match(new RegExp(`"${column}" = \\$(\\d+)`))![1]);
+    return parameters[index - 1];
+  }
+
+  it('swaps the account and keeps other keys when a token connection reconnects', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo
+      .upsert({
+        integrationId: 'integration-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        accessToken: 'token',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        scopes: null,
+        providerUserId: '583231',
+        metadata: { account: { id: '583231' } },
+      })
+      .catch(() => undefined);
+
+    expect(queries[0].sql).toContain(MERGE);
+    expect(
+      conflictParam(queries[0].sql, queries[0].parameters, 'provider_user_id'),
+    ).toBe('583231');
+  });
+
+  it('clears the stored account id when a reconnect could not read the account', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo
+      .upsert({
+        integrationId: 'integration-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        accessToken: 'token',
+        refreshToken: null,
+        tokenExpiresAt: null,
+        scopes: null,
+        providerUserId: null,
+        metadata: null,
+      })
+      .catch(() => undefined);
+
+    expect(queries[0].sql).toContain(MERGE);
+    expect(
+      conflictParam(queries[0].sql, queries[0].parameters, 'provider_user_id'),
+    ).toBeNull();
+  });
+
+  it('merges an identity link the same way, so a relink keeps notifyEnabled', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo
+      .upsertUserLink({
+        integrationId: 'integration-1',
+        workspaceId: 'workspace-1',
+        userId: 'user-1',
+        providerUserId: 'U-1',
+        metadata: { slackTeamId: 'T-1', account: { id: 'U-1' } },
+      })
+      .catch(() => undefined);
+
+    expect(queries[0].sql).toContain(MERGE);
+  });
+});
