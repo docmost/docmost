@@ -311,11 +311,19 @@ export class WorkspaceService {
 
     if (updateWorkspaceDto.emailDomains) {
       const regex =
-        /(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]/;
-      const emailDomains = updateWorkspaceDto.emailDomains || [];
-      updateWorkspaceDto.emailDomains = emailDomains
-        .map((domain) => regex.exec(domain)?.[0])
-        .filter(Boolean);
+        /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/;
+      const emailDomains = updateWorkspaceDto.emailDomains.map((domain) =>
+        domain.trim().toLowerCase().replace(/^@/, ''),
+      );
+      const invalidDomains = emailDomains.filter(
+        (domain) => !regex.test(domain),
+      );
+      if (invalidDomains.length > 0) {
+        throw new BadRequestException(
+          `Invalid email domains: ${invalidDomains.join(', ')}`,
+        );
+      }
+      updateWorkspaceDto.emailDomains = [...new Set(emailDomains)];
     }
 
     if (updateWorkspaceDto.hostname) {
