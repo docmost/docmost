@@ -32,6 +32,13 @@ export type OAuthConfig = {
   identity?: IdentityOAuthConfig;
 };
 
+// The provider account a connection authenticated as; id is also stored in provider_user_id.
+export type ProviderAccount = {
+  id: string;
+  displayName?: string;
+  username?: string;
+};
+
 export type IdentityLinkEvent = {
   integrationId: string;
   workspaceId: string;
