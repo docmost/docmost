@@ -102,6 +102,17 @@ export class PageAccessService {
     return { hasRestriction: hasAnyRestriction };
   }
 
+  /**
+   * Validate user can create a root page in the space, throws if not.
+   * For non-HTTP callers (Slack, integrations) that skip the controller check.
+   */
+  async validateCanCreate(spaceId: string, user: User): Promise<void> {
+    const ability = await this.spaceAbility.createForUser(user, spaceId);
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+  }
+
   async validateCanComment(
     page: Page,
     user: User,

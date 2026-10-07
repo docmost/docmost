@@ -15,6 +15,15 @@ export const LinkExtension = TiptapLink.extend({
         renderHTML: (attributes) =>
           attributes.internal ? { 'data-internal': 'true' } : {},
       },
+      integrationProvider: {
+        default: null,
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute('data-integration-provider'),
+        renderHTML: (attributes) =>
+          attributes.integrationProvider
+            ? { 'data-integration-provider': attributes.integrationProvider }
+            : {},
+      },
     };
   },
 

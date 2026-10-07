@@ -50,6 +50,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
 
 @Injectable()
 export class WorkspaceService {
@@ -75,6 +76,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private userSessionRepo: UserSessionRepo,
+    private integrationConnectionRepo: IntegrationConnectionRepo,
   ) {}
 
   async findById(workspaceId: string) {
@@ -904,6 +906,7 @@ export class WorkspaceService {
         trx,
       );
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+      await this.integrationConnectionRepo.deleteUserConnections(userId, trx);
 
       return user;
     });
@@ -1028,6 +1031,7 @@ export class WorkspaceService {
       });
 
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+      await this.integrationConnectionRepo.deleteUserConnections(userId, trx);
 
       return user;
     });
