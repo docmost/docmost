@@ -218,7 +218,6 @@ describe('OAuthService', () => {
           oauth: {
             ...providerOAuth(['api://resource/items.read', 'offline_access']),
             scopeOnRefresh: true,
-            retireOnInvalidGrantOnly: true,
           },
         },
       },
@@ -905,19 +904,6 @@ describe('OAuthService', () => {
       expect(connectionRepo.invalidate).not.toHaveBeenCalled();
     });
 
-    it.each([400, 401])('retires a default provider on %s even if the error is invalid_client', async (status) => {
-      const row = storeRow({ ...expiringConnection() });
-      tokenEndpointReply = tokenError(status, JSON.stringify({ error: 'invalid_client', error_description: 'PRIVATE' }));
-      jest.mocked(Logger.prototype.error).mockClear();
-
-      await expect(service.getValidAccessToken(expiringConnection())).rejects.toBeInstanceOf(TokenInvalidError);
-
-      expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
-      expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
-      expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([['Token refresh failed for acme: ' + status]]);
-      expect(redis.keys.size).toBe(0);
-    });
-
     it.each(['acme', 'entra'])('preserves a %s connection reconnected while the old token is rejected', async (type) => {
       const connection = expiringConnection({ integrationId: 'integration-' + type });
       const row = storeRow({ ...connection });
@@ -997,18 +983,21 @@ describe('OAuthService', () => {
       expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
     }, 5000);
 
-    describe('for a provider that retires on invalid_grant only', () => {
-      const entraConnection = () => expiringConnection({ integrationId: 'integration-entra' });
-
+    describe('when the token endpoint rejects the refresh', () => {
       beforeEach(() => {
-        connectionRepo.findById.mockResolvedValue(entraConnection());
         jest.mocked(Logger.prototype.error).mockClear();
       });
 
-      it.each([[401, 'invalid_client'], [400, 'invalid_scope']])('keeps the connection on %s %s', async (status, error) => {
+      it.each([
+        [401, 'invalid_client'],
+        [400, 'invalid_client'],
+        [400, 'unauthorized_client'],
+        [400, 'invalid_scope'],
+      ])('keeps the connection on %s %s', async (status, error) => {
+        storeRow({ ...expiringConnection() });
         tokenEndpointReply = tokenError(status, JSON.stringify({ error, error_description: 'PRIVATE' }));
 
-        await expect(service.getValidAccessToken(entraConnection())).rejects.toBeInstanceOf(TokenExpiredError);
+        await expect(service.getValidAccessToken(expiringConnection())).rejects.toBeInstanceOf(TokenExpiredError);
 
         expect(connectionRepo.invalidate).not.toHaveBeenCalled();
         expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
@@ -1018,11 +1007,23 @@ describe('OAuthService', () => {
         expect(redis.keys.size).toBe(0);
       });
 
-      it.each(['invalid_grant', 'interaction_required'])('retires the connection on %s', async (error) => {
-        const row = storeRow({ ...entraConnection() });
-        tokenEndpointReply = tokenError(400, JSON.stringify({ error }));
+      it.each(['acme', 'entra'])('retires a %s connection on invalid_grant', async (type) => {
+        const connection = expiringConnection({ integrationId: 'integration-' + type });
+        const row = storeRow({ ...connection });
+        tokenEndpointReply = tokenError(400, JSON.stringify({ error: 'invalid_grant' }));
 
-        await expect(service.getValidAccessToken(entraConnection())).rejects.toBeInstanceOf(TokenInvalidError);
+        await expect(service.getValidAccessToken(connection)).rejects.toBeInstanceOf(TokenInvalidError);
+
+        expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
+        expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
+        expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([[`Token refresh failed for ${type}: 400 invalid_grant`]]);
+      });
+
+      it('retires the connection on interaction_required', async () => {
+        const row = storeRow({ ...expiringConnection() });
+        tokenEndpointReply = tokenError(400, JSON.stringify({ error: 'interaction_required' }));
+
+        await expect(service.getValidAccessToken(expiringConnection())).rejects.toBeInstanceOf(TokenInvalidError);
 
         expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
         expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
@@ -1035,13 +1036,14 @@ describe('OAuthService', () => {
         JSON.stringify({ error: 'a'.repeat(41) }),
         JSON.stringify({ error: { code: 'invalid_grant', detail: 'PRIVATE' } }),
       ])('does not retire on a malformed error body: %s', async (body) => {
+        connectionRepo.findById.mockResolvedValue(expiringConnection());
         tokenEndpointReply = tokenError(400, body);
 
-        await expect(service.refreshAccessToken(entraConnection())).rejects.toBeInstanceOf(BadRequestException);
+        await expect(service.refreshAccessToken(expiringConnection())).rejects.toBeInstanceOf(BadRequestException);
 
         expect(connectionRepo.invalidate).not.toHaveBeenCalled();
         expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([
-          ['Token refresh failed for entra: 400'], ['Token refresh error: Token refresh failed'],
+          ['Token refresh failed for acme: 400'], ['Token refresh error: Token refresh failed'],
         ]);
       });
     });

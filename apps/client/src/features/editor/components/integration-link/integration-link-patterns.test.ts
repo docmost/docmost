@@ -83,6 +83,10 @@ describe("integration link matching", () => {
     expect(matchIntegrationLink(url)).toBeNull();
   });
 
+  it.each([null, undefined])("rejects a link mark without an href: %s", (url) => {
+    expect(matchIntegrationLink(url)).toBeNull();
+  });
+
   it.each([
     ["https://github.com/o/r/pulls?q=is%3Aopen", "github-pulls-list"],
     ["https://github.com/o/r/pulls/extra", "github-pulls-list"],

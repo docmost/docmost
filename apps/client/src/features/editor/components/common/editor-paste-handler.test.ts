@@ -77,10 +77,11 @@ function createEditor(content: object[], cursor: number) {
   return editor;
 }
 
-function paste(text: string) {
+function paste(text: string, html = "") {
   const event = {
     clipboardData: {
-      getData: (type: string) => (type === "text/plain" ? text : ""),
+      getData: (type: string) =>
+        type === "text/plain" ? text : type === "text/html" ? html : "",
       files: [],
     },
     preventDefault: vi.fn(),
@@ -112,9 +113,9 @@ function hasIntegrationCard() {
   return found;
 }
 
-function expectPassThrough(text = PR_URL) {
+function expectPassThrough(text = PR_URL, html = "") {
   const before = editor.getJSON();
-  const { handled, preventDefault } = paste(text);
+  const { handled, preventDefault } = paste(text, html);
 
   expect(handled).toBe(false);
   expect(preventDefault).not.toHaveBeenCalled();
@@ -158,6 +159,18 @@ describe("handlePaste integration links", () => {
 
     expectPassThrough("https://gitea.example.com/team/app/pulls/7");
   });
+
+  it.each(["integrationCard", "integrationMention"])(
+    "leaves a copied %s to ProseMirror instead of pasting its URL as a card",
+    (type) => {
+      createEditor([paragraph(text("Hello world"))], 7);
+
+      expectPassThrough(
+        PR_URL,
+        `<p data-pm-slice="1 1 []"><span data-type="${type}" data-url="${PR_URL}" data-provider="github"></span></p>`,
+      );
+    },
+  );
 
   it("inserts a card for a repo root on a GitHub Enterprise host", () => {
     queryClient.setQueryData(

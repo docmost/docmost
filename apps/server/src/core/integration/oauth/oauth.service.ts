@@ -681,27 +681,15 @@ export class OAuthService {
       );
 
       if (!response.ok) {
-        if (oauthConfig.retireOnInvalidGrantOnly) {
-          const errorCode = await readTokenErrorCode(response);
-          this.logger.error(
-            `Token refresh failed for ${integration.type}: ${response.status} ${errorCode}`.trimEnd(),
-          );
-          if (
-            errorCode === 'invalid_grant' ||
-            errorCode === 'interaction_required'
-          ) {
-            await this.connectionRepo.invalidate(current.id, expected);
-            throw new TokenInvalidError(
-              `Refresh token rejected for ${integration.type}`,
-            );
-          }
-          throw new BadRequestException('Token refresh failed');
-        }
-
+        const errorCode = await readTokenErrorCode(response);
         this.logger.error(
-          `Token refresh failed for ${integration.type}: ${response.status}`,
+          `Token refresh failed for ${integration.type}: ${response.status} ${errorCode}`.trimEnd(),
         );
-        if (response.status === 400 || response.status === 401) {
+        // invalid_client etc. are config errors, not a dead grant
+        if (
+          errorCode === 'invalid_grant' ||
+          errorCode === 'interaction_required'
+        ) {
           await this.connectionRepo.invalidate(current.id, expected);
           throw new TokenInvalidError(
             `Refresh token rejected for ${integration.type}`,

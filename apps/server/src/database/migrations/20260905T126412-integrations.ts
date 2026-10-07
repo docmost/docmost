@@ -50,7 +50,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('invalidated_at', 'timestamptz')
     .addColumn('scopes', 'text')
     .addColumn('metadata', 'jsonb')
-    // 'workspace': one shared bot connection per integration. 'user': a personal token or identity link.
+    // workspace: shared bot connection, user: per-user token
     .addColumn('kind', 'text', (col) => col.notNull().defaultTo('user'))
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
@@ -66,7 +66,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     CHECK (kind IN ('workspace', 'user'))
   `.execute(db);
 
-  // One workspace-bot connection per integration.
   await db.schema
     .createIndex('uq_integration_connections_workspace_per_integration')
     .on('integration_connections')
@@ -83,7 +82,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .unique()
     .execute();
 
-  // One Docmost user per provider account; token-only rows have a null provider_user_id.
   await db.schema
     .createIndex('uq_integration_connections_provider_user_per_integration')
     .on('integration_connections')
@@ -93,14 +91,24 @@ export async function up(db: Kysely<any>): Promise<void> {
     .unique()
     .execute();
 
-  // Offboarding deletes by user_id, and so does the users FK cascade; the indexes above lead with integration_id.
   await db.schema
     .createIndex('idx_integration_connections_user_id')
     .on('integration_connections')
     .column('user_id')
     .execute();
 
-  // The refresh job reads the soonest-expiring refreshable tokens in order.
+  await db.schema
+    .createIndex('idx_integration_connections_integration_id')
+    .on('integration_connections')
+    .column('integration_id')
+    .execute();
+
+  await db.schema
+    .createIndex('idx_integration_connections_workspace_id')
+    .on('integration_connections')
+    .column('workspace_id')
+    .execute();
+
   await db.schema
     .createIndex('idx_integration_connections_token_expires_at')
     .on('integration_connections')

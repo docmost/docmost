@@ -27,6 +27,9 @@ const ATTACHMENT_NODE_TYPES = [
 
 const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 
+// copied cards and mentions paste back as nodes
+const INTEGRATION_NODE_HTML_RE = /data-type="integration(Card|Mention)"/;
+
 // Reads the cache the page editor prefetches; a cold cache pastes an ordinary link.
 function matchInstalledIntegrationLink(url: string) {
   const installed =
@@ -53,6 +56,7 @@ export const handlePaste = (
   const integrationMatch = matchInstalledIntegrationLink(clipboardData.trim());
   if (
     integrationMatch &&
+    !INTEGRATION_NODE_HTML_RE.test(event.clipboardData.getData("text/html")) &&
     editor.state.selection.empty &&
     editor.state.selection.$from.parent.type.name === "paragraph" &&
     !editor.isActive("code")

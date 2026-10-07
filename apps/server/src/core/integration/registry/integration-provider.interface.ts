@@ -22,8 +22,6 @@ export type OAuthConfig = {
   credentialsKey?: string;
   // Repeat the scopes on refresh, for token endpoints that pick the resource from them (Microsoft Entra).
   scopeOnRefresh?: boolean;
-  // Retire on refresh only for invalid_grant or interaction_required, not on config errors.
-  retireOnInvalidGrantOnly?: boolean;
   // Extra authorize-URL query params the provider's docs require, e.g. Atlassian's audience.
   authParams?: Record<string, string>;
   // Token refresh endpoint when the provider uses a separate one (Figma).

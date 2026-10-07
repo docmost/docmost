@@ -297,11 +297,15 @@ function isUnfurlHost(hostname: string, hosts: string[]): boolean {
 }
 
 export function matchIntegrationLink(
-  url: string,
+  url: string | null | undefined,
   unfurlHosts?: IntegrationUnfurlHosts,
 ): { provider: string; type: string; match: RegExpMatchArray } | null {
   // Real URLs carry no whitespace; the cap bounds regex backtracking on hostile input.
-  if (url.length > MAX_INTEGRATION_LINK_LENGTH || /\s/.test(url)) {
+  if (
+    typeof url !== "string" ||
+    url.length > MAX_INTEGRATION_LINK_LENGTH ||
+    /\s/.test(url)
+  ) {
     return null;
   }
 
