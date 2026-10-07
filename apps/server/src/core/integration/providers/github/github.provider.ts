@@ -4,6 +4,8 @@ import {
   IntegrationDefinition,
   LinkDescription,
   OAuthConfig,
+  ProviderAccount,
+  ResolveAccountOpts,
   UnfurlPattern,
   UnfurlOpts,
   UnfurlResult,
@@ -57,6 +59,13 @@ export class GitHubProvider extends IntegrationProvider {
 
   getUnfurlHosts(settings: Record<string, any>): string[] {
     return [new URL(this.resolveBaseUrl()).hostname];
+  }
+
+  async resolveAccount(opts: ResolveAccountOpts): Promise<ProviderAccount> {
+    return this.githubService.getAccount(
+      opts.accessToken,
+      this.resolveApiBaseUrl(),
+    );
   }
 
   async unfurl(opts: UnfurlOpts): Promise<UnfurlResult> {

@@ -1,12 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { format } from 'date-fns';
-import { UnfurlResult } from '../../registry/integration-provider.interface';
+import {
+  ProviderAccount,
+  UnfurlResult,
+} from '../../registry/integration-provider.interface';
 import { providerApiFetch } from '../../utils/provider-fetch';
+import { toProviderAccount } from '../../utils/integration.utils';
 
 const LINEAR_API = 'https://api.linear.app/graphql';
 
 @Injectable()
 export class LinearService {
+  async getAccount(accessToken: string): Promise<ProviderAccount> {
+    const data = await this.graphqlRequest(
+      accessToken,
+      'query Viewer { viewer { id name displayName } }',
+      {},
+    );
+    const viewer = data?.viewer;
+    return toProviderAccount({
+      id: viewer?.id,
+      displayName: viewer?.name,
+      username: viewer?.displayName,
+    });
+  }
+
   async unfurlIssue(
     accessToken: string,
     issueIdentifier: string,

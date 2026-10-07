@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { UnfurlResult } from '../../registry/integration-provider.interface';
+import {
+  ProviderAccount,
+  UnfurlResult,
+} from '../../registry/integration-provider.interface';
 import { providerApiFetch } from '../../utils/provider-fetch';
+import { toProviderAccount } from '../../utils/integration.utils';
 
 const FIGMA_API = 'https://api.figma.com/v1';
 
@@ -13,6 +17,11 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 
 @Injectable()
 export class FigmaService {
+  async getAccount(accessToken: string): Promise<ProviderAccount> {
+    const data = await this.apiGet(accessToken, '/me');
+    return toProviderAccount({ id: data.id, displayName: data.handle });
+  }
+
   async unfurlFile(
     accessToken: string,
     fileKey: string,

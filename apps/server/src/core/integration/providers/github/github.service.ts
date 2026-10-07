@@ -1,11 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { UnfurlResult } from '../../registry/integration-provider.interface';
+import {
+  ProviderAccount,
+  UnfurlResult,
+} from '../../registry/integration-provider.interface';
 import { relativeTime } from '../../utils/relative-time';
 import { providerApiFetch } from '../../utils/provider-fetch';
+import { toProviderAccount } from '../../utils/integration.utils';
 import { repoApiPath } from './github.utils';
 
 @Injectable()
 export class GitHubService {
+  async getAccount(
+    accessToken: string,
+    apiBaseUrl: string,
+  ): Promise<ProviderAccount> {
+    const data = await this.apiGet(accessToken, apiBaseUrl, '/user');
+    return toProviderAccount({
+      id: data.id,
+      displayName: data.name,
+      username: data.login,
+    });
+  }
+
   async unfurlPullRequest(
     accessToken: string,
     apiBaseUrl: string,

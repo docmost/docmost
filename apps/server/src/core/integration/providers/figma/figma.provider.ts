@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import {
   IntegrationProvider,
   IntegrationDefinition,
+  ProviderAccount,
+  ResolveAccountOpts,
   UnfurlOpts,
   UnfurlResult,
 } from '../../registry/integration-provider.interface';
@@ -20,7 +22,7 @@ export class FigmaProvider extends IntegrationProvider {
       authUrl: 'https://www.figma.com/oauth',
       tokenUrl: 'https://api.figma.com/v1/oauth/token',
       refreshUrl: 'https://api.figma.com/v1/oauth/refresh',
-      scopes: ['file_metadata:read'],
+      scopes: ['file_metadata:read', 'current_user:read'],
       clientAuth: 'basic',
     },
     unfurlPatterns: figmaPatterns,
@@ -28,6 +30,10 @@ export class FigmaProvider extends IntegrationProvider {
 
   constructor(private readonly figmaService: FigmaService) {
     super();
+  }
+
+  async resolveAccount(opts: ResolveAccountOpts): Promise<ProviderAccount> {
+    return this.figmaService.getAccount(opts.accessToken);
   }
 
   async unfurl(opts: UnfurlOpts): Promise<UnfurlResult> {

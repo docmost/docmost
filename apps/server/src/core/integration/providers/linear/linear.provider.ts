@@ -3,6 +3,8 @@ import {
   IntegrationProvider,
   IntegrationDefinition,
   LinkDescription,
+  ProviderAccount,
+  ResolveAccountOpts,
   UnfurlOpts,
   UnfurlResult,
 } from '../../registry/integration-provider.interface';
@@ -27,6 +29,10 @@ export class LinearProvider extends IntegrationProvider {
 
   constructor(private readonly linearService: LinearService) {
     super();
+  }
+
+  async resolveAccount(opts: ResolveAccountOpts): Promise<ProviderAccount> {
+    return this.linearService.getAccount(opts.accessToken);
   }
 
   async unfurl(opts: UnfurlOpts): Promise<UnfurlResult> {

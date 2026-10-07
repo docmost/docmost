@@ -1,5 +1,6 @@
 import { proxyFetch } from '../../../../common/proxy-fetch';
 import { UnfurlForbiddenError } from '../../registry/integration-provider.interface';
+import { GitHubProvider } from './github.provider';
 import { GitHubService } from './github.service';
 
 // Mock only proxyFetch so the real providerApiFetch handles statuses.
@@ -90,5 +91,56 @@ describe('GitHubService API paths', () => {
       );
       expect(fetchMock).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('GitHub connected account', () => {
+  const original = process.env.INTEGRATION_GITHUB_URL;
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 583231,
+          login: 'Philipinho',
+          name: 'Philip Okugbe',
+          email: 'philip@docmost.com',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+  });
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.INTEGRATION_GITHUB_URL;
+    else process.env.INTEGRATION_GITHUB_URL = original;
+  });
+
+  it('reads the account from api.github.com and keeps no email', async () => {
+    delete process.env.INTEGRATION_GITHUB_URL;
+    const provider = new GitHubProvider(new GitHubService());
+
+    await expect(
+      provider.resolveAccount({ accessToken: 'token', tokenResponse: {} }),
+    ).resolves.toEqual({
+      id: '583231',
+      displayName: 'Philip Okugbe',
+      username: 'Philipinho',
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.github.com/user');
+    expect(init.headers.Authorization).toBe('Bearer token');
+  });
+
+  it('reads the account from the GitHub Enterprise API', async () => {
+    process.env.INTEGRATION_GITHUB_URL = 'https://github.acme.com';
+    const provider = new GitHubProvider(new GitHubService());
+
+    await provider.resolveAccount({ accessToken: 'token', tokenResponse: {} });
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://github.acme.com/api/v3/user',
+    );
   });
 });
