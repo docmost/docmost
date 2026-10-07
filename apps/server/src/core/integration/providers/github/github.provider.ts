@@ -10,18 +10,9 @@ import {
 } from '../../registry/integration-provider.interface';
 import { GitHubService } from './github.service';
 import { buildGitHubPatterns } from './github-patterns';
+import { normalizeBaseUrl } from '../../utils/integration.utils';
 
 const DEFAULT_BASE_URL = 'https://github.com';
-
-function normalizeBaseUrl(value: string): string | null {
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    return `${parsed.origin}${parsed.pathname.replace(/\/+$/, '')}`;
-  } catch {
-    return null;
-  }
-}
 
 @Injectable()
 export class GitHubProvider extends IntegrationProvider {

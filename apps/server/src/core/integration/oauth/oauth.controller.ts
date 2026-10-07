@@ -48,6 +48,7 @@ import {
 } from '../registry/integration-provider.interface';
 import { EncryptionService } from '../../../integrations/encryption/encryption.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { nonceCookieName } from './oauth.utils';
 
 const OAUTH_ROUTE_PREFIX = '/api/integrations/oauth';
 const COMPLETION_TICKET_PURPOSE = 'oauth-completion';
@@ -61,8 +62,6 @@ type CompletionTicket = {
   code: string;
   exp: number;
 };
-
-const nonceCookieName = (type: string) => `integration_oauth_${type}`;
 
 // Redirects a browser back into the app instead of showing a JSON auth error.
 @Catch(UnauthorizedException, ForbiddenException)

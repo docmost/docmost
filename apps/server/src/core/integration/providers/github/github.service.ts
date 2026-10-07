@@ -1,18 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import {
-  UnfurlForbiddenError,
-  UnfurlResult,
-} from '../../registry/integration-provider.interface';
+import { UnfurlResult } from '../../registry/integration-provider.interface';
 import { relativeTime } from '../../utils/relative-time';
 import { providerApiFetch } from '../../utils/provider-fetch';
-
-function repoApiPath(owner: string, repo: string): string {
-  // encodeURIComponent keeps . and .., which the URL parser would resolve out of the path.
-  if ([owner, repo].some((name) => name === '.' || name === '..')) {
-    throw new UnfurlForbiddenError('GitHub repository path has a dot segment');
-  }
-  return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-}
+import { repoApiPath } from './github.utils';
 
 @Injectable()
 export class GitHubService {
