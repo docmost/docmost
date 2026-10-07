@@ -216,7 +216,7 @@ export class IntegrationConnectionRepo {
     expected: ExpectedTokens,
     data: UpdatableIntegrationConnection,
     trx?: KyselyTransaction,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const db = dbOrTx(this.db, trx);
     let query = db
       .updateTable('integrationConnections')
@@ -228,7 +228,8 @@ export class IntegrationConnectionRepo {
     if (expected.refreshToken !== undefined) {
       query = query.where('refreshToken', '=', expected.refreshToken);
     }
-    await query.execute();
+    const result = await query.executeTakeFirst();
+    return Number(result.numUpdatedRows) > 0;
   }
 
   async invalidate(

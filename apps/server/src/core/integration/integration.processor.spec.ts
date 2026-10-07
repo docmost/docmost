@@ -17,11 +17,25 @@ describe('IntegrationProcessor token refresh', () => {
       invalidate: jest.fn().mockResolvedValue(undefined),
     };
     const oauthService = { refreshAccessToken };
+    const locks = new Map<string, string>();
+    const redis = {
+      set: jest.fn(async (key: string, value: string) => {
+        if (locks.has(key)) return null;
+        locks.set(key, value);
+        return 'OK';
+      }),
+      eval: jest.fn(async (_script: string, _numKeys: number, key: string, token: string) => {
+        if (locks.get(key) !== token) return 0;
+        locks.delete(key);
+        return 1;
+      }),
+    };
     const processor = new IntegrationProcessor(
       connectionRepo as any,
       oauthService as any,
+      { getOrThrow: () => redis } as any,
     );
-    return { processor, connectionRepo, oauthService };
+    return { processor, connectionRepo, oauthService, locks };
   }
 
   it('loads at most 500 connections expiring within 15 minutes', async () => {
@@ -94,6 +108,34 @@ describe('IntegrationProcessor token refresh', () => {
 
     expect(refreshAccessToken).toHaveBeenCalledTimes(3);
     expect(connectionRepo.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('skips a connection whose refresh lock someone else holds', async () => {
+    const refreshAccessToken = jest.fn().mockResolvedValue('token');
+    const { processor, locks } = build(refreshAccessToken);
+    locks.set('integration:refresh:c2', 'request-holder');
+
+    await processor.process(refreshJob);
+
+    expect(refreshAccessToken.mock.calls.map(([row]) => row.id)).toEqual(['c1', 'c3']);
+    expect([...locks]).toEqual([['integration:refresh:c2', 'request-holder']]);
+  });
+
+  it('holds the lock during each refresh and releases it whether the refresh succeeds or fails', async () => {
+    const heldDuringRefresh: boolean[] = [];
+    let locks: Map<string, string>;
+    const refreshAccessToken = jest.fn(async ({ id }: { id: string }) => {
+      heldDuringRefresh.push(locks.has(`integration:refresh:${id}`));
+      if (id === 'c2') throw new Error('network');
+      return 'token';
+    });
+    const built = build(refreshAccessToken);
+    locks = built.locks;
+
+    await built.processor.process(refreshJob);
+
+    expect(heldDuringRefresh).toEqual([true, true, true]);
+    expect(locks.size).toBe(0);
   });
 
   describe('cancellation', () => {

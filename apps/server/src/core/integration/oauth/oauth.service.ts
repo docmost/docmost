@@ -44,8 +44,14 @@ import {
   AuditEvent,
   AuditResource,
 } from '../../../common/events/audit-events';
+import { RedisService } from '@nestjs-labs/nestjs-ioredis';
+import { RefreshLock } from '../utils/refresh-lock';
 
 const OAUTH_HTTP_TIMEOUT_MS = 10_000;
+// Room for the provider call that follows, and far inside the refresh job's 15-minute window.
+const REQUEST_REFRESH_WINDOW_MS = 60_000;
+const REFRESH_WAIT_TIMEOUT_MS = 5_000;
+const REFRESH_WAIT_POLL_MS = 200;
 
 const CONNECT_UNSUPPORTED_MESSAGE =
   'This integration does not support linking your account from Docmost';
@@ -92,6 +98,9 @@ export type OAuthStatePayload = {
 @Injectable()
 export class OAuthService {
   private readonly logger = new Logger(OAuthService.name);
+  private readonly refreshLock: RefreshLock;
+  // Concurrent requests for one connection share a single refresh in this process.
+  private readonly pendingRefreshes = new Map<string, Promise<string>>();
 
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
@@ -105,7 +114,10 @@ export class OAuthService {
     private readonly userRepo: UserRepo,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
-  ) {}
+    private readonly redisService: RedisService,
+  ) {
+    this.refreshLock = new RefreshLock(this.redisService.getOrThrow());
+  }
 
   async getAuthorizationUrl(
     integrationId: string,
@@ -518,24 +530,84 @@ export class OAuthService {
       throw new TokenInvalidError();
     }
 
-    // Not every provider answers an expired token with a 401.
+    const expiresAt = connection.tokenExpiresAt
+      ? new Date(connection.tokenExpiresAt).getTime()
+      : null;
     if (
-      connection.tokenExpiresAt &&
-      new Date(connection.tokenExpiresAt).getTime() < Date.now()
+      expiresAt === null ||
+      expiresAt - Date.now() > REQUEST_REFRESH_WINDOW_MS
     ) {
-      if (!connection.refreshToken) {
+      return this.encryptionService.decrypt(connection.accessToken);
+    }
+
+    if (!connection.refreshToken) {
+      // Not every provider answers an expired token with a 401.
+      if (expiresAt < Date.now()) {
         throw new TokenInvalidError(
           'Access token expired and cannot be refreshed',
         );
       }
-      throw new TokenExpiredError();
+      return this.encryptionService.decrypt(connection.accessToken);
     }
 
-    return this.encryptionService.decrypt(connection.accessToken);
+    let pending = this.pendingRefreshes.get(connection.id);
+    if (!pending) {
+      pending = this.refreshForRequest(connection).finally(() =>
+        this.pendingRefreshes.delete(connection.id),
+      );
+      this.pendingRefreshes.set(connection.id, pending);
+    }
+    return pending;
   }
 
-  // Takes no lock, so only the scheduled refresh job may call this.
-  async refreshAccessToken(connection: IntegrationConnection): Promise<void> {
+  private async refreshForRequest(
+    connection: IntegrationConnection,
+  ): Promise<string> {
+    const lockToken = await this.refreshLock.acquire(connection.id);
+    if (!lockToken) {
+      await this.refreshLock.waitForRelease(connection.id, {
+        timeoutMs: REFRESH_WAIT_TIMEOUT_MS,
+        pollMs: REFRESH_WAIT_POLL_MS,
+      });
+      const accessToken = this.usableAccessToken(
+        await this.connectionRepo.findById(connection.id),
+      );
+      if (!accessToken) {
+        throw new TokenExpiredError();
+      }
+      return accessToken;
+    }
+
+    try {
+      return await this.refreshAccessToken(connection);
+    } catch (err) {
+      if (err instanceof TokenInvalidError || err instanceof TokenExpiredError) {
+        throw err;
+      }
+      // A transient failure keeps the connection; a later request tries again.
+      throw new TokenExpiredError();
+    } finally {
+      await this.refreshLock.release(connection.id, lockToken);
+    }
+  }
+
+  private usableAccessToken(
+    row: IntegrationConnection | undefined,
+  ): string | null {
+    if (!row?.accessToken || row.invalidatedAt) {
+      return null;
+    }
+    if (
+      row.tokenExpiresAt &&
+      new Date(row.tokenExpiresAt).getTime() <= Date.now()
+    ) {
+      return null;
+    }
+    return this.encryptionService.decrypt(row.accessToken);
+  }
+
+  // Callers must hold the connection's refresh lock.
+  async refreshAccessToken(connection: IntegrationConnection): Promise<string> {
     const integration = await this.integrationRepo.findById(
       connection.integrationId,
     );
@@ -563,7 +635,11 @@ export class OAuthService {
         current.invalidatedAt ||
         current.accessToken !== connection.accessToken
       ) {
-        return;
+        const accessToken = this.usableAccessToken(current);
+        if (!accessToken) {
+          throw new TokenExpiredError();
+        }
+        return accessToken;
       }
       // A reconnect or another refresh meanwhile turns the writes below into no-ops.
       const expected = { refreshToken: current.refreshToken };
@@ -644,14 +720,29 @@ export class OAuthService {
         ? new Date(Date.now() + data.expires_in * 1000)
         : null;
 
-      await this.connectionRepo.updateIfTokensMatch(current.id, expected, {
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
-        tokenExpiresAt,
-        invalidatedAt: null,
-      });
+      const saved = await this.connectionRepo.updateIfTokensMatch(
+        current.id,
+        expected,
+        {
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
+          tokenExpiresAt,
+          invalidatedAt: null,
+        },
+      );
+      if (saved) {
+        return data.access_token;
+      }
+      // Reconnected meanwhile; the response belongs to the old grant.
+      const accessToken = this.usableAccessToken(
+        await this.connectionRepo.findById(current.id),
+      );
+      if (!accessToken) {
+        throw new TokenExpiredError();
+      }
+      return accessToken;
     } catch (err) {
-      if (err instanceof TokenInvalidError) {
+      if (err instanceof TokenInvalidError || err instanceof TokenExpiredError) {
         throw err;
       }
       this.logger.error(`Token refresh error: ${(err as Error).message}`);

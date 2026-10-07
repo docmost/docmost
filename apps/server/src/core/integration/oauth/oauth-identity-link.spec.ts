@@ -37,6 +37,7 @@ function buildService(existingLinkUserId?: string) {
     {} as any,
     {} as any,
     { log: jest.fn() } as any,
+    { getOrThrow: () => ({}) } as any,
   );
 
   // Stub the live token exchange with the provider

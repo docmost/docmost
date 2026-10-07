@@ -75,6 +75,25 @@ function streamUntilClosed(res: http.ServerResponse): void {
   pump();
 }
 
+// Emulates SET NX, the compare-and-delete release script and EXISTS over a Map.
+function fakeRedis() {
+  const keys = new Map<string, string>();
+  return {
+    keys,
+    set: jest.fn(async (key: string, value: string) => {
+      if (keys.has(key)) return null;
+      keys.set(key, value);
+      return 'OK';
+    }),
+    eval: jest.fn(async (_script: string, _numKeys: number, key: string, token: string) => {
+      if (keys.get(key) !== token) return 0;
+      keys.delete(key);
+      return 1;
+    }),
+    exists: jest.fn(async (key: string) => (keys.has(key) ? 1 : 0)),
+  };
+}
+
 function decodeState(authorizationUrl: string): OAuthStatePayload {
   const state = new URL(authorizationUrl).searchParams.get('state') ?? '';
   const data = state.substring(0, state.lastIndexOf('.'));
@@ -107,6 +126,7 @@ describe('OAuthService', () => {
   let integrationRepo: Record<string, jest.Mock>;
   let db: { transaction: jest.Mock };
   let auditService: { log: jest.Mock };
+  let redis: ReturnType<typeof fakeRedis>;
   let service: OAuthService;
   const trx = { name: 'install-trx' };
 
@@ -221,7 +241,7 @@ describe('OAuthService', () => {
       upsertUserLink: jest.fn(async (values) => values),
       findUserLink: jest.fn(async () => undefined),
       findById: jest.fn(async () => undefined),
-      updateIfTokensMatch: jest.fn(async () => undefined),
+      updateIfTokensMatch: jest.fn(async () => true),
       invalidate: jest.fn(async () => undefined),
     };
     integrationRepo = {
@@ -236,6 +256,7 @@ describe('OAuthService', () => {
     };
 
     auditService = { log: jest.fn() };
+    redis = fakeRedis();
     db = {
       transaction: jest.fn(() => ({
         execute: (callback: (t: typeof trx) => Promise<unknown>) => callback(trx),
@@ -269,6 +290,7 @@ describe('OAuthService', () => {
       } as any,
       new WorkspaceAbilityFactory(),
       auditService as any,
+      { getOrThrow: () => redis } as any,
     );
   });
 
@@ -886,7 +908,8 @@ describe('OAuthService', () => {
       }) as unknown as IntegrationConnection;
 
     it.each<[string, Record<string, unknown>]>([
-      ['that expires in a minute', { tokenExpiresAt: new Date(Date.now() + 60 * 1000) }],
+      ['that expires in an hour', {}],
+      ['that expires in two minutes', { tokenExpiresAt: new Date(Date.now() + 2 * 60 * 1000) }],
       ['that expires in a minute and has no refresh token', { tokenExpiresAt: new Date(Date.now() + 60 * 1000), refreshToken: null }],
       ['without an expiry', { tokenExpiresAt: null }],
       ['without an expiry or a refresh token', { tokenExpiresAt: null, refreshToken: null }],
@@ -896,17 +919,9 @@ describe('OAuthService', () => {
       expect(tokenEndpoint.requests).toEqual([]);
       expect(connectionRepo.findById).not.toHaveBeenCalled();
       expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
-    });
-
-    it('reports an expired token awaiting the refresh job without refreshing or retiring the connection', async () => {
-      const outcome = await service
-        .getValidAccessToken(storedConnection({ tokenExpiresAt: new Date(Date.now() - 1000) }))
-        .catch((err) => err);
-
-      expect(outcome).toBeInstanceOf(TokenExpiredError);
-      expect(tokenEndpoint.requests).toEqual([]);
-      expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
-      expect(connectionRepo.invalidate).not.toHaveBeenCalled();
+      expect(redis.set).not.toHaveBeenCalled();
+      expect(redis.exists).not.toHaveBeenCalled();
+      expect(redis.eval).not.toHaveBeenCalled();
     });
 
     it('reports an expired token that has no refresh token as invalid', async () => {
@@ -953,7 +968,9 @@ describe('OAuthService', () => {
         Object.entries(expected).every(([column, value]) => row[column] === value);
       connectionRepo.findById.mockImplementation(async () => ({ ...row }));
       connectionRepo.updateIfTokensMatch.mockImplementation(async (_id, expected, data) => {
-        if (matches(expected)) Object.assign(row, data);
+        if (!matches(expected)) return false;
+        Object.assign(row, data);
+        return true;
       });
       connectionRepo.invalidate.mockImplementation(async (_id, expected) => {
         if (matches(expected)) Object.assign(row, { invalidatedAt: new Date(), refreshToken: null, tokenExpiresAt: null });
@@ -961,7 +978,11 @@ describe('OAuthService', () => {
       return row;
     };
     const reconnectDuring = (reply: Reply, row: Record<string, unknown>): Reply => (req, res) => {
-      Object.assign(row, { accessToken: 'reconnected-access-token', refreshToken: 'reconnected-refresh-token' });
+      Object.assign(row, {
+        accessToken: 'reconnected-access-token',
+        refreshToken: 'reconnected-refresh-token',
+        tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      });
       reply(req, res);
     };
 
@@ -999,12 +1020,12 @@ describe('OAuthService', () => {
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
-    it('stores the refreshed tokens in the row', async () => {
+    it('stores the refreshed tokens in the row and returns the new access token', async () => {
       const row = storeRow({ ...expiringConnection() });
       tokenEndpointReply = (_req, res) =>
         tokenJson(res, { access_token: 'new-access-token', refresh_token: 'new-refresh-token', expires_in: 7200 });
 
-      await service.refreshAccessToken(expiringConnection());
+      await expect(service.refreshAccessToken(expiringConnection())).resolves.toBe('new-access-token');
 
       expect(row).toMatchObject({ accessToken: 'new-access-token', refreshToken: 'new-refresh-token', invalidatedAt: null });
       expect(new Date(row.tokenExpiresAt as Date).getTime()).toBeGreaterThan(Date.now() + 7100 * 1000);
@@ -1017,7 +1038,7 @@ describe('OAuthService', () => {
         row,
       );
 
-      await expect(service.refreshAccessToken(expiringConnection())).resolves.toBeUndefined();
+      await expect(service.refreshAccessToken(expiringConnection())).resolves.toBe('reconnected-access-token');
 
       expect(tokenEndpoint.requests).toHaveLength(1);
       expect(row).toMatchObject({ accessToken: 'reconnected-access-token', refreshToken: 'reconnected-refresh-token' });
@@ -1069,17 +1090,34 @@ describe('OAuthService', () => {
       );
     });
 
-    it.each<[string, Record<string, unknown> | undefined]>([
+    it.each<[string, Record<string, unknown>]>([
       ['refreshed by a rotating provider', { accessToken: 'fresh-access-token', refreshToken: 'rotated-refresh-token' }],
       ['refreshed by a non-rotating provider', { accessToken: 'fresh-access-token' }],
+      ['reconnected without a refresh token', { accessToken: 'fresh-access-token', refreshToken: null }],
+    ])('skips a connection %s since the caller read it and returns its current token', async (_label, changes) => {
+      connectionRepo.findById.mockResolvedValue(
+        expiringConnection({ ...changes, tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000) }),
+      );
+      tokenEndpointReply = rejectGrant(400);
+
+      await expect(service.refreshAccessToken(expiringConnection())).resolves.toBe('fresh-access-token');
+
+      expect(tokenEndpoint.requests).toEqual([]);
+      expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
+      expect(connectionRepo.invalidate).not.toHaveBeenCalled();
+    });
+
+    it.each<[string, Record<string, unknown> | undefined]>([
+      ['refreshed to a token that has expired too', { accessToken: 'fresh-access-token', refreshToken: 'rotated-refresh-token' }],
       ['retired', { invalidatedAt: new Date(), refreshToken: null, tokenExpiresAt: null }],
       ['deleted', undefined],
-    ])('skips a connection %s since the caller read it', async (_label, changes) => {
+    ])('skips a connection %s since the caller read it and reports it expired', async (_label, changes) => {
       connectionRepo.findById.mockResolvedValue(changes && expiringConnection(changes));
       tokenEndpointReply = rejectGrant(400);
 
-      await expect(service.refreshAccessToken(expiringConnection())).resolves.toBeUndefined();
+      const outcome = await service.refreshAccessToken(expiringConnection()).catch((err) => err);
 
+      expect(outcome).toBeInstanceOf(TokenExpiredError);
       expect(tokenEndpoint.requests).toEqual([]);
       expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
       expect(connectionRepo.invalidate).not.toHaveBeenCalled();
@@ -1313,6 +1351,162 @@ describe('OAuthService', () => {
           ['Token refresh failed for entra: 401 invalid_client'],
           ['Token refresh error: Token refresh failed'],
         ]);
+      });
+    });
+
+    describe('on the request path', () => {
+      const lockKey = 'integration:refresh:connection-1';
+      const issueNewTokens: Reply = (_req, res) =>
+        tokenJson(res, { access_token: 'new-access-token', refresh_token: 'new-refresh-token', expires_in: 7200 });
+      const inAnHour = () => new Date(Date.now() + 60 * 60 * 1000);
+
+      it.each<[string, Date]>([
+        ['has expired', new Date(Date.now() - 1000)],
+        ['expires within a minute', new Date(Date.now() + 30 * 1000)],
+      ])('refreshes a token that %s and returns the new one', async (_label, tokenExpiresAt) => {
+        const row = storeRow({ ...expiringConnection({ tokenExpiresAt }) });
+        tokenEndpointReply = issueNewTokens;
+
+        await expect(service.getValidAccessToken(expiringConnection({ tokenExpiresAt }))).resolves.toBe(
+          'new-access-token',
+        );
+
+        expect(tokenEndpoint.requests.map((r) => r.body)).toEqual([refreshBody('refresh-token')]);
+        expect(row).toMatchObject({ accessToken: 'new-access-token', refreshToken: 'new-refresh-token' });
+        expect(redis.set).toHaveBeenCalledWith(lockKey, expect.any(String), 'PX', 20_000, 'NX');
+        expect(redis.keys.has(lockKey)).toBe(false);
+      });
+
+      it('makes one token request for ten concurrent callers', async () => {
+        storeRow({ ...expiringConnection() });
+        tokenEndpointReply = issueNewTokens;
+
+        const tokens = await Promise.all(
+          Array.from({ length: 10 }, () => service.getValidAccessToken(expiringConnection())),
+        );
+
+        expect(tokens).toEqual(Array(10).fill('new-access-token'));
+        expect(tokenEndpoint.requests).toHaveLength(1);
+        expect(redis.set).toHaveBeenCalledTimes(1);
+      });
+
+      it('lets a later request refresh after a shared refresh failed', async () => {
+        storeRow({ ...expiringConnection() });
+        tokenEndpointReply = tokenError(503, '');
+        await expect(service.getValidAccessToken(expiringConnection())).rejects.toBeInstanceOf(TokenExpiredError);
+
+        tokenEndpointReply = issueNewTokens;
+        await expect(service.getValidAccessToken(expiringConnection())).resolves.toBe('new-access-token');
+
+        expect(tokenEndpoint.requests).toHaveLength(2);
+      });
+
+      it('returns the token another process saved after the caller read the row', async () => {
+        storeRow({
+          ...expiringConnection({
+            accessToken: 'saved-access-token',
+            refreshToken: 'rotated-refresh-token',
+            tokenExpiresAt: inAnHour(),
+          }),
+        });
+
+        await expect(service.getValidAccessToken(expiringConnection())).resolves.toBe('saved-access-token');
+
+        expect(tokenEndpoint.requests).toEqual([]);
+        expect(redis.keys.has(lockKey)).toBe(false);
+      });
+
+      it('waits for a refresh another process holds and returns the token it saved', async () => {
+        const row = storeRow({ ...expiringConnection() });
+        redis.keys.set(lockKey, 'other-process');
+        redis.exists.mockImplementationOnce(async () => {
+          Object.assign(row, {
+            accessToken: 'other-access-token',
+            refreshToken: 'other-refresh-token',
+            tokenExpiresAt: inAnHour(),
+          });
+          redis.keys.delete(lockKey);
+          return 1;
+        });
+
+        await expect(service.getValidAccessToken(expiringConnection())).resolves.toBe('other-access-token');
+
+        expect(redis.exists).toHaveBeenCalledTimes(2);
+        expect(tokenEndpoint.requests).toEqual([]);
+        expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
+      });
+
+      it('gives up after five seconds while another process still holds the lock, without retiring the connection', async () => {
+        jest.useFakeTimers();
+        try {
+          const row = storeRow({ ...expiringConnection() });
+          redis.keys.set(lockKey, 'other-process');
+
+          const outcome = service.getValidAccessToken(expiringConnection()).catch((err) => err);
+          await jest.advanceTimersByTimeAsync(4_800);
+          expect(connectionRepo.findById).not.toHaveBeenCalled();
+          await jest.advanceTimersByTimeAsync(400);
+
+          expect(await outcome).toBeInstanceOf(TokenExpiredError);
+          expect(connectionRepo.findById).toHaveBeenCalledTimes(1);
+          expect(tokenEndpoint.requests).toEqual([]);
+          expect(connectionRepo.invalidate).not.toHaveBeenCalled();
+          expect(row).toMatchObject({ refreshToken: 'refresh-token', invalidatedAt: null });
+          expect(redis.keys.get(lockKey)).toBe('other-process');
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('reports the token expired without refreshing when Redis fails', async () => {
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+        storeRow({ ...expiringConnection() });
+        redis.set.mockRejectedValue(new Error('connection lost'));
+        redis.exists.mockRejectedValue(new Error('connection lost'));
+        tokenEndpointReply = issueNewTokens;
+
+        const outcome = await service.getValidAccessToken(expiringConnection()).catch((err) => err);
+
+        expect(outcome).toBeInstanceOf(TokenExpiredError);
+        expect(tokenEndpoint.requests).toEqual([]);
+        expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
+        expect(connectionRepo.invalidate).not.toHaveBeenCalled();
+      });
+
+      it.each<[string, string, Reply]>([
+        ['a 5xx', 'integration-acme', tokenError(503, '')],
+        ['a dropped connection', 'integration-acme', (_req, res) => res.socket?.destroy()],
+        [
+          'a refused client on a provider that retires on invalid_grant only',
+          'integration-entra',
+          tokenError(401, JSON.stringify({ error: 'invalid_client' })),
+        ],
+      ])('reports %s from the token endpoint as expired and keeps the connection', async (_label, integrationId, reply) => {
+        const row = storeRow({ ...expiringConnection({ integrationId }) });
+        tokenEndpointReply = reply;
+
+        const outcome = await service.getValidAccessToken(expiringConnection({ integrationId })).catch((err) => err);
+
+        expect(outcome).toBeInstanceOf(TokenExpiredError);
+        expect(tokenEndpoint.requests).toHaveLength(1);
+        expect(connectionRepo.invalidate).not.toHaveBeenCalled();
+        expect(row).toMatchObject({ accessToken: 'expired-access-token', refreshToken: 'refresh-token', invalidatedAt: null });
+        expect(redis.keys.has(lockKey)).toBe(false);
+      });
+
+      it.each<[string, string]>([
+        ['the provider', 'integration-acme'],
+        ['a provider that retires on invalid_grant only', 'integration-entra'],
+      ])('retires the connection when %s answers invalid_grant', async (_label, integrationId) => {
+        const row = storeRow({ ...expiringConnection({ integrationId }) });
+        tokenEndpointReply = rejectGrant(400);
+
+        const outcome = await service.getValidAccessToken(expiringConnection({ integrationId })).catch((err) => err);
+
+        expect(outcome).toBeInstanceOf(TokenInvalidError);
+        expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
+        expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
+        expect(redis.keys.has(lockKey)).toBe(false);
       });
     });
   });

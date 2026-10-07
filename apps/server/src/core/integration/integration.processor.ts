@@ -4,6 +4,8 @@ import { Job } from 'bullmq';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
 import { OAuthService } from './oauth/oauth.service';
+import { RedisService } from '@nestjs-labs/nestjs-ioredis';
+import { RefreshLock } from './utils/refresh-lock';
 
 const TOKEN_REFRESH_WINDOW_MS = 15 * 60 * 1000;
 // Even at 2 s per refresh, a full batch finishes inside JOB_TIMEOUT_MS.
@@ -14,12 +16,15 @@ const JOB_TIMEOUT_MS = 5 * 60 * 1000;
 @Processor(QueueName.INTEGRATION_QUEUE)
 export class IntegrationProcessor extends WorkerHost {
   private readonly logger = new Logger(IntegrationProcessor.name);
+  private readonly refreshLock: RefreshLock;
 
   constructor(
     private readonly connectionRepo: IntegrationConnectionRepo,
     private readonly oauthService: OAuthService,
+    private readonly redisService: RedisService,
   ) {
     super();
+    this.refreshLock = new RefreshLock(this.redisService.getOrThrow());
   }
 
   async process(job: Job, token?: string, signal?: AbortSignal): Promise<void> {
@@ -90,6 +95,12 @@ export class IntegrationProcessor extends WorkerHost {
           signal.throwIfAborted();
           const connection = connections[next++];
           inFlight.add(connection.id);
+          const lockToken = await this.refreshLock.acquire(connection.id);
+          // Someone else is refreshing this connection right now.
+          if (!lockToken) {
+            inFlight.delete(connection.id);
+            continue;
+          }
           try {
             await this.oauthService.refreshAccessToken(connection);
             refreshed += 1;
@@ -99,6 +110,7 @@ export class IntegrationProcessor extends WorkerHost {
             );
           } finally {
             inFlight.delete(connection.id);
+            await this.refreshLock.release(connection.id, lockToken);
           }
         }
       };
