@@ -1,0 +1,3 @@
+# Hackathon Pitch
+
+We are building a local-first data archive that keeps the original files pristine, creates working copies for processing, and documents every step so the system is transparent, resilient, and reproducible. In a world where cloud platforms disappear, crisis systems fail, and AI systems can get it wrong, individuals and communities need tools they control. Our project preserves community history, personal records, and legal evidence without depending on centralized infrastructure or opaque software. It is built to support people who need to keep their own stories, archives, and proof safe. We are not just archiving data — we are re-claiming autonomy, trust, and digital memory in a way that is local, ethical, and human-centered.

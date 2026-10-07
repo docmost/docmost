@@ -1,62 +1,75 @@
-<div align="center">
-    <h1><b>Docmost</b></h1>
-    <p>
-        Open-source collaborative wiki and documentation software.
-        <br />
-        <a href="https://docmost.com"><strong>Website</strong></a> | 
-        <a href="https://docmost.com/docs"><strong>Documentation</strong></a> |
-        <a href="https://twitter.com/DocmostHQ"><strong>Twitter / X</strong></a>
-    </p>
-</div>
-<br />
+# Local Data Museum
 
-## Getting started
+A local-first archive for preserving personal, family, and community history.
 
-To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
+## Mission
 
-## Features
+Local-first data preservation for community survival, historical memory, and human-centered resilience. Our mission is to protect personal, family, and community records by building a transparent, durable archive that keeps raw originals intact, creates working copies for analysis, and documents every transformation. We believe data should be owned by the people it belongs to, not held hostage by centralized platforms, fragile systems, or opaque AI tools. By creating a local, versioned archive with human oversight and clear safeguards, we empower communities to preserve evidence, protect memory, and maintain autonomy when institutions fail.
 
-- Real-time collaboration
-- Diagrams (Draw.io, Excalidraw and Mermaid)
-- Spaces
-- Permissions management
-- Groups
-- Comments
-- Page history
-- Search
-- File attachments
-- Embeds (Airtable, Loom, Miro and more)
-- Translations (10+ languages)
+## Why this project exists
 
-### Screenshots
+- Cloud platforms disappear, fail, or lock users out.
+- Crisis systems are unreliable and not always built for human dignity.
+- Data is often scattered across browsers, accounts, devices, and services.
+- People need control over their own records and their own story.
+- Local archives are more resilient and more transparent than centralized systems.
 
-<p align="center">
-<img alt="home" src="https://docmost.com/screenshots/home.png" width="70%">
-<img alt="editor" src="https://docmost.com/screenshots/editor.png" width="70%">
-</p>
+## Core ideas
 
-### License
-Docmost core is licensed under the open-source AGPL 3.0 license.  
-Enterprise features are available under an enterprise license (Enterprise Edition).  
+- Preserve originals exactly as they were received.
+- Never overwrite or delete the raw source.
+- Keep a working copy for research and processing.
+- Record checksums, timestamps, and transformation history.
+- Make data searchable and understandable without losing integrity.
+- Keep human review in the loop.
 
-All files in the following directories are licensed under the Docmost Enterprise license defined in `packages/ee/License`.
-  - apps/server/src/ee
-  - apps/client/src/ee
-  - packages/ee
+## What this project includes
 
-### Contributing
+- Chrome history export
+- Google Takeout ingestion workflow
+- integrity checks and manifest logs
+- local archive folder structure
+- working-copy extraction and indexing
+- future support for texts, Messenger exports, and other sources
 
-See the [development documentation](https://docmost.com/docs/self-hosting/development)
+## Quick start
 
-## Thanks
-Special thanks to;
+This repository currently includes a local Chrome history exporter.
 
-<img width="100" alt="Crowdin" src="https://github.com/user-attachments/assets/a6c3d352-e41b-448d-b6cd-3fbca3109f07" />
+### 1. Open a terminal in the project root
 
-[Crowdin](https://crowdin.com/) for providing access to their localization platform.
+### 2. Run the exporter
 
+```bash
+python3 src/chrome_history_export.py
+```
 
-<img width="48" alt="Algolia-mark-square-white" src="https://github.com/user-attachments/assets/6ccad04a-9589-4965-b6a1-d5cb1f4f9e94" />
+### 3. The script will:
 
-[Algolia](https://www.algolia.com/) for providing full-text search to the docs.
+- locate Chrome history on the current machine
+- export a raw copy of the database
+- read the `urls` table
+- write JSON and CSV outputs to `output/`
 
+## Output folders
+
+- `output/chrome_history.json`
+- `output/chrome_history.csv`
+- `output/chrome_history_manifest.json`
+
+## Notes
+
+This is the first concrete piece of the archive system. It is intentionally conservative: raw data stays intact, and exported data is generated from a copy rather than from the original database file.
+
+## Future roadmap
+
+- Google Takeout ingestion
+- integrity verification with SHA-256
+- timeline generation
+- full-text indexing
+- legal document export and chain-of-custody logging
+- file categorization and tagging
+
+## License
+
+This project is for personal and community archival use.

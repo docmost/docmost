@@ -1,0 +1,3 @@
+# Mission Statement
+
+Local-first data preservation for community survival, historical memory, and human-centered resilience. Our mission is to protect personal, family, and community records by building a transparent, durable archive that keeps raw originals intact, creates working copies for analysis, and documents every transformation. We believe data should be owned by the people it belongs to, not held hostage by centralized platforms, fragile systems, or opaque AI tools. By creating a local, versioned archive with human oversight and clear safeguards, we empower communities to preserve evidence, protect memory, and maintain autonomy when institutions fail.
