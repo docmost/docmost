@@ -9,6 +9,7 @@ import {
   AuditEvent,
   AuditResource,
 } from '../../common/events/audit-events';
+import { ProviderAccount } from './registry/integration-provider.interface';
 
 @Injectable()
 export class IntegrationConnectionService {
@@ -24,15 +25,20 @@ export class IntegrationConnectionService {
       workspaceId,
     );
 
-    return rows.map((row) => ({
-      integrationId: row.integrationId,
-      type: row.type,
-      providerUserId: row.providerUserId ?? null,
-      providerDisplayName:
-        (row.metadata as { displayName?: string } | null)?.displayName ?? null,
-      connectedAt: row.createdAt,
-      invalidatedAt: row.invalidatedAt ?? null,
-    }));
+    return rows.map((row) => {
+      // Only Slack shows its linked account until the connections page uses it.
+      const isSlack = row.type === 'slack';
+      const account = (row.metadata as { account?: ProviderAccount } | null)
+        ?.account;
+      return {
+        integrationId: row.integrationId,
+        type: row.type,
+        providerUserId: isSlack ? (row.providerUserId ?? null) : null,
+        providerDisplayName: isSlack ? (account?.displayName ?? null) : null,
+        connectedAt: row.createdAt,
+        invalidatedAt: row.invalidatedAt ?? null,
+      };
+    });
   }
 
   async disconnect(
