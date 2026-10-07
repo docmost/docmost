@@ -16,7 +16,10 @@ import { IntegrationRepo } from '../repos/integration.repo';
 import { IntegrationConnectionRepo } from '../repos/integration-connection.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { EncryptionService } from '../../../integrations/encryption/encryption.service';
+import {
+  EncryptionPurpose,
+  EncryptionService,
+} from '../../../integrations/encryption/encryption.service';
 import { IntegrationConnection } from '@docmost/db/types/entity.types';
 import {
   IdentityEmailMismatchError,
@@ -499,9 +502,13 @@ export class OAuthService {
   ): Promise<IntegrationConnection> {
     const encryptedAccessToken = this.encryptionService.encrypt(
       tokenResponse.access_token,
+      EncryptionPurpose.INTEGRATION_TOKENS,
     );
     const encryptedRefreshToken = tokenResponse.refresh_token
-      ? this.encryptionService.encrypt(tokenResponse.refresh_token)
+      ? this.encryptionService.encrypt(
+          tokenResponse.refresh_token,
+          EncryptionPurpose.INTEGRATION_TOKENS,
+        )
       : null;
 
     const tokenExpiresAt = tokenResponse.expires_in
@@ -537,7 +544,10 @@ export class OAuthService {
       expiresAt === null ||
       expiresAt - Date.now() > REQUEST_REFRESH_WINDOW_MS
     ) {
-      return this.encryptionService.decrypt(connection.accessToken);
+      return this.encryptionService.decrypt(
+        connection.accessToken,
+        EncryptionPurpose.INTEGRATION_TOKENS,
+      );
     }
 
     if (!connection.refreshToken) {
@@ -547,7 +557,10 @@ export class OAuthService {
           'Access token expired and cannot be refreshed',
         );
       }
-      return this.encryptionService.decrypt(connection.accessToken);
+      return this.encryptionService.decrypt(
+        connection.accessToken,
+        EncryptionPurpose.INTEGRATION_TOKENS,
+      );
     }
 
     let pending = this.pendingRefreshes.get(connection.id);
@@ -603,7 +616,10 @@ export class OAuthService {
     ) {
       return null;
     }
-    return this.encryptionService.decrypt(row.accessToken);
+    return this.encryptionService.decrypt(
+      row.accessToken,
+      EncryptionPurpose.INTEGRATION_TOKENS,
+    );
   }
 
   // Callers must hold the connection's refresh lock.
@@ -648,7 +664,10 @@ export class OAuthService {
       const params = new URLSearchParams({
         grant_type: 'refresh_token',
         ...(basicAuth ? {} : { client_id: clientId, client_secret: clientSecret }),
-        refresh_token: this.encryptionService.decrypt(current.refreshToken),
+        refresh_token: this.encryptionService.decrypt(
+          current.refreshToken,
+          EncryptionPurpose.INTEGRATION_TOKENS,
+        ),
       });
       if (oauthConfig.scopeOnRefresh) {
         params.set('scope', oauthConfig.scopes.join(' '));
@@ -712,9 +731,13 @@ export class OAuthService {
       }
       const encryptedAccessToken = this.encryptionService.encrypt(
         data.access_token,
+        EncryptionPurpose.INTEGRATION_TOKENS,
       );
       const encryptedRefreshToken = data.refresh_token
-        ? this.encryptionService.encrypt(data.refresh_token)
+        ? this.encryptionService.encrypt(
+            data.refresh_token,
+            EncryptionPurpose.INTEGRATION_TOKENS,
+          )
         : current.refreshToken;
       const tokenExpiresAt = data.expires_in
         ? new Date(Date.now() + data.expires_in * 1000)

@@ -14,7 +14,10 @@ import {
   IdentityTenantMismatchError,
   IntegrationTenantInUseError,
 } from '../registry/integration-provider.interface';
-import { EncryptionService } from '../../../integrations/encryption/encryption.service';
+import {
+  EncryptionPurpose,
+  EncryptionService,
+} from '../../../integrations/encryption/encryption.service';
 import { Test } from '@nestjs/testing';
 import {
   FastifyAdapter,
@@ -126,6 +129,7 @@ function issueTicket(fields: Record<string, unknown> = {}) {
       exp: Date.now() + 60_000,
       ...fields,
     }),
+    EncryptionPurpose.OAUTH_COMPLETION,
   );
 }
 
@@ -244,7 +248,10 @@ describe('OAuthController callback', () => {
       'https://acme.example/api/integrations/oauth/complete',
     );
     const ticket = JSON.parse(
-      encryptionService.decrypt(url.searchParams.get('ticket') ?? ''),
+      encryptionService.decrypt(
+        url.searchParams.get('ticket') ?? '',
+        EncryptionPurpose.OAUTH_COMPLETION,
+      ),
     );
     expect(ticket).toEqual({
       purpose: 'oauth-completion',
@@ -530,6 +537,7 @@ describe('OAuthController complete', () => {
             code: 'auth-code',
             exp: Date.now() + 60_000,
           }),
+          EncryptionPurpose.OAUTH_COMPLETION,
         ),
     ],
     ['a ticket whose state does not verify', () => issueTicket({ state: 'forged-state' })],
@@ -537,7 +545,19 @@ describe('OAuthController complete', () => {
     ['a ticket without an expiry', () => issueTicket({ exp: undefined })],
     ['a ticket without a purpose', () => issueTicket({ purpose: undefined })],
     ['a ticket minted for another purpose', () => issueTicket({ purpose: 'session' })],
-    ['a ticket that is not an object', () => encryptionService.encrypt('null')],
+    ['a ticket that is not an object', () => encryptionService.encrypt('null', EncryptionPurpose.OAUTH_COMPLETION)],
+    [
+      'a ticket encrypted for SIEM credentials',
+      () => encryptionService.encrypt(
+        JSON.stringify({
+          purpose: 'oauth-completion',
+          state: 'signed-state',
+          code: 'auth-code',
+          exp: Date.now() + 60_000,
+        }),
+        EncryptionPurpose.SIEM_CREDENTIALS,
+      ),
+    ],
     ['a missing ticket', () => undefined],
   ])('refuses %s', async (_label, ticket) => {
     const { res, exchangeCodeForTokens } = await complete({ ticket: ticket() });

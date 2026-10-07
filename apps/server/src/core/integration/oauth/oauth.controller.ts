@@ -46,7 +46,10 @@ import {
   IdentityTenantMismatchError,
   IntegrationTenantInUseError,
 } from '../registry/integration-provider.interface';
-import { EncryptionService } from '../../../integrations/encryption/encryption.service';
+import {
+  EncryptionPurpose,
+  EncryptionService,
+} from '../../../integrations/encryption/encryption.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { nonceCookieName } from './oauth.utils';
 
@@ -234,6 +237,7 @@ export class OAuthController {
         code,
         exp: Date.now() + COMPLETION_TICKET_TTL_MS,
       } satisfies CompletionTicket),
+      EncryptionPurpose.OAUTH_COMPLETION,
     );
 
     return res.redirect(
@@ -255,7 +259,9 @@ export class OAuthController {
   ) {
     let completion: Partial<CompletionTicket> | null;
     try {
-      completion = JSON.parse(this.encryptionService.decrypt(ticket));
+      completion = JSON.parse(
+        this.encryptionService.decrypt(ticket, EncryptionPurpose.OAUTH_COMPLETION),
+      );
     } catch {
       completion = null;
     }
