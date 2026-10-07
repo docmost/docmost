@@ -18,6 +18,26 @@
   }
 
   .tableWrapper {
-    overflow: hidden !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  .tableWrapper table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed;
+  }
+
+  .tableWrapper col,
+  .tableWrapper th,
+  .tableWrapper td {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    border: 0.5px solid #000 !important;
+    outline: 0.5px solid #000;
+    outline-offset: -0.5px;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 }
