@@ -13,7 +13,7 @@ function buildService(existingLinkUserId?: string) {
         identity: { tokenUrl: 'https://slack.example/token' },
       },
     },
-    resolveIdentity: jest.fn().mockResolvedValue({ providerUserId }),
+    resolveIdentity: jest.fn().mockResolvedValue({ account: { id: providerUserId } }),
   };
 
   const findUserLink = jest

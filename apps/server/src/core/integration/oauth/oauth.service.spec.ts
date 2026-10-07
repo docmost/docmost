@@ -109,6 +109,7 @@ describe('OAuthService', () => {
     'integration-hidden': { id: 'integration-hidden', type: 'hidden', workspaceId, settings: {} },
     'integration-entra': { id: 'integration-entra', type: 'entra', workspaceId, settings: {} },
     'integration-design': { id: 'integration-design', type: 'design', workspaceId, settings: {} },
+    'integration-tracker': { id: 'integration-tracker', type: 'tracker', workspaceId, settings: {} },
     'integration-foreign': { id: 'integration-foreign', type: 'acme', workspaceId: 'workspace-2', settings: {} },
   };
 
@@ -121,6 +122,8 @@ describe('OAuthService', () => {
   let resolveIdentity: jest.Mock;
   let chatOnConnected: jest.Mock;
   let acmeOnConnected: jest.Mock;
+  let chatResolveAccount: jest.Mock;
+  let trackerResolveAccount: jest.Mock;
   let connectionRepo: Record<string, jest.Mock>;
   let integrationRepo: Record<string, jest.Mock>;
   let db: { transaction: jest.Mock };
@@ -134,7 +137,7 @@ describe('OAuthService', () => {
 
   beforeAll(async () => {
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    for (const type of ['ACME', 'CHAT', 'LEGACY', 'HIDDEN', 'ENTRA', 'DESIGN']) {
+    for (const type of ['ACME', 'CHAT', 'LEGACY', 'HIDDEN', 'ENTRA', 'DESIGN', 'TRACKER']) {
       process.env[`INTEGRATION_${type}_CLIENT_ID`] = `${type.toLowerCase()}-client-id`;
       process.env[`INTEGRATION_${type}_CLIENT_SECRET`] = `${type.toLowerCase()}-client-secret`;
     }
@@ -144,7 +147,7 @@ describe('OAuthService', () => {
 
   afterAll(async () => {
     jest.restoreAllMocks();
-    for (const type of ['ACME', 'CHAT', 'LEGACY', 'HIDDEN', 'ENTRA', 'DESIGN']) {
+    for (const type of ['ACME', 'CHAT', 'LEGACY', 'HIDDEN', 'ENTRA', 'DESIGN', 'TRACKER']) {
       delete process.env[`INTEGRATION_${type}_CLIENT_ID`];
       delete process.env[`INTEGRATION_${type}_CLIENT_SECRET`];
     }
@@ -162,8 +165,14 @@ describe('OAuthService', () => {
     currentUserDisabledAt = null;
     currentUserEmail = 'user@example.com';
     resolveIdentity = jest.fn(async ({ settings }) => ({
-      providerUserId: 'U-42',
+      account: { id: 'U-42' },
       metadata: { tenantId: settings.tenantId },
+    }));
+    chatResolveAccount = jest.fn(async () => ({ id: 'U-INSTALLER', displayName: 'Ada' }));
+    trackerResolveAccount = jest.fn(async () => ({
+      id: '583231',
+      displayName: 'Ada Lovelace',
+      username: 'ada',
     }));
     chatOnConnected = jest.fn(async () => undefined);
     acmeOnConnected = jest.fn(async () => undefined);
@@ -201,6 +210,7 @@ describe('OAuthService', () => {
           identity: { ...chatOAuth.identity, authParams: { team: settings.tenantId } },
         }),
         resolveIdentity,
+        resolveAccount: chatResolveAccount,
         onConnected: chatOnConnected,
       },
       legacy: {
@@ -230,6 +240,10 @@ describe('OAuthService', () => {
             clientAuth: 'basic' as const,
           },
         },
+      },
+      tracker: {
+        definition: { type: 'tracker', oauth: providerOAuth(['read']) },
+        resolveAccount: trackerResolveAccount,
       },
     };
 
@@ -443,7 +457,11 @@ describe('OAuthService', () => {
       currentRole = UserRole.MEMBER;
       tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'identity-token' });
 
-      resolveIdentity.mockResolvedValue({ providerUserId: 'U-42', email: 'User@Example.com ', metadata: { tenantId: 'T-1' } });
+      resolveIdentity.mockResolvedValue({
+        account: { id: 'U-42', displayName: 'Ada' },
+        email: 'User@Example.com ',
+        metadata: { tenantId: 'T-1' },
+      });
       const link = await service.exchangeCodeForTokens(
         'chat',
         'auth-code',
@@ -465,7 +483,7 @@ describe('OAuthService', () => {
         workspaceId,
         userId,
         providerUserId: 'U-42',
-        metadata: { tenantId: 'T-1' },
+        metadata: { tenantId: 'T-1', account: { id: 'U-42', displayName: 'Ada' } },
       });
       expect(connectionRepo.upsertWorkspaceConnection).not.toHaveBeenCalled();
       expect(connectionRepo.upsert).not.toHaveBeenCalled();
@@ -506,7 +524,7 @@ describe('OAuthService', () => {
 
     it('refuses when the provider account email differs from the Docmost user', async () => {
       tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'identity-token' });
-      resolveIdentity.mockResolvedValue({ providerUserId: 'U-42', email: 'someone-else@example.com' });
+      resolveIdentity.mockResolvedValue({ account: { id: 'U-42' }, email: 'someone-else@example.com' });
 
       await expect(
         service.exchangeCodeForTokens('chat', 'auth-code', connectState('integration-chat', 'chat')),
@@ -529,6 +547,128 @@ describe('OAuthService', () => {
         undefined,
       );
       expect(integrationRepo.insertOrRestore).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('connected account', () => {
+    const account = { id: '583231', displayName: 'Ada Lovelace', username: 'ada' };
+
+    beforeEach(() => {
+      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'user-token' });
+    });
+
+    it('stores the account a member connected with and audits it', async () => {
+      await service.exchangeCodeForTokens('tracker', 'auth-code', connectState('integration-tracker', 'tracker'));
+
+      expect(trackerResolveAccount).toHaveBeenCalledWith({
+        accessToken: 'user-token',
+        tokenResponse: { access_token: 'user-token' },
+      });
+      expect(connectionRepo.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ userId, providerUserId: '583231', metadata: { account } }),
+        undefined,
+      );
+      expect(auditService.log).toHaveBeenCalledWith({
+        event: 'integration.connected',
+        resourceType: 'integration',
+        resourceId: 'integration-tracker',
+        changes: { after: { provider: 'tracker', account } },
+      });
+    });
+
+    it('still connects when the profile read fails, without an account', async () => {
+      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      trackerResolveAccount.mockRejectedValue(new Error('tracker API error: 500'));
+
+      await service.exchangeCodeForTokens('tracker', 'auth-code', connectState('integration-tracker', 'tracker'));
+
+      expect(connectionRepo.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ providerUserId: null, metadata: null }),
+        undefined,
+      );
+      expect(connectionRepo.findUserLink).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith('Could not read the connected tracker account: tracker API error: 500');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ changes: { after: { provider: 'tracker' } } }),
+      );
+    });
+
+    it('refuses an account already connected to another Docmost user', async () => {
+      connectionRepo.findUserLink.mockResolvedValue({ userId: 'user-2' });
+
+      await expect(
+        service.exchangeCodeForTokens('tracker', 'auth-code', connectState('integration-tracker', 'tracker')),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(connectionRepo.findUserLink).toHaveBeenCalledWith('integration-tracker', '583231', undefined);
+      expect(connectionRepo.upsert).not.toHaveBeenCalled();
+      expect(auditService.log).not.toHaveBeenCalled();
+    });
+
+    it('lets a member reconnect the account they already hold', async () => {
+      connectionRepo.findUserLink.mockResolvedValue({ userId });
+
+      await service.exchangeCodeForTokens('tracker', 'auth-code', connectState('integration-tracker', 'tracker'));
+
+      expect(connectionRepo.upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it("stores the installing admin's account and audits the install with it", async () => {
+      await service.exchangeCodeForTokens('tracker', 'auth-code', installState('tracker'));
+
+      expect(connectionRepo.findUserLink).toHaveBeenCalledWith('integration-tracker', '583231', trx);
+      expect(connectionRepo.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ providerUserId: '583231', metadata: { account } }),
+        trx,
+      );
+      expect(auditService.log).toHaveBeenCalledWith({
+        event: 'integration.installed',
+        resourceType: 'integration',
+        resourceId: 'integration-tracker',
+        changes: { after: { provider: 'tracker', account } },
+      });
+    });
+
+    it('reads the installer account before the transaction and hands it to onConnected, not the shared row', async () => {
+      const order: string[] = [];
+      chatResolveAccount.mockImplementation(async () => {
+        order.push('resolveAccount');
+        return { id: 'U-INSTALLER', displayName: 'Ada' };
+      });
+      db.transaction.mockImplementation(() => ({
+        execute: (callback: (t: typeof trx) => Promise<unknown>) => {
+          order.push('transaction');
+          return callback(trx);
+        },
+      }));
+      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'bot-token' });
+
+      await service.exchangeCodeForTokens('chat', 'auth-code', installState('chat'));
+
+      expect(order).toEqual(['resolveAccount', 'transaction']);
+      expect(connectionRepo.upsertWorkspaceConnection.mock.calls[0][0]).not.toHaveProperty('providerUserId');
+      expect(chatOnConnected).toHaveBeenCalledWith(
+        expect.objectContaining({ account: { id: 'U-INSTALLER', displayName: 'Ada' } }),
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          changes: { after: { provider: 'chat', account: { id: 'U-INSTALLER', displayName: 'Ada' } } },
+        }),
+      );
+    });
+
+    it('audits the account of a linked identity without reading it again', async () => {
+      tokenEndpointReply = (_req, res) => tokenJson(res, { access_token: 'identity-token' });
+      resolveIdentity.mockResolvedValue({ account: { id: 'U-42', displayName: 'Ada' }, metadata: {} });
+
+      await service.exchangeCodeForTokens('chat', 'auth-code', connectState('integration-chat', 'chat'));
+
+      expect(chatResolveAccount).not.toHaveBeenCalled();
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          changes: { after: { provider: 'chat', account: { id: 'U-42', displayName: 'Ada' } } },
+        }),
+      );
     });
   });
 

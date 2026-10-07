@@ -25,6 +25,7 @@ import {
   IdentityEmailMismatchError,
   IntegrationProvider,
   OAuthConfig,
+  ProviderAccount,
   TokenExpiredError,
   TokenInvalidError,
 } from '../registry/integration-provider.interface';
@@ -79,6 +80,11 @@ type OAuthTokenResponse = {
   expires_in?: number;
   token_type?: string;
   scope?: string;
+};
+
+type CompletedConnection = {
+  connection: IntegrationConnection;
+  account?: ProviderAccount;
 };
 
 export type OAuthStatePayload = {
@@ -316,23 +322,33 @@ export class OAuthService {
         throw new BadRequestException(`Unknown integration type: ${type}`);
       }
       await this.assertCanManageWorkspace(state.userId, state.workspaceId);
-      const installed = await this.completeInstall(provider, type, code, state);
+      const { connection, account } = await this.completeInstall(
+        provider,
+        type,
+        code,
+        state,
+      );
       this.auditService.log({
         event: AuditEvent.INTEGRATION_INSTALLED,
         resourceType: AuditResource.INTEGRATION,
-        resourceId: installed.integrationId,
-        changes: { after: { provider: type } },
+        resourceId: connection.integrationId,
+        changes: { after: { provider: type, ...(account && { account }) } },
       });
-      return installed;
+      return connection;
     }
-    const connected = await this.completeConnect(provider, type, code, state);
+    const { connection, account } = await this.completeConnect(
+      provider,
+      type,
+      code,
+      state,
+    );
     this.auditService.log({
       event: AuditEvent.INTEGRATION_CONNECTED,
       resourceType: AuditResource.INTEGRATION,
       resourceId: state.integrationId,
-      changes: { after: { provider: type } },
+      changes: { after: { provider: type, ...(account && { account }) } },
     });
-    return connected;
+    return connection;
   }
 
 
@@ -362,7 +378,7 @@ export class OAuthService {
     type: string,
     code: string,
     state: Pick<OAuthStatePayload, 'integrationId' | 'userId' | 'workspaceId'>,
-  ): Promise<IntegrationConnection> {
+  ): Promise<CompletedConnection> {
     const { userId, workspaceId } = state;
     const integration = state.integrationId
       ? await this.integrationRepo.findById(state.integrationId)
@@ -377,9 +393,11 @@ export class OAuthService {
       : provider.definition.oauth;
 
     const tokenResponse = await this.requestTokens(oauthConfig, type, code);
+    // Read before the transaction so no provider call runs inside it.
+    const account = await this.resolveAccount(provider, type, tokenResponse);
 
     // A failing onConnected must not leave the row and bot token behind.
-    return executeTx(this.db, async (trx) => {
+    const connection = await executeTx(this.db, async (trx) => {
       const installed =
         integration ??
         (await this.integrationRepo.insertOrRestore(
@@ -387,12 +405,13 @@ export class OAuthService {
           trx,
         ));
 
-      const connection = await this.storeConnection(
+      const stored = await this.storeConnection(
         installed.id,
         userId,
         workspaceId,
         tokenResponse,
         provider.definition.oauth?.connectionScope ?? 'user',
+        account,
         trx,
       );
 
@@ -405,12 +424,15 @@ export class OAuthService {
           refreshToken: tokenResponse.refresh_token,
           userId,
           metadata: tokenResponse,
+          account,
           trx,
         });
       }
 
-      return connection;
+      return stored;
     });
+
+    return { connection, account };
   }
 
   // Writes only the caller's own row, never the shared workspace connection.
@@ -419,7 +441,7 @@ export class OAuthService {
     type: string,
     code: string,
     state: Pick<OAuthStatePayload, 'integrationId' | 'userId' | 'workspaceId'>,
-  ): Promise<IntegrationConnection> {
+  ): Promise<CompletedConnection> {
     const { userId, workspaceId } = state;
     const integration = state.integrationId
       ? await this.integrationRepo.findById(state.integrationId)
@@ -438,13 +460,16 @@ export class OAuthService {
 
     if ((oauthConfig.connectionScope ?? 'user') === 'user') {
       const tokenResponse = await this.requestTokens(oauthConfig, type, code);
-      return this.storeConnection(
+      const account = await this.resolveAccount(provider, type, tokenResponse);
+      const connection = await this.storeConnection(
         integration.id,
         userId,
         workspaceId,
         tokenResponse,
         'user',
+        account,
       );
+      return { connection, account };
     }
 
     const identity = oauthConfig.identity;
@@ -472,24 +497,20 @@ export class OAuthService {
         throw new IdentityEmailMismatchError();
       }
     }
-    // Checked up front so a rebind gets a clear error, not a unique-index violation.
-    const existingLink = await this.connectionRepo.findUserLink(
+    await this.assertAccountNotLinkedElsewhere(
       integration.id,
-      resolved.providerUserId,
+      resolved.account.id,
+      userId,
     );
-    if (existingLink && existingLink.userId !== userId) {
-      throw new BadRequestException(
-        'This account is already connected to a different Docmost user. Disconnect it there first.',
-      );
-    }
 
-    return this.connectionRepo.upsertUserLink({
+    const connection = await this.connectionRepo.upsertUserLink({
       integrationId: integration.id,
       workspaceId,
       userId,
-      providerUserId: resolved.providerUserId,
-      metadata: resolved.metadata ?? {},
+      providerUserId: resolved.account.id,
+      metadata: { ...resolved.metadata, account: resolved.account },
     });
+    return { connection, account: resolved.account };
   }
 
   private async storeConnection(
@@ -498,6 +519,7 @@ export class OAuthService {
     workspaceId: string,
     tokenResponse: OAuthTokenResponse,
     connectionScope: 'workspace' | 'user',
+    account: ProviderAccount | undefined,
     trx?: KyselyTransaction,
   ): Promise<IntegrationConnection> {
     const encryptedAccessToken = this.encryptionService.encrypt(
@@ -525,9 +547,65 @@ export class OAuthService {
       scopes: tokenResponse.scope ?? null,
     };
 
-    return connectionScope === 'workspace'
-      ? this.connectionRepo.upsertWorkspaceConnection(values, trx)
-      : this.connectionRepo.upsert(values, trx);
+    // The installer's account never goes on the shared bot row.
+    if (connectionScope === 'workspace') {
+      return this.connectionRepo.upsertWorkspaceConnection(values, trx);
+    }
+    if (account) {
+      await this.assertAccountNotLinkedElsewhere(
+        integrationId,
+        account.id,
+        userId,
+        trx,
+      );
+    }
+    // A missing account clears the old one, so a reconnect never keeps a stale identity.
+    return this.connectionRepo.upsert(
+      {
+        ...values,
+        providerUserId: account?.id ?? null,
+        metadata: account ? { account } : null,
+      },
+      trx,
+    );
+  }
+
+  private async resolveAccount(
+    provider: IntegrationProvider,
+    type: string,
+    tokenResponse: OAuthTokenResponse,
+  ): Promise<ProviderAccount | undefined> {
+    if (!provider.resolveAccount) return undefined;
+    try {
+      return await provider.resolveAccount({
+        accessToken: tokenResponse.access_token,
+        tokenResponse,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Could not read the connected ${type} account: ${(err as Error).message}`,
+      );
+      return undefined;
+    }
+  }
+
+  // Checked up front so a rebind gets a clear error, not a unique-index violation.
+  private async assertAccountNotLinkedElsewhere(
+    integrationId: string,
+    accountId: string,
+    userId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const existingLink = await this.connectionRepo.findUserLink(
+      integrationId,
+      accountId,
+      trx,
+    );
+    if (existingLink && existingLink.userId !== userId) {
+      throw new BadRequestException(
+        'This account is already connected to a different Docmost user. Disconnect it there first.',
+      );
+    }
   }
 
   async getValidAccessToken(

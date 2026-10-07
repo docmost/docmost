@@ -49,10 +49,15 @@ export type IdentityLinkEvent = {
 };
 
 export type ResolvedIdentity = {
-  providerUserId: string;
+  account: ProviderAccount;
   // Verified email; must match the Docmost user's for the link to succeed.
   email?: string;
   metadata?: Record<string, unknown>;
+};
+
+export type ResolveAccountOpts = {
+  accessToken: string;
+  tokenResponse: Record<string, any>;
 };
 
 export class IdentityEmailMismatchError extends Error {
@@ -118,6 +123,8 @@ export type ConnectedEvent = {
   // The Docmost user who completed the install flow.
   userId: string;
   metadata: Record<string, any>;
+  // The installer's provider account, when it could be read.
+  account?: ProviderAccount;
   // Provider writes must use it so a throw rolls back the install.
   trx?: KyselyTransaction;
 };
@@ -208,6 +215,9 @@ export abstract class IntegrationProvider {
 
   // Maps an identity-flow token response to a provider account in the installed tenant.
   resolveIdentity?(opts: IdentityLinkEvent): Promise<ResolvedIdentity>;
+
+  // Reads which account a fresh token belongs to; a throw only skips storing it.
+  resolveAccount?(opts: ResolveAccountOpts): Promise<ProviderAccount>;
 
   unfurl?(opts: UnfurlOpts): Promise<UnfurlResult>;
 
