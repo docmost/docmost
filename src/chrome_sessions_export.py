@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Export recently open tabs from Chrome's Sessions folder (SNSS files).
+
+Best-effort parser: reads UpdateTabNavigation commands (tab id, index, URL,
+title). SNSS files carry no per-entry visit timestamps, so the session file's
+modification time is recorded instead.
+"""
+
+import struct
+from datetime import datetime, timezone
+
+from chrome_common import find_profile_files, write_outputs
+
+UPDATE_TAB_NAVIGATION = 6
+
+
+def read_commands(data):
+    if data[:4] != b"SNSS":
+        return
+    pos = 8
+    while pos + 2 <= len(data):
+        (size,) = struct.unpack_from("<H", data, pos)
+        pos += 2
+        if size < 1 or pos + size > len(data):
+            return
+        yield data[pos], data[pos + 1:pos + size]
+        pos += size
+
+
+def parse_navigation(payload):
+    # pickle: int32 payload size, int32 tab id, int32 index, string url,
+    # string16 title
+    try:
+        tab_id, index, url_len = struct.unpack_from("<iii", payload, 4)
+        p = 16
+        url = payload[p:p + url_len].decode("utf-8", "replace")
+        p += (url_len + 3) & ~3
+        (title_len,) = struct.unpack_from("<i", payload, p)
+        p += 4
+        title = payload[p:p + title_len * 2].decode("utf-16-le", "replace")
+        return tab_id, index, url, title
+    except (struct.error, ValueError):
+        return None
+
+
+def main():
+    files = find_profile_files("Sessions")
+    records, sources = [], []
+    for profile, folder in files:
+        for f in sorted(folder.iterdir()):
+            if not f.is_file() or not f.name.startswith(("Session_", "Tabs_")):
+                continue
+            sources.append(f)
+            mtime = datetime.fromtimestamp(f.stat().st_mtime, timezone.utc)
+            for cmd_id, payload in read_commands(f.read_bytes()):
+                if cmd_id != UPDATE_TAB_NAVIGATION:
+                    continue
+                nav = parse_navigation(payload)
+                if nav:
+                    records.append({
+                        "profile": profile,
+                        "session_file": f.name,
+                        "session_file_modified_utc": mtime.isoformat(),
+                        "session_file_modified_local":
+                            mtime.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"),
+                        "tab_id": nav[0],
+                        "navigation_index": nav[1],
+                        "url": nav[2],
+                        "title": nav[3],
+                    })
+    return write_outputs("chrome_sessions", records, sources)
+
+
+if __name__ == "__main__":
+    main()
