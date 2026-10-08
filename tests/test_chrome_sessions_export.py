@@ -29,13 +29,15 @@ def navigation_payload(
         struct.pack("<ii", tab_id, index)
         + pickle_string(url)
         + pickle_string(title, utf16=True)
+        + pickle_string("")
+        + struct.pack("<i", 0)
     )
     return struct.pack("<I", len(body)) + body
 
 
 def snss_file(*commands, version=3):
     data = bytearray(struct.pack("<4sI", b"SNSS", version))
-    for command in commands:
+    for command in (b"\xff", *commands):
         data.extend(struct.pack("<H", len(command)))
         data.extend(command)
     return bytes(data)
@@ -48,8 +50,8 @@ class SessionParserTests(unittest.TestCase):
             sessions.read_commands(snss_file(b"\x06" + payload))
         )
 
-        self.assertEqual(len(commands), 1)
-        command_id, command_payload, offset = commands[0]
+        self.assertEqual([command[0] for command in commands], [255, 6])
+        command_id, command_payload, offset = commands[1]
         self.assertEqual(command_id, sessions.UPDATE_TAB_NAVIGATION)
         self.assertEqual(
             sessions.parse_navigation(command_payload, offset),
@@ -76,6 +78,18 @@ class SessionParserTests(unittest.TestCase):
                 self.assertIn(message, str(error.exception))
                 self.assertEqual(error.exception.offset, offset)
 
+    def test_rejects_v3_stream_without_initial_state_marker(self):
+        data = (
+            struct.pack("<4sI", b"SNSS", 3)
+            + struct.pack("<H", 1)
+            + b"\x06"
+        )
+        commands = sessions.read_commands(data)
+        with self.assertRaisesRegex(
+            sessions.SessionParseError, "missing initial-state marker"
+        ):
+            next(commands)
+
     def test_rejects_malformed_pickle_lengths(self):
         payload = navigation_payload()
         bad_header = struct.pack("<I", len(payload)) + payload[4:]
@@ -89,6 +103,21 @@ class SessionParserTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(sessions.SessionParseError, "Pickle string"):
             sessions.parse_navigation(bad_url_length)
+
+    def test_requires_page_state_and_transition_fields(self):
+        body = (
+            struct.pack("<ii", 5, 2)
+            + pickle_string("https://example.com")
+            + pickle_string("Example", utf16=True)
+        )
+        with self.assertRaisesRegex(sessions.SessionParseError, "Pickle string length"):
+            sessions.parse_navigation(struct.pack("<I", len(body)) + body)
+
+        body += pickle_string("")
+        with self.assertRaisesRegex(
+            sessions.SessionParseError, "navigation transition type"
+        ):
+            sessions.parse_navigation(struct.pack("<I", len(body)) + body)
 
     def test_empty_sessions_directory_exports_no_records(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -108,7 +137,7 @@ class SessionParserTests(unittest.TestCase):
             [],
             [],
             sessions.FIELDS,
-            "no_session_tabs_found",
+            "no_navigation_updates_found",
         )
 
     def test_main_exports_navigation_updates_and_reports_unsupported_files(self):
@@ -139,7 +168,7 @@ class SessionParserTests(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["url"], "https://example.com")
         self.assertEqual(fields, sessions.FIELDS)
-        self.assertEqual(empty_reason, "no_session_tabs_found")
+        self.assertEqual(empty_reason, "no_navigation_updates_found")
         self.assertCountEqual(sources, [valid_file, unsupported_file])
         self.assertIn("Tabs_unsupported", errors.getvalue())
         self.assertIn("encrypted SNSS version 5 at byte offset 4", errors.getvalue())

@@ -44,6 +44,8 @@ def read_commands(data):
         raise SessionParseError(f"{description} {version}", 4)
 
     pos = 8
+    commands = []
+    initial_state_seen = False
     while pos < len(data):
         if pos + 2 > len(data):
             raise SessionParseError("truncated command size", pos)
@@ -53,8 +55,13 @@ def read_commands(data):
             raise SessionParseError("zero-sized command", pos - 2)
         if pos + size > len(data):
             raise SessionParseError("truncated command", pos - 2)
-        yield data[pos], data[pos + 1:pos + size], pos + 1
+        command_id = data[pos]
+        initial_state_seen |= command_id == 255
+        commands.append((command_id, data[pos + 1:pos + size], pos + 1))
         pos += size
+    if not initial_state_seen:
+        raise SessionParseError("missing initial-state marker", len(data))
+    yield from commands
 
 
 def _read_pickle_string(payload, pos, offset, *, utf16=False):
@@ -94,7 +101,11 @@ def parse_navigation(payload, offset=0):
 
     tab_id, index = struct.unpack_from("<ii", payload, 4)
     url, pos = _read_pickle_string(payload, 12, offset, utf16=False)
-    title, _ = _read_pickle_string(payload, pos, offset, utf16=True)
+    title, pos = _read_pickle_string(payload, pos, offset, utf16=True)
+    _, pos = _read_pickle_string(payload, pos, offset)
+    if pos + 4 > len(payload):
+        raise SessionParseError("truncated navigation transition type", offset + pos)
+    (_transition_type,) = struct.unpack_from("<i", payload, pos)
     return tab_id, index, url, title.strip("\x00")
 
 
@@ -132,7 +143,7 @@ def main():
             except SessionParseError as error:
                 print(f"{f}: {error}", file=sys.stderr)
     return write_outputs(
-        "chrome_sessions", records, sources, FIELDS, "no_session_tabs_found"
+        "chrome_sessions", records, sources, FIELDS, "no_navigation_updates_found"
     )
 
 
