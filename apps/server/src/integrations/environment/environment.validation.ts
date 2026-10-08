@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MinLength,
   ValidateIf,
   validateSync,
@@ -107,6 +108,41 @@ export class EnvironmentVariables {
   @IsIn(['openai', 'openai-compatible', 'gemini', 'ollama'])
   @IsString()
   AI_DRIVER: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_VECTOR_DRIVER)
+  @IsIn(['pgvector', 'turbopuffer'])
+  @IsString()
+  AI_VECTOR_DRIVER: string;
+
+  @ValidateIf((obj) => obj.AI_VECTOR_DRIVER === 'turbopuffer')
+  @IsNotEmpty()
+  @IsString()
+  TURBOPUFFER_API_KEY: string;
+
+  @ValidateIf(
+    (obj) =>
+      obj.AI_VECTOR_DRIVER === 'turbopuffer' && !obj.TURBOPUFFER_BASE_URL,
+  )
+  @IsNotEmpty({
+    message:
+      'TURBOPUFFER_REGION is required when AI_VECTOR_DRIVER is turbopuffer, unless TURBOPUFFER_BASE_URL is set',
+  })
+  @IsString()
+  TURBOPUFFER_REGION: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.TURBOPUFFER_BASE_URL != '' && obj.TURBOPUFFER_BASE_URL != null)
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  TURBOPUFFER_BASE_URL: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9\-_.]{1,90}$/, {
+    message:
+      'TURBOPUFFER_NAMESPACE_PREFIX may only contain letters, digits, dot, dash, underscore (max 90 chars)',
+  })
+  TURBOPUFFER_NAMESPACE_PREFIX: string;
 
   @IsOptional()
   @IsString()

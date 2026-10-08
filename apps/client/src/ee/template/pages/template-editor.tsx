@@ -22,8 +22,6 @@ import { useTranslation } from "react-i18next";
 import { useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { templateExtensions } from "@/features/editor/extensions/extensions";
 import {
@@ -38,8 +36,13 @@ import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-t
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import TableMenu from "@/features/editor/components/table/table-menu.tsx";
+import { TableHandlesLayer } from "@/features/editor/components/table/handle/table-handles-layer";
+import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
+import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 import classes from "./template-editor.module.css";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function TemplateEditor() {
   const { t } = useTranslation();
@@ -84,7 +87,10 @@ export default function TemplateEditor() {
   const editor = useEditor({
     extensions: templateExtensions,
     content: "",
+    textDirection: "auto",
     editorProps: {
+      scrollThreshold: 80,
+      scrollMargin: 80,
       handleDOMEvents: {
         keydown: (_view, event) => {
           if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
@@ -241,11 +247,7 @@ export default function TemplateEditor() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {t("Edit template")} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={t("Edit template")} />
 
       {editorToolbarEnabled && editor && (
         <FixedToolbar editor={editor} templateMode />
@@ -398,9 +400,18 @@ export default function TemplateEditor() {
             <EditorAiMenu editor={editor} />
             <EditorBubbleMenu editor={editor} templateMode />
             <EditorLinkMenu editor={editor} />
+            <TableMenu editor={editor} />
+            <TableHandlesLayer editor={editor} />
+            <CalloutMenu editor={editor} />
+            <ColumnsMenu editor={editor} />
           </>
         )}
-        <div style={{ paddingBottom: "20vh" }} />
+        <div
+          onClick={() => {
+            if (editor && !editor.isDestroyed) editor.commands.focus("end");
+          }}
+          style={{ paddingBottom: "20vh" }}
+        />
       </Container>
     </>
   );

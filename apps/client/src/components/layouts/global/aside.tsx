@@ -1,16 +1,29 @@
 import { ActionIcon, Box, Group, ScrollArea, Title, Tooltip } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
-import CommentListWithTabs from "@/features/comment/components/comment-list-with-tabs.tsx";
 import { useAtom } from "jotai";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
-import React, { ReactNode, useEffect } from "react";
+import React, { lazy, ReactNode, Suspense, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { TableOfContents } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
 import { useAtomValue } from "jotai";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
-import AsideChatPanel from "@/ee/ai-chat/components/aside-chat-panel";
-import { PageDetailsAside } from "@/features/page-details/components/page-details-aside.tsx";
 import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
+
+const CommentListWithTabs = lazy(
+  () => import("@/features/comment/components/comment-list-with-tabs.tsx"),
+);
+const TableOfContents = lazy(() =>
+  import(
+    "@/features/editor/components/table-of-contents/table-of-contents.tsx"
+  ).then((m) => ({ default: m.TableOfContents })),
+);
+const AsideChatPanel = lazy(
+  () => import("@/ee/ai-chat/components/aside-chat-panel"),
+);
+const PageDetailsAside = lazy(() =>
+  import("@/features/page-details/components/page-details-aside.tsx").then(
+    (m) => ({ default: m.PageDetailsAside }),
+  ),
+);
 
 export default function Aside() {
   const [{ tab, isAsideOpen }, setAsideState] = useAtom(asideStateAtom);
@@ -68,17 +81,19 @@ export default function Aside() {
             </Group>
           )}
 
-          {tab === "comments" || tab === "chat" ? (
-            component
-          ) : (
-            <ScrollArea
-              style={{ height: "85vh" }}
-              scrollbarSize={5}
-              type="scroll"
-            >
-              <div style={{ paddingBottom: "200px" }}>{component}</div>
-            </ScrollArea>
-          )}
+          <Suspense fallback={null}>
+            {tab === "comments" || tab === "chat" ? (
+              component
+            ) : (
+              <ScrollArea
+                style={{ height: "85vh" }}
+                scrollbarSize={5}
+                type="scroll"
+              >
+                <div style={{ paddingBottom: "200px" }}>{component}</div>
+              </ScrollArea>
+            )}
+          </Suspense>
         </>
       )}
     </Box>

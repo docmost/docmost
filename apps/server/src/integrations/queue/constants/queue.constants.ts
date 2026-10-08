@@ -9,6 +9,8 @@ export enum QueueName {
   HISTORY_QUEUE = '{history-queue}',
   NOTIFICATION_QUEUE = '{notification-queue}',
   AUDIT_QUEUE = '{audit-queue}',
+  BASE_QUEUE = '{base-queue}',
+  SIEM_QUEUE = '{siem-queue}',
 }
 
 export enum QueueJob {
@@ -60,6 +62,7 @@ export enum QueueJob {
   WORKSPACE_DELETED = 'workspace-deleted',
   WORKSPACE_CREATE_EMBEDDINGS = 'workspace-create-embeddings',
   WORKSPACE_DELETE_EMBEDDINGS = 'workspace-delete-embeddings',
+  WORKSPACE_RESET_EMBEDDINGS = 'workspace-reset-embeddings',
 
   GENERATE_PAGE_EMBEDDINGS = 'generate-page-embeddings',
   DELETE_PAGE_EMBEDDINGS = 'delete-page-embeddings',
@@ -81,6 +84,13 @@ export enum QueueJob {
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',
 
+  SIEM_SWEEP = 'siem-sweep',
+  SIEM_DELIVER = 'siem-deliver',
+
   PDF_EXPORT_TASK = 'pdf-export-task',
   PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',
+
+  BASE_TYPE_CONVERSION = 'base-type-conversion',
+  BASE_CELL_GC = 'base-cell-gc',
+  BASE_FORMULA_RECOMPUTE = 'base-formula-recompute',
 }

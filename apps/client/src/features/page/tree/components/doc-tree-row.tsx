@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
 import {
@@ -40,6 +41,7 @@ type Props<T extends object> = {
   activeId?: string;
   renderRow: (props: RenderRowProps<T>) => ReactNode;
   indentPerLevel: number;
+  rowClassName?: string;
   onMove: (sourceId: string, op: DropOp) => void | Promise<void>;
   onToggle: (id: string, isOpen: boolean) => void;
   readOnly: boolean;
@@ -67,6 +69,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     activeId,
     renderRow,
     indentPerLevel,
+    rowClassName,
     onMove,
     onToggle,
     readOnly,
@@ -145,7 +148,15 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
               getOffset: pointerOutsideOfPreview({ x: '16px', y: '8px' }),
               render: ({ container }) => {
                 const root = createRoot(container);
-                root.render(<DocTreeDragPreview label={getDragLabel(node)} />);
+                // flushSync forces the preview to paint into `container`
+                // synchronously, before pragmatic-dnd snapshots it for the
+                // native drag image. Without it, createRoot's async render
+                // leaves the container empty at snapshot time, so the browser
+                // falls back to a default snapshot of the source row (and the
+                // stale image can linger on screen).
+                flushSync(() => {
+                  root.render(<DocTreeDragPreview label={getDragLabel(node)} />);
+                });
                 return () => root.unmount();
               },
             });
@@ -314,7 +325,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
       style={{ paddingLeft: level * indentPerLevel }}
     >
       <div
-        className={styles.node}
+        className={rowClassName ? `${styles.node} ${rowClassName}` : styles.node}
         data-dragging={isDragging || undefined}
         data-selected={isSelected || undefined}
         data-receiving-drop={
@@ -367,6 +378,7 @@ function arePropsEqual<T extends object>(
   if (prev.readOnly !== next.readOnly) return false;
   if (prev.contextId !== next.contextId) return false;
   if (prev.indentPerLevel !== next.indentPerLevel) return false;
+  if (prev.rowClassName !== next.rowClassName) return false;
   if (prev.renderRow !== next.renderRow) return false;
   if (prev.onMove !== next.onMove) return false;
   if (prev.onToggle !== next.onToggle) return false;

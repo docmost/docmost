@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query.ts";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useParams } from "react-router-dom";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { buildPageUrl, getPageTitle } from "@/features/page/page.utils.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 import clsx from "clsx";
@@ -186,7 +186,7 @@ export const LinkEditorPanel = ({
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <AutoTooltipText size="sm" fw={500} truncate lh={1.3}>
-                        {page.title || t("Untitled")}
+                        {getPageTitle(page.title, page.isBase, t)}
                       </AutoTooltipText>
                       {page.space?.name && (
                         <AutoTooltipText size="xs" c="dimmed" truncate lh={1.4}>

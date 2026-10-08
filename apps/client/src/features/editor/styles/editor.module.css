@@ -1,11 +1,13 @@
 .editor {
     height: 100%;
+    min-height: calc(100dvh - var(--app-shell-header-height, 45px) - 96px);
     padding: 8px 0;
     margin: 48px auto;
 
     @media print {
         padding: 0;
         margin: 0;
+        min-height: 0;
     }
 }
 

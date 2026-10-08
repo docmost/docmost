@@ -41,7 +41,10 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
-import { isAdminActingOnOwner } from '../workspace.util';
+import {
+  getWorkspaceDefaultPageEditMode,
+  isAdminActingOnOwner,
+} from '../workspace.util';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -257,6 +260,7 @@ export class WorkspaceInvitationService {
             workspaceId: workspace.id,
           },
           trx,
+          { pageEditMode: getWorkspaceDefaultPageEditMode(workspace) },
         );
 
         // add user to default group

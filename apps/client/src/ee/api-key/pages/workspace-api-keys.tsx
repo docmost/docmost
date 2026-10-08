@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { Anchor, Button, Divider, Group, Space, Text } from "@mantine/core";
-import { Helmet } from "react-helmet-async";
 import { Trans, useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
 import { ApiKeyTable } from "@/ee/api-key/components/api-key-table";
 import { CreateApiKeyModal } from "@/ee/api-key/components/create-api-key-modal";
 import { ApiKeyCreatedModal } from "@/ee/api-key/components/api-key-created-modal";
@@ -15,6 +13,7 @@ import { useGetApiKeysQuery } from "@/ee/api-key/queries/api-key-query.ts";
 import { IApiKey } from "@/ee/api-key";
 import useUserRole from '@/hooks/use-user-role.tsx';
 import RestrictApiToAdmins from "@/ee/api-key/components/restrict-api-to-admins";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function WorkspaceApiKeys() {
   const { t } = useTranslation();
@@ -47,11 +46,7 @@ export default function WorkspaceApiKeys() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {t("API management")} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={t("API management")} />
 
       <SettingsTitle title={t("API management")} />
 

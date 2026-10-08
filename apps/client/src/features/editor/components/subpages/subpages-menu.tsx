@@ -61,6 +61,9 @@ export const SubpagesMenu = React.memo(
       <BaseBubbleMenu
         editor={editor}
         pluginKey={`subpages-menu`}
+        ref={(element) => {
+          if (element) element.style.zIndex = "99";
+        }}
         updateDelay={0}
         shouldShow={shouldShow}
       >

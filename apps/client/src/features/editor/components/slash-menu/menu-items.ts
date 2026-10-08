@@ -7,6 +7,7 @@ import {
   IconH2,
   IconH3,
   IconInfoCircle,
+  IconLayoutKanban,
   IconList,
   IconListNumbers,
   IconMath,
@@ -29,6 +30,7 @@ import {
   IconTag,
   IconMoodSmile,
   IconRotate2,
+  IconSuperscript,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -57,6 +59,7 @@ import {
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/insert-base-embed";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -174,6 +177,16 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconPageBreak,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setPageBreak().run(),
+    },
+    {
+      title: "Footnote",
+      description: "Insert a footnote reference.",
+      searchTerms: ["footnote", "reference", "citation", "note"],
+      icon: IconSuperscript,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).run();
+        editor.commands.addFootnote();
+      },
     },
     {
       title: "Image",
@@ -358,6 +371,26 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
           .run(),
+    },
+    {
+      title: "Base (Inline)",
+      description: "Insert an inline base on this page",
+      searchTerms: ["base", "database", "table", "grid", "spreadsheet"],
+      icon: IconTable,
+      requiresBases: true,
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range });
+      },
+    },
+    {
+      title: "Kanban",
+      description: "Insert a kanban board on this page",
+      searchTerms: ["kanban", "board", "cards", "status", "task", "database"],
+      icon: IconLayoutKanban,
+      requiresBases: true,
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range, template: "kanban" });
+      },
     },
     {
       title: "Toggle block",

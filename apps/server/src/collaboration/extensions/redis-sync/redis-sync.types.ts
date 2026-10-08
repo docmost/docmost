@@ -1,12 +1,13 @@
-import EventEmitter from 'node:events';
 import { IncomingHttpHeaders } from 'node:http2';
 import RedisClient from 'ioredis';
+import { CollabProxySocket } from './collab-proxy-socket';
+import { type Hocuspocus, type WebSocketLike } from '@hocuspocus/server';
 
 export type SecondParam<T> = T extends (
-  arg1: unknown,
+  arg1: any,
   arg2: infer A,
-  ...args: unknown[]
-) => unknown
+  ...args: any[]
+) => any
   ? A
   : never;
 
@@ -41,17 +42,6 @@ export type RSAMessageClose = {
   socketId: string;
 };
 
-export type RSAMessagePing = {
-  type: 'ping';
-  socketId: string;
-  replyTo: string;
-};
-
-export type RSAMessagePong = {
-  type: 'pong';
-  socketId: string;
-};
-
 export type RSAMessageSend = {
   type: 'send';
   // @ts-ignore
@@ -59,7 +49,7 @@ export type RSAMessageSend = {
   socketId: string;
 };
 
-export type RSAMessageCustomEventStart<TName = string, TPayload = unknown> = {
+export type RSAMessageCustomEventStart<TName = string, TPayload = any> = {
   type: 'customEventStart';
   documentName: string;
   eventName: TName;
@@ -71,7 +61,7 @@ export type RSAMessageCustomEventStart<TName = string, TPayload = unknown> = {
 export type RSAMessageCustomEventComplete = {
   type: 'customEventComplete';
   replyId: number;
-  payload: unknown;
+  payload: any;
 };
 
 export type RSAMessage =
@@ -79,8 +69,6 @@ export type RSAMessage =
   | RSAMessageCloseProxy
   | RSAMessageUnload
   | RSAMessageClose
-  | RSAMessagePing
-  | RSAMessagePong
   | RSAMessageSend
   | RSAMessageCustomEventStart
   | RSAMessageCustomEventComplete;
@@ -99,8 +87,19 @@ type CustomEventName = string;
 
 export type CustomEvents = Record<
   CustomEventName,
-  (documentName: string, payload: unknown) => Promise<unknown>
+  (documentName: string, payload: any) => Promise<any>
 >;
+
+// Not exported by @hocuspocus/server
+export type ClientConnection = ReturnType<Hocuspocus['handleConnection']>;
+export type OriginConnection = {
+  clientConnection: ClientConnection;
+  socket: WebSocketLike;
+};
+export type ProxyConnection = {
+  clientConnection: ClientConnection;
+  socket: CollabProxySocket;
+};
 
 export interface Configuration<TCE> {
   redis: RedisClient;
@@ -111,11 +110,29 @@ export interface Configuration<TCE> {
   customEventTTL?: number;
   prefix?: string;
   customEvents?: TCE;
+  // Derive the hocuspocus context once per socket instead of re-deriving it in a
+  // per-document hook like onConnect/onAuthenticate. Runs on the origin server when
+  // the socket opens and on the doc owner when the first proxied message arrives.
+  deriveContext?: (
+    serializedHTTPRequest: SerializedHTTPRequest,
+  ) => Record<string, any>;
 }
 
-export type BaseWebSocket = EventEmitter & {
-  readyState: number;
-  close(code?: number, reason?: string): void;
-  ping(): void;
-  send(message: Uint8Array): void;
+// Hocuspocus expects a web-standard Request, so rehydrate one from what crossed the wire
+export const toWebRequest = (serializedHTTPRequest: SerializedHTTPRequest) => {
+  const { method, url, headers } = serializedHTTPRequest;
+  const webHeaders = new Headers();
+  Object.entries(headers).forEach(([name, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((v) => {
+        webHeaders.append(name, v);
+      });
+    } else if (value !== undefined) {
+      webHeaders.set(name, value);
+    }
+  });
+  return new Request(new URL(url, 'http://localhost'), {
+    method,
+    headers: webHeaders,
+  });
 };

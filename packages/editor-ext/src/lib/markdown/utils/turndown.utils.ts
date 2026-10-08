@@ -34,8 +34,14 @@ export function htmlToMarkdown(html: string): string {
     iframeEmbed,
     image,
     video,
+    footnoteRef,
+    footnotesList,
   ]);
-  return turndownService.turndown(html).replaceAll('<br>', ' ');
+  const htmlWithoutColgroups = html.replace(
+    /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,
+    '',
+  );
+  return turndownService.turndown(htmlWithoutColgroups).replaceAll('<br>', ' ');
 }
 
 function listParagraph(turndownService: _TurndownService) {
@@ -144,7 +150,7 @@ function preserveDetail(turndownService: _TurndownService) {
         )
         .join('');
 
-      return `\n<details>\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
+      return `\n<details markdown="1">\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
     },
   });
 }
@@ -199,6 +205,56 @@ function image(turndownService: _TurndownService) {
       const title = node.getAttribute('title') || '';
       const titlePart = title ? ' "' + title.replace(/"/g, '\\"') + '"' : '';
       return '![' + alt + '](' + src + titlePart + ')';
+    },
+  });
+}
+
+function getFootnoteAnchor(node: HTMLElement): HTMLElement | null {
+  const child = node.firstElementChild as HTMLElement | null;
+  return child?.nodeName === 'A' && child.classList.contains('footnote-ref')
+    ? child
+    : null;
+}
+
+function footnoteRef(turndownService: _TurndownService) {
+  turndownService.addRule('footnoteRef', {
+    filter: function (node: HTMLInputElement) {
+      return node.nodeName === 'SUP' && !!getFootnoteAnchor(node);
+    },
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const anchor = getFootnoteAnchor(node);
+      const number =
+        anchor.getAttribute('data-reference-number') || anchor.textContent;
+      return `[^${number}]`;
+    },
+  });
+}
+
+function footnotesList(turndownService: _TurndownService) {
+  turndownService.addRule('footnotesList', {
+    filter: function (node: HTMLInputElement) {
+      return node.nodeName === 'OL' && node.classList.contains('footnotes');
+    },
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const items = Array.from(node.children).filter(
+        (child) => child.nodeName === 'LI',
+      );
+      const definitions = items.map((li, index) => {
+        const number =
+          (li.getAttribute('id') || '').replace('fn:', '') ||
+          String(index + 1);
+        const markdown = turndownService
+          .turndown((li as HTMLElement).innerHTML)
+          .trim();
+        // continuation lines need a 4-space indent to stay in the footnote
+        const [first, ...rest] = markdown.split('\n');
+        const body = [
+          first,
+          ...rest.map((line: string) => (line.trim() ? `    ${line}` : line)),
+        ].join('\n');
+        return `[^${number}]: ${body}`;
+      });
+      return `\n\n${definitions.join('\n')}\n\n`;
     },
   });
 }

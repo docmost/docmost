@@ -25,3 +25,7 @@
     background: var(--mantine-color-gray-light);
   }
 }
+
+.gatedItem {
+  opacity: 0.7;
+}

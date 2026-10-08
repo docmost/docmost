@@ -11,6 +11,7 @@ import {
   IconList,
   IconMarkdown,
   IconMessage,
+  IconPaperclip,
   IconPrinter,
   IconStar,
   IconStarFilled,
@@ -42,6 +43,7 @@ import {
 import { formattedDate } from "@/lib/time.ts";
 import { PageEditModeToggle } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
+import PageAttachmentsModal from "@/features/attachments/components/page-attachments-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
 import {
@@ -101,7 +103,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     <>
       <ConnectionWarning />
 
-      {!readOnly && <PageEditModeToggle size="xs" />}
+      {!readOnly && !page?.isBase && <PageEditModeToggle size="xs" />}
 
       <PageShareModal readOnly={readOnly} />
 
@@ -116,16 +118,18 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </ActionIcon>
       </Tooltip>
 
-      <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
-        <ActionIcon
-          variant="subtle"
-          color="dark"
-          aria-label={t("Table of contents")}
-          {...tocTriggerProps}
-        >
-          <IconList size={20} stroke={2} />
-        </ActionIcon>
-      </Tooltip>
+      {!page?.isBase && (
+        <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            aria-label={t("Table of contents")}
+            {...tocTriggerProps}
+          >
+            <IconList size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
 
       <PageActionMenu readOnly={readOnly} />
     </>
@@ -154,6 +158,10 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [
     verificationOpened,
     { open: openVerificationModal, close: closeVerificationModal },
+  ] = useDisclosure(false);
+  const [
+    attachmentsOpened,
+    { open: openAttachmentsModal, close: closeAttachmentsModal },
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
@@ -234,12 +242,14 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             {t("Copy link")}
           </Menu.Item>
 
-          <Menu.Item
-            leftSection={<IconMarkdown size={16} />}
-            onClick={handleCopyAsMarkdown}
-          >
-            {t("Copy as Markdown")}
-          </Menu.Item>
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconMarkdown size={16} />}
+              onClick={handleCopyAsMarkdown}
+            >
+              {t("Copy as Markdown")}
+            </Menu.Item>
+          )}
 
           <Menu.Item
             leftSection={
@@ -270,22 +280,35 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          <Menu.Divider />
+          {!page?.isBase && <Menu.Divider />}
 
-          <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
-            <Group wrap="nowrap">
-              <PageWidthToggle label={t("Full width")} />
-            </Group>
-          </Menu.Item>
+          {!page?.isBase && (
+            <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
+              <Group wrap="nowrap">
+                <PageWidthToggle label={t("Full width")} />
+              </Group>
+            </Menu.Item>
+          )}
 
-          <Menu.Item
-            leftSection={<IconHistory size={16} />}
-            onClick={openHistoryModal}
-          >
-            {t("Page history")}
-          </Menu.Item>
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconHistory size={16} />}
+              onClick={openHistoryModal}
+            >
+              {t("Page history")}
+            </Menu.Item>
+          )}
 
-          {!readOnly && (
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconPaperclip size={16} />}
+              onClick={openAttachmentsModal}
+            >
+              {t("Attachments")}
+            </Menu.Item>
+          )}
+
+          {!readOnly && !page?.isBase && (
             <PageVerificationMenuItem
               pageId={page?.id}
               onClick={openVerificationModal}
@@ -386,6 +409,12 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         pageId={page.id}
         opened={verificationOpened}
         onClose={closeVerificationModal}
+      />
+
+      <PageAttachmentsModal
+        pageId={page.id}
+        open={attachmentsOpened}
+        onClose={closeAttachmentsModal}
       />
     </>
   );

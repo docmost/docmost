@@ -26,6 +26,7 @@ import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
 import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { EmptyPageGetStarted } from "@/features/editor/components/empty-page/empty-page-get-started";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -90,6 +91,7 @@ export function FullEditor({
       fluid={fullPageWidth}
       size={!fullPageWidth && 900}
       className={classes.editor}
+      style={{ display: "flex", flexDirection: "column" }}
     >
       {editorToolbarEnabled && editable && isEditMode && (
         <MemoizedFixedToolbar />
@@ -113,6 +115,7 @@ export function FullEditor({
         content={content}
         canComment={canComment}
       />
+      <EmptyPageGetStarted pageId={pageId} editable={editable} />
     </Container>
   );
 }

@@ -34,6 +34,8 @@ export interface GlobalDragHandleOptions {
    * Custom nodes to be included for drag handle
    */
   customNodes: string[];
+
+  atomNodes: string[];
 }
 function absoluteRect(node: Element) {
   const data = node.getBoundingClientRect();
@@ -76,6 +78,10 @@ function nodeDOMAtCoords(
     `[data-type=${node}] p`,
     `.node-${node} p`,
   ]);
+  const atomSelectors = options.atomNodes.flatMap((node) => [
+    `[data-type=${node}]`,
+    `.node-${node}`,
+  ]);
 
   const selectors = [
     "li",
@@ -95,8 +101,9 @@ function nodeDOMAtCoords(
     ".tableWrapper",
     ...customParagraphSelectors,
     ...customSelectors,
+    ...atomSelectors,
   ].join(", ");
-  return document
+  const found = document
     .elementsFromPoint(coords.x, coords.y)
     .find((elem: Element) => {
       // Skip elements that belong to a nested editor (e.g. transclusion
@@ -108,6 +115,11 @@ function nodeDOMAtCoords(
         elem.matches(selectors)
       );
     });
+  if (found && atomSelectors.length > 0) {
+    const atomWrapper = found.closest(atomSelectors.join(", "));
+    if (atomWrapper) return atomWrapper;
+  }
+  return found;
 }
 function nodePosAtDOM(
   node: Element,
@@ -127,7 +139,7 @@ function isCustomNodeDOM(
   options: GlobalDragHandleOptions,
 ): boolean {
   if (!elem) return false;
-  for (const name of options.customNodes) {
+  for (const name of [...options.customNodes, ...options.atomNodes]) {
     if (
       elem.getAttribute("data-type") === name ||
       elem.classList.contains(`node-${name}`)
@@ -210,7 +222,10 @@ export function DragHandlePlugin(
         // The drag landed on a custom-node container (transclusion etc.).
         // Walk up to the matching node so the drag moves the whole
         // container, not whatever inner element the click landed on.
-        const customTypes = new Set(options.customNodes);
+        const customTypes = new Set([
+          ...options.customNodes,
+          ...options.atomNodes,
+        ]);
         for (let d = $sel.depth; d > 0; d--) {
           if (customTypes.has($sel.node(d).type.name)) {
             selection = NodeSelection.create(
@@ -264,7 +279,23 @@ export function DragHandlePlugin(
     event.dataTransfer.setData("text/plain", text);
     event.dataTransfer.effectAllowed = "move";
 
-    event.dataTransfer.setDragImage(node, 0, 0);
+    const previewTemplate =
+      node.querySelector<HTMLElement>("[data-drag-preview]");
+    if (previewTemplate) {
+      const preview = previewTemplate.cloneNode(true) as HTMLElement;
+      preview.removeAttribute("hidden");
+      preview.style.position = "fixed";
+      preview.style.top = "0";
+      preview.style.left = "-10000px";
+      preview.style.pointerEvents = "none";
+      document.body.appendChild(preview);
+      event.dataTransfer.setDragImage(preview, 0, 0);
+      document.addEventListener("dragend", () => preview.remove(), {
+        once: true,
+      });
+    } else {
+      event.dataTransfer.setDragImage(node, 0, 0);
+    }
 
     view.dragging = { slice, move: event.ctrlKey };
   }
@@ -497,6 +528,7 @@ const GlobalDragHandle = Extension.create({
       scrollThreshold: 100,
       excludedTags: [],
       customNodes: [],
+      atomNodes: [],
     };
   },
 
@@ -509,6 +541,7 @@ const GlobalDragHandle = Extension.create({
         dragHandleSelector: this.options.dragHandleSelector,
         excludedTags: this.options.excludedTags,
         customNodes: this.options.customNodes,
+        atomNodes: this.options.atomNodes,
       }),
     ];
   },

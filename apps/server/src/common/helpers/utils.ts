@@ -28,15 +28,25 @@ export type RedisConfig = {
   host: string;
   port: number;
   db: number;
+  username?: string;
   password?: string;
   family?: number;
+  tls?: { rejectUnauthorized?: boolean };
 };
 
 export function parseRedisUrl(redisUrl: string): RedisConfig {
-  // format - redis[s]://[[username][:password]@][host][:port][/db-number][?family=4|6]
+  // format - redis[s]://[[username][:password]@][host][:port][/db-number][?family=4|6][&rejectUnauthorized=false]
   const url = new URL(redisUrl);
-  const { hostname, port, password, pathname, searchParams } = url;
-  const portInt = parseInt(port, 10);
+  const {
+    hostname,
+    port,
+    username,
+    password,
+    pathname,
+    protocol,
+    searchParams,
+  } = url;
+  const portInt = port ? parseInt(port, 10) : 6379;
 
   let db: number = 0;
   // extract db value if present
@@ -54,7 +64,22 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
     family = parseInt(familyParam, 10);
   }
 
-  return { host: hostname, port: portInt, password, db, family };
+  const tls =
+    protocol === 'rediss:'
+      ? searchParams.get('rejectUnauthorized') === 'false'
+        ? { rejectUnauthorized: false }
+        : {}
+      : undefined;
+
+  return {
+    host: hostname,
+    port: portInt,
+    username: username ? decodeURIComponent(username) : undefined,
+    password: password ? decodeURIComponent(password) : undefined,
+    db,
+    family,
+    tls,
+  };
 }
 
 export function createRetryStrategy() {

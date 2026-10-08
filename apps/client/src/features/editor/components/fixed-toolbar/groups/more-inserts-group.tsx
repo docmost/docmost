@@ -1,16 +1,19 @@
 import { FC } from "react";
 import type { Editor } from "@tiptap/react";
-import { ActionIcon, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Menu, Tooltip } from "@mantine/core";
 import {
   IconAppWindow,
   IconCalendar,
   IconCaretRightFilled,
   IconChevronDown,
   IconInfoCircle,
+  IconLayoutKanban,
   IconMath,
   IconMathFunction,
   IconRotate2,
   IconSitemap,
+  IconSuperscript,
+  IconTable,
   IconTag,
 } from "@tabler/icons-react";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
@@ -29,6 +32,10 @@ import {
   YoutubeIcon,
 } from "@/components/icons";
 import { useTranslation } from "react-i18next";
+import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/insert-base-embed";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 interface Props {
   editor: Editor;
@@ -37,6 +44,8 @@ interface Props {
 
 export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
   const { t, i18n } = useTranslation();
+  const hasBases = useHasFeature(Feature.BASES);
+  const upgradeLabel = useUpgradeLabel();
 
   const setEmbed = (provider: string) =>
     editor.chain().focus().setEmbed({ provider }).run();
@@ -101,6 +110,50 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           >
             {t("Synced block")}
           </Menu.Item>
+        )}
+        {!templateMode && (
+          <Tooltip label={upgradeLabel} disabled={hasBases} position="right">
+            <Menu.Item
+              leftSection={<IconTable size={16} />}
+              aria-disabled={!hasBases}
+              closeMenuOnClick={hasBases}
+              style={{ opacity: hasBases ? undefined : 0.7 }}
+              rightSection={
+                !hasBases && (
+                  <Badge size="xs" variant="light" color="gray">
+                    {t("Upgrade")}
+                  </Badge>
+                )
+              }
+              onClick={() => {
+                if (hasBases) insertBaseEmbedBlock(editor);
+              }}
+            >
+              {t("Base (Inline)")}
+            </Menu.Item>
+          </Tooltip>
+        )}
+        {!templateMode && (
+          <Tooltip label={upgradeLabel} disabled={hasBases} position="right">
+            <Menu.Item
+              leftSection={<IconLayoutKanban size={16} />}
+              aria-disabled={!hasBases}
+              closeMenuOnClick={hasBases}
+              style={{ opacity: hasBases ? undefined : 0.7 }}
+              rightSection={
+                !hasBases && (
+                  <Badge size="xs" variant="light" color="gray">
+                    {t("Upgrade")}
+                  </Badge>
+                )
+              }
+              onClick={() => {
+                if (hasBases) insertBaseEmbedBlock(editor, { template: "kanban" });
+              }}
+            >
+              {t("Kanban")}
+            </Menu.Item>
+          </Tooltip>
         )}
 
         <Menu.Divider />
@@ -217,6 +270,12 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => editor.chain().focus().setMathBlock().run()}
         >
           {t("Math block")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconSuperscript size={16} />}
+          onClick={() => editor.chain().focus().addFootnote().run()}
+        >
+          {t("Footnote")}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

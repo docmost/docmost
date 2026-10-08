@@ -48,9 +48,9 @@ export class FavoriteController {
 
     await this.favoriteService.addFavorite(user.id, workspace.id, {
       type: dto.type,
-      pageId: dto.pageId,
+      pageId: dto.type === 'page' ? dto.pageId : undefined,
       spaceId: dto.type === 'space' ? resolved.spaceId : undefined,
-      templateId: dto.templateId,
+      templateId: dto.type === 'template' ? dto.templateId : undefined,
     });
   }
 

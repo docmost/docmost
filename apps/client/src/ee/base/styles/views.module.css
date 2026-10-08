@@ -1,0 +1,16 @@
+.addActionButton {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-blue-6);
+}
+
+.fieldNameText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

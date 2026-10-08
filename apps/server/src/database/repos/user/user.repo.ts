@@ -112,6 +112,7 @@ export class UserRepo {
   async insertUser(
     insertableUser: InsertableUser,
     trx?: KyselyTransaction,
+    opts?: { pageEditMode?: string },
   ): Promise<User> {
     const user: InsertableUser = {
       name:
@@ -126,7 +127,17 @@ export class UserRepo {
     const db = dbOrTx(this.db, trx);
     return db
       .insertInto('users')
-      .values({ ...insertableUser, ...user })
+      .values({
+        ...insertableUser,
+        ...user,
+        ...(opts?.pageEditMode
+          ? {
+              settings: sql`${JSON.stringify({
+                preferences: { pageEditMode: opts.pageEditMode },
+              })}::text::jsonb`,
+            }
+          : {}),
+      })
       .returning(this.baseFields)
       .executeTakeFirst();
   }
@@ -134,12 +145,16 @@ export class UserRepo {
   async roleCountByWorkspaceId(
     role: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ): Promise<number> {
-    const { count } = await this.db
+    const db = dbOrTx(this.db, trx);
+    const { count } = await db
       .selectFrom('users')
       .select((eb) => eb.fn.count('role').as('count'))
       .where('role', '=', role)
       .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .where('deactivatedAt', 'is', null)
       .executeTakeFirst();
 
     return count as number;

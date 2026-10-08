@@ -102,8 +102,10 @@ export class ImportService {
       throw new BadRequestException(message);
     }
 
-    const { title, prosemirrorJson } =
-      this.extractTitleAndRemoveHeading(prosemirrorState);
+    const { title, prosemirrorJson } = this.extractTitleAndRemoveHeading(
+      prosemirrorState,
+      { anyHeadingLevel: true },
+    );
 
     const pageTitle = title || fileName;
 
@@ -246,18 +248,29 @@ export class ImportService {
     return null;
   }
 
-  extractTitleAndRemoveHeading(prosemirrorState: any) {
+  extractTitleAndRemoveHeading(
+    prosemirrorState: any,
+    opts?: { anyHeadingLevel?: boolean },
+  ) {
     let title: string | null = null;
 
     const content = prosemirrorState.content ?? [];
+    const firstNode = content[0];
 
-    if (
-      content.length > 0 &&
-      content[0].type === 'heading' &&
-      content[0].attrs?.level === 1
-    ) {
-      title = content[0].content?.[0]?.text ?? null;
-      content.shift();
+    const isTitleHeading =
+      firstNode?.type === 'heading' &&
+      (opts?.anyHeadingLevel || firstNode.attrs?.level === 1);
+
+    if (isTitleHeading) {
+      const headingText = (firstNode.content ?? [])
+        .map((node: any) => node.text ?? '')
+        .join('')
+        .trim();
+
+      if (headingText) {
+        title = headingText;
+        content.shift();
+      }
     }
 
     // ensure at least one paragraph

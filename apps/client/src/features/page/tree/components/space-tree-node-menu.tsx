@@ -20,6 +20,7 @@ import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import CopyPageModal from "@/features/page/components/copy-page-modal.tsx";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { getPageTitle } from "@/features/page/page.utils";
 import { duplicatePage } from "@/features/page/services/page-service.ts";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { getAppUrl } from "@/lib/config.ts";
@@ -32,6 +33,10 @@ import {
 
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
+import {
+  spaceRoots,
+  updateSpaceRoots,
+} from "@/features/page/tree/utils/utils.ts";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import classes from "@/features/page/tree/styles/tree.module.css";
@@ -76,7 +81,10 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       const duplicatedPage = await duplicatePage({ pageId: node.id });
 
       // figure out parent + insertion index
-      const siblings = treeModel.siblingsOf(data, node.id);
+      const siblings = treeModel.siblingsOf(
+        spaceRoots(data, node.spaceId),
+        node.id,
+      );
       const parentId = siblings?.parentId ?? null;
       const currentIndex = siblings?.index ?? 0;
       const newIndex = currentIndex + 1;
@@ -95,7 +103,9 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
       };
 
       setData((prev) =>
-        treeModel.insert(prev, parentId, treeNodeData, newIndex),
+        updateSpaceRoots(prev, node.spaceId, (roots) =>
+          treeModel.insert(roots, parentId, treeNodeData, newIndex),
+        ),
       );
 
       setTimeout(() => {
@@ -127,7 +137,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
             variant="subtle"
             color="gray"
             className={classes.actionIcon}
-            aria-label={t("Page menu for {{name}}", { name: node.name || t("untitled") })}
+            aria-label={t("Page menu for {{name}}", { name: getPageTitle(node.name, node.isBase, t) })}
             tabIndex={-1}
             onClick={(e) => {
               e.preventDefault();

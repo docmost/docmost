@@ -1,14 +1,11 @@
 import { SetupWorkspaceForm } from "@/features/auth/components/setup-workspace-form.tsx";
-import { Helmet } from "react-helmet-async";
 import React from "react";
-import { getAppName } from "@/lib/config.ts";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function CreateWorkspace() {
   return (
     <>
-      <Helmet>
-        <title>Create Workspace - {getAppName()}</title>
-      </Helmet>
+      <DocumentTitle title="Create Workspace" />
       <SetupWorkspaceForm />
     </>
   );

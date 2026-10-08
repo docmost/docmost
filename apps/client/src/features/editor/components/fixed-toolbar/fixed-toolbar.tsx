@@ -31,8 +31,6 @@ export const FixedToolbar: FC<FixedToolbarProps> = ({
   const workspace = useAtomValue(workspaceAtom);
   const isGenerativeAiEnabled = workspace?.settings?.ai?.generative === true;
 
-  if (!editor || !state) return null;
-
   return (
     <>
       <div
@@ -49,22 +47,26 @@ export const FixedToolbar: FC<FixedToolbarProps> = ({
               <div className={classes.divider} />
             </>
           )} */}
-          <BlockTypeGroup editor={editor} />
-          <div className={classes.divider} />
-          <InlineMarksGroup editor={editor} state={state} />
-          <div className={classes.divider} />
-          <ColorGroup editor={editor} />
-          <div className={classes.divider} />
-          <ListsGroup editor={editor} state={state} />
-          <div className={classes.divider} />
-          <AlignmentGroup editor={editor} />
-          <div className={classes.divider} />
-          <MediaGroup editor={editor} templateMode={templateMode} />
-          <div className={classes.divider} />
-          <QuickInsertsGroup editor={editor} />
-          <MoreInsertsGroup editor={editor} templateMode={templateMode} />
-          <div className={classes.divider} />
-          <HistoryGroup editor={editor} state={state} />
+          {editor && state && (
+            <>
+              <BlockTypeGroup editor={editor} />
+              <div className={classes.divider} />
+              <InlineMarksGroup editor={editor} state={state} />
+              <div className={classes.divider} />
+              <ColorGroup editor={editor} />
+              <div className={classes.divider} />
+              <ListsGroup editor={editor} state={state} />
+              <div className={classes.divider} />
+              <AlignmentGroup editor={editor} />
+              <div className={classes.divider} />
+              <MediaGroup editor={editor} templateMode={templateMode} />
+              <div className={classes.divider} />
+              <QuickInsertsGroup editor={editor} />
+              <MoreInsertsGroup editor={editor} templateMode={templateMode} />
+              <div className={classes.divider} />
+              <HistoryGroup editor={editor} state={state} />
+            </>
+          )}
         </div>
       </div>
       <div className={classes.spacer} aria-hidden />

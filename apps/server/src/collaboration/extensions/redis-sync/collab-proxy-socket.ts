@@ -1,61 +1,37 @@
 import type RedisClient from 'ioredis';
-import { EventEmitter } from 'tseep';
-import type {
-  Pack,
-  RSAMessageClose,
-  RSAMessagePing,
-  RSAMessageSend,
-} from './redis-sync.types';
+import type { WebSocketLike } from '@hocuspocus/server';
+import type { Pack, RSAMessageClose, RSAMessageSend } from './redis-sync.types';
 
-export class CollabProxySocket extends EventEmitter {
+// Stands in for the client WebSocket on the server that owns the document.
+// Outgoing traffic is relayed over redis to the origin server, which holds the real socket.
+export class CollabProxySocket implements WebSocketLike {
   private readonly replyTo: string;
-  private readonly serverChannel: string;
   private readonly socketId: string;
   private pub: RedisClient;
   private readonly pack: Pack;
   readyState = 1;
+  onClose?: (code?: number, reason?: string) => void;
 
-  constructor(
-    pub: RedisClient,
-    pack: Pack,
-    replyTo: string,
-    serverChannel: string,
-    socketId: string,
-  ) {
-    super();
+  constructor(pub: RedisClient, pack: Pack, replyTo: string, socketId: string) {
     this.replyTo = replyTo;
     this.socketId = socketId;
-    this.serverChannel = serverChannel;
     this.pub = pub;
     this.pack = pack;
-    this.once('close', () => {
-      this.readyState = 3;
-    });
   }
 
-  private publish(msg: RSAMessageClose | RSAMessagePing | RSAMessageSend) {
+  private publish(msg: RSAMessageClose | RSAMessageSend) {
     this.pub.publish(this.replyTo, this.pack(msg));
+  }
+
+  // The origin server already closed the real socket; stop relaying without echoing a close back
+  markClosed() {
+    this.readyState = 3;
   }
 
   close(code?: number, reason?: string) {
     if (this.readyState !== 1) return;
-    const msg: RSAMessageClose = {
-      type: 'close',
-      code,
-      reason,
-      socketId: this.socketId,
-    };
-    this.publish(msg);
-  }
-
-  ping() {
-    if (this.readyState !== 1) return;
-    const msg: RSAMessagePing = {
-      type: 'ping',
-      socketId: this.socketId,
-      replyTo: this.serverChannel,
-    };
-    this.publish(msg);
+    this.readyState = 3;
+    this.onClose?.(code, reason);
   }
 
   send(message: Uint8Array) {
