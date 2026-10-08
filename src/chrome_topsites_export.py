@@ -9,6 +9,8 @@ TIME_COLUMNS = {"last_updated", "last_visited", "last_visit_time"}
 
 def main():
     files = find_profile_files("Top Sites")
+    if not files:
+        return write_outputs("chrome_topsites", [], [])
     records = []
     for profile, path in files:
         table = "top_sites"

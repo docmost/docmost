@@ -15,6 +15,8 @@ ORDER BY u.last_visit_time
 
 def main():
     files = find_profile_files("History")
+    if not files:
+        return write_outputs("chrome_keywords", [], [])
     records = []
     for profile, path in files:
         if not table_columns(path, "keyword_search_terms"):
@@ -23,7 +25,7 @@ def main():
         for row in rows:
             rec = {"profile": profile}
             rec.update(dict(zip(cols, row)))
-            raw = rec["last_visit_time"]
+            raw = rec.get("last_visit_time")
             rec["last_visit_time_utc"] = webkit_to_iso(raw)
             rec["last_visit_time_local"] = webkit_to_local(raw)
             records.append(rec)

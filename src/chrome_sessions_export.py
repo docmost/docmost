@@ -2,8 +2,8 @@
 """Export recently open tabs from Chrome's Sessions folder (SNSS files).
 
 Best-effort parser: reads UpdateTabNavigation commands (tab id, index, URL,
-title). SNSS files carry no per-entry visit timestamps, so the session file's
-modification time is recorded instead.
+ title). SNSS files carry no per-entry visit timestamps, so the session file's
+ modification time is recorded instead.
 """
 
 import struct
@@ -15,10 +15,10 @@ UPDATE_TAB_NAVIGATION = 6
 
 
 def read_commands(data):
-    if data[:4] != b"SNSS":
+    if len(data) < 8 or data[:4] != b"SNSS":
         return
     pos = 8
-    while pos + 2 <= len(data):
+    while pos + 3 <= len(data):
         (size,) = struct.unpack_from("<H", data, pos)
         pos += 2
         if size < 1 or pos + size > len(data):
@@ -28,23 +28,46 @@ def read_commands(data):
 
 
 def parse_navigation(payload):
-    # pickle: int32 payload size, int32 tab id, int32 index, string url,
-    # string16 title
-    try:
-        tab_id, index, url_len = struct.unpack_from("<iii", payload, 4)
-        p = 16
-        url = payload[p:p + url_len].decode("utf-8", "replace")
-        p += (url_len + 3) & ~3
-        (title_len,) = struct.unpack_from("<i", payload, p)
-        p += 4
-        title = payload[p:p + title_len * 2].decode("utf-16-le", "replace")
-        return tab_id, index, url, title
-    except (struct.error, ValueError):
+    """Parse one UpdateTabNavigation record as best we can across Chrome versions."""
+    if not payload:
         return None
+    for base in (0, 4):
+        if len(payload) < base + 12:
+            continue
+        try:
+            tab_id, index, url_len = struct.unpack_from("<iii", payload, base)
+        except struct.error:
+            continue
+        p = base + 12
+        if p + url_len > len(payload):
+            continue
+        url_bytes = payload[p:p + url_len]
+        try:
+            url = url_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            url = url_bytes.decode("utf-8", "replace")
+        p += (url_len + 3) & ~3
+        if p + 4 > len(payload):
+            continue
+        try:
+            title_len = struct.unpack_from("<i", payload, p)[0]
+        except struct.error:
+            continue
+        p += 4
+        if title_len < 0:
+            continue
+        title_end = p + title_len * 2
+        if title_end > len(payload):
+            continue
+        title = payload[p:title_end].decode("utf-16-le", "replace")
+        return tab_id, index, url, title.strip("\x00")
+    return None
 
 
 def main():
     files = find_profile_files("Sessions")
+    if not files:
+        return write_outputs("chrome_sessions", [], [])
     records, sources = [], []
     for profile, folder in files:
         for f in sorted(folder.iterdir()):

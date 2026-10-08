@@ -9,6 +9,8 @@ TIME_COLUMNS = {"start_time", "end_time", "last_access_time"}
 
 def main():
     files = find_profile_files("History")
+    if not files:
+        return write_outputs("chrome_downloads", [], [])
     records = []
     for profile, path in files:
         if not table_columns(path, "downloads"):

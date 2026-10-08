@@ -30,6 +30,8 @@ def walk(node, path, profile, out):
 
 def main():
     files = find_profile_files("Bookmarks")
+    if not files:
+        return write_outputs("chrome_bookmarks", [], [])
     records = []
     for profile, path in files:
         with open(path, encoding="utf-8") as f:
