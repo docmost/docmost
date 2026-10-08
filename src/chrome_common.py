@@ -15,27 +15,56 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 WEBKIT_EPOCH = datetime(1601, 1, 1, tzinfo=timezone.utc)
 
 
-def chrome_base():
+class ChromeProfileNotFoundError(FileNotFoundError):
+    """Raised when no supported Chrome profile root is available."""
+
+
+class ChromeSourceNotFoundError(FileNotFoundError):
+    """Raised when profiles exist but do not contain the requested source."""
+
+
+def _chrome_base_candidates():
     home = Path.home()
     system = platform.system()
     if system == "Windows":
-        return home / "AppData" / "Local" / "Google" / "Chrome" / "User Data"
+        return [
+            home / "AppData" / "Local" / "Google" / "Chrome" / "User Data",
+            home / "AppData" / "Local" / "Chromium" / "User Data",
+        ]
     if system == "Darwin":
-        return home / "Library" / "Application Support" / "Google" / "Chrome"
-    return home / ".config" / "google-chrome"
+        return [
+            home / "Library" / "Application Support" / "Google" / "Chrome",
+            home / "Library" / "Application Support" / "Chromium",
+        ]
+    return [
+        home / ".config" / "google-chrome",
+        home / ".config" / "google-chrome-beta",
+        home / ".config" / "google-chrome-unstable",
+        home / ".config" / "chromium",
+        home / "snap" / "chromium" / "common" / "chromium",
+    ]
+
+
+def chrome_base():
+    candidates = _chrome_base_candidates()
+    return next((path for path in candidates if path.is_dir()), candidates[0])
 
 
 def find_profile_files(relative):
     """Return [(profile_name, path)] for `relative` inside each Chrome profile."""
     base = chrome_base()
-    found = []
-    if base.exists():
-        for profile in sorted(base.iterdir()):
-            p = profile / relative
-            if profile.is_dir() and p.exists():
-                found.append((profile.name, p))
+    if not base.is_dir():
+        raise ChromeProfileNotFoundError(f"No Chrome profile root found at {base}")
+
+    profiles = [profile for profile in sorted(base.iterdir()) if profile.is_dir()]
+    if not profiles:
+        raise ChromeProfileNotFoundError(f"No Chrome profiles found under {base}")
+
+    found = [(profile.name, profile / relative) for profile in profiles
+             if (profile / relative).exists()]
     if not found:
-        raise FileNotFoundError(f"No Chrome '{relative}' found under {base}")
+        raise ChromeSourceNotFoundError(
+            f"No Chrome '{relative}' source found in profiles under {base}")
     return found
 
 
@@ -94,7 +123,8 @@ def table_columns(db_path, table):
     return [r[1] for r in rows]
 
 
-def write_outputs(name, records, source_files):
+def write_outputs(name, records, source_files, fieldnames=None, status=None,
+                  empty_reason=None, errors=None):
     """Write CSV + JSON + manifest for `records` (list of dicts). Returns manifest."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -105,6 +135,7 @@ def write_outputs(name, records, source_files):
         for k in r:
             if k not in fields:
                 fields.append(k)
+    fields = fields or fieldnames or ["status"]
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
@@ -115,6 +146,9 @@ def write_outputs(name, records, source_files):
         "export": name,
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "record_count": len(records),
+        "status": status or ("success" if records else "empty"),
+        "empty_reason": empty_reason,
+        "errors": errors or [],
         "source_files": [
             {"path": str(p), "sha256": sha256(p)} for p in source_files
         ],
