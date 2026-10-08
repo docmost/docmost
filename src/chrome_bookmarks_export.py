@@ -6,6 +6,12 @@ import json
 from chrome_common import (find_profile_files, webkit_to_iso, webkit_to_local,
                            write_outputs)
 
+FIELDS = [
+    "profile", "folder", "id", "guid", "name", "url", "date_added_raw",
+    "date_added_utc", "date_added_local", "date_last_used_raw",
+    "date_last_used_utc", "date_last_used_local",
+]
+
 
 def walk(node, path, profile, out):
     name = node.get("name", "")
@@ -31,7 +37,7 @@ def walk(node, path, profile, out):
 def main():
     files = find_profile_files("Bookmarks")
     if not files:
-        return write_outputs("chrome_bookmarks", [], [])
+        return write_outputs("chrome_bookmarks", [], [], FIELDS, "source_file_not_found")
     records = []
     for profile, path in files:
         with open(path, encoding="utf-8") as f:
@@ -39,7 +45,10 @@ def main():
         for root in data.get("roots", {}).values():
             if isinstance(root, dict):
                 walk(root, [], profile, records)
-    return write_outputs("chrome_bookmarks", records, [p for _, p in files])
+    return write_outputs(
+        "chrome_bookmarks", records, [p for _, p in files], FIELDS,
+        "no_bookmarks_found",
+    )
 
 
 if __name__ == "__main__":
