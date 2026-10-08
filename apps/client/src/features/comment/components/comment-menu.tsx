@@ -2,17 +2,22 @@ import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconDots,
   IconEdit,
+  IconLink,
   IconTrash,
   IconCircleCheck,
   IconCircleCheckFilled,
 } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
+import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { useClipboard } from "@/hooks/use-clipboard";
+import { getAppUrl } from "@/lib/config";
 
 type CommentMenuProps = {
+  commentId: string;
   onEditComment: () => void;
   onDeleteComment: () => void;
   onResolveComment?: () => void;
@@ -22,6 +27,7 @@ type CommentMenuProps = {
 };
 
 function CommentMenu({
+  commentId,
   onEditComment,
   onDeleteComment,
   onResolveComment,
@@ -32,6 +38,13 @@ function CommentMenu({
   const { t } = useTranslation();
   const canResolve = useHasFeature(Feature.COMMENT_RESOLUTION);
   const upgradeLabel = useUpgradeLabel();
+  const clipboard = useClipboard({ timeout: 500 });
+
+  const handleCopyLink = () => {
+    const link = `${getAppUrl()}${window.location.pathname}?commentId=${commentId}`;
+    clipboard.copy(link);
+    notifications.show({ message: t("Link copied") });
+  };
 
   //@ts-ignore
   const openDeleteModal = () =>
@@ -85,6 +98,12 @@ function CommentMenu({
               </Menu.Item>
             </Tooltip>
           ))}
+        <Menu.Item
+          leftSection={<IconLink size={14} />}
+          onClick={handleCopyLink}
+        >
+          {t("Copy link")}
+        </Menu.Item>
         <Menu.Item
           leftSection={<IconTrash size={14} />}
           onClick={openDeleteModal}

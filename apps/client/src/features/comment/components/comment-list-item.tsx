@@ -152,6 +152,7 @@ function CommentListItem({
 
               {(currentUser?.user?.id === comment.creatorId || userSpaceRole === 'admin') && (
                 <CommentMenu
+                  commentId={comment.id}
                   onEditComment={handleEditToggle}
                   onDeleteComment={handleDeleteComment}
                   onResolveComment={handleResolveComment}
