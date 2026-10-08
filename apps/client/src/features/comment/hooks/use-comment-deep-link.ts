@@ -49,12 +49,15 @@ export function useCommentDeepLink(pageId: string | undefined) {
 
   // Reset per page so a deep-link tab override never outlives its page.
   useEffect(() => {
-    handledRef.current = null;
     setCommentPanelTab("open");
   }, [pageId, setCommentPanelTab]);
 
   useEffect(() => {
-    if (!commentId || !pageId) return;
+    if (!commentId) {
+      handledRef.current = null;
+      return;
+    }
+    if (!pageId) return;
     if (isLoading || !comments?.items) return;
     if (handledRef.current === commentId) return;
     handledRef.current = commentId;

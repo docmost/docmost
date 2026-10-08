@@ -22,6 +22,7 @@ type CommentMenuProps = {
   onDeleteComment: () => void;
   onResolveComment?: () => void;
   canEdit?: boolean;
+  canManage?: boolean;
   isResolved?: boolean;
   isParentComment?: boolean;
 };
@@ -32,6 +33,7 @@ function CommentMenu({
   onDeleteComment,
   onResolveComment,
   canEdit = true,
+  canManage = false,
   isResolved = false,
   isParentComment = false,
 }: CommentMenuProps) {
@@ -78,6 +80,7 @@ function CommentMenu({
           </Menu.Item>
         )}
         {isParentComment &&
+          canManage &&
           (canResolve ? (
             <Menu.Item
               onClick={onResolveComment}
@@ -104,12 +107,14 @@ function CommentMenu({
         >
           {t("Copy link")}
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconTrash size={14} />}
-          onClick={openDeleteModal}
-        >
-          {t("Delete comment")}
-        </Menu.Item>
+        {canManage && (
+          <Menu.Item
+            leftSection={<IconTrash size={14} />}
+            onClick={openDeleteModal}
+          >
+            {t("Delete comment")}
+          </Menu.Item>
+        )}
       </Menu.Dropdown>
     </Menu>
   );
