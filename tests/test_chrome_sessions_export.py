@@ -103,7 +103,13 @@ class SessionParserTests(unittest.TestCase):
             ):
                 sessions.main()
 
-        write_outputs.assert_called_once_with("chrome_sessions", [], [])
+        write_outputs.assert_called_once_with(
+            "chrome_sessions",
+            [],
+            [],
+            sessions.FIELDS,
+            "no_session_tabs_found",
+        )
 
     def test_main_exports_navigation_updates_and_reports_unsupported_files(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -128,10 +134,12 @@ class SessionParserTests(unittest.TestCase):
                 sessions.main()
 
         write_outputs.assert_called_once()
-        name, records, sources = write_outputs.call_args.args
+        name, records, sources, fields, empty_reason = write_outputs.call_args.args
         self.assertEqual(name, "chrome_sessions")
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["url"], "https://example.com")
+        self.assertEqual(fields, sessions.FIELDS)
+        self.assertEqual(empty_reason, "no_session_tabs_found")
         self.assertCountEqual(sources, [valid_file, unsupported_file])
         self.assertIn("Tabs_unsupported", errors.getvalue())
         self.assertIn("encrypted SNSS version 5 at byte offset 4", errors.getvalue())

@@ -15,6 +15,10 @@ from chrome_common import find_profile_files, write_outputs
 UPDATE_TAB_NAVIGATION = 6
 SUPPORTED_VERSION = 3
 ENCRYPTED_VERSIONS = {2, 4, 5}
+FIELDS = [
+    "profile", "session_file", "session_file_modified_utc",
+    "session_file_modified_local", "tab_id", "navigation_index", "url", "title",
+]
 
 
 class SessionParseError(ValueError):
@@ -97,7 +101,9 @@ def parse_navigation(payload, offset=0):
 def main():
     files = find_profile_files("Sessions")
     if not files:
-        return write_outputs("chrome_sessions", [], [])
+        return write_outputs(
+            "chrome_sessions", [], [], FIELDS, "source_file_not_found"
+        )
     records, sources = [], []
     for profile, folder in files:
         for f in sorted(folder.iterdir()):
@@ -125,7 +131,9 @@ def main():
                     })
             except SessionParseError as error:
                 print(f"{f}: {error}", file=sys.stderr)
-    return write_outputs("chrome_sessions", records, sources)
+    return write_outputs(
+        "chrome_sessions", records, sources, FIELDS, "no_session_tabs_found"
+    )
 
 
 if __name__ == "__main__":
