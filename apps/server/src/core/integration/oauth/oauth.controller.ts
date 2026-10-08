@@ -1,10 +1,7 @@
 import {
-  ArgumentsHost,
   BadRequestException,
   Body,
-  Catch,
   Controller,
-  ExceptionFilter,
   ForbiddenException,
   Get,
   HttpCode,
@@ -15,7 +12,6 @@ import {
   Query,
   Req,
   Res,
-  UnauthorizedException,
   UseFilters,
   UseGuards,
 } from '@nestjs/common';
@@ -51,13 +47,12 @@ import {
   EncryptionService,
 } from '../../../integrations/encryption/encryption.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { nonceCookieName } from './oauth.utils';
+import { COMPLETION_FALLBACK_REDIRECT, nonceCookieName } from './oauth.utils';
+import { OAuthCompleteAuthFilter } from './oauth-complete-auth.filter';
 
 const OAUTH_ROUTE_PREFIX = '/api/integrations/oauth';
 const COMPLETION_TICKET_PURPOSE = 'oauth-completion';
 const COMPLETION_TICKET_TTL_MS = 60_000;
-const COMPLETION_FALLBACK_REDIRECT =
-  '/settings/account/connections?error=oauth_failed';
 
 type CompletionTicket = {
   purpose: typeof COMPLETION_TICKET_PURPOSE;
@@ -65,23 +60,6 @@ type CompletionTicket = {
   code: string;
   exp: number;
 };
-
-// Redirects a browser back into the app instead of showing a JSON auth error.
-@Catch(UnauthorizedException, ForbiddenException)
-export class OAuthCompleteAuthFilter implements ExceptionFilter {
-  private readonly logger = new Logger(OAuthCompleteAuthFilter.name);
-
-  catch(
-    exception: UnauthorizedException | ForbiddenException,
-    host: ArgumentsHost,
-  ) {
-    const http = host.switchToHttp();
-    this.logger.warn(
-      `OAuth completion on ${http.getRequest<FastifyRequest>().host} refused without a usable session: ${exception.message}`,
-    );
-    http.getResponse<FastifyReply>().redirect(COMPLETION_FALLBACK_REDIRECT, 302);
-  }
-}
 
 @Controller('integrations/oauth')
 export class OAuthController {
@@ -129,7 +107,6 @@ export class OAuthController {
     @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    // Admin-only because completion creates the integration row.
     const ability = this.workspaceAbility.createForUser(user, workspace);
     if (
       ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Settings)

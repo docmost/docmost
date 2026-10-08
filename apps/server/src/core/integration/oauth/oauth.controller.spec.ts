@@ -3,7 +3,8 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { OAuthCompleteAuthFilter, OAuthController } from './oauth.controller';
+import { OAuthController } from './oauth.controller';
+import { OAuthCompleteAuthFilter } from './oauth-complete-auth.filter';
 import { OAuthStatePayload } from './oauth.service';
 import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
 import { UserRole } from '../../../common/helpers/types/permission';
