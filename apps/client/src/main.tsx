@@ -21,6 +21,7 @@ import {
   isCloud,
   isPostHogEnabled,
 } from "@/lib/config.ts";
+import { installChunkLoadRecovery } from "@/lib/chunk-load-recovery.ts";
 import posthog from "posthog-js";
 
 export const queryClient = new QueryClient({
@@ -42,6 +43,8 @@ if (isCloud() && isPostHogEnabled) {
     capture_pageleave: false,
   });
 }
+
+installChunkLoadRecovery();
 
 const container = document.getElementById("root") as HTMLElement;
 const root = (container as any).__reactRoot ??= ReactDOM.createRoot(container);
