@@ -37,7 +37,11 @@ export function htmlToMarkdown(html: string): string {
     footnoteRef,
     footnotesList,
   ]);
-  return turndownService.turndown(html).replaceAll('<br>', ' ');
+  const htmlWithoutColgroups = html.replace(
+    /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,
+    '',
+  );
+  return turndownService.turndown(htmlWithoutColgroups).replaceAll('<br>', ' ');
 }
 
 function listParagraph(turndownService: _TurndownService) {
@@ -146,7 +150,7 @@ function preserveDetail(turndownService: _TurndownService) {
         )
         .join('');
 
-      return `\n<details>\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
+      return `\n<details markdown="1">\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
     },
   });
 }

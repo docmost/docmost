@@ -247,3 +247,7 @@ export function jsonToMarkdown(tiptapJson: any): string {
   const html = jsonToHtml(tiptapJson);
   return htmlToMarkdown(html);
 }
+
+export function isRenderableObject(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
