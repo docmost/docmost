@@ -93,9 +93,7 @@ export default function SubpageItem({
           <span className={classes.icon} aria-hidden>
             {page.icon || <IconFileDescription size={18} stroke={1.5} />}
           </span>
-          <span className={clsx(classes.title, !page.title && classes.untitled)}>
-            {title}
-          </span>
+          <span className={classes.title}>{title}</span>
           {updatedAt && (
             <time
               className={classes.updatedAt}

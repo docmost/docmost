@@ -1,7 +1,12 @@
 .card {
+  /* lighter than dimmed but still AA on the header */
   --subpages-dimmed: light-dark(
-    var(--mantine-color-dimmed),
-    var(--mantine-color-dark-1)
+    #6b7280,
+    color-mix(in srgb, var(--mantine-color-dark-1), var(--mantine-color-dark-2))
+  );
+  --subpages-icon: light-dark(
+    var(--mantine-color-gray-6),
+    var(--mantine-color-dark-2)
   );
   border: 1px solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
@@ -101,7 +106,12 @@
 }
 
 .chevron {
+  color: var(--subpages-icon);
   transition: transform 150ms ease;
+}
+
+.toggle:hover .chevron {
+  color: inherit;
 }
 
 .chevronOpened {
@@ -120,7 +130,6 @@
 
 /* beat the editor's link styles */
 .card .row .link {
-  color: inherit;
   font-weight: inherit;
   border-bottom: none;
 }
@@ -133,7 +142,7 @@
   width: rem(20px);
   font-size: rem(17px);
   line-height: 1;
-  color: var(--mantine-color-dimmed);
+  color: var(--subpages-icon);
 }
 
 .title {
@@ -144,10 +153,6 @@
   white-space: nowrap;
   font-size: rem(15px);
   line-height: 1.5;
-}
-
-.untitled {
-  color: var(--subpages-dimmed);
 }
 
 .updatedAt {
