@@ -556,9 +556,17 @@ export class DocxSerializerStateAsync {
 
   async render(node: Node, parent: Node, index: number) {
     if (typeof parent === 'number') throw new Error('!');
-    if (!this.nodes[node.type.name])
-      throw new Error(`Token type \`${node.type.name}\` not supported by Word renderer`);
-    await Promise.resolve(this.nodes[node.type.name](this, node, parent, index));
+    if (this.nodes[node.type.name]) {
+      await Promise.resolve(this.nodes[node.type.name](this, node, parent, index));
+      return;
+    }
+    // node types without a serializer export their content instead of failing the export
+    if (node.isTextblock) {
+      await this.renderInline(node);
+      this.closeBlock(node);
+      return;
+    }
+    await this.renderContent(node);
   }
 
   renderMarks(node: Node, marks: Mark[]): IRunOptions {
