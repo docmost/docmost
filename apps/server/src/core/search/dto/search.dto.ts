@@ -1,16 +1,21 @@
 import {
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
 } from 'class-validator';
 
+export const SEARCH_QUERY_MAX_LENGTH = 200;
+
 export class SearchDTO {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  query: string;
+  @MaxLength(SEARCH_QUERY_MAX_LENGTH)
+  query?: string;
 
   @IsOptional()
   @IsUUID()
@@ -23,6 +28,15 @@ export class SearchDTO {
   @IsOptional()
   @IsUUID()
   creatorId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  labelIds?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  titleOnly?: boolean;
 
   @IsOptional()
   @IsNumber()
@@ -43,8 +57,15 @@ export class SearchShareDTO extends SearchDTO {
   spaceId: string;
 }
 
+export class SearchPublicSpaceDTO extends SearchDTO {
+  @IsNotEmpty()
+  @IsString()
+  spaceSlug: string;
+}
+
 export class SearchSuggestionDTO {
   @IsString()
+  @MaxLength(SEARCH_QUERY_MAX_LENGTH)
   query: string;
 
   @IsOptional()

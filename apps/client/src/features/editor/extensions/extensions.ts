@@ -1,9 +1,11 @@
 import { markInputRule } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
+import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
-import { Placeholder, CharacterCount, UndoRedo } from "@tiptap/extensions";
+import { CharacterCount, UndoRedo } from "@tiptap/extensions";
+import { Placeholder } from "@/features/editor/extensions/placeholder";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -62,6 +64,9 @@ import {
   TransclusionReference,
   TableView,
   BaseEmbed as BaseEmbedNode,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
   Tabs,
   Tab,
   TabLabel,
@@ -136,6 +141,7 @@ lowlight.register("scala", scala);
 // @ts-ignore
 export const mainExtensions = [
   StarterKit.configure({
+    document: false,
     heading: false,
     undoRedo: false,
     link: false,
@@ -147,6 +153,7 @@ export const mainExtensions = [
     codeBlock: false,
     code: false,
   }),
+  TiptapDocument,
   // Override TipTap's Code extension to fix the inline code input rule.
   // The upstream regex /(^|[^`])`([^`]+)`(?!`)$/ captures the character
   // before the opening backtick as part of the match, causing markInputRule
@@ -207,7 +214,8 @@ export const mainExtensions = [
             parentName === "tableCell" ||
             parentName === "tableHeader" ||
             parentName === "callout" ||
-            parentName === "blockquote"
+            parentName === "blockquote" ||
+            parentName === "footnote"
           ) {
             return i18n.t("Write...");
           }
@@ -427,6 +435,9 @@ export const mainExtensions = [
   }).configure(),
   Columns,
   Column,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
   AutoJoiner.configure({
     elementsToJoin: [],
   }),
@@ -471,7 +482,9 @@ export const collabExtensions: CollabExtensions = (provider, user) => [
   CollaborationCaret.configure({
     provider,
     user: {
+      id: user.id,
       name: user.name,
+      avatarUrl: user.avatarUrl,
       color: randomElement(userColors),
     },
   }),

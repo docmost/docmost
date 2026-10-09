@@ -42,6 +42,7 @@ import {
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -65,6 +66,7 @@ export class WorkspaceService {
     private domainService: DomainService,
     private licenseCheckService: LicenseCheckService,
     private shareRepo: ShareRepo,
+    private readonly publicSpaceRepo: PublicSpaceRepo,
     private watcherRepo: WatcherRepo,
     private favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
@@ -334,7 +336,10 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
       typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
       typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
-      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined'
+      typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
+      typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
+      typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined' ||
+      typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -375,6 +380,33 @@ export class WorkspaceService {
       }
 
       if (
+        typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
+        typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined'
+      ) {
+        if (
+          !this.licenseCheckService.hasFeature(
+            ws.licenseKey,
+            Feature.AI_CONTROLS,
+            ws.plan,
+          )
+        ) {
+          throw new ForbiddenException('This feature requires a valid license');
+        }
+      }
+
+      if (typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined') {
+        if (
+          !this.licenseCheckService.hasFeature(
+            ws.licenseKey,
+            Feature.MCP_CONTROLS,
+            ws.plan,
+          )
+        ) {
+          throw new ForbiddenException('This feature requires a valid license');
+        }
+      }
+
+      if (
         typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
         typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
         typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
@@ -396,7 +428,10 @@ export class WorkspaceService {
       }
     }
 
-    if (updateWorkspaceDto.aiSearch) {
+    if (
+      updateWorkspaceDto.aiSearch &&
+      this.environmentService.getAiVectorDriver() !== 'turbopuffer'
+    ) {
       const tableExists = await isPageEmbeddingsTableExists(this.db);
       if (!tableExists) {
         throw new BadRequestException(
@@ -471,6 +506,47 @@ export class WorkspaceService {
         }
       }
 
+      if (
+        !this.environmentService.isBetaPublicSpaces() &&
+        (typeof updateWorkspaceDto.allowPublicSpaces !== 'undefined' ||
+          typeof updateWorkspaceDto.publicSpacesDirectory !== 'undefined')
+      ) {
+        throw new ForbiddenException(
+          'Public spaces are not enabled on this instance',
+        );
+      }
+
+      if (typeof updateWorkspaceDto.allowPublicSpaces !== 'undefined') {
+        const prev = settingsBefore?.publicSpaces?.enabled ?? false;
+        if (prev !== updateWorkspaceDto.allowPublicSpaces) {
+          before.allowPublicSpaces = prev;
+          after.allowPublicSpaces = updateWorkspaceDto.allowPublicSpaces;
+        }
+        await this.workspaceRepo.updatePublicSpacesSettings(
+          workspaceId,
+          'enabled',
+          updateWorkspaceDto.allowPublicSpaces,
+          trx,
+        );
+        if (!updateWorkspaceDto.allowPublicSpaces) {
+          await this.publicSpaceRepo.disableByWorkspaceId(workspaceId, trx);
+        }
+      }
+
+      if (typeof updateWorkspaceDto.publicSpacesDirectory !== 'undefined') {
+        const prev = settingsBefore?.publicSpaces?.directory ?? false;
+        if (prev !== updateWorkspaceDto.publicSpacesDirectory) {
+          before.publicSpacesDirectory = prev;
+          after.publicSpacesDirectory = updateWorkspaceDto.publicSpacesDirectory;
+        }
+        await this.workspaceRepo.updatePublicSpacesSettings(
+          workspaceId,
+          'directory',
+          updateWorkspaceDto.publicSpacesDirectory,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
         const prev = settingsBefore?.ai?.mcp ?? false;
         if (prev !== updateWorkspaceDto.mcpEnabled) {
@@ -513,6 +589,48 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined') {
+        const prev = settingsBefore?.ai?.chatReadOnly ?? false;
+        if (prev !== updateWorkspaceDto.aiChatReadOnly) {
+          before.aiChatReadOnly = prev;
+          after.aiChatReadOnly = updateWorkspaceDto.aiChatReadOnly;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'chatReadOnly',
+          updateWorkspaceDto.aiChatReadOnly,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined') {
+        const prev = settingsBefore?.ai?.chatWorkspaceKnowledgeOnly ?? false;
+        if (prev !== updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly) {
+          before.aiChatWorkspaceKnowledgeOnly = prev;
+          after.aiChatWorkspaceKnowledgeOnly = updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'chatWorkspaceKnowledgeOnly',
+          updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined') {
+        const prev = settingsBefore?.ai?.enforceMcpOauth ?? false;
+        if (prev !== updateWorkspaceDto.enforceMcpOauth) {
+          before.enforceMcpOauth = prev;
+          after.enforceMcpOauth = updateWorkspaceDto.enforceMcpOauth;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'enforceMcpOauth',
+          updateWorkspaceDto.enforceMcpOauth,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined') {
         const prev = settingsBefore?.spaces?.allowPersonal ?? false;
         if (prev !== updateWorkspaceDto.allowPersonalSpaces) {
@@ -545,11 +663,16 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
       delete updateWorkspaceDto.disablePublicSharing;
+      delete updateWorkspaceDto.allowPublicSpaces;
+      delete updateWorkspaceDto.publicSpacesDirectory;
       delete updateWorkspaceDto.mcpEnabled;
       delete updateWorkspaceDto.allowMemberTemplates;
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
       delete updateWorkspaceDto.defaultPageEditMode;
+      delete updateWorkspaceDto.aiChatReadOnly;
+      delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
+      delete updateWorkspaceDto.enforceMcpOauth;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,
@@ -624,44 +747,61 @@ export class WorkspaceService {
     userRoleDto: UpdateWorkspaceUserRoleDto,
     workspaceId: string,
   ) {
-    const user = await this.userRepo.findById(userRoleDto.userId, workspaceId);
-
     const newRole = userRoleDto.role.toLowerCase();
+    const result = await executeTx(this.db, async (trx) => {
+      const workspace = await this.workspaceRepo.findById(workspaceId, {
+        withLock: true,
+        trx,
+      });
+      if (!workspace) {
+        throw new NotFoundException('Workspace not found');
+      }
 
-    if (!user) {
-      throw new BadRequestException('Workspace member not found');
-    }
-
-    // prevent ADMIN from managing OWNER role
-    if (
-      isAdminActingOnOwner(authUser.role, newRole) ||
-      isAdminActingOnOwner(authUser.role, user.role)
-    ) {
-      throw new ForbiddenException();
-    }
-
-    if (user.role === newRole) {
-      return user;
-    }
-
-    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
-      UserRole.OWNER,
-      workspaceId,
-    );
-
-    if (user.role === UserRole.OWNER && workspaceOwnerCount === 1) {
-      throw new BadRequestException(
-        'There must be at least one workspace owner',
+      const user = await this.userRepo.findById(
+        userRoleDto.userId,
+        workspaceId,
+        { trx },
       );
+      if (!user) {
+        throw new BadRequestException('Workspace member not found');
+      }
+
+      if (
+        isAdminActingOnOwner(authUser.role, newRole) ||
+        isAdminActingOnOwner(authUser.role, user.role)
+      ) {
+        throw new ForbiddenException();
+      }
+
+      if (user.role === newRole) {
+        return { changed: false, user };
+      }
+
+      if (
+        user.role === UserRole.OWNER &&
+        !user.deletedAt &&
+        !user.deactivatedAt
+      ) {
+        await this.validateLastWorkspaceOwner(workspaceId, trx);
+      }
+
+      await this.userRepo.updateUser(
+        {
+          role: newRole,
+        },
+        user.id,
+        workspaceId,
+        trx,
+      );
+
+      return { changed: true, user };
+    });
+
+    if (!result.changed) {
+      return result.user;
     }
 
-    await this.userRepo.updateUser(
-      {
-        role: newRole,
-      },
-      user.id,
-      workspaceId,
-    );
+    const { user } = result;
 
     this.auditService.log({
       event: AuditEvent.USER_ROLE_CHANGED,
@@ -725,40 +865,38 @@ export class WorkspaceService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const user = await executeTx(this.db, async (trx) => {
+      const workspace = await this.workspaceRepo.findById(workspaceId, {
+        withLock: true,
+        trx,
+      });
+      if (!workspace) {
+        throw new NotFoundException('Workspace not found');
+      }
 
-    if (!user || user.deletedAt) {
-      throw new BadRequestException('Workspace member not found');
-    }
+      const user = await this.userRepo.findById(userId, workspaceId, { trx });
+      if (!user || user.deletedAt) {
+        throw new BadRequestException('Workspace member not found');
+      }
 
-    if (user.deactivatedAt) {
-      throw new BadRequestException('User is already deactivated');
-    }
+      if (user.deactivatedAt) {
+        throw new BadRequestException('User is already deactivated');
+      }
 
-    if (authUser.id === userId) {
-      throw new BadRequestException('You cannot deactivate yourself');
-    }
+      if (authUser.id === userId) {
+        throw new BadRequestException('You cannot deactivate yourself');
+      }
 
-    if (isAdminActingOnOwner(authUser.role, user.role)) {
-      throw new BadRequestException(
-        'You cannot deactivate a user with owner role',
-      );
-    }
-
-    if (user.role === UserRole.OWNER) {
-      const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
-        UserRole.OWNER,
-        workspaceId,
-      );
-
-      if (workspaceOwnerCount === 1) {
+      if (isAdminActingOnOwner(authUser.role, user.role)) {
         throw new BadRequestException(
-          'There must be at least one workspace owner',
+          'You cannot deactivate a user with owner role',
         );
       }
-    }
 
-    await executeTx(this.db, async (trx) => {
+      if (user.role === UserRole.OWNER) {
+        await this.validateLastWorkspaceOwner(workspaceId, trx);
+      }
+
       await this.userRepo.updateUser(
         { deactivatedAt: new Date() },
         userId,
@@ -766,6 +904,8 @@ export class WorkspaceService {
         trx,
       );
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+
+      return user;
     });
 
     this.auditService.log({
@@ -828,32 +968,34 @@ export class WorkspaceService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const user = await executeTx(this.db, async (trx) => {
+      const workspace = await this.workspaceRepo.findById(workspaceId, {
+        withLock: true,
+        trx,
+      });
+      if (!workspace) {
+        throw new NotFoundException('Workspace not found');
+      }
 
-    if (!user || user.deletedAt) {
-      throw new BadRequestException('Workspace member not found');
-    }
+      const user = await this.userRepo.findById(userId, workspaceId, { trx });
+      if (!user || user.deletedAt) {
+        throw new BadRequestException('Workspace member not found');
+      }
 
-    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
-      UserRole.OWNER,
-      workspaceId,
-    );
+      if (authUser.id === userId) {
+        throw new BadRequestException('You cannot delete yourself');
+      }
 
-    if (user.role === UserRole.OWNER && workspaceOwnerCount === 1) {
-      throw new BadRequestException(
-        'There must be at least one workspace owner',
-      );
-    }
+      if (isAdminActingOnOwner(authUser.role, user.role)) {
+        throw new BadRequestException(
+          'You cannot delete a user with owner role',
+        );
+      }
 
-    if (authUser.id === userId) {
-      throw new BadRequestException('You cannot delete yourself');
-    }
+      if (user.role === UserRole.OWNER && !user.deactivatedAt) {
+        await this.validateLastWorkspaceOwner(workspaceId, trx);
+      }
 
-    if (isAdminActingOnOwner(authUser.role, user.role)) {
-      throw new BadRequestException('You cannot delete a user with owner role');
-    }
-
-    await executeTx(this.db, async (trx) => {
       await this.userRepo.updateUser(
         {
           name: 'Deleted user',
@@ -886,6 +1028,8 @@ export class WorkspaceService {
       });
 
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+
+      return user;
     });
 
     this.auditService.log({
@@ -905,6 +1049,22 @@ export class WorkspaceService {
       await this.attachmentQueue.add(QueueJob.DELETE_USER_AVATARS, user);
     } catch (err) {
       // empty
+    }
+  }
+
+  private async validateLastWorkspaceOwner(
+    workspaceId: string,
+    trx: KyselyTransaction,
+  ): Promise<void> {
+    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
+      UserRole.OWNER,
+      workspaceId,
+      trx,
+    );
+    if (workspaceOwnerCount <= 1) {
+      throw new BadRequestException(
+        'There must be at least one workspace owner',
+      );
     }
   }
 }

@@ -3,12 +3,14 @@ import { usePageQuery } from "@/features/page/queries/page-query";
 import { FullEditor } from "@/features/editor/full-editor";
 import { TitleEditor } from "@/features/editor/title-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
-import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { useCommentDeepLink } from "@/features/comment/hooks/use-comment-deep-link";
 import { useTranslation } from "react-i18next";
-import React from "react";
+import React, { useEffect } from "react";
+import { useSetAtom } from "jotai";
+import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
@@ -18,6 +20,7 @@ import { BaseView } from "@/ee/base/components/base-view";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -57,6 +60,14 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  const setAsideState = useSetAtom(asideStateAtom);
+
+  // Keep above useCommentDeepLink so a deep link can reopen the aside.
+  useEffect(() => {
+    setAsideState({ tab: "", isAsideOpen: false });
+  }, [page?.id, setAsideState]);
+
+  useCommentDeepLink(page?.id);
 
   const hasBases = useHasFeature(Feature.BASES);
   const canEdit = !page?.deletedAt && (page?.permissions?.canEdit ?? false);
@@ -110,9 +121,10 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           paddingTop: "calc(var(--page-header-height) + 6px)",
         }}
       >
-        <Helmet>
-          <title>{`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}</title>
-        </Helmet>
+        <DocumentTitle
+          title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
+          withAppName={false}
+        />
         <MemoizedPageHeader readOnly={!canEdit} />
         <div
           style={{
@@ -159,9 +171,10 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   return (
     page && (
       <div>
-        <Helmet>
-          <title>{`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}</title>
-        </Helmet>
+        <DocumentTitle
+          title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
+          withAppName={false}
+        />
 
         <MemoizedPageHeader readOnly={!canEdit} />
 

@@ -1,5 +1,3 @@
-import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import React from "react";
 import useUserRole from "@/hooks/use-user-role.tsx";
@@ -9,6 +7,7 @@ import InstallationDetails from "@/ee/licence/components/installation-details.ts
 import OssDetails from "@/ee/licence/components/oss-details.tsx";
 import { useAtom } from "jotai/index";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function License() {
   const [entitlements] = useAtom(entitlementAtom);
@@ -21,9 +20,7 @@ export default function License() {
 
   return (
     <>
-      <Helmet>
-        <title>License - {getAppName()}</title>
-      </Helmet>
+      <DocumentTitle title="License" />
       <SettingsTitle title="License" />
 
       <ActivateLicenseForm />

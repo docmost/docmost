@@ -166,7 +166,7 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
           <Button variant="default" onClick={() => setHistoryModalOpen(false)}>
             {t("Cancel")}
           </Button>
-          <Button onClick={confirmRestore}>{t("Restore")}</Button>
+          <Button onClick={() => confirmRestore()}>{t("Restore")}</Button>
         </Group>
       )}
 

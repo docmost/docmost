@@ -61,10 +61,13 @@ export const SubpagesMenu = React.memo(
       <BaseBubbleMenu
         editor={editor}
         pluginKey={`subpages-menu`}
+        ref={(element) => {
+          if (element) element.style.zIndex = "99";
+        }}
         updateDelay={0}
         shouldShow={shouldShow}
       >
-        <Tooltip position="top" label={t("Delete")}>
+        <Tooltip position="top" label={t("Delete")} withinPortal={false}>
           <ActionIcon
             onClick={deleteNode}
             variant="default"

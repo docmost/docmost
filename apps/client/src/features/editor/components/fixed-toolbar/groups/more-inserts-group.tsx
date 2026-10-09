@@ -12,6 +12,7 @@ import {
   IconMathFunction,
   IconRotate2,
   IconSitemap,
+  IconSuperscript,
   IconTable,
   IconTag,
 } from "@tabler/icons-react";
@@ -269,6 +270,12 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => editor.chain().focus().setMathBlock().run()}
         >
           {t("Math block")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconSuperscript size={16} />}
+          onClick={() => editor.chain().focus().addFootnote().run()}
+        >
+          {t("Footnote")}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

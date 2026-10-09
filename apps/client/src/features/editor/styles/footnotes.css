@@ -1,0 +1,26 @@
+.ProseMirror sup a.footnote-ref {
+  color: var(--mantine-primary-color-filled);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ProseMirror sup:has(a.footnote-ref) {
+  padding: 0 1px;
+}
+
+.ProseMirror ol.footnotes {
+  margin-top: 2rem;
+  padding-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--mantine-color-dimmed);
+  list-style-type: decimal;
+}
+
+.ProseMirror ol.footnotes:has(li) {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.ProseMirror ol.footnotes li p {
+  margin: 0.15rem 0;
+}

@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery, UseQueryResult } from "@tanstack/react-quer
 import {
   searchAttachments,
   searchPage,
+  searchPublicSpace,
   searchShare,
   searchSuggestions,
 } from '@/features/search/services/search-service';
@@ -53,5 +54,15 @@ export function useAttachmentSearchQuery(
     queryKey: ["attachment-search", params],
     queryFn: () => searchAttachments(params),
     enabled: !!params.query,
+  });
+}
+
+export function usePublicSpaceSearchQuery(
+  params: IPageSearchParams & { spaceSlug: string },
+): UseQueryResult<IPageSearch[], Error> {
+  return useQuery({
+    queryKey: ["public-space-search", params],
+    queryFn: () => searchPublicSpace(params),
+    enabled: !!params.query && !!params.spaceSlug,
   });
 }

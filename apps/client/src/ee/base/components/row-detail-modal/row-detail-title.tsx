@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
 import { timeAgo } from "@/lib/time.ts";
@@ -9,7 +9,7 @@ type RowDetailTitleProps = {
   primaryProperty: IBaseProperty | undefined;
   canEdit: boolean;
   onCommit: (value: string) => void;
-  onClose: () => void;
+  onEditingChange?: (editing: boolean) => void;
 };
 
 export function RowDetailTitle({
@@ -17,13 +17,24 @@ export function RowDetailTitle({
   primaryProperty,
   canEdit,
   onCommit,
-  onClose,
+  onEditingChange,
 }: RowDetailTitleProps) {
   const { t } = useTranslation();
   const initial = primaryProperty
     ? (((row.cells ?? {})[primaryProperty.id] as string) ?? "")
     : "";
   const [value, setValue] = useState(initial);
+  const cancelRef = useRef(false);
+
+  const commit = () => {
+    onEditingChange?.(false);
+    if (cancelRef.current) {
+      cancelRef.current = false;
+      setValue(initial);
+      return;
+    }
+    if (value !== initial) onCommit(value);
+  };
 
   // Re-sync when the row changes underneath us (navigation or remote edit).
   useEffect(() => {
@@ -43,18 +54,18 @@ export function RowDetailTitle({
           aria-label={primaryProperty?.name ?? t("Untitled")}
           value={value}
           maxLength={1000}
-          onChange={(e) => setValue(e.currentTarget.value)}
-          onBlur={() => {
-            if (value !== initial) onCommit(value);
+          onFocus={() => {
+            onEditingChange?.(true);
           }}
+          onChange={(e) => setValue(e.currentTarget.value)}
+          onBlur={commit}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Escape") {
+              cancelRef.current = true;
+              e.currentTarget.blur();
+            } else if (e.key === "Enter") {
               e.preventDefault();
-              (e.currentTarget as HTMLInputElement).blur();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              (e.currentTarget as HTMLInputElement).blur();
-              onClose();
+              e.currentTarget.blur();
             }
           }}
         />
