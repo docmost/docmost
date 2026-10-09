@@ -24,6 +24,7 @@ import {
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { useHistoryRestore } from "@/features/page-history/hooks";
+import classes from "./css/history.module.css";
 
 const PREFETCH_DELAY_MS = 150;
 
@@ -183,7 +184,12 @@ function HistoryList({ pageId }: Props) {
 
   return (
     <div>
-      <ScrollArea h={620} w="100%" type="scroll" scrollbarSize={5}>
+      <ScrollArea
+        className={classes.historyListScrollArea}
+        w="100%"
+        type="scroll"
+        scrollbarSize={5}
+      >
         {historyItems.map((historyItem, index) => (
           <HistoryItem
             key={historyItem.id}
