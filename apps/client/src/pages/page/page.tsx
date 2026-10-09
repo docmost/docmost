@@ -6,8 +6,11 @@ import HistoryModal from "@/features/page-history/components/history-modal";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { useCommentDeepLink } from "@/features/comment/hooks/use-comment-deep-link";
 import { useTranslation } from "react-i18next";
-import React from "react";
+import React, { useEffect } from "react";
+import { useSetAtom } from "jotai";
+import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
@@ -57,6 +60,14 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  const setAsideState = useSetAtom(asideStateAtom);
+
+  // Keep above useCommentDeepLink so a deep link can reopen the aside.
+  useEffect(() => {
+    setAsideState({ tab: "", isAsideOpen: false });
+  }, [page?.id, setAsideState]);
+
+  useCommentDeepLink(page?.id);
 
   const hasBases = useHasFeature(Feature.BASES);
   const canEdit = !page?.deletedAt && (page?.permissions?.canEdit ?? false);

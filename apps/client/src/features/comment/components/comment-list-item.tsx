@@ -150,16 +150,19 @@ function CommentListItem({
                 />
               )}
 
-              {(currentUser?.user?.id === comment.creatorId || userSpaceRole === 'admin') && (
-                <CommentMenu
-                  onEditComment={handleEditToggle}
-                  onDeleteComment={handleDeleteComment}
-                  onResolveComment={handleResolveComment}
-                  canEdit={currentUser?.user?.id === comment.creatorId}
-                  isResolved={comment.resolvedAt != null}
-                  isParentComment={!comment.parentCommentId}
-                />
-              )}
+              <CommentMenu
+                commentId={comment.id}
+                onEditComment={handleEditToggle}
+                onDeleteComment={handleDeleteComment}
+                onResolveComment={handleResolveComment}
+                canEdit={currentUser?.user?.id === comment.creatorId}
+                canManage={
+                  currentUser?.user?.id === comment.creatorId ||
+                  userSpaceRole === "admin"
+                }
+                isResolved={comment.resolvedAt != null}
+                isParentComment={!comment.parentCommentId}
+              />
             </div>
           </Group>
 
