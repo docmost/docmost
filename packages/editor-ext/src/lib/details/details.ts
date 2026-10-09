@@ -39,7 +39,8 @@ export const Details = Node.create<DetailsOptions>({
     return {
       open: {
         default: false,
-        parseHTML: (e) => e.getAttribute("open"),
+        // `<details open="">` has an empty value, so test for presence.
+        parseHTML: (e) => e.hasAttribute("open"),
         renderHTML: (a) => (a.open ? { open: "" } : {}),
       },
     };

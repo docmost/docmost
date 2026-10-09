@@ -2,7 +2,7 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ResizableNodeView } from "./resizable-nodeview";
 import type { ResizableNodeViewDirection } from "./resizable-nodeview";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { normalizeFileUrl, syncAltBadge } from "./media-utils";
+import { normalizeFileUrl, syncAltBadge, parseNumericAttr } from "./media-utils";
 
 export type DrawioResizeOptions = {
   enabled: boolean;
@@ -114,14 +114,14 @@ export const Drawio = Node.create<DrawioOptions>({
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-size"),
+        parseHTML: (element) => parseNumericAttr(element, "data-size"),
         renderHTML: (attributes: DrawioAttributes) => ({
           "data-size": attributes.size,
         }),
       },
       aspectRatio: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-aspect-ratio"),
+        parseHTML: (element) => parseNumericAttr(element, "data-aspect-ratio"),
         renderHTML: (attributes: DrawioAttributes) => ({
           "data-aspect-ratio": attributes.aspectRatio,
         }),

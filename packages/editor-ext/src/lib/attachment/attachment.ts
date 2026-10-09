@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import { parseNumericAttr } from "../media-utils";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { sanitizeUrl } from "../utils";
 
@@ -67,7 +68,7 @@ export const Attachment = Node.create<AttachmentOptions>({
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-attachment-size"),
+        parseHTML: (element) => parseNumericAttr(element, "data-attachment-size"),
         renderHTML: (attributes: AttachmentAttributes) => ({
           "data-attachment-size": attributes.size,
         }),

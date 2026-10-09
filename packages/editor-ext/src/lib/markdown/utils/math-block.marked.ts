@@ -1,4 +1,5 @@
-import { Token, marked } from 'marked';
+import { Token } from 'marked';
+import { escapeHtml } from './escape-html';
 
 interface MathBlockToken {
   type: 'mathBlock';
@@ -26,11 +27,9 @@ export const mathBlockExtension = {
   },
   renderer(token: Token) {
     const mathBlockToken = token as MathBlockToken;
-    // parse to prevent escaping slashes
-    const latex = marked
-      .parse(mathBlockToken.text)
-      .toString()
-      .replace(/<(\/)?p>/g, '');
+    // LaTeX is raw text: never run it through the markdown parser, which
+    // would unescape `\*`, turn `_x_` into emphasis and append newlines.
+    const latex = escapeHtml(mathBlockToken.text);
 
     return `<div data-type="${mathBlockToken.type}" data-katex="true">${latex}</div>`;
   },

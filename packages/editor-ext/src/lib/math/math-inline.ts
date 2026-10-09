@@ -37,8 +37,10 @@ export const MathInline = Node.create<MathInlineOption>({
     return {
       text: {
         default: "",
+        // textContent, not innerHTML: LaTeX like `a < b & c` must not come
+        // back entity-encoded.
         parseHTML: (element) => {
-          return element.innerHTML;
+          return element.textContent ?? "";
         },
       },
     };
