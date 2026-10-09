@@ -86,7 +86,7 @@ export class StaticModule implements OnModuleInit {
       app.get(RENDER_PATH, (req: any, res: any) => {
         // a missing hashed asset belongs to another build, so don't answer it with the app shell
         if (req.url.startsWith('/assets/')) {
-          return res.code(404).send();
+          return res.code(404).header('Cache-Control', 'no-store').send();
         }
 
         const stream = fs.createReadStream(indexFilePath);

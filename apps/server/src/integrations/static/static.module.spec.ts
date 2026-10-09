@@ -59,6 +59,7 @@ describe('StaticModule', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.headers['content-type'] ?? '').not.toContain('text/html');
+    expect(response.headers['cache-control']).toContain('no-store');
   });
 
   it('serves the app shell for client routes', async () => {
