@@ -22,6 +22,7 @@ import {
   isPostHogEnabled,
 } from "@/lib/config.ts";
 import { installChunkLoadRecovery } from "@/lib/chunk-load-recovery.ts";
+import { AppErrorBoundary } from "@/components/ui/app-error-boundary.tsx";
 import posthog from "posthog-js";
 
 export const queryClient = new QueryClient({
@@ -57,7 +58,9 @@ root.render(
           <Notifications position="bottom-center" limit={3} zIndex={10000} />
           <HelmetProvider>
             <PostHogProvider client={posthog}>
-              <App />
+              <AppErrorBoundary>
+                <App />
+              </AppErrorBoundary>
             </PostHogProvider>
           </HelmetProvider>
         </QueryClientProvider>
