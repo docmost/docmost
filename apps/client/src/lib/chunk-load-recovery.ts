@@ -1,7 +1,11 @@
 const RELOAD_AT_KEY = "chunk-reload-at";
-const RELOAD_COOLDOWN_MS = 10_000;
+const RELOAD_COOLDOWN_MS = 60_000;
 
 export function claimChunkReload(): boolean {
+  if (!navigator.onLine) {
+    return false;
+  }
+
   try {
     const lastReloadAt = Number(sessionStorage.getItem(RELOAD_AT_KEY));
     if (Date.now() - lastReloadAt < RELOAD_COOLDOWN_MS) {

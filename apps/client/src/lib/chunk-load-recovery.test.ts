@@ -25,7 +25,14 @@ describe("claimChunkReload", () => {
 
   it("allows another reload once the cooldown has passed", () => {
     claimChunkReload();
-    vi.advanceTimersByTime(10_000);
+    vi.advanceTimersByTime(60_000);
+    expect(claimChunkReload()).toBe(true);
+  });
+
+  it("refuses to reload while offline without using up the cooldown", () => {
+    const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    expect(claimChunkReload()).toBe(false);
+    onLine.mockReturnValue(true);
     expect(claimChunkReload()).toBe(true);
   });
 
