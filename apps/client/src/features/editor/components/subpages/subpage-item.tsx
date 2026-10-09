@@ -1,159 +1,138 @@
-import { Collapse, Anchor, ActionIcon, Stack } from "@mantine/core";
-import {
-  IconChevronDown,
-  IconChevronRight,
-  IconFileDescription,
-} from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { ActionIcon, Collapse } from "@mantine/core";
+import { IconChevronRight, IconFileDescription } from "@tabler/icons-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useGetSidebarPagesQuery } from "@/features/page/queries/page-query";
-import { buildPageUrl, buildPublicSpaceUrl, buildSharedPageUrl } from "@/features/page/page.utils";
-import { useSharedPageSubpages } from "@/features/share/hooks/use-shared-page-subpages";
 import { useTranslation } from "react-i18next";
-import styles from "../mention/mention.module.css";
-import classes from "./subpages.module.css";
+import clsx from "clsx";
+import type { SubpagesSortBy } from "@docmost/editor-ext";
 import {
-  sortSubpages,
-  type SubpageListItem,
-  type SubpagesSortBy,
-} from "./subpages.utils";
+  buildPageUrl,
+  buildPublicSpaceUrl,
+  buildSharedPageUrl,
+} from "@/features/page/page.utils";
+import { formattedDate, shortTimeAgo } from "@/lib/time";
+import { useSubpages } from "./use-subpages";
+import type { SubpageListItem } from "./subpages.utils";
+import classes from "./subpages.module.css";
 
-interface SubpageItemProps {
+type SubpageItemProps = {
   page: SubpageListItem;
   depth: number;
   sortBy: SubpagesSortBy;
+  showUpdatedAt: boolean;
   isPublicSpaceRoute: boolean;
   shareId?: string;
   spaceSlug?: string;
-}
+};
 
 export default function SubpageItem({
   page,
   depth,
   sortBy,
+  showUpdatedAt,
+  isPublicSpaceRoute,
   shareId,
   spaceSlug,
-  isPublicSpaceRoute
 }: SubpageItemProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
-
-  const sharedSubpages = useSharedPageSubpages(
-    shareId && opened ? page.id : undefined
-  );
-  const { data, isLoading } = useGetSidebarPagesQuery(
-    !shareId && opened ? { pageId: page.id } : undefined
+  const { subpages: children, isLoading } = useSubpages(
+    page.id,
+    sortBy,
+    opened,
   );
 
-  const children = useMemo(() => {
-    if (shareId) {
-      return sortSubpages(
-        sharedSubpages.map((node) => ({
-          id: node.value,
-          slugId: node.slugId,
-          title: node.name,
-          icon: node.icon,
-          position: node.position,
-          hasChildren: node.hasChildren,
-        })),
-        sortBy
-      );
-    }
+  const title = page.title || t("untitled");
+  const updatedAt =
+    showUpdatedAt && page.updatedAt ? new Date(page.updatedAt) : null;
 
-    const pages = data?.pages.flatMap((result) => result.items) || [];
-    return sortSubpages(pages, sortBy);
-  }, [data, shareId, sharedSubpages, sortBy]);
-
-  const toggleOpened = () => setOpened((value) => !value);
+  const pageUrl = shareId
+    ? buildSharedPageUrl({
+        shareId,
+        pageSlugId: page.slugId,
+        pageTitle: page.title,
+      })
+    : isPublicSpaceRoute
+      ? buildPublicSpaceUrl({
+          spaceSlug,
+          pageSlugId: page.slugId,
+          pageTitle: page.title,
+        })
+      : buildPageUrl(spaceSlug, page.slugId, page.title);
 
   return (
-    <div className={classes.item}>
+    <div role="listitem">
       <div
         className={classes.row}
-        style={{ paddingLeft: `${depth * 20 + 4}px` }}
+        style={{ paddingInlineStart: 8 + depth * 24 }}
       >
         {page.hasChildren ? (
           <ActionIcon
             variant="subtle"
             color="gray"
-            size="sm"
+            size={22}
             className={classes.toggle}
-            onClick={toggleOpened}
-            aria-label={opened ? t("Collapse") : t("Expand")}
+            onClick={() => setOpened((value) => !value)}
+            aria-label={
+              opened
+                ? t("Collapse {{name}}", { name: title })
+                : t("Expand {{name}}", { name: title })
+            }
             aria-expanded={opened}
           >
-            {opened ? (
-              <IconChevronDown size={16} />
-            ) : (
-              <IconChevronRight size={16} />
-            )}
+            <IconChevronRight
+              size={16}
+              className={clsx(classes.chevron, opened && classes.chevronOpened)}
+            />
           </ActionIcon>
         ) : (
-          <span className={classes.togglePlaceholder}></span>
+          <span className={classes.togglePlaceholder} />
         )}
 
-        <Anchor
-          component={Link}
-          fw={500}
-          to={
-            shareId
-              ? buildSharedPageUrl({
-                  shareId,
-                  pageSlugId: page.slugId,
-                  pageTitle: page.title,
-                })
-              : isPublicSpaceRoute
-                ? buildPublicSpaceUrl({
-                    spaceSlug,
-                    pageSlugId: page.slugId,
-                    pageTitle: page.title,
-                  })
-                : buildPageUrl(spaceSlug, page.slugId, page.title)
-          }
-          underline="never"
-          className={styles.pageMentionLink}
-          draggable={false}
-        >
-          {page.icon ? (
-            <span className={classes.icon}>{page.icon}</span>
-          ) : (
-            <ActionIcon
-              variant="transparent"
-              color="gray"
-              component="span"
-              size={18}
-              style={{ verticalAlign: "text-bottom" }}
-            >
-              <IconFileDescription size={18} />
-            </ActionIcon>
-          )}
-          <span className={styles.pageMentionText}>
-            {page.title || t("untitled")}
+        <Link to={pageUrl} className={classes.link} draggable={false}>
+          <span className={classes.icon} aria-hidden>
+            {page.icon || <IconFileDescription size={18} stroke={1.5} />}
           </span>
-        </Anchor>
+          <span className={clsx(classes.title, !page.title && classes.untitled)}>
+            {title}
+          </span>
+          {updatedAt && (
+            <time
+              className={classes.updatedAt}
+              dateTime={updatedAt.toISOString()}
+              title={formattedDate(updatedAt)}
+            >
+              {shortTimeAgo(updatedAt)}
+            </time>
+          )}
+        </Link>
       </div>
 
       {page.hasChildren && (
-        <Collapse expanded={opened}>
-          <Stack gap={5}>
-            {isLoading ? (
-              <div style={{ paddingLeft: `${(depth + 2) * 20 + 4}px` }}>
-                {t("Loading")}...
-              </div>
-            ) : (
-              children.map((child) => (
+        <Collapse expanded={opened} keepMounted={false}>
+          {isLoading ? (
+            <div
+              className={classes.loading}
+              style={{ paddingInlineStart: 8 + (depth + 1) * 24 }}
+            >
+              {t("Loading…")}
+            </div>
+          ) : (
+            <div role="list">
+              {children.map((child) => (
                 <SubpageItem
                   key={child.id}
                   page={child}
                   depth={depth + 1}
                   sortBy={sortBy}
+                  showUpdatedAt={showUpdatedAt}
+                  isPublicSpaceRoute={isPublicSpaceRoute}
                   shareId={shareId}
                   spaceSlug={spaceSlug}
-                  isPublicSpaceRoute={isPublicSpaceRoute}
                 />
-              ))
-            )}
-          </Stack>
+              ))}
+            </div>
+          )}
         </Collapse>
       )}
     </div>

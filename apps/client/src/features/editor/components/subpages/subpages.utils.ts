@@ -1,6 +1,5 @@
+import type { SubpagesSortBy } from "@docmost/editor-ext";
 import { sortPositionKeys } from "@/features/page/tree/utils/utils";
-
-export type SubpagesSortBy = "default" | "title-asc" | "title-desc";
 
 export type SubpageListItem = {
   id: string;
@@ -9,26 +8,31 @@ export type SubpageListItem = {
   icon?: string;
   position: string;
   hasChildren: boolean;
+  updatedAt?: Date | string;
 };
 
 export function sortSubpages(
   items: SubpageListItem[],
-  sortBy: SubpagesSortBy = "default"
-) {
+  sortBy: SubpagesSortBy,
+): SubpageListItem[] {
   const sortedItems = [...items];
 
-  if (sortBy === "default") {
-    return sortPositionKeys(sortedItems);
+  if (sortBy === "title-asc") {
+    return sortedItems.sort((a, b) =>
+      (a.title || "").localeCompare(b.title || "", undefined, {
+        sensitivity: "base",
+        numeric: true,
+      }),
+    );
   }
 
-  return sortedItems.sort((a, b) => {
-    const result = (a.title || "").localeCompare(
-      b.title || "",
-      undefined,
-      {
-        sensitivity: "base",
-      }
+  if (sortBy === "recent") {
+    return sortedItems.sort(
+      (a, b) =>
+        new Date(b.updatedAt ?? 0).getTime() -
+        new Date(a.updatedAt ?? 0).getTime(),
     );
-    return sortBy === "title-desc" ? -result : result;
-  });
+  }
+
+  return sortPositionKeys(sortedItems);
 }

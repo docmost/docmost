@@ -1,28 +1,29 @@
-import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { Stack, Text } from "@mantine/core";
-import { useGetSidebarPagesQuery } from "@/features/page/queries/page-query";
-import { useMemo } from "react";
+import { NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
+import { SegmentedControl } from "@mantine/core";
+import { useId } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import classes from "./subpages.module.css";
 import { useTranslation } from "react-i18next";
-import { useSharedPageSubpages } from "@/features/share/hooks/use-shared-page-subpages";
 import { useAtomValue } from "jotai";
+import type { SubpagesSortBy } from "@docmost/editor-ext";
 import { publicSpaceTreeDataAtom } from "@/features/public-space/atoms/public-space-atoms.ts";
-import { findSubpagesInTree } from "@/features/share/utils";
 import { extractPageSlugId } from "@/lib";
 import SubpageItem from "./subpage-item";
-import {
-  sortSubpages,
-  type SubpageListItem,
-  type SubpagesSortBy,
-} from "./subpages.utils";
+import { useSubpages } from "./use-subpages";
+import classes from "./subpages.module.css";
 
 export default function SubpagesView(props: NodeViewProps) {
-  const { editor } = props;
+  const { editor, node, updateAttributes } = props;
   const { spaceSlug, shareId, pageSlug } = useParams();
   const { t } = useTranslation();
   const location = useLocation();
+  const headingId = useId();
+  const isShareRoute = location.pathname.startsWith("/share/");
   const isPublicSpaceRoute = location.pathname.startsWith("/docs/");
+  const isPublicView = isShareRoute || isPublicSpaceRoute;
+  const isEditable = useEditorState({
+    editor,
+    selector: (ctx) => ctx.editor.isEditable,
+  });
 
   const publicSpaceTreeData = useAtomValue(publicSpaceTreeDataAtom);
 
@@ -31,7 +32,7 @@ export default function SubpagesView(props: NodeViewProps) {
   const routePageId = extractPageSlugId(pageSlug);
   let currentPageId = storagePageId;
 
-  if (shareId){
+  if (isShareRoute){
     currentPageId = routePageId;
   }
 
@@ -42,92 +43,61 @@ export default function SubpagesView(props: NodeViewProps) {
   if (isPublicSpaceRoute) {
     currentPageId = routePageId ?? publicSpaceTreeData?.[0]?.slugId;
   }
-  const sortBy = (props.node.attrs.sortBy || "position") as SubpagesSortBy;
 
-  // Get subpages from shared tree if we're in a shared context
-  const sharedSubpages = useSharedPageSubpages(currentPageId);
-  const publicSpaceSubpages = useMemo(
-    () => findSubpagesInTree(publicSpaceTreeData, currentPageId),
-    [publicSpaceTreeData, currentPageId],
-  );
+  const sortBy: SubpagesSortBy = node.attrs.sortBy || "default";
+  const { subpages, isLoading, error } = useSubpages(currentPageId, sortBy);
 
-  const isPublicView = Boolean(shareId) || isPublicSpaceRoute;
-
-  const { data, isLoading, error } = useGetSidebarPagesQuery(
-    isPublicView ? null : { pageId: currentPageId },
-  );
-
-  const subpages = useMemo(() => {
-    // If we're in a shared context, use the shared subpages
-    if (shareId && sharedSubpages) {
-      return sortSubpages(sharedSubpages.map((node) => ({
-        id: node.value,
-        slugId: node.slugId,
-        title: node.name,
-        icon: node.icon,
-        position: node.position,
-        hasChildren: node.hasChildren,
-      })), sortBy);
-    }
-
-    if (isPublicSpaceRoute) {
-      return publicSpaceSubpages.map((node) => ({
-        id: node.value,
-        slugId: node.slugId,
-        title: node.name,
-        icon: node.icon,
-        position: node.position,
-      }));
-    }
-
-    // Otherwise use the API data
-    if (!data?.pages) return [];
-    const allPages = data.pages.flatMap((page) => page.items);
-    return sortSubpages(allPages, sortBy);
-  }, [data, shareId, sharedSubpages, isPublicSpaceRoute, publicSpaceSubpages, sortBy]);
-
-  if (isLoading && !isPublicView) {
+  if (isLoading) {
     return null;
-  }
-
-  if (error && !isPublicView) {
-    return (
-      <NodeViewWrapper data-drag-handle>
-        <Text c="dimmed" size="md" py="md">
-          {t("Failed to load subpages")}
-        </Text>
-      </NodeViewWrapper>
-    );
-  }
-
-  if (subpages.length === 0) {
-    return (
-      <NodeViewWrapper data-drag-handle>
-        <div className={classes.container}>
-          <Text c="dimmed" size="md" py="md">
-            {t("No subpages")}
-          </Text>
-        </div>
-      </NodeViewWrapper>
-    );
   }
 
   return (
     <NodeViewWrapper data-drag-handle>
-      <div className={classes.container}>
-        <Stack gap={5} >
-          {subpages.map((page: SubpageListItem) => (
-            <SubpageItem
-              key={page.id}
-              page={page}
-              depth={0}
-              sortBy={sortBy}
-              shareId={shareId}
-              spaceSlug={spaceSlug}
-              isPublicSpaceRoute={isPublicSpaceRoute}
+      <div className={classes.card}>
+        <div className={classes.header}>
+          <div id={headingId} className={classes.heading}>
+            {t("Subpages")}
+            {subpages.length > 0 && (
+              <span className={classes.count}>{subpages.length}</span>
+            )}
+          </div>
+
+          {isEditable && subpages.length > 1 && (
+            <SegmentedControl<SubpagesSortBy>
+              size="xs"
+              className={classes.sortControl}
+              value={sortBy}
+              onChange={(value) => updateAttributes({ sortBy: value })}
+              data={[
+                { label: t("Manual"), value: "default" },
+                { label: t("A–Z"), value: "title-asc" },
+                { label: t("Recent"), value: "recent" },
+              ]}
+              aria-label={t("Sort subpages")}
             />
-          ))}
-        </Stack>
+          )}
+        </div>
+
+        {subpages.length > 0 ? (
+          <div role="list" aria-labelledby={headingId} className={classes.list}>
+            {subpages.map((page) => (
+              <SubpageItem
+                key={page.id}
+                page={page}
+                depth={0}
+                sortBy={sortBy}
+                showUpdatedAt={!isPublicView}
+                isPublicSpaceRoute={isPublicSpaceRoute}
+                shareId={shareId}
+                spaceSlug={spaceSlug}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className={classes.empty}>
+            {error ? t("Failed to load subpages") : t("No subpages")}
+          </div>
+        )}
       </div>
     </NodeViewWrapper>
   );
