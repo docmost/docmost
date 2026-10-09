@@ -308,12 +308,23 @@ export class WorkspaceService {
     }
 
     if (updateWorkspaceDto.emailDomains) {
+      const rawDomains = updateWorkspaceDto.emailDomains;
+      if (!Array.isArray(rawDomains)) {
+        throw new BadRequestException('emailDomains must be an array');
+      }
       const regex =
-        /(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]/;
-      const emailDomains = updateWorkspaceDto.emailDomains || [];
-      updateWorkspaceDto.emailDomains = emailDomains
-        .map((domain) => regex.exec(domain)?.[0])
-        .filter(Boolean);
+        /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/;
+      const processed = rawDomains.map((d) => {
+        if (typeof d !== 'string') {
+          throw new BadRequestException('email domain must be a string');
+        }
+        const normalized = d.trim().toLowerCase();
+        if (!regex.test(normalized)) {
+          throw new BadRequestException(`Invalid email domain: ${d}`);
+        }
+        return normalized;
+      });
+      updateWorkspaceDto.emailDomains = processed;
     }
 
     if (updateWorkspaceDto.hostname) {
