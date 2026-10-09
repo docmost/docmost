@@ -29,7 +29,7 @@ import {
   collabExtensions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   currentPageEditModeAtom,
@@ -41,6 +41,7 @@ import {
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
   activeCommentIdAtom,
+  commentPanelTabAtom,
   showCommentPopupAtom,
   showReadOnlyCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
@@ -190,6 +191,7 @@ function CollabPageEditor({
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
+  const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
@@ -397,6 +399,7 @@ function CollabPageEditor({
     }
 
     setActiveCommentId(commentId);
+    setCommentPanelTab("open");
     setAsideState({ tab: "comments", isAsideOpen: true });
 
     //wait if aside is closed
@@ -420,7 +423,6 @@ function CollabPageEditor({
   useEffect(() => {
     setActiveCommentId(null);
     setShowCommentPopup(false);
-    setAsideState({ tab: "", isAsideOpen: false });
     setLightboxRequest(null);
   }, [pageId]);
 
