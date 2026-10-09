@@ -5,6 +5,11 @@ import { uploadPdfAction } from "../pdf/upload-pdf-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
+import { matchIntegrationLink } from "@docmost/editor-ext";
+import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
+import { canPlaceIntegrationCard } from "@/features/editor/components/integration-link/integration-display";
+import { queryClient } from "@/main.tsx";
+import { Integration } from "@/features/integration/types/integration.types";
 import {
   getAttachmentInfo,
   uploadFile,
@@ -22,6 +27,24 @@ const ATTACHMENT_NODE_TYPES = [
 
 const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 
+// copied cards and mentions paste back as nodes
+const INTEGRATION_NODE_HTML_RE = /data-type="integration(Card|Mention)"/;
+
+// Reads the cache the page editor prefetches; a cold cache pastes an ordinary link.
+function matchInstalledIntegrationLink(url: string) {
+  const installed =
+    queryClient.getQueryData<Integration[]>(["installed-integrations"]) ?? [];
+  const unfurlHosts = Object.fromEntries(
+    installed
+      .filter((integration) => integration.unfurlHosts)
+      .map((integration) => [integration.type, integration.unfurlHosts]),
+  );
+  const match = matchIntegrationLink(url, unfurlHosts);
+  return match && installed.some((i) => i.type === match.provider)
+    ? match
+    : null;
+}
+
 export const handlePaste = (
   editor: Editor,
   event: ClipboardEvent,
@@ -29,6 +52,84 @@ export const handlePaste = (
   creatorId?: string,
 ) => {
   const clipboardData = event.clipboardData.getData("text/plain");
+
+  const integrationMatch = matchInstalledIntegrationLink(clipboardData.trim());
+  if (
+    integrationMatch &&
+    !INTEGRATION_NODE_HTML_RE.test(event.clipboardData.getData("text/html")) &&
+    editor.state.selection.empty &&
+    editor.state.selection.$from.parent.type.name === "paragraph" &&
+    !editor.isActive("code")
+  ) {
+    const pastedUrl = clipboardData.trim();
+    const { $from } = editor.state.selection;
+
+    if (canPlaceIntegrationCard(editor, $from.pos)) {
+      event.preventDefault();
+      editor
+        .chain()
+        .focus()
+        .setIntegrationCard({
+          url: pastedUrl,
+          provider: integrationMatch.provider,
+        })
+        // Set the meta in this transaction (BubbleMenu ignores meta-only ones) and find the node by changed range, not url.
+        .command(({ tr }) => {
+          let start: number | null = null;
+          let end: number | null = null;
+          tr.mapping.maps.forEach((map, index) => {
+            const rest = tr.mapping.slice(index + 1);
+            map.forEach((_oldStart, _oldEnd, newStart, newEnd) => {
+              const mappedStart = rest.map(newStart, -1);
+              const mappedEnd = rest.map(newEnd, 1);
+              start =
+                start === null ? mappedStart : Math.min(start, mappedStart);
+              end = end === null ? mappedEnd : Math.max(end, mappedEnd);
+            });
+          });
+          if (start === null || end === null) return true;
+
+          let pastedPos: number | null = null;
+          tr.doc.nodesBetween(
+            start,
+            Math.min(end, tr.doc.content.size),
+            (node, pos) => {
+              if (node.type.name === "integrationCard") {
+                pastedPos = pos;
+              }
+            },
+          );
+          if (pastedPos !== null) {
+            tr.setMeta(integrationPasteMenuKey, {
+              pos: pastedPos,
+              joinBefore: $from.parentOffset > 0,
+              joinAfter: $from.parentOffset < $from.parent.content.size,
+            });
+          }
+          return true;
+        })
+        .run();
+      return true;
+    }
+
+    // Containers such as footnotes only hold paragraphs, but a mention still fits.
+    const mentionType = editor.schema.nodes.integrationMention;
+    if (
+      mentionType &&
+      $from.parent.canReplaceWith($from.index(), $from.index(), mentionType)
+    ) {
+      event.preventDefault();
+      editor
+        .chain()
+        .focus()
+        .setIntegrationMention({
+          url: pastedUrl,
+          provider: integrationMatch.provider,
+        })
+        .run();
+      return true;
+    }
+  }
 
   if (INTERNAL_LINK_REGEX.test(clipboardData)) {
     // we have to do this validation here to allow the default link extension to takeover if needs be

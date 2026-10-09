@@ -1,5 +1,13 @@
-import { FootnoteReferenceRun, HeadingLevel, Paragraph, ShadingType } from 'docx';
+import {
+  ExternalHyperlink,
+  FootnoteReferenceRun,
+  HeadingLevel,
+  Paragraph,
+  ShadingType,
+  TextRun,
+} from 'docx';
 import { Node } from 'prosemirror-model';
+import { sanitizeIntegrationUrl } from '../integration-link/integration-link';
 import {
   DocxSerializerAsync,
   MarkSerializer,
@@ -61,6 +69,27 @@ const renderFileLine: NodeSerializerAsync[string] = (state, node) => {
 const renderEmbedLine: NodeSerializerAsync[string] = (state, node) => {
   const label = node.attrs?.src || node.attrs?.url || 'embed';
   state.text(label);
+  state.closeBlock(node);
+};
+
+const renderIntegrationMention: NodeSerializerAsync[string] = (state, node) => {
+  const url = sanitizeIntegrationUrl(node.attrs?.url);
+  if (!url) return;
+  state.current.push(
+    new ExternalHyperlink({
+      link: url,
+      children: [new TextRun({ text: url, style: 'Hyperlink' })],
+    }),
+  );
+};
+
+const renderIntegrationCard: NodeSerializerAsync[string] = async (
+  state,
+  node,
+  parent,
+  index,
+) => {
+  await renderIntegrationMention(state, node, parent, index);
   state.closeBlock(node);
 };
 
@@ -137,6 +166,8 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   attachment: renderFileLine,
   embed: renderEmbedLine,
   youtube: renderEmbedLine,
+  integrationCard: renderIntegrationCard,
+  integrationMention: renderIntegrationMention,
   async callout(state, node) {
     await state.renderContent(node, { style: 'IntenseQuote' });
   },

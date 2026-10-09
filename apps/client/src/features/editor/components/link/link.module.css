@@ -3,6 +3,69 @@
   display: inline;
 }
 
+.linkWrapper[data-active="true"] > a {
+  border-radius: 4px;
+  outline: 2px solid
+    light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-6));
+  outline-offset: 2px;
+}
+
+.integrationPopover {
+  overflow: hidden;
+  border-color: light-dark(
+    var(--mantine-color-gray-3),
+    var(--mantine-color-dark-4)
+  );
+  border-radius: 10px;
+  box-shadow: 0 5px 18px light-dark(rgba(31, 35, 40, 0.12), rgba(0, 0, 0, 0.36));
+}
+
+.previewRow {
+  min-width: 0;
+}
+
+.previewDestination {
+  min-width: 0;
+  max-width: min(250px, calc(100vw - 170px));
+  flex: 1 1 auto;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  user-select: none;
+}
+
+.previewDivider {
+  height: 22px;
+  margin: 0 3px;
+}
+
+.previewAction {
+  --ai-size: 32px !important;
+
+  flex: 0 0 32px;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.previewAction:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-6);
+  outline-offset: -2px;
+}
+
+@media (pointer: coarse) {
+  .previewDivider {
+    height: 26px;
+    margin-inline: 4px;
+  }
+
+  .previewAction {
+    --ai-size: 44px !important;
+
+    flex-basis: 44px;
+    border-radius: 8px;
+  }
+}
+
 .linkInput {
   border: 1.5px solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));

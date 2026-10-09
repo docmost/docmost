@@ -27,6 +27,7 @@ const APP_ROUTE = {
       SPACES: "/settings/spaces",
       BILLING: "/settings/billing",
       SECURITY: "/settings/security",
+      INTEGRATIONS: "/settings/integrations",
     },
   },
 };

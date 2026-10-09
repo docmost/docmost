@@ -34,6 +34,11 @@ export const auditEventLabels: Record<string, string> = {
   "api_key.updated": "Updated API key",
   "api_key.deleted": "Deleted API key",
 
+  "integration.installed": "Installed integration",
+  "integration.uninstalled": "Uninstalled integration",
+  "integration.connected": "Connected integration account",
+  "integration.disconnected": "Disconnected integration account",
+
   "scim_token.created": "Created SCIM token",
   "scim_token.updated": "Updated SCIM token",
   "scim_token.deleted": "Deleted SCIM token",
@@ -52,6 +57,9 @@ export const auditEventLabels: Record<string, string> = {
   "group.member_added": "Added group member",
   "group.member_removed": "Removed group member",
 
+  "comment.updated": "Updated comment",
+  "comment.resolved": "Resolved comment",
+  "comment.reopened": "Reopened comment",
   "comment.deleted": "Deleted comment",
 
   "page.trashed": "Trashed page",
@@ -145,6 +153,9 @@ export const eventFilterOptions: EventGroup[] = [
   {
     group: "Comment",
     items: [
+      { value: "comment.updated", label: "Updated comment" },
+      { value: "comment.resolved", label: "Resolved comment" },
+      { value: "comment.reopened", label: "Reopened comment" },
       { value: "comment.deleted", label: "Deleted comment" },
     ],
   },
@@ -193,6 +204,15 @@ export const eventFilterOptions: EventGroup[] = [
     items: [
       { value: "api_key.created", label: "Created API key" },
       { value: "api_key.deleted", label: "Deleted API key" },
+    ],
+  },
+  {
+    group: "Integrations",
+    items: [
+      { value: "integration.installed", label: "Installed integration" },
+      { value: "integration.uninstalled", label: "Uninstalled integration" },
+      { value: "integration.connected", label: "Connected integration account" },
+      { value: "integration.disconnected", label: "Disconnected integration account" },
     ],
   },
   {
