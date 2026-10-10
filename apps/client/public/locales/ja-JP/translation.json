@@ -1482,5 +1482,14 @@
   "Test event delivered to {{name}}": "テストイベントを {{name}} に配信しました",
   "Updated SIEM destination": "SIEM 宛先を更新しました",
   "Verify TLS certificate": "TLS 証明書を検証",
-  "e.g. Splunk prod": "例: Splunk 本番"
+  "e.g. Splunk prod": "例: Splunk 本番",
+  "Tabs": "Tabs",
+  "Insert a multi-tab content block.": "Insert a multi-tab content block.",
+  "Add tab": "Add tab",
+  "Tab actions": "Tab actions",
+  "Move left": "Move left",
+  "Move right": "Move right",
+  "Delete tab": "Delete tab",
+  "Tab label": "Tab label",
+  "Tab actions for {{name}}": "Tab actions for {{name}}"
 }
