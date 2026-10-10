@@ -143,7 +143,7 @@ export default function ReadonlyPageEditor({
                   return true;
                 },
               }
-            : undefined
+            : {}
         }
         onCreate={({ editor }) => {
           if (editor) {
