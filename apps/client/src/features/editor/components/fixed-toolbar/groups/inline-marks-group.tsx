@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import type { ToolbarState } from "../use-toolbar-state";
 import classes from "../fixed-toolbar.module.css";
+import { changeIndent } from "../indent-utils";
 
 interface Props {
   editor: Editor;
@@ -107,13 +108,13 @@ export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
           <Menu.Divider />
           <Menu.Item
             leftSection={<IconIndentIncrease size={16} />}
-            onClick={() => editor.chain().focus().indent().run()}
+            onClick={() => changeIndent(editor, "indent")}
           >
             {t("Increase indent")}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconIndentDecrease size={16} />}
-            onClick={() => editor.chain().focus().outdent().run()}
+            onClick={() => changeIndent(editor, "outdent")}
           >
             {t("Decrease indent")}
           </Menu.Item>
