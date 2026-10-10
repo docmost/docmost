@@ -11,7 +11,12 @@ import { useTranslation } from "react-i18next";
 import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto, IconPlus, IconAt, IconFileText } from "@tabler/icons-react";
 import { Popover } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
+import {
+  EditorContent,
+  ReactNodeViewRenderer,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extensions";
 import { StarterKit } from "@tiptap/starter-kit";
@@ -116,7 +121,6 @@ const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const chatIdRef = useRef(chatId);
   chatIdRef.current = chatId;
   const { t } = useTranslation();
-  const [isEmpty, setIsEmpty] = useState(true);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const plusMenuId = useId();
@@ -188,23 +192,6 @@ const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    if (!editor || editor.isDestroyed || isStreaming) return;
-    const json = editor.getJSON();
-    const text = editorJsonToText(json).trim();
-    const readyAttachments = pendingAttachments.filter((a) => !a.uploading);
-    if (!text && readyAttachments.length === 0) return;
-
-    const mentions = extractMentions(json);
-    onSendRef.current(text, mentions, readyAttachments);
-    editor.commands.clearContent();
-    editor.commands.focus();
-    setPendingAttachments([]);
-  }, [isStreaming, pendingAttachments]);
-
-  const handleSubmitRef = useRef(handleSubmit);
-  handleSubmitRef.current = handleSubmit;
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -271,10 +258,31 @@ const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
     autofocus: autofocus ? "end" : false,
-    onUpdate: ({ editor: e }) => {
-      setIsEmpty(!e.getText().trim());
-    },
   });
+
+  const isEmpty =
+    useEditorState({
+      editor,
+      selector: ({ editor: currentEditor }) =>
+        !currentEditor?.getText().trim(),
+    }) ?? true;
+
+  const handleSubmit = useCallback(() => {
+    if (!editor || editor.isDestroyed || isStreaming) return;
+    const json = editor.getJSON();
+    const text = editorJsonToText(json).trim();
+    const readyAttachments = pendingAttachments.filter((a) => !a.uploading);
+    if (!text && readyAttachments.length === 0) return;
+
+    const mentions = extractMentions(json);
+    onSendRef.current(text, mentions, readyAttachments);
+    editor.commands.clearContent();
+    editor.commands.focus();
+    setPendingAttachments([]);
+  }, [editor, isStreaming, pendingAttachments]);
+
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
 
   useEffect(() => {
     if (editor && !editor.isDestroyed && autofocus) {
