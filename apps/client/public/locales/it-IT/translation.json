@@ -1482,5 +1482,14 @@
   "Test event delivered to {{name}}": "Evento di test inviato a {{name}}",
   "Updated SIEM destination": "Destinazione SIEM aggiornata",
   "Verify TLS certificate": "Verifica certificato TLS",
-  "e.g. Splunk prod": "ad es. Splunk produzione"
+  "e.g. Splunk prod": "ad es. Splunk produzione",
+  "Tabs": "Tabs",
+  "Insert a multi-tab content block.": "Insert a multi-tab content block.",
+  "Add tab": "Add tab",
+  "Tab actions": "Tab actions",
+  "Move left": "Move left",
+  "Move right": "Move right",
+  "Delete tab": "Delete tab",
+  "Tab label": "Tab label",
+  "Tab actions for {{name}}": "Tab actions for {{name}}"
 }
