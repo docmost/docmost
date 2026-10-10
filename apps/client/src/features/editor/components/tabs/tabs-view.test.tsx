@@ -437,6 +437,47 @@ describe("TabsView block drag", () => {
   });
 });
 
+describe("TabsView tab reorder", () => {
+  // inside is the node whose DOM holds the pointer, as ProseMirror reports it
+  function dragOver(
+    editor: Editor,
+    target: Element,
+    pos: number,
+    inside: number,
+  ) {
+    editor.view.posAtCoords = () => ({ pos, inside });
+    const event = new Event("dragover", { bubbles: true, cancelable: true });
+    Object.assign(event, { clientX: 5, clientY: 5 });
+    target.dispatchEvent(event);
+  }
+  const dropCursor = () =>
+    document.querySelector(
+      ".prosemirror-dropcursor-block, .prosemirror-dropcursor-inline",
+    );
+
+  it("shows no editor drop cursor while a tab is dragged over the strip", async () => {
+    const { editor } = await mountTabs(true);
+    Object.defineProperty(editor.view.dom, "offsetParent", {
+      configurable: true,
+      get: () => document.body,
+    });
+    const panelStart = textPos(editor, "first panel") - 1;
+
+    dragOver(editor, screen.getByRole("tab", { name: "Beta" }), panelStart, 0);
+    expect(dropCursor()).toBeNull();
+
+    // the same drag over the content does get one, so the check above can fail
+    dragOver(
+      editor,
+      editor.view.domAtPos(textPos(editor, "first panel")).node as Element,
+      panelStart,
+      panelStart,
+    );
+    expect(dropCursor()).not.toBeNull();
+    dropCursor()!.remove();
+  });
+});
+
 describe("TabsView toolbar", () => {
   it("shows Copy and Delete only while the cursor is in the block in edit mode", async () => {
     const { editor } = await mountTabs(true);

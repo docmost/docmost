@@ -47,12 +47,26 @@ declare module '@tiptap/core' {
   }
 }
 
+const isInTabStrip = (event: Event) =>
+  Boolean((event.target as HTMLElement | null)?.closest?.('[data-tab-strip]'));
+
 export const Tabs = Node.create<TabsOptions>({
   name: 'tabs',
   group: 'block',
   content: 'tab+',
   defining: true,
   isolating: true,
+
+  // the drop cursor listens on the editor directly, so it also sees the strip's
+  // tab reorder drags; content is never dropped on the strip
+  extendNodeSchema(extension) {
+    return extension.name === 'tabs'
+      ? {
+          disableDropCursor: (_view: unknown, _pos: unknown, event: Event) =>
+            isInTabStrip(event),
+        }
+      : {};
+  },
 
   addOptions() {
     return { HTMLAttributes: {}, view: null };
@@ -290,10 +304,7 @@ export const Tabs = Node.create<TabsOptions>({
     // the tab strip runs its own drag and drop. claim those events so they are
     // not also treated as a content drag, but let them keep propagating: the
     // dnd library listens on the window.
-    const inTabStrip = (_view: unknown, event: Event) =>
-      Boolean(
-        (event.target as HTMLElement | null)?.closest?.('[data-tab-strip]'),
-      );
+    const inTabStrip = (_view: unknown, event: Event) => isInTabStrip(event);
 
     return [
       new Plugin({
