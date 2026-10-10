@@ -13,7 +13,7 @@ import {
   type NodeViewProps,
 } from "@tiptap/react";
 import { ActionIcon, Scroller, Tabs, Tooltip } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { IconLayoutNavbar, IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { findParentNode } from "@tiptap/core";
@@ -180,6 +180,11 @@ export default function TabsView({ node, editor, getPos }: NodeViewProps) {
       {showToolbar && (isEditorFocused || hasFocusWithin) && (
         <TabsToolbar editor={editor} getPos={getPos} />
       )}
+      {/* the drag handle shows this instead of a snapshot of the block */}
+      <div data-drag-preview hidden className="dm-tabs-drag-preview">
+        <IconLayoutNavbar size={16} />
+        <span>{tabs.map((tab) => tab.label || t("Untitled")).join(" · ")}</span>
+      </div>
       <div
         ref={headerRef}
         className="dm-tabs__header"

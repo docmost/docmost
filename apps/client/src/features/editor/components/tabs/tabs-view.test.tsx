@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useEffect } from "react";
 import { MantineProvider } from "@mantine/core";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import type { AnyExtension } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import {
   Tab,
@@ -12,6 +13,7 @@ import {
   getActiveTabIndex,
 } from "@docmost/editor-ext";
 import TabsView from "./tabs-view";
+import GlobalDragHandle from "@/features/editor/extensions/drag-handle";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -93,9 +95,11 @@ afterEach(() => {
 function Harness({
   editable,
   onEditor,
+  extensions = [],
 }: {
   editable: boolean;
   onEditor: (editor: Editor) => void;
+  extensions?: AnyExtension[];
 }) {
   const editor = useEditor({
     extensions: [
@@ -104,6 +108,7 @@ function Harness({
       Tab,
       TabLabel,
       TabPanel,
+      ...extensions,
     ],
     content,
     editable,
@@ -115,11 +120,15 @@ function Harness({
   return <EditorContent editor={editor} />;
 }
 
-async function mountTabs(editable: boolean) {
+async function mountTabs(editable: boolean, extensions?: AnyExtension[]) {
   let editor!: Editor;
   const utils = render(
     <MantineProvider env="test">
-      <Harness editable={editable} onEditor={(instance) => (editor = instance)} />
+      <Harness
+        editable={editable}
+        extensions={extensions}
+        onEditor={(instance) => (editor = instance)}
+      />
     </MantineProvider>,
   );
   await act(async () => {
@@ -393,6 +402,40 @@ async function moveFocus(element: HTMLElement, action: "focus" | "blur") {
     element[action]();
   });
 }
+
+describe("TabsView block drag", () => {
+  it("drags the block by its handle with a preview of its tabs, not a snapshot of the page", async () => {
+    const { editor } = await mountTabs(true, [GlobalDragHandle]);
+    const blockDom = editor.view.nodeDOM(0) as HTMLElement;
+    const elementsFromPoint = document.elementsFromPoint;
+    document.elementsFromPoint = () => [blockDom];
+    editor.view.posAtCoords = () => ({ pos: 1, inside: 0 });
+    const setDragImage = vi.fn();
+    const dragStart = new Event("dragstart", { bubbles: true, cancelable: true });
+    Object.assign(dragStart, {
+      clientX: 0,
+      clientY: 0,
+      ctrlKey: false,
+      dataTransfer: {
+        clearData() {},
+        setData() {},
+        setDragImage,
+        effectAllowed: "",
+      },
+    });
+    await act(async () => {
+      document.querySelector(".drag-handle")!.dispatchEvent(dragStart);
+    });
+    document.elementsFromPoint = elementsFromPoint;
+
+    expect(editor.state.selection.from).toBe(0);
+    const [image] = setDragImage.mock.calls[0] as [HTMLElement];
+    expect(image).not.toBe(blockDom);
+    expect(image.hasAttribute("hidden")).toBe(false);
+    expect(image.textContent).toBe("Alpha · Beta");
+    image.dispatchEvent(new Event("dragend", { bubbles: true }));
+  });
+});
 
 describe("TabsView toolbar", () => {
   it("shows Copy and Delete only while the cursor is in the block in edit mode", async () => {

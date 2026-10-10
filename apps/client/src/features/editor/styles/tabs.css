@@ -149,6 +149,40 @@
   }
 }
 
+/* the drag handle clones the preview into the body, outside the editor */
+.dm-tabs-drag-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-6)
+  );
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.dm-tabs-drag-preview[hidden] {
+  display: none;
+}
+
+.dm-tabs-drag-preview svg {
+  flex-shrink: 0;
+}
+
+.dm-tabs-drag-preview span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media print {
   .ProseMirror {
     .dm-tabs__header,
