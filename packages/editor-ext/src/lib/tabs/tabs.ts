@@ -12,10 +12,12 @@ import { generateNodeId } from '../utils';
 import {
   getActiveTabIndex,
   setActiveTabMeta,
+  tabIdsPlugin,
   tabsViewPlugin,
 } from './tabs-state';
 import {
   clampIndex,
+  fixTabIds,
   getPanelContentPos,
   getTabPos,
   flattenTabsBlocks,
@@ -91,7 +93,14 @@ export const Tabs = Node.create<TabsOptions>({
   addNodeView() {
     if (!this.options.view) return undefined;
     this.editor.isInitialized = true;
-    return ReactNodeViewRenderer(this.options.view);
+    return ReactNodeViewRenderer(this.options.view, {
+      // a tab switch only changes the decorations, which the view isn't
+      // re-rendered for by default, and the tab strip reads them
+      update: ({ updateProps }) => {
+        updateProps();
+        return true;
+      },
+    });
   },
 
   addCommands() {
@@ -299,22 +308,28 @@ export const Tabs = Node.create<TabsOptions>({
     };
   },
 
+  // content loaded straight into the editor never passes through a transaction
+  onCreate() {
+    const { tr } = this.editor.state;
+    if (fixTabIds(tr)) {
+      this.editor.view.dispatch(tr.setMeta('addToHistory', false));
+    }
+  },
+
   addProseMirrorPlugins() {
     const { editor } = this;
-    // the tab strip runs its own drag and drop. claim those events so they are
-    // not also treated as a content drag, but let them keep propagating: the
-    // dnd library listens on the window.
-    const inTabStrip = (_view: unknown, event: Event) => isInTabStrip(event);
 
     return [
       new Plugin({
         key: new PluginKey('tabsDragGuard'),
         props: {
+          // the strip's tab reorder is its own drag and drop. the node view
+          // already stops its dragstart; claim the rest so the editor doesn't
+          // take them as a content drag. they still reach the dnd library
           handleDOMEvents: {
-            dragstart: inTabStrip,
-            dragenter: inTabStrip,
-            dragover: inTabStrip,
-            drop: inTabStrip,
+            dragenter: (_view, event) => isInTabStrip(event),
+            dragover: (_view, event) => isInTabStrip(event),
+            drop: (_view, event) => isInTabStrip(event),
           },
         },
       }),
@@ -376,6 +391,7 @@ export const Tabs = Node.create<TabsOptions>({
         },
       }),
       tabsViewPlugin(),
+      tabIdsPlugin(),
     ];
   },
 });

@@ -1,4 +1,8 @@
-import type { Fragment, Node as PMNode } from '@tiptap/pm/model';
+import type {
+  Fragment,
+  Node as PMNode,
+  ResolvedPos,
+} from '@tiptap/pm/model';
 import {
   Mapping,
   ReplaceAroundStep,
@@ -14,16 +18,25 @@ import {
   type EditorState,
   type Transaction,
 } from '@tiptap/pm/state';
-import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { getPanelContentPos, isTabsNode } from './tabs.utils';
+import {
+  Decoration,
+  DecorationSet,
+  type DecorationSource,
+} from '@tiptap/pm/view';
+import { fixTabIds, getPanelContentPos, isTabsNode } from './tabs.utils';
 
 type ActiveTab = { tabId: string; index: number };
 
 type ActiveTabUpdate = ActiveTab & { tabsPos: number };
 
+// steps is how many steps the transaction had when the update was made
+type RecordedUpdate = ActiveTabUpdate & { steps: number };
+
 type TabsViewState = {
   active: Map<number, ActiveTab>;
   decorations: DecorationSet;
+  // bumped whenever tabs are added, removed or split
+  structureVersion: number;
 };
 
 const tabsViewPluginKey = new PluginKey<TabsViewState>('tabsView');
@@ -45,9 +58,30 @@ export function getActiveTabIndex(state: EditorState, tabsPos: number) {
   return resolveActiveIndex(tabs, active?.get(tabsPos));
 }
 
+// the tab a block's content shows, read from the decorations its node view gets
+export function getShownTabIndex(
+  tabs: PMNode,
+  innerDecorations: DecorationSource,
+) {
+  const hidden = new Set<number>();
+  innerDecorations.forEachSet((set) =>
+    set
+      .find(undefined, undefined, (spec) => spec.hiddenTab === true)
+      .forEach((decoration) => hidden.add(decoration.from)),
+  );
+  let shown = -1;
+  tabs.forEach((_, offset, index) => {
+    if (shown === -1 && !hidden.has(offset)) shown = index;
+  });
+  return Math.max(shown, 0);
+}
+
 export function setActiveTabMeta(tr: Transaction, update: ActiveTabUpdate) {
-  const updates: ActiveTabUpdate[] = tr.getMeta(tabsViewPluginKey) ?? [];
-  return tr.setMeta(tabsViewPluginKey, [...updates, update]);
+  const updates: RecordedUpdate[] = tr.getMeta(tabsViewPluginKey) ?? [];
+  return tr.setMeta(tabsViewPluginKey, [
+    ...updates,
+    { ...update, steps: tr.steps.length },
+  ]);
 }
 
 type StepChange = {
@@ -188,10 +222,12 @@ function hiddenTabDecorations(
     const from = tabsPos + 1 + offset;
     // until-found lets find in page reach the tab and fire beforematch on it
     decorations.push(
-      Decoration.node(from, from + tab.nodeSize, {
-        class: 'dm-tab-hidden',
-        hidden: 'until-found',
-      }),
+      Decoration.node(
+        from,
+        from + tab.nodeSize,
+        { class: 'dm-tab-hidden', hidden: 'until-found' },
+        { hiddenTab: true },
+      ),
     );
   });
   return decorations;
@@ -259,42 +295,68 @@ function findVisibleHead(
   return Selection.near(doc.resolve(panelPos));
 }
 
+// the outermost tabs block that hides the position: in a label, between tabs,
+// or in an inactive tab
+function findHidingTabs(state: EditorState, $pos: ResolvedPos) {
+  for (let depth = 1; depth <= $pos.depth; depth += 1) {
+    const tabs = $pos.node(depth);
+    if (!isTabsNode(tabs)) continue;
+
+    const tabsPos = $pos.before(depth);
+    const activeIndex = resolveActiveIndex(
+      tabs,
+      tabsViewPluginKey.getState(state)?.active.get(tabsPos),
+    );
+    const betweenTabs = depth === $pos.depth;
+    const inLabel =
+      depth + 2 <= $pos.depth && $pos.node(depth + 2).type.name === 'tabLabel';
+    if (betweenTabs || inLabel || $pos.index(depth) !== activeIndex) {
+      return { tabs, tabsPos, activeIndex };
+    }
+  }
+  return null;
+}
+
 // the cursor never rests in a hidden label, an inactive tab, or between tabs
 function findVisibleSelection(
   state: EditorState,
   selection: Selection,
   previousHead: number | null,
 ) {
-  const { $head } = selection;
-  for (let depth = 1; depth <= $head.depth; depth += 1) {
-    const tabs = $head.node(depth);
-    if (!isTabsNode(tabs)) continue;
+  const hiding = findHidingTabs(state, selection.$head);
+  if (!hiding) return null;
 
-    const tabsPos = $head.before(depth);
-    const activeIndex = resolveActiveIndex(
-      tabs,
-      tabsViewPluginKey.getState(state)?.active.get(tabsPos),
-    );
-    const betweenTabs = depth === $head.depth;
-    const inLabel =
-      depth + 2 <= $head.depth &&
-      $head.node(depth + 2).type.name === 'tabLabel';
-    if (betweenTabs || inLabel || $head.index(depth) !== activeIndex) {
-      const visible = findVisibleHead(
-        state.doc,
-        tabs,
-        tabsPos,
-        activeIndex,
-        $head.pos,
-        previousHead,
-      );
-      // a shift-extended selection keeps its anchor
-      return selection instanceof TextSelection && !selection.empty
-        ? TextSelection.between(selection.$anchor, visible.$head)
-        : visible;
-    }
-  }
-  return null;
+  const visible = findVisibleHead(
+    state.doc,
+    hiding.tabs,
+    hiding.tabsPos,
+    hiding.activeIndex,
+    selection.head,
+    previousHead,
+  );
+  // a shift-extended selection keeps its anchor, unless that is hidden too
+  const keepAnchor =
+    selection instanceof TextSelection &&
+    !selection.empty &&
+    !findHidingTabs(state, selection.$anchor);
+  return keepAnchor
+    ? TextSelection.between(selection.$anchor, visible.$head)
+    : visible;
+}
+
+// tab ids must be unique for the active tab to be found again, so repair
+// any that new tabs from another editor, the API or raw content duplicate
+export function tabIdsPlugin() {
+  return new Plugin({
+    key: new PluginKey('tabIds'),
+    appendTransaction(_transactions, oldState, newState) {
+      const before = tabsViewPluginKey.getState(oldState)?.structureVersion;
+      const after = tabsViewPluginKey.getState(newState)?.structureVersion;
+      if (before === after) return null;
+      const { tr } = newState;
+      return fixTabIds(tr) ? tr.setMeta('addToHistory', false) : null;
+    },
+  });
 }
 
 export function tabsViewPlugin() {
@@ -304,19 +366,21 @@ export function tabsViewPlugin() {
       init: (_, state) => ({
         active: new Map(),
         decorations: buildDecorations(state.doc, new Map()),
+        structureVersion: 0,
       }),
       apply(tr, value) {
-        const updates: ActiveTabUpdate[] | undefined =
+        const updates: RecordedUpdate[] | undefined =
           tr.getMeta(tabsViewPluginKey);
         if (!tr.docChanged && !updates) return value;
 
-        let { active, decorations } = value;
+        let { active, decorations, structureVersion } = value;
         const changedBlocks: number[] = [];
+        let mapping: Mapping | null = null;
         if (tr.docChanged) {
           const changes = tr.steps.map((step, index) =>
             describeStep(step, tr.docs[index], tr.docs[index + 1] ?? tr.doc),
           );
-          const mapping = new Mapping(changes.map((change) => change.map));
+          mapping = new Mapping(changes.map((change) => change.map));
           let tabsChanged = false;
           changes.forEach(({ tabsChange }, index) => {
             if (!tabsChange) return;
@@ -336,19 +400,24 @@ export function tabsViewPlugin() {
             tr.doc,
             tabsChanged ? changedBlocks : null,
           );
+          if (tabsChanged) structureVersion += 1;
           decorations = decorations.map(mapping, tr.doc);
         }
         if (updates) {
           active = new Map(active);
-          updates.forEach(({ tabsPos, tabId, index }) => {
-            active.set(tabsPos, { tabId, index });
-            changedBlocks.push(tabsPos);
+          updates.forEach(({ tabsPos, tabId, index, steps }) => {
+            // steps added later in the same transaction can move the block
+            const result = mapping?.slice(steps).mapResult(tabsPos, 1);
+            if (result?.deleted) return;
+            const pos = result?.pos ?? tabsPos;
+            active.set(pos, { tabId, index });
+            changedBlocks.push(pos);
           });
         }
         new Set(changedBlocks).forEach((tabsPos) => {
           decorations = redecorateBlock(decorations, tr.doc, tabsPos, active);
         });
-        return { active, decorations };
+        return { active, decorations, structureVersion };
       },
     },
     props: {

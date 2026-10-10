@@ -2,7 +2,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useEffect } from "react";
 import { MantineProvider } from "@mantine/core";
-import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import {
+  EditorContent,
+  useEditor,
+  type Editor,
+  type NodeViewProps,
+} from "@tiptap/react";
 import type { AnyExtension } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import {
@@ -96,15 +101,17 @@ function Harness({
   editable,
   onEditor,
   extensions = [],
+  view = TabsView,
 }: {
   editable: boolean;
   onEditor: (editor: Editor) => void;
   extensions?: AnyExtension[];
+  view?: typeof TabsView;
 }) {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Tabs.configure({ view: TabsView }),
+      Tabs.configure({ view }),
       Tab,
       TabLabel,
       TabPanel,
@@ -120,13 +127,18 @@ function Harness({
   return <EditorContent editor={editor} />;
 }
 
-async function mountTabs(editable: boolean, extensions?: AnyExtension[]) {
+async function mountTabs(
+  editable: boolean,
+  extensions?: AnyExtension[],
+  view?: typeof TabsView,
+) {
   let editor!: Editor;
   const utils = render(
     <MantineProvider env="test">
       <Harness
         editable={editable}
         extensions={extensions}
+        view={view}
         onEditor={(instance) => (editor = instance)}
       />
     </MantineProvider>,
@@ -206,6 +218,26 @@ describe("TabsView", () => {
       container.querySelectorAll('[data-type="tab"].dm-tab-hidden'),
     ).map((el) => el.getAttribute("data-tab-id"));
     expect(hidden).toEqual(["a"]);
+  });
+
+  it("does no position lookups while the page is edited outside the block", async () => {
+    let lookups = 0;
+    const CountingView = (props: NodeViewProps) => (
+      <TabsView
+        {...props}
+        getPos={() => {
+          lookups += 1;
+          return props.getPos();
+        }}
+      />
+    );
+    const { editor } = await mountTabs(true, [], CountingView);
+    lookups = 0;
+    await act(async () => {
+      editor.commands.insertContentAt(textPos(editor, "after"), "x");
+    });
+    expect(editor.state.doc.lastChild!.textContent).toBe("xafter");
+    expect(lookups).toBe(0);
   });
 
   it("updates the strip within the same task as the switch", async () => {
@@ -475,6 +507,39 @@ describe("TabsView tab reorder", () => {
     );
     expect(dropCursor()).not.toBeNull();
     dropCursor()!.remove();
+  });
+});
+
+describe("TabsView strip events", () => {
+  function fire(target: Element, type: string) {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.assign(event, {
+      clientX: 0,
+      clientY: 0,
+      dataTransfer: {
+        files: [],
+        types: ["text/html"],
+        getData: (kind: string) => (kind === "text/html" ? "<p>dropped</p>" : ""),
+      },
+    });
+    target.dispatchEvent(event);
+    return event;
+  }
+
+  it("leaves the strip's tab reorder drags to the strip", async () => {
+    const { editor } = await mountTabs(true);
+    editor.view.posAtCoords = () => null;
+    const before = editor.state.doc;
+    const tabElement = screen.getByRole("tab", { name: "Beta" });
+
+    expect(fire(tabElement, "dragover").defaultPrevented).toBe(false);
+    fire(tabElement, "drop");
+    expect(editor.state.doc).toBe(before);
+
+    // over the content the editor does accept the drag
+    const content = editor.view.domAtPos(textPos(editor, "first panel"))
+      .node as Element;
+    expect(fire(content, "dragover").defaultPrevented).toBe(true);
   });
 });
 

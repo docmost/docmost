@@ -1,8 +1,10 @@
+import { findParentNodeClosestToPos } from '@tiptap/core';
 import {
   Fragment,
   type Node as PMNode,
   type ResolvedPos,
 } from '@tiptap/pm/model';
+import type { Transaction } from '@tiptap/pm/state';
 import { generateNodeId } from '../utils';
 
 export const tabLabelAt = (index: number) => `Tab ${index + 1}`;
@@ -60,12 +62,29 @@ export function withFreshTabIds(fragment: Fragment): Fragment {
   return Fragment.from(nodes);
 }
 
-export function isInsideTabs($pos: ResolvedPos) {
-  for (let depth = $pos.depth; depth > 0; depth -= 1) {
-    if ($pos.node(depth).type.name === 'tabs') return true;
-  }
-  return false;
+// keeps the first tab with each id and gives empty or repeated ones a fresh id
+export function fixTabIds(tr: Transaction) {
+  const seen = new Set<string>();
+  const repairs: number[] = [];
+  tr.doc.descendants((node, pos) => {
+    if (node.type.name === 'tab') {
+      const { id } = node.attrs;
+      if (!id || seen.has(id)) repairs.push(pos);
+      else seen.add(id);
+    }
+    return !node.isTextblock;
+  });
+  repairs.forEach((pos) => {
+    let id = generateNodeId();
+    while (seen.has(id)) id = generateNodeId();
+    seen.add(id);
+    tr.setNodeAttribute(pos, 'id', id);
+  });
+  return repairs.length > 0;
 }
+
+export const isInsideTabs = ($pos: ResolvedPos) =>
+  Boolean(findParentNodeClosestToPos($pos, (node) => node.type.name === 'tabs'));
 
 function tabsBlockContent(tabs: PMNode) {
   const { heading } = tabs.type.schema.nodes;
@@ -115,5 +134,24 @@ export function flattenTabsBlocks(
   return changed ? Fragment.from(nodes) : null;
 }
 
-export const hasTabsBlock = (fragment: Fragment, openStart = 0, openEnd = 0) =>
-  flattenTabsBlocks(fragment, openStart, openEnd) !== null;
+// a whole tabs block anywhere in the fragment, with the same open edges rule
+export function hasTabsBlock(
+  fragment: Fragment,
+  openStart = 0,
+  openEnd = 0,
+): boolean {
+  let found = false;
+  fragment.forEach((node, _, index) => {
+    if (found || node.isTextblock || node.isLeaf) return;
+    const openLeft = index === 0 ? openStart : 0;
+    const openRight = index === fragment.childCount - 1 ? openEnd : 0;
+    found =
+      (node.type.name === 'tabs' && !openLeft && !openRight) ||
+      hasTabsBlock(
+        node.content,
+        Math.max(openLeft - 1, 0),
+        Math.max(openRight - 1, 0),
+      );
+  });
+  return found;
+}

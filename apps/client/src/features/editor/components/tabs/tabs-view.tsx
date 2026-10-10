@@ -18,12 +18,17 @@ import { useTranslation } from "react-i18next";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { findParentNode } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
-import { getActiveTabIndex, isTextSelected } from "@docmost/editor-ext";
+import { getShownTabIndex, isTextSelected } from "@docmost/editor-ext";
 import TabSlot, { TAB_DRAG_TYPE } from "./tab-slot";
 import TabsToolbar from "./tabs-toolbar";
 import type { TabActions } from "./tabs.types";
 
-export default function TabsView({ node, editor, getPos }: NodeViewProps) {
+export default function TabsView({
+  node,
+  editor,
+  getPos,
+  innerDecorations,
+}: NodeViewProps) {
   const { t } = useTranslation();
   const instanceId = useId();
   const contentId = `${instanceId}-content`;
@@ -41,26 +46,17 @@ export default function TabsView({ node, editor, getPos }: NodeViewProps) {
     selector: (ctx) => ctx.editor?.isFocused ?? false,
   });
 
-  const storedActiveIndex = useEditorState({
-    editor,
-    selector: (ctx) => {
-      const pos = getPos();
-      if (!ctx.editor || typeof pos !== "number") return 0;
-      return getActiveTabIndex(ctx.editor.state, pos);
-    },
-  });
-
-  // the innermost tabs block around the cursor shows the toolbar
+  // the innermost tabs block around the cursor shows the toolbar. selectors
+  // run on every transaction, so match the node rather than look up positions
   const showToolbar = useEditorState({
     editor,
     selector: (ctx) => {
-      const pos = getPos();
-      if (!ctx.editor?.isEditable || typeof pos !== "number") return false;
+      if (!ctx.editor?.isEditable) return false;
 
       const { selection } = ctx.editor.state;
-      if (selection instanceof NodeSelection) return selection.from === pos;
+      if (selection instanceof NodeSelection) return selection.node === node;
       const parent = findParentNode((n) => n.type.name === "tabs")(selection);
-      return parent?.pos === pos && !isTextSelected(ctx.editor);
+      return parent?.node === node && !isTextSelected(ctx.editor);
     },
   });
 
@@ -71,7 +67,7 @@ export default function TabsView({ node, editor, getPos }: NodeViewProps) {
       label: tab.firstChild?.textContent ?? "",
     };
   });
-  const activeIndex = Math.min(storedActiveIndex, tabs.length - 1);
+  const activeIndex = getShownTabIndex(node, innerDecorations);
 
   const runAtTabsPos = useCallback(
     (run: (tabsPos: number) => void) => {

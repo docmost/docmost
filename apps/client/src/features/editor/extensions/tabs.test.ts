@@ -215,6 +215,39 @@ describe("tabs: per-viewer active tab", () => {
     expect(hiddenTabIds(ed)).toEqual(["c"]);
   });
 
+  it("keeps a tab opened by a command that later steps in the chain move", () => {
+    const ed = createEditor(
+      tabsBlock(tab("a", "Alpha"), tab("b", "Beta")),
+      paragraph(),
+    );
+    ed.chain().setActiveTab(1, 0).insertContentAt(0, paragraph("above")).run();
+    const [tabsPos] = tabsPositions(ed);
+    expect(tabsPos).toBeGreaterThan(0);
+    expect(getActiveTabIndex(ed.state, tabsPos)).toBe(1);
+    expect(hiddenTabIds(ed)).toEqual(["a"]);
+  });
+
+  it("keeps the active tab when the block is wrapped and lifted", () => {
+    const ed = createEditor(
+      tabsBlock(tab("a", "Alpha"), tab("b", "Beta")),
+      paragraph("tail"),
+    );
+    ed.commands.setActiveTab(1, 0);
+    selectNode(ed, "tabs");
+    ed.commands.wrapIn("blockquote");
+    let [tabsPos] = tabsPositions(ed);
+    expect(ed.state.doc.firstChild!.type.name).toBe("blockquote");
+    expect(getActiveTabIndex(ed.state, tabsPos)).toBe(1);
+    expect(hiddenTabIds(ed)).toEqual(["a"]);
+
+    selectNode(ed, "tabs");
+    ed.commands.lift("blockquote");
+    [tabsPos] = tabsPositions(ed);
+    expect(tabsPos).toBe(0);
+    expect(getActiveTabIndex(ed.state, tabsPos)).toBe(1);
+    expect(hiddenTabIds(ed)).toEqual(["a"]);
+  });
+
   it("showTabAt opens every tab that contains the position", () => {
     const inner = tabsBlock(
       tab("c", "Gamma"),
@@ -608,6 +641,44 @@ describe("tabs: unique tab ids", () => {
   });
 });
 
+describe("tabs: unique tab ids repair", () => {
+  it("renames repeated and empty ids on load so every tab can be opened", async () => {
+    const ed = createEditor(
+      tabsBlock(
+        tab("x", "First", paragraph("first")),
+        tab("x", "Second", paragraph("second")),
+        tab("", "Third"),
+      ),
+      paragraph(),
+    );
+    // tiptap runs onCreate a task after mounting
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const ids = tabIds(ed);
+    expect(ids[0]).toBe("x");
+    expect(new Set(ids).size).toBe(3);
+    expect(ids.every(Boolean)).toBe(true);
+    expect(undoDepth(ed.state)).toBe(0);
+
+    ed.commands.setActiveTab(1, 0);
+    expect(getActiveTabIndex(ed.state, 0)).toBe(1);
+    expect(hiddenTabIds(ed)).not.toContain(ids[1]);
+  });
+
+  it("renames the ids of an inserted block that repeat existing ones", () => {
+    const ed = createEditor(
+      tabsBlock(tab("a", "Alpha"), tab("b", "Beta")),
+      paragraph(),
+    );
+    ed.commands.insertContentAt(
+      ed.state.doc.content.size - 1,
+      tabsBlock(tab("a", "Copy A"), tab("b", "Copy B")),
+    );
+    const ids = tabIds(ed);
+    expect(ids.slice(0, 2)).toEqual(["a", "b"]);
+    expect(new Set(ids).size).toBe(4);
+  });
+});
+
 describe("tabs: collaboration", () => {
   const extensions = [
     StarterKit.configure({ undoRedo: false }),
@@ -695,6 +766,22 @@ describe("tabs: collaboration", () => {
     expect(viewer.state.selection.$head.parent.textContent).toBe("b1");
   });
 
+  it("keeps the active tab when a remote edit repeats the text next to it", () => {
+    const { viewer, typeRemotely } = startSession(
+      paragraph("aa"),
+      tabsBlock(tab("a", "Alpha"), tab("b", "Beta")),
+      paragraph("tail"),
+    );
+    const [tabsPos] = tabsPositions(viewer);
+    viewer.commands.setActiveTab(1, tabsPos);
+
+    typeRemotely(2, "a");
+
+    expect(viewer.state.doc.firstChild!.textContent).toBe("aaa");
+    expect(getActiveTabIndex(viewer.state, tabsPos + 1)).toBe(1);
+    expect(hiddenTabIds(viewer)).toEqual(["a"]);
+  });
+
   it("keeps the active tab when a collaborator types inside it", () => {
     const { viewer, typeRemotely } = startSession(
       tabsBlock(
@@ -739,6 +826,22 @@ describe("tabs: collaboration", () => {
 
     expect(tabsPositions(viewer)).toHaveLength(1);
     expect(hiddenTabIds(viewer)).toEqual(["b"]);
+  });
+
+  it("repairs repeated ids in a block a collaborator adds", () => {
+    const { viewer, typeRemotely } = startSession(
+      paragraph("lead"),
+      paragraph("tail"),
+    );
+
+    typeRemotely(
+      viewer.state.doc.firstChild!.nodeSize,
+      tabsBlock(tab("x", "First"), tab("x", "Second")),
+    );
+
+    const ids = tabIds(viewer);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
   });
 
   it("keeps each block's active tab when blocks share tab ids", () => {
@@ -881,6 +984,23 @@ describe("tabs: cursor placement", () => {
     ed.commands.setTextSelection(0);
     expect(getActiveTabIndex(ed.state, 0)).toBe(1);
     expect(ed.state.selection.$head.parent.textContent).toBe("second panel");
+  });
+
+  it("drops a selection inside a tab that gets hidden instead of stretching it into the new tab", () => {
+    const ed = createEditor(
+      tabsBlock(
+        tab("a", "Alpha", paragraph("alpha text")),
+        tab("b", "Beta", paragraph("beta text")),
+      ),
+      paragraph("tail"),
+    );
+    ed.commands.setTextSelection({
+      from: textPos(ed, "alpha text"),
+      to: textPos(ed, "alpha text") + 5,
+    });
+    ed.commands.setActiveTab(1, 0);
+    expect(ed.state.selection.empty).toBe(true);
+    expect(ed.state.selection.$head.parent.textContent).toBe("beta text");
   });
 
   it("settles inside the inner visible tab when an outer panel opens with nested tabs", () => {
