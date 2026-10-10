@@ -1,7 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback, useRef, useState } from "react";
-import { DOMSerializer, Node as PMNode } from "@tiptap/pm/model";
+import { Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -23,6 +23,7 @@ import { isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import type { WidthMode, ColumnsLayout } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
+import { copyNodeToClipboard } from "@/features/editor/utils";
 
 type LayoutPreset = {
   layout: ColumnsLayout;
@@ -78,6 +79,7 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
     "drawio",
     "excalidraw",
     "table",
+    "tabs",
   ];
 
   const shouldShow = useCallback(
@@ -191,54 +193,16 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
   );
 
   const handleCopy = useCallback(() => {
-    const { state } = editor;
     const parent = findParentNode(
       (node: PMNode) => node.type.name === "columns",
-    )(state.selection);
+    )(editor.state.selection);
     if (!parent) return;
 
-    const serializer = DOMSerializer.fromSchema(state.schema);
-    const dom = serializer.serializeNode(parent.node);
-    const wrapper = document.createElement("div");
-    wrapper.appendChild(dom);
-
-    const onSuccess = () => {
+    copyNodeToClipboard(editor, parent.node).then(() => {
       clearTimeout(copyTimerRef.current);
       setCopied(true);
       copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    };
-
-    if (navigator.clipboard?.write) {
-      navigator.clipboard
-        .write([
-          new ClipboardItem({
-            "text/html": new Blob([wrapper.innerHTML], { type: "text/html" }),
-            "text/plain": new Blob([parent.node.textContent], {
-              type: "text/plain",
-            }),
-          }),
-        ])
-        .then(onSuccess)
-        .catch(execCommandFallback);
-    } else {
-      execCommandFallback();
-    }
-
-    function execCommandFallback() {
-      wrapper.style.position = "fixed";
-      wrapper.style.left = "-9999px";
-      document.body.appendChild(wrapper);
-      const range = document.createRange();
-      range.selectNodeContents(wrapper);
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-      document.execCommand("copy");
-      sel?.removeAllRanges();
-      document.body.removeChild(wrapper);
-      editor.view.focus();
-      onSuccess();
-    }
+    });
   }, [editor]);
 
   const handleDelete = useCallback(() => {

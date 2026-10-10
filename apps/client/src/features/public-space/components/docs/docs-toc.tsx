@@ -67,6 +67,7 @@ export default function DocsToc() {
 
   const handleScrollToHeading = (position: number) => {
     if (!editor || editor.isDestroyed) return;
+    editor.commands.showTabAt(position);
     const { view } = editor;
 
     const { node } = view.domAtPos(position);

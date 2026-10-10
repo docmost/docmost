@@ -45,6 +45,7 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
     });
 
     if (!position) return;
+    editor.commands.showTabAt(position.from);
     requestAnimationFrame(() => {
       document
         .querySelector(".search-result-current")
