@@ -1482,5 +1482,14 @@
   "Test event delivered to {{name}}": "테스트 이벤트가 {{name}}에 전송되었습니다",
   "Updated SIEM destination": "SIEM 대상 업데이트됨",
   "Verify TLS certificate": "TLS 인증서 검증",
-  "e.g. Splunk prod": "예: Splunk 운영"
+  "e.g. Splunk prod": "예: Splunk 운영",
+  "Tabs": "Tabs",
+  "Insert a multi-tab content block.": "Insert a multi-tab content block.",
+  "Add tab": "Add tab",
+  "Tab actions": "Tab actions",
+  "Move left": "Move left",
+  "Move right": "Move right",
+  "Delete tab": "Delete tab",
+  "Tab label": "Tab label",
+  "Tab actions for {{name}}": "Tab actions for {{name}}"
 }
