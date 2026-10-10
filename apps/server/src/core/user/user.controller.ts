@@ -10,6 +10,7 @@ import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
@@ -24,6 +25,7 @@ export class UserController {
 
   @HttpCode(HttpStatus.OK)
   @Post('me')
+  @OAuthScope('read')
   async getUserInfo(
     @AuthUser() authUser: User,
     @AuthWorkspace() workspace: Workspace,

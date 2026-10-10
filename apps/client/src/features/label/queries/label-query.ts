@@ -39,6 +39,7 @@ export function useWorkspaceLabelsQuery(query: string, enabled: boolean) {
     queryFn: () => getWorkspaceLabels({ type: "page", query, limit: 50 }),
     enabled,
     staleTime: 30 * 1000,
+    placeholderData: keepPreviousData
   });
 }
 

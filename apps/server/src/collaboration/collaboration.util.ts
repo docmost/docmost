@@ -49,6 +49,10 @@ import {
   Footnotes,
   Footnote,
   FootnoteReference,
+  Tabs,
+  Tab,
+  TabLabel,
+  TabPanel,
 } from '@docmost/editor-ext';
 import {
   extensions as coreExtensions,
@@ -102,6 +106,10 @@ export const tiptapExtensions = [
   Details,
   DetailsContent,
   DetailsSummary,
+  Tabs,
+  Tab,
+  TabLabel,
+  TabPanel,
   CustomTable,
   TableCell,
   TableRow,
@@ -246,4 +254,8 @@ export function prosemirrorNodeToYElement(node: any): Y.XmlElement | Y.XmlText {
 export function jsonToMarkdown(tiptapJson: any): string {
   const html = jsonToHtml(tiptapJson);
   return htmlToMarkdown(html);
+}
+
+export function isRenderableObject(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

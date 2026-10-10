@@ -7,10 +7,12 @@ import {
   Popover,
   Select,
   Space,
+  Tabs,
   Text,
   Tooltip,
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 import { IconSettings } from "@tabler/icons-react";
 import SettingsTitle from "@/components/settings/settings-title";
 import Paginate from "@/components/common/paginate";
@@ -23,6 +25,7 @@ import {
 import { IAuditLogParams } from "@/ee/audit/types/audit.types";
 import { eventFilterOptions } from "@/ee/audit/lib/audit-event-labels";
 import AuditLogsTable from "@/ee/audit/components/audit-logs-table";
+import SiemStreamingPanel from "@/ee/siem/components/siem-streaming-panel";
 import useUserRole from "@/hooks/use-user-role";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
@@ -48,6 +51,8 @@ export default function AuditLogs() {
   const { t } = useTranslation();
   const { isOwner } = useUserRole();
   const { cursor, goNext, goPrev, resetCursor } = useCursorPaginate();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [eventFilter, setEventFilter] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -85,6 +90,8 @@ export default function AuditLogs() {
 
   const { data, isLoading } = useAuditLogsQuery(params);
 
+  const activeTab = location.pathname.endsWith("/siem") ? "siem" : "audit";
+
   if (!isOwner) {
     return null;
   }
@@ -94,125 +101,150 @@ export default function AuditLogs() {
     resetCursor();
   };
 
+  const handleTabChange = (value: string | null) => {
+    if (value === "siem") {
+      navigate("/settings/audit/siem");
+    } else {
+      navigate("/settings/audit");
+    }
+  };
+
   return (
     <>
-      <DocumentTitle title={t("Audit log")} />
+      <DocumentTitle title={t("Audit logs & SIEM")} />
 
-      <SettingsTitle title={t("Audit log")} />
+      <SettingsTitle title={t("Audit logs & SIEM")} />
 
-      <Group mb="md" gap="sm">
-        <Select
-          placeholder={t("Filter by event")}
-          data={eventFilterOptions.map((group) => ({
-            group: t(group.group),
-            items: group.items.map((item) => ({
-              value: item.value,
-              label: t(item.label),
-            })),
-          }))}
-          value={eventFilter}
-          onChange={handleEventChange}
-          clearable
-          searchable
-          w={220}
-          size="sm"
-        />
+      <Tabs color="dark" value={activeTab} onChange={handleTabChange}>
+        <Tabs.List>
+          <Tabs.Tab fw={500} value="audit">
+            {t("Audit logs")}
+          </Tabs.Tab>
+          <Tabs.Tab fw={500} value="siem">
+            {t("SIEM")}
+          </Tabs.Tab>
+        </Tabs.List>
 
-        <Popover
-          position="bottom-end"
-          shadow="md"
-          width={260}
-          withArrow
-          opened={settingsOpen}
-          onChange={(opened) => {
-            if (!opened) resetRetentionForm();
-            setSettingsOpen(opened);
-          }}
-        >
-          <Popover.Target>
-            <Tooltip label={t("Audit settings")}>
-              <ActionIcon variant="default" size="input-sm" ml="auto" onClick={() => setSettingsOpen((o) => !o)}>
-                <IconSettings size={16} />
-              </ActionIcon>
-            </Tooltip>
-          </Popover.Target>
-          <Popover.Dropdown>
-            <Text fz="sm" fw={500} mb={4}>
-              {t("Retention")}
-            </Text>
-            <Text fz="xs" c="dimmed" mb="sm">
-              {t("Logs older than this period are automatically deleted.")}
-            </Text>
-            <Group gap="xs" wrap="nowrap" mb="sm">
-              <NumberInput
-                value={retentionAmount}
-                onChange={(val) => setRetentionAmount(val)}
-                min={1}
-                hideControls
-                size="sm"
-                w={60}
-              />
-              <Select
-                data={[
-                  { value: "days", label: t("days") },
-                  { value: "months", label: t("months") },
-                  { value: "years", label: t("years") },
-                ]}
-                value={retentionUnit}
-                onChange={(value) => {
-                  if (value === "days" || value === "months" || value === "years") {
-                    setRetentionUnit(value);
-                  }
-                }}
-                size="sm"
-                style={{ flex: 1 }}
-                comboboxProps={{ withinPortal: false }}
-              />
-            </Group>
-            <Group gap="xs" grow>
-              <Button
-                size="xs"
-                variant="default"
-                onClick={() => {
-                  resetRetentionForm();
-                  setSettingsOpen(false);
-                }}
-              >
-                {t("Cancel")}
-              </Button>
-              <Button
-                size="xs"
-                onClick={() => {
-                  const num = typeof retentionAmount === "number" ? retentionAmount : 1;
-                  const clamped = Math.max(1, num);
-                  setRetentionAmount(clamped);
-                  const days = retentionToDays(clamped, retentionUnit);
-                  if (days !== currentDays) {
-                    updateRetention.mutate({ auditRetentionDays: days });
-                  }
-                  setSettingsOpen(false);
-                }}
-                loading={updateRetention.isPending}
-              >
-                {t("Save")}
-              </Button>
-            </Group>
-          </Popover.Dropdown>
-        </Popover>
-      </Group>
+        <Tabs.Panel value="audit" pt="md">
+          <Group mb="md" gap="sm">
+            <Select
+              placeholder={t("Filter by event")}
+              data={eventFilterOptions.map((group) => ({
+                group: t(group.group),
+                items: group.items.map((item) => ({
+                  value: item.value,
+                  label: t(item.label),
+                })),
+              }))}
+              value={eventFilter}
+              onChange={handleEventChange}
+              clearable
+              searchable
+              w={220}
+              size="sm"
+            />
 
-      <AuditLogsTable items={data?.items} isLoading={isLoading} />
+            <Popover
+              position="bottom-end"
+              shadow="md"
+              width={260}
+              withArrow
+              opened={settingsOpen}
+              onChange={(opened) => {
+                if (!opened) resetRetentionForm();
+                setSettingsOpen(opened);
+              }}
+            >
+              <Popover.Target>
+                <Tooltip label={t("Audit settings")}>
+                  <ActionIcon variant="default" size="input-sm" ml="auto" onClick={() => setSettingsOpen((o) => !o)}>
+                    <IconSettings size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Text fz="sm" fw={500} mb={4}>
+                  {t("Retention")}
+                </Text>
+                <Text fz="xs" c="dimmed" mb="sm">
+                  {t("Logs older than this period are automatically deleted.")}
+                </Text>
+                <Group gap="xs" wrap="nowrap" mb="sm">
+                  <NumberInput
+                    value={retentionAmount}
+                    onChange={(val) => setRetentionAmount(val)}
+                    min={1}
+                    hideControls
+                    size="sm"
+                    w={60}
+                  />
+                  <Select
+                    data={[
+                      { value: "days", label: t("days") },
+                      { value: "months", label: t("months") },
+                      { value: "years", label: t("years") },
+                    ]}
+                    value={retentionUnit}
+                    onChange={(value) => {
+                      if (value === "days" || value === "months" || value === "years") {
+                        setRetentionUnit(value);
+                      }
+                    }}
+                    size="sm"
+                    style={{ flex: 1 }}
+                    comboboxProps={{ withinPortal: false }}
+                  />
+                </Group>
+                <Group gap="xs" grow>
+                  <Button
+                    size="xs"
+                    variant="default"
+                    onClick={() => {
+                      resetRetentionForm();
+                      setSettingsOpen(false);
+                    }}
+                  >
+                    {t("Cancel")}
+                  </Button>
+                  <Button
+                    size="xs"
+                    onClick={() => {
+                      const num = typeof retentionAmount === "number" ? retentionAmount : 1;
+                      const clamped = Math.max(1, num);
+                      setRetentionAmount(clamped);
+                      const days = retentionToDays(clamped, retentionUnit);
+                      if (days !== currentDays) {
+                        updateRetention.mutate({ auditRetentionDays: days });
+                      }
+                      setSettingsOpen(false);
+                    }}
+                    loading={updateRetention.isPending}
+                  >
+                    {t("Save")}
+                  </Button>
+                </Group>
+              </Popover.Dropdown>
+            </Popover>
+          </Group>
 
-      <Space h="md" />
+          <AuditLogsTable items={data?.items} isLoading={isLoading} />
 
-      {data?.items && data.items.length > 0 && (
-        <Paginate
-          hasPrevPage={data?.meta?.hasPrevPage}
-          hasNextPage={data?.meta?.hasNextPage}
-          onNext={() => goNext(data?.meta?.nextCursor)}
-          onPrev={goPrev}
-        />
-      )}
+          <Space h="md" />
+
+          {data?.items && data.items.length > 0 && (
+            <Paginate
+              hasPrevPage={data?.meta?.hasPrevPage}
+              hasNextPage={data?.meta?.hasNextPage}
+              onNext={() => goNext(data?.meta?.nextCursor)}
+              onPrev={goPrev}
+            />
+          )}
+        </Tabs.Panel>
+
+        <Tabs.Panel value="siem" pt="md">
+          <SiemStreamingPanel />
+        </Tabs.Panel>
+      </Tabs>
     </>
   );
 }

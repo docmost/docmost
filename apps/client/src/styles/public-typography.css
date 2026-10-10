@@ -1,0 +1,39 @@
+/* Reading typography for the public surfaces (public spaces and share links).
+ * Scoped to the .public-typography root so the authenticated app keeps the
+ * system font stack. Loaded only from the lazy public layouts. */
+
+.public-typography {
+  font-family: "Inter Variable", var(--mantine-font-family);
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Code keeps its own mono family; only undo the inherited tracking. */
+.public-typography code,
+.public-typography pre {
+  letter-spacing: normal;
+}
+
+/* Pins the reading metrics that core.css otherwise takes from the Mantine
+ * type scale. rem, not px, so browser font-size preferences still apply. */
+.public-typography .ProseMirror {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.public-typography .ProseMirror h1 {
+  letter-spacing: -0.021em;
+}
+
+.public-typography .ProseMirror h2 {
+  letter-spacing: -0.017em;
+}
+
+.public-typography .ProseMirror h3,
+.public-typography .ProseMirror h4 {
+  letter-spacing: -0.014em;
+}
+
+.public-typography .page-title .ProseMirror h1 {
+  letter-spacing: -0.022em;
+}

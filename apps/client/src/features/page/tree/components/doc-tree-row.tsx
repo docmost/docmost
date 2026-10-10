@@ -41,6 +41,7 @@ type Props<T extends object> = {
   activeId?: string;
   renderRow: (props: RenderRowProps<T>) => ReactNode;
   indentPerLevel: number;
+  rowClassName?: string;
   onMove: (sourceId: string, op: DropOp) => void | Promise<void>;
   onToggle: (id: string, isOpen: boolean) => void;
   readOnly: boolean;
@@ -68,6 +69,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
     activeId,
     renderRow,
     indentPerLevel,
+    rowClassName,
     onMove,
     onToggle,
     readOnly,
@@ -323,7 +325,7 @@ function DocTreeRowInner<T extends object>(props: Props<T>) {
       style={{ paddingLeft: level * indentPerLevel }}
     >
       <div
-        className={styles.node}
+        className={rowClassName ? `${styles.node} ${rowClassName}` : styles.node}
         data-dragging={isDragging || undefined}
         data-selected={isSelected || undefined}
         data-receiving-drop={
@@ -376,6 +378,7 @@ function arePropsEqual<T extends object>(
   if (prev.readOnly !== next.readOnly) return false;
   if (prev.contextId !== next.contextId) return false;
   if (prev.indentPerLevel !== next.indentPerLevel) return false;
+  if (prev.rowClassName !== next.rowClassName) return false;
   if (prev.renderRow !== next.renderRow) return false;
   if (prev.onMove !== next.onMove) return false;
   if (prev.onToggle !== next.onToggle) return false;

@@ -1,0 +1,204 @@
+.ProseMirror {
+  .dm-tabs {
+    position: relative;
+    margin: 0.5em 0;
+    border: 1px solid
+      light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    border-radius: var(--mantine-radius-md);
+  }
+
+  .dm-tabs__toolbar {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 99;
+    transform: translateX(-50%);
+  }
+
+  .dm-tabs__header {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid
+      light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    user-select: none;
+  }
+
+  .dm-tabs__tabs {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dm-tabs__list {
+    display: flex;
+    gap: 4px;
+    padding: 0 8px;
+  }
+
+  .dm-tabs__slot {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+  }
+
+  .dm-tabs__slot[data-active]::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    background: light-dark(var(--mantine-color-dark-7), var(--mantine-color-gray-2));
+  }
+
+  .dm-tabs__slot[data-dragging] {
+    opacity: 0.4;
+  }
+
+  .dm-tabs__slot[data-closest-edge]::after {
+    content: "";
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--mantine-primary-color-filled);
+    pointer-events: none;
+  }
+
+  .dm-tabs__slot[data-closest-edge="left"]::after {
+    inset-inline-start: -3px;
+  }
+
+  .dm-tabs__slot[data-closest-edge="right"]::after {
+    inset-inline-end: -3px;
+  }
+
+  .dm-tabs__tab {
+    padding: 12px 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  }
+
+  .dm-tabs__tab:hover,
+  .dm-tabs__tab[data-active] {
+    color: light-dark(var(--mantine-color-dark-7), var(--mantine-color-gray-0));
+  }
+
+  .dm-tabs__tab:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+    border-radius: var(--mantine-radius-xs);
+  }
+
+  /* the mirrored text sizes the input; size="1" stops its default 20-character width */
+  .dm-tabs__rename {
+    display: inline-grid;
+    min-width: 4ch;
+    margin: 8px 0;
+    padding: 2px 6px;
+    border-radius: var(--mantine-radius-sm);
+    background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+
+  .dm-tabs__rename::after,
+  .dm-tabs__rename input {
+    grid-area: 1 / 1;
+    font: inherit;
+  }
+
+  .dm-tabs__rename::after {
+    content: attr(data-value) " ";
+    white-space: pre;
+    visibility: hidden;
+  }
+
+  .dm-tabs__rename input {
+    width: 100%;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: none;
+    color: inherit;
+  }
+
+  .dm-tabs__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border-inline-start: 1px solid
+      light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  }
+
+  .dm-tabs__content {
+    padding: 8px 16px;
+  }
+
+  [data-type="tabLabel"] {
+    display: none;
+  }
+
+  [data-type="tabPanel"] {
+    outline: none;
+  }
+}
+
+/* the drag handle clones the preview into the body, outside the editor */
+.dm-tabs-drag-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-6)
+  );
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.dm-tabs-drag-preview[hidden] {
+  display: none;
+}
+
+.dm-tabs-drag-preview svg {
+  flex-shrink: 0;
+}
+
+.dm-tabs-drag-preview span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media print {
+  .ProseMirror {
+    .dm-tabs__header,
+    .dm-tabs__toolbar {
+      display: none;
+    }
+
+    .dm-tab-hidden {
+      display: block;
+      content-visibility: visible;
+    }
+
+    [data-type="tabLabel"] {
+      display: block;
+      margin: 0.75em 0 0.25em;
+      font-weight: 600;
+    }
+  }
+}

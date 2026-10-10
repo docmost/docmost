@@ -20,6 +20,7 @@ import {
   FilterGroup,
 } from "@/ee/base/types/base.types";
 import { exportBaseToCsv } from "@/ee/base/services/base-service";
+import { normalizeFilter } from "@/ee/base/queries/base-row-query";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { ViewTabs } from "@/ee/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/ee/base/components/views/view-sort-config";
@@ -69,11 +70,13 @@ export function BaseToolbar({
 
   const isKanban = activeView?.type === "kanban";
 
+  const viewFilter = activeView?.config?.filter;
+
   const handleExport = useCallback(async () => {
     if (exporting) return;
     setExporting(true);
     try {
-      await exportBaseToCsv(base.id);
+      await exportBaseToCsv(base.id, normalizeFilter(viewFilter));
     } catch (err) {
       notifications.show({
         color: "red",
@@ -82,7 +85,7 @@ export function BaseToolbar({
     } finally {
       setExporting(false);
     }
-  }, [base.id, exporting, t]);
+  }, [base.id, exporting, t, viewFilter]);
 
   const openToolbar = useCallback((panel: "sort" | "filter" | "properties") => {
     setSortOpened(panel === "sort" ? (v) => !v : false);

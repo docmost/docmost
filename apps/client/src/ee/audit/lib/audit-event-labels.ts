@@ -22,6 +22,7 @@ export const auditEventLabels: Record<string, string> = {
   "user.role_changed": "Changed user role",
   "user.password_changed": "Changed password",
   "user.password_reset": "Reset password",
+  "user.password_reset_requested": "Requested password reset",
   "user.updated": "Updated user",
   "user.deactivated": "Deactivated user",
   "user.activated": "Activated user",
@@ -62,6 +63,7 @@ export const auditEventLabels: Record<string, string> = {
   "page.restriction_removed": "Removed page restriction",
   "page.permission_added": "Added page permission",
   "page.permission_removed": "Removed page permission",
+  "page.permission_role_changed": "Changed page permission",
   "page.verification_created": "Created page verification",
   "page.verification_updated": "Updated page verification",
   "page.verification_removed": "Removed page verification",
@@ -79,6 +81,13 @@ export const auditEventLabels: Record<string, string> = {
 
   "license.activated": "Activated license",
   "license.removed": "Removed license",
+
+  "siem_destination.created": "Created SIEM destination",
+  "siem_destination.updated": "Updated SIEM destination",
+  "siem_destination.deleted": "Deleted SIEM destination",
+
+  "template.created": "Created template",
+  "template.deleted": "Deleted template",
 };
 
 export function getEventLabel(event: string): string {
@@ -105,6 +114,10 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "user.activated", label: "Activated user" },
       { value: "user.role_changed", label: "Changed user role" },
       { value: "user.password_changed", label: "Changed password" },
+      {
+        value: "user.password_reset_requested",
+        label: "Requested password reset",
+      },
       { value: "user.mfa_enabled", label: "Enabled MFA" },
       { value: "user.mfa_disabled", label: "Disabled MFA" },
     ],
@@ -147,6 +160,10 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "page.restriction_removed", label: "Removed page restriction" },
       { value: "page.permission_added", label: "Added page permission" },
       { value: "page.permission_removed", label: "Removed page permission" },
+      {
+        value: "page.permission_role_changed",
+        label: "Changed page permission",
+      },
       { value: "page.verification_created", label: "Created page verification" },
       { value: "page.verification_updated", label: "Updated page verification" },
       { value: "page.verification_removed", label: "Removed page verification" },
@@ -191,6 +208,21 @@ export const eventFilterOptions: EventGroup[] = [
     items: [
       { value: "license.activated", label: "Activated license" },
       { value: "license.removed", label: "Removed license" },
+    ],
+  },
+  {
+    group: "SIEM",
+    items: [
+      { value: "siem_destination.created", label: "Created SIEM destination" },
+      { value: "siem_destination.updated", label: "Updated SIEM destination" },
+      { value: "siem_destination.deleted", label: "Deleted SIEM destination" },
+    ],
+  },
+  {
+    group: "Template",
+    items: [
+      { value: "template.created", label: "Created template" },
+      { value: "template.deleted", label: "Deleted template" },
     ],
   },
 ];

@@ -47,6 +47,7 @@ export class StaticModule implements OnModuleInit {
         BILLING_TRIAL_DAYS: this.environmentService.isCloud()
           ? this.environmentService.getBillingTrialDays()
           : undefined,
+        BETA_PUBLIC_SPACES: this.environmentService.isBetaPublicSpaces(),
         POSTHOG_HOST: this.environmentService.getPostHogHost(),
         POSTHOG_KEY: this.environmentService.getPostHogKey(),
         AI_VECTOR_DRIVER:
@@ -71,6 +72,15 @@ export class StaticModule implements OnModuleInit {
       await app.register(fastifyStatic, {
         root: clientDistPath,
         wildcard: false,
+        setHeaders: (reply: any, pathName: string) => {
+          // Vite content-hashes everything under /assets, so they can be cached forever
+          if (/[\\/]assets[\\/]/.test(pathName)) {
+            reply.header(
+              'Cache-Control',
+              'public, max-age=31536000, immutable',
+            );
+          }
+        },
       });
 
       app.get(RENDER_PATH, (req: any, res: any) => {

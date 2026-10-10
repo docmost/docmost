@@ -28,6 +28,7 @@ export type RedisConfig = {
   host: string;
   port: number;
   db: number;
+  username?: string;
   password?: string;
   family?: number;
   tls?: { rejectUnauthorized?: boolean };
@@ -36,7 +37,15 @@ export type RedisConfig = {
 export function parseRedisUrl(redisUrl: string): RedisConfig {
   // format - redis[s]://[[username][:password]@][host][:port][/db-number][?family=4|6][&rejectUnauthorized=false]
   const url = new URL(redisUrl);
-  const { hostname, port, password, pathname, protocol, searchParams } = url;
+  const {
+    hostname,
+    port,
+    username,
+    password,
+    pathname,
+    protocol,
+    searchParams,
+  } = url;
   const portInt = port ? parseInt(port, 10) : 6379;
 
   let db: number = 0;
@@ -62,7 +71,15 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
         : {}
       : undefined;
 
-  return { host: hostname, port: portInt, password: password || undefined, db, family, tls };
+  return {
+    host: hostname,
+    port: portInt,
+    username: username ? decodeURIComponent(username) : undefined,
+    password: password ? decodeURIComponent(password) : undefined,
+    db,
+    family,
+    tls,
+  };
 }
 
 export function createRetryStrategy() {

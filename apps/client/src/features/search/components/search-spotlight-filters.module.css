@@ -17,3 +17,10 @@
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-6));
   }
 }
+
+.filterButtonActive {
+  color: var(--mantine-color-blue-light-color);
+  &:hover {
+    color: var(--mantine-color-blue-light-color);
+  }
+}
