@@ -1482,5 +1482,14 @@
   "Test event delivered to {{name}}": "Testgebeurtenis afgeleverd aan {{name}}",
   "Updated SIEM destination": "SIEM-bestemming bijgewerkt",
   "Verify TLS certificate": "TLS-certificaat verifiëren",
-  "e.g. Splunk prod": "bijv. Splunk prod"
+  "e.g. Splunk prod": "bijv. Splunk prod",
+  "Tabs": "Tabs",
+  "Insert a multi-tab content block.": "Insert a multi-tab content block.",
+  "Add tab": "Add tab",
+  "Tab actions": "Tab actions",
+  "Move left": "Move left",
+  "Move right": "Move right",
+  "Delete tab": "Delete tab",
+  "Tab label": "Tab label",
+  "Tab actions for {{name}}": "Tab actions for {{name}}"
 }
