@@ -8,7 +8,6 @@ import {
   renderFootnotesList,
   resetFootnotes,
 } from "./footnotes.marked";
-import { tabsExtension } from "./tabs.marked";
 
 marked.use({
   renderer: {
@@ -47,7 +46,6 @@ marked.use({
     mathInlineExtension,
     footnoteDefExtension,
     footnoteRefExtension,
-    tabsExtension,
   ],
 });
 

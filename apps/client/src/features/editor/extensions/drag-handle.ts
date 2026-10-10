@@ -3,11 +3,13 @@ import {
   NodeSelection,
   Plugin,
   PluginKey,
+  Selection,
   TextSelection,
 } from "@tiptap/pm/state";
 import { Fragment, Slice } from "@tiptap/pm/model";
 import type { Node, ResolvedPos } from "@tiptap/pm/model";
 import type { EditorView } from "@tiptap/pm/view";
+import { hasTabsBlock } from "@docmost/editor-ext";
 
 export interface GlobalDragHandleOptions {
   /**
@@ -176,22 +178,6 @@ function getDirectTarget($pos: ResolvedPos, ancestorDepth: number) {
 
 type DragSource = { from: number; to: number; node: Node };
 
-function dragSourceFromDOM(view: EditorView, dom: Element): DragSource | null {
-  let pos: number;
-  try {
-    pos = view.posAtDOM(dom, 0);
-  } catch {
-    return null;
-  }
-
-  const $pos = view.state.doc.resolve(pos);
-  if ($pos.depth === 0) return null;
-
-  const from = $pos.before($pos.depth);
-  const node = $pos.node($pos.depth);
-  return { from, to: from + node.nodeSize, node };
-}
-
 function resolveMoveSource(
   view: EditorView,
   hint: DragSource | null,
@@ -223,8 +209,7 @@ function moveNodeWithinTabPanel(
   const { from: sourceFrom, to: sourceTo, node: sourceNode } = source;
 
   const $drop = state.doc.resolve(dropPos);
-  const panelDepth = view.state.doc.resolve(dropPos).depth
-  if (panelDepth < 0) return false;
+  const panelDepth = $drop.depth;
 
   if (dropPos > sourceFrom && dropPos < sourceTo) return false;
 
@@ -258,7 +243,7 @@ function moveNodeWithinTabPanel(
   const $placed = tr.doc.resolve(
     Math.min(insertAt, tr.doc.content.size),
   );
-  tr.setSelection(NodeSelection.near($placed));
+  tr.setSelection(Selection.near($placed));
   tr.scrollIntoView();
 
   view.dispatch(tr);
@@ -296,7 +281,15 @@ export function DragHandlePlugin(
 
     if (!(node instanceof Element)) return;
 
-    dragSource = dragSourceFromDOM(view, node);
+    // ProseMirror never sees the end of a drag that starts on the handle
+    document.addEventListener(
+      "dragend",
+      () => {
+        dragSource = null;
+        view.dragging = null;
+      },
+      { once: true },
+    );
 
     let draggedNodePos = nodePosAtDOM(node, view, options);
     if (draggedNodePos == null || draggedNodePos < 0) return;
@@ -344,17 +337,21 @@ export function DragHandlePlugin(
         // The drag landed on a custom-node container (transclusion etc.).
         // Walk up to the matching node so the drag moves the whole
         // container, not whatever inner element the click landed on.
-        const customTypes = new Set([
-          ...options.customNodes,
-          ...options.atomNodes,
-        ]);
-        for (let d = $sel.depth; d > 0; d--) {
-          if (customTypes.has($sel.node(d).type.name)) {
-            selection = NodeSelection.create(
-              view.state.doc,
-              $sel.before(d),
-            );
-            break;
+        // tabs structure is listed only so panel paragraphs get a handle
+        const customTypes = new Set(
+          [...options.customNodes, ...options.atomNodes].filter(
+            (name) => !NON_PROMOTABLE_PARENTS.has(name),
+          ),
+        );
+        if (!customTypes.has((selection as NodeSelection).node.type.name)) {
+          for (let d = $sel.depth; d > 0; d--) {
+            if (customTypes.has($sel.node(d).type.name)) {
+              selection = NodeSelection.create(
+                view.state.doc,
+                $sel.before(d),
+              );
+              break;
+            }
           }
         }
       } else {
@@ -384,6 +381,14 @@ export function DragHandlePlugin(
       }
     }
     view.dispatch(view.state.tr.setSelection(selection));
+    dragSource =
+      view.state.selection instanceof NodeSelection
+        ? {
+            from: view.state.selection.from,
+            to: view.state.selection.to,
+            node: view.state.selection.node,
+          }
+        : null;
 
     // If the selected node is a list item, we need to save the type of the wrapping list e.g. OL or UL
     if (
@@ -523,7 +528,7 @@ export function DragHandlePlugin(
           );
 
           const notDragging = node?.closest(".not-draggable");
-          const notDraggingMatch = node?.matches(".not-draggable-match")
+          const notDraggingMatch = node?.matches(".not-draggable-match");
           const excludedTagList = options.excludedTags
             .concat(["ol", "ul"])
             .join(", ");
@@ -598,6 +603,7 @@ export function DragHandlePlugin(
         // dragging class is used for CSS
         dragstart: (view) => {
           view.dom.classList.add("dragging");
+          dragSource = null;
         },
         drop: (view, event) => {
           view.dom.classList.remove("dragging");
@@ -623,12 +629,20 @@ export function DragHandlePlugin(
           const isDroppedInsideTabPanel =
             resolvedPos.parent.type.name === "tabPanel";
 
-          if (isDroppedInsideTabPanel) {
-            const source = resolveMoveSource(view, dragSource);
-            const moved = source
-              ? moveNodeWithinTabPanel(view, dropPos.pos, source)
-              : false;
-   
+          if (isDroppedInsideTabPanel && view.dragging) {
+            // view.dragging.node is set at runtime but missing from its type
+            const { node: dragged } = view.dragging as { node?: NodeSelection };
+            const source = resolveMoveSource(
+              view,
+              dragged
+                ? { from: dragged.from, to: dragged.to, node: dragged.node }
+                : dragSource,
+            );
+            // tabs don't nest, so a dragged tabs block stays where it was
+            const moved =
+              source && !hasTabsBlock(Fragment.from(source.node))
+                ? moveNodeWithinTabPanel(view, dropPos.pos, source)
+                : false;
             // even when not moved swallow the drop so ProseMirror doesn't insert a copy.
             event.preventDefault();
             view.dragging = null;

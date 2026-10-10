@@ -7,7 +7,13 @@ export interface TabPanelOptions {
 export const TabPanel = Node.create<TabPanelOptions>({
   name: "tabPanel",
   content: "block+",
-  defining: true,
+
+  // keep the panel when all of its content is replaced, but don't count it as
+  // defining for copied content: that wraps content dragged or pasted out of a
+  // tab in a new tabs block with an empty tab
+  extendNodeSchema(extension) {
+    return extension.name === "tabPanel" ? { definingAsContext: true } : {};
+  },
 
   addOptions() {
     return {

@@ -1,39 +1,48 @@
-import { InputRule, Node, Range, mergeAttributes } from '@tiptap/core';
-import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
+import { Node, mergeAttributes } from '@tiptap/core';
+import { Slice } from '@tiptap/pm/model';
 import {
   Plugin,
   PluginKey,
-  TextSelection,
-  type Transaction,
+  Selection,
   type EditorState,
 } from '@tiptap/pm/state';
 import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
 import { generateNodeId } from '../utils';
-import { findParentNode } from '../table/utils';
+import {
+  getActiveTabIndex,
+  setActiveTabMeta,
+  tabsViewPlugin,
+} from './tabs-state';
+import {
+  clampIndex,
+  getPanelContentPos,
+  getTabPos,
+  flattenTabsBlocks,
+  hasTabsBlock,
+  indexAfterMove,
+  isInsideTabs,
+  isTabsNode,
+  tabLabelAt,
+  withFreshTabIds,
+} from './tabs.utils';
 
 export interface TabsOptions {
   HTMLAttributes: Record<string, unknown>;
   view: ComponentType<ReactNodeViewProps<HTMLElement>> | null;
 }
 
-const TAB_INPUT_REGEX =
-  /^\s*===\s*["'“”‘’]((?:\\["\\]|[^\\"'“”‘’\n])+?)["'“”‘’]\s+$/;
-
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     tabs: {
-      insertTabs: (tabName?: string, range?: Range) => ReturnType;
-      insertTab: (pos: 'right' | 'left') => ReturnType;
-      moveTab: (from: number, to: number, tabsPos: number) => ReturnType;
+      insertTabs: () => ReturnType;
+      addTab: (tabsPos: number) => ReturnType;
       setActiveTab: (index: number, tabsPos: number) => ReturnType;
-      deleteTabs: () => ReturnType;
-      deleteTab: () => ReturnType;
-      updateTabLabel: (
-        index: number,
-        label: string,
-        tabsPos: number,
-      ) => ReturnType;
+      showTabAt: (pos: number) => ReturnType;
+      duplicateTab: (index: number, tabsPos: number) => ReturnType;
+      moveTab: (from: number, to: number, tabsPos: number) => ReturnType;
+      renameTab: (index: number, label: string, tabsPos: number) => ReturnType;
+      deleteTab: (index: number, tabsPos: number) => ReturnType;
     };
   }
 }
@@ -47,19 +56,6 @@ export const Tabs = Node.create<TabsOptions>({
 
   addOptions() {
     return { HTMLAttributes: {}, view: null };
-  },
-
-  addAttributes() {
-    return {
-      activeTab: {
-        default: 0,
-        parseHTML: (element) =>
-          Number(element.getAttribute('data-active-tab')) || 0,
-        renderHTML: (attributes) => ({
-          'data-active-tab': clampIndex(attributes.activeTab),
-        }),
-      },
-    };
   },
 
   parseHTML() {
@@ -84,335 +80,213 @@ export const Tabs = Node.create<TabsOptions>({
     return ReactNodeViewRenderer(this.options.view);
   },
 
-  addInputRules() {
-    return [
-      new InputRule({
-        find: TAB_INPUT_REGEX,
-        handler: ({ range, match }) => {
-          const rawLabel = typeof match[1] === 'string' ? match[1] : 'Tab 1';
-          const label = rawLabel.replace(/\\(["\\])/g, '$1').trim();
-
-          this.editor.commands.insertTabs(label, range);
-        },
-      }),
-    ];
-  },
-
   addCommands() {
-    const createTab = (
-      schema: EditorState['schema'],
-      label: string,
-      active: boolean,
-    ) => {
+    const createTab = (schema: EditorState['schema'], label: string) => {
       const { tab, tabLabel, tabPanel, paragraph } = schema.nodes;
-      if (!tab || !tabLabel || !tabPanel || !paragraph) return null;
-
-      return tab.create({ id: generateNodeId(), active }, [
-        tabLabel.create(null, schema.text(label || ' ')),
+      return tab.create({ id: generateNodeId() }, [
+        tabLabel.create(null, schema.text(label)),
         tabPanel.create(null, paragraph.create()),
       ]);
     };
 
-    const getTabPos = (doc: PMNode, tabsPos: number, tabIndex: number) => {
-      const pos = doc.resolve(tabsPos + 1);
-      return pos.posAtIndex(tabIndex, pos.depth);
-    };
-
-    const applyActiveTabState = (
-      tr: Transaction,
-      tabsPos: number,
-      previousIndex: number,
-      nextIndex: number,
-    ) => {
-      const tabsNode = tr.doc.nodeAt(tabsPos);
-      if (tabsNode?.type.name !== 'tabs' || tabsNode.childCount <= 0) {
-        return null;
-      }
-
-      const prev = clampIndex(previousIndex, tabsNode.childCount);
-      const next = clampIndex(nextIndex, tabsNode.childCount);
-
-      tr.setNodeMarkup(tabsPos, undefined, {
-        ...tabsNode.attrs,
-        activeTab: next,
-      });
-
-      const prevTabPos = getTabPos(tr.doc, tabsPos, prev);
-      const nextTabPos = getTabPos(tr.doc, tabsPos, next);
-
-      if (prev !== next) {
-        const prevTabNode = tr.doc.nodeAt(prevTabPos);
-        if (prevTabNode) {
-          tr.setNodeMarkup(prevTabPos, undefined, {
-            ...prevTabNode.attrs,
-            active: false,
-          });
-        }
-      }
-
-      const nextTabNode = tr.doc.nodeAt(nextTabPos);
-      if (nextTabNode) {
-        tr.setNodeMarkup(nextTabPos, undefined, {
-          ...nextTabNode.attrs,
-          active: true,
-        });
-      }
-
-      return nextTabPos;
-    };
-
-    const selectTabPanel = (
-      tr: Transaction,
-      tabsPos: number,
-      tabPos: number,
-    ) => {
-      const tabsNode = tr.doc.nodeAt(tabsPos);
-      if (tabsNode?.type.name !== 'tabs' || tabsNode.childCount <= 0) {
-        return null;
-      }
-
-      const tabNode = tr.doc.nodeAt(tabPos);
-      const labelSize = tabNode?.child(0).nodeSize ?? 0;
-      const panelContentPos = tabPos + 1 + labelSize + 1;
-
-      tr.setSelection(TextSelection.near(tr.doc.resolve(panelContentPos), 1));
-    };
-
     return {
       insertTabs:
-        (tabName?: string, range?: Range) =>
+        () =>
         ({ tr, state, dispatch }) => {
-          const firstTab = createTab(state.schema, tabName ?? tabLabelAt(0), true);
-          const secondTab = createTab(state.schema, tabLabelAt(1), false);
-          if (!firstTab || !secondTab) return false;
+          // tabs don't nest, for now
+          if (isInsideTabs(state.selection.$from)) return false;
+          const tabsNode = this.type.create(null, [
+            createTab(state.schema, tabLabelAt(0)),
+            createTab(state.schema, tabLabelAt(1)),
+          ]);
+          if (!dispatch) return true;
 
-          const tabsNode = this.type.create(
-            {
-              activeTab: 0,
-            },
-            Fragment.fromArray([firstTab, secondTab]),
-          );
+          tr.replaceSelectionWith(tabsNode).scrollIntoView();
 
-          const insertionPos = range ? range.from : tr.selection.from;
+          const firstTabId = tabsNode.child(0).attrs.id;
+          let tabsPos = -1;
+          tr.doc.descendants((node, pos) => {
+            if (tabsPos !== -1) return false;
+            if (
+              node.type === this.type &&
+              node.child(0).attrs.id === firstTabId
+            ) {
+              tabsPos = pos;
+              return false;
+            }
+            return !node.isTextblock;
+          });
 
-          if (range) {
-            tr.replaceRangeWith(
-              range.from,
-              range.to,
-              tabsNode,
-            ).scrollIntoView();
-          } else {
-            tr.replaceSelectionWith(tabsNode).scrollIntoView();
+          if (tabsPos !== -1) {
+            const panelPos = getPanelContentPos(tabsNode, tabsPos, 0);
+            tr.setSelection(Selection.near(tr.doc.resolve(panelPos)));
           }
-
-          const tabsPos = tr.mapping.map(insertionPos, -1);
-          if (tr.doc.nodeAt(tabsPos)?.type !== this.type) return false;
-
-          if (!range) {
-            selectTabPanel(tr, tabsPos, getTabPos(tr.doc, tabsPos, 0));
-          }
-
-          if (dispatch) dispatch(tr);
           return true;
         },
 
-      insertTab:
-        (pos: 'left' | 'right') =>
-        ({ state, tr, dispatch }) => {
-          const { $from } = state.selection;
-          const tabs = findParentNode(
-            (node) => node.type.name === this.name,
-            $from,
-          );
-          if (!tabs || tabs.node.childCount <= 0) return false;
+      addTab:
+        (tabsPos) =>
+        ({ tr, state, dispatch }) => {
+          const tabs = tr.doc.nodeAt(tabsPos);
+          if (!isTabsNode(tabs)) return false;
+          if (!dispatch) return true;
 
-          const currentTabIndex = clampIndex(
-            tabs.node.attrs.activeTab,
-            tabs.node.childCount,
-          );
-
-          const insertIndex =
-            pos === 'right' ? currentTabIndex + 1 : currentTabIndex;
-
-          const newTab = createTab(state.schema, tabLabelAt(insertIndex), false);
-          if (!newTab) return false;
-
-          const insertPos = getTabPos(state.doc, tabs.pos, insertIndex);
-          tr.insert(insertPos, newTab);
-
-          const insertedTabPos = getTabPos(tr.doc, tabs.pos, insertIndex);
-          tr.setNodeMarkup(insertedTabPos, undefined, {
-            ...newTab.attrs,
-            active: true,
+          const tab = createTab(state.schema, tabLabelAt(tabs.childCount));
+          const insertPos = tabsPos + tabs.nodeSize - 1;
+          tr.insert(insertPos, tab);
+          setActiveTabMeta(tr, {
+            tabsPos,
+            tabId: tab.attrs.id,
+            index: tabs.childCount,
           });
+          const panelPos = insertPos + 1 + tab.child(0).nodeSize + 1;
+          tr.setSelection(Selection.near(tr.doc.resolve(panelPos)));
+          return true;
+        },
 
-          const previousActiveIndex =
-            pos === 'left' ? currentTabIndex + 1 : currentTabIndex;
+      setActiveTab:
+        (index, tabsPos) =>
+        ({ tr, dispatch }) => {
+          const tabs = tr.doc.nodeAt(tabsPos);
+          if (!isTabsNode(tabs)) return false;
 
-          const activeTabPos = applyActiveTabState(
-            tr,
-            tabs.pos,
-            previousActiveIndex,
-            insertIndex,
+          const next = clampIndex(index, tabs.childCount);
+          if (dispatch) {
+            setActiveTabMeta(tr, {
+              tabsPos,
+              tabId: tabs.child(next).attrs.id,
+              index: next,
+            });
+          }
+          return true;
+        },
+
+      showTabAt:
+        (pos) =>
+        ({ tr, dispatch }) => {
+          const $pos = tr.doc.resolve(pos);
+          let found = false;
+          for (let depth = 1; depth < $pos.depth; depth += 1) {
+            const tabs = $pos.node(depth);
+            if (!isTabsNode(tabs)) continue;
+
+            found = true;
+            const index = $pos.index(depth);
+            if (dispatch) {
+              setActiveTabMeta(tr, {
+                tabsPos: $pos.before(depth),
+                tabId: tabs.child(index).attrs.id,
+                index,
+              });
+            }
+          }
+          return found;
+        },
+
+      duplicateTab:
+        (index, tabsPos) =>
+        ({ tr, dispatch }) => {
+          const tabs = tr.doc.nodeAt(tabsPos);
+          if (!isTabsNode(tabs)) return false;
+          if (!dispatch) return true;
+
+          const sourceIndex = clampIndex(index, tabs.childCount);
+          const source = tabs.child(sourceIndex);
+          const copy = source.type.create(
+            { ...source.attrs, id: generateNodeId() },
+            withFreshTabIds(source.content),
           );
-          if (activeTabPos == null) return false;
-
-          selectTabPanel(tr, tabs.pos, insertedTabPos);
-          if (dispatch) dispatch(tr);
+          tr.insert(
+            getTabPos(tabs, tabsPos, sourceIndex) + source.nodeSize,
+            copy,
+          );
+          setActiveTabMeta(tr, {
+            tabsPos,
+            tabId: copy.attrs.id,
+            index: sourceIndex + 1,
+          });
           return true;
         },
 
       moveTab:
         (from, to, tabsPos) =>
         ({ state, tr, dispatch }) => {
-          const tabsNode = state.doc.nodeAt(tabsPos);
-          if (tabsNode?.type !== this.type || tabsNode.childCount <= 1) {
-            return false;
-          }
+          const tabs = tr.doc.nodeAt(tabsPos);
+          if (!isTabsNode(tabs) || tabs.childCount < 2) return false;
 
-          const fromIndex = clampIndex(from, tabsNode.childCount);
-          const toIndex = clampIndex(to, tabsNode.childCount);
+          const fromIndex = clampIndex(from, tabs.childCount);
+          const toIndex = clampIndex(to, tabs.childCount);
           if (fromIndex === toIndex) return false;
+          if (!dispatch) return true;
 
-          const fromPos = getTabPos(state.doc, tabsPos, fromIndex);
-          const movedTab = state.doc.nodeAt(fromPos);
-          if (!movedTab) return false;
+          const activeIndex = getActiveTabIndex(state, tabsPos);
+          const activeTabId = tabs.child(activeIndex).attrs.id;
+          const moved = tabs.child(fromIndex);
+          const fromPos = getTabPos(tabs, tabsPos, fromIndex);
 
-          tr.delete(fromPos, fromPos + movedTab.nodeSize);
-          tr.insert(getTabPos(tr.doc, tabsPos, toIndex), movedTab);
-
-          const activeIndex = indexAfterMove(
-            clampIndex(tabsNode.attrs.activeTab, tabsNode.childCount),
-            fromIndex,
-            toIndex,
-          );
-
-          const activeTabPos = applyActiveTabState(
-            tr,
+          tr.delete(fromPos, fromPos + moved.nodeSize);
+          const remaining = tr.doc.nodeAt(tabsPos)!;
+          tr.insert(getTabPos(remaining, tabsPos, toIndex), moved);
+          setActiveTabMeta(tr, {
             tabsPos,
-            activeIndex,
-            activeIndex,
-          );
-          if (activeTabPos == null) return false;
-
-          selectTabPanel(tr, tabsPos, activeTabPos);
-
-          if (dispatch) dispatch(tr);
+            tabId: activeTabId,
+            index: indexAfterMove(activeIndex, fromIndex, toIndex),
+          });
           return true;
         },
 
-      setActiveTab:
-        (index, tabsPos) =>
-        ({ state, tr, dispatch }) => {
-          const tabsNode = state.doc.nodeAt(tabsPos);
-          if (tabsNode?.childCount <= 0) return false;
-
-          const nextIndex = clampIndex(index, tabsNode.childCount);
-          const prevIndex = clampIndex(
-            tabsNode.attrs.activeTab,
-            tabsNode.childCount,
-          );
-
-          const activeTabPos = applyActiveTabState(
-            tr,
-            tabsPos,
-            prevIndex,
-            nextIndex,
-          );
-          if (activeTabPos == null) return false;
-
-          selectTabPanel(tr, tabsPos, activeTabPos);
-          if (dispatch) dispatch(tr.scrollIntoView());
-          return true;
-        },
-
-      updateTabLabel:
+      renameTab:
         (index, label, tabsPos) =>
-        ({ state, tr, dispatch }) => {
-          const tabsNode = state.doc.nodeAt(tabsPos);
-          if (!tabsNode) return false;
+        ({ tr, state, dispatch }) => {
+          const tabs = tr.doc.nodeAt(tabsPos);
+          if (!isTabsNode(tabs)) return false;
 
-          const labelIndex = clampIndex(index, tabsNode.childCount);
-          const $tabs = state.doc.resolve(tabsPos + 1);
-          const tabPos = $tabs.posAtIndex(labelIndex, $tabs.depth);
+          const tabIndex = clampIndex(index, tabs.childCount);
+          const labelPos = getTabPos(tabs, tabsPos, tabIndex) + 1;
+          const labelNode = tr.doc.nodeAt(labelPos);
+          if (labelNode?.type.name !== 'tabLabel') return false;
+          if (!dispatch) return true;
 
-          const labelNode = state.doc.nodeAt(tabPos + 1);
-          const labelContentPos = tabPos + 2;
-
-          tr.replaceWith(
-            labelContentPos,
-            labelContentPos + labelNode.content.size,
-            state.schema.text(label || ' '),
-          );
-
-          if (dispatch) dispatch(tr);
+          const from = labelPos + 1;
+          const to = from + labelNode.content.size;
+          if (label) tr.replaceWith(from, to, state.schema.text(label));
+          else tr.delete(from, to);
           return true;
         },
 
       deleteTab:
-        () =>
+        (index, tabsPos) =>
         ({ state, tr, dispatch }) => {
-          const { $from } = state.selection;
-          const tabs = findParentNode(
-            (node) => node.type.name === this.name,
-            $from,
-          );
-          if (!tabs) return false;
+          const tabs = tr.doc.nodeAt(tabsPos);
+          if (!isTabsNode(tabs)) return false;
+          if (!dispatch) return true;
 
-          if (tabs.node.childCount < 2) {
-            this.editor.commands.deleteTabs();
+          if (tabs.childCount === 1) {
+            tr.delete(tabsPos, tabsPos + tabs.nodeSize);
             return true;
           }
 
-          const currentTabIndex = clampIndex(
-            tabs.node.attrs.activeTab,
-            tabs.node.childCount,
-          );
+          const target = clampIndex(index, tabs.childCount);
+          const activeIndex = getActiveTabIndex(state, tabsPos);
+          const tabPos = getTabPos(tabs, tabsPos, target);
+          tr.delete(tabPos, tabPos + tabs.child(target).nodeSize);
 
-          const currentTabPos = getTabPos(state.doc, tabs.pos, currentTabIndex);
-          const currentTabNode = state.doc.nodeAt(currentTabPos);
-          if (!currentTabNode) return false;
-
-          const nextTabIndex =
-            currentTabIndex < tabs.node.childCount - 1
-              ? currentTabIndex
-              : currentTabIndex - 1;
-
-          tr.delete(currentTabPos, currentTabPos + currentTabNode.nodeSize);
-
-          const activeTabPos = applyActiveTabState(
-            tr,
-            tabs.pos,
-            nextTabIndex,
-            nextTabIndex,
-          );
-          if (activeTabPos == null) return false;
-
-          selectTabPanel(tr, tabs.pos, activeTabPos);
-
-          if (dispatch) dispatch(tr);
-          return true;
-        },
-
-      deleteTabs:
-        () =>
-        ({ state, tr, dispatch }) => {
-          const { $from } = state.selection;
-          const tabs = findParentNode(
-            (node) => node.type.name === this.name,
-            $from,
-          );
-          if (tabs?.node.childCount <= 0) return false;
-
-          tr.delete(tabs.pos, tabs.pos + tabs.node.nodeSize);
-
-          if (dispatch) dispatch(tr);
+          if (target === activeIndex) {
+            const next = Math.min(target, tabs.childCount - 2);
+            const remaining = tr.doc.nodeAt(tabsPos)!;
+            setActiveTabMeta(tr, {
+              tabsPos,
+              tabId: remaining.child(next).attrs.id,
+              index: next,
+            });
+          }
           return true;
         },
     };
   },
 
   addProseMirrorPlugins() {
+    const { editor } = this;
     // the tab strip runs its own drag and drop. claim those events so they are
     // not also treated as a content drag, but let them keep propagating: the
     // dnd library listens on the window.
@@ -433,55 +307,64 @@ export const Tabs = Node.create<TabsOptions>({
           },
         },
       }),
+      new Plugin({
+        key: new PluginKey('tabsPaste'),
+        props: {
+          transformPasted: (slice) =>
+            new Slice(
+              withFreshTabIds(slice.content),
+              slice.openStart,
+              slice.openEnd,
+            ),
+          handlePaste: (view, _event, slice) => {
+            if (!isInsideTabs(view.state.selection.$from)) return false;
+            const content = flattenTabsBlocks(
+              slice.content,
+              slice.openStart,
+              slice.openEnd,
+            );
+            if (!content) return false;
+            view.dispatch(
+              view.state.tr
+                .replaceSelection(
+                  new Slice(content, slice.openStart, slice.openEnd),
+                )
+                .scrollIntoView()
+                .setMeta('paste', true)
+                .setMeta('uiEvent', 'paste'),
+            );
+            return true;
+          },
+          // a dragged tabs block can't land inside another, so the drop does nothing
+          handleDrop: (view, event, slice) => {
+            if (!hasTabsBlock(slice.content, slice.openStart, slice.openEnd)) {
+              return false;
+            }
+            const target = view.posAtCoords({
+              left: event.clientX,
+              top: event.clientY,
+            });
+            return Boolean(
+              target && isInsideTabs(view.state.doc.resolve(target.pos)),
+            );
+          },
+        },
+      }),
+      new Plugin({
+        key: new PluginKey('tabsReveal'),
+        props: {
+          handleDOMEvents: {
+            // find in page, an anchor link, or a scroll to an element reaching into a hidden tab
+            beforematch: (view, event) => {
+              if (event.target instanceof Element) {
+                editor.commands.showTabAt(view.posAtDOM(event.target, 0));
+              }
+              return false;
+            },
+          },
+        },
+      }),
+      tabsViewPlugin(),
     ];
   },
-
-  addKeyboardShortcuts() {
-    return {
-      Enter: ({ editor }) => {
-        const { state } = editor;
-        const { $from, empty } = state.selection;
-
-        if (!empty) return false;
-        if ($from.parent.content.size > 0) return false;
-
-        const tabsNode = findParentNode(
-          (node) => node.type.name === this.name,
-          $from,
-        );
-
-        if (!tabsNode) return false;
-        return editor
-          .chain()
-          .command(({ tr, state }) => {
-            const posAfter = $from.after(tabsNode.depth);
-            tr.delete($from.before(), $from.after());
-
-            const targetPos = tr.mapping.map(posAfter);
-            const paragraph = state.schema.nodes.paragraph.create();
-
-            tr.insert(targetPos, paragraph);
-            tr.setSelection(TextSelection.create(tr.doc, targetPos + 1));
-            return true;
-          })
-          .scrollIntoView()
-          .run();
-      },
-    };
-  },
 });
-
-const tabLabelAt = (index: number) => `Tab ${index + 1}`;
-
-const indexAfterMove = (index: number, from: number, to: number) => {
-  if (index === from) return to;
-  if (from < index && index <= to) return index - 1;
-  if (to <= index && index < from) return index + 1;
-  return index;
-};
-
-const clampIndex = (value: unknown, length = Number.MAX_SAFE_INTEGER) => {
-  const parsed = Number(value ?? 0);
-  if (!Number.isFinite(parsed) || length <= 0) return 0;
-  return Math.max(0, Math.min(Math.trunc(parsed), length - 1));
-};

@@ -1,4 +1,4 @@
-import { markInputRule } from "@tiptap/core";
+import { markInputRule, type Editor } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
@@ -459,9 +459,10 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
 
 const TemplateSlashCommand = Command.configure({
   suggestion: {
-    items: ({ query }: { query: string }) =>
+    items: ({ query, editor }: { query: string; editor: Editor }) =>
       getSuggestionItems({
         query,
+        editor,
         excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS,
       }),
     render: renderItems,

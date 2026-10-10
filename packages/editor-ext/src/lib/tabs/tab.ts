@@ -22,30 +22,10 @@ export const Tab = Node.create<TabOptions>({
       id: {
         default: '',
         parseHTML: (element: HTMLElement) =>
-          element.getAttribute('data-tab-id') ?? generateNodeId(),
+          element.getAttribute('data-tab-id') || generateNodeId(),
         renderHTML: (attributes: { id?: string }) => ({
           'data-tab-id': attributes.id ?? '',
         }),
-      },
-      active: {
-        default: true,
-        parseHTML: (element: HTMLElement) => {
-          const rawValue = element.getAttribute('data-tab-active');
-          if (rawValue === null) {
-            return !element.hasAttribute('hidden');
-          }
-
-          return rawValue === 'true';
-        },
-        renderHTML: (attributes: { active?: boolean }) => {
-          const isActive = attributes.active !== false;
-
-          return {
-            'data-tab-active': isActive ? 'true' : 'false',
-            'aria-hidden': isActive ? 'false' : 'true',
-            ...(isActive ? {} : { hidden: 'hidden' }),
-          };
-        },
       },
     };
   },
