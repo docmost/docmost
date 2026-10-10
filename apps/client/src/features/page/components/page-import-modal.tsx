@@ -87,6 +87,8 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const [fileTaskId, setFileTaskId] = useState<string | null>(null);
   const emit = useQueryEmit();
+  const emitRef = useRef(emit);
+  emitRef.current = emit;
 
   const markdownFileRef = useRef<() => void>(null);
   const htmlFileRef = useRef<() => void>(null);
@@ -169,9 +171,14 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   useEffect(() => {
     if (!fileTaskId) return;
 
-    const intervalId = setInterval(async () => {
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const pollFileTask = async () => {
       try {
         const fileTask = await getFileTaskById(fileTaskId);
+        if (cancelled) return;
+
         const status = fileTask.status;
 
         if (status === "success") {
@@ -183,25 +190,29 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             icon: <IconCheck size={18} />,
             loading: false,
             withCloseButton: true,
-            autoClose: false,
+            autoClose: 5000,
           });
-          clearInterval(intervalId);
           setFileTaskId(null);
 
-          await queryClient.refetchQueries({
-            queryKey: ["root-sidebar-pages", fileTask.spaceId],
-          });
+          try {
+            await Promise.all([
+              queryClient.refetchQueries({
+                queryKey: ["root-sidebar-pages", fileTask.spaceId],
+                type: "all",
+              }),
+              queryClient.invalidateQueries({
+                queryKey: ["recent-changes", fileTask.spaceId],
+              }),
+            ]);
+          } catch (err) {
+            console.error("Failed to refresh pages after import", err);
+          }
 
-          await queryClient.invalidateQueries({
-            queryKey: ["recent-changes", fileTask.spaceId],
+          emitRef.current({
+            operation: "refetchRootTreeNodeEvent",
+            spaceId: fileTask.spaceId,
           });
-
-          setTimeout(() => {
-            emit({
-              operation: "refetchRootTreeNodeEvent",
-              spaceId: spaceId,
-            });
-          }, 50);
+          return;
         }
 
         if (status === "failed") {
@@ -220,11 +231,14 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             withCloseButton: true,
             autoClose: false,
           });
-          clearInterval(intervalId);
           setFileTaskId(null);
           console.error(fileTask.errorMessage);
+          return;
         }
+
+        timeoutId = setTimeout(pollFileTask, 3000);
       } catch (err) {
+        if (cancelled) return;
         notifications.update({
           id: "import",
           color: "red",
@@ -240,12 +254,18 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           withCloseButton: true,
           autoClose: false,
         });
-        clearInterval(intervalId);
         setFileTaskId(null);
         console.error("Failed to fetch import status", err);
       }
-    }, 3000);
-  }, [fileTaskId]);
+    };
+
+    timeoutId = setTimeout(pollFileTask, 3000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [fileTaskId, t]);
 
   const maxSingleFileSize = bytes("30mb");
 
