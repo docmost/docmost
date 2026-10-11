@@ -349,6 +349,8 @@ function CollabPageEditor({
           setEditor(editor);
           // @ts-ignore
           editor.storage.pageId = pageId;
+          // @ts-ignore
+          editor.storage.canEdit = editable;
           handleScrollTo(editor);
           editorRef.current = editor;
         }
@@ -369,9 +371,11 @@ function CollabPageEditor({
       setEditor(editor);
       // @ts-ignore
       editor.storage.pageId = pageId;
+      // @ts-ignore
+      editor.storage.canEdit = editable;
       editorRef.current = editor;
     }
-  }, [editor, pageId, setEditor]);
+  }, [editor, pageId, setEditor, editable]);
 
   const editorIsEditable = useEditorState({
     editor,
@@ -436,6 +440,8 @@ function CollabPageEditor({
   }, [yjsConnectionStatus, isSynced]);
   useEffect(() => {
     if (!editor) return;
+    // @ts-ignore
+    editor.storage.canEdit = editable;
     editor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
   }, [currentPageEditMode, editor, editable]);
 
