@@ -188,22 +188,7 @@ const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    if (!editor || editor.isDestroyed || isStreaming) return;
-    const json = editor.getJSON();
-    const text = editorJsonToText(json).trim();
-    const readyAttachments = pendingAttachments.filter((a) => !a.uploading);
-    if (!text && readyAttachments.length === 0) return;
-
-    const mentions = extractMentions(json);
-    onSendRef.current(text, mentions, readyAttachments);
-    editor.commands.clearContent();
-    editor.commands.focus();
-    setPendingAttachments([]);
-  }, [isStreaming, pendingAttachments]);
-
-  const handleSubmitRef = useRef(handleSubmit);
-  handleSubmitRef.current = handleSubmit;
+  const handleSubmitRef = useRef<() => void>(() => {});
 
   const editor = useEditor({
     extensions: [
@@ -275,6 +260,22 @@ const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
       setIsEmpty(!e.getText().trim());
     },
   });
+
+  const handleSubmit = useCallback(() => {
+    if (!editor || editor.isDestroyed || isStreaming) return;
+    const json = editor.getJSON();
+    const text = editorJsonToText(json).trim();
+    const readyAttachments = pendingAttachments.filter((a) => !a.uploading);
+    if (!text && readyAttachments.length === 0) return;
+
+    const mentions = extractMentions(json);
+    onSendRef.current(text, mentions, readyAttachments);
+    editor.commands.clearContent();
+    editor.commands.focus();
+    setPendingAttachments([]);
+  }, [editor, isStreaming, pendingAttachments]);
+
+  handleSubmitRef.current = handleSubmit;
 
   useEffect(() => {
     if (editor && !editor.isDestroyed && autofocus) {
