@@ -50,6 +50,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -75,6 +76,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private userSessionRepo: UserSessionRepo,
+    private wsService: WsService,
   ) {}
 
   async findById(workspaceId: string) {
@@ -908,6 +910,8 @@ export class WorkspaceService {
       return user;
     });
 
+    this.wsService.disconnectUser(userId);
+
     this.auditService.log({
       event: AuditEvent.USER_DEACTIVATED,
       resourceType: AuditResource.USER,
@@ -1031,6 +1035,8 @@ export class WorkspaceService {
 
       return user;
     });
+
+    this.wsService.disconnectUser(userId);
 
     this.auditService.log({
       event: AuditEvent.USER_DELETED,

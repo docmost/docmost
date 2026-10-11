@@ -10,8 +10,11 @@ import {
 import { Server, Socket } from 'socket.io';
 import { TokenService } from '../core/auth/services/token.service';
 import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload';
-import { OnModuleDestroy } from '@nestjs/common';
+import { OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
+import { isUserDisabled } from '../common/helpers';
 import { WsService } from './ws.service';
 import { getSpaceRoomName, getUserRoomName } from './ws.utils';
 import { BaseRealtimeBridge } from './base-realtime.bridge';
@@ -34,6 +37,8 @@ export class WsGateway
   constructor(
     private tokenService: TokenService,
     private spaceMemberRepo: SpaceMemberRepo,
+    private userRepo: UserRepo,
+    private userSessionRepo: UserSessionRepo,
     private wsService: WsService,
     private baseRealtime: BaseRealtimeBridge,
   ) {}
@@ -53,6 +58,24 @@ export class WsGateway
 
       const userId = token.sub;
       const workspaceId = token.workspaceId;
+
+      const user = await this.userRepo.findById(userId, workspaceId);
+      if (!user || isUserDisabled(user)) {
+        throw new UnauthorizedException();
+      }
+
+      if (token.sessionId) {
+        const session = await this.userSessionRepo.findActiveById(
+          token.sessionId,
+        );
+        if (
+          !session ||
+          session.userId !== userId ||
+          session.workspaceId !== workspaceId
+        ) {
+          throw new UnauthorizedException();
+        }
+      }
 
       client.data.userId = userId;
       client.data.workspaceId = workspaceId;

@@ -107,6 +107,10 @@ export class WsService {
     this.server.to(rooms).emit('message', data);
   }
 
+  disconnectUser(userId: string): void {
+    this.server.in(getUserRoomName(userId)).disconnectSockets(true);
+  }
+
   async emitToSpaceExceptUsers(
     spaceId: string,
     excludeUserIds: string[],
