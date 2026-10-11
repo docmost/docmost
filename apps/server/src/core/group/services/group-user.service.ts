@@ -21,6 +21,7 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import { dbOrTx } from '@docmost/db/utils';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class GroupUserService {
@@ -34,6 +35,7 @@ export class GroupUserService {
     private readonly favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly wsService: WsService,
   ) {}
 
   async getGroupUsers(
@@ -154,6 +156,8 @@ export class GroupUserService {
         );
       }
     });
+
+    await this.wsService.removeUsersWithoutSpaceAccess([userId], spaceIds);
 
     this.auditService.log({
       event: AuditEvent.GROUP_MEMBER_REMOVED,

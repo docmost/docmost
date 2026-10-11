@@ -12,6 +12,7 @@ import {
   getSpaceRoomName,
   getUserRoomName,
 } from './ws.utils';
+import { BaseRealtimeBridge } from './base-realtime.bridge';
 
 @Injectable()
 export class WsService {
@@ -21,6 +22,7 @@ export class WsService {
     private readonly pagePermissionRepo: PagePermissionRepo,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly baseRealtime: BaseRealtimeBridge,
   ) {}
 
   setServer(server: Server): void {
@@ -109,6 +111,28 @@ export class WsService {
 
   disconnectUser(userId: string): void {
     this.server.in(getUserRoomName(userId)).disconnectSockets(true);
+  }
+
+  async removeUsersWithoutSpaceAccess(
+    userIds: string[],
+    spaceIds: string[],
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+
+    for (const spaceId of spaceIds) {
+      const usersWithAccess =
+        await this.spaceMemberRepo.getUserIdsWithSpaceAccess(userIds, spaceId);
+      const revokedUserIds = userIds.filter((id) => !usersWithAccess.has(id));
+      if (revokedUserIds.length === 0) continue;
+
+      this.server
+        .in(revokedUserIds.map((id) => getUserRoomName(id)))
+        .socketsLeave(getSpaceRoomName(spaceId));
+      await this.baseRealtime.removeUsersFromSpaceBases(
+        revokedUserIds,
+        spaceId,
+      );
+    }
   }
 
   async emitToSpaceExceptUsers(

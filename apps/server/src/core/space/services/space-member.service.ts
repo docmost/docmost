@@ -24,6 +24,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class SpaceMemberService {
@@ -35,6 +36,7 @@ export class SpaceMemberService {
     private favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly wsService: WsService,
   ) {}
 
   async addUserToSpace(
@@ -282,6 +284,10 @@ export class SpaceMemberService {
 
       return { space, spaceMember };
     });
+
+    await this.wsService.removeUsersWithoutSpaceAccess(affectedUserIds, [
+      dto.spaceId,
+    ]);
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_REMOVED,

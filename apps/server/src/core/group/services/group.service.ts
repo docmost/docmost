@@ -25,6 +25,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class GroupService {
@@ -38,6 +39,7 @@ export class GroupService {
     private readonly favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly wsService: WsService,
   ) {}
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
@@ -199,6 +201,8 @@ export class GroupService {
         );
       }
     });
+
+    await this.wsService.removeUsersWithoutSpaceAccess(userIds, spaceIds);
 
     this.auditService.log({
       event: AuditEvent.GROUP_DELETED,
