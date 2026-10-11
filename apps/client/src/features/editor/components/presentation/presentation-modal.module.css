@@ -53,7 +53,7 @@
 
 .editorContainer {
   width: 100%;
-  max-width: 900px;
+  max-width: 1440px;
   margin-block: auto;
 }
 
@@ -79,7 +79,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 900px;
+  max-width: 1440px;
   margin-block: auto;
   text-align: center;
 }
