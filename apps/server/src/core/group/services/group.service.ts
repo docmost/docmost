@@ -27,6 +27,7 @@ import {
 } from '../../../integrations/audit/audit.service';
 import { WsService } from '../../../ws/ws.service';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class GroupService {
@@ -42,6 +43,7 @@ export class GroupService {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private readonly wsService: WsService,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
@@ -207,6 +209,7 @@ export class GroupService {
 
     await this.wsService.removeUsersWithoutSpaceAccess(userIds, spaceIds);
     await this.wsService.removeBaseSubscribersWithoutAccess(pageIds);
+    await this.collabAccessService.recheckAccess({ userIds });
 
     this.auditService.log({
       event: AuditEvent.GROUP_DELETED,

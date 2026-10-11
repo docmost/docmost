@@ -23,6 +23,7 @@ import {
 import { dbOrTx } from '@docmost/db/utils';
 import { WsService } from '../../../ws/ws.service';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class GroupUserService {
@@ -38,6 +39,7 @@ export class GroupUserService {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private readonly wsService: WsService,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async getGroupUsers(
@@ -164,6 +166,7 @@ export class GroupUserService {
 
     await this.wsService.removeUsersWithoutSpaceAccess([userId], spaceIds);
     await this.wsService.removeBaseSubscribersWithoutAccess(pageIds);
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
 
     this.auditService.log({
       event: AuditEvent.GROUP_MEMBER_REMOVED,

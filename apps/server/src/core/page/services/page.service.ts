@@ -58,6 +58,7 @@ import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class PageService {
@@ -78,6 +79,7 @@ export class PageService {
     private readonly transclusionService: TransclusionService,
     private readonly labelRepo: LabelRepo,
     private readonly wsService: WsService,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async findById(
@@ -540,6 +542,7 @@ export class PageService {
     });
 
     await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
+    await this.collabAccessService.recheckAccess({ pageIds: [rootPage.id] });
 
     return result;
   }
@@ -916,6 +919,7 @@ export class PageService {
 
     if (newParentPageId) {
       await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
+      await this.collabAccessService.recheckAccess({ pageIds: [dto.pageId] });
     }
   }
 

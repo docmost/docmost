@@ -51,6 +51,7 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import { WsService } from '../../../ws/ws.service';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -77,6 +78,7 @@ export class WorkspaceService {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private userSessionRepo: UserSessionRepo,
     private wsService: WsService,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async findById(workspaceId: string) {
@@ -911,6 +913,7 @@ export class WorkspaceService {
     });
 
     this.wsService.disconnectUser(userId);
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
 
     this.auditService.log({
       event: AuditEvent.USER_DEACTIVATED,
@@ -1037,6 +1040,7 @@ export class WorkspaceService {
     });
 
     this.wsService.disconnectUser(userId);
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
 
     this.auditService.log({
       event: AuditEvent.USER_DELETED,

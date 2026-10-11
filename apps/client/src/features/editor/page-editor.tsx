@@ -119,6 +119,10 @@ export default function PageEditor({
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
       const message = JSON.parse(payload);
+      if (message?.type === "page.permissions") {
+        queryClient.invalidateQueries({ queryKey: ["pages", slugId] });
+        return;
+      }
       if (message?.type !== "page.updated" || !message.updatedAt) return;
       const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
       if (pageData) {

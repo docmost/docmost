@@ -25,6 +25,7 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import { WsService } from '../../../ws/ws.service';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class SpaceMemberService {
@@ -37,6 +38,7 @@ export class SpaceMemberService {
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private readonly wsService: WsService,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async addUserToSpace(
@@ -288,6 +290,7 @@ export class SpaceMemberService {
     await this.wsService.removeUsersWithoutSpaceAccess(affectedUserIds, [
       dto.spaceId,
     ]);
+    await this.collabAccessService.recheckAccess({ userIds: affectedUserIds });
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_REMOVED,
@@ -365,6 +368,13 @@ export class SpaceMemberService {
     }
 
     const { space, spaceMember } = result;
+
+    if (dto.role === SpaceRole.READER) {
+      const userIds = spaceMember.userId
+        ? [spaceMember.userId]
+        : await this.groupUserRepo.getUserIdsByGroupId(spaceMember.groupId);
+      await this.collabAccessService.recheckAccess({ userIds });
+    }
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,
