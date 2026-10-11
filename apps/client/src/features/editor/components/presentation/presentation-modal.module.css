@@ -132,3 +132,23 @@
   height: 24px;
   margin-inline: 4px;
 }
+
+/* the dot replaces every cursor, including ones slide content sets */
+.content:has(.laserPointer:not([hidden])),
+.content:has(.laserPointer:not([hidden])) * {
+  cursor: none !important;
+}
+
+.laserPointer {
+  position: fixed;
+  top: -7px;
+  left: -7px;
+  z-index: 20;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--mantine-color-blue-4) 65%, transparent);
+  box-shadow: 0 0 10px 4px color-mix(in srgb, var(--mantine-color-blue-4) 30%, transparent);
+  pointer-events: none;
+  visibility: hidden;
+}
