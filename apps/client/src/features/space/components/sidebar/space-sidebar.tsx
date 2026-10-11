@@ -28,7 +28,7 @@ import {
 } from "@/features/space/queries/space-watcher-query.ts";
 import classes from "./space-sidebar.module.css";
 import React from "react";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
@@ -59,6 +59,8 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { ErrorBoundary } from "react-error-boundary";
+import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { PageEditMode } from "@/features/user/types/user.types.ts";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -67,6 +69,7 @@ export function SpaceSidebar() {
     useDisclosure(false);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
+  const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
 
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
@@ -218,10 +221,13 @@ export function SpaceSidebar() {
           <div className={classes.pages}>
             <SpaceTree
               spaceId={space.id}
-              readOnly={spaceAbility.cannot(
-                SpaceCaslAction.Manage,
-                SpaceCaslSubject.Page,
-              )}
+              readOnly={
+                currentPageEditMode === PageEditMode.Read ||
+                spaceAbility.cannot(
+                  SpaceCaslAction.Manage,
+                  SpaceCaslSubject.Page,
+                )
+              }
             />
           </div>
         </div>
