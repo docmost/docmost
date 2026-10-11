@@ -74,6 +74,11 @@
   font-size: 1.75rem;
 }
 
+.stage :global(.ProseMirror .comment-mark) {
+  background: none;
+  border-bottom: none;
+}
+
 .titleSlide {
   display: flex;
   align-items: center;
