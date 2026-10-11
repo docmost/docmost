@@ -17,6 +17,12 @@
     justify-content: center;
 }
 
+.plantuml {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .menuGroup {
     @media print {
         display: none;

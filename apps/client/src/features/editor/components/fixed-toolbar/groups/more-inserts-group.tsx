@@ -18,6 +18,7 @@ import {
 } from "@tabler/icons-react";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
+import IconPlantuml from "@/components/icons/icon-plantuml";
 import IconDrawio from "@/components/icons/icon-drawio";
 import {
   AirtableIcon,
@@ -170,6 +171,19 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           }
         >
           {t("Mermaid diagram")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconPlantuml size={16} />}
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .setCodeBlock({ language: "plantuml" })
+              .insertContent("@startuml\nAlice -> Bob: Hello\n@enduml")
+              .run()
+          }
+        >
+          {t("PlantUML diagram")}
         </Menu.Item>
         {!templateMode && (
           <Menu.Item
