@@ -12,6 +12,7 @@ import {
   IconMarkdown,
   IconMessage,
   IconPaperclip,
+  IconPresentation,
   IconPrinter,
   IconStar,
   IconStarFilled,
@@ -44,6 +45,7 @@ import { formattedDate } from "@/lib/time.ts";
 import { PageEditModeToggle } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import PageAttachmentsModal from "@/features/attachments/components/page-attachments-modal.tsx";
+import PresentationModal from "@/features/editor/components/presentation/presentation-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
 import {
@@ -163,6 +165,10 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     attachmentsOpened,
     { open: openAttachmentsModal, close: closeAttachmentsModal },
   ] = useDisclosure(false);
+  const [
+    presentationOpened,
+    { open: openPresentationModal, close: closePresentationModal },
+  ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
   const favoriteIds = useFavoriteIds("page", page?.spaceId);
@@ -203,6 +209,14 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const handleDeletePage = () => {
     openDeleteModal({ onConfirm: () => handleDelete(page.id) });
   };
+
+  const presentationContent = React.useMemo(
+    () => (presentationOpened ? pageEditor?.getJSON() : null) ?? {
+      type: "doc",
+      content: [],
+    },
+    [presentationOpened, pageEditor],
+  );
 
   const handleToggleFavorite = () => {
     if (!page?.id) return;
@@ -305,6 +319,15 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
               onClick={openAttachmentsModal}
             >
               {t("Attachments")}
+            </Menu.Item>
+          )}
+
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconPresentation size={16} />}
+              onClick={openPresentationModal}
+            >
+              {t("Presentation mode")}
             </Menu.Item>
           )}
 
@@ -415,6 +438,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         pageId={page.id}
         open={attachmentsOpened}
         onClose={closeAttachmentsModal}
+      />
+
+      <PresentationModal
+        title={page.title}
+        content={presentationContent}
+        opened={presentationOpened}
+        onClose={closePresentationModal}
       />
     </>
   );
