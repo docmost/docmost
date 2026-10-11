@@ -104,6 +104,17 @@ export class PagePermissionRepo {
       .executeTakeFirst();
   }
 
+  async getPageIdsByGroupId(groupId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('pagePermissions')
+      .innerJoin('pageAccess', 'pageAccess.id', 'pagePermissions.pageAccessId')
+      .select('pageAccess.pageId')
+      .where('pagePermissions.groupId', '=', groupId)
+      .execute();
+
+    return rows.map((row) => row.pageId);
+  }
+
   async deletePagePermissionByUserId(
     pageAccessId: string,
     userId: string,

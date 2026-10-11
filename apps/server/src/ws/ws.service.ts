@@ -147,8 +147,8 @@ export class WsService {
     }
   }
 
-  async removeBaseSubscribersWithoutAccess(pageId: string): Promise<void> {
-    await this.baseRealtime.removeSubscribersWithoutAccess(pageId);
+  async removeBaseSubscribersWithoutAccess(pageIds: string[]): Promise<void> {
+    await this.baseRealtime.removeSubscribersWithoutAccess(pageIds);
   }
 
   async emitToSpaceExceptUsers(

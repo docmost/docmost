@@ -22,6 +22,7 @@ import {
 } from '../../../integrations/audit/audit.service';
 import { dbOrTx } from '@docmost/db/utils';
 import { WsService } from '../../../ws/ws.service';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 
 @Injectable()
 export class GroupUserService {
@@ -36,6 +37,7 @@ export class GroupUserService {
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private readonly wsService: WsService,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   async getGroupUsers(
@@ -136,7 +138,10 @@ export class GroupUserService {
       throw new BadRequestException('Group member not found');
     }
 
-    const spaceIds = await this.spaceMemberRepo.getSpaceIdsByGroupId(groupId);
+    const [spaceIds, pageIds] = await Promise.all([
+      this.spaceMemberRepo.getSpaceIdsByGroupId(groupId),
+      this.pagePermissionRepo.getPageIdsByGroupId(groupId),
+    ]);
 
     // TODO: use queue instead
     await executeTx(this.db, async (trx) => {
@@ -158,6 +163,7 @@ export class GroupUserService {
     });
 
     await this.wsService.removeUsersWithoutSpaceAccess([userId], spaceIds);
+    await this.wsService.removeBaseSubscribersWithoutAccess(pageIds);
 
     this.auditService.log({
       event: AuditEvent.GROUP_MEMBER_REMOVED,

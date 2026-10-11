@@ -539,7 +539,7 @@ export class PageService {
       return { childPageIds };
     });
 
-    await this.wsService.removeBaseSubscribersWithoutAccess(rootPage.id);
+    await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
 
     return result;
   }
@@ -915,7 +915,7 @@ export class PageService {
     });
 
     if (newParentPageId) {
-      await this.wsService.removeBaseSubscribersWithoutAccess(dto.pageId);
+      await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
     }
   }
 

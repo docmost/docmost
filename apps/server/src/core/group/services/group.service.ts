@@ -26,6 +26,7 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import { WsService } from '../../../ws/ws.service';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 
 @Injectable()
 export class GroupService {
@@ -40,6 +41,7 @@ export class GroupService {
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private readonly wsService: WsService,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
@@ -178,9 +180,10 @@ export class GroupService {
       throw new BadRequestException('You cannot delete a default group');
     }
 
-    const [userIds, spaceIds] = await Promise.all([
+    const [userIds, spaceIds, pageIds] = await Promise.all([
       this.groupUserRepo.getUserIdsByGroupId(groupId),
       this.spaceMemberRepo.getSpaceIdsByGroupId(groupId),
+      this.pagePermissionRepo.getPageIdsByGroupId(groupId),
     ]);
 
     // TODO: use queue instead
@@ -203,6 +206,7 @@ export class GroupService {
     });
 
     await this.wsService.removeUsersWithoutSpaceAccess(userIds, spaceIds);
+    await this.wsService.removeBaseSubscribersWithoutAccess(pageIds);
 
     this.auditService.log({
       event: AuditEvent.GROUP_DELETED,
