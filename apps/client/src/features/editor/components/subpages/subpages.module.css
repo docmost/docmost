@@ -100,9 +100,14 @@
   flex: none;
 }
 
-.togglePlaceholder {
+.leafDot {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: rem(22px);
+  height: rem(22px);
+  color: var(--subpages-icon);
 }
 
 .chevron {

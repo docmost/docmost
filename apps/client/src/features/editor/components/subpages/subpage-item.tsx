@@ -1,5 +1,9 @@
 import { ActionIcon, Collapse } from "@mantine/core";
-import { IconChevronRight, IconFileDescription } from "@tabler/icons-react";
+import {
+  IconChevronRight,
+  IconFileDescription,
+  IconPointFilled,
+} from "@tabler/icons-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -86,7 +90,9 @@ export default function SubpageItem({
             />
           </ActionIcon>
         ) : (
-          <span className={classes.togglePlaceholder} />
+          <span className={classes.leafDot} aria-hidden>
+            <IconPointFilled size={8} />
+          </span>
         )}
 
         <Link to={pageUrl} className={classes.link} draggable={false}>
