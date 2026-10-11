@@ -165,6 +165,8 @@
   "Previous slide": "Previous slide",
   "Next slide": "Next slide",
   "Exit presentation mode": "Exit presentation mode",
+  "Enter fullscreen": "Enter fullscreen",
+  "Exit fullscreen": "Exit fullscreen",
   "Slide {{current}} of {{total}}": "Slide {{current}} of {{total}}",
   "Print PDF": "Print PDF",
   "Profile": "Profile",

@@ -5,7 +5,7 @@
 
 .body {
   position: relative;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -18,31 +18,35 @@
   z-index: 10;
 }
 
-.slideArea {
+.stage {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+}
+
+.slideArea,
+.measurementArea {
+  position: absolute;
+  inset: 0;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 6vh 5vw 10vh;
+  scrollbar-gutter: stable both-edges;
+}
+
+.slideArea {
+  overflow-y: auto;
+  overflow-x: hidden;
+  outline: none;
 }
 
 .scrollable {
-  overflow-y: auto;
-  align-items: flex-start;
   zoom: 0.85;
 }
 
 .measurementArea {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
-  display: flex;
-  justify-content: center;
-  padding: 6vh 5vw 10vh;
-  overflow: visible;
+  overflow: hidden;
   visibility: hidden;
   pointer-events: none;
 }
@@ -50,22 +54,23 @@
 .editorContainer {
   width: 100%;
   max-width: 900px;
+  margin-block: auto;
 }
 
-.slideArea :global(.ProseMirror) {
+.stage :global(.ProseMirror) {
   font-size: 1.3rem;
   line-height: 1.6;
 }
 
-.slideArea :global(.ProseMirror) h1 {
+.stage :global(.ProseMirror) h1 {
   font-size: 3rem;
 }
 
-.slideArea :global(.ProseMirror) h2 {
+.stage :global(.ProseMirror) h2 {
   font-size: 2.25rem;
 }
 
-.slideArea :global(.ProseMirror) h3 {
+.stage :global(.ProseMirror) h3 {
   font-size: 1.75rem;
 }
 
@@ -75,23 +80,55 @@
   justify-content: center;
   width: 100%;
   max-width: 900px;
+  margin-block: auto;
   text-align: center;
 }
 
 .titleSlideText {
   font-size: 3.5rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .controls {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 12px 0 20px;
+  padding: 8px 0 24px;
+}
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-radius: 999px;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.controlButton:disabled {
+  background-color: transparent;
 }
 
 .slideCounter {
-  min-width: 100px;
+  min-width: max(72px, calc((var(--total-digits, 1) * 2 + 3) * 1ch + 16px));
+  padding-inline: 8px;
   text-align: center;
+  font-size: var(--mantine-font-size-md);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.slideTotal {
+  color: light-dark(
+    var(--mantine-color-dimmed),
+    color-mix(in srgb, var(--mantine-color-dark-1), var(--mantine-color-dark-2))
+  );
+}
+
+.controlBar .controlDivider {
+  align-self: center;
+  height: 24px;
+  margin-inline: 4px;
 }
