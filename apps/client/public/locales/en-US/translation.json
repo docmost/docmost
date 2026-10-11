@@ -77,6 +77,7 @@
   "Failed to fetch recent pages": "Failed to fetch recent pages",
   "Failed to import pages": "Failed to import pages",
   "Failed to load page. An error occurred.": "Failed to load page. An error occurred.",
+  "Failed to load presentation. An error occurred.": "Failed to load presentation. An error occurred.",
   "Failed to update data": "Failed to update data",
   "Failed to create base": "Failed to create base",
   "Failed to update base": "Failed to update base",

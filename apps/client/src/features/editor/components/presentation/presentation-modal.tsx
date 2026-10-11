@@ -13,6 +13,8 @@ import {
 import {
   ActionIcon,
   Box,
+  Button,
+  Center,
   Divider,
   Modal,
   Title,
@@ -20,6 +22,7 @@ import {
   VisuallyHidden,
 } from "@mantine/core";
 import {
+  IconAlertTriangle,
   IconChevronLeft,
   IconChevronRight,
   IconMaximize,
@@ -39,7 +42,9 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { UniqueID } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
+import { ErrorBoundary } from "react-error-boundary";
 import clsx from "clsx";
+import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { extractPageSlugId } from "@/lib";
@@ -132,12 +137,33 @@ export default function PresentationModal({
         aria-label={t("Presentation mode")}
       >
         <Modal.Body className={classes.body}>
-          <PresentationDeck
-            pageId={pageId}
-            title={title}
-            content={content}
-            onClose={onClose}
-          />
+          <ErrorBoundary
+            fallback={
+              <Center h="100%">
+                <EmptyState
+                  icon={IconAlertTriangle}
+                  title={t("Failed to load presentation. An error occurred.")}
+                  action={
+                    <Button
+                      variant="default"
+                      size="sm"
+                      mt="xs"
+                      onClick={onClose}
+                    >
+                      {t("Close")}
+                    </Button>
+                  }
+                />
+              </Center>
+            }
+          >
+            <PresentationDeck
+              pageId={pageId}
+              title={title}
+              content={content}
+              onClose={onClose}
+            />
+          </ErrorBoundary>
         </Modal.Body>
       </Modal.Content>
     </Modal.Root>
