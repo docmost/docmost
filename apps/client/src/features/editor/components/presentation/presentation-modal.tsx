@@ -263,6 +263,7 @@ export default function PresentationModal({
               <div className={classes.measurementArea} aria-hidden="true">
                 <TransclusionLookupProvider>
                   <EditorProvider
+                    editorContainerProps={{ className: classes.editorContainer }}
                     editable={false}
                     immediatelyRender={true}
                     textDirection="auto"
@@ -289,6 +290,7 @@ export default function PresentationModal({
                 <TransclusionLookupProvider>
                   <EditorProvider
                     key={slideIndex}
+                    editorContainerProps={{ className: classes.editorContainer }}
                     editable={false}
                     immediatelyRender={true}
                     textDirection="auto"

@@ -47,9 +47,12 @@
   pointer-events: none;
 }
 
-.slideArea :global(.ProseMirror) {
+.editorContainer {
   width: 100%;
   max-width: 900px;
+}
+
+.slideArea :global(.ProseMirror) {
   font-size: 1.3rem;
   line-height: 1.6;
 }
