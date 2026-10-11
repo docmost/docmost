@@ -13,6 +13,8 @@ import {
 import {
   ActionIcon,
   Box,
+  Button,
+  Center,
   Divider,
   Modal,
   Title,
@@ -20,10 +22,12 @@ import {
   VisuallyHidden,
 } from "@mantine/core";
 import {
+  IconAlertTriangle,
   IconChevronLeft,
   IconChevronRight,
   IconMaximize,
   IconMinimize,
+  IconPointer,
   IconX,
 } from "@tabler/icons-react";
 import { useFullscreenDocument, useWindowEvent } from "@mantine/hooks";
@@ -38,10 +42,13 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { UniqueID } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
+import { ErrorBoundary } from "react-error-boundary";
 import clsx from "clsx";
+import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { extractPageSlugId } from "@/lib";
+import LaserPointer from "./laser-pointer";
 import {
   findSlideIndexForNode,
   getContentBoxHeight,
@@ -130,12 +137,33 @@ export default function PresentationModal({
         aria-label={t("Presentation mode")}
       >
         <Modal.Body className={classes.body}>
-          <PresentationDeck
-            pageId={pageId}
-            title={title}
-            content={content}
-            onClose={onClose}
-          />
+          <ErrorBoundary
+            fallback={
+              <Center h="100%">
+                <EmptyState
+                  icon={IconAlertTriangle}
+                  title={t("Failed to load presentation. An error occurred.")}
+                  action={
+                    <Button
+                      variant="default"
+                      size="sm"
+                      mt="xs"
+                      onClick={onClose}
+                    >
+                      {t("Close")}
+                    </Button>
+                  }
+                />
+              </Center>
+            }
+          >
+            <PresentationDeck
+              pageId={pageId}
+              title={title}
+              content={content}
+              onClose={onClose}
+            />
+          </ErrorBoundary>
         </Modal.Body>
       </Modal.Content>
     </Modal.Root>
@@ -162,6 +190,7 @@ function PresentationDeck({
 
   const { toggle: toggleFullscreen, fullscreen } = useFullscreenDocument();
   const canFullscreen = document.fullscreenEnabled;
+  const [laserPointerEnabled, setLaserPointerEnabled] = useState(false);
 
   useEffect(
     () => () => {
@@ -434,36 +463,50 @@ function PresentationDeck({
             <IconChevronRight size={20} />
           </ActionIcon>
 
+          <Divider
+            orientation="vertical"
+            aria-orientation="vertical"
+            className={classes.controlDivider}
+          />
+
+          <Tooltip label={t("Laser pointer")} openDelay={250}>
+            <ActionIcon
+              className={classes.controlButton}
+              variant="subtle"
+              color={laserPointerEnabled ? "blue" : "dark"}
+              size="lg"
+              radius="xl"
+              aria-label={t("Laser pointer")}
+              aria-pressed={laserPointerEnabled}
+              onClick={() => setLaserPointerEnabled((enabled) => !enabled)}
+            >
+              <IconPointer size={20} />
+            </ActionIcon>
+          </Tooltip>
+
           {canFullscreen && (
-            <>
-              <Divider
-                orientation="vertical"
-                aria-orientation="vertical"
-                className={classes.controlDivider}
-              />
-              <Tooltip
-                label={fullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
-                openDelay={250}
+            <Tooltip
+              label={fullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
+              openDelay={250}
+            >
+              <ActionIcon
+                className={classes.controlButton}
+                variant="subtle"
+                color="dark"
+                size="lg"
+                radius="xl"
+                aria-label={
+                  fullscreen ? t("Exit fullscreen") : t("Enter fullscreen")
+                }
+                onClick={handleToggleFullscreen}
               >
-                <ActionIcon
-                  className={classes.controlButton}
-                  variant="subtle"
-                  color="dark"
-                  size="lg"
-                  radius="xl"
-                  aria-label={
-                    fullscreen ? t("Exit fullscreen") : t("Enter fullscreen")
-                  }
-                  onClick={handleToggleFullscreen}
-                >
-                  {fullscreen ? (
-                    <IconMinimize size={20} />
-                  ) : (
-                    <IconMaximize size={20} />
-                  )}
-                </ActionIcon>
-              </Tooltip>
-            </>
+                {fullscreen ? (
+                  <IconMinimize size={20} />
+                ) : (
+                  <IconMaximize size={20} />
+                )}
+              </ActionIcon>
+            </Tooltip>
           )}
         </div>
 
@@ -474,6 +517,8 @@ function PresentationDeck({
           })}
         </VisuallyHidden>
       </div>
+
+      <LaserPointer enabled={laserPointerEnabled} />
     </TransclusionLookupProvider>
   );
 }
