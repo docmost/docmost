@@ -34,6 +34,8 @@ type TemplatePickerModalProps = {
   onClose: () => void;
   /** Pre-select this space in the destination picker after a template is chosen. */
   initialSpaceId?: string;
+  /** Receives the chosen template instead of creating a page from it. */
+  onUse?: (template: ITemplate) => void;
 };
 
 type ScopeFilter = "current" | "all";
@@ -42,6 +44,7 @@ export default function TemplatePickerModal({
   opened,
   onClose,
   initialSpaceId,
+  onUse,
 }: TemplatePickerModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -101,6 +104,11 @@ export default function TemplatePickerModal({
   };
 
   const handleQuickUse = (tpl: ITemplate) => {
+    if (onUse) {
+      onUse(tpl);
+      handleClose();
+      return;
+    }
     if (initialSpaceId) {
       createInInitialSpace(tpl);
       return;
@@ -114,6 +122,11 @@ export default function TemplatePickerModal({
   };
 
   const handlePreviewUse = () => {
+    if (onUse && previewTemplate) {
+      onUse(previewTemplate);
+      handleClose();
+      return;
+    }
     if (initialSpaceId && previewTemplate) {
       createInInitialSpace(previewTemplate);
       return;

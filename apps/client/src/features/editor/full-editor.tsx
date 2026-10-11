@@ -48,6 +48,7 @@ export interface FullEditorProps {
   slugId: string;
   title: string;
   content: string;
+  spaceId: string;
   spaceSlug: string;
   editable: boolean;
   creator?: PageUser;
@@ -60,6 +61,7 @@ export function FullEditor({
   title,
   slugId,
   content,
+  spaceId,
   spaceSlug,
   editable,
   creator,
@@ -115,7 +117,11 @@ export function FullEditor({
         content={content}
         canComment={canComment}
       />
-      <EmptyPageGetStarted pageId={pageId} editable={editable} />
+      <EmptyPageGetStarted
+        pageId={pageId}
+        spaceId={spaceId}
+        editable={editable}
+      />
     </Container>
   );
 }
