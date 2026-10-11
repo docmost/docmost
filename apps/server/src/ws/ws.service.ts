@@ -9,6 +9,7 @@ import {
   TREE_EVENTS,
   WS_SPACE_RESTRICTION_CACHE_PREFIX,
   WS_CACHE_TTL_MS,
+  getSessionRoomName,
   getSpaceRoomName,
   getUserRoomName,
 } from './ws.utils';
@@ -113,6 +114,17 @@ export class WsService {
     this.server.in(getUserRoomName(userId)).disconnectSockets(true);
   }
 
+  disconnectSession(sessionId: string): void {
+    this.server.in(getSessionRoomName(sessionId)).disconnectSockets(true);
+  }
+
+  disconnectOtherSessions(userId: string, currentSessionId: string): void {
+    this.server
+      .in(getUserRoomName(userId))
+      .except(getSessionRoomName(currentSessionId))
+      .disconnectSockets(true);
+  }
+
   async removeUsersWithoutSpaceAccess(
     userIds: string[],
     spaceIds: string[],
@@ -133,6 +145,10 @@ export class WsService {
         spaceId,
       );
     }
+  }
+
+  async removeBaseSubscribersWithoutAccess(pageId: string): Promise<void> {
+    await this.baseRealtime.removeSubscribersWithoutAccess(pageId);
   }
 
   async emitToSpaceExceptUsers(

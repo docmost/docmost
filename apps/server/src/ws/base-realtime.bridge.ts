@@ -53,4 +53,8 @@ export class BaseRealtimeBridge {
   ): Promise<void> {
     await this.resolve()?.removeUsersFromSpaceBases(userIds, spaceId);
   }
+
+  async removeSubscribersWithoutAccess(pageId: string): Promise<void> {
+    await this.resolve()?.removeSubscribersWithoutAccess(pageId);
+  }
 }

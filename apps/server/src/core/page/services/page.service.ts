@@ -57,6 +57,7 @@ import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class PageService {
@@ -76,6 +77,7 @@ export class PageService {
     private readonly watcherService: WatcherService,
     private readonly transclusionService: TransclusionService,
     private readonly labelRepo: LabelRepo,
+    private readonly wsService: WsService,
   ) {}
 
   async findById(
@@ -399,7 +401,7 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
-    return executeTx(this.db, async (trx) => {
+    const result = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [rootPage.spaceId, spaceId],
         trx,
@@ -536,6 +538,10 @@ export class PageService {
 
       return { childPageIds };
     });
+
+    await this.wsService.removeBaseSubscribersWithoutAccess(rootPage.id);
+
+    return result;
   }
 
   async duplicatePage(
@@ -852,7 +858,7 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    await executeTx(this.db, async (trx) => {
+    const newParentPageId = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [movedPage.spaceId],
         trx,
@@ -904,7 +910,13 @@ export class PageService {
         dto.pageId,
         trx,
       );
+
+      return parentPageId;
     });
+
+    if (newParentPageId) {
+      await this.wsService.removeBaseSubscribersWithoutAccess(dto.pageId);
+    }
   }
 
   async getPageBreadCrumbs(childPageId: string) {

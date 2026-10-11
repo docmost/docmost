@@ -16,7 +16,11 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { isUserDisabled } from '../common/helpers';
 import { WsService } from './ws.service';
-import { getSpaceRoomName, getUserRoomName } from './ws.utils';
+import {
+  getSessionRoomName,
+  getSpaceRoomName,
+  getUserRoomName,
+} from './ws.utils';
 import { BaseRealtimeBridge } from './base-realtime.bridge';
 import * as cookie from 'cookie';
 
@@ -85,8 +89,11 @@ export class WsGateway
       const userRoom = getUserRoomName(userId);
       const workspaceRoom = `workspace-${workspaceId}`;
       const spaceRooms = userSpaceIds.map((id) => getSpaceRoomName(id));
+      const sessionRooms = token.sessionId
+        ? [getSessionRoomName(token.sessionId)]
+        : [];
 
-      client.join([userRoom, workspaceRoom, ...spaceRooms]);
+      client.join([userRoom, workspaceRoom, ...spaceRooms, ...sessionRooms]);
     } catch (err) {
       client.emit('Unauthorized');
       client.disconnect();
