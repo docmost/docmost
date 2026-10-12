@@ -231,6 +231,7 @@ export const mainExtensions = [
   TaskList,
   TaskItem.configure({
     nested: true,
+    onReadOnly: true,
   }),
   LinkExtension.configure({
     openOnClick: false,
