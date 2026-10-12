@@ -10,11 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { TokenService } from '../core/auth/services/token.service';
 import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload';
-import { OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { isUserDisabled } from '../common/helpers';
+import { OnModuleDestroy } from '@nestjs/common';
 import { WsService } from './ws.service';
 import {
   getSessionRoomName,
@@ -40,9 +36,6 @@ export class WsGateway
 
   constructor(
     private tokenService: TokenService,
-    private spaceMemberRepo: SpaceMemberRepo,
-    private userRepo: UserRepo,
-    private userSessionRepo: UserSessionRepo,
     private wsService: WsService,
     private baseRealtime: BaseRealtimeBridge,
   ) {}
@@ -63,7 +56,7 @@ export class WsGateway
       const userId = token.sub;
       const workspaceId = token.workspaceId;
 
-      const userSpaceIds = await this.getAuthorizedSpaceIds(token);
+      const userSpaceIds = await this.wsService.authorizeConnection(token);
 
       client.data.userId = userId;
       client.data.workspaceId = workspaceId;
@@ -76,43 +69,10 @@ export class WsGateway
         : [];
 
       client.join([userRoom, workspaceRoom, ...spaceRooms, ...sessionRooms]);
-
-      // read again now the socket is in its rooms, a revocation during the first read missed it
-      const currentSpaceIds = new Set(await this.getAuthorizedSpaceIds(token));
-      for (const spaceId of userSpaceIds) {
-        if (!currentSpaceIds.has(spaceId)) {
-          client.leave(getSpaceRoomName(spaceId));
-        }
-      }
     } catch (err) {
       client.emit('Unauthorized');
       client.disconnect();
     }
-  }
-
-  private async getAuthorizedSpaceIds(token: JwtPayload): Promise<string[]> {
-    const [user, session, spaceIds] = await Promise.all([
-      this.userRepo.findById(token.sub, token.workspaceId),
-      token.sessionId
-        ? this.userSessionRepo.findActiveById(token.sessionId)
-        : undefined,
-      this.spaceMemberRepo.getUserSpaceIds(token.sub),
-    ]);
-
-    if (!user || isUserDisabled(user)) {
-      throw new UnauthorizedException();
-    }
-
-    if (
-      token.sessionId &&
-      (!session ||
-        session.userId !== token.sub ||
-        session.workspaceId !== token.workspaceId)
-    ) {
-      throw new UnauthorizedException();
-    }
-
-    return spaceIds;
   }
 
   async handleDisconnect(client: Socket): Promise<void> {

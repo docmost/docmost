@@ -1,9 +1,18 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
+import { JwtPayload } from '../core/auth/dto/jwt-payload';
+import { isUserDisabled } from '../common/helpers';
 import { SpaceRole } from '../common/helpers/types/permission';
 import {
   TREE_EVENTS,
@@ -25,10 +34,37 @@ export class WsService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly baseRealtime: BaseRealtimeBridge,
+    private readonly userRepo: UserRepo,
+    private readonly userSessionRepo: UserSessionRepo,
   ) {}
 
   setServer(server: Server): void {
     this.server = server;
+  }
+
+  async authorizeConnection(token: JwtPayload): Promise<string[]> {
+    const [user, session, spaceIds] = await Promise.all([
+      this.userRepo.findById(token.sub, token.workspaceId),
+      token.sessionId
+        ? this.userSessionRepo.findActiveById(token.sessionId)
+        : undefined,
+      this.spaceMemberRepo.getUserSpaceIds(token.sub),
+    ]);
+
+    if (!user || isUserDisabled(user)) {
+      throw new UnauthorizedException();
+    }
+
+    if (
+      token.sessionId &&
+      (!session ||
+        session.userId !== token.sub ||
+        session.workspaceId !== token.workspaceId)
+    ) {
+      throw new UnauthorizedException();
+    }
+
+    return spaceIds;
   }
 
   async handleTreeEvent(client: Socket, data: any): Promise<void> {

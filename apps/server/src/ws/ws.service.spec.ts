@@ -18,6 +18,8 @@ function makeService(accessBySpace: Record<string, string[]>) {
     {} as any,
     spaceMemberRepo as any,
     baseRealtime as any,
+    {} as any,
+    {} as any,
   );
   service.setServer(server as any);
 
