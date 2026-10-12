@@ -541,8 +541,9 @@ export class PageService {
       return { childPageIds };
     });
 
-    await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
     await this.collabAccessService.recheckAccess({ pageIds: [rootPage.id] });
+    await this.wsService.invalidateSpaceRestrictionCache(spaceId);
+    await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
 
     return result;
   }
@@ -861,7 +862,7 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    const newParentPageId = await executeTx(this.db, async (trx) => {
+    const parentChanged = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [movedPage.spaceId],
         trx,
@@ -914,12 +915,12 @@ export class PageService {
         trx,
       );
 
-      return parentPageId;
+      return parentPageId !== undefined;
     });
 
-    if (newParentPageId) {
-      await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
+    if (parentChanged) {
       await this.collabAccessService.recheckAccess({ pageIds: [dto.pageId] });
+      await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
     }
   }
 

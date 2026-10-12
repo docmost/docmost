@@ -63,28 +63,10 @@ export class WsGateway
       const userId = token.sub;
       const workspaceId = token.workspaceId;
 
-      const user = await this.userRepo.findById(userId, workspaceId);
-      if (!user || isUserDisabled(user)) {
-        throw new UnauthorizedException();
-      }
-
-      if (token.sessionId) {
-        const session = await this.userSessionRepo.findActiveById(
-          token.sessionId,
-        );
-        if (
-          !session ||
-          session.userId !== userId ||
-          session.workspaceId !== workspaceId
-        ) {
-          throw new UnauthorizedException();
-        }
-      }
+      const userSpaceIds = await this.getAuthorizedSpaceIds(token);
 
       client.data.userId = userId;
       client.data.workspaceId = workspaceId;
-
-      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
       const userRoom = getUserRoomName(userId);
       const workspaceRoom = `workspace-${workspaceId}`;
@@ -94,10 +76,43 @@ export class WsGateway
         : [];
 
       client.join([userRoom, workspaceRoom, ...spaceRooms, ...sessionRooms]);
+
+      // read again now the socket is in its rooms, a revocation during the first read missed it
+      const currentSpaceIds = new Set(await this.getAuthorizedSpaceIds(token));
+      for (const spaceId of userSpaceIds) {
+        if (!currentSpaceIds.has(spaceId)) {
+          client.leave(getSpaceRoomName(spaceId));
+        }
+      }
     } catch (err) {
       client.emit('Unauthorized');
       client.disconnect();
     }
+  }
+
+  private async getAuthorizedSpaceIds(token: JwtPayload): Promise<string[]> {
+    const [user, session, spaceIds] = await Promise.all([
+      this.userRepo.findById(token.sub, token.workspaceId),
+      token.sessionId
+        ? this.userSessionRepo.findActiveById(token.sessionId)
+        : undefined,
+      this.spaceMemberRepo.getUserSpaceIds(token.sub),
+    ]);
+
+    if (!user || isUserDisabled(user)) {
+      throw new UnauthorizedException();
+    }
+
+    if (
+      token.sessionId &&
+      (!session ||
+        session.userId !== token.sub ||
+        session.workspaceId !== token.workspaceId)
+    ) {
+      throw new UnauthorizedException();
+    }
+
+    return spaceIds;
   }
 
   async handleDisconnect(client: Socket): Promise<void> {

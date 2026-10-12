@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
@@ -17,6 +17,7 @@ import { BaseRealtimeBridge } from './base-realtime.bridge';
 
 @Injectable()
 export class WsService {
+  private readonly logger = new Logger(WsService.name);
   private server: Server;
 
   constructor(
@@ -76,9 +77,16 @@ export class WsService {
   }
 
   async invalidateSpaceRestrictionCache(spaceId: string): Promise<void> {
-    await this.cacheManager.del(
-      `${WS_SPACE_RESTRICTION_CACHE_PREFIX}${spaceId}`,
-    );
+    try {
+      await this.cacheManager.del(
+        `${WS_SPACE_RESTRICTION_CACHE_PREFIX}${spaceId}`,
+      );
+    } catch (err) {
+      this.logger.error(
+        { err },
+        `Failed to invalidate space restriction cache for ${spaceId}`,
+      );
+    }
   }
 
   async emitCommentEvent(
@@ -132,23 +140,39 @@ export class WsService {
     if (userIds.length === 0) return;
 
     for (const spaceId of spaceIds) {
-      const usersWithAccess =
-        await this.spaceMemberRepo.getUserIdsWithSpaceAccess(userIds, spaceId);
-      const revokedUserIds = userIds.filter((id) => !usersWithAccess.has(id));
-      if (revokedUserIds.length === 0) continue;
+      try {
+        const usersWithAccess =
+          await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
+            userIds,
+            spaceId,
+          );
+        const revokedUserIds = userIds.filter(
+          (id) => !usersWithAccess.has(id),
+        );
+        if (revokedUserIds.length === 0) continue;
 
-      this.server
-        .in(revokedUserIds.map((id) => getUserRoomName(id)))
-        .socketsLeave(getSpaceRoomName(spaceId));
-      await this.baseRealtime.removeUsersFromSpaceBases(
-        revokedUserIds,
-        spaceId,
-      );
+        this.server
+          .in(revokedUserIds.map((id) => getUserRoomName(id)))
+          .socketsLeave(getSpaceRoomName(spaceId));
+        await this.baseRealtime.removeUsersFromSpaceBases(
+          revokedUserIds,
+          spaceId,
+        );
+      } catch (err) {
+        this.logger.error(
+          { err },
+          `Failed to remove revoked users from space ${spaceId} rooms`,
+        );
+      }
     }
   }
 
   async removeBaseSubscribersWithoutAccess(pageIds: string[]): Promise<void> {
-    await this.baseRealtime.removeSubscribersWithoutAccess(pageIds);
+    try {
+      await this.baseRealtime.removeSubscribersWithoutAccess(pageIds);
+    } catch (err) {
+      this.logger.error({ err }, 'Failed to remove base subscribers');
+    }
   }
 
   async emitToSpaceExceptUsers(
@@ -156,15 +180,20 @@ export class WsService {
     excludeUserIds: string[],
     data: any,
   ): Promise<void> {
-    const room = getSpaceRoomName(spaceId);
-    const sockets = await this.server.in(room).fetchSockets();
-    const excludeSet = new Set(excludeUserIds);
+    try {
+      const sockets = await this.server
+        .in(getSpaceRoomName(spaceId))
+        .fetchSockets();
+      const excludeSet = new Set(excludeUserIds);
 
-    for (const socket of sockets) {
-      const userId = socket.data.userId as string;
-      if (userId && !excludeSet.has(userId)) {
-        socket.emit('message', data);
+      for (const socket of sockets) {
+        const userId = socket.data.userId as string;
+        if (userId && !excludeSet.has(userId)) {
+          socket.emit('message', data);
+        }
       }
+    } catch (err) {
+      this.logger.error({ err }, `Failed to emit to space ${spaceId}`);
     }
   }
 

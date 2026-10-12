@@ -287,10 +287,10 @@ export class SpaceMemberService {
       return { space, spaceMember };
     });
 
+    await this.collabAccessService.recheckAccess({ userIds: affectedUserIds });
     await this.wsService.removeUsersWithoutSpaceAccess(affectedUserIds, [
       dto.spaceId,
     ]);
-    await this.collabAccessService.recheckAccess({ userIds: affectedUserIds });
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_REMOVED,
@@ -346,7 +346,7 @@ export class SpaceMemberService {
       }
 
       if (spaceMember.role === dto.role) {
-        return { changed: false, space, spaceMember };
+        return { changed: false, space, spaceMember, demotedUserIds: [] };
       }
 
       if (spaceMember.role === SpaceRole.ADMIN) {
@@ -360,21 +360,25 @@ export class SpaceMemberService {
         trx,
       );
 
-      return { changed: true, space, spaceMember };
+      let demotedUserIds: string[] = [];
+      if (dto.role === SpaceRole.READER) {
+        demotedUserIds = spaceMember.userId
+          ? [spaceMember.userId]
+          : await this.groupUserRepo.getUserIdsByGroupId(spaceMember.groupId, {
+              trx,
+            });
+      }
+
+      return { changed: true, space, spaceMember, demotedUserIds };
     });
 
     if (!result.changed) {
       return;
     }
 
-    const { space, spaceMember } = result;
+    const { space, spaceMember, demotedUserIds } = result;
 
-    if (dto.role === SpaceRole.READER) {
-      const userIds = spaceMember.userId
-        ? [spaceMember.userId]
-        : await this.groupUserRepo.getUserIdsByGroupId(spaceMember.groupId);
-      await this.collabAccessService.recheckAccess({ userIds });
-    }
+    await this.collabAccessService.recheckAccess({ userIds: demotedUserIds });
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,

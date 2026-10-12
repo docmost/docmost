@@ -164,9 +164,9 @@ export class GroupUserService {
       }
     });
 
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
     await this.wsService.removeUsersWithoutSpaceAccess([userId], spaceIds);
     await this.wsService.removeBaseSubscribersWithoutAccess(pageIds);
-    await this.collabAccessService.recheckAccess({ userIds: [userId] });
 
     this.auditService.log({
       event: AuditEvent.GROUP_MEMBER_REMOVED,

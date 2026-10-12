@@ -207,9 +207,9 @@ export class GroupService {
       }
     });
 
+    await this.collabAccessService.recheckAccess({ userIds });
     await this.wsService.removeUsersWithoutSpaceAccess(userIds, spaceIds);
     await this.wsService.removeBaseSubscribersWithoutAccess(pageIds);
-    await this.collabAccessService.recheckAccess({ userIds });
 
     this.auditService.log({
       event: AuditEvent.GROUP_DELETED,

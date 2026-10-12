@@ -7,14 +7,11 @@ import {
 } from '@hocuspocus/server';
 import { Forbidden } from '@hocuspocus/common';
 import {
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
 import type { Redis } from 'ioredis';
 import { TokenService } from '../../core/auth/services/token.service';
@@ -26,7 +23,6 @@ import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { SpaceRole } from '../../common/helpers/types/permission';
 import { isUserDisabled } from '../../common/helpers';
-import { CacheKey } from '../../common/helpers/cache-keys';
 import { getPageId } from '../collaboration.util';
 import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
 import { CollabAccessRecheck } from '../services/collab-access.service';
@@ -47,12 +43,12 @@ export class AuthenticationExtension implements Extension {
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly redisService: RedisService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   async onConfigure({ instance }: onConfigurePayload) {
     this.instance = instance;
     this.subscriber = this.redisService.getOrThrow().duplicate();
+    this.subscriber.on('error', () => {});
     this.subscriber.on('message', async (_channel, message) => {
       try {
         await this.recheckAccess(JSON.parse(message));
@@ -60,7 +56,14 @@ export class AuthenticationExtension implements Extension {
         this.logger.error({ err }, 'Failed to recheck collab access');
       }
     });
-    await this.subscriber.subscribe(COLLAB_ACCESS_RECHECK_CHANNEL);
+    // resubscribe on every ready, ioredis never replays a SUBSCRIBE that failed while redis was down
+    this.subscriber.on('ready', () => {
+      this.subscriber
+        .subscribe(COLLAB_ACCESS_RECHECK_CHANNEL)
+        .catch((err) =>
+          this.logger.error({ err }, 'Failed to subscribe to collab rechecks'),
+        );
+    });
   }
 
   async onDestroy() {
@@ -141,25 +144,31 @@ export class AuthenticationExtension implements Extension {
       });
       if (connections.length === 0) continue;
 
-      const page = await this.pageRepo.findById(pageId);
       for (const connection of connections) {
-        await this.recheckConnection(connection, page);
+        try {
+          await this.recheckConnection(connection, pageId);
+        } catch (err) {
+          this.logger.error(
+            { err },
+            `Failed to recheck collab access on ${document.name}`,
+          );
+        }
       }
     }
   }
 
   private async recheckConnection(
     connection: Connection,
-    page: Page | undefined,
+    pageId: string,
   ): Promise<void> {
     const { id, workspaceId } = connection.context.user;
-    const user = await this.userRepo.findById(id, workspaceId);
+    const [user, page] = await Promise.all([
+      this.userRepo.findById(id, workspaceId),
+      this.pageRepo.findById(pageId),
+    ]);
 
     let access: CollabAccess = 'none';
     if (user && !isUserDisabled(user) && page) {
-      // permission lookups are cached for a few seconds and can predate the change
-      await this.cacheManager.del(CacheKey.SPACE_ROLES(user.id, page.spaceId));
-      await this.cacheManager.del(CacheKey.PAGE_CAN_EDIT(user.id, page.id));
       access = await this.getAccess(user, page);
     }
 
@@ -167,22 +176,28 @@ export class AuthenticationExtension implements Extension {
       return;
     }
 
-    connection.sendStateless(JSON.stringify({ type: 'page.permissions' }));
+    connection.sendStateless(
+      JSON.stringify({ type: 'page.permissions', access }),
+    );
+    connection.readOnly = true;
     if (access === 'none') {
       connection.close(Forbidden);
-    } else {
-      connection.readOnly = true;
     }
   }
 
+  // a connection outlives this check, so it must not see a stale cached allow
   private async getAccess(user: User, page: Page): Promise<CollabAccess> {
     const userSpaceRole = findHighestUserSpaceRole(
-      await this.spaceMemberRepo.getUserSpaceRoles(user.id, page.spaceId),
+      await this.spaceMemberRepo.getUserSpaceRoles(user.id, page.spaceId, {
+        skipCache: true,
+      }),
     );
     if (!userSpaceRole) return 'none';
 
     const { hasAnyRestriction, canAccess, canEdit } =
-      await this.pagePermissionRepo.canUserEditPage(user.id, page.id);
+      await this.pagePermissionRepo.canUserEditPage(user.id, page.id, {
+        skipCache: true,
+      });
     if (hasAnyRestriction && !canAccess) return 'none';
 
     const canWrite = hasAnyRestriction

@@ -19,7 +19,7 @@ import {
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
 import { PagePermissionMember } from './types/page-permission.types';
-import { withCache } from '../../../common/helpers/with-cache';
+import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
 import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
@@ -104,8 +104,11 @@ export class PagePermissionRepo {
       .executeTakeFirst();
   }
 
-  async getPageIdsByGroupId(groupId: string): Promise<string[]> {
-    const rows = await this.db
+  async getPageIdsByGroupId(
+    groupId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<string[]> {
+    const rows = await dbOrTx(this.db, opts?.trx)
       .selectFrom('pagePermissions')
       .innerJoin('pageAccess', 'pageAccess.id', 'pagePermissions.pageAccessId')
       .select('pageAccess.pageId')
@@ -379,8 +382,12 @@ export class PagePermissionRepo {
   /**
    * Check if user can access a page by verifying they have permission on ALL restricted ancestors.
    */
-  async canUserAccessPage(userId: string, pageId: string): Promise<boolean> {
-    const { canAccess } = await this.canUserEditPage(userId, pageId);
+  async canUserAccessPage(
+    userId: string,
+    pageId: string,
+    opts?: CacheOptions,
+  ): Promise<boolean> {
+    const { canAccess } = await this.canUserEditPage(userId, pageId, opts);
     return canAccess;
   }
 
@@ -394,6 +401,7 @@ export class PagePermissionRepo {
   async canUserEditPage(
     userId: string,
     pageId: string,
+    opts?: CacheOptions,
   ): Promise<{
     hasAnyRestriction: boolean;
     canAccess: boolean;
@@ -442,6 +450,7 @@ export class PagePermissionRepo {
           canEdit: row.canAccess && (row.canEdit ?? false),
         };
       },
+      opts,
     );
   }
 
