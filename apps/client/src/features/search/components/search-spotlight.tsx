@@ -1,6 +1,7 @@
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch, IconSparkles } from "@tabler/icons-react";
 import { Group, Button, VisuallyHidden, Text } from "@mantine/core";
+import classes from "./search-spotlight.module.css";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
@@ -161,12 +162,13 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
           backgroundOpacity: 0.55,
         }}
       >
-        <Group gap="xs" px="sm" pt="sm" pb="xs">
+        <Group gap="xs" px="sm" pt="sm" pb="xs" className={classes.searchHeader}>
           <Spotlight.Search
             placeholder={isAiMode ? t("Ask a question...") : t("Search...")}
             aria-label={isAiMode ? t("Ask a question...") : t("Search")}
             leftSection={<IconSearch size={20} stroke={1.5} />}
             style={{ flex: 1 }}
+            classNames={{ input: classes.searchInput }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && isAiMode && query.trim() && !isAiLoading) {
                 e.preventDefault();
