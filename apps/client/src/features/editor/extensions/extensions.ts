@@ -55,6 +55,7 @@ import {
   Heading,
   Highlight,
   Indent,
+  MoveNode,
   UniqueID,
   SharedStorage,
   Columns,
@@ -228,6 +229,7 @@ export const mainExtensions = [
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   Indent,
+  MoveNode,
   TaskList,
   TaskItem.configure({
     nested: true,
