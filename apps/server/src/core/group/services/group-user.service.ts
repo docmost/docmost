@@ -25,6 +25,8 @@ import { WsService } from '../../../ws/ws.service';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
+export type GroupAccess = { spaceIds: string[]; pageIds: string[] };
+
 @Injectable()
 export class GroupUserService {
   constructor(
@@ -140,33 +142,19 @@ export class GroupUserService {
       throw new BadRequestException('Group member not found');
     }
 
-    const [spaceIds, pageIds] = await Promise.all([
-      this.spaceMemberRepo.getSpaceIdsByGroupId(groupId),
-      this.pagePermissionRepo.getPageIdsByGroupId(groupId),
-    ]);
+    const groupAccess = await this.getGroupAccess([groupId]);
 
     // TODO: use queue instead
     await executeTx(this.db, async (trx) => {
       await this.groupUserRepo.delete(userId, groupId, { trx });
-
-      for (const spaceId of spaceIds) {
-        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
-          [userId],
-          spaceId,
-          { trx },
-        );
-
-        await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
-          [userId],
-          spaceId,
-          { trx },
-        );
-      }
+      await this.removeWatchersAndFavoritesWithoutAccess(
+        [userId],
+        groupAccess.spaceIds,
+        trx,
+      );
     });
 
-    await this.collabAccessService.recheckAccess({ userIds: [userId] });
-    await this.wsService.removeUsersWithoutSpaceAccess([userId], spaceIds);
-    await this.wsService.removeBaseSubscribersWithoutAccess(pageIds);
+    await this.revokeRealtimeAccess([userId], groupAccess);
 
     this.auditService.log({
       event: AuditEvent.GROUP_MEMBER_REMOVED,
@@ -182,5 +170,58 @@ export class GroupUserService {
         groupName: group.name,
       },
     });
+  }
+
+  // read before deleting a group, its page permissions cascade away with it
+  async getGroupAccess(
+    groupIds: string[],
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<GroupAccess> {
+    const spaceIds = await this.spaceMemberRepo.getSpaceIdsByGroupIds(
+      groupIds,
+      opts,
+    );
+    const pageIds = await this.pagePermissionRepo.getPageIdsByGroupIds(
+      groupIds,
+      opts,
+    );
+    return { spaceIds, pageIds };
+  }
+
+  async removeWatchersAndFavoritesWithoutAccess(
+    userIds: string[],
+    spaceIds: string[],
+    trx: KyselyTransaction,
+  ): Promise<void> {
+    for (const spaceId of spaceIds) {
+      await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+        userIds,
+        spaceId,
+        { trx },
+      );
+      await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
+        userIds,
+        spaceId,
+        { trx },
+      );
+    }
+  }
+
+  // call after commit, it never throws
+  async revokeRealtimeAccess(
+    userIds: string[],
+    groupAccess: GroupAccess,
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+    if (!groupAccess.spaceIds.length && !groupAccess.pageIds.length) return;
+
+    await this.collabAccessService.recheckAccess({ userIds });
+    await this.wsService.removeUsersWithoutSpaceAccess(
+      userIds,
+      groupAccess.spaceIds,
+    );
+    await this.wsService.removeBaseSubscribersWithoutAccess(
+      groupAccess.pageIds,
+    );
   }
 }

@@ -287,14 +287,16 @@ export class SpaceMemberRepo {
     return new Set(rows.map((r) => r.userId));
   }
 
-  async getSpaceIdsByGroupId(
-    groupId: string,
+  async getSpaceIdsByGroupIds(
+    groupIds: string[],
     opts?: { trx?: KyselyTransaction },
   ): Promise<string[]> {
+    if (groupIds.length === 0) return [];
     const rows = await dbOrTx(this.db, opts?.trx)
       .selectFrom('spaceMembers')
       .select('spaceId')
-      .where('groupId', '=', groupId)
+      .distinct()
+      .where('groupId', 'in', groupIds)
       .execute();
 
     return rows.map((r) => r.spaceId);

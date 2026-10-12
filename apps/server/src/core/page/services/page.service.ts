@@ -862,7 +862,7 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    const parentChanged = await executeTx(this.db, async (trx) => {
+    const mayLoseAccess = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [movedPage.spaceId],
         trx,
@@ -915,10 +915,17 @@ export class PageService {
         trx,
       );
 
-      return parentPageId !== undefined;
+      // a new parent only changes access in a space with restricted pages
+      return (
+        parentPageId !== undefined &&
+        (await this.pagePermissionRepo.hasRestrictedPagesInSpace(
+          currentPage.spaceId,
+          { trx },
+        ))
+      );
     });
 
-    if (parentChanged) {
+    if (mayLoseAccess) {
       await this.collabAccessService.recheckAccess({ pageIds: [dto.pageId] });
       await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
     }

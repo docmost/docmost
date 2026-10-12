@@ -10,7 +10,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { TokenService } from '../core/auth/services/token.service';
 import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload';
-import { OnModuleDestroy } from '@nestjs/common';
+import { OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
+import { JsonWebTokenError } from '@nestjs/jwt';
 import { WsService } from './ws.service';
 import {
   getSessionRoomName,
@@ -47,7 +48,7 @@ export class WsGateway
 
   async handleConnection(client: Socket, ...args: any[]): Promise<void> {
     try {
-      const cookies = cookie.parse(client.handshake.headers.cookie);
+      const cookies = cookie.parse(client.handshake.headers.cookie ?? '');
       const token: JwtPayload = await this.tokenService.verifyJwt(
         cookies['authToken'],
         JwtType.ACCESS,
@@ -70,8 +71,16 @@ export class WsGateway
 
       client.join([userRoom, workspaceRoom, ...spaceRooms, ...sessionRooms]);
     } catch (err) {
-      client.emit('Unauthorized');
-      client.disconnect();
+      if (
+        err instanceof UnauthorizedException ||
+        err instanceof JsonWebTokenError
+      ) {
+        client.emit('Unauthorized');
+        client.disconnect();
+        return;
+      }
+      // not an auth failure, closing the transport lets the client reconnect
+      client.conn.close();
     }
   }
 

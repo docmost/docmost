@@ -104,15 +104,17 @@ export class PagePermissionRepo {
       .executeTakeFirst();
   }
 
-  async getPageIdsByGroupId(
-    groupId: string,
+  async getPageIdsByGroupIds(
+    groupIds: string[],
     opts?: { trx?: KyselyTransaction },
   ): Promise<string[]> {
+    if (groupIds.length === 0) return [];
     const rows = await dbOrTx(this.db, opts?.trx)
       .selectFrom('pagePermissions')
       .innerJoin('pageAccess', 'pageAccess.id', 'pagePermissions.pageAccessId')
       .select('pageAccess.pageId')
-      .where('pagePermissions.groupId', '=', groupId)
+      .distinct()
+      .where('pagePermissions.groupId', 'in', groupIds)
       .execute();
 
     return rows.map((row) => row.pageId);
@@ -906,8 +908,11 @@ export class PagePermissionRepo {
    * Check if any page in a space has restrictions.
    * Used as a quick check to skip heavy permission filtering when no restrictions exist.
    */
-  async hasRestrictedPagesInSpace(spaceId: string): Promise<boolean> {
-    const result = await this.db
+  async hasRestrictedPagesInSpace(
+    spaceId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<boolean> {
+    const result = await dbOrTx(this.db, opts?.trx)
       .selectNoFrom((eb) =>
         eb
           .exists(
