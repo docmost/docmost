@@ -34,6 +34,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { WsService } from '../../../ws/ws.service';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -63,6 +64,7 @@ export class AuthService {
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private wsService: WsService,
+    private collabAccessService: CollabAccessService,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
@@ -162,6 +164,7 @@ export class AuthService {
       await this.userSessionRepo.deleteByUserId(userId, workspaceId);
       this.wsService.disconnectUser(userId);
     }
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
 
     this.auditService.log({
       event: AuditEvent.USER_PASSWORD_CHANGED,
@@ -278,6 +281,7 @@ export class AuthService {
 
     await this.userSessionRepo.deleteByUserId(user.id, workspace.id);
     this.wsService.disconnectUser(user.id);
+    await this.collabAccessService.recheckAccess({ userIds: [user.id] });
 
     // A failed revocation must not block the reset itself; log loudly instead.
     try {
@@ -346,10 +350,11 @@ export class AuthService {
     }
   }
 
-  async getCollabToken(user: User, workspaceId: string) {
+  async getCollabToken(user: User, workspaceId: string, sessionId?: string) {
     const token = await this.tokenService.generateCollabToken(
       user,
       workspaceId,
+      sessionId,
     );
     return { token };
   }

@@ -8,9 +8,14 @@ const WRITER = [{ userId: 'any', role: 'writer' }];
 const READER = [{ userId: 'any', role: 'reader' }];
 const PERMISSIONS_CHANGED = JSON.stringify({ type: 'page.permissions' });
 
-function makeConnection(userId: string) {
+// active sessions; tokens are "userId" or "userId:sessionId"
+const ACTIVE_SESSIONS: Record<string, { userId: string; workspaceId: string }> = {
+  session_active: { userId: 'user_1', workspaceId: 'ws_1' },
+};
+
+function makeConnection(userId: string, sessionId?: string) {
   return {
-    context: { user: { id: userId, workspaceId: 'ws_1' } },
+    context: { user: { id: userId, workspaceId: 'ws_1' }, sessionId },
     readOnly: false,
     close: jest.fn(),
     sendStateless: jest.fn(),
@@ -31,7 +36,12 @@ async function makeExtension(
     getUserSpaceRoles: jest.fn(async (userId: string) => spaceRoles[userId]),
   };
   const extension = new AuthenticationExtension(
-    { verifyJwt: jest.fn(async (token: string) => ({ sub: token, workspaceId: 'ws_1' })) } as any,
+    {
+      verifyJwt: jest.fn(async (token: string) => {
+        const [sub, sessionId] = token.split(':');
+        return { sub, workspaceId: 'ws_1', sessionId };
+      }),
+    } as any,
     {
       findById: jest.fn(async (id: string) => {
         if (id === 'user_broken') throw new Error('db down');
@@ -52,6 +62,7 @@ async function makeExtension(
     } as any,
     { getOrThrow: () => ({ duplicate: () => subscriber }) } as any,
     cacheManager as any,
+    { findActiveById: jest.fn(async (id: string) => ACTIVE_SESSIONS[id]) } as any,
   );
   const instance = {
     documents: new Map(
@@ -138,6 +149,22 @@ describe('AuthenticationExtension access recheck', () => {
     expect(removed.close).toHaveBeenCalledWith(Forbidden);
   });
 
+  it('closes connections whose session has ended and keeps active ones', async () => {
+    const endedSession = makeConnection('user_1', 'session_revoked');
+    const activeSession = makeConnection('user_1', 'session_active');
+    const legacyToken = makeConnection('user_1');
+    const { extension } = await makeExtension(
+      { user_1: WRITER },
+      { 'page.page_1': [endedSession, activeSession, legacyToken] },
+    );
+
+    await extension.recheckAccess({ userIds: ['user_1'] });
+
+    expect(endedSession.close).toHaveBeenCalledWith(Forbidden);
+    expect(activeSession.close).not.toHaveBeenCalled();
+    expect(legacyToken.close).not.toHaveBeenCalled();
+  });
+
   it('keeps rechecking after one connection fails', async () => {
     const broken = makeConnection('user_broken');
     const removed = makeConnection('user_removed');
@@ -154,6 +181,23 @@ describe('AuthenticationExtension access recheck', () => {
 });
 
 describe('AuthenticationExtension onAuthenticate', () => {
+  it('rejects tokens from an ended session and accepts active or legacy ones', async () => {
+    const { extension } = await makeExtension({ user_1: WRITER });
+    const payload = (token: string) =>
+      ({
+        documentName: 'page.page_1',
+        token,
+        connectionConfig: { readOnly: false },
+      }) as any;
+
+    await expect(
+      extension.onAuthenticate(payload('user_1:session_revoked')),
+    ).rejects.toThrow(UnauthorizedException);
+    await expect(
+      extension.onAuthenticate(payload('user_1:session_active')),
+    ).resolves.toMatchObject({ sessionId: 'session_active' });
+    await expect(extension.onAuthenticate(payload('user_1'))).resolves.toBeTruthy();
+  });
 
   it('clears the cached permission lookups before checking', async () => {
     const { extension, cacheManager, spaceMemberRepo } = await makeExtension({

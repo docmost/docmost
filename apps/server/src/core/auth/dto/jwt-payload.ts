@@ -21,6 +21,7 @@ export type JwtCollabPayload = {
   sub: string;
   workspaceId: string;
   type: 'collab';
+  sessionId?: string;
 };
 
 export type JwtExchangePayload = {

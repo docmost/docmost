@@ -22,6 +22,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { SpaceRole } from '../../common/helpers/types/permission';
@@ -48,6 +49,7 @@ export class AuthenticationExtension implements Extension {
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly redisService: RedisService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly userSessionRepo: UserSessionRepo,
   ) {}
 
   async onConfigure({ instance }: onConfigurePayload) {
@@ -93,6 +95,14 @@ export class AuthenticationExtension implements Extension {
       throw new UnauthorizedException();
     }
 
+    // tokens issued before sessions were embedded carry no sessionId
+    if (
+      jwtPayload.sessionId &&
+      !(await this.isSessionActive(jwtPayload.sessionId, userId, workspaceId))
+    ) {
+      throw new UnauthorizedException();
+    }
+
     const page = await this.pageRepo.findById(pageId);
     if (!page) {
       this.logger.debug(`Page not found: ${pageId}`);
@@ -114,6 +124,7 @@ export class AuthenticationExtension implements Extension {
 
     return {
       user,
+      sessionId: jwtPayload.sessionId,
     };
   }
 
@@ -160,13 +171,15 @@ export class AuthenticationExtension implements Extension {
     pageId: string,
   ): Promise<void> {
     const { id, workspaceId } = connection.context.user;
-    const [user, page] = await Promise.all([
+    const sessionId: string | undefined = connection.context.sessionId;
+    const [user, page, sessionActive] = await Promise.all([
       this.userRepo.findById(id, workspaceId),
       this.pageRepo.findById(pageId),
+      !sessionId || this.isSessionActive(sessionId, id, workspaceId),
     ]);
 
     let access: CollabAccess = 'none';
-    if (user && !isUserDisabled(user) && page) {
+    if (user && !isUserDisabled(user) && page && sessionActive) {
       access = await this.getFreshAccess(user, page);
     }
 
@@ -180,6 +193,15 @@ export class AuthenticationExtension implements Extension {
     } else {
       connection.readOnly = true;
     }
+  }
+
+  private async isSessionActive(
+    sessionId: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<boolean> {
+    const session = await this.userSessionRepo.findActiveById(sessionId);
+    return session?.userId === userId && session?.workspaceId === workspaceId;
   }
 
   private async getFreshAccess(user: User, page: Page): Promise<CollabAccess> {

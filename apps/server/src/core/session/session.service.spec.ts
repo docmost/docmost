@@ -9,37 +9,47 @@ function makeService(revoked: boolean) {
     disconnectSession: jest.fn(),
     disconnectOtherSessions: jest.fn(),
   };
+  const collabAccessService = { recheckAccess: jest.fn(async () => undefined) };
   const service = new SessionService(
     {} as any,
     userSessionRepo as any,
     {} as any,
     {} as any,
     wsService as any,
+    collabAccessService as any,
   );
-  return { service, wsService };
+  return { service, wsService, collabAccessService };
 }
 
 describe('SessionService socket disconnects', () => {
   it('disconnects the sockets of a revoked session', async () => {
-    const { service, wsService } = makeService(true);
+    const { service, wsService, collabAccessService } = makeService(true);
 
     await service.revokeSession('session_1', 'user_1', 'ws_1');
 
     expect(wsService.disconnectSession).toHaveBeenCalledWith('session_1');
+    expect(collabAccessService.recheckAccess).toHaveBeenCalledWith({
+      userIds: ['user_1'],
+    });
   });
 
   it('leaves sockets alone when nothing was revoked for this user', async () => {
-    const { service, wsService } = makeService(false);
+    const { service, wsService, collabAccessService } = makeService(false);
 
     await service.revokeSession('someone_elses_session', 'user_1', 'ws_1');
 
     expect(wsService.disconnectSession).not.toHaveBeenCalled();
+    expect(collabAccessService.recheckAccess).not.toHaveBeenCalled();
   });
 
   it('disconnects every other session of the user on revoke-all', async () => {
-    const { service, wsService } = makeService(true);
+    const { service, wsService, collabAccessService } = makeService(true);
 
     await service.revokeAllOtherSessions('session_1', 'user_1', 'ws_1');
+
+    expect(collabAccessService.recheckAccess).toHaveBeenCalledWith({
+      userIds: ['user_1'],
+    });
 
     expect(wsService.disconnectOtherSessions).toHaveBeenCalledWith(
       'user_1',

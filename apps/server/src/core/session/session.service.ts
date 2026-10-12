@@ -11,6 +11,7 @@ import {
 } from '../../common/middlewares/audit-context.middleware';
 import * as Bowser from 'bowser';
 import { WsService } from '../../ws/ws.service';
+import { CollabAccessService } from '../../collaboration/services/collab-access.service';
 
 const MAX_SESSIONS_PER_USER = 25;
 const RETENTION_DAYS = 7;
@@ -25,6 +26,7 @@ export class SessionService {
     private readonly environmentService: EnvironmentService,
     private readonly cls: ClsService,
     private readonly wsService: WsService,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   @Interval('session-cleanup', 24 * 60 * 60 * 1000)
@@ -95,6 +97,7 @@ export class SessionService {
     );
     if (revoked) {
       this.wsService.disconnectSession(sessionId);
+      await this.collabAccessService.recheckAccess({ userIds: [userId] });
     }
   }
 
@@ -109,6 +112,7 @@ export class SessionService {
       workspaceId,
     );
     this.wsService.disconnectOtherSessions(userId, currentSessionId);
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
   }
 
   private parseDeviceName(userAgent: string | null): string | null {

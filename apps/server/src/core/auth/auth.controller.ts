@@ -188,8 +188,13 @@ export class AuthController {
   async collabToken(
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
+    @Req() req: FastifyRequest,
   ) {
-    return this.authService.getCollabToken(user, workspace.id);
+    return this.authService.getCollabToken(
+      user,
+      workspace.id,
+      (req.raw as any).sessionId,
+    );
   }
 
   @SkipThrottle({ [AUTH_THROTTLER]: true })
