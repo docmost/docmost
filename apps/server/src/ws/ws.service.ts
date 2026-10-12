@@ -180,21 +180,10 @@ export class WsService {
     excludeUserIds: string[],
     data: any,
   ): Promise<void> {
-    try {
-      const sockets = await this.server
-        .in(getSpaceRoomName(spaceId))
-        .fetchSockets();
-      const excludeSet = new Set(excludeUserIds);
-
-      for (const socket of sockets) {
-        const userId = socket.data.userId as string;
-        if (userId && !excludeSet.has(userId)) {
-          socket.emit('message', data);
-        }
-      }
-    } catch (err) {
-      this.logger.error({ err }, `Failed to emit to space ${spaceId}`);
-    }
+    this.server
+      .to(getSpaceRoomName(spaceId))
+      .except(excludeUserIds.map((id) => getUserRoomName(id)))
+      .emit('message', data);
   }
 
   isTreeEvent(data: any): boolean {
