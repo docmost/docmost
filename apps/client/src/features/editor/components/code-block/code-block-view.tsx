@@ -12,6 +12,8 @@ const MermaidView = React.lazy(
   () => import("@/features/editor/components/code-block/mermaid-view.tsx"),
 );
 
+const AUTO_LANGUAGE_VALUE = "__auto__";
+
 export default function CodeBlockView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, updateAttributes, extension, editor, getPos } = props;
@@ -38,10 +40,12 @@ export default function CodeBlockView(props: NodeViewProps) {
     };
   }, [editor, getPos(), node.nodeSize]);
 
-  function changeLanguage(language: string) {
-    setLanguageValue(language);
+  function changeLanguage(language: string | null) {
+    const nextLanguage = language === AUTO_LANGUAGE_VALUE ? null : language;
+
+    setLanguageValue(nextLanguage);
     updateAttributes({
-      language: language,
+      language: nextLanguage,
     });
   }
 
@@ -55,8 +59,17 @@ export default function CodeBlockView(props: NodeViewProps) {
         <Select
           placeholder="auto"
           checkIconPosition="right"
-          data={extension.options.lowlight.listLanguages().sort()}
-          value={languageValue}
+          data={[
+            { value: AUTO_LANGUAGE_VALUE, label: "auto" },
+            ...extension.options.lowlight
+              .listLanguages()
+              .sort()
+              .map((language: string) => ({
+                value: language,
+                label: language,
+              })),
+          ]}
+          value={languageValue || AUTO_LANGUAGE_VALUE}
           onChange={changeLanguage}
           searchable
           style={{ maxWidth: "130px" }}
