@@ -53,6 +53,7 @@ export class AuthenticationExtension implements Extension {
   async onConfigure({ instance }: onConfigurePayload) {
     this.instance = instance;
     this.subscriber = this.redisService.getOrThrow().duplicate();
+    this.subscriber.on('error', () => {});
     this.subscriber.on('message', async (_channel, message) => {
       try {
         await this.recheckAccess(JSON.parse(message));
@@ -98,7 +99,7 @@ export class AuthenticationExtension implements Extension {
       throw new NotFoundException('Page not found');
     }
 
-    const access = await this.getAccess(user, page);
+    const access = await this.getFreshAccess(user, page);
 
     if (access === 'none') {
       this.logger.warn(`User ${user.id} not authorized to access page: ${pageId}`);
@@ -141,26 +142,32 @@ export class AuthenticationExtension implements Extension {
       });
       if (connections.length === 0) continue;
 
-      const page = await this.pageRepo.findById(pageId);
       for (const connection of connections) {
-        await this.recheckConnection(connection, page);
+        try {
+          await this.recheckConnection(connection, pageId);
+        } catch (err) {
+          this.logger.error(
+            { err },
+            `Failed to recheck collab access on ${document.name}`,
+          );
+        }
       }
     }
   }
 
   private async recheckConnection(
     connection: Connection,
-    page: Page | undefined,
+    pageId: string,
   ): Promise<void> {
     const { id, workspaceId } = connection.context.user;
-    const user = await this.userRepo.findById(id, workspaceId);
+    const [user, page] = await Promise.all([
+      this.userRepo.findById(id, workspaceId),
+      this.pageRepo.findById(pageId),
+    ]);
 
     let access: CollabAccess = 'none';
     if (user && !isUserDisabled(user) && page) {
-      // permission lookups are cached for a few seconds and can predate the change
-      await this.cacheManager.del(CacheKey.SPACE_ROLES(user.id, page.spaceId));
-      await this.cacheManager.del(CacheKey.PAGE_CAN_EDIT(user.id, page.id));
-      access = await this.getAccess(user, page);
+      access = await this.getFreshAccess(user, page);
     }
 
     if (access === 'write' || (access === 'read' && connection.readOnly)) {
@@ -173,6 +180,17 @@ export class AuthenticationExtension implements Extension {
     } else {
       connection.readOnly = true;
     }
+  }
+
+  private async getFreshAccess(user: User, page: Page): Promise<CollabAccess> {
+    // permission lookups are cached for a few seconds and can predate a revocation
+    await Promise.all([
+      this.cacheManager.del(CacheKey.SPACE_ROLES(user.id, page.spaceId)),
+      this.cacheManager.del(CacheKey.PAGE_CAN_EDIT(user.id, page.id)),
+    ]).catch((err) =>
+      this.logger.warn({ err }, 'Failed to clear cached page permissions'),
+    );
+    return this.getAccess(user, page);
   }
 
   private async getAccess(user: User, page: Page): Promise<CollabAccess> {

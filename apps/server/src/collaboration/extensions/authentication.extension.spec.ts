@@ -27,14 +27,22 @@ async function makeExtension(
     disconnect: jest.fn(),
   };
   const cacheManager = { del: jest.fn(async () => undefined) };
+  const spaceMemberRepo = {
+    getUserSpaceRoles: jest.fn(async (userId: string) => spaceRoles[userId]),
+  };
   const extension = new AuthenticationExtension(
     { verifyJwt: jest.fn(async (token: string) => ({ sub: token, workspaceId: 'ws_1' })) } as any,
-    { findById: jest.fn(async (id: string) => ({ id, workspaceId: 'ws_1' })) } as any,
+    {
+      findById: jest.fn(async (id: string) => {
+        if (id === 'user_broken') throw new Error('db down');
+        return { id, workspaceId: 'ws_1' };
+      }),
+    } as any,
     {
       findById: jest.fn(async (id: string) => ({ id, spaceId: 'space_1', deletedAt: null })),
       getPageAndDescendants: jest.fn(async (id: string) => [{ id }, { id: 'child_page' }]),
     } as any,
-    { getUserSpaceRoles: jest.fn(async (userId: string) => spaceRoles[userId]) } as any,
+    spaceMemberRepo as any,
     {
       canUserEditPage: jest.fn(async () => ({
         hasAnyRestriction: false,
@@ -54,7 +62,7 @@ async function makeExtension(
     ),
   };
   await extension.onConfigure({ instance } as any);
-  return { extension, subscriber, cacheManager };
+  return { extension, subscriber, cacheManager, spaceMemberRepo };
 }
 
 describe('AuthenticationExtension access recheck', () => {
@@ -118,7 +126,10 @@ describe('AuthenticationExtension access recheck', () => {
     expect(subscriber.subscribe).toHaveBeenCalledWith(
       COLLAB_ACCESS_RECHECK_CHANNEL,
     );
-    const onMessage = subscriber.on.mock.calls[0][1];
+    expect(subscriber.on).toHaveBeenCalledWith('error', expect.any(Function));
+    const [, onMessage] = subscriber.on.mock.calls.find(
+      ([event]) => event === 'message',
+    );
     await onMessage(
       COLLAB_ACCESS_RECHECK_CHANNEL,
       JSON.stringify({ userIds: ['user_removed'] }),
@@ -126,9 +137,46 @@ describe('AuthenticationExtension access recheck', () => {
 
     expect(removed.close).toHaveBeenCalledWith(Forbidden);
   });
+
+  it('keeps rechecking after one connection fails', async () => {
+    const broken = makeConnection('user_broken');
+    const removed = makeConnection('user_removed');
+    const { extension } = await makeExtension(
+      { user_removed: undefined },
+      { 'page.page_1': [broken, removed] },
+    );
+
+    await extension.recheckAccess({ userIds: ['user_broken', 'user_removed'] });
+
+    expect(broken.close).not.toHaveBeenCalled();
+    expect(removed.close).toHaveBeenCalledWith(Forbidden);
+  });
 });
 
 describe('AuthenticationExtension onAuthenticate', () => {
+
+  it('clears the cached permission lookups before checking', async () => {
+    const { extension, cacheManager, spaceMemberRepo } = await makeExtension({
+      user_reader: READER,
+    });
+
+    await extension.onAuthenticate({
+      documentName: 'page.page_1',
+      token: 'user_reader',
+      connectionConfig: { readOnly: false },
+    } as any);
+
+    expect(cacheManager.del).toHaveBeenCalledWith(
+      CacheKey.SPACE_ROLES('user_reader', 'space_1'),
+    );
+    expect(cacheManager.del).toHaveBeenCalledWith(
+      CacheKey.PAGE_CAN_EDIT('user_reader', 'page_1'),
+    );
+    expect(cacheManager.del.mock.invocationCallOrder[1]).toBeLessThan(
+      spaceMemberRepo.getUserSpaceRoles.mock.invocationCallOrder[0],
+    );
+  });
+
   it('opens readers read-only and rejects users without access', async () => {
     const { extension } = await makeExtension({
       user_reader: READER,

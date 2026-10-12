@@ -861,7 +861,7 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    const newParentPageId = await executeTx(this.db, async (trx) => {
+    const parentChanged = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [movedPage.spaceId],
         trx,
@@ -914,10 +914,10 @@ export class PageService {
         trx,
       );
 
-      return parentPageId;
+      return parentPageId !== undefined;
     });
 
-    if (newParentPageId) {
+    if (parentChanged) {
       await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
       await this.collabAccessService.recheckAccess({ pageIds: [dto.pageId] });
     }
