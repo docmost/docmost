@@ -92,6 +92,10 @@ export default function App() {
   useTrackOrigin();
 
   useEffect(() => {
+    // the dev server would transform every route module on each reload
+    if (import.meta.env.DEV) {
+      return;
+    }
     const timer = setTimeout(prefetchRoutes, 3000);
     return () => clearTimeout(timer);
   }, []);

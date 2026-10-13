@@ -20,8 +20,8 @@ export function lazyRoute<T extends ComponentType<any>>(
 }
 
 export async function prefetchRoutes() {
-  // anonymous share/docs viewers and the PDF renderer only need the page they opened
-  const isStandalonePage = /^\/(share|docs|pdf-render)(\/|$)/.test(
+  // anonymous share/docs viewers, OAuth consent and the PDF renderer only need the page they opened
+  const isStandalonePage = /^\/(share|docs|pdf-render|oauth)(\/|$)/.test(
     window.location.pathname,
   );
   const saveData = (navigator as NavigatorWithConnection).connection?.saveData;

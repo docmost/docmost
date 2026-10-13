@@ -96,6 +96,7 @@ describe("route prefetch", () => {
     "/docs",
     "/docs/handbook/intro",
     "/pdf-render/0199a1b2",
+    "/oauth/consent",
   ])("does nothing on %s", async (path) => {
     const { lazyRoute, prefetchRoutes } = await freshModule();
     window.history.pushState({}, "", path);
