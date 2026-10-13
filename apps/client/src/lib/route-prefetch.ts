@@ -6,6 +6,12 @@ type NavigatorWithConnection = Navigator & {
 
 const routeLoaders: Array<() => Promise<unknown>> = [];
 
+let prefetching = false;
+
+export function isPrefetchingRoutes() {
+  return prefetching;
+}
+
 export function lazyRoute<T extends ComponentType<any>>(
   load: () => Promise<{ default: T }>,
 ) {
@@ -23,8 +29,13 @@ export async function prefetchRoutes() {
     return;
   }
 
-  for (const load of routeLoaders) {
-    // a failed import also fires vite:preloadError, which owns recovery
-    await load().catch(() => {});
+  prefetching = true;
+  try {
+    for (const load of routeLoaders) {
+      // a failed prefetch is recovered when that route is actually opened
+      await load().catch(() => {});
+    }
+  } finally {
+    prefetching = false;
   }
 }

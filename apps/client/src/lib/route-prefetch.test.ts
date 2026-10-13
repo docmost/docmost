@@ -46,7 +46,8 @@ describe("route prefetch", () => {
   });
 
   it("keeps going when a route fails to load", async () => {
-    const { lazyRoute, prefetchRoutes } = await freshModule();
+    const { lazyRoute, prefetchRoutes, isPrefetchingRoutes } =
+      await freshModule();
     const later = vi.fn(async () => ({ default: () => null }));
     lazyRoute(() =>
       Promise.reject(
@@ -57,6 +58,22 @@ describe("route prefetch", () => {
 
     await expect(prefetchRoutes()).resolves.toBeUndefined();
     expect(later).toHaveBeenCalledTimes(1);
+    expect(isPrefetchingRoutes()).toBe(false);
+  });
+
+  it("reports a prefetch as running only while it runs", async () => {
+    const { lazyRoute, prefetchRoutes, isPrefetchingRoutes } =
+      await freshModule();
+    let duringPrefetch: boolean | undefined;
+    lazyRoute(async () => {
+      duringPrefetch = isPrefetchingRoutes();
+      return { default: () => null };
+    });
+
+    await prefetchRoutes();
+
+    expect(duringPrefetch).toBe(true);
+    expect(isPrefetchingRoutes()).toBe(false);
   });
 
   it("does nothing when Data Saver is on", async () => {

@@ -1,5 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { claimChunkReload, isChunkLoadFailure } from "./chunk-load-recovery";
+import {
+  claimChunkReload,
+  claimReloadForPreloadError,
+  isChunkLoadFailure,
+} from "./chunk-load-recovery";
+
+const prefetchState = vi.hoisted(() => ({ running: false }));
+
+vi.mock("@/lib/route-prefetch.ts", () => ({
+  isPrefetchingRoutes: () => prefetchState.running,
+}));
+
+const LOAD_FAILURE = new TypeError(
+  "Failed to fetch dynamically imported module: https://app.docmost.com/assets/groups-DHo4N9RM.js",
+);
 
 describe("claimChunkReload", () => {
   beforeEach(() => {
@@ -64,5 +78,33 @@ describe("isChunkLoadFailure", () => {
 
   it("does not treat a missing payload as a load failure", () => {
     expect(isChunkLoadFailure(undefined)).toBe(false);
+  });
+});
+
+describe("claimReloadForPreloadError", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    prefetchState.running = false;
+  });
+
+  it("claims a reload for a chunk that failed to download", () => {
+    expect(claimReloadForPreloadError(LOAD_FAILURE)).toBe(true);
+  });
+
+  it("ignores failures during the background route prefetch without using up the cooldown", () => {
+    prefetchState.running = true;
+    expect(claimReloadForPreloadError(LOAD_FAILURE)).toBe(false);
+
+    prefetchState.running = false;
+    expect(claimReloadForPreloadError(LOAD_FAILURE)).toBe(true);
+  });
+
+  it("ignores an error thrown while a module runs without using up the cooldown", () => {
+    expect(
+      claimReloadForPreloadError(
+        new ReferenceError("Cannot access 'Groups' before initialization"),
+      ),
+    ).toBe(false);
+    expect(claimReloadForPreloadError(LOAD_FAILURE)).toBe(true);
   });
 });
