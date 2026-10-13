@@ -57,6 +57,8 @@ import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
+import { WsService } from '../../../ws/ws.service';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class PageService {
@@ -76,6 +78,8 @@ export class PageService {
     private readonly watcherService: WatcherService,
     private readonly transclusionService: TransclusionService,
     private readonly labelRepo: LabelRepo,
+    private readonly wsService: WsService,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async findById(
@@ -399,7 +403,7 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
-    return executeTx(this.db, async (trx) => {
+    const result = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [rootPage.spaceId, spaceId],
         trx,
@@ -536,6 +540,12 @@ export class PageService {
 
       return { childPageIds };
     });
+
+    await this.collabAccessService.recheckAccess({ pageIds: [rootPage.id] });
+    await this.wsService.invalidateSpaceRestrictionCache(spaceId);
+    await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
+
+    return result;
   }
 
   async duplicatePage(
@@ -852,7 +862,7 @@ export class PageService {
       throw new BadRequestException('A page cannot be its own parent');
     }
 
-    await executeTx(this.db, async (trx) => {
+    const mayLoseAccess = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [movedPage.spaceId],
         trx,
@@ -904,7 +914,21 @@ export class PageService {
         dto.pageId,
         trx,
       );
+
+      // a new parent only changes access in a space with restricted pages
+      return (
+        parentPageId !== undefined &&
+        (await this.pagePermissionRepo.hasRestrictedPagesInSpace(
+          currentPage.spaceId,
+          { trx },
+        ))
+      );
     });
+
+    if (mayLoseAccess) {
+      await this.collabAccessService.recheckAccess({ pageIds: [dto.pageId] });
+      await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
+    }
   }
 
   async getPageBreadCrumbs(childPageId: string) {

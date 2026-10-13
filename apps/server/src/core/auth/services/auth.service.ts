@@ -33,6 +33,7 @@ import { UserTokenType } from '../auth.constants';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
+import { WsService } from '../../../ws/ws.service';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -61,6 +62,7 @@ export class AuthService {
     private eventEmitter: EventEmitter2,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private wsService: WsService,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
@@ -155,8 +157,10 @@ export class AuthService {
         userId,
         workspaceId,
       );
+      this.wsService.disconnectOtherSessions(userId, currentSessionId);
     } else {
       await this.userSessionRepo.deleteByUserId(userId, workspaceId);
+      this.wsService.disconnectUser(userId);
     }
 
     this.auditService.log({
@@ -273,6 +277,7 @@ export class AuthService {
     });
 
     await this.userSessionRepo.deleteByUserId(user.id, workspace.id);
+    this.wsService.disconnectUser(user.id);
 
     // A failed revocation must not block the reset itself; log loudly instead.
     try {

@@ -36,6 +36,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { logout } from "@/features/auth/services/auth-service";
 import { ICurrentUser } from "@/features/user/types/user.types";
 import APP_ROUTE from "@/lib/app-route.ts";
+import { deleteLocalPageData } from "@/lib/local-page-data.ts";
 import {
   approveOAuthAuthorization,
   getOAuthAuthorizeInfo,
@@ -226,6 +227,7 @@ function ConsentCard({ info, currentUser, params }: ConsentCardProps) {
     }
     setCurrentUser(RESET);
     try {
+      await deleteLocalPageData();
       await logout();
     } finally {
       window.location.replace(
