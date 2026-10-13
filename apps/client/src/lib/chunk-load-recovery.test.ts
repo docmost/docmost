@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { claimChunkReload } from "./chunk-load-recovery";
+import { claimChunkReload, isChunkLoadFailure } from "./chunk-load-recovery";
 
 describe("claimChunkReload", () => {
   beforeEach(() => {
@@ -41,5 +41,28 @@ describe("claimChunkReload", () => {
       throw new Error("SecurityError");
     });
     expect(claimChunkReload()).toBe(false);
+  });
+});
+
+describe("isChunkLoadFailure", () => {
+  it.each([
+    "Failed to fetch dynamically imported module: https://app.docmost.com/assets/groups-DHo4N9RM.js",
+    "error loading dynamically imported module: https://app.docmost.com/assets/groups-DHo4N9RM.js",
+    "Importing a module script failed.",
+    "Unable to preload CSS for /assets/groups-BJHsxMuK.css",
+  ])("treats %s as a load failure", (message) => {
+    expect(isChunkLoadFailure(new TypeError(message))).toBe(true);
+  });
+
+  it("does not treat an error thrown while a module runs as a load failure", () => {
+    expect(
+      isChunkLoadFailure(
+        new ReferenceError("Cannot access 'Groups' before initialization"),
+      ),
+    ).toBe(false);
+  });
+
+  it("does not treat a missing payload as a load failure", () => {
+    expect(isChunkLoadFailure(undefined)).toBe(false);
   });
 });

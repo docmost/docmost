@@ -1,5 +1,12 @@
 const RELOAD_AT_KEY = "chunk-reload-at";
 const RELOAD_COOLDOWN_MS = 60_000;
+// how Chromium, Firefox and Safari word a module that failed to download, plus Vite's CSS preload failure
+const LOAD_FAILURE_MESSAGES = [
+  "Failed to fetch dynamically imported module",
+  "error loading dynamically imported module",
+  "Importing a module script failed",
+  "Unable to preload CSS",
+];
 
 export function claimChunkReload(): boolean {
   if (!navigator.onLine) {
@@ -18,10 +25,15 @@ export function claimChunkReload(): boolean {
   }
 }
 
+export function isChunkLoadFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return LOAD_FAILURE_MESSAGES.some((text) => message.includes(text));
+}
+
 export function installChunkLoadRecovery() {
   // a tab opened before a deploy asks for chunks that no longer exist; a reload picks up the new build
-  window.addEventListener("vite:preloadError", () => {
-    if (claimChunkReload()) {
+  window.addEventListener("vite:preloadError", (event) => {
+    if (isChunkLoadFailure(event.payload) && claimChunkReload()) {
       window.location.reload();
     }
   });
