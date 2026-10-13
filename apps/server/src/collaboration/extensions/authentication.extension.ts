@@ -85,18 +85,16 @@ export class AuthenticationExtension implements Extension {
     const userId = jwtPayload.sub;
     const workspaceId = jwtPayload.workspaceId;
 
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const [user, page] = await Promise.all([
+      this.userRepo.findById(userId, workspaceId),
+      this.pageRepo.findById(pageId),
+    ]);
 
-    if (!user) {
+    if (!user || isUserDisabled(user)) {
       throw new UnauthorizedException();
     }
 
-    if (isUserDisabled(user)) {
-      throw new UnauthorizedException();
-    }
-
-    const page = await this.pageRepo.findById(pageId);
-    if (!page) {
+    if (!page || page.workspaceId !== workspaceId) {
       this.logger.debug(`Page not found: ${pageId}`);
       throw new NotFoundException('Page not found');
     }
@@ -187,17 +185,18 @@ export class AuthenticationExtension implements Extension {
 
   // a connection outlives this check, so it must not see a stale cached allow
   private async getAccess(user: User, page: Page): Promise<CollabAccess> {
-    const userSpaceRole = findHighestUserSpaceRole(
-      await this.spaceMemberRepo.getUserSpaceRoles(user.id, page.spaceId, {
-        skipCache: true,
-      }),
-    );
-    if (!userSpaceRole) return 'none';
+    const [spaceRoles, { hasAnyRestriction, canAccess, canEdit }] =
+      await Promise.all([
+        this.spaceMemberRepo.getUserSpaceRoles(user.id, page.spaceId, {
+          skipCache: true,
+        }),
+        this.pagePermissionRepo.canUserEditPage(user.id, page.id, {
+          skipCache: true,
+        }),
+      ]);
 
-    const { hasAnyRestriction, canAccess, canEdit } =
-      await this.pagePermissionRepo.canUserEditPage(user.id, page.id, {
-        skipCache: true,
-      });
+    const userSpaceRole = findHighestUserSpaceRole(spaceRoles);
+    if (!userSpaceRole) return 'none';
     if (hasAnyRestriction && !canAccess) return 'none';
 
     const canWrite = hasAnyRestriction

@@ -1,5 +1,5 @@
 import { Forbidden } from '@hocuspocus/common';
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthenticationExtension } from './authentication.extension';
 import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
 
@@ -45,7 +45,12 @@ async function makeExtension(
       }),
     } as any,
     {
-      findById: jest.fn(async (id: string) => ({ id, spaceId: 'space_1', deletedAt: null })),
+      findById: jest.fn(async (id: string) => ({
+        id,
+        spaceId: 'space_1',
+        workspaceId: id === 'page_other_ws' ? 'ws_2' : 'ws_1',
+        deletedAt: null,
+      })),
       getPageAndDescendants: jest.fn(async (id: string) => [{ id }, { id: 'child_page' }]),
     } as any,
     spaceMemberRepo as any,
@@ -197,5 +202,20 @@ describe('AuthenticationExtension onAuthenticate', () => {
     await expect(extension.onAuthenticate(payload('user_none'))).rejects.toThrow(
       UnauthorizedException,
     );
+  });
+
+  it('rejects pages from another workspace', async () => {
+    const { extension, spaceMemberRepo } = await makeExtension({
+      user_writer: WRITER,
+    });
+
+    await expect(
+      extension.onAuthenticate({
+        documentName: 'page.page_other_ws',
+        token: 'user_writer',
+        connectionConfig: { readOnly: false },
+      } as any),
+    ).rejects.toThrow(NotFoundException);
+    expect(spaceMemberRepo.getUserSpaceRoles).not.toHaveBeenCalled();
   });
 });
