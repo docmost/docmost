@@ -23,7 +23,6 @@ export const useQuerySubscription = () => {
       const data: WebSocketEvent = event;
 
       let entity = null;
-      let queryKeyId = null;
 
       switch (data.operation) {
         case "invalidate":
@@ -106,21 +105,23 @@ export const useQuerySubscription = () => {
         case "deleteTreeNode":
           invalidateOnDeletePage(data.payload.node.id);
           break;
-        case "updateOne":
+        case "updateOne": {
           entity = data.entity[0];
-          if (entity === "pages") {
-            // we have to do this because the usePageQuery cache key is the slugId.
-            queryKeyId = data.payload.slugId;
-          } else {
-            queryKeyId = data.id;
-          }
+          const keyIds =
+            entity === "pages" ? [data.payload.slugId, data.id] : [data.id];
 
-          // only update if data was already in cache
-          if (queryClient.getQueryData([...data.entity, queryKeyId])) {
-            queryClient.setQueryData([...data.entity, queryKeyId], {
-              ...queryClient.getQueryData([...data.entity, queryKeyId]),
-              ...data.payload,
-            });
+          for (const keyId of keyIds) {
+            if (!keyId) continue;
+            const cached = queryClient.getQueryData<Record<string, unknown>>([
+              ...data.entity,
+              keyId,
+            ]);
+            if (cached) {
+              queryClient.setQueryData([...data.entity, keyId], {
+                ...cached,
+                ...data.payload,
+              });
+            }
           }
 
           if (entity === "pages") {
@@ -132,20 +133,8 @@ export const useQuerySubscription = () => {
               data.payload.icon,
             );
           }
-
-          /*
-          queryClient.setQueriesData(
-            { queryKey: [data.entity, data.id] },
-            (oldData: any) => {
-              const update = (entity: Record<string, unknown>) =>
-                entity.id === data.id ? { ...entity, ...data.payload } : entity;
-              return Array.isArray(oldData)
-                ? oldData.map(update)
-                : update(oldData as Record<string, unknown>);
-            },
-          );
-      */
           break;
+        }
         case "refetchRootTreeNodeEvent": {
           const spaceId = data.spaceId;
           queryClient.refetchQueries({

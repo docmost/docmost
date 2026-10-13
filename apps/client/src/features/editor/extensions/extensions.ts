@@ -1,9 +1,11 @@
-import { markInputRule } from "@tiptap/core";
+import { markInputRule, type Editor } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
+import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
-import { Placeholder, CharacterCount, UndoRedo } from "@tiptap/extensions";
+import { CharacterCount, UndoRedo } from "@tiptap/extensions";
+import { Placeholder } from "@/features/editor/extensions/placeholder";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -61,6 +63,14 @@ import {
   TransclusionSource,
   TransclusionReference,
   TableView,
+  BaseEmbed as BaseEmbedNode,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
+  Tabs,
+  Tab,
+  TabLabel,
+  TabPanel,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -89,8 +99,10 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import TabsView from "@/features/editor/components/tabs/tabs-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
+import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -129,6 +141,7 @@ lowlight.register("scala", scala);
 // @ts-ignore
 export const mainExtensions = [
   StarterKit.configure({
+    document: false,
     heading: false,
     undoRedo: false,
     link: false,
@@ -140,6 +153,7 @@ export const mainExtensions = [
     codeBlock: false,
     code: false,
   }),
+  TiptapDocument,
   // Override TipTap's Code extension to fix the inline code input rule.
   // The upstream regex /(^|[^`])`([^`]+)`(?!`)$/ captures the character
   // before the opening backtick as part of the match, causing markInputRule
@@ -192,16 +206,19 @@ export const mainExtensions = [
         return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        const $pos = editor.state.doc.resolve(pos);
-        const parentName = $pos.parent.type.name;
-        if (
-          parentName === "column" ||
-          parentName === "tableCell" ||
-          parentName === "tableHeader" ||
-          parentName === "callout" ||
-          parentName === "blockquote"
-        ) {
-          return i18n.t("Write...");
+        const doc = editor.state.doc;
+        if (pos >= 0 && pos <= doc.content.size) {
+          const parentName = doc.resolve(pos).parent.type.name;
+          if (
+            parentName === "column" ||
+            parentName === "tableCell" ||
+            parentName === "tableHeader" ||
+            parentName === "callout" ||
+            parentName === "blockquote" ||
+            parentName === "footnote"
+          ) {
+            return i18n.t("Write...");
+          }
         }
         return i18n.t('Write anything. Enter "/" for commands');
       }
@@ -230,7 +247,8 @@ export const mainExtensions = [
   Typography,
   TrailingNode,
   GlobalDragHandle.configure({
-    customNodes: ["transclusionSource", "transclusionReference"],
+    customNodes: ["transclusionSource", "transclusionReference", "tabPanel"],
+    atomNodes: ["base"],
   }),
   TextStyle,
   Color,
@@ -284,6 +302,12 @@ export const mainExtensions = [
   Details,
   DetailsSummary,
   DetailsContent,
+  Tabs.configure({
+    view: TabsView,
+  }),
+  Tab,
+  TabLabel,
+  TabPanel,
   Youtube.configure({
     addPasteHandler: false,
     controls: true,
@@ -381,6 +405,11 @@ export const mainExtensions = [
   TransclusionReference.configure({
     view: TransclusionReferenceView,
   }),
+  BaseEmbedNode.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(BaseEmbedView);
+    },
+  }),
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
@@ -406,6 +435,9 @@ export const mainExtensions = [
   }).configure(),
   Columns,
   Column,
+  Footnotes,
+  Footnote,
+  FootnoteReference,
   AutoJoiner.configure({
     elementsToJoin: [],
   }),
@@ -420,14 +452,17 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Draw.io (diagrams.net)",
   "Excalidraw (Whiteboard)",
   "Audio",
-  "Synced block"
+  "Synced block",
+  "Base (Inline)",
+  "Kanban"
 ]);
 
 const TemplateSlashCommand = Command.configure({
   suggestion: {
-    items: ({ query }: { query: string }) =>
+    items: ({ query, editor }: { query: string; editor: Editor }) =>
       getSuggestionItems({
         query,
+        editor,
         excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS,
       }),
     render: renderItems,
@@ -448,7 +483,9 @@ export const collabExtensions: CollabExtensions = (provider, user) => [
   CollaborationCaret.configure({
     provider,
     user: {
+      id: user.id,
       name: user.name,
+      avatarUrl: user.avatarUrl,
       color: randomElement(userColors),
     },
   }),

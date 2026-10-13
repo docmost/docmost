@@ -10,7 +10,7 @@ export const LinkSelector: FC = () => {
   const setShowLinkMenu = useSetAtom(showLinkMenuAtom);
 
   return (
-    <Tooltip label={t("Add link")} withArrow>
+    <Tooltip label={t("Add link")} withArrow withinPortal={false}>
       <ActionIcon
         variant="default"
         size="lg"

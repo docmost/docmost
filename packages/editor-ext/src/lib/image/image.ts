@@ -7,7 +7,7 @@ import {
 } from "@tiptap/core";
 import { ResizableNodeView } from "../resizable-nodeview";
 import type { ResizableNodeViewDirection } from "../resizable-nodeview";
-import { normalizeFileUrl } from "../media-utils";
+import { normalizeFileUrl, syncAltBadge } from "../media-utils";
 
 export type ImageResizeOptions = {
   enabled: boolean;
@@ -316,6 +316,8 @@ export const TiptapImage = Image.extend<ImageOptions>({
           const container = nodeView.dom as HTMLElement;
           applyAlignment(container, align);
 
+          syncAltBadge(nodeView.wrapper, updatedNode.attrs.alt);
+
           currentNode = updatedNode;
           return true;
         },
@@ -332,6 +334,8 @@ export const TiptapImage = Image.extend<ImageOptions>({
       });
 
       const dom = nodeView.dom as HTMLElement;
+
+      syncAltBadge(nodeView.wrapper, node.attrs.alt);
 
       // Apply initial alignment
       applyAlignment(dom, node.attrs.align || "center");

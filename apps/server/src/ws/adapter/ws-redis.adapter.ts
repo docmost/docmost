@@ -17,6 +17,7 @@ export class WsRedisIoAdapter extends IoAdapter {
 
     const options: RedisOptions = {
       family: this.redisConfig.family,
+      tls: this.redisConfig.tls,
       retryStrategy: createRetryStrategy(),
     };
 

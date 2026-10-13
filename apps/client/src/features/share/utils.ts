@@ -9,6 +9,7 @@ export type SharedPageTreeNode = {
   position: string;
   spaceId: string;
   parentPageId: string;
+  updatedAt?: Date;
   hasChildren: boolean;
   children: SharedPageTreeNode[];
   label: string;
@@ -32,6 +33,7 @@ export function buildSharedPageTree(
       hasChildren: false,
       spaceId: page.spaceId,
       parentPageId: page.parentPageId,
+      updatedAt: page.updatedAt,
       label: page.title || "untitled",
       value: page.id,
       children: [],
@@ -67,6 +69,27 @@ export function buildSharedPageTree(
   return sortTree(tree);
 }
 
+
+// Returns the children of the node matching the page id or slugId.
+export function findSubpagesInTree(
+  tree: SharedPageTreeNode[] | null | undefined,
+  pageId: string | undefined,
+): SharedPageTreeNode[] {
+  if (!tree || !pageId) return [];
+
+  for (const node of tree) {
+    if (node.value === pageId || node.slugId === pageId) {
+      return node.children || [];
+    }
+    if (node.children && node.children.length > 0) {
+      const subpages = findSubpagesInTree(node.children, pageId);
+      if (subpages.length > 0) {
+        return subpages;
+      }
+    }
+  }
+  return [];
+}
 
 // Recursively checks if a page exists in the shared page tree.
 export function isPageInTree(

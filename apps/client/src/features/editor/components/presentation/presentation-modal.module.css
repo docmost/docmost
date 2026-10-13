@@ -1,0 +1,159 @@
+.content {
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  overflow: hidden;
+}
+
+.body {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.slideArea,
+.measurementArea {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 6vh 5vw 10vh;
+  scrollbar-gutter: stable both-edges;
+}
+
+.slideArea {
+  overflow-y: auto;
+  overflow-x: hidden;
+  outline: none;
+}
+
+.scrollable {
+  zoom: 0.85;
+}
+
+.measurementArea {
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.editorContainer {
+  width: 100%;
+  max-width: 1440px;
+  margin-block: auto;
+}
+
+.stage :global(.ProseMirror) {
+  font-size: 1.3rem;
+  line-height: 1.6;
+}
+
+.stage :global(.ProseMirror) h1 {
+  font-size: 3rem;
+}
+
+.stage :global(.ProseMirror) h2 {
+  font-size: 2.25rem;
+}
+
+.stage :global(.ProseMirror) h3 {
+  font-size: 1.75rem;
+}
+
+.stage :global(.ProseMirror .comment-mark) {
+  background: none;
+  border-bottom: none;
+}
+
+.titleSlide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1440px;
+  margin-block: auto;
+  text-align: center;
+}
+
+.titleSlideText {
+  font-size: 3.5rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 24px;
+}
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-radius: 999px;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.controlButton:disabled {
+  background-color: transparent;
+}
+
+.slideCounter {
+  min-width: max(72px, calc((var(--total-digits, 1) * 2 + 3) * 1ch + 16px));
+  padding-inline: 8px;
+  text-align: center;
+  font-size: var(--mantine-font-size-md);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.slideTotal {
+  color: light-dark(
+    var(--mantine-color-dimmed),
+    color-mix(in srgb, var(--mantine-color-dark-1), var(--mantine-color-dark-2))
+  );
+}
+
+.controlBar .controlDivider {
+  align-self: center;
+  height: 24px;
+  margin-inline: 4px;
+}
+
+/* the dot replaces every cursor, including ones slide content sets */
+.content:has(.laserPointer:not([hidden])),
+.content:has(.laserPointer:not([hidden])) * {
+  cursor: none !important;
+}
+
+.laserPointer {
+  position: fixed;
+  top: -7px;
+  left: -7px;
+  z-index: 20;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--mantine-color-blue-4) 65%, transparent);
+  box-shadow: 0 0 10px 4px color-mix(in srgb, var(--mantine-color-blue-4) 30%, transparent);
+  pointer-events: none;
+  visibility: hidden;
+}

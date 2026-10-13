@@ -3,6 +3,7 @@ import { IconCircleCheck, IconCircleCheckFilled } from "@tabler/icons-react";
 import { useResolveCommentMutation } from "@/ee/comment/queries/comment-query";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tiptap/react";
+import { isEditorReady } from "@docmost/editor-ext";
 
 interface ResolveCommentProps {
   editor: Editor;
@@ -31,7 +32,7 @@ function ResolveComment({
         resolved: !isResolved,
       });
 
-      if (editor) {
+      if (isEditorReady(editor)) {
         editor.commands.setCommentResolved(commentId, !isResolved);
       }
 

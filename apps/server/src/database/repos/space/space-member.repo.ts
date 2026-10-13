@@ -46,8 +46,10 @@ export class SpaceMemberRepo {
     updatableSpaceMember: UpdatableSpaceMember,
     spaceMemberId: string,
     spaceId: string,
+    trx?: KyselyTransaction,
   ): Promise<void> {
-    await this.db
+    const db = dbOrTx(this.db, trx);
+    await db
       .updateTable('spaceMembers')
       .set(updatableSpaceMember)
       .where('id', '=', spaceMemberId)
@@ -92,8 +94,13 @@ export class SpaceMemberRepo {
       .execute();
   }
 
-  async roleCountBySpaceId(role: string, spaceId: string): Promise<number> {
-    const { count } = await this.db
+  async roleCountBySpaceId(
+    role: string,
+    spaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    const db = dbOrTx(this.db, trx);
+    const { count } = await db
       .selectFrom('spaceMembers')
       .select((eb) => eb.fn.count('role').as('count'))
       .where('role', '=', role)

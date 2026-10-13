@@ -1,4 +1,5 @@
 export {
+  getPageAttachments,
   uploadIcon,
   uploadUserAvatar,
   uploadSpaceIcon,

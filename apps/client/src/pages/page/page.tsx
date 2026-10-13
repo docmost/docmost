@@ -1,19 +1,28 @@
 import { useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { FullEditor } from "@/features/editor/full-editor";
+import { TitleEditor } from "@/features/editor/title-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
-import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { useCommentDeepLink } from "@/features/comment/hooks/use-comment-deep-link";
 import { useTranslation } from "react-i18next";
-import React from "react";
+import React, { useEffect } from "react";
+import { useSetAtom } from "jotai";
+import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
+import { BaseView } from "@/ee/base/components/base-view";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { getPageTitle } from "@/features/page/page.utils";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 const MemoizedFullEditor = React.memo(FullEditor);
+const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
 const MemoizedHistoryModal = React.memo(HistoryModal);
 
@@ -51,7 +60,16 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  const setAsideState = useSetAtom(asideStateAtom);
 
+  // Keep above useCommentDeepLink so a deep link can reopen the aside.
+  useEffect(() => {
+    setAsideState({ tab: "", isAsideOpen: false });
+  }, [page?.id, setAsideState]);
+
+  useCommentDeepLink(page?.id);
+
+  const hasBases = useHasFeature(Feature.BASES);
   const canEdit = !page?.deletedAt && (page?.permissions?.canEdit ?? false);
   const canComment =
     canEdit ||
@@ -90,12 +108,73 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     return <></>;
   }
 
+  if (page?.isBase) {
+    return (
+      <div
+        className="base-page-root"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          // Height: see `.base-page-root` in core.css.
+          // Clear the fixed PageHeader (breadcrumb) plus a little extra so the
+          // pinned column-header row isn't tucked half under it.
+          paddingTop: "calc(var(--page-header-height) + 6px)",
+        }}
+      >
+        <DocumentTitle
+          title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
+          withAppName={false}
+        />
+        <MemoizedPageHeader readOnly={!canEdit} />
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            paddingInline: 24,
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <BaseView
+              pageId={page.id}
+              editable={hasBases && canEdit}
+              titleSlot={
+                <div
+                  className="base-page-title"
+                  style={{ paddingTop: 2, paddingBottom: 6 }}
+                >
+                  <MemoizedTitleEditor
+                    pageId={page.id}
+                    slugId={page.slugId}
+                    title={page.title}
+                    spaceSlug={page.space?.slug ?? ""}
+                    editable={hasBases && canEdit}
+                    isBase
+                  />
+                </div>
+              }
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     page && (
       <div>
-        <Helmet>
-          <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
-        </Helmet>
+        <DocumentTitle
+          title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
+          withAppName={false}
+        />
 
         <MemoizedPageHeader readOnly={!canEdit} />
 
@@ -105,6 +184,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           title={page.title}
           content={page.content}
           slugId={page.slugId}
+          spaceId={page.spaceId}
           spaceSlug={page?.space?.slug}
           editable={canEdit}
           creator={page.creator}

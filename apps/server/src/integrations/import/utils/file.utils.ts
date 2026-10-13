@@ -31,31 +31,39 @@ export function getFileTaskFolderPath(
   }
 }
 
-/**
- * Extracts a ZIP archive.
- */
+const COMPRESSION_HEADROOM = 10;
+const MIN_EXTRACTED_BYTES = 256 * 1024 * 1024;
+const MAX_ENTRIES = 250_000;
+
+type SizeBudget = { used: number; max: number };
+
 export async function extractZip(
   source: string,
   target: string,
 ): Promise<void> {
-  return extractZipInternal(source, target, true);
+  const { size: compressedSize } = await fs.promises.stat(source);
+  const max = Math.max(
+    compressedSize * COMPRESSION_HEADROOM,
+    MIN_EXTRACTED_BYTES,
+  );
+  return extractZipInternal(source, target, true, { used: 0, max });
 }
 
-/**
- * Internal helper to extract a ZIP, with optional single-nested-ZIP handling.
- * @param source   Path to the ZIP file
- * @param target   Directory to extract into
- * @param allowNested  Whether to check and unwrap one level of nested ZIP
- */
 function extractZipInternal(
   source: string,
   target: string,
   allowNested: boolean,
+  budget: SizeBudget,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     yauzl.open(
       source,
-      { lazyEntries: true, decodeStrings: false, autoClose: true },
+      {
+        lazyEntries: true,
+        decodeStrings: false,
+        autoClose: true,
+        validateEntrySizes: true,
+      },
       (err, zipfile) => {
         if (err) return reject(err);
 
@@ -73,6 +81,15 @@ function extractZipInternal(
                 ? source.slice(0, -4) + '.inner.zip'
                 : source + '.inner.zip';
 
+              budget.used += entry.uncompressedSize;
+              if (budget.used > budget.max) {
+                return reject(
+                  new Error(
+                    'Import archive exceeds the allowed extracted size limit',
+                  ),
+                );
+              }
+
               zipfile.openReadStream(entry, (openErr, rs) => {
                 if (openErr) return reject(openErr);
                 const ws = fs.createWriteStream(nestedPath);
@@ -80,7 +97,7 @@ function extractZipInternal(
                 ws.on('error', reject);
                 ws.on('finish', () => {
                   zipfile.close();
-                  extractZipInternal(nestedPath, target, false)
+                  extractZipInternal(nestedPath, target, false, budget)
                     .then(() => {
                       fs.unlinkSync(nestedPath);
                       resolve();
@@ -91,11 +108,19 @@ function extractZipInternal(
               });
             } else {
               zipfile.close();
-              extractZipInternal(source, target, false).then(resolve, reject);
+              extractZipInternal(source, target, false, budget).then(
+                resolve,
+                reject,
+              );
             }
           });
           zipfile.once('error', reject);
           return;
+        }
+
+        if (zipfile.entryCount > MAX_ENTRIES) {
+          zipfile.close();
+          return reject(new Error('Import archive has too many entries'));
         }
 
         // Normal extraction
@@ -141,6 +166,15 @@ function extractZipInternal(
             }
             zipfile.readEntry();
             return;
+          }
+
+          budget.used += entry.uncompressedSize;
+          if (budget.used > budget.max) {
+            return reject(
+              new Error(
+                'Import archive exceeds the allowed extracted size limit',
+              ),
+            );
           }
 
           // Handle files

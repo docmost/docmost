@@ -24,6 +24,7 @@ export function htmlToMarkdown(html: string): string {
     TurndownPluginGfm.tables,
     TurndownPluginGfm.strikethrough,
     TurndownPluginGfm.highlightedCodeBlock,
+    tabs,
     taskList,
     callout,
     preserveDetail,
@@ -34,8 +35,40 @@ export function htmlToMarkdown(html: string): string {
     iframeEmbed,
     image,
     video,
+    footnoteRef,
+    footnotesList,
   ]);
-  return turndownService.turndown(html).replaceAll('<br>', ' ');
+  const htmlWithoutColgroups = html.replace(
+    /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,
+    '',
+  );
+  return turndownService.turndown(htmlWithoutColgroups).replaceAll('<br>', ' ');
+}
+
+function tabs(turndownService: _TurndownService) {
+  turndownService.addRule('tabs', {
+    filter: (node: HTMLInputElement) =>
+      node.nodeName === 'DIV' && node.getAttribute('data-type') === 'tabs',
+    replacement: (_content: string, node: HTMLInputElement) => {
+      const sections = Array.from(
+        node.querySelectorAll(':scope > div[data-type="tab"]'),
+      ).map((tabNode) => {
+        const label =
+          tabNode.querySelector(':scope > div[data-type="tabLabel"]')
+            ?.textContent ?? '';
+        const panel = tabNode.querySelector(
+          ':scope > div[data-type="tabPanel"]',
+        );
+        const heading = `#### ${turndownService.escape(label.replace(/\s+/g, ' ').trim())}`;
+        const body = panel
+          ? turndownService.turndown(panel.innerHTML).trim()
+          : '';
+        return body ? `${heading}\n\n${body}` : heading;
+      });
+
+      return `\n\n${sections.join('\n\n')}\n\n`;
+    },
+  });
 }
 
 function listParagraph(turndownService: _TurndownService) {
@@ -53,7 +86,9 @@ function listParagraph(turndownService: _TurndownService) {
 function orderedListItem(turndownService: _TurndownService) {
   turndownService.addRule('orderedListItem', {
     filter: function (node: HTMLInputElement) {
-      return node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem';
+      return (
+        node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem'
+      );
     },
     replacement: (content: string, node: HTMLInputElement, options: any) => {
       const parent = node.parentNode as HTMLElement;
@@ -114,9 +149,7 @@ function taskList(turndownService: _TurndownService) {
       const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
 
       return (
-        prefix +
-        text +
-        (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
+        prefix + text + (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
       );
     },
   });
@@ -144,7 +177,7 @@ function preserveDetail(turndownService: _TurndownService) {
         )
         .join('');
 
-      return `\n<details>\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
+      return `\n<details markdown="1">\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
     },
   });
 }
@@ -203,6 +236,56 @@ function image(turndownService: _TurndownService) {
   });
 }
 
+function getFootnoteAnchor(node: HTMLElement): HTMLElement | null {
+  const child = node.firstElementChild as HTMLElement | null;
+  return child?.nodeName === 'A' && child.classList.contains('footnote-ref')
+    ? child
+    : null;
+}
+
+function footnoteRef(turndownService: _TurndownService) {
+  turndownService.addRule('footnoteRef', {
+    filter: function (node: HTMLInputElement) {
+      return node.nodeName === 'SUP' && !!getFootnoteAnchor(node);
+    },
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const anchor = getFootnoteAnchor(node);
+      const number =
+        anchor.getAttribute('data-reference-number') || anchor.textContent;
+      return `[^${number}]`;
+    },
+  });
+}
+
+function footnotesList(turndownService: _TurndownService) {
+  turndownService.addRule('footnotesList', {
+    filter: function (node: HTMLInputElement) {
+      return node.nodeName === 'OL' && node.classList.contains('footnotes');
+    },
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const items = Array.from(node.children).filter(
+        (child) => child.nodeName === 'LI',
+      );
+      const definitions = items.map((li, index) => {
+        const number =
+          (li.getAttribute('id') || '').replace('fn:', '') ||
+          String(index + 1);
+        const markdown = turndownService
+          .turndown((li as HTMLElement).innerHTML)
+          .trim();
+        // continuation lines need a 4-space indent to stay in the footnote
+        const [first, ...rest] = markdown.split('\n');
+        const body = [
+          first,
+          ...rest.map((line: string) => (line.trim() ? `    ${line}` : line)),
+        ].join('\n');
+        return `[^${number}]: ${body}`;
+      });
+      return `\n\n${definitions.join('\n')}\n\n`;
+    },
+  });
+}
+
 function video(turndownService: _TurndownService) {
   turndownService.addRule('video', {
     filter: function (node: HTMLInputElement) {
@@ -211,9 +294,7 @@ function video(turndownService: _TurndownService) {
     replacement: function (_content: string, node: HTMLInputElement) {
       const src = node.getAttribute('src') || '';
       const ariaLabel = node.getAttribute('aria-label');
-      const name = sanitizeMdLinkText(
-        ariaLabel || getBasename(src) || src,
-      );
+      const name = sanitizeMdLinkText(ariaLabel || getBasename(src) || src);
       return '[' + name + '](' + src + ')';
     },
   });

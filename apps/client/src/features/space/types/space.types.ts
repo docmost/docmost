@@ -24,11 +24,13 @@ export interface ISpace {
   description: string;
   logo?: string;
   slug: string;
+  isPersonal?: boolean;
   hostname: string;
   creatorId: string;
   createdAt: Date;
   updatedAt: Date;
   memberCount?: number;
+  isPublished?: boolean;
   spaceId?: string;
   membership?: IMembership;
   settings?: ISpaceSettings;

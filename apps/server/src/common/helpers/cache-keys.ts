@@ -4,6 +4,7 @@ export const CacheKey = {
     `perm:space-roles:${userId}:${spaceId}`,
   PAGE_CAN_EDIT: (userId: string, pageId: string) =>
     `perm:can-edit:${userId}:${pageId}`,
+  SIEM_LICENSED: (workspaceId: string) => `siem:licensed:${workspaceId}`,
 };
 
 // Permission caches dedupe repeated checks within and across short request bursts.

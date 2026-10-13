@@ -3,6 +3,7 @@ import { atom } from 'jotai';
 export const showCommentPopupAtom = atom<boolean>(false);
 export const activeCommentIdAtom = atom<string>('');
 export const draftCommentIdAtom = atom<string>('');
+export const commentPanelTabAtom = atom<'open' | 'resolved'>('open');
 
 // Read-only comment state
 export const showReadOnlyCommentPopupAtom = atom<boolean>(false);

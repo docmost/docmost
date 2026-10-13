@@ -105,7 +105,7 @@ export default function GlobalSidebar() {
 
         <Divider my="xs" />
         <div className={classes.section}>
-          <Text className={classes.sectionHeader}>{t("Favorite spaces")}</Text>
+          <Text component="h2" className={classes.sectionHeader}>{t("Favorite spaces")}</Text>
           {!isFavoritesPending && sortedFavoriteSpaces.length === 0 ? (
             <Text size="xs" c="dimmed" pl="xs" py={4}>
               {t("Favorite spaces appear here")}

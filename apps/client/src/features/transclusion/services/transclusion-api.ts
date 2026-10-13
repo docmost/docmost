@@ -19,6 +19,14 @@ export async function lookupTransclusionForShare(params: {
   return r.data;
 }
 
+export async function lookupTransclusionForPublicSpace(params: {
+  spaceSlug: string;
+  references: Array<{ sourcePageId: string; transclusionId: string }>;
+}): Promise<{ items: TransclusionLookup[] }> {
+  const r = await api.post("/public-spaces/transclusion/lookup", params);
+  return r.data;
+}
+
 export async function listReferences(params: {
   sourcePageId: string;
   transclusionId: string;

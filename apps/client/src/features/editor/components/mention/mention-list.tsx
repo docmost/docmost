@@ -32,6 +32,7 @@ import {
   MentionSuggestionItem,
 } from "@/features/editor/components/mention/mention.type.ts";
 import { IPage } from "@/features/page/types/page.types";
+import { getPageTitle } from "@/features/page/page.utils";
 import {
   useCreatePageMutation,
   usePageQuery,
@@ -103,7 +104,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
         items = items.concat(
           suggestion.pages.map((page) => ({
             id: uuid7(),
-            label: page.title || t("Untitled"),
+            label: getPageTitle(page.title, page.isBase, t),
             entityType: "page",
             entityId: page.id,
             slugId: page.slugId,
@@ -278,7 +279,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
 
       props.command({
         id: uuid7(),
-        label: createdPage.title || "Untitled",
+        label: getPageTitle(createdPage.title, createdPage.isBase, t),
         entityType: "page",
         entityId: createdPage.id,
         slugId: createdPage.slugId,

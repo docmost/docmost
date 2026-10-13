@@ -1,0 +1,717 @@
+.tableScrollport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
+  padding-bottom: 100px;
+}
+
+.stickyBand {
+  position: sticky;
+  top: var(--sticky-band-top, 0);
+  z-index: 10;
+  background-color: var(--mantine-color-body);
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.headerGrid {
+  display: grid;
+  overflow-x: hidden;
+  margin-left: calc(-1 * var(--embed-extend-l, 0px));
+  margin-right: calc(-1 * var(--embed-extend-r, 0px));
+  padding-left: var(--embed-grid-pad-left, 0);
+  padding-right: var(--embed-grid-pad-right, 0);
+}
+
+.bodyGrid {
+  overflow-x: auto;
+  margin-left: calc(-1 * var(--embed-extend-l, 0px));
+  margin-right: calc(-1 * var(--embed-extend-r, 0px));
+  padding-left: var(--embed-grid-pad-left, 0);
+  padding-right: var(--embed-grid-pad-right, 0);
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.bodyGrid:focus,
+.bodyGrid:focus-visible {
+  outline: none;
+}
+
+.bodyGrid::-webkit-scrollbar {
+  height: 8px;
+}
+
+.bodyGrid::-webkit-scrollbar-thumb {
+  background-color: light-dark(
+    var(--mantine-color-gray-4),
+    var(--mantine-color-dark-4)
+  );
+  border-radius: 4px;
+}
+
+.bodyGrid::-webkit-scrollbar-thumb:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-5),
+    var(--mantine-color-dark-3)
+  );
+}
+
+.bodyGrid::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.rowsContainer {
+  position: relative;
+}
+
+/* Virtualized rows: position is owned by the virtualizer (writes `top`
+ * directly via directDomUpdates). Do not set top/transform elsewhere. */
+.virtualRow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.headerRow {
+  display: contents;
+}
+
+.headerCell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 8px;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  border-right: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.headerCell:last-child {
+  border-right: none;
+}
+
+.headerCellPinned {
+  position: sticky;
+  left: calc(-1 * var(--embed-grid-pad-left, 0px) + var(--pin-offset, 0px));
+  z-index: 2;
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+}
+
+.headerCellContent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.headerCellName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerTypeIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.headerConvertingSpinner {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 3;
+}
+
+.resizeHandle::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background-color: transparent;
+  transition: background-color 150ms ease;
+}
+
+.resizeHandle:hover::after,
+.resizeHandleActive::after {
+  background-color: var(--mantine-color-blue-5);
+}
+
+.rowContainer {
+  display: contents;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--base-grid-cols);
+  height: var(--base-row-height);
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+@media (hover: hover) {
+  .row:hover .cell {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-7)
+    );
+  }
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 8px;
+  touch-action: manipulation;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-7)
+  );
+  border-right: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  overflow: hidden;
+  cursor: default;
+  outline: none;
+}
+
+/* No `.cell:last-child { border-right: none }`: the body grid always carries
+ * a trailing flexible filler track, so the last column cell is never at the
+ * table's right edge. Its right border stays as the column divider (matching
+ * the header), which would otherwise go missing for the last column. */
+
+.cellPinned {
+  /* See .headerCellPinned for the rationale on the negative pad-left.
+   * Both grids share the same anchor calculation so header and body
+   * cells freeze in lockstep. */
+  position: sticky;
+  left: calc(-1 * var(--embed-grid-pad-left, 0px) + var(--pin-offset, 0px));
+  z-index: 1;
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-7)
+  );
+}
+
+@media (hover: hover) {
+  .row:hover .cellPinned {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-7)
+    );
+  }
+}
+
+.cellEditing {
+  outline: 2px solid var(--mantine-color-blue-5);
+  outline-offset: -2px;
+  z-index: 1;
+  padding: 0;
+}
+
+.bodyGrid:focus .cellFocused {
+  outline: 2px solid var(--mantine-color-blue-5);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+@media (hover: none) {
+  .cellFocused {
+    outline: 2px solid var(--mantine-color-blue-5);
+    outline-offset: -2px;
+    z-index: 1;
+  }
+}
+
+.headerCell:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-5);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.cellContent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowNumberCell {
+  justify-content: center;
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.rowDragging .cell {
+  opacity: 0.4;
+}
+
+.rowDropAbove .cell {
+  box-shadow: inset 0 2px 0 0 var(--mantine-color-blue-5);
+}
+
+.rowDropBelow .cell {
+  box-shadow: inset 0 -2px 0 0 var(--mantine-color-blue-5);
+}
+
+.rowDragPreview {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: 4px;
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-7)
+  );
+  box-shadow: var(--mantine-shadow-md);
+  pointer-events: none;
+}
+
+.addRowButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  height: 32px;
+  margin: 4px 0 4px;
+  padding: 0 10px;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  cursor: pointer;
+  user-select: none;
+  border-radius: 4px;
+  transition: background-color 150ms ease;
+  position: sticky;
+  inset-inline-start: 0;
+  background-color: light-dark(
+    var(--mantine-color-body),
+    var(--mantine-color-dark-7)
+  );
+  z-index: 4;
+}
+
+.addRowButton:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.addColumnButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  min-width: 40px;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 150ms ease;
+}
+
+.addColumnButton:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  grid-column: 1 / -1;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs) 0;
+  margin-bottom: var(--mantine-spacing-xs);
+  flex-wrap: wrap;
+}
+
+.toolbarRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.embedTitleInput {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  margin: calc(-1 * var(--mantine-spacing-md)) 0 var(--mantine-spacing-sm);
+  font-family: inherit;
+  font-size: var(--mantine-font-size-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+}
+
+.embedTitleInput::placeholder {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  font-weight: 600;
+}
+
+.primaryCell {
+  font-weight: 500;
+}
+
+.rowNumberCellInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.rowNumberIndex,
+.rowNumberCheckbox {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rowNumberCheckbox {
+  display: none;
+}
+
+.rowNumberDragHandle {
+  position: absolute;
+  top: 50%;
+  left: -6px;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  cursor: grab;
+}
+
+.rowNumberDragHandle:active {
+  cursor: grabbing;
+}
+
+/* Expand affordance at the right edge of the primary cell. The zero-width
+   anchor keeps the title at full width; the button overlays it on hover and
+   inherits the cell background (incl. hover/selected states) to mask the
+   text beneath. Hidden via opacity, not display, so it stays focusable. */
+.rowExpandAnchor {
+  position: relative;
+  align-self: stretch;
+  width: 0;
+  margin-left: auto;
+  background-color: inherit;
+}
+
+.rowExpandButton {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background-color: inherit;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  touch-action: manipulation;
+  transition: opacity 80ms ease, color 80ms ease;
+}
+
+.row:hover .rowExpandButton,
+.rowExpandButton:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .rowExpandButton {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (hover: hover) {
+  .rowExpandButton:hover {
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+  }
+}
+
+@media (hover: hover) {
+  .row:hover .rowNumberIndex {
+    display: none;
+  }
+  .row:hover .rowNumberCheckbox,
+  .row:hover .rowNumberDragHandle {
+    display: inline-flex;
+  }
+}
+
+.rowSelected .rowNumberIndex {
+  display: none;
+}
+.rowSelected .rowNumberCheckbox {
+  display: inline-flex;
+}
+.bodyGrid:focus .cellFocused .rowNumberIndex {
+  display: none;
+}
+.bodyGrid:focus .cellFocused .rowNumberCheckbox {
+  display: inline-flex;
+}
+@media (hover: none) {
+  .cellFocused .rowNumberIndex {
+    display: none;
+  }
+  .cellFocused .rowNumberCheckbox {
+    display: inline-flex;
+  }
+}
+.rowSelected .cell {
+  background: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6));
+}
+
+@media (hover: hover) {
+  .row.rowSelected:hover .cell,
+  .row.rowSelected:hover .cellPinned {
+    background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5));
+  }
+}
+
+.rowNumberHeaderInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.rowNumberHeaderHash {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  font-size: var(--mantine-font-size-xs);
+}
+
+.rowNumberHeaderCheckbox {
+  display: none;
+}
+
+.headerCell:hover .rowNumberHeaderHash,
+.hasSelection .rowNumberHeaderHash {
+  display: none;
+}
+
+.headerCell:hover .rowNumberHeaderCheckbox,
+.hasSelection .rowNumberHeaderCheckbox {
+  display: inline-flex;
+}
+
+.headerCell:focus-visible .rowNumberHeaderHash {
+  display: none;
+}
+.headerCell:focus-visible .rowNumberHeaderCheckbox {
+  display: inline-flex;
+}
+
+.selectionActionBarWrapper {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.selectionActionBar {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.18);
+  background: light-dark(
+    var(--mantine-color-dark-8),
+    var(--mantine-color-dark-5)
+  );
+  color: var(--mantine-color-white);
+  border: 1px solid light-dark(
+    var(--mantine-color-dark-9),
+    var(--mantine-color-dark-4)
+  );
+}
+
+.selectionActionBarCount {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  color: var(--mantine-color-white);
+  padding-right: 10px;
+  margin-right: 2px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.selectionActionBarDelete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--mantine-color-red-4);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.selectionActionBarDelete:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.selectionActionBarDelete:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.selectionActionBarClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--mantine-color-gray-3);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.selectionActionBarClose:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--mantine-color-white);
+}
+
+.dropEdgeLine {
+  position: absolute;
+  background: light-dark(
+    var(--mantine-color-blue-5),
+    var(--mantine-color-blue-4)
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.dropEdgeLine[data-edge="left"] {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+}
+
+.dropEdgeLine[data-edge="right"] {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+}
+
+.dropEdgeLine[data-edge="top"] {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+}
+
+.dropEdgeLine[data-edge="bottom"] {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+}
+
+.ghostRow {
+  cursor: pointer;
+  width: max-content;
+  min-width: 100%;
+}
+
+.popoverAnchor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

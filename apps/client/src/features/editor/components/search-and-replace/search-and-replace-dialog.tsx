@@ -17,6 +17,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useEditor } from "@tiptap/react";
+import { isEditorReady } from "@docmost/editor-ext";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { searchAndReplaceStateAtom } from "@/features/editor/components/search-and-replace/atoms/search-and-replace-state-atom.ts";
 import { useAtom } from "jotai";
@@ -64,13 +65,13 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
       replaceButtonToggle();
     }
     // Clear search term in editor
-    if (editor) {
-      editor.commands.setSearchTerm("");
+    if (isEditorReady(editor)) {
+      editor.commands.setSearchTerms([""]);
     }
   };
 
   const goToSelection = () => {
-    if (!editor) return;
+    if (!isEditorReady(editor)) return;
 
     const { results, resultIndex } = editor.storage.searchAndReplace;
     //TODO: check type error
@@ -78,6 +79,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     const position: Range = results[resultIndex];
 
     if (!position) return;
+    editor.commands.showTabAt(results[resultIndex].from);
 
     // @ts-ignore
     editor.commands.setTextSelection(position);
@@ -90,34 +92,40 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
   };
 
   const next = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.nextSearchResult();
     goToSelection();
   };
 
   const previous = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.previousSearchResult();
     goToSelection();
   };
 
   const replace = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.setReplaceTerm(replaceText);
     editor.commands.replace();
     goToSelection();
   };
 
   const replaceAll = () => {
+    if (!isEditorReady(editor)) return;
     editor.commands.setReplaceTerm(replaceText);
     editor.commands.replaceAll();
   };
 
   useEffect(() => {
-    editor.commands.setSearchTerm(searchText);
+    if (!isEditorReady(editor)) return;
+    editor.commands.setSearchTerms([searchText]);
     editor.commands.resetIndex();
     editor.commands.selectCurrentItem();
   }, [searchText]);
 
   const handleOpenEvent = (e) => {
     setPageFindState({ isOpen: true });
+    if (!isEditorReady(editor)) return;
     const selectedText = editor.state.doc.textBetween(
       editor.state.selection.from,
       editor.state.selection.to,
@@ -149,6 +157,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
   }, [pageFindState.isOpen]);
 
   useEffect(() => {
+    if (!isEditorReady(editor)) return;
     editor.commands.setCaseSensitive(caseSensitive.isCaseSensitive);
     editor.commands.resetIndex();
     goToSelection();
@@ -173,8 +182,10 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
 
   const location = useLocation();
   useEffect(() => {
-    closeDialog();
-  }, [location]);
+    if (pageFindState.isOpen) {
+      closeDialog();
+    }
+  }, [location.pathname]);
 
   return (
     <Dialog

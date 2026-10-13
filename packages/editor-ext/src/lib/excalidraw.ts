@@ -2,7 +2,7 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ResizableNodeView } from "./resizable-nodeview";
 import type { ResizableNodeViewDirection } from "./resizable-nodeview";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { normalizeFileUrl } from "./media-utils";
+import { normalizeFileUrl, syncAltBadge } from "./media-utils";
 
 export type ExcalidrawResizeOptions = {
   enabled: boolean;
@@ -293,6 +293,8 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
           const container = nodeView.dom as HTMLElement;
           applyAlignment(container, align);
 
+          syncAltBadge(nodeView.wrapper, updatedNode.attrs.alt);
+
           currentNode = updatedNode;
           return true;
         },
@@ -309,6 +311,8 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
       });
 
       const dom = nodeView.dom as HTMLElement;
+
+      syncAltBadge(nodeView.wrapper, node.attrs.alt);
 
       applyAlignment(dom, node.attrs.align || "center");
 

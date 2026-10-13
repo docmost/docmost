@@ -1,20 +1,17 @@
-import { EventEmitter } from 'events';
 import type WebSocket from 'ws';
+import type { WebSocketLike } from '@hocuspocus/server';
 
 /**
- * Wrapper around ws WebSocket that only receives events via emit().
- * This prevents double-handling when used with RedisSyncExtension.
+ * Wrapper around ws WebSocket that Hocuspocus only writes to.
+ * Incoming socket events are forwarded separately by the gateway,
+ * which prevents double-handling with RedisSyncExtension.
  */
-export class WsSocketWrapper extends EventEmitter {
+export class WsSocketWrapper implements WebSocketLike {
   private ws: WebSocket;
   readyState = 1;
 
   constructor(ws: WebSocket) {
-    super();
     this.ws = ws;
-    this.once('close', () => {
-      this.readyState = 3;
-    });
   }
 
   close(code?: number, reason?: string) {
@@ -22,15 +19,6 @@ export class WsSocketWrapper extends EventEmitter {
     this.readyState = 3;
     try {
       this.ws.close(code, reason);
-    } catch (e) {
-      // Socket already closed
-    }
-  }
-
-  ping() {
-    if (this.readyState !== 1) return;
-    try {
-      this.ws.ping();
     } catch (e) {
       // Socket already closed
     }

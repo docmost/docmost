@@ -15,15 +15,17 @@ import { IconCornerDownRightDouble, IconDots } from "@tabler/icons-react";
 import { Link, useParams } from "react-router-dom";
 import classes from "./breadcrumb.module.css";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { buildPageUrl, getPageTitle } from "@/features/page/page.utils.ts";
+import type { TFunction } from "i18next";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { extractPageSlugId } from "@/lib";
 import { useMediaQuery } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 
-function getTitle(name: string, icon: string) {
-  if (icon) {
-    return `${icon} ${name}`;
+function getTitle(node: SpaceTreeNode, t: TFunction) {
+  const name = getPageTitle(node.name, node.isBase, t);
+  if (node.icon) {
+    return `${node.icon} ${name}`;
   }
   return name;
 }
@@ -58,7 +60,7 @@ export default function Breadcrumb() {
           style={{ border: "none" }}
         >
           <Text fz={"sm"} className={classes.truncatedText}>
-            {getTitle(node.name, node.icon)}
+            {getTitle(node, t)}
           </Text>
         </Button>
       </Button.Group>
@@ -75,7 +77,7 @@ export default function Breadcrumb() {
           style={{ border: "none" }}
         >
           <Text fz={"sm"} className={classes.truncatedText}>
-            {getTitle(node.name, node.icon)}
+            {getTitle(node, t)}
           </Text>
         </Button>
       </Button.Group>
@@ -83,7 +85,7 @@ export default function Breadcrumb() {
 
   const renderAnchor = useCallback(
     (node: SpaceTreeNode, isCurrent = false) => (
-      <Tooltip label={node.name} key={node.id}>
+      <Tooltip label={getPageTitle(node.name, node.isBase, t)} key={node.id}>
         <Anchor
           component={Link}
           to={buildPageUrl(spaceSlug, node.slugId, node.name)}
@@ -93,11 +95,11 @@ export default function Breadcrumb() {
           className={classes.truncatedText}
           aria-current={isCurrent ? "page" : undefined}
         >
-          {getTitle(node.name, node.icon)}
+          {getTitle(node, t)}
         </Anchor>
       </Tooltip>
     ),
-    [spaceSlug],
+    [spaceSlug, t],
   );
 
   const getBreadcrumbItems = () => {

@@ -15,6 +15,15 @@ export interface IAttachment {
   deletedAt: string | null;
 }
 
+export interface IPageAttachment extends IAttachment {
+  url: string;
+  creator: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null;
+}
+
 export enum AvatarIconType {
   AVATAR = "avatar",
   SPACE_ICON = "space-icon",

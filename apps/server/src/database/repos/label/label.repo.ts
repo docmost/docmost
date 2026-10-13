@@ -176,6 +176,32 @@ export class LabelRepo {
       .execute();
   }
 
+  async copyLabelsToPages(
+    pageIdMap: Map<string, string>,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (pageIdMap.size === 0) return;
+    const db = dbOrTx(this.db, trx);
+
+    const sourceLabels = await db
+      .selectFrom('pageLabels')
+      .select(['pageId', 'labelId'])
+      .where('pageId', 'in', [...pageIdMap.keys()])
+      .execute();
+    if (sourceLabels.length === 0) return;
+
+    await db
+      .insertInto('pageLabels')
+      .values(
+        sourceLabels.map((row) => ({
+          pageId: pageIdMap.get(row.pageId),
+          labelId: row.labelId,
+        })),
+      )
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+  }
+
   async removeLabelFromPage(
     pageId: string,
     labelId: string,

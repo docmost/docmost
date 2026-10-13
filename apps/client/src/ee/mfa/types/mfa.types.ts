@@ -31,12 +31,10 @@ export interface MfaSetupRequest {
 export interface MfaSetupResponse {
   method: string;
   qrCode: string;
-  secret: string;
   manualKey: string;
 }
 
 export interface MfaEnableRequest {
-  secret: string;
   verificationCode: string;
 }
 

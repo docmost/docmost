@@ -1,6 +1,6 @@
-node_modules
-.git
-dist
+**/node_modules
+**/.git
+**/dist
 /data
-.env*
-.nx
+**/.env*
+**/.nx

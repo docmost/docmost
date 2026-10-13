@@ -1,7 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
-import React, { useCallback } from "react";
+import React, { useCallback, type JSX } from "react";
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -61,10 +61,13 @@ export const SubpagesMenu = React.memo(
       <BaseBubbleMenu
         editor={editor}
         pluginKey={`subpages-menu`}
+        ref={(element) => {
+          if (element) element.style.zIndex = "99";
+        }}
         updateDelay={0}
         shouldShow={shouldShow}
       >
-        <Tooltip position="top" label={t("Delete")}>
+        <Tooltip position="top" label={t("Delete")} withinPortal={false}>
           <ActionIcon
             onClick={deleteNode}
             variant="default"

@@ -17,9 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Helmet } from "react-helmet-async";
 import { useDebouncedValue } from "@mantine/hooks";
-import { getAppName } from "@/lib/config";
 import { useLabelPagesQuery } from "@/features/label/queries/label-query.ts";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import { getLabelColor } from "@/features/label/utils/label-colors.ts";
@@ -29,6 +27,7 @@ import { normalizeLabelName } from "@/features/label/utils/normalize-label.ts";
 import { SpaceFilterMenu } from "@/features/space/components/space-filter-menu.tsx";
 import { EmptyState } from "@/components/ui/empty-state";
 import classes from "@/features/label/label.module.css";
+import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
 export default function LabelPage() {
   const { t } = useTranslation();
@@ -82,11 +81,7 @@ export default function LabelPage() {
 
   return (
     <>
-      <Helmet>
-        <title>
-          {labelName} - {getAppName()}
-        </title>
-      </Helmet>
+      <DocumentTitle title={labelName} />
 
       <Container size={820} py="xl">
         <Stack gap="lg">

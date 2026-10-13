@@ -1,0 +1,51 @@
+.presetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: rem(8px);
+}
+
+.presetCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: rem(6px);
+  min-width: rem(72px);
+  padding: rem(10px) rem(12px);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: rem(8px);
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--mantine-color-default-hover);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 1px;
+  }
+}
+
+.presetCard[data-selected="true"] {
+  border-color: var(--mantine-primary-color-filled);
+  background-color: var(--mantine-primary-color-light);
+}
+
+.presetSwatch {
+  width: rem(22px);
+  height: rem(22px);
+  border-radius: 50%;
+  border: 1px solid var(--mantine-color-default-border);
+  flex-shrink: 0;
+}
+
+.customSwatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: rem(22px);
+  height: rem(22px);
+  border-radius: 50%;
+  border: 1px dashed var(--mantine-color-default-border);
+  color: var(--mantine-color-dimmed);
+}

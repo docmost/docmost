@@ -1,5 +1,6 @@
 import { Editor } from "@tiptap/react";
 import { useCallback, useEffect, useState } from "react";
+import { showTabAtElement } from "@/features/editor/utils";
 
 function waitForState(checkFn: () => boolean): Promise<void> {
   return new Promise((resolve) => {
@@ -42,8 +43,13 @@ export const useEditorScroll = ({
         return;
       }
 
+      if (editor.isDestroyed) {
+        resolve(false);
+        return;
+      }
       const dom = editor.view.dom.querySelector(`[id="${targetId}"], [data-id="${targetId}"]`);
       if (dom) {
+        showTabAtElement(dom);
         dom.scrollIntoView({ behavior: 'smooth', block: 'start' });
         resolve(true);
       } else {

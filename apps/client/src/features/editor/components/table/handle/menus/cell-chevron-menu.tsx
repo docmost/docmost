@@ -101,14 +101,14 @@ export const CellChevronMenu = React.memo(function CellChevronMenu({
       <Menu.Item
         leftSection={<IconBoxMargin size={16} />}
         onClick={() => editor.chain().focus().mergeCells().run()}
-        disabled={!editor.can().mergeCells()}
+        disabled={!editor?.can().mergeCells()}
       >
         {t("Merge cells")}
       </Menu.Item>
       <Menu.Item
         leftSection={<IconSquareToggle size={16} />}
         onClick={() => editor.chain().focus().splitCell().run()}
-        disabled={!editor.can().splitCell()}
+        disabled={!editor?.can().splitCell()}
       >
         {t("Split cell")}
       </Menu.Item>

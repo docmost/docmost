@@ -97,6 +97,15 @@ export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
   }
 }
 
+function isBareLink($el: Cheerio<any>): boolean {
+  const href = $el.attr("href")?.trim();
+  const text = $el.text().trim();
+
+  if(!text || !href) return false
+
+  return text === href;
+}
+
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
   normalizeTableColumnWidths($, $root);
 
@@ -104,7 +113,9 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
     const $el = $(el);
     const url = $el.attr('href')!;
     const { provider } = getEmbedUrlAndProvider(url);
-    if (provider === 'iframe') return;
+    if (provider === 'iframe' || !isBareLink($el)) {
+      return;
+    }
 
     const embed = `<div data-type=\"embed\" data-src=\"${url}\" data-provider=\"${provider}\" data-align=\"center\" data-width=\"640\" data-height=\"480\"></div>`;
     $el.replaceWith(embed);

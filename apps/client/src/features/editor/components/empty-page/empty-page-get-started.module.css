@@ -1,0 +1,29 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Push the bar to the bottom of the full-height editor container. */
+  margin-top: auto;
+  padding-top: 24px;
+  padding-bottom: 8px;
+  /* Match the content indent used by .byline and .ProseMirror so the bar
+     lines up with the title and paragraph rather than the container edge. */
+  padding-left: 3rem;
+  padding-right: 3rem;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.label {
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

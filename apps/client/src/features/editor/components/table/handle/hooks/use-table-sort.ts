@@ -4,6 +4,7 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import {
   convertArrayOfRowsToTableNode,
   convertTableNodeToArrayOfRows,
+  isEditorReady,
   transpose,
 } from "@docmost/editor-ext";
 import {
@@ -63,7 +64,7 @@ export function useTableSort({
   }, [tableNode, orientation, index]);
 
   const handleSort = useCallback(() => {
-    if (!canSort) return;
+    if (!canSort || !isEditorReady(editor)) return;
 
     const rows = convertTableNodeToArrayOfRows(tableNode);
     const axes = orientation === "col" ? rows : transpose(rows);

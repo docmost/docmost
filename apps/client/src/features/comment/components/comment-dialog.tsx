@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Dialog, Group, Stack, Text } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import {
   activeCommentIdAtom,
+  commentPanelTabAtom,
   draftCommentIdAtom,
   showCommentPopupAtom,
   showReadOnlyCommentPopupAtom,
@@ -15,6 +16,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { useCreateCommentMutation } from "@/features/comment/queries/comment-query";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { useEditor } from "@tiptap/react";
+import { isEditorReady } from "@docmost/editor-ext";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { useTranslation } from "react-i18next";
 
@@ -31,6 +33,7 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
   const [, setShowReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [readOnlyCommentData, setReadOnlyCommentData] = useAtom(readOnlyCommentDataAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
+  const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
   const [draftCommentId, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
@@ -48,11 +51,14 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
       setReadOnlyCommentData(null);
     } else {
       setShowCommentPopup(false);
-      editor.chain().focus().unsetCommentDecoration().run();
+      if (isEditorReady(editor)) {
+        editor.chain().focus().unsetCommentDecoration().run();
+      }
     }
   };
 
   const getSelectedText = () => {
+    if (!isEditorReady(editor)) return "";
     const { from, to } = editor.state.selection;
     return editor.state.doc.textBetween(from, to);
   };
@@ -74,14 +80,19 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
 
       const createdComment =
         await createCommentMutation.mutateAsync(commentData);
-      editor
-        .chain()
-        .setComment(createdComment.id)
-        .unsetCommentDecoration()
-        .run();
+      if (isEditorReady(editor)) {
+        editor
+          .chain()
+          .setComment(createdComment.id)
+          .unsetCommentDecoration()
+          .run();
+        editor.commands.setTextSelection({
+          from: editor.view.state.selection.from,
+          to: editor.view.state.selection.from,
+        });
+      }
       setActiveCommentId(createdComment.id);
-
-      editor.commands.setTextSelection({ from: editor.view.state.selection.from, to: editor.view.state.selection.from });
+      setCommentPanelTab("open");
 
       setAsideState({ tab: "comments", isAsideOpen: true });
       setTimeout(() => {
@@ -89,9 +100,9 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
         const commentElement = document.querySelector(selector);
         commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
 
-        editor.view.dispatch(
-          editor.state.tr.scrollIntoView()
-        );
+        if (isEditorReady(editor)) {
+          editor.view.dispatch(editor.state.tr.scrollIntoView());
+        }
       }, 400);
 
     } finally {
@@ -113,6 +124,7 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
       });
 
       setActiveCommentId(createdComment.id);
+      setCommentPanelTab("open");
       setAsideState({ tab: "comments", isAsideOpen: true });
 
       setTimeout(() => {

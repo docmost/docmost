@@ -7,6 +7,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import type { DropOp } from "@/features/page/tree/model/tree-model.types";
+import {
+  spaceRoots,
+  updateSpaceRoots,
+} from "@/features/page/tree/utils/utils.ts";
 import { dropOpToMovePayload } from "./drop-op-to-move-payload";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
@@ -45,7 +49,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
 
   const handleMove = useCallback(
     async (sourceId: string, op: DropOp) => {
-      const before = store.get(treeDataAtom);
+      const before = spaceRoots(store.get(treeDataAtom), spaceId);
       const { tree: after, result } = treeModel.move(before, sourceId, op);
       if (after === before) return;
 
@@ -80,12 +84,12 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         } as Partial<SpaceTreeNode>);
       }
 
-      setData(optimistic);
+      setData((prev) => updateSpaceRoots(prev, spaceId, () => optimistic));
 
       try {
         await movePageMutation.mutateAsync(payload);
       } catch {
-        setData(before);
+        setData((prev) => updateSpaceRoots(prev, spaceId, () => before));
         notifications.show({
           message: t("Failed to move page"),
           color: "red",
@@ -157,7 +161,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
       // tree (e.g. lazy-load children on expand) immediately before calling
       // handleCreate hit a stale closure and compute lastIndex against the
       // pre-load tree, requiring a setTimeout-based wait at the call site.
-      const current = store.get(treeDataAtom);
+      const current = spaceRoots(store.get(treeDataAtom), spaceId);
       let lastIndex: number;
       if (parentId === null) {
         lastIndex = current.length;
@@ -166,7 +170,11 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         lastIndex = parent?.children?.length ?? 0;
       }
 
-      setData((prev) => treeModel.insert(prev, parentId, newNode, lastIndex));
+      setData((prev) =>
+        updateSpaceRoots(prev, spaceId, (roots) =>
+          treeModel.insert(roots, parentId, newNode, lastIndex),
+        ),
+      );
 
       setTimeout(() => {
         emit({

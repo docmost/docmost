@@ -40,6 +40,7 @@ export default function TransclusionContent({ content }: Props) {
       <EditorProvider
         editable={false}
         immediatelyRender={true}
+        textDirection="auto"
         extensions={extensions}
         content={content as any}
       />

@@ -48,6 +48,7 @@ export class SpaceService {
     workspaceId: string,
     createSpaceDto: CreateSpaceDto,
     trx?: KyselyTransaction,
+    options?: { isPersonal?: boolean },
   ): Promise<Space> {
     let space = null;
 
@@ -59,6 +60,7 @@ export class SpaceService {
           workspaceId,
           createSpaceDto,
           trx,
+          options,
         );
 
         await this.spaceMemberService.addUserToSpace(
@@ -81,6 +83,7 @@ export class SpaceService {
         after: {
           name: space.name,
           slug: space.slug,
+          ...(space.isPersonal ? { isPersonal: true } : {}),
         },
       },
     });
@@ -93,6 +96,7 @@ export class SpaceService {
     workspaceId: string,
     createSpaceDto: CreateSpaceDto,
     trx?: KyselyTransaction,
+    options?: { isPersonal?: boolean },
   ): Promise<Space> {
     const slugExists = await this.spaceRepo.slugExists(
       createSpaceDto.slug,
@@ -112,6 +116,7 @@ export class SpaceService {
         creatorId: userId,
         workspaceId: workspaceId,
         slug: createSpaceDto.slug,
+        isPersonal: options?.isPersonal ?? false,
       },
       trx,
     );

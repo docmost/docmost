@@ -60,6 +60,10 @@ export class GroupUserRepo {
           sql`f_unaccent(users.name)`,
           'ilike',
           sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
+          sql`users.email`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
         ),
       );
     }

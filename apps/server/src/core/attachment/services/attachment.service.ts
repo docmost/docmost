@@ -43,7 +43,7 @@ export class AttachmentService {
 
   async uploadFile(opts: {
     filePromise: Promise<MultipartFile>;
-    pageId: string;
+    pageId?: string;
     userId: string;
     spaceId: string;
     workspaceId: string;
@@ -116,8 +116,8 @@ export class AttachmentService {
         });
       }
 
-      // Only index PDFs and DOCX files
-      if (['.pdf', '.docx'].includes(attachment.fileExt.toLowerCase())) {
+      // Only index PDF, DOCX and TXT files
+      if (['.pdf', '.docx', '.txt'].includes(attachment.fileExt.toLowerCase())) {
         await this.attachmentQueue.add(
           QueueJob.ATTACHMENT_INDEX_CONTENT,
           {

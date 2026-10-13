@@ -73,9 +73,13 @@ export const embedProviders: IEmbedProvider[] = [
     id: "vimeo",
     name: "Vimeo",
     regex:
-      /^(https:)?\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)/,
-    getEmbedUrl: (match) => {
-      return `https://player.vimeo.com/video/${match[4]}`;
+      /^(https:)?\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)(?:\/([\da-zA-Z]+))?/,
+    getEmbedUrl: (match, url: string) => {
+      // preserve ?h= hash for unlisted videos
+      const hash =
+        match[5] ?? new URL(url, "https://vimeo.com").searchParams.get("h");
+      const base = `https://player.vimeo.com/video/${match[4]}`;
+      return hash ? `${base}?h=${hash}` : base;
     },
   },
   {

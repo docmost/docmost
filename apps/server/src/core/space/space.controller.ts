@@ -13,6 +13,7 @@ import { SpaceService } from './services/space.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import { SpaceIdDto } from './dto/space-id.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceMemberService } from './services/space-member.service';
@@ -48,6 +49,7 @@ export class SpaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('/')
+  @OAuthScope('read')
   async getWorkspaceSpaces(
     @Body()
     pagination: PaginationOptions,
@@ -92,6 +94,7 @@ export class SpaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('info')
+  @OAuthScope('read')
   async getSpaceInfo(
     @Body() spaceIdDto: SpaceIdDto,
     @AuthUser() user: User,
@@ -129,6 +132,7 @@ export class SpaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('create')
+  @OAuthScope('write')
   createSpace(
     @Body() createSpaceDto: CreateSpaceDto,
     @AuthUser() user: User,
@@ -145,6 +149,7 @@ export class SpaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
+  @OAuthScope('write')
   async updateSpace(
     @Body() updateSpaceDto: UpdateSpaceDto,
     @AuthUser() user: User,

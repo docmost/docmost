@@ -10,7 +10,12 @@ const api: AxiosInstance = axios.create({
 api.interceptors.response.use(
   (response) => {
     // we need the response headers for these endpoints
-    const exemptEndpoints = ["/api/pages/export", "/api/spaces/export"];
+    const exemptEndpoints = [
+      "/api/pages/export",
+      "/api/spaces/export",
+      "/api/docx-export",
+      "/api/bases/export-csv",
+    ];
     if (response.request.responseURL) {
       const path = new URL(response.request.responseURL)?.pathname;
       if (path && exemptEndpoints.includes(path)) {
@@ -27,6 +32,13 @@ api.interceptors.response.use(
           const url = new URL(error.request.responseURL)?.pathname;
           if (url === "/api/auth/collab-token") return;
           if (window.location.pathname.startsWith("/share/")) return;
+          // public docs probe authed endpoints; reject without the login redirect
+          if (
+            window.location.pathname === "/docs" ||
+            window.location.pathname.startsWith("/docs/")
+          ) {
+            break;
+          }
 
           // Handle unauthorized error
           redirectToLogin();
@@ -71,13 +83,15 @@ function redirectToLogin() {
     APP_ROUTE.AUTH.MFA_CHALLENGE,
     APP_ROUTE.AUTH.MFA_SETUP_REQUIRED,
     "/invites",
+    // the oauth consent page redirects to login itself, preserving its query string
+    "/oauth/consent",
   ];
-  if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
-    const redirectTo = window.location.pathname;
-    if (redirectTo === APP_ROUTE.HOME) {
+  const { pathname, search, hash } = window.location;
+  if (!exemptPaths.some((path) => pathname.startsWith(path))) {
+    if (pathname === APP_ROUTE.HOME) {
       window.location.href = APP_ROUTE.AUTH.LOGIN;
     } else {
-      const params = new URLSearchParams({ redirect: redirectTo });
+      const params = new URLSearchParams({ redirect: pathname + search + hash });
       window.location.href = `${APP_ROUTE.AUTH.LOGIN}?${params.toString()}`;
     }
   }
