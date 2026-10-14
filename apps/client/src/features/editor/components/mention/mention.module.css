@@ -29,6 +29,23 @@
   }
 }
 
+/* When a mention matches a find/search query, the .search-result class lands on
+   the outer node-view wrapper, but the mention's own background paints over it.
+   Recolor the inner pill so a matched mention looks just like a matched word. */
+:global([data-node-view-wrapper].search-result) .userMention,
+:global([data-node-view-wrapper].search-result) .pageMentionText {
+  background-color: #45ce79;
+  color: #212529;
+  border-radius: 0.4rem;
+}
+
+:global([data-node-view-wrapper].search-result-current) .userMention,
+:global([data-node-view-wrapper].search-result-current) .pageMentionText {
+  background-color: #ff6696;
+  color: #212529;
+  border-radius: 0.4rem;
+}
+
 .menuBtn {
   width: 100%;
   padding: 6px 4px;
