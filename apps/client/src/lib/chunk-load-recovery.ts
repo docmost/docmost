@@ -1,4 +1,4 @@
-import { isPrefetchingRoutes } from "@/lib/route-prefetch.ts";
+import { isPrefetching } from "@/lib/lazy-prefetch.ts";
 
 const RELOAD_AT_KEY = "chunk-reload-at";
 const RELOAD_COOLDOWN_MS = 60_000;
@@ -33,7 +33,7 @@ export function isChunkLoadFailure(error: unknown): boolean {
 }
 
 export function claimReloadForPreloadError(error: unknown): boolean {
-  if (isPrefetchingRoutes() || !isChunkLoadFailure(error)) {
+  if (isPrefetching() || !isChunkLoadFailure(error)) {
     return false;
   }
   return claimChunkReload();

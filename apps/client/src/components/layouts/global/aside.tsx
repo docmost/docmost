@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { ASIDE_PANEL_ID } from "@/hooks/use-toggle-aside.tsx";
+import { lazyWithPrefetch } from "@/lib/lazy-prefetch.ts";
 
 const CommentListWithTabs = lazy(
   () => import("@/features/comment/components/comment-list-with-tabs.tsx"),
@@ -16,7 +17,7 @@ const TableOfContents = lazy(() =>
     "@/features/editor/components/table-of-contents/table-of-contents.tsx"
   ).then((m) => ({ default: m.TableOfContents })),
 );
-const AsideChatPanel = lazy(
+const AsideChatPanel = lazyWithPrefetch(
   () => import("@/ee/ai-chat/components/aside-chat-panel"),
 );
 const PageDetailsAside = lazy(() =>

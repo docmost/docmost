@@ -7,8 +7,8 @@ import {
 
 const prefetchState = vi.hoisted(() => ({ running: false }));
 
-vi.mock("@/lib/route-prefetch.ts", () => ({
-  isPrefetchingRoutes: () => prefetchState.running,
+vi.mock("@/lib/lazy-prefetch.ts", () => ({
+  isPrefetching: () => prefetchState.running,
 }));
 
 const LOAD_FAILURE = new TypeError(
@@ -91,7 +91,7 @@ describe("claimReloadForPreloadError", () => {
     expect(claimReloadForPreloadError(LOAD_FAILURE)).toBe(true);
   });
 
-  it("ignores failures during the background route prefetch without using up the cooldown", () => {
+  it("ignores failures during the background prefetch without using up the cooldown", () => {
     prefetchState.running = true;
     expect(claimReloadForPreloadError(LOAD_FAILURE)).toBe(false);
 

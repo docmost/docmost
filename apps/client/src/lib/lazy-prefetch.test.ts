@@ -11,31 +11,31 @@ function trackedLoader(name: string, events: string[]) {
 
 async function freshModule() {
   vi.resetModules();
-  return import("./route-prefetch");
+  return import("./lazy-prefetch");
 }
 
-describe("route prefetch", () => {
+describe("lazy prefetch", () => {
   afterEach(() => {
     Reflect.deleteProperty(navigator, "connection");
     window.history.pushState({}, "", "/");
   });
 
-  it("does not load a route when it is declared", async () => {
-    const { lazyRoute } = await freshModule();
+  it("does not load a component when it is declared", async () => {
+    const { lazyWithPrefetch } = await freshModule();
     const load = vi.fn(async () => ({ default: () => null }));
 
-    lazyRoute(load);
+    lazyWithPrefetch(load);
 
     expect(load).not.toHaveBeenCalled();
   });
 
-  it("loads every declared route one at a time", async () => {
-    const { lazyRoute, prefetchRoutes } = await freshModule();
+  it("loads every declared component one at a time", async () => {
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
     const events: string[] = [];
-    lazyRoute(trackedLoader("home", events));
-    lazyRoute(trackedLoader("groups", events));
+    lazyWithPrefetch(trackedLoader("home", events));
+    lazyWithPrefetch(trackedLoader("groups", events));
 
-    await prefetchRoutes();
+    await prefetchLazyComponents();
 
     expect(events).toEqual([
       "start home",
@@ -45,47 +45,61 @@ describe("route prefetch", () => {
     ]);
   });
 
-  it("keeps going when a route fails to load", async () => {
-    const { lazyRoute, prefetchRoutes, isPrefetchingRoutes } =
+  it("loads components declared by a chunk it prefetched", async () => {
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
+    const events: string[] = [];
+    lazyWithPrefetch(async () => {
+      events.push("page");
+      lazyWithPrefetch(trackedLoader("mermaid", events));
+      return { default: () => null };
+    });
+
+    await prefetchLazyComponents();
+
+    expect(events).toEqual(["page", "start mermaid", "end mermaid"]);
+  });
+
+  it("keeps going when a component fails to load", async () => {
+    const { lazyWithPrefetch, prefetchLazyComponents, isPrefetching } =
       await freshModule();
     const later = vi.fn(async () => ({ default: () => null }));
-    lazyRoute(() =>
+    lazyWithPrefetch(() =>
       Promise.reject(
         new TypeError("Failed to fetch dynamically imported module"),
       ),
     );
-    lazyRoute(later);
+    lazyWithPrefetch(later);
 
-    await expect(prefetchRoutes()).resolves.toBeUndefined();
+    await expect(prefetchLazyComponents()).resolves.toBeUndefined();
     expect(later).toHaveBeenCalledTimes(1);
-    expect(isPrefetchingRoutes()).toBe(false);
+    expect(isPrefetching()).toBe(false);
   });
 
   it("reports a prefetch as running only while it runs", async () => {
-    const { lazyRoute, prefetchRoutes, isPrefetchingRoutes } =
+    const { lazyWithPrefetch, prefetchLazyComponents, isPrefetching } =
       await freshModule();
     let duringPrefetch: boolean | undefined;
-    lazyRoute(async () => {
-      duringPrefetch = isPrefetchingRoutes();
+    lazyWithPrefetch(async () => {
+      duringPrefetch = isPrefetching();
       return { default: () => null };
     });
 
-    await prefetchRoutes();
+    await prefetchLazyComponents();
 
     expect(duringPrefetch).toBe(true);
-    expect(isPrefetchingRoutes()).toBe(false);
+    expect(isPrefetching()).toBe(false);
   });
 
   it("does nothing when Data Saver is on", async () => {
-    const { lazyRoute, prefetchRoutes } = await freshModule();
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
     Object.defineProperty(navigator, "connection", {
       value: { saveData: true },
       configurable: true,
     });
     const load = vi.fn(async () => ({ default: () => null }));
-    lazyRoute(load);
+    lazyWithPrefetch(load);
 
-    await prefetchRoutes();
+    await prefetchLazyComponents();
 
     expect(load).not.toHaveBeenCalled();
   });
@@ -98,23 +112,23 @@ describe("route prefetch", () => {
     "/pdf-render/0199a1b2",
     "/oauth/consent",
   ])("does nothing on %s", async (path) => {
-    const { lazyRoute, prefetchRoutes } = await freshModule();
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
     window.history.pushState({}, "", path);
     const load = vi.fn(async () => ({ default: () => null }));
-    lazyRoute(load);
+    lazyWithPrefetch(load);
 
-    await prefetchRoutes();
+    await prefetchLazyComponents();
 
     expect(load).not.toHaveBeenCalled();
   });
 
   it("prefetches on app pages", async () => {
-    const { lazyRoute, prefetchRoutes } = await freshModule();
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
     window.history.pushState({}, "", "/s/eng/p/roadmap");
     const load = vi.fn(async () => ({ default: () => null }));
-    lazyRoute(load);
+    lazyWithPrefetch(load);
 
-    await prefetchRoutes();
+    await prefetchLazyComponents();
 
     expect(load).toHaveBeenCalledTimes(1);
   });

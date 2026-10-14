@@ -4,22 +4,22 @@ type NavigatorWithConnection = Navigator & {
   connection?: { saveData?: boolean };
 };
 
-const routeLoaders: Array<() => Promise<unknown>> = [];
+const prefetchLoaders: Array<() => Promise<unknown>> = [];
 
 let prefetching = false;
 
-export function isPrefetchingRoutes() {
+export function isPrefetching() {
   return prefetching;
 }
 
-export function lazyRoute<T extends ComponentType<any>>(
+export function lazyWithPrefetch<T extends ComponentType<any>>(
   load: () => Promise<{ default: T }>,
 ) {
-  routeLoaders.push(load);
+  prefetchLoaders.push(load);
   return lazy(load);
 }
 
-export async function prefetchRoutes() {
+export async function prefetchLazyComponents() {
   // anonymous share/docs viewers, OAuth consent and the PDF renderer only need the page they opened
   const isStandalonePage = /^\/(share|docs|pdf-render|oauth)(\/|$)/.test(
     window.location.pathname,
@@ -31,8 +31,9 @@ export async function prefetchRoutes() {
 
   prefetching = true;
   try {
-    for (const load of routeLoaders) {
-      // a failed prefetch is recovered when that route is actually opened
+    // for...of also visits loaders declared by chunks this loop loads, such as the editor's
+    for (const load of prefetchLoaders) {
+      // a failed prefetch is recovered when that component is actually rendered
       await load().catch(() => {});
     }
   } finally {

@@ -3,88 +3,88 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import { isCloud } from "@/lib/config.ts";
-import { lazyRoute, prefetchRoutes } from "@/lib/route-prefetch.ts";
+import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
 import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
 
 
-const SetupWorkspace = lazyRoute(() => import("@/pages/auth/setup-workspace.tsx"));
-const LoginPage = lazyRoute(() => import("@/pages/auth/login"));
-const Home = lazyRoute(() => import("@/pages/dashboard/home"));
-const Page = lazyRoute(() => import("@/pages/page/page"));
-const AccountSettings = lazyRoute(
+const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
+const LoginPage = lazyWithPrefetch(() => import("@/pages/auth/login"));
+const Home = lazyWithPrefetch(() => import("@/pages/dashboard/home"));
+const Page = lazyWithPrefetch(() => import("@/pages/page/page"));
+const AccountSettings = lazyWithPrefetch(
   () => import("@/pages/settings/account/account-settings"),
 );
-const WorkspaceMembers = lazyRoute(
+const WorkspaceMembers = lazyWithPrefetch(
   () => import("@/pages/settings/workspace/workspace-members"),
 );
-const WorkspaceSettings = lazyRoute(
+const WorkspaceSettings = lazyWithPrefetch(
   () => import("@/pages/settings/workspace/workspace-settings"),
 );
-const Groups = lazyRoute(() => import("@/pages/settings/group/groups"));
-const GroupInfo = lazyRoute(() => import("./pages/settings/group/group-info"));
-const Spaces = lazyRoute(() => import("@/pages/settings/space/spaces.tsx"));
-const AccountPreferences = lazyRoute(
+const Groups = lazyWithPrefetch(() => import("@/pages/settings/group/groups"));
+const GroupInfo = lazyWithPrefetch(() => import("./pages/settings/group/group-info"));
+const Spaces = lazyWithPrefetch(() => import("@/pages/settings/space/spaces.tsx"));
+const AccountPreferences = lazyWithPrefetch(
   () => import("@/pages/settings/account/account-preferences.tsx"),
 );
-const SpaceHome = lazyRoute(() => import("@/pages/space/space-home.tsx"));
-const PageRedirect = lazyRoute(() => import("@/pages/page/page-redirect.tsx"));
-const InviteSignup = lazyRoute(() => import("@/pages/auth/invite-signup.tsx"));
-const ForgotPassword = lazyRoute(() => import("@/pages/auth/forgot-password.tsx"));
-const PasswordReset = lazyRoute(() => import("./pages/auth/password-reset"));
-const Billing = lazyRoute(() => import("@/ee/billing/pages/billing.tsx"));
-const CloudLogin = lazyRoute(() => import("@/ee/pages/cloud-login.tsx"));
-const CreateWorkspace = lazyRoute(() => import("@/ee/pages/create-workspace.tsx"));
-const Security = lazyRoute(() => import("@/ee/security/pages/security.tsx"));
-const License = lazyRoute(() => import("@/ee/licence/pages/license.tsx"));
-const SharedPage = lazyRoute(() => import("@/pages/share/shared-page.tsx"));
-const PdfRenderPage = lazyRoute(() => import("@/ee/pdf-export/pdf-render-page.tsx"));
-const Shares = lazyRoute(() => import("@/pages/settings/shares/shares.tsx"));
-const ShareLayout = lazyRoute(
+const SpaceHome = lazyWithPrefetch(() => import("@/pages/space/space-home.tsx"));
+const PageRedirect = lazyWithPrefetch(() => import("@/pages/page/page-redirect.tsx"));
+const InviteSignup = lazyWithPrefetch(() => import("@/pages/auth/invite-signup.tsx"));
+const ForgotPassword = lazyWithPrefetch(() => import("@/pages/auth/forgot-password.tsx"));
+const PasswordReset = lazyWithPrefetch(() => import("./pages/auth/password-reset"));
+const Billing = lazyWithPrefetch(() => import("@/ee/billing/pages/billing.tsx"));
+const CloudLogin = lazyWithPrefetch(() => import("@/ee/pages/cloud-login.tsx"));
+const CreateWorkspace = lazyWithPrefetch(() => import("@/ee/pages/create-workspace.tsx"));
+const Security = lazyWithPrefetch(() => import("@/ee/security/pages/security.tsx"));
+const License = lazyWithPrefetch(() => import("@/ee/licence/pages/license.tsx"));
+const SharedPage = lazyWithPrefetch(() => import("@/pages/share/shared-page.tsx"));
+const PdfRenderPage = lazyWithPrefetch(() => import("@/ee/pdf-export/pdf-render-page.tsx"));
+const Shares = lazyWithPrefetch(() => import("@/pages/settings/shares/shares.tsx"));
+const ShareLayout = lazyWithPrefetch(
   () => import("@/features/share/components/share-layout.tsx"),
 );
-const ShareRedirect = lazyRoute(() => import("@/pages/share/share-redirect.tsx"));
-const PublicSpacePage = lazyRoute(
+const ShareRedirect = lazyWithPrefetch(() => import("@/pages/share/share-redirect.tsx"));
+const PublicSpacePage = lazyWithPrefetch(
   () => import("@/pages/public-space/public-space-page.tsx"),
 );
-const PublicSpaceLayout = lazyRoute(
+const PublicSpaceLayout = lazyWithPrefetch(
   () => import("@/features/public-space/components/public-space-layout.tsx"),
 );
-const PublicSpaceDirectoryPage = lazyRoute(
+const PublicSpaceDirectoryPage = lazyWithPrefetch(
   () => import("@/pages/public-space/public-space-directory-page.tsx"),
 );
-const SpacesPage = lazyRoute(() => import("@/pages/spaces/spaces.tsx"));
-const MfaChallengePage = lazyRoute(() =>
+const SpacesPage = lazyWithPrefetch(() => import("@/pages/spaces/spaces.tsx"));
+const MfaChallengePage = lazyWithPrefetch(() =>
   import("@/ee/mfa/pages/mfa-challenge-page").then((m) => ({
     default: m.MfaChallengePage,
   })),
 );
-const MfaSetupRequiredPage = lazyRoute(() =>
+const MfaSetupRequiredPage = lazyWithPrefetch(() =>
   import("@/ee/mfa/pages/mfa-setup-required-page").then((m) => ({
     default: m.MfaSetupRequiredPage,
   })),
 );
-const SpaceTrash = lazyRoute(() => import("@/pages/space/space-trash.tsx"));
-const UserApiKeys = lazyRoute(() => import("@/ee/api-key/pages/user-api-keys"));
-const WorkspaceApiKeys = lazyRoute(
+const SpaceTrash = lazyWithPrefetch(() => import("@/pages/space/space-trash.tsx"));
+const UserApiKeys = lazyWithPrefetch(() => import("@/ee/api-key/pages/user-api-keys"));
+const WorkspaceApiKeys = lazyWithPrefetch(
   () => import("@/ee/api-key/pages/workspace-api-keys"),
 );
-const AiSettings = lazyRoute(() => import("@/ee/ai/pages/ai-settings.tsx"));
-const BasePage = lazyRoute(() => import("@/ee/base/pages/base-page.tsx"));
-const AuditLogs = lazyRoute(() => import("@/ee/audit/pages/audit-logs.tsx"));
-const VerifiedPages = lazyRoute(
+const AiSettings = lazyWithPrefetch(() => import("@/ee/ai/pages/ai-settings.tsx"));
+const BasePage = lazyWithPrefetch(() => import("@/ee/base/pages/base-page.tsx"));
+const AuditLogs = lazyWithPrefetch(() => import("@/ee/audit/pages/audit-logs.tsx"));
+const VerifiedPages = lazyWithPrefetch(
   () => import("@/ee/page-verification/pages/verified-pages.tsx"),
 );
-const TemplateList = lazyRoute(() => import("@/ee/template/pages/template-list"));
-const TemplateEditor = lazyRoute(
+const TemplateList = lazyWithPrefetch(() => import("@/ee/template/pages/template-list"));
+const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
 );
-const FavoritesPage = lazyRoute(() => import("@/pages/favorites/favorites-page"));
-const AiChat = lazyRoute(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
-const VerifyEmail = lazyRoute(() => import("@/ee/pages/verify-email.tsx"));
-const LabelPage = lazyRoute(() => import("@/pages/label/label-page"));
-const OAuthConsent = lazyRoute(() => import("@/ee/oauth/pages/oauth-consent.tsx"));
+const FavoritesPage = lazyWithPrefetch(() => import("@/pages/favorites/favorites-page"));
+const AiChat = lazyWithPrefetch(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
+const VerifyEmail = lazyWithPrefetch(() => import("@/ee/pages/verify-email.tsx"));
+const LabelPage = lazyWithPrefetch(() => import("@/pages/label/label-page"));
+const OAuthConsent = lazyWithPrefetch(() => import("@/ee/oauth/pages/oauth-consent.tsx"));
 
 export default function App() {
   const { t } = useTranslation();
@@ -96,7 +96,7 @@ export default function App() {
     if (import.meta.env.DEV) {
       return;
     }
-    const timer = setTimeout(prefetchRoutes, 3000);
+    const timer = setTimeout(prefetchLazyComponents, 3000);
     return () => clearTimeout(timer);
   }, []);
 
