@@ -27,8 +27,10 @@ interface CommentDialogProps {
 
 function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
   const { t } = useTranslation();
+  const [currentUser] = useAtom(currentUserAtom);
+  const draftKey = ["docmost","comment-draft",currentUser.user.workspaceId,currentUser.user.id,pageId].join(":");
   const [storedDraft, setStoredDraft, clearStoredDraft] = useLocalStorage<any>({
-    key: `docmost:comment-draft:${pageId}`,
+    key: draftKey,
     defaultValue: "",
     getInitialValueInEffect: false,
   });
@@ -39,7 +41,6 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
   const [readOnlyCommentData, setReadOnlyCommentData] = useAtom(readOnlyCommentDataAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
-  const [currentUser] = useAtom(currentUserAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const useClickOutsideRef = useClickOutside(() => {
     if (document.querySelector("#mention")) return;
