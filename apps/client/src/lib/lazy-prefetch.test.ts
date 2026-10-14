@@ -1,3 +1,5 @@
+import { createElement, Suspense } from "react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 function trackedLoader(name: string, events: string[]) {
@@ -16,8 +18,11 @@ async function freshModule() {
 
 describe("lazy prefetch", () => {
   afterEach(() => {
+    cleanup();
     Reflect.deleteProperty(navigator, "connection");
+    Reflect.deleteProperty(navigator, "onLine");
     window.history.pushState({}, "", "/");
+    document.head.querySelectorAll("link").forEach((link) => link.remove());
   });
 
   it("does not load a component when it is declared", async () => {
@@ -59,7 +64,7 @@ describe("lazy prefetch", () => {
     expect(events).toEqual(["page", "start mermaid", "end mermaid"]);
   });
 
-  it("keeps going when a component fails to load", async () => {
+  it("stops at the first component that fails to load", async () => {
     const { lazyWithPrefetch, prefetchLazyComponents, isPrefetching } =
       await freshModule();
     const later = vi.fn(async () => ({ default: () => null }));
@@ -71,8 +76,26 @@ describe("lazy prefetch", () => {
     lazyWithPrefetch(later);
 
     await expect(prefetchLazyComponents()).resolves.toBeUndefined();
-    expect(later).toHaveBeenCalledTimes(1);
+    await prefetchLazyComponents();
+
+    expect(later).not.toHaveBeenCalled();
     expect(isPrefetching()).toBe(false);
+  });
+
+  it("runs only once when started again", async () => {
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
+    const events: string[] = [];
+    lazyWithPrefetch(trackedLoader("home", events));
+    lazyWithPrefetch(trackedLoader("groups", events));
+
+    await Promise.all([prefetchLazyComponents(), prefetchLazyComponents()]);
+
+    expect(events).toEqual([
+      "start home",
+      "end home",
+      "start groups",
+      "end groups",
+    ]);
   });
 
   it("reports a prefetch as running only while it runs", async () => {
@@ -88,6 +111,49 @@ describe("lazy prefetch", () => {
 
     expect(duringPrefetch).toBe(true);
     expect(isPrefetching()).toBe(false);
+  });
+
+  it("retries a stylesheet that failed during the prefetch before rendering a component", async () => {
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
+    const href = `${window.location.origin}/assets/groups.css`;
+    const failed = document.createElement("link");
+    lazyWithPrefetch(async () => {
+      failed.rel = "stylesheet";
+      failed.href = href;
+      document.head.appendChild(failed);
+      failed.dispatchEvent(new Event("error"));
+      throw new Error(`Unable to preload CSS for ${href}`);
+    });
+    const Groups = lazyWithPrefetch(async () => ({
+      default: () => createElement("p", null, "Groups"),
+    }));
+    await prefetchLazyComponents();
+
+    render(createElement(Suspense, { fallback: null }, createElement(Groups)));
+    const retry = await vi.waitFor(() => {
+      const link = document.head.querySelector(`link[href="${href}"]`);
+      expect(link).not.toBe(failed);
+      return link;
+    });
+
+    expect(failed.isConnected).toBe(false);
+    expect(screen.queryByText("Groups")).toBeNull();
+    retry.dispatchEvent(new Event("load"));
+    expect(await screen.findByText("Groups")).toBeTruthy();
+  });
+
+  it("does nothing while offline", async () => {
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
+    Object.defineProperty(navigator, "onLine", {
+      value: false,
+      configurable: true,
+    });
+    const load = vi.fn(async () => ({ default: () => null }));
+    lazyWithPrefetch(load);
+
+    await prefetchLazyComponents();
+
+    expect(load).not.toHaveBeenCalled();
   });
 
   it("does nothing when Data Saver is on", async () => {
