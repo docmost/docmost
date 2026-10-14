@@ -50,6 +50,22 @@ describe("lazy prefetch", () => {
     ]);
   });
 
+  it("loads a component marked prefetchFirst before the rest", async () => {
+    const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
+    const events: string[] = [];
+    lazyWithPrefetch(trackedLoader("home", events));
+    lazyWithPrefetch(trackedLoader("page", events), { prefetchFirst: true });
+
+    await prefetchLazyComponents();
+
+    expect(events).toEqual([
+      "start page",
+      "end page",
+      "start home",
+      "end home",
+    ]);
+  });
+
   it("loads components declared by a chunk it prefetched", async () => {
     const { lazyWithPrefetch, prefetchLazyComponents } = await freshModule();
     const events: string[] = [];

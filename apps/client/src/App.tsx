@@ -12,7 +12,9 @@ import { useTrackOrigin } from "@/hooks/use-track-origin";
 const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
 const LoginPage = lazyWithPrefetch(() => import("@/pages/auth/login"));
 const Home = lazyWithPrefetch(() => import("@/pages/dashboard/home"));
-const Page = lazyWithPrefetch(() => import("@/pages/page/page"));
+const Page = lazyWithPrefetch(() => import("@/pages/page/page"), {
+  prefetchFirst: true,
+});
 const AccountSettings = lazyWithPrefetch(
   () => import("@/pages/settings/account/account-settings"),
 );

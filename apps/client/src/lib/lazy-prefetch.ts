@@ -4,6 +4,10 @@ type NavigatorWithConnection = Navigator & {
   connection?: { saveData?: boolean };
 };
 
+type LazyWithPrefetchOptions = {
+  prefetchFirst?: boolean;
+};
+
 const prefetchQueue: Array<() => Promise<unknown>> = [];
 // Vite never requests a stylesheet twice, so one that fails during the prefetch stays missing until retried here
 const failedStylesheets = new Set<HTMLLinkElement>();
@@ -16,8 +20,13 @@ export function isPrefetching() {
 
 export function lazyWithPrefetch<T extends ComponentType<any>>(
   load: () => Promise<{ default: T }>,
+  options: LazyWithPrefetchOptions = {},
 ) {
-  prefetchQueue.push(load);
+  if (options.prefetchFirst) {
+    prefetchQueue.unshift(load);
+  } else {
+    prefetchQueue.push(load);
+  }
   return lazy(async () => {
     await retryFailedStylesheets();
     return load();
