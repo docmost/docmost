@@ -188,7 +188,13 @@ export class OutboundUrlGuard {
       throw new OutboundUrlError('Destination URL must not contain credentials');
     }
 
-    const hostname = url.hostname.replace(/^\[|\]$/g, '');
+    return this.validateHost(url.hostname, effectivePort(url));
+  }
+
+  /** Validates a host for any protocol and returns the address used to pin the connection. */
+  async validateHost(rawHostname: string, port: number): Promise<PinnedAddress> {
+    const isCloud = this.environmentService.isCloud();
+    const hostname = rawHostname.replace(/^\[|\]$/g, '');
     let resolved: ResolvedAddress[];
     if (isIPv4(hostname) || isIPv6(hostname)) {
       resolved = [{ address: hostname, family: isIPv4(hostname) ? 4 : 6 }];
@@ -217,11 +223,7 @@ export class OutboundUrlGuard {
         );
       }
     } else {
-      const refusal = findRefusal(
-        resolved,
-        effectivePort(url),
-        this.resolvePolicy(),
-      );
+      const refusal = findRefusal(resolved, port, this.resolvePolicy());
       if (refusal) throw new OutboundUrlError(describeRefusal(hostname, refusal));
     }
 

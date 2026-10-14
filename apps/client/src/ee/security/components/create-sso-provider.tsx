@@ -7,6 +7,7 @@ import { SSO_PROVIDER } from "@/ee/security/contants.ts";
 import { IAuthProvider } from "@/ee/security/types/security.types.ts";
 import SsoProviderModal from "@/ee/security/components/sso-provider-modal.tsx";
 import { OpenIdIcon } from "@/components/icons/openid-icon.tsx";
+import { isCloud } from "@/lib/config.ts";
 
 export default function CreateSsoProvider() {
   const [opened, { open, close }] = useDisclosure(false);
@@ -85,12 +86,14 @@ export default function CreateSsoProvider() {
               OpenID (OIDC)
             </Menu.Item>
 
-            <Menu.Item
-              onClick={handleCreateLDAP}
-              leftSection={<IconServer size={16} />}
-            >
-              LDAP / Active Directory
-            </Menu.Item>
+            {!isCloud() && (
+              <Menu.Item
+                onClick={handleCreateLDAP}
+                leftSection={<IconServer size={16} />}
+              >
+                LDAP / Active Directory
+              </Menu.Item>
+            )}
           </Menu.Dropdown>
         </Menu>
       </Group>

@@ -389,6 +389,23 @@ describe('OutboundUrlGuard.validate', () => {
   });
 });
 
+describe('OutboundUrlGuard.validateHost', () => {
+  it('matches policy entries against the given port', async () => {
+    const policy = '10.0.0.5/32:636';
+    const lan = [{ address: '10.0.0.5', family: 4 }];
+
+    await expect(guard(false, lan, policy).validateHost('dc.corp', 636))
+      .resolves.toEqual({ hostname: 'dc.corp', address: '10.0.0.5', family: 4 });
+    await expect(guard(false, lan, policy).validateHost('dc.corp', 389))
+      .rejects.toThrow(/ALLOWED_PRIVATE_NETWORKS/);
+  });
+
+  it('refuses private hosts on cloud and strips IPv6 brackets', async () => {
+    await expect(guard(true, []).validateHost('[fd12::1]', 389))
+      .rejects.toThrow(/"fd12::1" resolves to a private or reserved address/);
+  });
+});
+
 describe('isHardBlockedAddress', () => {
   it.each([
     '0.0.0.0', '169.254.169.254', '224.0.0.1', '255.255.255.255',
