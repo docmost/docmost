@@ -105,7 +105,7 @@ export const AuditEvent = {
 
   // Attachment
   ATTACHMENT_UPLOADED: 'attachment.uploaded',
-  // ATTACHMENT_DELETED: 'attachment.deleted',
+  ATTACHMENT_DELETED: 'attachment.deleted',
 
   // SIEM streaming
   SIEM_DESTINATION_CREATED: 'siem_destination.created',

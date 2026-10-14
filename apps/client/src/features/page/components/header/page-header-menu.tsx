@@ -449,6 +449,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
 
       <PageAttachmentsModal
         pageId={page.id}
+        readOnly={readOnly}
         open={attachmentsOpened}
         onClose={closeAttachmentsModal}
       />
