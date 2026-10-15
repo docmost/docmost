@@ -26,10 +26,18 @@ import {
   ITableOptions,
   ITableRowOptions,
   IPropertiesOptions,
+  WidthType,
 } from 'docx';
 import { imageDimensionsFromData } from 'image-dimensions';
 import { createNumbering, NumberingStyles } from './numbering';
-import { buildDoc, createShortId } from './utils';
+import {
+  buildDoc,
+  CELL_MARGIN,
+  createShortId,
+  getTableCellWidths,
+  getTableColumnWidths,
+  TEXT_WIDTH,
+} from './utils';
 import { IFootnotes, INumbering, Mutable, SectionConfig, SerializationState } from './types';
 
 // This is duplicated from @curvenote/schema
@@ -337,7 +345,9 @@ export class DocxSerializerState {
     const { getCellOptions, getRowOptions, tableOptions } = opts;
     const actualChildren = this.children;
     const rows: TableRow[] = [];
-    node.content.forEach((row) => {
+    const columnWidths = getTableColumnWidths(node);
+    const cellWidths = getTableCellWidths(node, columnWidths);
+    node.content.forEach((row, _rowOffset, rowIndex) => {
       const cells: TableCell[] = [];
       // Check if all cells are headers in this row
       let tableHeader = true;
@@ -348,10 +358,13 @@ export class DocxSerializerState {
       });
       // This scales images inside of tables
       this.maxImageWidth = MAX_IMAGE_WIDTH / row.content.childCount;
-      row.content.forEach((cell) => {
+      row.content.forEach((cell, _cellOffset, cellIndex) => {
         this.children = [];
         this.renderContent(cell);
-        const tableCellOpts: Mutable<ITableCellOptions> = { children: this.children };
+        const tableCellOpts: Mutable<ITableCellOptions> = {
+          children: this.children,
+          width: { size: cellWidths[rowIndex][cellIndex], type: WidthType.DXA },
+        };
         const colspan = cell.attrs.colspan ?? 1;
         const rowspan = cell.attrs.rowspan ?? 1;
         if (colspan > 1) tableCellOpts.columnSpan = colspan;
@@ -366,7 +379,13 @@ export class DocxSerializerState {
       rows.push(new TableRow({ ...(getRowOptions?.(row) || {}), children: cells, tableHeader }));
     });
     this.maxImageWidth = MAX_IMAGE_WIDTH;
-    const table = new Table({ ...tableOptions, rows });
+    const table = new Table({
+      width: { size: TEXT_WIDTH, type: WidthType.DXA },
+      columnWidths,
+      margins: { left: CELL_MARGIN, right: CELL_MARGIN },
+      ...tableOptions,
+      rows,
+    });
     actualChildren.push(table);
     // If there are multiple tables, this seperates them
     actualChildren.push(new Paragraph(''));
@@ -556,9 +575,17 @@ export class DocxSerializerStateAsync {
 
   async render(node: Node, parent: Node, index: number) {
     if (typeof parent === 'number') throw new Error('!');
-    if (!this.nodes[node.type.name])
-      throw new Error(`Token type \`${node.type.name}\` not supported by Word renderer`);
-    await Promise.resolve(this.nodes[node.type.name](this, node, parent, index));
+    if (this.nodes[node.type.name]) {
+      await Promise.resolve(this.nodes[node.type.name](this, node, parent, index));
+      return;
+    }
+    // node types without a serializer export their content instead of failing the export
+    if (node.isTextblock) {
+      await this.renderInline(node);
+      this.closeBlock(node);
+      return;
+    }
+    await this.renderContent(node);
   }
 
   renderMarks(node: Node, marks: Mark[]): IRunOptions {
@@ -755,6 +782,8 @@ export class DocxSerializerStateAsync {
     const { getCellOptions, getRowOptions, tableOptions } = opts;
     const actualChildren = this.children;
     const rows: TableRow[] = [];
+    const columnWidths = getTableColumnWidths(node);
+    const cellWidths = getTableCellWidths(node, columnWidths);
 
     for (let rowIndex = 0; rowIndex < node.content.childCount; rowIndex += 1) {
       const row = node.content.child(rowIndex);
@@ -778,7 +807,10 @@ export class DocxSerializerStateAsync {
         this.children = [];
         // eslint-disable-next-line no-await-in-loop
         await this.renderContent(cell); // Ensure order
-        const tableCellOpts: Mutable<ITableCellOptions> = { children: this.children };
+        const tableCellOpts: Mutable<ITableCellOptions> = {
+          children: this.children,
+          width: { size: cellWidths[rowIndex][cellIndex], type: WidthType.DXA },
+        };
         const colspan = cell.attrs.colspan ?? 1;
         const rowspan = cell.attrs.rowspan ?? 1;
         if (colspan > 1) tableCellOpts.columnSpan = colspan;
@@ -795,7 +827,13 @@ export class DocxSerializerStateAsync {
     }
 
     this.maxImageWidth = MAX_IMAGE_WIDTH;
-    const table = new Table({ ...tableOptions, rows });
+    const table = new Table({
+      width: { size: TEXT_WIDTH, type: WidthType.DXA },
+      columnWidths,
+      margins: { left: CELL_MARGIN, right: CELL_MARGIN },
+      ...tableOptions,
+      rows,
+    });
     actualChildren.push(table);
     // If there are multiple tables, this separates them
     actualChildren.push(new Paragraph(''));

@@ -9,6 +9,7 @@ export type SharedPageTreeNode = {
   position: string;
   spaceId: string;
   parentPageId: string;
+  updatedAt?: Date;
   hasChildren: boolean;
   children: SharedPageTreeNode[];
   label: string;
@@ -32,6 +33,7 @@ export function buildSharedPageTree(
       hasChildren: false,
       spaceId: page.spaceId,
       parentPageId: page.parentPageId,
+      updatedAt: page.updatedAt,
       label: page.title || "untitled",
       value: page.id,
       children: [],

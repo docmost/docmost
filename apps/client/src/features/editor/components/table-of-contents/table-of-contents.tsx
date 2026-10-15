@@ -51,6 +51,7 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
 
   const handleScrollToHeading = (position: number) => {
     if (!props.editor || props.editor.isDestroyed) return;
+    props.editor.commands.showTabAt(position);
     const { view } = props.editor;
 
     const headerOffset = parseInt(

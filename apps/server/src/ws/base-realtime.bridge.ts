@@ -46,4 +46,15 @@ export class BaseRealtimeBridge {
   async handleDisconnect(client: Socket): Promise<void> {
     await this.resolve()?.handleDisconnect(client);
   }
+
+  async removeUsersFromSpaceBases(
+    userIds: string[],
+    spaceId: string,
+  ): Promise<void> {
+    await this.resolve()?.removeUsersFromSpaceBases(userIds, spaceId);
+  }
+
+  async removeSubscribersWithoutAccess(pageIds: string[]): Promise<void> {
+    await this.resolve()?.removeSubscribersWithoutAccess(pageIds);
+  }
 }

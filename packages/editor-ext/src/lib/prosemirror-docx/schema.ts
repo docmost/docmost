@@ -150,6 +150,19 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   async detailsContent(state, node) {
     await state.renderContent(node);
   },
+  async tabs(state, node) {
+    await state.renderContent(node);
+  },
+  async tab(state, node) {
+    await state.renderContent(node);
+  },
+  async tabLabel(state, node) {
+    await state.renderInline(node);
+    state.closeBlock(node, { heading: HeadingLevel.HEADING_4 });
+  },
+  async tabPanel(state, node) {
+    await state.renderContent(node);
+  },
   async columns(state, node) {
     await state.renderContent(node);
   },

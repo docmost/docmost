@@ -7,6 +7,7 @@ import { AuditActorInterceptor } from './common/interceptors/audit-actor.interce
 import { CoreModule } from './core/core.module';
 import { EnvironmentModule } from './integrations/environment/environment.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
+import { CollabAccessModule } from './collaboration/collab-access.module';
 import { WsModule } from './ws/ws.module';
 import { DatabaseModule } from '@docmost/db/database.module';
 import { StorageModule } from './integrations/storage/storage.module';
@@ -83,6 +84,7 @@ try {
       inject: [EnvironmentService],
     }),
     CollaborationModule,
+    CollabAccessModule,
     WsModule,
     QueueModule,
     StaticModule,
