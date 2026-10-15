@@ -16369,7 +16369,7 @@ snapshots:
       '@fastify/error': 4.0.0
       '@fastify/fast-json-stringify-compiler': 5.0.2
       '@fastify/proxy-addr': 5.1.2
-      abstract-logging: q2.0.1
+      abstract-logging: 2.0.1
       avvio: 9.1.0
       fast-json-stringify: 7.0.1
       find-my-way: 9.7.0
