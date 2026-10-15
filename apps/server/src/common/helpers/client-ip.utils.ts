@@ -76,7 +76,7 @@ export function overrideRequestIp(
   _reply: FastifyReply,
   done: HookHandlerDoneFunction,
 ): void {
-  // trustProxy defines ip as a prototype getter, so it can't be assigned.
+  // Fastify defines ip as a prototype getter, so it can't be assigned.
   Object.defineProperty(request, 'ip', {
     value: resolveClientIp(request.raw),
   });
