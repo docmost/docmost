@@ -67,8 +67,7 @@ const isWellFormedToken = (token: unknown): token is string =>
   typeof token === 'string' && /^[\x21-\x7e]+$/.test(token);
 
 // Only the error code is safe to log; the rest of the body can name the tenant, app and user.
-async function readTokenErrorCode(response: Response): Promise<string> {
-  const body = await response.json().catch(() => null);
+function tokenErrorCode(body: { error?: unknown } | null): string {
   return typeof body?.error === 'string' && /^[a-z_]{1,40}$/.test(body.error)
     ? body.error
     : '';
@@ -80,6 +79,7 @@ type OAuthTokenResponse = {
   expires_in?: number;
   token_type?: string;
   scope?: string;
+  error?: string;
 };
 
 type CompletedConnection = {
@@ -758,15 +758,22 @@ export class OAuthService {
         basicAuth ? { clientId, clientSecret } : undefined,
       );
 
-      if (!response.ok) {
-        const errorCode = await readTokenErrorCode(response);
+      // A parse error would quote the body.
+      const data: OAuthTokenResponse | null = await response
+        .json()
+        .catch(() => null);
+
+      // GitHub reports token errors with a 200 and an error body.
+      if (!response.ok || data?.error !== undefined) {
+        const errorCode = tokenErrorCode(data);
         this.logger.error(
           `Token refresh failed for ${integration.type}: ${response.status} ${errorCode}`.trimEnd(),
         );
         // invalid_client etc. are config errors, not a dead grant
         if (
           errorCode === 'invalid_grant' ||
-          errorCode === 'interaction_required'
+          errorCode === 'interaction_required' ||
+          errorCode === 'bad_refresh_token'
         ) {
           await this.connectionRepo.invalidate(current.id, expected);
           throw new TokenInvalidError(
@@ -776,10 +783,6 @@ export class OAuthService {
         throw new BadRequestException('Token refresh failed');
       }
 
-      // A parse error would quote the body.
-      const data: OAuthTokenResponse | null = await response
-        .json()
-        .catch(() => null);
       if (!data) {
         this.logger.error(
           `Token refresh for ${integration.type} returned a response that is not JSON`,
@@ -863,7 +866,7 @@ export class OAuthService {
     );
 
     if (!response.ok) {
-      const errorCode = await readTokenErrorCode(response);
+      const errorCode = tokenErrorCode(await response.json().catch(() => null));
       this.logger.error(
         `Token exchange failed for ${type}: ${response.status} ${errorCode}`.trimEnd(),
       );

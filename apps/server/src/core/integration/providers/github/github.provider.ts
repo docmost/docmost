@@ -29,7 +29,7 @@ export class GitHubProvider extends IntegrationProvider {
     oauth: {
       authUrl: 'https://github.com/login/oauth/authorize',
       tokenUrl: 'https://github.com/login/oauth/access_token',
-      scopes: ['repo', 'read:user'],
+      scopes: [],
     },
   };
 
@@ -48,7 +48,7 @@ export class GitHubProvider extends IntegrationProvider {
     return {
       authUrl: `${baseUrl}/login/oauth/authorize`,
       tokenUrl: `${baseUrl}/login/oauth/access_token`,
-      scopes: ['repo', 'read:user'],
+      scopes: [],
     };
   }
 
