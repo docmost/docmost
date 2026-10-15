@@ -1495,6 +1495,9 @@
   "Updated SIEM destination": "Updated SIEM destination",
   "Verify TLS certificate": "Verify TLS certificate",
   "e.g. Splunk prod": "e.g. Splunk prod",
+  "Something went wrong": "Something went wrong",
+  "This page failed to load. Reload to try again.": "This page failed to load. Reload to try again.",
+  "Reload": "Reload"
   "Tabs": "Tabs",
   "Insert a multi-tab content block.": "Insert a multi-tab content block.",
   "Add tab": "Add tab",
