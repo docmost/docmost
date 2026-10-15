@@ -54,7 +54,8 @@ export function createPinoConfig(): Params {
         req: (req) => ({
           method: req.method,
           url: redactSensitiveUrl(req.url),
-          ip: req.ip || req.remoteAddress,
+          // middie copies the resolved request.ip onto the raw request
+          ip: req.raw?.ip || req.remoteAddress,
           userAgent: req.headers?.['user-agent'],
         }),
         res: (res) => ({
