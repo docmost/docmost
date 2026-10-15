@@ -39,6 +39,11 @@ export interface IWorkspace {
   isScimEnabled?: boolean;
 }
 
+export interface IUpdateWorkspace extends Partial<IWorkspace> {
+  addExternalEmbeddingBlacklistUrl?: string;
+  removeExternalEmbeddingBlacklistUrl?: string;
+}
+
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
   sharing?: IWorkspaceSharingSettings;
