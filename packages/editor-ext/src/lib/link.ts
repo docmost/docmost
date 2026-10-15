@@ -1,6 +1,7 @@
 import TiptapLink from '@tiptap/extension-link';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { EditorView } from '@tiptap/pm/view';
+import { sanitizeUrl } from './utils';
 
 export const LinkExtension = TiptapLink.extend({
   inclusive: false,
@@ -14,6 +15,17 @@ export const LinkExtension = TiptapLink.extend({
           element.getAttribute('data-internal') === 'true',
         renderHTML: (attributes) =>
           attributes.internal ? { 'data-internal': 'true' } : {},
+      },
+      href: {
+        default: null,
+        parseHTML: (element: HTMLElement) =>
+          sanitizeUrl(element.getAttribute('href')),
+        renderHTML: (attributes) => {
+          if (!attributes.href) return {};
+          const cleaned = sanitizeUrl(attributes.href);
+          if (!cleaned) return {};
+          return { href: cleaned };
+        },
       },
     };
   },
