@@ -7,6 +7,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUrl,
   Min,
 } from 'class-validator';
 
@@ -88,4 +89,14 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
   @IsBoolean()
   enforceMcpOauth: boolean;
+
+  @IsOptional()
+  @IsString()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true, require_tld: false })
+  addExternalEmbeddingBlacklistUrl: string;
+
+  @IsOptional()
+  @IsString()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true, require_tld: false })
+  removeExternalEmbeddingBlacklistUrl: string;
 }

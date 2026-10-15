@@ -18,11 +18,13 @@ import { zod4Resolver } from "mantine-form-zod-resolver";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import i18n from "i18next";
+import { useAtomValue } from "jotai";
 import {
   getEmbedProviderById,
   getEmbedUrlAndProvider,
   sanitizeUrl,
 } from "@docmost/editor-ext";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 import { ResizableWrapper } from "../common/resizable-wrapper";
 import classes from "./embed-view.module.css";
 
@@ -30,10 +32,29 @@ const schema = z.object({
   url: z.url({ message: i18n.t("Please enter a valid url") }).trim(),
 });
 
+function isBlacklistedUrl(url: string, blockedUrls: string[]): boolean {
+  try {
+    const normalizedUrl = new URL(url).toString();
+    return blockedUrls.some((blockedUrl) => {
+      try {
+        return new URL(blockedUrl).toString() === normalizedUrl;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
 export default function EmbedView(props: NodeViewProps) {
   const { t } = useTranslation();
+  const workspace = useAtomValue(workspaceAtom);
   const { node, selected, updateAttributes, editor } = props;
   const { src, provider, width: nodeWidth, height: nodeHeight } = node.attrs;
+  const blockedUrls =
+    workspace?.settings?.externalEmbeddingBlacklist ?? [];
+  const isBlocked = isBlacklistedUrl(src, blockedUrls);
 
   const embedUrl = useMemo(() => {
     if (src) {
@@ -61,6 +82,15 @@ export default function EmbedView(props: NodeViewProps) {
       return;
     }
 
+    if (isBlacklistedUrl(data.url, blockedUrls)) {
+      notifications.show({
+        message: t("This URL is blocked by workspace security settings."),
+        position: "top-right",
+        color: "red",
+      });
+      return;
+    }
+
     if (provider) {
       const embedProvider = getEmbedProviderById(provider);
       if (embedProvider.id === "iframe") {
@@ -83,7 +113,7 @@ export default function EmbedView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle className={classes.embedNodeView}>
-      {embedUrl ? (
+      {embedUrl && !isBlocked ? (
         <div className={classes.embedContainer}>
           <ResizableWrapper
             initialWidth={nodeWidth || 800}
@@ -140,9 +170,11 @@ export default function EmbedView(props: NodeViewProps) {
                 </ActionIcon>
 
                 <Text component="span" size="lg" c="dimmed">
-                  {t("Embed {{provider}}", {
-                    provider: getEmbedProviderById(provider)?.name,
-                  })}
+                  {isBlocked
+                    ? t("This embed is blocked by workspace security settings.")
+                    : t("Embed {{provider}}", {
+                        provider: getEmbedProviderById(provider)?.name,
+                      })}
                 </Text>
               </div>
             </Card>
