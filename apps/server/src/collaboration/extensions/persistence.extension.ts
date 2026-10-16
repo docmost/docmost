@@ -138,8 +138,6 @@ export class PersistenceExtension implements Extension {
           return;
         }
 
-        await this.collabHistory.addContributors(pageId, editingUserIds);
-
         let contributorIds = undefined;
         try {
           const existingContributors = page.contributorIds || [];
@@ -177,6 +175,15 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
+      try {
+        await this.collabHistory.addContributors(pageId, editingUserIds);
+      } catch (err) {
+        this.logger.error(
+          { err, pageId },
+          'Failed to add history contributors for page',
+        );
+      }
+
       document.broadcastStateless(
         JSON.stringify({
           type: 'page.updated',

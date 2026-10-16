@@ -1,4 +1,5 @@
 import { MarkViewContent, MarkViewProps } from "@tiptap/react";
+import { getMarkRange } from "@tiptap/core";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
   IconFileDescription,
@@ -8,7 +9,7 @@ import {
   IconPencil,
   IconWorld,
 } from "@tabler/icons-react";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { notifications } from "@mantine/notifications";
 import {
   Divider,
@@ -33,8 +34,20 @@ import {
   buildSharedPageUrl,
 } from "@/features/page/page.utils.ts";
 import { extractPageSlugId } from "@/lib";
-import { sanitizeUrl, copyToClipboard, isEditorReady } from "@docmost/editor-ext";
+import {
+  matchIntegrationLink,
+  sanitizeUrl,
+  copyToClipboard,
+  isEditorReady,
+} from "@docmost/editor-ext";
 import { normalizeUrl } from "@/lib/utils";
+import { useInstalledIntegrations } from "@/features/integration/queries/integration-query";
+import {
+  convertIntegrationDisplay,
+  getIntegrationCardAvailability,
+  type IntegrationDisplaySource,
+} from "@/features/editor/components/integration-link/integration-display";
+import { IntegrationDisplayMenu } from "@/features/editor/components/integration-link/integration-display-picker";
 
 const parseInternalLink = (
   href: string,
@@ -80,6 +93,31 @@ export default function LinkView(props: MarkViewProps) {
   const wrapperRef = useRef<HTMLSpanElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isEditable = editor.isEditable;
+  const integrationMatch = useMemo(() => matchIntegrationLink(href), [href]);
+  const markIntegrationProvider =
+    typeof mark.attrs.integrationProvider === "string"
+      ? mark.attrs.integrationProvider
+      : null;
+  const { data: installedIntegrations } = useInstalledIntegrations(
+    Boolean(markIntegrationProvider || integrationMatch) && isEditable,
+  );
+  // Only hosts an installed provider unfurls get "Display as".
+  const hostIntegrationProvider = useMemo(() => {
+    if (!installedIntegrations) return null;
+    const unfurlHosts = Object.fromEntries(
+      installedIntegrations
+        .filter((integration) => integration.unfurlHosts)
+        .map((integration) => [integration.type, integration.unfurlHosts]),
+    );
+    return matchIntegrationLink(href, unfurlHosts)?.provider ?? null;
+  }, [href, installedIntegrations]);
+  const detectedIntegrationProvider =
+    markIntegrationProvider ?? hostIntegrationProvider;
+  const integrationProvider = installedIntegrations?.some(
+    (integration) => integration.type === detectedIntegrationProvider,
+  )
+    ? detectedIntegrationProvider
+    : null;
   const {
     isInternal,
     slugId,
@@ -124,11 +162,35 @@ export default function LinkView(props: MarkViewProps) {
   const getLinkPos = useCallback((): number | null => {
     if (!wrapperRef.current) return null;
     try {
-      return editor.view.posAtDOM(wrapperRef.current, 0);
+      const pos = editor.view.posAtDOM(wrapperRef.current, 0);
+      return pos >= 0 && pos <= editor.state.doc.content.size ? pos : null;
     } catch {
       return null;
     }
   }, [editor]);
+
+  const getIntegrationSource = useCallback((): Extract<
+    IntegrationDisplaySource,
+    { kind: "link" }
+  > | null => {
+    if (!integrationProvider) return null;
+
+    const pos = getLinkPos();
+    if (pos === null) return null;
+
+    const range = getMarkRange(editor.state.doc.resolve(pos), mark.type, {
+      href,
+    });
+    if (!range) return null;
+
+    return {
+      kind: "link",
+      from: range.from,
+      to: range.to,
+      url: href,
+      provider: integrationProvider,
+    };
+  }, [editor, getLinkPos, href, integrationProvider, mark.type]);
 
   const handleUpdateLinkTitle = useCallback(
     (newTitle: string) => {
@@ -225,7 +287,9 @@ export default function LinkView(props: MarkViewProps) {
       const target = e.target as Node;
       if (
         wrapperRef.current?.contains(target) ||
-        dropdownRef.current?.contains(target)
+        dropdownRef.current?.contains(target) ||
+        (target instanceof Element &&
+          target.closest("[data-integration-display-menu-dropdown]"))
       ) {
         return;
       }
@@ -233,6 +297,12 @@ export default function LinkView(props: MarkViewProps) {
     };
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (
+          e.target instanceof Element &&
+          e.target.closest("[data-integration-display-menu-dropdown]")
+        ) {
+          return;
+        }
         setPopoverState("closed");
       }
     };
@@ -366,6 +436,22 @@ export default function LinkView(props: MarkViewProps) {
     setPopoverState("closed");
   }, [editor]);
 
+  const handleIntegrationDisplay = useCallback(
+    (display: "card" | "mention" | "url") => {
+      const source = getIntegrationSource();
+      setPopoverState("closed");
+      if (!source || display === "url") {
+        editor.commands.focus(undefined, { scrollIntoView: false });
+        return;
+      }
+
+      if (convertIntegrationDisplay(editor, source, display)) {
+        editor.commands.focus(undefined, { scrollIntoView: false });
+      }
+    },
+    [editor, getIntegrationSource],
+  );
+
   const internalHref = () => {
     if (isShareRoute && slugId) {
       return buildSharedPageUrl({ shareId, pageSlugId: slugId, pageTitle });
@@ -440,7 +526,13 @@ export default function LinkView(props: MarkViewProps) {
   return (
     <Popover
       opened={isPopoverVisible}
-      width={activeView === "edit" ? 320 : undefined}
+      width={
+        activeView === "edit"
+          ? "min(320px, calc(100vw - 24px))"
+          : integrationProvider
+            ? "min(340px, calc(100vw - 24px))"
+            : undefined
+      }
       position="bottom"
       withArrow
       shadow="md"
@@ -451,6 +543,7 @@ export default function LinkView(props: MarkViewProps) {
         <span
           ref={wrapperRef}
           className={classes.linkWrapper}
+          data-active={isPopoverVisible || undefined}
           onClick={handleClick}
         >
           <a
@@ -468,6 +561,11 @@ export default function LinkView(props: MarkViewProps) {
       <Popover.Dropdown
         ref={dropdownRef}
         p={activeView === "edit" ? "sm" : 6}
+        className={
+          activeView === "preview" && integrationProvider
+            ? classes.integrationPopover
+            : undefined
+        }
         onMouseDown={(e) => e.stopPropagation()}
       >
         {activeView === "edit" ? (
@@ -560,7 +658,7 @@ export default function LinkView(props: MarkViewProps) {
             )}
           </>
         ) : (
-          <Group gap={4} wrap="nowrap">
+          <Group gap={2} wrap="nowrap" className={classes.previewRow}>
             <Group
               component="a"
               //@ts-ignore
@@ -569,13 +667,7 @@ export default function LinkView(props: MarkViewProps) {
               rel={isInternal ? undefined : "noopener noreferrer"}
               gap={6}
               wrap="nowrap"
-              style={{
-                cursor: "pointer",
-                maxWidth: 250,
-                textDecoration: "none",
-                color: "inherit",
-                userSelect: "none",
-              }}
+              className={classes.previewDestination}
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 handleNavigate();
@@ -591,13 +683,41 @@ export default function LinkView(props: MarkViewProps) {
               </Text>
             </Group>
 
-            <Divider orientation="vertical" />
+            <Divider
+              orientation="vertical"
+              className={classes.previewDivider}
+            />
+
+            {isPopoverVisible &&
+              integrationProvider &&
+              (() => {
+                const source = getIntegrationSource();
+                const cardAvailability = source
+                  ? getIntegrationCardAvailability(editor, source)
+                  : null;
+
+                return (
+                  <IntegrationDisplayMenu
+                    current="url"
+                    label={t("Display as")}
+                    canUseCard={cardAvailability?.canUseCard ?? false}
+                    onChange={handleIntegrationDisplay}
+                  />
+                );
+              })()}
 
             <Tooltip label={t("Edit link")} withArrow withinPortal={false}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
+                size={32}
+                className={classes.previewAction}
+                aria-label={t("Edit link")}
                 onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setShowSearch(false);
@@ -612,7 +732,14 @@ export default function LinkView(props: MarkViewProps) {
               <ActionIcon
                 variant="subtle"
                 color="gray"
+                size={32}
+                className={classes.previewAction}
+                aria-label={t("Copy link")}
                 onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleCopy(e);
@@ -626,7 +753,14 @@ export default function LinkView(props: MarkViewProps) {
               <ActionIcon
                 variant="subtle"
                 color="gray"
+                size={32}
+                className={classes.previewAction}
+                aria-label={t("Remove link")}
                 onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleRemoveLink();

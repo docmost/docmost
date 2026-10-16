@@ -6,13 +6,13 @@ import { EmailButton, MailBody } from '../partials/partials';
 interface Props {
   actorName: string;
   pageTitle: string;
-  pageUrl: string;
+  commentUrl: string;
 }
 
 export const CommentMentionEmail = ({
   actorName,
   pageTitle,
-  pageUrl,
+  commentUrl,
 }: Props) => {
   return (
     <MailBody>
@@ -23,7 +23,7 @@ export const CommentMentionEmail = ({
           <strong>{pageTitle}</strong>.
         </Text>
       </Section>
-      <EmailButton href={pageUrl}>View</EmailButton>
+      <EmailButton href={commentUrl}>View</EmailButton>
     </MailBody>
   );
 };

@@ -51,4 +51,19 @@ describe('htmlToMarkdown', () => {
       '</details>',
     ]);
   });
+
+  it('exports each tab as a level 4 heading followed by its content', () => {
+    const markdown = htmlToMarkdown(
+      '<div data-type="tabs">' +
+        '<div data-type="tab" data-tab-id="a"><div data-type="tabLabel">Windows</div>' +
+        '<div data-type="tabPanel"><p>Run setup.exe</p></div></div>' +
+        '<div data-type="tab" data-tab-id="b"><div data-type="tabLabel">Linux *beta*</div>' +
+        '<div data-type="tabPanel"><p>Run setup.sh</p></div></div>' +
+        '</div>',
+    );
+
+    expect(markdown.trim()).toBe(
+      '#### Windows\n\nRun setup.exe\n\n#### Linux \\*beta\\*\n\nRun setup.sh',
+    );
+  });
 });

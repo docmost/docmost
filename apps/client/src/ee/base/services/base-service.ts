@@ -59,10 +59,13 @@ export async function convertPageToBase(
   return req.data;
 }
 
-export async function exportBaseToCsv(pageId: string): Promise<void> {
+export async function exportBaseToCsv(
+  pageId: string,
+  filter?: FilterNode,
+): Promise<void> {
   const req = await api.post(
     "/bases/export-csv",
-    { pageId },
+    { pageId, filter, timeZone: getBrowserTimeZone() },
     { responseType: "blob" },
   );
 

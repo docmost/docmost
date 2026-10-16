@@ -611,6 +611,7 @@ export class PageRepo {
               'pages.parentPageId',
               'pages.spaceId',
               'pages.workspaceId',
+              'pages.updatedAt',
               sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
             ])
             .$if(opts?.includeContent, (qb) => qb.select('pages.content'))
@@ -630,6 +631,7 @@ export class PageRepo {
                   'p.parentPageId',
                   'p.spaceId',
                   'p.workspaceId',
+                  'p.updatedAt',
                   sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
                 ])
                 .$if(opts?.includeContent, (qb) => qb.select('p.content'))
@@ -648,6 +650,7 @@ export class PageRepo {
           'parentPageId',
           'spaceId',
           'workspaceId',
+          'updatedAt',
         ])
         .$if(opts?.includeContent, (qb) => qb.select('content'))
         // Filter out restricted pages from the result
@@ -675,6 +678,7 @@ export class PageRepo {
             'pages.parentPageId',
             'pages.spaceId',
             'pages.workspaceId',
+            'pages.updatedAt',
             sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
           ])
           .where('pages.spaceId', '=', spaceId)
@@ -694,6 +698,7 @@ export class PageRepo {
                 'p.parentPageId',
                 'p.spaceId',
                 'p.workspaceId',
+                'p.updatedAt',
                 sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
               ])
               .where('p.deletedAt', 'is', null)
@@ -710,6 +715,7 @@ export class PageRepo {
         'parentPageId',
         'spaceId',
         'workspaceId',
+        'updatedAt',
       ])
       .where('isRestricted', '=', false)
       .execute();

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAtomValue, getDefaultStore } from "jotai";
-import { useQueryClient, InfiniteData } from "@tanstack/react-query";
+import { useQueryClient, InfiniteData, QueryClient } from "@tanstack/react-query";
+import type { Socket } from "socket.io-client";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom";
 import {
   IBase,
@@ -162,150 +163,106 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
-// Realtime bridge for a single base. Joins the base-{pageId} room on mount and
-// on every reconnect, leaves on unmount, and reconciles React Query caches on
-// inbound events.
-export function useBaseSocket(pageId: string | undefined): void {
-  const socket = useAtomValue(socketAtom);
-  const queryClient = useQueryClient();
+type BaseSubscriptionState = {
+  missedEvents: boolean;
+  calendarRefreshTimer?: ReturnType<typeof setTimeout>;
+  calendarRefreshDeferrals: number;
+};
 
-  useEffect(() => {
-    if (!socket || !pageId) return;
-
-    let missedEvents = false;
-    const subscribe = () => {
-      socket.emit("message", { operation: "base:subscribe", pageId });
-    };
-    const markMissedEvents = () => {
-      missedEvents = true;
-    };
-
-    if (socket.connected) subscribe();
-
-    let calendarRefreshTimer: ReturnType<typeof setTimeout> | undefined;
-    let calendarRefreshDeferrals = 0;
-    const scheduleCalendarRefresh = () => {
-      clearTimeout(calendarRefreshTimer);
-      calendarRefreshTimer = setTimeout(() => {
-        const updatingRows = queryClient.isMutating({
-          mutationKey: ROW_UPDATE_MUTATION_KEY,
-          predicate: (mutation) =>
-            (mutation.state.variables as { pageId?: string } | undefined)
-              ?.pageId === pageId,
-        });
-        if (
-          updatingRows > 0 &&
-          calendarRefreshDeferrals < CALENDAR_REFRESH_MAX_DEFERRALS
-        ) {
-          calendarRefreshDeferrals += 1;
-          scheduleCalendarRefresh();
-          return;
-        }
-        calendarRefreshDeferrals = 0;
-        invalidateCalendarRows(pageId);
-      }, CALENDAR_REFRESH_DELAY_MS);
-    };
-
-    const handler = (raw: unknown) => {
-      if (!raw || typeof raw !== "object") return;
-      const event = raw as BaseInboundEvent;
-      if (event.pageId !== pageId) return;
-
-      const requestId = (event as any).requestId as string | undefined;
-      if (requestId && outboundRequestIds.has(requestId)) {
-        outboundRequestIds.delete(requestId);
+function createBaseEventHandler(
+  pageId: string,
+  queryClient: QueryClient,
+  state: BaseSubscriptionState,
+): (raw: unknown) => void {
+  const scheduleCalendarRefresh = () => {
+    clearTimeout(state.calendarRefreshTimer);
+    state.calendarRefreshTimer = setTimeout(() => {
+      const updatingRows = queryClient.isMutating({
+        mutationKey: ROW_UPDATE_MUTATION_KEY,
+        predicate: (mutation) =>
+          (mutation.state.variables as { pageId?: string } | undefined)
+            ?.pageId === pageId,
+      });
+      if (
+        updatingRows > 0 &&
+        state.calendarRefreshDeferrals < CALENDAR_REFRESH_MAX_DEFERRALS
+      ) {
+        state.calendarRefreshDeferrals += 1;
+        scheduleCalendarRefresh();
         return;
       }
+      state.calendarRefreshDeferrals = 0;
+      invalidateCalendarRows(pageId);
+    }, CALENDAR_REFRESH_DELAY_MS);
+  };
 
-      switch (event.operation) {
-        case "base:row:created": {
-          const e = event as BaseRowCreated;
-          const store = getDefaultStore();
-          const referencesAtom = referenceStoreAtomFamily(pageId);
-          if (e.references && Object.keys(e.references.users).length > 0) {
-            store.set(
-              referencesAtom,
-              mergeReferences(store.get(referencesAtom), e.references),
-            );
-          }
-          const baseForCreate = queryClient.getQueryData<IBase>(["bases", pageId]);
-          const hasKanbanForCreate = (baseForCreate?.views ?? []).some((v) => v.type === "kanban");
-          const createProperties = baseForCreate?.properties ?? [];
-          const showsRowUsers = createProperties.some(
-            (p) => p.type === "createdBy" || p.type === "lastEditedBy",
+  return (raw: unknown) => {
+    if (!raw || typeof raw !== "object") return;
+    const event = raw as BaseInboundEvent;
+    if (event.pageId !== pageId) return;
+
+    const requestId = (event as any).requestId as string | undefined;
+    if (requestId && outboundRequestIds.has(requestId)) {
+      outboundRequestIds.delete(requestId);
+      return;
+    }
+
+    switch (event.operation) {
+      case "base:row:created": {
+        const e = event as BaseRowCreated;
+        const store = getDefaultStore();
+        const referencesAtom = referenceStoreAtomFamily(pageId);
+        if (e.references && Object.keys(e.references.users).length > 0) {
+          store.set(
+            referencesAtom,
+            mergeReferences(store.get(referencesAtom), e.references),
           );
-          const knownUsers = store.get(referencesAtom).users;
-          const referencedUserIds = [
-            ...(showsRowUsers ? [e.row.creatorId, e.row.lastUpdatedById] : []),
-            ...createProperties
-              .filter((p) => p.type === "person")
-              .flatMap((p) => e.row.cells?.[p.id] ?? []),
-          ];
-          const usersUnresolved = referencedUserIds.some(
-            (id) => typeof id === "string" && !knownUsers[id],
+        }
+        const baseForCreate = queryClient.getQueryData<IBase>(["bases", pageId]);
+        const hasKanbanForCreate = (baseForCreate?.views ?? []).some((v) => v.type === "kanban");
+        const createProperties = baseForCreate?.properties ?? [];
+        const showsRowUsers = createProperties.some(
+          (p) => p.type === "createdBy" || p.type === "lastEditedBy",
+        );
+        const knownUsers = store.get(referencesAtom).users;
+        const referencedUserIds = [
+          ...(showsRowUsers ? [e.row.creatorId, e.row.lastUpdatedById] : []),
+          ...createProperties
+            .filter((p) => p.type === "person")
+            .flatMap((p) => e.row.cells?.[p.id] ?? []),
+        ];
+        const usersUnresolved = referencedUserIds.some(
+          (id) => typeof id === "string" && !knownUsers[id],
+        );
+        if (hasKanbanForCreate || usersUnresolved) {
+          invalidateBaseRows(pageId);
+        } else {
+          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+            { queryKey: ["base-rows", pageId] },
+            (old) => {
+              if (!old) return old;
+              const lastPageIndex = old.pages.length - 1;
+              return {
+                ...old,
+                pages: old.pages.map((page, index) =>
+                  index === lastPageIndex
+                    ? { ...page, items: [...page.items, e.row] }
+                    : page,
+                ),
+              };
+            },
           );
-          if (hasKanbanForCreate || usersUnresolved) {
-            invalidateBaseRows(pageId);
-          } else {
-            queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-              { queryKey: ["base-rows", pageId] },
-              (old) => {
-                if (!old) return old;
-                const lastPageIndex = old.pages.length - 1;
-                return {
-                  ...old,
-                  pages: old.pages.map((page, index) =>
-                    index === lastPageIndex
-                      ? { ...page, items: [...page.items, e.row] }
-                      : page,
-                  ),
-                };
-              },
-            );
-            scheduleCalendarRefresh();
-          }
-          break;
+          scheduleCalendarRefresh();
         }
-        case "base:row:updated": {
-          const e = event as BaseRowUpdated;
-          const baseForUpdate = queryClient.getQueryData<IBase>(["bases", pageId]);
-          const hasKanbanForUpdate = (baseForUpdate?.views ?? []).some((v) => v.type === "kanban");
-          if (hasKanbanForUpdate) {
-            invalidateBaseRows(pageId);
-          } else {
-            queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-              { queryKey: ["base-rows", pageId] },
-              (old) =>
-                !old
-                  ? old
-                  : {
-                      ...old,
-                      pages: old.pages.map((page) => ({
-                        ...page,
-                        items: page.items.map((row) =>
-                          row.id === e.rowId
-                            ? {
-                                ...row,
-                                cells: { ...row.cells, ...e.updatedCells },
-                              }
-                            : row,
-                        ),
-                      })),
-                    },
-            );
-            if (
-              isCalendarRelevantChange(
-                baseForUpdate,
-                Object.keys(e.updatedCells ?? {}),
-              )
-            ) {
-              scheduleCalendarRefresh();
-            }
-          }
-          break;
-        }
-        case "base:row:deleted": {
-          const e = event as BaseRowDeleted;
+        break;
+      }
+      case "base:row:updated": {
+        const e = event as BaseRowUpdated;
+        const baseForUpdate = queryClient.getQueryData<IBase>(["bases", pageId]);
+        const hasKanbanForUpdate = (baseForUpdate?.views ?? []).some((v) => v.type === "kanban");
+        if (hasKanbanForUpdate) {
+          invalidateBaseRows(pageId);
+        } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
             (old) =>
@@ -315,194 +272,284 @@ export function useBaseSocket(pageId: string | undefined): void {
                     ...old,
                     pages: old.pages.map((page) => ({
                       ...page,
-                      items: page.items.filter((row) => row.id !== e.rowId),
+                      items: page.items.map((row) =>
+                        row.id === e.rowId
+                          ? {
+                              ...row,
+                              cells: { ...row.cells, ...e.updatedCells },
+                            }
+                          : row,
+                      ),
                     })),
                   },
           );
-          const store = getDefaultStore();
-          const selectedIdsAtom = selectedRowIdsAtomFamily(pageId);
-          const current = store.get(selectedIdsAtom);
-          if (current.has(e.rowId)) {
-            const next = new Set(current);
-            next.delete(e.rowId);
-            store.set(selectedIdsAtom, next);
+          if (
+            isCalendarRelevantChange(
+              baseForUpdate,
+              Object.keys(e.updatedCells ?? {}),
+            )
+          ) {
+            scheduleCalendarRefresh();
           }
-          break;
         }
-        case "base:rows:deleted": {
-          const e = event as BaseRowsDeleted;
-          const removeSet = new Set(e.rowIds);
+        break;
+      }
+      case "base:row:deleted": {
+        const e = event as BaseRowDeleted;
+        queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+          { queryKey: ["base-rows", pageId] },
+          (old) =>
+            !old
+              ? old
+              : {
+                  ...old,
+                  pages: old.pages.map((page) => ({
+                    ...page,
+                    items: page.items.filter((row) => row.id !== e.rowId),
+                  })),
+                },
+        );
+        const store = getDefaultStore();
+        const selectedIdsAtom = selectedRowIdsAtomFamily(pageId);
+        const current = store.get(selectedIdsAtom);
+        if (current.has(e.rowId)) {
+          const next = new Set(current);
+          next.delete(e.rowId);
+          store.set(selectedIdsAtom, next);
+        }
+        break;
+      }
+      case "base:rows:deleted": {
+        const e = event as BaseRowsDeleted;
+        const removeSet = new Set(e.rowIds);
+        queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+          { queryKey: ["base-rows", pageId] },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                items: page.items.filter((row) => !removeSet.has(row.id)),
+              })),
+            };
+          },
+        );
+        const store = getDefaultStore();
+        const selectedIdsAtom = selectedRowIdsAtomFamily(pageId);
+        const current = store.get(selectedIdsAtom);
+        if (current.size > 0) {
+          let changed = false;
+          const next = new Set(current);
+          for (const id of e.rowIds) {
+            if (next.delete(id)) changed = true;
+          }
+          if (changed) store.set(selectedIdsAtom, next);
+        }
+        break;
+      }
+      case "base:row:reordered": {
+        const e = event as BaseRowReordered;
+        const baseForReorder = queryClient.getQueryData<IBase>(["bases", pageId]);
+        const hasKanbanForReorder = (baseForReorder?.views ?? []).some((v) => v.type === "kanban");
+        if (hasKanbanForReorder) {
+          invalidateBaseRows(pageId);
+        } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
-            (old) => {
-              if (!old) return old;
-              return {
-                ...old,
-                pages: old.pages.map((page) => ({
-                  ...page,
-                  items: page.items.filter((row) => !removeSet.has(row.id)),
-                })),
-              };
-            },
+            (old) =>
+              !old
+                ? old
+                : {
+                    ...old,
+                    pages: old.pages.map((page) => ({
+                      ...page,
+                      items: page.items.map((row) =>
+                        row.id === e.rowId
+                          ? { ...row, position: e.position }
+                          : row,
+                      ),
+                    })),
+                  },
           );
-          const store = getDefaultStore();
-          const selectedIdsAtom = selectedRowIdsAtomFamily(pageId);
-          const current = store.get(selectedIdsAtom);
-          if (current.size > 0) {
-            let changed = false;
-            const next = new Set(current);
-            for (const id of e.rowIds) {
-              if (next.delete(id)) changed = true;
-            }
-            if (changed) store.set(selectedIdsAtom, next);
-          }
-          break;
         }
-        case "base:row:reordered": {
-          const e = event as BaseRowReordered;
-          const baseForReorder = queryClient.getQueryData<IBase>(["bases", pageId]);
-          const hasKanbanForReorder = (baseForReorder?.views ?? []).some((v) => v.type === "kanban");
-          if (hasKanbanForReorder) {
-            invalidateBaseRows(pageId);
-          } else {
-            queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-              { queryKey: ["base-rows", pageId] },
-              (old) =>
-                !old
-                  ? old
-                  : {
-                      ...old,
-                      pages: old.pages.map((page) => ({
-                        ...page,
-                        items: page.items.map((row) =>
-                          row.id === e.rowId
-                            ? { ...row, position: e.position }
-                            : row,
-                        ),
-                      })),
-                    },
-            );
-          }
-          break;
-        }
-        case "base:rows:updated": {
-          const e = event as BaseRowsUpdated;
-          // Only refetch if the batch touches rows currently in cache; formula
-          // backfills emit one event per 500 rows so this avoids redundant fetches.
-          const updatedIds = new Set(e.rowIds);
-          const caches = queryClient.getQueriesData<
-            InfiniteData<IPagination<IBaseRow>>
-          >({ queryKey: ["base-rows", pageId] });
-          let touchesCache = false;
-          outer: for (const [, data] of caches) {
-            if (!data) continue;
-            for (const page of data.pages) {
-              for (const row of page.items) {
-                if (updatedIds.has(row.id)) {
-                  touchesCache = true;
-                  break outer;
-                }
+        break;
+      }
+      case "base:rows:updated": {
+        const e = event as BaseRowsUpdated;
+        // Only refetch if the batch touches rows currently in cache; formula
+        // backfills emit one event per 500 rows so this avoids redundant fetches.
+        const updatedIds = new Set(e.rowIds);
+        const caches = queryClient.getQueriesData<
+          InfiniteData<IPagination<IBaseRow>>
+        >({ queryKey: ["base-rows", pageId] });
+        let touchesCache = false;
+        outer: for (const [, data] of caches) {
+          if (!data) continue;
+          for (const page of data.pages) {
+            for (const row of page.items) {
+              if (updatedIds.has(row.id)) {
+                touchesCache = true;
+                break outer;
               }
             }
           }
-          if (touchesCache) {
-            queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
-          }
-          break;
         }
-        case "base:schema:bumped": {
-          // Worker committed a type conversion or cell GC; re-fetch under the new schema.
+        if (touchesCache) {
+          queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+        }
+        break;
+      }
+      case "base:schema:bumped": {
+        // Worker committed a type conversion or cell GC; re-fetch under the new schema.
+        queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+        queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+        break;
+      }
+      case "base:subscribed": {
+        const e = event as BaseSubscribed;
+        const cached = queryClient.getQueryData<IBase>(["bases", pageId]);
+        if (
+          state.missedEvents ||
+          (cached && cached.baseSchemaVersion !== e.schemaVersion)
+        ) {
+          state.missedEvents = false;
           queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
           queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
-          break;
         }
-        case "base:subscribed": {
-          const e = event as BaseSubscribed;
-          const cached = queryClient.getQueryData<IBase>(["bases", pageId]);
-          if (
-            missedEvents ||
-            (cached && cached.baseSchemaVersion !== e.schemaVersion)
-          ) {
-            missedEvents = false;
-            queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
-            queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
-          }
-          break;
+        break;
+      }
+      case "base:formula:recompute:started": {
+        const e = event as BaseFormulaRecomputeStarted;
+        const store = getDefaultStore();
+        store.set(formulaRecomputeAtom, {
+          ...store.get(formulaRecomputeAtom),
+          [e.jobId]: e.propertyIds,
+        });
+        break;
+      }
+      case "base:formula:recompute:completed": {
+        const e = event as BaseFormulaRecomputeCompleted;
+        const store = getDefaultStore();
+        const current = store.get(formulaRecomputeAtom);
+        if (e.jobId in current) {
+          const next = { ...current };
+          delete next[e.jobId];
+          store.set(formulaRecomputeAtom, next);
         }
-        case "base:formula:recompute:started": {
-          const e = event as BaseFormulaRecomputeStarted;
-          const store = getDefaultStore();
-          store.set(formulaRecomputeAtom, {
-            ...store.get(formulaRecomputeAtom),
-            [e.jobId]: e.propertyIds,
-          });
-          break;
-        }
-        case "base:formula:recompute:completed": {
-          const e = event as BaseFormulaRecomputeCompleted;
-          const store = getDefaultStore();
-          const current = store.get(formulaRecomputeAtom);
-          if (e.jobId in current) {
-            const next = { ...current };
-            delete next[e.jobId];
-            store.set(formulaRecomputeAtom, next);
-          }
-          break;
-        }
-        case "base:property:created":
-        case "base:property:updated":
-        case "base:property:deleted":
-        case "base:property:reordered":
-        case "base:view:created":
-        case "base:view:updated":
-        case "base:view:deleted": {
-          // Schema/metadata events only affect properties/views, not cell data.
-          const e = event as BasePropertyEvent | BaseViewEvent;
-          const cachedBase = queryClient.getQueryData<IBase>(["bases", pageId]);
-          queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
-          if (e.operation === "base:property:updated" && e.property) {
-            const propertyId = e.property.id;
-            for (const view of cachedBase?.views ?? []) {
-              if (
-                view.config?.form?.fields?.some(
-                  (field) => field.propertyId === propertyId,
-                )
-              ) {
-                invalidatePublicFormForView(pageId, view.id);
-              }
+        break;
+      }
+      case "base:property:created":
+      case "base:property:updated":
+      case "base:property:deleted":
+      case "base:property:reordered":
+      case "base:view:created":
+      case "base:view:updated":
+      case "base:view:deleted": {
+        // Schema/metadata events only affect properties/views, not cell data.
+        const e = event as BasePropertyEvent | BaseViewEvent;
+        const cachedBase = queryClient.getQueryData<IBase>(["bases", pageId]);
+        queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+        if (e.operation === "base:property:updated" && e.property) {
+          const propertyId = e.property.id;
+          for (const view of cachedBase?.views ?? []) {
+            if (
+              view.config?.form?.fields?.some(
+                (field) => field.propertyId === propertyId,
+              )
+            ) {
+              invalidatePublicFormForView(pageId, view.id);
             }
-          } else if (e.operation === "base:view:updated" && e.view?.type === "form") {
-            invalidatePublicFormForView(pageId, e.view.id);
-          } else if (e.operation === "base:view:deleted" && e.viewId) {
-            queryClient.invalidateQueries({
-              queryKey: formShareQueryKey(pageId, e.viewId),
-            });
           }
-          break;
-        }
-        case "base:view:share:updated": {
-          const e = event as BaseViewShareUpdated;
-          invalidatePublicFormForView(pageId, e.viewId);
+        } else if (e.operation === "base:view:updated" && e.view?.type === "form") {
+          invalidatePublicFormForView(pageId, e.view.id);
+        } else if (e.operation === "base:view:deleted" && e.viewId) {
           queryClient.invalidateQueries({
             queryKey: formShareQueryKey(pageId, e.viewId),
           });
-          break;
         }
-        default:
-          break;
+        break;
       }
-    };
+      case "base:view:share:updated": {
+        const e = event as BaseViewShareUpdated;
+        invalidatePublicFormForView(pageId, e.viewId);
+        queryClient.invalidateQueries({
+          queryKey: formShareQueryKey(pageId, e.viewId),
+        });
+        break;
+      }
+      default:
+        break;
+    }
+  };
+}
 
-    socket.on("message", handler);
-    socket.on("connect", subscribe);
-    socket.on("disconnect", markMissedEvents);
+type BaseSubscription = {
+  count: number;
+  state: BaseSubscriptionState;
+  handler: (raw: unknown) => void;
+  subscribe: () => void;
+  markMissedEvents: () => void;
+};
 
-    return () => {
-      clearTimeout(calendarRefreshTimer);
-      socket.off("message", handler);
-      socket.off("connect", subscribe);
-      socket.off("disconnect", markMissedEvents);
-      socket.emit("message", { operation: "base:unsubscribe", pageId });
+const baseSubscriptions = new WeakMap<Socket, Map<string, BaseSubscription>>();
+
+// One room subscription and cache handler per base, shared by every mounted
+// view and rejoined on every reconnect.
+export function retainBaseSubscription(
+  socket: Socket,
+  pageId: string,
+  queryClient: QueryClient,
+): () => void {
+  const subscriptions =
+    baseSubscriptions.get(socket) ?? new Map<string, BaseSubscription>();
+  baseSubscriptions.set(socket, subscriptions);
+
+  let subscription = subscriptions.get(pageId);
+  if (!subscription) {
+    const state: BaseSubscriptionState = {
+      missedEvents: false,
+      calendarRefreshDeferrals: 0,
     };
+    subscription = {
+      count: 0,
+      state,
+      handler: createBaseEventHandler(pageId, queryClient, state),
+      subscribe: () => {
+        socket.emit("message", { operation: "base:subscribe", pageId });
+      },
+      markMissedEvents: () => {
+        state.missedEvents = true;
+      },
+    };
+    subscriptions.set(pageId, subscription);
+    socket.on("message", subscription.handler);
+    socket.on("connect", subscription.subscribe);
+    socket.on("disconnect", subscription.markMissedEvents);
+    if (socket.connected) subscription.subscribe();
+  }
+  subscription.count += 1;
+
+  const retained = subscription;
+  return () => {
+    retained.count -= 1;
+    if (retained.count > 0) return;
+    subscriptions.delete(pageId);
+    clearTimeout(retained.state.calendarRefreshTimer);
+    socket.off("message", retained.handler);
+    socket.off("connect", retained.subscribe);
+    socket.off("disconnect", retained.markMissedEvents);
+    socket.emit("message", { operation: "base:unsubscribe", pageId });
+  };
+}
+
+// Realtime bridge for a base: reconciles React Query caches on inbound events.
+export function useBaseSocket(pageId: string | undefined): void {
+  const socket = useAtomValue(socketAtom);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socket || !pageId) return;
+    return retainBaseSubscription(socket, pageId, queryClient);
   }, [socket, pageId, queryClient]);
 }

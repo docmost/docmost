@@ -56,6 +56,7 @@ import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
 import {
   AttachmentInfoDto,
+  DeleteAttachmentDto,
   PageIdDto,
   RemoveIconDto,
 } from './dto/attachment.dto';
@@ -455,6 +456,58 @@ export class AttachmentController {
         url: this.buildFileUrl(workspace, attachment),
       })),
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('attachments/delete')
+  async deleteAttachment(
+    @Body() dto: DeleteAttachmentDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const attachment = await this.attachmentRepo.findById(dto.attachmentId);
+    if (
+      !attachment ||
+      !attachment.pageId ||
+      attachment.workspaceId !== workspace.id ||
+      attachment.type !== AttachmentType.File
+    ) {
+      throw new NotFoundException('File not found');
+    }
+
+    const page = await this.pageRepo.findById(attachment.pageId);
+    if (!page) {
+      throw new NotFoundException('File not found');
+    }
+
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    const spaceAbility = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+    );
+    if (
+      spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)
+    ) {
+      throw new ForbiddenException('Only space admins can delete files');
+    }
+
+    await this.attachmentService.deleteAttachment(attachment);
+
+    this.auditService.log({
+      event: AuditEvent.ATTACHMENT_DELETED,
+      resourceType: AuditResource.ATTACHMENT,
+      resourceId: attachment.id,
+      spaceId: page.spaceId,
+      changes: {
+        before: {
+          fileName: attachment.fileName,
+          pageId: page.id,
+          creatorId: attachment.creatorId,
+        },
+      },
+    });
   }
 
   @UseGuards(JwtAuthGuard)

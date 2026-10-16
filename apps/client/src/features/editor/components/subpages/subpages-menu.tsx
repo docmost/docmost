@@ -67,7 +67,7 @@ export const SubpagesMenu = React.memo(
         updateDelay={0}
         shouldShow={shouldShow}
       >
-        <Tooltip position="top" label={t("Delete")}>
+        <Tooltip position="top" label={t("Delete")} withinPortal={false}>
           <ActionIcon
             onClick={deleteNode}
             variant="default"

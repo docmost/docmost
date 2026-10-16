@@ -8,17 +8,22 @@ import { TransformHttpResponseInterceptor } from '../../common/interceptors/http
 import { Logger } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { InternalLogFilter } from '../../common/logger/internal-log-filter';
+import { overrideRequestIp } from '../../common/helpers';
 
 async function bootstrap() {
+  const adapter = new FastifyAdapter({
+    routerOptions: {
+      maxParamLength: 1000,
+      ignoreTrailingSlash: true,
+      ignoreDuplicateSlashes: true,
+    },
+  });
+  // Added before NestFactory.create so it runs ahead of middie copying request.ip for Nest middleware.
+  adapter.getInstance().addHook('onRequest', overrideRequestIp);
+
   const app = await NestFactory.create<NestFastifyApplication>(
     CollabAppModule,
-    new FastifyAdapter({
-      routerOptions: {
-        maxParamLength: 1000,
-        ignoreTrailingSlash: true,
-        ignoreDuplicateSlashes: true,
-      },
-    }),
+    adapter,
     {
       logger: new InternalLogFilter(),
       bufferLogs: false,

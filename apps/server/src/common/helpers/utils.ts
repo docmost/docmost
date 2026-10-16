@@ -189,7 +189,7 @@ export function isUserDisabled(user: {
   return !!(user.deactivatedAt || user.deletedAt);
 }
 
-const SENSITIVE_URL_PREFIXES = ['/api/sso/'];
+const SENSITIVE_URL_PREFIXES = ['/api/sso/', '/api/integrations/oauth/'];
 
 export function redactSensitiveUrl(url: string): string {
   if (url && SENSITIVE_URL_PREFIXES.some((prefix) => url.includes(prefix))) {
