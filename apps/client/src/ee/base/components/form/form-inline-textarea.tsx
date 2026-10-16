@@ -83,7 +83,7 @@ export function FormInlineTextarea({
       return;
     }
     const next = draft.trim();
-    setDraft(next);
+    setDraft(next || value);
     if (next !== value) onCommit(next);
     onBlur?.(next);
   };

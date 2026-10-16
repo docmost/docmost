@@ -172,11 +172,12 @@ export function FormBuilderQuestion({
         <div className={classes.labelRow}>
           <FormInlineTextarea
             value={field.label?.trim() || property.name}
-            onCommit={(next) =>
+            onCommit={(next) => {
+              if (!next && !field.label) return;
               onChange({
                 label: next && next !== property.name ? next : undefined,
-              })
-            }
+              });
+            }}
             className={classes.inlineLabel}
             ariaLabel={t("Question")}
             placeholder={property.name}
