@@ -37,6 +37,7 @@ export function FormInlineTextarea({
   const ref = useRef<HTMLTextAreaElement>(null);
   const [draft, setDraft] = useState(value);
   const focusedRef = useRef(false);
+  const focusValueRef = useRef(value);
   const cancelRef = useRef(false);
 
   useEffect(() => {
@@ -76,13 +77,13 @@ export function FormInlineTextarea({
 
   const handleBlur = () => {
     focusedRef.current = false;
-    if (cancelRef.current) {
+    const next = draft.trim();
+    if (cancelRef.current || next === focusValueRef.current.trim()) {
       cancelRef.current = false;
       setDraft(value);
       onBlur?.(value);
       return;
     }
-    const next = draft.trim();
     setDraft(next || value);
     if (next !== value) onCommit(next);
     onBlur?.(next);
@@ -115,6 +116,7 @@ export function FormInlineTextarea({
       value={draft}
       onFocus={() => {
         focusedRef.current = true;
+        focusValueRef.current = value;
       }}
       onChange={(event) =>
         setDraft(
