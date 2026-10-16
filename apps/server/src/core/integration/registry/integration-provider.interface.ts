@@ -140,6 +140,8 @@ export type UnfurlOpts = {
   integrationId: string;
 };
 
+export type PublicUnfurlOpts = Pick<UnfurlOpts, 'url' | 'match' | 'patternType'>;
+
 // UnfurlService shows no card for it instead of logging an error.
 export class UnfurlForbiddenError extends Error {
   constructor(message = 'Not authorized to unfurl this link') {
@@ -220,6 +222,9 @@ export abstract class IntegrationProvider {
   resolveAccount?(opts: ResolveAccountOpts): Promise<ProviderAccount>;
 
   unfurl?(opts: UnfurlOpts): Promise<UnfurlResult>;
+
+  // For members without a connection; must only read public data, since every workspace shares the card.
+  unfurlPublic?(opts: PublicUnfurlOpts): Promise<UnfurlResult>;
 
   // Tokenless summary for the connect prompt, e.g. "Pull Request #13337".
   describeLink?(

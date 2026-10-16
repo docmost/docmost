@@ -28,11 +28,11 @@ const BODY = {
 const service = new GitHubService();
 
 const REQUESTS: [string, (api: string, owner: string, repo: string) => Promise<unknown>, string][] = [
-  ['pull request', (api, owner, repo) => service.unfurlPullRequest('token', api, owner, repo, 1, PAGE), '/pulls/1'],
-  ['issue', (api, owner, repo) => service.unfurlIssue('token', api, owner, repo, 2, PAGE), '/issues/2'],
-  ['repo', (api, owner, repo) => service.unfurlRepo('token', api, owner, repo, PAGE), ''],
-  ['commit', (api, owner, repo) => service.unfurlCommit('token', api, owner, repo, 'abc1234', PAGE), '/commits/abc1234'],
-  ['collection page', (api, owner, repo) => service.unfurlCollectionPage('token', api, owner, repo, 'pulls-list', PAGE), ''],
+  ['pull request', (api, owner, repo) => service.unfurlPullRequest('Bearer token', api, owner, repo, 1, PAGE), '/pulls/1'],
+  ['issue', (api, owner, repo) => service.unfurlIssue('Bearer token', api, owner, repo, 2, PAGE), '/issues/2'],
+  ['repo', (api, owner, repo) => service.unfurlRepo('Bearer token', api, owner, repo, PAGE), ''],
+  ['commit', (api, owner, repo) => service.unfurlCommit('Bearer token', api, owner, repo, 'abc1234', PAGE), '/commits/abc1234'],
+  ['collection page', (api, owner, repo) => service.unfurlCollectionPage('Bearer token', api, owner, repo, 'pulls-list', PAGE), ''],
 ];
 
 function requestedUrls(): string[] {
@@ -142,5 +142,59 @@ describe('GitHub connected account', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       'https://github.acme.com/api/v3/user',
     );
+  });
+});
+
+describe('GitHub public unfurl', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = {
+      ...originalEnv,
+      INTEGRATION_GITHUB_CLIENT_ID: 'app-id',
+      INTEGRATION_GITHUB_CLIENT_SECRET: 'app-secret',
+    };
+    delete process.env.INTEGRATION_GITHUB_URL;
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify(BODY), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  function unfurlPublic(url: string) {
+    const provider = new GitHubProvider(new GitHubService());
+    for (const pattern of provider.getUnfurlPatterns({})) {
+      const match = url.match(pattern.regex);
+      if (match) {
+        return provider.unfurlPublic({ url, match, patternType: pattern.type });
+      }
+    }
+    throw new Error(`No GitHub pattern matches ${url}`);
+  }
+
+  it('reads a pull request with the app client ID and secret instead of a member token', async () => {
+    await expect(unfurlPublic(PAGE)).resolves.toMatchObject({
+      title: 'Add dark mode',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.github.com/repos/o/r/pulls/1');
+    // base64 of "app-id:app-secret"
+    expect(init.headers.Authorization).toBe('Basic YXBwLWlkOmFwcC1zZWNyZXQ=');
+  });
+
+  it('never calls GitHub without the app credentials', async () => {
+    delete process.env.INTEGRATION_GITHUB_CLIENT_SECRET;
+
+    await expect(unfurlPublic(PAGE)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
