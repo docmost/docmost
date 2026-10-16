@@ -2,6 +2,7 @@ import { ActionIcon, Group, Menu, Text, ThemeIcon, Tooltip } from "@mantine/core
 import {
   IconArrowRight,
   IconArrowsHorizontal,
+  IconCopy,
   IconDots,
   IconEye,
   IconEyeOff,
@@ -48,6 +49,7 @@ import { PageEditModeToggle } from "@/features/user/components/page-state-pref.t
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import PageAttachmentsModal from "@/features/attachments/components/page-attachments-modal.tsx";
 import PresentationModal from "@/features/editor/components/presentation/presentation-modal.tsx";
+import { copyBaseEmbed } from "@/features/editor/components/base-embed/copy-base-embed";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
 import {
@@ -269,7 +271,14 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             {t("Copy link")}
           </Menu.Item>
 
-          {!page?.isBase && (
+          {page?.isBase ? (
+            <Menu.Item
+              leftSection={<IconCopy size={16} />}
+              onClick={() => copyBaseEmbed(page)}
+            >
+              {t("Copy as embed")}
+            </Menu.Item>
+          ) : (
             <Menu.Item
               leftSection={<IconMarkdown size={16} />}
               onClick={handleCopyAsMarkdown}

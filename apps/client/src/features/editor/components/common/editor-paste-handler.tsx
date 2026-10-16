@@ -30,6 +30,9 @@ const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 // copied cards and mentions paste back as nodes
 const INTEGRATION_NODE_HTML_RE = /data-type="integration(Card|Mention)"/;
 
+// a copied base carries its link as text but pastes back as the embed
+const BASE_EMBED_HTML_RE = /data-type="base-embed"/;
+
 // Reads the cache the page editor prefetches; a cold cache pastes an ordinary link.
 function matchInstalledIntegrationLink(url: string) {
   const installed =
@@ -131,7 +134,10 @@ export const handlePaste = (
     }
   }
 
-  if (INTERNAL_LINK_REGEX.test(clipboardData)) {
+  if (
+    INTERNAL_LINK_REGEX.test(clipboardData) &&
+    !BASE_EMBED_HTML_RE.test(event.clipboardData.getData("text/html"))
+  ) {
     // we have to do this validation here to allow the default link extension to takeover if needs be
     event.preventDefault();
     const url = clipboardData.trim();

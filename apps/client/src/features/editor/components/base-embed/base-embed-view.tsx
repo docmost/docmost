@@ -8,8 +8,9 @@ import { useBaseQuery } from "@/ee/base/queries/base-query";
 import { pinOffsetWatcher } from "@docmost/editor-ext";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
-import { IconDots, IconTable, IconX } from "@tabler/icons-react";
+import { IconCopy, IconDots, IconTable, IconX } from "@tabler/icons-react";
 import { usePageQuery } from "@/features/page/queries/page-query";
+import { copyBaseEmbed } from "./copy-base-embed";
 import classes from "./base-embed.module.css";
 
 const SIDE_GUTTER = 8;
@@ -159,6 +160,13 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconCopy size={14} />}
+                disabled={!page}
+                onClick={() => copyBaseEmbed(page)}
+              >
+                {t("Copy")}
+              </Menu.Item>
               <Menu.Item
                 leftSection={<IconX size={14} />}
                 onClick={() => deleteNode()}
