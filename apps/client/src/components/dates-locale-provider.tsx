@@ -6,6 +6,9 @@ import {
   DayOfWeek,
 } from "@mantine/dates";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+
+dayjs.extend(customParseFormat);
 
 type DayjsLocale = { id: string; load: () => Promise<unknown> };
 
