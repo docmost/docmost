@@ -104,6 +104,7 @@ import SubpagesView from "@/features/editor/components/subpages/subpages-view.ts
 import IntegrationCardView from "@/features/editor/components/integration-link/integration-card-view.tsx";
 import IntegrationMentionView from "@/features/editor/components/integration-link/integration-mention-view.tsx";
 import { IntegrationPasteMenuExtension } from "@/features/editor/extensions/integration-paste-menu";
+import { BasePasteMenuExtension } from "@/features/editor/extensions/base-paste-menu";
 import TabsView from "@/features/editor/components/tabs/tabs-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
@@ -408,6 +409,7 @@ export const mainExtensions = [
     view: IntegrationMentionView,
   }),
   IntegrationPasteMenuExtension,
+  BasePasteMenuExtension,
   Status.configure({
     view: StatusView,
   }),

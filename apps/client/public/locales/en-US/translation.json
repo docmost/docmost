@@ -1576,5 +1576,6 @@
   "Tab actions for {{name}}": "Tab actions for {{name}}",
   "Copy as embed": "Copy as embed",
   "Copied. Paste on any page to embed this base.": "Copied. Paste on any page to embed this base.",
-  "Failed to copy": "Failed to copy"
+  "Failed to copy": "Failed to copy",
+  "Embed base": "Embed base"
 }
