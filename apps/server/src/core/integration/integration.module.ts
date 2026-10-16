@@ -11,11 +11,17 @@ import { IntegrationRepo } from './repos/integration.repo';
 import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
 import { IntegrationListener } from './integration.listener';
 import { IntegrationProcessor } from './integration.processor';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 
 @Module({
   controllers: [IntegrationController, OAuthController, UnfurlController],
   providers: [
-    IntegrationRegistry,
+    {
+      provide: IntegrationRegistry,
+      useFactory: (environmentService: EnvironmentService) =>
+        new IntegrationRegistry(environmentService.isCloud()),
+      inject: [EnvironmentService],
+    },
     IntegrationService,
     IntegrationConnectionService,
     OAuthService,
