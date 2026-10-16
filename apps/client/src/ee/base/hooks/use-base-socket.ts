@@ -22,7 +22,7 @@ import {
   invalidateCalendarRows,
   isCalendarRelevantChange,
 } from "@/ee/base/queries/base-row-query";
-import { ROW_UPDATE_MUTATION_KEY } from "@/ee/base/queries/row-update-chain";
+import { BASE_ROW_MUTATION_KEY } from "@/ee/base/queries/row-update-chain";
 import {
   formShareQueryKey,
   invalidatePublicFormForView,
@@ -152,8 +152,9 @@ type BaseInboundEvent =
 // already updated the cache. Bounded to prevent unbounded growth on long tabs.
 const outboundRequestIds = new Set<string>();
 const OUTBOUND_MAX = 256;
-const CALENDAR_REFRESH_DELAY_MS = 300;
-const CALENDAR_REFRESH_MAX_DEFERRALS = 10;
+const ROWS_REFRESH_DELAY_MS = 300;
+const ROWS_REFRESH_INTERVAL_MS = 2000;
+const ROWS_REFRESH_MAX_DEFERRALS = 10;
 
 export function markRequestIdOutbound(requestId: string): void {
   outboundRequestIds.add(requestId);
@@ -163,10 +164,14 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
+type RowsRefreshScope = "calendar" | "all";
+
 type BaseSubscriptionState = {
   missedEvents: boolean;
-  calendarRefreshTimer?: ReturnType<typeof setTimeout>;
-  calendarRefreshDeferrals: number;
+  rowsRefreshTimer?: ReturnType<typeof setTimeout>;
+  rowsRefreshScope?: RowsRefreshScope;
+  rowsRefreshDeferrals: number;
+  lastRowsRefreshAt: number;
 };
 
 function createBaseEventHandler(
@@ -174,26 +179,47 @@ function createBaseEventHandler(
   queryClient: QueryClient,
   state: BaseSubscriptionState,
 ): (raw: unknown) => void {
-  const scheduleCalendarRefresh = () => {
-    clearTimeout(state.calendarRefreshTimer);
-    state.calendarRefreshTimer = setTimeout(() => {
-      const updatingRows = queryClient.isMutating({
-        mutationKey: ROW_UPDATE_MUTATION_KEY,
-        predicate: (mutation) =>
-          (mutation.state.variables as { pageId?: string } | undefined)
-            ?.pageId === pageId,
-      });
-      if (
-        updatingRows > 0 &&
-        state.calendarRefreshDeferrals < CALENDAR_REFRESH_MAX_DEFERRALS
-      ) {
-        state.calendarRefreshDeferrals += 1;
-        scheduleCalendarRefresh();
-        return;
-      }
-      state.calendarRefreshDeferrals = 0;
-      invalidateCalendarRows(pageId);
-    }, CALENDAR_REFRESH_DELAY_MS);
+  const runRowsRefresh = () => {
+    state.rowsRefreshTimer = undefined;
+    const scope = state.rowsRefreshScope ?? "calendar";
+    const fetchingRows = queryClient.isFetching({
+      queryKey:
+        scope === "all" ? ["base-rows", pageId] : ["base-rows", pageId, "calendar"],
+    });
+    const mutatingRows = queryClient.isMutating({
+      mutationKey: BASE_ROW_MUTATION_KEY,
+      predicate: (mutation) =>
+        (mutation.state.variables as { pageId?: string } | undefined)
+          ?.pageId === pageId,
+    });
+    if (
+      fetchingRows > 0 ||
+      (mutatingRows > 0 &&
+        state.rowsRefreshDeferrals < ROWS_REFRESH_MAX_DEFERRALS)
+    ) {
+      if (fetchingRows === 0) state.rowsRefreshDeferrals += 1;
+      state.rowsRefreshTimer = setTimeout(runRowsRefresh, ROWS_REFRESH_DELAY_MS);
+      return;
+    }
+    state.rowsRefreshDeferrals = 0;
+    state.rowsRefreshScope = undefined;
+    state.lastRowsRefreshAt = Date.now();
+    if (scope === "all") invalidateBaseRows(pageId);
+    else invalidateCalendarRows(pageId);
+  };
+
+  const scheduleRowsRefresh = (scope: RowsRefreshScope) => {
+    if (scope === "all" || !state.rowsRefreshScope) {
+      state.rowsRefreshScope = scope;
+    }
+    if (state.rowsRefreshTimer !== undefined) return;
+    state.rowsRefreshTimer = setTimeout(
+      runRowsRefresh,
+      Math.max(
+        ROWS_REFRESH_DELAY_MS,
+        state.lastRowsRefreshAt + ROWS_REFRESH_INTERVAL_MS - Date.now(),
+      ),
+    );
   };
 
   return (raw: unknown) => {
@@ -235,7 +261,7 @@ function createBaseEventHandler(
           (id) => typeof id === "string" && !knownUsers[id],
         );
         if (hasKanbanForCreate || usersUnresolved) {
-          invalidateBaseRows(pageId);
+          scheduleRowsRefresh("all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
@@ -252,7 +278,7 @@ function createBaseEventHandler(
               };
             },
           );
-          scheduleCalendarRefresh();
+          scheduleRowsRefresh("calendar");
         }
         break;
       }
@@ -261,7 +287,7 @@ function createBaseEventHandler(
         const baseForUpdate = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForUpdate = (baseForUpdate?.views ?? []).some((v) => v.type === "kanban");
         if (hasKanbanForUpdate) {
-          invalidateBaseRows(pageId);
+          scheduleRowsRefresh("all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
@@ -289,7 +315,7 @@ function createBaseEventHandler(
               Object.keys(e.updatedCells ?? {}),
             )
           ) {
-            scheduleCalendarRefresh();
+            scheduleRowsRefresh("calendar");
           }
         }
         break;
@@ -353,7 +379,7 @@ function createBaseEventHandler(
         const baseForReorder = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForReorder = (baseForReorder?.views ?? []).some((v) => v.type === "kanban");
         if (hasKanbanForReorder) {
-          invalidateBaseRows(pageId);
+          scheduleRowsRefresh("all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
@@ -396,7 +422,7 @@ function createBaseEventHandler(
           }
         }
         if (touchesCache) {
-          queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+          scheduleRowsRefresh("all");
         }
         break;
       }
@@ -516,7 +542,8 @@ export function retainBaseSubscription(
   if (!subscription) {
     const state: BaseSubscriptionState = {
       missedEvents: false,
-      calendarRefreshDeferrals: 0,
+      rowsRefreshDeferrals: 0,
+      lastRowsRefreshAt: 0,
     };
     subscription = {
       count: 0,
@@ -542,7 +569,7 @@ export function retainBaseSubscription(
     retained.count -= 1;
     if (retained.count > 0) return;
     subscriptions.delete(pageId);
-    clearTimeout(retained.state.calendarRefreshTimer);
+    clearTimeout(retained.state.rowsRefreshTimer);
     socket.off("message", retained.handler);
     socket.off("connect", retained.subscribe);
     socket.off("disconnect", retained.markMissedEvents);

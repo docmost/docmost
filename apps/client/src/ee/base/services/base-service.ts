@@ -153,12 +153,13 @@ export async function listRows(
     filter?: FilterNode;
     sorts?: ViewSortConfig[];
   },
+  signal?: AbortSignal,
 ): Promise<IBaseRowsPage> {
-  const req = await api.post("/bases/rows", {
-    pageId,
-    ...params,
-    timeZone: getBrowserTimeZone(),
-  });
+  const req = await api.post(
+    "/bases/rows",
+    { pageId, ...params, timeZone: getBrowserTimeZone() },
+    { signal },
+  );
   return req.data;
 }
 

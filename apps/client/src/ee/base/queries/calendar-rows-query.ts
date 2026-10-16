@@ -37,13 +37,17 @@ export function useCalendarRowsQuery(
       to,
       activeFilter,
     ],
-    queryFn: ({ pageParam }) =>
-      listRows(pageId!, {
-        cursor: pageParam,
-        limit: CALENDAR_PAGE_SIZE,
-        filter: buildCalendarFilter(activeFilter, datePropertyId!, from, to),
-        sorts: [{ propertyId: datePropertyId!, direction: "asc" }],
-      }),
+    queryFn: ({ pageParam, signal }) =>
+      listRows(
+        pageId!,
+        {
+          cursor: pageParam,
+          limit: CALENDAR_PAGE_SIZE,
+          filter: buildCalendarFilter(activeFilter, datePropertyId!, from, to),
+          sorts: [{ propertyId: datePropertyId!, direction: "asc" }],
+        },
+        signal,
+      ),
     enabled: !!pageId && !!datePropertyId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: IBaseRowsPage) =>
