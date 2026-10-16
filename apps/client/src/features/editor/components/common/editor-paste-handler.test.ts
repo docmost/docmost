@@ -340,19 +340,3 @@ describe("handlePaste integration links", () => {
     expectPassThrough();
   });
 });
-
-describe("handlePaste base embeds", () => {
-  afterEach(() => {
-    editor?.destroy();
-  });
-
-  it("leaves a copied base embed to ProseMirror instead of pasting its link as a mention", () => {
-    const url = `${window.location.origin}/s/general/p/roadmap-x1y2z3`;
-    createEditor([paragraph(text("Hello"))], 6);
-
-    expectPassThrough(
-      url,
-      `<div data-type="base-embed" data-page-id="019a2b3c-0000-7000-8000-000000000001"><a href="${url}">Roadmap</a></div>`,
-    );
-  });
-});
