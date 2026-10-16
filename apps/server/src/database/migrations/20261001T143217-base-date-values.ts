@@ -112,15 +112,61 @@ export async function up(db: Kysely<any>): Promise<void> {
   `.execute(db);
 
   await sql`
-    CREATE OR REPLACE FUNCTION base_date_fallback(cells jsonb, prop text)
-    RETURNS text LANGUAGE sql STABLE
+    CREATE OR REPLACE FUNCTION base_date_fallback(
+      v text, OUT wall timestamp, OUT moment timestamptz, OUT zoned boolean)
+    LANGUAGE plpgsql STABLE
     SET TimeZone = 'UTC' SET DateStyle = 'ISO, MDY'
     AS $$
-      SELECT CASE
-        WHEN (cells ->> prop) !~* '(now|today|tomorrow|yesterday|epoch|infinity|allballs)'
-        THEN to_char(
-          base_date_year_ok(base_cell_timestamptz(cells, prop)) AT TIME ZONE 'UTC',
-          'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+      BEGIN
+        wall := v::timestamp;
+        moment := v::timestamptz;
+        PERFORM set_config('TimeZone', 'Asia/Tokyo', true);
+        zoned := v::timestamptz = moment;
+        moment := base_date_year_ok(moment);
+      EXCEPTION WHEN others THEN
+        wall := NULL;
+        moment := NULL;
+        zoned := NULL;
+      END
+    $$
+  `.execute(db);
+
+  await sql`
+    CREATE OR REPLACE FUNCTION base_date_migrate(v text, include_time boolean)
+    RETURNS text LANGUAGE plpgsql STABLE
+    AS $$
+      DECLARE
+        t text;
+        parts text[];
+        wall timestamp;
+        moment timestamptz := base_date_instant(v);
+        zoned boolean;
+      BEGIN
+        IF base_date_is_ymd(base_date_legacy(v)) THEN
+          RETURN base_date_legacy(v);
+        END IF;
+        IF moment IS NOT NULL THEN
+          wall := v::timestamp;
+          zoned := v ~ '(Z|[+-][0-9]{2}:[0-9]{2})$';
+        ELSIF v !~* '(now|today|tomorrow|yesterday|epoch|infinity|allballs)' THEN
+          t := regexp_replace(v, '[[:space:]]*[(][^()]*[)][[:space:]]*$', '');
+          parts := regexp_match(t, '(gmt|utc|ut)[[:space:]]*([+-])([0-9]{2}):?([0-9]{2})[[:>:]]', 'i');
+          IF parts IS NOT NULL THEN
+            t := regexp_replace(t, '(gmt|utc|ut)[[:space:]]*[+-][0-9]{2}:?[0-9]{2}[[:>:]]',
+                                ' ' || parts[2] || parts[3] || ':' || parts[4], 'i');
+          END IF;
+          IF t !~* '(gmt|utc|ut)[[:space:]]*[+-]' THEN
+            SELECT f.wall, f.moment, f.zoned INTO wall, moment, zoned FROM base_date_fallback(t) f;
+          END IF;
+        END IF;
+        IF wall IS NULL OR moment IS NULL OR extract(year FROM wall) NOT BETWEEN 1 AND 9999 THEN
+          RETURN NULL;
+        END IF;
+        IF (wall::time = time '00:00' AND NOT (zoned AND include_time))
+           OR (NOT zoned AND NOT include_time) THEN
+          RETURN to_char(wall, 'YYYY-MM-DD');
+        END IF;
+        RETURN to_char(moment AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
       END
     $$
   `.execute(db);
@@ -129,47 +175,25 @@ export async function up(db: Kysely<any>): Promise<void> {
     WITH src AS MATERIALIZED (
       SELECT r.id,
              p.id AS prop,
-             coalesce(p.type_options ->> 'includeTime' = 'true', false) AS include_time,
-             CASE
-               WHEN base_date_is_ymd(base_date_legacy(r.cells ->> p.id))
-                 OR base_date_instant(r.cells ->> p.id) IS NOT NULL
-                 THEN r.cells ->> p.id
-               ELSE base_date_fallback(r.cells, p.id)
-             END AS v
+             base_date_migrate(
+               r.cells ->> p.id,
+               coalesce(p.type_options ->> 'includeTime' = 'true', false)
+             ) AS start
       FROM base_rows r
       JOIN base_properties p ON p.page_id = r.page_id AND p.type = 'date'
       WHERE jsonb_typeof(r.cells -> p.id) = 'string'
     ),
     conv AS (
-      SELECT id,
-             jsonb_object_agg(
-               prop,
-               jsonb_build_object('start',
-                 CASE
-                   WHEN base_date_is_ymd(base_date_legacy(v))
-                     THEN base_date_legacy(v)
-                   WHEN NOT include_time
-                     THEN to_char(
-                       (base_date_instant(v) AT TIME ZONE 'UTC') + interval '12 hours',
-                       'YYYY-MM-DD')
-                   ELSE to_char(
-                     base_date_instant(v) AT TIME ZONE 'UTC',
-                     'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-                 END)
-             ) AS patch
+      SELECT id, jsonb_object_agg(prop, jsonb_build_object('start', start)) AS patch
       FROM src
-      WHERE base_date_is_ymd(base_date_legacy(v))
-         OR (include_time AND base_date_instant(v) IS NOT NULL)
-         OR (NOT include_time
-             AND base_date_is_ymd(to_char(
-               (base_date_instant(v) AT TIME ZONE 'UTC') + interval '12 hours',
-               'YYYY-MM-DD')))
+      WHERE start IS NOT NULL
       GROUP BY id
     )
     UPDATE base_rows r SET cells = r.cells || conv.patch FROM conv WHERE r.id = conv.id
   `.execute(db);
 
-  await sql`DROP FUNCTION base_date_fallback(jsonb, text)`.execute(db);
+  await sql`DROP FUNCTION base_date_migrate(text, boolean)`.execute(db);
+  await sql`DROP FUNCTION base_date_fallback(text)`.execute(db);
 
   await sql`
     UPDATE base_properties SET type_options = type_options - 'dateFormat'
