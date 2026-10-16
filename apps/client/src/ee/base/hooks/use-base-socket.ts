@@ -416,6 +416,13 @@ function createBaseEventHandler(
           state.missedEvents = false;
           queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
           queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+          for (const view of cached?.views ?? []) {
+            if (view.type !== "form") continue;
+            invalidatePublicFormForView(pageId, view.id);
+            queryClient.invalidateQueries({
+              queryKey: formShareQueryKey(pageId, view.id),
+            });
+          }
         }
         break;
       }
