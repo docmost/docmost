@@ -11,8 +11,9 @@ import {
   sidebarWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.tsx";
+import { lazyWithPrefetch } from "@/lib/lazy-prefetch.ts";
 
-const AiChatSidebar = React.lazy(
+const AiChatSidebar = lazyWithPrefetch(
   () => import("@/ee/ai-chat/components/ai-chat-sidebar.tsx"),
 );
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";

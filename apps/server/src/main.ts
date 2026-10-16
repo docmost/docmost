@@ -10,10 +10,10 @@ import { TransformHttpResponseInterceptor } from './common/interceptors/http-res
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
-import fastifyIp from 'fastify-ip';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
 import { EnvironmentService } from './integrations/environment/environment.service';
 import {
+  overrideRequestIp,
   resolveFrameHeader,
   resolveFrameHeadersForPath,
 } from './common/helpers';
@@ -23,16 +23,20 @@ const OAUTH_CALLBACK_PATH =
   /^\/api\/integrations\/oauth\/[^/?#]+\/callback(?:[?#]|$)/;
 
 async function bootstrap() {
+  const adapter = new FastifyAdapter({
+    trustProxy: true,
+    routerOptions: {
+      maxParamLength: 1000,
+      ignoreTrailingSlash: true,
+      ignoreDuplicateSlashes: true,
+    },
+  });
+  // Added before NestFactory.create so it runs ahead of middie copying request.ip for Nest middleware.
+  adapter.getInstance().addHook('onRequest', overrideRequestIp);
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({
-      trustProxy: true,
-      routerOptions: {
-        maxParamLength: 1000,
-        ignoreTrailingSlash: true,
-        ignoreDuplicateSlashes: true,
-      },
-    }),
+    adapter,
     {
       rawBody: true,
       // captures NestJS internal errors
@@ -65,7 +69,6 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(redisIoAdapter);
 
-  await app.register(fastifyIp);
   await app.register(fastifyMultipart);
   await app.register(fastifyCookie);
 
@@ -92,14 +95,6 @@ async function bootstrap() {
         reply.header(header.name, header.value);
       }
       done(null, payload);
-    });
-
-  app
-    .getHttpAdapter()
-    .getInstance()
-    .addHook('onRequest', (request, _reply, done) => {
-      (request.raw as any).ip = request.ip;
-      done();
     });
 
   app

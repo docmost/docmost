@@ -240,6 +240,11 @@ export class AttachmentService {
     }
   }
 
+  async deleteAttachment(attachment: Attachment) {
+    await this.storageService.delete(attachment.filePath);
+    await this.attachmentRepo.deleteAttachmentById(attachment.id);
+  }
+
   async uploadToDrive(filePath: string, fileContent: Buffer | Readable) {
     try {
       await this.storageService.upload(filePath, fileContent);

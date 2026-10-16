@@ -1,30 +1,70 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
+import { JwtPayload } from '../core/auth/dto/jwt-payload';
+import { isUserDisabled } from '../common/helpers';
 import { SpaceRole } from '../common/helpers/types/permission';
 import {
   TREE_EVENTS,
   WS_SPACE_RESTRICTION_CACHE_PREFIX,
   WS_CACHE_TTL_MS,
+  getSessionRoomName,
   getSpaceRoomName,
   getUserRoomName,
 } from './ws.utils';
+import { BaseRealtimeBridge } from './base-realtime.bridge';
 
 @Injectable()
 export class WsService {
+  private readonly logger = new Logger(WsService.name);
   private server: Server;
 
   constructor(
     private readonly pagePermissionRepo: PagePermissionRepo,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly baseRealtime: BaseRealtimeBridge,
+    private readonly userRepo: UserRepo,
+    private readonly userSessionRepo: UserSessionRepo,
   ) {}
 
   setServer(server: Server): void {
     this.server = server;
+  }
+
+  async authorizeConnection(token: JwtPayload): Promise<string[]> {
+    const [user, session, spaceIds] = await Promise.all([
+      this.userRepo.findById(token.sub, token.workspaceId),
+      token.sessionId
+        ? this.userSessionRepo.findActiveById(token.sessionId)
+        : undefined,
+      this.spaceMemberRepo.getUserSpaceIds(token.sub),
+    ]);
+
+    if (!user || isUserDisabled(user)) {
+      throw new UnauthorizedException();
+    }
+
+    if (
+      token.sessionId &&
+      (!session ||
+        session.userId !== token.sub ||
+        session.workspaceId !== token.workspaceId)
+    ) {
+      throw new UnauthorizedException();
+    }
+
+    return spaceIds;
   }
 
   async handleTreeEvent(client: Socket, data: any): Promise<void> {
@@ -73,9 +113,16 @@ export class WsService {
   }
 
   async invalidateSpaceRestrictionCache(spaceId: string): Promise<void> {
-    await this.cacheManager.del(
-      `${WS_SPACE_RESTRICTION_CACHE_PREFIX}${spaceId}`,
-    );
+    try {
+      await this.cacheManager.del(
+        `${WS_SPACE_RESTRICTION_CACHE_PREFIX}${spaceId}`,
+      );
+    } catch (err) {
+      this.logger.error(
+        { err },
+        `Failed to invalidate space restriction cache for ${spaceId}`,
+      );
+    }
   }
 
   async emitCommentEvent(
@@ -107,21 +154,72 @@ export class WsService {
     this.server.to(rooms).emit('message', data);
   }
 
+  disconnectUser(userId: string): void {
+    this.server.in(getUserRoomName(userId)).disconnectSockets(true);
+  }
+
+  disconnectSession(sessionId: string): void {
+    this.server.in(getSessionRoomName(sessionId)).disconnectSockets(true);
+  }
+
+  disconnectOtherSessions(userId: string, currentSessionId: string): void {
+    this.server
+      .in(getUserRoomName(userId))
+      .except(getSessionRoomName(currentSessionId))
+      .disconnectSockets(true);
+  }
+
+  async removeUsersWithoutSpaceAccess(
+    userIds: string[],
+    spaceIds: string[],
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+
+    for (const spaceId of spaceIds) {
+      try {
+        const usersWithAccess =
+          await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
+            userIds,
+            spaceId,
+          );
+        const revokedUserIds = userIds.filter(
+          (id) => !usersWithAccess.has(id),
+        );
+        if (revokedUserIds.length === 0) continue;
+
+        this.server
+          .in(revokedUserIds.map((id) => getUserRoomName(id)))
+          .socketsLeave(getSpaceRoomName(spaceId));
+        await this.baseRealtime.removeUsersFromSpaceBases(
+          revokedUserIds,
+          spaceId,
+        );
+      } catch (err) {
+        this.logger.error(
+          { err },
+          `Failed to remove revoked users from space ${spaceId} rooms`,
+        );
+      }
+    }
+  }
+
+  async removeBaseSubscribersWithoutAccess(pageIds: string[]): Promise<void> {
+    try {
+      await this.baseRealtime.removeSubscribersWithoutAccess(pageIds);
+    } catch (err) {
+      this.logger.error({ err }, 'Failed to remove base subscribers');
+    }
+  }
+
   async emitToSpaceExceptUsers(
     spaceId: string,
     excludeUserIds: string[],
     data: any,
   ): Promise<void> {
-    const room = getSpaceRoomName(spaceId);
-    const sockets = await this.server.in(room).fetchSockets();
-    const excludeSet = new Set(excludeUserIds);
-
-    for (const socket of sockets) {
-      const userId = socket.data.userId as string;
-      if (userId && !excludeSet.has(userId)) {
-        socket.emit('message', data);
-      }
-    }
+    this.server
+      .to(getSpaceRoomName(spaceId))
+      .except(excludeUserIds.map((id) => getUserRoomName(id)))
+      .emit('message', data);
   }
 
   isTreeEvent(data: any): boolean {

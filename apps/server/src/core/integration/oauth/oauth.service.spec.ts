@@ -1133,6 +1133,7 @@ describe('OAuthService', () => {
         [400, 'invalid_client'],
         [400, 'unauthorized_client'],
         [400, 'invalid_scope'],
+        [200, 'incorrect_client_credentials'],
       ])('keeps the connection on %s %s', async (status, error) => {
         storeRow({ ...expiringConnection() });
         tokenEndpointReply = tokenError(status, JSON.stringify({ error, error_description: 'PRIVATE' }));
@@ -1168,6 +1169,21 @@ describe('OAuthService', () => {
         expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
         expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
         expect(redis.keys.size).toBe(0);
+      });
+
+      it("retires the connection on GitHub's bad_refresh_token, which comes with a 200", async () => {
+        const row = storeRow({ ...expiringConnection() });
+        tokenEndpointReply = tokenError(200, JSON.stringify({
+          error: 'bad_refresh_token',
+          error_description: 'The refresh token passed is incorrect or expired.',
+          error_uri: 'https://docs.github.com/apps/creating-github-apps/authenticating-with-a-github-app/refreshing-user-access-tokens',
+        }));
+
+        await expect(service.getValidAccessToken(expiringConnection())).rejects.toBeInstanceOf(TokenInvalidError);
+
+        expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
+        expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
+        expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([['Token refresh failed for acme: 200 bad_refresh_token']]);
       });
 
       it.each([

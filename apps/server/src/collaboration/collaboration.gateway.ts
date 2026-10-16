@@ -9,6 +9,7 @@ import {
   createRetryStrategy,
   parseRedisUrl,
   RedisConfig,
+  resolveClientIp,
 } from '../common/helpers';
 import { LoggerExtension } from './extensions/logger.extension';
 import {
@@ -92,7 +93,7 @@ export class CollaborationGateway {
         'sec-websocket-protocol':
           request.headers['sec-websocket-protocol'] ?? '',
       },
-      socket: { remoteAddress: request.socket?.remoteAddress ?? '' },
+      socket: { remoteAddress: resolveClientIp(request) ?? '' },
     };
   }
 

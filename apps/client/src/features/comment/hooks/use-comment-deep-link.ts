@@ -8,6 +8,7 @@ import {
   commentPanelTabAtom,
 } from "@/features/comment/atoms/comment-atom";
 import classes from "@/features/comment/components/comment.module.css";
+import { showTabAtElement } from "@/features/editor/utils";
 
 const COMMENT_ID_PARAM = "commentId";
 const HIGHLIGHT_DURATION = 3000;
@@ -129,6 +130,7 @@ export function useCommentDeepLink(pageId: string | undefined) {
     // Inline marks render only for unresolved selection comments.
     if (thread?.selection && !thread.resolvedAt) {
       onElementReady(`.comment-mark[data-comment-id="${threadId}"]`, (el) => {
+        showTabAtElement(el);
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("comment-highlight");
         timersRef.current.push(

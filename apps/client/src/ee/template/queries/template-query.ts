@@ -23,6 +23,10 @@ import { useTranslation } from "react-i18next";
 import { invalidateOnCreatePage } from "@/features/page/queries/page-query.ts";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
+import {
+  spaceRoots,
+  updateSpaceRoots,
+} from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
@@ -185,15 +189,14 @@ export function useUseTemplateMutation() {
         children: [],
       };
 
-      // Only mutate the tree atom and broadcast if it currently represents
-      // this space. Cross-space template-use (e.g., from the gallery picking
+      // Only mutate the tree atom and broadcast if this space's tree is
+      // loaded. Cross-space template-use (e.g., from the gallery picking
       // a different space) lets the target space's clients pick up the new
       // page on their next React Query refetch (focus, navigation, etc.).
       // Without this guard we'd both pollute the local tree and send a wrong
       // `index` to remote clients in the target space.
-      const current = store.get(treeDataAtom);
-      const treeIsForThisSpace = current[0]?.spaceId === page.spaceId;
-      if (!treeIsForThisSpace) return;
+      const current = spaceRoots(store.get(treeDataAtom), page.spaceId);
+      if (current.length === 0) return;
 
       const lastIndex =
         parentId === null
@@ -201,7 +204,9 @@ export function useUseTemplateMutation() {
           : (treeModel.find(current, parentId)?.children?.length ?? 0);
 
       setTreeData((prev) =>
-        treeModel.insert(prev, parentId, newNode, lastIndex),
+        updateSpaceRoots(prev, page.spaceId, (roots) =>
+          treeModel.insert(roots, parentId, newNode, lastIndex),
+        ),
       );
 
       setTimeout(() => {

@@ -62,6 +62,8 @@ export const auditEventLabels: Record<string, string> = {
   "comment.reopened": "Reopened comment",
   "comment.deleted": "Deleted comment",
 
+  "attachment.deleted": "Deleted attachment",
+
   "page.trashed": "Trashed page",
   "page.deleted": "Deleted page",
   "page.restored": "Restored page",
@@ -157,6 +159,12 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "comment.resolved", label: "Resolved comment" },
       { value: "comment.reopened", label: "Reopened comment" },
       { value: "comment.deleted", label: "Deleted comment" },
+    ],
+  },
+  {
+    group: "Attachment",
+    items: [
+      { value: "attachment.deleted", label: "Deleted attachment" },
     ],
   },
   {

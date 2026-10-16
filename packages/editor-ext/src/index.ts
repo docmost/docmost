@@ -31,6 +31,7 @@ export * from "./lib/recreate-transform";
 export * from "./lib/integration-link";
 export * from "./lib/columns";
 export * from "./lib/status";
+export * from "./lib/tabs";
 export * from "./lib/pdf";
 export * from "./lib/page-break";
 export * from "./lib/footnotes";
