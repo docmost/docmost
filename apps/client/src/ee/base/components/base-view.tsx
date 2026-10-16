@@ -469,6 +469,13 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
             </div>
           </div>
         )}
+        <RowDetailModal
+          base={base}
+          rows={rows}
+          openRowId={openRowId}
+          onClose={closeRow}
+          onNavigate={handleRowNavigate}
+        />
       </BaseEditableProvider>
     );
   }
