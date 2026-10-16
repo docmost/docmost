@@ -49,6 +49,8 @@ import {
   Footnotes,
   Footnote,
   FootnoteReference,
+  IntegrationCard,
+  IntegrationMention,
   Tabs,
   Tab,
   TabLabel,
@@ -137,6 +139,8 @@ export const tiptapExtensions = [
   Footnotes,
   Footnote,
   FootnoteReference,
+  IntegrationCard,
+  IntegrationMention
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

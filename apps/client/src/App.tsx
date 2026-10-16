@@ -87,6 +87,12 @@ const AiChat = lazyWithPrefetch(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
 const VerifyEmail = lazyWithPrefetch(() => import("@/ee/pages/verify-email.tsx"));
 const LabelPage = lazyWithPrefetch(() => import("@/pages/label/label-page"));
 const OAuthConsent = lazyWithPrefetch(() => import("@/ee/oauth/pages/oauth-consent.tsx"));
+const Integrations = lazyWithPrefetch(
+  () => import("@/features/integration/pages/integrations.tsx"),
+);
+const Connections = lazyWithPrefetch(
+  () => import("@/features/integration/pages/connections.tsx"),
+);
 
 export default function App() {
   const { t } = useTranslation();
@@ -146,6 +152,12 @@ export default function App() {
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />
         <Route path={"/share/:shareId"} element={<ShareRedirect />} />
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
+        <Route
+          path={"/integrations/slack/link"}
+          element={
+            <Navigate to="/settings/account/connections?connect=slack" replace />
+          }
+        />
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
@@ -179,6 +191,7 @@ export default function App() {
               path={"account/api-keys/authorized-apps"}
               element={<UserApiKeys />}
             />
+            <Route path={"account/connections"} element={<Connections />} />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
             <Route path={"api-keys"} element={<WorkspaceApiKeys />} />
@@ -196,6 +209,7 @@ export default function App() {
               element={<Navigate to="/settings/audit/siem" replace />}
             />
             <Route path={"verifications"} element={<VerifiedPages />} />
+            <Route path={"integrations"} element={<Integrations />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>

@@ -18,6 +18,10 @@ import {
   resolveFrameHeadersForPath,
 } from './common/helpers';
 
+// Provider redirects land on the central app host, outside any workspace.
+const OAUTH_CALLBACK_PATH =
+  /^\/api\/integrations\/oauth\/[^/?#]+\/callback(?:[?#]|$)/;
+
 async function bootstrap() {
   const adapter = new FastifyAdapter({
     trustProxy: true,
@@ -129,11 +133,15 @@ async function bootstrap() {
         '/api/workspace/create',
         '/api/workspace/joined',
         '/api/workspace/find-by-email',
+        '/api/integrations/slack/events',
+        '/api/integrations/slack/commands',
+        '/api/integrations/slack/interactivity',
       ];
 
       if (
         req.originalUrl.startsWith('/api') &&
-        !excludedPaths.some((path) => req.originalUrl.startsWith(path))
+        !excludedPaths.some((path) => req.originalUrl.startsWith(path)) &&
+        !OAUTH_CALLBACK_PATH.test(req.originalUrl)
       ) {
         if (!req.raw?.['workspaceId'] && req.originalUrl !== '/api') {
           throw new NotFoundException('Workspace not found');

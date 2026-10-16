@@ -50,6 +50,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
@@ -77,6 +78,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private userSessionRepo: UserSessionRepo,
+    private integrationConnectionRepo: IntegrationConnectionRepo,
     private wsService: WsService,
     private readonly collabAccessService: CollabAccessService,
   ) {}
@@ -313,11 +315,19 @@ export class WorkspaceService {
 
     if (updateWorkspaceDto.emailDomains) {
       const regex =
-        /(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]/;
-      const emailDomains = updateWorkspaceDto.emailDomains || [];
-      updateWorkspaceDto.emailDomains = emailDomains
-        .map((domain) => regex.exec(domain)?.[0])
-        .filter(Boolean);
+        /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/;
+      const emailDomains = updateWorkspaceDto.emailDomains.map((domain) =>
+        domain.trim().toLowerCase().replace(/^@/, ''),
+      );
+      const invalidDomains = emailDomains.filter(
+        (domain) => !regex.test(domain),
+      );
+      if (invalidDomains.length > 0) {
+        throw new BadRequestException(
+          `Invalid email domains: ${invalidDomains.join(', ')}`,
+        );
+      }
+      updateWorkspaceDto.emailDomains = [...new Set(emailDomains)];
     }
 
     if (updateWorkspaceDto.hostname) {
@@ -908,6 +918,7 @@ export class WorkspaceService {
         trx,
       );
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+      await this.integrationConnectionRepo.deleteUserConnections(userId, trx);
 
       return user;
     });
@@ -1035,6 +1046,7 @@ export class WorkspaceService {
       });
 
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+      await this.integrationConnectionRepo.deleteUserConnections(userId, trx);
 
       return user;
     });

@@ -35,6 +35,7 @@ export default function AllowedDomains() {
         emailDomains: data.emailDomains,
       });
       setWorkspace(updatedWorkspace);
+      form.setValues({ emailDomains: updatedWorkspace.emailDomains });
 
       notifications.show({
         message: t("Updated successfully"),

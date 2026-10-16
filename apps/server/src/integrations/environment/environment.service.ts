@@ -393,6 +393,10 @@ export class EnvironmentService {
       .filter(Boolean);
   }
 
+  getSlackSigningSecret(): string | undefined {
+    return this.configService.get<string>('INTEGRATION_SLACK_SIGNING_SECRET');
+  }
+
   getAllowedPrivateNetworks(): string {
     return this.configService.get<string>('ALLOWED_PRIVATE_NETWORKS', 'none');
   }

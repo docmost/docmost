@@ -1,0 +1,71 @@
+.toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px;
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: 10px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-2));
+  background: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-6)
+  );
+  box-shadow: 0 5px 18px light-dark(rgba(31, 35, 40, 0.12), rgba(0, 0, 0, 0.36));
+}
+
+.divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 3px;
+  flex: 0 0 1px;
+  background: light-dark(
+    var(--mantine-color-gray-3),
+    var(--mantine-color-dark-3)
+  );
+}
+
+.actionButton {
+  --ai-size: 32px !important;
+
+  flex: 0 0 32px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-2));
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.actionButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.actionButton:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-6);
+  outline-offset: -2px;
+}
+
+.pasteOption {
+  min-height: 30px;
+}
+
+@media (pointer: coarse) {
+  .pasteOption {
+    min-height: 44px;
+  }
+
+  .actionButton {
+    --ai-size: 44px !important;
+
+    flex-basis: 44px;
+  }
+
+  .actionButton svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .divider {
+    height: 26px;
+    margin-inline: 4px;
+  }
+}
