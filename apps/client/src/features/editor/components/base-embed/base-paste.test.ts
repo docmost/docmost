@@ -42,7 +42,13 @@ function mentionPos(): number | null {
   return found;
 }
 
-async function pasteLink({ isBase }: { isBase: boolean }) {
+async function pasteLink({
+  isBase,
+  url = LINK,
+}: {
+  isBase: boolean;
+  url?: string;
+}) {
   mocks.getPageById.mockResolvedValue({
     id: PAGE_ID,
     slugId: "x1y2z3",
@@ -51,7 +57,7 @@ async function pasteLink({ isBase }: { isBase: boolean }) {
   });
   const event = {
     clipboardData: {
-      getData: (type: string) => (type === "text/plain" ? LINK : ""),
+      getData: (type: string) => (type === "text/plain" ? url : ""),
       files: [],
     },
     preventDefault: vi.fn(),
@@ -68,6 +74,20 @@ describe("pasting a link to a base", () => {
 
     await pasteLink({ isBase: true });
 
+    expect(basePasteMenuKey.getState(editor.state)).toEqual({
+      pos: mentionPos(),
+    });
+  });
+
+  it("offers to embed a link to one of its views", async () => {
+    createEditor([{ type: "paragraph" }], 1);
+
+    await pasteLink({
+      isBase: true,
+      url: `${LINK}?view=0195f3c2-1111-7000-8000-000000000abc`,
+    });
+
+    expect(mocks.getPageById).toHaveBeenCalledWith({ pageId: "x1y2z3" });
     expect(basePasteMenuKey.getState(editor.state)).toEqual({
       pos: mentionPos(),
     });

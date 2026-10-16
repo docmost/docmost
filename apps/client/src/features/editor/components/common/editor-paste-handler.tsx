@@ -134,13 +134,15 @@ export const handlePaste = (
     }
   }
 
+  // A query, such as a base's ?view=, still links to the same page.
+  const pageLink = clipboardData.replace(/\?[^#]*/, "");
   if (
-    INTERNAL_LINK_REGEX.test(clipboardData) &&
+    INTERNAL_LINK_REGEX.test(pageLink) &&
     !BASE_EMBED_HTML_RE.test(event.clipboardData.getData("text/html"))
   ) {
     // we have to do this validation here to allow the default link extension to takeover if needs be
     event.preventDefault();
-    const url = clipboardData.trim();
+    const url = pageLink.trim();
     const { from: pos, empty } = editor.state.selection;
     const match = INTERNAL_LINK_REGEX.exec(url);
 
