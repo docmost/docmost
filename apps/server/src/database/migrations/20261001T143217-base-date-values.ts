@@ -1,5 +1,3 @@
-// Assumes a single-instance cutover: during a rolling deploy, old instances would evaluate
-// formulas over the new object-shaped date cells as null and persist wrong formula outputs.
 import { Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
@@ -114,37 +112,64 @@ export async function up(db: Kysely<any>): Promise<void> {
   `.execute(db);
 
   await sql`
-    WITH conv AS (
+    CREATE OR REPLACE FUNCTION base_date_fallback(cells jsonb, prop text)
+    RETURNS text LANGUAGE sql STABLE
+    SET TimeZone = 'UTC' SET DateStyle = 'ISO, MDY'
+    AS $$
+      SELECT CASE
+        WHEN (cells ->> prop) !~* '(now|today|tomorrow|yesterday|epoch|infinity|allballs)'
+        THEN to_char(
+          base_date_year_ok(base_cell_timestamptz(cells, prop)) AT TIME ZONE 'UTC',
+          'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+      END
+    $$
+  `.execute(db);
+
+  await sql`
+    WITH src AS MATERIALIZED (
       SELECT r.id,
-             jsonb_object_agg(
-               p.id,
-               jsonb_build_object('start',
-                 CASE
-                   WHEN base_date_is_ymd(base_date_legacy(r.cells ->> p.id))
-                     THEN base_date_legacy(r.cells ->> p.id)
-                   WHEN p.type_options ->> 'includeTime' IS DISTINCT FROM 'true'
-                     THEN to_char(
-                       (base_date_instant(r.cells ->> p.id) AT TIME ZONE 'UTC') + interval '12 hours',
-                       'YYYY-MM-DD')
-                   ELSE to_char(
-                     base_date_instant(r.cells ->> p.id) AT TIME ZONE 'UTC',
-                     'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-                 END)
-             ) AS patch
+             p.id AS prop,
+             coalesce(p.type_options ->> 'includeTime' = 'true', false) AS include_time,
+             CASE
+               WHEN base_date_is_ymd(base_date_legacy(r.cells ->> p.id))
+                 OR base_date_instant(r.cells ->> p.id) IS NOT NULL
+                 THEN r.cells ->> p.id
+               ELSE base_date_fallback(r.cells, p.id)
+             END AS v
       FROM base_rows r
       JOIN base_properties p ON p.page_id = r.page_id AND p.type = 'date'
       WHERE jsonb_typeof(r.cells -> p.id) = 'string'
-        AND (base_date_is_ymd(base_date_legacy(r.cells ->> p.id))
-             OR (p.type_options ->> 'includeTime' = 'true'
-                 AND base_date_instant(r.cells ->> p.id) IS NOT NULL)
-             OR (p.type_options ->> 'includeTime' IS DISTINCT FROM 'true'
-                 AND base_date_is_ymd(to_char(
-                   (base_date_instant(r.cells ->> p.id) AT TIME ZONE 'UTC') + interval '12 hours',
-                   'YYYY-MM-DD'))))
-      GROUP BY r.id
+    ),
+    conv AS (
+      SELECT id,
+             jsonb_object_agg(
+               prop,
+               jsonb_build_object('start',
+                 CASE
+                   WHEN base_date_is_ymd(base_date_legacy(v))
+                     THEN base_date_legacy(v)
+                   WHEN NOT include_time
+                     THEN to_char(
+                       (base_date_instant(v) AT TIME ZONE 'UTC') + interval '12 hours',
+                       'YYYY-MM-DD')
+                   ELSE to_char(
+                     base_date_instant(v) AT TIME ZONE 'UTC',
+                     'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                 END)
+             ) AS patch
+      FROM src
+      WHERE base_date_is_ymd(base_date_legacy(v))
+         OR (include_time AND base_date_instant(v) IS NOT NULL)
+         OR (NOT include_time
+             AND base_date_is_ymd(to_char(
+               (base_date_instant(v) AT TIME ZONE 'UTC') + interval '12 hours',
+               'YYYY-MM-DD')))
+      GROUP BY id
     )
     UPDATE base_rows r SET cells = r.cells || conv.patch FROM conv WHERE r.id = conv.id
   `.execute(db);
+
+  await sql`DROP FUNCTION base_date_fallback(jsonb, text)`.execute(db);
 
   await sql`
     UPDATE base_properties SET type_options = type_options - 'dateFormat'
