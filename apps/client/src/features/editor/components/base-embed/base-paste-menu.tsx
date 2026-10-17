@@ -157,7 +157,7 @@ export function BasePasteMenu({ editor }: EditorMenuProps) {
           aria-activedescendant={highlighted ? optionId : undefined}
         >
           <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
-            {highlighted ? t("Embed base") : ""}
+            {highlighted ? t("Inline base") : ""}
           </VisuallyHidden>
           <Text size="xs" c="dimmed" px={8} py={4}>
             {t("Paste as")}
@@ -177,7 +177,7 @@ export function BasePasteMenu({ editor }: EditorMenuProps) {
             onFocus={() => setHighlighted(true)}
             onClick={embed}
           >
-            {t("Embed base")}
+            {t("Inline base")}
           </Button>
         </Paper>
       ) : null}

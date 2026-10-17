@@ -91,7 +91,7 @@ describe("BasePasteMenu", () => {
   it("embeds the pasted base when its option is clicked", () => {
     const editor = renderMenu();
 
-    fireEvent.click(screen.getByRole("option", { name: "Embed base" }));
+    fireEvent.click(screen.getByRole("option", { name: "Inline base" }));
 
     expect(mocks.convert).toHaveBeenCalledWith(editor, 3);
   });
