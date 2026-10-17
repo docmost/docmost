@@ -155,6 +155,7 @@ const OUTBOUND_MAX = 256;
 const ROWS_REFRESH_DELAY_MS = 300;
 const ROWS_REFRESH_INTERVAL_MS = 2000;
 const ROWS_REFRESH_MAX_DEFERRALS = 10;
+const ROWS_REFRESH_MAX_FETCH_WAITS = 100;
 
 export function markRequestIdOutbound(requestId: string): void {
   outboundRequestIds.add(requestId);
@@ -171,6 +172,7 @@ type BaseSubscriptionState = {
   rowsRefreshTimer?: ReturnType<typeof setTimeout>;
   rowsRefreshScope?: RowsRefreshScope;
   rowsRefreshDeferrals: number;
+  rowsRefreshFetchWaits: number;
   lastRowsRefreshAt: number;
 };
 
@@ -192,18 +194,23 @@ function createBaseEventHandler(
         (mutation.state.variables as { pageId?: string } | undefined)
           ?.pageId === pageId,
     });
+    const waitForFetch =
+      fetchingRows > 0 &&
+      state.rowsRefreshFetchWaits < ROWS_REFRESH_MAX_FETCH_WAITS;
     if (
-      fetchingRows > 0 ||
+      waitForFetch ||
       (mutatingRows > 0 &&
         state.rowsRefreshDeferrals < ROWS_REFRESH_MAX_DEFERRALS)
     ) {
-      if (fetchingRows === 0) state.rowsRefreshDeferrals += 1;
+      if (waitForFetch) state.rowsRefreshFetchWaits += 1;
+      else state.rowsRefreshDeferrals += 1;
       state.rowsRefreshTimer = setTimeout(runRowsRefresh, ROWS_REFRESH_DELAY_MS);
       return;
     }
     state.rowsRefreshDeferrals = 0;
+    state.rowsRefreshFetchWaits = 0;
     state.rowsRefreshScope = undefined;
-    state.lastRowsRefreshAt = Date.now();
+    state.lastRowsRefreshAt = performance.now();
     if (scope === "all") invalidateBaseRows(pageId);
     else invalidateCalendarRows(pageId);
   };
@@ -217,7 +224,7 @@ function createBaseEventHandler(
       runRowsRefresh,
       Math.max(
         ROWS_REFRESH_DELAY_MS,
-        state.lastRowsRefreshAt + ROWS_REFRESH_INTERVAL_MS - Date.now(),
+        state.lastRowsRefreshAt + ROWS_REFRESH_INTERVAL_MS - performance.now(),
       ),
     );
   };
@@ -543,7 +550,8 @@ export function retainBaseSubscription(
     const state: BaseSubscriptionState = {
       missedEvents: false,
       rowsRefreshDeferrals: 0,
-      lastRowsRefreshAt: 0,
+      rowsRefreshFetchWaits: 0,
+      lastRowsRefreshAt: -Infinity,
     };
     subscription = {
       count: 0,
