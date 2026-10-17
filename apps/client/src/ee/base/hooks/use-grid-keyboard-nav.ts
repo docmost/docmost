@@ -171,6 +171,8 @@ export function useGridKeyboardNav({
           }
           case "Escape": {
             e.preventDefault();
+            // Blurring saves the draft, as on Enter.
+            (document.activeElement as HTMLElement | null)?.blur();
             setEditingCell(null);
             setFocusedCell(editingCell);
             break;

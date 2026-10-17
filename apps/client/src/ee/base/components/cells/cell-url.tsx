@@ -16,13 +16,12 @@ type CellUrlProps = {
 const toDraft = (value: unknown) => (typeof value === "string" ? value : "");
 const parse = (draft: string) => draft || null;
 
-export function CellUrl({ value, property, rowId, isEditing, onCommit, onCancel }: CellUrlProps) {
+export function CellUrl({ value, property, rowId, isEditing, onCommit }: CellUrlProps) {
   const { draft, setDraft, inputRef, handleKeyDown, handleBlur } =
     useEditableTextCell({
       value,
       isEditing,
       onCommit,
-      onCancel,
       toDraft,
       parse,
       rowId,
