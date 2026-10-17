@@ -155,8 +155,13 @@ export async function up(db: Kysely<any>): Promise<void> {
             t := regexp_replace(t, '(gmt|utc|ut)[[:space:]]*[+-][0-9]{2}:?[0-9]{2}[[:>:]]',
                                 ' ' || parts[2] || parts[3] || ':' || parts[4], 'i');
           END IF;
-          IF t !~* '(gmt|utc|ut)[[:space:]]*[+-]' THEN
+          IF t !~* '(gmt|utc|ut)[[:space:]]*[+-]' AND t !~ '[0-9]:[0-9]{2}.*[[:alpha:]][+-][0-9]' THEN
             SELECT f.wall, f.moment, f.zoned INTO wall, moment, zoned FROM base_date_fallback(t) f;
+          END IF;
+          IF extract(year FROM wall) BETWEEN 2050 AND 2069
+             AND strpos(t, to_char(wall, 'YYYY')) = 0 AND t !~ '[0-9]{5}' THEN
+            wall := wall - interval '100 years';
+            moment := ((moment AT TIME ZONE 'UTC') - interval '100 years') AT TIME ZONE 'UTC';
           END IF;
         END IF;
         IF wall IS NULL OR moment IS NULL OR extract(year FROM wall) NOT BETWEEN 1 AND 9999 THEN
@@ -170,6 +175,11 @@ export async function up(db: Kysely<any>): Promise<void> {
       END
     $$
   `.execute(db);
+
+  const { rows: abbreviations } = await sql<{ setting: string }>`
+    SELECT current_setting('timezone_abbreviations') AS setting
+  `.execute(db);
+  await sql`SELECT set_config('timezone_abbreviations', 'Default', false)`.execute(db);
 
   await sql`
     WITH src AS MATERIALIZED (
@@ -190,6 +200,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       GROUP BY id
     )
     UPDATE base_rows r SET cells = r.cells || conv.patch FROM conv WHERE r.id = conv.id
+  `.execute(db);
+
+  await sql`
+    SELECT set_config('timezone_abbreviations', ${abbreviations[0].setting}, false)
   `.execute(db);
 
   await sql`DROP FUNCTION base_date_migrate(text, boolean)`.execute(db);
