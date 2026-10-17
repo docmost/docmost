@@ -27,11 +27,9 @@ export function CellLongText({
   isEditing,
   onCommit,
   onValueChange,
-  onCancel,
   onTabNavigate,
 }: CellLongTextProps) {
   const [draft, setDraft] = useState(() => toText(value));
-  const cancelledRef = useRef(false);
   const committedRef = useRef(false);
   const wasEditingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -40,7 +38,6 @@ export function CellLongText({
   // value changes mid-edit so the user's typing is not clobbered.
   useEffect(() => {
     if (isEditing && !wasEditingRef.current) {
-      cancelledRef.current = false;
       committedRef.current = false;
       setDraft(toText(value));
       requestAnimationFrame(() => {
@@ -53,8 +50,8 @@ export function CellLongText({
     wasEditingRef.current = isEditing;
   }, [isEditing, value]);
 
-  // Autosave after a typing pause; commit/cancel clear the pending fire so
-  // a closed editor can never write a stale or discarded draft.
+  // Autosave after a typing pause; commit clears the pending fire so a
+  // closed editor can never write a stale draft.
   const debouncedAutosave = useDebouncedCallback(() => {
     onValueChange(normalize(draft));
   }, 10_000);
@@ -65,11 +62,6 @@ export function CellLongText({
     debouncedAutosave.cancel();
     onCommit(normalize(draft));
   };
-  const cancel = () => {
-    cancelledRef.current = true;
-    debouncedAutosave.cancel();
-    onCancel();
-  };
 
   const preview = formatLongTextPreview(toText(value));
 
@@ -78,11 +70,6 @@ export function CellLongText({
       opened={isEditing}
       onChange={(opened) => {
         if (opened) return;
-        // Programmatic close after cancel must not re-commit.
-        if (cancelledRef.current) {
-          cancelledRef.current = false;
-          return;
-        }
         commit();
       }}
       position="bottom-start"
@@ -135,7 +122,7 @@ export function CellLongText({
                   onTabNavigate?.(e.shiftKey);
                 } else if (e.key === "Escape") {
                   e.preventDefault();
-                  cancel();
+                  commit();
                 } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                   e.preventDefault();
                   commit();
