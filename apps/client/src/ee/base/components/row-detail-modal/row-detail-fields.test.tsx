@@ -109,3 +109,77 @@ describe("Esc in the row detail modal", () => {
     },
   );
 });
+
+describe("Typing in the row detail modal", () => {
+  const titleRow = (title: string) =>
+    ({ id: "r1", cells: { p1: title } }) as unknown as IBaseRow;
+  const primary = { ...property("text"), isPrimary: true };
+
+  function type(value: string) {
+    const input = screen.getByRole("textbox");
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value } });
+    return input;
+  }
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("saves a typed title after a 1 s pause, without leaving the field", () => {
+    const onCommit = vi.fn();
+    render(
+      <RowDetailTitle
+        row={titleRow("")}
+        primaryProperty={primary}
+        canEdit
+        onCommit={onCommit}
+      />,
+    );
+
+    const input = type("dddddd");
+    act(() => vi.advanceTimersByTime(999));
+    expect(onCommit).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+
+    expect(onCommit).toHaveBeenCalledWith("dddddd");
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("keeps a typed title when the row's title changes elsewhere", () => {
+    const props = { primaryProperty: primary, canEdit: true, onCommit: vi.fn() };
+    const { rerender } = render(
+      <RowDetailTitle row={titleRow("Old")} {...props} />,
+    );
+
+    const input = type("My draft");
+    rerender(<RowDetailTitle row={titleRow("Remote")} {...props} />);
+
+    expect(input).toHaveProperty("value", "My draft");
+  });
+
+  it.each([
+    ["text", FieldText, "hello"],
+    ["long text", FieldLongText, "notes"],
+  ] as [string, ComponentType<FieldProps>, string][])(
+    "saves a typed %s field after a 1 s pause",
+    (_, Field, typed) => {
+      const onChange = vi.fn();
+      render(
+        <Field
+          property={property("text")}
+          value={null}
+          rowId="r1"
+          readOnly={false}
+          onChange={onChange}
+        />,
+        { wrapper: MantineProvider },
+      );
+
+      const input = type(typed);
+      act(() => vi.advanceTimersByTime(1000));
+
+      expect(onChange).toHaveBeenCalledWith(typed);
+      expect(document.activeElement).toBe(input);
+    },
+  );
+});

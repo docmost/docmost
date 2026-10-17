@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useDebouncedCallback } from "@mantine/hooks";
 import { IconExternalLink, IconMail } from "@tabler/icons-react";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
+import { AUTOSAVE_DELAY_MS } from "@/ee/base/constants/autosave";
 
 const toText = (value: unknown) => (typeof value === "string" ? value : "");
 
@@ -21,10 +23,16 @@ export function FieldText({
     if (!focused) setDraft(text);
   }, [text, focused]);
 
+  const save = () => {
+    if (draft !== text) onChange(draft);
+  };
+  const autosave = useDebouncedCallback(save, AUTOSAVE_DELAY_MS);
+
   const commit = () => {
     setFocused(false);
     onEditingChange?.(false);
-    if (draft !== text) onChange(draft);
+    autosave.cancel();
+    save();
   };
 
   if (readOnly) {
@@ -57,7 +65,10 @@ export function FieldText({
           setFocused(true);
           onEditingChange?.(true);
         }}
-        onChange={(e) => setDraft(e.currentTarget.value)}
+        onChange={(e) => {
+          setDraft(e.currentTarget.value);
+          autosave();
+        }}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") {

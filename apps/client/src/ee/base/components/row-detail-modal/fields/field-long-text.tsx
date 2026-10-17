@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Textarea } from "@mantine/core";
+import { useDebouncedCallback } from "@mantine/hooks";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
+import { AUTOSAVE_DELAY_MS } from "@/ee/base/constants/autosave";
 
 const toText = (value: unknown) => (typeof value === "string" ? value : "");
 const normalize = (s: string) => {
@@ -24,10 +26,16 @@ export function FieldLongText({
     if (!focused) setDraft(text);
   }, [text, focused]);
 
+  const save = () => {
+    if (normalize(draft) !== normalize(text)) onChange(normalize(draft));
+  };
+  const autosave = useDebouncedCallback(save, AUTOSAVE_DELAY_MS);
+
   const commit = () => {
     setFocused(false);
     onEditingChange?.(false);
-    if (normalize(draft) !== normalize(text)) onChange(normalize(draft));
+    autosave.cancel();
+    save();
   };
 
   if (readOnly) {
@@ -53,7 +61,10 @@ export function FieldLongText({
           setFocused(true);
           onEditingChange?.(true);
         }}
-        onChange={(e) => setDraft(e.currentTarget.value)}
+        onChange={(e) => {
+          setDraft(e.currentTarget.value);
+          autosave();
+        }}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Escape") {

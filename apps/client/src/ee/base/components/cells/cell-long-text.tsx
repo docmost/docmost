@@ -4,6 +4,7 @@ import { useDebouncedCallback } from "@mantine/hooks";
 import { IBaseProperty } from "@/ee/base/types/base.types";
 import { formatLongTextPreview } from "@/ee/base/formatters/cell-formatters";
 import cellClasses from "@/ee/base/styles/cells.module.css";
+import { AUTOSAVE_DELAY_MS } from "@/ee/base/constants/autosave";
 
 type CellLongTextProps = {
   value: unknown;
@@ -54,7 +55,7 @@ export function CellLongText({
   // closed editor can never write a stale draft.
   const debouncedAutosave = useDebouncedCallback(() => {
     onValueChange(normalize(draft));
-  }, 10_000);
+  }, AUTOSAVE_DELAY_MS);
 
   const commit = () => {
     if (committedRef.current) return;
