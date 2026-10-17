@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Textarea } from "@mantine/core";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
@@ -19,9 +19,6 @@ export function FieldLongText({
   const text = toText(value);
   const [draft, setDraft] = useState(text);
   const [focused, setFocused] = useState(false);
-  // Esc sets this; blur() then runs commit synchronously with the stale
-  // draft, so the revert must be decided here, not via setDraft.
-  const cancelRef = useRef(false);
 
   useEffect(() => {
     if (!focused) setDraft(text);
@@ -30,11 +27,6 @@ export function FieldLongText({
   const commit = () => {
     setFocused(false);
     onEditingChange?.(false);
-    if (cancelRef.current) {
-      cancelRef.current = false;
-      setDraft(text);
-      return;
-    }
     if (normalize(draft) !== normalize(text)) onChange(normalize(draft));
   };
 
@@ -65,7 +57,6 @@ export function FieldLongText({
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
-            cancelRef.current = true;
             e.currentTarget.blur();
           } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();

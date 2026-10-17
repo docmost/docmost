@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { IconExternalLink, IconMail } from "@tabler/icons-react";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
@@ -15,9 +15,6 @@ export function FieldText({
   const text = toText(value);
   const [draft, setDraft] = useState(text);
   const [focused, setFocused] = useState(false);
-  // Esc sets this; blur() then runs commit synchronously with the stale
-  // draft, so the revert must be decided here, not via setDraft.
-  const cancelRef = useRef(false);
 
   // Track remote/navigation updates while not typing.
   useEffect(() => {
@@ -27,11 +24,6 @@ export function FieldText({
   const commit = () => {
     setFocused(false);
     onEditingChange?.(false);
-    if (cancelRef.current) {
-      cancelRef.current = false;
-      setDraft(text);
-      return;
-    }
     if (draft !== text) onChange(draft);
   };
 
@@ -72,7 +64,6 @@ export function FieldText({
             e.preventDefault();
             e.currentTarget.blur();
           } else if (e.key === "Escape") {
-            cancelRef.current = true;
             e.currentTarget.blur();
           }
         }}

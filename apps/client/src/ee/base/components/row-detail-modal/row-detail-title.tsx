@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
 import { timeAgo } from "@/lib/time.ts";
@@ -24,15 +24,9 @@ export function RowDetailTitle({
     ? (((row.cells ?? {})[primaryProperty.id] as string) ?? "")
     : "";
   const [value, setValue] = useState(initial);
-  const cancelRef = useRef(false);
 
   const commit = () => {
     onEditingChange?.(false);
-    if (cancelRef.current) {
-      cancelRef.current = false;
-      setValue(initial);
-      return;
-    }
     if (value !== initial) onCommit(value);
   };
 
@@ -61,7 +55,6 @@ export function RowDetailTitle({
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
-              cancelRef.current = true;
               e.currentTarget.blur();
             } else if (e.key === "Enter") {
               e.preventDefault();
