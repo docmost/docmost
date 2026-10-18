@@ -64,11 +64,18 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
+    .createIndex('idx_page_verifications_pending_history_id')
+    .on('page_verifications')
+    .column('pending_history_id')
+    .where('pending_history_id', 'is not', null)
+    .execute();
+
+  await db.schema
     .alterTable('attachments')
     .addColumn('is_draft', 'boolean', (col) => col.notNull().defaultTo(false))
     .execute();
 
-  // Approved pages keep their current content as version 1.
+  // Approved and obsolete pages (obsolete requires approval) become version 1.
   await sql`
     INSERT INTO page_history (
       page_id, slug_id, title, content, icon, cover_photo, last_updated_by_id,
@@ -83,7 +90,9 @@ export async function up(db: Kysely<any>): Promise<void> {
       'Approved before version history was available'
     FROM page_verifications pv
     JOIN pages p ON p.id = pv.page_id
-    WHERE pv.type = 'qms' AND pv.status = 'approved' AND p.is_base = false
+    WHERE pv.type = 'qms'
+      AND pv.status IN ('approved', 'obsolete')
+      AND p.is_base = false
   `.execute(db);
 
   // Every other status gets its current content as an unapproved baseline.
@@ -99,7 +108,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     FROM page_verifications pv
     JOIN pages p ON p.id = pv.page_id
     WHERE pv.type = 'qms'
-      AND pv.status IS DISTINCT FROM 'approved'
+      AND (pv.status IS NULL OR pv.status NOT IN ('approved', 'obsolete'))
       AND p.is_base = false
   `.execute(db);
 
@@ -108,12 +117,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     WITH submitted AS (
       INSERT INTO page_history (
         page_id, slug_id, title, content, icon, cover_photo,
-        last_updated_by_id, contributor_ids, space_id, workspace_id, kind
+        last_updated_by_id, contributor_ids, space_id, workspace_id, kind,
+        change_summary
       )
       SELECT
         p.id, p.slug_id, p.title, p.content, p.icon, p.cover_photo,
         COALESCE(p.last_updated_by_id, p.creator_id), p.contributor_ids,
-        p.space_id, p.workspace_id, 'draft'
+        p.space_id, p.workspace_id, 'draft',
+        'Submitted before version history was available'
       FROM page_verifications v
       JOIN pages p ON p.id = v.page_id
       WHERE v.type = 'qms' AND v.status = 'in_approval' AND p.is_base = false
@@ -140,7 +151,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await sql`
     UPDATE pages SET ydoc = NULL
-    WHERE id IN (SELECT page_id FROM page_drafts)
+    WHERE ydoc IS NOT NULL AND id IN (SELECT page_id FROM page_drafts)
   `.execute(db);
 }
 
@@ -161,6 +172,10 @@ export async function down(db: Kysely<any>): Promise<void> {
     .execute();
   await db.schema
     .dropIndex('idx_page_history_reader_versions')
+    .ifExists()
+    .execute();
+  await db.schema
+    .dropIndex('idx_page_verifications_pending_history_id')
     .ifExists()
     .execute();
 
