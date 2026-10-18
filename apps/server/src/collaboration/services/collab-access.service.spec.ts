@@ -10,10 +10,24 @@ describe('CollabAccessService', () => {
     const publish = jest.fn(async () => 1);
 
     await makeService(publish).recheckAccess({ userIds: ['user_1'] });
-    await makeService(publish).recheckAccess({ userIds: [], pageIds: [] });
+    await makeService(publish).recheckAccess({
+      userIds: [],
+      pageIds: [],
+      spaceIds: [],
+    });
 
     expect(publish.mock.calls).toEqual([
       [COLLAB_ACCESS_RECHECK_CHANNEL, JSON.stringify({ userIds: ['user_1'] })],
+    ]);
+  });
+
+  it('publishes the spaces to recheck', async () => {
+    const publish = jest.fn(async () => 1);
+
+    await makeService(publish).recheckAccess({ spaceIds: ['space_1'] });
+
+    expect(publish.mock.calls).toEqual([
+      [COLLAB_ACCESS_RECHECK_CHANNEL, JSON.stringify({ spaceIds: ['space_1'] })],
     ]);
   });
 

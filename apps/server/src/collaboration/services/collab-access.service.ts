@@ -5,6 +5,7 @@ import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
 export type CollabAccessRecheck = {
   userIds?: string[];
   pageIds?: string[];
+  spaceIds?: string[];
 };
 
 @Injectable()
@@ -14,7 +15,13 @@ export class CollabAccessService {
   constructor(private readonly redisService: RedisService) {}
 
   async recheckAccess(recheck: CollabAccessRecheck): Promise<void> {
-    if (!recheck.userIds?.length && !recheck.pageIds?.length) return;
+    if (
+      !recheck.userIds?.length &&
+      !recheck.pageIds?.length &&
+      !recheck.spaceIds?.length
+    ) {
+      return;
+    }
     // not awaited, ioredis queues the command and can hold the reply for minutes while redis reconnects
     try {
       this.redisService

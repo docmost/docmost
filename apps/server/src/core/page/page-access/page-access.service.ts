@@ -1,13 +1,21 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { MongoAbility } from '@casl/ability';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import SpaceAbilityFactory from '../../casl/abilities/space-ability.factory';
 import {
+  ISpaceAbility,
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { CacheOptions } from '../../../common/helpers/with-cache';
+import { PageApprovalService } from '../approval/page-approval.service';
+import { ApprovalState } from '../approval/page-approval.types';
 
 @Injectable()
 export class PageAccessService {
@@ -15,12 +23,14 @@ export class PageAccessService {
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly spaceRepo: SpaceRepo,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   /**
    * Validate user can view page, throws ForbiddenException if not.
    * If page has restrictions: page-level permission determines access.
    * If no restrictions: space-level permission determines access.
+   * A page hidden by an unpublished approval page throws NotFoundException.
    */
   async validateCanView(
     page: Page,
@@ -39,13 +49,17 @@ export class PageAccessService {
       throw new ForbiddenException();
     }
 
-    const canAccess = await this.pagePermissionRepo.canUserAccessPage(
+    const permission = await this.pagePermissionRepo.canUserEditPage(
       user.id,
       page.id,
       opts,
     );
-    if (!canAccess) {
+    if (!permission.canAccess) {
       throw new ForbiddenException();
+    }
+
+    if (!this.canEditWith(ability, permission)) {
+      await this.assertNotHidden(page, user);
     }
   }
 
@@ -56,25 +70,50 @@ export class PageAccessService {
   async validateCanViewWithPermissions(
     page: Page,
     user: User,
-  ): Promise<{ canEdit: boolean; hasRestriction: boolean }> {
+  ): Promise<{
+    canEdit: boolean;
+    hasRestriction: boolean;
+    approval: {
+      controlled: boolean;
+      canAccessDraft: boolean;
+      locked: boolean;
+      unpublished: boolean;
+    };
+  }> {
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
 
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
-    const { hasAnyRestriction, canAccess, canEdit } =
-      await this.pagePermissionRepo.canUserEditPage(user.id, page.id);
+    const permission = await this.pagePermissionRepo.canUserEditPage(
+      user.id,
+      page.id,
+    );
 
-    if (hasAnyRestriction && !canAccess) {
+    if (permission.hasAnyRestriction && !permission.canAccess) {
       throw new ForbiddenException();
     }
 
+    const canEdit = this.canEditWith(ability, permission);
+    const state = await this.pageApprovalService.getState(page);
+    const canAccessDraft =
+      canEdit ||
+      (await this.pageApprovalService.canAccessDraft(user, page, state));
+
+    if (!canAccessDraft) {
+      await this.assertNotHidden(page, user, state);
+    }
+
     return {
-      canEdit: hasAnyRestriction
-        ? canEdit
-        : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
-      hasRestriction: hasAnyRestriction,
+      canEdit,
+      hasRestriction: permission.hasAnyRestriction,
+      approval: {
+        controlled: state.controlled,
+        canAccessDraft,
+        locked: canAccessDraft && state.locked,
+        unpublished: state.unpublished,
+      },
     };
   }
 
@@ -82,6 +121,7 @@ export class PageAccessService {
    * Validate user can edit page, throws ForbiddenException if not.
    * If page has restrictions: page-level writer permission determines access.
    * If no restrictions: space-level edit permission determines access.
+   * A page hidden by an unpublished approval page throws NotFoundException.
    */
   async validateCanEdit(
     page: Page,
@@ -94,22 +134,21 @@ export class PageAccessService {
       throw new ForbiddenException();
     }
 
-    const { hasAnyRestriction, canEdit } =
-      await this.pagePermissionRepo.canUserEditPage(user.id, page.id);
+    const permission = await this.pagePermissionRepo.canUserEditPage(
+      user.id,
+      page.id,
+    );
 
-    if (hasAnyRestriction) {
-      // Page has restrictions - use page-level permission
-      if (!canEdit) {
-        throw new ForbiddenException();
-      }
-    } else {
-      // No restrictions - use space-level permission
-      if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
-        throw new ForbiddenException();
-      }
+    if (permission.hasAnyRestriction && !permission.canAccess) {
+      throw new ForbiddenException();
     }
 
-    return { hasRestriction: hasAnyRestriction };
+    if (!this.canEditWith(ability, permission)) {
+      await this.assertNotHidden(page, user);
+      throw new ForbiddenException();
+    }
+
+    return { hasRestriction: permission.hasAnyRestriction };
   }
 
   /**
@@ -141,6 +180,27 @@ export class PageAccessService {
     const settings = space?.settings as Record<string, any> | null;
     if (!settings?.comments?.allowViewerComments) {
       throw new ForbiddenException();
+    }
+  }
+
+  // Restricted pages use the page-level role, others the space role.
+  private canEditWith(
+    ability: MongoAbility<ISpaceAbility>,
+    permission: { hasAnyRestriction: boolean; canEdit: boolean },
+  ): boolean {
+    return permission.hasAnyRestriction
+      ? permission.canEdit
+      : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page);
+  }
+
+  // Callers skip users who can edit (they always have draft access) and run it after the restriction check.
+  private async assertNotHidden(
+    page: Page,
+    user: User,
+    state?: ApprovalState,
+  ): Promise<void> {
+    if (await this.pageApprovalService.isHiddenFromUser(user.id, page, state)) {
+      throw new NotFoundException('Page not found');
     }
   }
 }

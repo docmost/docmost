@@ -99,15 +99,19 @@ export class PageApprovalService {
     return approverIds.includes(user.id);
   }
 
-  async isHiddenFromUser(userId: string, page: ApprovalPage): Promise<boolean> {
-    const hiddenAncestorId =
-      await this.pagePermissionRepo.findHiddenUnpublishedAncestor(
-        userId,
-        page.id,
-      );
-    if (!hiddenAncestorId) return false;
+  async isHiddenFromUser(
+    userId: string,
+    page: ApprovalPage,
+    state?: ApprovalState,
+  ): Promise<boolean> {
+    const [approval, hiddenAncestorId] = await Promise.all([
+      state ?? this.getState(page),
+      this.pagePermissionRepo.findHiddenUnpublishedAncestor(userId, page.id),
+    ]);
+    // The SQL check counts every space writer as a draft user, even a page-level reader of a restricted page.
+    if (!hiddenAncestorId && !approval.unpublished) return false;
 
-    return !(await this.canAccessDraft({ id: userId }, page));
+    return !(await this.canAccessDraft({ id: userId }, page, approval));
   }
 
   async readContentFor(

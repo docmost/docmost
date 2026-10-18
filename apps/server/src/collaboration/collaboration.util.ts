@@ -183,6 +183,34 @@ export function getPageId(documentName: string) {
   return documentName.split('.')[1];
 }
 
+// Lowercase canonical uuid only, so a page never maps to two in-memory documents.
+const PAGE_DOCUMENT_NAME =
+  /^page\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export function isValidPageDocumentName(name: string): boolean {
+  return typeof name === 'string' && PAGE_DOCUMENT_NAME.test(name);
+}
+
+export type CollabAccess = 'none' | 'read' | 'write';
+
+export function resolveCollabAccess(input: {
+  hasSpaceRole: boolean;
+  restrictedNoAccess: boolean;
+  canWrite: boolean;
+  deleted: boolean;
+  controlled: boolean;
+  canAccessDraft: boolean;
+  locked: boolean;
+  hidden: boolean;
+}): CollabAccess {
+  if (!input.hasSpaceRole || input.restrictedNoAccess || input.hidden) {
+    return 'none';
+  }
+  if (input.controlled && !input.canAccessDraft) return 'none';
+  if (!input.canWrite || input.deleted || input.locked) return 'read';
+  return 'write';
+}
+
 export function isEmptyParagraphDoc(tiptapJson: JSONContent): boolean {
   if (!tiptapJson || tiptapJson.type !== 'doc') return false;
   const content = tiptapJson.content;

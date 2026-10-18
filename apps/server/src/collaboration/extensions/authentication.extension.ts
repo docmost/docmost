@@ -23,12 +23,16 @@ import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { SpaceRole } from '../../common/helpers/types/permission';
 import { isUserDisabled } from '../../common/helpers';
-import { getPageId } from '../collaboration.util';
+import {
+  CollabAccess,
+  getPageId,
+  isValidPageDocumentName,
+  resolveCollabAccess,
+} from '../collaboration.util';
 import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
 import { CollabAccessRecheck } from '../services/collab-access.service';
 import { JwtCollabPayload, JwtType } from '../../core/auth/dto/jwt-payload';
-
-type CollabAccess = 'none' | 'read' | 'write';
+import { PageApprovalService } from '../../core/page/approval/page-approval.service';
 
 @Injectable()
 export class AuthenticationExtension implements Extension {
@@ -42,6 +46,7 @@ export class AuthenticationExtension implements Extension {
     private pageRepo: PageRepo,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly pageApprovalService: PageApprovalService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -72,6 +77,9 @@ export class AuthenticationExtension implements Extension {
 
   async onAuthenticate(data: onAuthenticatePayload) {
     const { documentName, token } = data;
+    if (!isValidPageDocumentName(documentName)) {
+      throw new UnauthorizedException('Invalid document name');
+    }
     const pageId = getPageId(documentName);
 
     let jwtPayload: JwtCollabPayload;
@@ -120,17 +128,12 @@ export class AuthenticationExtension implements Extension {
   async recheckAccess({
     userIds = [],
     pageIds = [],
+    spaceIds = [],
   }: CollabAccessRecheck): Promise<void> {
     if (!this.instance?.documents.size) return;
 
     const recheckUserIds = new Set(userIds);
-    const recheckPageIds = new Set<string>();
-    for (const pageId of pageIds) {
-      const pages = await this.pageRepo.getPageAndDescendants(pageId, {
-        includeContent: false,
-      });
-      pages.forEach((page) => recheckPageIds.add(page.id));
-    }
+    const recheckPageIds = await this.findRecheckPageIds(pageIds, spaceIds);
 
     for (const document of this.instance.documents.values()) {
       const pageId = getPageId(document.name);
@@ -153,6 +156,32 @@ export class AuthenticationExtension implements Extension {
         }
       }
     }
+  }
+
+  private async findRecheckPageIds(
+    pageIds: string[],
+    spaceIds: string[],
+  ): Promise<Set<string>> {
+    const recheckPageIds = new Set<string>();
+    for (const pageId of pageIds) {
+      const pages = await this.pageRepo.getPageAndDescendants(pageId, {
+        includeContent: false,
+      });
+      pages.forEach((page) => recheckPageIds.add(page.id));
+    }
+
+    if (spaceIds.length > 0) {
+      const recheckSpaceIds = new Set(spaceIds);
+      const openPageIds = [...this.instance.documents.keys()]
+        .filter(isValidPageDocumentName)
+        .map(getPageId);
+      const openPages = await this.pageRepo.findManyByIds(openPageIds);
+      openPages
+        .filter((page) => recheckSpaceIds.has(page.spaceId))
+        .forEach((page) => recheckPageIds.add(page.id));
+    }
+
+    return recheckPageIds;
   }
 
   private async recheckConnection(
@@ -185,7 +214,7 @@ export class AuthenticationExtension implements Extension {
 
   // a connection outlives this check, so it must not see a stale cached allow
   private async getAccess(user: User, page: Page): Promise<CollabAccess> {
-    const [spaceRoles, { hasAnyRestriction, canAccess, canEdit }] =
+    const [spaceRoles, { hasAnyRestriction, canAccess, canEdit }, state] =
       await Promise.all([
         this.spaceMemberRepo.getUserSpaceRoles(user.id, page.spaceId, {
           skipCache: true,
@@ -193,15 +222,29 @@ export class AuthenticationExtension implements Extension {
         this.pagePermissionRepo.canUserEditPage(user.id, page.id, {
           skipCache: true,
         }),
+        this.pageApprovalService.getState(page),
       ]);
 
     const userSpaceRole = findHighestUserSpaceRole(spaceRoles);
-    if (!userSpaceRole) return 'none';
-    if (hasAnyRestriction && !canAccess) return 'none';
+    const canAccessDraft =
+      state.controlled &&
+      (await this.pageApprovalService.canAccessDraft(user, page, state));
+    // draft access to the page itself means it is never hidden
+    const hidden =
+      !canAccessDraft &&
+      (await this.pageApprovalService.isHiddenFromUser(user.id, page, state));
 
-    const canWrite = hasAnyRestriction
-      ? canEdit
-      : userSpaceRole !== SpaceRole.READER;
-    return canWrite && !page.deletedAt ? 'write' : 'read';
+    return resolveCollabAccess({
+      hasSpaceRole: !!userSpaceRole,
+      restrictedNoAccess: hasAnyRestriction && !canAccess,
+      canWrite: hasAnyRestriction
+        ? canEdit
+        : userSpaceRole !== SpaceRole.READER,
+      deleted: !!page.deletedAt,
+      controlled: state.controlled,
+      canAccessDraft,
+      locked: state.locked,
+      hidden,
+    });
   }
 }

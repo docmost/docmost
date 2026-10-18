@@ -480,6 +480,56 @@ describe('PageApprovalService.isHiddenFromUser', () => {
 
     expect(await service.isHiddenFromUser(APPROVER, PAGE)).toBe(false);
   });
+
+  it('returns true for a space writer who is only a page-level reader on a restricted unpublished page', async () => {
+    const { service, pagePermissionRepo } = makeService({
+      fixture: { pages: { page_1: { settings: approvalSpace() } } },
+      roles: { [WRITER]: 'writer' },
+      editPermission: { hasAnyRestriction: true, canAccess: true, canEdit: false },
+    });
+
+    expect(await service.isHiddenFromUser(WRITER, PAGE)).toBe(true);
+    expect(pagePermissionRepo.findHiddenUnpublishedAncestor).toHaveBeenCalledWith(
+      WRITER,
+      PAGE.id,
+    );
+  });
+
+  it('returns false for a page-level writer on a restricted unpublished page', async () => {
+    const { service } = makeService({
+      fixture: { pages: { page_1: { settings: approvalSpace() } } },
+      roles: { [READER]: 'reader' },
+      editPermission: { hasAnyRestriction: true, canAccess: true, canEdit: true },
+    });
+
+    expect(await service.isHiddenFromUser(READER, PAGE)).toBe(false);
+  });
+
+  it('is false on a published page without a hidden ancestor and skips the draft check', async () => {
+    const { service, spaceMemberRepo } = makeService({
+      fixture: { pages: { page_1: { settings: approvalSpace(), readerVersionId: 'h1' } } },
+      roles: { [READER]: 'reader' },
+    });
+
+    expect(await service.isHiddenFromUser(READER, PAGE)).toBe(false);
+    expect(spaceMemberRepo.getUserSpaceRoles).not.toHaveBeenCalled();
+  });
+
+  it('uses a given state instead of reading it again', async () => {
+    const { service, queries } = makeService({
+      fixture: { pages: { page_1: { settings: approvalSpace() } } },
+      roles: { [READER]: 'reader' },
+    });
+    const state = await service.getState(PAGE);
+    const stateQueries = queries.length;
+
+    expect(await service.isHiddenFromUser(READER, PAGE, state)).toBe(true);
+    expect(
+      queries
+        .slice(stateQueries)
+        .some((query) => query.sql.includes('as "verification_type"')),
+    ).toBe(false);
+  });
 });
 
 describe('PageApprovalService.readContentFor', () => {
