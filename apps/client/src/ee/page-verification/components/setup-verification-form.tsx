@@ -19,12 +19,17 @@ import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import classes from "./page-verification-modal.module.css";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import { useSetupVerificationMutation } from "@/ee/page-verification/queries/page-verification-query";
+import { usePageQuery } from "@/features/page/queries/page-query";
+import {
+  usePageVerificationInfoQuery,
+  useSetupVerificationMutation,
+} from "@/ee/page-verification/queries/page-verification-query";
 import {
   ExpirationMode,
   PeriodUnit,
   VerificationType,
 } from "@/ee/page-verification/types/page-verification.types";
+import { requiresSpaceApproval } from "@/ee/page-verification/utils/approval-state";
 import {
   ExpirationFields,
   PERIOD_AMOUNT_MIN,
@@ -138,7 +143,12 @@ export function SetupVerificationForm({
   const { t } = useTranslation();
   const setupMutation = useSetupVerificationMutation();
   const [currentUser] = useAtom(currentUserAtom);
-  const [type, setType] = useState<VerificationType | null>(null);
+  const { data: info } = usePageVerificationInfoQuery(pageId);
+  const { data: page } = usePageQuery({ pageId });
+  const spaceRequiresApproval = requiresSpaceApproval(info, page?.approval);
+  const [pickedType, setType] = useState<VerificationType | null>(null);
+  // A space that requires approval only offers the approval workflow.
+  const type = spaceRequiresApproval ? "qms" : pickedType;
   const [mode, setMode] = useState<ExpirationMode>("period");
   const [periodAmount, setPeriodAmount] = useState<number>(1);
   const [periodUnit, setPeriodUnit] = useState<PeriodUnit>("month");
@@ -150,7 +160,11 @@ export function SetupVerificationForm({
   const didInitCurrentUser = useRef(false);
 
   useEffect(() => {
-    if (!didInitCurrentUser.current && currentUser?.user) {
+    if (
+      !didInitCurrentUser.current &&
+      currentUser?.user &&
+      !spaceRequiresApproval
+    ) {
       didInitCurrentUser.current = true;
       const u = currentUser.user;
       setSelectedVerifiers([
@@ -162,10 +176,18 @@ export function SetupVerificationForm({
         },
       ]);
     }
-  }, [currentUser]);
+  }, [currentUser, spaceRequiresApproval]);
 
   const isQms = type === "qms";
   const canAddMore = selectedVerifiers.length < MAX_VERIFIERS;
+
+  if (spaceRequiresApproval && info?.permissions?.canManage === false) {
+    return (
+      <Text size="sm" c="dimmed">
+        {t("Only space admins and approvers can set up approval for this page.")}
+      </Text>
+    );
+  }
 
   if (type === null) {
     return <WorkflowChooser onSelect={setType} />;
@@ -182,7 +204,7 @@ export function SetupVerificationForm({
   };
 
   const handleSetup = () => {
-    if (selectedVerifiers.length === 0) return;
+    if (!canSubmit) return;
     setupMutation.mutate(
       {
         pageId,
@@ -220,21 +242,24 @@ export function SetupVerificationForm({
     (!!fixedDate && new Date(fixedDate).getTime() > Date.now());
   const hasVerifiers = selectedVerifiers.length > 0;
 
+  // The space's approvers cover the page, so page approvers are optional there.
   const canSubmit = isQms
-    ? hasVerifiers
+    ? hasVerifiers || spaceRequiresApproval
     : hasVerifiers && confirmed && periodValid && fixedDateValid;
 
   return (
     <Stack>
       <div>
-        <button
-          type="button"
-          className={classes.backButton}
-          onClick={() => setType(null)}
-        >
-          <IconArrowLeft size={12} stroke={2.2} />
-          {t("Back")}
-        </button>
+        {!spaceRequiresApproval && (
+          <button
+            type="button"
+            className={classes.backButton}
+            onClick={() => setType(null)}
+          >
+            <IconArrowLeft size={12} stroke={2.2} />
+            {t("Back")}
+          </button>
+        )}
         <div className={classes.configureHeader}>
           <span className={classes.iconStamp}>
             {isQms ? (
@@ -260,8 +285,15 @@ export function SetupVerificationForm({
 
       <div>
         <Text size="sm" fw={600} tt="uppercase" c="dimmed" mb={4}>
-          {t("Verifiers")}
+          {isQms ? t("Approvers") : t("Verifiers")}
         </Text>
+        {spaceRequiresApproval && (
+          <Text size="xs" c="dimmed" mb="xs">
+            {t(
+              "Approvers set for this space always apply. Add approvers here only if this page needs more.",
+            )}
+          </Text>
+        )}
         {selectedVerifiers.length > 0 && (
           <div style={{ marginBottom: "var(--mantine-spacing-xs)" }}>
             <VerifierList
@@ -280,6 +312,7 @@ export function SetupVerificationForm({
           <VerifierPicker
             excludeIds={selectedVerifiers.map((v) => v.value)}
             onSelect={handleAddVerifier}
+            placeholder={isQms ? t("Add approver") : undefined}
           />
         )}
       </div>

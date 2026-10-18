@@ -1,3 +1,4 @@
+export * from "./components/approval-banner";
 export * from "./components/page-verification-modal";
 export * from "./components/verifier-list";
 export * from "./queries/page-verification-query";

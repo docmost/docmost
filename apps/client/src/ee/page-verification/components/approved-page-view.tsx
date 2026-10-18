@@ -5,7 +5,7 @@ import { PrimitiveAtom, useAtomValue, useSetAtom } from "jotai";
 import { useSearchParams } from "react-router-dom";
 import classes from "@/features/editor/styles/editor.module.css";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor";
-import { PageByline } from "@/features/editor/full-editor";
+import { PageByline } from "@/features/editor/components/page-byline";
 import {
   pageEditorAtom,
   readOnlyEditorAtom,
@@ -16,6 +16,7 @@ import { useSearchNavigationParams } from "@/features/editor/components/search-a
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner";
 import { IContributor } from "@/features/page/types/page.types";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
+import { ApprovalBanner } from "./approval-banner";
 
 type ApprovedPageViewProps = {
   pageId: string;
@@ -73,6 +74,7 @@ export function ApprovedPageView({
       style={{ display: "flex", flexDirection: "column" }}
     >
       <DeletedPageBanner slugId={slugId} />
+      <ApprovalBanner slugId={slugId} />
       <ReadonlyPageEditor
         // A newly approved version replaces the content of an open page.
         key={`${pageId}:${String(updatedAt)}`}

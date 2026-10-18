@@ -10,6 +10,7 @@ import React, {
 import { IndexeddbPersistence } from "y-indexeddb";
 import {
   WebSocketStatus,
+  onCloseParameters,
   onStatelessParameters,
 } from "@hocuspocus/provider";
 import {
@@ -91,6 +92,10 @@ import {
   getCollabSocket,
   releaseCollabSocket,
 } from "@/features/editor/collab-socket";
+import {
+  applyCollabAccess,
+  isForbiddenClose,
+} from "@/features/editor/collab-permissions";
 
 interface PageEditorProps {
   pageId: string;
@@ -122,28 +127,7 @@ export default function PageEditor({
     try {
       const message = JSON.parse(payload);
       if (message?.type === "page.permissions") {
-        // applied locally, a refetch can still read the old access from the server cache
-        for (const key of [slugId, pageId]) {
-          queryClient.setQueryData<IPage>(
-            ["pages", key],
-            (page) =>
-              page && {
-                ...page,
-                permissions: { ...page.permissions, canEdit: false },
-              },
-          );
-        }
-        if (message.access === "none") {
-          queryClient
-            .getQueryCache()
-            .find({ queryKey: ["pages", slugId], exact: true })
-            ?.setState({
-              status: "error",
-              fetchStatus: "idle",
-              data: undefined,
-              error: Object.assign(new Error("Forbidden"), { status: 403 }),
-            });
-        }
+        void applyCollabAccess(queryClient, { pageId, slugId }, message.access);
         return;
       }
       if (message?.type !== "page.updated" || !message.updatedAt) return;
@@ -159,6 +143,12 @@ export default function PageEditor({
       }
     } catch {
       // ignore unrelated stateless messages
+    }
+  };
+
+  const handleClose = ({ event }: onCloseParameters) => {
+    if (isForbiddenClose(event)) {
+      void applyCollabAccess(queryClient, { pageId, slugId }, "none");
     }
   };
 
@@ -180,6 +170,7 @@ export default function PageEditor({
             token={collabQuery.token}
             flushDelay={500}
             onStateless={handleStateless}
+            onClose={handleClose}
             onAuthenticationFailed={handleAuthenticationFailed}
           >
             <CollabPageEditor

@@ -36,9 +36,10 @@ vi.mock("@/features/editor/readonly-page-editor", async () => {
   };
 });
 
-vi.mock("@/features/editor/full-editor", () => ({
+vi.mock("@/features/editor/components/page-byline", () => ({
   PageByline: () => null,
 }));
+vi.mock("./approval-banner", () => ({ ApprovalBanner: () => null }));
 vi.mock(
   "@/features/editor/components/search-and-replace/search-and-replace-dialog",
   () => ({ default: () => null }),

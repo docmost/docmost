@@ -200,16 +200,32 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
 
   const handleRename = useCallback(
     async (id: string, name: string) => {
+      const previous = treeModel.find(
+        store.get(treeDataAtom),
+        id,
+      ) as SpaceTreeNode | null;
       setData((prev) =>
         treeModel.update(prev, id, { name } as Partial<SpaceTreeNode>),
       );
       try {
         await updatePageMutation.mutateAsync({ pageId: id, title: name });
       } catch (error) {
-        console.error("Error updating page title:", error);
+        // The server refuses edits while a page is in review.
+        if (previous) {
+          setData((prev) =>
+            treeModel.update(prev, id, {
+              name: previous.name,
+            } as Partial<SpaceTreeNode>),
+          );
+        }
+        notifications.show({
+          message:
+            error?.["response"]?.data?.message || t("Failed to update page"),
+          color: "red",
+        });
       }
     },
-    [updatePageMutation, setData],
+    [updatePageMutation, setData, store, t],
   );
 
   const handleDelete = useCallback(

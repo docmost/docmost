@@ -54,6 +54,13 @@ const HistoryItem = memo(function HistoryItem({
   const { t } = useTranslation();
   const date = formattedDate(new Date(historyItem.createdAt));
   const label = getHistoryLabel(historyItem, t);
+  // Rows saved in the same minute share a date, so the kind tells them apart.
+  const selectLabel = label
+    ? t("Select {{label}} from {{date}}", { label, date })
+    : t("Select version from {{date}}", { date });
+  const actionsLabel = label
+    ? t("Actions for {{label}} from {{date}}", { label, date })
+    : t("Version actions for {{date}}", { date });
 
   const handleClick = useCallback(() => {
     if (compareMode) {
@@ -83,7 +90,7 @@ const HistoryItem = memo(function HistoryItem({
           checked={isChecked}
           disabled={isCheckboxDisabled}
           onChange={() => onToggleCompare(historyItem.id)}
-          aria-label={t("Select version from {{date}}", { date })}
+          aria-label={selectLabel}
         />
       )}
 
@@ -169,7 +176,7 @@ const HistoryItem = memo(function HistoryItem({
               variant="subtle"
               color="gray"
               className={classes.itemMenu}
-              aria-label={t("Version actions for {{date}}", { date })}
+              aria-label={actionsLabel}
               onClick={(e) => e.stopPropagation()}
             >
               <IconDots size={18} />

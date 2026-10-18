@@ -57,6 +57,7 @@ export function VerifierList({
                 variant="subtle"
                 color="gray"
                 size="sm"
+                aria-label={t("Remove {{name}}", { name: verifier.name })}
                 onClick={() => onRemove(verifier.id)}
               >
                 <IconX size={14} />

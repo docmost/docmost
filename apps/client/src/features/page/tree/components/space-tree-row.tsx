@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { ActionIcon, rem } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
   IconChevronDown,
   IconChevronRight,
@@ -91,7 +92,20 @@ export function SpaceTreeRow({
     e.stopPropagation();
   };
 
+  // The server refuses icon changes while a page is in review.
+  const restoreNodeIcon = (
+    previousIcon: string | undefined,
+    error: { response?: { data?: { message?: string } } },
+  ) => {
+    handleUpdateNodeIcon(node.id, previousIcon ?? null);
+    notifications.show({
+      message: error?.response?.data?.message || t("Failed to update page"),
+      color: "red",
+    });
+  };
+
   const handleEmojiSelect = (emoji: { native: string }) => {
+    const previousIcon = node.icon;
     handleUpdateNodeIcon(node.id, emoji.native);
     updatePageMutation
       .mutateAsync({ pageId: node.id, icon: emoji.native })
@@ -105,22 +119,27 @@ export function SpaceTreeRow({
             payload: { icon: emoji.native, parentPageId: data.parentPageId },
           });
         }, 50);
-      });
+      })
+      .catch((error) => restoreNodeIcon(previousIcon, error));
   };
 
   const handleRemoveEmoji = () => {
+    const previousIcon = node.icon;
     handleUpdateNodeIcon(node.id, null);
-    updatePageMutation.mutateAsync({ pageId: node.id, icon: null });
-
-    setTimeout(() => {
-      emit({
-        operation: "updateOne",
-        spaceId: node.spaceId,
-        entity: ["pages"],
-        id: node.id,
-        payload: { icon: null },
-      });
-    }, 50);
+    updatePageMutation
+      .mutateAsync({ pageId: node.id, icon: null })
+      .then(() => {
+        setTimeout(() => {
+          emit({
+            operation: "updateOne",
+            spaceId: node.spaceId,
+            entity: ["pages"],
+            id: node.id,
+            payload: { icon: null },
+          });
+        }, 50);
+      })
+      .catch((error) => restoreNodeIcon(previousIcon, error));
   };
 
   const handleLoadChildren = async () => {

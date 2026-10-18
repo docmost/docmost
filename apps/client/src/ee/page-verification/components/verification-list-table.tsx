@@ -44,6 +44,8 @@ function statusBadge(status: VerificationStatus | null, t: (s: string) => string
       return <Badge color="blue" variant="light" size="sm">{t("In approval")}</Badge>;
     case "obsolete":
       return <Badge color="red" variant="light" size="sm">{t("Obsolete")}</Badge>;
+    case "not_approved":
+      return <Badge color="gray" variant="light" size="sm">{t("Not yet approved")}</Badge>;
     default:
       return null;
   }

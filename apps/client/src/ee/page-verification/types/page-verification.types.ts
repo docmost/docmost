@@ -39,6 +39,7 @@ export type IReaderVersion = {
   number: number | null;
   approvedAt: string | null;
   approvedBy: IUserRef | null;
+  changeSummary?: string | null;
 };
 
 export type ILatestReaderVersion = IReaderVersion & {

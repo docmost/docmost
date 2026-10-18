@@ -176,12 +176,12 @@ export function useRejectApprovalMutation() {
     mutationFn: (data) => rejectApproval(data),
     onSuccess: (_, variables) => {
       invalidateApprovalQueries(queryClient, variables.pageId);
-      notifications.show({ message: t("Approval rejected") });
+      notifications.show({ message: t("Changes requested") });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to reject approval"),
+        message: errorMessage || t("Failed to request changes"),
         color: "red",
       });
     },

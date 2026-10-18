@@ -12,17 +12,22 @@ import {
   IconRosetteDiscountCheckFilled,
   IconShieldCheck,
 } from "@tabler/icons-react";
+import { useSetAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query";
+import { isReaderOfControlledPage } from "@/features/page/page.utils";
+import { historyAtoms } from "@/features/page-history/atoms/history-atoms";
 import { usePageVerificationInfoQuery } from "@/ee/page-verification/queries/page-verification-query";
+import { getApprovalStatus } from "@/ee/page-verification/utils/approval-state";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { SetupVerificationForm } from "./setup-verification-form";
 import { ManageVerificationForm } from "./manage-verification-form";
+import { ReaderApprovalBadge } from "./reader-approval-badge";
 import { getStatusColor, getStatusLabel } from "./verification-status";
 
 type PageVerificationModalProps = {
@@ -89,6 +94,7 @@ export function PageVerificationBadge({
   const pageSlugId = extractPageSlugId(pageSlug);
   const hasVerificationFeature = useHasFeature(Feature.PAGE_VERIFICATION);
   const [opened, { open, close }] = useDisclosure(false);
+  const setHistoryModalOpen = useSetAtom(historyAtoms);
 
   const { data: page } = usePageQuery({ pageId: pageSlugId });
   const pageId = page?.id;
@@ -120,11 +126,23 @@ export function PageVerificationBadge({
   }
   if (isLoading) return null;
 
-  const status = verificationInfo?.status ?? "none";
+  if (isReaderOfControlledPage(page)) {
+    return verificationInfo ? (
+      <ReaderApprovalBadge info={verificationInfo} />
+    ) : null;
+  }
 
-  if (status === "none" && readOnly) return null;
+  if ((verificationInfo?.status ?? "none") === "none" && readOnly) {
+    return null;
+  }
 
-  const tooltipLabel =
+  const status = getApprovalStatus(verificationInfo, page?.approval);
+
+  // Once approved, edits wait in the draft until the next approval.
+  const hasDraftChanges =
+    status === "approved" && verificationInfo?.hasDraftChanges === true;
+
+  const statusLabel =
     status === "verified" && verificationInfo?.expiresAt
       ? t("Verified until {{date}}", {
           date: new Date(verificationInfo.expiresAt).toLocaleDateString(
@@ -133,6 +151,9 @@ export function PageVerificationBadge({
           ),
         })
       : getStatusLabel(status, t);
+  const tooltipLabel = hasDraftChanges
+    ? `${statusLabel}, ${t("Draft changes")}`
+    : statusLabel;
 
   return (
     <>
@@ -156,6 +177,11 @@ export function PageVerificationBadge({
             <Text size="sm" c={getStatusColor(status)}>
               {getStatusLabel(status, t)}
             </Text>
+            {hasDraftChanges && (
+              <Text size="sm" c="orange.8">
+                &middot; {t("Draft changes")}
+              </Text>
+            )}
           </UnstyledButton>
         </Tooltip>
       ) : !readOnly ? (
@@ -170,6 +196,17 @@ export function PageVerificationBadge({
           </ActionIcon>
         </Tooltip>
       ) : null}
+
+      {status !== "none" && verificationInfo?.editedSinceVerified && (
+        <UnstyledButton
+          onClick={() => setHistoryModalOpen(true)}
+          aria-haspopup="dialog"
+        >
+          <Text size="sm" c="orange.8" td="underline">
+            {t("Edited since verified")}
+          </Text>
+        </UnstyledButton>
+      )}
 
       <PageVerificationModal pageId={pageId} opened={opened} onClose={close} />
     </>
