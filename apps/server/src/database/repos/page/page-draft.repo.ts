@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { ExpressionBuilder, sql } from 'kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { dbOrTx, executeTx } from '../../utils';
 import { PageDraft, UpdatablePageDraft } from '@docmost/db/types/entity.types';
 import { DB } from '@docmost/db/types/db';
+import { jsonToText } from '../../../collaboration/collaboration.util';
 
 @Injectable()
 export class PageDraftRepo {
+  private readonly logger = new Logger(PageDraftRepo.name);
+
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
   private baseFields: Array<keyof PageDraft> = [
@@ -205,6 +208,42 @@ export class PageDraftRepo {
       .set({ title: null, icon: null, updatedAt: new Date() })
       .where('pageId', '=', pageId)
       .execute();
+  }
+
+  // The caller holds the page row lock; the Yjs state moves back to the page.
+  async copyBackToPage(pageId: string, trx: KyselyTransaction): Promise<void> {
+    const draft = await trx
+      .selectFrom('pageDrafts')
+      .select('content')
+      .where('pageId', '=', pageId)
+      .executeTakeFirst();
+    if (!draft) return;
+
+    let textContent: string | null = null;
+    if (draft.content) {
+      try {
+        textContent = jsonToText(draft.content as any);
+      } catch (err) {
+        this.logger.warn(`jsonToText failed for page ${pageId}: ${err?.['message']}`);
+      }
+    }
+
+    await trx
+      .updateTable('pages')
+      .from('pageDrafts')
+      .set((eb) => ({
+        content: eb.ref('pageDrafts.content'),
+        textContent,
+        title: eb.fn.coalesce('pageDrafts.title', 'pages.title'),
+        icon: eb.fn.coalesce('pageDrafts.icon', 'pages.icon'),
+        ydoc: eb.ref('pageDrafts.ydoc'),
+        updatedAt: new Date(),
+      }))
+      .whereRef('pageDrafts.pageId', '=', 'pages.id')
+      .where('pages.id', '=', pageId)
+      .execute();
+
+    await this.deleteByPageId(pageId, trx);
   }
 
   // The caller copies the draft's ydoc back to the page first.

@@ -23,6 +23,71 @@ function makeGateway() {
   return { gateway, redisSync };
 }
 
+function makeLocalGateway(handlers: Record<string, jest.Mock>) {
+  const environmentService = {
+    getRedisUrl: () => 'redis://localhost:6379',
+    isCollabDisableRedis: () => true,
+  };
+  const collaborationHandler = { getHandlers: jest.fn(() => handlers) };
+  const gateway = new CollaborationGateway(
+    {} as any,
+    {} as any,
+    {} as any,
+    environmentService as any,
+    collaborationHandler as any,
+  );
+  return { gateway, collaborationHandler };
+}
+
+describe('CollaborationGateway.handleYjsEvent', () => {
+  it('handleYjsEvent uses local handlers when redisSync is null', async () => {
+    const updatePageContent = jest.fn(async () => undefined);
+    const freezeDraft = jest.fn(async () => ({ type: 'doc' }));
+    const { gateway, collaborationHandler } = makeLocalGateway({
+      updatePageContent,
+      freezeDraft,
+    });
+    const payload = {
+      operation: 'append',
+      prosemirrorJson: { type: 'doc', content: [] },
+      user: { id: 'user_1' },
+    } as any;
+
+    expect((gateway as any).redisSync).toBeNull();
+    await gateway.handleYjsEvent('updatePageContent', 'page.a', payload);
+    const frozen = await gateway.handleYjsEvent(
+      'freezeDraft',
+      'page.a',
+      undefined,
+    );
+
+    expect(updatePageContent).toHaveBeenCalledWith('page.a', payload);
+    expect(frozen).toEqual({ type: 'doc' });
+    expect(collaborationHandler.getHandlers).toHaveBeenCalledWith(
+      (gateway as any).hocuspocus,
+    );
+  });
+
+  it('skips documents that are not open when onlyIfOpen is set', async () => {
+    const resetConnections = jest.fn(async () => undefined);
+    const { gateway } = makeLocalGateway({ resetConnections });
+
+    const result = await gateway.handleYjsEvent(
+      'resetConnections',
+      'page.a',
+      undefined,
+      true,
+    );
+
+    expect(result).toBeUndefined();
+    expect(resetConnections).not.toHaveBeenCalled();
+
+    (gateway as any).hocuspocus.documents.set('page.a', {});
+    await gateway.handleYjsEvent('resetConnections', 'page.a', undefined, true);
+    expect(resetConnections).toHaveBeenCalledWith('page.a', undefined);
+  });
+});
+
 describe('CollaborationGateway.handleConnection', () => {
   it('passes the resolved client ip with the connection', () => {
     const { gateway, redisSync } = makeGateway();

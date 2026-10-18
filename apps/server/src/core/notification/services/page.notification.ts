@@ -22,6 +22,7 @@ import { PermissionGrantedEmail } from '@docmost/transactional/emails/permission
 import { getPageTitle } from '../../../common/helpers';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import { PageApprovalService } from '../../page/approval/page-approval.service';
 
 const PAGE_UPDATE_COOLDOWN_HOURS = 7;
 const DIGEST_DELAY_MS = 12 * 60 * 60 * 1000; // 12 hours
@@ -39,12 +40,19 @@ export class PageNotificationService {
     private readonly watcherRepo: WatcherRepo,
     private readonly rateLimiter: PageUpdateEmailRateLimiter,
     private readonly collaborationGateway: CollaborationGateway,
+    private readonly pageApprovalService: PageApprovalService,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
   ) {}
 
   async processPageMention(data: IPageMentionNotificationJob, appUrl: string) {
-    const { userMentions, oldMentionedUserIds, pageId, spaceId, workspaceId } =
-      data;
+    const {
+      userMentions,
+      oldMentionedUserIds,
+      pageId,
+      spaceId,
+      workspaceId,
+      draftOnly,
+    } = data;
 
     const oldIds = new Set(oldMentionedUserIds);
     const newMentions = userMentions.filter(
@@ -64,7 +72,9 @@ export class PageNotificationService {
       await this.pagePermissionRepo.getUserIdsWithPageAccess(pageId, [
         ...usersWithSpaceAccess,
       ]);
-    const usersWithAccess = new Set(usersWithPageAccess);
+    const usersWithAccess = draftOnly
+      ? await this.filterDraftUserIds(pageId, usersWithPageAccess)
+      : new Set(usersWithPageAccess);
 
     const accessibleMentions = newMentions.filter((m) =>
       usersWithAccess.has(m.userId),
@@ -422,6 +432,31 @@ export class PageNotificationService {
       }),
       NotificationType.PAGE_UPDATED,
     );
+  }
+
+  private async filterDraftUserIds(
+    pageId: string,
+    userIds: string[],
+  ): Promise<Set<string>> {
+    const draftUserIds = new Set<string>();
+    if (userIds.length === 0) return draftUserIds;
+
+    const page = await this.db
+      .selectFrom('pages')
+      .select(['id', 'spaceId', 'isBase'])
+      .where('id', '=', pageId)
+      .executeTakeFirst();
+    if (!page) return draftUserIds;
+
+    const state = await this.pageApprovalService.getState(page);
+    for (const userId of new Set(userIds)) {
+      if (
+        await this.pageApprovalService.canAccessDraft({ id: userId }, page, state)
+      ) {
+        draftUserIds.add(userId);
+      }
+    }
+    return draftUserIds;
   }
 
   private async getPageContext(

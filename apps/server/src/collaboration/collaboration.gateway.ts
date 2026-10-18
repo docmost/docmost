@@ -143,18 +143,31 @@ export class CollaborationGateway {
     return this.hocuspocus.getDocumentsCount();
   }
 
-  handleYjsEvent<TName extends keyof CollabEventHandlers>(
+  async handleYjsEvent<TName extends keyof CollabEventHandlers>(
     eventName: TName,
     documentName: string,
     payload: Parameters<CollabEventHandlers[TName]>[1],
     onlyIfOpen = false,
   ) {
-    return this.redisSync?.handleEvent(
-      eventName,
-      documentName,
-      payload,
-      onlyIfOpen,
-    );
+    if (this.redisSync) {
+      return this.redisSync.handleEvent(
+        eventName,
+        documentName,
+        payload,
+        onlyIfOpen,
+      );
+    }
+
+    if (onlyIfOpen && !this.hocuspocus.documents.has(documentName)) {
+      return undefined;
+    }
+    const handler = this.collabEventsService.getHandlers(this.hocuspocus)[
+      eventName
+    ] as (
+      documentName: string,
+      payload: Parameters<CollabEventHandlers[TName]>[1],
+    ) => ReturnType<CollabEventHandlers[TName]>;
+    return handler(documentName, payload);
   }
 
   openDirectConnection(documentName: string, context?: any) {

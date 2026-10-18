@@ -75,7 +75,12 @@ export class PageHistoryRepo {
       trx?: KyselyTransaction;
       kind?: 'draft' | 'approved' | 'baseline';
       changeSummary?: string;
-      override?: { title: string; icon: string; content: any };
+      override?: {
+        title: string;
+        icon: string;
+        content: any;
+        lastUpdatedById?: string;
+      };
     },
   ): Promise<void> {
     const source = opts?.override ?? page;
@@ -88,7 +93,10 @@ export class PageHistoryRepo {
         content: source.content,
         icon: source.icon,
         coverPhoto: page.coverPhoto,
-        lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
+        lastUpdatedById:
+          opts?.override?.lastUpdatedById ??
+          page.lastUpdatedById ??
+          page.creatorId,
         contributorIds: opts?.contributorIds,
         spaceId: page.spaceId,
         workspaceId: page.workspaceId,

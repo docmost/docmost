@@ -1,11 +1,13 @@
 import {
   afterUnloadDocumentPayload,
   beforeHandleAwarenessPayload,
+  Document,
   Extension,
   onChangePayload,
   onLoadDocumentPayload,
   onStoreDocumentPayload,
 } from '@hocuspocus/server';
+import { Forbidden } from '@hocuspocus/common';
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
@@ -16,8 +18,9 @@ import {
   tiptapExtensions,
 } from '../collaboration.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageDraftRepo } from '@docmost/db/repos/page/page-draft.repo';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
@@ -31,7 +34,7 @@ import {
   IPageHistoryJob,
   IPageMentionNotificationJob,
 } from '../../integrations/queue/constants/queue.interface';
-import { Page } from '@docmost/db/types/entity.types';
+import { Page, PageDraft } from '@docmost/db/types/entity.types';
 import { CollabHistoryService } from '../services/collab-history.service';
 import {
   HISTORY_FAST_INTERVAL,
@@ -39,6 +42,17 @@ import {
   HISTORY_INTERVAL,
 } from '../constants';
 import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
+import { PageApprovalService } from '../../core/page/approval/page-approval.service';
+import { ApprovalState } from '../../core/page/approval/page-approval.types';
+
+type YdocSource = Pick<Page, 'content' | 'ydoc'>;
+
+type DraftStore = {
+  page: Page;
+  state: ApprovalState;
+  changed: boolean;
+  previousContent: unknown;
+};
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -53,6 +67,8 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     private readonly collabHistory: CollabHistoryService,
     private readonly transclusionService: TransclusionService,
+    private readonly pageDraftRepo: PageDraftRepo,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -73,22 +89,24 @@ export class PersistenceExtension implements Extension {
       return;
     }
 
-    if (page.ydoc) {
+    const source = await this.findLoadSource(page);
+
+    if (source.ydoc) {
       this.logger.debug(`ydoc loaded from db: ${pageId}`);
 
       const doc = new Y.Doc();
-      const dbState = new Uint8Array(page.ydoc);
+      const dbState = new Uint8Array(source.ydoc);
 
       Y.applyUpdate(doc, dbState);
       return doc;
     }
 
     // if no ydoc state in db convert json in page.content to Ydoc.
-    if (page.content) {
+    if (source.content) {
       this.logger.debug(`converting json to ydoc: ${pageId}`);
 
       const ydoc = TiptapTransformer.toYdoc(
-        page.content,
+        source.content,
         'default',
         tiptapExtensions,
       );
@@ -118,7 +136,10 @@ export class PersistenceExtension implements Extension {
     }
 
     let page: Page = null;
+    let draftStore: DraftStore = null;
     const editingUserIds = this.consumeContributors(documentName);
+    // direct connections such as freezeDraft carry no user
+    const lastUserId: string | undefined = lastContext?.user?.id;
 
     try {
       await executeTx(this.db, async (trx) => {
@@ -133,7 +154,34 @@ export class PersistenceExtension implements Extension {
           return;
         }
 
-        if (isDeepStrictEqual(tiptapJson, page.content)) {
+        const state = await this.pageApprovalService.getState(page, trx);
+        const draft = await this.pageDraftRepo.findByPageId(pageId, {
+          includeContent: true,
+          trx,
+        });
+
+        // a draft left on an uncontrolled page goes back to the page, then the live document overwrites it
+        const healed = !!draft && !state.controlled;
+        if (healed) {
+          await this.pageDraftRepo.copyBackToPage(pageId, trx);
+        } else if (draft || state.controlled) {
+          draftStore = await this.storeDraft(
+            {
+              page,
+              state,
+              draft,
+              tiptapJson,
+              ydocState,
+              lastUserId,
+              editingUserIds,
+            },
+            trx,
+          );
+          page = null;
+          return;
+        }
+
+        if (!healed && isDeepStrictEqual(tiptapJson, page.content)) {
           page = null;
           return;
         }
@@ -157,7 +205,7 @@ export class PersistenceExtension implements Extension {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
-            lastUpdatedById: lastContext.user.id,
+            lastUpdatedById: lastUserId,
             contributorIds: contributorIds,
           },
           pageId,
@@ -169,61 +217,48 @@ export class PersistenceExtension implements Extension {
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
       page = null;
+      draftStore = null;
       editingUserIds.forEach((userId) =>
         this.trackContributor(documentName, userId),
       );
     }
 
-    if (page) {
-      try {
-        await this.collabHistory.addContributors(pageId, editingUserIds);
-      } catch (err) {
-        this.logger.error(
-          { err, pageId },
-          'Failed to add history contributors for page',
-        );
-      }
-
-      document.broadcastStateless(
-        JSON.stringify({
-          type: 'page.updated',
-          updatedAt: new Date().toISOString(),
-          lastUpdatedById: lastContext?.user?.id,
-          lastUpdatedBy: lastContext?.user
-            ? {
-                id: lastContext.user?.id,
-                name: lastContext.user?.name,
-                avatarUrl: lastContext.user?.avatarUrl,
-              }
-            : undefined,
-        }),
+    if (draftStore) {
+      await this.closeConnectionsWithoutDraftAccess(
+        document,
+        draftStore.page,
+        draftStore.state,
       );
 
-      await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
+      if (draftStore.changed) {
+        await this.afterContentStored(
+          document,
+          lastContext,
+          draftStore.page,
+          editingUserIds,
+        );
+        await this.queueMentionNotifications(
+          draftStore.page,
+          tiptapJson,
+          draftStore.previousContent,
+          true,
+        );
+        await this.enqueuePageHistory(draftStore.page);
+      }
+      return;
     }
 
     if (page) {
-      const mentions = extractMentions(tiptapJson);
+      await this.afterContentStored(document, lastContext, page, editingUserIds);
 
-      const userMentions = extractUserMentions(mentions);
-      const oldMentions = page.content ? extractMentions(page.content) : [];
-      const oldMentionedUserIds = extractUserMentions(oldMentions).map(
-        (m) => m.entityId,
+      await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
+
+      await this.queueMentionNotifications(
+        page,
+        tiptapJson,
+        page.content,
+        false,
       );
-
-      if (userMentions.length > 0) {
-        await this.notificationQueue.add(QueueJob.PAGE_MENTION_NOTIFICATION, {
-          userMentions: userMentions.map((m) => ({
-            userId: m.entityId,
-            mentionId: m.id,
-            creatorId: m.creatorId,
-          })),
-          oldMentionedUserIds,
-          pageId,
-          spaceId: page.spaceId,
-          workspaceId: page.workspaceId,
-        } as IPageMentionNotificationJob);
-      }
 
       await this.aiQueue.add(QueueJob.PAGE_CONTENT_UPDATED, {
         pageIds: [pageId],
@@ -291,6 +326,191 @@ export class PersistenceExtension implements Extension {
     const userIds = [...contributorSet];
     this.contributors.delete(documentName);
     return userIds;
+  }
+
+  // Routing is read on every load, never cached, so control changes apply at once.
+  private async findLoadSource(page: Page): Promise<YdocSource> {
+    const [state, draft] = await Promise.all([
+      this.pageApprovalService.getState(page),
+      this.pageDraftRepo.findByPageId(page.id, {
+        includeContent: true,
+        includeYdoc: true,
+      }),
+    ]);
+
+    if (draft && state.controlled) return draft;
+    if (!draft && !state.controlled) return page;
+    // healing or creating a draft is decided again under the page lock
+    return this.resolveLoadSourceLocked(page);
+  }
+
+  private async resolveLoadSourceLocked(page: Page): Promise<YdocSource> {
+    return executeTx(this.db, async (trx) => {
+      const lockedPage = await this.pageRepo.findById(page.id, {
+        withLock: true,
+        includeContent: true,
+        includeYdoc: true,
+        trx,
+      });
+      const state = await this.pageApprovalService.getState(page, trx);
+      const draft = await this.pageDraftRepo.findByPageId(page.id, {
+        includeContent: true,
+        includeYdoc: true,
+        trx,
+      });
+
+      if (draft && !state.controlled) {
+        await this.pageDraftRepo.copyBackToPage(page.id, trx);
+        return draft;
+      }
+      if (draft) return draft;
+      if (state.controlled) {
+        return this.pageDraftRepo.createFromPage(page.id, trx);
+      }
+      return lockedPage ?? page;
+    });
+  }
+
+  // Runs under the page row lock; a missing draft is created from the page with the same trx.
+  private async storeDraft(
+    input: {
+      page: Page;
+      state: ApprovalState;
+      draft: PageDraft | undefined;
+      tiptapJson: unknown;
+      ydocState: Buffer;
+      lastUserId: string | undefined;
+      editingUserIds: string[];
+    },
+    trx: KyselyTransaction,
+  ): Promise<DraftStore> {
+    const { page, state, tiptapJson, lastUserId, editingUserIds } = input;
+    const created = !input.draft;
+    const draft =
+      input.draft ?? (await this.pageDraftRepo.createFromPage(page.id, trx));
+
+    const changed = !isDeepStrictEqual(tiptapJson, draft.content);
+    // a new draft always takes the live ydoc so its Yjs history matches the clients
+    if (changed || created) {
+      const contributorIds = [
+        ...new Set([
+          ...(draft.contributorIds ?? []),
+          ...editingUserIds,
+          page.creatorId,
+        ]),
+      ].filter(Boolean);
+
+      const updatedRows = await this.pageDraftRepo.updateContent(
+        page.id,
+        {
+          content: tiptapJson,
+          ydoc: input.ydocState,
+          lastUpdatedById: lastUserId ?? draft.lastUpdatedById,
+          contributorIds,
+        },
+        trx,
+      );
+      if (updatedRows === 0) {
+        throw new Error(`Draft of page ${page.id} not found`);
+      }
+      this.logger.debug(`Draft updated: ${page.id}`);
+    }
+
+    return { page, state, changed, previousContent: draft.content };
+  }
+
+  private async afterContentStored(
+    document: Document,
+    lastContext: onStoreDocumentPayload['lastContext'],
+    page: Page,
+    editingUserIds: string[],
+  ): Promise<void> {
+    try {
+      await this.collabHistory.addContributors(page.id, editingUserIds);
+    } catch (err) {
+      this.logger.error(
+        { err, pageId: page.id },
+        'Failed to add history contributors for page',
+      );
+    }
+
+    document.broadcastStateless(
+      JSON.stringify({
+        type: 'page.updated',
+        updatedAt: new Date().toISOString(),
+        lastUpdatedById: lastContext?.user?.id,
+        lastUpdatedBy: lastContext?.user
+          ? {
+              id: lastContext.user?.id,
+              name: lastContext.user?.name,
+              avatarUrl: lastContext.user?.avatarUrl,
+            }
+          : undefined,
+      }),
+    );
+  }
+
+  private async queueMentionNotifications(
+    page: Page,
+    tiptapJson: unknown,
+    previousContent: unknown,
+    draftOnly: boolean,
+  ): Promise<void> {
+    const mentions = extractMentions(tiptapJson);
+
+    const userMentions = extractUserMentions(mentions);
+    if (userMentions.length === 0) return;
+
+    const oldMentions = previousContent ? extractMentions(previousContent) : [];
+    const oldMentionedUserIds = extractUserMentions(oldMentions).map(
+      (m) => m.entityId,
+    );
+
+    await this.notificationQueue.add(QueueJob.PAGE_MENTION_NOTIFICATION, {
+      userMentions: userMentions.map((m) => ({
+        userId: m.entityId,
+        mentionId: m.id,
+        creatorId: m.creatorId,
+      })),
+      oldMentionedUserIds,
+      pageId: page.id,
+      spaceId: page.spaceId,
+      workspaceId: page.workspaceId,
+      ...(draftOnly ? { draftOnly: true } : {}),
+    } as IPageMentionNotificationJob);
+  }
+
+  // Catches users whose collab recheck message was missed.
+  private async closeConnectionsWithoutDraftAccess(
+    document: Document,
+    page: Page,
+    state: ApprovalState,
+  ): Promise<void> {
+    const draftAccess = new Map<string, Promise<boolean>>();
+
+    for (const connection of document.getConnections()) {
+      const userId: string | undefined = connection.context?.user?.id;
+      try {
+        if (userId && !draftAccess.has(userId)) {
+          draftAccess.set(
+            userId,
+            this.pageApprovalService.canAccessDraft({ id: userId }, page, state),
+          );
+        }
+        if (userId && (await draftAccess.get(userId))) continue;
+
+        connection.sendStateless(
+          JSON.stringify({ type: 'page.permissions', access: 'none' }),
+        );
+        connection.readOnly = true;
+        connection.close(Forbidden);
+      } catch (err) {
+        this.logger.error(
+          { err, pageId: page.id },
+          'Failed to recheck draft access for page',
+        );
+      }
+    }
   }
 
   private async enqueuePageHistory(page: Page): Promise<void> {

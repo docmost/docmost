@@ -15,10 +15,12 @@ import {
 } from '../../common/helpers/prosemirror/utils';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageDraftRepo } from '@docmost/db/repos/page/page-draft.repo';
 import { isDeepStrictEqual } from 'node:util';
 import { CollabHistoryService } from '../services/collab-history.service';
 import { WatcherService } from '../../core/watcher/watcher.service';
 import { isEmptyParagraphDoc } from '../collaboration.util';
+import { effectiveDraftTitleIcon } from '../../core/page/approval/page-approval.utils';
 
 @Processor(QueueName.HISTORY_QUEUE)
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
@@ -31,6 +33,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
     private readonly watcherService: WatcherService,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
+    private readonly pageDraftRepo: PageDraftRepo,
   ) {
     super();
   }
@@ -51,12 +54,18 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
         return;
       }
 
+      // The collaborative document of a controlled page lives in its draft.
+      const draft = await this.pageDraftRepo.findByPageId(pageId, {
+        includeContent: true,
+      });
+      const content = draft ? draft.content : page.content;
+
       const lastHistory = await this.pageHistoryRepo.findPageLastHistory(
         pageId,
         { includeContent: true },
       );
 
-      if (!lastHistory && isEmptyParagraphDoc(page.content as any)) {
+      if (!lastHistory && isEmptyParagraphDoc(content as any)) {
         this.logger.debug(
           `Skipping first history for page ${pageId}: empty content`,
         );
@@ -64,10 +73,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
         return;
       }
 
-      if (
-        !lastHistory ||
-        !isDeepStrictEqual(lastHistory.content, page.content)
-      ) {
+      if (!lastHistory || !isDeepStrictEqual(lastHistory.content, content)) {
         const contributorIds = await this.collabHistory.popContributors(pageId);
 
         try {
@@ -78,12 +84,27 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
             page.workspaceId,
           );
 
-          await this.pageHistoryRepo.saveHistory(page, { contributorIds });
+          if (draft) {
+            await this.pageHistoryRepo.saveHistory(page, {
+              contributorIds,
+              kind: 'draft',
+              override: {
+                ...effectiveDraftTitleIcon(draft, page),
+                content: draft.content,
+                lastUpdatedById: draft.lastUpdatedById,
+              },
+            });
+          } else {
+            await this.pageHistoryRepo.saveHistory(page, { contributorIds });
+          }
           this.logger.debug(`History created for page: ${pageId}`);
         } catch (err) {
           await this.collabHistory.addContributors(pageId, contributorIds);
           throw err;
         }
+
+        // Backlinks and watcher notifications follow the approved content only.
+        if (draft) return;
 
         const mentions = extractMentions(page.content);
         const pageMentions = extractPageMentions(mentions);

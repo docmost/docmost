@@ -1,13 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Hocuspocus, Document } from '@hocuspocus/server';
+import { ResetConnection } from '@hocuspocus/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import {
+  getPageId,
   prosemirrorNodeToYElement,
   tiptapExtensions,
 } from './collaboration.util';
 import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
 import * as Y from 'yjs';
 import { User } from '@docmost/db/types/entity.types';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageApprovalService } from '../core/page/approval/page-approval.service';
 
 export type CollabEventHandlers = ReturnType<
   CollaborationHandler['getHandlers']
@@ -17,7 +21,10 @@ export type CollabEventHandlers = ReturnType<
 export class CollaborationHandler {
   private readonly logger = new Logger(CollaborationHandler.name);
 
-  constructor() {}
+  constructor(
+    private readonly pageRepo: PageRepo,
+    private readonly pageApprovalService: PageApprovalService,
+  ) {}
 
   getHandlers(hocuspocus: Hocuspocus) {
     return {
@@ -92,9 +99,14 @@ export class CollaborationHandler {
           prosemirrorJson: any;
           operation: string;
           user: User;
+          // set only by PageApprovalPublishService when it resets a locked draft
+          force?: boolean;
         },
       ) => {
-        const { prosemirrorJson, operation, user } = payload;
+        const { prosemirrorJson, operation, user, force } = payload;
+        if (!force) {
+          await this.assertNotLocked(documentName);
+        }
         this.logger.debug('Updating page content via yjs', documentName);
         await this.withYdocConnection(
           hocuspocus,
@@ -123,6 +135,39 @@ export class CollaborationHandler {
           },
         );
       },
+      // Must not run inside a page-locked transaction; the disconnect stores the document.
+      freezeDraft: async (documentName: string): Promise<any> => {
+        const connection = await hocuspocus.openDirectConnection(
+          documentName,
+          {},
+        );
+        try {
+          // read-only first, so no edit lands between the flip and the read
+          const document = hocuspocus.documents.get(documentName);
+          for (const client of document?.getConnections() ?? []) {
+            client.readOnly = true;
+            client.sendStateless(
+              JSON.stringify({ type: 'page.permissions', access: 'read' }),
+            );
+          }
+
+          let json: any;
+          await connection.transact((doc) => {
+            json = TiptapTransformer.fromYdoc(doc, 'default');
+          });
+          return json;
+        } finally {
+          await connection.disconnect();
+        }
+      },
+      resetConnections: async (documentName: string): Promise<void> => {
+        const document = hocuspocus.documents.get(documentName);
+        if (!document) return;
+
+        for (const connection of document.getConnections()) {
+          connection.close(ResetConnection);
+        }
+      },
     };
   }
 
@@ -140,6 +185,16 @@ export class CollaborationHandler {
       await connection.transact(fn);
     } finally {
       await connection.disconnect();
+    }
+  }
+
+  private async assertNotLocked(documentName: string): Promise<void> {
+    const page = await this.pageRepo.findById(getPageId(documentName));
+    if (!page) return;
+
+    const state = await this.pageApprovalService.getState(page);
+    if (state.locked) {
+      throw new Error('Page is locked for approval');
     }
   }
 }

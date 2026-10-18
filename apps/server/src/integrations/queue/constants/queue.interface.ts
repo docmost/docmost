@@ -59,6 +59,7 @@ export interface IPageMentionNotificationJob {
   pageId: string;
   spaceId: string;
   workspaceId: string;
+  draftOnly?: boolean;
 }
 
 export interface IPageUpdateNotificationJob {
