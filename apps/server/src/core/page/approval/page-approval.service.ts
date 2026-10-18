@@ -19,6 +19,7 @@ import {
 import {
   buildApprovalState,
   effectiveDraftTitleIcon,
+  isSpaceControlledRow,
   mergeApproverIds,
   readSpaceApprovalSettings,
 } from './page-approval.utils';
@@ -207,6 +208,8 @@ export class PageApprovalService {
         for (const pageId of divertedIds) {
           await this.pageDraftRepo.createFromPage(pageId, tx);
         }
+        // Unpublished pages keep title and icon on the page itself.
+        await this.pageDraftRepo.moveTitleIconToPages(divertedIds, tx);
         await this.pageRepo.updatePages(
           {
             content: null,
@@ -222,6 +225,53 @@ export class PageApprovalService {
       },
       trx,
     );
+  }
+
+  // Editors chose the verifiers of an expiring row, so they never become approvers.
+  async convertExpiringToSpaceControl(
+    pageIds: string[],
+    trx: KyselyTransaction,
+  ): Promise<string[]> {
+    if (pageIds.length === 0) return [];
+
+    const converted = await trx
+      .updateTable('pageVerifications')
+      .set({
+        type: 'qms',
+        source: 'space',
+        status: 'draft',
+        mode: null,
+        periodAmount: null,
+        periodUnit: null,
+        verifiedAt: null,
+        verifiedById: null,
+        expiresAt: null,
+        data: null,
+        updatedAt: new Date(),
+      })
+      .where('pageId', 'in', pageIds)
+      .where('type', '=', 'expiring')
+      .returning('id')
+      .execute();
+
+    const verificationIds = converted.map((row) => row.id);
+    if (verificationIds.length > 0) {
+      await trx
+        .deleteFrom('pageVerifiers')
+        .where('pageVerificationId', 'in', verificationIds)
+        .execute();
+    }
+    return verificationIds;
+  }
+
+  // Pages that lose approval control when they leave a space that requires approval.
+  async findSpaceControlledPageIds(
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<string[]> {
+    if (pageIds.length === 0) return [];
+    const rows = await this.selectStateRows([...new Set(pageIds)], trx);
+    return rows.filter(isSpaceControlledRow).map((row) => row.id);
   }
 
   private async getControlledApproverIds(

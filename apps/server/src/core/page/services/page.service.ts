@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -60,11 +61,20 @@ import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 import { PageApprovalService } from '../approval/page-approval.service';
+import { PageApprovalPublishService } from '../approval/page-approval-publish.service';
 import { PageDraftRepo } from '@docmost/db/repos/page/page-draft.repo';
 import {
+  MOVE_OUT_OF_APPROVAL_MESSAGE,
   PAGE_LOCKED_MESSAGE,
+  TRASH_APPROVED_PAGE_MESSAGE,
+  planSpaceMove,
   toDraftTitleIcon,
 } from '../approval/page-approval.utils';
+import SpaceAbilityFactory from '../../casl/abilities/space-ability.factory';
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from '../../casl/interfaces/space-ability.type';
 
 @Injectable()
 export class PageService {
@@ -88,6 +98,8 @@ export class PageService {
     private readonly collabAccessService: CollabAccessService,
     private readonly pageApprovalService: PageApprovalService,
     private readonly pageDraftRepo: PageDraftRepo,
+    private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pageApprovalPublishService: PageApprovalPublishService,
   ) {}
 
   async findById(
@@ -144,24 +156,38 @@ export class PageService {
       ydoc = createYdocFromJson(prosemirrorJson);
     }
 
-    const page = await this.pageRepo.insertPage({
-      slugId: generateSlugId(),
-      title: createPageDto.title,
-      position: await this.nextPagePosition(
-        createPageDto.spaceId,
-        parentPageId,
-      ),
-      icon: createPageDto.icon,
-      parentPageId: parentPageId,
-      spaceId: createPageDto.spaceId,
-      creatorId: userId,
-      workspaceId: workspaceId,
-      lastUpdatedById: userId,
-      isBase,
-      content,
-      textContent,
-      ydoc,
-    }, trx);
+    const position = await this.nextPagePosition(
+      createPageDto.spaceId,
+      parentPageId,
+    );
+
+    // Divert in the insert transaction so draft content never commits to pages.
+    const page = await executeTx(
+      this.db,
+      async (tx) => {
+        const inserted = await this.pageRepo.insertPage(
+          {
+            slugId: generateSlugId(),
+            title: createPageDto.title,
+            position,
+            icon: createPageDto.icon,
+            parentPageId: parentPageId,
+            spaceId: createPageDto.spaceId,
+            creatorId: userId,
+            workspaceId: workspaceId,
+            lastUpdatedById: userId,
+            isBase,
+            content,
+            textContent,
+            ydoc,
+          },
+          tx,
+        );
+        await this.pageApprovalService.divertNewPages([inserted.id], tx);
+        return inserted;
+      },
+      trx,
+    );
 
     if (trx) {
       // Add the watcher inside the caller's transaction so the async worker
@@ -471,7 +497,7 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
-    const result = await executeTx(this.db, async (trx) => {
+    const { childPageIds, published } = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [rootPage.spaceId, spaceId],
         trx,
@@ -485,6 +511,21 @@ export class PageService {
       }
       if (currentRootPage.spaceId !== rootPage.spaceId) {
         throw new ConflictException('Page location changed; retry the move');
+      }
+
+      const approvalPlan = await this.planApprovalMove(
+        currentRootPage.spaceId,
+        spaceId,
+        trx,
+      );
+      if (approvalPlan.requiresSourceAdmin) {
+        const ability = await this.spaceAbility.createForUser(
+          { id: userId } as User,
+          currentRootPage.spaceId,
+        );
+        if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+          throw new ForbiddenException(MOVE_OUT_OF_APPROVAL_MESSAGE);
+        }
       }
 
       const allPages = await this.pageRepo.getPageAndDescendants(
@@ -606,14 +647,87 @@ export class PageService {
         );
       }
 
-      return { childPageIds };
+      const publishedDrafts = await this.applyApprovalMove(
+        approvalPlan,
+        pageIdsToMove,
+        trx,
+      );
+      const movedById = new Map(accessiblePages.map((p) => [p.id, p]));
+      return {
+        childPageIds,
+        published: publishedDrafts.map(({ pageId, content }) => ({
+          page: { ...movedById.get(pageId), spaceId } as Page,
+          content,
+        })),
+      };
     });
+
+    for (const { page, content } of published) {
+      await this.pageApprovalPublishService.runPostPublish({
+        page,
+        content,
+        actorId: userId,
+        notifyWatchers: false,
+      });
+    }
 
     await this.collabAccessService.recheckAccess({ pageIds: [rootPage.id] });
     await this.wsService.invalidateSpaceRestrictionCache(spaceId);
     await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
 
-    return result;
+    return { childPageIds };
+  }
+
+  private async planApprovalMove(
+    sourceSpaceId: string,
+    targetSpaceId: string,
+    trx: KyselyTransaction,
+  ) {
+    const spaces = await trx
+      .selectFrom('spaces')
+      .select(['id', 'settings'])
+      .where('id', 'in', [sourceSpaceId, targetSpaceId])
+      .execute();
+    const settingsOf = (id: string) =>
+      spaces.find((space) => space.id === id)?.settings ?? null;
+    return planSpaceMove(settingsOf(sourceSpaceId), settingsOf(targetSpaceId));
+  }
+
+  // Runs after the moved rows carry the target space id.
+  private async applyApprovalMove(
+    plan: ReturnType<typeof planSpaceMove>,
+    pageIds: string[],
+    trx: KyselyTransaction,
+  ): Promise<Array<{ pageId: string; content: any }>> {
+    if (pageIds.length === 0) return [];
+
+    if (plan.divertMovedPages) {
+      await this.pageApprovalService.divertNewPages(pageIds, trx);
+      await this.pageApprovalService.convertExpiringToSpaceControl(
+        pageIds,
+        trx,
+      );
+      return [];
+    }
+    if (!plan.publishSpaceControlled) return [];
+
+    const publishIds =
+      await this.pageApprovalService.findSpaceControlledPageIds(pageIds, trx);
+    if (publishIds.length === 0) return [];
+
+    const published: Array<{ pageId: string; content: any }> = [];
+    for (const pageId of publishIds) {
+      const { content } =
+        await this.pageApprovalPublishService.publishDraftToPage(pageId, trx);
+      published.push({ pageId, content });
+    }
+    await trx
+      .deleteFrom('pageVerifications')
+      .where('pageId', 'in', publishIds)
+      .where('source', '=', 'space')
+      .execute();
+
+    return published;
   }
 
   async duplicatePage(
@@ -802,6 +916,10 @@ export class PageService {
         new Map([...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId])),
         trx,
       );
+      await this.pageApprovalService.divertNewPages(
+        Array.from(pageMap.values(), (entry) => entry.newPageId),
+        trx,
+      );
     });
 
     // Extract transclusions from every duplicated page and persist them in
@@ -983,10 +1101,14 @@ export class PageService {
         trx,
       );
 
-      // a new parent only changes access in a space with restricted pages
+      // a new parent only changes access in a space with restricted or approval-controlled pages
+      if (parentPageId === undefined) return false;
       return (
-        parentPageId !== undefined &&
         (await this.pagePermissionRepo.hasRestrictedPagesInSpace(
+          currentPage.spaceId,
+          { trx },
+        )) ||
+        (await this.pagePermissionRepo.hasControlledPagesInSpace(
           currentPage.spaceId,
           { trx },
         ))
@@ -1213,12 +1335,19 @@ export class PageService {
     }
   }
 
-  async removePage(
-    pageId: string,
-    userId: string,
-    workspaceId: string,
-  ): Promise<void> {
-    await this.pageRepo.removePage(pageId, userId, workspaceId);
+  // Trashing takes approved content away from readers, for the page and its whole subtree.
+  async removePage(page: Page, user: User, workspaceId: string): Promise<void> {
+    const publishedPages =
+      await this.pageRepo.findPublishedControlledInSubtree(page.id);
+    for (const publishedPage of publishedPages) {
+      if (
+        !(await this.pageApprovalService.isWorkflowManager(user, publishedPage))
+      ) {
+        throw new ForbiddenException(TRASH_APPROVED_PAGE_MESSAGE);
+      }
+    }
+
+    await this.pageRepo.removePage(page.id, user.id, workspaceId);
   }
 
   private async parseProsemirrorContent(

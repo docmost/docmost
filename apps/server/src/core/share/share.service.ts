@@ -20,12 +20,15 @@ import {
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { updateAttachmentAttr } from './share.util';
+import { isHiddenFromPublic, updateAttachmentAttr } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
 import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
+import { SHARE_UNPUBLISHED_PAGE_MESSAGE } from '../page/approval/page-approval.utils';
+import { PageApprovalService } from '../page/approval/page-approval.service';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 
 @Injectable()
 export class ShareService {
@@ -38,7 +41,40 @@ export class ShareService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly tokenService: TokenService,
     private readonly transclusionService: TransclusionService,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
+
+  // Filtered after pagination, so a page of results can come back short.
+  async getSharesForUser(userId: string, pagination: PaginationOptions) {
+    const result = await this.shareRepo.getShares(userId, pagination);
+
+    const controlledBySpace = new Map<string, Promise<boolean>>();
+    const isControlledSpace = (spaceId: string) => {
+      if (!controlledBySpace.has(spaceId)) {
+        controlledBySpace.set(
+          spaceId,
+          this.pagePermissionRepo.hasControlledPagesInSpace(spaceId),
+        );
+      }
+      return controlledBySpace.get(spaceId);
+    };
+
+    const visible = await Promise.all(
+      result.items.map(async (share) => {
+        if (!(await isControlledSpace(share.spaceId))) return true;
+        return !(await this.pageApprovalService.isHiddenFromUser(userId, {
+          id: share.pageId,
+          spaceId: share.spaceId,
+          isBase: false,
+        }));
+      }),
+    );
+
+    return {
+      ...result,
+      items: result.items.filter((_, index) => visible[index]),
+    };
+  }
 
   async getShareTree(shareId: string, workspaceId: string) {
     const share = await this.shareRepo.findById(shareId);
@@ -46,10 +82,7 @@ export class ShareService {
       throw new NotFoundException('Share not found');
     }
 
-    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
-      share.pageId,
-    );
-    if (isRestricted) {
+    if (await isHiddenFromPublic(this.pagePermissionRepo, share.pageId)) {
       throw new NotFoundException('Share not found');
     }
 
@@ -73,6 +106,10 @@ export class ShareService {
     createShareDto: CreateShareDto;
   }) {
     const { authUserId, workspaceId, page, createShareDto } = opts;
+
+    if (await this.pagePermissionRepo.hasUnpublishedAncestor(page.id)) {
+      throw new BadRequestException(SHARE_UNPUBLISHED_PAGE_MESSAGE);
+    }
 
     try {
       const shares = await this.shareRepo.findByPageId(page.id);
@@ -136,11 +173,7 @@ export class ShareService {
       throw new NotFoundException('Shared page not found');
     }
 
-    // Block access to restricted pages
-    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
-      page.id,
-    );
-    if (isRestricted) {
+    if (await isHiddenFromPublic(this.pagePermissionRepo, page.id)) {
       throw new NotFoundException('Shared page not found');
     }
 
@@ -149,6 +182,21 @@ export class ShareService {
     }
 
     return { page, share };
+  }
+
+  async getShareInfo(shareId: string) {
+    const share = await this.shareRepo.findById(shareId, {
+      includeSharedPage: true,
+    });
+    if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    if (await this.pagePermissionRepo.hasUnpublishedAncestor(share.pageId)) {
+      throw new NotFoundException('Share not found');
+    }
+
+    return share;
   }
 
   async getShareForPage(pageId: string, workspaceId: string) {
@@ -302,7 +350,8 @@ export class ShareService {
    * Resolve transclusion content for a public share viewer. Each requested
    * source page must itself be reachable via the share graph (its own share
    * or a shared ancestor with `includeSubPages`), in the same workspace as
-   * the requesting share, with sharing allowed and no restricted ancestors.
+   * the requesting share, with sharing allowed and no restricted or
+   * unpublished ancestors.
    * Sources that don't qualify come back as `no_access` so the editor renders
    * the existing placeholder. The viewer's personal permissions are
    * intentionally ignored — share-served content is gated only by the share
@@ -358,9 +407,9 @@ export class ShareService {
         const sourceShare = await this.getShareForPage(pageId, workspaceId);
         if (!sourceShare) return null;
         if (!(await isSharingAllowedFor(sourceShare.spaceId))) return null;
-        const restricted =
-          await this.pagePermissionRepo.hasRestrictedAncestor(pageId);
-        if (restricted) return null;
+        if (await isHiddenFromPublic(this.pagePermissionRepo, pageId)) {
+          return null;
+        }
         return pageId;
       }),
     );

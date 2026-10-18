@@ -49,6 +49,7 @@ function makeService(overrides: any = {}) {
   };
   const pagePermissionRepo = {
     hasRestrictedAncestor: jest.fn().mockResolvedValue(false),
+    hasUnpublishedAncestor: jest.fn().mockResolvedValue(false),
     ...overrides.pagePermissionRepo,
   };
   const shareService = {
@@ -203,6 +204,28 @@ describe('PublicSpaceService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
+    it('404s for a page with an unpublished ancestor-or-self, with or without content', async () => {
+      for (const includeContent of [true, false]) {
+        const { service, pagePermissionRepo, shareService } = makeService({
+          pagePermissionRepo: {
+            hasUnpublishedAncestor: jest.fn().mockResolvedValue(true),
+          },
+        });
+        await expect(
+          service.getPublicPage(
+            'handbook',
+            'abc123XYZ0',
+            makeWorkspace(optInSettings),
+            { includeContent },
+          ),
+        ).rejects.toThrow(NotFoundException);
+        expect(pagePermissionRepo.hasUnpublishedAncestor).toHaveBeenCalledWith(
+          'page1',
+        );
+        expect(shareService.updatePublicAttachments).not.toHaveBeenCalled();
+      }
+    });
+
     it('resolves the first unrestricted root page as the home', async () => {
       const { service, pageRepo } = makeService();
       const result = await service.getPublicPage(
@@ -302,6 +325,23 @@ describe('PublicSpaceService', () => {
       const { service, transclusionService } = makeService({
         pagePermissionRepo: {
           hasRestrictedAncestor: jest.fn().mockResolvedValue(true),
+        },
+      });
+
+      await service.lookupTransclusionForPublicSpace(
+        'handbook',
+        refs,
+        makeWorkspace(optInSettings),
+      );
+
+      const accessSet = transclusionService.lookupWithAccessSet.mock.calls[0][1];
+      expect(Array.from(accessSet)).toEqual([]);
+    });
+
+    it('excludes an unpublished candidate', async () => {
+      const { service, transclusionService } = makeService({
+        pagePermissionRepo: {
+          hasUnpublishedAncestor: jest.fn().mockResolvedValue(true),
         },
       });
 
@@ -1098,6 +1138,27 @@ describe('PublicSpaceService', () => {
           { includeContent: false },
         ),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('404s when the cross-space target has an unpublished ancestor-or-self', async () => {
+      const { service, pagePermissionRepo } = makeService({
+        pageRepo: { findById: jest.fn().mockResolvedValue(crossSpacePage) },
+        spaceRepo: { findById: jest.fn().mockResolvedValue(otherSpace) },
+        pagePermissionRepo: {
+          hasUnpublishedAncestor: jest.fn().mockResolvedValue(true),
+        },
+      });
+      await expect(
+        service.getPublicPage(
+          'handbook',
+          'crossSlug001',
+          makeWorkspace(optInSettings),
+          { includeContent: false },
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(pagePermissionRepo.hasUnpublishedAncestor).toHaveBeenCalledWith(
+        'page2',
+      );
     });
   });
 });

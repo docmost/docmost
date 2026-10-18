@@ -16,7 +16,10 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
-import { unpublishedPageSql } from './page-permission.utils';
+import {
+  controlledPageSql,
+  unpublishedPageSql,
+} from './page-permission.utils';
 
 @Injectable()
 export class PageRepo {
@@ -257,6 +260,33 @@ export class PageRepo {
         workspaceId,
       });
     }
+  }
+
+  /** Live approval-controlled pages with a reader version in the subtree, root included. */
+  async findPublishedControlledInSubtree(
+    pageId: string,
+  ): Promise<Array<Pick<Page, 'id' | 'spaceId' | 'isBase'>>> {
+    return this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .where('deletedAt', 'is', null)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .where('p.deletedAt', 'is', null),
+          ),
+      )
+      .selectFrom('page_descendants')
+      .innerJoin('pages', 'pages.id', 'page_descendants.id')
+      .select(['pages.id', 'pages.spaceId', 'pages.isBase'])
+      .where('pages.readerVersionId', 'is not', null)
+      .where(controlledPageSql('pages'))
+      .execute();
   }
 
   async restorePage(pageId: string, workspaceId: string): Promise<void> {

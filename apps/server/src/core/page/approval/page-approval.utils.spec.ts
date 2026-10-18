@@ -5,7 +5,9 @@ import {
   isApprovalControlled,
   isApprovalLocked,
   isHistoryRowVisible,
+  isSpaceControlledRow,
   mergeApproverIds,
+  planSpaceMove,
   readSpaceApprovalSettings,
   toDraftTitleIcon,
   withDraftNote,
@@ -397,5 +399,81 @@ describe('buildApprovalState', () => {
         verificationSource: 'page',
       }),
     ).toMatchObject({ controlled: true, status: null, locked: false });
+  });
+});
+
+describe('planSpaceMove', () => {
+  const on = { approval: { enabled: true, approverIds: ['u'] } };
+  const disabling = { approval: { enabled: false, disabling: true } };
+  const off = { approval: { enabled: false } };
+
+  it('publishes space-controlled drafts and needs a source admin when leaving approval', () => {
+    for (const target of [off, null]) {
+      expect(planSpaceMove(on, target)).toEqual({
+        requiresSourceAdmin: true,
+        publishSpaceControlled: true,
+        divertMovedPages: false,
+      });
+    }
+  });
+
+  it('diverts moved pages when entering approval, from any space', () => {
+    for (const source of [null, off, on, disabling]) {
+      expect(planSpaceMove(source, on)).toEqual({
+        requiresSourceAdmin: false,
+        publishSpaceControlled: false,
+        divertMovedPages: true,
+      });
+    }
+  });
+
+  it('treats a space that is being disabled as requiring approval', () => {
+    expect(planSpaceMove(disabling, off)).toMatchObject({
+      requiresSourceAdmin: true,
+      publishSpaceControlled: true,
+    });
+    expect(planSpaceMove(off, disabling)).toMatchObject({
+      divertMovedPages: true,
+    });
+  });
+
+  it('changes nothing between spaces without approval', () => {
+    expect(planSpaceMove(null, off)).toEqual({
+      requiresSourceAdmin: false,
+      publishSpaceControlled: false,
+      divertMovedPages: false,
+    });
+  });
+});
+
+describe('isSpaceControlledRow', () => {
+  const row = (overrides: object) => ({
+    isBase: false,
+    verificationType: null,
+    verificationSource: null,
+    ...overrides,
+  });
+
+  it('is true for a page without a row, an expiring row or a space-sourced qms row', () => {
+    expect(isSpaceControlledRow(row({}))).toBe(true);
+    expect(
+      isSpaceControlledRow(
+        row({ verificationType: 'expiring', verificationSource: 'page' }),
+      ),
+    ).toBe(true);
+    expect(
+      isSpaceControlledRow(
+        row({ verificationType: 'qms', verificationSource: 'space' }),
+      ),
+    ).toBe(true);
+  });
+
+  it('is false for a page-sourced qms row and for bases', () => {
+    expect(
+      isSpaceControlledRow(
+        row({ verificationType: 'qms', verificationSource: 'page' }),
+      ),
+    ).toBe(false);
+    expect(isSpaceControlledRow(row({ isBase: true }))).toBe(false);
   });
 });

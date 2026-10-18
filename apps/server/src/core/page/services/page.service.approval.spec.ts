@@ -128,6 +128,8 @@ function makeService(
     {} as any,
     pageApprovalService as any,
     pageDraftRepo as any,
+    {} as any,
+    {} as any,
   );
 
   return {

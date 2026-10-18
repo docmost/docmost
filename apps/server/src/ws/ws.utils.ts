@@ -21,6 +21,15 @@ export const TREE_EVENTS = new Set([
   'refetchRootTreeNodeEvent',
 ]);
 
+// A deleted node's subtree can hold titles of pages the receiver cannot see.
+export function withoutTreeNodeChildren(data: any): any {
+  if (data?.operation !== 'deleteTreeNode' || !data.payload?.node) return data;
+  return {
+    ...data,
+    payload: { ...data.payload, node: { ...data.payload.node, children: [] } },
+  };
+}
+
 export function getBaseRoomName(pageId: string): string {
   return `base-${pageId}`;
 }

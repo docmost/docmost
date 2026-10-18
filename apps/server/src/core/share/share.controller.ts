@@ -55,7 +55,7 @@ export class ShareController {
     @AuthUser() user: User,
     @Body() pagination: PaginationOptions,
   ) {
-    return this.shareRepo.getShares(user.id, pagination);
+    return this.shareService.getSharesForUser(user.id, pagination);
   }
 
   @Public()
@@ -92,13 +92,7 @@ export class ShareController {
   @HttpCode(HttpStatus.OK)
   @Post('/info')
   async getShare(@Body() dto: ShareIdDto) {
-    const share = await this.shareRepo.findById(dto.shareId, {
-      includeSharedPage: true,
-    });
-
-    if (!share) {
-      throw new NotFoundException('Share not found');
-    }
+    const share = await this.shareService.getShareInfo(dto.shareId);
 
     const sharingAllowed = await this.shareService.isSharingAllowed(
       share.workspaceId,

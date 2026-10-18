@@ -202,6 +202,45 @@ export class PageDraftRepo {
       .execute();
   }
 
+  // Draft overrides become the page's own title and icon, as copyBackToPage resolves them.
+  async moveTitleIconToPages(
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (pageIds.length === 0) return;
+    const db = dbOrTx(this.db, trx);
+
+    const moved = await db
+      .updateTable('pages')
+      .from('pageDrafts')
+      .set((eb) => ({
+        title: eb.fn.coalesce('pageDrafts.title', 'pages.title'),
+        icon: eb.fn.coalesce('pageDrafts.icon', 'pages.icon'),
+        updatedAt: new Date(),
+      }))
+      .whereRef('pageDrafts.pageId', '=', 'pages.id')
+      .where('pages.id', 'in', pageIds)
+      .where((eb) =>
+        eb.or([
+          eb('pageDrafts.title', 'is not', null),
+          eb('pageDrafts.icon', 'is not', null),
+        ]),
+      )
+      .returning('pages.id')
+      .execute();
+    if (moved.length === 0) return;
+
+    await db
+      .updateTable('pageDrafts')
+      .set({ title: null, icon: null, updatedAt: new Date() })
+      .where(
+        'pageId',
+        'in',
+        moved.map((row) => row.id),
+      )
+      .execute();
+  }
+
   async clearTitleIcon(pageId: string, trx?: KyselyTransaction): Promise<void> {
     await dbOrTx(this.db, trx)
       .updateTable('pageDrafts')

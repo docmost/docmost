@@ -14,6 +14,14 @@ const APPROVAL_STATUSES: ApprovalStatus[] = [
 
 export const PAGE_LOCKED_MESSAGE = 'This page is in review and cannot be edited.';
 
+export const TRASH_APPROVED_PAGE_MESSAGE =
+  'Only space admins and approvers can move approved pages to trash.';
+
+export const MOVE_OUT_OF_APPROVAL_MESSAGE =
+  'Only space admins can move pages out of a space that requires approval.';
+
+export const SHARE_UNPUBLISHED_PAGE_MESSAGE = 'Cannot share an unpublished page';
+
 export const DRAFT_CONTENT_NOTE =
   'This is the unpublished draft of an approval-controlled page.';
 
@@ -106,6 +114,39 @@ export function readSpaceApprovalSettings(
     ],
     disabling: isTrueFlag(approval?.disabling),
   };
+}
+
+function requiresApproval(spaceSettings: unknown): boolean {
+  const space = readSpaceApprovalSettings(spaceSettings);
+  return space.enabled || space.disabling;
+}
+
+// Moving out of approval publishes drafts, so only a source space admin may do it.
+export function planSpaceMove(
+  sourceSettings: unknown,
+  targetSettings: unknown,
+): {
+  requiresSourceAdmin: boolean;
+  publishSpaceControlled: boolean;
+  divertMovedPages: boolean;
+} {
+  const leavesApproval =
+    requiresApproval(sourceSettings) && !requiresApproval(targetSettings);
+  return {
+    requiresSourceAdmin: leavesApproval,
+    publishSpaceControlled: leavesApproval,
+    divertMovedPages: requiresApproval(targetSettings),
+  };
+}
+
+// Controlled by the space policy rather than by its own qms row.
+export function isSpaceControlledRow(row: {
+  isBase: boolean;
+  verificationType: string | null;
+  verificationSource: string | null;
+}): boolean {
+  if (row.isBase) return false;
+  return !(row.verificationType === 'qms' && row.verificationSource !== 'space');
 }
 
 export function buildApprovalState(input: ApprovalStateInput): ApprovalState {

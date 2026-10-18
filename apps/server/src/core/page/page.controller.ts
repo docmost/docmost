@@ -230,7 +230,7 @@ export class PageController {
       ) {
         throw new NotFoundException('Parent page not found');
       }
-      await this.pageAccessService.validateCanEdit(parentPage, user);
+      await this.validateCanEditParent(parentPage, user, 'Parent page not found');
     } else {
       // Creating at root level - require space-level permission
       const ability = await this.spaceAbility.createForUser(
@@ -361,11 +361,7 @@ export class PageController {
       // User with edit permission can delete
       await this.pageAccessService.validateCanEdit(page, user);
 
-      await this.pageService.removePage(
-        deletePageDto.pageId,
-        user.id,
-        workspace.id,
-      );
+      await this.pageService.removePage(page, user, workspace.id);
 
       this.auditService.log({
         event: AuditEvent.PAGE_TRASHED,
@@ -763,7 +759,11 @@ export class PageController {
       if (!targetParent || targetParent.deletedAt) {
         throw new NotFoundException('Target parent page not found');
       }
-      await this.pageAccessService.validateCanEdit(targetParent, user);
+      await this.validateCanEditParent(
+        targetParent,
+        user,
+        'Target parent page not found',
+      );
     }
 
     return this.pageService.movePage(dto, movedPage);
@@ -780,6 +780,22 @@ export class PageController {
     await this.pageAccessService.validateCanView(page, user);
 
     return this.pageService.getPageBreadCrumbs(page.id, user.id);
+  }
+
+  // A parent hidden by approval answers like a missing one.
+  private async validateCanEditParent(
+    parentPage: Page,
+    user: User,
+    notFoundMessage: string,
+  ): Promise<void> {
+    try {
+      await this.pageAccessService.validateCanEdit(parentPage, user);
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new NotFoundException(notFoundMessage);
+      }
+      throw err;
+    }
   }
 
   // Draft users get the draft only when they ask for it; everyone else gets the reader version.

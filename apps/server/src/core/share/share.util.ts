@@ -1,4 +1,20 @@
 import { Node } from '@tiptap/pm/model';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+
+// Restricted pages and pages under an unpublished approval page are never public.
+export async function isHiddenFromPublic(
+  pagePermissionRepo: Pick<
+    PagePermissionRepo,
+    'hasRestrictedAncestor' | 'hasUnpublishedAncestor'
+  >,
+  pageId: string,
+): Promise<boolean> {
+  const [restricted, unpublished] = await Promise.all([
+    pagePermissionRepo.hasRestrictedAncestor(pageId),
+    pagePermissionRepo.hasUnpublishedAncestor(pageId),
+  ]);
+  return restricted || unpublished;
+}
 
 export function updateAttachmentAttr(
   node: Node,

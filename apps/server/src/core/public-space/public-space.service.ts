@@ -8,6 +8,7 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { ShareService } from '../share/share.service';
+import { isHiddenFromPublic } from '../share/share.util';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
 import {
@@ -147,10 +148,7 @@ export class PublicSpaceService {
       return this.resolveCrossSpacePublicPage(page, workspace);
     }
 
-    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
-      page.id,
-    );
-    if (isRestricted) {
+    if (await isHiddenFromPublic(this.pagePermissionRepo, page.id)) {
       throw new NotFoundException('Page not found');
     }
 
@@ -172,7 +170,7 @@ export class PublicSpaceService {
     };
   }
 
-  /** Uniform 404 unless the target page's own space is published, not deleted, in this workspace, and unrestricted. */
+  /** Uniform 404 unless the target page's own space is published, not deleted, in this workspace, unrestricted and published by approval. */
   private async resolveCrossSpacePublicPage(page: Page, workspace: Workspace) {
     const space = await this.spaceRepo.findById(page.spaceId, workspace.id);
     if (!space || space.deletedAt) {
@@ -184,10 +182,7 @@ export class PublicSpaceService {
       throw new NotFoundException('Page not found');
     }
 
-    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
-      page.id,
-    );
-    if (isRestricted) {
+    if (await isHiddenFromPublic(this.pagePermissionRepo, page.id)) {
       throw new NotFoundException('Page not found');
     }
 
@@ -216,9 +211,9 @@ export class PublicSpaceService {
       candidatePageIds.map(async (pageId) => {
         const page = await this.pageRepo.findById(pageId);
         if (!page || page.deletedAt || page.spaceId !== space.id) return null;
-        const restricted =
-          await this.pagePermissionRepo.hasRestrictedAncestor(page.id);
-        if (restricted) return null;
+        if (await isHiddenFromPublic(this.pagePermissionRepo, page.id)) {
+          return null;
+        }
         return page.id;
       }),
     );

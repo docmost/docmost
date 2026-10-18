@@ -185,6 +185,9 @@ function makeService(
     createFromPage: jest.fn(async (pageId: string, _trx?: unknown) => ({
       pageId,
     })),
+    moveTitleIconToPages: jest.fn(
+      async (_pageIds: string[], _trx?: unknown) => undefined,
+    ),
   };
   const pageRepo = { updatePages: jest.fn(async () => ({})) };
   const service = new PageApprovalService(
@@ -914,6 +917,130 @@ describe('PageApprovalService.divertNewPages', () => {
     expect(queries).toHaveLength(0);
     expect(await service.divertNewPages(['p_open'])).toEqual([]);
     expect(pageDraftRepo.createFromPage).not.toHaveBeenCalled();
+    expect(pageDraftRepo.moveTitleIconToPages).not.toHaveBeenCalled();
     expect(pageRepo.updatePages).not.toHaveBeenCalled();
+  });
+
+  it('folds draft title and icon overrides into the diverted pages once their drafts exist', async () => {
+    const { service, pageDraftRepo } = makeService({
+      fixture: {
+        pages: {
+          p_moved: { settings: approvalSpace(), readerVersionId: 'h_old' },
+          p_new: { settings: approvalSpace() },
+          p_qms: {
+            settings: approvalSpace(),
+            readerVersionId: 'h1',
+            verification: { id: 'v1', type: 'qms', status: 'approved', source: 'page' },
+          },
+        },
+      },
+    });
+
+    await service.divertNewPages(['p_qms', 'p_new', 'p_moved']);
+
+    const trx = pageDraftRepo.createFromPage.mock.calls[0][1];
+    expect(pageDraftRepo.moveTitleIconToPages).toHaveBeenCalledTimes(1);
+    expect(pageDraftRepo.moveTitleIconToPages).toHaveBeenCalledWith(
+      ['p_moved', 'p_new'],
+      trx,
+    );
+    const lastCreate = Math.max(
+      ...pageDraftRepo.createFromPage.mock.invocationCallOrder,
+    );
+    expect(
+      pageDraftRepo.moveTitleIconToPages.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(lastCreate);
+  });
+});
+
+describe('PageApprovalService.convertExpiringToSpaceControl', () => {
+  it('turns expiring rows of the given pages into space approval rows without verifiers', async () => {
+    const { service, queries } = makeService();
+    const trx = makeDb((query) =>
+      query.sql.startsWith('update "page_verifications"')
+        ? [{ id: 'v_expiring' }]
+        : [],
+    );
+
+    expect(
+      await service.convertExpiringToSpaceControl(['p1', 'p2'], trx.db as any),
+    ).toEqual(['v_expiring']);
+
+    expect(queries).toHaveLength(0);
+    expect(trx.queries).toHaveLength(2);
+    const [update, remove] = trx.queries;
+    expect(update.sql).toMatch(/^update "page_verifications" set /);
+    for (const column of [
+      'mode',
+      'period_amount',
+      'period_unit',
+      'verified_at',
+      'verified_by_id',
+      'expires_at',
+      'data',
+    ]) {
+      expect(boundValue(update, `"${column}" =`)).toBeNull();
+    }
+    expect(boundValue(update, 'set "type" =')).toBe('qms');
+    expect(boundValue(update, '"source" =')).toBe('space');
+    expect(boundValue(update, '"status" =')).toBe('draft');
+    expect(update.sql).toContain('where "page_id" in');
+    expect(update.parameters).toEqual(expect.arrayContaining(['p1', 'p2']));
+    expect(boundValue(update, 'and "type" =')).toBe('expiring');
+    expect(remove.sql).toMatch(/^delete from "page_verifiers" where "page_verification_id" in/);
+    expect(remove.parameters).toEqual(['v_expiring']);
+  });
+
+  it('touches nothing for no pages and skips the verifier delete when nothing converted', async () => {
+    const { service } = makeService();
+    const trx = makeDb(() => []);
+
+    expect(await service.convertExpiringToSpaceControl([], trx.db as any)).toEqual([]);
+    expect(trx.queries).toHaveLength(0);
+    expect(
+      await service.convertExpiringToSpaceControl(['p1'], trx.db as any),
+    ).toEqual([]);
+    expect(trx.queries).toHaveLength(1);
+  });
+});
+
+describe('PageApprovalService.findSpaceControlledPageIds', () => {
+  it('returns non-base pages without a page-sourced qms row, in the caller transaction', async () => {
+    const { service, queries } = makeService();
+    const trx = makeDb(
+      fakeDatabase({
+        pages: {
+          p_none: { settings: approvalSpace() },
+          p_space: {
+            settings: approvalSpace(),
+            verification: { id: 'v1', type: 'qms', source: 'space' },
+          },
+          p_expiring: {
+            settings: approvalSpace(),
+            verification: { id: 'v2', type: 'expiring', source: 'page' },
+          },
+          p_page: {
+            settings: approvalSpace(),
+            verification: { id: 'v3', type: 'qms', source: 'page' },
+          },
+          p_base: { settings: approvalSpace(), isBase: true },
+        },
+      }),
+    );
+
+    const ids = await service.findSpaceControlledPageIds(
+      ['p_none', 'p_space', 'p_expiring', 'p_page', 'p_base'],
+      trx.db as any,
+    );
+
+    expect(ids.sort()).toEqual(['p_expiring', 'p_none', 'p_space']);
+    expect(queries).toHaveLength(0);
+    expect(trx.queries).toHaveLength(1);
+  });
+
+  it('runs no query for no pages', async () => {
+    const { service, queries } = makeService();
+    expect(await service.findSpaceControlledPageIds([])).toEqual([]);
+    expect(queries).toHaveLength(0);
   });
 });

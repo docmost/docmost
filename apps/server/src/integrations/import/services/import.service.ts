@@ -31,6 +31,8 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
+import { executeTx } from '@docmost/db/utils';
+import { PageApprovalService } from '../../../core/page/approval/page-approval.service';
 
 @Injectable()
 export class ImportService {
@@ -43,6 +45,7 @@ export class ImportService {
     @InjectQueue(QueueName.FILE_TASK_QUEUE)
     private readonly fileTaskQueue: Queue,
     private moduleRef: ModuleRef,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   async importPage(
@@ -112,19 +115,27 @@ export class ImportService {
     if (prosemirrorJson) {
       try {
         const pagePosition = await this.getNewPagePosition(spaceId);
+        const ydoc = await this.createYdoc(prosemirrorJson);
 
-        createdPage = await this.pageRepo.insertPage({
-          ...(pageId ? { id: pageId } : {}),
-          slugId: generateSlugId(),
-          title: pageTitle,
-          content: prosemirrorJson,
-          textContent: jsonToText(prosemirrorJson),
-          ydoc: await this.createYdoc(prosemirrorJson),
-          position: pagePosition,
-          spaceId: spaceId,
-          creatorId: userId,
-          workspaceId: workspaceId,
-          lastUpdatedById: userId,
+        createdPage = await executeTx(this.db, async (trx) => {
+          const page = await this.pageRepo.insertPage(
+            {
+              ...(pageId ? { id: pageId } : {}),
+              slugId: generateSlugId(),
+              title: pageTitle,
+              content: prosemirrorJson,
+              textContent: jsonToText(prosemirrorJson),
+              ydoc,
+              position: pagePosition,
+              spaceId: spaceId,
+              creatorId: userId,
+              workspaceId: workspaceId,
+              lastUpdatedById: userId,
+            },
+            trx,
+          );
+          await this.pageApprovalService.divertNewPages([page.id], trx);
+          return page;
         });
 
         this.logger.debug(

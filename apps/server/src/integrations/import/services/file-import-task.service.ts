@@ -34,6 +34,7 @@ import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ImportAttachmentService } from './import-attachment.service';
 import { ModuleRef } from '@nestjs/core';
 import { PageService } from '../../../core/page/services/page.service';
+import { PageApprovalService } from '../../../core/page/approval/page-approval.service';
 import { ImportPageNode } from '../dto/file-task-dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
@@ -57,6 +58,7 @@ export class FileImportTaskService {
     private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   async processZIpImport(fileTaskId: string): Promise<void> {
@@ -573,6 +575,11 @@ export class FileImportTaskService {
             await this.backlinkRepo.insertBacklink(backlinkChunk, trx);
           }
         }
+
+        await this.pageApprovalService.divertNewPages(
+          Array.from(validPageIds),
+          trx,
+        );
 
         if (validPageIds.size > 0) {
           this.eventEmitter.emit(EventName.PAGE_CREATED, {

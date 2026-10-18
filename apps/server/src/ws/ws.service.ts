@@ -22,6 +22,7 @@ import {
   getSessionRoomName,
   getSpaceRoomName,
   getUserRoomName,
+  withoutTreeNodeChildren,
 } from './ws.utils';
 import { BaseRealtimeBridge } from './base-realtime.bridge';
 
@@ -93,14 +94,23 @@ export class WsService {
       return;
     }
 
-    const hasRestrictions = await this.spaceHasRestrictions(data.spaceId);
-    if (!hasRestrictions) {
+    // Approval can hide pages and carries draft titles, so those spaces never get room-wide tree events.
+    const [hasRestrictions, hasControlledPages] = await Promise.all([
+      this.spaceHasRestrictions(data.spaceId),
+      this.pagePermissionRepo.hasControlledPagesInSpace(data.spaceId),
+    ]);
+    if (!hasRestrictions && !hasControlledPages) {
       client.broadcast.to(room).emit('message', data);
       return;
     }
 
     const pageId = this.extractPageId(data);
     if (!pageId) {
+      return;
+    }
+
+    if (hasControlledPages) {
+      await this.relayTreeEventInControlledSpace(room, client.id, pageId, data);
       return;
     }
 
@@ -246,6 +256,31 @@ export class WsService {
 
   isTreeEvent(data: any): boolean {
     return TREE_EVENTS.has(data?.operation) && !!data?.spaceId;
+  }
+
+  // Draft titles of a controlled page reach only its draft users.
+  private async relayTreeEventInControlledSpace(
+    room: string,
+    excludeSocketId: string,
+    pageId: string,
+    data: any,
+  ): Promise<void> {
+    const page = { id: pageId, spaceId: data.spaceId, isBase: false };
+    const state = await this.pageApprovalService.getState(page);
+    const event = withoutTreeNodeChildren(data);
+
+    if (state.controlled) {
+      await this.broadcastToUsers(room, excludeSocketId, event, (userIds) =>
+        this.pageApprovalService.getUserIdsWithDraftAccess(
+          page,
+          userIds,
+          state,
+        ),
+      );
+      return;
+    }
+
+    await this.broadcastToAuthorizedUsers(room, excludeSocketId, pageId, event);
   }
 
   private async broadcastToAuthorizedUsers(
