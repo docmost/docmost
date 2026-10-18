@@ -1313,6 +1313,16 @@ export class PagePermissionRepo {
     )`;
   }
 
+  /** hiddenPageSql for queries that build their own ancestor CTE (with an ancestor_id column). */
+  hiddenPageCondition(opts: {
+    page: string;
+    ancestors: string;
+    ancestorsPageId: string;
+    userId: Expression<string>;
+  }) {
+    return this.hiddenPageSql(opts);
+  }
+
   // C6: an unpublished ancestor-or-self without draft access hides the page unless its own draft is open.
   private hiddenPageSql(opts: {
     page: string;

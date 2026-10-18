@@ -17,6 +17,7 @@ import { ApprovalRejectedEmail } from '@docmost/transactional/emails/approval-re
 import { getPageTitle } from '../../../common/helpers';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { PageApprovalService } from '../../page/approval/page-approval.service';
 
 @Injectable()
 export class VerificationNotificationService {
@@ -25,6 +26,7 @@ export class VerificationNotificationService {
     private readonly notificationService: NotificationService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   private async getAlreadyNotifiedUserIds(
@@ -54,6 +56,30 @@ export class VerificationNotificationService {
     return this.pagePermissionRepo.getUserIdsWithPageAccess(pageId, [
       ...inSpace,
     ]);
+  }
+
+  // Review notifications carry draft-only details, so on approval pages they go to draft users only.
+  private async filterReviewRecipients(
+    userIds: string[],
+    pageId: string,
+    spaceId: string,
+  ): Promise<string[]> {
+    const accessible = await this.filterAccessibleRecipients(
+      userIds,
+      pageId,
+      spaceId,
+    );
+    if (accessible.length === 0) return [];
+
+    const page = { id: pageId, spaceId, isBase: false };
+    const state = await this.pageApprovalService.getState(page);
+    if (!state.controlled) return accessible;
+
+    return this.pageApprovalService.getUserIdsWithDraftAccess(
+      page,
+      accessible,
+      state,
+    );
   }
 
   async processVerificationExpiring(
@@ -236,7 +262,7 @@ export class VerificationNotificationService {
     const { verifierIds, pageId, spaceId, workspaceId, actorId } = data;
     if (verifierIds.length === 0) return;
 
-    const accessibleVerifierIds = await this.filterAccessibleRecipients(
+    const accessibleVerifierIds = await this.filterReviewRecipients(
       verifierIds,
       pageId,
       spaceId,
@@ -282,7 +308,7 @@ export class VerificationNotificationService {
     const { pageId, spaceId, workspaceId, actorId, requestedById, comment } =
       data;
 
-    const recipients = await this.filterAccessibleRecipients(
+    const recipients = await this.filterReviewRecipients(
       [requestedById],
       pageId,
       spaceId,

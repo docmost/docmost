@@ -84,7 +84,12 @@ export const AuditEvent = {
   PAGE_VERIFIED: 'page.verified',
   PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
   PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
+  PAGE_APPROVAL_WITHDRAWN: 'page.approval_withdrawn',
+  PAGE_APPROVAL_RESTORED: 'page.approval_restored',
+  PAGE_APPROVAL_REMOVED: 'page.approval_removed',
   PAGE_MARKED_OBSOLETE: 'page.marked_obsolete',
+  PAGE_APPROVAL_SPACE_ENABLED: 'space.approval_enabled',
+  PAGE_APPROVAL_SPACE_DISABLED: 'space.approval_disabled',
 
   // Share
   SHARE_CREATED: 'share.created',
