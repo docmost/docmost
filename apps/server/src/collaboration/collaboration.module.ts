@@ -16,6 +16,7 @@ import { TransclusionService } from '../core/page/transclusion/transclusion.serv
 import { TransclusionModule } from '../core/page/transclusion/transclusion.module';
 import { StorageModule } from '../integrations/storage/storage.module';
 import { EnvironmentModule } from '../integrations/environment/environment.module';
+import { PageApprovalModule } from '../core/page/approval/page-approval.module';
 
 @Module({
   providers: [
@@ -36,6 +37,7 @@ import { EnvironmentModule } from '../integrations/environment/environment.modul
       imports: [EnvironmentModule],
     }),
     TransclusionModule,
+    PageApprovalModule,
   ],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {

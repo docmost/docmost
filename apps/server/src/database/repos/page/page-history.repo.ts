@@ -170,6 +170,7 @@ export class PageHistoryRepo {
           .select('pages.readerVersionId')
           .where('pages.id', '=', pageId),
       )
+      .where('pageId', '=', pageId)
       .executeTakeFirst();
   }
 
