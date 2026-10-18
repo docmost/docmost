@@ -60,6 +60,7 @@ import {
 import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { sql } from "kysely";
 
 @Injectable()
 export class WorkspaceService {
@@ -115,6 +116,9 @@ export class WorkspaceService {
         'licenseKey',
         'plan',
         'settings',
+        sql<string | null>`settings->>'externalEmbeddingBlacklist'`.as(
+          'externalEmbeddingBlacklist',
+        ),
       ])
       .select((eb) =>
         jsonArrayFrom(
@@ -141,6 +145,9 @@ export class WorkspaceService {
     return {
       ...rest,
       defaultLocale: getWorkspaceDefaultLocale(workspace) ?? DEFAULT_LOCALE,
+      settings: {
+        externalEmbeddingBlacklist: workspace.externalEmbeddingBlacklist ?? "",
+      },
     };
   }
 
@@ -496,8 +503,13 @@ export class WorkspaceService {
           string,
           any
         >;
-        const currentUrls =
-          lockedSettings.externalEmbeddingBlacklist ?? [];
+
+        const rawUrls = lockedSettings.externalEmbeddingBlacklist;
+        const currentUrls: string[] = Array.isArray(rawUrls)
+          ? rawUrls
+          : typeof rawUrls === 'string'
+            ? JSON.parse(rawUrls)
+            : [];
         const url = new URL(
           updateWorkspaceDto.addExternalEmbeddingBlacklistUrl ??
           updateWorkspaceDto.removeExternalEmbeddingBlacklistUrl,

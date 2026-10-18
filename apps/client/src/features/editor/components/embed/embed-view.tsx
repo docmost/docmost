@@ -18,26 +18,56 @@ import { zod4Resolver } from "mantine-form-zod-resolver";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import i18n from "i18next";
-import { useAtomValue } from "jotai";
 import {
   getEmbedProviderById,
   getEmbedUrlAndProvider,
   sanitizeUrl,
 } from "@docmost/editor-ext";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 import { ResizableWrapper } from "../common/resizable-wrapper";
 import classes from "./embed-view.module.css";
+import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query";
 
 const schema = z.object({
   url: z.url({ message: i18n.t("Please enter a valid url") }).trim(),
 });
 
+function normalizeHostname(hostname: string) {
+  return hostname.toLowerCase().replace(/\.$/, "");
+}
+
+function normalizePath(pathname: string) {
+  const path = pathname.replace(/\/+$/, "");
+  return path || "/";
+}
+
 function isBlacklistedUrl(url: string, blockedUrls: string[]): boolean {
   try {
-    const normalizedUrl = new URL(url).toString();
+    const target = new URL(url);
+    const targetHostname = normalizeHostname(target.hostname);
+    const targetPath = normalizePath(target.pathname);
+
     return blockedUrls.some((blockedUrl) => {
       try {
-        return new URL(blockedUrl).toString() === normalizedUrl;
+        const blocked = new URL(blockedUrl);
+        const blockedHostname = normalizeHostname(blocked.hostname);
+        const blockedPath = normalizePath(blocked.pathname);
+
+        const hostMatches =
+          targetHostname === blockedHostname ||
+          targetHostname.endsWith(`.${blockedHostname}`)
+
+        if (!hostMatches) {
+          return false;
+        }
+
+        if (blockedPath === "/") {
+          return true;
+        }
+
+        return (
+          targetPath === blockedPath ||
+          targetPath.startsWith(`${blockedPath}/`)
+        );
       } catch {
         return false;
       }
@@ -49,13 +79,26 @@ function isBlacklistedUrl(url: string, blockedUrls: string[]): boolean {
 
 export default function EmbedView(props: NodeViewProps) {
   const { t } = useTranslation();
-  const workspace = useAtomValue(workspaceAtom);
   const { node, selected, updateAttributes, editor } = props;
   const { src, provider, width: nodeWidth, height: nodeHeight } = node.attrs;
-  const blockedUrls =
-    workspace?.settings?.externalEmbeddingBlacklist ?? [];
-  const isBlocked = isBlacklistedUrl(src, blockedUrls);
+  const workspace = useWorkspacePublicDataQuery()
+  const blacklistValue = workspace.data?.settings?.externalEmbeddingBlacklist;
 
+  const blockedUrls = useMemo<string[]>(() => {
+    if (!blacklistValue) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(blacklistValue);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [blacklistValue]);
+
+
+  const isBlocked = isBlacklistedUrl(src, blockedUrls);
   const embedUrl = useMemo(() => {
     if (src) {
       return getEmbedUrlAndProvider(src).embedUrl;
