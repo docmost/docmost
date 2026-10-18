@@ -7,26 +7,6 @@ import type {
   VerificationStatus,
 } from "@/ee/page-verification/types/page-verification.types";
 
-// A controlled page without an approval row is controlled by its space and starts as a draft.
-export function getApprovalStatus(
-  info: IPageVerificationInfo | undefined,
-  approval: IPageApproval | undefined,
-): VerificationStatus {
-  const status = info?.status ?? "none";
-  return status === "none" && approval?.controlled ? "draft" : status;
-}
-
-export function requiresSpaceApproval(
-  info: IPageVerificationInfo | undefined,
-  approval: IPageApproval | undefined,
-): boolean {
-  if (typeof info?.spaceRequiresApproval === "boolean") {
-    return info.spaceRequiresApproval;
-  }
-  // Without an approval row only the space can control a page.
-  return approval?.controlled === true && (info?.status ?? "none") === "none";
-}
-
 // A page without a reader version has nothing to compare with, so it can always be submitted.
 export function hasSubmittableChanges(info: IPageVerificationInfo): boolean {
   return !info.latestReaderVersion || info.hasDraftChanges !== false;
@@ -79,7 +59,7 @@ export function getApprovalBannerModel(
 ): ApprovalBannerModel | null {
   if (!approval?.controlled || !approval.canAccessDraft || !info) return null;
 
-  const status = getApprovalStatus(info, approval);
+  const { status } = info;
   const returned =
     status === "draft" && wasReturned(info)
       ? { by: info.rejectedBy ?? null, comment: info.rejectionComment || null }

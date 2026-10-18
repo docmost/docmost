@@ -77,14 +77,11 @@ export function SubmitApprovalModal({
           <Title order={3} size="h6" mb={4}>
             {t("Approvers")}
           </Title>
-          {approvers.length > 0 ? (
-            <VerifierList verifiers={approvers} />
-          ) : (
-            info && (
-              <Text size="sm" c="dimmed">
-                {t("Approvers of this space will be notified.")}
-              </Text>
-            )
+          {approvers.length > 0 && <VerifierList verifiers={approvers} />}
+          {info?.spaceRequiresApproval && (
+            <Text size="sm" c="dimmed">
+              {t("Approvers set for this space are notified as well.")}
+            </Text>
           )}
         </div>
 

@@ -18,7 +18,10 @@ import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   getVerificationInfo,
+  removeVerification,
   restoreObsolete,
+  setupVerification,
+  updateVerification,
   verifyPage,
   withdrawApproval,
 } from "@/ee/page-verification/services/page-verification-service";
@@ -30,6 +33,7 @@ import { QmsManageContent } from "./qms-manage-content";
 
 vi.mock("@/ee/page-verification/services/page-verification-service", () => ({
   getVerificationInfo: vi.fn(),
+  setupVerification: vi.fn(),
   verifyPage: vi.fn(),
   withdrawApproval: vi.fn(),
   restoreObsolete: vi.fn(),
@@ -50,7 +54,24 @@ vi.mock("@mantine/notifications", () => ({
 }));
 vi.mock("@/hooks/use-time-ago", () => ({ useTimeAgo: () => "5 minutes ago" }));
 vi.mock("./verifier-picker", () => ({
-  VerifierPicker: () => <div data-testid="picker" />,
+  VerifierPicker: ({
+    onSelect,
+  }: {
+    onSelect: (user: Record<string, string>) => void;
+  }) => (
+    <button
+      onClick={() =>
+        onSelect({
+          value: "u-9",
+          label: "Grace",
+          email: "grace@example.com",
+          avatarUrl: "",
+        })
+      }
+    >
+      pick approver
+    </button>
+  ),
 }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -79,6 +100,7 @@ const approvedVersion = {
 const info = (
   overrides: Partial<IPageVerificationInfo> = {},
 ): IPageVerificationInfo => ({
+  id: "ver-1",
   type: "qms",
   status: "in_approval",
   pendingHistoryId: "h-1",
@@ -128,6 +150,9 @@ beforeEach(() => {
   vi.mocked(verifyPage).mockReset().mockResolvedValue();
   vi.mocked(withdrawApproval).mockReset().mockResolvedValue();
   vi.mocked(restoreObsolete).mockReset().mockResolvedValue();
+  vi.mocked(setupVerification).mockReset().mockResolvedValue();
+  vi.mocked(updateVerification).mockReset().mockResolvedValue();
+  vi.mocked(removeVerification).mockReset().mockResolvedValue();
   vi.mocked(getVerificationInfo).mockReset().mockResolvedValue(info());
 });
 
@@ -304,6 +329,53 @@ describe("QmsManageContent removal", () => {
     expect(await screen.findByLabelText("Publish the changes")).toBeTruthy();
     expect(screen.getByLabelText("Discard the changes")).toBeTruthy();
   });
+
+  it("only offers to publish the draft of a page that was never published", async () => {
+    render(
+      content(
+        info({
+          status: "draft",
+          pendingHistoryId: null,
+          latestReaderVersion: null,
+          hasDraftChanges: true,
+          permissions: manager,
+        }),
+      ),
+    );
+
+    fireEvent.click(button("Remove verification"));
+
+    expect(await screen.findByLabelText("Publish the changes")).toBeTruthy();
+    expect(screen.queryByLabelText("Discard the changes")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    await waitFor(() => expect(removeVerification).toHaveBeenCalledTimes(1));
+    expect(removeVerification).toHaveBeenCalledWith({
+      pageId: "page-1",
+      draftAction: "publish",
+    });
+  });
+
+  it("never offers removal on a row the server does not let this user remove", () => {
+    // A leftover approval row on a base reports no approval rights at all.
+    render(
+      content(
+        info({
+          status: "in_approval",
+          pendingHistoryId: null,
+          hasDraftChanges: undefined,
+          spaceRequiresApproval: undefined,
+          permissions: { ...none, canManage: true },
+        }),
+      ),
+    );
+
+    expect(button("Remove verification")).toBeNull();
+    expect(button("Approve")).toBeNull();
+    expect(button("Withdraw")).toBeNull();
+    expect(screen.queryByLabelText("I've reviewed this page for accuracy")).toBeNull();
+  });
 });
 
 describe("QmsManageContent approvers", () => {
@@ -323,7 +395,7 @@ describe("QmsManageContent approvers", () => {
     );
 
     expect(button("Remove Ada")).toBeTruthy();
-    expect(screen.getByTestId("picker")).toBeTruthy();
+    expect(screen.getByText("pick approver")).toBeTruthy();
   });
 
   it("only lists the approvers for everyone else", () => {
@@ -339,7 +411,7 @@ describe("QmsManageContent approvers", () => {
 
     expect(screen.getByText("Ada")).toBeTruthy();
     expect(button("Remove Ada")).toBeNull();
-    expect(screen.queryByTestId("picker")).toBeNull();
+    expect(screen.queryByText("pick approver")).toBeNull();
   });
 
   it("lets a manager add page approvers next to the space approvers", () => {
@@ -354,9 +426,96 @@ describe("QmsManageContent approvers", () => {
       ),
     );
 
-    expect(screen.getByTestId("picker")).toBeTruthy();
+    expect(screen.getByText("pick approver")).toBeTruthy();
     expect(
       screen.getByText("Approvers set for this space always apply to this page."),
     ).toBeTruthy();
+  });
+
+  it("updates the approvers of a page that has an approval row", async () => {
+    render(
+      content(
+        info({
+          status: "approved",
+          verifiers: approvers,
+          spaceRequiresApproval: true,
+          permissions: { ...none, canManage: true },
+        }),
+      ),
+    );
+
+    fireEvent.click(screen.getByText("pick approver"));
+
+    await waitFor(() => expect(updateVerification).toHaveBeenCalledTimes(1));
+    expect(updateVerification).toHaveBeenCalledWith({
+      pageId: "page-1",
+      verifierIds: ["u-1", "u-9"],
+    });
+    expect(setupVerification).not.toHaveBeenCalled();
+  });
+
+  it("sets approval up with the first page approver on a page that has no approval row", async () => {
+    // The server answers such a page with a draft that has no id.
+    render(
+      content(
+        info({
+          id: null,
+          status: "draft",
+          source: "space",
+          pendingHistoryId: null,
+          spaceRequiresApproval: true,
+          verifiers: [],
+          permissions: { ...none, canManage: true },
+        }),
+      ),
+    );
+
+    fireEvent.click(screen.getByText("pick approver"));
+
+    await waitFor(() => expect(setupVerification).toHaveBeenCalledTimes(1));
+    expect(setupVerification).toHaveBeenCalledWith({
+      pageId: "page-1",
+      type: "qms",
+      verifierIds: ["u-9"],
+    });
+    expect(updateVerification).not.toHaveBeenCalled();
+  });
+
+  it("lets a manager drop the last page approver of an approval space", async () => {
+    render(
+      content(
+        info({
+          status: "approved",
+          verifiers: approvers,
+          spaceRequiresApproval: true,
+          permissions: { ...none, canManage: true },
+        }),
+      ),
+    );
+
+    fireEvent.click(button("Remove Ada"));
+
+    await waitFor(() => expect(updateVerification).toHaveBeenCalledTimes(1));
+    expect(updateVerification).toHaveBeenCalledWith({
+      pageId: "page-1",
+      verifierIds: [],
+    });
+  });
+
+  it("offers no approver editing on a page without an approval row to someone who may not manage it", () => {
+    render(
+      content(
+        info({
+          id: null,
+          status: "draft",
+          pendingHistoryId: null,
+          spaceRequiresApproval: true,
+          verifiers: [],
+          permissions: { ...none, canSubmitForApproval: true },
+        }),
+      ),
+    );
+
+    expect(screen.queryByText("pick approver")).toBeNull();
   });
 });

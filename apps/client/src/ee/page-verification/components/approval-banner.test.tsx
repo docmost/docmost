@@ -124,6 +124,22 @@ const reviewInfo = (
     ...overrides,
   });
 
+const queryClient = new QueryClient();
+
+const bannerTree = () => (
+  <QueryClientProvider client={queryClient}>
+    <MantineProvider>
+      <ApprovalBanner slugId="slug-1" />
+    </MantineProvider>
+  </QueryClientProvider>
+);
+
+function mockInfo(info: IPageVerificationInfo | undefined) {
+  vi.mocked(usePageVerificationInfoQuery).mockReturnValue({
+    data: info,
+  } as ReturnType<typeof usePageVerificationInfoQuery>);
+}
+
 function renderBanner(
   info: IPageVerificationInfo | undefined,
   approval: Partial<IPageApproval> = {},
@@ -144,17 +160,9 @@ function renderBanner(
       ...page,
     },
   } as unknown as ReturnType<typeof usePageQuery>);
-  vi.mocked(usePageVerificationInfoQuery).mockReturnValue({
-    data: info,
-  } as ReturnType<typeof usePageVerificationInfoQuery>);
+  mockInfo(info);
 
-  return render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MantineProvider>
-        <ApprovalBanner slugId="slug-1" />
-      </MantineProvider>
-    </QueryClientProvider>,
-  );
+  return render(bannerTree());
 }
 
 const button = (name: string) => screen.queryByRole("button", { name });
@@ -323,16 +331,74 @@ describe("ApprovalBanner states", () => {
     expect(buttons()).toEqual([]);
   });
 
-  it("treats a space-controlled page without an approval row as a draft", () => {
-    renderBanner(
-      { status: "none", latestReaderVersion: null, hasDraftChanges: true },
-      { unpublished: true },
-    );
+  describe("on a page in an approval space without an approval row", () => {
+    // The server answers such pages with a draft that has no id.
+    const rowLess = (overrides: Partial<IPageVerificationInfo> = {}) =>
+      draftInfo({
+        id: null,
+        type: "qms",
+        status: "draft",
+        source: "space",
+        spaceRequiresApproval: true,
+        verifiers: [],
+        requestedAt: null,
+        rejectedAt: null,
+        ...overrides,
+      });
 
-    expect(
-      screen.getByText("Draft. Readers can't see this page until it's approved."),
-    ).toBeTruthy();
-    expect(buttons()).toEqual(["Submit for approval"]);
+    it("tells editors a new page is hidden from readers and lets them submit it", () => {
+      renderBanner(
+        rowLess({ latestReaderVersion: null, hasDraftChanges: true }),
+        { unpublished: true },
+      );
+
+      expect(
+        screen.getByText(
+          "Draft. Readers can't see this page until it's approved.",
+        ),
+      ).toBeTruthy();
+      expect(buttons()).toEqual(["Submit for approval"]);
+    });
+
+    it("names the baseline readers see while the draft has changes", () => {
+      renderBanner(
+        rowLess({
+          latestReaderVersion: {
+            id: "v-0",
+            kind: "baseline",
+            number: null,
+            approvedAt: null,
+            approvedBy: null,
+          },
+        }),
+      );
+
+      expect(
+        screen.getByText(
+          "Draft. Readers see the content from before approval was turned on.",
+        ),
+      ).toBeTruthy();
+      expect(buttons()).toEqual(["Compare", "Submit for approval"]);
+    });
+
+    it("leaves the submit button to those the server allows", () => {
+      renderBanner(
+        rowLess({
+          latestReaderVersion: null,
+          hasDraftChanges: true,
+          permissions: none,
+        }),
+        { unpublished: true },
+      );
+
+      expect(buttons()).toEqual([]);
+    });
+  });
+
+  it("does not guess the right to submit from edit access", () => {
+    renderBanner(draftInfo({ permissions: undefined }));
+
+    expect(buttons()).toEqual(["Compare"]);
   });
 });
 
@@ -398,6 +464,33 @@ describe("ApprovalBanner actions", () => {
 
     expect(verifyPage).not.toHaveBeenCalled();
     const [config] = vi.mocked(modals.openConfirmModal).mock.calls[0];
+    config.onConfirm?.();
+
+    await waitFor(() => expect(verifyPage).toHaveBeenCalledTimes(1));
+    expect(verifyPage).toHaveBeenCalledWith({
+      pageId: "page-1",
+      pendingHistoryId: "h-2",
+    });
+  });
+
+  it("shows the change summary of the submission it is about to approve", () => {
+    renderBanner(reviewInfo(approver), { locked: true });
+
+    fireEvent.click(button("Approve"));
+    const [config] = vi.mocked(modals.openConfirmModal).mock.calls[0];
+    render(<MantineProvider>{config.children}</MantineProvider>);
+
+    expect(screen.getByText(/Updated the torque values/)).toBeTruthy();
+  });
+
+  it("still approves the submission it asked about when another one replaces it before the confirmation", async () => {
+    const view = renderBanner(reviewInfo(approver), { locked: true });
+
+    fireEvent.click(button("Approve"));
+    const [config] = vi.mocked(modals.openConfirmModal).mock.calls[0];
+
+    mockInfo(reviewInfo(approver, { pendingHistoryId: "h-3" }));
+    view.rerender(bannerTree());
     config.onConfirm?.();
 
     await waitFor(() => expect(verifyPage).toHaveBeenCalledTimes(1));

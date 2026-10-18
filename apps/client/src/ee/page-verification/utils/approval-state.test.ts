@@ -7,10 +7,8 @@ import type {
 } from "@/ee/page-verification/types/page-verification.types";
 import {
   getApprovalBannerModel,
-  getApprovalStatus,
   getReaderBadgeLabel,
   hasSubmittableChanges,
-  requiresSpaceApproval,
 } from "./approval-state";
 
 const t = ((key: string, options?: Record<string, unknown>) =>
@@ -198,61 +196,49 @@ describe("getApprovalBannerModel", () => {
     expect(model?.returned).toBeNull();
   });
 
-  it("treats a space-controlled page without an approval row as a draft", () => {
-    const unpublished = getApprovalBannerModel(
+});
+
+// What the server answers for a controlled page in an approval space that has no approval row yet.
+const rowLess = (
+  overrides: Partial<IPageVerificationInfo> = {},
+): IPageVerificationInfo => ({
+  id: null,
+  type: "qms",
+  status: "draft",
+  source: "space",
+  spaceRequiresApproval: true,
+  verifiers: [],
+  latestReaderVersion: baselineVersion,
+  hasDraftChanges: false,
+  requestedAt: null,
+  rejectedAt: null,
+  ...overrides,
+});
+
+describe("getApprovalBannerModel for a page without an approval row", () => {
+  it("tells editors a new page is invisible to readers", () => {
+    const model = getApprovalBannerModel(
       approval({ unpublished: true }),
-      { status: "none" },
+      rowLess({ latestReaderVersion: null, hasDraftChanges: true }),
     );
-    const changed = getApprovalBannerModel(approval(), {
-      status: "none",
-      latestReaderVersion: baselineVersion,
-      hasDraftChanges: true,
-    });
 
-    expect(unpublished?.state).toEqual({ kind: "unpublished" });
-    expect(changed?.state).toEqual({
-      kind: "changes",
-      version: baselineVersion,
-    });
-  });
-});
-
-describe("getApprovalStatus", () => {
-  it("starts a controlled page without a row as a draft", () => {
-    expect(getApprovalStatus({ status: "none" }, approval())).toBe("draft");
+    expect(model).toEqual({ returned: null, state: { kind: "unpublished" } });
   });
 
-  it("leaves other pages and rows alone", () => {
-    expect(getApprovalStatus({ status: "none" }, undefined)).toBe("none");
-    expect(
-      getApprovalStatus({ status: "none" }, approval({ controlled: false })),
-    ).toBe("none");
-    expect(getApprovalStatus({ status: "in_approval" }, approval())).toBe(
-      "in_approval",
+  it("points to the baseline readers see while the draft has changes", () => {
+    const model = getApprovalBannerModel(
+      approval(),
+      rowLess({ hasDraftChanges: true }),
     );
-  });
-});
 
-describe("requiresSpaceApproval", () => {
-  it("trusts the flag the server sends", () => {
-    expect(
-      requiresSpaceApproval(
-        { status: "draft", spaceRequiresApproval: false },
-        approval(),
-      ),
-    ).toBe(false);
-    expect(
-      requiresSpaceApproval(
-        { status: "draft", spaceRequiresApproval: true },
-        undefined,
-      ),
-    ).toBe(true);
+    expect(model).toEqual({
+      returned: null,
+      state: { kind: "changes", version: baselineVersion },
+    });
   });
 
-  it("recognizes a controlled page that has no approval row of its own", () => {
-    expect(requiresSpaceApproval({ status: "none" }, approval())).toBe(true);
-    expect(requiresSpaceApproval({ status: "draft" }, approval())).toBe(false);
-    expect(requiresSpaceApproval({ status: "none" }, undefined)).toBe(false);
+  it("shows nothing while the draft matches the baseline", () => {
+    expect(getApprovalBannerModel(approval(), rowLess())).toBeNull();
   });
 });
 

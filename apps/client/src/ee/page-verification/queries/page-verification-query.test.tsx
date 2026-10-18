@@ -4,18 +4,24 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { notifications } from "@mantine/notifications";
 import {
+  setupVerification,
   submitForApproval,
+  updateSpaceApprovalSettings,
   verifyPage,
 } from "@/ee/page-verification/services/page-verification-service";
 import { invalidatePageInfo } from "@/features/page/queries/page-query";
 import {
+  useAddPageApproversMutation,
   useSubmitForApprovalMutation,
+  useUpdateSpaceApprovalSettingsMutation,
   useVerifyPageMutation,
 } from "./page-verification-query";
 
 vi.mock("@/ee/page-verification/services/page-verification-service", () => ({
   verifyPage: vi.fn(),
   submitForApproval: vi.fn(),
+  setupVerification: vi.fn(),
+  updateSpaceApprovalSettings: vi.fn(),
 }));
 
 vi.mock("@/features/page/queries/page-query", () => ({
@@ -126,5 +132,134 @@ describe("useSubmitForApprovalMutation", () => {
       changeSummary: "Updated torque values",
     });
     expect(invalidatePageInfo).toHaveBeenCalledWith("page-1");
+  });
+});
+
+describe("useAddPageApproversMutation", () => {
+  it("sets approval up with the approvers for a page that has no approval row", async () => {
+    vi.mocked(setupVerification).mockResolvedValue();
+    const { result } = renderHook(() => useAddPageApproversMutation(), {
+      wrapper,
+    });
+
+    await act(() =>
+      result.current.mutateAsync({ pageId: "page-1", verifierIds: ["u-1"] }),
+    );
+
+    expect(setupVerification).toHaveBeenCalledWith({
+      pageId: "page-1",
+      type: "qms",
+      verifierIds: ["u-1"],
+    });
+    expect(invalidatedKeys()).toContainEqual(["page-verification-info", "page-1"]);
+    expect(invalidatePageInfo).toHaveBeenCalledWith("page-1");
+    expect(notifications.show).toHaveBeenCalledWith({
+      message: "Verification updated",
+    });
+  });
+
+  it("shows the server message when the approvers are refused", async () => {
+    vi.mocked(setupVerification).mockRejectedValue({
+      response: { status: 403, data: { message: "Not a workflow manager" } },
+    });
+    const { result } = renderHook(() => useAddPageApproversMutation(), {
+      wrapper,
+    });
+
+    await act(() =>
+      result.current
+        .mutateAsync({ pageId: "page-1", verifierIds: ["u-1"] })
+        .catch(() => undefined),
+    );
+
+    expect(notifications.show).toHaveBeenCalledWith({
+      message: "Not a workflow manager",
+      color: "red",
+    });
+  });
+});
+
+describe("useUpdateSpaceApprovalSettingsMutation", () => {
+  const settings = {
+    enabled: true,
+    approvers: [{ id: "u-1", name: "Ada", email: "ada@example.com", avatarUrl: null }],
+  };
+
+  it("keeps the settings the server answered with and refreshes what depends on them", async () => {
+    vi.mocked(updateSpaceApprovalSettings).mockResolvedValue(settings);
+    const { result } = renderHook(() => useUpdateSpaceApprovalSettingsMutation(), {
+      wrapper,
+    });
+
+    await act(() =>
+      result.current.mutateAsync({
+        spaceId: "space-1",
+        enabled: true,
+        approverIds: ["u-1"],
+      }),
+    );
+
+    expect(queryClient.getQueryData(["space-approval-settings", "space-1"])).toEqual(
+      settings,
+    );
+    expect(invalidatedKeys()).toEqual(
+      expect.arrayContaining([
+        ["space"],
+        ["pages"],
+        ["page-verification-info"],
+      ]),
+    );
+    expect(notifications.show).toHaveBeenCalledWith({
+      message: "Approval settings updated",
+    });
+  });
+
+  it("says the settings changed in the meantime and reloads them on a conflict", async () => {
+    vi.mocked(updateSpaceApprovalSettings).mockRejectedValue({
+      response: { status: 409, data: { message: "Try again" } },
+    });
+    const { result } = renderHook(() => useUpdateSpaceApprovalSettingsMutation(), {
+      wrapper,
+    });
+
+    await act(() =>
+      result.current
+        .mutateAsync({ spaceId: "space-1", enabled: false })
+        .catch(() => undefined),
+    );
+
+    expect(notifications.show).toHaveBeenCalledWith({
+      message: "The approval settings changed in the meantime. Review them and try again.",
+      color: "red",
+    });
+    expect(invalidatedKeys()).toEqual(
+      expect.arrayContaining([["space-approval-settings", "space-1"], ["space"]]),
+    );
+  });
+
+  it("shows the server message for other refusals and still reloads the settings", async () => {
+    vi.mocked(updateSpaceApprovalSettings).mockRejectedValue({
+      response: {
+        status: 403,
+        data: { message: "This feature requires a valid license" },
+      },
+    });
+    const { result } = renderHook(() => useUpdateSpaceApprovalSettingsMutation(), {
+      wrapper,
+    });
+
+    await act(() =>
+      result.current
+        .mutateAsync({ spaceId: "space-1", enabled: true, approverIds: ["u-1"] })
+        .catch(() => undefined),
+    );
+
+    expect(notifications.show).toHaveBeenCalledWith({
+      message: "This feature requires a valid license",
+      color: "red",
+    });
+    expect(invalidatedKeys()).toEqual(
+      expect.arrayContaining([["space-approval-settings", "space-1"], ["space"]]),
+    );
   });
 });

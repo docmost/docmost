@@ -79,6 +79,30 @@ export function useSetupVerificationMutation() {
   });
 }
 
+type AddPageApprovers = { pageId: string; verifierIds: string[] };
+
+// A page in an approval space has no row of its own until it gets page approvers, so adding them is a setup.
+export function useAddPageApproversMutation() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation<void, Error, AddPageApprovers>({
+    mutationFn: ({ pageId, verifierIds }) =>
+      setupVerification({ pageId, type: "qms", verifierIds }),
+    onSuccess: (_, variables) => {
+      invalidateApprovalQueries(queryClient, variables.pageId);
+      notifications.show({ message: t("Verification updated") });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({
+        message: errorMessage || t("Failed to update verification"),
+        color: "red",
+      });
+    },
+  });
+}
+
 export function useUpdateVerificationMutation() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -272,12 +296,13 @@ export function useUpdateSpaceApprovalSettingsMutation() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation<void, Error, IUpdateSpaceApprovalSettings>({
+  return useMutation<ISpaceApprovalInfo, Error, IUpdateSpaceApprovalSettings>({
     mutationFn: (data) => updateSpaceApprovalSettings(data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["space-approval-settings", variables.spaceId],
-      });
+    onSuccess: (info, variables) => {
+      queryClient.setQueryData(
+        ["space-approval-settings", variables.spaceId],
+        info,
+      );
       // The setting changes the approval state of every page in the space.
       queryClient.invalidateQueries({ queryKey: ["space"] });
       queryClient.invalidateQueries({ queryKey: ["pages"] });
@@ -286,7 +311,23 @@ export function useUpdateSpaceApprovalSettingsMutation() {
       queryClient.invalidateQueries({ queryKey: ["verification-list"] });
       notifications.show({ message: t("Approval settings updated") });
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      // A turn-off that stopped halfway only shows in the space settings, and a conflict means they moved on.
+      queryClient.invalidateQueries({
+        queryKey: ["space-approval-settings", variables.spaceId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["space"] });
+
+      if (error["response"]?.status === 409) {
+        notifications.show({
+          message: t(
+            "The approval settings changed in the meantime. Review them and try again.",
+          ),
+          color: "red",
+        });
+        return;
+      }
+
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
         message: errorMessage || t("Failed to update approval settings"),

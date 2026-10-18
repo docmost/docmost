@@ -123,7 +123,9 @@ beforeAll(() => {
 beforeEach(() => {
   vi.mocked(useHasFeature).mockReturnValue(true);
   vi.mocked(getSpaceApprovalSettings).mockReset();
-  vi.mocked(updateSpaceApprovalSettings).mockReset().mockResolvedValue();
+  vi.mocked(updateSpaceApprovalSettings)
+    .mockReset()
+    .mockResolvedValue({ enabled: true, approvers: [] });
   vi.mocked(modals.openConfirmModal).mockReset();
 });
 
@@ -259,7 +261,6 @@ describe("SpaceApprovalSettings while approval is on", () => {
       expect(updateSpaceApprovalSettings).toHaveBeenCalledWith({
         spaceId: "space-1",
         enabled: false,
-        approverIds: ["u-1", "u-2"],
       }),
     );
   });
@@ -279,9 +280,52 @@ describe("SpaceApprovalSettings while approval is on", () => {
       expect(updateSpaceApprovalSettings).toHaveBeenCalledWith({
         spaceId: "space-1",
         enabled: false,
-        approverIds: ["u-1"],
       }),
     );
+  });
+
+  it("keeps the picker off until the approvers are loaded so a quick pick cannot replace them", async () => {
+    let resolveSettings: (info: ISpaceApprovalInfo) => void = () => undefined;
+    vi.mocked(getSpaceApprovalSettings).mockReturnValue(
+      new Promise((resolve) => {
+        resolveSettings = resolve;
+      }),
+    );
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MantineProvider>
+          <SpaceApprovalSettings
+            space={space({ enabled: true, approverIds: ["u-1", "u-2"] })}
+          />
+        </MantineProvider>
+      </QueryClientProvider>,
+    );
+
+    const picker = screen.getByText("pick approver") as HTMLButtonElement;
+    expect(picker.disabled).toBe(true);
+    fireEvent.click(picker);
+    expect(updateSpaceApprovalSettings).not.toHaveBeenCalled();
+
+    resolveSettings(enabled);
+    await screen.findByText("Ada");
+    expect(
+      (screen.getByText("pick approver") as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it("leaves the approvers alone while a turn-off is unfinished", async () => {
+    renderSettings(
+      space({ enabled: true, disabling: true, approverIds: ["u-1", "u-2"] }),
+      enabled,
+    );
+    await screen.findByText("Ada");
+
+    expect(
+      (screen.getByText("pick approver") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.queryByRole("button", { name: "Remove Ada" })).toBeNull();
+    expect(toggle().checked).toBe(true);
+    expect(toggle().disabled).toBe(false);
   });
 
   it("lets a disable that stopped halfway be run again", () => {

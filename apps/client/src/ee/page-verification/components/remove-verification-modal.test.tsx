@@ -43,13 +43,15 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
+const queryClient = new QueryClient();
+
 function renderModal(
   props: Partial<React.ComponentProps<typeof RemoveVerificationModal>> = {},
 ) {
   const onClose = vi.fn();
   const onRemoved = vi.fn();
-  render(
-    <QueryClientProvider client={new QueryClient()}>
+  const modal = (extra: typeof props = {}) => (
+    <QueryClientProvider client={queryClient}>
       <MantineProvider>
         <RemoveVerificationModal
           pageId="page-1"
@@ -57,11 +59,17 @@ function renderModal(
           onClose={onClose}
           onRemoved={onRemoved}
           {...props}
+          {...extra}
         />
       </MantineProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
-  return { onClose, onRemoved };
+  const view = render(modal());
+  return {
+    onClose,
+    onRemoved,
+    update: (extra: typeof props) => view.rerender(modal(extra)),
+  };
 }
 
 const removeButton = () => screen.getByRole("button", { name: "Remove" });
@@ -115,6 +123,37 @@ describe("RemoveVerificationModal", () => {
     const [payload] = vi.mocked(removeVerification).mock.calls[0];
     expect(payload).toEqual({ pageId: "page-1" });
     expect("draftAction" in payload).toBe(false);
+  });
+
+  it("only offers to publish a draft that was never published", async () => {
+    renderModal({ hasDraftChanges: true, canDiscard: false });
+
+    expect(screen.getByLabelText("Publish the changes")).toBeTruthy();
+    expect(screen.queryByLabelText("Discard the changes")).toBeNull();
+    // Publishing is the only way out, so it is already chosen.
+    expect((removeButton() as HTMLButtonElement).disabled).toBe(false);
+
+    fireEvent.click(removeButton());
+
+    await waitFor(() => expect(removeVerification).toHaveBeenCalledTimes(1));
+    expect(removeVerification).toHaveBeenCalledWith({
+      pageId: "page-1",
+      draftAction: "publish",
+    });
+  });
+
+  it("does not send a discard that became impossible after it was chosen", async () => {
+    const { update } = renderModal({ hasDraftChanges: true });
+
+    fireEvent.click(screen.getByLabelText("Discard the changes"));
+    update({ canDiscard: false });
+    fireEvent.click(removeButton());
+
+    await waitFor(() => expect(removeVerification).toHaveBeenCalledTimes(1));
+    expect(removeVerification).toHaveBeenCalledWith({
+      pageId: "page-1",
+      draftAction: "publish",
+    });
   });
 
   it("starts over with no choice after it was closed", () => {

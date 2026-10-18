@@ -47,10 +47,6 @@ export default function SpaceApprovalSettings({
     setPickedApprovers(null);
   }, [checked]);
 
-  const approverIds = approvers.length
-    ? approvers.map((approver) => approver.id)
-    : (stored?.approverIds ?? []);
-
   // Turning approval off is always possible, so a lapsed licence cannot trap a space.
   const switchDisabled = checked
     ? updateMutation.isPending
@@ -86,7 +82,15 @@ export default function SpaceApprovalSettings({
       labels: { confirm: t("Confirm"), cancel: t("Cancel") },
       confirmProps: next ? {} : { color: "red" },
       onConfirm: () =>
-        updateMutation.mutate({ spaceId: space.id, enabled: next, approverIds }),
+        updateMutation.mutate(
+          next
+            ? {
+                spaceId: space.id,
+                enabled: true,
+                approverIds: approvers.map((approver) => approver.id),
+              }
+            : { spaceId: space.id, enabled: false },
+        ),
     });
   };
 
@@ -121,7 +125,10 @@ export default function SpaceApprovalSettings({
   };
 
   // Approval needs at least one approver, so the last one stays while it is on.
-  const canRemoveApprovers = !checked || approvers.length > 1;
+  const canRemoveApprovers = !checked || (approvers.length > 1 && !disabling);
+  // The server refuses approver changes while a turn-off is unfinished, and the list is unknown until it loads.
+  const pickerDisabled =
+    updateMutation.isPending || disabling || (checked && !data);
 
   return (
     <div>
@@ -176,7 +183,7 @@ export default function SpaceApprovalSettings({
               <VerifierPicker
                 excludeIds={approvers.map((approver) => approver.id)}
                 onSelect={handleAddApprover}
-                disabled={updateMutation.isPending}
+                disabled={pickerDisabled}
                 placeholder={t("Add approver")}
               />
             </div>

@@ -149,14 +149,34 @@ describe("SubmitApprovalModal", () => {
 
     expect(await screen.findByText("Ada")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Approvers" })).toBeTruthy();
+    expect(
+      screen.queryByText("Approvers set for this space are notified as well."),
+    ).toBeNull();
   });
 
-  it("says the space's approvers are notified when the page has none of its own", async () => {
-    vi.mocked(getVerificationInfo).mockResolvedValue(info({ verifiers: [] }));
+  it("also mentions the approvers of a space that requires approval", async () => {
+    vi.mocked(getVerificationInfo).mockResolvedValue(
+      info({ spaceRequiresApproval: true }),
+    );
+    renderModal();
+
+    expect(await screen.findByText("Ada")).toBeTruthy();
+    expect(
+      screen.getByText("Approvers set for this space are notified as well."),
+    ).toBeTruthy();
+  });
+
+  it("names the space's approvers when the page has none of its own", async () => {
+    vi.mocked(getVerificationInfo).mockResolvedValue(
+      info({ verifiers: [], spaceRequiresApproval: true }),
+    );
     renderModal();
 
     expect(
-      await screen.findByText("Approvers of this space will be notified."),
+      await screen.findByText(
+        "Approvers set for this space are notified as well.",
+      ),
     ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Approvers" })).toBeTruthy();
   });
 });

@@ -21,12 +21,12 @@ import { usePageQuery } from "@/features/page/queries/page-query";
 import { isReaderOfControlledPage } from "@/features/page/page.utils";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms";
 import { usePageVerificationInfoQuery } from "@/ee/page-verification/queries/page-verification-query";
-import { getApprovalStatus } from "@/ee/page-verification/utils/approval-state";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { SetupVerificationForm } from "./setup-verification-form";
 import { ManageVerificationForm } from "./manage-verification-form";
+import { LimitedVerificationForm } from "./limited-verification-form";
 import { ReaderApprovalBadge } from "./reader-approval-badge";
 import { getStatusColor, getStatusLabel } from "./verification-status";
 
@@ -42,17 +42,23 @@ export function PageVerificationModal({
   onClose,
 }: PageVerificationModalProps) {
   const { t } = useTranslation();
+  const hasVerificationFeature = useHasFeature(Feature.PAGE_VERIFICATION);
   const { data: verificationInfo } = usePageVerificationInfoQuery(
     opened ? pageId : undefined,
   );
 
   const status = verificationInfo?.status ?? "none";
+  const title = !hasVerificationFeature
+    ? t("Remove verification")
+    : status === "none"
+      ? t("Set up verification")
+      : t("Verify page");
 
   return (
     <Modal
       opened={opened}
       onClose={onClose}
-      aria-label={status === "none" ? t("Set up verification") : t("Verify page")}
+      aria-label={title}
       title={
         <Group gap="xs">
           <IconShieldCheck
@@ -66,14 +72,14 @@ export function PageVerificationModal({
                   : undefined
             }
           />
-          <Text fw={600}>
-            {status === "none" ? t("Set up verification") : t("Verify page")}
-          </Text>
+          <Text fw={600}>{title}</Text>
         </Group>
       }
       size={520}
     >
-      {status === "none" ? (
+      {!hasVerificationFeature ? (
+        <LimitedVerificationForm pageId={pageId} onClose={onClose} />
+      ) : status === "none" ? (
         <SetupVerificationForm pageId={pageId} onClose={onClose} />
       ) : (
         <ManageVerificationForm pageId={pageId} onClose={onClose} />
@@ -99,13 +105,20 @@ export function PageVerificationBadge({
   const { data: page } = usePageQuery({ pageId: pageSlugId });
   const pageId = page?.id;
 
+  // Without the licence only approval can still be removed, so only controlled pages are looked up.
+  const looksUpRemoval =
+    !hasVerificationFeature && page?.approval?.controlled === true;
   const { data: verificationInfo, isLoading } = usePageVerificationInfoQuery(
-    hasVerificationFeature ? pageId : undefined,
+    hasVerificationFeature || looksUpRemoval ? pageId : undefined,
   );
   const upgradeLabel = useUpgradeLabel();
 
   if (!pageId) return null;
-  if (!hasVerificationFeature) {
+  if (looksUpRemoval && isLoading) return null;
+
+  const canRemoveWithoutLicence =
+    looksUpRemoval && !!verificationInfo?.permissions?.canRemove;
+  if (!hasVerificationFeature && !canRemoveWithoutLicence) {
     if (readOnly) return null;
     const lockedLabel = `${t("Add verification")} — ${upgradeLabel}`;
     // Use ActionIcon (a real <button>) instead of a ThemeIcon so the tooltip
@@ -132,11 +145,9 @@ export function PageVerificationBadge({
     ) : null;
   }
 
-  if ((verificationInfo?.status ?? "none") === "none" && readOnly) {
-    return null;
-  }
+  const status = verificationInfo?.status ?? "none";
 
-  const status = getApprovalStatus(verificationInfo, page?.approval);
+  if (status === "none" && readOnly) return null;
 
   // Once approved, edits wait in the draft until the next approval.
   const hasDraftChanges =
@@ -152,7 +163,7 @@ export function PageVerificationBadge({
         })
       : getStatusLabel(status, t);
   const tooltipLabel = hasDraftChanges
-    ? `${statusLabel}, ${t("Draft changes")}`
+    ? t("{{status}}, draft changes", { status: statusLabel })
     : statusLabel;
 
   return (
@@ -225,9 +236,13 @@ export function PageVerificationMenuItem({
   const { t } = useTranslation();
   const hasVerificationFeature = useHasFeature(Feature.PAGE_VERIFICATION);
   const upgradeLabel = useUpgradeLabel();
+  const { data: page } = usePageQuery({ pageId });
 
+  // Without the licence only approval can still be removed, so only controlled pages are looked up.
+  const looksUpRemoval =
+    !hasVerificationFeature && page?.approval?.controlled === true;
   const { data: verificationInfo } = usePageVerificationInfoQuery(
-    hasVerificationFeature ? pageId : undefined,
+    hasVerificationFeature || looksUpRemoval ? pageId : undefined,
   );
 
   const hasVerification =
@@ -235,18 +250,21 @@ export function PageVerificationMenuItem({
   const label = hasVerification
     ? t("Edit verification")
     : t("Add verification");
+  const enabled =
+    hasVerificationFeature ||
+    (looksUpRemoval && !!verificationInfo?.permissions?.canRemove);
 
   const menuItem = (
     <Menu.Item
-      disabled={!hasVerificationFeature}
+      disabled={!enabled}
       leftSection={<IconShieldCheck size={16} />}
-      onClick={hasVerificationFeature ? onClick : undefined}
+      onClick={enabled ? onClick : undefined}
     >
       {label}
     </Menu.Item>
   );
 
-  if (!hasVerificationFeature) {
+  if (!enabled) {
     return (
       <Tooltip label={upgradeLabel} position="left" withinPortal={false}>
         {menuItem}

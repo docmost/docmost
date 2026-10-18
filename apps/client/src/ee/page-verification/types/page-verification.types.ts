@@ -55,7 +55,8 @@ export type IPendingSubmission = {
 };
 
 export type IPageVerificationInfo = {
-  id?: string;
+  // null for a page in an approval space that has no approval row of its own yet.
+  id?: string | null;
   pageId?: string;
   type?: VerificationType;
   mode?: ExpirationMode | null;
@@ -143,7 +144,8 @@ export type ISpaceApprovalInfo = {
 export type IUpdateSpaceApprovalSettings = {
   spaceId: string;
   enabled: boolean;
-  approverIds: string[];
+  // Turning approval on or changing the approvers needs 1 to 5; turning it off sends none.
+  approverIds?: string[];
 };
 
 export type IVerificationListItem = {

@@ -4,29 +4,31 @@ import { useTranslation } from "react-i18next";
 import { useRemoveVerificationMutation } from "@/ee/page-verification/queries/page-verification-query";
 import type { DraftAction } from "@/ee/page-verification/types/page-verification.types";
 
-type RemoveVerificationModalProps = {
+type RemoveVerificationFormProps = {
   pageId: string;
-  opened: boolean;
-  onClose: () => void;
+  onCancel: () => void;
+  onRemoved?: () => void;
   // Changes readers haven't seen need an explicit publish or discard.
   hasDraftChanges?: boolean;
-  onRemoved?: () => void;
+  // A page that was never published has no earlier version to go back to.
+  canDiscard?: boolean;
 };
 
-export function RemoveVerificationModal({
+export function RemoveVerificationForm({
   pageId,
-  opened,
-  onClose,
-  hasDraftChanges,
+  onCancel,
   onRemoved,
-}: RemoveVerificationModalProps) {
+  hasDraftChanges,
+  canDiscard = true,
+}: RemoveVerificationFormProps) {
   const { t } = useTranslation();
   const removeMutation = useRemoveVerificationMutation();
-  const [draftAction, setDraftAction] = useState<DraftAction | null>(null);
+  const [chosen, setChosen] = useState<DraftAction | null>(null);
+  const draftAction = canDiscard ? chosen : "publish";
 
-  const handleClose = () => {
-    setDraftAction(null);
-    onClose();
+  const handleCancel = () => {
+    setChosen(null);
+    onCancel();
   };
 
   const handleRemove = () => {
@@ -34,7 +36,7 @@ export function RemoveVerificationModal({
       hasDraftChanges ? { pageId, draftAction } : { pageId },
       {
         onSuccess: () => {
-          handleClose();
+          setChosen(null);
           onRemoved?.();
         },
       },
@@ -42,31 +44,26 @@ export function RemoveVerificationModal({
   };
 
   return (
-    <Modal
-      opened={opened}
-      onClose={handleClose}
-      title={t("Remove verification")}
-      closeButtonProps={{ "aria-label": t("Close") }}
-    >
-      <Stack>
-        <Text size="sm">
-          {t("Are you sure you want to remove verification from this page?")}
-        </Text>
+    <Stack>
+      <Text size="sm">
+        {t("Are you sure you want to remove verification from this page?")}
+      </Text>
 
-        {hasDraftChanges && (
-          <Radio.Group
-            label={t(
-              "This page has changes that readers haven't seen. What should happen to them?",
-            )}
-            value={draftAction}
-            onChange={(value) => setDraftAction(value as DraftAction)}
-          >
-            <Stack gap="xs" mt="xs">
-              <Radio
-                value="publish"
-                label={t("Publish the changes")}
-                description={t("Readers see the current draft.")}
-              />
+      {hasDraftChanges && (
+        <Radio.Group
+          label={t(
+            "This page has changes that readers haven't seen. What should happen to them?",
+          )}
+          value={draftAction}
+          onChange={(value) => setChosen(value as DraftAction)}
+        >
+          <Stack gap="xs" mt="xs">
+            <Radio
+              value="publish"
+              label={t("Publish the changes")}
+              description={t("Readers see the current draft.")}
+            />
+            {canDiscard && (
               <Radio
                 value="discard"
                 label={t("Discard the changes")}
@@ -74,24 +71,59 @@ export function RemoveVerificationModal({
                   "The page returns to the version readers see now.",
                 )}
               />
-            </Stack>
-          </Radio.Group>
-        )}
+            )}
+          </Stack>
+        </Radio.Group>
+      )}
 
-        <Group justify="flex-end" gap="xs">
-          <Button variant="default" onClick={handleClose}>
-            {t("Cancel")}
-          </Button>
-          <Button
-            color="red"
-            onClick={handleRemove}
-            disabled={hasDraftChanges && !draftAction}
-            loading={removeMutation.isPending}
-          >
-            {t("Remove")}
-          </Button>
-        </Group>
-      </Stack>
+      <Group justify="flex-end" gap="xs">
+        <Button variant="default" onClick={handleCancel}>
+          {t("Cancel")}
+        </Button>
+        <Button
+          color="red"
+          onClick={handleRemove}
+          disabled={hasDraftChanges && !draftAction}
+          loading={removeMutation.isPending}
+        >
+          {t("Remove")}
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
+type RemoveVerificationModalProps = Omit<
+  RemoveVerificationFormProps,
+  "onCancel"
+> & {
+  opened: boolean;
+  onClose: () => void;
+};
+
+export function RemoveVerificationModal({
+  opened,
+  onClose,
+  onRemoved,
+  ...form
+}: RemoveVerificationModalProps) {
+  const { t } = useTranslation();
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={t("Remove verification")}
+      closeButtonProps={{ "aria-label": t("Close") }}
+    >
+      <RemoveVerificationForm
+        {...form}
+        onCancel={onClose}
+        onRemoved={() => {
+          onClose();
+          onRemoved?.();
+        }}
+      />
     </Modal>
   );
 }

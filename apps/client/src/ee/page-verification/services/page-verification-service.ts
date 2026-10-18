@@ -87,6 +87,10 @@ export async function getSpaceApprovalSettings(
 
 export async function updateSpaceApprovalSettings(
   data: IUpdateSpaceApprovalSettings,
-): Promise<void> {
-  await api.post("/spaces/update-approval-settings", data);
+): Promise<ISpaceApprovalInfo> {
+  const req = await api.post<ISpaceApprovalInfo>(
+    "/spaces/update-approval-settings",
+    data,
+  );
+  return req.data;
 }

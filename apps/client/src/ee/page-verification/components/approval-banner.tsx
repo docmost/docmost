@@ -112,12 +112,7 @@ function DraftUserBanner({ page, info }: DraftUserBannerProps) {
   const { state, returned } = model;
 
   const permissions = info.permissions;
-  // A space-controlled page without an approval row may come back without permissions.
-  const canSubmit =
-    hasFeature &&
-    (permissions
-      ? permissions.canSubmitForApproval
-      : !!page.permissions?.canEdit);
+  const canSubmit = hasFeature && !!permissions?.canSubmitForApproval;
   const canReview = hasFeature && !!permissions?.canVerify;
   const canWithdraw = !!permissions?.canWithdraw;
 

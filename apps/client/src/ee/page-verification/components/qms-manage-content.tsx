@@ -4,6 +4,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
 import {
+  useAddPageApproversMutation,
   useMarkObsoleteMutation,
   useRestoreObsoleteMutation,
   useUpdateVerificationMutation,
@@ -13,7 +14,6 @@ import {
 import type { IPageVerificationInfo } from "@/ee/page-verification/types/page-verification.types";
 import {
   hasSubmittableChanges,
-  requiresSpaceApproval,
   wasReturned,
 } from "@/ee/page-verification/utils/approval-state";
 import { useTimeAgo } from "@/hooks/use-time-ago";
@@ -41,6 +41,7 @@ export function QmsManageContent({
   const obsoleteMutation = useMarkObsoleteMutation();
   const restoreMutation = useRestoreObsoleteMutation();
   const updateMutation = useUpdateVerificationMutation();
+  const addApproversMutation = useAddPageApproversMutation();
   const [submitOpened, submit] = useDisclosure(false);
   const [requestChangesOpened, requestChanges] = useDisclosure(false);
   const [removeOpened, remove] = useDisclosure(false);
@@ -58,7 +59,7 @@ export function QmsManageContent({
   const permissions = info.permissions;
   const pendingId = info.pendingHistoryId ?? null;
   const reviewed = reviewedId !== null && reviewedId === pendingId;
-  const spaceRequiresApproval = requiresSpaceApproval(info, undefined);
+  const spaceRequiresApproval = info.spaceRequiresApproval === true;
   const existingVerifierIds = info.verifiers?.map((v) => v.id) ?? [];
 
   // A new or withdrawn submission has not been reviewed yet.
@@ -129,10 +130,13 @@ export function QmsManageContent({
   const handleAddApprover = (userId: string) => {
     const current = info.verifiers ?? [];
     if (current.some((v) => v.id === userId)) return;
-    updateMutation.mutate({
-      pageId,
-      verifierIds: [...current.map((v) => v.id), userId],
-    });
+    const verifierIds = [...current.map((v) => v.id), userId];
+    // Without a row of its own, the page is controlled by its space; page approvers start one.
+    if (!info.id) {
+      addApproversMutation.mutate({ pageId, verifierIds });
+      return;
+    }
+    updateMutation.mutate({ pageId, verifierIds });
   };
 
   return (
@@ -349,6 +353,7 @@ export function QmsManageContent({
         opened={removeOpened}
         onClose={remove.close}
         hasDraftChanges={info.hasDraftChanges === true}
+        canDiscard={!!info.latestReaderVersion}
         onRemoved={onClose}
       />
     </Stack>
