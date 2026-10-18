@@ -8,24 +8,32 @@ export type CommentVisibilityFields = {
   selection: string | null;
 };
 
+// On uncontrolled pages draft access is edit access.
 export type CommentVisibilityOpts = {
   controlled: boolean;
   canAccessDraft: boolean;
 };
 
-export type CommentAccess = CommentVisibilityOpts & { internal: boolean };
+export type CommentViewerAccess = CommentVisibilityOpts & { canEdit: boolean };
 
-// CommentRepo.findPageComments mirrors these rules in SQL.
-export function isInternalThreadRoot(root: CommentVisibilityFields): boolean {
-  return root.isInternal || root.type !== 'page' || root.selection != null;
+export type CommentAccess = CommentViewerAccess & { internal: boolean };
+
+// Stamped threads stay internal after control ends. CommentRepo.findPageComments mirrors this in SQL.
+export function isInternalThreadRoot(
+  root: CommentVisibilityFields,
+  controlled: boolean,
+): boolean {
+  if (root.isInternal) return true;
+  return controlled && (root.type !== 'page' || root.selection != null);
 }
 
 export function isInternalComment(
   comment: CommentVisibilityFields & { parentCommentId: string | null },
   root: CommentVisibilityFields | null,
+  controlled: boolean,
 ): boolean {
-  if (!comment.parentCommentId) return isInternalThreadRoot(comment);
-  return comment.isInternal || !root || isInternalThreadRoot(root);
+  if (!comment.parentCommentId) return isInternalThreadRoot(comment, controlled);
+  return comment.isInternal || !root || isInternalThreadRoot(root, controlled);
 }
 
 export function isCommentVisible(
@@ -33,8 +41,25 @@ export function isCommentVisible(
   root: CommentVisibilityFields | null,
   opts: CommentVisibilityOpts,
 ): boolean {
-  if (!opts.controlled || opts.canAccessDraft) return true;
-  return !isInternalComment(comment, root);
+  if (opts.canAccessDraft) return true;
+  return !isInternalComment(comment, root, opts.controlled);
+}
+
+export function shouldStampInternal(input: {
+  controlled: boolean;
+  canAccessDraft: boolean;
+  source?: CommentSource;
+  parentCommentId?: string;
+  type: string;
+  selection: string | null;
+  yjsSelection?: unknown;
+}): boolean {
+  if (!input.controlled) return false;
+  if (input.canAccessDraft && input.source) return true;
+  if (input.parentCommentId) return false;
+  return (
+    input.type !== 'page' || input.selection !== null || !!input.yjsSelection
+  );
 }
 
 // parentRoot is null when the parent is missing or is itself a reply.
@@ -48,9 +73,12 @@ export function assertReaderCommentAllowed(
   parentRoot: CommentVisibilityFields | null,
   opts: CommentVisibilityOpts,
 ): void {
-  if (!opts.controlled || opts.canAccessDraft) return;
+  if (opts.canAccessDraft) return;
 
-  if ((dto.type ?? 'page') !== 'page' || dto.yjsSelection || dto.selection) {
+  if (
+    opts.controlled &&
+    ((dto.type ?? 'page') !== 'page' || dto.yjsSelection || dto.selection)
+  ) {
     throw new BadRequestException(
       'Only page-level comments are allowed on this page',
     );
@@ -58,7 +86,7 @@ export function assertReaderCommentAllowed(
 
   if (
     dto.parentCommentId &&
-    (!parentRoot || isInternalThreadRoot(parentRoot))
+    (!parentRoot || isInternalThreadRoot(parentRoot, opts.controlled))
   ) {
     throw new BadRequestException('Parent comment not found');
   }

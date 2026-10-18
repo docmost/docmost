@@ -82,7 +82,7 @@ export class PageApprovalService {
     });
   }
 
-  // canAccessDraft for many users in a fixed number of queries.
+  // canAccessDraft for many users in a fixed number of queries; edit access on uncontrolled pages.
   async getUserIdsWithDraftAccess(
     page: ApprovalPage,
     candidateUserIds: string[],
@@ -94,7 +94,7 @@ export class PageApprovalService {
     const [spaceRoles, pageAccess, approverIds] = await Promise.all([
       this.spaceMemberRepo.getUsersSpaceRoles(userIds, page.spaceId),
       this.pagePermissionRepo.canUsersEditPage(page.id, userIds),
-      this.getEffectiveApproverIds(page, state),
+      this.getControlledApproverIds(page, state),
     ]);
 
     const rolesByUser = new Map<string, typeof spaceRoles>();
@@ -222,6 +222,16 @@ export class PageApprovalService {
       },
       trx,
     );
+  }
+
+  private async getControlledApproverIds(
+    page: ApprovalPage,
+    state?: ApprovalState,
+  ): Promise<string[]> {
+    const approval = state ?? (await this.getState(page));
+    return approval.controlled
+      ? this.getEffectiveApproverIds(page, approval)
+      : [];
   }
 
   // The collab getAccess rule, minus its trashed-page downgrade.

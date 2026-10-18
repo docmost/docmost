@@ -59,18 +59,8 @@ export class PageAccessService {
       unpublished: boolean;
     };
   }> {
-    const { canEdit, hasRestriction } = await this.checkPageAccess(page, user);
-
-    const state = await this.pageApprovalService.getState(page);
-    // Approvers have draft access only on controlled pages; elsewhere it is edit access.
-    const canAccessDraft =
-      canEdit ||
-      (state.controlled &&
-        (await this.pageApprovalService.isEffectiveApprover(
-          user.id,
-          page,
-          state,
-        )));
+    const { canEdit, hasRestriction, state, canAccessDraft } =
+      await this.getDraftAccess(page, user);
 
     if (!canAccessDraft) {
       await this.assertNotHidden(page, user, state);
@@ -86,6 +76,35 @@ export class PageAccessService {
         unpublished: state.unpublished,
       },
     };
+  }
+
+  /**
+   * Draft access of a user already checked to view the page, without the hidden-page check.
+   * Edit access, or an effective approver of a controlled page.
+   */
+  async getDraftAccess(
+    page: Page,
+    user: User,
+  ): Promise<{
+    canEdit: boolean;
+    hasRestriction: boolean;
+    state: ApprovalState;
+    canAccessDraft: boolean;
+  }> {
+    const { canEdit, hasRestriction } = await this.checkPageAccess(page, user);
+
+    const state = await this.pageApprovalService.getState(page);
+    // Approvers have draft access only on controlled pages; elsewhere it is edit access.
+    const canAccessDraft =
+      canEdit ||
+      (state.controlled &&
+        (await this.pageApprovalService.isEffectiveApprover(
+          user.id,
+          page,
+          state,
+        )));
+
+    return { canEdit, hasRestriction, state, canAccessDraft };
   }
 
   /**

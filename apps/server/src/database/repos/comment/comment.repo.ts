@@ -34,8 +34,12 @@ export class CommentRepo {
   async findPageComments(
     pageId: string,
     pagination: PaginationOptions,
-    opts?: { publicThreadsOnly?: boolean },
+    opts?: { publicThreadsOnly?: boolean; controlled?: boolean },
   ) {
+    const controlledRootSql = opts?.controlled
+      ? sql`and root.type = 'page' and root.selection is null`
+      : sql``;
+
     const query = this.db
       .selectFrom('comments')
       .selectAll('comments')
@@ -48,9 +52,8 @@ export class CommentRepo {
           sql<SqlBool>`not comments.is_internal and exists (
             select 1 from comments root
             where root.id = coalesce(comments.parent_comment_id, comments.id)
-              and root.type = 'page'
               and not root.is_internal
-              and root.selection is null
+              ${controlledRootSql}
           )`,
         ),
       );

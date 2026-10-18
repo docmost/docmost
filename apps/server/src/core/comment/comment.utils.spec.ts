@@ -3,12 +3,14 @@ import {
   assertReaderCommentAllowed,
   isCommentVisible,
   isInternalComment,
+  shouldStampInternal,
   toViewerComment,
 } from './comment.utils';
 
 const READER = { controlled: true, canAccessDraft: false };
 const DRAFT_USER = { controlled: true, canAccessDraft: true };
-const UNCONTROLLED = { controlled: false, canAccessDraft: false };
+const UNCONTROLLED_VIEWER = { controlled: false, canAccessDraft: false };
+const UNCONTROLLED_EDITOR = { controlled: false, canAccessDraft: true };
 
 const pageRoot = {
   type: 'page',
@@ -22,6 +24,7 @@ const inlineRoot = {
   selection: 'quoted draft text',
   parentCommentId: null,
 };
+const stampedRoot = { ...inlineRoot, isInternal: true };
 const reply = {
   type: 'page',
   isInternal: false,
@@ -42,13 +45,27 @@ describe('isCommentVisible', () => {
 
   it('shows a draft user every thread', () => {
     expect(isCommentVisible(inlineRoot, null, DRAFT_USER)).toBe(true);
-    expect(isCommentVisible(reply, inlineRoot, DRAFT_USER)).toBe(true);
+    expect(isCommentVisible(reply, stampedRoot, DRAFT_USER)).toBe(true);
     expect(isCommentVisible(pageRoot, null, DRAFT_USER)).toBe(true);
   });
 
-  it('shows everyone every thread on an uncontrolled page', () => {
-    expect(isCommentVisible(inlineRoot, null, UNCONTROLLED)).toBe(true);
-    expect(isCommentVisible(reply, inlineRoot, UNCONTROLLED)).toBe(true);
+  it('shows unstamped inline threads to everyone on an uncontrolled page', () => {
+    expect(isCommentVisible(inlineRoot, null, UNCONTROLLED_VIEWER)).toBe(true);
+    expect(isCommentVisible(reply, inlineRoot, UNCONTROLLED_VIEWER)).toBe(true);
+  });
+
+  it('keeps a stamped thread hidden from a reader after the page becomes uncontrolled', () => {
+    expect(isCommentVisible(stampedRoot, null, UNCONTROLLED_VIEWER)).toBe(false);
+    expect(isCommentVisible(reply, stampedRoot, UNCONTROLLED_VIEWER)).toBe(
+      false,
+    );
+  });
+
+  it('shows a stamped thread to an editor after the page becomes uncontrolled', () => {
+    expect(isCommentVisible(stampedRoot, null, UNCONTROLLED_EDITOR)).toBe(true);
+    expect(isCommentVisible(reply, stampedRoot, UNCONTROLLED_EDITOR)).toBe(
+      true,
+    );
   });
 
   it('treats a page-level root with a selection as internal', () => {
@@ -66,10 +83,13 @@ describe('isCommentVisible', () => {
     expect(isCommentVisible(agentRoot, null, DRAFT_USER)).toBe(true);
   });
 
-  it('hides a reply flagged internal inside a page-level thread from readers', () => {
+  it('hides a reply flagged internal inside a page-level thread on any page', () => {
     const agentReply = { ...reply, isInternal: true };
 
     expect(isCommentVisible(agentReply, pageRoot, READER)).toBe(false);
+    expect(isCommentVisible(agentReply, pageRoot, UNCONTROLLED_VIEWER)).toBe(
+      false,
+    );
     expect(isCommentVisible(agentReply, pageRoot, DRAFT_USER)).toBe(true);
   });
 
@@ -78,6 +98,7 @@ describe('isCommentVisible', () => {
       false,
     );
     expect(isCommentVisible(reply, null, READER)).toBe(false);
+    expect(isCommentVisible(reply, null, UNCONTROLLED_VIEWER)).toBe(false);
   });
 
   it('ignores the stored type of a reply', () => {
@@ -89,10 +110,72 @@ describe('isCommentVisible', () => {
 
 describe('isInternalComment', () => {
   it('follows the root for replies and the comment itself for roots', () => {
-    expect(isInternalComment(pageRoot, null)).toBe(false);
-    expect(isInternalComment(inlineRoot, null)).toBe(true);
-    expect(isInternalComment(reply, pageRoot)).toBe(false);
-    expect(isInternalComment(reply, inlineRoot)).toBe(true);
+    expect(isInternalComment(pageRoot, null, true)).toBe(false);
+    expect(isInternalComment(inlineRoot, null, true)).toBe(true);
+    expect(isInternalComment(reply, pageRoot, true)).toBe(false);
+    expect(isInternalComment(reply, inlineRoot, true)).toBe(true);
+  });
+
+  it('counts only stamped comments on uncontrolled pages', () => {
+    expect(isInternalComment(inlineRoot, null, false)).toBe(false);
+    expect(isInternalComment(reply, inlineRoot, false)).toBe(false);
+    expect(isInternalComment(stampedRoot, null, false)).toBe(true);
+    expect(isInternalComment(reply, stampedRoot, false)).toBe(true);
+  });
+});
+
+describe('shouldStampInternal', () => {
+  const base = {
+    controlled: true,
+    canAccessDraft: true,
+    type: 'page',
+    selection: null,
+  };
+
+  it('stamps inline, quoted and anchored thread roots on controlled pages', () => {
+    expect(shouldStampInternal({ ...base, type: 'inline' })).toBe(true);
+    expect(shouldStampInternal({ ...base, selection: 'quote' })).toBe(true);
+    expect(
+      shouldStampInternal({ ...base, yjsSelection: { anchor: {}, head: {} } }),
+    ).toBe(true);
+  });
+
+  it('stamps agent comments of draft users, replies included', () => {
+    expect(shouldStampInternal({ ...base, source: 'mcp' })).toBe(true);
+    expect(
+      shouldStampInternal({
+        ...base,
+        source: 'ai-chat',
+        parentCommentId: 'root-1',
+      }),
+    ).toBe(true);
+  });
+
+  it('leaves plain page-level roots, human replies and readers unstamped', () => {
+    expect(shouldStampInternal(base)).toBe(false);
+    expect(
+      shouldStampInternal({
+        ...base,
+        parentCommentId: 'root-1',
+        type: 'inline',
+        selection: 'quote',
+      }),
+    ).toBe(false);
+    expect(
+      shouldStampInternal({ ...base, canAccessDraft: false, source: 'mcp' }),
+    ).toBe(false);
+  });
+
+  it('never stamps on uncontrolled pages', () => {
+    expect(
+      shouldStampInternal({
+        ...base,
+        controlled: false,
+        type: 'inline',
+        selection: 'quote',
+        source: 'mcp',
+      }),
+    ).toBe(false);
   });
 });
 
@@ -175,8 +258,37 @@ describe('assertReaderCommentAllowed', () => {
     ).not.toThrow();
   });
 
-  it('never throws for draft users or on uncontrolled pages', () => {
-    for (const opts of [DRAFT_USER, UNCONTROLLED]) {
+  it('rejects a reply to a stamped thread from a non-editor of an uncontrolled page', () => {
+    expectRejected(
+      () =>
+        assertReaderCommentAllowed(
+          { parentCommentId: 'root-1' },
+          stampedRoot,
+          UNCONTROLLED_VIEWER,
+        ),
+      'Parent comment not found',
+    );
+  });
+
+  it('lets a non-editor of an uncontrolled page comment inline and reply to unstamped threads', () => {
+    expect(() =>
+      assertReaderCommentAllowed(
+        { type: 'inline', selection: 'quote', yjsSelection: { anchor: {}, head: {} } },
+        null,
+        UNCONTROLLED_VIEWER,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertReaderCommentAllowed(
+        { parentCommentId: 'root-1' },
+        inlineRoot,
+        UNCONTROLLED_VIEWER,
+      ),
+    ).not.toThrow();
+  });
+
+  it('never throws for draft users or editors', () => {
+    for (const opts of [DRAFT_USER, UNCONTROLLED_EDITOR]) {
       expect(() =>
         assertReaderCommentAllowed(
           {
@@ -185,7 +297,7 @@ describe('assertReaderCommentAllowed', () => {
             yjsSelection: { anchor: {}, head: {} },
             parentCommentId: 'root-1',
           },
-          inlineRoot,
+          stampedRoot,
           opts,
         ),
       ).not.toThrow();
@@ -209,6 +321,6 @@ describe('toViewerComment', () => {
 
   it('keeps the selection for draft users and on uncontrolled pages', () => {
     expect(toViewerComment(comment, DRAFT_USER)).toBe(comment);
-    expect(toViewerComment(comment, UNCONTROLLED)).toBe(comment);
+    expect(toViewerComment(comment, UNCONTROLLED_VIEWER)).toBe(comment);
   });
 });

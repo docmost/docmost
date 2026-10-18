@@ -18,14 +18,20 @@ import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
 import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
 import { WsService } from '../../ws/ws.service';
-import { PageApprovalService } from '../page/approval/page-approval.service';
+import { PageAccessService } from '../page/page-access/page-access.service';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from '../casl/interfaces/space-ability.type';
 import {
   assertReaderCommentAllowed,
   CommentAccess,
   CommentSource,
-  CommentVisibilityOpts,
+  CommentViewerAccess,
   isCommentVisible,
   isInternalComment,
+  shouldStampInternal,
   toViewerComment,
 } from './comment.utils';
 
@@ -37,7 +43,8 @@ export class CommentService {
     private commentRepo: CommentRepo,
     private wsService: WsService,
     private collaborationGateway: CollaborationGateway,
-    private pageApprovalService: PageApprovalService,
+    private pageAccessService: PageAccessService,
+    private spaceAbility: SpaceAbilityFactory,
     @InjectQueue(QueueName.GENERAL_QUEUE)
     private generalQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
@@ -55,30 +62,19 @@ export class CommentService {
     return comment;
   }
 
-  async getViewerAccess(
-    page: Page,
-    user: Pick<User, 'id'>,
-  ): Promise<CommentVisibilityOpts> {
-    const state = await this.pageApprovalService.getState(page);
-    if (!state.controlled) return { controlled: false, canAccessDraft: false };
-
-    return {
-      controlled: true,
-      canAccessDraft: await this.pageApprovalService.canAccessDraft(
-        user,
-        page,
-        state,
-      ),
-    };
+  // Callers have already checked that the user can view the page.
+  async getViewerAccess(page: Page, user: User): Promise<CommentViewerAccess> {
+    const { canEdit, state, canAccessDraft } =
+      await this.pageAccessService.getDraftAccess(page, user);
+    return { controlled: state.controlled, canAccessDraft, canEdit };
   }
 
   async assertCommentVisible(
     comment: Comment,
     page: Page,
-    user: Pick<User, 'id'>,
+    user: User,
   ): Promise<CommentAccess> {
     const access = await this.getViewerAccess(page, user);
-    if (!access.controlled) return { ...access, internal: false };
 
     const root = comment.parentCommentId
       ? ((await this.commentRepo.findById(comment.parentCommentId)) ?? null)
@@ -87,13 +83,16 @@ export class CommentService {
       throw new NotFoundException('Comment not found');
     }
 
-    return { ...access, internal: isInternalComment(comment, root) };
+    return {
+      ...access,
+      internal: isInternalComment(comment, root, access.controlled),
+    };
   }
 
   async findVisibleComment(
     comment: Comment,
     page: Page,
-    user: Pick<User, 'id'>,
+    user: User,
   ): Promise<Comment> {
     const access = await this.assertCommentVisible(comment, page, user);
     return toViewerComment(comment, access);
@@ -116,29 +115,44 @@ export class CommentService {
       if (!parentComment || parentComment.pageId !== page.id) {
         throw new BadRequestException('Parent comment not found');
       }
+
+      if (parentComment.parentCommentId !== null) {
+        // Users without draft access learn nothing about replies they cannot see.
+        if (!access.canAccessDraft) {
+          const parentRoot = await this.commentRepo.findById(
+            parentComment.parentCommentId,
+          );
+          if (!isCommentVisible(parentComment, parentRoot ?? null, access)) {
+            throw new BadRequestException('Parent comment not found');
+          }
+        }
+        throw new BadRequestException('You cannot reply to a reply');
+      }
     }
 
-    // Runs before the reply depth check so readers cannot probe hidden replies.
-    assertReaderCommentAllowed(
-      createCommentDto,
-      parentComment && !parentComment.parentCommentId ? parentComment : null,
-      access,
-    );
+    assertReaderCommentAllowed(createCommentDto, parentComment ?? null, access);
 
-    if (parentComment && parentComment.parentCommentId !== null) {
-      throw new BadRequestException('You cannot reply to a reply');
-    }
+    const type = createCommentDto.type ?? 'page';
+    const selection = createCommentDto?.selection?.substring(0, 250) || null;
 
     const inserted = await this.commentRepo.insertComment({
       pageId: page.id,
       content: commentContent,
-      selection: createCommentDto?.selection?.substring(0, 250) || null,
-      type: createCommentDto.type ?? 'page',
+      selection,
+      type,
       parentCommentId: createCommentDto?.parentCommentId,
       creatorId: user.id,
       workspaceId: workspaceId,
       spaceId: page.spaceId,
-      isInternal: access.controlled && access.canAccessDraft && !!source,
+      isInternal: shouldStampInternal({
+        controlled: access.controlled,
+        canAccessDraft: access.canAccessDraft,
+        source,
+        parentCommentId: createCommentDto.parentCommentId,
+        type,
+        selection,
+        yjsSelection: createCommentDto.yjsSelection,
+      }),
     });
 
     if (createCommentDto.yjsSelection) {
@@ -175,8 +189,11 @@ export class CommentService {
     });
     const commentAccess: CommentAccess = {
       ...access,
-      internal:
-        access.controlled && isInternalComment(comment, parentComment ?? null),
+      internal: isInternalComment(
+        comment,
+        parentComment ?? null,
+        access.controlled,
+      ),
     };
 
     this.generalQueue
@@ -222,15 +239,15 @@ export class CommentService {
   async findByPageId(
     page: Page,
     pagination: PaginationOptions,
-    user: Pick<User, 'id'>,
+    user: User,
   ): Promise<CursorPaginationResult<Comment>> {
     const access = await this.getViewerAccess(page, user);
-    const reader = access.controlled && !access.canAccessDraft;
 
     const result = await this.commentRepo.findPageComments(page.id, pagination, {
-      publicThreadsOnly: reader,
+      publicThreadsOnly: !access.canAccessDraft,
+      controlled: access.controlled,
     });
-    if (!reader) return result;
+    if (!access.controlled || access.canAccessDraft) return result;
 
     return {
       ...result,
@@ -293,6 +310,35 @@ export class CommentService {
     );
 
     return toViewerComment(comment, access);
+  }
+
+  async delete(comment: Comment, page: Page, user: User): Promise<void> {
+    const access = await this.assertCommentVisible(comment, page, user);
+
+    if (comment.creatorId !== user.id) {
+      const ability = await this.spaceAbility.createForUser(
+        user,
+        comment.spaceId,
+      );
+
+      // Space admin can delete any comment
+      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+        throw new ForbiddenException('You can only delete your own comments');
+      }
+    }
+
+    await this.commentRepo.deleteComment(comment.id);
+
+    this.wsService.emitCommentEvent(
+      comment.spaceId,
+      comment.pageId,
+      {
+        operation: 'commentDeleted',
+        pageId: comment.pageId,
+        commentId: comment.id,
+      },
+      { draftOnly: access.internal },
+    );
   }
 
   // Public comment events reach readers of controlled pages too.

@@ -386,6 +386,37 @@ describe('PageAccessService', () => {
     });
   });
 
+  describe('getDraftAccess', () => {
+    it('is edit access on an uncontrolled page, without the approver or hidden lookups', async () => {
+      const reader = makeService({ role: 'reader', approver: true, hidden: true });
+      const writer = makeService({ role: 'writer', approver: false });
+
+      const readerAccess = await reader.service.getDraftAccess(PAGE, USER);
+      const writerAccess = await writer.service.getDraftAccess(PAGE, USER);
+
+      expect(readerAccess).toMatchObject({ canEdit: false, canAccessDraft: false });
+      expect(readerAccess.state.controlled).toBe(false);
+      expect(writerAccess).toMatchObject({ canEdit: true, canAccessDraft: true });
+      expect(reader.pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+      expect(reader.pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+    });
+
+    it('counts an effective approver of a controlled page without the hidden lookup', async () => {
+      const { service, pageApprovalService } = makeService({
+        role: 'reader',
+        state: UNPUBLISHED,
+        approver: true,
+        hidden: true,
+      });
+
+      expect(await service.getDraftAccess(PAGE, USER)).toMatchObject({
+        canEdit: false,
+        canAccessDraft: true,
+      });
+      expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+    });
+  });
+
   describe('validateCanEdit', () => {
     it('rejects a hidden page with NotFoundException instead of ForbiddenException', async () => {
       const { service } = makeService({ role: 'reader', hidden: true });

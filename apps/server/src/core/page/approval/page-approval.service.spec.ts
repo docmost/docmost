@@ -529,6 +529,26 @@ describe('PageApprovalService.getUserIdsWithDraftAccess', () => {
     ).toEqual([WRITER]);
   });
 
+  it('is edit access on an uncontrolled page, ignoring stale qms verifiers', async () => {
+    const { service } = makeService({
+      fixture: {
+        pages: {
+          page_1: {
+            isBase: true,
+            verification: { id: 'v1', type: 'qms', source: 'page' },
+          },
+        },
+        verifiers: [{ pageId: 'page_1', userId: APPROVER, type: 'qms' }],
+        users: [{ id: APPROVER }],
+      },
+      roles: { [WRITER]: 'writer', [APPROVER]: 'reader' },
+    });
+
+    expect(
+      await service.getUserIdsWithDraftAccess(PAGE, [WRITER, APPROVER]),
+    ).toEqual([WRITER]);
+  });
+
   it('skips every lookup for no candidates', async () => {
     const { service, queries, spaceMemberRepo, pagePermissionRepo } =
       makeService({ fixture });

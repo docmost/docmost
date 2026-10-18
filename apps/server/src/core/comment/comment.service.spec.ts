@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommentService } from './comment.service';
 
 const USER = { id: 'user-1' } as any;
@@ -43,10 +47,42 @@ const PAGE_REPLY = row({
   parentCommentId: 'page-root',
   selection: 'reply quote',
 });
+const STAMPED_ROOT = row({
+  id: 'stamped-root',
+  type: 'inline',
+  selection: 'old draft words',
+  isInternal: true,
+});
+const STAMPED_REPLY = row({
+  id: 'stamped-reply',
+  parentCommentId: 'stamped-root',
+});
 
-function setup(opts: { controlled: boolean; canAccessDraft: boolean }) {
+type Access = { controlled: boolean; canAccessDraft: boolean; canEdit: boolean };
+
+const READER: Access = { controlled: true, canAccessDraft: false, canEdit: false };
+const DRAFT_USER: Access = { controlled: true, canAccessDraft: true, canEdit: true };
+const UNCONTROLLED_VIEWER: Access = {
+  controlled: false,
+  canAccessDraft: false,
+  canEdit: false,
+};
+const UNCONTROLLED_EDITOR: Access = {
+  controlled: false,
+  canAccessDraft: true,
+  canEdit: true,
+};
+
+function setup(access: Access, opts: { spaceAdmin?: boolean } = {}) {
   const stored = new Map<string, any>(
-    [PAGE_ROOT, INLINE_ROOT, INLINE_REPLY, PAGE_REPLY].map((c) => [c.id, c]),
+    [
+      PAGE_ROOT,
+      INLINE_ROOT,
+      INLINE_REPLY,
+      PAGE_REPLY,
+      STAMPED_ROOT,
+      STAMPED_REPLY,
+    ].map((c) => [c.id, c]),
   );
   const commentRepo = {
     findById: jest.fn(async (id: string) => stored.get(id)),
@@ -60,12 +96,20 @@ function setup(opts: { controlled: boolean; canAccessDraft: boolean }) {
       meta: { hasNextPage: false },
     })),
     updateComment: jest.fn(async () => undefined),
+    deleteComment: jest.fn(async () => undefined),
   };
   const wsService = { emitCommentEvent: jest.fn(async () => undefined) };
   const collaborationGateway = { handleYjsEvent: jest.fn(async () => undefined) };
-  const pageApprovalService = {
-    getState: jest.fn(async () => ({ controlled: opts.controlled })),
-    canAccessDraft: jest.fn(async () => opts.canAccessDraft),
+  const pageAccessService = {
+    getDraftAccess: jest.fn(async () => ({
+      canEdit: access.canEdit,
+      hasRestriction: false,
+      state: { controlled: access.controlled },
+      canAccessDraft: access.canAccessDraft,
+    })),
+  };
+  const spaceAbility = {
+    createForUser: jest.fn(async () => ({ cannot: () => !opts.spaceAdmin })),
   };
   const generalQueue = { add: jest.fn(async () => undefined) };
   const notificationQueue = { add: jest.fn(async () => undefined) };
@@ -74,7 +118,8 @@ function setup(opts: { controlled: boolean; canAccessDraft: boolean }) {
     commentRepo as any,
     wsService as any,
     collaborationGateway as any,
-    pageApprovalService as any,
+    pageAccessService as any,
+    spaceAbility as any,
     generalQueue as any,
     notificationQueue as any,
   );
@@ -88,16 +133,12 @@ function setup(opts: { controlled: boolean; canAccessDraft: boolean }) {
     commentRepo,
     wsService,
     collaborationGateway,
-    pageApprovalService,
+    pageAccessService,
     notificationQueue,
     lastEvent,
     lastJob,
   };
 }
-
-const READER = { controlled: true, canAccessDraft: false };
-const DRAFT_USER = { controlled: true, canAccessDraft: true };
-const UNCONTROLLED = { controlled: false, canAccessDraft: false };
 
 describe('CommentService.create', () => {
   const create = (
@@ -136,11 +177,12 @@ describe('CommentService.create', () => {
     expect(commentRepo.insertComment).not.toHaveBeenCalled();
   });
 
-  it('keeps the reply depth error for draft users', async () => {
-    const { service } = setup(DRAFT_USER);
-
+  it('keeps the reply depth error for draft users and for visible replies', async () => {
     await expect(
-      create(service, { parentCommentId: INLINE_REPLY.id }),
+      create(setup(DRAFT_USER).service, { parentCommentId: INLINE_REPLY.id }),
+    ).rejects.toThrow('You cannot reply to a reply');
+    await expect(
+      create(setup(READER).service, { parentCommentId: PAGE_REPLY.id }),
     ).rejects.toThrow('You cannot reply to a reply');
   });
 
@@ -168,18 +210,49 @@ describe('CommentService.create', () => {
     expect(lastEvent()[3]).toEqual({ draftOnly: false });
   });
 
-  it('marks agent comments of draft users internal and keeps them among draft users', async () => {
-    const { service, commentRepo, lastEvent, lastJob } = setup(DRAFT_USER);
+  it('stamps inline and quoted thread roots of draft users internal', async () => {
+    for (const dto of [
+      { type: 'inline', selection: 'draft words', yjsSelection: YJS_SELECTION },
+      { selection: 'draft words' },
+    ]) {
+      const { service, commentRepo, lastEvent, lastJob } = setup(DRAFT_USER);
 
-    const comment = await create(service, { type: 'page', selection: 'draft words' }, 'mcp');
+      await create(service, dto);
+
+      expect(commentRepo.insertComment).toHaveBeenCalledWith(
+        expect.objectContaining({ isInternal: true, selection: 'draft words' }),
+      );
+      expect(lastJob().draftOnly).toBe(true);
+      expect(lastEvent()[3]).toEqual({ draftOnly: true });
+      expect(lastEvent()[2].comment.selection).toBe('draft words');
+    }
+  });
+
+  it('keeps the inline mark of a draft user comment', async () => {
+    const { service, collaborationGateway } = setup(DRAFT_USER);
+
+    await create(service, {
+      type: 'inline',
+      selection: 'draft words',
+      yjsSelection: YJS_SELECTION,
+    });
+
+    expect(collaborationGateway.handleYjsEvent).toHaveBeenCalledWith(
+      'setCommentMark',
+      `page.${PAGE.id}`,
+      expect.objectContaining({ commentId: 'new-comment' }),
+    );
+  });
+
+  it('leaves a plain page-level root of a draft user public', async () => {
+    const { service, commentRepo, lastEvent } = setup(DRAFT_USER);
+
+    await create(service, {});
 
     expect(commentRepo.insertComment).toHaveBeenCalledWith(
-      expect.objectContaining({ isInternal: true, selection: 'draft words' }),
+      expect.objectContaining({ isInternal: false }),
     );
-    expect(lastJob().draftOnly).toBe(true);
-    expect(lastEvent()[3]).toEqual({ draftOnly: true });
-    expect(lastEvent()[2].comment.selection).toBe('draft words');
-    expect(comment.selection).toBe('draft words');
+    expect(lastEvent()[3]).toEqual({ draftOnly: false });
   });
 
   it('marks an agent reply in a public thread internal', async () => {
@@ -193,44 +266,27 @@ describe('CommentService.create', () => {
     expect(lastEvent()[3]).toEqual({ draftOnly: true });
   });
 
-  it('keeps a draft user inline comment and its mark among draft users', async () => {
-    const { service, commentRepo, collaborationGateway, lastEvent, lastJob } =
-      setup(DRAFT_USER);
-
-    await create(service, {
-      type: 'inline',
-      selection: 'draft words',
-      yjsSelection: YJS_SELECTION,
-    });
-
-    expect(commentRepo.insertComment).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'inline', isInternal: false }),
-    );
-    expect(collaborationGateway.handleYjsEvent).toHaveBeenCalledWith(
-      'setCommentMark',
-      `page.${PAGE.id}`,
-      expect.objectContaining({ commentId: 'new-comment' }),
-    );
-    expect(lastJob().draftOnly).toBe(true);
-    expect(lastEvent()[3]).toEqual({ draftOnly: true });
-  });
-
   it('strips the excerpt from public comment events on controlled pages', async () => {
-    const { service, lastEvent } = setup(DRAFT_USER);
+    const { service, commentRepo, lastEvent } = setup(DRAFT_USER);
 
     await create(service, { parentCommentId: PAGE_ROOT.id, selection: 'quote' });
 
+    expect(commentRepo.insertComment).toHaveBeenCalledWith(
+      expect.objectContaining({ isInternal: false }),
+    );
     expect(lastEvent()[3]).toEqual({ draftOnly: false });
     expect(lastEvent()[2].comment.selection).toBeNull();
   });
 
-  it('leaves uncontrolled pages as before, even for agent comments', async () => {
-    const { service, commentRepo, pageApprovalService, lastEvent, lastJob } =
-      setup(UNCONTROLLED);
+  it('leaves new comments on uncontrolled pages unstamped, even agent ones', async () => {
+    const { service, commentRepo, lastEvent, lastJob } = setup(UNCONTROLLED_EDITOR);
 
-    const comment = await create(service, { selection: 'quote' }, 'mcp');
+    const comment = await create(
+      service,
+      { type: 'inline', selection: 'quote' },
+      'mcp',
+    );
 
-    expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
     expect(commentRepo.insertComment).toHaveBeenCalledWith(
       expect.objectContaining({ isInternal: false, selection: 'quote' }),
     );
@@ -238,6 +294,37 @@ describe('CommentService.create', () => {
     expect(lastEvent()[3]).toEqual({ draftOnly: false });
     expect(lastEvent()[2].comment.selection).toBe('quote');
     expect(comment.selection).toBe('quote');
+  });
+
+  it('lets a viewer of an uncontrolled page comment inline as before', async () => {
+    const { service, commentRepo } = setup(UNCONTROLLED_VIEWER);
+
+    await create(service, { type: 'inline', selection: 'words' });
+
+    expect(commentRepo.insertComment).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'inline', isInternal: false }),
+    );
+  });
+
+  it('hides a stamped thread from replies by a viewer of an uncontrolled page', async () => {
+    const { service, commentRepo } = setup(UNCONTROLLED_VIEWER);
+
+    await expect(
+      create(service, { parentCommentId: STAMPED_ROOT.id }),
+    ).rejects.toThrow('Parent comment not found');
+    await expect(
+      create(service, { parentCommentId: STAMPED_REPLY.id }),
+    ).rejects.toThrow('Parent comment not found');
+    expect(commentRepo.insertComment).not.toHaveBeenCalled();
+  });
+
+  it('keeps editor replies to a stamped thread among draft users after control ends', async () => {
+    const { service, lastEvent, lastJob } = setup(UNCONTROLLED_EDITOR);
+
+    await create(service, { parentCommentId: STAMPED_ROOT.id });
+
+    expect(lastJob().draftOnly).toBe(true);
+    expect(lastEvent()[3]).toEqual({ draftOnly: true });
   });
 });
 
@@ -251,6 +338,7 @@ describe('CommentService.findByPageId', () => {
 
     expect(commentRepo.findPageComments).toHaveBeenCalledWith(PAGE.id, pagination, {
       publicThreadsOnly: true,
+      controlled: true,
     });
     expect(result.items.map((c) => c.selection)).toEqual([null, null]);
   });
@@ -262,18 +350,31 @@ describe('CommentService.findByPageId', () => {
 
     expect(commentRepo.findPageComments).toHaveBeenCalledWith(PAGE.id, pagination, {
       publicThreadsOnly: false,
+      controlled: true,
     });
     expect(result.items[1].selection).toBe('reply quote');
   });
 
-  it('lists every thread on uncontrolled pages without a draft check', async () => {
-    const { service, commentRepo, pageApprovalService } = setup(UNCONTROLLED);
+  it('hides stamped threads from viewers of uncontrolled pages and keeps excerpts', async () => {
+    const { service, commentRepo } = setup(UNCONTROLLED_VIEWER);
+
+    const result = await service.findByPageId(PAGE, pagination, USER);
+
+    expect(commentRepo.findPageComments).toHaveBeenCalledWith(PAGE.id, pagination, {
+      publicThreadsOnly: true,
+      controlled: false,
+    });
+    expect(result.items[1].selection).toBe('reply quote');
+  });
+
+  it('lists every thread for editors of uncontrolled pages', async () => {
+    const { service, commentRepo } = setup(UNCONTROLLED_EDITOR);
 
     await service.findByPageId(PAGE, pagination, USER);
 
-    expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
     expect(commentRepo.findPageComments).toHaveBeenCalledWith(PAGE.id, pagination, {
       publicThreadsOnly: false,
+      controlled: false,
     });
   });
 });
@@ -283,17 +384,17 @@ describe('CommentService.findVisibleComment', () => {
     const { service } = setup(READER);
 
     await expect(
-      service.findVisibleComment(INLINE_ROOT as any, PAGE, USER),
+      service.findVisibleComment(INLINE_ROOT, PAGE, USER),
     ).rejects.toThrow(NotFoundException);
     await expect(
-      service.findVisibleComment(INLINE_REPLY as any, PAGE, USER),
+      service.findVisibleComment(INLINE_REPLY, PAGE, USER),
     ).rejects.toThrow(NotFoundException);
   });
 
   it('gives a reader a public comment without its excerpt', async () => {
     const { service } = setup(READER);
 
-    const comment = await service.findVisibleComment(PAGE_REPLY as any, PAGE, USER);
+    const comment = await service.findVisibleComment(PAGE_REPLY, PAGE, USER);
 
     expect(comment.id).toBe(PAGE_REPLY.id);
     expect(comment.selection).toBeNull();
@@ -302,9 +403,34 @@ describe('CommentService.findVisibleComment', () => {
   it('gives a draft user internal comments as stored', async () => {
     const { service } = setup(DRAFT_USER);
 
-    expect(
-      await service.findVisibleComment(INLINE_ROOT as any, PAGE, USER),
-    ).toBe(INLINE_ROOT);
+    expect(await service.findVisibleComment(INLINE_ROOT, PAGE, USER)).toBe(
+      INLINE_ROOT,
+    );
+  });
+
+  it('keeps a stamped thread hidden from a reader after the page becomes uncontrolled', async () => {
+    const { service } = setup(UNCONTROLLED_VIEWER);
+
+    await expect(
+      service.findVisibleComment(STAMPED_ROOT, PAGE, USER),
+    ).rejects.toThrow(NotFoundException);
+    await expect(
+      service.findVisibleComment(STAMPED_REPLY, PAGE, USER),
+    ).rejects.toThrow(NotFoundException);
+    expect(await service.findVisibleComment(INLINE_ROOT, PAGE, USER)).toBe(
+      INLINE_ROOT,
+    );
+  });
+
+  it('shows a stamped thread to an editor after the page becomes uncontrolled', async () => {
+    const { service } = setup(UNCONTROLLED_EDITOR);
+
+    expect(await service.findVisibleComment(STAMPED_ROOT, PAGE, USER)).toBe(
+      STAMPED_ROOT,
+    );
+    expect(await service.findVisibleComment(STAMPED_REPLY, PAGE, USER)).toBe(
+      STAMPED_REPLY,
+    );
   });
 });
 
@@ -314,11 +440,20 @@ describe('CommentService.update', () => {
   it('answers 404 to a reader before checking ownership', async () => {
     const { service, commentRepo } = setup(READER);
 
+    await expect(service.update(INLINE_ROOT, dto, USER, PAGE)).rejects.toThrow(
+      NotFoundException,
+    );
     await expect(
-      service.update(INLINE_ROOT as any, dto, USER, PAGE),
+      service.update({ ...INLINE_REPLY, creatorId: 'someone' }, dto, USER, PAGE),
     ).rejects.toThrow(NotFoundException);
+    expect(commentRepo.updateComment).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 to a viewer for a stamped thread after control ends', async () => {
+    const { service, commentRepo } = setup(UNCONTROLLED_VIEWER);
+
     await expect(
-      service.update({ ...INLINE_REPLY, creatorId: 'someone' } as any, dto, USER, PAGE),
+      service.update({ ...STAMPED_REPLY }, dto, USER, PAGE),
     ).rejects.toThrow(NotFoundException);
     expect(commentRepo.updateComment).not.toHaveBeenCalled();
   });
@@ -326,7 +461,7 @@ describe('CommentService.update', () => {
   it('keeps edits of internal comments among draft users', async () => {
     const { service, lastEvent } = setup(DRAFT_USER);
 
-    await service.update({ ...INLINE_REPLY } as any, dto, USER, PAGE);
+    await service.update({ ...INLINE_REPLY }, dto, USER, PAGE);
 
     expect(lastEvent()[2].operation).toBe('commentUpdated');
     expect(lastEvent()[3]).toEqual({ draftOnly: true });
@@ -335,10 +470,63 @@ describe('CommentService.update', () => {
   it('sends a reader edit of a public comment to page viewers without excerpts', async () => {
     const { service, lastEvent } = setup(READER);
 
-    const updated = await service.update({ ...PAGE_REPLY } as any, dto, USER, PAGE);
+    const updated = await service.update({ ...PAGE_REPLY }, dto, USER, PAGE);
 
     expect(lastEvent()[3]).toEqual({ draftOnly: false });
     expect(lastEvent()[2].comment.selection).toBeNull();
     expect(updated.selection).toBeNull();
+  });
+});
+
+describe('CommentService.delete', () => {
+  it('rejects a reader for an internal thread before anything is deleted', async () => {
+    const { service, commentRepo, wsService } = setup(READER);
+
+    await expect(service.delete(INLINE_ROOT, PAGE, USER)).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(
+      service.delete({ ...INLINE_REPLY, creatorId: 'someone' }, PAGE, USER),
+    ).rejects.toThrow(NotFoundException);
+    expect(commentRepo.deleteComment).not.toHaveBeenCalled();
+    expect(wsService.emitCommentEvent).not.toHaveBeenCalled();
+  });
+
+  it('rejects a viewer for a stamped thread after control ends', async () => {
+    const { service, commentRepo } = setup(UNCONTROLLED_VIEWER);
+
+    await expect(service.delete(STAMPED_ROOT, PAGE, USER)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(commentRepo.deleteComment).not.toHaveBeenCalled();
+  });
+
+  it('lets a reader delete an own public comment and tells page viewers', async () => {
+    const { service, commentRepo, lastEvent } = setup(READER);
+
+    await service.delete(PAGE_REPLY, PAGE, USER);
+
+    expect(commentRepo.deleteComment).toHaveBeenCalledWith(PAGE_REPLY.id);
+    expect(lastEvent()[2]).toEqual({
+      operation: 'commentDeleted',
+      pageId: PAGE.id,
+      commentId: PAGE_REPLY.id,
+    });
+    expect(lastEvent()[3]).toEqual({ draftOnly: false });
+  });
+
+  it('keeps deleting comments of others to space admins', async () => {
+    const someoneElse = { ...PAGE_ROOT, creatorId: 'someone' };
+
+    const member = setup(DRAFT_USER);
+    await expect(member.service.delete(someoneElse, PAGE, USER)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(member.commentRepo.deleteComment).not.toHaveBeenCalled();
+
+    const admin = setup(DRAFT_USER, { spaceAdmin: true });
+    await admin.service.delete({ ...INLINE_ROOT, creatorId: 'someone' }, PAGE, USER);
+    expect(admin.commentRepo.deleteComment).toHaveBeenCalledWith(INLINE_ROOT.id);
+    expect(admin.lastEvent()[3]).toEqual({ draftOnly: true });
   });
 });
