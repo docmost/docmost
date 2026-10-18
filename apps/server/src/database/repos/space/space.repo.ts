@@ -160,6 +160,154 @@ export class SpaceRepo {
       .executeTakeFirst();
   }
 
+  // Writing settled settings also drops a leftover disabling flag.
+  async updateApprovalSettings(
+    spaceId: string,
+    workspaceId: string,
+    settings: {
+      enabled: boolean;
+      approverIds: string[];
+      enabledAt?: string;
+      enabledById?: string;
+    },
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('spaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+          || jsonb_build_object('approval', (${this.approvalSettingsSql()} - 'disabling')
+          || ${JSON.stringify(settings)}::text::jsonb)`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', spaceId)
+      .where('workspaceId', '=', workspaceId)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  // Space approval stays in force until the disable run clears this flag.
+  async markApprovalDisabling(
+    spaceId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('spaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+          || jsonb_build_object('approval', ${this.approvalSettingsSql()} || '{"disabling": true}'::jsonb)`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', spaceId)
+      .where('workspaceId', '=', workspaceId)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  // Trashed pages included; pages with their own approval row keep it.
+  async findApprovalPagesToRelease(
+    spaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<string[]> {
+    const rows = await dbOrTx(this.db, trx)
+      .selectFrom('pages')
+      .select('pages.id')
+      .where('pages.spaceId', '=', spaceId)
+      .where('pages.isBase', '=', false)
+      .where(({ and, or, not, exists, selectFrom }) =>
+        and([
+          not(
+            exists(
+              selectFrom('pageVerifications')
+                .select('pageVerifications.id')
+                .whereRef('pageVerifications.pageId', '=', 'pages.id')
+                .where('pageVerifications.type', '=', 'qms')
+                .where('pageVerifications.source', '<>', 'space'),
+            ),
+          ),
+          or([
+            exists(
+              selectFrom('pageDrafts')
+                .select('pageDrafts.id')
+                .whereRef('pageDrafts.pageId', '=', 'pages.id'),
+            ),
+            exists(
+              selectFrom('pageVerifications')
+                .select('pageVerifications.id')
+                .whereRef('pageVerifications.pageId', '=', 'pages.id')
+                .where('pageVerifications.type', '=', 'qms')
+                .where('pageVerifications.source', '=', 'space'),
+            ),
+          ]),
+        ]),
+      )
+      .orderBy('pages.id')
+      .execute();
+
+    return rows.map((row) => row.id);
+  }
+
+  // Only the approval pointer changes: no updated_at bump.
+  async clearUncontrolledReaderVersions(
+    spaceId: string,
+    trx: KyselyTransaction,
+  ): Promise<number> {
+    const result = await trx
+      .updateTable('pages')
+      .set({ readerVersionId: null })
+      .where('spaceId', '=', spaceId)
+      .where('readerVersionId', 'is not', null)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('pageVerifications')
+              .select('pageVerifications.id')
+              .whereRef('pageVerifications.pageId', '=', 'pages.id')
+              .where('pageVerifications.type', '=', 'qms'),
+          ),
+        ),
+      )
+      .executeTakeFirst();
+
+    return Number(result.numUpdatedRows);
+  }
+
+  async findExpiringVerificationPageIds(
+    spaceId: string,
+    trx: KyselyTransaction,
+  ): Promise<string[]> {
+    const rows = await trx
+      .selectFrom('pageVerifications')
+      .innerJoin('pages', 'pages.id', 'pageVerifications.pageId')
+      .select('pageVerifications.pageId')
+      .where('pages.spaceId', '=', spaceId)
+      .where('pages.isBase', '=', false)
+      .where('pageVerifications.type', '=', 'expiring')
+      .execute();
+
+    return rows.map((row) => row.pageId);
+  }
+
+  // Deletes only the approvers; each approval row keeps its source.
+  async removeQmsPageApprovers(
+    spaceId: string,
+    trx: KyselyTransaction,
+  ): Promise<Array<{ pageId: string; userId: string }>> {
+    return trx
+      .deleteFrom('pageVerifiers')
+      .using(['pageVerifications', 'pages'])
+      .whereRef('pageVerifications.id', '=', 'pageVerifiers.pageVerificationId')
+      .whereRef('pages.id', '=', 'pageVerifications.pageId')
+      .where('pages.spaceId', '=', spaceId)
+      .where('pages.isBase', '=', false)
+      .where('pageVerifications.type', '=', 'qms')
+      .returning(['pageVerifications.pageId', 'pageVerifiers.userId'])
+      .execute();
+  }
+
   async insertSpace(
     insertableSpace: InsertableSpace,
     trx?: KyselyTransaction,
@@ -231,6 +379,11 @@ export class SpaceRepo {
       .selectFrom(subquery)
       .select((eb) => eb.fn.count('userId').as('count'))
       .as('memberCount');
+  }
+
+  // The approval object, or {} when it is missing or not an object.
+  private approvalSettingsSql() {
+    return sql`CASE WHEN jsonb_typeof(settings->'approval') = 'object' THEN settings->'approval' ELSE '{}'::jsonb END`;
   }
 
   withIsPublished(eb: ExpressionBuilder<DB, 'spaces'>) {
