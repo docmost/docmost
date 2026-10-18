@@ -14,16 +14,26 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconTrash } from "@tabler/icons-react";
 import { useAtom } from "jotai";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function ExternalEmbeddingBlacklist() {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
-  const blockedUrls =
-    JSON.parse(workspace?.settings?.externalEmbeddingBlacklist ?? []);
+  const blacklistValue = workspace?.settings?.externalEmbeddingBlacklist;
+  const blockedUrls = useMemo<string[]>(() => {
+    if (!blacklistValue) {
+      return [];
+    }
 
-    console.log({blockedUrls})
+    try {
+      const parsed = JSON.parse(blacklistValue);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [blacklistValue]);
+
   const [url, setUrl] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [removingUrl, setRemovingUrl] = useState<string | null>(null);
@@ -43,8 +53,7 @@ export default function ExternalEmbeddingBlacklist() {
       setUrl("");
     } catch (err: any) {
       notifications.show({
-        message:
-          err?.response?.data?.message || t("Failed to add blocked URL"),
+        message: err?.response?.data?.message || t("Failed to add blocked URL"),
         color: "red",
       });
     } finally {
@@ -74,15 +83,17 @@ export default function ExternalEmbeddingBlacklist() {
     <div>
       <Text size="md">{t("Block external embeds")}</Text>
       <Text size="sm" c="dimmed">
-        {t("Prevent content from these URLs from being displayed as page embeds.")}
+        {t(
+          "Prevent content from these URLs from being displayed as page embeds."
+        )}
       </Text>
 
       <Stack gap="sm" mt="sm">
         <Group align="flex-end" wrap="nowrap">
           <TextInput
             flex={1}
-            label={t("URL")}
-            placeholder={t("https://example.com")}
+            label={"URL"}
+            placeholder={"https://example.com"}
             value={url}
             disabled={isAdding}
             onChange={(event) => setUrl(event.currentTarget.value)}
@@ -99,7 +110,7 @@ export default function ExternalEmbeddingBlacklist() {
         </Group>
 
         {blockedUrls.length > 0 && (
-          <ScrollArea.Autosize mah={500} type="auto" >
+          <ScrollArea.Autosize mah={500} type="auto">
             <Table withTableBorder withColumnBorders={false}>
               <Table.Tbody>
                 {blockedUrls.map((blockedUrl) => (

@@ -51,7 +51,7 @@ export interface IWorkspaceSettings {
   spaces?: IWorkspaceSpaceSettings;
   publicSpaces?: IWorkspacePublicSpacesSettings;
   defaultPageEditMode?: string;
-  externalEmbeddingBlacklist?: string[];
+  externalEmbeddingBlacklist?: string;
 }
 
 export interface IWorkspaceApiSettings {
@@ -119,6 +119,7 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
+  settings: { externalEmbeddingBlacklist: "" };
 }
 
 export interface IVersion {

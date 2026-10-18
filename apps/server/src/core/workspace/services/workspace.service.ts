@@ -53,6 +53,7 @@ import {
 import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { sql } from "kysely";
 
 @Injectable()
 export class WorkspaceService {
@@ -99,7 +100,18 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey', 'plan'])
+      .select([
+        'id',
+        'name',
+        'logo',
+        'hostname',
+        'enforceSso',
+        'licenseKey',
+        'plan',
+        sql<string | null>`settings->>'externalEmbeddingBlacklist'`.as(
+          'externalEmbeddingBlacklist',
+        ),
+      ])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -122,7 +134,12 @@ export class WorkspaceService {
 
     const { licenseKey, plan, ...rest } = workspace;
 
-    return rest;
+    return {
+      ...rest,
+      settings: {
+        externalEmbeddingBlacklist: workspace.externalEmbeddingBlacklist ?? "",
+      },
+    };
   }
 
   async create(
@@ -477,8 +494,13 @@ export class WorkspaceService {
           string,
           any
         >;
-        const currentUrls =
-          lockedSettings.externalEmbeddingBlacklist ?? [];
+
+        const rawUrls = lockedSettings.externalEmbeddingBlacklist;
+        const currentUrls: string[] = Array.isArray(rawUrls)
+          ? rawUrls
+          : typeof rawUrls === 'string'
+            ? JSON.parse(rawUrls)
+            : [];
         const url = new URL(
           updateWorkspaceDto.addExternalEmbeddingBlacklistUrl ??
           updateWorkspaceDto.removeExternalEmbeddingBlacklistUrl,
