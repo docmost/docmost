@@ -14,6 +14,7 @@ import { CommentRepo } from './repos/comment/comment.repo';
 import { PageTransclusionsRepo } from './repos/page-transclusions/page-transclusions.repo';
 import { PageTransclusionReferencesRepo } from './repos/page-transclusions/page-transclusion-references.repo';
 import { PageHistoryRepo } from './repos/page/page-history.repo';
+import { PageDraftRepo } from './repos/page/page-draft.repo';
 import { AttachmentRepo } from './repos/attachment/attachment.repo';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as process from 'node:process';
@@ -82,6 +83,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     PageTransclusionsRepo,
     PageTransclusionReferencesRepo,
     PageHistoryRepo,
+    PageDraftRepo,
     CommentRepo,
     FavoriteRepo,
     AttachmentRepo,
@@ -108,6 +110,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     PageTransclusionsRepo,
     PageTransclusionReferencesRepo,
     PageHistoryRepo,
+    PageDraftRepo,
     CommentRepo,
     FavoriteRepo,
     AttachmentRepo,

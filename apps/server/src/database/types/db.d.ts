@@ -52,9 +52,9 @@ export interface Attachments {
   filePath: string;
   fileSize: Int8 | null;
   id: Generated<string>;
-  isDraft: Generated<boolean>;
   mimeType: string | null;
   pageId: string | null;
+  publishedAt: Timestamp | null;
   spaceId: string | null;
   textContent: string | null;
   tsv: string | null;
@@ -209,6 +209,7 @@ export interface Comments {
   deletedAt: Timestamp | null;
   editedAt: Timestamp | null;
   id: Generated<string>;
+  isInternal: Generated<boolean>;
   lastEditedById: string | null;
   pageId: string;
   parentCommentId: string | null;
@@ -331,6 +332,7 @@ export interface Pages {
   lastUpdatedById: string | null;
   parentPageId: string | null;
   position: string | null;
+  readerVersionId: string | null;
   slugId: string;
   spaceId: string;
   textContent: string | null;

@@ -71,8 +71,29 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
+    .alterTable('pages')
+    .addColumn('reader_version_id', 'uuid', (col) =>
+      col.references('page_history.id').onDelete('set null'),
+    )
+    .execute();
+
+  await db.schema
+    .createIndex('idx_pages_reader_version_id')
+    .on('pages')
+    .column('reader_version_id')
+    .where('reader_version_id', 'is not', null)
+    .execute();
+
+  await db.schema
     .alterTable('attachments')
-    .addColumn('is_draft', 'boolean', (col) => col.notNull().defaultTo(false))
+    .addColumn('published_at', 'timestamptz')
+    .execute();
+
+  await db.schema
+    .alterTable('comments')
+    .addColumn('is_internal', 'boolean', (col) =>
+      col.notNull().defaultTo(false),
+    )
     .execute();
 
   // Approved and obsolete pages (obsolete requires approval) become version 1.
@@ -110,6 +131,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     WHERE pv.type = 'qms'
       AND (pv.status IS NULL OR pv.status NOT IN ('approved', 'obsolete'))
       AND p.is_base = false
+  `.execute(db);
+
+  // Readers keep the approved or baseline row; the submission below is history.
+  await sql`
+    UPDATE pages p
+    SET reader_version_id = h.id
+    FROM page_history h
+    WHERE h.page_id = p.id AND h.kind IN ('approved', 'baseline')
   `.execute(db);
 
   // Pages in review get the frozen submission the approver will publish.
@@ -153,9 +182,19 @@ export async function up(db: Kysely<any>): Promise<void> {
     UPDATE pages SET ydoc = NULL
     WHERE ydoc IS NOT NULL AND id IN (SELECT page_id FROM page_drafts)
   `.execute(db);
+
+  // Everything readers could open before stays visible to them.
+  await sql`
+    UPDATE attachments SET published_at = now()
+    WHERE deleted_at IS NULL AND page_id IN (SELECT page_id FROM page_drafts)
+  `.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+  // Unlink first so deleting history rows does not null the pointer row by row.
+  await db.schema.dropIndex('idx_pages_reader_version_id').ifExists().execute();
+  await db.schema.alterTable('pages').dropColumn('reader_version_id').execute();
+
   // Draft title/icon are not copied back; text_content is not recomputed.
   await sql`
     UPDATE pages p
@@ -179,7 +218,11 @@ export async function down(db: Kysely<any>): Promise<void> {
     .ifExists()
     .execute();
 
-  await db.schema.alterTable('attachments').dropColumn('is_draft').execute();
+  await db.schema.alterTable('comments').dropColumn('is_internal').execute();
+  await db.schema
+    .alterTable('attachments')
+    .dropColumn('published_at')
+    .execute();
 
   await db.schema
     .alterTable('page_verifications')
