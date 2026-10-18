@@ -16,6 +16,7 @@ import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { PageAccessModule } from './page/page-access/page-access.module';
 import { PageApprovalModule } from './page/approval/page-approval.module';
+import { PageApprovalPublishModule } from './page/approval/page-approval-publish.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 import { AuditContextMiddleware } from '../common/middlewares/audit-context.middleware';
 import { ShareModule } from './share/share.module';
@@ -46,6 +47,7 @@ import { ClsMiddleware } from 'nestjs-cls';
     CaslModule,
     PageAccessModule,
     PageApprovalModule,
+    PageApprovalPublishModule,
     ShareModule,
     PublicSpaceModule,
     LabelModule,

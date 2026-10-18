@@ -310,6 +310,25 @@ export class SpaceMemberRepo {
     return new Set(rows.map((r) => r.userId));
   }
 
+  /** Every member of the space, direct or via a group, once each. */
+  async getSpaceMemberUserIds(spaceId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('spaceMembers')
+      .select('userId')
+      .where('spaceId', '=', spaceId)
+      .where('userId', 'is not', null)
+      .union(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select('groupUsers.userId')
+          .where('spaceMembers.spaceId', '=', spaceId),
+      )
+      .execute();
+
+    return rows.map((row) => row.userId);
+  }
+
   async getSpaceIdsByGroupIds(
     groupIds: string[],
     opts?: { trx?: KyselyTransaction },
