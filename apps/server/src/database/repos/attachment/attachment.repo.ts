@@ -34,6 +34,7 @@ export class AttachmentRepo {
     'createdAt',
     'updatedAt',
     'deletedAt',
+    'publishedAt',
   ];
 
   async findById(
@@ -94,14 +95,21 @@ export class AttachmentRepo {
       .execute();
   }
 
-  async findPageAttachments(pageId: string, pagination: PaginationOptions) {
+  async findPageAttachments(
+    pageId: string,
+    pagination: PaginationOptions,
+    opts?: { publishedOnly?: boolean },
+  ) {
     let query = this.db
       .selectFrom('attachments')
       .select(this.baseFields)
       .select((eb) => this.withCreator(eb))
       .where('pageId', '=', pageId)
       .where('type', '=', AttachmentType.File)
-      .where('deletedAt', 'is', null);
+      .where('deletedAt', 'is', null)
+      .$if(Boolean(opts?.publishedOnly), (qb) =>
+        qb.where('publishedAt', 'is not', null),
+      );
 
     if (pagination.query) {
       query = query.where(
@@ -183,6 +191,48 @@ export class AttachmentRepo {
       .where('id', '=', attachmentId)
       .returning(this.baseFields)
       .executeTakeFirst();
+  }
+
+  // Not scoped to a page: approved content may reference attachments owned by other pages.
+  async markPublished(
+    attachmentIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (attachmentIds.length === 0) return;
+
+    await dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set({ publishedAt: sql`now()` })
+      .where('id', 'in', attachmentIds)
+      .where('publishedAt', 'is', null)
+      .where('deletedAt', 'is', null)
+      .execute();
+  }
+
+  async markAllPublishedForPage(
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    await dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set({ publishedAt: sql`now()` })
+      .where('pageId', '=', pageId)
+      .where('publishedAt', 'is', null)
+      .where('deletedAt', 'is', null)
+      .execute();
+  }
+
+  async softDeleteUnpublished(
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    await dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set({ deletedAt: sql`now()` })
+      .where('pageId', '=', pageId)
+      .where('publishedAt', 'is', null)
+      .where('deletedAt', 'is', null)
+      .execute();
   }
 
   async claimAttachmentsForChat(

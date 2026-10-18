@@ -11,22 +11,29 @@ export function spaceApprovalActiveSql(space: string) {
   )`;
 }
 
-// Approval-controlled page (non-base, with a qms row or in an approval space) without a reader version.
+// Approval-controlled page: non-base, with a qms row or in an approval space.
+export function controlledPageSql(page: string) {
+  return sql<SqlBool>`(
+    not ${sql.ref(`${page}.isBase`)}
+    and (
+      exists (
+        select 1 from page_verifications controlled_pv
+        where controlled_pv.page_id = ${sql.ref(`${page}.id`)}
+          and controlled_pv.type = 'qms'
+      )
+      or exists (
+        select 1 from spaces controlled_sp
+        where controlled_sp.id = ${sql.ref(`${page}.spaceId`)}
+          and ${spaceApprovalActiveSql('controlled_sp')}
+      )
+    )
+  )`;
+}
+
+// Approval-controlled page without a reader version.
 export function unpublishedPageSql(page: string) {
   return sql<SqlBool>`(
     ${sql.ref(`${page}.readerVersionId`)} is null
-    and not ${sql.ref(`${page}.isBase`)}
-    and (
-      exists (
-        select 1 from page_verifications unpublished_pv
-        where unpublished_pv.page_id = ${sql.ref(`${page}.id`)}
-          and unpublished_pv.type = 'qms'
-      )
-      or exists (
-        select 1 from spaces unpublished_sp
-        where unpublished_sp.id = ${sql.ref(`${page}.spaceId`)}
-          and ${spaceApprovalActiveSql('unpublished_sp')}
-      )
-    )
+    and ${controlledPageSql(page)}
   )`;
 }

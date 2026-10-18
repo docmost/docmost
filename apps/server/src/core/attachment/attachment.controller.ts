@@ -25,7 +25,12 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
+import {
+  Attachment,
+  Page,
+  User,
+  Workspace,
+} from '@docmost/db/types/entity.types';
 import { StorageService } from '../../integrations/storage/storage.service';
 import {
   getAttachmentFolderPath,
@@ -68,6 +73,8 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { PageApprovalService } from '../page/approval/page-approval.service';
+import { PAGE_LOCKED_MESSAGE } from '../page/approval/page-approval.utils';
 
 @Controller()
 export class AttachmentController {
@@ -85,6 +92,7 @@ export class AttachmentController {
     private readonly pageAccessService: PageAccessService,
     private readonly domainService: DomainService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -138,6 +146,14 @@ export class AttachmentController {
       throw new BadRequestException('Invalid attachment id');
     }
 
+    // Checked before the try block, which rewrites service errors.
+    const approval = attachmentId
+      ? await this.pageApprovalService.getState(page)
+      : null;
+    if (approval?.locked) {
+      throw new BadRequestException(PAGE_LOCKED_MESSAGE);
+    }
+
     try {
       const fileResponse = await this.attachmentService.uploadFile({
         filePromise: file,
@@ -146,6 +162,7 @@ export class AttachmentController {
         userId: user.id,
         workspaceId: workspace.id,
         attachmentId: attachmentId,
+        approval,
       });
 
       this.auditService.log({
@@ -191,7 +208,11 @@ export class AttachmentController {
     }
 
     const attachment = await this.attachmentRepo.findById(fileId);
-    if (!attachment || attachment.workspaceId !== workspace.id) {
+    if (
+      !attachment ||
+      attachment.workspaceId !== workspace.id ||
+      attachment.deletedAt
+    ) {
       throw new NotFoundException();
     }
 
@@ -212,7 +233,9 @@ export class AttachmentController {
         throw new NotFoundException();
       }
 
-      await this.pageAccessService.validateCanView(page, user);
+      if (!(await this.canViewAttachment(page, user, attachment))) {
+        throw new NotFoundException();
+      }
     }
 
     try {
@@ -258,9 +281,22 @@ export class AttachmentController {
       attachment.workspaceId !== workspace.id ||
       !attachment.pageId ||
       !attachment.spaceId ||
-      jwtPayload.pageId !== attachment.pageId
+      jwtPayload.pageId !== attachment.pageId ||
+      attachment.deletedAt
     ) {
       throw new NotFoundException('File not found');
+    }
+
+    if (!attachment.publishedAt) {
+      // getState reads isBase from the page row.
+      const { controlled } = await this.pageApprovalService.getState({
+        id: attachment.pageId,
+        spaceId: attachment.spaceId,
+        isBase: false,
+      });
+      if (controlled) {
+        throw new NotFoundException('File not found');
+      }
     }
 
     try {
@@ -412,7 +448,8 @@ export class AttachmentController {
       !attachment ||
       !attachment.pageId ||
       attachment.workspaceId !== workspace.id ||
-      attachment.type !== AttachmentType.File
+      attachment.type !== AttachmentType.File ||
+      attachment.deletedAt
     ) {
       throw new NotFoundException('File not found');
     }
@@ -422,7 +459,9 @@ export class AttachmentController {
       throw new NotFoundException('File not found');
     }
 
-    await this.pageAccessService.validateCanView(page, user);
+    if (!(await this.canViewAttachment(page, user, attachment))) {
+      throw new NotFoundException('File not found');
+    }
 
     return { ...attachment, url: this.buildFileUrl(workspace, attachment) };
   }
@@ -442,11 +481,13 @@ export class AttachmentController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanView(page, user);
+    const { approval } =
+      await this.pageAccessService.validateCanViewWithPermissions(page, user);
 
     const result = await this.attachmentRepo.findPageAttachments(
       page.id,
       pagination,
+      { publishedOnly: approval.controlled && !approval.canAccessDraft },
     );
 
     return {
@@ -559,6 +600,22 @@ export class AttachmentController {
       await this.attachmentService.removeWorkspaceIcon(workspace);
       return;
     }
+  }
+
+  // On approval-controlled pages only draft users see unpublished attachments.
+  private async canViewAttachment(
+    page: Page,
+    user: User,
+    attachment: Attachment,
+  ): Promise<boolean> {
+    if (attachment.publishedAt) {
+      await this.pageAccessService.validateCanView(page, user);
+      return true;
+    }
+
+    const { approval } =
+      await this.pageAccessService.validateCanViewWithPermissions(page, user);
+    return !approval.controlled || approval.canAccessDraft;
   }
 
   private buildFileUrl(workspace: Workspace, attachment: Attachment): string {

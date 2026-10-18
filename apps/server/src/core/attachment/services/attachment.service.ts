@@ -11,6 +11,7 @@ import {
   getAttachmentFolderPath,
   PreparedFile,
   prepareFile,
+  resolveUploadMode,
   validateFileType,
 } from '../attachment.utils';
 import { v4 as uuid4, v7 as uuid7 } from 'uuid';
@@ -27,6 +28,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { createByteCountingStream } from '../../../common/helpers/utils';
+import { ApprovalState } from '../../page/approval/page-approval.types';
+import { PAGE_LOCKED_MESSAGE } from '../../page/approval/page-approval.utils';
 
 @Injectable()
 export class AttachmentService {
@@ -48,6 +51,7 @@ export class AttachmentService {
     spaceId: string;
     workspaceId: string;
     attachmentId?: string;
+    approval?: Pick<ApprovalState, 'controlled' | 'locked'> | null;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
     const preparedFile: PreparedFile = await prepareFile(filePromise, {
@@ -76,8 +80,19 @@ export class AttachmentService {
       ) {
         throw new BadRequestException('File attachment does not match');
       }
-      attachmentId = opts.attachmentId;
-      isUpdate = true;
+
+      // An unknown approval state is treated as controlled, so it never overwrites in place.
+      const mode = resolveUploadMode({
+        controlled: opts.approval?.controlled ?? true,
+        locked: opts.approval?.locked ?? false,
+        existing: existingAttachment,
+      });
+      if (mode === 'refuse') {
+        throw new BadRequestException(PAGE_LOCKED_MESSAGE);
+      }
+
+      isUpdate = mode === 'replace';
+      attachmentId = isUpdate ? opts.attachmentId : uuid7();
     } else {
       attachmentId = uuid7();
     }
