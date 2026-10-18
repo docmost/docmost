@@ -11,7 +11,7 @@ import {
 import { IPageBacklinkJob } from '../../../integrations/queue/constants/queue.interface';
 
 export const DRAFT_RESET_FAILED_MESSAGE =
-  'The draft could not be reset. Nothing was changed.';
+  'The draft could not be reset, so nothing was published.';
 
 export const SUBMISSION_NOT_PENDING_MESSAGE =
   'This submission is no longer pending approval.';
@@ -44,6 +44,13 @@ export function attachmentIdsOf(content: unknown): string[] {
   return content ? getAttachmentIds(content) : [];
 }
 
+export function mergeContributorIds(
+  current: string[] | null | undefined,
+  added: string[] | null | undefined,
+): string[] {
+  return [...new Set([...(current ?? []), ...(added ?? [])])];
+}
+
 export function buildBacklinkJob(
   page: Pick<Page, 'id' | 'workspaceId'>,
   content: unknown,
@@ -56,12 +63,18 @@ export function buildBacklinkJob(
   };
 }
 
+// JSONB drops undefined values and gives plain objects, as JSON does.
+function toPlainJson(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value ?? null));
+}
+
 // The collab store saves what Yjs returns, with schema defaults filled in.
 export function matchesResetContent(
   stored: unknown,
   expected: unknown,
 ): boolean {
-  if (isDeepStrictEqual(stored, expected)) return true;
+  const storedJson = toPlainJson(stored);
+  if (isDeepStrictEqual(storedJson, toPlainJson(expected))) return true;
   try {
     const ydoc = TiptapTransformer.toYdoc(
       expected,
@@ -69,8 +82,8 @@ export function matchesResetContent(
       tiptapExtensions,
     );
     return isDeepStrictEqual(
-      stored,
-      TiptapTransformer.fromYdoc(ydoc, 'default'),
+      storedJson,
+      toPlainJson(TiptapTransformer.fromYdoc(ydoc, 'default')),
     );
   } catch {
     return false;

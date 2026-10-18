@@ -14,6 +14,7 @@ const ATTACHMENT_ID = '01a14cce-0000-7000-8000-0000000000c1';
 const LINKED_PAGE_ID = '01a14cce-0000-7000-8000-0000000000d1';
 const TRX = { name: 'caller-trx' } as any;
 const ACTOR = { id: 'user_approver', name: 'Approver' } as User;
+const RESET_FAILED = 'The draft could not be reset, so nothing was published.';
 
 const CONTROLLED = buildApprovalState({
   isBase: false,
@@ -39,6 +40,7 @@ function makePage(overrides: Partial<Page> = {}): Page {
     parentPageId: 'parent_1',
     position: 'a0',
     creatorId: 'user_creator',
+    contributorIds: ['user_creator', 'user_old'],
     isBase: false,
     deletedAt: null,
     ...overrides,
@@ -77,12 +79,13 @@ const pageMentionParagraph = (pageId: string) => ({
   ],
 });
 
-// What the collab store writes after a replace with this JSON.
+// What the draft row holds after a replace: the Yjs output, saved as JSONB.
 function asStoredByYjs(json: any) {
-  return TiptapTransformer.fromYdoc(
+  const stored = TiptapTransformer.fromYdoc(
     TiptapTransformer.toYdoc(json, 'default', tiptapExtensions),
     'default',
   );
+  return JSON.parse(JSON.stringify(stored));
 }
 
 function snapshotRow(overrides: Record<string, unknown> = {}) {
@@ -93,6 +96,8 @@ function snapshotRow(overrides: Record<string, unknown> = {}) {
     title: 'New title',
     icon: 'icon-new',
     content: textDoc('Approved body'),
+    lastUpdatedById: 'user_editor',
+    contributorIds: ['user_creator', 'user_editor'],
     ...overrides,
   };
 }
@@ -104,7 +109,7 @@ function makeService(
     readerVersion?: any;
     state?: ApprovalState;
     page?: Page | undefined;
-    memberIds?: string[];
+    connectedIds?: string[];
     accessibleIds?: string[];
     draftUserIds?: string[];
   } = {},
@@ -112,6 +117,7 @@ function makeService(
   const pageRepo = {
     findById: jest.fn(async () => ('page' in opts ? opts.page : makePage())),
     updatePage: jest.fn(async () => undefined),
+    clearReaderVersion: jest.fn(async () => undefined),
   };
   const pageDraftRepo = {
     findByPageId: jest.fn(async () => opts.draft),
@@ -126,26 +132,39 @@ function makeService(
   };
   const attachmentRepo = {
     markPublished: jest.fn(async () => undefined),
+    markPublishedForPage: jest.fn(async () => undefined),
     markAllPublishedForPage: jest.fn(async () => undefined),
     softDeleteUnpublished: jest.fn(async () => undefined),
   };
-  const spaceMemberRepo = {
-    getSpaceMemberUserIds: jest.fn(async () => opts.memberIds ?? []),
-  };
   const pagePermissionRepo = {
-    getUserIdsWithPageAccess: jest.fn(async () => opts.accessibleIds ?? []),
+    getUserIdsWithPageAccess: jest.fn(
+      async (_pageId: string, userIds: string[]) =>
+        userIds.filter((id) => (opts.accessibleIds ?? []).includes(id)),
+    ),
   };
   const pageApprovalService = {
     getState: jest.fn(async () => opts.state ?? CONTROLLED),
-    getUserIdsWithDraftAccess: jest.fn(async () => opts.draftUserIds ?? []),
+    getUserIdsWithDraftAccess: jest.fn(
+      async (_page: unknown, userIds: string[]) =>
+        userIds.filter((id) => (opts.draftUserIds ?? []).includes(id)),
+    ),
   };
   const transclusionService = {
     syncPageTransclusions: jest.fn(async () => undefined),
     syncPageReferences: jest.fn(async () => undefined),
   };
-  const wsService = { emitToUsers: jest.fn(async () => undefined) };
-  const wsTreeService = {
-    notifyPermissionGranted: jest.fn(async () => undefined),
+  // Stands in for the live sockets of the space room.
+  const sent: Array<{ data: any; userIds: string[] }> = [];
+  const wsService = {
+    emitToSpaceUsers: jest.fn(
+      async (
+        _spaceId: string,
+        data: any,
+        authorize: (userIds: string[]) => Promise<string[]>,
+      ) => {
+        sent.push({ data, userIds: await authorize(opts.connectedIds ?? []) });
+      },
+    ),
   };
   const collaborationGateway = {
     handleYjsEvent: jest.fn(async () => undefined),
@@ -159,12 +178,10 @@ function makeService(
     pageDraftRepo as any,
     pageHistoryRepo as any,
     attachmentRepo as any,
-    spaceMemberRepo as any,
     pagePermissionRepo as any,
     pageApprovalService as any,
     transclusionService as any,
     wsService as any,
-    wsTreeService as any,
     collaborationGateway as any,
     aiQueue as any,
     generalQueue as any,
@@ -177,12 +194,11 @@ function makeService(
     pageDraftRepo,
     pageHistoryRepo,
     attachmentRepo,
-    spaceMemberRepo,
     pagePermissionRepo,
     pageApprovalService,
     transclusionService,
     wsService,
-    wsTreeService,
+    sent,
     collaborationGateway,
     aiQueue,
     generalQueue,
@@ -232,6 +248,20 @@ describe('PageApprovalPublishService', () => {
       );
     });
 
+    it('publishSnapshot locks the page row before reading the snapshot', async () => {
+      const ctx = makeService({ snapshot: snapshotRow() });
+
+      await publish(ctx);
+
+      expect(ctx.pageRepo.findById).toHaveBeenCalledWith(PAGE_ID, {
+        withLock: true,
+        trx: TRX,
+      });
+      expect(ctx.pageRepo.findById.mock.invocationCallOrder[0]).toBeLessThan(
+        ctx.pageHistoryRepo.findById.mock.invocationCallOrder[0],
+      );
+    });
+
     it('publishSnapshot sets reader_version_id', async () => {
       const ctx = makeService({ snapshot: snapshotRow() });
 
@@ -244,17 +274,35 @@ describe('PageApprovalPublishService', () => {
       );
     });
 
+    it('publishSnapshot records the snapshot editor and adds its contributors to the page', async () => {
+      const ctx = makeService({ snapshot: snapshotRow() });
+
+      await publish(ctx);
+
+      expect(ctx.pageRepo.updatePage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          lastUpdatedById: 'user_editor',
+          contributorIds: ['user_creator', 'user_old', 'user_editor'],
+        }),
+        PAGE_ID,
+        TRX,
+      );
+    });
+
     it('publishSnapshot marks referenced attachments published', async () => {
       const content = textDoc('With a file', [imageNode(ATTACHMENT_ID)]);
       const ctx = makeService({ snapshot: snapshotRow({ content }) });
 
       await publish(ctx);
 
-      expect(ctx.attachmentRepo.markPublished).toHaveBeenCalledWith(
+      // Page-scoped: draft files of other controlled pages stay hidden.
+      expect(ctx.attachmentRepo.markPublishedForPage).toHaveBeenCalledWith(
         'ws_1',
+        PAGE_ID,
         [ATTACHMENT_ID],
         TRX,
       );
+      expect(ctx.attachmentRepo.markPublished).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -270,9 +318,17 @@ describe('PageApprovalPublishService', () => {
         await expect(publish(ctx)).rejects.toBeInstanceOf(ConflictException);
         expect(ctx.pageHistoryRepo.markApproved).not.toHaveBeenCalled();
         expect(ctx.pageRepo.updatePage).not.toHaveBeenCalled();
-        expect(ctx.attachmentRepo.markPublished).not.toHaveBeenCalled();
+        expect(ctx.attachmentRepo.markPublishedForPage).not.toHaveBeenCalled();
       },
     );
+
+    it('publishSnapshot refuses a page that no longer exists', async () => {
+      const ctx = makeService({ snapshot: snapshotRow(), page: undefined });
+
+      await expect(publish(ctx)).rejects.toBeInstanceOf(ConflictException);
+      expect(ctx.pageHistoryRepo.markApproved).not.toHaveBeenCalled();
+      expect(ctx.pageRepo.updatePage).not.toHaveBeenCalled();
+    });
 
     it('publishSnapshot clears draft title and icon overrides equal to the published ones', async () => {
       const ctx = makeService({
@@ -318,9 +374,19 @@ describe('PageApprovalPublishService', () => {
   });
 
   describe('publishDraftToPage', () => {
+    const draftRow = {
+      title: null,
+      icon: null,
+      lastUpdatedById: 'user_editor',
+      contributorIds: ['user_creator', 'user_editor'],
+    };
+
     it('publishDraftToPage copies ydoc back and deletes the draft', async () => {
       const content = textDoc('Draft body');
-      const ctx = makeService({ page: makePage({ content } as any) });
+      const ctx = makeService({
+        page: makePage({ content } as any),
+        draft: draftRow,
+      });
 
       const result = await ctx.service.publishDraftToPage(PAGE_ID, TRX);
 
@@ -334,14 +400,13 @@ describe('PageApprovalPublishService', () => {
         TRX,
       );
       expect(ctx.pageRepo.findById.mock.invocationCallOrder[0]).toBeLessThan(
-        ctx.pageDraftRepo.copyBackToPage.mock.invocationCallOrder[0],
+        ctx.pageDraftRepo.findByPageId.mock.invocationCallOrder[0],
       );
       expect(ctx.attachmentRepo.markAllPublishedForPage).toHaveBeenCalledWith(
         PAGE_ID,
         TRX,
       );
-      expect(ctx.pageRepo.updatePage).toHaveBeenCalledWith(
-        { readerVersionId: null },
+      expect(ctx.pageRepo.clearReaderVersion).toHaveBeenCalledWith(
         PAGE_ID,
         TRX,
       );
@@ -351,8 +416,28 @@ describe('PageApprovalPublishService', () => {
       });
     });
 
+    it('publishDraftToPage carries the draft editor and contributors into the page', async () => {
+      const ctx = makeService({ draft: draftRow });
+
+      await ctx.service.publishDraftToPage(PAGE_ID, TRX);
+
+      expect(ctx.pageRepo.updatePage).toHaveBeenCalledTimes(1);
+      expect(ctx.pageRepo.updatePage).toHaveBeenCalledWith(
+        {
+          lastUpdatedById: 'user_editor',
+          contributorIds: ['user_creator', 'user_old', 'user_editor'],
+        },
+        PAGE_ID,
+        TRX,
+      );
+      const [copiedBack] =
+        ctx.pageDraftRepo.copyBackToPage.mock.invocationCallOrder;
+      const [updated] = ctx.pageRepo.updatePage.mock.invocationCallOrder;
+      expect(copiedBack).toBeLessThan(updated);
+    });
+
     it('publishDraftToPage keeps reader_version_id when asked', async () => {
-      const ctx = makeService({ page: makePage({ content: null } as any) });
+      const ctx = makeService({ draft: draftRow });
 
       await ctx.service.publishDraftToPage(PAGE_ID, TRX, {
         keepReaderVersion: true,
@@ -362,7 +447,31 @@ describe('PageApprovalPublishService', () => {
         PAGE_ID,
         TRX,
       );
-      expect(ctx.pageRepo.updatePage).toHaveBeenCalledWith({}, PAGE_ID, TRX);
+      expect(ctx.pageRepo.clearReaderVersion).not.toHaveBeenCalled();
+    });
+
+    it('publishDraftToPage without a draft only clears the reader version pointer', async () => {
+      const ctx = makeService({ draft: undefined });
+
+      await ctx.service.publishDraftToPage(PAGE_ID, TRX);
+
+      expect(ctx.pageDraftRepo.copyBackToPage).not.toHaveBeenCalled();
+      expect(ctx.pageRepo.updatePage).not.toHaveBeenCalled();
+      expect(ctx.pageRepo.clearReaderVersion).toHaveBeenCalledWith(
+        PAGE_ID,
+        TRX,
+      );
+    });
+
+    it('publishDraftToPage writes nothing to the page without a draft when keeping the pointer', async () => {
+      const ctx = makeService({ draft: undefined });
+
+      await ctx.service.publishDraftToPage(PAGE_ID, TRX, {
+        keepReaderVersion: true,
+      });
+
+      expect(ctx.pageRepo.updatePage).not.toHaveBeenCalled();
+      expect(ctx.pageRepo.clearReaderVersion).not.toHaveBeenCalled();
     });
   });
 
@@ -404,6 +513,39 @@ describe('PageApprovalPublishService', () => {
       expect(replaced).toBeLessThan(draftRead);
     });
 
+    it('discard accepts a reset draft with marks and an image without alt text', async () => {
+      const readerContent = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'plain ' },
+              { type: 'text', text: 'bold', marks: [{ type: 'bold' }] },
+              {
+                type: 'text',
+                text: 'link',
+                marks: [
+                  { type: 'link', attrs: { href: 'https://example.com' } },
+                ],
+              },
+            ],
+          },
+          imageNode(ATTACHMENT_ID),
+        ],
+      };
+      const ctx = makeService({
+        readerVersion: { id: HISTORY_ID, content: readerContent },
+        draft: { content: asStoredByYjs(readerContent) },
+      });
+
+      await ctx.service.discardDraftToReaderVersion(makePage(), ACTOR);
+
+      expect(ctx.attachmentRepo.softDeleteUnpublished).toHaveBeenCalledWith(
+        PAGE_ID,
+      );
+    });
+
     it('discard accepts a draft stored exactly as the reader version', async () => {
       const readerContent = asStoredByYjs(textDoc('Approved body'));
       const ctx = makeService({
@@ -443,9 +585,7 @@ describe('PageApprovalPublishService', () => {
       const result = ctx.service.discardDraftToReaderVersion(makePage(), ACTOR);
 
       await expect(result).rejects.toBeInstanceOf(ConflictException);
-      await expect(result).rejects.toThrow(
-        'The draft could not be reset. Nothing was changed.',
-      );
+      await expect(result).rejects.toThrow(RESET_FAILED);
       expect(ctx.pageDraftRepo.clearTitleIcon).not.toHaveBeenCalled();
       expect(ctx.attachmentRepo.softDeleteUnpublished).not.toHaveBeenCalled();
     });
@@ -458,7 +598,7 @@ describe('PageApprovalPublishService', () => {
 
       await expect(
         ctx.service.discardDraftToReaderVersion(makePage(), ACTOR),
-      ).rejects.toThrow('The draft could not be reset. Nothing was changed.');
+      ).rejects.toThrow(RESET_FAILED);
       expect(ctx.attachmentRepo.softDeleteUnpublished).not.toHaveBeenCalled();
     });
 
@@ -475,7 +615,7 @@ describe('PageApprovalPublishService', () => {
 
       await expect(
         ctx.service.discardDraftToReaderVersion(makePage(), ACTOR),
-      ).rejects.toThrow('The draft could not be reset. Nothing was changed.');
+      ).rejects.toThrow(RESET_FAILED);
       expect(logError).toHaveBeenCalledTimes(1);
       expect(ctx.pageDraftRepo.findByPageId).not.toHaveBeenCalled();
       expect(ctx.attachmentRepo.softDeleteUnpublished).not.toHaveBeenCalled();
@@ -538,6 +678,28 @@ describe('PageApprovalPublishService', () => {
       expect(ctx.notificationQueue.add).not.toHaveBeenCalled();
     });
 
+    it('runPostPublish resets connections before any other step', async () => {
+      const ctx = makeService();
+
+      await ctx.service.runPostPublish({
+        page: makePage(),
+        content: textDoc('Body'),
+        actorId: ACTOR.id,
+        notifyWatchers: true,
+      });
+
+      const [reset] =
+        ctx.collaborationGateway.handleYjsEvent.mock.invocationCallOrder;
+      const others = [
+        ctx.aiQueue.add,
+        ctx.transclusionService.syncPageTransclusions,
+        ctx.generalQueue.add,
+        ctx.notificationQueue.add,
+        ctx.pageRepo.findById,
+      ].map((fn) => fn.mock.invocationCallOrder[0]);
+      expect(others.every((order) => reset < order)).toBe(true);
+    });
+
     it('runPostPublish queues the watcher notification when asked', async () => {
       const ctx = makeService();
 
@@ -559,11 +721,11 @@ describe('PageApprovalPublishService', () => {
       );
     });
 
-    it('runPostPublish sends the published title only to users who can access the page', async () => {
+    it('runPostPublish sends the published title only to connected users who can access the page', async () => {
       const published = makePage({ title: 'Approved title', icon: 'icon-a' });
       const ctx = makeService({
         page: published,
-        memberIds: [READER, EDITOR, HIDDEN],
+        connectedIds: [READER, EDITOR, HIDDEN],
         accessibleIds: [READER, EDITOR],
       });
 
@@ -574,31 +736,39 @@ describe('PageApprovalPublishService', () => {
         notifyWatchers: false,
       });
 
-      expect(ctx.spaceMemberRepo.getSpaceMemberUserIds).toHaveBeenCalledWith(
-        'space_1',
+      const spaces = ctx.wsService.emitToSpaceUsers.mock.calls.map(
+        ([spaceId]) => spaceId,
       );
+      expect(spaces).toEqual(['space_1', 'space_1']);
       expect(
         ctx.pagePermissionRepo.getUserIdsWithPageAccess,
       ).toHaveBeenCalledWith(PAGE_ID, [READER, EDITOR, HIDDEN]);
-      expect(ctx.wsService.emitToUsers).toHaveBeenCalledWith([READER, EDITOR], {
-        operation: 'updateOne',
-        spaceId: 'space_1',
-        entity: ['pages'],
-        id: PAGE_ID,
-        payload: {
-          title: 'Approved title',
-          slugId: 'slug_1',
-          parentPageId: 'parent_1',
-          icon: 'icon-a',
+      expect(ctx.sent).toEqual([
+        {
+          data: {
+            operation: 'updateOne',
+            spaceId: 'space_1',
+            entity: ['pages'],
+            id: PAGE_ID,
+            payload: {
+              title: 'Approved title',
+              slugId: 'slug_1',
+              parentPageId: 'parent_1',
+              icon: 'icon-a',
+            },
+          },
+          userIds: [READER, EDITOR],
         },
-      });
-      expect(ctx.wsService.emitToUsers).toHaveBeenCalledWith([READER, EDITOR], {
-        operation: 'pageApprovalPublished',
-        pageId: PAGE_ID,
-        spaceId: 'space_1',
-        slugId: 'slug_1',
-      });
-      expect(ctx.wsTreeService.notifyPermissionGranted).not.toHaveBeenCalled();
+        {
+          data: {
+            operation: 'pageApprovalPublished',
+            pageId: PAGE_ID,
+            spaceId: 'space_1',
+            slugId: 'slug_1',
+          },
+          userIds: [READER, EDITOR],
+        },
+      ]);
       expect(
         ctx.pageApprovalService.getUserIdsWithDraftAccess,
       ).not.toHaveBeenCalled();
@@ -608,7 +778,7 @@ describe('PageApprovalPublishService', () => {
       const published = makePage({ title: 'Approved title' });
       const ctx = makeService({
         page: published,
-        memberIds: [READER, EDITOR, HIDDEN],
+        connectedIds: [READER, EDITOR, HIDDEN],
         accessibleIds: [READER, EDITOR],
         draftUserIds: [EDITOR],
       });
@@ -624,20 +794,37 @@ describe('PageApprovalPublishService', () => {
       expect(
         ctx.pageApprovalService.getUserIdsWithDraftAccess,
       ).toHaveBeenCalledWith(published, [READER, EDITOR]);
-      expect(ctx.wsTreeService.notifyPermissionGranted).toHaveBeenCalledWith(
-        published,
-        [READER],
+      const addTreeNode = ctx.sent.find(
+        ({ data }) => data.operation === 'addTreeNode',
       );
-      expect(ctx.wsService.emitToUsers).toHaveBeenCalledWith(
-        [READER, EDITOR],
-        expect.objectContaining({ operation: 'pageApprovalPublished' }),
-      );
+      expect(addTreeNode).toEqual({
+        data: {
+          operation: 'addTreeNode',
+          spaceId: 'space_1',
+          payload: {
+            parentId: 'parent_1',
+            index: 0,
+            data: expect.objectContaining({
+              id: PAGE_ID,
+              slugId: 'slug_1',
+              name: 'Approved title',
+              hasChildren: false,
+              children: [],
+            }),
+          },
+        },
+        userIds: [READER],
+      });
+      expect(
+        ctx.sent.find(({ data }) => data.operation === 'pageApprovalPublished')
+          ?.userIds,
+      ).toEqual([READER, EDITOR]);
     });
 
     it('runPostPublish sends no page events for a trashed page', async () => {
       const ctx = makeService({
         page: makePage({ deletedAt: new Date() }),
-        memberIds: [READER],
+        connectedIds: [READER],
         accessibleIds: [READER],
       });
 
@@ -649,8 +836,7 @@ describe('PageApprovalPublishService', () => {
         firstPublish: true,
       });
 
-      expect(ctx.wsService.emitToUsers).not.toHaveBeenCalled();
-      expect(ctx.wsTreeService.notifyPermissionGranted).not.toHaveBeenCalled();
+      expect(ctx.wsService.emitToSpaceUsers).not.toHaveBeenCalled();
       expect(ctx.collaborationGateway.handleYjsEvent).toHaveBeenCalled();
     });
 
@@ -658,7 +844,10 @@ describe('PageApprovalPublishService', () => {
       const logError = jest
         .spyOn(Logger.prototype, 'error')
         .mockImplementation(() => undefined);
-      const ctx = makeService({ memberIds: [READER], accessibleIds: [READER] });
+      const ctx = makeService({
+        connectedIds: [READER],
+        accessibleIds: [READER],
+      });
       ctx.aiQueue.add.mockRejectedValueOnce(new Error('redis down'));
       ctx.transclusionService.syncPageTransclusions.mockRejectedValueOnce(
         new Error('db down'),
@@ -677,7 +866,7 @@ describe('PageApprovalPublishService', () => {
       expect(ctx.transclusionService.syncPageReferences).toHaveBeenCalled();
       expect(ctx.generalQueue.add).toHaveBeenCalled();
       expect(ctx.notificationQueue.add).toHaveBeenCalled();
-      expect(ctx.wsService.emitToUsers).toHaveBeenCalled();
+      expect(ctx.wsService.emitToSpaceUsers).toHaveBeenCalled();
       expect(ctx.collaborationGateway.handleYjsEvent).toHaveBeenCalled();
     });
 

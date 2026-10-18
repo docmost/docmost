@@ -7,13 +7,12 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PageDraftRepo } from '@docmost/db/repos/page/page-draft.repo';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { IPageUpdateNotificationJob } from '../../../integrations/queue/constants/queue.interface';
 import { TransclusionService } from '../transclusion/transclusion.service';
 import { WsService } from '../../../ws/ws.service';
-import { WsTreeService } from '../../../ws/ws-tree.service';
+import { buildAddTreeNodeEvent } from '../../../ws/ws.utils';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
 import { jsonToText } from '../../../collaboration/collaboration.util';
 import { getProsemirrorContent } from '../../../common/helpers/prosemirror/utils';
@@ -28,6 +27,7 @@ import {
   buildTreeUpdateEvent,
   draftOverridesMatch,
   matchesResetContent,
+  mergeContributorIds,
 } from './page-approval-publish.utils';
 
 @Injectable()
@@ -39,12 +39,10 @@ export class PageApprovalPublishService {
     private readonly pageDraftRepo: PageDraftRepo,
     private readonly pageHistoryRepo: PageHistoryRepo,
     private readonly attachmentRepo: AttachmentRepo,
-    private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly pageApprovalService: PageApprovalService,
     private readonly transclusionService: TransclusionService,
     private readonly wsService: WsService,
-    private readonly wsTreeService: WsTreeService,
     private readonly collaborationGateway: CollaborationGateway,
     @InjectQueue(QueueName.AI_QUEUE) private readonly aiQueue: Queue,
     @InjectQueue(QueueName.GENERAL_QUEUE) private readonly generalQueue: Queue,
@@ -52,18 +50,27 @@ export class PageApprovalPublishService {
     private readonly notificationQueue: Queue,
   ) {}
 
-  // The caller holds the page row lock and has validated the approval state.
+  // The caller has validated the approval state inside the same transaction.
   async publishSnapshot(
     input: { page: Page; historyId: string; approverId: string },
     trx: KyselyTransaction,
   ): Promise<{ version: number; content: any }> {
     const { page, historyId, approverId } = input;
 
+    const lockedPage = await this.pageRepo.findById(page.id, {
+      withLock: true,
+      trx,
+    });
     const snapshot = await this.pageHistoryRepo.findById(historyId, {
       includeContent: true,
       trx,
     });
-    if (!snapshot || snapshot.pageId !== page.id || snapshot.kind !== 'draft') {
+    if (
+      !lockedPage ||
+      !snapshot ||
+      snapshot.pageId !== page.id ||
+      snapshot.kind !== 'draft'
+    ) {
       throw new ConflictException(SUBMISSION_NOT_PENDING_MESSAGE);
     }
 
@@ -84,14 +91,20 @@ export class PageApprovalPublishService {
         textContent: this.toTextContent(page.id, content),
         title: snapshot.title,
         icon: snapshot.icon,
+        lastUpdatedById: snapshot.lastUpdatedById ?? undefined,
+        contributorIds: mergeContributorIds(
+          lockedPage.contributorIds,
+          snapshot.contributorIds,
+        ),
         readerVersionId: historyId,
       },
       page.id,
       trx,
     );
 
-    await this.attachmentRepo.markPublished(
+    await this.attachmentRepo.markPublishedForPage(
       page.workspaceId,
+      page.id,
       attachmentIdsOf(content),
       trx,
     );
@@ -110,21 +123,37 @@ export class PageApprovalPublishService {
     trx: KyselyTransaction,
     opts?: { keepReaderVersion?: boolean },
   ): Promise<{ content: any }> {
-    await this.pageRepo.findById(pageId, { withLock: true, trx });
-
-    await this.pageDraftRepo.copyBackToPage(pageId, trx);
-    await this.attachmentRepo.markAllPublishedForPage(pageId, trx);
-    await this.pageRepo.updatePage(
-      opts?.keepReaderVersion ? {} : { readerVersionId: null },
-      pageId,
-      trx,
-    );
-
     const page = await this.pageRepo.findById(pageId, {
+      withLock: true,
+      trx,
+    });
+    const draft = await this.pageDraftRepo.findByPageId(pageId, { trx });
+
+    if (draft) {
+      await this.pageDraftRepo.copyBackToPage(pageId, trx);
+      // copyBackToPage leaves the draft's editors behind.
+      await this.pageRepo.updatePage(
+        {
+          lastUpdatedById: draft.lastUpdatedById ?? undefined,
+          contributorIds: mergeContributorIds(
+            page?.contributorIds,
+            draft.contributorIds,
+          ),
+        },
+        pageId,
+        trx,
+      );
+    }
+    await this.attachmentRepo.markAllPublishedForPage(pageId, trx);
+    if (!opts?.keepReaderVersion) {
+      await this.pageRepo.clearReaderVersion(pageId, trx);
+    }
+
+    const published = await this.pageRepo.findById(pageId, {
       includeContent: true,
       trx,
     });
-    return { content: page?.content ?? null };
+    return { content: published?.content ?? null };
   }
 
   // Never inside a page-locking transaction: the collab store takes that lock.
@@ -178,6 +207,15 @@ export class PageApprovalPublishService {
   }): Promise<void> {
     const { page, content, actorId, notifyWatchers, firstPublish } = input;
 
+    // First, so editors of an approved draft get write access back right away.
+    await this.attempt(page.id, 'reset collaboration connections', () =>
+      this.collaborationGateway.handleYjsEvent(
+        'resetConnections',
+        `page.${page.id}`,
+        undefined,
+        true,
+      ),
+    );
     await this.attempt(page.id, 'queue the AI update', () =>
       this.aiQueue.add(QueueJob.PAGE_CONTENT_UPDATED, {
         pageIds: [page.id],
@@ -217,14 +255,6 @@ export class PageApprovalPublishService {
     await this.attempt(page.id, 'send publish events', () =>
       this.emitPublishEvents(page.id, firstPublish === true),
     );
-    await this.attempt(page.id, 'reset collaboration connections', () =>
-      this.collaborationGateway.handleYjsEvent(
-        'resetConnections',
-        `page.${page.id}`,
-        undefined,
-        true,
-      ),
-    );
   }
 
   // Readers get no draft events, so these tell them about the publish.
@@ -235,29 +265,35 @@ export class PageApprovalPublishService {
     const page = await this.pageRepo.findById(pageId);
     if (!page || page.deletedAt) return;
 
-    const memberIds = await this.spaceMemberRepo.getSpaceMemberUserIds(
-      page.spaceId,
-    );
-    const userIds = await this.pagePermissionRepo.getUserIdsWithPageAccess(
-      page.id,
-      memberIds,
-    );
-    if (userIds.length === 0) return;
+    const viewersOf = (userIds: string[]) =>
+      this.pagePermissionRepo.getUserIdsWithPageAccess(page.id, userIds);
 
-    await this.wsService.emitToUsers(userIds, buildTreeUpdateEvent(page));
-    await this.wsService.emitToUsers(
-      userIds,
+    await this.wsService.emitToSpaceUsers(
+      page.spaceId,
+      buildTreeUpdateEvent(page),
+      viewersOf,
+    );
+    await this.wsService.emitToSpaceUsers(
+      page.spaceId,
       buildApprovalPublishedEvent(page),
+      viewersOf,
     );
     if (!firstPublish) return;
 
     // Draft users already list the page; a repeat addTreeNode duplicates it.
-    const draftUserIds = new Set(
-      await this.pageApprovalService.getUserIdsWithDraftAccess(page, userIds),
-    );
-    await this.wsTreeService.notifyPermissionGranted(
-      page,
-      userIds.filter((userId) => !draftUserIds.has(userId)),
+    await this.wsService.emitToSpaceUsers(
+      page.spaceId,
+      buildAddTreeNodeEvent(page),
+      async (userIds) => {
+        const viewerIds = await viewersOf(userIds);
+        const draftUserIds = new Set(
+          await this.pageApprovalService.getUserIdsWithDraftAccess(
+            page,
+            viewerIds,
+          ),
+        );
+        return viewerIds.filter((userId) => !draftUserIds.has(userId));
+      },
     );
   }
 

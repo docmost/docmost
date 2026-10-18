@@ -168,6 +168,46 @@ describe('WsService.emitCommentEvent', () => {
   });
 });
 
+describe('WsService.emitToSpaceUsers', () => {
+  it('sends to the live sockets of the space room whose users pass the check', async () => {
+    const sockets = ['writer', 'reader', 'reader', 'outsider'].map(
+      (userId, index) => ({
+        id: `socket-${index}`,
+        data: { userId },
+        emit: jest.fn(),
+      }),
+    );
+    const server = {
+      in: jest.fn(() => ({ fetchSockets: async () => sockets })),
+    };
+    const service = new WsService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    service.setServer(server as any);
+    const authorize = jest.fn(async (userIds: string[]) =>
+      userIds.filter((id) => id !== 'outsider'),
+    );
+    const data = { operation: 'pageApprovalPublished', pageId: 'page_1' };
+
+    await service.emitToSpaceUsers('space_1', data, authorize);
+
+    expect(server.in).toHaveBeenCalledWith('space-space_1');
+    expect(authorize).toHaveBeenCalledWith(['writer', 'reader', 'outsider']);
+    expect(sockets.map((s) => s.emit.mock.calls)).toEqual([
+      [['message', data]],
+      [['message', data]],
+      [['message', data]],
+      [],
+    ]);
+  });
+});
+
 describe('WsService.handleTreeEvent', () => {
   const ROOM = 'space-space_1';
   const UPDATE = {

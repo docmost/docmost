@@ -165,6 +165,19 @@ export class PageRepo {
     return result;
   }
 
+  // Only the approval pointer changes: no updated_at bump and no PAGE_UPDATED.
+  async clearReaderVersion(
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    await dbOrTx(this.db, trx)
+      .updateTable('pages')
+      .set({ readerVersionId: null })
+      .where('id', '=', pageId)
+      .where('readerVersionId', 'is not', null)
+      .execute();
+  }
+
   async lockPageHierarchySpaces(
     spaceIds: string[],
     trx: KyselyTransaction,

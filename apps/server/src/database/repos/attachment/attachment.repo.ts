@@ -11,6 +11,7 @@ import {
   UpdatableAttachment,
 } from '@docmost/db/types/entity.types';
 import { AttachmentType } from '../../../core/attachment/attachment.constants';
+import { controlledPageSql } from '../page/page-permission.utils';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 
@@ -209,6 +210,40 @@ export class AttachmentRepo {
       .where('type', '=', AttachmentType.File)
       .where('publishedAt', 'is', null)
       .where('deletedAt', 'is', null)
+      .execute();
+  }
+
+  // Draft-only files of another approval-controlled page stay unpublished.
+  async markPublishedForPage(
+    workspaceId: string,
+    pageId: string,
+    attachmentIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (attachmentIds.length === 0) return;
+
+    await dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set({ publishedAt: sql`now()` })
+      .where('id', 'in', attachmentIds)
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', AttachmentType.File)
+      .where('publishedAt', 'is', null)
+      .where('deletedAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('pageId', '=', pageId),
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom('pages as owner_page')
+                .select('owner_page.id')
+                .whereRef('owner_page.id', '=', 'attachments.pageId')
+                .where(controlledPageSql('owner_page')),
+            ),
+          ),
+        ]),
+      )
       .execute();
   }
 

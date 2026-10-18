@@ -65,3 +65,35 @@ describe('AttachmentRepo.markPublished', () => {
     expect(queries).toHaveLength(0);
   });
 });
+
+describe('AttachmentRepo.markPublishedForPage', () => {
+  it('publishes the page own files and files whose owner page is not approval-controlled', async () => {
+    const { repo, queries } = makeRepo();
+
+    await repo.markPublishedForPage('ws-1', 'page-1', ['att-1', 'att-2']);
+
+    expect(queries).toHaveLength(1);
+    const { sql, parameters } = queries[0];
+    expect(sql).toContain('update "attachments" set "published_at" = now()');
+    expect(sql).toContain('"id" in ($1, $2)');
+    expect(sql).toContain('"workspace_id" = $3');
+    expect(sql).toContain('"type" = $4');
+    expect(sql).toContain('"published_at" is null');
+    expect(sql).toContain('"deleted_at" is null');
+    expect(sql).toContain('"page_id" = $5 or not exists');
+    expect(sql).toContain('from "pages" as "owner_page"');
+    expect(sql).toContain('"owner_page"."id" = "attachments"."page_id"');
+    expect(sql).toContain('not "owner_page"."is_base"');
+    expect(sql).toContain("controlled_pv.type = 'qms'");
+    expect(sql).toContain('controlled_sp.id = "owner_page"."space_id"');
+    expect(parameters).toEqual(['att-1', 'att-2', 'ws-1', 'file', 'page-1']);
+  });
+
+  it('skips the query for an empty list', async () => {
+    const { repo, queries } = makeRepo();
+
+    await repo.markPublishedForPage('ws-1', 'page-1', []);
+
+    expect(queries).toHaveLength(0);
+  });
+});

@@ -1,3 +1,5 @@
+import { Page } from '@docmost/db/types/entity.types';
+
 export const WS_CACHE_TTL_MS = 30_000;
 export const WS_SPACE_RESTRICTION_CACHE_PREFIX = 'ws:space-restrictions:';
 
@@ -27,6 +29,30 @@ export function withoutTreeNodeChildren(data: any): any {
   return {
     ...data,
     payload: { ...data.payload, node: { ...data.payload.node, children: [] } },
+  };
+}
+
+export function buildAddTreeNodeEvent(page: Page) {
+  return {
+    operation: 'addTreeNode',
+    spaceId: page.spaceId,
+    payload: {
+      parentId: page.parentPageId ?? null,
+      index: 0,
+      data: {
+        id: page.id,
+        slugId: page.slugId,
+        name: page.title ?? '',
+        title: page.title,
+        icon: page.icon,
+        position: page.position,
+        spaceId: page.spaceId,
+        parentPageId: page.parentPageId,
+        creatorId: page.creatorId,
+        hasChildren: false,
+        children: [],
+      },
+    },
   };
 }
 

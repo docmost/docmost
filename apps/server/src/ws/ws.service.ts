@@ -186,6 +186,20 @@ export class WsService {
     this.server.to(rooms).emit('message', data);
   }
 
+  // Per-user fan-out over the live sockets of the space room.
+  async emitToSpaceUsers(
+    spaceId: string,
+    data: any,
+    authorize: (userIds: string[]) => Promise<string[]>,
+  ): Promise<void> {
+    await this.broadcastToUsers(
+      getSpaceRoomName(spaceId),
+      null,
+      data,
+      authorize,
+    );
+  }
+
   disconnectUser(userId: string): void {
     this.server.in(getUserRoomName(userId)).disconnectSockets(true);
   }
