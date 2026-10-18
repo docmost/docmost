@@ -12,6 +12,7 @@ export function getStatusColor(status: VerificationStatus): string {
       return "red.7";
     case "draft":
     case "obsolete":
+    case "not_approved":
       return "gray.6";
     default:
       return "gray.6";
@@ -37,6 +38,8 @@ export function getStatusLabel(
       return t("Approved");
     case "obsolete":
       return t("Obsolete");
+    case "not_approved":
+      return t("Not yet approved");
     default:
       return "";
   }

@@ -22,6 +22,7 @@ import CommentActions from "@/features/comment/components/comment-actions";
 import { useFocusWithin } from "@mantine/hooks";
 import { IComment } from "@/features/comment/types/comment.types.ts";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { isReaderOfControlledPage } from "@/features/page/page.utils.ts";
 import { IPagination } from "@/lib/types.ts";
 import { extractPageSlugId } from "@/lib";
 import { useTranslation } from "react-i18next";
@@ -50,14 +51,22 @@ function CommentListWithTabs() {
     (page?.permissions?.canEdit ?? false) ||
     (space?.settings?.comments?.allowViewerComments === true);
 
+  const readerOfControlledPage = isReaderOfControlledPage(page);
+
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
     if (!comments?.items) {
       return { activeComments: [], resolvedComments: [] };
     }
 
+    // Inline threads are internal on controlled pages; the server never sends them to readers.
     const parentComments = comments.items.filter(
-      (comment: IComment) => comment.parentCommentId === null,
+      (comment: IComment) =>
+        comment.parentCommentId === null &&
+        !(
+          readerOfControlledPage &&
+          (comment.type === "inline" || comment.selection)
+        ),
     );
 
     const active = parentComments.filter(
@@ -68,7 +77,7 @@ function CommentListWithTabs() {
     );
 
     return { activeComments: active, resolvedComments: resolved };
-  }, [comments]);
+  }, [comments, readerOfControlledPage]);
 
   const [isPageCommentLoading, setIsPageCommentLoading] = useState(false);
 

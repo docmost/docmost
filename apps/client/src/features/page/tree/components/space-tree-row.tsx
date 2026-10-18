@@ -64,7 +64,7 @@ export function SpaceTreeRow({
     timerRef.current = setTimeout(async () => {
       const page = await queryClient.fetchQuery({
         queryKey: ["pages", node.id],
-        queryFn: () => getPageById({ pageId: node.id }),
+        queryFn: () => getPageById({ pageId: node.id, draft: true }),
         staleTime: 5 * 60 * 1000,
       });
       if (page?.slugId) {

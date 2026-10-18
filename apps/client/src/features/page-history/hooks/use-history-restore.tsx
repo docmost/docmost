@@ -15,6 +15,9 @@ import {
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
+import { usePageQuery } from "@/features/page/queries/page-query";
+import { isReaderOfControlledPage } from "@/features/page/page.utils";
+import { extractPageSlugId } from "@/lib";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability";
 import { useSpaceQuery } from "@/features/space/queries/space-query";
 import {
@@ -30,14 +33,16 @@ export function useHistoryRestore() {
   const mainEditorTitle = useAtomValue(titleEditorAtom);
   const setHistoryModalOpen = useSetAtom(historyAtoms);
 
-  const { spaceSlug } = useParams();
+  const { spaceSlug, pageSlug } = useParams();
   const { data: space } = useSpaceQuery(spaceSlug);
+  const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const spaceAbility = useSpaceAbility(space?.membership?.permissions);
 
-  const canRestore = spaceAbility.can(
-    SpaceCaslAction.Manage,
-    SpaceCaslSubject.Page,
-  );
+  // Restoring writes through the page editor, which is read-only during a review.
+  const canRestore =
+    spaceAbility.can(SpaceCaslAction.Manage, SpaceCaslSubject.Page) &&
+    !page?.approval?.locked &&
+    !isReaderOfControlledPage(page);
 
   const handleRestore = useCallback(
     async (historyId: string) => {

@@ -46,7 +46,8 @@ export function usePageQuery(
 ): UseQueryResult<IPage, Error> {
   const query = useQuery({
     queryKey: ["pages", pageInput.pageId],
-    queryFn: () => getPageById(pageInput),
+    // One shared cache entry: draft users get their draft, everyone else the approved version.
+    queryFn: () => getPageById({ ...pageInput, draft: true }),
     enabled: !!pageInput.pageId,
     staleTime: 5 * 60 * 1000,
   });
@@ -62,6 +63,17 @@ export function usePageQuery(
   }, [query.data]);
 
   return query;
+}
+
+// The page's info is cached under both its id and its slugId.
+export function invalidatePageInfo(pageId: string, slugId?: string) {
+  queryClient.invalidateQueries({
+    queryKey: ["pages"],
+    predicate: ({ queryKey, state }) =>
+      queryKey[1] === pageId ||
+      (slugId !== undefined && queryKey[1] === slugId) ||
+      (state.data as IPage | undefined)?.id === pageId,
+  });
 }
 
 export function useCreatePageMutation() {

@@ -28,7 +28,8 @@ export async function getPageById(
 }
 
 export async function updatePage(data: Partial<IPageInput>): Promise<IPage> {
-  const req = await api.post<IPage>("/pages/update", data);
+  // Controlled pages only accept edits aimed at their draft; other pages ignore the flag.
+  const req = await api.post<IPage>("/pages/update", { ...data, draft: true });
   return req.data;
 }
 

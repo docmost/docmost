@@ -8,6 +8,7 @@ import { IPagination } from "@/lib/types";
 import {
   invalidateOnCreatePage,
   invalidateOnDeletePage,
+  invalidatePageInfo,
   updateCacheOnMovePage,
   invalidateOnUpdatePage,
 } from "../page/queries/page-query";
@@ -149,6 +150,19 @@ export const useQuerySubscription = () => {
         case "verificationUpdated":
           queryClient.invalidateQueries({
             queryKey: ["page-verification-info", data.pageId],
+          });
+          invalidatePageInfo(data.pageId);
+          queryClient.invalidateQueries({
+            queryKey: ["page-history-list", data.pageId],
+          });
+          break;
+        case "pageApprovalPublished":
+          queryClient.invalidateQueries({
+            queryKey: ["page-verification-info", data.pageId],
+          });
+          invalidatePageInfo(data.pageId, data.slugId);
+          queryClient.invalidateQueries({
+            queryKey: ["page-history-list", data.pageId],
           });
           break;
       }

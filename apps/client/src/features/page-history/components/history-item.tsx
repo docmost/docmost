@@ -14,6 +14,7 @@ import { formattedDate } from "@/lib/time";
 import classes from "./css/history.module.css";
 import clsx from "clsx";
 import { IPageHistory } from "@/features/page-history/types/page.types";
+import { getHistoryLabel } from "@/features/page-history/utils/history-label";
 import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -52,6 +53,7 @@ const HistoryItem = memo(function HistoryItem({
 }: HistoryItemProps) {
   const { t } = useTranslation();
   const date = formattedDate(new Date(historyItem.createdAt));
+  const label = getHistoryLabel(historyItem, t);
 
   const handleClick = useCallback(() => {
     if (compareMode) {
@@ -90,6 +92,11 @@ const HistoryItem = memo(function HistoryItem({
         onClick={handleClick}
         className={classes.historyButton}
       >
+        {label && (
+          <Text size="sm" fw={500} lineClamp={2}>
+            {label}
+          </Text>
+        )}
         <Text size="sm">{date}</Text>
 
         <Group gap={6} wrap="nowrap" mt={4}>
@@ -147,6 +154,12 @@ const HistoryItem = memo(function HistoryItem({
             </>
           )}
         </Group>
+
+        {historyItem.changeSummary && (
+          <Text size="xs" c="dimmed" lineClamp={2} mt={4}>
+            {historyItem.changeSummary}
+          </Text>
+        )}
       </UnstyledButton>
 
       {!compareMode && (

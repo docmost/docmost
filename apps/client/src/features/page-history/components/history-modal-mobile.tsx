@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { usePageHistoryListQuery } from "@/features/page-history/queries/page-history-query";
+import { getHistoryLabel } from "@/features/page-history/utils/history-label";
 import { formattedDate } from "@/lib/time";
 import {
   useDiffNavigation,
@@ -34,6 +35,12 @@ interface Props {
   pageId: string;
   pageTitle?: string;
 }
+
+type HistoryOptionExtras = {
+  userName?: string;
+  kindLabel?: string | null;
+  changeSummary?: string | null;
+};
 
 export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
   const { t } = useTranslation();
@@ -72,9 +79,11 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
           value: item.id,
           label: formattedDate(new Date(item.createdAt)),
           userName: names,
+          kindLabel: getHistoryLabel(item, t),
+          changeSummary: item.changeSummary,
         };
       }),
-    [historyItems],
+    [historyItems, t],
   );
 
   useHistoryReset(pageId);
@@ -132,17 +141,31 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
           placeholder={t("Select version")}
           checkIconPosition="right"
           maxDropdownHeight={300}
-          renderOption={({ option, checked }) => (
-            <Group justify="space-between" wrap="nowrap" w="100%">
-              <div>
-                <Text size="sm">{option.label}</Text>
-                <Text size="xs" c="dimmed">
-                  {(option as { userName?: string }).userName}
-                </Text>
-              </div>
-              {checked && <IconCheck size={16} />}
-            </Group>
-          )}
+          renderOption={({ option, checked }) => {
+            const { userName, kindLabel, changeSummary } =
+              option as HistoryOptionExtras;
+            return (
+              <Group justify="space-between" wrap="nowrap" w="100%">
+                <div>
+                  {kindLabel && (
+                    <Text size="sm" fw={500}>
+                      {kindLabel}
+                    </Text>
+                  )}
+                  <Text size="sm">{option.label}</Text>
+                  <Text size="xs" c="dimmed">
+                    {userName}
+                  </Text>
+                  {changeSummary && (
+                    <Text size="xs" c="dimmed" lineClamp={2}>
+                      {changeSummary}
+                    </Text>
+                  )}
+                </div>
+                {checked && <IconCheck size={16} />}
+              </Group>
+            );
+          }}
           comboboxProps={{ withinPortal: false }}
           scrollAreaProps={{
             viewportRef: dropdownViewportRef,

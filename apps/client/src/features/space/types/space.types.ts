@@ -13,9 +13,19 @@ export interface ISpaceCommentsSettings {
   allowViewerComments?: boolean;
 }
 
+export interface ISpaceApprovalSettings {
+  enabled?: boolean;
+  approverIds?: string[];
+  enabledAt?: string;
+  enabledById?: string;
+  // Set while a disable is publishing the space's drafts; the space still counts as controlled.
+  disabling?: boolean;
+}
+
 export interface ISpaceSettings {
   sharing?: ISpaceSharingSettings;
   comments?: ISpaceCommentsSettings;
+  approval?: ISpaceApprovalSettings;
 }
 
 export interface ISpace {

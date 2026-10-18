@@ -1,5 +1,13 @@
 import { ISpace } from "@/features/space/types/space.types.ts";
 
+export interface IPageApproval {
+  controlled: boolean;
+  canAccessDraft: boolean;
+  // Sent to users with draft access only.
+  locked?: boolean;
+  unpublished: boolean;
+}
+
 export interface IPage {
   id: string;
   slugId: string;
@@ -29,6 +37,7 @@ export interface IPage {
     canEdit: boolean;
     hasRestriction: boolean;
   };
+  approval?: IPageApproval;
 }
 
 export interface IContributor {
@@ -87,6 +96,7 @@ export interface IPageInput {
   coverPhoto: string;
   position: string;
   isLocked: boolean;
+  draft: boolean;
 }
 
 export interface IExportPageParams {

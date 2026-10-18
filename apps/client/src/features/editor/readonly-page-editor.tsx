@@ -45,6 +45,8 @@ interface PageEditorProps {
   byline?: React.ReactNode;
   /** Set false when the consumer renders its own end matter (e.g. prev/next). */
   trailingSpace?: boolean;
+  /** Opens images and videos in the lightbox outside shares and public spaces. */
+  lightbox?: boolean;
 }
 
 export default function ReadonlyPageEditor({
@@ -56,13 +58,14 @@ export default function ReadonlyPageEditor({
   spaceSlug,
   byline,
   trailingSpace = true,
+  lightbox = false,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [contentEditor, setContentEditor] = useState<Editor | null>(null);
   const isComponentMounted = useRef(false);
   const editorCreated = useRef(false);
-  const isPublicView = Boolean(shareId || spaceSlug);
+  const lightboxEnabled = Boolean(shareId || spaceSlug) || lightbox;
 
   const canScroll = useCallback(
     () => isComponentMounted.current && editorCreated.current,
@@ -78,9 +81,9 @@ export default function ReadonlyPageEditor({
   }, []);
 
   useEffect(() => {
-    if (!isPublicView) return;
+    if (!lightboxEnabled) return;
     setLightboxRequest(null);
-  }, [pageId, isPublicView]);
+  }, [pageId, lightboxEnabled]);
 
   const extensions = useMemo(() => {
     const excludedExtensions = new Set([
@@ -133,7 +136,7 @@ export default function ReadonlyPageEditor({
         extensions={extensions}
         content={content}
         editorProps={
-          isPublicView
+          lightboxEnabled
             ? {
                 handleClickOn: (_view, _pos, node) => {
                   const request = getLightboxClickRequest(node);
@@ -160,7 +163,7 @@ export default function ReadonlyPageEditor({
           }
         }}
       ></EditorProvider>
-      {isPublicView && contentEditor && (
+      {lightboxEnabled && contentEditor && (
         <LightboxView
           editor={contentEditor}
           open={!!lightboxRequest}

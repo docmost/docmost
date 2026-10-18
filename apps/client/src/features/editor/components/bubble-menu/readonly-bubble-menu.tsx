@@ -10,8 +10,12 @@ import {
   readOnlyCommentDataAtom,
 } from "@/features/comment/atoms/comment-atom";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import { getRelativeSelection, ySyncPluginKey } from "@tiptap/y-tiptap";
 import { isEditorReady } from "@docmost/editor-ext";
+import { usePageQuery } from "@/features/page/queries/page-query";
+import { isReaderOfControlledPage } from "@/features/page/page.utils";
+import { extractPageSlugId } from "@/lib";
 
 type ReadonlyBubbleMenuProps = {
   editor: Editor;
@@ -19,6 +23,8 @@ type ReadonlyBubbleMenuProps = {
 
 export const ReadonlyBubbleMenu: FC<ReadonlyBubbleMenuProps> = ({ editor }) => {
   const { t } = useTranslation();
+  const { pageSlug } = useParams();
+  const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const [showReadOnlyCommentPopup, setShowReadOnlyCommentPopup] = useAtom(
     showReadOnlyCommentPopupAtom,
   );
@@ -126,7 +132,8 @@ export const ReadonlyBubbleMenu: FC<ReadonlyBubbleMenuProps> = ({ editor }) => {
     }
   };
 
-  if (!visible) return null;
+  // Inline comments on a controlled page are internal, so readers only get page-level ones.
+  if (!visible || isReaderOfControlledPage(page)) return null;
 
   return (
     <div

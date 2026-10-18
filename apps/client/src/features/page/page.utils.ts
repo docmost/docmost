@@ -1,5 +1,6 @@
 import slugify from "@sindresorhus/slugify";
 import type { TFunction } from "i18next";
+import type { IPage } from "@/features/page/types/page.types.ts";
 
 /**
  * Display title for a page, with a base-aware empty-title fallback: bases
@@ -12,6 +13,16 @@ export function getPageTitle(
   t: TFunction,
 ): string {
   return title || (isBase ? t("Untitled base") : t("Untitled"));
+}
+
+/**
+ * Users without draft access to an approval-controlled page only ever see its
+ * approved version: no collab editor, no inline comments, no restore.
+ */
+export function isReaderOfControlledPage(
+  page: Pick<IPage, "approval"> | undefined,
+): boolean {
+  return page?.approval?.controlled === true && !page.approval.canAccessDraft;
 }
 
 const buildPageSlug = (pageSlugId: string, pageTitle?: string): string => {

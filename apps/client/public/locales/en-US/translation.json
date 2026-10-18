@@ -1573,5 +1573,19 @@
   "Move right": "Move right",
   "Delete tab": "Delete tab",
   "Tab label": "Tab label",
-  "Tab actions for {{name}}": "Tab actions for {{name}}"
+  "Tab actions for {{name}}": "Tab actions for {{name}}",
+  "Change summary": "Change summary",
+  "Summarize what changed for the approver...": "Summarize what changed for the approver...",
+  "Version {{n}} · Approved by {{name}}": "Version {{n}} · Approved by {{name}}",
+  "Version {{n}} · Approved": "Version {{n}} · Approved",
+  "Baseline": "Baseline",
+  "Submitted for approval": "Submitted for approval",
+  "Not yet approved": "Not yet approved",
+  "Approval withdrawn": "Approval withdrawn",
+  "Failed to withdraw approval": "Failed to withdraw approval",
+  "Page restored from obsolete": "Page restored from obsolete",
+  "Failed to restore from obsolete": "Failed to restore from obsolete",
+  "This submission changed. Review the new version.": "This submission changed. Review the new version.",
+  "Approval settings updated": "Approval settings updated",
+  "Failed to update approval settings": "Failed to update approval settings"
 }

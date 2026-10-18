@@ -120,12 +120,15 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
   const existingVerifierIds = info.verifiers?.map((v) => v.id) ?? [];
 
   const handleVerify = () => {
-    verifyMutation.mutate(pageId, {
-      onSuccess: () => {
-        setConfirmed(false);
-        onClose();
+    verifyMutation.mutate(
+      { pageId },
+      {
+        onSuccess: () => {
+          setConfirmed(false);
+          onClose();
+        },
       },
-    });
+    );
   };
 
   const handleRemove = () => {
@@ -138,7 +141,8 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
       ),
       labels: { confirm: t("Remove"), cancel: t("Cancel") },
       confirmProps: { color: "red" },
-      onConfirm: () => removeMutation.mutate(pageId, { onSuccess: onClose }),
+      onConfirm: () =>
+        removeMutation.mutate({ pageId }, { onSuccess: onClose }),
     });
   };
 
@@ -337,6 +341,7 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
   const [confirmed, setConfirmed] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectComment, setRejectComment] = useState("");
+  const [changeSummary, setChangeSummary] = useState("");
   const verifiedAtAgo = useTimeAgo(info.verifiedAt ?? new Date().toISOString());
   const requestedAtAgo = useTimeAgo(
     info.requestedAt ?? new Date().toISOString(),
@@ -348,16 +353,22 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
   const existingVerifierIds = info.verifiers?.map((v) => v.id) ?? [];
 
   const handleSubmitForApproval = () => {
-    submitMutation.mutate(pageId, { onSuccess: onClose });
+    submitMutation.mutate(
+      { pageId, changeSummary: changeSummary.trim() },
+      { onSuccess: onClose },
+    );
   };
 
   const handleVerify = () => {
-    verifyMutation.mutate(pageId, {
-      onSuccess: () => {
-        setConfirmed(false);
-        onClose();
+    verifyMutation.mutate(
+      { pageId, pendingHistoryId: info.pendingHistoryId ?? undefined },
+      {
+        onSuccess: () => {
+          setConfirmed(false);
+          onClose();
+        },
       },
-    });
+    );
   };
 
   const handleReject = () => {
@@ -407,7 +418,8 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
       ),
       labels: { confirm: t("Remove"), cancel: t("Cancel") },
       confirmProps: { color: "red" },
-      onConfirm: () => removeMutation.mutate(pageId, { onSuccess: onClose }),
+      onConfirm: () =>
+        removeMutation.mutate({ pageId }, { onSuccess: onClose }),
     });
   };
 
@@ -425,6 +437,10 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
     const verifierIds = [...info.verifiers.map((v) => v.id), userId];
     updateMutation.mutate({ pageId, verifierIds });
   };
+
+  const canSubmit =
+    !!info.permissions?.canSubmitForApproval &&
+    (status === "draft" || status === "approved");
 
   const canManageVerifiers =
     info.permissions?.canManage && status !== "obsolete";
@@ -561,6 +577,23 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
         </>
       )}
 
+      {canSubmit && (
+        <div>
+          <Text size="sm" fw={600} mb={4}>
+            {t("Change summary")}
+          </Text>
+          <Textarea
+            value={changeSummary}
+            onChange={(e) => setChangeSummary(e.currentTarget.value)}
+            aria-label={t("Change summary")}
+            placeholder={t("Summarize what changed for the approver...")}
+            minRows={2}
+            variant="filled"
+            maxLength={2000}
+          />
+        </div>
+      )}
+
       <Group justify="space-between">
         {info.permissions?.canManage && (
           <Button
@@ -578,6 +611,7 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
           {status === "draft" && info.permissions?.canSubmitForApproval && (
             <Button
               onClick={handleSubmitForApproval}
+              disabled={!changeSummary.trim()}
               loading={submitMutation.isPending}
               color="dark"
             >
@@ -613,6 +647,7 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
                 <Button
                   variant="light"
                   onClick={handleSubmitForApproval}
+                  disabled={!changeSummary.trim()}
                   loading={submitMutation.isPending}
                 >
                   {t("Re-submit for approval")}

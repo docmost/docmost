@@ -4,6 +4,9 @@ interface IPageHistoryUser {
   avatarUrl: string;
 }
 
+// null for regular history; "draft" rows are snapshots of a controlled page's draft.
+export type PageHistoryKind = "draft" | "approved" | "baseline";
+
 export interface IPageHistory {
   id: string;
   pageId: string;
@@ -12,7 +15,12 @@ export interface IPageHistory {
   slug: string;
   icon: string;
   coverPhoto: string;
-  version: number;
+  // The approved version number, set on approved rows only.
+  version: number | null;
+  kind: PageHistoryKind | null;
+  changeSummary: string | null;
+  approvedBy: IPageHistoryUser | null;
+  approvedAt: string | null;
   lastUpdatedById: string;
   workspaceId: string;
   createdAt: string;

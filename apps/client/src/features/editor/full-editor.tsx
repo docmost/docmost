@@ -132,7 +132,11 @@ type PageBylineProps = {
   readOnly?: boolean;
 };
 
-function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
+export function PageByline({
+  creator,
+  contributors,
+  readOnly,
+}: PageBylineProps) {
   const { t } = useTranslation();
   const detailsTriggerProps = useAsideTriggerProps("details");
 

@@ -19,9 +19,14 @@ import { ErrorBoundary } from "react-error-boundary";
 import { BaseView } from "@/ee/base/components/base-view";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
-import { getPageTitle } from "@/features/page/page.utils";
+import {
+  getPageTitle,
+  isReaderOfControlledPage,
+} from "@/features/page/page.utils";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { ApprovedPageView } from "@/ee/page-verification/components/approved-page-view";
 const MemoizedFullEditor = React.memo(FullEditor);
+const MemoizedApprovedPageView = React.memo(ApprovedPageView);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
 const MemoizedHistoryModal = React.memo(HistoryModal);
@@ -71,6 +76,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
   const hasBases = useHasFeature(Feature.BASES);
   const canEdit = !page?.deletedAt && (page?.permissions?.canEdit ?? false);
+  // Editing pauses while a submission is in review; commenting stays open.
+  const editable = canEdit && !page?.approval?.locked;
   const canComment =
     canEdit ||
     (space?.settings?.comments?.allowViewerComments === true);
@@ -168,6 +175,31 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     );
   }
 
+  if (isReaderOfControlledPage(page)) {
+    return (
+      <div>
+        <DocumentTitle
+          title={`${page.icon || ""}  ${getPageTitle(page.title, page.isBase, t)}`}
+          withAppName={false}
+        />
+
+        <MemoizedPageHeader readOnly />
+
+        <MemoizedApprovedPageView
+          key={page.id}
+          pageId={page.id}
+          slugId={page.slugId}
+          title={page.title}
+          content={page.content}
+          updatedAt={page.updatedAt}
+          creator={page.creator}
+          contributors={page.contributors}
+        />
+        <MemoizedHistoryModal pageId={page.id} />
+      </div>
+    );
+  }
+
   return (
     page && (
       <div>
@@ -186,7 +218,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           slugId={page.slugId}
           spaceId={page.spaceId}
           spaceSlug={page?.space?.slug}
-          editable={canEdit}
+          editable={editable}
           creator={page.creator}
           contributors={page.contributors}
           canComment={canComment}

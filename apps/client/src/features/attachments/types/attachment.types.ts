@@ -13,6 +13,8 @@ export interface IAttachment {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  // On approval-controlled pages readers only see attachments that were published.
+  publishedAt?: string | null;
 }
 
 export interface IPageAttachment extends IAttachment {

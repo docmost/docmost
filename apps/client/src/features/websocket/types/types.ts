@@ -90,6 +90,13 @@ export type VerificationUpdatedEvent = {
   pageId: string;
 };
 
+export type PageApprovalPublishedEvent = {
+  operation: "pageApprovalPublished";
+  pageId: string;
+  spaceId: string;
+  slugId: string;
+};
+
 export type WebSocketEvent =
   | InvalidateEvent
   | CommentCreatedEvent
@@ -102,4 +109,5 @@ export type WebSocketEvent =
   | MoveTreeNodeEvent
   | DeleteTreeNodeEvent
   | RefetchRootTreeNodeEvent
-  | VerificationUpdatedEvent;
+  | VerificationUpdatedEvent
+  | PageApprovalPublishedEvent;
