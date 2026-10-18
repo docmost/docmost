@@ -349,10 +349,12 @@ export class PageService {
     });
 
     if (userId && result.items.length > 0) {
-      const hasRestrictions =
-        await this.pagePermissionRepo.hasRestrictedPagesInSpace(spaceId);
+      const [hasRestrictions, hasControlledPages] = await Promise.all([
+        this.pagePermissionRepo.hasRestrictedPagesInSpace(spaceId),
+        this.pagePermissionRepo.hasControlledPagesInSpace(spaceId),
+      ]);
 
-      if (!hasRestrictions) {
+      if (!hasRestrictions && !hasControlledPages) {
         result.items = result.items.map((p: any) => ({
           ...p,
           canEdit: spaceCanEdit ?? true,

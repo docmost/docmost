@@ -10,12 +10,13 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { validate as isValidUUID } from 'uuid';
-import { ExpressionBuilder, sql } from 'kysely';
+import { ExpressionBuilder, sql, SqlBool } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import { unpublishedPageSql } from './page-permission.utils';
 
 @Injectable()
 export class PageRepo {
@@ -582,7 +583,7 @@ export class PageRepo {
   }
 
   /**
-   * Get page and all descendants, excluding restricted pages and their subtrees.
+   * Get page and all descendants, excluding restricted or unpublished pages and their subtrees.
    * More efficient than getPageAndDescendants + filtering because:
    * 1. Single DB query (no separate restricted IDs query)
    * 2. Stops traversing at restricted pages (doesn't fetch data to discard)
@@ -608,7 +609,9 @@ export class PageRepo {
               'pages.spaceId',
               'pages.workspaceId',
               'pages.updatedAt',
-              sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+              sql<boolean>`page_access.id IS NOT NULL OR ${unpublishedPageSql('pages')}`.as(
+                'isRestricted',
+              ),
             ])
             .$if(opts?.includeContent, (qb) => qb.select('pages.content'))
             .where('pages.id', '=', parentPageId)
@@ -628,7 +631,9 @@ export class PageRepo {
                   'p.spaceId',
                   'p.workspaceId',
                   'p.updatedAt',
-                  sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+                  sql<boolean>`page_access.id IS NOT NULL OR ${unpublishedPageSql('p')}`.as(
+                    'isRestricted',
+                  ),
                 ])
                 .$if(opts?.includeContent, (qb) => qb.select('p.content'))
                 .where('p.deletedAt', 'is', null)
@@ -656,8 +661,8 @@ export class PageRepo {
   }
 
   /**
-   * All pages of a space excluding restricted subtrees.
-   * Used by public spaces; a restricted page hides its whole subtree.
+   * All pages of a space excluding restricted and unpublished subtrees.
+   * Used by public spaces; a restricted or unpublished page hides its whole subtree.
    */
   async getSpacePagesExcludingRestricted(spaceId: string) {
     return this.db
@@ -675,7 +680,9 @@ export class PageRepo {
             'pages.spaceId',
             'pages.workspaceId',
             'pages.updatedAt',
-            sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+            sql<boolean>`page_access.id IS NOT NULL OR ${unpublishedPageSql('pages')}`.as(
+              'isRestricted',
+            ),
           ])
           .where('pages.spaceId', '=', spaceId)
           .where('pages.parentPageId', 'is', null)
@@ -695,7 +702,9 @@ export class PageRepo {
                 'p.spaceId',
                 'p.workspaceId',
                 'p.updatedAt',
-                sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
+                sql<boolean>`page_access.id IS NOT NULL OR ${unpublishedPageSql('p')}`.as(
+                  'isRestricted',
+                ),
               ])
               .where('p.deletedAt', 'is', null)
               .where('ph.isRestricted', '=', false),
@@ -733,6 +742,7 @@ export class PageRepo {
           ),
         ),
       )
+      .where(sql<SqlBool>`not ${unpublishedPageSql('pages')}`)
       .orderBy('position', (ob) => ob.collate('C').asc())
       .executeTakeFirst();
   }

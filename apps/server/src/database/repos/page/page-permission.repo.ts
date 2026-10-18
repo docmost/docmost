@@ -11,7 +11,7 @@ import {
   PagePermission,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { ExpressionBuilder, sql, SqlBool } from 'kysely';
+import { Expression, ExpressionBuilder, sql, SqlBool } from 'kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { DB } from '@docmost/db/types/db';
 import {
@@ -19,6 +19,10 @@ import {
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
 import { PagePermissionMember } from './types/page-permission.types';
+import {
+  spaceApprovalActiveSql,
+  unpublishedPageSql,
+} from './page-permission.utils';
 import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
 import {
   CacheKey,
@@ -348,27 +352,7 @@ export class PagePermissionRepo {
       }
     | undefined
   > {
-    return this.db
-      .withRecursive('ancestors', (qb) =>
-        qb
-          .selectFrom('pages')
-          .select([
-            'pages.id as ancestorId',
-            'pages.parentPageId',
-            sql<number>`0`.as('depth'),
-          ])
-          .where('pages.id', '=', pageId)
-          .unionAll((eb) =>
-            eb
-              .selectFrom('pages')
-              .innerJoin('ancestors', 'ancestors.parentPageId', 'pages.id')
-              .select([
-                'pages.id as ancestorId',
-                'pages.parentPageId',
-                sql<number>`ancestors.depth + 1`.as('depth'),
-              ]),
-          ),
-      )
+    return this.withAncestors(pageId)
       .selectFrom('ancestors')
       .innerJoin('pageAccess', 'pageAccess.pageId', 'ancestors.ancestorId')
       .select([
@@ -379,6 +363,37 @@ export class PagePermissionRepo {
       ])
       .orderBy('ancestors.depth', 'asc')
       .executeTakeFirst();
+  }
+
+  /** Nearest unpublished ancestor-or-self whose draft the user cannot open. */
+  async findHiddenUnpublishedAncestor(
+    userId: string,
+    pageId: string,
+  ): Promise<string | null> {
+    const result = await this.withAncestors(pageId)
+      .selectFrom('ancestors')
+      .innerJoin('pages as ancestor', 'ancestor.id', 'ancestors.ancestorId')
+      .select('ancestor.id')
+      .where(unpublishedPageSql('ancestor'))
+      .where(
+        sql<SqlBool>`not ${this.draftAccessSql(sql<string>`${userId}::uuid`, 'ancestor')}`,
+      )
+      .orderBy('ancestors.depth', 'asc')
+      .executeTakeFirst();
+
+    return result?.id ?? null;
+  }
+
+  /** Whether the page or any ancestor is unpublished (the anonymous visitor rule). */
+  async hasUnpublishedAncestor(pageId: string): Promise<boolean> {
+    const result = await this.withAncestors(pageId)
+      .selectFrom('ancestors')
+      .innerJoin('pages as ancestor', 'ancestor.id', 'ancestors.ancestorId')
+      .select('ancestor.id')
+      .where(unpublishedPageSql('ancestor'))
+      .executeTakeFirst();
+
+    return !!result;
   }
 
   /**
@@ -684,8 +699,11 @@ export class PagePermissionRepo {
     if (pageIds.length === 0) return [];
 
     if (spaceId) {
-      const hasRestrictions = await this.hasRestrictedPagesInSpace(spaceId);
-      if (!hasRestrictions) {
+      const [hasRestrictions, hasControlledPages] = await Promise.all([
+        this.hasRestrictedPagesInSpace(spaceId),
+        this.hasControlledPagesInSpace(spaceId),
+      ]);
+      if (!hasRestrictions && !hasControlledPages) {
         return pageIds;
       }
     }
@@ -746,6 +764,14 @@ export class PagePermissionRepo {
               .where('pagePermissions.id', 'is', null),
           ),
         ),
+      )
+      .where(
+        sql<SqlBool>`not ${this.hiddenPageSql({
+          page: 'pages',
+          ancestors: 'allAncestors',
+          ancestorsPageId: 'pageId',
+          userId: sql<string>`${userId}::uuid`,
+        })}`,
       )
       .execute();
 
@@ -873,6 +899,14 @@ export class PagePermissionRepo {
           ),
         ),
       )
+      .where(
+        sql<SqlBool>`not ${this.hiddenPageSql({
+          page: 'pages',
+          ancestors: 'allAncestors',
+          ancestorsPageId: 'pageId',
+          userId: sql<string>`${userId}::uuid`,
+        })}`,
+      )
       .execute();
 
     return results.map((r) => ({ id: r.id, canEdit: Boolean(r.canEdit) }));
@@ -921,6 +955,39 @@ export class PagePermissionRepo {
               .select(sql`1`.as('one'))
               .where('pageAccess.spaceId', '=', spaceId),
           )
+          .as('exists'),
+      )
+      .executeTakeFirst();
+
+    return Boolean(result?.exists);
+  }
+
+  /** Whether the space requires approval or has a non-base page with a qms verification. */
+  async hasControlledPagesInSpace(
+    spaceId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<boolean> {
+    const result = await dbOrTx(this.db, opts?.trx)
+      .selectNoFrom((eb) =>
+        eb
+          .or([
+            eb.exists(
+              eb
+                .selectFrom('spaces')
+                .select(sql`1`.as('one'))
+                .where('spaces.id', '=', spaceId)
+                .where(spaceApprovalActiveSql('spaces')),
+            ),
+            eb.exists(
+              eb
+                .selectFrom('pageVerifications')
+                .innerJoin('pages', 'pages.id', 'pageVerifications.pageId')
+                .select(sql`1`.as('one'))
+                .where('pageVerifications.spaceId', '=', spaceId)
+                .where('pageVerifications.type', '=', 'qms')
+                .where('pages.isBase', '=', false),
+            ),
+          ])
           .as('exists'),
       )
       .executeTakeFirst();
@@ -998,6 +1065,14 @@ export class PagePermissionRepo {
           ),
         ),
       )
+      .where(
+        sql<SqlBool>`not ${this.hiddenPageSql({
+          page: 'child',
+          ancestors: 'childAncestors',
+          ancestorsPageId: 'childId',
+          userId: sql<string>`${userId}::uuid`,
+        })}`,
+      )
       .execute();
 
     return results.map((r) => r.parentPageId);
@@ -1066,8 +1141,8 @@ export class PagePermissionRepo {
 
   /**
    * Given a pageId and a set of candidate userIds, return the subset who can
-   * access the page (have permission on ALL restricted ancestors).
-   * Returns all userIds if the page has no restricted ancestors.
+   * access the page (have permission on ALL restricted ancestors and are not hidden by an unpublished one).
+   * Returns all userIds if the page has no restricted or unpublished ancestors.
    */
   async getUserIdsWithPageAccess(
     pageId: string,
@@ -1077,16 +1152,17 @@ export class PagePermissionRepo {
 
     const results = await sql<{ userId: string }>`
       WITH RECURSIVE ancestors AS (
-        SELECT id AS ancestor_id, parent_page_id
+        SELECT id AS page_id, id AS ancestor_id, parent_page_id
         FROM pages
         WHERE id = ${pageId}::uuid
         UNION ALL
-        SELECT p.id, p.parent_page_id
+        SELECT a.page_id, p.id, p.parent_page_id
         FROM pages p
         JOIN ancestors a ON a.parent_page_id = p.id
       )
       SELECT cu.user_id AS "userId"
       FROM unnest(${userIds}::uuid[]) AS cu(user_id)
+      LEFT JOIN pages ON pages.id = ${pageId}::uuid
       WHERE NOT EXISTS (
         SELECT 1
         FROM ancestors a
@@ -1100,9 +1176,90 @@ export class PagePermissionRepo {
           )
         WHERE pp.id IS NULL
       )
+      AND NOT ${this.hiddenPageSql({
+        page: 'pages',
+        ancestors: 'ancestors',
+        ancestorsPageId: 'pageId',
+        userId: sql.ref<string>('cu.userId'),
+      })}
     `.execute(this.db);
 
     return results.rows.map((r) => r.userId);
+  }
+
+  // Ancestor-or-self chain of one page, nearest first by depth.
+  private withAncestors(pageId: string) {
+    return this.db.withRecursive('ancestors', (qb) =>
+      qb
+        .selectFrom('pages')
+        .select([
+          'pages.id as ancestorId',
+          'pages.parentPageId',
+          sql<number>`0`.as('depth'),
+        ])
+        .where('pages.id', '=', pageId)
+        .unionAll((eb) =>
+          eb
+            .selectFrom('pages')
+            .innerJoin('ancestors', 'ancestors.parentPageId', 'pages.id')
+            .select([
+              'pages.id as ancestorId',
+              'pages.parentPageId',
+              sql<number>`ancestors.depth + 1`.as('depth'),
+            ]),
+        ),
+    );
+  }
+
+  // Draft access in SQL: space admin/writer (direct or via group), qms verifier of the page, or space approver.
+  private draftAccessSql(userId: Expression<string>, page: string) {
+    const spaceId = sql.ref(`${page}.spaceId`);
+    return sql<SqlBool>`(
+      exists (
+        select 1 from space_members draft_sm
+        where draft_sm.space_id = ${spaceId}
+          and draft_sm.role in ('admin', 'writer')
+          and (
+            draft_sm.user_id = ${userId}
+            or draft_sm.group_id in (
+              select draft_gu.group_id from group_users draft_gu
+              where draft_gu.user_id = ${userId}
+            )
+          )
+      )
+      or exists (
+        select 1 from page_verifiers draft_v
+        join page_verifications draft_pv on draft_pv.id = draft_v.page_verification_id
+        where draft_pv.page_id = ${sql.ref(`${page}.id`)}
+          and draft_pv.type = 'qms'
+          and draft_v.user_id = ${userId}
+      )
+      or exists (
+        select 1 from spaces draft_sp
+        where draft_sp.id = ${spaceId}
+          and ${spaceApprovalActiveSql('draft_sp')}
+          and (draft_sp.settings->'approval'->'approverIds') ? (${userId})::text
+      )
+    )`;
+  }
+
+  // C6: an unpublished ancestor-or-self without draft access hides the page unless its own draft is open.
+  private hiddenPageSql(opts: {
+    page: string;
+    ancestors: string;
+    ancestorsPageId: string;
+    userId: Expression<string>;
+  }) {
+    const { page, ancestors, ancestorsPageId, userId } = opts;
+    return sql<SqlBool>`exists (
+      select 1
+      from ${sql.table(ancestors)} hidden_row
+      join pages hidden_ancestor on hidden_ancestor.id = hidden_row.ancestor_id
+      where ${sql.ref(`hidden_row.${ancestorsPageId}`)} = ${sql.ref(`${page}.id`)}
+        and ${unpublishedPageSql('hidden_ancestor')}
+        and not ${this.draftAccessSql(userId, 'hidden_ancestor')}
+        and not ${this.draftAccessSql(userId, page)}
+    )`;
   }
 
   private userGroupIdsSubquery(
