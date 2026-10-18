@@ -39,6 +39,10 @@ export class PageInfoDto extends PageIdDto {
   @Transform(({ value }) => value?.toLowerCase())
   @IsIn(['json', 'markdown', 'html'])
   format?: ContentFormat;
+
+  @IsOptional()
+  @IsBoolean()
+  draft?: boolean;
 }
 
 export class DeletePageDto extends PageIdDto {

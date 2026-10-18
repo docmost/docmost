@@ -3,8 +3,10 @@ import {
   effectiveDraftTitleIcon,
   isApprovalControlled,
   isApprovalLocked,
+  isHistoryRowVisible,
   mergeApproverIds,
   readSpaceApprovalSettings,
+  toDraftTitleIcon,
 } from './page-approval.utils';
 
 describe('isApprovalControlled', () => {
@@ -93,6 +95,57 @@ describe('effectiveDraftTitleIcon', () => {
     expect(effectiveDraftTitleIcon(null, { title: 'T', icon: 'y' })).toEqual({
       title: 'T',
       icon: 'y',
+    });
+  });
+});
+
+describe('isHistoryRowVisible', () => {
+  it('hides draft rows from users without draft access on an uncontrolled page', () => {
+    expect(
+      isHistoryRowVisible('draft', { controlled: false, canAccessDraft: false }),
+    ).toBe(false);
+  });
+
+  it('shows draft rows to draft users', () => {
+    expect(
+      isHistoryRowVisible('draft', { controlled: true, canAccessDraft: true }),
+    ).toBe(true);
+  });
+
+  it('shows reader versions to readers of a controlled page', () => {
+    expect(
+      isHistoryRowVisible('approved', { controlled: true, canAccessDraft: false }),
+    ).toBe(true);
+    expect(
+      isHistoryRowVisible('baseline', { controlled: true, canAccessDraft: false }),
+    ).toBe(true);
+  });
+
+  it('hides regular rows from readers of a controlled page', () => {
+    expect(
+      isHistoryRowVisible(null, { controlled: true, canAccessDraft: false }),
+    ).toBe(false);
+  });
+
+  it('shows regular rows on an uncontrolled page', () => {
+    expect(
+      isHistoryRowVisible(null, { controlled: false, canAccessDraft: false }),
+    ).toBe(true);
+  });
+});
+
+describe('toDraftTitleIcon', () => {
+  it('stores a cleared title or icon as an empty string', () => {
+    expect(toDraftTitleIcon({ title: null, icon: null })).toEqual({
+      title: '',
+      icon: '',
+    });
+  });
+
+  it('passes values through and leaves missing fields undefined', () => {
+    expect(toDraftTitleIcon({ title: 'T' })).toEqual({
+      title: 'T',
+      icon: undefined,
     });
   });
 });

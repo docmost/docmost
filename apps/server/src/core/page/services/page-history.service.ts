@@ -17,10 +17,12 @@ export class PageHistoryService {
   async findHistoryByPageId(
     pageId: string,
     paginationOptions: PaginationOptions,
+    opts?: { readerOnly?: boolean; includeDraftKinds?: boolean },
   ): Promise<CursorPaginationResult<PageHistory>> {
     return this.pageHistoryRepo.findPageHistoryByPageId(
       pageId,
       paginationOptions,
+      opts,
     );
   }
 }

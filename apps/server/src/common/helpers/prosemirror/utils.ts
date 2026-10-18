@@ -154,6 +154,14 @@ export function removeMarkTypeFromDoc(doc: Node, markName: string): Node {
   return tr.doc;
 }
 
+export function stripCommentMarks(prosemirrorJson: any): any {
+  if (!prosemirrorJson) return prosemirrorJson;
+  return removeMarkTypeFromDoc(
+    jsonToNode(prosemirrorJson),
+    'comment',
+  ).toJSON();
+}
+
 export function createYdocFromJson(prosemirrorJson: any): Buffer | null {
   if (prosemirrorJson) {
     const ydoc = TiptapTransformer.toYdoc(

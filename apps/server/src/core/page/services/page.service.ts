@@ -59,6 +59,12 @@ import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { PageApprovalService } from '../approval/page-approval.service';
+import { PageDraftRepo } from '@docmost/db/repos/page/page-draft.repo';
+import {
+  PAGE_LOCKED_MESSAGE,
+  toDraftTitleIcon,
+} from '../approval/page-approval.utils';
 
 @Injectable()
 export class PageService {
@@ -80,6 +86,8 @@ export class PageService {
     private readonly labelRepo: LabelRepo,
     private readonly wsService: WsService,
     private readonly collabAccessService: CollabAccessService,
+    private readonly pageApprovalService: PageApprovalService,
+    private readonly pageDraftRepo: PageDraftRepo,
   ) {}
 
   async findById(
@@ -231,20 +239,37 @@ export class PageService {
     updatePageDto: UpdatePageDto,
     user: User,
   ): Promise<Page> {
-    const contributors = new Set<string>(page.contributorIds);
-    contributors.add(user.id);
-    const contributorIds = Array.from(contributors);
+    const state = await this.pageApprovalService.getState(page);
+    if (state.controlled) {
+      if (updatePageDto.draft !== true) {
+        throw new BadRequestException(
+          'This page requires approval. Send draft: true to edit its draft.',
+        );
+      }
+      if (state.locked) {
+        throw new BadRequestException(PAGE_LOCKED_MESSAGE);
+      }
+    }
 
-    await this.pageRepo.updatePage(
-      {
-        title: updatePageDto.title,
-        icon: updatePageDto.icon,
-        lastUpdatedById: user.id,
-        updatedAt: new Date(),
-        contributorIds: contributorIds,
-      },
-      page.id,
-    );
+    if (state.controlled && !state.unpublished) {
+      // The page row holds the reader version, so draft edits never touch it.
+      await this.updateDraftTitleIcon(page.id, updatePageDto);
+    } else {
+      const contributors = new Set<string>(page.contributorIds);
+      contributors.add(user.id);
+      const contributorIds = Array.from(contributors);
+
+      await this.pageRepo.updatePage(
+        {
+          title: updatePageDto.title,
+          icon: updatePageDto.icon,
+          lastUpdatedById: user.id,
+          updatedAt: new Date(),
+          contributorIds: contributorIds,
+        },
+        page.id,
+      );
+    }
 
     this.generalQueue
       .add(QueueJob.ADD_PAGE_WATCHERS, {
@@ -262,7 +287,7 @@ export class PageService {
       updatePageDto.operation &&
       updatePageDto.format
     ) {
-      await this.updatePageContent(
+      await this.sendPageContent(
         page.id,
         updatePageDto.content,
         updatePageDto.operation,
@@ -271,16 +296,44 @@ export class PageService {
       );
     }
 
-    return await this.pageRepo.findById(page.id, {
+    const updatedPage = await this.pageRepo.findById(page.id, {
       includeSpace: true,
       includeContent: true,
       includeCreator: true,
       includeLastUpdatedBy: true,
       includeContributors: true,
     });
+    if (!state.controlled) return updatedPage;
+
+    const draft = await this.pageApprovalService.readContentFor(
+      user,
+      updatedPage,
+    );
+    return {
+      ...updatedPage,
+      content: draft.content,
+      title: draft.title,
+      icon: draft.icon,
+    };
   }
 
   async updatePageContent(
+    pageId: string,
+    content: string | object,
+    operation: ContentOperation,
+    format: ContentFormat,
+    user: User,
+  ): Promise<void> {
+    // Checked here because a lock error from a remote collab instance only surfaces as a timeout.
+    const page = await this.pageRepo.findById(pageId);
+    if (page && (await this.pageApprovalService.getState(page)).locked) {
+      throw new BadRequestException(PAGE_LOCKED_MESSAGE);
+    }
+
+    await this.sendPageContent(pageId, content, operation, format, user);
+  }
+
+  private async sendPageContent(
     pageId: string,
     content: string | object,
     operation: ContentOperation,
@@ -295,6 +348,19 @@ export class PageService {
       documentName,
       { operation, prosemirrorJson, user },
     );
+  }
+
+  private async updateDraftTitleIcon(
+    pageId: string,
+    changes: Pick<UpdatePageDto, 'title' | 'icon'>,
+  ): Promise<void> {
+    if (changes.title === undefined && changes.icon === undefined) return;
+
+    // Like the collab load path, create the draft row when a controlled page has none yet.
+    if (!(await this.pageDraftRepo.findByPageId(pageId))) {
+      await this.pageDraftRepo.createFromPage(pageId);
+    }
+    await this.pageDraftRepo.updateTitleIcon(pageId, toDraftTitleIcon(changes));
   }
 
   async getSidebarPages(
@@ -933,7 +999,7 @@ export class PageService {
     }
   }
 
-  async getPageBreadCrumbs(childPageId: string) {
+  async getPageBreadCrumbs(childPageId: string, userId: string) {
     const ancestors = await this.db
       .withRecursive('page_ancestors', (db) =>
         db
@@ -984,7 +1050,22 @@ export class PageService {
       )
       .execute();
 
-    return ancestors.reverse();
+    const breadcrumbs = ancestors.reverse();
+    const ancestorIds = breadcrumbs
+      .map((page) => page.id)
+      .filter((id) => id !== childPageId);
+    if (ancestorIds.length === 0) return breadcrumbs;
+
+    // A user who can open a page may still be unable to see an ancestor, such as an unpublished one.
+    const visibleIds = new Set(
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds: ancestorIds,
+        userId,
+      }),
+    );
+    return breadcrumbs.filter(
+      (page) => page.id === childPageId || visibleIds.has(page.id),
+    );
   }
 
   async getRecentSpacePages(

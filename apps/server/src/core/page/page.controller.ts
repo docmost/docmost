@@ -53,6 +53,9 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 import { getPageTitle } from '../../common/helpers';
+import { stripCommentMarks } from '../../common/helpers/prosemirror/utils';
+import { PageApprovalService } from './approval/page-approval.service';
+import { isHistoryRowVisible } from './approval/page-approval.utils';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -66,6 +69,7 @@ export class PageController {
     private readonly backlinkService: BacklinkService,
     private readonly labelService: LabelService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -85,24 +89,31 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const { canEdit, hasRestriction } =
+    const { canEdit, hasRestriction, approval } =
       await this.pageAccessService.validateCanViewWithPermissions(page, user);
 
     const permissions = { canEdit, hasRestriction };
+    const viewedPage = await this.readPageAs(
+      page,
+      user,
+      approval,
+      dto.draft === true,
+    );
 
-    if (dto.format && dto.format !== 'json' && page.content) {
+    if (dto.format && dto.format !== 'json' && viewedPage.content) {
       const contentOutput =
         dto.format === 'markdown'
-          ? jsonToMarkdown(page.content)
-          : jsonToHtml(page.content);
+          ? jsonToMarkdown(viewedPage.content)
+          : jsonToHtml(viewedPage.content);
       return {
-        ...page,
+        ...viewedPage,
         content: contentOutput,
         permissions,
+        approval,
       };
     }
 
-    return { ...page, permissions };
+    return { ...viewedPage, permissions, approval };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -503,9 +514,13 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanView(page, user);
+    const { approval } =
+      await this.pageAccessService.validateCanViewWithPermissions(page, user);
 
-    return this.pageHistoryService.findHistoryByPageId(page.id, pagination);
+    return this.pageHistoryService.findHistoryByPageId(page.id, pagination, {
+      readerOnly: approval.controlled && !approval.canAccessDraft,
+      includeDraftKinds: approval.canAccessDraft,
+    });
   }
 
   @HttpCode(HttpStatus.OK)
@@ -525,7 +540,16 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanView(page, user);
+    const { approval } =
+      await this.pageAccessService.validateCanViewWithPermissions(page, user);
+
+    if (!isHistoryRowVisible(history.kind, approval)) {
+      throw new NotFoundException('Page history not found');
+    }
+
+    if (approval.controlled && !approval.canAccessDraft) {
+      return { ...history, content: stripCommentMarks(history.content) };
+    }
 
     return history;
   }
@@ -755,6 +779,30 @@ export class PageController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    return this.pageService.getPageBreadCrumbs(page.id);
+    return this.pageService.getPageBreadCrumbs(page.id, user.id);
+  }
+
+  // Draft users get the draft only when they ask for it; everyone else gets the reader version.
+  private async readPageAs(
+    page: Page,
+    user: User,
+    approval: { controlled: boolean; canAccessDraft: boolean },
+    draft: boolean,
+  ): Promise<Page> {
+    if (!approval.controlled) return page;
+
+    if (draft && approval.canAccessDraft) {
+      const view = await this.pageApprovalService.readContentFor(user, page);
+      if (view.isDraft) {
+        return {
+          ...page,
+          content: view.content,
+          title: view.title,
+          icon: view.icon,
+        };
+      }
+    }
+
+    return { ...page, content: stripCommentMarks(page.content) };
   }
 }

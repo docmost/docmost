@@ -12,6 +12,8 @@ const APPROVAL_STATUSES: ApprovalStatus[] = [
   'obsolete',
 ];
 
+export const PAGE_LOCKED_MESSAGE = 'This page is in review and cannot be edited.';
+
 export function isApprovalControlled(input: {
   isBase: boolean;
   verificationType: string | null;
@@ -44,6 +46,26 @@ export function effectiveDraftTitleIcon(
     title: draft?.title ?? page.title,
     icon: draft?.icon ?? page.icon,
   };
+}
+
+// A null draft field means "same as the page", so a cleared value is stored as ''.
+export function toDraftTitleIcon(changes: {
+  title?: string | null;
+  icon?: string | null;
+}): { title?: string; icon?: string } {
+  return {
+    title: changes.title === null ? '' : changes.title,
+    icon: changes.icon === null ? '' : changes.icon,
+  };
+}
+
+export function isHistoryRowVisible(
+  kind: string | null,
+  opts: { controlled: boolean; canAccessDraft: boolean },
+): boolean {
+  if (opts.canAccessDraft) return true;
+  if (kind === 'draft') return false;
+  return !opts.controlled || kind === 'approved' || kind === 'baseline';
 }
 
 // Matches spaceApprovalActiveSql, which accepts a JSON true or the string 'true'.
