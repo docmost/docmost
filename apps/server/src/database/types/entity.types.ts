@@ -14,6 +14,7 @@ import {
   Notifications,
   PageLabels,
   PageAccess as _PageAccess,
+  PageDrafts,
   PageTransclusions,
   PageTransclusionReferences,
   PagePermissions as _PagePermissions,
@@ -114,6 +115,11 @@ export type UpdatablePage = Updateable<Omit<Pages, 'id'>>;
 export type PageHistory = Selectable<History>;
 export type InsertablePageHistory = Insertable<History>;
 export type UpdatablePageHistory = Updateable<Omit<History, 'id'>>;
+
+// PageDraft
+export type PageDraft = Selectable<PageDrafts>;
+export type InsertablePageDraft = Insertable<PageDrafts>;
+export type UpdatablePageDraft = Updateable<Omit<PageDrafts, 'id'>>;
 
 // Comment
 export type Comment = Selectable<Comments>;

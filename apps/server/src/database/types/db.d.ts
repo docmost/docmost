@@ -52,6 +52,7 @@ export interface Attachments {
   filePath: string;
   fileSize: Int8 | null;
   id: Generated<string>;
+  isDraft: Generated<boolean>;
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
@@ -293,12 +294,16 @@ export interface PageTransclusions {
 }
 
 export interface PageHistory {
+  approvedAt: Timestamp | null;
+  approvedById: string | null;
+  changeSummary: string | null;
   content: Json | null;
   contributorIds: Generated<string[] | null>;
   coverPhoto: string | null;
   createdAt: Generated<Timestamp>;
   icon: string | null;
   id: Generated<string>;
+  kind: string | null;
   lastUpdatedById: string | null;
   pageId: string;
   slug: string | null;
@@ -591,6 +596,20 @@ export interface PageAccess {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface PageDrafts {
+  id: Generated<string>;
+  pageId: string;
+  workspaceId: string;
+  title: string | null;
+  icon: string | null;
+  content: Json | null;
+  ydoc: Buffer | null;
+  lastUpdatedById: string | null;
+  contributorIds: Generated<string[]>;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface PageLabels {
   id: Generated<string>;
   pageId: string;
@@ -631,6 +650,8 @@ export interface PageVerifications {
   creatorId: string | null;
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
+  pendingHistoryId: string | null;
+  source: Generated<string>;
 }
 
 export interface PageVerifiers {
@@ -781,6 +802,7 @@ export interface DB {
   labels: Labels;
   notifications: Notifications;
   pageAccess: PageAccess;
+  pageDrafts: PageDrafts;
   pageTransclusionReferences: PageTransclusionReferences;
   pageTransclusions: PageTransclusions;
   pagePermissions: PagePermissions;
