@@ -9,7 +9,7 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { ExpressionBuilder } from 'kysely';
+import { ExpressionBuilder, sql, SqlBool } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
@@ -31,13 +31,29 @@ export class CommentRepo {
       .executeTakeFirst();
   }
 
-  async findPageComments(pageId: string, pagination: PaginationOptions) {
+  async findPageComments(
+    pageId: string,
+    pagination: PaginationOptions,
+    opts?: { publicThreadsOnly?: boolean },
+  ) {
     const query = this.db
       .selectFrom('comments')
       .selectAll('comments')
       .select((eb) => this.withCreator(eb))
       .select((eb) => this.withResolvedBy(eb))
-      .where('pageId', '=', pageId);
+      .where('pageId', '=', pageId)
+      // Mirrors isInternalComment in core/comment/comment.utils.ts.
+      .$if(Boolean(opts?.publicThreadsOnly), (qb) =>
+        qb.where(
+          sql<SqlBool>`not comments.is_internal and exists (
+            select 1 from comments root
+            where root.id = coalesce(comments.parent_comment_id, comments.id)
+              and root.type = 'page'
+              and not root.is_internal
+              and root.selection is null
+          )`,
+        ),
+      );
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,

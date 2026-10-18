@@ -42,6 +42,7 @@ export interface ICommentNotificationJob {
   actorId: string;
   mentionedUserIds: string[];
   notifyWatchers: boolean;
+  draftOnly?: boolean;
 }
 
 export interface ICommentResolvedNotificationJob {
@@ -51,6 +52,7 @@ export interface ICommentResolvedNotificationJob {
   spaceId: string;
   workspaceId: string;
   actorId: string;
+  draftOnly?: boolean;
 }
 
 export interface IPageMentionNotificationJob {

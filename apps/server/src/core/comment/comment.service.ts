@@ -13,12 +13,21 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
 import { Comment, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
 import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
 import { WsService } from '../../ws/ws.service';
+import { PageApprovalService } from '../page/approval/page-approval.service';
+import {
+  assertReaderCommentAllowed,
+  CommentAccess,
+  CommentSource,
+  CommentVisibilityOpts,
+  isCommentVisible,
+  isInternalComment,
+  toViewerComment,
+} from './comment.utils';
 
 @Injectable()
 export class CommentService {
@@ -26,9 +35,9 @@ export class CommentService {
 
   constructor(
     private commentRepo: CommentRepo,
-    private pageRepo: PageRepo,
     private wsService: WsService,
     private collaborationGateway: CollaborationGateway,
+    private pageApprovalService: PageApprovalService,
     @InjectQueue(QueueName.GENERAL_QUEUE)
     private generalQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
@@ -46,36 +55,90 @@ export class CommentService {
     return comment;
   }
 
+  async getViewerAccess(
+    page: Page,
+    user: Pick<User, 'id'>,
+  ): Promise<CommentVisibilityOpts> {
+    const state = await this.pageApprovalService.getState(page);
+    if (!state.controlled) return { controlled: false, canAccessDraft: false };
+
+    return {
+      controlled: true,
+      canAccessDraft: await this.pageApprovalService.canAccessDraft(
+        user,
+        page,
+        state,
+      ),
+    };
+  }
+
+  async assertCommentVisible(
+    comment: Comment,
+    page: Page,
+    user: Pick<User, 'id'>,
+  ): Promise<CommentAccess> {
+    const access = await this.getViewerAccess(page, user);
+    if (!access.controlled) return { ...access, internal: false };
+
+    const root = comment.parentCommentId
+      ? ((await this.commentRepo.findById(comment.parentCommentId)) ?? null)
+      : null;
+    if (!isCommentVisible(comment, root, access)) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    return { ...access, internal: isInternalComment(comment, root) };
+  }
+
+  async findVisibleComment(
+    comment: Comment,
+    page: Page,
+    user: Pick<User, 'id'>,
+  ): Promise<Comment> {
+    const access = await this.assertCommentVisible(comment, page, user);
+    return toViewerComment(comment, access);
+  }
+
   async create(
-    opts: { page: Page; workspaceId: string; user: User },
+    opts: { page: Page; workspaceId: string; user: User; source?: CommentSource },
     createCommentDto: CreateCommentDto,
   ) {
-    const { page, workspaceId, user } = opts;
+    const { page, workspaceId, user, source } = opts;
     const commentContent = JSON.parse(createCommentDto.content);
+    const access = await this.getViewerAccess(page, user);
 
+    let parentComment: Comment | undefined;
     if (createCommentDto.parentCommentId) {
-      const parentComment = await this.commentRepo.findById(
+      parentComment = await this.commentRepo.findById(
         createCommentDto.parentCommentId,
       );
 
       if (!parentComment || parentComment.pageId !== page.id) {
         throw new BadRequestException('Parent comment not found');
       }
+    }
 
-      if (parentComment.parentCommentId !== null) {
-        throw new BadRequestException('You cannot reply to a reply');
-      }
+    // Runs before the reply depth check so readers cannot probe hidden replies.
+    assertReaderCommentAllowed(
+      createCommentDto,
+      parentComment && !parentComment.parentCommentId ? parentComment : null,
+      access,
+    );
+
+    if (parentComment && parentComment.parentCommentId !== null) {
+      throw new BadRequestException('You cannot reply to a reply');
     }
 
     const inserted = await this.commentRepo.insertComment({
       pageId: page.id,
       content: commentContent,
-      selection: createCommentDto?.selection?.substring(0, 250) ?? null,
+      selection: createCommentDto?.selection?.substring(0, 250) || null,
       type: createCommentDto.type ?? 'page',
       parentCommentId: createCommentDto?.parentCommentId,
       creatorId: user.id,
       workspaceId: workspaceId,
       spaceId: page.spaceId,
+      isInternal: access.controlled && access.canAccessDraft && !!source,
     });
 
     if (createCommentDto.yjsSelection) {
@@ -110,6 +173,11 @@ export class CommentService {
       includeCreator: true,
       includeResolvedBy: true,
     });
+    const commentAccess: CommentAccess = {
+      ...access,
+      internal:
+        access.controlled && isInternalComment(comment, parentComment ?? null),
+    };
 
     this.generalQueue
       .add(QueueJob.ADD_PAGE_WATCHERS, {
@@ -134,35 +202,49 @@ export class CommentService {
       user.id,
       !isReply,
       createCommentDto.parentCommentId,
+      commentAccess.internal,
     );
 
-    this.wsService.emitCommentEvent(page.spaceId, page.id, {
-      operation: 'commentCreated',
-      pageId: page.id,
-      comment,
-    });
+    this.wsService.emitCommentEvent(
+      page.spaceId,
+      page.id,
+      {
+        operation: 'commentCreated',
+        pageId: page.id,
+        comment: this.toEventComment(comment, commentAccess),
+      },
+      { draftOnly: commentAccess.internal },
+    );
 
-    return comment;
+    return toViewerComment(comment, access);
   }
 
   async findByPageId(
-    pageId: string,
+    page: Page,
     pagination: PaginationOptions,
+    user: Pick<User, 'id'>,
   ): Promise<CursorPaginationResult<Comment>> {
-    const page = await this.pageRepo.findById(pageId);
+    const access = await this.getViewerAccess(page, user);
+    const reader = access.controlled && !access.canAccessDraft;
 
-    if (!page) {
-      throw new BadRequestException('Page not found');
-    }
+    const result = await this.commentRepo.findPageComments(page.id, pagination, {
+      publicThreadsOnly: reader,
+    });
+    if (!reader) return result;
 
-    return this.commentRepo.findPageComments(pageId, pagination);
+    return {
+      ...result,
+      items: result.items.map((comment) => toViewerComment(comment, access)),
+    };
   }
 
   async update(
     comment: Comment,
     updateCommentDto: UpdateCommentDto,
     authUser: User,
+    page: Page,
   ): Promise<Comment> {
+    const access = await this.assertCommentVisible(comment, page, authUser);
     const commentContent = JSON.parse(updateCommentDto.content);
 
     if (comment.creatorId !== authUser.id) {
@@ -191,19 +273,32 @@ export class CommentService {
       comment.workspaceId,
       authUser.id,
       false,
+      undefined,
+      access.internal,
     );
 
     comment.content = commentContent;
     comment.editedAt = editedAt;
     comment.updatedAt = editedAt;
 
-    this.wsService.emitCommentEvent(comment.spaceId, comment.pageId, {
-      operation: 'commentUpdated',
-      pageId: comment.pageId,
-      comment,
-    });
+    this.wsService.emitCommentEvent(
+      comment.spaceId,
+      comment.pageId,
+      {
+        operation: 'commentUpdated',
+        pageId: comment.pageId,
+        comment: this.toEventComment(comment, access),
+      },
+      { draftOnly: access.internal },
+    );
 
-    return comment;
+    return toViewerComment(comment, access);
+  }
+
+  // Public comment events reach readers of controlled pages too.
+  private toEventComment(comment: Comment, access: CommentAccess): Comment {
+    if (!access.controlled || access.internal) return comment;
+    return { ...comment, selection: null };
   }
 
   private async queueCommentNotification(
@@ -216,6 +311,7 @@ export class CommentService {
     actorId: string,
     notifyWatchers: boolean,
     parentCommentId?: string,
+    draftOnly = false,
   ) {
     const mentionedUserIds = extractUserMentionIdsFromJson(content);
     const newMentionIds = mentionedUserIds.filter(
@@ -233,6 +329,7 @@ export class CommentService {
       actorId,
       mentionedUserIds: newMentionIds,
       notifyWatchers,
+      ...(draftOnly ? { draftOnly: true } : {}),
     };
 
     await this.notificationQueue.add(

@@ -101,7 +101,7 @@ export class CommentController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    return this.commentService.findByPageId(page.id, pagination);
+    return this.commentService.findByPageId(page, pagination, user);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -123,7 +123,7 @@ export class CommentController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    return comment;
+    return this.commentService.findVisibleComment(comment, page, user);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -145,7 +145,12 @@ export class CommentController {
 
     await this.pageAccessService.validateCanComment(page, user, workspace.id);
 
-    const updatedComment = await this.commentService.update(comment, dto, user);
+    const updatedComment = await this.commentService.update(
+      comment,
+      dto,
+      user,
+      page,
+    );
 
     this.auditService.log({
       event: AuditEvent.COMMENT_UPDATED,
@@ -175,6 +180,12 @@ export class CommentController {
 
     await this.pageAccessService.validateCanComment(page, user, workspace.id);
 
+    const access = await this.commentService.assertCommentVisible(
+      comment,
+      page,
+      user,
+    );
+
     // Check if user is the comment owner
     const isOwner = comment.creatorId === user.id;
 
@@ -195,11 +206,16 @@ export class CommentController {
       await this.commentRepo.deleteComment(comment.id);
     }
 
-    this.wsService.emitCommentEvent(comment.spaceId, comment.pageId, {
-      operation: 'commentDeleted',
-      pageId: comment.pageId,
-      commentId: comment.id,
-    });
+    this.wsService.emitCommentEvent(
+      comment.spaceId,
+      comment.pageId,
+      {
+        operation: 'commentDeleted',
+        pageId: comment.pageId,
+        commentId: comment.id,
+      },
+      { draftOnly: access.internal },
+    );
 
     this.auditService.log({
       event: AuditEvent.COMMENT_DELETED,

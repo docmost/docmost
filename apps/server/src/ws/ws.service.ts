@@ -11,6 +11,7 @@ import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo'
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
+import { PageApprovalService } from '../core/page/approval/page-approval.service';
 import { JwtPayload } from '../core/auth/dto/jwt-payload';
 import { isUserDisabled } from '../common/helpers';
 import { SpaceRole } from '../common/helpers/types/permission';
@@ -36,6 +37,7 @@ export class WsService {
     private readonly baseRealtime: BaseRealtimeBridge,
     private readonly userRepo: UserRepo,
     private readonly userSessionRepo: UserSessionRepo,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   setServer(server: Server): void {
@@ -129,10 +131,30 @@ export class WsService {
     spaceId: string,
     pageId: string,
     data: any,
+    opts?: { draftOnly?: boolean },
   ): Promise<void> {
     const room = getSpaceRoomName(spaceId);
 
-    const hasRestrictions = await this.spaceHasRestrictions(spaceId);
+    if (opts?.draftOnly) {
+      await this.broadcastToUsers(room, null, data, (userIds) =>
+        this.pageApprovalService.getUserIdsWithDraftAccess(
+          { id: pageId, spaceId, isBase: false },
+          userIds,
+        ),
+      );
+      return;
+    }
+
+    // Approval can hide pages from readers, so those spaces never get room-wide events.
+    const [hasRestrictions, hasControlledPages] = await Promise.all([
+      this.spaceHasRestrictions(spaceId),
+      this.pagePermissionRepo.hasControlledPagesInSpace(spaceId),
+    ]);
+    if (hasControlledPages) {
+      await this.broadcastToAuthorizedUsers(room, null, pageId, data);
+      return;
+    }
+
     if (!hasRestrictions) {
       this.server.to(room).emit('message', data);
       return;
@@ -232,6 +254,17 @@ export class WsService {
     pageId: string,
     data: any,
   ): Promise<void> {
+    await this.broadcastToUsers(room, excludeSocketId, data, (userIds) =>
+      this.pagePermissionRepo.getUserIdsWithPageAccess(pageId, userIds),
+    );
+  }
+
+  private async broadcastToUsers(
+    room: string,
+    excludeSocketId: string | null,
+    data: any,
+    authorize: (userIds: string[]) => Promise<string[]>,
+  ): Promise<void> {
     const sockets = await this.server.in(room).fetchSockets();
 
     // Exclude only the originating socket, not every socket of the originating
@@ -257,13 +290,7 @@ export class WsService {
     const candidateUserIds = Array.from(userSocketMap.keys());
     if (candidateUserIds.length === 0) return;
 
-    const authorizedUserIds =
-      await this.pagePermissionRepo.getUserIdsWithPageAccess(
-        pageId,
-        candidateUserIds,
-      );
-
-    const authorizedSet = new Set(authorizedUserIds);
+    const authorizedSet = new Set(await authorize(candidateUserIds));
     for (const [userId, userSockets] of userSocketMap) {
       if (authorizedSet.has(userId)) {
         for (const socket of userSockets) {

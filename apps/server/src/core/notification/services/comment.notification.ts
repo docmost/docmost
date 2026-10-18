@@ -14,6 +14,7 @@ import { CommentMentionEmail } from '@docmost/transactional/emails/comment-menti
 import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
 import { CommentResolvedEmail } from '@docmost/transactional/emails/comment-resolved-email';
 import { getPageTitle } from '../../../common/helpers';
+import { PageApprovalService } from '../../page/approval/page-approval.service';
 
 @Injectable()
 export class CommentNotificationService {
@@ -25,6 +26,7 @@ export class CommentNotificationService {
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly watcherRepo: WatcherRepo,
+    private readonly pageApprovalService: PageApprovalService,
   ) {}
 
   async processComment(data: ICommentNotificationJob, appUrl: string) {
@@ -37,6 +39,7 @@ export class CommentNotificationService {
       actorId,
       mentionedUserIds,
       notifyWatchers,
+      draftOnly,
     } = data;
 
     const context = await this.getCommentContext(
@@ -48,7 +51,7 @@ export class CommentNotificationService {
     );
     if (!context) return;
 
-    const { actor, pageTitle, commentUrl } = context;
+    const { actor, page, pageTitle, commentUrl } = context;
     const notifiedUserIds = new Set<string>();
     notifiedUserIds.add(actorId);
 
@@ -72,7 +75,15 @@ export class CommentNotificationService {
         pageId,
         [...usersWithSpaceAccess],
       );
-    const usersWithAccess = new Set(usersWithPageAccess);
+    // Internal threads of approval-controlled pages notify draft users only.
+    const usersWithAccess = new Set(
+      draftOnly
+        ? await this.pageApprovalService.getUserIdsWithDraftAccess(
+            page,
+            usersWithPageAccess,
+          )
+        : usersWithPageAccess,
+    );
 
     for (const userId of mentionedUserIds) {
       if (!usersWithAccess.has(userId)) continue;
@@ -132,6 +143,7 @@ export class CommentNotificationService {
       spaceId,
       workspaceId,
       actorId,
+      draftOnly,
     } = data;
 
     if (commentCreatorId === actorId) return;
@@ -145,7 +157,7 @@ export class CommentNotificationService {
     );
     if (!context) return;
 
-    const { actor, pageTitle, commentUrl } = context;
+    const { actor, page, pageTitle, commentUrl } = context;
 
     const roles = await this.spaceMemberRepo.getUserSpaceRoles(
       commentCreatorId,
@@ -165,6 +177,14 @@ export class CommentNotificationService {
         [commentCreatorId],
       );
     if (hasPageAccess.length === 0) return;
+
+    if (draftOnly) {
+      const draftUserIds =
+        await this.pageApprovalService.getUserIdsWithDraftAccess(page, [
+          commentCreatorId,
+        ]);
+      if (draftUserIds.length === 0) return;
+    }
 
     const notification = await this.notificationService.create({
       userId: commentCreatorId,
@@ -220,7 +240,7 @@ export class CommentNotificationService {
         .executeTakeFirst(),
       this.db
         .selectFrom('pages')
-        .select(['id', 'title', 'slugId'])
+        .select(['id', 'title', 'slugId', 'spaceId', 'isBase'])
         .where('id', '=', pageId)
         .executeTakeFirst(),
       this.db
@@ -237,6 +257,6 @@ export class CommentNotificationService {
     const pageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
     const commentUrl = `${pageUrl}?commentId=${commentId}`;
 
-    return { actor, pageTitle: getPageTitle(page.title), commentUrl };
+    return { actor, page, pageTitle: getPageTitle(page.title), commentUrl };
   }
 }

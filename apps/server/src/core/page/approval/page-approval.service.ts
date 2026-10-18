@@ -82,6 +82,40 @@ export class PageApprovalService {
     });
   }
 
+  // canAccessDraft for many users in a fixed number of queries.
+  async getUserIdsWithDraftAccess(
+    page: ApprovalPage,
+    candidateUserIds: string[],
+    state?: ApprovalState,
+  ): Promise<string[]> {
+    const userIds = [...new Set(candidateUserIds)];
+    if (userIds.length === 0) return [];
+
+    const [spaceRoles, pageAccess, approverIds] = await Promise.all([
+      this.spaceMemberRepo.getUsersSpaceRoles(userIds, page.spaceId),
+      this.pagePermissionRepo.canUsersEditPage(page.id, userIds),
+      this.getEffectiveApproverIds(page, state),
+    ]);
+
+    const rolesByUser = new Map<string, typeof spaceRoles>();
+    for (const row of spaceRoles) {
+      rolesByUser.set(row.userId, [...(rolesByUser.get(row.userId) ?? []), row]);
+    }
+    const approvers = new Set(approverIds);
+
+    return userIds.filter((userId) => {
+      const spaceRole = findHighestUserSpaceRole(rolesByUser.get(userId));
+      if (!spaceRole) return false;
+
+      const { hasAnyRestriction, canAccess, canEdit } = pageAccess.get(userId);
+      if (hasAnyRestriction && !canAccess) return false;
+      if (hasAnyRestriction ? canEdit : spaceRole !== SpaceRole.READER) {
+        return true;
+      }
+      return approvers.has(userId);
+    });
+  }
+
   // Counts as draft access only for users already checked to view the page.
   async isEffectiveApprover(
     userId: string,

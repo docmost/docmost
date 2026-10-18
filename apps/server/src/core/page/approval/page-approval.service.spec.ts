@@ -134,34 +134,48 @@ function fakeDatabase(fixture: Fixture) {
   };
 }
 
+type EditPermission = {
+  hasAnyRestriction: boolean;
+  canAccess: boolean;
+  canEdit: boolean;
+};
+
 function makeService(
   opts: {
     fixture?: Fixture;
     roles?: Record<string, string>;
-    editPermission?: {
-      hasAnyRestriction: boolean;
-      canAccess: boolean;
-      canEdit: boolean;
-    };
+    editPermission?: EditPermission;
+    editPermissionByUser?: Record<string, EditPermission>;
   } = {},
 ) {
   const { db, queries } = makeDb(fakeDatabase(opts.fixture ?? {}));
   const roles = opts.roles ?? {};
+  const editPermissionFor = (userId: string): EditPermission =>
+    opts.editPermissionByUser?.[userId] ??
+    opts.editPermission ?? {
+      hasAnyRestriction: false,
+      canAccess: true,
+      canEdit: true,
+    };
   const spaceMemberRepo = {
     getUserSpaceRoles: jest.fn(async (userId: string) =>
       roles[userId] ? [{ userId, role: roles[userId] }] : undefined,
     ),
+    getUsersSpaceRoles: jest.fn(async (userIds: string[]) =>
+      userIds
+        .filter((userId) => roles[userId])
+        .map((userId) => ({ userId, role: roles[userId] })),
+    ),
   };
   const pagePermissionRepo = {
-    canUserEditPage: jest.fn(
-      async () =>
-        opts.editPermission ?? {
-          hasAnyRestriction: false,
-          canAccess: true,
-          canEdit: true,
-        },
+    canUserEditPage: jest.fn(async (userId: string) => editPermissionFor(userId)),
+    canUsersEditPage: jest.fn(
+      async (_pageId: string, userIds: string[]) =>
+        new Map(userIds.map((userId) => [userId, editPermissionFor(userId)])),
     ),
-    canUserAccessPage: jest.fn(async () => true),
+    canUserAccessPage: jest.fn(
+      async (userId: string) => editPermissionFor(userId).canAccess,
+    ),
     findHiddenUnpublishedAncestor: jest.fn(
       async (): Promise<string | null> => null,
     ),
@@ -428,6 +442,148 @@ describe('PageApprovalService.canAccessDraft', () => {
 
     expect(await service.canAccessDraft({ id: APPROVER }, PAGE)).toBe(false);
   });
+});
+
+describe('PageApprovalService.getUserIdsWithDraftAccess', () => {
+  const fixture: Fixture = {
+    pages: { page_1: { settings: approvalSpace([APPROVER]) } },
+    users: [{ id: APPROVER }],
+  };
+  const unrestricted = { hasAnyRestriction: false, canAccess: true, canEdit: true };
+
+  it('returns the writer and the reader approver, not the plain reader', async () => {
+    const { service, spaceMemberRepo, pagePermissionRepo } = makeService({
+      fixture,
+      roles: { [WRITER]: 'writer', [READER]: 'reader', [APPROVER]: 'reader' },
+    });
+
+    expect(
+      await service.getUserIdsWithDraftAccess(PAGE, [WRITER, READER, APPROVER]),
+    ).toEqual([WRITER, APPROVER]);
+    expect(spaceMemberRepo.getUsersSpaceRoles).toHaveBeenCalledTimes(1);
+    expect(spaceMemberRepo.getUsersSpaceRoles).toHaveBeenCalledWith(
+      [WRITER, READER, APPROVER],
+      SPACE,
+    );
+    expect(pagePermissionRepo.canUsersEditPage).toHaveBeenCalledTimes(1);
+    expect(pagePermissionRepo.canUsersEditPage).toHaveBeenCalledWith(PAGE.id, [
+      WRITER,
+      READER,
+      APPROVER,
+    ]);
+    expect(spaceMemberRepo.getUserSpaceRoles).not.toHaveBeenCalled();
+    expect(pagePermissionRepo.canUserEditPage).not.toHaveBeenCalled();
+    expect(pagePermissionRepo.canUserAccessPage).not.toHaveBeenCalled();
+  });
+
+  it('runs the same queries for one candidate and for many', async () => {
+    const many = Array.from(
+      { length: 40 },
+      (_, i) => `00000000-0000-7000-8000-1${String(i).padStart(11, '0')}`,
+    );
+    const run = async (candidates: string[]) => {
+      const { service, queries, spaceMemberRepo, pagePermissionRepo } =
+        makeService({
+          fixture,
+          roles: Object.fromEntries(many.map((id) => [id, 'reader'])),
+        });
+      expect(await service.getUserIdsWithDraftAccess(PAGE, candidates)).toEqual(
+        [],
+      );
+      return (
+        queries.length +
+        spaceMemberRepo.getUsersSpaceRoles.mock.calls.length +
+        pagePermissionRepo.canUsersEditPage.mock.calls.length
+      );
+    };
+
+    expect(await run(many)).toBe(await run(many.slice(0, 1)));
+  });
+
+  it('applies page-level roles on restricted pages', async () => {
+    const PAGE_WRITER = '00000000-0000-7000-8000-000000000007';
+    const { service } = makeService({
+      fixture,
+      roles: {
+        [WRITER]: 'writer',
+        [PAGE_WRITER]: 'reader',
+        [APPROVER]: 'reader',
+      },
+      editPermissionByUser: {
+        [WRITER]: { hasAnyRestriction: true, canAccess: true, canEdit: false },
+        [PAGE_WRITER]: { hasAnyRestriction: true, canAccess: true, canEdit: true },
+        [APPROVER]: { hasAnyRestriction: true, canAccess: false, canEdit: false },
+      },
+    });
+
+    expect(
+      await service.getUserIdsWithDraftAccess(PAGE, [WRITER, PAGE_WRITER, APPROVER]),
+    ).toEqual([PAGE_WRITER]);
+  });
+
+  it('drops approvers and writers who are not space members, and duplicates', async () => {
+    const { service } = makeService({ fixture, roles: { [WRITER]: 'writer' } });
+
+    expect(
+      await service.getUserIdsWithDraftAccess(PAGE, [APPROVER, WRITER, WRITER]),
+    ).toEqual([WRITER]);
+  });
+
+  it('skips every lookup for no candidates', async () => {
+    const { service, queries, spaceMemberRepo, pagePermissionRepo } =
+      makeService({ fixture });
+
+    expect(await service.getUserIdsWithDraftAccess(PAGE, [])).toEqual([]);
+    expect(queries).toHaveLength(0);
+    expect(spaceMemberRepo.getUsersSpaceRoles).not.toHaveBeenCalled();
+    expect(pagePermissionRepo.canUsersEditPage).not.toHaveBeenCalled();
+  });
+
+  it('uses a given state instead of reading it again', async () => {
+    const { service, queries } = makeService({
+      fixture,
+      roles: { [APPROVER]: 'reader' },
+    });
+    const state = await service.getState(PAGE);
+    queries.length = 0;
+
+    expect(await service.getUserIdsWithDraftAccess(PAGE, [APPROVER], state)).toEqual([
+      APPROVER,
+    ]);
+    expect(queries.some((q) => q.sql.includes('as "verification_type"'))).toBe(
+      false,
+    );
+  });
+
+  const parityCases: Array<[string, string | undefined, EditPermission, boolean]> = [
+    ['space admin', 'admin', unrestricted, false],
+    ['space writer', 'writer', unrestricted, false],
+    ['space reader', 'reader', unrestricted, false],
+    ['space reader approver', 'reader', unrestricted, true],
+    ['page writer', 'reader', { hasAnyRestriction: true, canAccess: true, canEdit: true }, false],
+    ['page reader writer-role', 'writer', { hasAnyRestriction: true, canAccess: true, canEdit: false }, false],
+    ['page reader approver', 'reader', { hasAnyRestriction: true, canAccess: true, canEdit: false }, true],
+    ['no page access approver', 'reader', { hasAnyRestriction: true, canAccess: false, canEdit: false }, true],
+    ['no page access admin', 'admin', { hasAnyRestriction: true, canAccess: false, canEdit: false }, false],
+    ['approver outside the space', undefined, unrestricted, true],
+  ];
+
+  it.each(parityCases)(
+    'agrees with canAccessDraft: %s',
+    async (_name, role, editPermission, approver) => {
+      const user = approver ? APPROVER : WRITER;
+      const { service } = makeService({
+        fixture,
+        roles: role ? { [user]: role } : {},
+        editPermission,
+      });
+
+      const single = await service.canAccessDraft({ id: user }, PAGE);
+      const batch = await service.getUserIdsWithDraftAccess(PAGE, [user]);
+
+      expect(batch.includes(user)).toBe(single);
+    },
+  );
 });
 
 describe('PageApprovalService.isEffectiveApprover', () => {

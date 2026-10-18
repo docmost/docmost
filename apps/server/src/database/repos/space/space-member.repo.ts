@@ -263,6 +263,29 @@ export class SpaceMemberRepo {
     );
   }
 
+  /** Direct and group roles of many users in one space, one row per membership. */
+  async getUsersSpaceRoles(
+    userIds: string[],
+    spaceId: string,
+  ): Promise<UserSpaceRole[]> {
+    if (userIds.length === 0) return [];
+
+    return this.db
+      .selectFrom('spaceMembers')
+      .select(['userId', 'role'])
+      .where('userId', 'in', userIds)
+      .where('spaceId', '=', spaceId)
+      .unionAll(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select(['groupUsers.userId', 'spaceMembers.role'])
+          .where('groupUsers.userId', 'in', userIds)
+          .where('spaceMembers.spaceId', '=', spaceId),
+      )
+      .execute();
+  }
+
   async getUserIdsWithSpaceAccess(
     userIds: string[],
     spaceId: string,

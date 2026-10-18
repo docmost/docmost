@@ -154,12 +154,25 @@ export function removeMarkTypeFromDoc(doc: Node, markName: string): Node {
   return tr.doc;
 }
 
+// Walks the JSON without a schema, so unknown node and mark types pass through.
 export function stripCommentMarks(prosemirrorJson: any): any {
-  if (!prosemirrorJson) return prosemirrorJson;
-  return removeMarkTypeFromDoc(
-    jsonToNode(prosemirrorJson),
-    'comment',
-  ).toJSON();
+  if (!prosemirrorJson || typeof prosemirrorJson !== 'object') {
+    return prosemirrorJson;
+  }
+
+  const node = { ...prosemirrorJson };
+  if (Array.isArray(node.marks)) {
+    const marks = node.marks.filter((mark: any) => mark?.type !== 'comment');
+    if (marks.length > 0) {
+      node.marks = marks;
+    } else {
+      delete node.marks;
+    }
+  }
+  if (Array.isArray(node.content)) {
+    node.content = node.content.map(stripCommentMarks);
+  }
+  return node;
 }
 
 export function createYdocFromJson(prosemirrorJson: any): Buffer | null {

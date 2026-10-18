@@ -471,6 +471,76 @@ export class PagePermissionRepo {
     );
   }
 
+  /** canUserEditPage for many users in one uncached query. */
+  async canUsersEditPage(
+    pageId: string,
+    userIds: string[],
+  ): Promise<
+    Map<
+      string,
+      { hasAnyRestriction: boolean; canAccess: boolean; canEdit: boolean }
+    >
+  > {
+    const access = new Map<
+      string,
+      { hasAnyRestriction: boolean; canAccess: boolean; canEdit: boolean }
+    >();
+    if (userIds.length === 0) return access;
+
+    const result = await sql<{
+      userId: string;
+      canAccess: boolean;
+      canEdit: boolean | null;
+    }>`
+      WITH RECURSIVE ancestors AS (
+        SELECT id AS ancestor_id, parent_page_id, 0 AS depth
+        FROM pages
+        WHERE id = ${pageId}::uuid
+        UNION ALL
+        SELECT p.id, p.parent_page_id, a.depth + 1
+        FROM pages p
+        JOIN ancestors a ON a.parent_page_id = p.id
+      )
+      SELECT
+        cu.user_id AS "userId",
+        bool_and(pp.id IS NOT NULL) AS "canAccess",
+        (array_agg(pp.role ORDER BY a.depth ASC, pp.role DESC NULLS LAST))[1] = 'writer' AS "canEdit"
+      FROM unnest(${userIds}::uuid[]) AS cu(user_id)
+      CROSS JOIN ancestors a
+      JOIN page_access pa ON pa.page_id = a.ancestor_id
+      LEFT JOIN page_permissions pp ON pp.page_access_id = pa.id
+        AND (
+          pp.user_id = cu.user_id
+          OR pp.group_id IN (
+            SELECT gu.group_id FROM group_users gu WHERE gu.user_id = cu.user_id
+          )
+        )
+      GROUP BY cu.user_id
+    `.execute(this.db);
+
+    // Every user gets a row when the page or an ancestor is restricted, none otherwise.
+    const restricted = result.rows.length > 0;
+    const rows = new Map(result.rows.map((row) => [row.userId, row]));
+    for (const userId of userIds) {
+      const row = rows.get(userId);
+      if (!restricted) {
+        access.set(userId, {
+          hasAnyRestriction: false,
+          canAccess: true,
+          canEdit: true,
+        });
+        continue;
+      }
+      const canAccess = row?.canAccess ?? false;
+      access.set(userId, {
+        hasAnyRestriction: true,
+        canAccess,
+        canEdit: canAccess && (row?.canEdit ?? false),
+      });
+    }
+    return access;
+  }
+
   /**
    * Get user's access level for a page.
    * Returns:
