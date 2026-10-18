@@ -417,6 +417,94 @@ describe('PageAccessService', () => {
     });
   });
 
+  describe('validateCanViewReaderOnly', () => {
+    it('is false for users who can edit, without the approval lookup', async () => {
+      const writer = makeService({ role: 'writer', state: IN_REVIEW, hidden: true });
+      const pageLevelWriter = makeService({
+        role: 'reader',
+        restriction: RESTRICTED_WRITER,
+        state: IN_REVIEW,
+        hidden: true,
+      });
+
+      for (const { service, pageApprovalService } of [writer, pageLevelWriter]) {
+        expect(await service.validateCanViewReaderOnly(PAGE, USER)).toBe(false);
+        expect(pageApprovalService.getState).not.toHaveBeenCalled();
+        expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+        expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+      }
+    });
+
+    it('is true for a reader of a controlled page, after the hidden check', async () => {
+      const { service, pageApprovalService } = makeService({
+        role: 'reader',
+        state: IN_REVIEW,
+        approver: false,
+      });
+
+      expect(await service.validateCanViewReaderOnly(PAGE, USER)).toBe(true);
+      expect(pageApprovalService.isHiddenFromUser).toHaveBeenCalledWith(
+        USER.id,
+        PAGE,
+        IN_REVIEW,
+      );
+    });
+
+    it('is false for an effective approver of a controlled page, without the hidden lookup', async () => {
+      const { service, pageApprovalService } = makeService({
+        role: 'reader',
+        state: UNPUBLISHED,
+        approver: true,
+        hidden: true,
+      });
+
+      expect(await service.validateCanViewReaderOnly(PAGE, USER)).toBe(false);
+      expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+    });
+
+    it('is false for a reader of an uncontrolled page, still checking hidden ancestors', async () => {
+      const { service, pageApprovalService } = makeService({
+        role: 'reader',
+        approver: true,
+      });
+
+      expect(await service.validateCanViewReaderOnly(PAGE, USER)).toBe(false);
+      expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+      expect(pageApprovalService.isHiddenFromUser).toHaveBeenCalledWith(
+        USER.id,
+        PAGE,
+        UNCONTROLLED,
+      );
+    });
+
+    it('rejects a reader of a hidden page with NotFoundException', async () => {
+      const { service } = makeService({
+        role: 'reader',
+        state: UNPUBLISHED,
+        approver: false,
+        hidden: true,
+      });
+
+      await expect(service.validateCanViewReaderOnly(PAGE, USER)).rejects.toThrow(
+        new NotFoundException('Page not found'),
+      );
+    });
+
+    it('keeps ForbiddenException for a restricted page without revealing approval state', async () => {
+      const { service, pageApprovalService } = makeService({
+        role: 'reader',
+        restriction: RESTRICTED_NO_ACCESS,
+        state: UNPUBLISHED,
+        hidden: true,
+      });
+
+      await expect(service.validateCanViewReaderOnly(PAGE, USER)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(pageApprovalService.getState).not.toHaveBeenCalled();
+    });
+  });
+
   describe('validateCanEdit', () => {
     it('rejects a hidden page with NotFoundException instead of ForbiddenException', async () => {
       const { service } = makeService({ role: 'reader', hidden: true });

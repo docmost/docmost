@@ -51,7 +51,7 @@ export class AttachmentService {
     spaceId: string;
     workspaceId: string;
     attachmentId?: string;
-    approval?: Pick<ApprovalState, 'controlled' | 'locked'> | null;
+    approval?: Pick<ApprovalState, 'locked'> | null;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
     const preparedFile: PreparedFile = await prepareFile(filePromise, {
@@ -67,7 +67,7 @@ export class AttachmentService {
       const existingAttachment = await this.attachmentRepo.findById(
         opts.attachmentId,
       );
-      if (!existingAttachment) {
+      if (!existingAttachment || existingAttachment.deletedAt) {
         throw new NotFoundException(
           'Existing attachment to overwrite not found',
         );
@@ -81,10 +81,9 @@ export class AttachmentService {
         throw new BadRequestException('File attachment does not match');
       }
 
-      // An unknown approval state is treated as controlled, so it never overwrites in place.
+      // An unknown approval state is treated as locked, so nothing is replaced.
       const mode = resolveUploadMode({
-        controlled: opts.approval?.controlled ?? true,
-        locked: opts.approval?.locked ?? false,
+        locked: opts.approval?.locked ?? true,
         existing: existingAttachment,
       });
       if (mode === 'refuse') {

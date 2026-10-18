@@ -481,13 +481,15 @@ export class AttachmentController {
       throw new NotFoundException('Page not found');
     }
 
-    const { approval } =
-      await this.pageAccessService.validateCanViewWithPermissions(page, user);
+    const readerOnly = await this.pageAccessService.validateCanViewReaderOnly(
+      page,
+      user,
+    );
 
     const result = await this.attachmentRepo.findPageAttachments(
       page.id,
       pagination,
-      { publishedOnly: approval.controlled && !approval.canAccessDraft },
+      { publishedOnly: readerOnly },
     );
 
     return {
@@ -613,9 +615,10 @@ export class AttachmentController {
       return true;
     }
 
-    const { approval } =
-      await this.pageAccessService.validateCanViewWithPermissions(page, user);
-    return !approval.controlled || approval.canAccessDraft;
+    return !(await this.pageAccessService.validateCanViewReaderOnly(
+      page,
+      user,
+    ));
   }
 
   private buildFileUrl(workspace: Workspace, attachment: Attachment): string {

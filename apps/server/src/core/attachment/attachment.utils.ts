@@ -82,14 +82,13 @@ export const validAttachmentTypes = Object.values(AttachmentType);
 
 export type UploadMode = 'new' | 'replace' | 'copy-on-write' | 'refuse';
 
-// Published attachments and attachments of approval-controlled pages are never overwritten in place.
+// Published files may back reader versions, so they are copied instead of overwritten.
 export function resolveUploadMode(input: {
-  controlled: boolean;
   locked: boolean;
   existing: { publishedAt: Date | null } | null;
 }): UploadMode {
   if (!input.existing) return 'new';
   if (input.locked) return 'refuse';
-  if (input.controlled || input.existing.publishedAt) return 'copy-on-write';
+  if (input.existing.publishedAt) return 'copy-on-write';
   return 'replace';
 }

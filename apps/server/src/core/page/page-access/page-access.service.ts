@@ -94,17 +94,27 @@ export class PageAccessService {
     const { canEdit, hasRestriction } = await this.checkPageAccess(page, user);
 
     const state = await this.pageApprovalService.getState(page);
-    // Approvers have draft access only on controlled pages; elsewhere it is edit access.
     const canAccessDraft =
-      canEdit ||
-      (state.controlled &&
-        (await this.pageApprovalService.isEffectiveApprover(
-          user.id,
-          page,
-          state,
-        )));
+      canEdit || (await this.isControlledApprover(page, user, state));
 
     return { canEdit, hasRestriction, state, canAccessDraft };
+  }
+
+  /**
+   * Validate user can view page and return whether they only get its reader-visible data:
+   * no draft access on an approval-controlled page. Users who can edit skip the approval lookup.
+   */
+  async validateCanViewReaderOnly(page: Page, user: User): Promise<boolean> {
+    const { canEdit } = await this.checkPageAccess(page, user);
+    if (canEdit) return false;
+
+    const state = await this.pageApprovalService.getState(page);
+    const canAccessDraft = await this.isControlledApprover(page, user, state);
+    if (!canAccessDraft) {
+      await this.assertNotHidden(page, user, state);
+    }
+
+    return state.controlled && !canAccessDraft;
   }
 
   /**
@@ -186,6 +196,16 @@ export class PageAccessService {
         : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
       hasRestriction: hasAnyRestriction,
     };
+  }
+
+  // Approvers have draft access only on controlled pages; elsewhere it is edit access.
+  private async isControlledApprover(
+    page: Page,
+    user: User,
+    state: ApprovalState,
+  ): Promise<boolean> {
+    if (!state.controlled) return false;
+    return this.pageApprovalService.isEffectiveApprover(user.id, page, state);
   }
 
   // Callers skip users who can edit (they always have draft access) and run it after the restriction check.

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Readable } from 'stream';
 import { AttachmentService } from './attachment.service';
 import { PAGE_LOCKED_MESSAGE } from '../../page/approval/page-approval.utils';
@@ -8,6 +8,7 @@ const PAGE_ID = '01a14cce-0000-7000-8000-0000000000b1';
 const SPACE_ID = '01a14cce-0000-7000-8000-0000000000c1';
 const EXISTING_ID = '01a14cce-0000-7000-8000-0000000000a1';
 const NEW_BODY = '<svg>new</svg>';
+const PUBLISHED_AT = new Date('2026-10-01T00:00:00Z');
 
 const existingAttachment = (overrides: Record<string, unknown> = {}) => ({
   id: EXISTING_ID,
@@ -82,10 +83,19 @@ function upload(
   });
 }
 
+function expectNothingWritten(
+  storageService: { upload: jest.Mock },
+  attachmentRepo: { updateAttachment: jest.Mock; insertAttachment: jest.Mock },
+) {
+  expect(storageService.upload).not.toHaveBeenCalled();
+  expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
+  expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+}
+
 describe('AttachmentService.uploadFile', () => {
   it('copies a published attachment to a new id and leaves the old file untouched', async () => {
     const { service, attachmentRepo, uploads } = makeService(
-      existingAttachment({ publishedAt: new Date('2026-10-01T00:00:00Z') }),
+      existingAttachment({ publishedAt: PUBLISHED_AT }),
     );
 
     const result = await upload(service, { controlled: false, locked: false });
@@ -111,37 +121,40 @@ describe('AttachmentService.uploadFile', () => {
     ]);
   });
 
-  it('copies an unpublished attachment on a controlled page', async () => {
-    const { service, attachmentRepo, uploads } = makeService(
-      existingAttachment(),
+  it('copies a published attachment on a controlled page', async () => {
+    const { service, attachmentRepo } = makeService(
+      existingAttachment({ publishedAt: PUBLISHED_AT }),
     );
 
     const result = await upload(service, { controlled: true, locked: false });
 
     expect(result.id).not.toBe(EXISTING_ID);
     expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
-    expect(uploads.map((u) => u.path)).toEqual([
-      `${WORKSPACE_ID}/files/${result.id}/diagram.drawio.svg`,
-    ]);
   });
 
-  it('replaces an unpublished attachment in place on an uncontrolled page', async () => {
-    const { service, attachmentRepo, uploads } = makeService(
-      existingAttachment(),
-    );
+  it.each([
+    ['an uncontrolled', false],
+    ['a controlled', true],
+  ])(
+    'replaces an unpublished attachment in place on %s page',
+    async (_label, controlled) => {
+      const { service, attachmentRepo, uploads } = makeService(
+        existingAttachment(),
+      );
 
-    const result = await upload(service, { controlled: false, locked: false });
+      const result = await upload(service, { controlled, locked: false });
 
-    expect(result.id).toBe(EXISTING_ID);
-    expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
-    expect(attachmentRepo.updateAttachment).toHaveBeenCalledWith(
-      expect.objectContaining({ fileSize: NEW_BODY.length }),
-      EXISTING_ID,
-    );
-    expect(uploads.map((u) => u.path)).toEqual([
-      `${WORKSPACE_ID}/files/${EXISTING_ID}/diagram.drawio.svg`,
-    ]);
-  });
+      expect(result.id).toBe(EXISTING_ID);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+      expect(attachmentRepo.updateAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({ fileSize: NEW_BODY.length }),
+        EXISTING_ID,
+      );
+      expect(uploads.map((u) => u.path)).toEqual([
+        `${WORKSPACE_ID}/files/${EXISTING_ID}/diagram.drawio.svg`,
+      ]);
+    },
+  );
 
   it('refuses a replace on a locked page before writing anything', async () => {
     const { service, storageService, attachmentRepo } = makeService(
@@ -155,18 +168,32 @@ describe('AttachmentService.uploadFile', () => {
 
     expect(error).toBeInstanceOf(BadRequestException);
     expect(error.message).toBe(PAGE_LOCKED_MESSAGE);
-    expect(storageService.upload).not.toHaveBeenCalled();
-    expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
-    expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    expectNothingWritten(storageService, attachmentRepo);
   });
 
-  it('never overwrites in place when the approval state is unknown', async () => {
-    const { service, attachmentRepo } = makeService(existingAttachment());
+  it('refuses a replace when the approval state is unknown', async () => {
+    const { service, storageService, attachmentRepo } = makeService(
+      existingAttachment(),
+    );
 
-    const result = await upload(service, undefined);
+    const error = await upload(service, undefined).catch((err) => err);
 
-    expect(result.id).not.toBe(EXISTING_ID);
-    expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
+    expect(error).toBeInstanceOf(BadRequestException);
+    expectNothingWritten(storageService, attachmentRepo);
+  });
+
+  it('answers not found for a soft-deleted attachment without writing anything', async () => {
+    const { service, storageService, attachmentRepo } = makeService(
+      existingAttachment({ deletedAt: new Date() }),
+    );
+
+    const error = await upload(service, {
+      controlled: false,
+      locked: false,
+    }).catch((err) => err);
+
+    expect(error).toBeInstanceOf(NotFoundException);
+    expectNothingWritten(storageService, attachmentRepo);
   });
 
   it('stores a new upload under a new id', async () => {

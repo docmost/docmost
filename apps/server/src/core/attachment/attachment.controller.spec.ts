@@ -76,11 +76,9 @@ function makeController(
   const pageAccessService = {
     validateCanView: jest.fn(async () => undefined),
     validateCanEdit: jest.fn(async () => ({ hasRestriction: false })),
-    validateCanViewWithPermissions: jest.fn(async () => ({
-      canEdit: approval.canAccessDraft,
-      hasRestriction: false,
-      approval,
-    })),
+    validateCanViewReaderOnly: jest.fn(
+      async () => approval.controlled && !approval.canAccessDraft,
+    ),
   };
   const domainService = { getUrl: () => 'https://acme.example.test' };
   const auditService = { log: jest.fn() };
@@ -143,13 +141,17 @@ describe('AttachmentController GET /files/:fileId', () => {
   });
 
   it('serves an unpublished attachment of a controlled page to draft users', async () => {
-    const { controller, storageService } = makeController({
+    const { controller, storageService, pageAccessService } = makeController({
       attachment: attachment(),
       approval: DRAFT_USER,
     });
 
     await getFile(controller);
 
+    expect(pageAccessService.validateCanViewReaderOnly).toHaveBeenCalledWith(
+      expect.objectContaining({ id: PAGE_ID }),
+      USER,
+    );
     expect(storageService.readStream).toHaveBeenCalledWith(
       `ws-1/files/${FILE_ID}/report.pdf`,
     );
@@ -164,9 +166,7 @@ describe('AttachmentController GET /files/:fileId', () => {
     await getFile(controller);
 
     expect(pageAccessService.validateCanView).toHaveBeenCalled();
-    expect(
-      pageAccessService.validateCanViewWithPermissions,
-    ).not.toHaveBeenCalled();
+    expect(pageAccessService.validateCanViewReaderOnly).not.toHaveBeenCalled();
     expect(storageService.readStream).toHaveBeenCalled();
   });
 
@@ -192,6 +192,7 @@ describe('AttachmentController GET /files/:fileId', () => {
 
     await expect(getFile(controller)).rejects.toBeInstanceOf(NotFoundException);
     expect(pageAccessService.validateCanView).not.toHaveBeenCalled();
+    expect(pageAccessService.validateCanViewReaderOnly).not.toHaveBeenCalled();
     expect(storageService.readStream).not.toHaveBeenCalled();
   });
 });
@@ -309,12 +310,16 @@ describe('AttachmentController POST /pages/attachments', () => {
     );
 
   it('lists only published attachments to readers of a controlled page', async () => {
-    const { controller, attachmentRepo } = makeController({
+    const { controller, attachmentRepo, pageAccessService } = makeController({
       approval: READER,
     });
 
     await list(controller);
 
+    expect(pageAccessService.validateCanViewReaderOnly).toHaveBeenCalledWith(
+      expect.objectContaining({ id: PAGE_ID }),
+      USER,
+    );
     expect(attachmentRepo.findPageAttachments).toHaveBeenCalledWith(
       PAGE_ID,
       expect.anything(),

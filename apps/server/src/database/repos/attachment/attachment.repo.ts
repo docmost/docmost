@@ -195,6 +195,7 @@ export class AttachmentRepo {
 
   // Not scoped to a page: approved content may reference attachments owned by other pages.
   async markPublished(
+    workspaceId: string,
     attachmentIds: string[],
     trx?: KyselyTransaction,
   ): Promise<void> {
@@ -204,6 +205,8 @@ export class AttachmentRepo {
       .updateTable('attachments')
       .set({ publishedAt: sql`now()` })
       .where('id', 'in', attachmentIds)
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', AttachmentType.File)
       .where('publishedAt', 'is', null)
       .where('deletedAt', 'is', null)
       .execute();
