@@ -14,6 +14,22 @@ const APPROVAL_STATUSES: ApprovalStatus[] = [
 
 export const PAGE_LOCKED_MESSAGE = 'This page is in review and cannot be edited.';
 
+export const DRAFT_CONTENT_NOTE =
+  'This is the unpublished draft of an approval-controlled page.';
+
+// MCP and AI chat outputs with draft content say so, before any other note.
+export function withDraftNote<T extends object>(
+  value: T,
+  isDraft: boolean,
+): T & { note?: string } {
+  if (!isDraft) return value;
+  const note = (value as { note?: string }).note;
+  return {
+    ...value,
+    note: note ? `${DRAFT_CONTENT_NOTE} ${note}` : DRAFT_CONTENT_NOTE,
+  };
+}
+
 export function isApprovalControlled(input: {
   isBase: boolean;
   verificationType: string | null;

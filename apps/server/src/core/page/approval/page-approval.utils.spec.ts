@@ -1,5 +1,6 @@
 import {
   buildApprovalState,
+  DRAFT_CONTENT_NOTE,
   effectiveDraftTitleIcon,
   isApprovalControlled,
   isApprovalLocked,
@@ -7,6 +8,7 @@ import {
   mergeApproverIds,
   readSpaceApprovalSettings,
   toDraftTitleIcon,
+  withDraftNote,
 } from './page-approval.utils';
 
 describe('isApprovalControlled', () => {
@@ -147,6 +149,26 @@ describe('toDraftTitleIcon', () => {
       title: 'T',
       icon: undefined,
     });
+  });
+});
+
+describe('withDraftNote', () => {
+  it('adds the draft note to draft content', () => {
+    expect(withDraftNote({ id: 'p1' }, true)).toEqual({
+      id: 'p1',
+      note: DRAFT_CONTENT_NOTE,
+    });
+  });
+
+  it('puts the draft note before an existing note', () => {
+    expect(withDraftNote({ note: 'This page is large.' }, true).note).toBe(
+      `${DRAFT_CONTENT_NOTE} This page is large.`,
+    );
+  });
+
+  it('returns approved content unchanged', () => {
+    const value = { id: 'p1', note: 'This page is large.' };
+    expect(withDraftNote(value, false)).toBe(value);
   });
 });
 
