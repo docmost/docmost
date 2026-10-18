@@ -43,7 +43,7 @@ function makeService(
     restriction?: typeof UNRESTRICTED;
     hidden?: boolean;
     state?: ApprovalState;
-    canAccessDraft?: boolean;
+    approver?: boolean;
     allowViewerComments?: boolean;
   } = {},
 ) {
@@ -66,7 +66,8 @@ function makeService(
   const pageApprovalService = {
     isHiddenFromUser: jest.fn(async () => !!opts.hidden),
     getState: jest.fn(async () => opts.state ?? UNCONTROLLED),
-    canAccessDraft: jest.fn(async () => !!opts.canAccessDraft),
+    isEffectiveApprover: jest.fn(async () => !!opts.approver),
+    canAccessDraft: jest.fn(async () => true),
   };
 
   const service = new PageAccessService(
@@ -76,7 +77,13 @@ function makeService(
     pageApprovalService as any,
   );
 
-  return { service, pageApprovalService };
+  return {
+    service,
+    pageApprovalService,
+    spaceMemberRepo,
+    pagePermissionRepo,
+    spaceRepo,
+  };
 }
 
 describe('PageAccessService', () => {
@@ -162,12 +169,12 @@ describe('PageAccessService', () => {
       const approver = makeService({
         role: 'reader',
         state: IN_REVIEW,
-        canAccessDraft: true,
+        approver: true,
       });
       const reader = makeService({
         role: 'reader',
         state: IN_REVIEW,
-        canAccessDraft: false,
+        approver: false,
       });
 
       const approverResult = await approver.service.validateCanViewWithPermissions(
@@ -181,11 +188,52 @@ describe('PageAccessService', () => {
 
       expect(approverResult.approval.canAccessDraft).toBe(true);
       expect(readerResult.approval.canAccessDraft).toBe(false);
-      expect(approver.pageApprovalService.canAccessDraft).toHaveBeenCalledWith(
-        USER,
+      expect(
+        approver.pageApprovalService.isEffectiveApprover,
+      ).toHaveBeenCalledWith(USER.id, PAGE, IN_REVIEW);
+    });
+
+    it('asks a reader of a controlled page only for approval rights, reusing its own permission lookups', async () => {
+      const { service, pageApprovalService, spaceMemberRepo, pagePermissionRepo } =
+        makeService({ role: 'reader', state: IN_REVIEW, approver: true });
+
+      await service.validateCanViewWithPermissions(PAGE, USER);
+
+      expect(pageApprovalService.isEffectiveApprover).toHaveBeenCalledTimes(1);
+      expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
+      expect(spaceMemberRepo.getUserSpaceRoles).toHaveBeenCalledTimes(1);
+      expect(pagePermissionRepo.canUserEditPage).toHaveBeenCalledTimes(1);
+    });
+
+    it('on an uncontrolled page does not call canAccessDraft for a reader but still checks hidden ancestors', async () => {
+      const { service, pageApprovalService } = makeService({
+        role: 'reader',
+        state: UNCONTROLLED,
+      });
+
+      const result = await service.validateCanViewWithPermissions(PAGE, USER);
+
+      expect(result.approval.canAccessDraft).toBe(false);
+      expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
+      expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+      expect(pageApprovalService.isHiddenFromUser).toHaveBeenCalledTimes(1);
+      expect(pageApprovalService.isHiddenFromUser).toHaveBeenCalledWith(
+        USER.id,
         PAGE,
-        IN_REVIEW,
+        UNCONTROLLED,
       );
+    });
+
+    it('rejects a reader of an uncontrolled page under an unpublished ancestor', async () => {
+      const { service } = makeService({
+        role: 'reader',
+        state: UNCONTROLLED,
+        hidden: true,
+      });
+
+      await expect(
+        service.validateCanViewWithPermissions(PAGE, USER),
+      ).rejects.toThrow(new NotFoundException('Page not found'));
     });
 
     it('rejects with NotFoundException when the page is hidden from the user', async () => {
@@ -226,14 +274,14 @@ describe('PageAccessService', () => {
         restriction: RESTRICTED_READER,
         hidden: true,
         state: UNPUBLISHED,
-        canAccessDraft: false,
+        approver: false,
       });
 
       await expect(
         service.validateCanViewWithPermissions(PAGE, USER),
       ).rejects.toThrow(new NotFoundException('Page not found'));
-      expect(pageApprovalService.canAccessDraft).toHaveBeenCalledWith(
-        USER,
+      expect(pageApprovalService.isEffectiveApprover).toHaveBeenCalledWith(
+        USER.id,
         PAGE,
         UNPUBLISHED,
       );
@@ -243,12 +291,12 @@ describe('PageAccessService', () => {
       const reader = makeService({
         role: 'reader',
         state: IN_REVIEW,
-        canAccessDraft: false,
+        approver: false,
       });
       const approver = makeService({
         role: 'reader',
         state: IN_REVIEW,
-        canAccessDraft: true,
+        approver: true,
       });
 
       const readerResult = await reader.service.validateCanViewWithPermissions(
@@ -291,7 +339,7 @@ describe('PageAccessService', () => {
       const { service, pageApprovalService } = makeService({
         role: 'writer',
         state: IN_REVIEW,
-        canAccessDraft: false,
+        approver: false,
         hidden: true,
       });
 
@@ -299,6 +347,7 @@ describe('PageAccessService', () => {
 
       expect(result.approval.canAccessDraft).toBe(true);
       expect(result.approval.locked).toBe(true);
+      expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
       expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
       expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
     });
@@ -307,7 +356,7 @@ describe('PageAccessService', () => {
       const { service, pageApprovalService } = makeService({
         role: 'reader',
         state: UNPUBLISHED,
-        canAccessDraft: true,
+        approver: true,
         hidden: true,
       });
 
@@ -423,6 +472,56 @@ describe('PageAccessService', () => {
       await expect(
         service.validateCanComment(PAGE, USER, 'workspace-1'),
       ).resolves.toBeUndefined();
+    });
+
+    it('runs the access and hidden lookups once for a non-editor', async () => {
+      const { service, pageApprovalService, spaceMemberRepo, pagePermissionRepo } =
+        makeService({ role: 'reader', hidden: false, allowViewerComments: true });
+
+      await service.validateCanComment(PAGE, USER, 'workspace-1');
+
+      expect(pageApprovalService.isHiddenFromUser).toHaveBeenCalledTimes(1);
+      expect(spaceMemberRepo.getUserSpaceRoles).toHaveBeenCalledTimes(1);
+      expect(pagePermissionRepo.canUserEditPage).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects readers when viewer comments are off', async () => {
+      const { service } = makeService({
+        role: 'reader',
+        hidden: false,
+        allowViewerComments: false,
+      });
+
+      await expect(
+        service.validateCanComment(PAGE, USER, 'workspace-1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('keeps ForbiddenException for a restricted page without revealing whether it is hidden', async () => {
+      const { service, pageApprovalService } = makeService({
+        role: 'writer',
+        restriction: RESTRICTED_NO_ACCESS,
+        hidden: true,
+        allowViewerComments: true,
+      });
+
+      await expect(
+        service.validateCanComment(PAGE, USER, 'workspace-1'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+    });
+
+    it('lets editors comment without the hidden lookup or the space settings', async () => {
+      const { service, pageApprovalService, spaceRepo } = makeService({
+        role: 'writer',
+        hidden: true,
+      });
+
+      await expect(
+        service.validateCanComment(PAGE, USER, 'workspace-1'),
+      ).resolves.toBeUndefined();
+      expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+      expect(spaceRepo.findById).not.toHaveBeenCalled();
     });
   });
 });

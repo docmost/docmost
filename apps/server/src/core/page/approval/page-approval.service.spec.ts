@@ -430,6 +430,44 @@ describe('PageApprovalService.canAccessDraft', () => {
   });
 });
 
+describe('PageApprovalService.isEffectiveApprover', () => {
+  it('is true for a space approver and a qms verifier, false for anyone else, without permission lookups', async () => {
+    const { service, spaceMemberRepo, pagePermissionRepo } = makeService({
+      fixture: {
+        pages: {
+          page_1: {
+            settings: approvalSpace([APPROVER]),
+            verification: { id: 'v1', type: 'qms', source: 'page' },
+          },
+        },
+        verifiers: [{ pageId: 'page_1', userId: ADMIN, type: 'qms' }],
+        users: [{ id: APPROVER }],
+      },
+    });
+
+    expect(await service.isEffectiveApprover(APPROVER, PAGE)).toBe(true);
+    expect(await service.isEffectiveApprover(ADMIN, PAGE)).toBe(true);
+    expect(await service.isEffectiveApprover(READER, PAGE)).toBe(false);
+    expect(spaceMemberRepo.getUserSpaceRoles).not.toHaveBeenCalled();
+    expect(pagePermissionRepo.canUserEditPage).not.toHaveBeenCalled();
+    expect(pagePermissionRepo.canUserAccessPage).not.toHaveBeenCalled();
+  });
+
+  it('uses a given state instead of reading it again', async () => {
+    const { service, queries } = makeService({
+      fixture: {
+        pages: { page_1: { verification: { id: 'v1', type: 'qms', source: 'page' } } },
+        verifiers: [{ pageId: 'page_1', userId: APPROVER, type: 'qms' }],
+      },
+    });
+    const state = await service.getState(PAGE);
+    queries.length = 0;
+
+    expect(await service.isEffectiveApprover(APPROVER, PAGE, state)).toBe(true);
+    expect(queries).toHaveLength(1);
+  });
+});
+
 describe('PageApprovalService.isWorkflowManager', () => {
   it('is false for a plain writer and true for a space admin and an effective approver', async () => {
     const { service } = makeService({

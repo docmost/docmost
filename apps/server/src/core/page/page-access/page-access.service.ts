@@ -3,12 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MongoAbility } from '@casl/ability';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import SpaceAbilityFactory from '../../casl/abilities/space-ability.factory';
 import {
-  ISpaceAbility,
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
@@ -38,27 +36,8 @@ export class PageAccessService {
     opts?: CacheOptions,
   ): Promise<void> {
     // TODO: cache by pageId and userId.
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      page.spaceId,
-      opts,
-    );
-
-    // User must be at least a space member
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    const permission = await this.pagePermissionRepo.canUserEditPage(
-      user.id,
-      page.id,
-      opts,
-    );
-    if (!permission.canAccess) {
-      throw new ForbiddenException();
-    }
-
-    if (!this.canEditWith(ability, permission)) {
+    const { canEdit } = await this.checkPageAccess(page, user, opts);
+    if (!canEdit) {
       await this.assertNotHidden(page, user);
     }
   }
@@ -80,26 +59,18 @@ export class PageAccessService {
       unpublished: boolean;
     };
   }> {
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    const { canEdit, hasRestriction } = await this.checkPageAccess(page, user);
 
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    const permission = await this.pagePermissionRepo.canUserEditPage(
-      user.id,
-      page.id,
-    );
-
-    if (permission.hasAnyRestriction && !permission.canAccess) {
-      throw new ForbiddenException();
-    }
-
-    const canEdit = this.canEditWith(ability, permission);
     const state = await this.pageApprovalService.getState(page);
+    // Approvers have draft access only on controlled pages; elsewhere it is edit access.
     const canAccessDraft =
       canEdit ||
-      (await this.pageApprovalService.canAccessDraft(user, page, state));
+      (state.controlled &&
+        (await this.pageApprovalService.isEffectiveApprover(
+          user.id,
+          page,
+          state,
+        )));
 
     if (!canAccessDraft) {
       await this.assertNotHidden(page, user, state);
@@ -107,7 +78,7 @@ export class PageAccessService {
 
     return {
       canEdit,
-      hasRestriction: permission.hasAnyRestriction,
+      hasRestriction,
       approval: {
         controlled: state.controlled,
         canAccessDraft,
@@ -127,28 +98,14 @@ export class PageAccessService {
     page: Page,
     user: User,
   ): Promise<{ hasRestriction: boolean }> {
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    const { canEdit, hasRestriction } = await this.checkPageAccess(page, user);
 
-    // User must be at least a space member
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    const permission = await this.pagePermissionRepo.canUserEditPage(
-      user.id,
-      page.id,
-    );
-
-    if (permission.hasAnyRestriction && !permission.canAccess) {
-      throw new ForbiddenException();
-    }
-
-    if (!this.canEditWith(ability, permission)) {
+    if (!canEdit) {
       await this.assertNotHidden(page, user);
       throw new ForbiddenException();
     }
 
-    return { hasRestriction: permission.hasAnyRestriction };
+    return { hasRestriction };
   }
 
   /**
@@ -167,14 +124,10 @@ export class PageAccessService {
     user: User,
     workspaceId: string,
   ): Promise<void> {
-    try {
-      await this.validateCanEdit(page, user);
-      return;
-    } catch {
-      // User cannot edit — check if reader commenting is enabled
-    }
+    const { canEdit } = await this.checkPageAccess(page, user);
+    if (canEdit) return;
 
-    await this.validateCanView(page, user);
+    await this.assertNotHidden(page, user);
 
     const space = await this.spaceRepo.findById(page.spaceId, workspaceId);
     const settings = space?.settings as Record<string, any> | null;
@@ -183,14 +136,37 @@ export class PageAccessService {
     }
   }
 
-  // Restricted pages use the page-level role, others the space role.
-  private canEditWith(
-    ability: MongoAbility<ISpaceAbility>,
-    permission: { hasAnyRestriction: boolean; canEdit: boolean },
-  ): boolean {
-    return permission.hasAnyRestriction
-      ? permission.canEdit
-      : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page);
+  // Space membership and page restrictions, shared by every validator.
+  private async checkPageAccess(
+    page: Page,
+    user: User,
+    opts?: CacheOptions,
+  ): Promise<{ canEdit: boolean; hasRestriction: boolean }> {
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+      opts,
+    );
+
+    // User must be at least a space member
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const { hasAnyRestriction, canAccess, canEdit } =
+      await this.pagePermissionRepo.canUserEditPage(user.id, page.id, opts);
+
+    if (hasAnyRestriction && !canAccess) {
+      throw new ForbiddenException();
+    }
+
+    // Restricted pages use the page-level role, others the space role
+    return {
+      canEdit: hasAnyRestriction
+        ? canEdit
+        : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
+      hasRestriction: hasAnyRestriction,
+    };
   }
 
   // Callers skip users who can edit (they always have draft access) and run it after the restriction check.

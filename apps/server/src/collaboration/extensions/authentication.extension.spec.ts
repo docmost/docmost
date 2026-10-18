@@ -33,7 +33,7 @@ const IN_REVIEW = buildApprovalState({
 type ApprovalMock = {
   state?: ApprovalState;
   hiddenUserIds?: string[];
-  draftUserIds?: string[];
+  approverUserIds?: string[];
 };
 
 function makeConnection(userId: string, readOnly = false) {
@@ -102,10 +102,12 @@ async function makeExtension(
     isHiddenFromUser: jest.fn(
       async (userId: string) => approval.hiddenUserIds?.includes(userId) ?? false,
     ),
-    canAccessDraft: jest.fn(
-      async (user: { id: string }) =>
-        approval.draftUserIds?.includes(user.id) ?? false,
+    isEffectiveApprover: jest.fn(
+      async (userId: string) =>
+        approval.approverUserIds?.includes(userId) ?? false,
     ),
+    // would let anyone in, so a test fails if getAccess falls back to it
+    canAccessDraft: jest.fn(async () => true),
   };
   const extension = new AuthenticationExtension(
     tokenService as any,
@@ -220,7 +222,7 @@ describe('AuthenticationExtension access recheck', () => {
     const { extension } = await makeExtension(
       { user_reader: READER, user_writer: WRITER },
       { [`page.${PAGE_1}`]: [reader, editor] },
-      { state: PUBLISHED, draftUserIds: ['user_writer'] },
+      { state: PUBLISHED },
     );
 
     await extension.recheckAccess({ pageIds: [PAGE_1] });
@@ -237,7 +239,7 @@ describe('AuthenticationExtension access recheck', () => {
     const { extension } = await makeExtension(
       { user_writer: WRITER },
       { [`page.${PAGE_1}`]: [editor] },
-      { state: IN_REVIEW, draftUserIds: ['user_writer'] },
+      { state: IN_REVIEW },
     );
 
     await extension.recheckAccess({ pageIds: [PAGE_1] });
@@ -366,28 +368,33 @@ describe('AuthenticationExtension onAuthenticate', () => {
   });
 
   it('opens approvers who cannot edit read-only on a controlled page', async () => {
-    const { extension } = await makeExtension(
+    const { extension, pageApprovalService } = await makeExtension(
       { user_approver: READER },
       {},
-      { state: PUBLISHED, draftUserIds: ['user_approver'] },
+      { state: PUBLISHED, approverUserIds: ['user_approver'] },
     );
 
     const payload = authPayload('user_approver');
     await extension.onAuthenticate(payload);
 
     expect(payload.connectionConfig.readOnly).toBe(true);
+    expect(pageApprovalService.isEffectiveApprover).toHaveBeenCalledWith(
+      'user_approver',
+      expect.objectContaining({ id: PAGE_1 }),
+      PUBLISHED,
+    );
   });
 
   it('opens editors read-only while the page is in review and writable otherwise', async () => {
     const locked = await makeExtension(
       { user_writer: WRITER },
       {},
-      { state: IN_REVIEW, draftUserIds: ['user_writer'] },
+      { state: IN_REVIEW },
     );
     const unlocked = await makeExtension(
       { user_writer: WRITER },
       {},
-      { state: PUBLISHED, draftUserIds: ['user_writer'] },
+      { state: PUBLISHED },
     );
 
     const lockedPayload = authPayload('user_writer');
@@ -397,11 +404,58 @@ describe('AuthenticationExtension onAuthenticate', () => {
 
     expect(lockedPayload.connectionConfig.readOnly).toBe(true);
     expect(unlockedPayload.connectionConfig.readOnly).toBe(false);
-    expect(unlocked.pageApprovalService.canAccessDraft).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'user_writer' }),
-      expect.objectContaining({ id: PAGE_1 }),
-      PUBLISHED,
+    expect(unlocked.pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+  });
+
+  it('reuses its own permission lookups for draft access instead of canAccessDraft', async () => {
+    const { extension, pageApprovalService, spaceMemberRepo, pagePermissionRepo } =
+      await makeExtension(
+        { user_approver: READER },
+        {},
+        { state: PUBLISHED, approverUserIds: ['user_approver'] },
+      );
+
+    await extension.onAuthenticate(authPayload('user_approver'));
+
+    expect(spaceMemberRepo.getUserSpaceRoles).toHaveBeenCalledTimes(1);
+    expect(pagePermissionRepo.canUserEditPage).toHaveBeenCalledTimes(1);
+    expect(pageApprovalService.isEffectiveApprover).toHaveBeenCalledTimes(1);
+    expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
+  });
+
+  it('skips the approval lookups for users without access to the page', async () => {
+    const { extension, pageApprovalService } = await makeExtension(
+      { user_none: undefined },
+      {},
+      { state: PUBLISHED, hiddenUserIds: ['user_none'] },
     );
+
+    await expect(
+      extension.onAuthenticate(authPayload('user_none')),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+    expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+    expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
+  });
+
+  it('skips the approval lookups on a restricted page the user cannot access', async () => {
+    const { extension, pageApprovalService, pagePermissionRepo } =
+      await makeExtension(
+        { user_approver: READER },
+        {},
+        { state: PUBLISHED, approverUserIds: ['user_approver'] },
+      );
+    pagePermissionRepo.canUserEditPage.mockResolvedValue({
+      hasAnyRestriction: true,
+      canAccess: false,
+      canEdit: false,
+    });
+
+    await expect(
+      extension.onAuthenticate(authPayload('user_approver')),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+    expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
   });
 
   it('rejects a page hidden from the user by an unpublished ancestor', async () => {
@@ -423,13 +477,30 @@ describe('AuthenticationExtension onAuthenticate', () => {
 
   it('skips the hidden lookup for users with draft access', async () => {
     const { extension, pageApprovalService } = await makeExtension(
-      { user_writer: WRITER },
+      { user_writer: WRITER, user_approver: READER },
       {},
       {
         state: PUBLISHED,
-        draftUserIds: ['user_writer'],
-        hiddenUserIds: ['user_writer'],
+        approverUserIds: ['user_approver'],
+        hiddenUserIds: ['user_writer', 'user_approver'],
       },
+    );
+
+    const writerPayload = authPayload('user_writer');
+    const approverPayload = authPayload('user_approver');
+    await extension.onAuthenticate(writerPayload);
+    await extension.onAuthenticate(approverPayload);
+
+    expect(writerPayload.connectionConfig.readOnly).toBe(false);
+    expect(approverPayload.connectionConfig.readOnly).toBe(true);
+    expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+  });
+
+  it('getAccess for an editor on an uncontrolled page does not call isHiddenFromUser', async () => {
+    const { extension, pageApprovalService } = await makeExtension(
+      { user_writer: WRITER },
+      {},
+      { hiddenUserIds: ['user_writer'] },
     );
 
     const payload = authPayload('user_writer');
@@ -437,17 +508,20 @@ describe('AuthenticationExtension onAuthenticate', () => {
 
     expect(payload.connectionConfig.readOnly).toBe(false);
     expect(pageApprovalService.isHiddenFromUser).not.toHaveBeenCalled();
+    expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
+    expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
   });
 
-  it('skips the draft access lookup on an uncontrolled page', async () => {
+  it('still checks hidden ancestors for a reader of an uncontrolled page', async () => {
     const { extension, pageApprovalService } = await makeExtension({
-      user_writer: WRITER,
+      user_reader: READER,
     });
 
-    const payload = authPayload('user_writer');
+    const payload = authPayload('user_reader');
     await extension.onAuthenticate(payload);
 
-    expect(payload.connectionConfig.readOnly).toBe(false);
-    expect(pageApprovalService.canAccessDraft).not.toHaveBeenCalled();
+    expect(payload.connectionConfig.readOnly).toBe(true);
+    expect(pageApprovalService.isHiddenFromUser).toHaveBeenCalledTimes(1);
+    expect(pageApprovalService.isEffectiveApprover).not.toHaveBeenCalled();
   });
 });

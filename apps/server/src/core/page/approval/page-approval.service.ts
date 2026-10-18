@@ -75,12 +75,21 @@ export class PageApprovalService {
     if (!spaceRole) return false;
     if (canEdit) return true;
 
-    const approverIds = await this.getEffectiveApproverIds(page, state);
-    if (!approverIds.includes(user.id)) return false;
+    if (!(await this.isEffectiveApprover(user.id, page, state))) return false;
 
     return this.pagePermissionRepo.canUserAccessPage(user.id, page.id, {
       skipCache: true,
     });
+  }
+
+  // Counts as draft access only for users already checked to view the page.
+  async isEffectiveApprover(
+    userId: string,
+    page: ApprovalPage,
+    state?: ApprovalState,
+  ): Promise<boolean> {
+    const approverIds = await this.getEffectiveApproverIds(page, state);
+    return approverIds.includes(userId);
   }
 
   async isWorkflowManager(
@@ -95,8 +104,7 @@ export class PageApprovalService {
     );
     if (findHighestUserSpaceRole(spaceRoles) === SpaceRole.ADMIN) return true;
 
-    const approverIds = await this.getEffectiveApproverIds(page, state);
-    return approverIds.includes(user.id);
+    return this.isEffectiveApprover(user.id, page, state);
   }
 
   async isHiddenFromUser(

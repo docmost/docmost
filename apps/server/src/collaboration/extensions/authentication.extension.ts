@@ -226,20 +226,31 @@ export class AuthenticationExtension implements Extension {
       ]);
 
     const userSpaceRole = findHighestUserSpaceRole(spaceRoles);
+    const restrictedNoAccess = hasAnyRestriction && !canAccess;
+    const canView = !!userSpaceRole && !restrictedNoAccess;
+    const canWrite = hasAnyRestriction
+      ? canEdit
+      : userSpaceRole !== SpaceRole.READER;
+    // the resolver denies users who cannot view, so the approval lookups skip them
     const canAccessDraft =
-      state.controlled &&
-      (await this.pageApprovalService.canAccessDraft(user, page, state));
+      canView &&
+      (canWrite ||
+        (state.controlled &&
+          (await this.pageApprovalService.isEffectiveApprover(
+            user.id,
+            page,
+            state,
+          ))));
     // draft access to the page itself means it is never hidden
     const hidden =
+      canView &&
       !canAccessDraft &&
       (await this.pageApprovalService.isHiddenFromUser(user.id, page, state));
 
     return resolveCollabAccess({
       hasSpaceRole: !!userSpaceRole,
-      restrictedNoAccess: hasAnyRestriction && !canAccess,
-      canWrite: hasAnyRestriction
-        ? canEdit
-        : userSpaceRole !== SpaceRole.READER,
+      restrictedNoAccess,
+      canWrite,
       deleted: !!page.deletedAt,
       controlled: state.controlled,
       canAccessDraft,
