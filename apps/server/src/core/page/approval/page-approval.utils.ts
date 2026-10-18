@@ -121,21 +121,28 @@ function requiresApproval(spaceSettings: unknown): boolean {
   return space.enabled || space.disabling;
 }
 
-// Moving out of approval publishes drafts, so only a source space admin may do it.
+// Any move out of an approval space needs its admin, so approved pages cannot be laundered elsewhere.
 export function planSpaceMove(
-  sourceSettings: unknown,
-  targetSettings: unknown,
+  source: { id: string; settings: unknown },
+  target: { id: string; settings: unknown },
 ): {
   requiresSourceAdmin: boolean;
   publishSpaceControlled: boolean;
   divertMovedPages: boolean;
 } {
-  const leavesApproval =
-    requiresApproval(sourceSettings) && !requiresApproval(targetSettings);
+  if (source.id === target.id) {
+    return {
+      requiresSourceAdmin: false,
+      publishSpaceControlled: false,
+      divertMovedPages: false,
+    };
+  }
+  const fromApproval = requiresApproval(source.settings);
+  const intoApproval = requiresApproval(target.settings);
   return {
-    requiresSourceAdmin: leavesApproval,
-    publishSpaceControlled: leavesApproval,
-    divertMovedPages: requiresApproval(targetSettings),
+    requiresSourceAdmin: fromApproval,
+    publishSpaceControlled: fromApproval && !intoApproval,
+    divertMovedPages: intoApproval,
   };
 }
 

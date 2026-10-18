@@ -406,10 +406,17 @@ describe('planSpaceMove', () => {
   const on = { approval: { enabled: true, approverIds: ['u'] } };
   const disabling = { approval: { enabled: false, disabling: true } };
   const off = { approval: { enabled: false } };
+  const source = (settings: unknown) => ({ id: 'space_a', settings });
+  const target = (settings: unknown) => ({ id: 'space_b', settings });
+  const nothing = {
+    requiresSourceAdmin: false,
+    publishSpaceControlled: false,
+    divertMovedPages: false,
+  };
 
   it('publishes space-controlled drafts and needs a source admin when leaving approval', () => {
-    for (const target of [off, null]) {
-      expect(planSpaceMove(on, target)).toEqual({
+    for (const settings of [off, null]) {
+      expect(planSpaceMove(source(on), target(settings))).toEqual({
         requiresSourceAdmin: true,
         publishSpaceControlled: true,
         divertMovedPages: false,
@@ -417,9 +424,19 @@ describe('planSpaceMove', () => {
     }
   });
 
-  it('diverts moved pages when entering approval, from any space', () => {
-    for (const source of [null, off, on, disabling]) {
-      expect(planSpaceMove(source, on)).toEqual({
+  it('needs a source admin for a move between two approval spaces and diverts there', () => {
+    for (const settings of [on, disabling]) {
+      expect(planSpaceMove(source(settings), target(on))).toEqual({
+        requiresSourceAdmin: true,
+        publishSpaceControlled: false,
+        divertMovedPages: true,
+      });
+    }
+  });
+
+  it('diverts moved pages entering approval from a space without it, with no source admin', () => {
+    for (const settings of [null, off]) {
+      expect(planSpaceMove(source(settings), target(on))).toEqual({
         requiresSourceAdmin: false,
         publishSpaceControlled: false,
         divertMovedPages: true,
@@ -428,21 +445,29 @@ describe('planSpaceMove', () => {
   });
 
   it('treats a space that is being disabled as requiring approval', () => {
-    expect(planSpaceMove(disabling, off)).toMatchObject({
+    expect(planSpaceMove(source(disabling), target(off))).toMatchObject({
       requiresSourceAdmin: true,
       publishSpaceControlled: true,
     });
-    expect(planSpaceMove(off, disabling)).toMatchObject({
+    expect(planSpaceMove(source(off), target(disabling))).toMatchObject({
+      requiresSourceAdmin: false,
       divertMovedPages: true,
     });
   });
 
   it('changes nothing between spaces without approval', () => {
-    expect(planSpaceMove(null, off)).toEqual({
-      requiresSourceAdmin: false,
-      publishSpaceControlled: false,
-      divertMovedPages: false,
-    });
+    expect(planSpaceMove(source(null), target(off))).toEqual(nothing);
+  });
+
+  it('changes nothing when source and target are the same space', () => {
+    for (const settings of [on, disabling, off, null]) {
+      expect(
+        planSpaceMove(
+          { id: 'space_a', settings },
+          { id: 'space_a', settings },
+        ),
+      ).toEqual(nothing);
+    }
   });
 });
 

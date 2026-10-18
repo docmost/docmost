@@ -625,11 +625,8 @@ export class PageController {
     await this.pageAccessService.validateCanEdit(movedPage, user);
 
     // Moves only accessible pages; inaccessible child pages become root pages in original space
-    const { childPageIds } = await this.pageService.movePageToSpace(
-      movedPage,
-      dto.spaceId,
-      user.id,
-    );
+    const { childPageIds, removedApproverIds } =
+      await this.pageService.movePageToSpace(movedPage, dto.spaceId, user.id);
 
     this.auditService.log({
       event: AuditEvent.PAGE_MOVED_TO_SPACE,
@@ -643,6 +640,7 @@ export class PageController {
       metadata: {
         title: getPageTitle(movedPage.title),
         ...(childPageIds.length > 0 && { childPageIds }),
+        ...(removedApproverIds.length > 0 && { removedApproverIds }),
       },
     });
   }

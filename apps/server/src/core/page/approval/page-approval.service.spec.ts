@@ -1044,3 +1044,35 @@ describe('PageApprovalService.findSpaceControlledPageIds', () => {
     expect(queries).toHaveLength(0);
   });
 });
+
+describe('PageApprovalService.removePageApprovers', () => {
+  it("deletes the approvers of the pages' qms rows and returns the distinct user ids", async () => {
+    const { service, queries } = makeService();
+    const trx = makeDb((query) =>
+      query.sql.startsWith('delete from "page_verifiers"')
+        ? [{ user_id: 'u1' }, { user_id: 'u2' }, { user_id: 'u1' }]
+        : [],
+    );
+
+    expect(
+      await service.removePageApprovers(['p1', 'p2'], trx.db as any),
+    ).toEqual(['u1', 'u2']);
+
+    expect(queries).toHaveLength(0);
+    expect(trx.queries).toHaveLength(1);
+    const [remove] = trx.queries;
+    expect(remove.sql).toMatch(
+      /^delete from "page_verifiers" using "page_verifications" where "page_verifications"."id" = "page_verifiers"."page_verification_id"/,
+    );
+    expect(boundValue(remove, '"page_verifications"."type" =')).toBe('qms');
+    expect(remove.parameters).toEqual(expect.arrayContaining(['p1', 'p2']));
+    expect(remove.sql).toContain('returning "page_verifiers"."user_id"');
+  });
+
+  it('runs no query for no pages', async () => {
+    const { service } = makeService();
+    const trx = makeDb(() => []);
+    expect(await service.removePageApprovers([], trx.db as any)).toEqual([]);
+    expect(trx.queries).toHaveLength(0);
+  });
+});

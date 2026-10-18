@@ -264,6 +264,25 @@ export class PageApprovalService {
     return verificationIds;
   }
 
+  // In an approval space the space approvers apply, so page approvers chosen elsewhere are dropped.
+  async removePageApprovers(
+    pageIds: string[],
+    trx: KyselyTransaction,
+  ): Promise<string[]> {
+    if (pageIds.length === 0) return [];
+
+    const removed = await trx
+      .deleteFrom('pageVerifiers')
+      .using('pageVerifications')
+      .whereRef('pageVerifications.id', '=', 'pageVerifiers.pageVerificationId')
+      .where('pageVerifications.pageId', 'in', pageIds)
+      .where('pageVerifications.type', '=', 'qms')
+      .returning('pageVerifiers.userId')
+      .execute();
+
+    return [...new Set(removed.map((row) => row.userId))];
+  }
+
   // Pages that lose approval control when they leave a space that requires approval.
   async findSpaceControlledPageIds(
     pageIds: string[],

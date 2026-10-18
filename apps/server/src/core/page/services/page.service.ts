@@ -497,7 +497,7 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
-    const { childPageIds, published } = await executeTx(this.db, async (trx) => {
+    const moved = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [rootPage.spaceId, spaceId],
         trx,
@@ -647,7 +647,7 @@ export class PageService {
         );
       }
 
-      const publishedDrafts = await this.applyApprovalMove(
+      const { published, removedApproverIds } = await this.applyApprovalMove(
         approvalPlan,
         pageIdsToMove,
         trx,
@@ -655,14 +655,21 @@ export class PageService {
       const movedById = new Map(accessiblePages.map((p) => [p.id, p]));
       return {
         childPageIds,
-        published: publishedDrafts.map(({ pageId, content }) => ({
+        removedApproverIds,
+        published: published.map(({ pageId, content }) => ({
           page: { ...movedById.get(pageId), spaceId } as Page,
           content,
         })),
       };
     });
 
-    for (const { page, content } of published) {
+    if (moved.removedApproverIds.length > 0) {
+      this.logger.debug(
+        `Moving page ${rootPage.id} into an approval space removed page approvers: ${moved.removedApproverIds.join(', ')}`,
+      );
+    }
+
+    for (const { page, content } of moved.published) {
       await this.pageApprovalPublishService.runPostPublish({
         page,
         content,
@@ -675,7 +682,10 @@ export class PageService {
     await this.wsService.invalidateSpaceRestrictionCache(spaceId);
     await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
 
-    return { childPageIds };
+    return {
+      childPageIds: moved.childPageIds,
+      removedApproverIds: moved.removedApproverIds,
+    };
   }
 
   private async planApprovalMove(
@@ -688,9 +698,11 @@ export class PageService {
       .select(['id', 'settings'])
       .where('id', 'in', [sourceSpaceId, targetSpaceId])
       .execute();
-    const settingsOf = (id: string) =>
-      spaces.find((space) => space.id === id)?.settings ?? null;
-    return planSpaceMove(settingsOf(sourceSpaceId), settingsOf(targetSpaceId));
+    const space = (id: string) => ({
+      id,
+      settings: spaces.find((row) => row.id === id)?.settings ?? null,
+    });
+    return planSpaceMove(space(sourceSpaceId), space(targetSpaceId));
   }
 
   // Runs after the moved rows carry the target space id.
@@ -698,8 +710,12 @@ export class PageService {
     plan: ReturnType<typeof planSpaceMove>,
     pageIds: string[],
     trx: KyselyTransaction,
-  ): Promise<Array<{ pageId: string; content: any }>> {
-    if (pageIds.length === 0) return [];
+  ): Promise<{
+    published: Array<{ pageId: string; content: any }>;
+    removedApproverIds: string[];
+  }> {
+    const unchanged = { published: [], removedApproverIds: [] };
+    if (pageIds.length === 0) return unchanged;
 
     if (plan.divertMovedPages) {
       await this.pageApprovalService.divertNewPages(pageIds, trx);
@@ -707,13 +723,15 @@ export class PageService {
         pageIds,
         trx,
       );
-      return [];
+      const removedApproverIds =
+        await this.pageApprovalService.removePageApprovers(pageIds, trx);
+      return { published: [], removedApproverIds };
     }
-    if (!plan.publishSpaceControlled) return [];
+    if (!plan.publishSpaceControlled) return unchanged;
 
     const publishIds =
       await this.pageApprovalService.findSpaceControlledPageIds(pageIds, trx);
-    if (publishIds.length === 0) return [];
+    if (publishIds.length === 0) return unchanged;
 
     const published: Array<{ pageId: string; content: any }> = [];
     for (const pageId of publishIds) {
@@ -727,7 +745,7 @@ export class PageService {
       .where('source', '=', 'space')
       .execute();
 
-    return published;
+    return { published, removedApproverIds: [] };
   }
 
   async duplicatePage(

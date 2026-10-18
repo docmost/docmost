@@ -73,6 +73,7 @@ function makeService(
     publishedSubtree?: { id: string; spaceId: string; isBase: boolean }[];
     workflowManagerOf?: string[];
     spaceControlledIds?: string[];
+    removedApproverIds?: string[];
   } = {},
 ) {
   const { db, queries } = makeDb((query) => {
@@ -128,6 +129,9 @@ function makeService(
     ),
     findSpaceControlledPageIds: jest.fn(
       async (_ids: string[], _trx?: unknown) => opts.spaceControlledIds ?? [],
+    ),
+    removePageApprovers: jest.fn(
+      async (_ids: string[], _trx?: unknown) => opts.removedApproverIds ?? [],
     ),
     isWorkflowManager: jest.fn(async (_user: unknown, page: { id: string }) =>
       (opts.workflowManagerOf ?? []).includes(page.id),
@@ -364,12 +368,16 @@ describe('PageService.movePageToSpace approval transitions', () => {
       }),
     );
     expect(deps.pageApprovalService.divertNewPages).not.toHaveBeenCalled();
+    expect(deps.pageApprovalService.removePageApprovers).not.toHaveBeenCalled();
   });
 
-  it('diverts moved pages and converts expiring rows after the move into an approval space', async () => {
-    const deps = makeService({ spaceSettings: { [TARGET]: APPROVAL_ON } });
+  it('diverts moved pages, converts expiring rows and drops page approvers after the move into an approval space', async () => {
+    const deps = makeService({
+      spaceSettings: { [TARGET]: APPROVAL_ON },
+      removedApproverIds: ['approver-1'],
+    });
 
-    await deps.service.movePageToSpace(ROOT, TARGET, 'user-1');
+    const result = await deps.service.movePageToSpace(ROOT, TARGET, 'user-1');
 
     const trx = deps.pageApprovalService.divertNewPages.mock.calls[0][1];
     expect(trx).toBeDefined();
@@ -380,6 +388,10 @@ describe('PageService.movePageToSpace approval transitions', () => {
     expect(
       deps.pageApprovalService.convertExpiringToSpaceControl,
     ).toHaveBeenCalledWith([ROOT_ID, CHILD_ID], trx);
+    expect(deps.pageApprovalService.removePageApprovers).toHaveBeenCalledWith(
+      [ROOT_ID, CHILD_ID],
+      trx,
+    );
     const lastMove = Math.max(...deps.pageRepo.updatePages.mock.invocationCallOrder);
     expect(
       deps.pageApprovalService.divertNewPages.mock.invocationCallOrder[0],
@@ -390,6 +402,10 @@ describe('PageService.movePageToSpace approval transitions', () => {
     ).toBeGreaterThan(
       deps.pageApprovalService.divertNewPages.mock.invocationCallOrder[0],
     );
+    expect(
+      deps.pageApprovalService.removePageApprovers.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(lastMove);
+    expect(result).toEqual({ childPageIds: [CHILD_ID], removedApproverIds: ['approver-1'] });
     expect(deps.spaceAbility.createForUser).not.toHaveBeenCalled();
     expect(
       deps.pageApprovalPublishService.publishDraftToPage,
@@ -397,14 +413,83 @@ describe('PageService.movePageToSpace approval transitions', () => {
     expect(deps.pageApprovalPublishService.runPostPublish).not.toHaveBeenCalled();
   });
 
+  it('refuses a move between two approval spaces without Manage Settings in the source space', async () => {
+    const deps = makeService({
+      spaceSettings: { [SOURCE]: APPROVAL_ON, [TARGET]: APPROVAL_ON },
+      canManageSource: false,
+    });
+
+    await expect(
+      deps.service.movePageToSpace(ROOT, TARGET, 'user-1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(deps.spaceAbility.createForUser).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'user-1' }),
+      SOURCE,
+    );
+    expect(deps.pageRepo.updatePage).not.toHaveBeenCalled();
+    expect(writesMovedRows(deps.queries)).toBe(false);
+    expect(deps.pageApprovalService.divertNewPages).not.toHaveBeenCalled();
+    expect(deps.pageApprovalService.removePageApprovers).not.toHaveBeenCalled();
+  });
+
+  it('lets a source admin move pages between approval spaces, diverting them without publishing drafts', async () => {
+    const deps = makeService({
+      spaceSettings: { [SOURCE]: APPROVAL_ON, [TARGET]: APPROVAL_ON },
+      canManageSource: true,
+      removedApproverIds: ['approver-1', 'approver-2'],
+    });
+
+    const result = await deps.service.movePageToSpace(ROOT, TARGET, 'user-1');
+
+    const trx = deps.pageApprovalService.divertNewPages.mock.calls[0][1];
+    expect(deps.pageApprovalService.divertNewPages).toHaveBeenCalledWith(
+      [ROOT_ID, CHILD_ID],
+      trx,
+    );
+    expect(deps.pageApprovalService.removePageApprovers).toHaveBeenCalledWith(
+      [ROOT_ID, CHILD_ID],
+      trx,
+    );
+    expect(result.removedApproverIds).toEqual(['approver-1', 'approver-2']);
+    expect(
+      deps.pageApprovalService.findSpaceControlledPageIds,
+    ).not.toHaveBeenCalled();
+    expect(
+      deps.pageApprovalPublishService.publishDraftToPage,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does no approval handling when source and target are the same space', async () => {
+    const deps = makeService({
+      spaceSettings: { [SOURCE]: APPROVAL_ON },
+      canManageSource: false,
+    });
+
+    const result = await deps.service.movePageToSpace(ROOT, SOURCE, 'user-1');
+
+    expect(result.removedApproverIds).toEqual([]);
+    expect(deps.spaceAbility.createForUser).not.toHaveBeenCalled();
+    expect(deps.pageApprovalService.divertNewPages).not.toHaveBeenCalled();
+    expect(deps.pageApprovalService.removePageApprovers).not.toHaveBeenCalled();
+    expect(
+      deps.pageApprovalService.findSpaceControlledPageIds,
+    ).not.toHaveBeenCalled();
+    expect(
+      deps.pageApprovalPublishService.publishDraftToPage,
+    ).not.toHaveBeenCalled();
+  });
+
   it('leaves approval state alone between spaces without approval', async () => {
     const deps = makeService();
 
-    await deps.service.movePageToSpace(ROOT, TARGET, 'user-1');
+    const result = await deps.service.movePageToSpace(ROOT, TARGET, 'user-1');
 
+    expect(result).toEqual({ childPageIds: [CHILD_ID], removedApproverIds: [] });
     expect(writesMovedRows(deps.queries)).toBe(true);
     expect(deps.spaceAbility.createForUser).not.toHaveBeenCalled();
     expect(deps.pageApprovalService.divertNewPages).not.toHaveBeenCalled();
+    expect(deps.pageApprovalService.removePageApprovers).not.toHaveBeenCalled();
     expect(
       deps.pageApprovalService.findSpaceControlledPageIds,
     ).not.toHaveBeenCalled();
