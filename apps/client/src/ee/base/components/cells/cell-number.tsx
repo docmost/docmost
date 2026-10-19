@@ -95,7 +95,6 @@ export function CellNumber({
   rowId,
   isEditing,
   onCommit,
-  onCancel,
 }: CellNumberProps) {
   const typeOptions = property.typeOptions as NumberTypeOptions | undefined;
   const { draft, setDraft, inputRef, handleKeyDown, handleBlur } =
@@ -103,7 +102,6 @@ export function CellNumber({
       value,
       isEditing,
       onCommit,
-      onCancel,
       toDraft,
       parse: parseNumberDraft,
       rowId,

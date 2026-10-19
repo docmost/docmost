@@ -15,13 +15,12 @@ type CellEmailProps = {
 const toDraft = (value: unknown) => (typeof value === "string" ? value : "");
 const parse = (draft: string) => draft || null;
 
-export function CellEmail({ value, property, rowId, isEditing, onCommit, onCancel }: CellEmailProps) {
+export function CellEmail({ value, property, rowId, isEditing, onCommit }: CellEmailProps) {
   const { draft, setDraft, inputRef, handleKeyDown, handleBlur } =
     useEditableTextCell({
       value,
       isEditing,
       onCommit,
-      onCancel,
       toDraft,
       parse,
       rowId,

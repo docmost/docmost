@@ -1573,5 +1573,6 @@
   "Move right": "Move right",
   "Delete tab": "Delete tab",
   "Tab label": "Tab label",
-  "Tab actions for {{name}}": "Tab actions for {{name}}"
+  "Tab actions for {{name}}": "Tab actions for {{name}}",
+  "Inline base": "Inline base"
 }
