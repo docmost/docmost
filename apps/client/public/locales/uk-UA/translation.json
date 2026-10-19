@@ -1573,5 +1573,6 @@
   "Move right": "Перемістити праворуч",
   "Delete tab": "Видалити вкладку",
   "Tab label": "Назва вкладки",
-  "Tab actions for {{name}}": "Дії вкладки для {{name}}"
+  "Tab actions for {{name}}": "Дії вкладки для {{name}}",
+  "Inline base": "Вбудована основа"
 }

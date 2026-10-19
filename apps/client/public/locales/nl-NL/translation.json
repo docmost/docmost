@@ -1573,5 +1573,6 @@
   "Move right": "Naar rechts verplaatsen",
   "Delete tab": "Tabblad verwijderen",
   "Tab label": "Tabbladlabel",
-  "Tab actions for {{name}}": "Tabbladacties voor {{name}}"
+  "Tab actions for {{name}}": "Tabbladacties voor {{name}}",
+  "Inline base": "Inline basis"
 }

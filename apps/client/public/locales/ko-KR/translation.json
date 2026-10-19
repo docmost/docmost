@@ -1573,5 +1573,6 @@
   "Move right": "오른쪽으로 이동",
   "Delete tab": "탭 삭제",
   "Tab label": "탭 레이블",
-  "Tab actions for {{name}}": "{{name}} 탭 작업"
+  "Tab actions for {{name}}": "{{name}} 탭 작업",
+  "Inline base": "인라인 베이스"
 }

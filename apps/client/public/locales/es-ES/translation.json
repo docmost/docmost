@@ -1573,5 +1573,6 @@
   "Move right": "Mover a la derecha",
   "Delete tab": "Eliminar pestaña",
   "Tab label": "Etiqueta de la pestaña",
-  "Tab actions for {{name}}": "Acciones de pestaña para {{name}}"
+  "Tab actions for {{name}}": "Acciones de pestaña para {{name}}",
+  "Inline base": "Base integrada"
 }

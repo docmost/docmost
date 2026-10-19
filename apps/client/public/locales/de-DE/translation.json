@@ -1573,5 +1573,6 @@
   "Move right": "Nach rechts verschieben",
   "Delete tab": "Tab löschen",
   "Tab label": "Tab-Beschriftung",
-  "Tab actions for {{name}}": "Tab-Aktionen für {{name}}"
+  "Tab actions for {{name}}": "Tab-Aktionen für {{name}}",
+  "Inline base": "Inline-Basis"
 }
