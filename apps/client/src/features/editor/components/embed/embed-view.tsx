@@ -35,9 +35,8 @@ function normalizeHostname(hostname: string) {
   return hostname.toLowerCase().replace(/\.$/, "");
 }
 
-function normalizePath(pathname: string) {
-  const path = pathname.replace(/\/+$/, "");
-  return path || "/";
+function normalizePath(path: string) {
+  return path.replace(/\/+$/, '') || '/';
 }
 
 function isBlacklistedUrl(url: string, blockedUrls: string[]): boolean {
@@ -189,7 +188,7 @@ export default function EmbedView(props: NodeViewProps) {
           position="bottom"
           withArrow
           shadow="md"
-          disabled={!editor.isEditable}
+          disabled={!editor.isEditable || isBlocked}
         >
           <Popover.Target>
             <Card
@@ -204,13 +203,15 @@ export default function EmbedView(props: NodeViewProps) {
               className={clsx(selected ? "ProseMirror-selectednode" : "")}
             >
               <div style={{ display: "flex", alignItems: "center" }}>
-                <ActionIcon
-                  variant="transparent"
-                  color="gray"
-                  aria-label={t("Edit embed")}
-                >
-                  <IconEdit size={18} />
-                </ActionIcon>
+                {!isBlocked && (
+                  <ActionIcon
+                    variant="transparent"
+                    color="gray"
+                    aria-label={t("Edit embed")}
+                  >
+                    <IconEdit size={18} />
+                  </ActionIcon>
+                )}
 
                 <Text component="span" size="lg" c="dimmed">
                   {isBlocked

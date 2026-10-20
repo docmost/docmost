@@ -19,7 +19,10 @@ import { v7 } from 'uuid';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { FileTask, InsertablePage } from '@docmost/db/types/entity.types';
 import { markdownToHtml } from '@docmost/editor-ext';
-import { getProsemirrorContent } from '../../../common/helpers/prosemirror/utils';
+import {
+  filterBlacklistedEmbeds,
+  getProsemirrorContent,
+} from '../../../common/helpers/prosemirror/utils';
 import { formatImportHtml } from '../utils/import-formatter';
 import {
   buildAttachmentCandidates,
@@ -470,6 +473,13 @@ export class FileImportTaskService {
 
     try {
       await executeTx(this.db, async (trx) => {
+        const workspace = await trx
+          .selectFrom('workspaces')
+          .select('settings')
+          .where('id', '=', fileTask.workspaceId)
+          .executeTakeFirst();
+        const embedBlacklist = workspace.settings?.['externalEmbeddingBlacklist'];
+
         // Process pages level by level sequentially within the transaction
         for (const level of sortedLevels) {
           const levelPages = pagesByLevel.get(level)!;
@@ -521,15 +531,19 @@ export class FileImportTaskService {
 
             const { title, prosemirrorJson } =
               this.importService.extractTitleAndRemoveHeading(pmState);
+            const filteredContent = filterBlacklistedEmbeds(
+              prosemirrorJson,
+              embedBlacklist,
+            );
 
             const insertablePage: InsertablePage = {
               id: page.id,
               slugId: page.slugId,
               title: title || page.name,
               icon: page.icon || pageIcon || null,
-              content: prosemirrorJson,
-              textContent: jsonToText(prosemirrorJson),
-              ydoc: await this.importService.createYdoc(prosemirrorJson),
+              content: filteredContent,
+              textContent: jsonToText(filteredContent),
+              ydoc: await this.importService.createYdoc(filteredContent),
               position: page.position!,
               spaceId: fileTask.spaceId,
               workspaceId: fileTask.workspaceId,

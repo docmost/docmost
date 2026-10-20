@@ -31,6 +31,7 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
+import { filterBlacklistedEmbeds } from '../../../common/helpers/prosemirror/utils';
 import { ImportAttachmentService } from "./import-attachment.service";
 
 @Injectable()
@@ -120,15 +121,25 @@ export class ImportService {
 
     if (prosemirrorJson) {
       try {
+        const workspace = await this.db
+          .selectFrom('workspaces')
+          .select('settings')
+          .where('id', '=', workspaceId)
+          .executeTakeFirst();
+        const embedBlacklist = workspace.settings?.['externalEmbeddingBlacklist'];
+        const filteredContent = filterBlacklistedEmbeds(
+          prosemirrorJson,
+          embedBlacklist
+        );
         const pagePosition = await this.getNewPagePosition(spaceId);
 
         createdPage = await this.pageRepo.insertPage({
           id: pageId,
           slugId: generateSlugId(),
           title: pageTitle,
-          content: prosemirrorJson,
-          textContent: jsonToText(prosemirrorJson),
-          ydoc: await this.createYdoc(prosemirrorJson),
+          content: filteredContent,
+          textContent: jsonToText(filteredContent),
+          ydoc: await this.createYdoc(filteredContent),
           position: pagePosition,
           spaceId: spaceId,
           creatorId: userId,
