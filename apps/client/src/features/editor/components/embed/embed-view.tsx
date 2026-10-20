@@ -155,7 +155,7 @@ export default function EmbedView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle className={classes.embedNodeView}>
-      {embedUrl && !isBlocked ? (
+      {embedUrl && workspace.isSuccess && !isBlocked ? (
         <div className={classes.embedContainer}>
           <ResizableWrapper
             initialWidth={nodeWidth || 800}
