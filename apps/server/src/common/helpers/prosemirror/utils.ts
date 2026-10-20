@@ -219,7 +219,9 @@ export function filterBlacklistedEmbeds(
   blacklist: string,
 ): JSONContent {
   let blockedUrls = [];
-  if(!blacklist) return;
+  if(!blacklist) {
+    return content
+  };
 
   try {
     blockedUrls = JSON.parse(blacklist);
@@ -230,7 +232,7 @@ export function filterBlacklistedEmbeds(
   if(!blockedUrls.length){
     return content;
   }
-  
+
   function filterNode(node: JSONContent): JSONContent | null {
     const src = node.attrs?.src;
 

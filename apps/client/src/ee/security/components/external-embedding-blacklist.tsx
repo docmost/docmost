@@ -16,9 +16,12 @@ import { IconTrash } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 export default function ExternalEmbeddingBlacklist() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
   const blacklistValue = workspace?.settings?.externalEmbeddingBlacklist;
   const blockedUrls = useMemo<string[]>(() => {
@@ -50,10 +53,15 @@ export default function ExternalEmbeddingBlacklist() {
         addExternalEmbeddingBlacklistUrl: normalizedUrl,
       });
       setWorkspace(updatedWorkspace);
+
+      await queryClient.refetchQueries({
+        queryKey: ["workspace-public"],
+        type: "all",
+      });
       setUrl("");
     } catch (err: any) {
       notifications.show({
-        message: err?.response?.data?.message || t("Failed to add blocked URL"),
+        message: err?.response?.data?.message || t("Failed to add URL"),
         color: "red",
       });
     } finally {
@@ -68,10 +76,15 @@ export default function ExternalEmbeddingBlacklist() {
         removeExternalEmbeddingBlacklistUrl: urlToRemove,
       });
       setWorkspace(updatedWorkspace);
+      
+      await queryClient.refetchQueries({
+        queryKey: ["workspace-public"],
+        type: "all",
+      });
     } catch (err: any) {
       notifications.show({
         message:
-          err?.response?.data?.message || t("Failed to remove blocked URL"),
+          err?.response?.data?.message || t("Failed to remove URL"),
         color: "red",
       });
     } finally {
@@ -84,7 +97,7 @@ export default function ExternalEmbeddingBlacklist() {
       <Text size="md">{t("Block external embeds")}</Text>
       <Text size="sm" c="dimmed">
         {t(
-          "Prevent content from these URLs from being displayed as page embeds."
+          "Prevent content from these URLs from being added as page embeds."
         )}
       </Text>
 
@@ -111,7 +124,7 @@ export default function ExternalEmbeddingBlacklist() {
 
         {blockedUrls.length > 0 && (
           <ScrollArea.Autosize mah={500} type="auto">
-            <Table withTableBorder withColumnBorders={false}>
+            <Table withTableBorder withColumnBorders={true}>
               <Table.Tbody>
                 {blockedUrls.map((blockedUrl) => (
                   <Table.Tr key={blockedUrl}>
