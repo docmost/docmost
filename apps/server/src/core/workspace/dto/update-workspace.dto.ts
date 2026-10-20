@@ -93,11 +93,11 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
 
   @IsOptional()
   @IsString()
-  @IsUrl({ protocols: ['http', 'https'], require_protocol: true, require_tld: false })
+  @IsUrl({ require_protocol: true, require_tld: false })
   addExternalEmbeddingBlacklistUrl: string;
 
   @IsOptional()
   @IsString()
-  @IsUrl({ protocols: ['http', 'https'], require_protocol: true, require_tld: false })
+  @IsUrl({ require_protocol: true, require_tld: false })
   removeExternalEmbeddingBlacklistUrl: string;
 }

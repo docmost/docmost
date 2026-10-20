@@ -188,7 +188,7 @@ export default function EmbedView(props: NodeViewProps) {
           position="bottom"
           withArrow
           shadow="md"
-          disabled={!editor.isEditable || isBlocked}
+          disabled={!editor.isEditable || !workspace.isSuccess || isBlocked}
         >
           <Popover.Target>
             <Card
@@ -203,7 +203,7 @@ export default function EmbedView(props: NodeViewProps) {
               className={clsx(selected ? "ProseMirror-selectednode" : "")}
             >
               <div style={{ display: "flex", alignItems: "center" }}>
-                {!isBlocked && (
+                {workspace.isSuccess && !isBlocked && (
                   <ActionIcon
                     variant="transparent"
                     color="gray"
