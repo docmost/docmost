@@ -110,7 +110,8 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
   // mounts) is reserved only for the skeleton/loading/table states.
   const isCompact = !pendingKey && (!pageId || isError);
 
-  const showControls = editor.isEditable && !pendingKey;
+  // Also on the skeleton, so a placeholder stuck pending can still be removed.
+  const showControls = editor.isEditable;
 
   let content: React.ReactNode;
   if (pendingKey) {
