@@ -18,6 +18,14 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 
+function isValidUrl(value: string): boolean {
+  try {
+    new URL(value);
+    return true
+  } catch {
+    return false;
+  }
+}
 
 export default function ExternalEmbeddingBlacklist() {
   const { t } = useTranslation();
@@ -45,6 +53,13 @@ export default function ExternalEmbeddingBlacklist() {
     const normalizedUrl = url.trim();
     if (!normalizedUrl || blockedUrls.includes(normalizedUrl)) {
       return;
+    }
+
+    if(!isValidUrl(normalizedUrl)){
+      notifications.show({
+        message: t("Invalid URL"),
+        color: "red"
+      })
     }
 
     setIsAdding(true);
