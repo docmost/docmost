@@ -8,7 +8,7 @@ overrides:
   prosemirror-changeset: 2.4.0
   glob: 13.0.6
   ws: 8.21.3
-  dompurify: 3.4.16
+  dompurify: 3.4.17
   mermaid: 11.16.1
   katex: 0.19.0
   undici: 7.29.1
@@ -17,7 +17,7 @@ overrides:
   lodash-es: 4.18.1
   flatted: 3.4.2
   find-my-way: 9.7.0
-  fastify: 5.12.5
+  fastify: 5.12.7
   yaml@>=2.0.0 <2.8.3: 2.8.3
   brace-expansion@^5: 5.0.12
   axios: 1.20.0
@@ -176,8 +176,8 @@ importers:
         specifier: 9.7.1
         version: 9.7.1
       dompurify:
-        specifier: 3.4.16
-        version: 3.4.16
+        specifier: 3.4.17
+        version: 3.4.17
       fractional-indexing-jittered:
         specifier: 1.0.0
         version: 1.0.0
@@ -6077,8 +6077,8 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.16:
-    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
+  dompurify@3.4.17:
+    resolution: {integrity: sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==}
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -6418,8 +6418,8 @@ packages:
   fastify-plugin@6.0.0:
     resolution: {integrity: sha512-fZOty7z3O7vOliF6d8bHE3wiEh1KcNnKEQensSgTk9C1DvN6nRLS++XVd86v33Hw/8u9Un8A1zDrQ8ujcQDHEg==}
 
-  fastify@5.12.5:
-    resolution: {integrity: sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==}
+  fastify@5.12.7:
+    resolution: {integrity: sha512-v4pEPsTRPuqlDIYiQFB+BHjVN4SdHX9u0ABk0ZDUKbbdY1vsNryUd1j4Z+jQEZajvYIVk047Kimva9/AJ79GYw==}
 
   fastq@1.17.1:
     resolution: {integrity: sha512-sRVD3lWVIXWg6By68ZN7vho9a1pQcN/WBFaAAsDDFzlJjvoGx0P8z7V1t72grFJfJhu3YPZBuu25f7Kaw2jN1w==}
@@ -6477,8 +6477,8 @@ packages:
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
 
-  follow-redirects@1.16.0:
-    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
+  follow-redirects@1.16.1:
+    resolution: {integrity: sha512-FNvFGzoMLWmE6Yj9spb/zjd7yiNCHiAW9/Tg9CXrQ8wuu32HtlJOwWO11OJafl5FfY3DxTdQ0vj42zU1kvv5jg==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'
@@ -12495,7 +12495,7 @@ snapshots:
       '@nestjs/common': 11.2.7(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2)
       '@nestjs/core': 11.2.7(@nestjs/common@11.2.7(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/websockets@11.2.7)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       fast-querystring: 1.1.2
-      fastify: 5.12.5
+      fastify: 5.12.7
       find-my-way: 9.7.0
       light-my-request: 6.6.0
       path-to-regexp: 8.4.2
@@ -14977,7 +14977,7 @@ snapshots:
 
   axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2):
     dependencies:
-      follow-redirects: 1.16.0(debug@4.4.3(supports-color@10.2.2))
+      follow-redirects: 1.16.1(debug@4.4.3(supports-color@10.2.2))
       form-data: 4.0.6
       https-proxy-agent: 5.0.1(supports-color@10.2.2)
       proxy-from-env: 2.1.0
@@ -15883,7 +15883,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.16:
+  dompurify@3.4.17:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -16363,7 +16363,7 @@ snapshots:
 
   fastify-plugin@6.0.0: {}
 
-  fastify@5.12.5:
+  fastify@5.12.7:
     dependencies:
       '@fastify/ajv-compiler': 4.0.5
       '@fastify/error': 4.0.0
@@ -16377,7 +16377,7 @@ snapshots:
       pino: 10.1.0
       process-warning: 5.1.0
       rfdc: 1.3.1
-      secure-json-parse: 4.0.0
+      secure-json-parse: 4.1.0
       semver: 7.7.4
       toad-cache: 3.7.0
 
@@ -16441,7 +16441,7 @@ snapshots:
 
   flatted@3.4.2: {}
 
-  follow-redirects@1.16.0(debug@4.4.3(supports-color@10.2.2)):
+  follow-redirects@1.16.1(debug@4.4.3(supports-color@10.2.2)):
     optionalDependencies:
       debug: 4.4.3(supports-color@10.2.2)
 
@@ -17786,7 +17786,7 @@ snapshots:
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.14
       dayjs: 1.11.21
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       es-toolkit: 1.46.1
       katex: 0.19.0
       khroma: 2.1.0
@@ -18514,7 +18514,7 @@ snapshots:
       '@posthog/core': 1.35.3
       '@posthog/types': 1.390.2
       core-js: 3.43.0
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       fflate: 0.4.9
       preact: 10.29.2
       query-selector-shadow-dom: 1.0.1
