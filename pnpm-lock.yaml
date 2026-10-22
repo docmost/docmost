@@ -359,15 +359,15 @@ importers:
       mantine-form-zod-resolver:
         specifier: 1.3.0
         version: 1.3.0(@mantine/form@9.3.2(react@19.2.7))(zod@4.3.6)
-      mermaid:
-        specifier: 11.16.1
-        version: 11.16.1
       mitt:
         specifier: 3.0.1
         version: 3.0.1
       nanoid:
         specifier: 3.3.18
         version: 3.3.18
+      pele:
+        specifier: 1.6.0
+        version: 1.6.0
       posthog-js:
         specifier: 1.391.2
         version: 1.391.2
@@ -8129,6 +8129,10 @@ packages:
 
   peberminta@0.9.0:
     resolution: {integrity: sha512-XIxfHpEuSJbITd1H3EeQwpcZbTLHc+VVr8ANI9t5sit565tsI4/xK3KWTUFE2e6QiangUkh3B0jihzmGnNrRsQ==}
+
+  pele@1.6.0:
+    resolution: {integrity: sha512-VfAiVItsOGlGhvnBfphdT28VCG7mXMZxQNOwAGsCtxI2ztbUsT39MraEOYjsapLxVETkdUZscm0DdotYDQMLdw==}
+    engines: {node: '>=20'}
 
   pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
@@ -18300,6 +18304,8 @@ snapshots:
   pause@0.0.1: {}
 
   peberminta@0.9.0: {}
+
+  pele@1.6.0: {}
 
   pend@1.2.0: {}
 
