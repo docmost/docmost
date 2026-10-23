@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
     POSTHOG_KEY,
     AI_VECTOR_DRIVER,
     BETA_PUBLIC_SPACES,
+    BETA_BASE_FORMS,
   } = loadEnv(mode, envPath, "");
 
   return {
@@ -35,6 +36,7 @@ export default defineConfig(({ mode }) => {
         POSTHOG_KEY,
         AI_VECTOR_DRIVER,
         BETA_PUBLIC_SPACES,
+        BETA_BASE_FORMS,
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },

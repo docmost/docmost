@@ -2,7 +2,7 @@ import { Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
-import { isCloud } from "@/lib/config.ts";
+import { isBetaBaseForms, isCloud } from "@/lib/config.ts";
 import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
 import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
@@ -152,7 +152,9 @@ export default function App() {
           />
         </Route>
 
-        <Route path={"/forms/:formKey"} element={<PublicFormPage />} />
+        {isBetaBaseForms() && (
+          <Route path={"/forms/:formKey"} element={<PublicFormPage />} />
+        )}
 
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />
         <Route path={"/share/:shareId"} element={<ShareRedirect />} />

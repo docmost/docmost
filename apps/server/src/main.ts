@@ -86,7 +86,7 @@ async function bootstrap() {
     '/api/files/',
     '/share/',
     '/docs/',
-    '/forms/',
+    ...(environmentService.isBetaBaseForms() ? ['/forms/'] : []),
   ];
   app
     .getHttpAdapter()

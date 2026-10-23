@@ -48,6 +48,7 @@ export class StaticModule implements OnModuleInit {
           ? this.environmentService.getBillingTrialDays()
           : undefined,
         BETA_PUBLIC_SPACES: this.environmentService.isBetaPublicSpaces(),
+        BETA_BASE_FORMS: this.environmentService.isBetaBaseForms(),
         POSTHOG_HOST: this.environmentService.getPostHogHost(),
         POSTHOG_KEY: this.environmentService.getPostHogKey(),
         AI_VECTOR_DRIVER:

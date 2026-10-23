@@ -38,6 +38,7 @@ import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/in
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { isBetaBaseForms } from "@/lib/config.ts";
 
 interface Props {
   editor: Editor;
@@ -179,7 +180,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
             </Menu.Item>
           </Tooltip>
         )}
-        {!templateMode && (
+        {!templateMode && isBetaBaseForms() && (
           <Tooltip label={upgradeLabel} disabled={hasBases} position="right">
             <Menu.Item
               leftSection={<IconForms size={16} />}

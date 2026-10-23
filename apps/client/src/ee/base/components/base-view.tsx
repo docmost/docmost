@@ -45,7 +45,7 @@ import { BaseEditableProvider } from "@/ee/base/context/base-editable";
 import { RowExpandProvider } from "@/ee/base/context/row-expand";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { buildPageUrl } from "@/features/page/page.utils";
-import { getAppUrl } from "@/lib/config.ts";
+import { getAppUrl, isBetaBaseForms } from "@/lib/config.ts";
 import { useNavigate } from "react-router-dom";
 import classes from "@/ee/base/styles/grid.module.css";
 import viewClasses from "@/ee/base/styles/base-view.module.css";
@@ -98,9 +98,11 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
 
   const views = useMemo(
     () =>
-      [...(base?.views ?? [])].sort((a, b) =>
-        a.position < b.position ? -1 : a.position > b.position ? 1 : 0,
-      ),
+      (base?.views ?? [])
+        .filter((view) => view.type !== "form" || isBetaBaseForms())
+        .sort((a, b) =>
+          a.position < b.position ? -1 : a.position > b.position ? 1 : 0,
+        ),
     [base?.views],
   );
   const activeView = useMemo(() => {

@@ -51,6 +51,7 @@ import IconDrawio from "@/components/icons/icon-drawio";
 import { IconColumns4 } from "@/components/icons/icon-columns-4";
 import { IconColumns5 } from "@/components/icons/icon-columns-5";
 import i18n from "@/i18n.ts";
+import { isBetaBaseForms } from "@/lib/config.ts";
 import {
   AirtableIcon,
   FigmaIcon,
@@ -412,6 +413,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["form", "survey", "questionnaire", "responses", "database"],
       icon: IconForms,
       requiresBases: true,
+      disable: () => !isBetaBaseForms(),
       command: ({ editor, range }: CommandProps) => {
         insertBaseEmbedBlock(editor, { range, template: "form" });
       },

@@ -16,6 +16,7 @@ import {
   isFormFieldProperty,
 } from "@/ee/base/components/form/form-definition";
 import { usePageQuery } from "@/features/page/queries/page-query";
+import { isBetaBaseForms } from "@/lib/config.ts";
 
 type Panel = "types" | "groupBy" | "calendarBy";
 
@@ -166,9 +167,11 @@ export function ViewCreateMenu({ base, pageId }: ViewCreateMenuProps) {
             <Menu.Item leftSection={<VIEW_TYPE_ICONS.calendar size={14} />} onClick={handleCalendarClick}>
               {t("Calendar")}
             </Menu.Item>
-            <Menu.Item leftSection={<VIEW_TYPE_ICONS.form size={14} />} onClick={handleCreateForm}>
-              {t("Form")}
-            </Menu.Item>
+            {isBetaBaseForms() && (
+              <Menu.Item leftSection={<VIEW_TYPE_ICONS.form size={14} />} onClick={handleCreateForm}>
+                {t("Form")}
+              </Menu.Item>
+            )}
           </>
         )}
 

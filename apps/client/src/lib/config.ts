@@ -47,6 +47,10 @@ export function isBetaPublicSpaces(): boolean {
   return castToBoolean(getConfigValue("BETA_PUBLIC_SPACES"));
 }
 
+export function isBetaBaseForms(): boolean {
+  return castToBoolean(getConfigValue("BETA_BASE_FORMS"));
+}
+
 export function getAiVectorDriver(): string {
   return getConfigValue("AI_VECTOR_DRIVER");
 }

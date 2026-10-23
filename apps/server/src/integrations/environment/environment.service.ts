@@ -255,6 +255,13 @@ export class EnvironmentService {
     return enabled === 'true';
   }
 
+  isBetaBaseForms(): boolean {
+    const enabled = this.configService
+      .get<string>('BETA_BASE_FORMS', 'false')
+      .toLowerCase();
+    return enabled === 'true';
+  }
+
   getPostHogHost(): string {
     return this.configService.get<string>('POSTHOG_HOST');
   }

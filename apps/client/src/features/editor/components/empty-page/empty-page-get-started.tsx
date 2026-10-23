@@ -23,6 +23,7 @@ import { Feature } from "@/ee/features";
 import { ITemplate } from "@/ee/template/types/template.types";
 import { getTemplateById } from "@/ee/template/services/template-service.ts";
 import { applyTemplateToPage } from "@/ee/template/template.utils";
+import { isBetaBaseForms } from "@/lib/config.ts";
 import classes from "./empty-page-get-started.module.css";
 
 const TemplatePickerModal = lazy(
@@ -123,14 +124,19 @@ export function EmptyPageGetStarted({
               convertMutation.mutate({ pageId, template: "calendar" }),
             disabled: convertMutation.isPending,
           },
-          {
-            key: "form",
-            label: t("Form"),
-            icon: IconForms,
-            color: "green",
-            onClick: () => convertMutation.mutate({ pageId, template: "form" }),
-            disabled: convertMutation.isPending,
-          },
+          ...(isBetaBaseForms()
+            ? [
+                {
+                  key: "form",
+                  label: t("Form"),
+                  icon: IconForms,
+                  color: "green",
+                  onClick: () =>
+                    convertMutation.mutate({ pageId, template: "form" }),
+                  disabled: convertMutation.isPending,
+                },
+              ]
+            : []),
         ]
       : []),
     ...(hasTemplates
