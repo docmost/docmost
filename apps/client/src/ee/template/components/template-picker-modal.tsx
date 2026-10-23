@@ -196,41 +196,39 @@ export default function TemplatePickerModal({
             </div>
           ) : (
             filtered.map((tpl) => (
-              <UnstyledButton
-                key={tpl.id}
-                className={classes.row}
-                onClick={() => handlePick(tpl)}
-              >
-                <div className={classes.icon}>
-                  {tpl.icon ? (
-                    <span>{tpl.icon}</span>
-                  ) : (
-                    <IconFileText
-                      size={16}
-                      color="var(--mantine-color-gray-6)"
-                    />
-                  )}
-                </div>
-                <div className={classes.title}>{tpl.title}</div>
-                <div className={classes.scope}>
-                  {tpl.spaceId
-                    ? spaceNamesById.get(tpl.spaceId) ?? t("Space")
-                    : t("Global")}
-                </div>
+              <div key={tpl.id} className={classes.row}>
+                <UnstyledButton
+                  className={classes.pickButton}
+                  onClick={() => handlePick(tpl)}
+                >
+                  <div className={classes.icon}>
+                    {tpl.icon ? (
+                      <span>{tpl.icon}</span>
+                    ) : (
+                      <IconFileText
+                        size={16}
+                        color="var(--mantine-color-gray-6)"
+                      />
+                    )}
+                  </div>
+                  <div className={classes.title}>{tpl.title}</div>
+                  <div className={classes.scope}>
+                    {tpl.spaceId
+                      ? spaceNamesById.get(tpl.spaceId) ?? t("Space")
+                      : t("Global")}
+                  </div>
+                </UnstyledButton>
                 <Button
                   size="compact-xs"
                   variant="filled"
                   className={classes.useButton}
                   loading={useTemplateMutation.isPending}
                   disabled={useTemplateMutation.isPending}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleQuickUse(tpl);
-                  }}
+                  onClick={() => handleQuickUse(tpl)}
                 >
                   {t("Use")}
                 </Button>
-              </UnstyledButton>
+              </div>
             ))
           )}
         </ScrollArea>
