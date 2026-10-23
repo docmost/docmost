@@ -19,7 +19,7 @@ import type { Redis } from 'ioredis';
 import * as crypto from 'crypto';
 
 const UNFURL_CACHE_TTL = 300; // 5 minutes
-// Short negative cache for transient failures; a 404 uses the normal TTL.
+// Short negative cache, so a card shows up soon after access changes.
 const UNFURL_ERROR_CACHE_TTL = 60;
 const UNFURL_CACHE_PREFIX = 'unfurl:';
 
@@ -70,6 +70,15 @@ export class UnfurlService {
       // Dead workspace connections need an admin re-install; members get no card.
       if (connectionScope === 'workspace') {
         return null;
+      }
+      const publicResult = await this.unfurlPublic(
+        provider,
+        patternType,
+        match,
+        url,
+      );
+      if (publicResult) {
+        return publicResult;
       }
       // Not cached, so the card loads once the user connects.
       return this.buildNeedsConnection(
@@ -152,17 +161,57 @@ export class UnfurlService {
         );
       }
       this.logger.error(`Unfurl failed for ${url}: ${(err as Error).message}`);
-      const ttl =
-        err instanceof ProviderApiError && err.status === 404
-          ? UNFURL_CACHE_TTL
-          : UNFURL_ERROR_CACHE_TTL;
-      await this.cacheNull(cacheKey, ttl);
+      await this.cacheNull(cacheKey, UNFURL_ERROR_CACHE_TTL);
       return null;
     }
   }
 
   private async cacheNull(cacheKey: string, ttl: number): Promise<void> {
     await this.redis.set(cacheKey, 'null', 'EX', ttl);
+  }
+
+  // One cached card per URL for every member and workspace.
+  private async unfurlPublic(
+    provider: IntegrationProvider,
+    patternType: string,
+    match: RegExpMatchArray,
+    url: string,
+  ): Promise<UnfurlResult | null> {
+    if (!provider.unfurlPublic) {
+      return null;
+    }
+
+    const hash = crypto.createHash('sha256').update(url).digest('hex');
+    const cacheKey = `${UNFURL_CACHE_PREFIX}public:${hash}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    try {
+      const unfurlResult = await provider.unfurlPublic({
+        url,
+        match,
+        patternType,
+      });
+      await this.redis.set(
+        cacheKey,
+        JSON.stringify(unfurlResult),
+        'EX',
+        UNFURL_CACHE_TTL,
+      );
+      return unfurlResult;
+    } catch (err) {
+      // A 404 is the normal answer for a private repo.
+      const notFound = err instanceof ProviderApiError && err.status === 404;
+      if (!notFound) {
+        this.logger.warn(
+          `Public unfurl failed for ${url}: ${(err as Error).message}`,
+        );
+      }
+      await this.cacheNull(cacheKey, UNFURL_ERROR_CACHE_TTL);
+      return null;
+    }
   }
 
   private buildNeedsConnection(

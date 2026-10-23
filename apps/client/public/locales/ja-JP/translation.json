@@ -1573,5 +1573,6 @@
   "Move right": "右に移動",
   "Delete tab": "タブを削除",
   "Tab label": "タブラベル",
-  "Tab actions for {{name}}": "{{name}} のタブアクション"
+  "Tab actions for {{name}}": "{{name}} のタブアクション",
+  "Inline base": "インラインベース"
 }

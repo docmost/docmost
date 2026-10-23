@@ -11,10 +11,10 @@ import { repoApiPath } from './github.utils';
 @Injectable()
 export class GitHubService {
   async getAccount(
-    accessToken: string,
+    authorization: string,
     apiBaseUrl: string,
   ): Promise<ProviderAccount> {
-    const data = await this.apiGet(accessToken, apiBaseUrl, '/user');
+    const data = await this.apiGet(authorization, apiBaseUrl, '/user');
     return toProviderAccount({
       id: data.id,
       displayName: data.name,
@@ -23,7 +23,7 @@ export class GitHubService {
   }
 
   async unfurlPullRequest(
-    accessToken: string,
+    authorization: string,
     apiBaseUrl: string,
     owner: string,
     repo: string,
@@ -31,7 +31,7 @@ export class GitHubService {
     url: string,
   ): Promise<UnfurlResult> {
     const data = await this.apiGet(
-      accessToken,
+      authorization,
       apiBaseUrl,
       `${repoApiPath(owner, repo)}/pulls/${number}`,
     );
@@ -66,7 +66,7 @@ export class GitHubService {
   }
 
   async unfurlIssue(
-    accessToken: string,
+    authorization: string,
     apiBaseUrl: string,
     owner: string,
     repo: string,
@@ -74,7 +74,7 @@ export class GitHubService {
     url: string,
   ): Promise<UnfurlResult> {
     const data = await this.apiGet(
-      accessToken,
+      authorization,
       apiBaseUrl,
       `${repoApiPath(owner, repo)}/issues/${number}`,
     );
@@ -107,14 +107,14 @@ export class GitHubService {
   }
 
   async unfurlRepo(
-    accessToken: string,
+    authorization: string,
     apiBaseUrl: string,
     owner: string,
     repo: string,
     url: string,
   ): Promise<UnfurlResult> {
     const data = await this.apiGet(
-      accessToken,
+      authorization,
       apiBaseUrl,
       repoApiPath(owner, repo),
     );
@@ -143,7 +143,7 @@ export class GitHubService {
   }
 
   async unfurlCommit(
-    accessToken: string,
+    authorization: string,
     apiBaseUrl: string,
     owner: string,
     repo: string,
@@ -151,7 +151,7 @@ export class GitHubService {
     url: string,
   ): Promise<UnfurlResult> {
     const data = await this.apiGet(
-      accessToken,
+      authorization,
       apiBaseUrl,
       `${repoApiPath(owner, repo)}/commits/${sha}`,
     );
@@ -217,7 +217,7 @@ export class GitHubService {
   }
 
   async unfurlCollectionPage(
-    accessToken: string,
+    authorization: string,
     apiBaseUrl: string,
     owner: string,
     repo: string,
@@ -225,7 +225,7 @@ export class GitHubService {
     url: string,
   ): Promise<UnfurlResult> {
     const data = await this.apiGet(
-      accessToken,
+      authorization,
       apiBaseUrl,
       repoApiPath(owner, repo),
     );
@@ -265,13 +265,13 @@ export class GitHubService {
   }
 
   private async apiGet(
-    accessToken: string,
+    authorization: string,
     apiBaseUrl: string,
     path: string,
   ): Promise<any> {
     const response = await providerApiFetch('GitHub', `${apiBaseUrl}${path}`, {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: authorization,
         Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'Docmost',
       },

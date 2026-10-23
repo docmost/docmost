@@ -4,14 +4,22 @@ import {
   IntegrationProvider,
 } from './integration-provider.interface';
 
+// Docmost Cloud only offers the providers it has OAuth apps for.
+const CLOUD_INTEGRATION_TYPES = new Set(['github', 'gitlab', 'linear']);
+
 @Injectable()
 export class IntegrationRegistry {
   private providers = new Map<string, IntegrationProvider>();
+
+  constructor(private readonly cloud = false) {}
 
   register(provider: IntegrationProvider): void {
     const { type } = provider.definition;
     if (this.providers.has(type)) {
       throw new Error(`Integration provider "${type}" is already registered`);
+    }
+    if (this.cloud && !CLOUD_INTEGRATION_TYPES.has(type)) {
+      provider.definition.hidden = true;
     }
     this.providers.set(type, provider);
   }

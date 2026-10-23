@@ -1573,5 +1573,6 @@
   "Move right": "Déplacer vers la droite",
   "Delete tab": "Supprimer l’onglet",
   "Tab label": "Libellé de l’onglet",
-  "Tab actions for {{name}}": "Actions de l’onglet pour {{name}}"
+  "Tab actions for {{name}}": "Actions de l’onglet pour {{name}}",
+  "Inline base": "Base en ligne"
 }

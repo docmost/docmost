@@ -10,6 +10,7 @@ import {
   IconForms,
   IconInfoCircle,
   IconLayoutKanban,
+  IconLayoutNavbar,
   IconMath,
   IconMathFunction,
   IconRotate2,
@@ -89,6 +90,13 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => editor.chain().focus().setDetails().run()}
         >
           {t("Toggle block")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconLayoutNavbar size={16} />}
+          disabled={!editor.can().insertTabs()}
+          onClick={() => editor.chain().focus().insertTabs().run()}
+        >
+          {t("Tabs")}
         </Menu.Item>
         <Menu.Item
           leftSection={<IconTag size={16} />}

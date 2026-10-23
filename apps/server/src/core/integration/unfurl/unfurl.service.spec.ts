@@ -1,16 +1,32 @@
 import * as crypto from 'crypto';
+import { Logger } from '@nestjs/common';
 import { UnfurlService } from './unfurl.service';
 import { IntegrationRegistry } from '../registry/integration-registry';
 import { GitHubProvider } from '../providers/github/github.provider';
 import {
   IntegrationDefinition,
   IntegrationProvider,
+  ProviderApiError,
   TokenExpiredError,
   TokenInvalidError,
 } from '../registry/integration-provider.interface';
 
 const GHE_BASE = 'https://github.acme.com';
 const CONNECTED_AT = new Date('2026-10-01T09:00:00Z');
+const ORIGINAL_ENV = process.env;
+
+// A configured server always has the app credentials, since GitHub cannot be installed without them.
+beforeEach(() => {
+  process.env = {
+    ...ORIGINAL_ENV,
+    INTEGRATION_GITHUB_CLIENT_ID: 'app-id',
+    INTEGRATION_GITHUB_CLIENT_SECRET: 'app-secret',
+  };
+});
+
+afterEach(() => {
+  process.env = ORIGINAL_ENV;
+});
 
 class WorkspaceScopedProvider extends IntegrationProvider {
   definition: IntegrationDefinition = {
@@ -102,7 +118,7 @@ describe('UnfurlService provider resolution', () => {
         title: 'PR',
       });
       expect(unfurlPullRequest).toHaveBeenCalledWith(
-        'token', apiBaseUrl, 'o', 'r', 1, url,
+        'Bearer token', apiBaseUrl, 'o', 'r', 1, url,
       );
     },
   );
@@ -216,16 +232,42 @@ describe('UnfurlService cache', () => {
   });
 
   it('asks a disconnected member to connect instead of serving their cached card', async () => {
-    const { service, connectionRepo, redis } = build();
-    redis.get.mockResolvedValue(cachedCard);
+    const { service, unfurlPullRequest, connectionRepo, redis } = build();
+    redis.get.mockImplementation(async (key: string) =>
+      key.startsWith('unfurl:w1:') ? cachedCard : null,
+    );
     connectionRepo.findByIntegrationAndUser.mockResolvedValue(undefined);
+    unfurlPullRequest.mockRejectedValue(
+      new ProviderApiError('GitHub', 404, 'Not Found'),
+    );
 
     await expect(service.unfurl(url, 'u1', 'w1')).resolves.toMatchObject({
       needsConnection: true,
     });
 
-    expect(redis.get).not.toHaveBeenCalled();
-    expect(redis.set).not.toHaveBeenCalled();
+    expect(redis.get).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^unfurl:w1:/),
+    );
+  });
+
+  it('checks a link the member cannot see again a minute later', async () => {
+    const { service, unfurlPullRequest, redis } = build();
+    unfurlPullRequest.mockRejectedValue(
+      new ProviderApiError('GitHub', 404, 'Not Found'),
+    );
+    const error = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+
+    await expect(service.unfurl(url, 'u1', 'w1')).resolves.toBeNull();
+
+    expect(redis.set).toHaveBeenCalledWith(
+      `unfurl:w1:u1:c1:${CONNECTED_AT.getTime()}:${urlDigest}`,
+      'null',
+      'EX',
+      60,
+    );
+    error.mockRestore();
   });
 
   it('serves no cached card once the integration is uninstalled', async () => {
@@ -320,5 +362,70 @@ describe('UnfurlService cache', () => {
         `unfurl:w1:u1:wc1:${CONNECTED_AT.getTime()}:${digest}`,
       );
     });
+  });
+});
+
+describe('UnfurlService public cards', () => {
+  const url = 'https://github.com/o/r/pull/1';
+  let warn: jest.SpyInstance;
+
+  beforeEach(() => {
+    delete process.env.INTEGRATION_GITHUB_URL;
+    warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+  });
+
+  afterEach(() => warn.mockRestore());
+
+  function buildDisconnected() {
+    const built = build();
+    built.connectionRepo.findByIntegrationAndUser.mockResolvedValue(undefined);
+    return built;
+  }
+
+  it('shows a member without a connection the card for a public repo', async () => {
+    const { service, unfurlPullRequest } = buildDisconnected();
+
+    await expect(service.unfurl(url, 'u1', 'w1')).resolves.toEqual({
+      title: 'PR',
+    });
+    // base64 of "app-id:app-secret"
+    expect(unfurlPullRequest).toHaveBeenCalledWith(
+      'Basic YXBwLWlkOmFwcC1zZWNyZXQ=', 'https://api.github.com', 'o', 'r', 1, url,
+    );
+  });
+
+  it('fetches a public card once for every member and workspace', async () => {
+    const { service, unfurlPullRequest, redis } = buildDisconnected();
+    const store = new Map<string, string>();
+    redis.get.mockImplementation(async (key: string) => store.get(key) ?? null);
+    redis.set.mockImplementation(async (key: string, value: string) => {
+      store.set(key, value);
+      return 'OK';
+    });
+
+    await service.unfurl(url, 'u1', 'w1');
+    await expect(service.unfurl(url, 'u2', 'w2')).resolves.toEqual({
+      title: 'PR',
+    });
+
+    expect(unfurlPullRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['a repo that is not public', new ProviderApiError('GitHub', 404, 'Not Found'), 0],
+    ['a rate limit', new ProviderApiError('GitHub', 403, 'rate limit exceeded'), 1],
+    ['rejected app credentials', new TokenInvalidError(), 1],
+  ])('asks to connect after %s and retries a minute later', async (_, error, warnings) => {
+    const { service, unfurlPullRequest, redis } = buildDisconnected();
+    unfurlPullRequest.mockRejectedValue(error);
+
+    await expect(service.unfurl(url, 'u1', 'w1')).resolves.toMatchObject({
+      needsConnection: true,
+    });
+
+    expect(redis.set).toHaveBeenCalledWith(expect.any(String), 'null', 'EX', 60);
+    expect(warn).toHaveBeenCalledTimes(warnings);
   });
 });

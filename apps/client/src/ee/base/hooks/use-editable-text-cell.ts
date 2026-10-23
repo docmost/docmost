@@ -6,7 +6,6 @@ export type UseEditableTextCellParams = {
   value: unknown;
   isEditing: boolean;
   onCommit: (value: unknown) => void;
-  onCancel: () => void;
   /** value -> the draft string shown in the input when editing begins */
   toDraft: (value: unknown) => string;
   /** draft string -> the value passed to onCommit */
@@ -27,7 +26,6 @@ export function useEditableTextCell({
   value,
   isEditing,
   onCommit,
-  onCancel,
   toDraft,
   parse,
   rowId,
@@ -85,11 +83,10 @@ export function useEditableTextCell({
         commitOnce(parse(draft));
       } else if (e.key === "Escape") {
         e.preventDefault();
-        committedRef.current = true;
-        onCancel();
+        commitOnce(parse(draft));
       }
     },
-    [draft, parse, commitOnce, onCancel],
+    [draft, parse, commitOnce],
   );
 
   const handleBlur = useCallback(() => {

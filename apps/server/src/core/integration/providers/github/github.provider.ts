@@ -5,6 +5,7 @@ import {
   LinkDescription,
   OAuthConfig,
   ProviderAccount,
+  PublicUnfurlOpts,
   ResolveAccountOpts,
   UnfurlPattern,
   UnfurlOpts,
@@ -13,6 +14,7 @@ import {
 import { GitHubService } from './github.service';
 import { buildGitHubPatterns } from './github-patterns';
 import { normalizeBaseUrl } from '../../utils/integration.utils';
+import { credentialEnvKey } from '../../oauth/credential-env';
 
 const DEFAULT_BASE_URL = 'https://github.com';
 
@@ -63,13 +65,35 @@ export class GitHubProvider extends IntegrationProvider {
 
   async resolveAccount(opts: ResolveAccountOpts): Promise<ProviderAccount> {
     return this.githubService.getAccount(
-      opts.accessToken,
+      `Bearer ${opts.accessToken}`,
       this.resolveApiBaseUrl(),
     );
   }
 
   async unfurl(opts: UnfurlOpts): Promise<UnfurlResult> {
-    const { match, patternType, accessToken, url } = opts;
+    return this.unfurlWith(`Bearer ${opts.accessToken}`, opts);
+  }
+
+  // The OAuth app's own credentials only see public repos, so private ones 404.
+  async unfurlPublic(opts: PublicUnfurlOpts): Promise<UnfurlResult> {
+    const clientId =
+      process.env[credentialEnvKey('CLIENT_ID', this.definition.type)];
+    const clientSecret =
+      process.env[credentialEnvKey('CLIENT_SECRET', this.definition.type)];
+    if (!clientId || !clientSecret) {
+      throw new Error('GitHub client ID or secret is not set');
+    }
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+      'base64',
+    );
+    return this.unfurlWith(`Basic ${credentials}`, opts);
+  }
+
+  private async unfurlWith(
+    authorization: string,
+    opts: PublicUnfurlOpts,
+  ): Promise<UnfurlResult> {
+    const { match, patternType, url } = opts;
     const apiBaseUrl = this.resolveApiBaseUrl();
     const owner = match[1];
     const repo = match[2];
@@ -78,33 +102,33 @@ export class GitHubProvider extends IntegrationProvider {
       case 'github-pr': {
         const number = parseInt(match[3], 10);
         return this.githubService.unfurlPullRequest(
-          accessToken, apiBaseUrl, owner, repo, number, url,
+          authorization, apiBaseUrl, owner, repo, number, url,
         );
       }
 
       case 'github-issue': {
         const number = parseInt(match[3], 10);
         return this.githubService.unfurlIssue(
-          accessToken, apiBaseUrl, owner, repo, number, url,
+          authorization, apiBaseUrl, owner, repo, number, url,
         );
       }
 
       case 'github-repo':
         return this.githubService.unfurlRepo(
-          accessToken, apiBaseUrl, owner, repo, url,
+          authorization, apiBaseUrl, owner, repo, url,
         );
 
       case 'github-commit': {
         const sha = match[3];
         return this.githubService.unfurlCommit(
-          accessToken, apiBaseUrl, owner, repo, sha, url,
+          authorization, apiBaseUrl, owner, repo, sha, url,
         );
       }
 
       case 'github-pr-commit': {
         const sha = match[4];
         return this.githubService.unfurlCommit(
-          accessToken, apiBaseUrl, owner, repo, sha, url,
+          authorization, apiBaseUrl, owner, repo, sha, url,
         );
       }
 
@@ -122,7 +146,7 @@ export class GitHubProvider extends IntegrationProvider {
       case 'github-issues-list':
       case 'github-releases-list':
         return this.githubService.unfurlCollectionPage(
-          accessToken, apiBaseUrl, owner, repo, patternType.replace('github-', ''), url,
+          authorization, apiBaseUrl, owner, repo, patternType.replace('github-', ''), url,
         );
 
       default:

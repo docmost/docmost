@@ -1573,5 +1573,6 @@
   "Move right": "Sposta a destra",
   "Delete tab": "Elimina scheda",
   "Tab label": "Etichetta scheda",
-  "Tab actions for {{name}}": "Azioni scheda per {{name}}"
+  "Tab actions for {{name}}": "Azioni scheda per {{name}}",
+  "Inline base": "Base inline"
 }

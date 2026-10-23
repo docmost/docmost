@@ -61,7 +61,7 @@ describe('GitHubProvider host matching', () => {
       const { provider, unfurlPullRequest } = buildProvider();
       await unfurlWith(provider, PUBLIC_PR);
       expect(unfurlPullRequest).toHaveBeenCalledWith(
-        'token', 'https://api.github.com', 'o', 'r', 1, PUBLIC_PR,
+        'Bearer token', 'https://api.github.com', 'o', 'r', 1, PUBLIC_PR,
       );
     });
   });
@@ -87,7 +87,7 @@ describe('GitHubProvider host matching', () => {
       const { provider, unfurlPullRequest } = buildProvider();
       await unfurlWith(provider, GHE_PR);
       expect(unfurlPullRequest).toHaveBeenCalledWith(
-        'token', `${GHE_BASE}/api/v3`, 'o', 'r', 1, GHE_PR,
+        'Bearer token', `${GHE_BASE}/api/v3`, 'o', 'r', 1, GHE_PR,
       );
     });
 

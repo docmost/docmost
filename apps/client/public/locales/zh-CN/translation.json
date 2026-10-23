@@ -1573,5 +1573,6 @@
   "Move right": "右移",
   "Delete tab": "删除标签页",
   "Tab label": "标签页标签",
-  "Tab actions for {{name}}": "{{name}}的标签页操作"
+  "Tab actions for {{name}}": "{{name}}的标签页操作",
+  "Inline base": "内联基础"
 }

@@ -5,6 +5,7 @@ export const OAUTH_TOKEN_THROTTLER = 'oauth-token';
 export const OAUTH_AUTHORIZE_THROTTLER = 'oauth-authorize';
 export const SIEM_TEST_THROTTLER = 'siem-test';
 export const UNFURL_THROTTLER = 'integration-unfurl';
+export const CLOUD_EMAIL_THROTTLER = 'cloud-email';
 export const BASE_FORM_SUBMIT_THROTTLER = 'base-form-submit';
 export const BASE_FORM_KEY_THROTTLER = 'base-form-key';
 
@@ -17,6 +18,7 @@ export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
   [OAUTH_AUTHORIZE_THROTTLER]: true,
   [SIEM_TEST_THROTTLER]: true,
   [UNFURL_THROTTLER]: true,
+  [CLOUD_EMAIL_THROTTLER]: true,
   [BASE_FORM_SUBMIT_THROTTLER]: true,
   [BASE_FORM_KEY_THROTTLER]: true,
 };

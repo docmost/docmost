@@ -1573,5 +1573,6 @@
   "Move right": "Mover para a direita",
   "Delete tab": "Excluir aba",
   "Tab label": "Rótulo da aba",
-  "Tab actions for {{name}}": "Ações da aba para {{name}}"
+  "Tab actions for {{name}}": "Ações da aba para {{name}}",
+  "Inline base": "Base embutida"
 }
