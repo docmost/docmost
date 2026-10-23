@@ -123,7 +123,7 @@
     "undici": "7.29.1",
     "ws": "8.21.3",
     "yauzl": "3.4.0",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
