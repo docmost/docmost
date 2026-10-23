@@ -66,7 +66,7 @@
     "semver": "7.7.4",
     "socket.io-client": "4.8.3",
     "yet-another-react-lightbox": "^3.32.2",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "9.28.0",
