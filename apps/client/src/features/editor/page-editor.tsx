@@ -339,7 +339,7 @@ function CollabPageEditor({
             }
           },
         },
-        handlePaste: (_view, event) => {
+        handlePaste: (_view, event, slice) => {
           if (!editorRef.current) return false;
 
           return handlePaste(
@@ -347,6 +347,7 @@ function CollabPageEditor({
             event,
             pageId,
             currentUser?.user.id,
+            slice
           );
         },
         handleDrop: (_view, event, _slice, moved) => {
