@@ -286,10 +286,15 @@ export const CalendarMonth = memo(function CalendarMonth({
 
   const moreEventsProps = useMemo(
     () => ({
+      classNames: {
+        moreEventsDropdown: classes.moreEventsDropdown,
+        moreEventsList: classes.moreEventsList,
+      },
       popoverProps: {
         zIndex: CALENDAR_OVERLAY_Z_INDEX,
         returnFocus: true,
         disabled: overlaysDisabled,
+        middlewares: { size: { padding: 8 } },
       },
     }),
     [overlaysDisabled],

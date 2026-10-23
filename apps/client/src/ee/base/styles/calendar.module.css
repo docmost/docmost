@@ -280,3 +280,14 @@
   gap: 6px;
   min-width: 0;
 }
+
+.moreEventsDropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.moreEventsList {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
