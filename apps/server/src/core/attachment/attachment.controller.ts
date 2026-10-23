@@ -56,6 +56,7 @@ import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
 import {
   AttachmentInfoDto,
+  CopyAttachmentsDto,
   PageIdDto,
   RemoveIconDto,
 } from './dto/attachment.dto';
@@ -172,6 +173,57 @@ export class AttachmentController {
       this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('files/copy')
+  async copyFiles(
+    @Body() dto: CopyAttachmentsDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const targetPage = await this.pageRepo.findById(dto.pageId);
+    if (!targetPage || targetPage.workspaceId !== workspace.id) {
+      throw new NotFoundException('Page not found');
+    }
+
+    await this.pageAccessService.validateCanEdit(targetPage, user);
+
+    const sourceIds = [...new Set(dto.attachmentIds)];
+
+    return Promise.all(
+      sourceIds.map(async (sourceId) => {
+        const source = await this.attachmentRepo.findById(sourceId);
+        if (
+          !source ||
+          !source.pageId ||
+          source.workspaceId !== workspace.id ||
+          source.type !== AttachmentType.File
+        ) {
+          throw new NotFoundException('File not found');
+        }
+
+        const sourcePage = await this.pageRepo.findById(source.pageId);
+        if (!sourcePage) {
+          throw new NotFoundException('File not found');
+        }
+
+        await this.pageAccessService.validateCanView(sourcePage, user);
+
+        const copy = await this.attachmentService.copyAttachment(source, {
+          pageId: targetPage.id,
+          spaceId: targetPage.spaceId,
+          userId: user.id,
+          workspaceId: workspace.id,
+        });
+
+        return {
+          sourceId,
+          attachment: { ...copy, url: this.buildFileUrl(workspace, copy) },
+        };
+      }),
+    );
   }
 
   @UseGuards(JwtAuthGuard)

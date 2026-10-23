@@ -140,6 +140,40 @@ export class AttachmentService {
     return attachment;
   }
 
+  async copyAttachment(
+    source: Attachment,
+    target: {
+      pageId: string;
+      spaceId: string;
+      userId: string;
+      workspaceId: string;
+    },
+  ): Promise<Attachment> {
+    const attachmentId = uuid7();
+    const filePath = `${getAttachmentFolderPath(AttachmentType.File, target.workspaceId)}/${attachmentId}/${source.fileName}`;
+
+    await this.storageService.copy(source.filePath, filePath);
+
+    try {
+      return await this.attachmentRepo.insertAttachment({
+        id: attachmentId,
+        type: AttachmentType.File,
+        filePath,
+        fileName: source.fileName,
+        fileSize: source.fileSize,
+        mimeType: source.mimeType,
+        fileExt: source.fileExt,
+        creatorId: target.userId,
+        workspaceId: target.workspaceId,
+        pageId: target.pageId,
+        spaceId: target.spaceId,
+      });
+    } catch (err) {
+      await this.storageService.delete(filePath).catch(() => undefined);
+      throw err;
+    }
+  }
+
   async uploadImage(
     filePromise: Promise<MultipartFile>,
     type:
