@@ -85,6 +85,25 @@ interface TextNodesWithPosition {
   pos: number;
 }
 
+interface SearchResult {
+  from: number;
+  to: number;
+  isNode: boolean;
+}
+
+// Returns a mention's searchable text, mirroring what the user sees in the
+// editor: user mentions are rendered with a leading "@", so both "john" and
+// "@john" match. Falls back across label -> entityId -> id.
+const mentionSearchText = (node: PMNode): string => {
+  const { entityType, label, entityId, id } = node.attrs as Record<
+    string,
+    any
+  >;
+  const base = label ?? entityId ?? id ?? "";
+  if (!base) return "";
+  return entityType === "user" ? `@${base}` : `${base}`;
+};
+
 const getRegex = (
   searchTerms: string[],
   disableRegex: boolean,
@@ -121,7 +140,7 @@ function processSearches(
   resultIndex: number,
 ): ProcessedSearches {
   const decorations: Decoration[] = [];
-  const results: Range[] = [];
+  const searchResults: SearchResult[] = [];
 
   let textNodesWithPosition: TextNodesWithPosition[] = [];
   let index = 0;
@@ -147,6 +166,20 @@ function processSearches(
         };
       }
     } else {
+      // Atom nodes (e.g. mentions) carry their visible text in attrs, not as
+      // text content, so they're matched as a whole-node unit here.
+      if (node.type.name === "mention") {
+        const text = mentionSearchText(node);
+        // matchAll clones the regex, so the global lastIndex of searchTerm is
+        // left untouched for the text-node loop below.
+        if (text && Array.from(text.matchAll(searchTerm)).length > 0) {
+          searchResults.push({
+            from: pos,
+            to: pos + node.nodeSize,
+            isNode: true,
+          });
+        }
+      }
       index += 1;
     }
   });
@@ -163,23 +196,30 @@ function processSearches(
       if (m[0] === "") break;
 
       if (m.index !== undefined) {
-        results.push({
+        searchResults.push({
           from: pos + m.index,
           to: pos + m.index + m[0].length,
+          isNode: false,
         });
       }
     }
   }
 
-  for (let i = 0; i < results.length; i += 1) {
-    const r = results[i];
+  // Keep results in document order so next/previous navigation and resultIndex
+  // behave correctly across interleaved text and mention matches.
+  searchResults.sort((a, b) => a.from - b.from);
+
+  const results: Range[] = searchResults.map(({ from, to }) => ({ from, to }));
+
+  for (let i = 0; i < searchResults.length; i += 1) {
+    const r = searchResults[i];
     const className =
       i === resultIndex
         ? `${searchResultClass} ${searchResultClass}-current`
         : searchResultClass;
-    const decoration: Decoration = Decoration.inline(r.from, r.to, {
-      class: className,
-    });
+    const decoration: Decoration = r.isNode
+      ? Decoration.node(r.from, r.to, { class: className })
+      : Decoration.inline(r.from, r.to, { class: className });
 
     decorations.push(decoration);
   }
@@ -201,6 +241,10 @@ const replace = (
   if (!firstResult) return;
 
   const { from, to } = results[resultIndex];
+
+  // Mention matches are highlighted but not replaceable: replacing would delete
+  // the mention node and substitute plain text.
+  if (state.doc.nodeAt(from)?.type.name === "mention") return;
 
   if (dispatch) {
     const tr = state.tr;
@@ -239,6 +283,9 @@ const replaceAll = (
   // Process replacements in reverse order to avoid position shifting issues
   for (let i = resultsCopy.length - 1; i >= 0; i -= 1) {
     const { from, to } = resultsCopy[i];
+
+    // Skip mention matches: replacing would delete the mention node.
+    if (tr.doc.nodeAt(from)?.type.name === "mention") continue;
 
     // Get all marks that span the text being replaced
     const marksSet = new Set<Mark>();
