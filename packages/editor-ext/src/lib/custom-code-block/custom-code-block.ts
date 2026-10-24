@@ -1,5 +1,6 @@
 import type { CodeBlockOptions } from '@tiptap/extension-code-block';
 import CodeBlock from '@tiptap/extension-code-block';
+import type { ResolvedPos } from '@tiptap/pm/model';
 import { Plugin, Selection, TextSelection } from '@tiptap/pm/state';
 import { GapCursor } from '@tiptap/pm/gapcursor';
 
@@ -15,6 +16,18 @@ export interface CodeBlockLowlightOptions extends CodeBlockOptions {
 }
 
 const TAB_CHAR = '\u00A0\u00A0';
+
+function isTableCellBoundary($pos: ResolvedPos, edge: 'start' | 'end') {
+  const isTableCell =
+    $pos.parent.type.name === 'tableCell' ||
+    $pos.parent.type.name === 'tableHeader';
+
+  if (!isTableCell) return false;
+
+  return edge === 'start'
+    ? $pos.parentOffset === 0
+    : $pos.parentOffset === $pos.parent.content.size;
+}
 
 /**
  * This extension allows you to highlight code blocks with lowlight.
@@ -65,6 +78,16 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
         const $after = doc.resolve(after);
         const nodeAfter = $after.nodeAfter;
 
+        // A code block at the end of a table cell has no following sibling
+        // for Selection.near() to land on. Keep the caret in the cell by
+        // exposing the gap after the block instead of jumping to another cell.
+        if (isTableCellBoundary($after, 'end')) {
+          return editor.commands.command(({ tr }) => {
+            tr.setSelection(new GapCursor(tr.doc.resolve(after)));
+            return true;
+          });
+        }
+
         if (isMermaid(nodeAfter)) {
           return editor.commands.command(({ tr }) => {
             tr.setSelection(TextSelection.create(tr.doc, after + 1));
@@ -101,6 +124,14 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
 
         const $before = doc.resolve(before);
         const nodeBefore = $before.nodeBefore;
+
+        // Mirror ArrowDown for a code block at the start of a table cell.
+        if (isTableCellBoundary($before, 'start')) {
+          return editor.commands.command(({ tr }) => {
+            tr.setSelection(new GapCursor(tr.doc.resolve(before)));
+            return true;
+          });
+        }
 
         if (isMermaid(nodeBefore)) {
           return editor.commands.command(({ tr }) => {
