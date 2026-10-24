@@ -68,7 +68,12 @@ export default function SpaceList() {
                       <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
                         {space.name}
                       </AutoTooltipText>
-                      <Text fz="xs" c="dimmed" lineClamp={2}>
+                      <Text
+                        fz="xs"
+                        c="dimmed"
+                        lineClamp={4}
+                        title={space.description}
+                      >
                         {space.description}
                       </Text>
                     </div>
