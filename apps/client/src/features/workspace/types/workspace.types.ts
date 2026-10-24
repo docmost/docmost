@@ -38,6 +38,11 @@ export interface IWorkspace {
   isScimEnabled?: boolean;
 }
 
+export interface IUpdateWorkspace extends Partial<IWorkspace> {
+  addExternalEmbeddingBlacklistUrl?: string;
+  removeExternalEmbeddingBlacklistUrl?: string;
+}
+
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
   sharing?: IWorkspaceSharingSettings;
@@ -46,6 +51,7 @@ export interface IWorkspaceSettings {
   spaces?: IWorkspaceSpaceSettings;
   publicSpaces?: IWorkspacePublicSpacesSettings;
   defaultPageEditMode?: string;
+  externalEmbeddingBlacklist?: string;
 }
 
 export interface IWorkspaceApiSettings {
@@ -113,6 +119,7 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
+  settings: { externalEmbeddingBlacklist: "" };
 }
 
 export interface IVersion {
