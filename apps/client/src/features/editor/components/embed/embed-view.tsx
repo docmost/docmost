@@ -25,16 +25,79 @@ import {
 } from "@docmost/editor-ext";
 import { ResizableWrapper } from "../common/resizable-wrapper";
 import classes from "./embed-view.module.css";
+import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query";
 
 const schema = z.object({
   url: z.url({ message: i18n.t("Please enter a valid url") }).trim(),
 });
 
+function normalizeHostname(hostname: string) {
+  return hostname.toLowerCase().replace(/\.$/, "");
+}
+
+function normalizePath(path: string) {
+  return path.replace(/\/+$/, '') || '/';
+}
+
+function isBlacklistedUrl(url: string, blockedUrls: string[]): boolean {
+  try {
+    const target = new URL(url);
+    const targetHostname = normalizeHostname(target.hostname);
+    const targetPath = normalizePath(target.pathname);
+
+    return blockedUrls.some((blockedUrl) => {
+      try {
+        const blocked = new URL(blockedUrl);
+        const blockedHostname = normalizeHostname(blocked.hostname);
+        const blockedPath = normalizePath(blocked.pathname);
+
+        const hostMatches =
+          targetHostname === blockedHostname ||
+          targetHostname.endsWith(`.${blockedHostname}`)
+
+        if (!hostMatches) {
+          return false;
+        }
+
+        if (blockedPath === "/") {
+          return true;
+        }
+
+        return (
+          targetPath === blockedPath ||
+          targetPath.startsWith(`${blockedPath}/`)
+        );
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
 export default function EmbedView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, selected, updateAttributes, editor } = props;
   const { src, provider, width: nodeWidth, height: nodeHeight } = node.attrs;
+  const workspace = useWorkspacePublicDataQuery()
+  const blacklistValue = workspace.data?.settings?.externalEmbeddingBlacklist;
 
+  const blockedUrls = useMemo<string[]>(() => {
+    if (!blacklistValue) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(blacklistValue);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [blacklistValue]);
+
+
+  const isBlocked = isBlacklistedUrl(src, blockedUrls);
   const embedUrl = useMemo(() => {
     if (src) {
       return getEmbedUrlAndProvider(src).embedUrl;
@@ -61,6 +124,15 @@ export default function EmbedView(props: NodeViewProps) {
       return;
     }
 
+    if (isBlacklistedUrl(data.url, blockedUrls)) {
+      notifications.show({
+        message: t("This URL is blocked by workspace security settings."),
+        position: "top-right",
+        color: "red",
+      });
+      return;
+    }
+
     if (provider) {
       const embedProvider = getEmbedProviderById(provider);
       if (embedProvider.id === "iframe") {
@@ -83,7 +155,7 @@ export default function EmbedView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle className={classes.embedNodeView}>
-      {embedUrl ? (
+      {embedUrl && workspace.isSuccess && !isBlocked ? (
         <div className={classes.embedContainer}>
           <ResizableWrapper
             initialWidth={nodeWidth || 800}
@@ -116,7 +188,7 @@ export default function EmbedView(props: NodeViewProps) {
           position="bottom"
           withArrow
           shadow="md"
-          disabled={!editor.isEditable}
+          disabled={!editor.isEditable || !workspace.isSuccess || isBlocked}
         >
           <Popover.Target>
             <Card
@@ -131,18 +203,22 @@ export default function EmbedView(props: NodeViewProps) {
               className={clsx(selected ? "ProseMirror-selectednode" : "")}
             >
               <div style={{ display: "flex", alignItems: "center" }}>
-                <ActionIcon
-                  variant="transparent"
-                  color="gray"
-                  aria-label={t("Edit embed")}
-                >
-                  <IconEdit size={18} />
-                </ActionIcon>
+                {workspace.isSuccess && !isBlocked && (
+                  <ActionIcon
+                    variant="transparent"
+                    color="gray"
+                    aria-label={t("Edit embed")}
+                  >
+                    <IconEdit size={18} />
+                  </ActionIcon>
+                )}
 
                 <Text component="span" size="lg" c="dimmed">
-                  {t("Embed {{provider}}", {
-                    provider: getEmbedProviderById(provider)?.name,
-                  })}
+                  {isBlocked
+                    ? t("This embed is blocked by workspace security settings.")
+                    : t("Embed {{provider}}", {
+                        provider: getEmbedProviderById(provider)?.name,
+                      })}
                 </Text>
               </div>
             </Card>

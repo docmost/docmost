@@ -20,6 +20,7 @@ import AllowedDomains from "@/ee/security/components/allowed-domains.tsx";
 import { useTranslation } from "react-i18next";
 import EnforceMfa from "@/ee/security/components/enforce-mfa.tsx";
 import DisablePublicSharing from "@/ee/security/components/disable-public-sharing.tsx";
+import ExternalEmbeddingBlacklist from "@/ee/security/components/external-embedding-blacklist.tsx";
 import TrashRetention from "@/ee/security/components/trash-retention.tsx";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
@@ -72,6 +73,9 @@ export default function Security() {
       <Divider my="lg" />
 
       <DisablePublicSharing />
+      <Divider my="lg" />
+
+      <ExternalEmbeddingBlacklist />
       <Divider my="lg" />
 
       <TrashRetention />
