@@ -813,7 +813,7 @@
   color: var(--docs-accent);
 }
 
-/* Internal page links (mentions, subpages lists) follow the accent like any
+/* Internal page links (mentions) follow the accent like any
  * other link; the app skin pins them to ink with !important, hence the
  * counter-!important, and the underline tint softens to match. */
 .root :global(.ProseMirror) a[class*="pageMentionLink"] {

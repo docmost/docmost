@@ -8,17 +8,22 @@ import { TransformHttpResponseInterceptor } from '../../common/interceptors/http
 import { Logger } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { InternalLogFilter } from '../../common/logger/internal-log-filter';
+import { overrideRequestIp } from '../../common/helpers';
 
 async function bootstrap() {
+  const adapter = new FastifyAdapter({
+    routerOptions: {
+      maxParamLength: 1000,
+      ignoreTrailingSlash: true,
+      ignoreDuplicateSlashes: true,
+    },
+  });
+  // Added before NestFactory.create so it runs ahead of middie copying request.ip for Nest middleware.
+  adapter.getInstance().addHook('onRequest', overrideRequestIp);
+
   const app = await NestFactory.create<NestFastifyApplication>(
     CollabAppModule,
-    new FastifyAdapter({
-      routerOptions: {
-        maxParamLength: 1000,
-        ignoreTrailingSlash: true,
-        ignoreDuplicateSlashes: true,
-      },
-    }),
+    adapter,
     {
       logger: new InternalLogFilter(),
       bufferLogs: false,
@@ -36,6 +41,14 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const logger = new Logger('CollabServer');
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error(`UnhandledRejection, reason: ${reason}`, promise);
+  });
+
+  process.on('uncaughtException', (error) => {
+    logger.error('UncaughtException:', error);
+  });
 
   const port = process.env.COLLAB_PORT || 3001;
   const host = process.env.HOST || '0.0.0.0';

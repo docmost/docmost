@@ -19,7 +19,7 @@ import {
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
 import { PagePermissionMember } from './types/page-permission.types';
-import { withCache } from '../../../common/helpers/with-cache';
+import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
 import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
@@ -102,6 +102,22 @@ export class PagePermissionRepo {
       .where('pageAccessId', '=', pageAccessId)
       .where('groupId', '=', groupId)
       .executeTakeFirst();
+  }
+
+  async getPageIdsByGroupIds(
+    groupIds: string[],
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<string[]> {
+    if (groupIds.length === 0) return [];
+    const rows = await dbOrTx(this.db, opts?.trx)
+      .selectFrom('pagePermissions')
+      .innerJoin('pageAccess', 'pageAccess.id', 'pagePermissions.pageAccessId')
+      .select('pageAccess.pageId')
+      .distinct()
+      .where('pagePermissions.groupId', 'in', groupIds)
+      .execute();
+
+    return rows.map((row) => row.pageId);
   }
 
   async deletePagePermissionByUserId(
@@ -368,8 +384,12 @@ export class PagePermissionRepo {
   /**
    * Check if user can access a page by verifying they have permission on ALL restricted ancestors.
    */
-  async canUserAccessPage(userId: string, pageId: string): Promise<boolean> {
-    const { canAccess } = await this.canUserEditPage(userId, pageId);
+  async canUserAccessPage(
+    userId: string,
+    pageId: string,
+    opts?: CacheOptions,
+  ): Promise<boolean> {
+    const { canAccess } = await this.canUserEditPage(userId, pageId, opts);
     return canAccess;
   }
 
@@ -383,6 +403,7 @@ export class PagePermissionRepo {
   async canUserEditPage(
     userId: string,
     pageId: string,
+    opts?: CacheOptions,
   ): Promise<{
     hasAnyRestriction: boolean;
     canAccess: boolean;
@@ -431,6 +452,7 @@ export class PagePermissionRepo {
           canEdit: row.canAccess && (row.canEdit ?? false),
         };
       },
+      opts,
     );
   }
 
@@ -886,8 +908,11 @@ export class PagePermissionRepo {
    * Check if any page in a space has restrictions.
    * Used as a quick check to skip heavy permission filtering when no restrictions exist.
    */
-  async hasRestrictedPagesInSpace(spaceId: string): Promise<boolean> {
-    const result = await this.db
+  async hasRestrictedPagesInSpace(
+    spaceId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<boolean> {
+    const result = await dbOrTx(this.db, opts?.trx)
       .selectNoFrom((eb) =>
         eb
           .exists(

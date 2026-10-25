@@ -1,7 +1,7 @@
 {
   "name": "docmost",
   "homepage": "https://docmost.com",
-  "version": "0.96.0",
+  "version": "0.97.0",
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
@@ -54,7 +54,6 @@
     "@tiptap/extension-typography": "3.31.3",
     "@tiptap/extension-unique-id": "3.31.3",
     "@tiptap/extension-youtube": "3.31.3",
-    "@tiptap/html": "3.31.3",
     "@tiptap/pm": "3.31.3",
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
@@ -65,7 +64,7 @@
     "date-fns": "4.1.0",
     "diff": "8.0.3",
     "docx": "9.7.1",
-    "dompurify": "3.4.13",
+    "dompurify": "3.4.17",
     "fractional-indexing-jittered": "1.0.0",
     "highlight.js": "11.11.1",
     "image-dimensions": "2.5.0",
@@ -81,12 +80,12 @@
     "yjs": "^13.6.30"
   },
   "devDependencies": {
-    "@nx/js": "23.1.1",
+    "@nx/js": "23.3.0",
     "@types/bytes": "3.1.5",
     "@types/qrcode": "1.5.6",
     "@types/turndown": "5.0.6",
-    "concurrently": "10.0.4",
-    "nx": "23.1.1",
+    "concurrently": "10.0.6",
+    "nx": "23.3.0",
     "tsx": "^4.21.0"
   },
   "workspaces": {
@@ -95,5 +94,5 @@
       "packages/*"
     ]
   },
-  "packageManager": "pnpm@11.25.0"
+  "packageManager": "pnpm@11.28.2"
 }

@@ -79,6 +79,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     const position: Range = results[resultIndex];
 
     if (!position) return;
+    editor.commands.showTabAt(results[resultIndex].from);
 
     // @ts-ignore
     editor.commands.setTextSelection(position);

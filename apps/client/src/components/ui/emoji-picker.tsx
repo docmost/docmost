@@ -8,12 +8,13 @@ import {
 import { useClickOutside, useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import { lazyWithPrefetch } from "@/lib/lazy-prefetch.ts";
 
 // Load the picker module AND the emoji data in parallel inside the lazy
 // resolution, then bind the data into the component. React.lazy only finishes
 // suspending once both are in memory, so the Suspense boundary hides the
 // Remove button until the Picker can render with real content.
-const Picker = React.lazy(async () => {
+const Picker = lazyWithPrefetch(async () => {
   const [pickerModule, dataModule] = await Promise.all([
     import("@slidoapp/emoji-mart-react"),
     import("@slidoapp/emoji-mart-data"),

@@ -1,5 +1,6 @@
 import {
   afterUnloadDocumentPayload,
+  beforeHandleAwarenessPayload,
   Extension,
   onChangePayload,
   onLoadDocumentPayload,
@@ -8,7 +9,12 @@ import {
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { getPageId, jsonToText, tiptapExtensions } from '../collaboration.util';
+import {
+  getPageId,
+  isRenderableObject,
+  jsonToText,
+  tiptapExtensions,
+} from '../collaboration.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -162,9 +168,22 @@ export class PersistenceExtension implements Extension {
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
+      page = null;
+      editingUserIds.forEach((userId) =>
+        this.trackContributor(documentName, userId),
+      );
     }
 
     if (page) {
+      try {
+        await this.collabHistory.addContributors(pageId, editingUserIds);
+      } catch (err) {
+        this.logger.error(
+          { err, pageId },
+          'Failed to add history contributors for page',
+        );
+      }
+
       document.broadcastStateless(
         JSON.stringify({
           type: 'page.updated',
@@ -184,8 +203,6 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
-      await this.collabHistory.addContributors(pageId, editingUserIds);
-
       const mentions = extractMentions(tiptapJson);
 
       const userMentions = extractUserMentions(mentions);
@@ -217,12 +234,45 @@ export class PersistenceExtension implements Extension {
     }
   }
 
+  // Drop malformed awareness before it is broadcast
+  async beforeHandleAwareness({
+    states,
+    context,
+  }: beforeHandleAwarenessPayload) {
+    const user = context?.user;
+
+    for (const [clientId, state] of states) {
+      if (!isRenderableObject(state)) {
+        states.delete(clientId);
+        continue;
+      }
+
+      if ('user' in state && !isRenderableObject(state.user)) {
+        delete state.user;
+      }
+
+      if (state.user && user) {
+        state.user.id = user.id;
+        state.user.avatarUrl = user.avatarUrl ?? null;
+      }
+
+      if (
+        'cursor' in state &&
+        state.cursor !== null &&
+        !isRenderableObject(state.cursor)
+      ) {
+        delete state.cursor;
+      }
+    }
+  }
+
   async onChange(data: onChangePayload) {
-    const documentName = data.documentName;
     const userId = data.context?.user?.id;
-
     if (!userId) return;
+    this.trackContributor(data.documentName, userId);
+  }
 
+  private trackContributor(documentName: string, userId: string) {
     if (!this.contributors.has(documentName)) {
       this.contributors.set(documentName, new Set());
     }

@@ -6,9 +6,10 @@ import { CommentNotificationService } from './services/comment.notification';
 import { PageNotificationService } from './services/page.notification';
 import { VerificationNotificationService } from './services/verification.notification';
 import { PageUpdateEmailRateLimiter } from './services/page-update-email-rate-limiter';
+import { CollaborationModule } from '../../collaboration/collaboration.module';
 
 @Module({
-  imports: [],
+  imports: [CollaborationModule],
   controllers: [NotificationController],
   providers: [
     NotificationService,

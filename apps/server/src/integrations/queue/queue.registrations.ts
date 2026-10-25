@@ -89,6 +89,14 @@ export const createQueueRegistrations = () => [
     },
   }),
   BullModule.registerQueue({
+    name: QueueName.INTEGRATION_QUEUE,
+    defaultJobOptions: {
+      removeOnComplete: true,
+      removeOnFail: { count: 50 },
+      attempts: 3,
+    },
+  }),
+  BullModule.registerQueue({
     name: QueueName.SIEM_QUEUE,
     defaultJobOptions: {
       removeOnComplete: true,

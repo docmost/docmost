@@ -1,0 +1,53 @@
+.mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  vertical-align: baseline;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--mantine-radius-sm);
+}
+
+:global(.node-integrationMention) .mention {
+  border-bottom: none !important;
+  font-weight: 400;
+}
+
+.mention:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
+:global([data-mantine-color-scheme="dark"]) .mention:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+/* Text runs share the paragraph baseline; icons and badges center on the line. */
+.mentionMeta,
+.mentionText {
+  align-self: baseline;
+}
+
+.mentionMeta {
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+}
+
+.mentionText {
+  text-decoration: underline;
+  text-decoration-thickness: 0.07em;
+  text-decoration-color: light-dark(
+    var(--mantine-color-dark-0),
+    var(--mantine-color-dark-2)
+  );
+  text-underline-offset: 0.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+  font-weight: 500;
+}
+
+.mentionIcon {
+  flex-shrink: 0;
+}

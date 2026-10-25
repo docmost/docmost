@@ -29,7 +29,7 @@ import {
   collabExtensions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   currentPageEditModeAtom,
@@ -41,6 +41,7 @@ import {
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
   activeCommentIdAtom,
+  commentPanelTabAtom,
   showCommentPopupAtom,
   showReadOnlyCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
@@ -81,6 +82,9 @@ import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
+import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
+import { BasePasteMenu } from "@/features/editor/components/base-embed/base-paste-menu.tsx";
+import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
 import {
@@ -118,6 +122,31 @@ export default function PageEditor({
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
       const message = JSON.parse(payload);
+      if (message?.type === "page.permissions") {
+        // applied locally, a refetch can still read the old access from the server cache
+        for (const key of [slugId, pageId]) {
+          queryClient.setQueryData<IPage>(
+            ["pages", key],
+            (page) =>
+              page && {
+                ...page,
+                permissions: { ...page.permissions, canEdit: false },
+              },
+          );
+        }
+        if (message.access === "none") {
+          queryClient
+            .getQueryCache()
+            .find({ queryKey: ["pages", slugId], exact: true })
+            ?.setState({
+              status: "error",
+              fetchStatus: "idle",
+              data: undefined,
+              error: Object.assign(new Error("Forbidden"), { status: 403 }),
+            });
+        }
+        return;
+      }
       if (message?.type !== "page.updated" || !message.updatedAt) return;
       const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
       if (pageData) {
@@ -188,6 +217,7 @@ function CollabPageEditor({
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
+  const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
@@ -361,6 +391,15 @@ function CollabPageEditor({
     [pageId, editable, extensions],
   );
 
+  useEffect(() => {
+    // Read by the paste handler with no observer, so it must not be garbage collected.
+    queryClient.prefetchQuery({
+      queryKey: ["installed-integrations"],
+      queryFn: getInstalledIntegrations,
+      gcTime: Infinity,
+    });
+  }, []);
+
   useLayoutEffect(() => {
     if (editor && !editor.isDestroyed) {
       // @ts-ignore
@@ -386,6 +425,7 @@ function CollabPageEditor({
     }
 
     setActiveCommentId(commentId);
+    setCommentPanelTab("open");
     setAsideState({ tab: "comments", isAsideOpen: true });
 
     //wait if aside is closed
@@ -409,7 +449,6 @@ function CollabPageEditor({
   useEffect(() => {
     setActiveCommentId(null);
     setShowCommentPopup(false);
-    setAsideState({ tab: "", isAsideOpen: false });
     setLightboxRequest(null);
   }, [pageId]);
 
@@ -488,6 +527,8 @@ function CollabPageEditor({
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
+            <IntegrationPasteMenu editor={editor} />
+            <BasePasteMenu editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && (

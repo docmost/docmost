@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
 import { InsertableNotification } from '@docmost/db/types/entity.types';
@@ -8,6 +9,7 @@ import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
 import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { EventName } from '../../common/events/event.contants';
 
 @Injectable()
 export class NotificationService {
@@ -18,6 +20,7 @@ export class NotificationService {
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly wsGateway: WsGateway,
     private readonly mailService: MailService,
+    private readonly eventEmitter: EventEmitter2,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -33,6 +36,8 @@ export class NotificationService {
     if (!user) return null;
 
     const notification = await this.notificationRepo.insert(data);
+
+    this.eventEmitter.emit(EventName.NOTIFICATION_CREATED, notification);
 
     this.wsGateway.server
       .to(`user-${data.userId}`)

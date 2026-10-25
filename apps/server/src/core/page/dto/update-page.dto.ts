@@ -20,5 +20,5 @@ export class UpdatePageDto extends PartialType(CreatePageDto) {
   @ValidateIf((o) => o.content !== undefined)
   @Transform(({ value }) => value?.toLowerCase() ?? 'json')
   @IsIn(['json', 'markdown', 'html'])
-  format?: ContentFormat;
+  format?: ContentFormat = 'json';
 }

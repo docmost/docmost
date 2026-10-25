@@ -21,6 +21,7 @@ import { PageUpdateDigestEmail } from '@docmost/transactional/emails/page-update
 import { PermissionGrantedEmail } from '@docmost/transactional/emails/permission-granted-email';
 import { getPageTitle } from '../../../common/helpers';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
 
 const PAGE_UPDATE_COOLDOWN_HOURS = 7;
 const DIGEST_DELAY_MS = 12 * 60 * 60 * 1000; // 12 hours
@@ -37,6 +38,7 @@ export class PageNotificationService {
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly watcherRepo: WatcherRepo,
     private readonly rateLimiter: PageUpdateEmailRateLimiter,
+    private readonly collaborationGateway: CollaborationGateway,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
   ) {}
 
@@ -186,8 +188,22 @@ export class PageNotificationService {
 
     if (watcherIds.length === 0) return;
 
-    const actorSet = new Set(actorIds);
-    const candidateIds = watcherIds.filter((id) => !actorSet.has(id));
+    let connectedUserIds: string[] = [];
+    try {
+      connectedUserIds =
+        (await this.collaborationGateway.handleYjsEvent(
+          'getConnectedUserIds',
+          `page.${pageId}`,
+          undefined,
+          true,
+        )) ?? [];
+    } catch (err) {
+      this.logger.warn(
+        `Failed to get connected users for page ${pageId}: ${err?.['message']}`,
+      );
+    }
+    const excludedIds = new Set([...actorIds, ...connectedUserIds]);
+    const candidateIds = watcherIds.filter((id) => !excludedIds.has(id));
     if (candidateIds.length === 0) return;
 
     const eligibleUsers = await this.getEligiblePageUpdateUsers(candidateIds);
@@ -370,13 +386,14 @@ export class PageNotificationService {
     const pages = spaceFilteredPages.filter((p) => accessiblePageIds.has(p.id));
     if (pages.length === 0) return;
 
-    const actors = actorIds.length > 0
-      ? await this.db
-          .selectFrom('users')
-          .select(['id', 'name'])
-          .where('id', 'in', actorIds)
-          .execute()
-      : [];
+    const actors =
+      actorIds.length > 0
+        ? await this.db
+            .selectFrom('users')
+            .select(['id', 'name'])
+            .where('id', 'in', actorIds)
+            .execute()
+        : [];
 
     const actorMap = new Map(actors.map((a) => [a.id, a.name]));
     const pageActors = new Map<string, Set<string>>();

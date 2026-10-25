@@ -149,7 +149,8 @@ export function TitleEditor({
         },
       };
 
-      if (page.title !== titleEditor.getText()) return;
+      if (!titleEditor.isDestroyed && page.title !== titleEditor.getText())
+        return;
 
       updatePageData(page);
 

@@ -55,11 +55,6 @@ export class SearchService {
         : sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
             'rank',
           );
-    const highlightColumn = browseByFilters || titleOnly
-      ? sql<string>`''`.as('highlight')
-      : sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
-          'highlight',
-        );
 
     let queryResults = this.db
       .selectFrom('pages')
@@ -73,7 +68,6 @@ export class SearchService {
         'createdAt',
         'updatedAt',
         rankColumn,
-        highlightColumn,
       ])
       .$if(!browseByFilters && !titleOnly, (qb) =>
         qb.where(
@@ -189,10 +183,32 @@ export class SearchService {
       results = results.filter((r: any) => accessibleSet.has(r.id));
     }
 
+    if (!browseByFilters && !titleOnly && results.length > 0) {
+      const highlights = await this.db
+        .selectFrom('pages')
+        .select([
+          'id',
+          sql<string>`ts_headline('english', substring(text_content, 1, 100000), to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+            'highlight',
+          ),
+        ])
+        .where(
+          'id',
+          'in',
+          results.map((r: any) => r.id),
+        )
+        .execute();
+      const highlightById = new Map(highlights.map((h) => [h.id, h.highlight]));
+      for (const result of results) {
+        result.highlight = highlightById.get(result.id) ?? '';
+      }
+    }
+
     //@ts-ignore
     const searchResults = results.map((result: SearchResponseDto) => {
       result.wholeWord = true
       if (!result.highlight) {
+        result.highlight = '';
         result.matchedText = [];
         return result;
       }

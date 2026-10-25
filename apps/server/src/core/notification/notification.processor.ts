@@ -64,6 +64,12 @@ export class NotificationProcessor
       }
 
       const workspaceId = await this.resolveWorkspaceId(job);
+      if (!workspaceId) {
+        this.logger.debug(
+          `Skipping ${job.name} job ${job.id}: workspace not found`,
+        );
+        return;
+      }
       const appUrl = await this.getWorkspaceUrl(workspaceId);
 
       switch (job.name) {
@@ -162,7 +168,7 @@ export class NotificationProcessor
     }
   }
 
-  private async resolveWorkspaceId(job: Job): Promise<string> {
+  private async resolveWorkspaceId(job: Job): Promise<string | undefined> {
     if (
       job.name === QueueJob.PAGE_VERIFICATION_EXPIRING ||
       job.name === QueueJob.PAGE_VERIFICATION_EXPIRED
@@ -173,9 +179,9 @@ export class NotificationProcessor
         .select('workspaceId')
         .where('id', '=', verificationId)
         .executeTakeFirst();
-      return row?.workspaceId ?? '';
+      return row?.workspaceId;
     }
-    return (job.data as { workspaceId: string }).workspaceId;
+    return (job.data as { workspaceId?: string }).workspaceId;
   }
 
   private async runVerificationReconcile(): Promise<void> {

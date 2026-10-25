@@ -48,7 +48,7 @@ export class CommentNotificationService {
     );
     if (!context) return;
 
-    const { actor, pageTitle, pageUrl } = context;
+    const { actor, pageTitle, commentUrl } = context;
     const notifiedUserIds = new Set<string>();
     notifiedUserIds.add(actorId);
 
@@ -92,7 +92,7 @@ export class CommentNotificationService {
         userId,
         notification.id,
         `${actor.name} mentioned you in a comment`,
-        CommentMentionEmail({ actorName: actor.name, pageTitle, pageUrl }),
+        CommentMentionEmail({ actorName: actor.name, pageTitle, commentUrl }),
         NotificationType.COMMENT_USER_MENTION,
       );
 
@@ -118,7 +118,7 @@ export class CommentNotificationService {
         recipientId,
         notification.id,
         `${actor.name} commented on ${pageTitle}`,
-        CommentCreateEmail({ actorName: actor.name, pageTitle, pageUrl }),
+        CommentCreateEmail({ actorName: actor.name, pageTitle, commentUrl }),
         NotificationType.COMMENT_CREATED,
       );
     }
@@ -145,7 +145,7 @@ export class CommentNotificationService {
     );
     if (!context) return;
 
-    const { actor, pageTitle, pageUrl } = context;
+    const { actor, pageTitle, commentUrl } = context;
 
     const roles = await this.spaceMemberRepo.getUserSpaceRoles(
       commentCreatorId,
@@ -183,7 +183,7 @@ export class CommentNotificationService {
       commentCreatorId,
       notification.id,
       subject,
-      CommentResolvedEmail({ actorName: actor.name, pageTitle, pageUrl }),
+      CommentResolvedEmail({ actorName: actor.name, pageTitle, commentUrl }),
       NotificationType.COMMENT_RESOLVED,
     );
   }
@@ -235,7 +235,8 @@ export class CommentNotificationService {
     }
 
     const pageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
+    const commentUrl = `${pageUrl}?commentId=${commentId}`;
 
-    return { actor, pageTitle: getPageTitle(page.title), pageUrl };
+    return { actor, pageTitle: getPageTitle(page.title), commentUrl };
   }
 }

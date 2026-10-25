@@ -1,89 +1,99 @@
-import { lazy, Suspense, useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import { isCloud } from "@/lib/config.ts";
+import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
 import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
 
-const SetupWorkspace = lazy(() => import("@/pages/auth/setup-workspace.tsx"));
-const LoginPage = lazy(() => import("@/pages/auth/login"));
-const Home = lazy(() => import("@/pages/dashboard/home"));
-const Page = lazy(() => import("@/pages/page/page"));
-const AccountSettings = lazy(
+
+const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
+const LoginPage = lazyWithPrefetch(() => import("@/pages/auth/login"));
+const Home = lazyWithPrefetch(() => import("@/pages/dashboard/home"));
+const Page = lazyWithPrefetch(() => import("@/pages/page/page"), {
+  prefetchFirst: true,
+});
+const AccountSettings = lazyWithPrefetch(
   () => import("@/pages/settings/account/account-settings"),
 );
-const WorkspaceMembers = lazy(
+const WorkspaceMembers = lazyWithPrefetch(
   () => import("@/pages/settings/workspace/workspace-members"),
 );
-const WorkspaceSettings = lazy(
+const WorkspaceSettings = lazyWithPrefetch(
   () => import("@/pages/settings/workspace/workspace-settings"),
 );
-const Groups = lazy(() => import("@/pages/settings/group/groups"));
-const GroupInfo = lazy(() => import("./pages/settings/group/group-info"));
-const Spaces = lazy(() => import("@/pages/settings/space/spaces.tsx"));
-const AccountPreferences = lazy(
+const Groups = lazyWithPrefetch(() => import("@/pages/settings/group/groups"));
+const GroupInfo = lazyWithPrefetch(() => import("./pages/settings/group/group-info"));
+const Spaces = lazyWithPrefetch(() => import("@/pages/settings/space/spaces.tsx"));
+const AccountPreferences = lazyWithPrefetch(
   () => import("@/pages/settings/account/account-preferences.tsx"),
 );
-const SpaceHome = lazy(() => import("@/pages/space/space-home.tsx"));
-const PageRedirect = lazy(() => import("@/pages/page/page-redirect.tsx"));
-const InviteSignup = lazy(() => import("@/pages/auth/invite-signup.tsx"));
-const ForgotPassword = lazy(() => import("@/pages/auth/forgot-password.tsx"));
-const PasswordReset = lazy(() => import("./pages/auth/password-reset"));
-const Billing = lazy(() => import("@/ee/billing/pages/billing.tsx"));
-const CloudLogin = lazy(() => import("@/ee/pages/cloud-login.tsx"));
-const CreateWorkspace = lazy(() => import("@/ee/pages/create-workspace.tsx"));
-const Security = lazy(() => import("@/ee/security/pages/security.tsx"));
-const License = lazy(() => import("@/ee/licence/pages/license.tsx"));
-const SharedPage = lazy(() => import("@/pages/share/shared-page.tsx"));
-const PdfRenderPage = lazy(() => import("@/ee/pdf-export/pdf-render-page.tsx"));
-const Shares = lazy(() => import("@/pages/settings/shares/shares.tsx"));
-const ShareLayout = lazy(
+const SpaceHome = lazyWithPrefetch(() => import("@/pages/space/space-home.tsx"));
+const PageRedirect = lazyWithPrefetch(() => import("@/pages/page/page-redirect.tsx"));
+const InviteSignup = lazyWithPrefetch(() => import("@/pages/auth/invite-signup.tsx"));
+const ForgotPassword = lazyWithPrefetch(() => import("@/pages/auth/forgot-password.tsx"));
+const PasswordReset = lazyWithPrefetch(() => import("./pages/auth/password-reset"));
+const Billing = lazyWithPrefetch(() => import("@/ee/billing/pages/billing.tsx"));
+const CloudLogin = lazyWithPrefetch(() => import("@/ee/pages/cloud-login.tsx"));
+const CreateWorkspace = lazyWithPrefetch(() => import("@/ee/pages/create-workspace.tsx"));
+const Security = lazyWithPrefetch(() => import("@/ee/security/pages/security.tsx"));
+const License = lazyWithPrefetch(() => import("@/ee/licence/pages/license.tsx"));
+const SharedPage = lazyWithPrefetch(() => import("@/pages/share/shared-page.tsx"));
+const PdfRenderPage = lazyWithPrefetch(() => import("@/ee/pdf-export/pdf-render-page.tsx"));
+const Shares = lazyWithPrefetch(() => import("@/pages/settings/shares/shares.tsx"));
+const ShareLayout = lazyWithPrefetch(
   () => import("@/features/share/components/share-layout.tsx"),
 );
-const ShareRedirect = lazy(() => import("@/pages/share/share-redirect.tsx"));
-const PublicSpacePage = lazy(
+const ShareRedirect = lazyWithPrefetch(() => import("@/pages/share/share-redirect.tsx"));
+const PublicSpacePage = lazyWithPrefetch(
   () => import("@/pages/public-space/public-space-page.tsx"),
 );
-const PublicSpaceLayout = lazy(
+const PublicSpaceLayout = lazyWithPrefetch(
   () => import("@/features/public-space/components/public-space-layout.tsx"),
 );
-const PublicSpaceDirectoryPage = lazy(
+const PublicSpaceDirectoryPage = lazyWithPrefetch(
   () => import("@/pages/public-space/public-space-directory-page.tsx"),
 );
-const SpacesPage = lazy(() => import("@/pages/spaces/spaces.tsx"));
-const MfaChallengePage = lazy(() =>
+const SpacesPage = lazyWithPrefetch(() => import("@/pages/spaces/spaces.tsx"));
+const MfaChallengePage = lazyWithPrefetch(() =>
   import("@/ee/mfa/pages/mfa-challenge-page").then((m) => ({
     default: m.MfaChallengePage,
   })),
 );
-const MfaSetupRequiredPage = lazy(() =>
+const MfaSetupRequiredPage = lazyWithPrefetch(() =>
   import("@/ee/mfa/pages/mfa-setup-required-page").then((m) => ({
     default: m.MfaSetupRequiredPage,
   })),
 );
-const SpaceTrash = lazy(() => import("@/pages/space/space-trash.tsx"));
-const UserApiKeys = lazy(() => import("@/ee/api-key/pages/user-api-keys"));
-const WorkspaceApiKeys = lazy(
+const SpaceTrash = lazyWithPrefetch(() => import("@/pages/space/space-trash.tsx"));
+const UserApiKeys = lazyWithPrefetch(() => import("@/ee/api-key/pages/user-api-keys"));
+const WorkspaceApiKeys = lazyWithPrefetch(
   () => import("@/ee/api-key/pages/workspace-api-keys"),
 );
-const AiSettings = lazy(() => import("@/ee/ai/pages/ai-settings.tsx"));
-const BasePage = lazy(() => import("@/ee/base/pages/base-page.tsx"));
-const AuditLogs = lazy(() => import("@/ee/audit/pages/audit-logs.tsx"));
-const VerifiedPages = lazy(
+const AiSettings = lazyWithPrefetch(() => import("@/ee/ai/pages/ai-settings.tsx"));
+const BasePage = lazyWithPrefetch(() => import("@/ee/base/pages/base-page.tsx"));
+const AuditLogs = lazyWithPrefetch(() => import("@/ee/audit/pages/audit-logs.tsx"));
+const VerifiedPages = lazyWithPrefetch(
   () => import("@/ee/page-verification/pages/verified-pages.tsx"),
 );
-const TemplateList = lazy(() => import("@/ee/template/pages/template-list"));
-const TemplateEditor = lazy(
+const TemplateList = lazyWithPrefetch(() => import("@/ee/template/pages/template-list"));
+const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
 );
-const FavoritesPage = lazy(() => import("@/pages/favorites/favorites-page"));
-const AiChat = lazy(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
-const VerifyEmail = lazy(() => import("@/ee/pages/verify-email.tsx"));
-const LabelPage = lazy(() => import("@/pages/label/label-page"));
-const OAuthConsent = lazy(() => import("@/ee/oauth/pages/oauth-consent.tsx"));
-const ConfluenceImportPage = lazy(
+const FavoritesPage = lazyWithPrefetch(() => import("@/pages/favorites/favorites-page"));
+const AiChat = lazyWithPrefetch(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
+const VerifyEmail = lazyWithPrefetch(() => import("@/ee/pages/verify-email.tsx"));
+const LabelPage = lazyWithPrefetch(() => import("@/pages/label/label-page"));
+const OAuthConsent = lazyWithPrefetch(() => import("@/ee/oauth/pages/oauth-consent.tsx"));
+const Integrations = lazyWithPrefetch(
+  () => import("@/features/integration/pages/integrations.tsx"),
+);
+const Connections = lazyWithPrefetch(
+  () => import("@/features/integration/pages/connections.tsx"),
+);
+const ConfluenceImportPage = lazyWithPrefetch(
   () => import("@/ee/confluence-import/pages/confluence-import.tsx"),
 );
 
@@ -93,8 +103,11 @@ export default function App() {
   useTrackOrigin();
 
   useEffect(() => {
-    // warm the editor chunk so opening a page doesn't wait on the network
-    const timer = setTimeout(() => import("@/pages/page/page"), 3000);
+    // the dev server would transform every route module on each reload
+    if (import.meta.env.DEV) {
+      return;
+    }
+    const timer = setTimeout(prefetchLazyComponents, 3000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -142,6 +155,12 @@ export default function App() {
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />
         <Route path={"/share/:shareId"} element={<ShareRedirect />} />
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
+        <Route
+          path={"/integrations/slack/link"}
+          element={
+            <Navigate to="/settings/account/connections?connect=slack" replace />
+          }
+        />
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
@@ -175,6 +194,7 @@ export default function App() {
               path={"account/api-keys/authorized-apps"}
               element={<UserApiKeys />}
             />
+            <Route path={"account/connections"} element={<Connections />} />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
             <Route path={"api-keys"} element={<WorkspaceApiKeys />} />
@@ -192,6 +212,7 @@ export default function App() {
               element={<Navigate to="/settings/audit/siem" replace />}
             />
             <Route path={"verifications"} element={<VerifiedPages />} />
+            <Route path={"integrations"} element={<Integrations />} />
             <Route
               path={"import/confluence"}
               element={<ConfluenceImportPage />}
