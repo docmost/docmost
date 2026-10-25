@@ -9,19 +9,21 @@ import {
   Text,
 } from 'react-email';
 import * as React from 'react';
+import { EmailTranslator, getEmailTranslator } from '../i18n';
 
 interface MailBodyProps {
   children: React.ReactNode;
+  locale?: string;
 }
 
-export function MailBody({ children }: MailBodyProps) {
+export function MailBody({ children, locale }: MailBodyProps) {
   return (
     <Html>
       <Head />
       <Body style={main}>
         <MailHeader />
         <Container style={container}>{children}</Container>
-        <MailFooter />
+        <MailFooter locale={locale} />
       </Body>
     </Html>
   );
@@ -76,12 +78,17 @@ export function EmailButton({ href, children }: EmailButtonProps) {
   );
 }
 
-export function MailFooter() {
+interface MailFooterProps {
+  locale?: string;
+}
+
+export function MailFooter({ locale }: MailFooterProps) {
+  const { t } = getEmailTranslator(locale);
   return (
     <Section style={footer}>
       <Row>
         <Text style={{ textAlign: 'center', color: '#706a7b' }}>
-          © {new Date().getFullYear()} Docmost, All Rights Reserved <br />
+          {t('footer.copyright', { year: new Date().getFullYear() })} <br />
         </Text>
       </Row>
     </Section>
@@ -90,4 +97,11 @@ export function MailFooter() {
 
 export function getGreetingName(name?: string): string {
   return name?.split(' ')[0] || 'there';
+}
+
+export function getGreeting(t: EmailTranslator['t'], name?: string): string {
+  const firstName = name?.split(' ')[0];
+  return firstName
+    ? t('common.greetingName', { name: firstName })
+    : t('common.greeting');
 }

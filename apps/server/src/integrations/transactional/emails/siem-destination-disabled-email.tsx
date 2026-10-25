@@ -2,6 +2,7 @@ import { Section, Text } from 'react-email';
 import * as React from 'react';
 import { content, paragraph } from '../css/styles';
 import { EmailButton, MailBody } from '../partials/partials';
+import { getEmailTranslator } from '../i18n';
 
 type Props = {
   destinationName: string;
@@ -9,6 +10,7 @@ type Props = {
   lastError: string;
   failingSince: string;
   settingsLink: string;
+  locale?: string;
 };
 
 export const SiemDestinationDisabledEmail = ({
@@ -17,23 +19,26 @@ export const SiemDestinationDisabledEmail = ({
   lastError,
   failingSince,
   settingsLink,
+  locale,
 }: Props) => {
+  const { t, rich } = getEmailTranslator(locale);
   return (
-    <MailBody>
+    <MailBody locale={locale}>
       <Section style={content}>
-        <Text style={paragraph}>Hi there,</Text>
+        <Text style={paragraph}>{t('common.greeting')}</Text>
         <Text style={paragraph}>
-          Your SIEM destination <strong>{destinationName}</strong> (
-          {destinationType}) has been failing since {failingSince} and was
-          disabled after 24 hours of failed deliveries.
+          {rich('siemDestinationDisabled.body', {
+            name: <strong>{destinationName}</strong>,
+            type: destinationType,
+            since: failingSince,
+          })}
         </Text>
-        <Text style={paragraph}>Last error: {lastError}</Text>
         <Text style={paragraph}>
-          Your events are kept and delivery resumes from where it stopped when
-          you re-enable it.
+          {t('siem.lastError', { error: lastError })}
         </Text>
+        <Text style={paragraph}>{t('siemDestinationDisabled.resume')}</Text>
       </Section>
-      <EmailButton href={settingsLink}>View destination</EmailButton>
+      <EmailButton href={settingsLink}>{t('siem.viewDestination')}</EmailButton>
     </MailBody>
   );
 };

@@ -1,7 +1,8 @@
 import { Link, Section, Text } from 'react-email';
 import * as React from 'react';
 import { content, link, paragraph } from '../css/styles';
-import { getGreetingName, MailBody } from '../partials/partials';
+import { getGreeting, MailBody } from '../partials/partials';
+import { getEmailTranslator } from '../i18n';
 
 interface PageUpdate {
   title: string;
@@ -13,25 +14,39 @@ interface Props {
   userName: string;
   pageUpdates: PageUpdate[];
   totalUpdates: number;
+  locale?: string;
 }
 
 export const PageUpdateDigestEmail = ({
   userName,
   pageUpdates,
   totalUpdates,
+  locale,
 }: Props) => {
+  const { t, rich } = getEmailTranslator(locale);
+  const isSingle = totalUpdates === 1;
   return (
-    <MailBody>
+    <MailBody locale={locale}>
       <Section style={content}>
+        <Text style={paragraph}>{getGreeting(t, userName)}</Text>
         <Text style={paragraph}>
-          Hi {getGreetingName(userName)},
-        </Text>
-        <Text style={paragraph}>
-          There {totalUpdates === 1 ? 'has' : 'have'} been{' '}
-          <strong>
-            {totalUpdates} update{totalUpdates === 1 ? '' : 's'}
-          </strong>{' '}
-          since your last update.
+          {rich(
+            isSingle
+              ? 'pageUpdateDigest.summary_one'
+              : 'pageUpdateDigest.summary_other',
+            {
+              updates: (
+                <strong>
+                  {t(
+                    isSingle
+                      ? 'pageUpdateDigest.updates_one'
+                      : 'pageUpdateDigest.updates_other',
+                    { count: totalUpdates },
+                  )}
+                </strong>
+              ),
+            },
+          )}
         </Text>
 
         {pageUpdates.map((page, i) => (
@@ -43,7 +58,9 @@ export const PageUpdateDigestEmail = ({
             </Text>
             {page.updatedBy.length > 0 && (
               <Text style={updatedByText}>
-                Edited by {page.updatedBy.join(', ')}
+                {t('pageUpdateDigest.editedBy', {
+                  names: page.updatedBy.join(', '),
+                })}
               </Text>
             )}
           </Section>

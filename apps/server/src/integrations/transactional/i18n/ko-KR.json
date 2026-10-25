@@ -1,0 +1,72 @@
+{
+  "common.greeting": "안녕하세요,",
+  "common.greetingName": "안녕하세요, {{name}}님,",
+  "common.view": "보기",
+  "common.viewPage": "페이지 보기",
+  "common.reviewPage": "페이지 검토",
+  "footer.copyright": "© {{year}} Docmost, All Rights Reserved",
+
+  "invitation.subject": "{{inviterName}}님이 회원님을 Docmost에 초대했습니다",
+  "invitation.body": "Docmost에 초대되셨습니다.",
+  "invitation.instruction": "아래 버튼을 눌러 초대를 수락해 주세요.",
+  "invitation.accept": "초대 수락",
+
+  "invitationAccepted.subject": "{{name}}님이 Docmost 초대를 수락했습니다",
+  "invitationAccepted.body": "{{name}}({{email}})님이 초대를 수락하여 이제 워크스페이스의 멤버가 되었습니다.",
+
+  "passwordChanged.subject": "비밀번호가 변경되었습니다",
+  "passwordChanged.body": "회원님의 비밀번호가 변경되었음을 알려 드립니다.",
+
+  "passwordReset.subject": "비밀번호 재설정",
+  "passwordReset.requested": "비밀번호 재설정 요청을 받았습니다.",
+  "passwordReset.link": "여기를 눌러 새 비밀번호를 설정해 주세요",
+  "passwordReset.validity": "이 링크는 30분 동안 유효합니다.",
+  "passwordReset.ignore": "비밀번호 재설정을 요청하지 않으셨다면 이 메일을 무시해 주세요.",
+
+  "commentMention.subject": "{{actorName}}님이 댓글에서 회원님을 언급했습니다",
+  "commentMention.body": "{{actorName}}님이 {{pageTitle}} 페이지의 댓글에서 회원님을 언급했습니다.",
+  "commentCreated.subject": "{{actorName}}님이 「{{pageTitle}}」에 댓글을 남겼습니다",
+  "commentCreated.body": "{{actorName}}님이 {{pageTitle}} 페이지에 댓글을 남겼습니다.",
+  "commentResolved.subject": "{{actorName}}님이 「{{pageTitle}}」의 댓글을 해결했습니다",
+  "commentResolved.body": "{{actorName}}님이 {{pageTitle}} 페이지의 댓글을 해결했습니다.",
+
+  "pageMention.subject": "{{actorName}}님이 「{{pageTitle}}」에서 회원님을 언급했습니다",
+  "pageMention.body": "{{actorName}}님이 {{pageTitle}} 페이지에서 회원님을 언급했습니다.",
+
+  "permissionGranted.subject": "{{actorName}}님이 회원님에게 「{{pageTitle}}」 {{accessLabel}} 권한을 부여했습니다",
+  "permissionGranted.body": "{{actorName}}님이 회원님에게 {{pageTitle}} 페이지의 {{accessLabel}} 권한을 부여했습니다.",
+  "permissionGranted.access.edit": "편집",
+  "permissionGranted.access.view": "보기",
+
+  "pageUpdate.subject": "{{actorName}}님이 「{{pageTitle}}」 페이지를 수정했습니다",
+  "pageUpdate.body": "{{actorName}}님이 {{spaceName}} 스페이스의 {{pageTitle}} 페이지를 수정했습니다.",
+
+  "pageUpdateDigest.subject_one": "요약: 페이지 업데이트 {{count}}건",
+  "pageUpdateDigest.subject_other": "요약: 페이지 업데이트 {{count}}건",
+  "pageUpdateDigest.summary_one": "마지막 알림 이후 {{updates}}가 있었습니다.",
+  "pageUpdateDigest.summary_other": "마지막 알림 이후 {{updates}}가 있었습니다.",
+  "pageUpdateDigest.updates_one": "{{count}}건의 업데이트",
+  "pageUpdateDigest.updates_other": "{{count}}건의 업데이트",
+  "pageUpdateDigest.editedBy": "편집한 사람: {{names}}",
+
+  "verificationExpiring.subject": "「{{pageTitle}}」 페이지의 재검증 기한이 다가오고 있습니다",
+  "verificationExpiring.body": "{{spaceName}} 스페이스의 {{pageTitle}} 페이지를 다시 검증해야 합니다. 검증은 {{expiresAt}}에 만료됩니다.",
+  "verificationExpired.subject": "「{{pageTitle}}」 페이지의 검증이 만료되었습니다",
+  "verificationExpired.body": "{{spaceName}} 스페이스의 {{pageTitle}} 페이지 검증이 만료되었습니다. 내용이 여전히 정확한지 확인할 수 있도록 페이지를 다시 검증해 주세요.",
+  "verificationExpired.button": "페이지 다시 검증",
+
+  "approvalRequested.subject": "「{{pageTitle}}」 페이지의 승인이 필요합니다",
+  "approvalRequested.body": "{{actorName}}님이 {{spaceName}} 스페이스의 {{pageTitle}} 페이지에 대한 승인을 요청했습니다.",
+  "approvalRejected.subject": "「{{pageTitle}}」 페이지가 반려되어 수정이 필요합니다",
+  "approvalRejected.body": "{{actorName}}님이 {{spaceName}} 스페이스의 {{pageTitle}} 페이지를 반려하고 수정을 요청했습니다.",
+
+  "siem.lastError": "마지막 오류: {{error}}",
+  "siem.viewDestination": "대상 보기",
+  "siemDestinationFailing.body": "Docmost가 SIEM 대상 {{name}}({{type}})에 감사 이벤트를 전송하지 못하고 있습니다.",
+  "siemDestinationFailing.since": "{{since}}부터 실패하고 있습니다.",
+  "siemDestinationFailing.retry": "Docmost는 30분마다 전송을 다시 시도합니다. 실패가 시작된 지 24시간이 지나도 계속 실패하면 대상이 자동으로 비활성화됩니다.",
+  "siemDestinationDisabled.body": "SIEM 대상 {{name}}({{type}})의 전송이 {{since}}부터 계속 실패하여, 24시간이 지난 뒤 대상이 비활성화되었습니다.",
+  "siemDestinationDisabled.resume": "이벤트는 보관되며, 대상을 다시 활성화하면 중단된 지점부터 전송이 재개됩니다.",
+  "siemDestinationRecovered.body": "SIEM 대상 {{name}}({{type}})에 감사 이벤트가 다시 전송되고 있습니다.",
+  "siemDestinationRecovered.buffered": "장애 중에 쌓인 이벤트는 스트림이 중단된 지점부터 전송되었습니다."
+}

@@ -2,24 +2,34 @@ import { Section, Text } from 'react-email';
 import * as React from 'react';
 import { content, paragraph } from '../css/styles';
 import { EmailButton, MailBody } from '../partials/partials';
+import { getEmailTranslator } from '../i18n';
 
 interface Props {
   actorName: string;
   pageTitle: string;
   pageUrl: string;
+  locale?: string;
 }
 
-export const PageMentionEmail = ({ actorName, pageTitle, pageUrl }: Props) => {
+export const PageMentionEmail = ({
+  actorName,
+  pageTitle,
+  pageUrl,
+  locale,
+}: Props) => {
+  const { t, rich } = getEmailTranslator(locale);
   return (
-    <MailBody>
+    <MailBody locale={locale}>
       <Section style={content}>
-        <Text style={paragraph}>Hi there,</Text>
+        <Text style={paragraph}>{t('common.greeting')}</Text>
         <Text style={paragraph}>
-          <strong>{actorName}</strong> mentioned you in{' '}
-          <strong>{pageTitle}</strong>.
+          {rich('pageMention.body', {
+            actorName: <strong>{actorName}</strong>,
+            pageTitle: <strong>{pageTitle}</strong>,
+          })}
         </Text>
       </Section>
-      <EmailButton href={pageUrl}>View</EmailButton>
+      <EmailButton href={pageUrl}>{t('common.view')}</EmailButton>
     </MailBody>
   );
 };

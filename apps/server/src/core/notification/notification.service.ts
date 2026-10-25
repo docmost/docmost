@@ -10,6 +10,15 @@ import { MailService } from '../../integrations/mail/mail.service';
 import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { EventName } from '../../common/events/event.contants';
+import {
+  EmailTranslator,
+  getEmailTranslator,
+} from '@docmost/transactional/i18n';
+
+export type NotificationEmailBuilder = (i18n: EmailTranslator) => {
+  subject: string;
+  template: any;
+};
 
 @Injectable()
 export class NotificationService {
@@ -96,14 +105,13 @@ export class NotificationService {
   async queueEmail(
     userId: string,
     notificationId: string,
-    subject: string,
-    template: any,
+    buildEmail: NotificationEmailBuilder,
     type?: NotificationType,
   ) {
     try {
       const user = await this.db
         .selectFrom('users')
-        .select(['email', 'settings'])
+        .select(['email', 'settings', 'locale'])
         .where('id', '=', userId)
         .where('deletedAt', 'is', null)
         .where('deactivatedAt', 'is', null)
@@ -118,6 +126,8 @@ export class NotificationService {
           if (settings?.notifications?.[settingKey] === false) return;
         }
       }
+
+      const { subject, template } = buildEmail(getEmailTranslator(user.locale));
 
       await this.mailService.sendToQueue({
         to: user.email,

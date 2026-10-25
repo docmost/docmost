@@ -19,6 +19,7 @@
     "noFallthroughCasesInSwitch": false,
     "strict": true,
     "jsx": "react",
+    "resolveJsonModule": true,
     "paths": {
       "@docmost/db/*": ["./src/database/*"],
       "@docmost/transactional/*": ["./src/integrations/transactional/*"],

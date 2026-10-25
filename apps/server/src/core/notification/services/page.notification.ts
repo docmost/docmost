@@ -18,7 +18,10 @@ import { PageUpdateEmailRateLimiter } from './page-update-email-rate-limiter';
 import { PageMentionEmail } from '@docmost/transactional/emails/page-mention-email';
 import { PageUpdateEmail } from '@docmost/transactional/emails/page-update-email';
 import { PageUpdateDigestEmail } from '@docmost/transactional/emails/page-update-digest-email';
-import { PermissionGrantedEmail } from '@docmost/transactional/emails/permission-granted-email';
+import {
+  getAccessLabel,
+  PermissionGrantedEmail,
+} from '@docmost/transactional/emails/permission-granted-email';
 import { getPageTitle } from '../../../common/helpers';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
@@ -119,13 +122,22 @@ export class PageNotificationService {
       if (!notification) continue;
 
       const pageUrl = `${basePageUrl}`;
-      const subject = `${actor.name} mentioned you in ${pageTitle}`;
 
       await this.notificationService.queueEmail(
         userId,
         notification.id,
-        subject,
-        PageMentionEmail({ actorName: actor.name, pageTitle, pageUrl }),
+        ({ t, locale }) => ({
+          subject: t('pageMention.subject', {
+            actorName: actor.name,
+            pageTitle,
+          }),
+          template: PageMentionEmail({
+            actorName: actor.name,
+            pageTitle,
+            pageUrl,
+            locale,
+          }),
+        }),
         NotificationType.PAGE_USER_MENTION,
       );
     }
@@ -162,17 +174,22 @@ export class PageNotificationService {
       });
       if (!notification) continue;
 
-      const subject = `${actor.name} gave you ${accessLabel} access to ${pageTitle}`;
-
       await this.notificationService.queueEmail(
         userId,
         notification.id,
-        subject,
-        PermissionGrantedEmail({
-          actorName: actor.name,
-          pageTitle,
-          pageUrl: basePageUrl,
-          accessLabel,
+        ({ t, locale }) => ({
+          subject: t('permissionGranted.subject', {
+            actorName: actor.name,
+            accessLabel: getAccessLabel(t, accessLabel),
+            pageTitle,
+          }),
+          template: PermissionGrantedEmail({
+            actorName: actor.name,
+            pageTitle,
+            pageUrl: basePageUrl,
+            accessLabel,
+            locale,
+          }),
         }),
       );
     }
@@ -257,13 +274,19 @@ export class PageNotificationService {
         await this.notificationService.queueEmail(
           userId,
           notification.id,
-          `${actor.name} updated ${pageTitle}`,
-          PageUpdateEmail({
-            userName: eligibleUsers.get(userId) ?? '',
-            actorName: actor.name,
-            pageTitle,
-            pageUrl: basePageUrl,
-            spaceName,
+          ({ t, locale }) => ({
+            subject: t('pageUpdate.subject', {
+              actorName: actor.name,
+              pageTitle,
+            }),
+            template: PageUpdateEmail({
+              userName: eligibleUsers.get(userId) ?? '',
+              actorName: actor.name,
+              pageTitle,
+              pageUrl: basePageUrl,
+              spaceName,
+              locale,
+            }),
           }),
           NotificationType.PAGE_UPDATED,
         );
@@ -414,11 +437,19 @@ export class PageNotificationService {
     await this.notificationService.queueEmail(
       userId,
       notificationIds[0],
-      `Your digest: ${pageUpdates.length} page ${pageUpdates.length === 1 ? 'update' : 'updates'}`,
-      PageUpdateDigestEmail({
-        userName: user.name,
-        pageUpdates,
-        totalUpdates: pageUpdates.length,
+      ({ t, locale }) => ({
+        subject: t(
+          pageUpdates.length === 1
+            ? 'pageUpdateDigest.subject_one'
+            : 'pageUpdateDigest.subject_other',
+          { count: pageUpdates.length },
+        ),
+        template: PageUpdateDigestEmail({
+          userName: user.name,
+          pageUpdates,
+          totalUpdates: pageUpdates.length,
+          locale,
+        }),
       }),
       NotificationType.PAGE_UPDATED,
     );

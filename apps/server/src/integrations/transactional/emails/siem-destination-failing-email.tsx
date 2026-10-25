@@ -2,6 +2,7 @@ import { Section, Text } from 'react-email';
 import * as React from 'react';
 import { content, paragraph } from '../css/styles';
 import { EmailButton, MailBody } from '../partials/partials';
+import { getEmailTranslator } from '../i18n';
 
 type Props = {
   destinationName: string;
@@ -9,6 +10,7 @@ type Props = {
   lastError: string;
   failingSince: string;
   settingsLink: string;
+  locale?: string;
 };
 
 export const SiemDestinationFailingEmail = ({
@@ -17,23 +19,28 @@ export const SiemDestinationFailingEmail = ({
   lastError,
   failingSince,
   settingsLink,
+  locale,
 }: Props) => {
+  const { t, rich } = getEmailTranslator(locale);
   return (
-    <MailBody>
+    <MailBody locale={locale}>
       <Section style={content}>
-        <Text style={paragraph}>Hi there,</Text>
+        <Text style={paragraph}>{t('common.greeting')}</Text>
         <Text style={paragraph}>
-          Docmost cannot deliver audit events to your SIEM destination{' '}
-          <strong>{destinationName}</strong> ({destinationType}).
+          {rich('siemDestinationFailing.body', {
+            name: <strong>{destinationName}</strong>,
+            type: destinationType,
+          })}
         </Text>
-        <Text style={paragraph}>Last error: {lastError}</Text>
-        <Text style={paragraph}>Failing since {failingSince}.</Text>
         <Text style={paragraph}>
-          Docmost keeps retrying every 30 minutes. If the destination is still
-          failing 24 hours after it started, it is disabled automatically.
+          {t('siem.lastError', { error: lastError })}
         </Text>
+        <Text style={paragraph}>
+          {t('siemDestinationFailing.since', { since: failingSince })}
+        </Text>
+        <Text style={paragraph}>{t('siemDestinationFailing.retry')}</Text>
       </Section>
-      <EmailButton href={settingsLink}>View destination</EmailButton>
+      <EmailButton href={settingsLink}>{t('siem.viewDestination')}</EmailButton>
     </MailBody>
   );
 };

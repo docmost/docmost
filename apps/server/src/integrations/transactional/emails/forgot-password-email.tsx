@@ -2,27 +2,26 @@ import { Button, Link, Section, Text } from 'react-email';
 import * as React from 'react';
 import { button, content, paragraph } from '../css/styles';
 import { MailBody } from '../partials/partials';
+import { getEmailTranslator } from '../i18n';
 
 interface Props {
   username: string;
   resetLink: string;
+  locale?: string;
 }
 
-export const ForgotPasswordEmail = ({ username, resetLink }: Props) => {
+export const ForgotPasswordEmail = ({ username, resetLink, locale }: Props) => {
+  const { t } = getEmailTranslator(locale);
   return (
-    <MailBody>
+    <MailBody locale={locale}>
       <Section style={content}>
-        <Text style={paragraph}>Hi {username},</Text>
         <Text style={paragraph}>
-          We received a request from you to reset your password.
+          {t('common.greetingName', { name: username ?? '' })}
         </Text>
-          <Link href={resetLink}> Click here to set a new password</Link>
-        <Text style={paragraph}>
-          This link is valid for 30 minutes.
-        </Text>
-        <Text style={paragraph}>
-          If you did not request a password reset, please ignore this email.
-        </Text>
+        <Text style={paragraph}>{t('passwordReset.requested')}</Text>
+        <Link href={resetLink}> {t('passwordReset.link')}</Link>
+        <Text style={paragraph}>{t('passwordReset.validity')}</Text>
+        <Text style={paragraph}>{t('passwordReset.ignore')}</Text>
       </Section>
     </MailBody>
   );
