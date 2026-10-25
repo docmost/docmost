@@ -117,17 +117,20 @@ export class VerificationNotificationService {
         data: { expiresAt: expiresAtIso },
       });
 
-      const subject = `"${pageTitle}" needs to be re-verified soon`;
-
       await this.notificationService.queueEmail(
         userId,
         notification.id,
-        subject,
-        VerificationExpiringEmail({
-          pageTitle,
-          spaceName,
-          pageUrl: basePageUrl,
-          expiresAt: new Date(verification.expiresAt).toLocaleDateString(),
+        ({ t, locale }) => ({
+          subject: t('verificationExpiring.subject', { pageTitle }),
+          template: VerificationExpiringEmail({
+            pageTitle,
+            spaceName,
+            pageUrl: basePageUrl,
+            expiresAt: new Date(verification.expiresAt).toLocaleDateString(
+              locale,
+            ),
+            locale,
+          }),
         }),
       );
     }
@@ -191,16 +194,17 @@ export class VerificationNotificationService {
         pageVerificationId: verification.id,
       });
 
-      const subject = `"${pageTitle}" verification has expired`;
-
       await this.notificationService.queueEmail(
         userId,
         notification.id,
-        subject,
-        VerificationExpiredEmail({
-          pageTitle,
-          spaceName,
-          pageUrl: basePageUrl,
+        ({ t, locale }) => ({
+          subject: t('verificationExpired.subject', { pageTitle }),
+          template: VerificationExpiredEmail({
+            pageTitle,
+            spaceName,
+            pageUrl: basePageUrl,
+            locale,
+          }),
         }),
       );
     }
@@ -259,17 +263,18 @@ export class VerificationNotificationService {
         spaceId,
       });
 
-      const subject = `"${pageTitle}" needs your approval`;
-
       await this.notificationService.queueEmail(
         userId,
         notification.id,
-        subject,
-        ApprovalRequestedEmail({
-          actorName,
-          pageTitle,
-          spaceName,
-          pageUrl: basePageUrl,
+        ({ t, locale }) => ({
+          subject: t('approvalRequested.subject', { pageTitle }),
+          template: ApprovalRequestedEmail({
+            actorName,
+            pageTitle,
+            spaceName,
+            pageUrl: basePageUrl,
+            locale,
+          }),
         }),
       );
     }
@@ -304,18 +309,19 @@ export class VerificationNotificationService {
       spaceId,
     });
 
-    const subject = `"${pageTitle}" was returned for revision`;
-
     await this.notificationService.queueEmail(
       requestedById,
       notification.id,
-      subject,
-      ApprovalRejectedEmail({
-        actorName,
-        pageTitle,
-        spaceName,
-        pageUrl: basePageUrl,
-        comment,
+      ({ t, locale }) => ({
+        subject: t('approvalRejected.subject', { pageTitle }),
+        template: ApprovalRejectedEmail({
+          actorName,
+          pageTitle,
+          spaceName,
+          pageUrl: basePageUrl,
+          comment,
+          locale,
+        }),
       }),
     );
   }

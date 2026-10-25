@@ -26,6 +26,7 @@ import { MailService } from '../../../integrations/mail/mail.service';
 import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email';
+import { getEmailTranslator } from '@docmost/transactional/i18n';
 import { UserTokenRepo } from '@docmost/db/repos/user-token/user-token.repo';
 import { PasswordResetDto } from '../dto/password-reset.dto';
 import { User, UserToken, Workspace } from '@docmost/db/types/entity.types';
@@ -169,10 +170,11 @@ export class AuthService {
       resourceId: userId,
     });
 
-    const emailTemplate = ChangePasswordEmail({ username: user.name });
+    const { t, locale } = getEmailTranslator(user.locale);
+    const emailTemplate = ChangePasswordEmail({ username: user.name, locale });
     await this.mailService.sendToQueue({
       to: user.email,
-      subject: 'Your password has been changed',
+      subject: t('passwordChanged.subject'),
       template: emailTemplate,
     });
   }
@@ -213,14 +215,16 @@ export class AuthService {
 
     const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
 
+    const { t, locale } = getEmailTranslator(user.locale);
     const emailTemplate = ForgotPasswordEmail({
       username: user.name,
       resetLink: resetLink,
+      locale,
     });
 
     await this.mailService.sendToQueue({
       to: user.email,
-      subject: 'Reset your password',
+      subject: t('passwordReset.subject'),
       template: emailTemplate,
     });
 
@@ -299,10 +303,11 @@ export class AuthService {
       resourceId: user.id,
     });
 
-    const emailTemplate = ChangePasswordEmail({ username: user.name });
+    const { t, locale } = getEmailTranslator(user.locale);
+    const emailTemplate = ChangePasswordEmail({ username: user.name, locale });
     await this.mailService.sendToQueue({
       to: user.email,
-      subject: 'Your password has been changed',
+      subject: t('passwordChanged.subject'),
       template: emailTemplate,
     });
 

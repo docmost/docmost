@@ -91,8 +91,15 @@ export class CommentNotificationService {
       await this.notificationService.queueEmail(
         userId,
         notification.id,
-        `${actor.name} mentioned you in a comment`,
-        CommentMentionEmail({ actorName: actor.name, pageTitle, commentUrl }),
+        ({ t, locale }) => ({
+          subject: t('commentMention.subject', { actorName: actor.name }),
+          template: CommentMentionEmail({
+            actorName: actor.name,
+            pageTitle,
+            commentUrl,
+            locale,
+          }),
+        }),
         NotificationType.COMMENT_USER_MENTION,
       );
 
@@ -117,8 +124,18 @@ export class CommentNotificationService {
       await this.notificationService.queueEmail(
         recipientId,
         notification.id,
-        `${actor.name} commented on ${pageTitle}`,
-        CommentCreateEmail({ actorName: actor.name, pageTitle, commentUrl }),
+        ({ t, locale }) => ({
+          subject: t('commentCreated.subject', {
+            actorName: actor.name,
+            pageTitle,
+          }),
+          template: CommentCreateEmail({
+            actorName: actor.name,
+            pageTitle,
+            commentUrl,
+            locale,
+          }),
+        }),
         NotificationType.COMMENT_CREATED,
       );
     }
@@ -177,13 +194,21 @@ export class CommentNotificationService {
     });
     if (!notification) return;
 
-    const subject = `${actor.name} resolved a comment on ${pageTitle}`;
-
     await this.notificationService.queueEmail(
       commentCreatorId,
       notification.id,
-      subject,
-      CommentResolvedEmail({ actorName: actor.name, pageTitle, commentUrl }),
+      ({ t, locale }) => ({
+        subject: t('commentResolved.subject', {
+          actorName: actor.name,
+          pageTitle,
+        }),
+        template: CommentResolvedEmail({
+          actorName: actor.name,
+          pageTitle,
+          commentUrl,
+          locale,
+        }),
+      }),
       NotificationType.COMMENT_RESOLVED,
     );
   }

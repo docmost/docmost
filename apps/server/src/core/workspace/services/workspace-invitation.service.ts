@@ -22,6 +22,7 @@ import { MailService } from '../../../integrations/mail/mail.service';
 import InvitationEmail from '@docmost/transactional/emails/invitation-email';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
+import { getEmailTranslator } from '@docmost/transactional/i18n';
 import { TokenService } from '../../auth/services/token.service';
 import { SessionService } from '../../session/session.service';
 import { nanoIdGen } from '../../../common/helpers';
@@ -196,6 +197,7 @@ export class WorkspaceInvitationService {
           invitation.token,
           authUser.name,
           workspace.hostname,
+          authUser.locale,
         );
       });
 
@@ -321,14 +323,16 @@ export class WorkspaceInvitationService {
     );
 
     if (invitedByUser) {
+      const { t, locale } = getEmailTranslator(invitedByUser.locale);
       const emailTemplate = InvitationAcceptedEmail({
         invitedUserName: newUser.name,
         invitedUserEmail: newUser.email,
+        locale,
       });
 
       await this.mailService.sendToQueue({
         to: invitedByUser.email,
-        subject: `${newUser.name} has accepted your Docmost invite`,
+        subject: t('invitationAccepted.subject', { name: newUser.name }),
         template: emailTemplate,
       });
     }
@@ -392,6 +396,7 @@ export class WorkspaceInvitationService {
       invitation.token,
       invitedByUser.name,
       workspace.hostname,
+      invitedByUser.locale,
     );
 
     this.auditService.log({
@@ -464,6 +469,8 @@ export class WorkspaceInvitationService {
     inviteToken: string,
     invitedByName: string,
     hostname?: string,
+    // the invitee has no account yet, so the inviter's locale is used
+    locale?: string,
   ): Promise<void> {
     const inviteLink = await this.buildInviteLink({
       invitationId,
@@ -471,13 +478,15 @@ export class WorkspaceInvitationService {
       hostname,
     });
 
+    const { t, locale: emailLocale } = getEmailTranslator(locale);
     const emailTemplate = InvitationEmail({
       inviteLink,
+      locale: emailLocale,
     });
 
     await this.mailService.sendToQueue({
       to: inviteeEmail,
-      subject: `${invitedByName} invited you to Docmost`,
+      subject: t('invitation.subject', { inviterName: invitedByName }),
       template: emailTemplate,
     });
   }

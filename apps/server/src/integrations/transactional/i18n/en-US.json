@@ -1,0 +1,72 @@
+{
+  "common.greeting": "Hi there,",
+  "common.greetingName": "Hi {{name}},",
+  "common.view": "View",
+  "common.viewPage": "View page",
+  "common.reviewPage": "Review page",
+  "footer.copyright": "© {{year}} Docmost, All Rights Reserved",
+
+  "invitation.subject": "{{inviterName}} invited you to Docmost",
+  "invitation.body": "You have been invited to Docmost.",
+  "invitation.instruction": "Please click the button below to accept this invitation.",
+  "invitation.accept": "Accept Invite",
+
+  "invitationAccepted.subject": "{{name}} has accepted your Docmost invite",
+  "invitationAccepted.body": "{{name}} ({{email}}) has accepted your invitation, and is now a member of the workspace.",
+
+  "passwordChanged.subject": "Your password has been changed",
+  "passwordChanged.body": "This is a confirmation that your password has been changed.",
+
+  "passwordReset.subject": "Reset your password",
+  "passwordReset.requested": "We received a request from you to reset your password.",
+  "passwordReset.link": "Click here to set a new password",
+  "passwordReset.validity": "This link is valid for 30 minutes.",
+  "passwordReset.ignore": "If you did not request a password reset, please ignore this email.",
+
+  "commentMention.subject": "{{actorName}} mentioned you in a comment",
+  "commentMention.body": "{{actorName}} mentioned you in a comment on {{pageTitle}}.",
+  "commentCreated.subject": "{{actorName}} commented on {{pageTitle}}",
+  "commentCreated.body": "{{actorName}} commented on {{pageTitle}}.",
+  "commentResolved.subject": "{{actorName}} resolved a comment on {{pageTitle}}",
+  "commentResolved.body": "{{actorName}} resolved a comment on {{pageTitle}}.",
+
+  "pageMention.subject": "{{actorName}} mentioned you in {{pageTitle}}",
+  "pageMention.body": "{{actorName}} mentioned you in {{pageTitle}}.",
+
+  "permissionGranted.subject": "{{actorName}} gave you {{accessLabel}} access to {{pageTitle}}",
+  "permissionGranted.body": "{{actorName}} gave you {{accessLabel}} access to {{pageTitle}}.",
+  "permissionGranted.access.edit": "edit",
+  "permissionGranted.access.view": "view",
+
+  "pageUpdate.subject": "{{actorName}} updated {{pageTitle}}",
+  "pageUpdate.body": "{{actorName}} updated {{pageTitle}} in the {{spaceName}} space.",
+
+  "pageUpdateDigest.subject_one": "Your digest: {{count}} page update",
+  "pageUpdateDigest.subject_other": "Your digest: {{count}} page updates",
+  "pageUpdateDigest.summary_one": "There has been {{updates}} since your last update.",
+  "pageUpdateDigest.summary_other": "There have been {{updates}} since your last update.",
+  "pageUpdateDigest.updates_one": "{{count}} update",
+  "pageUpdateDigest.updates_other": "{{count}} updates",
+  "pageUpdateDigest.editedBy": "Edited by {{names}}",
+
+  "verificationExpiring.subject": "\"{{pageTitle}}\" needs to be re-verified soon",
+  "verificationExpiring.body": "The page {{pageTitle}} in the {{spaceName}} space needs to be re-verified. The verification expires on {{expiresAt}}.",
+  "verificationExpired.subject": "\"{{pageTitle}}\" verification has expired",
+  "verificationExpired.body": "The verification for {{pageTitle}} in the {{spaceName}} space has expired. Please re-verify the page to confirm it is still accurate.",
+  "verificationExpired.button": "Re-verify page",
+
+  "approvalRequested.subject": "\"{{pageTitle}}\" needs your approval",
+  "approvalRequested.body": "{{actorName}} submitted {{pageTitle}} in the {{spaceName}} space for your approval.",
+  "approvalRejected.subject": "\"{{pageTitle}}\" was returned for revision",
+  "approvalRejected.body": "{{actorName}} returned {{pageTitle}} in the {{spaceName}} space for revision.",
+
+  "siem.lastError": "Last error: {{error}}",
+  "siem.viewDestination": "View destination",
+  "siemDestinationFailing.body": "Docmost cannot deliver audit events to your SIEM destination {{name}} ({{type}}).",
+  "siemDestinationFailing.since": "Failing since {{since}}.",
+  "siemDestinationFailing.retry": "Docmost keeps retrying every 30 minutes. If the destination is still failing 24 hours after it started, it is disabled automatically.",
+  "siemDestinationDisabled.body": "Your SIEM destination {{name}} ({{type}}) has been failing since {{since}} and was disabled after 24 hours of failed deliveries.",
+  "siemDestinationDisabled.resume": "Your events are kept and delivery resumes from where it stopped when you re-enable it.",
+  "siemDestinationRecovered.body": "Your SIEM destination {{name}} ({{type}}) is delivering audit events again.",
+  "siemDestinationRecovered.buffered": "Events buffered during the outage were delivered from where the stream stopped."
+}
