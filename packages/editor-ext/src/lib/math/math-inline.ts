@@ -38,7 +38,7 @@ export const MathInline = Node.create<MathInlineOption>({
       text: {
         default: "",
         parseHTML: (element) => {
-          return element.innerHTML;
+          return element.textContent ?? "";
         },
       },
     };

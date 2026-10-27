@@ -38,7 +38,7 @@ export const MathBlock = Node.create({
       text: {
         default: "",
         parseHTML: (element) => {
-          return element.innerHTML;
+          return element.textContent ?? "";
         },
       },
     };
