@@ -1,6 +1,6 @@
 import "katex/dist/katex.min.css";
 import katex from "katex";
-//import "katex/dist/contrib/mhchem.min.js";
+import "katex/contrib/mhchem";
 import { useEffect, useRef, useState } from "react";
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { Popover, Textarea } from "@mantine/core";
