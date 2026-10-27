@@ -196,6 +196,13 @@ const translateItems: CommandItem[] = [
     action: AiAction.TRANSLATE,
     prompt: "Simplified Chinese",
   },
+  {
+    id: "translate-hungarian",
+    name: "Hungarian",
+    icon: IconLanguage,
+    action: AiAction.TRANSLATE,
+    prompt: "Hungarian",
+  },
 ];
 const resultItems: CommandItem[] = [
   { id: "result-replace", name: "Replace", icon: IconCheck },
