@@ -10,6 +10,19 @@ const CONTEXTS_TO_IGNORE = [
   'WebSocketsController',
 ];
 
+// Axios errors carry the whole request config, auth headers included.
+function serializeError(err: Record<string, any>) {
+  if (!err?.isAxiosError) return err;
+  const { config, request, response, ...rest } = err;
+  const url = `${config?.baseURL ?? ''}${config?.url ?? ''}`.split('?')[0];
+  return {
+    ...rest,
+    method: config?.method?.toUpperCase(),
+    url: url || undefined,
+    status: response?.status ?? rest.status,
+  };
+}
+
 export function createPinoConfig(): Params {
   const isProduction = process.env.NODE_ENV?.toLowerCase() === 'production';
   const isDebugMode = process.env.DEBUG_MODE?.toLowerCase() === 'true';
@@ -61,6 +74,7 @@ export function createPinoConfig(): Params {
         res: (res) => ({
           statusCode: res.statusCode,
         }),
+        err: serializeError,
       },
       customLogLevel: (_req, res, err) => {
         if (res.statusCode >= 500 || err) return 'error';
