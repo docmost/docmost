@@ -80,7 +80,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
         elements: excalidrawAPI?.getSceneElements(),
         appState: {
           exportEmbedScene: true,
-          exportWithDarkMode: false,
+          exportWithDarkMode: computedColorScheme === 'dark',
         },
         files: excalidrawAPI?.getFiles(),
       });
