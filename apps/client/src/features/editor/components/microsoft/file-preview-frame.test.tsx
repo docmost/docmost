@@ -26,7 +26,9 @@ vi.mock("@/features/microsoft/queries/microsoft-query", () => ({
   useM365Item: mocks.useM365Item,
 }));
 
-vi.mock("./file-state-card", () => ({ FileStateCard: () => null }));
+vi.mock("./file-state-card", () => ({
+  FileStateCard: ({ description }: { description: string }) => description,
+}));
 
 class FakeIntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
@@ -77,6 +79,24 @@ function stubBrowser() {
     })),
   });
 }
+
+function stubLoadedPreview(
+  getUrl = "https://contoso.sharepoint.com/_layouts/15/embed.aspx?UniqueId=1",
+) {
+  mocks.useM365Preview.mockReturnValue({
+    state: "loaded",
+    data: { getUrl },
+    refetch: vi.fn(),
+  });
+}
+
+const viewer = () => screen.getByTitle("Plan.docx");
+// As when the viewer focuses itself: the frame takes focus and the window blurs
+const focusViewer = () => {
+  act(() => viewer().focus());
+  fireEvent.blur(window);
+  act(() => vi.advanceTimersByTime(0));
+};
 
 describe("FilePreviewFrame visibility observer", () => {
   beforeEach(() => {
@@ -130,14 +150,7 @@ describe("FilePreviewFrame in a modal", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     stubBrowser();
-    mocks.useM365Preview.mockReturnValue({
-      state: "loaded",
-      data: {
-        getUrl:
-          "https://contoso.sharepoint.com/_layouts/15/embed.aspx?UniqueId=1",
-      },
-      refetch: vi.fn(),
-    });
+    stubLoadedPreview();
     mocks.useM365Item.mockReturnValue({ state: "loading" });
   });
 
@@ -148,15 +161,8 @@ describe("FilePreviewFrame in a modal", () => {
     vi.clearAllMocks();
   });
 
-  const viewer = () => screen.getByTitle("Plan.docx");
   const closeButton = () =>
     screen.getByRole("button", { name: "Close preview of Plan.docx" });
-  // As when the viewer focuses itself: the frame takes focus and the window blurs
-  const focusViewer = () => {
-    act(() => viewer().focus());
-    fireEvent.blur(window);
-    act(() => vi.advanceTimersByTime(0));
-  };
 
   it("names the app the file lives in", () => {
     renderFrame(true, vi.fn(), {
@@ -213,15 +219,107 @@ describe("FilePreviewFrame in a modal", () => {
     focusViewer();
     expect(document.activeElement).toBe(viewer());
   });
+});
 
-  it("leaves focus alone in a frame on the page", () => {
+describe("FilePreviewFrame on the page", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    stubBrowser();
+    stubLoadedPreview();
+    mocks.useM365Item.mockReturnValue({ state: "loading" });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  const renderEditor = () => {
+    render(<div contentEditable aria-label="Page content" />);
+    return screen.getByLabelText("Page content");
+  };
+  const parentFolderLink = () =>
+    screen.getByRole("link", { name: "Open parent folder of Plan.docx" });
+
+  it("gives focus back to what had it when the viewer focuses itself", () => {
+    const editor = renderEditor();
     renderFrame(true);
+    act(() => editor.focus());
+    const focus = vi.spyOn(editor, "focus");
 
     focusViewer();
 
+    expect(document.activeElement).toBe(editor);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
+
+  it("lets the viewer keep focus from a second after it loads", () => {
+    const editor = renderEditor();
+    renderFrame(true);
+    act(() => editor.focus());
+    fireEvent.load(viewer());
+
+    act(() => vi.advanceTimersByTime(900));
+    focusViewer();
+    expect(document.activeElement).toBe(editor);
+
+    act(() => vi.advanceTimersByTime(200));
+    focusViewer();
     expect(document.activeElement).toBe(viewer());
-    expect(
-      screen.queryByRole("button", { name: "Close preview of Plan.docx" }),
-    ).toBeNull();
+  });
+
+  it("lets go of focus when nothing had it before the viewer", () => {
+    const editor = renderEditor();
+    renderFrame(true);
+    act(() => editor.focus());
+    act(() => editor.blur());
+    act(() => vi.advanceTimersByTime(500));
+
+    focusViewer();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("names the viewer of a file with no name by its link", () => {
+    renderFrame(true, undefined, { ...item, name: "" });
+
+    expect(screen.getByTitle(item.webUrl)).toBeTruthy();
+  });
+
+  it.each(["javascript:alert(1)", "http://contoso.sharepoint.com/x"])(
+    "shows no viewer for the preview link %s",
+    (getUrl) => {
+      stubLoadedPreview(getUrl);
+      renderFrame(true);
+
+      expect(screen.queryByTitle("Plan.docx")).toBeNull();
+      expect(screen.getByText("Preview not available")).toBeTruthy();
+    },
+  );
+
+  it("opens the parent folder on SharePoint", () => {
+    const parentWebUrl =
+      "https://contoso.sharepoint.com/sites/M/Shared%20Documents";
+    mocks.useM365Item.mockReturnValue({
+      state: "loaded",
+      data: { parentWebUrl },
+    });
+    renderFrame(true);
+
+    expect(parentFolderLink().getAttribute("href")).toBe(parentWebUrl);
+    expect(parentFolderLink().hasAttribute("data-disabled")).toBe(false);
+  });
+
+  it("disables the parent folder link for a folder outside SharePoint", () => {
+    mocks.useM365Item.mockReturnValue({
+      state: "loaded",
+      data: { parentWebUrl: "https://example.com/sites/M/Shared%20Documents" },
+    });
+    renderFrame(true);
+
+    expect(parentFolderLink().getAttribute("href")).toBe(item.webUrl);
+    expect(parentFolderLink().hasAttribute("data-disabled")).toBe(true);
   });
 });

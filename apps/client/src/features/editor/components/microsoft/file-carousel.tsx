@@ -65,7 +65,7 @@ export function FileCarousel({ items, onFullscreen }: Props) {
             key={`${item.driveId}:${item.itemId}`}
             type="button"
             className={clsx(classes.dot, dotIndex === safeIndex && classes.dotActive)}
-            aria-label={item.name}
+            aria-label={item.name || item.webUrl}
             onClick={() => setIndex(dotIndex)}
           />
         ))}

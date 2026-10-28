@@ -32,7 +32,7 @@ function PreviewModal({ item, fullScreen = false, onClose }: PreviewModalProps) 
       }}
     >
       <Modal.Overlay />
-      <Modal.Content aria-label={item?.name}>
+      <Modal.Content aria-label={item?.name || item?.webUrl}>
         <Modal.Body>
           {item && (
             <FilePreviewFrame

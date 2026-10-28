@@ -11,7 +11,7 @@ import clsx from "clsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
-import type { MicrosoftFileItem } from "@docmost/editor-ext";
+import { sanitizeMicrosoftFolderUrl, type MicrosoftFileItem } from "@docmost/editor-ext";
 import { useM365Item, useM365Preview } from "@/features/microsoft/queries/microsoft-query";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
 import { microsoftApp } from "@/features/microsoft/utils/microsoft-app";
@@ -57,6 +57,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const focusGuardUntil = useRef(Infinity);
+  const focusBeforeViewer = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (entry && isPreviewInView(entry)) setSeen(true);
@@ -64,9 +65,10 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
 
   const preview = useM365Preview(item.driveId, item.itemId, seen);
   const meta = useM365Item(item.driveId, item.itemId, seen);
-  const parentWebUrl = meta.state === "loaded" ? meta.data.parentWebUrl : undefined;
+  const parentWebUrl = meta.state === "loaded" ? sanitizeMicrosoftFolderUrl(meta.data.parentWebUrl) : "";
   const mimeType = meta.state === "loaded" ? meta.data.mimeType : undefined;
-  const previewUrl = preview.state === "loaded" ? preview.data.getUrl : null;
+  const getUrl = preview.state === "loaded" ? preview.data.getUrl : null;
+  const previewUrl = getUrl?.startsWith("https://") ? getUrl : null;
 
   const handleFrameError = () => {
     if (!retried.current) {
@@ -88,12 +90,28 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
     return () => window.clearTimeout(timer);
   }, [previewUrl, attempt]);
 
-  // SharePoint's PDF viewer focuses itself on load, after which Escape never reaches the modal
+  useWindowEvent("focusout", (event) => {
+    const element = event.target;
+    if (onClose || !(element instanceof HTMLElement)) return;
+    // Once focus lands, keep the element only if the viewer took focus from it
+    window.setTimeout(() => {
+      focusBeforeViewer.current = document.activeElement === iframeRef.current ? element : null;
+    }, 0);
+  });
+
+  // SharePoint's PDF viewer focuses itself on load, taking keys meant for the page or the modal
   useWindowEvent("blur", () => {
-    if (!onClose || document.activeElement !== iframeRef.current || Date.now() >= focusGuardUntil.current) return;
+    if (document.activeElement !== iframeRef.current || Date.now() >= focusGuardUntil.current) return;
     // Taken back during this event, focus looks restored but keys still go to the frame
     window.setTimeout(() => {
-      if (document.activeElement === iframeRef.current) closeRef.current?.focus();
+      const viewer = iframeRef.current;
+      if (!viewer || document.activeElement !== viewer) return;
+      if (onClose) {
+        closeRef.current?.focus();
+        return;
+      }
+      focusBeforeViewer.current?.focus({ preventScroll: true });
+      if (document.activeElement === viewer) viewer.blur();
     }, 0);
   });
 
@@ -118,7 +136,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
     body = <FileStateCard item={item} description={t("You do not have access to this file in {{app}}", { app })} />;
   } else if (preview.state === "notFound") {
     body = <FileStateCard item={item} description={t("This file was moved or deleted")} />;
-  } else if (preview.state === "error" || frameFailed || !preview.data.getUrl) {
+  } else if (preview.state === "error" || frameFailed || !previewUrl) {
     body = (
       <FileStateCard
         item={item}
@@ -131,8 +149,8 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
         key={attempt}
         ref={iframeRef}
         className={classes.iframe}
-        src={preview.data.getUrl}
-        title={item.name}
+        src={previewUrl}
+        title={name}
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
         referrerPolicy="no-referrer"
         allowFullScreen
@@ -177,7 +195,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
         <Tooltip label={t("Open parent folder")} withArrow>
           <ActionIcon
             component="a"
-            href={parentWebUrl ?? item.webUrl}
+            href={parentWebUrl || item.webUrl}
             target="_blank"
             rel="noopener"
             variant="subtle"
