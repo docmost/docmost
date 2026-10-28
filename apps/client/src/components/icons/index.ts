@@ -16,4 +16,6 @@ export { FramerIcon } from "./framer-icon.tsx";
 export { LoomIcon } from "./loom-icon.tsx";
 export { YoutubeIcon } from "./youtube-icon.tsx";
 export { Microsoft365Icon } from "./microsoft-365-icon.tsx";
+export { SharePointIcon } from "./sharepoint-icon.tsx";
+export { OneDriveIcon } from "./onedrive-icon.tsx";
 

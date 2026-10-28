@@ -547,6 +547,31 @@ describe("FolderTable", () => {
     expect(open.getAttribute("href")).toBe(reports.webUrl);
     expect(open.getAttribute("target")).toBe("_blank");
     expect(open.getAttribute("rel")).toBe("noopener");
+    expect(screen.getByRole("img", { name: "SharePoint" })).toBeTruthy();
+  });
+
+  it("names OneDrive for a folder in someone's OneDrive", () => {
+    renderTable({
+      view: viewOf([file("a.docx")], {
+        folder: {
+          ...reports,
+          webUrl:
+            "https://contoso-my.sharepoint.com/personal/ann_contoso_com/Documents/Reports",
+        },
+        truncated: true,
+      }),
+    });
+
+    expect(
+      screen.getByRole("link", { name: "Open Reports in OneDrive" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("img", { name: "OneDrive" })).toBeTruthy();
+    expect(screen.queryByRole("img", { name: "SharePoint" })).toBeNull();
+    expect(
+      screen.getByText(
+        `Showing the first ${FOLDER_ITEM_LIMIT.toLocaleString()} items. Open in OneDrive to see everything.`,
+      ),
+    ).toBeTruthy();
   });
 
   it("navigates from the clickable breadcrumbs only", () => {

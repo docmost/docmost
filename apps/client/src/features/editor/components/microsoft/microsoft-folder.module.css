@@ -28,6 +28,11 @@
   border-bottom: 1px solid var(--mantine-color-default-border);
 }
 
+.appIcon {
+  display: flex;
+  flex-shrink: 0;
+}
+
 .breadcrumbs {
   flex: 1;
   min-width: 0;

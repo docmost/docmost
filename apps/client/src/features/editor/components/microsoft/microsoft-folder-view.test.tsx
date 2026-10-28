@@ -412,6 +412,22 @@ describe("MicrosoftFolderView", () => {
     expect(open.getAttribute("rel")).toBe("noopener");
   });
 
+  it("names OneDrive when the folder is in someone's OneDrive", () => {
+    mocks.useM365Folder.mockReturnValue({
+      state: "forbidden",
+      refetch: mocks.refetch,
+    });
+    renderView({
+      webUrl:
+        "https://contoso-my.sharepoint.com/personal/ann_contoso_com/Documents/Reports",
+    });
+
+    expect(
+      screen.getByText("You do not have access to this folder in OneDrive"),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open in OneDrive" })).toBeTruthy();
+  });
+
   it("lets the viewer go back when a subfolder cannot be opened", () => {
     mocks.useM365Folder.mockImplementation((_driveId: string, itemId: string) =>
       itemId === "F2"

@@ -17,6 +17,7 @@ import { describeIntegrationLink, isHttpUrl } from "@docmost/editor-ext";
 import { getIntegrationIcon } from "@/features/integration/components/integration-icons";
 import { getOAuthAuthorizeUrl } from "@/features/integration/services/integration-service";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
+import { microsoftApp, microsoftAppIcon } from "@/features/microsoft/utils/microsoft-app";
 import {
   convertCardToMicrosoftEmbed,
   isEmbeddableMicrosoftKind,
@@ -375,7 +376,7 @@ function MicrosoftFileCard({
           )}
 
           <div style={{ flexShrink: 0, alignSelf: "center" }}>
-            {getIntegrationIcon("microsoft_365", 18)}
+            {microsoftAppIcon(microsoftApp(url), 18)}
           </div>
         </Group>
       </Card>

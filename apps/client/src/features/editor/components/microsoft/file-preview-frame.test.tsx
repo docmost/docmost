@@ -56,10 +56,10 @@ const fullyVisible = {
   rootBounds: { height: 800 } as DOMRectReadOnly,
 };
 
-function renderFrame(fill = false, onClose?: () => void) {
+function renderFrame(fill = false, onClose?: () => void, frameItem = item) {
   render(
     <MantineProvider env="test">
-      <FilePreviewFrame item={item} fill={fill} onClose={onClose} />
+      <FilePreviewFrame item={frameItem} fill={fill} onClose={onClose} />
     </MantineProvider>,
   );
 }
@@ -157,6 +157,28 @@ describe("FilePreviewFrame in a modal", () => {
     fireEvent.blur(window);
     act(() => vi.advanceTimersByTime(0));
   };
+
+  it("names the app the file lives in", () => {
+    renderFrame(true, vi.fn(), {
+      ...item,
+      webUrl:
+        "https://contoso-my.sharepoint.com/personal/ann_contoso_com/Documents/Plan.docx",
+    });
+
+    expect(
+      screen.getByRole("link", { name: "Edit Plan.docx in OneDrive" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Open Plan.docx in OneDrive" }),
+    ).toBeTruthy();
+    cleanup();
+
+    renderFrame(true, vi.fn());
+
+    expect(
+      screen.getByRole("link", { name: "Open Plan.docx in SharePoint" }),
+    ).toBeTruthy();
+  });
 
   it("closes from its own header", () => {
     const onClose = vi.fn();

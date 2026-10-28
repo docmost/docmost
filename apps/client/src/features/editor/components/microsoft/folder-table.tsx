@@ -22,6 +22,10 @@ import type {
   M365Item,
 } from "@/features/microsoft/types/microsoft.types";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
+import {
+  microsoftApp,
+  microsoftAppIcon,
+} from "@/features/microsoft/utils/microsoft-app";
 import { formattedDate, timeAgo } from "@/lib/time";
 import { FOLDER_ITEM_LIMIT, FOLDER_PAGE_SIZE } from "./folder-table.constants";
 import type {
@@ -138,6 +142,7 @@ export function FolderTable({
   const { t } = useTranslation();
   const { name } = view.folder;
   const folderUrl = sanitizeMicrosoftFolderUrl(view.folder.webUrl);
+  const app = microsoftApp(view.folder.webUrl);
 
   const items = useMemo(
     () => sortFolderItems(view.items, sort),
@@ -173,6 +178,9 @@ export function FolderTable({
   return (
     <div className={classes.frame}>
       <div className={classes.header}>
+        <span role="img" aria-label={app} className={classes.appIcon}>
+          {microsoftAppIcon(app, 16)}
+        </span>
         <Breadcrumbs separatorMargin={4} className={classes.breadcrumbs}>
           {crumbs.map(({ key, name: crumbName, depth }, index) =>
             depth === null ? (
@@ -203,7 +211,7 @@ export function FolderTable({
           )}
         </Breadcrumbs>
         {folderUrl && (
-          <Tooltip label={t("Open in SharePoint")} withArrow>
+          <Tooltip label={t("Open in {{app}}", { app })} withArrow>
             <ActionIcon
               component="a"
               href={folderUrl}
@@ -212,7 +220,7 @@ export function FolderTable({
               variant="subtle"
               color="gray"
               size="sm"
-              aria-label={t("Open {{name}} in SharePoint", { name })}
+              aria-label={t("Open {{name}} in {{app}}", { name, app })}
             >
               <IconExternalLink size={16} />
             </ActionIcon>
@@ -310,8 +318,8 @@ export function FolderTable({
       {view.truncated && (
         <Text size="xs" className={classes.note}>
           {t(
-            "Showing the first {{limit}} items. Open in SharePoint to see everything.",
-            { limit: FOLDER_ITEM_LIMIT.toLocaleString() },
+            "Showing the first {{limit}} items. Open in {{app}} to see everything.",
+            { limit: FOLDER_ITEM_LIMIT.toLocaleString(), app },
           )}
         </Text>
       )}

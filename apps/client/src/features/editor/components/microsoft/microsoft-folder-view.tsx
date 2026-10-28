@@ -21,6 +21,7 @@ import {
   microsoftPreviewDialogAtom,
 } from "@/features/microsoft/atoms/microsoft-atoms";
 import { useM365Folder } from "@/features/microsoft/queries/microsoft-query";
+import { microsoftApp } from "@/features/microsoft/utils/microsoft-app";
 import { FileStateCard } from "./file-state-card";
 import { FolderTable } from "./folder-table";
 import { FolderTableSkeleton } from "./folder-table-skeleton";
@@ -135,7 +136,7 @@ function FolderEmbed({
             },
           ])
         }
-        // Without a mounted preview modal, file names stay plain SharePoint links
+        // Without a mounted preview modal, file names stay plain links
         onOpenFile={
           hosts > 0
             ? (file) =>
@@ -161,7 +162,9 @@ function FolderEmbed({
     );
   } else if (currentView.state === "forbidden") {
     body = stateCard(
-      t("You do not have access to this folder in SharePoint"),
+      t("You do not have access to this folder in {{app}}", {
+        app: microsoftApp(item.webUrl),
+      }),
       {},
       goBack,
     );

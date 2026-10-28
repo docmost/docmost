@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MicrosoftFileItem } from "@docmost/editor-ext";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
+import { microsoftApp } from "@/features/microsoft/utils/microsoft-app";
 import { M365NeedsConnection } from "@/features/microsoft/types/microsoft.types";
 import { startMicrosoftConnect } from "@/features/microsoft/picker/picker-needs-connection";
 import classes from "./microsoft-file.module.css";
@@ -54,7 +55,7 @@ export function FileStateCard({ item, description, needsConnection, kind, onRetr
           )}
           {item.webUrl && (
             <Anchor href={item.webUrl} target="_blank" rel="noopener" size="xs">
-              {t("Open in SharePoint")}
+              {t("Open in {{app}}", { app: microsoftApp(item.webUrl) })}
             </Anchor>
           )}
         </Group>

@@ -7,6 +7,7 @@ import { IconExternalLink, IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { isEditorReady, sanitizeMicrosoftFolderUrl } from "@docmost/editor-ext";
 import { EditorMenuProps, ShouldShowProps } from "@/features/editor/components/table/types/types.ts";
+import { microsoftApp } from "@/features/microsoft/utils/microsoft-app";
 import classes from "../common/toolbar-menu.module.css";
 
 export function MicrosoftFolderMenu({ editor }: EditorMenuProps) {
@@ -21,6 +22,7 @@ export function MicrosoftFolderMenu({ editor }: EditorMenuProps) {
     },
   });
   const webUrl = editorState?.webUrl ?? "";
+  const app = microsoftApp(webUrl);
 
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
@@ -59,14 +61,14 @@ export function MicrosoftFolderMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Open in SharePoint")} withinPortal={false}>
+        <Tooltip position="top" label={t("Open in {{app}}", { app })} withinPortal={false}>
           <ActionIcon
             component="a"
             href={webUrl || undefined}
             target="_blank"
             rel="noopener"
             size="lg"
-            aria-label={t("Open in SharePoint")}
+            aria-label={t("Open in {{app}}", { app })}
             variant="subtle"
             disabled={!webUrl}
           >

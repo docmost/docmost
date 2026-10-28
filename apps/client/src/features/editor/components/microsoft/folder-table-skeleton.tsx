@@ -20,6 +20,7 @@ export function FolderTableSkeleton({ rows = FOLDER_SKELETON_ROWS }: Props) {
       aria-label={t("Loading folder")}
     >
       <div className={classes.header}>
+        <Skeleton height={16} width={16} />
         <div className={classes.breadcrumbs}>
           <Skeleton height={12} width="40%" />
         </div>

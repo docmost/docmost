@@ -14,6 +14,7 @@ import { useAtomValue } from "jotai";
 import type { MicrosoftFileItem } from "@docmost/editor-ext";
 import { useM365Item, useM365Preview } from "@/features/microsoft/queries/microsoft-query";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
+import { microsoftApp } from "@/features/microsoft/utils/microsoft-app";
 import {
   isPreviewInView,
   PREVIEW_VISIBILITY_THRESHOLDS,
@@ -45,6 +46,7 @@ type Props = {
 export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: Props) {
   const { t } = useTranslation();
   const name = item.name || item.webUrl;
+  const app = microsoftApp(item.webUrl);
   const hosts = useAtomValue(microsoftFullscreenHostsAtom);
   const { ref, entry } = useIntersection<HTMLDivElement>({ threshold: PREVIEW_VISIBILITY_THRESHOLDS });
   const [seen, setSeen] = useState(fill);
@@ -113,7 +115,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
       />
     );
   } else if (preview.state === "forbidden") {
-    body = <FileStateCard item={item} description={t("You do not have access to this file in SharePoint")} />;
+    body = <FileStateCard item={item} description={t("You do not have access to this file in {{app}}", { app })} />;
   } else if (preview.state === "notFound") {
     body = <FileStateCard item={item} description={t("This file was moved or deleted")} />;
   } else if (preview.state === "error" || frameFailed || !preview.data.getUrl) {
@@ -158,7 +160,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
         >
           {name}
         </Anchor>
-        <Tooltip label={t("Edit in SharePoint")} withArrow>
+        <Tooltip label={t("Edit in {{app}}", { app })} withArrow>
           <ActionIcon
             component="a"
             href={editUrl(item.webUrl)}
@@ -167,7 +169,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
             variant="subtle"
             color="gray"
             size="sm"
-            aria-label={t("Edit {{name}} in SharePoint", { name })}
+            aria-label={t("Edit {{name}} in {{app}}", { name, app })}
           >
             <IconPencil size={16} />
           </ActionIcon>
@@ -187,7 +189,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
             <IconFolder size={16} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label={t("Open in SharePoint")} withArrow>
+        <Tooltip label={t("Open in {{app}}", { app })} withArrow>
           <ActionIcon
             component="a"
             href={item.webUrl}
@@ -196,7 +198,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: 
             variant="subtle"
             color="gray"
             size="sm"
-            aria-label={t("Open {{name}} in SharePoint", { name })}
+            aria-label={t("Open {{name}} in {{app}}", { name, app })}
           >
             <IconExternalLink size={16} />
           </ActionIcon>
