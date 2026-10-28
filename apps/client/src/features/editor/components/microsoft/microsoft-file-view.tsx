@@ -25,6 +25,7 @@ export default function MicrosoftFileView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, editor, selected, getPos, updateAttributes } = props;
   const items = sanitizeMicrosoftFileItems(node.attrs.items);
+  const embedName = items.map((item) => item.name || item.webUrl).join(", ");
   const setFullscreen = useSetAtom(microsoftFullscreenAtom as PrimitiveAtom<MicrosoftFileItem | null>);
   const [pickerOpened, setPickerOpened] = useState(false);
   const isEditable = useEditorState({ editor, selector: (ctx) => ctx.editor.isEditable });
@@ -138,7 +139,7 @@ export default function MicrosoftFileView(props: NodeViewProps) {
                   variant="filled"
                   color="dark"
                   onClick={handleMention}
-                  aria-label={t("Mention")}
+                  aria-label={t("Mention {{name}}", { name: embedName })}
                 >
                   <IconAt size={14} />
                 </ActionIcon>
@@ -149,7 +150,7 @@ export default function MicrosoftFileView(props: NodeViewProps) {
                   variant="filled"
                   color="dark"
                   onClick={handleDelete}
-                  aria-label={t("Delete")}
+                  aria-label={t("Delete {{name}}", { name: embedName })}
                 >
                   <IconTrash size={14} />
                 </ActionIcon>
