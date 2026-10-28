@@ -828,7 +828,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .chain()
           .focus()
           .deleteRange(range)
-          .setMicrosoftFile({ items: [], display: "embed", pendingKey })
+          .setMicrosoftFile({ items: [], pendingKey })
           .run();
       },
     },

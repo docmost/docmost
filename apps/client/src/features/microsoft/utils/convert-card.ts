@@ -36,7 +36,6 @@ export async function convertCardToMicrosoftFile(editor: Editor, pos: number): P
                 name: resolved.name,
               },
             ],
-            display: "embed",
           },
         },
       )
