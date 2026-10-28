@@ -231,6 +231,21 @@ describe("FolderTable", () => {
     expect(screen.queryByRole("button", { name: "Budget.docx" })).toBeNull();
   });
 
+  it("puts the full name in a title so a truncated name can still be read", () => {
+    renderTable({
+      view: viewOf([folder("Quarterly planning archive"), file("Budget.docx")]),
+    });
+
+    expect(
+      screen
+        .getByRole("button", { name: "Quarterly planning archive" })
+        .getAttribute("title"),
+    ).toBe("Quarterly planning archive");
+    expect(
+      screen.getByRole("link", { name: "Budget.docx" }).getAttribute("title"),
+    ).toBe("Budget.docx");
+  });
+
   it("styles folder names and file names alike", () => {
     renderTable({ view: viewOf([folder("Archive"), file("Budget.docx")]) });
 
@@ -329,7 +344,7 @@ describe("FolderTable", () => {
     expect(cellsOf("dated.docx")[2].textContent).toBe("Bob");
 
     expect(cellsOf("undated.docx")[1].textContent).toBe("");
-    expect(within(rowOf("undated.docx")).queryByTitle(/./)).toBeNull();
+    expect(within(cellsOf("undated.docx")[1]).queryByTitle(/./)).toBeNull();
     expect(cellsOf("undated.docx")[2].textContent).toBe("");
   });
 

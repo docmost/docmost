@@ -66,7 +66,7 @@ const views: Record<string, M365FolderView> = {
       webUrl: `${WEB_URL}/Q3`,
     },
     trail: ["Marketing", "Documents", "Reports"],
-    items: [entry("file", "I2", "Budget.xlsx")],
+    items: [entry("folder", "F4", "Drafts"), entry("file", "I2", "Budget.xlsx")],
     truncated: false,
   },
   F3: {
@@ -270,9 +270,9 @@ describe("MicrosoftFolderView", () => {
     mocks.useM365Folder.mockReturnValue(loading);
     const { container } = renderView();
 
-    const frame = skeleton(container);
-    expect(frame).not.toBeNull();
-    expect(frame.getAttribute("aria-label")).toBe("Loading folder");
+    const frame = screen.getByRole("status", { name: "Loading folder" });
+    expect(frame).toBe(skeleton(container));
+    expect(frame.getAttribute("aria-busy")).toBe("true");
     expect(header("Name")).toBeTruthy();
     expect(header("Modified")).toBeTruthy();
     expect(header("Modified By")).toBeTruthy();
@@ -308,12 +308,73 @@ describe("MicrosoftFolderView", () => {
     ).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Go back to/ })).toBeNull();
     expect(container.querySelector(".tabler-icon-folder")).not.toBeNull();
 
     const open = screen.getByRole("link", { name: "Open in SharePoint" });
     expect(open.getAttribute("href")).toBe(WEB_URL);
     expect(open.getAttribute("target")).toBe("_blank");
     expect(open.getAttribute("rel")).toBe("noopener");
+  });
+
+  it("lets the viewer go back when a subfolder cannot be opened", () => {
+    mocks.useM365Folder.mockImplementation((_driveId: string, itemId: string) =>
+      itemId === "F2"
+        ? { state: "forbidden", refetch: mocks.refetch }
+        : loaded(itemId),
+    );
+    renderView();
+
+    openFolder("Q3");
+
+    expect(
+      screen.getByText("You do not have access to this folder in SharePoint"),
+    ).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Summary.docx" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Go back to Reports" }));
+
+    expect(screen.getByRole("link", { name: "Summary.docx" })).toBeTruthy();
+    expect(
+      screen.queryByText("You do not have access to this folder in SharePoint"),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /Go back to/ })).toBeNull();
+  });
+
+  it.each(["notFound", "error"])(
+    "offers the way back from a %s subfolder too",
+    (state) => {
+      mocks.useM365Folder.mockImplementation(
+        (_driveId: string, itemId: string) =>
+          itemId === "F2"
+            ? { state, code: null, refetch: mocks.refetch }
+            : loaded(itemId),
+      );
+      renderView();
+
+      openFolder("Q3");
+      fireEvent.click(screen.getByRole("button", { name: "Go back to Reports" }));
+
+      expect(screen.getByRole("link", { name: "Summary.docx" })).toBeTruthy();
+    },
+  );
+
+  it("goes back one level at a time from a nested subfolder that cannot be opened", () => {
+    mocks.useM365Folder.mockImplementation((_driveId: string, itemId: string) =>
+      itemId === "F4"
+        ? { state: "forbidden", refetch: mocks.refetch }
+        : loaded(itemId),
+    );
+    renderView();
+
+    openFolder("Q3");
+    openFolder("Drafts");
+    fireEvent.click(screen.getByRole("button", { name: "Go back to Q3" }));
+
+    expect(screen.getByRole("link", { name: "Budget.xlsx" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "… Go back to Reports" }),
+    ).toBeTruthy();
   });
 
   it.each([

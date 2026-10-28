@@ -15,6 +15,7 @@ export function FolderTableSkeleton({ rows = FOLDER_SKELETON_ROWS }: Props) {
   return (
     <div
       className={classes.frame}
+      role="status"
       aria-busy="true"
       aria-label={t("Loading folder")}
     >
@@ -26,7 +27,7 @@ export function FolderTableSkeleton({ rows = FOLDER_SKELETON_ROWS }: Props) {
       </div>
 
       <div className={classes.tableScroll}>
-        <Table>
+        <Table className={classes.table}>
           <Table.Thead>
             <Table.Tr>
               {columns.map((label) => (
@@ -52,10 +53,10 @@ export function FolderTableSkeleton({ rows = FOLDER_SKELETON_ROWS }: Props) {
                     />
                   </div>
                 </Table.Td>
-                <Table.Td className={classes.modified}>
+                <Table.Td className={classes.metaCell}>
                   <Skeleton height={12} width={70} />
                 </Table.Td>
-                <Table.Td className={classes.secondary}>
+                <Table.Td className={classes.metaCell}>
                   <Skeleton height={12} width={90} />
                 </Table.Td>
               </Table.Tr>

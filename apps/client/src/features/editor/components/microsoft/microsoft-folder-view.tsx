@@ -1,4 +1,5 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import { Button, Center } from "@mantine/core";
 import { useIntersection } from "@mantine/hooks";
 import clsx from "clsx";
 import { useState, type ComponentProps, type ReactNode } from "react";
@@ -62,7 +63,22 @@ function FolderEmbed({
     webUrl: sanitizeMicrosoftFolderUrl(webUrl),
     name,
   };
-  const stateCard = (description: string, extra: StateCardProps = {}) => (
+  const goBack = parent && (
+    <Center pb="md">
+      <Button
+        variant="subtle"
+        size="xs"
+        onClick={() => setPath((entries) => entries.slice(0, parent.depth))}
+      >
+        {t("Go back to {{name}}", { name: parent.name })}
+      </Button>
+    </Center>
+  );
+  const stateCard = (
+    description: string,
+    extra: StateCardProps = {},
+    footer: ReactNode = null,
+  ) => (
     <div className={classes.frame}>
       <FileStateCard
         item={item}
@@ -70,6 +86,7 @@ function FolderEmbed({
         description={description}
         {...extra}
       />
+      {footer}
     </div>
   );
 
@@ -107,13 +124,19 @@ function FolderEmbed({
       { needsConnection: currentView.needsConnection },
     );
   } else if (currentView.state === "forbidden") {
-    body = stateCard(t("You do not have access to this folder in SharePoint"));
+    body = stateCard(
+      t("You do not have access to this folder in SharePoint"),
+      {},
+      goBack,
+    );
   } else if (currentView.state === "notFound") {
-    body = stateCard(t("This folder was moved or deleted"));
+    body = stateCard(t("This folder was moved or deleted"), {}, goBack);
   } else {
-    body = stateCard(t("Could not load this folder"), {
-      onRetry: currentView.refetch,
-    });
+    body = stateCard(
+      t("Could not load this folder"),
+      { onRetry: currentView.refetch },
+      goBack,
+    );
   }
 
   return <div ref={ref}>{body}</div>;

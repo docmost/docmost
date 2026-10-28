@@ -32,58 +32,160 @@
   overflow-x: auto;
 }
 
-.sortButton {
-  composes: secondary;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
 .nameCell {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 12rem;
+  min-width: 0;
 }
 
 .nameCell > svg {
   flex-shrink: 0;
 }
 
-.nameLink {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  text-align: start;
+.metaCell {
+  composes: secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sortButton {
+  composes: secondary;
 }
 
 .goBack {
-  color: var(--mantine-color-anchor);
-}
-
-.goBack:hover {
-  text-decoration: underline;
-}
-
-.modified {
   composes: secondary;
-  white-space: nowrap;
+}
+
+.emptyCell {
+  composes: secondary;
 }
 
 .footer {
   composes: secondary;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: var(--mantine-spacing-sm);
-  padding: 6px var(--mantine-spacing-xs);
+  padding: 8px 12px;
   border-top: 1px solid var(--mantine-color-default-border);
 }
 
 .note {
   composes: secondary;
-  padding: 6px var(--mantine-spacing-xs);
+  padding: 8px 12px;
   border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/* The editor styles every table, cell, link and paragraph below it; the .ProseMirror prefix makes these rules outrank those */
+:global(.ProseMirror) .folderNodeView .table {
+  width: 100%;
+  min-width: 560px;
+  table-layout: fixed;
+}
+
+:global(.ProseMirror) .folderNodeView .table :is(th, td) {
+  min-width: 0;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  vertical-align: middle;
+}
+
+:global(.ProseMirror) .folderNodeView .table td {
+  height: 40px;
+}
+
+:global(.ProseMirror) .folderNodeView .table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+:global(.ProseMirror) .folderNodeView .table th {
+  padding: 0;
+  background-color: transparent;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+}
+
+:global(.ProseMirror) .folderNodeView .table th:nth-child(2) {
+  width: 160px;
+}
+
+:global(.ProseMirror) .folderNodeView .table th:nth-child(3) {
+  width: 200px;
+}
+
+:global(.ProseMirror) .folderNodeView .sortButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+:global(.ProseMirror) .folderNodeView button.sortButton:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+:global(.ProseMirror) .folderNodeView .table .nameLink {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: start;
+  text-decoration: none;
+  color: var(--mantine-color-text);
+  border-bottom: none;
+}
+
+:global(.ProseMirror) .folderNodeView .table .nameLink:focus-visible {
+  text-decoration: underline;
+}
+
+:global(.ProseMirror) .folderNodeView .table .goBackCell {
+  padding: 0;
+}
+
+:global(.ProseMirror) .folderNodeView .goBack {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+}
+
+:global(.ProseMirror) .folderNodeView .goBack:focus-visible {
+  outline-offset: -2px;
+}
+
+:global(.ProseMirror) .folderNodeView .table .emptyCell {
+  padding: 24px 12px;
+  text-align: center;
+}
+
+:global(.ProseMirror) .folderNodeView .header a {
+  border-bottom: none;
+  color: var(--ai-color);
+}
+
+:global(.ProseMirror) .folderNodeView .note {
+  margin: 0;
+}
+
+@media (hover: hover) {
+  :global(.ProseMirror) .folderNodeView .table .row:hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  :global(.ProseMirror) .folderNodeView button.sortButton:hover {
+    color: var(--mantine-color-text);
+  }
+
+  :global(.ProseMirror) .folderNodeView .table .nameLink:hover,
+  :global(.ProseMirror) .folderNodeView .goBack:hover {
+    text-decoration: underline;
+  }
 }

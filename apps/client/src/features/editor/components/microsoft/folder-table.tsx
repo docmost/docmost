@@ -65,7 +65,7 @@ function FolderRow({ item, onOpenFolder }: RowProps) {
     : null;
 
   return (
-    <Table.Tr>
+    <Table.Tr className={classes.row}>
       <Table.Td>
         <div className={classes.nameCell}>
           {fileTypeIcon({
@@ -79,6 +79,7 @@ function FolderRow({ item, onOpenFolder }: RowProps) {
               component="button"
               type="button"
               {...nameLinkProps}
+              title={item.name}
               onClick={() => onOpenFolder(item)}
             >
               {item.name}
@@ -89,18 +90,19 @@ function FolderRow({ item, onOpenFolder }: RowProps) {
               target="_blank"
               rel="noopener"
               {...nameLinkProps}
+              title={item.name}
             >
               {item.name}
             </Anchor>
           )}
         </div>
       </Table.Td>
-      <Table.Td className={classes.modified}>
+      <Table.Td className={classes.metaCell}>
         {modified && (
           <span title={formattedDate(modified)}>{timeAgo(modified)}</span>
         )}
       </Table.Td>
-      <Table.Td className={classes.secondary}>{item.lastModifiedBy}</Table.Td>
+      <Table.Td className={classes.metaCell}>{item.lastModifiedBy}</Table.Td>
     </Table.Tr>
   );
 }
@@ -190,7 +192,10 @@ export function FolderTable({
       </div>
 
       <div className={classes.tableScroll}>
-        <Table aria-label={t("Contents of {{name}}", { name })}>
+        <Table
+          className={classes.table}
+          aria-label={t("Contents of {{name}}", { name })}
+        >
           <Table.Thead>
             <Table.Tr>
               {columns.map(({ column, label }) => (
@@ -208,8 +213,8 @@ export function FolderTable({
           </Table.Thead>
           <Table.Tbody>
             {parent && (
-              <Table.Tr>
-                <Table.Td colSpan={COLUMN_COUNT}>
+              <Table.Tr className={classes.row}>
+                <Table.Td colSpan={COLUMN_COUNT} className={classes.goBackCell}>
                   <UnstyledButton
                     fz="sm"
                     fw={500}
@@ -230,15 +235,8 @@ export function FolderTable({
             ))}
             {items.length === 0 && (
               <Table.Tr>
-                <Table.Td colSpan={COLUMN_COUNT}>
-                  <Text
-                    size="sm"
-                    ta="center"
-                    py="md"
-                    className={classes.secondary}
-                  >
-                    {t("This folder is empty")}
-                  </Text>
+                <Table.Td colSpan={COLUMN_COUNT} className={classes.emptyCell}>
+                  {t("This folder is empty")}
                 </Table.Td>
               </Table.Tr>
             )}
@@ -250,7 +248,7 @@ export function FolderTable({
         <div className={classes.footer}>
           <Button
             variant="default"
-            size="compact-sm"
+            size="xs"
             disabled={page === 0}
             aria-label={t("Previous page of {{name}}", { name })}
             onClick={() => goToPage(page - 1)}
@@ -260,7 +258,7 @@ export function FolderTable({
           <Text span size="sm">{`${page + 1} / ${pageCount}`}</Text>
           <Button
             variant="default"
-            size="compact-sm"
+            size="xs"
             disabled={page === pageCount - 1}
             aria-label={t("Next page of {{name}}", { name })}
             onClick={() => goToPage(page + 1)}
