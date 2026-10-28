@@ -17,8 +17,8 @@ import {
   type MicrosoftFolderAttributes,
 } from "@docmost/editor-ext";
 import {
-  microsoftFullscreenAtom,
   microsoftFullscreenHostsAtom,
+  microsoftPreviewDialogAtom,
 } from "@/features/microsoft/atoms/microsoft-atoms";
 import { useM365Folder } from "@/features/microsoft/queries/microsoft-query";
 import { FileStateCard } from "./file-state-card";
@@ -51,8 +51,8 @@ function FolderEmbed({
   const [path, setPath] = useState<FolderPathEntry[]>([]);
   const [sort, setSort] = useState<FolderSort>(DEFAULT_FOLDER_SORT);
   const shownPath = useRef(path);
-  const setFullscreen = useSetAtom(
-    microsoftFullscreenAtom as PrimitiveAtom<MicrosoftFileItem | null>,
+  const setPreview = useSetAtom(
+    microsoftPreviewDialogAtom as PrimitiveAtom<MicrosoftFileItem | null>,
   );
   const hosts = useAtomValue(microsoftFullscreenHostsAtom);
 
@@ -139,7 +139,7 @@ function FolderEmbed({
         onOpenFile={
           hosts > 0
             ? (file) =>
-                setFullscreen({
+                setPreview({
                   driveId: file.driveId,
                   itemId: file.itemId,
                   webUrl: sanitizeMicrosoftFolderUrl(file.webUrl),

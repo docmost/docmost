@@ -5,8 +5,8 @@ import { getDefaultStore, type PrimitiveAtom } from "jotai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MicrosoftFileItem } from "@docmost/editor-ext";
 import {
-  microsoftFullscreenAtom,
   microsoftFullscreenHostsAtom,
+  microsoftPreviewDialogAtom,
 } from "@/features/microsoft/atoms/microsoft-atoms";
 import type {
   M365FolderView,
@@ -152,8 +152,8 @@ const focusTarget = (container: HTMLElement) =>
   container.querySelector<HTMLElement>('[tabindex="-1"]');
 
 const store = getDefaultStore();
-const fullscreenAtom =
-  microsoftFullscreenAtom as PrimitiveAtom<MicrosoftFileItem | null>;
+const dialogAtom =
+  microsoftPreviewDialogAtom as PrimitiveAtom<MicrosoftFileItem | null>;
 
 // Reports whether the app took the click over, then cancels it so jsdom never navigates
 function clickPrevented(element: HTMLElement) {
@@ -181,18 +181,18 @@ describe("MicrosoftFolderView", () => {
   });
   afterEach(() => {
     cleanup();
-    store.set(fullscreenAtom, null);
+    store.set(dialogAtom, null);
     store.set(microsoftFullscreenHostsAtom, 0);
   });
 
-  it("opens a file in the full-screen preview", () => {
+  it("opens a file in the preview dialog", () => {
     store.set(microsoftFullscreenHostsAtom, 1);
     renderView();
 
     expect(clickPrevented(screen.getByRole("link", { name: "Summary.docx" }))).toBe(
       true,
     );
-    expect(store.get(fullscreenAtom)).toEqual({
+    expect(store.get(dialogAtom)).toEqual({
       driveId: "b!d",
       itemId: "I1",
       webUrl: `${WEB_URL}/Summary.docx`,
@@ -206,7 +206,7 @@ describe("MicrosoftFolderView", () => {
     expect(clickPrevented(screen.getByRole("link", { name: "Summary.docx" }))).toBe(
       false,
     );
-    expect(store.get(fullscreenAtom)).toBeNull();
+    expect(store.get(dialogAtom)).toBeNull();
   });
 
   it("opens a subfolder in place and goes back to the embedded folder", () => {

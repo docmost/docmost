@@ -2,6 +2,7 @@ import { atom } from "jotai";
 import type { MicrosoftFileItem } from "@docmost/editor-ext";
 
 export const microsoftFullscreenAtom = atom<MicrosoftFileItem | null>(null);
+export const microsoftPreviewDialogAtom = atom<MicrosoftFileItem | null>(null);
 export const microsoftFullscreenHostsAtom = atom(0);
 
 const pendingPickerKeys = new Set<string>();

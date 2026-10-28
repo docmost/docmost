@@ -59,7 +59,23 @@
 }
 
 .frameFill {
-  height: calc(100vh - 110px);
+  border: 0;
+  border-radius: 0;
+}
+
+.previewModal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.previewDialog {
+  height: calc(100dvh - var(--modal-y-offset) * 2);
+}
+
+.previewModalBody {
+  flex: 1;
+  min-height: 0;
 }
 
 .frameHeader {

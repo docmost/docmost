@@ -1,10 +1,11 @@
 import { ActionIcon, Anchor, Loader, Text, Tooltip } from "@mantine/core";
-import { useIntersection } from "@mantine/hooks";
+import { useIntersection, useWindowEvent } from "@mantine/hooks";
 import {
   IconExternalLink,
   IconFolder,
   IconMaximize,
   IconPencil,
+  IconX,
 } from "@tabler/icons-react";
 import clsx from "clsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -21,6 +22,9 @@ import { microsoftFullscreenHostsAtom } from "@/features/microsoft/atoms/microso
 import { FileStateCard } from "./file-state-card";
 import classes from "./microsoft-file.module.css";
 
+// Nobody is using the viewer yet this soon after it loads, so focus it takes is its own
+const VIEWER_FOCUS_GRACE_MS = 1000;
+
 export function editUrl(webUrl: string): string {
   try {
     const url = new URL(webUrl);
@@ -35,9 +39,10 @@ type Props = {
   item: MicrosoftFileItem;
   fill?: boolean;
   onFullscreen?: (item: MicrosoftFileItem) => void;
+  onClose?: () => void;
 };
 
-export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
+export function FilePreviewFrame({ item, fill = false, onFullscreen, onClose }: Props) {
   const { t } = useTranslation();
   const name = item.name || item.webUrl;
   const hosts = useAtomValue(microsoftFullscreenHostsAtom);
@@ -47,6 +52,9 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
   const [frameFailed, setFrameFailed] = useState(false);
   const frameLoadedRef = useRef(false);
   const [attempt, setAttempt] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const focusGuardUntil = useRef(Infinity);
 
   useEffect(() => {
     if (entry && isPreviewInView(entry)) setSeen(true);
@@ -70,12 +78,22 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
 
   useEffect(() => {
     frameLoadedRef.current = false;
+    focusGuardUntil.current = Infinity;
     if (!previewUrl) return;
     const timer = window.setTimeout(() => {
       if (!frameLoadedRef.current) handleFrameError();
     }, 15000);
     return () => window.clearTimeout(timer);
   }, [previewUrl, attempt]);
+
+  // SharePoint's PDF viewer focuses itself on load, after which Escape never reaches the modal
+  useWindowEvent("blur", () => {
+    if (!onClose || document.activeElement !== iframeRef.current || Date.now() >= focusGuardUntil.current) return;
+    // Taken back during this event, focus looks restored but keys still go to the frame
+    window.setTimeout(() => {
+      if (document.activeElement === iframeRef.current) closeRef.current?.focus();
+    }, 0);
+  });
 
   let body: ReactNode;
   if (preview.state === "anonymous") {
@@ -109,6 +127,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
     body = (
       <iframe
         key={attempt}
+        ref={iframeRef}
         className={classes.iframe}
         src={preview.data.getUrl}
         title={item.name}
@@ -117,6 +136,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
         allowFullScreen
         onLoad={() => {
           frameLoadedRef.current = true;
+          focusGuardUntil.current = Date.now() + VIEWER_FOCUS_GRACE_MS;
         }}
         onError={handleFrameError}
       />
@@ -193,6 +213,19 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
               <IconMaximize size={16} />
             </ActionIcon>
           </Tooltip>
+        )}
+        {onClose && (
+          <ActionIcon
+            ref={closeRef}
+            variant="subtle"
+            color="gray"
+            size="sm"
+            data-autofocus
+            aria-label={t("Close preview of {{name}}", { name })}
+            onClick={onClose}
+          >
+            <IconX size={16} />
+          </ActionIcon>
         )}
       </div>
       <div className={classes.frameBody}>{body}</div>

@@ -1634,5 +1634,6 @@
   "Edit {{name}} in SharePoint": "Edit {{name}} in SharePoint",
   "Open parent folder of {{name}}": "Open parent folder of {{name}}",
   "Open {{name}} in SharePoint": "Open {{name}} in SharePoint",
-  "Show {{name}} full screen": "Show {{name}} full screen"
+  "Show {{name}} full screen": "Show {{name}} full screen",
+  "Close preview of {{name}}": "Close preview of {{name}}"
 }

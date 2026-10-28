@@ -1,5 +1,11 @@
 import { MantineProvider } from "@mantine/core";
-import { act, cleanup, render } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FilePreviewFrame } from "./file-preview-frame";
 
@@ -9,7 +15,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (value: string) => value }),
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      key.replace(/{{(\w+)}}/g, (_, name) => String(options?.[name] ?? "")),
+  }),
 }));
 
 vi.mock("@/features/microsoft/queries/microsoft-query", () => ({
@@ -47,29 +56,33 @@ const fullyVisible = {
   rootBounds: { height: 800 } as DOMRectReadOnly,
 };
 
-function renderFrame(fill = false) {
+function renderFrame(fill = false, onClose?: () => void) {
   render(
     <MantineProvider env="test">
-      <FilePreviewFrame item={item} fill={fill} />
+      <FilePreviewFrame item={item} fill={fill} onClose={onClose} />
     </MantineProvider>,
   );
 }
 
+function stubBrowser() {
+  FakeIntersectionObserver.instances = [];
+  vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  });
+}
+
 describe("FilePreviewFrame visibility observer", () => {
   beforeEach(() => {
-    FakeIntersectionObserver.instances = [];
+    stubBrowser();
     mocks.useM365Preview.mockReturnValue({ state: "loading" });
     mocks.useM365Item.mockReturnValue({ state: "loading" });
-    vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
-        matches: false,
-        media: query,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
-    });
   });
 
   afterEach(() => {
@@ -110,5 +123,83 @@ describe("FilePreviewFrame visibility observer", () => {
       "item-1",
       true,
     );
+  });
+});
+
+describe("FilePreviewFrame in a modal", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    stubBrowser();
+    mocks.useM365Preview.mockReturnValue({
+      state: "loaded",
+      data: {
+        getUrl:
+          "https://contoso.sharepoint.com/_layouts/15/embed.aspx?UniqueId=1",
+      },
+      refetch: vi.fn(),
+    });
+    mocks.useM365Item.mockReturnValue({ state: "loading" });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  const viewer = () => screen.getByTitle("Plan.docx");
+  const closeButton = () =>
+    screen.getByRole("button", { name: "Close preview of Plan.docx" });
+  // As when the viewer focuses itself: the frame takes focus and the window blurs
+  const focusViewer = () => {
+    act(() => viewer().focus());
+    fireEvent.blur(window);
+    act(() => vi.advanceTimersByTime(0));
+  };
+
+  it("closes from its own header", () => {
+    const onClose = vi.fn();
+    renderFrame(true, onClose);
+
+    fireEvent.click(closeButton());
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes focus back from a viewer that focuses itself while loading", () => {
+    renderFrame(true, vi.fn());
+
+    act(() => viewer().focus());
+    fireEvent.blur(window);
+    // Not inside the blur event, where browsers keep sending keys to the frame
+    expect(document.activeElement).toBe(viewer());
+
+    act(() => vi.advanceTimersByTime(0));
+    expect(document.activeElement).toBe(closeButton());
+  });
+
+  it("lets the viewer keep focus from a second after it loads", () => {
+    renderFrame(true, vi.fn());
+    fireEvent.load(viewer());
+
+    act(() => vi.advanceTimersByTime(900));
+    focusViewer();
+    expect(document.activeElement).toBe(closeButton());
+
+    act(() => vi.advanceTimersByTime(200));
+    focusViewer();
+    expect(document.activeElement).toBe(viewer());
+  });
+
+  it("leaves focus alone in a frame on the page", () => {
+    renderFrame(true);
+
+    focusViewer();
+
+    expect(document.activeElement).toBe(viewer());
+    expect(
+      screen.queryByRole("button", { name: "Close preview of Plan.docx" }),
+    ).toBeNull();
   });
 });
