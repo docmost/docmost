@@ -25,3 +25,20 @@
   background-color: var(--mantine-color-dark-6);
 }
 
+.thumbnailFrame {
+  background-color: var(--mantine-color-gray-0);
+}
+
+:global([data-mantine-color-scheme="dark"]) .thumbnailFrame {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.naturalThumbnail {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 320px;
+  margin-inline: auto;
+}
+

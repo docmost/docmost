@@ -344,12 +344,12 @@ function MicrosoftFileCard({
         style={{ textDecoration: "none", color: "inherit" }}
       >
         {showThumbnail && (
-          <Card.Section withBorder>
+          <Card.Section withBorder className={classes.thumbnailFrame}>
             <img
               src={thumbnailUrl}
               alt=""
               loading="lazy"
-              className={classes.thumbnail}
+              className={classes.naturalThumbnail}
               onError={() => setThumbnailFailed(true)}
             />
           </Card.Section>
