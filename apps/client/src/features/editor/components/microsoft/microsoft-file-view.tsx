@@ -6,26 +6,24 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   sanitizeMicrosoftFileItems,
-  type MicrosoftFileDisplay,
   type MicrosoftFileItem,
 } from "@docmost/editor-ext";
 import { ResizableWrapper } from "../common/resizable-wrapper";
 import { getIntegrationIcon } from "@/features/integration/components/integration-icons";
 import { MicrosoftPickerModal } from "@/features/microsoft/picker/microsoft-picker-modal";
 import { consumeMicrosoftPickerRequest, microsoftFullscreenAtom } from "@/features/microsoft/atoms/microsoft-atoms";
-import { M365Item } from "@/features/microsoft/types/microsoft.types";
+import { M365Item, MicrosoftInsertMode } from "@/features/microsoft/types/microsoft.types";
+import { replaceMicrosoftFileWithMentions } from "@/features/microsoft/utils/microsoft-mentions";
 import { FilePreviewFrame } from "./file-preview-frame";
 import { FileCarousel } from "./file-carousel";
-import { FileLinkList } from "./file-link-list";
 import classes from "./microsoft-file.module.css";
 
 const JUSTIFY: Record<string, string> = { left: "flex-start", center: "center", right: "flex-end" };
 
 export default function MicrosoftFileView(props: NodeViewProps) {
   const { t } = useTranslation();
-  const { node, editor, selected, updateAttributes } = props;
+  const { node, editor, selected, getPos, updateAttributes } = props;
   const items = sanitizeMicrosoftFileItems(node.attrs.items);
-  const display: MicrosoftFileDisplay = node.attrs.display === "link" ? "link" : "embed";
   const setFullscreen = useSetAtom(microsoftFullscreenAtom as PrimitiveAtom<MicrosoftFileItem | null>);
   const [pickerOpened, setPickerOpened] = useState(false);
 
@@ -36,17 +34,24 @@ export default function MicrosoftFileView(props: NodeViewProps) {
   }, []);
 
   const handleSelect = useCallback(
-    (picked: M365Item[], pickedDisplay: MicrosoftFileDisplay) => {
+    (picked: M365Item[], mode: MicrosoftInsertMode) => {
       const next: MicrosoftFileItem[] = picked.map((item) => ({
         driveId: item.driveId,
         itemId: item.itemId,
         webUrl: item.webUrl,
         name: item.name,
       }));
-      updateAttributes({ items: next, display: pickedDisplay, pendingKey: null });
       setPickerOpened(false);
+      if (mode === "embed") {
+        updateAttributes({ items: next, pendingKey: null });
+        return;
+      }
+      const pos = getPos();
+      if (typeof pos === "number" && replaceMicrosoftFileWithMentions(editor, pos, next)) {
+        editor.commands.focus(undefined, { scrollIntoView: false });
+      }
     },
-    [updateAttributes],
+    [editor, getPos, updateAttributes],
   );
 
   const handleResize = useCallback(
@@ -59,7 +64,6 @@ export default function MicrosoftFileView(props: NodeViewProps) {
       opened={pickerOpened}
       onClose={() => setPickerOpened(false)}
       onSelect={handleSelect}
-      initialDisplay={display}
     />
   ) : null;
 
@@ -80,15 +84,6 @@ export default function MicrosoftFileView(props: NodeViewProps) {
             </Text>
           </Group>
         </Card>
-        {picker}
-      </NodeViewWrapper>
-    );
-  }
-
-  if (display === "link") {
-    return (
-      <NodeViewWrapper data-drag-handle className={clsx(selected && "ProseMirror-selectednode")}>
-        <FileLinkList items={items} />
         {picker}
       </NodeViewWrapper>
     );

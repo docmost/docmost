@@ -62,3 +62,5 @@ export type M365NeedsConnection = {
   integrationName?: string;
   message?: string;
 };
+
+export type MicrosoftInsertMode = "embed" | "mention";

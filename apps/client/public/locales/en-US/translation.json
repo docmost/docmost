@@ -1581,7 +1581,6 @@
   "Embed a SharePoint or OneDrive file": "Embed a SharePoint or OneDrive file",
   "Ask a workspace admin to install the Microsoft 365 integration first": "Ask a workspace admin to install the Microsoft 365 integration first",
   "Embed": "Embed",
-  "Link": "Link",
   "Only files can be embedded": "Only files can be embedded",
   "Connect to Microsoft 365 to embed this file": "Connect to Microsoft 365 to embed this file",
   "Could not embed this file": "Could not embed this file",
@@ -1617,7 +1616,5 @@
   "Sign in to Microsoft 365 to preview": "Sign in to Microsoft 365 to preview",
   "Loading preview": "Loading preview",
   "Previous file": "Previous file",
-  "Next file": "Next file",
-  "Embed view": "Embed view",
-  "Link view": "Link view"
+  "Next file": "Next file"
 }
