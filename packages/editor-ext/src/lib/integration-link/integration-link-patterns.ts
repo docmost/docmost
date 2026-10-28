@@ -556,7 +556,8 @@ function safeDecode(value: string): string {
 
 function fileParamOf(url: string): string | undefined {
   try {
-    return new URL(url).searchParams.get("file") || undefined;
+    const file = new URL(url).searchParams.get("file");
+    return file ? encodeUnsafe(file) : undefined;
   } catch {
     return undefined;
   }

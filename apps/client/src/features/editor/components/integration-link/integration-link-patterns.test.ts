@@ -368,7 +368,7 @@ describe("SharePoint library links", () => {
 });
 
 describe("SharePoint Office document links", () => {
-  const SOURCEDOC = "sourcedoc=%7B92cc9f5c-cff6-4bf7-8e6e-d1501cdd3575%7D";
+  const SOURCEDOC = "sourcedoc=%7B1D3F2A44-9C1B-4E2A-8F0A-1234567890AB%7D";
   const WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/doc.aspx?${SOURCEDOC}&action=edit`;
   const NAMED_WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/Doc.aspx?${SOURCEDOC}&file=Plan.docx&action=edit`;
 
@@ -385,5 +385,16 @@ describe("SharePoint Office document links", () => {
       title,
       description: "contoso.sharepoint.com",
     });
+  });
+
+  it.each([
+    ["%E2%80%AEgpj.exe", "%E2%80%AEgpj.exe"],
+    ["x%0Ay.docx", "x%0Ay.docx"],
+    ["https%3A%2F%2Flogin.microsoftonline.com", "https:%2F%2Flogin.microsoftonline.com"],
+    ["Q3%20Caf%C3%A9.docx", "Q3 Café.docx"],
+  ])("keeps the file name in the label safe: %s", (file, title) => {
+    expect(
+      describeIntegrationLink(`https://contoso.sharepoint.com/:w:/r/_layouts/15/Doc.aspx?${SOURCEDOC}&file=${file}`)?.title,
+    ).toBe(title);
   });
 });
