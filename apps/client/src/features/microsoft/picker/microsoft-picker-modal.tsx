@@ -16,8 +16,12 @@ import { IconSearch } from "@tabler/icons-react";
 import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { MicrosoftFileDisplay } from "@docmost/editor-ext";
-import { M365Drive, M365Item, M365Site } from "@/features/microsoft/types/microsoft.types";
+import {
+  M365Drive,
+  M365Item,
+  M365Site,
+  MicrosoftInsertMode,
+} from "@/features/microsoft/types/microsoft.types";
 import {
   useM365Children,
   useM365Drives,
@@ -44,9 +48,8 @@ type Browse = {
 export type MicrosoftPickerModalProps = {
   opened: boolean;
   onClose: () => void;
-  onSelect: (items: M365Item[], display: MicrosoftFileDisplay) => void;
+  onSelect: (items: M365Item[], mode: MicrosoftInsertMode) => void;
   multiple?: boolean;
-  initialDisplay?: MicrosoftFileDisplay;
 };
 
 function failedToLoad(state: M365RequestState<unknown>["state"]): boolean {
@@ -65,7 +68,6 @@ export function MicrosoftPickerModal({
   onClose,
   onSelect,
   multiple = true,
-  initialDisplay = "embed",
 }: MicrosoftPickerModalProps) {
   const { t } = useTranslation();
   const isMobile = useMediaQuery("(max-width: 48em)");
@@ -78,7 +80,7 @@ export function MicrosoftPickerModal({
   const [appendedToken, setAppendedToken] = useState<string | undefined>();
   const [loadingMore, setLoadingMore] = useState(false);
   const [selected, setSelected] = useState<Map<string, M365Item>>(new Map());
-  const [display, setDisplay] = useState<MicrosoftFileDisplay>(initialDisplay);
+  const [mode, setMode] = useState<MicrosoftInsertMode>("embed");
 
   useEffect(() => {
     if (!opened) return;
@@ -87,8 +89,8 @@ export function MicrosoftPickerModal({
     setSite(null);
     setBrowse(null);
     setSelected(new Map());
-    setDisplay(initialDisplay);
-  }, [opened, initialDisplay]);
+    setMode("embed");
+  }, [opened]);
 
   useEffect(() => {
     setExtraItems([]);
@@ -338,11 +340,11 @@ export function MicrosoftPickerModal({
       <Group justify="space-between" mt="md">
         <SegmentedControl
           size="xs"
-          value={display}
-          onChange={(value) => setDisplay(value as MicrosoftFileDisplay)}
+          value={mode}
+          onChange={(value) => setMode(value as MicrosoftInsertMode)}
           data={[
             { value: "embed", label: t("Embed") },
-            { value: "link", label: t("Link") },
+            { value: "mention", label: t("Mention") },
           ]}
         />
         <Group gap="xs">
@@ -355,7 +357,7 @@ export function MicrosoftPickerModal({
           <Button
             color="dark"
             disabled={selected.size === 0}
-            onClick={() => onSelect(Array.from(selected.values()), display)}
+            onClick={() => onSelect(Array.from(selected.values()), mode)}
           >
             {t("Insert")}
           </Button>

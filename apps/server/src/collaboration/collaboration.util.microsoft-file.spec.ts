@@ -18,7 +18,6 @@ const doc: JSONContent = {
             name: 'Plan.docx',
           },
         ],
-        display: 'embed',
         width: 800,
         height: 600,
         align: 'center',
@@ -35,6 +34,7 @@ describe('microsoftFile in the server tiptap extensions', () => {
     expect(typeof html).toBe('string');
     expect(html).toContain(`href="${webUrl}"`);
     expect(html).toContain('Plan.docx');
+    expect(html).not.toContain('data-display');
   });
 
   it('generates search text for a page holding the node', () => {

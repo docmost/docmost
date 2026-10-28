@@ -3,7 +3,7 @@ import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { useCallback } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import { ActionIcon, Tooltip } from "@mantine/core";
-import { IconLink, IconMaximize, IconPhoto, IconTrash } from "@tabler/icons-react";
+import { IconAt, IconMaximize, IconTrash } from "@tabler/icons-react";
 import { useAtomValue, useSetAtom, type PrimitiveAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { isEditorReady, sanitizeMicrosoftFileItems, type MicrosoftFileItem } from "@docmost/editor-ext";
@@ -12,6 +12,7 @@ import {
   microsoftFullscreenAtom,
   microsoftFullscreenHostsAtom,
 } from "@/features/microsoft/atoms/microsoft-atoms";
+import { replaceMicrosoftFileWithMentions } from "@/features/microsoft/utils/microsoft-mentions";
 import classes from "../common/toolbar-menu.module.css";
 
 export function MicrosoftFileMenu({ editor }: EditorMenuProps) {
@@ -26,7 +27,6 @@ export function MicrosoftFileMenu({ editor }: EditorMenuProps) {
       const attrs = ctx.editor.getAttributes("microsoftFile");
       return {
         isActive: ctx.editor.isActive("microsoftFile"),
-        display: attrs?.display === "link" ? "link" : "embed",
         items: sanitizeMicrosoftFileItems(attrs?.items),
       };
     },
@@ -56,8 +56,11 @@ export function MicrosoftFileMenu({ editor }: EditorMenuProps) {
     return { getBoundingClientRect: () => domRect, getClientRects: () => [domRect] };
   }, [editor]);
 
-  const setDisplay = (display: "embed" | "link") => {
-    editor.chain().focus(undefined, { scrollIntoView: false }).updateAttributes("microsoftFile", { display }).run();
+  const convertToMentions = () => {
+    const { from } = editor.state.selection;
+    if (replaceMicrosoftFileWithMentions(editor, from, editorState?.items ?? [])) {
+      editor.commands.focus(undefined, { scrollIntoView: false });
+    }
   };
 
   return (
@@ -73,24 +76,15 @@ export function MicrosoftFileMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Embed view")} withinPortal={false}>
+        <Tooltip position="top" label={t("Mention")} withinPortal={false}>
           <ActionIcon
-            onClick={() => setDisplay("embed")}
+            onClick={convertToMentions}
             size="lg"
-            aria-label={t("Embed view")}
-            variant={editorState?.display === "embed" ? "light" : "subtle"}
+            aria-label={t("Mention")}
+            variant="subtle"
+            disabled={!editorState?.items.length}
           >
-            <IconPhoto size={18} />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip position="top" label={t("Link view")} withinPortal={false}>
-          <ActionIcon
-            onClick={() => setDisplay("link")}
-            size="lg"
-            aria-label={t("Link view")}
-            variant={editorState?.display === "link" ? "light" : "subtle"}
-          >
-            <IconLink size={18} />
+            <IconAt size={18} />
           </ActionIcon>
         </Tooltip>
         <Tooltip position="top" label={t("Full screen")} withinPortal={false}>

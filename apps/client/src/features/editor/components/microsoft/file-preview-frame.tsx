@@ -13,6 +13,10 @@ import { useAtomValue } from "jotai";
 import type { MicrosoftFileItem } from "@docmost/editor-ext";
 import { useM365Item, useM365Preview } from "@/features/microsoft/queries/microsoft-query";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
+import {
+  isPreviewInView,
+  PREVIEW_VISIBILITY_THRESHOLDS,
+} from "@/features/microsoft/utils/preview-visibility";
 import { microsoftFullscreenHostsAtom } from "@/features/microsoft/atoms/microsoft-atoms";
 import { FileStateCard } from "./file-state-card";
 import classes from "./microsoft-file.module.css";
@@ -36,7 +40,7 @@ type Props = {
 export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
   const { t } = useTranslation();
   const hosts = useAtomValue(microsoftFullscreenHostsAtom);
-  const { ref, entry } = useIntersection<HTMLDivElement>({ rootMargin: "200px", threshold: 0 });
+  const { ref, entry } = useIntersection<HTMLDivElement>({ threshold: PREVIEW_VISIBILITY_THRESHOLDS });
   const [seen, setSeen] = useState(fill);
   const retried = useRef(false);
   const [frameFailed, setFrameFailed] = useState(false);
@@ -44,8 +48,8 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (entry?.isIntersecting) setSeen(true);
-  }, [entry?.isIntersecting]);
+    if (entry && isPreviewInView(entry)) setSeen(true);
+  }, [entry]);
 
   const preview = useM365Preview(item.driveId, item.itemId, seen);
   const meta = useM365Item(item.driveId, item.itemId, seen);

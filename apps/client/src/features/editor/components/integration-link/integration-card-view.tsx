@@ -1,6 +1,7 @@
 import { NodeViewWrapper } from "@tiptap/react";
 import {
   Card,
+  Center,
   Group,
   Text,
   Badge,
@@ -343,22 +344,20 @@ function MicrosoftFileCard({
         rel="noopener"
         style={{ textDecoration: "none", color: "inherit" }}
       >
-        {showThumbnail && (
-          <Card.Section withBorder>
-            <img
-              src={thumbnailUrl}
-              alt=""
-              loading="lazy"
-              className={classes.thumbnail}
-              onError={() => setThumbnailFailed(true)}
-            />
-          </Card.Section>
-        )}
-
-        <Group gap="sm" wrap="nowrap" mt={showThumbnail ? "sm" : undefined}>
-          <div style={{ flexShrink: 0 }}>
-            {fileTypeIcon({ name: meta.name ?? unfurlData.title, mimeType: meta.mimeType, kind: meta.kind, size: 28 })}
-          </div>
+        <Group gap="sm" wrap="nowrap">
+          <Center style={{ width: 48, height: 48, flexShrink: 0 }}>
+            {showThumbnail ? (
+              <img
+                src={thumbnailUrl}
+                alt=""
+                loading="lazy"
+                className={classes.fileThumbnail}
+                onError={() => setThumbnailFailed(true)}
+              />
+            ) : (
+              fileTypeIcon({ name: meta.name ?? unfurlData.title, mimeType: meta.mimeType, kind: meta.kind, size: 28 })
+            )}
+          </Center>
 
           <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
             <Text size="sm" fw={600} truncate>

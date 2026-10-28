@@ -25,3 +25,12 @@
   background-color: var(--mantine-color-dark-6);
 }
 
+.fileThumbnail {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-default-border);
+}
+

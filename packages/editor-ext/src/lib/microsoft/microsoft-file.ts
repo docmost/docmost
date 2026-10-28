@@ -9,11 +9,8 @@ export type MicrosoftFileItem = {
   name: string;
 };
 
-export type MicrosoftFileDisplay = "embed" | "link";
-
 export type MicrosoftFileAttributes = {
   items: MicrosoftFileItem[];
-  display: MicrosoftFileDisplay;
   width: number;
   height: number;
   align: "left" | "center" | "right";
@@ -91,14 +88,6 @@ export const MicrosoftFile = Node.create<MicrosoftFileOptions>({
         parseHTML: parseItems,
         renderHTML: (attributes: MicrosoftFileAttributes) => ({
           "data-items": JSON.stringify(sanitizeMicrosoftFileItems(attributes.items)),
-        }),
-      },
-      display: {
-        default: "embed",
-        parseHTML: (element: HTMLElement) =>
-          element.getAttribute("data-display") === "link" ? "link" : "embed",
-        renderHTML: (attributes: MicrosoftFileAttributes) => ({
-          "data-display": attributes.display === "link" ? "link" : "embed",
         }),
       },
       width: {

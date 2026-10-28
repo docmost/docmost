@@ -1,3 +1,7 @@
+:global(.ProseMirror .node-microsoftFile.ProseMirror-selectednode) {
+  outline: none;
+}
+
 .embedNodeView {
   margin: var(--mantine-spacing-xs) 0;
 }
@@ -108,12 +112,6 @@
 
 .dotActive {
   background: var(--mantine-primary-color-filled);
-}
-
-.linkList {
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  padding: 8px 12px;
 }
 
 .emptyCard {
