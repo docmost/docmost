@@ -122,6 +122,7 @@ export const MicrosoftFolder = Node.create<MicrosoftFolderOptions>({
   },
 
   addNodeView() {
+    this.editor.isInitialized = true;
     return ReactNodeViewRenderer(this.options.view);
   },
 });
