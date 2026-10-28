@@ -56,6 +56,7 @@ import {
   TabLabel,
   TabPanel,
   MicrosoftFile,
+  MicrosoftFolder,
 } from '@docmost/editor-ext';
 import {
   extensions as coreExtensions,
@@ -143,6 +144,7 @@ export const tiptapExtensions = [
   IntegrationCard,
   IntegrationMention,
   MicrosoftFile,
+  MicrosoftFolder,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
