@@ -1,0 +1,283 @@
+import {
+  ActionIcon,
+  Anchor,
+  Breadcrumbs,
+  Button,
+  Table,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
+import {
+  IconChevronDown,
+  IconChevronUp,
+  IconExternalLink,
+} from "@tabler/icons-react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type {
+  M365FolderView,
+  M365Item,
+} from "@/features/microsoft/types/microsoft.types";
+import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
+import { formattedDate, timeAgo } from "@/lib/time";
+import { FOLDER_ITEM_LIMIT, FOLDER_PAGE_SIZE } from "./folder-table.constants";
+import type {
+  FolderCrumb,
+  FolderSort,
+  FolderSortColumn,
+} from "./folder-table.types";
+import { nextFolderSort, sortFolderItems } from "./folder-table.utils";
+import classes from "./microsoft-folder.module.css";
+
+const COLUMN_COUNT = 3;
+
+// Shared so a folder name and a file name always look the same
+const nameLinkProps = {
+  size: "sm",
+  fw: 500,
+  className: classes.nameLink,
+} as const;
+
+type Props = {
+  view: M365FolderView;
+  crumbs: FolderCrumb[];
+  sort: FolderSort;
+  parent: { name: string; depth: number } | null;
+  onSortChange: (sort: FolderSort) => void;
+  onNavigate: (depth: number) => void;
+  onOpenFolder: (item: M365Item) => void;
+};
+
+function ariaSort(sort: FolderSort, column: FolderSortColumn) {
+  if (sort.column !== column) return "none";
+  return sort.direction === "asc" ? "ascending" : "descending";
+}
+
+type RowProps = {
+  item: M365Item;
+  onOpenFolder: (item: M365Item) => void;
+};
+
+function FolderRow({ item, onOpenFolder }: RowProps) {
+  const modified = item.lastModifiedDateTime
+    ? new Date(item.lastModifiedDateTime)
+    : null;
+
+  return (
+    <Table.Tr>
+      <Table.Td>
+        <div className={classes.nameCell}>
+          {fileTypeIcon({
+            name: item.name,
+            mimeType: item.mimeType,
+            kind: item.kind,
+            size: 18,
+          })}
+          {item.kind === "folder" ? (
+            <Anchor
+              component="button"
+              type="button"
+              {...nameLinkProps}
+              onClick={() => onOpenFolder(item)}
+            >
+              {item.name}
+            </Anchor>
+          ) : (
+            <Anchor
+              href={item.webUrl}
+              target="_blank"
+              rel="noopener"
+              {...nameLinkProps}
+            >
+              {item.name}
+            </Anchor>
+          )}
+        </div>
+      </Table.Td>
+      <Table.Td className={classes.modified}>
+        {modified && (
+          <span title={formattedDate(modified)}>{timeAgo(modified)}</span>
+        )}
+      </Table.Td>
+      <Table.Td className={classes.secondary}>{item.lastModifiedBy}</Table.Td>
+    </Table.Tr>
+  );
+}
+
+export function FolderTable({
+  view,
+  crumbs,
+  sort,
+  parent,
+  onSortChange,
+  onNavigate,
+  onOpenFolder,
+}: Props) {
+  const { t } = useTranslation();
+  const { name } = view.folder;
+
+  const items = useMemo(
+    () => sortFolderItems(view.items, sort),
+    [view.items, sort],
+  );
+  const pageCount = Math.max(1, Math.ceil(items.length / FOLDER_PAGE_SIZE));
+
+  // Reset during render, not in an effect, so a new folder or sort never paints a stale page
+  const scope = `${view.folder.itemId}:${sort.column}:${sort.direction}`;
+  const [paging, setPaging] = useState({ scope, page: 0 });
+  if (paging.scope !== scope) setPaging({ scope, page: 0 });
+  const page = Math.min(paging.page, pageCount - 1);
+  const goToPage = (next: number) => setPaging({ scope, page: next });
+  const pageItems = items.slice(
+    page * FOLDER_PAGE_SIZE,
+    (page + 1) * FOLDER_PAGE_SIZE,
+  );
+
+  const columns: { column: FolderSortColumn; label: string }[] = [
+    { column: "name", label: t("Name") },
+    { column: "modified", label: t("Modified") },
+    { column: "modifiedBy", label: t("Modified By") },
+  ];
+  const sortChevron =
+    sort.direction === "asc" ? (
+      <IconChevronUp size={14} aria-hidden />
+    ) : (
+      <IconChevronDown size={14} aria-hidden />
+    );
+
+  return (
+    <div className={classes.frame}>
+      <div className={classes.header}>
+        <Breadcrumbs separatorMargin={4} className={classes.breadcrumbs}>
+          {crumbs.map(({ key, name: crumbName, depth }, index) =>
+            depth === null ? (
+              <Text
+                key={key}
+                span
+                size="sm"
+                fw={index === crumbs.length - 1 ? 500 : undefined}
+              >
+                {crumbName}
+              </Text>
+            ) : (
+              <Anchor
+                key={key}
+                component="button"
+                type="button"
+                size="sm"
+                onClick={() => onNavigate(depth)}
+              >
+                {crumbName}
+              </Anchor>
+            ),
+          )}
+        </Breadcrumbs>
+        <Tooltip label={t("Open in SharePoint")} withArrow>
+          <ActionIcon
+            component="a"
+            href={view.folder.webUrl}
+            target="_blank"
+            rel="noopener"
+            variant="subtle"
+            color="gray"
+            size="sm"
+            aria-label={t("Open {{name}} in SharePoint", { name })}
+          >
+            <IconExternalLink size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </div>
+
+      <div className={classes.tableScroll}>
+        <Table aria-label={t("Contents of {{name}}", { name })}>
+          <Table.Thead>
+            <Table.Tr>
+              {columns.map(({ column, label }) => (
+                <Table.Th key={column} aria-sort={ariaSort(sort, column)}>
+                  <UnstyledButton
+                    className={classes.sortButton}
+                    onClick={() => onSortChange(nextFolderSort(sort, column))}
+                  >
+                    {label}
+                    {sort.column === column && sortChevron}
+                  </UnstyledButton>
+                </Table.Th>
+              ))}
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {parent && (
+              <Table.Tr>
+                <Table.Td colSpan={COLUMN_COUNT}>
+                  <UnstyledButton
+                    fz="sm"
+                    fw={500}
+                    className={classes.goBack}
+                    onClick={() => onNavigate(parent.depth)}
+                  >
+                    {`… ${t("Go back to {{name}}", { name: parent.name })}`}
+                  </UnstyledButton>
+                </Table.Td>
+              </Table.Tr>
+            )}
+            {pageItems.map((item) => (
+              <FolderRow
+                key={`${item.driveId}:${item.itemId}`}
+                item={item}
+                onOpenFolder={onOpenFolder}
+              />
+            ))}
+            {items.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={COLUMN_COUNT}>
+                  <Text
+                    size="sm"
+                    ta="center"
+                    py="md"
+                    className={classes.secondary}
+                  >
+                    {t("This folder is empty")}
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
+      </div>
+
+      {pageCount > 1 && (
+        <div className={classes.footer}>
+          <Button
+            variant="default"
+            size="compact-sm"
+            disabled={page === 0}
+            aria-label={t("Previous page of {{name}}", { name })}
+            onClick={() => goToPage(page - 1)}
+          >
+            {t("Previous")}
+          </Button>
+          <Text span size="sm">{`${page + 1} / ${pageCount}`}</Text>
+          <Button
+            variant="default"
+            size="compact-sm"
+            disabled={page === pageCount - 1}
+            aria-label={t("Next page of {{name}}", { name })}
+            onClick={() => goToPage(page + 1)}
+          >
+            {t("Next")}
+          </Button>
+        </div>
+      )}
+
+      {view.truncated && (
+        <Text size="xs" className={classes.note}>
+          {t(
+            "Showing the first {{limit}} items. Open in SharePoint to see everything.",
+            { limit: FOLDER_ITEM_LIMIT.toLocaleString() },
+          )}
+        </Text>
+      )}
+    </div>
+  );
+}

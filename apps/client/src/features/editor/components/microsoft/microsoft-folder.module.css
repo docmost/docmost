@@ -1,0 +1,85 @@
+.secondary {
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.frame {
+  width: 100%;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+  background: var(--mantine-color-body);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 2px var(--mantine-spacing-xs);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.breadcrumbs {
+  flex: 1;
+  min-width: 0;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.sortButton {
+  composes: secondary;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 12rem;
+}
+
+.nameCell > svg {
+  flex-shrink: 0;
+}
+
+.nameLink {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.goBack {
+  color: var(--mantine-color-anchor);
+}
+
+.goBack:hover {
+  text-decoration: underline;
+}
+
+.modified {
+  composes: secondary;
+  white-space: nowrap;
+}
+
+.footer {
+  composes: secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-sm);
+  padding: 6px var(--mantine-spacing-xs);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.note {
+  composes: secondary;
+  padding: 6px var(--mantine-spacing-xs);
+  border-top: 1px solid var(--mantine-color-default-border);
+}

@@ -64,3 +64,12 @@ export type M365NeedsConnection = {
 };
 
 export type MicrosoftInsertMode = "embed" | "mention";
+
+export type M365FolderView = {
+  folder: { driveId: string; itemId: string; name: string; webUrl: string };
+  trail: string[]; // site, library, then the folders above this one
+  items: M365Item[]; // up to FOLDER_ITEM_LIMIT, in name order
+  truncated: boolean;
+};
+
+export type M365FolderRef = { driveId: string; itemId: string; webUrl: string };
