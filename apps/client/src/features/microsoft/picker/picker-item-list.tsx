@@ -2,6 +2,7 @@ import { Checkbox, Loader, Text, UnstyledButton } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
+import { modifiedTime } from "@/features/editor/components/microsoft/folder-table.utils";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
 import { M365Item } from "@/features/microsoft/types/microsoft.types";
 import { timeAgo } from "@/lib/time";
@@ -47,9 +48,10 @@ export function PickerItemList({ items, loading, selectedKeys, emptyLabel, onTog
         const key = itemKey(item);
         const selected = selectedKeys.has(key);
         const isFolder = item.kind === "folder";
+        const time = modifiedTime(item);
         const subtitle = [
           item.lastModifiedBy,
-          item.lastModifiedDateTime ? timeAgo(new Date(item.lastModifiedDateTime)) : null,
+          time === undefined ? null : timeAgo(new Date(time)),
         ]
           .filter(Boolean)
           .join(" • ");
