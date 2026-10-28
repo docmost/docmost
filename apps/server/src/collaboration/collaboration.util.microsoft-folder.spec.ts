@@ -47,11 +47,28 @@ describe('microsoftFolder in the server tiptap extensions', () => {
     expect(html).toContain(`data-web-url="${encodedUrl}"`);
   });
 
-  it('generates search text for a page holding the node', () => {
+  it('generates search text containing the folder name', () => {
     const text = jsonToText(
       doc({ driveId: 'd', itemId: 'f', webUrl, name: 'Reports' }),
     );
 
-    expect(typeof text).toBe('string');
+    expect(text).toContain('Reports');
+  });
+
+  it('falls back to the folder url for search text and never to an unsafe one', () => {
+    const unnamed = jsonToText(
+      doc({ driveId: 'd', itemId: 'f', webUrl, name: '' }),
+    );
+    const unsafe = jsonToText(
+      doc({
+        driveId: 'd',
+        itemId: 'f',
+        webUrl: 'javascript:alert(1)',
+        name: '',
+      }),
+    );
+
+    expect(unnamed).toContain(webUrl);
+    expect(unsafe).not.toContain('javascript:');
   });
 });

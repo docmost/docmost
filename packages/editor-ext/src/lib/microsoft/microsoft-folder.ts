@@ -102,6 +102,10 @@ export const MicrosoftFolder = Node.create<MicrosoftFolderOptions>({
     ];
   },
 
+  renderText({ node }) {
+    return node.attrs.name || sanitizeMicrosoftFolderUrl(node.attrs.webUrl);
+  },
+
   addCommands() {
     return {
       setMicrosoftFolder:
