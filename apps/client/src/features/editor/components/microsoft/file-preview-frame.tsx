@@ -123,7 +123,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
   }
 
   return (
-    <div ref={ref} className={clsx(classes.frame, fill && classes.frameFill)}>
+    <div ref={seen ? undefined : ref} className={clsx(classes.frame, fill && classes.frameFill)}>
       <div className={classes.frameHeader}>
         {fileTypeIcon({ name: item.name, mimeType, size: 18 })}
         <Anchor
