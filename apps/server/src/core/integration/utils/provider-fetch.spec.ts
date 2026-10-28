@@ -44,6 +44,7 @@ function stopServer({ server }: TestServer): Promise<void> {
 describe('providerApiFetch', () => {
   let sink: TestServer;
   let provider: TestServer;
+  let rateLimited: TestServer;
 
   beforeAll(async () => {
     sink = await startServer((res) => {
@@ -54,10 +55,18 @@ describe('providerApiFetch', () => {
       res.writeHead(307, { Location: `${sink.url}/internal` });
       res.end();
     });
+    rateLimited = await startServer((res) => {
+      res.writeHead(429, { 'Retry-After': '30' });
+      res.end('slow down');
+    });
   });
 
   afterAll(async () => {
-    await Promise.all([stopServer(provider), stopServer(sink)]);
+    await Promise.all([
+      stopServer(provider),
+      stopServer(sink),
+      stopServer(rateLimited),
+    ]);
   });
 
   it('reports a redirecting provider endpoint as an unexpected redirect instead of following it', async () => {
@@ -177,5 +186,16 @@ describe('providerApiFetch', () => {
       expect(outcome.status).toBe(500);
       expect(outcome.message).toBe('acme API error: 500 Internal Server Error');
     }, 5000);
+  });
+
+  it('carries the Retry-After seconds on a rate limited response', async () => {
+    const outcome = await providerApiFetch(
+      'acme',
+      `${rateLimited.url}/api/item`,
+    ).catch((err) => err);
+
+    expect(outcome).toBeInstanceOf(ProviderApiError);
+    expect(outcome.status).toBe(429);
+    expect(outcome.retryAfterSeconds).toBe(30);
   });
 });

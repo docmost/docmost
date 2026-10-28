@@ -6,6 +6,7 @@ export const OAUTH_AUTHORIZE_THROTTLER = 'oauth-authorize';
 export const SIEM_TEST_THROTTLER = 'siem-test';
 export const UNFURL_THROTTLER = 'integration-unfurl';
 export const CLOUD_EMAIL_THROTTLER = 'cloud-email';
+export const MICROSOFT_GRAPH_THROTTLER = 'microsoft-graph';
 
 // Every named throttler must appear here; spread it in @SkipThrottle and re-enable per name with false.
 export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
@@ -17,4 +18,5 @@ export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
   [SIEM_TEST_THROTTLER]: true,
   [UNFURL_THROTTLER]: true,
   [CLOUD_EMAIL_THROTTLER]: true,
+  [MICROSOFT_GRAPH_THROTTLER]: true,
 };
