@@ -39,6 +39,7 @@ type Props = {
 
 export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
   const { t } = useTranslation();
+  const name = item.name || item.webUrl;
   const hosts = useAtomValue(microsoftFullscreenHostsAtom);
   const { ref, entry } = useIntersection<HTMLDivElement>({ threshold: PREVIEW_VISIBILITY_THRESHOLDS });
   const [seen, setSeen] = useState(fill);
@@ -135,7 +136,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
           truncate
           className={classes.frameTitle}
         >
-          {item.name || item.webUrl}
+          {name}
         </Anchor>
         <Tooltip label={t("Edit in SharePoint")} withArrow>
           <ActionIcon
@@ -146,7 +147,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
             variant="subtle"
             color="gray"
             size="sm"
-            aria-label={t("Edit in SharePoint")}
+            aria-label={t("Edit {{name}} in SharePoint", { name })}
           >
             <IconPencil size={16} />
           </ActionIcon>
@@ -161,7 +162,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
             color="gray"
             size="sm"
             disabled={!parentWebUrl}
-            aria-label={t("Open parent folder")}
+            aria-label={t("Open parent folder of {{name}}", { name })}
           >
             <IconFolder size={16} />
           </ActionIcon>
@@ -175,7 +176,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
             variant="subtle"
             color="gray"
             size="sm"
-            aria-label={t("Open in SharePoint")}
+            aria-label={t("Open {{name}} in SharePoint", { name })}
           >
             <IconExternalLink size={16} />
           </ActionIcon>
@@ -186,7 +187,7 @@ export function FilePreviewFrame({ item, fill = false, onFullscreen }: Props) {
               variant="subtle"
               color="gray"
               size="sm"
-              aria-label={t("Full screen")}
+              aria-label={t("Show {{name}} full screen", { name })}
               onClick={() => onFullscreen(item)}
             >
               <IconMaximize size={16} />
