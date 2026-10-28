@@ -2,11 +2,16 @@
   color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
 }
 
+.currentCrumb {
+  color: var(--mantine-color-text);
+}
+
 .folderNodeView {
   margin: var(--mantine-spacing-xs) 0;
 }
 
 .frame {
+  container-type: inline-size;
   width: 100%;
   border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
@@ -79,113 +84,146 @@
 }
 
 /* The editor styles every table, cell, link and paragraph below it; the .ProseMirror prefix makes these rules outrank those */
-:global(.ProseMirror) .folderNodeView .table {
-  width: 100%;
-  min-width: 560px;
-  table-layout: fixed;
-}
-
-:global(.ProseMirror) .folderNodeView .table :is(th, td) {
-  min-width: 0;
-  padding: 8px 12px;
-  border: none;
-  border-bottom: 1px solid var(--mantine-color-default-border);
-  vertical-align: middle;
-}
-
-:global(.ProseMirror) .folderNodeView .table td {
-  height: 40px;
-}
-
-:global(.ProseMirror) .folderNodeView .table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-:global(.ProseMirror) .folderNodeView .table th {
-  padding: 0;
-  background-color: transparent;
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 600;
-}
-
-:global(.ProseMirror) .folderNodeView .table th:nth-child(2) {
-  width: 160px;
-}
-
-:global(.ProseMirror) .folderNodeView .table th:nth-child(3) {
-  width: 200px;
-}
-
-:global(.ProseMirror) .folderNodeView .sortButton {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-  padding: 8px 12px;
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-:global(.ProseMirror) .folderNodeView button.sortButton:focus-visible {
-  outline: 2px solid var(--mantine-primary-color-filled);
-  outline-offset: -2px;
-}
-
-:global(.ProseMirror) .folderNodeView .table .nameLink {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: start;
-  text-decoration: none;
-  color: var(--mantine-color-text);
-  border-bottom: none;
-}
-
-:global(.ProseMirror) .folderNodeView .table .nameLink:focus-visible {
-  text-decoration: underline;
-}
-
-:global(.ProseMirror) .folderNodeView .table .goBackCell {
-  padding: 0;
-}
-
-:global(.ProseMirror) .folderNodeView .goBack {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-}
-
-:global(.ProseMirror) .folderNodeView .goBack:focus-visible {
-  outline-offset: -2px;
-}
-
-:global(.ProseMirror) .folderNodeView .table .emptyCell {
-  padding: 24px 12px;
-  text-align: center;
-}
-
-:global(.ProseMirror) .folderNodeView .header a {
-  border-bottom: none;
-  color: var(--ai-color);
-}
-
-:global(.ProseMirror) .folderNodeView .note {
-  margin: 0;
-}
-
-@media (hover: hover) {
-  :global(.ProseMirror) .folderNodeView .table .row:hover {
-    background-color: var(--mantine-color-default-hover);
+:global(.ProseMirror) .folderNodeView {
+  .table {
+    width: 100%;
+    min-width: 560px;
+    table-layout: fixed;
   }
 
-  :global(.ProseMirror) .folderNodeView button.sortButton:hover {
+  .table :is(th, td) {
+    min-width: 0;
+    padding: 8px 12px;
+    border: none;
+    border-bottom: 1px solid var(--mantine-color-default-border);
+    vertical-align: middle;
+  }
+
+  .table td {
+    height: 40px;
+  }
+
+  .table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .table th {
+    padding: 0;
+    background-color: transparent;
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+  }
+
+  .table th:nth-child(2) {
+    width: 160px;
+  }
+
+  .table th:nth-child(3) {
+    width: 200px;
+  }
+
+  .sortButton {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+    line-height: 1.375rem;
+    white-space: nowrap;
+  }
+
+  button.sortButton:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+  }
+
+  .table .nameLink {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: start;
+    text-decoration: none;
     color: var(--mantine-color-text);
+    border-bottom: none;
   }
 
-  :global(.ProseMirror) .folderNodeView .table .nameLink:hover,
-  :global(.ProseMirror) .folderNodeView .goBack:hover {
+  .table .nameLink:focus-visible {
     text-decoration: underline;
+  }
+
+  .table .goBackCell {
+    padding: 0;
+  }
+
+  .goBack {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+  }
+
+  .goBack > svg {
+    flex-shrink: 0;
+  }
+
+  .goBack:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .goBackLabel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .table .emptyCell {
+    padding: 24px 12px;
+    text-align: center;
+  }
+
+  .header a {
+    border-bottom: none;
+    color: var(--ai-color);
+  }
+
+  .note {
+    margin: 0;
+  }
+
+  @media (hover: hover) {
+    .table .row:hover {
+      background-color: var(--mantine-color-default-hover);
+    }
+
+    button.sortButton:hover {
+      color: var(--mantine-color-text);
+    }
+
+    .table .nameLink:hover,
+    .goBack:hover {
+      text-decoration: underline;
+    }
+  }
+
+  @container (max-width: 520px) {
+    .table {
+      min-width: 0;
+    }
+
+    .table th:nth-child(2) {
+      width: 120px;
+    }
+
+    .table :is(th, td):nth-child(3) {
+      width: 0;
+      padding: 0;
+      overflow: hidden;
+      visibility: hidden;
+    }
   }
 }

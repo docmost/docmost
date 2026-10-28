@@ -264,7 +264,9 @@ describe("FolderTable", () => {
       parent: { name: "Reports", depth: 0 },
     });
 
-    const goBack = screen.getByRole("button", { name: "… Go back to Reports" });
+    const goBack = screen.getByRole("button", { name: "Go back to Reports" });
+    expect(goBack.textContent).toBe("Go back to Reports");
+    expect(goBack.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     expect(bodyRows()[0].contains(goBack)).toBe(true);
     expect(
       within(bodyRows()[0]).getByRole("cell").getAttribute("colspan"),
@@ -371,7 +373,7 @@ describe("FolderTable", () => {
 
     expect(screen.getByText("This folder is empty")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "… Go back to Reports" }),
+      screen.getByRole("button", { name: "Go back to Reports" }),
     ).toBeTruthy();
     expect(screen.queryByText(/Showing the first/)).toBeNull();
 
@@ -409,6 +411,8 @@ describe("FolderTable", () => {
 
     expect(screen.getByText("Team Site")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Team Site" })).toBeNull();
+    expect(screen.getByText("Team Site").style.fontWeight).toBe("");
+    expect(screen.getByText("Q3").style.fontWeight).toBe("500");
     expect(screen.getByText("Q3")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Q3" })).toBeNull();
 

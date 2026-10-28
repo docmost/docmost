@@ -36,6 +36,7 @@ const names = (items: M365Item[]) => items.map((item) => item.name);
 const pathEntry = (name: string): FolderPathEntry => ({
   driveId: "drive-1",
   itemId: `folder-${name}`,
+  webUrl: `https://contoso.sharepoint.com/sites/team/${name}`,
   name,
 });
 

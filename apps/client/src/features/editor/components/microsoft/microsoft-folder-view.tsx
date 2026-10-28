@@ -1,8 +1,14 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { Button, Center } from "@mantine/core";
-import { useIntersection } from "@mantine/hooks";
+import { useIntersection, useMergedRef } from "@mantine/hooks";
 import clsx from "clsx";
-import { useState, type ComponentProps, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   sanitizeMicrosoftFolderUrl,
@@ -33,13 +39,24 @@ function FolderEmbed({
     rootMargin: "200px",
     threshold: 0,
   });
+  const contentRef = useRef<HTMLDivElement>(null);
+  const mergedRef = useMergedRef(ref, contentRef);
   const [seen, setSeen] = useState(false);
   const [path, setPath] = useState<FolderPathEntry[]>([]);
   const [sort, setSort] = useState<FolderSort>(DEFAULT_FOLDER_SORT);
+  const shownPath = useRef(path);
 
   if (entry?.isIntersecting && !seen) setSeen(true);
 
-  const current = path.length ? path[path.length - 1] : { driveId, itemId };
+  useEffect(() => {
+    if (shownPath.current === path) return;
+    shownPath.current = path;
+    contentRef.current?.focus({ preventScroll: true });
+  }, [path]);
+
+  const current: FolderPathEntry = path.length
+    ? path[path.length - 1]
+    : { driveId, itemId, webUrl, name };
   const rootView = useM365Folder(driveId, itemId, seen);
   const currentView = useM365Folder(current.driveId, current.itemId, seen);
 
@@ -57,12 +74,7 @@ function FolderEmbed({
       }
     : null;
 
-  const item = {
-    driveId,
-    itemId,
-    webUrl: sanitizeMicrosoftFolderUrl(webUrl),
-    name,
-  };
+  const item = { ...current, webUrl: sanitizeMicrosoftFolderUrl(current.webUrl) };
   const goBack = parent && (
     <Center pb="md">
       <Button
@@ -108,6 +120,7 @@ function FolderEmbed({
             {
               driveId: folder.driveId,
               itemId: folder.itemId,
+              webUrl: folder.webUrl,
               name: folder.name,
             },
           ])
@@ -122,6 +135,7 @@ function FolderEmbed({
     body = stateCard(
       t("Connect your Microsoft 365 account to see this folder"),
       { needsConnection: currentView.needsConnection },
+      goBack,
     );
   } else if (currentView.state === "forbidden") {
     body = stateCard(
@@ -139,7 +153,11 @@ function FolderEmbed({
     );
   }
 
-  return <div ref={ref}>{body}</div>;
+  return (
+    <div ref={mergedRef} tabIndex={-1}>
+      {body}
+    </div>
+  );
 }
 
 export default function MicrosoftFolderView({ node, selected }: NodeViewProps) {

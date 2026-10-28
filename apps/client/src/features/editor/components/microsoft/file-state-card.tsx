@@ -52,9 +52,11 @@ export function FileStateCard({ item, description, needsConnection, kind, onRetr
               {t("Try again")}
             </Button>
           )}
-          <Anchor href={item.webUrl} target="_blank" rel="noopener" size="xs">
-            {t("Open in SharePoint")}
-          </Anchor>
+          {item.webUrl && (
+            <Anchor href={item.webUrl} target="_blank" rel="noopener" size="xs">
+              {t("Open in SharePoint")}
+            </Anchor>
+          )}
         </Group>
       </Stack>
     </div>

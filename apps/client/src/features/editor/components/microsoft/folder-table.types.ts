@@ -5,7 +5,12 @@ export type FolderSort = {
   direction: "asc" | "desc";
 };
 
-export type FolderPathEntry = { driveId: string; itemId: string; name: string };
+export type FolderPathEntry = {
+  driveId: string;
+  itemId: string;
+  webUrl: string;
+  name: string;
+};
 
 // depth is the path length to navigate to; null means the crumb is not clickable
 export type FolderCrumb = { key: string; name: string; depth: number | null };

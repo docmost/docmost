@@ -142,6 +142,8 @@ const skeleton = (container: HTMLElement) =>
   container.querySelector('[aria-busy="true"]');
 const folderTable = (name: string) =>
   screen.queryByRole("table", { name: `Contents of ${name}` });
+const focusTarget = (container: HTMLElement) =>
+  container.querySelector<HTMLElement>('[tabindex="-1"]');
 
 describe("MicrosoftFolderView", () => {
   beforeEach(() => {
@@ -166,7 +168,7 @@ describe("MicrosoftFolderView", () => {
 
     expect(screen.getByRole("link", { name: "Budget.xlsx" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Summary.docx" })).toBeNull();
-    const goBack = screen.getByRole("button", { name: "… Go back to Reports" });
+    const goBack = screen.getByRole("button", { name: "Go back to Reports" });
 
     fireEvent.click(goBack);
 
@@ -210,7 +212,7 @@ describe("MicrosoftFolderView", () => {
     openFolder("Q3");
     expect(header("Modified").getAttribute("aria-sort")).toBe("descending");
 
-    openFolder("… Go back to Reports");
+    openFolder("Go back to Reports");
     expect(header("Modified").getAttribute("aria-sort")).toBe("descending");
   });
 
@@ -244,7 +246,7 @@ describe("MicrosoftFolderView", () => {
     openFolder("Q3");
 
     expect(
-      screen.getByRole("button", { name: "… Go back to Saved name" }),
+      screen.getByRole("button", { name: "Go back to Saved name" }),
     ).toBeTruthy();
   });
 
@@ -296,6 +298,48 @@ describe("MicrosoftFolderView", () => {
     expect(container.querySelector(".mantine-Loader-root")).toBeNull();
   });
 
+  it("moves focus to the content wrapper after opening a folder, but not on first render", () => {
+    const { container } = renderView();
+    const wrapper = focusTarget(container);
+
+    expect(wrapper).not.toBeNull();
+    expect(document.activeElement).toBe(document.body);
+
+    openFolder("Q3");
+
+    expect(document.activeElement).toBe(wrapper);
+    expect(wrapper.contains(screen.getByRole("table"))).toBe(true);
+  });
+
+  it.each([
+    ["the go back row", () => openFolder("Go back to Reports")],
+    ["a breadcrumb", () => openFolder("Reports")],
+  ])("moves focus to the content wrapper after %s", (_label, navigate) => {
+    const { container } = renderView();
+    openFolder("Q3");
+    (document.activeElement as HTMLElement).blur();
+    expect(document.activeElement).toBe(document.body);
+
+    navigate();
+
+    expect(document.activeElement).toBe(focusTarget(container));
+  });
+
+  it("moves focus to the content wrapper after the go back button", () => {
+    mocks.useM365Folder.mockImplementation((_driveId: string, itemId: string) =>
+      itemId === "F2"
+        ? { state: "forbidden", refetch: mocks.refetch }
+        : loaded(itemId),
+    );
+    const { container } = renderView();
+    openFolder("Q3");
+    (document.activeElement as HTMLElement).blur();
+
+    openFolder("Go back to Reports");
+
+    expect(document.activeElement).toBe(focusTarget(container));
+  });
+
   it("shows the access message when SharePoint forbids the folder", () => {
     mocks.useM365Folder.mockReturnValue({
       state: "forbidden",
@@ -331,6 +375,13 @@ describe("MicrosoftFolderView", () => {
       screen.getByText("You do not have access to this folder in SharePoint"),
     ).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Summary.docx" })).toBeNull();
+    expect(screen.getByText("Q3")).toBeTruthy();
+    expect(screen.queryByText("Reports")).toBeNull();
+    expect(
+      screen
+        .getByRole("link", { name: "Open in SharePoint" })
+        .getAttribute("href"),
+    ).toBe(`${WEB_URL}/Q3`);
 
     fireEvent.click(screen.getByRole("button", { name: "Go back to Reports" }));
 
@@ -341,13 +392,18 @@ describe("MicrosoftFolderView", () => {
     expect(screen.queryByRole("button", { name: /Go back to/ })).toBeNull();
   });
 
-  it.each(["notFound", "error"])(
+  it.each(["notFound", "error", "needsConnection"])(
     "offers the way back from a %s subfolder too",
     (state) => {
       mocks.useM365Folder.mockImplementation(
         (_driveId: string, itemId: string) =>
           itemId === "F2"
-            ? { state, code: null, refetch: mocks.refetch }
+            ? {
+                state,
+                code: null,
+                needsConnection: { code: "needs_connection" },
+                refetch: mocks.refetch,
+              }
             : loaded(itemId),
       );
       renderView();
@@ -359,6 +415,43 @@ describe("MicrosoftFolderView", () => {
     },
   );
 
+  it("names the folder that failed, not the embedded one, two levels down", () => {
+    mocks.useM365Folder.mockImplementation((_driveId: string, itemId: string) =>
+      itemId === "F4"
+        ? { state: "notFound", refetch: mocks.refetch }
+        : loaded(itemId),
+    );
+    renderView();
+
+    openFolder("Q3");
+    openFolder("Drafts");
+
+    expect(screen.getByText("Drafts")).toBeTruthy();
+    expect(screen.queryByText("Reports")).toBeNull();
+    expect(
+      screen
+        .getByRole("link", { name: "Open in SharePoint" })
+        .getAttribute("href"),
+    ).toBe(`${WEB_URL}/Drafts`);
+  });
+
+  it.each([
+    ["no link at all", ""],
+    ["a link that is not https", "http://contoso.sharepoint.com/Reports"],
+  ])("offers no Open in SharePoint link for a node with %s", (_label, webUrl) => {
+    mocks.useM365Folder.mockReturnValue({
+      state: "forbidden",
+      refetch: mocks.refetch,
+    });
+    renderView({ webUrl });
+
+    expect(
+      screen.getByText("You do not have access to this folder in SharePoint"),
+    ).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Open in SharePoint" })).toBeNull();
+    expect(screen.queryByText("Open in SharePoint")).toBeNull();
+  });
+
   it("goes back one level at a time from a nested subfolder that cannot be opened", () => {
     mocks.useM365Folder.mockImplementation((_driveId: string, itemId: string) =>
       itemId === "F4"
@@ -369,11 +462,12 @@ describe("MicrosoftFolderView", () => {
 
     openFolder("Q3");
     openFolder("Drafts");
+    expect(screen.getByText("Drafts")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Go back to Q3" }));
 
     expect(screen.getByRole("link", { name: "Budget.xlsx" })).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "… Go back to Reports" }),
+      screen.getByRole("button", { name: "Go back to Reports" }),
     ).toBeTruthy();
   });
 

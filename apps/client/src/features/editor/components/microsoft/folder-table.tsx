@@ -11,6 +11,7 @@ import {
 import {
   IconChevronDown,
   IconChevronUp,
+  IconCornerLeftUp,
   IconExternalLink,
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
@@ -159,6 +160,11 @@ export function FolderTable({
                 span
                 size="sm"
                 fw={index === crumbs.length - 1 ? 500 : undefined}
+                className={
+                  index === crumbs.length - 1
+                    ? classes.currentCrumb
+                    : classes.secondary
+                }
               >
                 {crumbName}
               </Text>
@@ -221,7 +227,10 @@ export function FolderTable({
                     className={classes.goBack}
                     onClick={() => onNavigate(parent.depth)}
                   >
-                    {`… ${t("Go back to {{name}}", { name: parent.name })}`}
+                    <IconCornerLeftUp size={18} stroke={1.5} aria-hidden />
+                    <span className={classes.goBackLabel}>
+                      {t("Go back to {{name}}", { name: parent.name })}
+                    </span>
                   </UnstyledButton>
                 </Table.Td>
               </Table.Tr>
