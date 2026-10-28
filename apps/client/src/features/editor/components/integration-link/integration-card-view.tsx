@@ -604,7 +604,7 @@ function IntegrationCardView(props: any) {
   if (provider === "microsoft_365") {
     return (
       <MicrosoftFileCard
-        url={url}
+        url={safeUrl}
         unfurlData={unfurlData}
         onSelect={selectForEditing}
         onEmbed={

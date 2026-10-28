@@ -11,7 +11,6 @@ export type M365Item = {
   parentPath?: string;
   parentWebUrl?: string;
   siteId?: string;
-  thumbnailUrl?: string;
   childCount?: number;
 };
 

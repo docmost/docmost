@@ -19,13 +19,6 @@ export function useM365Preview(driveId: string, itemId: string, enabled = true) 
   );
 }
 
-export function useM365Recent(enabled = true) {
-  return useM365Request(["m365", "recent"], microsoftService.listMicrosoftRecent, {
-    enabled,
-    staleTime: 0,
-  });
-}
-
 export function useM365SharedWithMe(enabled = true) {
   return useM365Request(["m365", "shared-with-me"], microsoftService.listMicrosoftSharedWithMe, {
     enabled,
@@ -67,10 +60,10 @@ export function useM365Children(
   );
 }
 
-export function useM365Search(query: string, siteId: string | null, enabled = true) {
+export function useM365Search(query: string, enabled = true) {
   return useM365Request(
-    ["m365", "search", query, siteId],
-    () => microsoftService.searchMicrosoft({ query, siteId: siteId ?? undefined }),
+    ["m365", "search", query],
+    () => microsoftService.searchMicrosoft({ query }),
     { enabled: enabled && query.trim().length >= 2, staleTime: 0 },
   );
 }

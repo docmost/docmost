@@ -25,7 +25,6 @@ import {
 import {
   useM365Children,
   useM365Drives,
-  useM365Recent,
   useM365Search,
   useM365SharedWithMe,
   useM365Sites,
@@ -38,7 +37,7 @@ import { PickerBreadcrumbs, PickerCrumb } from "./picker-breadcrumbs";
 import { PickerNeedsConnection } from "./picker-needs-connection";
 import classes from "./picker.module.css";
 
-type PickerTab = "recent" | "search" | "sites" | "onedrive" | "shared";
+type PickerTab = "search" | "sites" | "onedrive" | "shared";
 
 type Browse = {
   driveId: string;
@@ -63,6 +62,10 @@ function needsConnectionOf(...states: M365RequestState<unknown>[]) {
   return null;
 }
 
+function oneDriveRoot(name: string): Browse {
+  return { driveId: "me", crumbs: [{ itemId: null, name }] };
+}
+
 export function MicrosoftPickerModal({
   opened,
   onClose,
@@ -71,23 +74,29 @@ export function MicrosoftPickerModal({
 }: MicrosoftPickerModalProps) {
   const { t } = useTranslation();
   const isMobile = useMediaQuery("(max-width: 48em)");
-  const [tab, setTab] = useState<PickerTab>("recent");
+  const [tab, setTab] = useState<PickerTab>("onedrive");
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebouncedValue(query.trim(), 300);
   const [site, setSite] = useState<M365Site | null>(null);
-  const [browse, setBrowse] = useState<Browse | null>(null);
+  const [browse, setBrowse] = useState<Browse | null>(() => oneDriveRoot(t("My OneDrive")));
   const [extraItems, setExtraItems] = useState<M365Item[]>([]);
   const [appendedToken, setAppendedToken] = useState<string | undefined>();
   const [loadingMore, setLoadingMore] = useState(false);
   const [selected, setSelected] = useState<Map<string, M365Item>>(new Map());
   const [mode, setMode] = useState<MicrosoftInsertMode>("embed");
 
-  useEffect(() => {
-    if (!opened) return;
-    setTab("recent");
+  const selectTab = (value: string | null) => {
+    if (!value) return;
+    const next = value as PickerTab;
+    setTab(next);
     setQuery("");
     setSite(null);
-    setBrowse(null);
+    setBrowse(next === "onedrive" ? oneDriveRoot(t("My OneDrive")) : null);
+  };
+
+  useEffect(() => {
+    if (!opened) return;
+    selectTab("onedrive");
     setSelected(new Map());
     setMode("embed");
   }, [opened]);
@@ -95,14 +104,13 @@ export function MicrosoftPickerModal({
   useEffect(() => {
     setExtraItems([]);
     setAppendedToken(undefined);
-  }, [browse?.driveId, browse?.crumbs.length, tab]);
+  }, [opened, browse?.driveId, browse?.crumbs.length, tab]);
 
   const currentFolder = browse ? browse.crumbs[browse.crumbs.length - 1] : null;
   const browsing = opened && Boolean(browse);
 
-  const recent = useM365Recent(opened && tab === "recent");
   const shared = useM365SharedWithMe(opened && tab === "shared");
-  const search = useM365Search(debouncedQuery, null, opened && tab === "search");
+  const search = useM365Search(debouncedQuery, opened && tab === "search");
   const sites = useM365Sites(debouncedQuery, opened && tab === "sites" && !site);
   const drives = useM365Drives(site?.siteId ?? null, opened && tab === "sites" && Boolean(site) && !browse);
   const children = useM365Children(
@@ -112,7 +120,7 @@ export function MicrosoftPickerModal({
     browsing,
   );
 
-  const needsConnection = needsConnectionOf(recent, shared, search, sites, drives, children);
+  const needsConnection = needsConnectionOf(shared, search, sites, drives, children);
 
   const openFolder = (item: M365Item) => {
     setBrowse((current) => ({
@@ -123,15 +131,6 @@ export function MicrosoftPickerModal({
 
   const openDrive = (drive: M365Drive) => {
     setBrowse({ driveId: drive.driveId, crumbs: [{ itemId: null, name: drive.name }] });
-  };
-
-  const selectTab = (value: string | null) => {
-    if (!value) return;
-    const next = value as PickerTab;
-    setTab(next);
-    setQuery("");
-    setSite(null);
-    setBrowse(next === "onedrive" ? { driveId: "me", crumbs: [{ itemId: null, name: t("My OneDrive") }] } : null);
   };
 
   const toggle = (item: M365Item) => {
@@ -193,19 +192,17 @@ export function MicrosoftPickerModal({
   };
 
   const listState: M365RequestState<unknown> =
-    browse ? children : tab === "recent" ? recent : tab === "shared" ? shared : tab === "search" ? search : sites;
+    browse ? children : tab === "shared" ? shared : tab === "search" ? search : sites;
 
   const items: M365Item[] = browse
     ? children.state === "loaded"
       ? [...children.data.items, ...extraItems]
       : []
-    : tab === "recent" && recent.state === "loaded"
-      ? recent.data
-      : tab === "shared" && shared.state === "loaded"
-        ? shared.data
-        : tab === "search" && search.state === "loaded"
-          ? search.data
-          : [];
+    : tab === "shared" && shared.state === "loaded"
+      ? shared.data
+      : tab === "search" && search.state === "loaded"
+        ? search.data
+        : [];
 
   const selectedKeys = useMemo(() => new Set(selected.keys()), [selected]);
 
@@ -329,10 +326,9 @@ export function MicrosoftPickerModal({
     >
       <Tabs value={tab} onChange={selectTab} keepMounted={false}>
         <Tabs.List style={{ flexWrap: "nowrap", overflowX: "auto" }}>
-          <Tabs.Tab value="recent">{t("Recent")}</Tabs.Tab>
+          <Tabs.Tab value="onedrive">{t("My OneDrive")}</Tabs.Tab>
           <Tabs.Tab value="search">{t("Search")}</Tabs.Tab>
           <Tabs.Tab value="sites">{t("Sites")}</Tabs.Tab>
-          <Tabs.Tab value="onedrive">{t("My OneDrive")}</Tabs.Tab>
           <Tabs.Tab value="shared">{t("Shared with me")}</Tabs.Tab>
         </Tabs.List>
       </Tabs>

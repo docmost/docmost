@@ -29,11 +29,6 @@ export async function getMicrosoftPreview(data: {
   return req.data;
 }
 
-export async function listMicrosoftRecent(): Promise<M365Item[]> {
-  const req = await api.post<{ items: M365Item[] }>(`${BASE}/recent`);
-  return req.data.items;
-}
-
 export async function listMicrosoftSharedWithMe(): Promise<M365Item[]> {
   const req = await api.post<{ items: M365Item[] }>(`${BASE}/shared-with-me`);
   return req.data.items;
@@ -58,11 +53,7 @@ export async function listMicrosoftChildren(data: {
   return req.data;
 }
 
-export async function searchMicrosoft(data: {
-  query: string;
-  siteId?: string;
-  path?: string;
-}): Promise<M365Item[]> {
+export async function searchMicrosoft(data: { query: string }): Promise<M365Item[]> {
   const req = await api.post<{ items: M365Item[] }>(`${BASE}/search`, data);
   return req.data.items;
 }
