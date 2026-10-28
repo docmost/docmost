@@ -36,6 +36,17 @@ describe('microsoftFolder in the server tiptap extensions', () => {
     expect(html).toContain('Reports');
   });
 
+  it('keeps percent-encoded characters in the folder url', () => {
+    const encodedUrl =
+      'https://contoso.sharepoint.com/sites/M/Shared%20Documents/C%23%20notes';
+    const html = jsonToHtml(
+      doc({ driveId: 'd', itemId: 'f', webUrl: encodedUrl, name: 'C# notes' }),
+    );
+
+    expect(html).toContain(`href="${encodedUrl}"`);
+    expect(html).toContain(`data-web-url="${encodedUrl}"`);
+  });
+
   it('generates search text for a page holding the node', () => {
     const text = jsonToText(
       doc({ driveId: 'd', itemId: 'f', webUrl, name: 'Reports' }),
