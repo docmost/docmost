@@ -16,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { sanitizeMicrosoftFolderUrl } from "@docmost/editor-ext";
 import type {
   M365FolderView,
   M365Item,
@@ -28,15 +29,19 @@ import type {
   FolderSort,
   FolderSortColumn,
 } from "./folder-table.types";
-import { nextFolderSort, sortFolderItems } from "./folder-table.utils";
+import {
+  modifiedTime,
+  nextFolderSort,
+  sortFolderItems,
+} from "./folder-table.utils";
 import classes from "./microsoft-folder.module.css";
 
 const COLUMN_COUNT = 3;
 
 // Shared so a folder name and a file name always look the same
+const nameTextProps = { size: "sm", fw: 500 } as const;
 const nameLinkProps = {
-  size: "sm",
-  fw: 500,
+  ...nameTextProps,
   className: classes.nameLink,
 } as const;
 
@@ -61,9 +66,9 @@ type RowProps = {
 };
 
 function FolderRow({ item, onOpenFolder }: RowProps) {
-  const modified = item.lastModifiedDateTime
-    ? new Date(item.lastModifiedDateTime)
-    : null;
+  const time = modifiedTime(item);
+  const modified = time === undefined ? null : new Date(time);
+  const fileUrl = sanitizeMicrosoftFolderUrl(item.webUrl);
 
   return (
     <Table.Tr className={classes.row}>
@@ -85,9 +90,9 @@ function FolderRow({ item, onOpenFolder }: RowProps) {
             >
               {item.name}
             </Anchor>
-          ) : (
+          ) : fileUrl ? (
             <Anchor
-              href={item.webUrl}
+              href={fileUrl}
               target="_blank"
               rel="noopener"
               {...nameLinkProps}
@@ -95,6 +100,10 @@ function FolderRow({ item, onOpenFolder }: RowProps) {
             >
               {item.name}
             </Anchor>
+          ) : (
+            <Text span truncate="end" {...nameTextProps} title={item.name}>
+              {item.name}
+            </Text>
           )}
         </div>
       </Table.Td>
@@ -119,6 +128,7 @@ export function FolderTable({
 }: Props) {
   const { t } = useTranslation();
   const { name } = view.folder;
+  const folderUrl = sanitizeMicrosoftFolderUrl(view.folder.webUrl);
 
   const items = useMemo(
     () => sortFolderItems(view.items, sort),
@@ -132,6 +142,8 @@ export function FolderTable({
   if (paging.scope !== scope) setPaging({ scope, page: 0 });
   const page = Math.min(paging.page, pageCount - 1);
   const goToPage = (next: number) => setPaging({ scope, page: next });
+  const onFirstPage = page === 0;
+  const onLastPage = page === pageCount - 1;
   const pageItems = items.slice(
     page * FOLDER_PAGE_SIZE,
     (page + 1) * FOLDER_PAGE_SIZE,
@@ -181,20 +193,22 @@ export function FolderTable({
             ),
           )}
         </Breadcrumbs>
-        <Tooltip label={t("Open in SharePoint")} withArrow>
-          <ActionIcon
-            component="a"
-            href={view.folder.webUrl}
-            target="_blank"
-            rel="noopener"
-            variant="subtle"
-            color="gray"
-            size="sm"
-            aria-label={t("Open {{name}} in SharePoint", { name })}
-          >
-            <IconExternalLink size={16} />
-          </ActionIcon>
-        </Tooltip>
+        {folderUrl && (
+          <Tooltip label={t("Open in SharePoint")} withArrow>
+            <ActionIcon
+              component="a"
+              href={folderUrl}
+              target="_blank"
+              rel="noopener"
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label={t("Open {{name}} in SharePoint", { name })}
+            >
+              <IconExternalLink size={16} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </div>
 
       <div className={classes.tableScroll}>
@@ -258,9 +272,12 @@ export function FolderTable({
           <Button
             variant="default"
             size="xs"
-            disabled={page === 0}
+            data-disabled={onFirstPage || undefined}
+            aria-disabled={onFirstPage || undefined}
             aria-label={t("Previous page of {{name}}", { name })}
-            onClick={() => goToPage(page - 1)}
+            onClick={() => {
+              if (!onFirstPage) goToPage(page - 1);
+            }}
           >
             {t("Previous")}
           </Button>
@@ -268,9 +285,12 @@ export function FolderTable({
           <Button
             variant="default"
             size="xs"
-            disabled={page === pageCount - 1}
+            data-disabled={onLastPage || undefined}
+            aria-disabled={onLastPage || undefined}
             aria-label={t("Next page of {{name}}", { name })}
-            onClick={() => goToPage(page + 1)}
+            onClick={() => {
+              if (!onLastPage) goToPage(page + 1);
+            }}
           >
             {t("Next")}
           </Button>

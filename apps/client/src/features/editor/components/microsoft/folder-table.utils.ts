@@ -16,7 +16,7 @@ const collator = new Intl.Collator(undefined, {
   sensitivity: "base",
 });
 
-function modifiedTime(item: M365Item): number | undefined {
+export function modifiedTime(item: M365Item): number | undefined {
   const time = item.lastModifiedDateTime
     ? Date.parse(item.lastModifiedDateTime)
     : NaN;

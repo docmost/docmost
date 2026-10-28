@@ -8,6 +8,7 @@ import type {
 } from "./folder-table.types";
 import {
   buildFolderCrumbs,
+  modifiedTime,
   nextFolderSort,
   sortFolderItems,
 } from "./folder-table.utils";
@@ -38,6 +39,25 @@ const pathEntry = (name: string): FolderPathEntry => ({
   itemId: `folder-${name}`,
   webUrl: `https://contoso.sharepoint.com/sites/team/${name}`,
   name,
+});
+
+describe("modifiedTime", () => {
+  it("returns the time of a valid date", () => {
+    expect(
+      modifiedTime(
+        file("a.docx", { lastModifiedDateTime: "2026-10-03T09:00:00Z" }),
+      ),
+    ).toBe(Date.parse("2026-10-03T09:00:00Z"));
+  });
+
+  it.each([undefined, "", "not a date"])(
+    "returns undefined for %j",
+    (lastModifiedDateTime) => {
+      expect(
+        modifiedTime(file("a.docx", { lastModifiedDateTime })),
+      ).toBeUndefined();
+    },
+  );
 });
 
 describe("sortFolderItems", () => {

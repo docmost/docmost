@@ -27,10 +27,23 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/lib/time", () => ({
-  timeAgo: () => "3 days ago",
-  formattedDate: () => "Oct 3, 2026, 9:00AM",
-}));
+// The real helpers throw on an invalid date, so these do too
+vi.mock("@/lib/time", () => {
+  const assertValid = (date: Date) => {
+    if (Number.isNaN(date.getTime()))
+      throw new RangeError("Invalid time value");
+  };
+  return {
+    timeAgo: (date: Date) => {
+      assertValid(date);
+      return "3 days ago";
+    },
+    formattedDate: (date: Date) => {
+      assertValid(date);
+      return "Oct 3, 2026, 9:00AM";
+    },
+  };
+});
 
 type Props = ComponentProps<typeof FolderTable>;
 
@@ -134,7 +147,7 @@ const previousButton = () =>
 const nextButton = () =>
   screen.getByRole("button", { name: "Next page of Reports" });
 const isDisabled = (button: HTMLElement) =>
-  (button as HTMLButtonElement).disabled;
+  button.getAttribute("aria-disabled") === "true";
 
 describe("FolderTable", () => {
   beforeEach(setMediaMatch);
@@ -163,6 +176,35 @@ describe("FolderTable", () => {
 
     expect(screen.getByText("1 / 2")).toBeTruthy();
     expect(fileNames()).toHaveLength(FOLDER_PAGE_SIZE);
+  });
+
+  it("keeps keyboard focus on the pager button that reaches the last page", () => {
+    renderTable({ view: viewOf(numberedFiles(21)) });
+
+    nextButton().focus();
+    fireEvent.click(nextButton());
+
+    expect(screen.getByText("2 / 2")).toBeTruthy();
+    expect(document.activeElement).toBe(nextButton());
+    expect((nextButton() as HTMLButtonElement).disabled).toBe(false);
+    expect(nextButton().getAttribute("aria-disabled")).toBe("true");
+    expect(nextButton().hasAttribute("data-disabled")).toBe(true);
+
+    fireEvent.click(nextButton());
+
+    expect(screen.getByText("2 / 2")).toBeTruthy();
+    expect(fileNames()).toEqual(["File 21.docx"]);
+  });
+
+  it("ignores a click on Previous while on the first page", () => {
+    renderTable({ view: viewOf(numberedFiles(21)) });
+
+    expect(previousButton().hasAttribute("data-disabled")).toBe(true);
+    fireEvent.click(previousButton());
+
+    expect(screen.getByText("1 / 2")).toBeTruthy();
+    expect(fileNames()).toHaveLength(FOLDER_PAGE_SIZE);
+    expect(previousButton().getAttribute("aria-disabled")).toBe("true");
   });
 
   it("shows no footer when everything fits on one page", () => {
@@ -349,6 +391,65 @@ describe("FolderTable", () => {
     expect(within(cellsOf("undated.docx")[1]).queryByTitle(/./)).toBeNull();
     expect(cellsOf("undated.docx")[2].textContent).toBe("");
   });
+
+  it("leaves the modified cell empty for a date that does not parse", () => {
+    renderTable({
+      view: viewOf([
+        file("garbled.docx", {
+          lastModifiedDateTime: "not a date",
+          lastModifiedBy: "Bob",
+        }),
+        file("dated.docx", { lastModifiedDateTime: "2026-10-03T09:00:00Z" }),
+      ]),
+    });
+    const cellsOf = (name: string) =>
+      within(
+        screen.getByRole("link", { name }).closest("tr") as HTMLElement,
+      ).getAllByRole("cell");
+
+    expect(cellsOf("garbled.docx")[1].textContent).toBe("");
+    expect(within(cellsOf("garbled.docx")[1]).queryByTitle(/./)).toBeNull();
+    expect(cellsOf("garbled.docx")[2].textContent).toBe("Bob");
+    expect(cellsOf("dated.docx")[1].textContent).toBe("3 days ago");
+  });
+
+  it("shows a file with an unsafe url as plain text without a link", () => {
+    renderTable({
+      view: viewOf([
+        file("Unsafe.docx", { webUrl: "javascript:alert(1)" }),
+        file("Missing.docx", { webUrl: "" }),
+        file("Safe.docx"),
+      ]),
+    });
+
+    const nameCell = (name: string) =>
+      screen.getByText(name).closest("td") as HTMLElement;
+    for (const name of ["Unsafe.docx", "Missing.docx"]) {
+      expect(nameCell(name).querySelector("a")).toBeNull();
+      expect(screen.queryByRole("link", { name })).toBeNull();
+      expect(screen.getByText(name).getAttribute("title")).toBe(name);
+    }
+    expect(table().querySelector('a[href^="javascript:"]')).toBeNull();
+    expect(fileNames()).toEqual(["Safe.docx"]);
+  });
+
+  it.each([
+    ["empty", ""],
+    ["not https", "javascript:alert(1)"],
+  ])(
+    "offers no Open in SharePoint link when the folder url is %s",
+    (_label, webUrl) => {
+      renderTable({
+        view: viewOf([file("a.docx")], { folder: { ...reports, webUrl } }),
+      });
+
+      expect(screen.queryByLabelText("Open Reports in SharePoint")).toBeNull();
+      expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
+      expect(
+        screen.getByRole("table", { name: "Contents of Reports" }),
+      ).toBeTruthy();
+    },
+  );
 
   it("marks only the sorted column with a chevron", () => {
     const { rerender } = renderTable({ view: viewOf([file("a.docx")]) });
