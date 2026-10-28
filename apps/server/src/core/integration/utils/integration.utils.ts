@@ -38,3 +38,22 @@ export function toProviderAccount(fields: {
     ...(username ? { username } : {}),
   };
 }
+
+// Slashes, controls, bidi or zero-width marks and line separators can disguise a link's display text.
+const UNSAFE_DISPLAY_TEXT = /[\/\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu;
+
+export function encodeUnsafeText(text: string): string {
+  return text.replace(UNSAFE_DISPLAY_TEXT, encodeURIComponent);
+}
+
+export function safeDecodeText(value: string): string {
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return encodeUnsafeText(value);
+  }
+  return encodeUnsafeText(decoded) === decoded
+    ? decoded
+    : encodeUnsafeText(value);
+}
