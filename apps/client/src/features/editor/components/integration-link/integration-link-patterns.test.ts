@@ -398,3 +398,35 @@ describe("SharePoint Office document links", () => {
     ).toBe(title);
   });
 });
+
+describe("SharePoint path sharing links", () => {
+  const SHARED = "https://contoso.sharepoint.com/:w:/r/sites/M/Shared%20Documents";
+
+  it.each([
+    [`${SHARED}/Q3%20Plan.docx?d=w1`, "Q3 Plan.docx"],
+    ["https://contoso-my.sharepoint.com/:x:/r/personal/jane_contoso_com/Documents/Budget.xlsx?d=w1&csf=1", "Budget.xlsx"],
+    [`${SHARED}/Plan.docx/`, "Plan.docx"],
+  ])("titles %s by its file name", (url, title) => {
+    expect(describeIntegrationLink(url)).toEqual({
+      provider: "microsoft_365",
+      title,
+      description: new URL(url).host,
+    });
+  });
+
+  it.each([
+    ["an encoded right-to-left override", "Plan%E2%80%AEfdp.docx", "Plan%E2%80%AEfdp.docx"],
+    ["a raw right-to-left override", "Plan\u202Efdp.docx", "Plan%E2%80%AEfdp.docx"],
+    ["an encoded slash", "a%2Fb.docx", "a%2Fb.docx"],
+  ])("keeps a path sharing link safe to display with %s in the file name", (_case, file, title) => {
+    expect(describeIntegrationLink(`${SHARED}/${file}`)?.title).toBe(title);
+  });
+
+  it.each([
+    "https://contoso.sharepoint.com/:w:/s/M/E1?e=2",
+    "https://contoso.sharepoint.com/:w:/s/Team.A/EZabc123?e=xyz",
+    "https://contoso.sharepoint.com/:u:/r/sites/M/Shared%20Documents/README?d=w1",
+  ])("keeps the generic title for a sharing link without a file name: %s", (url) => {
+    expect(describeIntegrationLink(url)?.title).toBe("SharePoint file");
+  });
+});

@@ -504,11 +504,13 @@ export function describeIntegrationLink(
     case "google-drive-file":
       return describe("Google Drive file");
 
-    case "sharepoint-file":
+    case "sharepoint-file": {
+      const name = match[2]?.split("/").filter(Boolean).pop();
       return describe(
-        match[2]?.includes(".") ? safeDecode(match[2]) : "SharePoint file",
+        name?.includes(".") ? safeDecode(name) : "SharePoint file",
         hostOf(url),
       );
+    }
     case "sharepoint-doc":
       return describe(fileParamOf(url) ?? "SharePoint document", hostOf(url));
     case "sharepoint-folder":
