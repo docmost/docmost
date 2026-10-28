@@ -95,6 +95,13 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
       /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+(?:\/[^\/?#]+)+?\/secure\/RapidBoard\.jspa\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
     requiresProviderHost: true,
   },
+  // Must stay ahead of the sharing links, which also match Office address-bar links.
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-doc",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:[^?#]*\/)?_layouts\/15\/[Dd]oc\.aspx\?(?:[^#]*&)?sourcedoc=(?:%7B|\{)?([0-9a-fA-F-]{36})/,
+  },
   {
     provider: "microsoft_365",
     type: "sharepoint-folder",
@@ -104,12 +111,6 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     provider: "microsoft_365",
     type: "sharepoint-file",
     regex: /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/:[a-z]:\/[a-z]\/([^?#]+)/,
-  },
-  {
-    provider: "microsoft_365",
-    type: "sharepoint-doc",
-    regex:
-      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:[^?#]*\/)?_layouts\/15\/Doc\.aspx\?(?:[^#]*&)?sourcedoc=(?:%7B|\{)?([0-9a-fA-F-]{36})/,
   },
   {
     provider: "microsoft_365",

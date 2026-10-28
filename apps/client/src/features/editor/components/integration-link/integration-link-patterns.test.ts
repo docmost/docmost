@@ -366,3 +366,24 @@ describe("SharePoint library links", () => {
     });
   });
 });
+
+describe("SharePoint Office document links", () => {
+  const SOURCEDOC = "sourcedoc=%7B92cc9f5c-cff6-4bf7-8e6e-d1501cdd3575%7D";
+  const WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/doc.aspx?${SOURCEDOC}&action=edit`;
+  const NAMED_WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/Doc.aspx?${SOURCEDOC}&file=Plan.docx&action=edit`;
+
+  it.each([WORD_LINK, NAMED_WORD_LINK])("identifies %s as a document, not a sharing link", (url) => {
+    expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type: "sharepoint-doc" });
+  });
+
+  it.each([
+    [WORD_LINK, "SharePoint document"],
+    [NAMED_WORD_LINK, "Plan.docx"],
+  ])("labels %s as %s", (url, title) => {
+    expect(describeIntegrationLink(url)).toMatchObject({
+      provider: "microsoft_365",
+      title,
+      description: "contoso.sharepoint.com",
+    });
+  });
+});
