@@ -1,8 +1,28 @@
 import { JSONContent } from '@tiptap/core';
-import { jsonToHtml, jsonToText } from './collaboration.util';
+import {
+  htmlToJson,
+  jsonToHtml,
+  jsonToMarkdown,
+  jsonToText,
+} from './collaboration.util';
 
 const webUrl =
   'https://contoso.sharepoint.com/sites/M/Shared%20Documents/Plan.docx';
+const budgetUrl =
+  'https://contoso.sharepoint.com/sites/M/Shared%20Documents/Budget.xlsx';
+
+const plan = { driveId: 'd', itemId: 'i', webUrl, name: 'Plan.docx' };
+const budget = {
+  driveId: 'd',
+  itemId: 'b',
+  webUrl: budgetUrl,
+  name: 'Budget.xlsx',
+};
+
+const fileDoc = (items: Record<string, string>[]): JSONContent => ({
+  type: 'doc',
+  content: [{ type: 'microsoftFile', attrs: { items } }],
+});
 
 const doc: JSONContent = {
   type: 'doc',
@@ -88,7 +108,31 @@ describe('microsoftFile in the server tiptap extensions', () => {
     expect(html).not.toContain('Budget.xlsx');
   });
 
-  it('generates search text for a page holding the node', () => {
-    expect(typeof jsonToText(doc)).toBe('string');
+  it('keeps every file through an html export and import', () => {
+    const imported = htmlToJson(jsonToHtml(fileDoc([plan, budget])));
+
+    expect(imported.content[0].attrs.items).toEqual([plan, budget]);
+  });
+
+  it('exports each file as its own markdown link', () => {
+    expect(jsonToMarkdown(fileDoc([plan, budget]))).toBe(
+      `[Plan.docx](${webUrl})\n\n[Budget.xlsx](${budgetUrl})`,
+    );
+  });
+
+  it('generates search text with each file name as its own word', () => {
+    const words = jsonToText(fileDoc([plan, budget])).split(/\s+/);
+
+    expect(words).toEqual(expect.arrayContaining(['Plan.docx', 'Budget.xlsx']));
+  });
+
+  it('falls back to the file url for search text and never to an unsafe one', () => {
+    const unnamed = jsonToText(fileDoc([{ ...plan, name: '' }]));
+    const unsafe = jsonToText(
+      fileDoc([{ ...plan, webUrl: 'javascript:alert(1)', name: '' }]),
+    );
+
+    expect(unnamed).toContain(webUrl);
+    expect(unsafe).not.toContain('javascript:');
   });
 });

@@ -122,12 +122,18 @@ export const MicrosoftFile = Node.create<MicrosoftFileOptions>({
     return [
       "div",
       mergeAttributes({ "data-type": this.name }, this.options.HTMLAttributes, HTMLAttributes),
+      // A block per file keeps each link on its own line in exported HTML and markdown
       ...items.map((item) => [
-        "a",
-        { href: item.webUrl, target: "_blank", rel: "noopener" },
-        item.name || item.webUrl,
+        "p",
+        ["a", { href: item.webUrl, target: "_blank", rel: "noopener" }, item.name || item.webUrl],
       ]),
     ];
+  },
+
+  renderText({ node }) {
+    return sanitizeMicrosoftFileItems(node.attrs.items)
+      .map((item) => item.name || item.webUrl)
+      .join("\n");
   },
 
   addCommands() {
