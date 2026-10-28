@@ -35,16 +35,28 @@
   inset: -12px;
 }
 
-.hoverMenu:hover {
-  opacity: 1;
-}
-
 .hoverMenu:focus-within {
   opacity: 1;
 }
 
-.embedWrapper:hover .hoverMenu {
-  opacity: 1;
+@media (hover: hover) {
+  .hoverMenu:hover {
+    opacity: 1;
+  }
+
+  .embedWrapper:hover .hoverMenu {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .embedWrapper:focus-within .hoverMenu {
+    opacity: 1;
+  }
+
+  .embedWrapper:not(:focus-within) .hoverMenu {
+    pointer-events: none;
+  }
 }
 
 .frame {
