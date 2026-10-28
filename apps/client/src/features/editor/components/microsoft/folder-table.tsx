@@ -30,6 +30,7 @@ import type {
   FolderSortColumn,
 } from "./folder-table.types";
 import {
+  isPlainClick,
   modifiedTime,
   nextFolderSort,
   sortFolderItems,
@@ -53,6 +54,7 @@ type Props = {
   onSortChange: (sort: FolderSort) => void;
   onNavigate: (depth: number) => void;
   onOpenFolder: (item: M365Item) => void;
+  onOpenFile?: (item: M365Item) => void;
 };
 
 function ariaSort(sort: FolderSort, column: FolderSortColumn) {
@@ -63,9 +65,10 @@ function ariaSort(sort: FolderSort, column: FolderSortColumn) {
 type RowProps = {
   item: M365Item;
   onOpenFolder: (item: M365Item) => void;
+  onOpenFile?: (item: M365Item) => void;
 };
 
-function FolderRow({ item, onOpenFolder }: RowProps) {
+function FolderRow({ item, onOpenFolder, onOpenFile }: RowProps) {
   const time = modifiedTime(item);
   const modified = time === undefined ? null : new Date(time);
   const fileUrl = sanitizeMicrosoftFolderUrl(item.webUrl);
@@ -97,6 +100,11 @@ function FolderRow({ item, onOpenFolder }: RowProps) {
               rel="noopener"
               {...nameLinkProps}
               title={item.name}
+              onClick={(event) => {
+                if (!onOpenFile || !isPlainClick(event)) return;
+                event.preventDefault();
+                onOpenFile(item);
+              }}
             >
               {item.name}
             </Anchor>
@@ -125,6 +133,7 @@ export function FolderTable({
   onSortChange,
   onNavigate,
   onOpenFolder,
+  onOpenFile,
 }: Props) {
   const { t } = useTranslation();
   const { name } = view.folder;
@@ -254,6 +263,7 @@ export function FolderTable({
                 key={`${item.driveId}:${item.itemId}`}
                 item={item}
                 onOpenFolder={onOpenFolder}
+                onOpenFile={onOpenFile}
               />
             ))}
             {items.length === 0 && (

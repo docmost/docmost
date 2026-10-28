@@ -16,6 +16,22 @@ const collator = new Intl.Collator(undefined, {
   sensitivity: "base",
 });
 
+// Modified and middle clicks keep the browser's own link handling
+export function isPlainClick(
+  event: Pick<
+    MouseEvent,
+    "button" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey"
+  >,
+): boolean {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 export function modifiedTime(item: M365Item): number | undefined {
   const time = item.lastModifiedDateTime
     ? Date.parse(item.lastModifiedDateTime)

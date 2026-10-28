@@ -116,6 +116,7 @@ function renderTable(props: Partial<Props> = {}) {
     onSortChange: vi.fn(),
     onNavigate: vi.fn(),
     onOpenFolder: vi.fn(),
+    onOpenFile: vi.fn(),
   };
   const base: Props = {
     view: viewOf([]),
@@ -148,6 +149,19 @@ const nextButton = () =>
   screen.getByRole("button", { name: "Next page of Reports" });
 const isDisabled = (button: HTMLElement) =>
   button.getAttribute("aria-disabled") === "true";
+
+// Reports whether the app took the click over, then cancels it so jsdom never navigates
+function clickPrevented(element: HTMLElement, init: MouseEventInit = {}) {
+  let prevented = false;
+  const record = (event: Event) => {
+    prevented = event.defaultPrevented;
+    event.preventDefault();
+  };
+  window.addEventListener("click", record);
+  fireEvent.click(element, init);
+  window.removeEventListener("click", record);
+  return prevented;
+}
 
 describe("FolderTable", () => {
   beforeEach(setMediaMatch);
@@ -254,10 +268,12 @@ describe("FolderTable", () => {
     expect(screen.queryByText(/ \/ /)).toBeNull();
   });
 
-  it("opens folders in place and files in SharePoint", () => {
+  it("opens folders in place and files in the preview", () => {
     const archive = folder("Archive");
     const budget = file("Budget.docx");
-    const { onOpenFolder } = renderTable({ view: viewOf([archive, budget]) });
+    const { onOpenFolder, onOpenFile } = renderTable({
+      view: viewOf([archive, budget]),
+    });
 
     const folderName = screen.getByRole("button", { name: "Archive" });
     fireEvent.click(folderName);
@@ -265,12 +281,44 @@ describe("FolderTable", () => {
     expect(onOpenFolder).toHaveBeenCalledWith(archive);
     expect(folderName.getAttribute("type")).toBe("button");
     expect(screen.queryByRole("link", { name: "Archive" })).toBeNull();
+    expect(onOpenFile).not.toHaveBeenCalled();
+
+    expect(clickPrevented(screen.getByRole("link", { name: "Budget.docx" }))).toBe(
+      true,
+    );
+    expect(onOpenFile).toHaveBeenCalledTimes(1);
+    expect(onOpenFile).toHaveBeenCalledWith(budget);
+    expect(onOpenFolder).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps file names as SharePoint links for new tabs and modified clicks", () => {
+    const budget = file("Budget.docx");
+    const { onOpenFile } = renderTable({ view: viewOf([budget]) });
 
     const fileName = screen.getByRole("link", { name: "Budget.docx" });
     expect(fileName.getAttribute("href")).toBe(budget.webUrl);
     expect(fileName.getAttribute("target")).toBe("_blank");
     expect(fileName.getAttribute("rel")).toBe("noopener");
     expect(screen.queryByRole("button", { name: "Budget.docx" })).toBeNull();
+
+    for (const init of [
+      { metaKey: true },
+      { ctrlKey: true },
+      { shiftKey: true },
+      { altKey: true },
+      { button: 1 },
+    ]) {
+      expect(clickPrevented(fileName, init)).toBe(false);
+    }
+    expect(onOpenFile).not.toHaveBeenCalled();
+  });
+
+  it("opens files in SharePoint when the page has no preview", () => {
+    renderTable({ view: viewOf([file("Budget.docx")]), onOpenFile: undefined });
+
+    expect(clickPrevented(screen.getByRole("link", { name: "Budget.docx" }))).toBe(
+      false,
+    );
   });
 
   it("puts the full name in a title so a truncated name can still be read", () => {

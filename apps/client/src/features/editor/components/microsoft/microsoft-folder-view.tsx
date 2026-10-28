@@ -10,10 +10,16 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { useAtomValue, useSetAtom, type PrimitiveAtom } from "jotai";
 import {
   sanitizeMicrosoftFolderUrl,
+  type MicrosoftFileItem,
   type MicrosoftFolderAttributes,
 } from "@docmost/editor-ext";
+import {
+  microsoftFullscreenAtom,
+  microsoftFullscreenHostsAtom,
+} from "@/features/microsoft/atoms/microsoft-atoms";
 import { useM365Folder } from "@/features/microsoft/queries/microsoft-query";
 import { FileStateCard } from "./file-state-card";
 import { FolderTable } from "./folder-table";
@@ -45,6 +51,10 @@ function FolderEmbed({
   const [path, setPath] = useState<FolderPathEntry[]>([]);
   const [sort, setSort] = useState<FolderSort>(DEFAULT_FOLDER_SORT);
   const shownPath = useRef(path);
+  const setFullscreen = useSetAtom(
+    microsoftFullscreenAtom as PrimitiveAtom<MicrosoftFileItem | null>,
+  );
+  const hosts = useAtomValue(microsoftFullscreenHostsAtom);
 
   if (entry?.isIntersecting && !seen) setSeen(true);
 
@@ -124,6 +134,18 @@ function FolderEmbed({
               name: folder.name,
             },
           ])
+        }
+        // Without a mounted preview modal, file names stay plain SharePoint links
+        onOpenFile={
+          hosts > 0
+            ? (file) =>
+                setFullscreen({
+                  driveId: file.driveId,
+                  itemId: file.itemId,
+                  webUrl: sanitizeMicrosoftFolderUrl(file.webUrl),
+                  name: file.name,
+                })
+            : undefined
         }
       />
     );
