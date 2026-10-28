@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { M365Item } from "@/features/microsoft/types/microsoft.types";
-import { DEFAULT_FOLDER_SORT } from "./folder-table.constants";
+import {
+  DEFAULT_FOLDER_SORT,
+  FOLDER_MAX_CRUMBS,
+} from "./folder-table.constants";
 import type {
   FolderPathEntry,
   FolderSort,
@@ -248,19 +251,41 @@ describe("buildFolderCrumbs", () => {
     ]);
   });
 
-  it("collapses more than five crumbs to the first, an ellipsis and the last three", () => {
+  it.each([1, 3, 5])(
+    "keeps the embedded folder visible and clickable %i levels below it",
+    (depth) => {
+      const path = ["Q3", "Week 1", "Monday", "Drafts", "Notes"]
+        .slice(0, depth)
+        .map(pathEntry);
+
+      const crumbs = buildFolderCrumbs(
+        ["Marketing", "Documents"],
+        "Reports",
+        path,
+      );
+
+      expect(crumbs).toContainEqual({ key: "root", name: "Reports", depth: 0 });
+      expect(crumbs[crumbs.length - 1]).toMatchObject({
+        name: path[path.length - 1].name,
+        depth: null,
+      });
+      expect(crumbs.length).toBeLessThanOrEqual(FOLDER_MAX_CRUMBS);
+    },
+  );
+
+  it("collapses the trail first, keeping its start", () => {
     expect(
       buildFolderCrumbs(["S", "D", "A", "B"], "R", [pathEntry("X")]),
     ).toMatchObject([
       { name: "S", depth: null },
-      { key: "ellipsis", name: "…", depth: null },
-      { name: "B", depth: null },
+      { name: "D", depth: null },
+      { key: "trail-ellipsis", name: "…", depth: null },
       { name: "R", depth: 0 },
       { name: "X", depth: null },
     ]);
   });
 
-  it("keeps the depths of the crumbs that survive a collapse", () => {
+  it("collapses the site and library before any folder below the embedded one", () => {
     expect(
       buildFolderCrumbs(
         ["S", "D"],
@@ -268,22 +293,64 @@ describe("buildFolderCrumbs", () => {
         [pathEntry("X"), pathEntry("Y"), pathEntry("Z")],
       ),
     ).toMatchObject([
-      { name: "S", depth: null },
-      { key: "ellipsis", name: "…", depth: null },
+      { key: "trail-ellipsis", name: "…", depth: null },
+      { name: "R", depth: 0 },
       { name: "X", depth: 1 },
       { name: "Y", depth: 2 },
       { name: "Z", depth: null },
     ]);
   });
 
-  it("gives every crumb its own key even when names repeat", () => {
-    const crumbs = buildFolderCrumbs(
-      ["Site", "Documents", "Documents"],
-      "Documents",
-      [pathEntry("Documents")],
-    );
-    const keys = crumbs.map((crumb) => crumb.key);
+  it("then collapses the folders between the embedded folder and the current one", () => {
+    expect(
+      buildFolderCrumbs(
+        ["S", "D"],
+        "R",
+        ["V", "W", "X", "Y", "Z"].map(pathEntry),
+      ),
+    ).toMatchObject([
+      { key: "trail-ellipsis", name: "…", depth: null },
+      { name: "R", depth: 0 },
+      { key: "path-ellipsis", name: "…", depth: null },
+      { name: "Y", depth: 4 },
+      { name: "Z", depth: null },
+    ]);
+  });
 
-    expect(new Set(keys).size).toBe(keys.length);
+  it("keeps a lone site crumb, which takes no more room than an ellipsis", () => {
+    expect(
+      buildFolderCrumbs(["S"], "R", ["W", "X", "Y", "Z"].map(pathEntry)),
+    ).toMatchObject([
+      { name: "S", depth: null },
+      { name: "R", depth: 0 },
+      { key: "path-ellipsis", name: "…", depth: null },
+      { name: "Y", depth: 3 },
+      { name: "Z", depth: null },
+    ]);
+  });
+
+  it("collapses only the folders when there is no trail", () => {
+    expect(
+      buildFolderCrumbs([], "R", ["V", "W", "X", "Y", "Z"].map(pathEntry)),
+    ).toMatchObject([
+      { name: "R", depth: 0 },
+      { key: "path-ellipsis", name: "…", depth: null },
+      { name: "X", depth: 3 },
+      { name: "Y", depth: 4 },
+      { name: "Z", depth: null },
+    ]);
+  });
+
+  it("gives every crumb its own key even when names repeat", () => {
+    for (const depth of [1, 5]) {
+      const crumbs = buildFolderCrumbs(
+        ["Site", "Documents", "Documents"],
+        "Documents",
+        Array.from({ length: depth }, () => pathEntry("Documents")),
+      );
+      const keys = crumbs.map((crumb) => crumb.key);
+
+      expect(new Set(keys).size).toBe(keys.length);
+    }
   });
 });

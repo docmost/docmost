@@ -57,6 +57,17 @@ function entry(kind: M365Item["kind"], itemId: string, name: string): M365Item {
   };
 }
 
+const subfolder = (
+  itemId: string,
+  name: string,
+  items: M365Item[],
+): M365FolderView => ({
+  folder: { driveId: "b!d", itemId, name, webUrl: `${WEB_URL}/${name}` },
+  trail: [],
+  items,
+  truncated: false,
+});
+
 const views: Record<string, M365FolderView> = {
   F1: {
     folder: { driveId: "b!d", itemId: "F1", name: "Reports", webUrl: WEB_URL },
@@ -75,6 +86,10 @@ const views: Record<string, M365FolderView> = {
     items: [entry("folder", "F4", "Drafts"), entry("file", "I2", "Budget.xlsx")],
     truncated: false,
   },
+  F4: subfolder("F4", "Drafts", [entry("folder", "F5", "Week 1")]),
+  F5: subfolder("F5", "Week 1", [entry("folder", "F6", "Monday")]),
+  F6: subfolder("F6", "Monday", [entry("folder", "F7", "Notes")]),
+  F7: subfolder("F7", "Notes", []),
   F3: {
     folder: {
       driveId: "b!d",
@@ -244,6 +259,24 @@ describe("MicrosoftFolderView", () => {
     }
     expect(screen.getByRole("button", { name: "Reports" })).toBeTruthy();
   });
+
+  it.each([1, 3, 5])(
+    "keeps the embedded folder in the breadcrumb %i levels down and goes back to it",
+    (depth) => {
+      const names = ["Q3", "Drafts", "Week 1", "Monday", "Notes"];
+      renderView();
+
+      for (const name of names.slice(0, depth)) {
+        openFolder(name);
+      }
+      expect(folderTable("Reports")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Reports" }));
+
+      expect(folderTable("Reports")).not.toBeNull();
+      expect(screen.queryByText(/Go back to/)).toBeNull();
+    },
+  );
 
   it("builds the breadcrumb from the embedded folder, not from the open subfolder", () => {
     renderView();

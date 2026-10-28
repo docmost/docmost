@@ -1,8 +1,5 @@
 import type { M365Item } from "@/features/microsoft/types/microsoft.types";
-import {
-  FOLDER_MAX_CRUMBS,
-  FOLDER_TAIL_CRUMBS,
-} from "./folder-table.constants";
+import { FOLDER_MAX_CRUMBS } from "./folder-table.constants";
 import type {
   FolderCrumb,
   FolderPathEntry,
@@ -97,12 +94,12 @@ export function buildFolderCrumbs(
   rootName: string,
   path: FolderPathEntry[],
 ): FolderCrumb[] {
-  const crumbs: FolderCrumb[] = [
-    ...trail.map((name, index) => ({
-      key: `trail-${index}`,
-      name,
-      depth: null,
-    })),
+  const trailCrumbs: FolderCrumb[] = trail.map((name, index) => ({
+    key: `trail-${index}`,
+    name,
+    depth: null,
+  }));
+  const folderCrumbs: FolderCrumb[] = [
     { key: "root", name: rootName, depth: 0 },
     ...path.map((entry, index) => ({
       key: `path-${index}`,
@@ -113,10 +110,25 @@ export function buildFolderCrumbs(
     index === all.length - 1 ? { ...crumb, depth: null } : crumb,
   );
 
-  if (crumbs.length <= FOLDER_MAX_CRUMBS) return crumbs;
-  return [
-    crumbs[0],
-    { key: "ellipsis", name: "…", depth: null },
-    ...crumbs.slice(-FOLDER_TAIL_CRUMBS),
-  ];
+  // The trail collapses first, down to one crumb; the embedded and current folders never collapse
+  const trailRoom = Math.max(FOLDER_MAX_CRUMBS - folderCrumbs.length, 1);
+  const shownTrail =
+    trailCrumbs.length <= trailRoom
+      ? trailCrumbs
+      : [
+          ...trailCrumbs.slice(0, trailRoom - 1),
+          { key: "trail-ellipsis", name: "…", depth: null },
+        ];
+
+  const folderRoom = FOLDER_MAX_CRUMBS - shownTrail.length;
+  const shownFolders =
+    folderCrumbs.length <= folderRoom
+      ? folderCrumbs
+      : [
+          folderCrumbs[0],
+          { key: "path-ellipsis", name: "…", depth: null },
+          ...folderCrumbs.slice(-(folderRoom - 2)),
+        ];
+
+  return [...shownTrail, ...shownFolders];
 }
