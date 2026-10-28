@@ -322,7 +322,7 @@ export function MicrosoftPickerModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("Choose a SharePoint or OneDrive file")}
+      title={t("Choose a SharePoint file")}
       size="lg"
       fullScreen={isMobile}
       keepMounted={false}

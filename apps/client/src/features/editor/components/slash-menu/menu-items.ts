@@ -811,7 +811,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "SharePoint file",
-      description: "Embed a SharePoint or OneDrive file",
+      description: "Embed a SharePoint file",
       searchTerms: ["sharepoint", "onedrive", "microsoft", "office", "word", "excel", "powerpoint", "m365"],
       icon: Microsoft365Icon,
       command: ({ editor, range }: CommandProps) => {

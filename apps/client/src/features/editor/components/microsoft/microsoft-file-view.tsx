@@ -97,7 +97,7 @@ export default function MicrosoftFileView(props: NodeViewProps) {
           <Group gap="sm" justify="center">
             {getIntegrationIcon("microsoft_365", 20)}
             <Text size="sm" c="dimmed">
-              {editor.isEditable ? t("Choose a SharePoint or OneDrive file") : t("No file selected")}
+              {editor.isEditable ? t("Choose a SharePoint file") : t("No file selected")}
             </Text>
           </Group>
         </Card>

@@ -40,7 +40,7 @@ export function PickerNeedsConnection({ needsConnection }: { needsConnection: M3
     <Stack align="center" gap="sm" py="xl">
       {getIntegrationIcon("microsoft_365", 36)}
       <Text size="sm" c="dimmed" ta="center">
-        {t("Connect your Microsoft 365 account to browse SharePoint and OneDrive")}
+        {t("Connect your Microsoft 365 account to browse SharePoint")}
       </Text>
       <Button color="dark" loading={connecting} onClick={connect}>
         {t("Connect to {{name}} to preview", { name: needsConnection.integrationName ?? "Microsoft 365" })}
