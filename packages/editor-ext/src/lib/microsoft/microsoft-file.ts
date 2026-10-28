@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { sanitizeUrl } from "../utils";
+import { sanitizeMicrosoftFolderUrl } from "./microsoft-folder";
 
 export type MicrosoftFileItem = {
   driveId: string;
@@ -36,11 +36,9 @@ export function sanitizeMicrosoftFileItems(value: unknown): MicrosoftFileItem[] 
   for (const raw of value) {
     if (!raw || typeof raw !== "object") continue;
     const { driveId, itemId, webUrl, name } = raw as Record<string, unknown>;
-    if (typeof driveId !== "string" || typeof itemId !== "string" || typeof webUrl !== "string") {
-      continue;
-    }
-    const safeUrl = sanitizeUrl(webUrl);
-    if (!safeUrl.startsWith("https://")) continue;
+    if (typeof driveId !== "string" || typeof itemId !== "string") continue;
+    const safeUrl = sanitizeMicrosoftFolderUrl(webUrl);
+    if (!safeUrl) continue;
     items.push({
       driveId,
       itemId,

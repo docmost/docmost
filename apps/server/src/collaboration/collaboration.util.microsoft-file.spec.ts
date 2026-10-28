@@ -37,6 +37,31 @@ describe('microsoftFile in the server tiptap extensions', () => {
     expect(html).not.toContain('data-display');
   });
 
+  it('keeps percent-encoded characters in the file url', () => {
+    const encodedUrl =
+      'https://contoso.sharepoint.com/sites/M/Shared%20Documents/C%23%20notes.docx';
+    const html = jsonToHtml({
+      type: 'doc',
+      content: [
+        {
+          type: 'microsoftFile',
+          attrs: {
+            items: [
+              {
+                driveId: 'd',
+                itemId: 'i',
+                webUrl: encodedUrl,
+                name: 'C# notes.docx',
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(html).toContain(`href="${encodedUrl}"`);
+  });
+
   it('generates search text for a page holding the node', () => {
     expect(typeof jsonToText(doc)).toBe('string');
   });
