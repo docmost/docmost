@@ -34,12 +34,15 @@ const mention = (item: MicrosoftFileItem): JSONContent => ({
   type: "integrationMention",
   attrs: { url: item.webUrl, provider: "microsoft_365" },
 });
-const mentionsParagraph = paragraph(
-  mention(a),
-  text(" "),
-  mention(b),
-  text(" "),
-);
+const mentionParagraph = (item: MicrosoftFileItem) =>
+  paragraph(mention(item), text(" "));
+const mentionsList: JSONContent = {
+  type: "bulletList",
+  content: [a, b].map((item) => ({
+    type: "listItem",
+    content: [mentionParagraph(item)],
+  })),
+};
 
 let activeEditor: Editor;
 afterEach(() => activeEditor?.destroy());
@@ -57,18 +60,25 @@ function createEditor(...content: JSONContent[]) {
 }
 
 describe("replaceMicrosoftFileWithMentions", () => {
-  it("turns an embed with two files into one paragraph of mentions", () => {
+  it("turns an embed with two files into a bullet list with one mention per item", () => {
     const editor = createEditor(embed(a, b));
 
     expect(replaceMicrosoftFileWithMentions(editor, 0, [a, b])).toBe(true);
-    expect(editor.getJSON().content).toEqual([mentionsParagraph]);
+    expect(editor.getJSON().content).toEqual([mentionsList]);
+  });
+
+  it("turns an embed with one file into a paragraph with its mention", () => {
+    const editor = createEditor(embed(a));
+
+    expect(replaceMicrosoftFileWithMentions(editor, 0, [a])).toBe(true);
+    expect(editor.getJSON().content).toEqual([mentionParagraph(a)]);
   });
 
   it("fills the empty placeholder from the items it is given", () => {
     const editor = createEditor(embed());
 
     expect(replaceMicrosoftFileWithMentions(editor, 0, [a, b])).toBe(true);
-    expect(editor.getJSON().content).toEqual([mentionsParagraph]);
+    expect(editor.getJSON().content).toEqual([mentionsList]);
   });
 
   it("keeps the blocks around the embed", () => {
@@ -84,7 +94,7 @@ describe("replaceMicrosoftFileWithMentions", () => {
     );
     expect(editor.getJSON().content).toEqual([
       paragraph(text("before")),
-      mentionsParagraph,
+      mentionsList,
       paragraph(text("after")),
     ]);
   });
@@ -97,23 +107,28 @@ describe("replaceMicrosoftFileWithMentions", () => {
 
     expect(replaceMicrosoftFileWithMentions(editor, 1, [a, b])).toBe(true);
     expect(editor.getJSON().content).toEqual([
-      { type: "blockquote", content: [mentionsParagraph] },
+      { type: "blockquote", content: [mentionsList] },
     ]);
   });
 
-  it("places the cursor after the last mention", () => {
+  it.each([
+    ["one file", [a]],
+    ["two files", [a, b]],
+  ])("places the cursor after the last mention for %s", (_label, items) => {
     const editor = createEditor(
       paragraph(text("before")),
-      embed(a, b),
+      embed(...items),
       paragraph(text("after")),
     );
     const embedPos = editor.state.doc.child(0).nodeSize;
 
-    replaceMicrosoftFileWithMentions(editor, embedPos, [a, b]);
+    replaceMicrosoftFileWithMentions(editor, embedPos, items);
 
     const { empty, $from } = editor.state.selection;
     expect(empty).toBe(true);
-    expect($from.parent.toJSON()).toEqual(mentionsParagraph);
+    expect($from.parent.toJSON()).toEqual(
+      mentionParagraph(items[items.length - 1]),
+    );
     expect($from.parentOffset).toBe($from.parent.content.size);
   });
 
