@@ -12,9 +12,11 @@ type Props = {
   item: MicrosoftFileItem;
   description: string;
   needsConnection?: M365NeedsConnection | null;
+  kind?: "file" | "folder";
+  onRetry?: () => void;
 };
 
-export function FileStateCard({ item, description, needsConnection }: Props) {
+export function FileStateCard({ item, description, needsConnection, kind, onRetry }: Props) {
   const { t } = useTranslation();
   const [connecting, setConnecting] = useState(false);
 
@@ -30,7 +32,7 @@ export function FileStateCard({ item, description, needsConnection }: Props) {
   return (
     <div className={classes.centered}>
       <Stack gap="xs" align="center" style={{ maxWidth: 420 }}>
-        {fileTypeIcon({ name: item.name, size: 36 })}
+        {fileTypeIcon({ name: item.name, kind, size: 36 })}
         <Text size="sm" fw={600} ta="center" truncate style={{ maxWidth: "100%" }}>
           {item.name || item.webUrl}
         </Text>
@@ -43,6 +45,11 @@ export function FileStateCard({ item, description, needsConnection }: Props) {
               {t("Connect to {{name}} to preview", {
                 name: needsConnection.integrationName ?? "Microsoft 365",
               })}
+            </Button>
+          )}
+          {onRetry && (
+            <Button size="xs" variant="default" onClick={onRetry}>
+              {t("Try again")}
             </Button>
           )}
           <Anchor href={item.webUrl} target="_blank" rel="noopener" size="xs">

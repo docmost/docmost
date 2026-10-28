@@ -2,6 +2,10 @@
   color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
 }
 
+.folderNodeView {
+  margin: var(--mantine-spacing-xs) 0;
+}
+
 .frame {
   width: 100%;
   border: 1px solid var(--mantine-color-default-border);

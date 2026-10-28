@@ -1,6 +1,8 @@
 import api from "@/lib/api-client";
 import {
   M365Drive,
+  M365FolderRef,
+  M365FolderView,
   M365Item,
   M365Page,
   M365Resolved,
@@ -63,4 +65,20 @@ export async function searchMicrosoft(data: {
 }): Promise<M365Item[]> {
   const req = await api.post<{ items: M365Item[] }>(`${BASE}/search`, data);
   return req.data.items;
+}
+
+export async function getMicrosoftFolder(data: {
+  driveId: string;
+  itemId: string;
+}): Promise<M365FolderView> {
+  const req = await api.post<M365FolderView>(`${BASE}/folder`, data);
+  return req.data;
+}
+
+export async function getMicrosoftLibraryRoot(data: {
+  siteId: string;
+  listId: string;
+}): Promise<M365FolderRef> {
+  const req = await api.post<M365FolderRef>(`${BASE}/library-root`, data);
+  return req.data;
 }

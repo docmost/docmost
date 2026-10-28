@@ -74,3 +74,11 @@ export function useM365Search(query: string, siteId: string | null, enabled = tr
     { enabled: enabled && query.trim().length >= 2, staleTime: 0 },
   );
 }
+
+export function useM365Folder(driveId: string, itemId: string, enabled = true) {
+  return useM365Request(
+    ["m365", "folder", driveId, itemId],
+    () => microsoftService.getMicrosoftFolder({ driveId, itemId }),
+    { enabled: enabled && Boolean(driveId && itemId) },
+  );
+}

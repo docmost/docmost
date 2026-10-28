@@ -60,6 +60,7 @@ import {
   IntegrationCard,
   IntegrationMention,
   MicrosoftFile,
+  MicrosoftFolder,
   Columns,
   Column,
   Status,
@@ -111,6 +112,7 @@ import TransclusionView from "@/features/editor/components/transclusion/transclu
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
 import MicrosoftFileView from "@/features/editor/components/microsoft/microsoft-file-view.tsx";
+import MicrosoftFolderView from "@/features/editor/components/microsoft/microsoft-folder-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -414,6 +416,9 @@ export const mainExtensions = [
   BasePasteMenuExtension,
   MicrosoftFile.configure({
     view: MicrosoftFileView,
+  }),
+  MicrosoftFolder.configure({
+    view: MicrosoftFolderView,
   }),
   Status.configure({
     view: StatusView,

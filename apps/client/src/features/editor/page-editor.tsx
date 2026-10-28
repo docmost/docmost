@@ -85,6 +85,7 @@ import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
 import { BasePasteMenu } from "@/features/editor/components/base-embed/base-paste-menu.tsx";
 import MicrosoftFileMenu from "@/features/editor/components/microsoft/microsoft-file-menu.tsx";
+import MicrosoftFolderMenu from "@/features/editor/components/microsoft/microsoft-folder-menu.tsx";
 import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
 import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
@@ -533,6 +534,7 @@ function CollabPageEditor({
             <IntegrationPasteMenu editor={editor} />
             <BasePasteMenu editor={editor} />
             <MicrosoftFileMenu editor={editor} />
+            <MicrosoftFolderMenu editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && (
