@@ -23,11 +23,17 @@ describe("sanitizeMicrosoftFileItems", () => {
     "\n\tjavascript:alert(1)",
     "data:text/html,<script>alert(1)</script>",
     "http://contoso.sharepoint.com/sites/M/Plan.docx",
+    "https://evil.example/x.sharepoint.com/a",
+    "https://contoso.sharepoint.com.evil.example/a",
+    "https://contoso.sharepoint.com@evil.example/a",
+    "https://contoso.sharepoint.com%23@evil.example/a",
+    "https://evil.example%2F@contoso.sharepoint.com/a",
+    "https://user:pass@contoso.sharepoint.com/a",
   ])("drops an item whose url is %j", (webUrl) => {
     expect(sanitizeMicrosoftFileItems([fileItem("bad", webUrl)])).toEqual([]);
   });
 
-  it("keeps the ids and name of each valid https item", () => {
+  it("keeps the ids and name of each SharePoint item", () => {
     const plan = fileItem("plan", PLAN_URL);
     const budget = {
       driveId: "b!other",

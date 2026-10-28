@@ -62,6 +62,32 @@ describe('microsoftFile in the server tiptap extensions', () => {
     expect(html).toContain(`href="${encodedUrl}"`);
   });
 
+  it('drops a file whose url is outside SharePoint', () => {
+    const html = jsonToHtml({
+      type: 'doc',
+      content: [
+        {
+          type: 'microsoftFile',
+          attrs: {
+            items: [
+              { driveId: 'd', itemId: 'i', webUrl, name: 'Plan.docx' },
+              {
+                driveId: 'd',
+                itemId: 'j',
+                webUrl: 'https://contoso.sharepoint.com@evil.example/a',
+                name: 'Budget.xlsx',
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(html).toContain(`href="${webUrl}"`);
+    expect(html).not.toContain('evil.example');
+    expect(html).not.toContain('Budget.xlsx');
+  });
+
   it('generates search text for a page holding the node', () => {
     expect(typeof jsonToText(doc)).toBe('string');
   });

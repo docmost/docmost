@@ -22,12 +22,20 @@ declare module "@tiptap/core" {
   }
 }
 
-// Kept as given because sanitizeUrl decodes percent-escapes such as %23.
+// Checked and kept as given because sanitizeUrl decodes percent-escapes such as %23.
 export function sanitizeMicrosoftFolderUrl(value: unknown): string {
   if (typeof value !== "string") return "";
   const trimmed = value.trim();
   if (!trimmed.startsWith("https://")) return "";
-  return sanitizeUrl(trimmed).startsWith("https://") ? trimmed : "";
+  if (!sanitizeUrl(trimmed).startsWith("https://")) return "";
+  try {
+    const { hostname, username, password } = new URL(trimmed);
+    const isSharePoint =
+      hostname === "sharepoint.com" || hostname.endsWith(".sharepoint.com");
+    return isSharePoint && !username && !password ? trimmed : "";
+  } catch {
+    return "";
+  }
 }
 
 export const MicrosoftFolder = Node.create<MicrosoftFolderOptions>({

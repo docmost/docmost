@@ -36,6 +36,21 @@ describe('microsoftFolder in the server tiptap extensions', () => {
     expect(html).toContain('Reports');
   });
 
+  it('drops a folder url outside SharePoint', () => {
+    const html = jsonToHtml(
+      doc({
+        driveId: 'd',
+        itemId: 'f',
+        webUrl: 'https://contoso.sharepoint.com.evil.example/a',
+        name: 'Reports',
+      }),
+    );
+
+    expect(html).not.toContain('evil.example');
+    expect(html).not.toContain('<a');
+    expect(html).toContain('Reports');
+  });
+
   it('keeps percent-encoded characters in the folder url', () => {
     const encodedUrl =
       'https://contoso.sharepoint.com/sites/M/Shared%20Documents/C%23%20notes';
