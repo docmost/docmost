@@ -24,20 +24,42 @@ import {
   type IntegrationDisplaySource,
 } from "./integration-display";
 import { IntegrationDisplayPicker } from "./integration-display-picker";
+import { convertCardToMicrosoftFile } from "@/features/microsoft/utils/convert-card";
+import { queryClient } from "@/main.tsx";
+import type {
+  UnfurlNeedsConnection,
+  UnfurlResult,
+} from "@/features/integration/types/integration.types";
 import classes from "./integration-paste-menu.module.css";
 
-const PASTE_OPTIONS: { value: IntegrationDisplay; label: string }[] = [
+type PasteValue = IntegrationDisplay | "embed";
+
+const PASTE_OPTIONS: { value: PasteValue; label: string }[] = [
   { value: "card", label: "Card" },
   { value: "mention", label: "Mention" },
   { value: "url", label: "URL" },
 ];
+
+const EMBED_OPTION: { value: PasteValue; label: string } = { value: "embed", label: "Embed" };
 
 type DisplayTarget = {
   current: Exclude<IntegrationDisplay, "url">;
   source: Extract<IntegrationDisplaySource, { kind: "node" }>;
   url: string;
   isPaste: boolean;
+  provider: string;
 };
+
+function canEmbedTarget(target: DisplayTarget | null): boolean {
+  if (target?.provider !== "microsoft_365") return false;
+
+  const cached = queryClient.getQueryData<
+    UnfurlResult | UnfurlNeedsConnection | null
+  >(["unfurl", target.url]);
+  if (!cached) return true;
+  if ("needsConnection" in cached) return true;
+  return cached.metadata?.kind === "file";
+}
 
 function getDisplayTarget(
   editor: EditorMenuProps["editor"],
@@ -63,12 +85,21 @@ function getDisplayTarget(
         },
         url: node.attrs.url,
         isPaste: true,
+        provider: String(node.attrs.provider ?? ""),
       };
     }
   }
 
   const selected = getSelectedIntegrationDisplay(editor);
-  return selected ? { ...selected, isPaste: false } : null;
+  return selected
+    ? {
+        ...selected,
+        isPaste: false,
+        provider: String(
+          editor.state.doc.nodeAt(selected.source.pos)?.attrs.provider ?? "",
+        ),
+      }
+    : null;
 }
 
 export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
@@ -82,6 +113,17 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
     selector: ({ editor: currentEditor }) =>
       currentEditor ? getDisplayTarget(currentEditor) : null,
   });
+
+  const canEmbed = canEmbedTarget(target);
+
+  const pasteOptions = canEmbed
+    ? [...PASTE_OPTIONS, EMBED_OPTION]
+    : PASTE_OPTIONS;
+
+  const activeIndex = Math.min(
+    selectedPasteIndex,
+    Math.max(pasteOptions.length - 1, 0),
+  );
 
   const findTarget = useCallback(() => getDisplayTarget(editor), [editor]);
   const shouldShow = useCallback(() => Boolean(findTarget()), [findTarget]);
@@ -124,9 +166,15 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
   }, [editor]);
 
   const changeDisplay = useCallback(
-    (display: IntegrationDisplay) => {
+    (display: PasteValue) => {
       const currentTarget = findTarget();
       if (!currentTarget) return;
+
+      if (display === "embed") {
+        dismissPastePrompt();
+        void convertCardToMicrosoftFile(editor, currentTarget.source.pos);
+        return;
+      }
 
       dismissPastePrompt();
       if (display === currentTarget.current) {
@@ -143,7 +191,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
 
   useEffect(() => {
     if (target?.isPaste) setSelectedPasteIndex(0);
-  }, [target?.isPaste, target?.source.pos]);
+  }, [target?.isPaste, target?.source.pos, pasteOptions.length]);
 
   // Focus stays in the editor, so capture keys before ProseMirror moves past the atom node.
   useEffect(() => {
@@ -168,8 +216,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
         event.stopPropagation();
         const delta = event.key === "ArrowDown" ? 1 : -1;
         setSelectedPasteIndex(
-          (current) =>
-            (current + delta + PASTE_OPTIONS.length) % PASTE_OPTIONS.length,
+          (activeIndex + delta + pasteOptions.length) % pasteOptions.length,
         );
         return;
       }
@@ -177,7 +224,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
       if (event.key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
-        const option = PASTE_OPTIONS[selectedPasteIndex];
+        const option = pasteOptions[activeIndex];
         if (option) changeDisplay(option.value);
       }
     };
@@ -204,6 +251,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
     editor,
     selectedPasteIndex,
     target?.isPaste,
+    pasteOptions.length,
   ]);
 
   const copyLink = useCallback(
@@ -251,22 +299,22 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
           role="listbox"
           aria-label={t("Paste as")}
           aria-orientation="vertical"
-          aria-activedescendant={`${pasteOptionIdPrefix}-${PASTE_OPTIONS[selectedPasteIndex].value}`}
+          aria-activedescendant={`${pasteOptionIdPrefix}-${pasteOptions[activeIndex].value}`}
         >
           <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
-            {t(PASTE_OPTIONS[selectedPasteIndex].label)}
+            {t(pasteOptions[activeIndex].label)}
           </VisuallyHidden>
           <Text size="xs" c="dimmed" px={8} py={4}>
             {t("Paste as")}
           </Text>
           <Stack gap={2}>
-            {PASTE_OPTIONS.map((option, index) => (
+            {pasteOptions.map((option, index) => (
               <Button
                 key={option.value}
                 id={`${pasteOptionIdPrefix}-${option.value}`}
                 role="option"
-                aria-selected={index === selectedPasteIndex}
-                variant={index === selectedPasteIndex ? "light" : "subtle"}
+                aria-selected={index === activeIndex}
+                variant={index === activeIndex ? "light" : "subtle"}
                 color="gray"
                 size="compact-sm"
                 fullWidth
@@ -294,6 +342,19 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
             canUseCard={cardAvailability?.canUseCard ?? false}
             onChange={changeDisplay}
           />
+          {canEmbed && target.current === "card" ? (
+            <Button
+              size="compact-xs"
+              variant="light"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={() => changeDisplay("embed")}
+            >
+              {t("Embed")}
+            </Button>
+          ) : null}
           <span className={classes.divider} aria-hidden="true" />
           <Tooltip label={t("Open link")} withArrow withinPortal={false}>
             <ActionIcon

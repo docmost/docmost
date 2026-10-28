@@ -22,6 +22,7 @@ import { TransclusionLookupProvider } from "@/features/editor/components/transcl
 import LightboxView, {
   getLightboxClickRequest,
 } from "@/features/editor/components/common/lightbox-view";
+import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
 
 interface PageEditorProps {
   title: string;
@@ -169,6 +170,7 @@ export default function ReadonlyPageEditor({
           onClose={() => setLightboxRequest(null)}
         />
       )}
+      <MicrosoftFullscreenModal />
       {trailingSpace && <div style={{ paddingBottom: "20vh" }}></div>}
     </TransclusionLookupProvider>
   );

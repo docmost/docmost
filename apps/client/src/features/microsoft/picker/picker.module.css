@@ -1,0 +1,42 @@
+.list {
+  max-height: 52vh;
+  overflow-y: auto;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  width: 100%;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  text-align: left;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.rowSelected {
+  background: var(--mantine-primary-color-light);
+}
+
+.rowSelected:hover {
+  background: var(--mantine-primary-color-light-hover);
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.empty {
+  padding: var(--mantine-spacing-xl);
+  text-align: center;
+}

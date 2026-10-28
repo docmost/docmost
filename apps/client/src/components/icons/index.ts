@@ -15,4 +15,5 @@ export { SlackIcon } from "./slack-icon.tsx";
 export { FramerIcon } from "./framer-icon.tsx";
 export { LoomIcon } from "./loom-icon.tsx";
 export { YoutubeIcon } from "./youtube-icon.tsx";
+export { Microsoft365Icon } from "./microsoft-365-icon.tsx";
 

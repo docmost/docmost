@@ -42,6 +42,15 @@ vi.mock("./integration-display", () => ({
   getSelectedIntegrationDisplay: () => mocks.selectedDisplay,
 }));
 
+vi.mock("@/main.tsx", async () => {
+  const { QueryClient } = await import("@tanstack/react-query");
+  return { queryClient: new QueryClient() };
+});
+
+vi.mock("@/features/microsoft/utils/convert-card", () => ({
+  convertCardToMicrosoftFile: vi.fn(),
+}));
+
 function setMediaMatch() {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
