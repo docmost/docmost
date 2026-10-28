@@ -24,7 +24,10 @@ import {
   type IntegrationDisplaySource,
 } from "./integration-display";
 import { IntegrationDisplayPicker } from "./integration-display-picker";
-import { convertCardToMicrosoftFile } from "@/features/microsoft/utils/convert-card";
+import {
+  convertCardToMicrosoftEmbed,
+  isEmbeddableMicrosoftKind,
+} from "@/features/microsoft/utils/convert-card";
 import { queryClient } from "@/main.tsx";
 import type {
   UnfurlNeedsConnection,
@@ -58,7 +61,7 @@ function canEmbedTarget(target: DisplayTarget | null): boolean {
   >(["unfurl", target.url]);
   if (!cached) return true;
   if ("needsConnection" in cached) return true;
-  return cached.metadata?.kind === "file";
+  return isEmbeddableMicrosoftKind(cached.metadata);
 }
 
 function getDisplayTarget(
@@ -172,7 +175,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
 
       if (display === "embed") {
         dismissPastePrompt();
-        void convertCardToMicrosoftFile(editor, currentTarget.source.pos);
+        void convertCardToMicrosoftEmbed(editor, currentTarget.source.pos);
         return;
       }
 

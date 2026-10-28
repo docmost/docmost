@@ -48,7 +48,7 @@ vi.mock("@/main.tsx", async () => {
 });
 
 vi.mock("@/features/microsoft/utils/convert-card", () => ({
-  convertCardToMicrosoftFile: vi.fn(),
+  convertCardToMicrosoftEmbed: vi.fn(),
 }));
 
 function setMediaMatch() {

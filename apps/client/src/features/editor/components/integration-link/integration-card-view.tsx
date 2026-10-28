@@ -18,7 +18,10 @@ import { describeIntegrationLink, isHttpUrl } from "@docmost/editor-ext";
 import { getIntegrationIcon } from "@/features/integration/components/integration-icons";
 import { getOAuthAuthorizeUrl } from "@/features/integration/services/integration-service";
 import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
-import { convertCardToMicrosoftFile } from "@/features/microsoft/utils/convert-card";
+import {
+  convertCardToMicrosoftEmbed,
+  isEmbeddableMicrosoftKind,
+} from "@/features/microsoft/utils/convert-card";
 import { timeAgo } from "@/lib/time";
 import { useUnfurl } from "./use-unfurl";
 import { badgeTextColor, toBadgeColor } from "./badge-color";
@@ -370,7 +373,7 @@ function MicrosoftFileCard({
             )}
           </Stack>
 
-          {onEmbed && meta.kind === "file" && (
+          {onEmbed && isEmbeddableMicrosoftKind(meta) && (
             <Button
               size="compact-xs"
               variant="light"
@@ -621,7 +624,7 @@ function IntegrationCardView(props: any) {
           editor.isEditable
             ? () => {
                 const pos = getPos();
-                if (typeof pos === "number") void convertCardToMicrosoftFile(editor, pos);
+                if (typeof pos === "number") void convertCardToMicrosoftEmbed(editor, pos);
               }
             : undefined
         }
