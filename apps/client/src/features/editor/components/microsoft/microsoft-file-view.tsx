@@ -1,5 +1,6 @@
-import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { Card, Group, Text } from "@mantine/core";
+import { NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
+import { ActionIcon, Card, Group, Text, Tooltip } from "@mantine/core";
+import { IconAt, IconTrash } from "@tabler/icons-react";
 import { useSetAtom, type PrimitiveAtom } from "jotai";
 import clsx from "clsx";
 import { useCallback, useEffect, useState } from "react";
@@ -26,6 +27,7 @@ export default function MicrosoftFileView(props: NodeViewProps) {
   const items = sanitizeMicrosoftFileItems(node.attrs.items);
   const setFullscreen = useSetAtom(microsoftFullscreenAtom as PrimitiveAtom<MicrosoftFileItem | null>);
   const [pickerOpened, setPickerOpened] = useState(false);
+  const isEditable = useEditorState({ editor, selector: (ctx) => ctx.editor.isEditable });
 
   useEffect(() => {
     if (consumeMicrosoftPickerRequest(node.attrs.pendingKey) && editor.isEditable) {
@@ -58,6 +60,20 @@ export default function MicrosoftFileView(props: NodeViewProps) {
     (width: number, height: number) => updateAttributes({ width, height }),
     [updateAttributes],
   );
+
+  const handleMention = () => {
+    const pos = getPos();
+    if (typeof pos === "number" && replaceMicrosoftFileWithMentions(editor, pos, items)) {
+      editor.commands.focus(undefined, { scrollIntoView: false });
+    }
+  };
+
+  const handleDelete = () => {
+    const pos = getPos();
+    if (typeof pos !== "number") return;
+    editor.commands.setNodeSelection(pos);
+    editor.commands.deleteSelection();
+  };
 
   const picker = editor.isEditable ? (
     <MicrosoftPickerModal
@@ -112,6 +128,33 @@ export default function MicrosoftFileView(props: NodeViewProps) {
               item={items[0]}
               onFullscreen={setFullscreen}
             />
+          )}
+          {isEditable && !selected && (
+            // Stops ProseMirror selecting the embed on press, which would unmount these buttons before the click.
+            <div className={classes.hoverMenu} onMouseDown={(event) => event.preventDefault()}>
+              <Tooltip position="top" label={t("Mention")} withinPortal>
+                <ActionIcon
+                  size="sm"
+                  variant="filled"
+                  color="dark"
+                  onClick={handleMention}
+                  aria-label={t("Mention")}
+                >
+                  <IconAt size={14} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip position="top" label={t("Delete")} withinPortal>
+                <ActionIcon
+                  size="sm"
+                  variant="filled"
+                  color="dark"
+                  onClick={handleDelete}
+                  aria-label={t("Delete")}
+                >
+                  <IconTrash size={14} />
+                </ActionIcon>
+              </Tooltip>
+            </div>
           )}
         </ResizableWrapper>
       </div>
