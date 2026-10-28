@@ -8,6 +8,7 @@ import {
 } from 'docx';
 import { Node } from 'prosemirror-model';
 import { sanitizeIntegrationUrl } from '../integration-link/integration-link';
+import { sanitizeMicrosoftFileItems } from '../microsoft/microsoft-file';
 import { sanitizeMicrosoftFolderUrl } from '../microsoft/microsoft-folder';
 import {
   DocxSerializerAsync,
@@ -110,6 +111,20 @@ const renderMicrosoftFolder: NodeSerializerAsync[string] = (state, node) => {
   state.closeBlock(node);
 };
 
+const renderMicrosoftFile: NodeSerializerAsync[string] = (state, node) => {
+  for (const item of sanitizeMicrosoftFileItems(node.attrs?.items)) {
+    state.current.push(
+      new ExternalHyperlink({
+        link: item.webUrl,
+        children: [
+          new TextRun({ text: item.name || item.webUrl, style: 'Hyperlink' }),
+        ],
+      }),
+    );
+    state.closeBlock(node);
+  }
+};
+
 export const defaultAsyncNodes: NodeSerializerAsync = {
   text(state, node) {
     state.text(node.text ?? '');
@@ -186,6 +201,7 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   integrationCard: renderIntegrationCard,
   integrationMention: renderIntegrationMention,
   microsoftFolder: renderMicrosoftFolder,
+  microsoftFile: renderMicrosoftFile,
   async callout(state, node) {
     await state.renderContent(node, { style: 'IntenseQuote' });
   },
