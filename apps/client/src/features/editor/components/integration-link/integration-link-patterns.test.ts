@@ -343,3 +343,26 @@ describe("Jira Data Center context paths", () => {
     expect(matchIntegrationLink(url, JIRA_HOSTS)).toBeNull();
   });
 });
+
+describe("SharePoint library links", () => {
+  const LIBRARY = "https://contoso.sharepoint.com/Shared%20Documents/Forms/AllItems.aspx";
+
+  it.each([
+    [`${LIBRARY}?id=%2FShared%20Documents%2Ffolder%20101&viewid=4aebf1bc`, "sharepoint-library-item"],
+    [`${LIBRARY}?viewid=4aebf1bc&id=%2FShared%20Documents%2Freport.pdf&parent=%2FShared%20Documents`, "sharepoint-library-item"],
+    [LIBRARY, "sharepoint-library"],
+    [`${LIBRARY}?viewid=4aebf1bc`, "sharepoint-library"],
+  ])("identifies %s as %s", (url, type) => {
+    expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type });
+  });
+
+  it("labels a library view link with the folder it opens", () => {
+    expect(
+      describeIntegrationLink(`${LIBRARY}?id=%2FShared%20Documents%2Ffolder%20101&viewid=4aebf1bc`),
+    ).toMatchObject({
+      provider: "microsoft_365",
+      title: "folder 101",
+      description: "contoso.sharepoint.com",
+    });
+  });
+});

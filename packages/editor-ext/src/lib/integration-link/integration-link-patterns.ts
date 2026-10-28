@@ -119,6 +119,12 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
   },
   {
     provider: "microsoft_365",
+    type: "sharepoint-library-item",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams)\/[^\/?#]+\/)?[^\/?#]+\/Forms\/[^\/?#]+\.aspx\?(?:[^#]*&)?(?:id|RootFolder)=(%2[Ff][^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
     type: "sharepoint-library",
     regex:
       /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams)\/[^\/?#]+\/)?([^\/?#]+)\/Forms\/[^\/?#]+\.aspx(?:\?[^#]*)?$/,
@@ -510,6 +516,12 @@ export function describeIntegrationLink(
     case "sharepoint-library":
     case "sharepoint-site":
       return describe(safeDecode(match[2]), hostOf(url));
+    case "sharepoint-library-item":
+      return describe(
+        safeDecode(match[2].split(/%2F/i).filter(Boolean).pop() ?? "") ||
+          "SharePoint item",
+        hostOf(url),
+      );
 
     default:
       return null;
