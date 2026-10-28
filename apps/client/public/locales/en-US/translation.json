@@ -1629,6 +1629,11 @@
   "Could not load this file": "Could not load this file",
   "Sign in to Microsoft 365 to preview": "Sign in to Microsoft 365 to preview",
   "Loading preview": "Loading preview",
-  "Previous file": "Previous file",
-  "Next file": "Next file"
+  "Previous file: {{name}}": "Previous file: {{name}}",
+  "Next file: {{name}}": "Next file: {{name}}",
+  "Mention {{name}}": "Mention {{name}}",
+  "Edit {{name}} in SharePoint": "Edit {{name}} in SharePoint",
+  "Open parent folder of {{name}}": "Open parent folder of {{name}}",
+  "Open {{name}} in SharePoint": "Open {{name}} in SharePoint",
+  "Show {{name}} full screen": "Show {{name}} full screen"
 }

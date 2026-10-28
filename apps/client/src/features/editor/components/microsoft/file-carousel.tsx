@@ -16,7 +16,10 @@ export function FileCarousel({ items, onFullscreen }: Props) {
   const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const safeIndex = Math.min(index, items.length - 1);
-  const go = (delta: number) => setIndex((safeIndex + delta + items.length) % items.length);
+  const indexAfter = (delta: number) => (safeIndex + delta + items.length) % items.length;
+  const go = (delta: number) => setIndex(indexAfter(delta));
+  const previous = items[indexAfter(-1)];
+  const next = items[indexAfter(1)];
 
   return (
     <div
@@ -42,7 +45,7 @@ export function FileCarousel({ items, onFullscreen }: Props) {
         className={clsx(classes.carouselNav, classes.carouselPrev)}
         variant="default"
         radius="xl"
-        aria-label={t("Previous file")}
+        aria-label={t("Previous file: {{name}}", { name: previous.name || previous.webUrl })}
         onClick={() => go(-1)}
       >
         <IconChevronLeft size={18} />
@@ -51,7 +54,7 @@ export function FileCarousel({ items, onFullscreen }: Props) {
         className={clsx(classes.carouselNav, classes.carouselNext)}
         variant="default"
         radius="xl"
-        aria-label={t("Next file")}
+        aria-label={t("Next file: {{name}}", { name: next.name || next.webUrl })}
         onClick={() => go(1)}
       >
         <IconChevronRight size={18} />

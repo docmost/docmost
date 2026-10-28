@@ -366,3 +366,67 @@ describe("SharePoint library links", () => {
     });
   });
 });
+
+describe("SharePoint Office document links", () => {
+  const SOURCEDOC = "sourcedoc=%7B1D3F2A44-9C1B-4E2A-8F0A-1234567890AB%7D";
+  const WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/doc.aspx?${SOURCEDOC}&action=edit`;
+  const NAMED_WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/Doc.aspx?${SOURCEDOC}&file=Plan.docx&action=edit`;
+
+  it.each([WORD_LINK, NAMED_WORD_LINK])("identifies %s as a document, not a sharing link", (url) => {
+    expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type: "sharepoint-doc" });
+  });
+
+  it.each([
+    [WORD_LINK, "SharePoint document"],
+    [NAMED_WORD_LINK, "Plan.docx"],
+  ])("labels %s as %s", (url, title) => {
+    expect(describeIntegrationLink(url)).toMatchObject({
+      provider: "microsoft_365",
+      title,
+      description: "contoso.sharepoint.com",
+    });
+  });
+
+  it.each([
+    ["%E2%80%AEgpj.exe", "%E2%80%AEgpj.exe"],
+    ["x%0Ay.docx", "x%0Ay.docx"],
+    ["https%3A%2F%2Flogin.microsoftonline.com", "https:%2F%2Flogin.microsoftonline.com"],
+    ["Q3%20Caf%C3%A9.docx", "Q3 Café.docx"],
+  ])("keeps the file name in the label safe: %s", (file, title) => {
+    expect(
+      describeIntegrationLink(`https://contoso.sharepoint.com/:w:/r/_layouts/15/Doc.aspx?${SOURCEDOC}&file=${file}`)?.title,
+    ).toBe(title);
+  });
+});
+
+describe("SharePoint path sharing links", () => {
+  const SHARED = "https://contoso.sharepoint.com/:w:/r/sites/M/Shared%20Documents";
+
+  it.each([
+    [`${SHARED}/Q3%20Plan.docx?d=w1`, "Q3 Plan.docx"],
+    ["https://contoso-my.sharepoint.com/:x:/r/personal/jane_contoso_com/Documents/Budget.xlsx?d=w1&csf=1", "Budget.xlsx"],
+    [`${SHARED}/Plan.docx/`, "Plan.docx"],
+  ])("titles %s by its file name", (url, title) => {
+    expect(describeIntegrationLink(url)).toEqual({
+      provider: "microsoft_365",
+      title,
+      description: new URL(url).host,
+    });
+  });
+
+  it.each([
+    ["an encoded right-to-left override", "Plan%E2%80%AEfdp.docx", "Plan%E2%80%AEfdp.docx"],
+    ["a raw right-to-left override", "Plan\u202Efdp.docx", "Plan%E2%80%AEfdp.docx"],
+    ["an encoded slash", "a%2Fb.docx", "a%2Fb.docx"],
+  ])("keeps a path sharing link safe to display with %s in the file name", (_case, file, title) => {
+    expect(describeIntegrationLink(`${SHARED}/${file}`)?.title).toBe(title);
+  });
+
+  it.each([
+    "https://contoso.sharepoint.com/:w:/s/M/E1?e=2",
+    "https://contoso.sharepoint.com/:w:/s/Team.A/EZabc123?e=xyz",
+    "https://contoso.sharepoint.com/:u:/r/sites/M/Shared%20Documents/README?d=w1",
+  ])("keeps the generic title for a sharing link without a file name: %s", (url) => {
+    expect(describeIntegrationLink(url)?.title).toBe("SharePoint file");
+  });
+});

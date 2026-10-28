@@ -95,6 +95,13 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
       /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+(?:\/[^\/?#]+)+?\/secure\/RapidBoard\.jspa\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
     requiresProviderHost: true,
   },
+  // Must stay ahead of the sharing links, which also match Office address-bar links.
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-doc",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:[^?#]*\/)?_layouts\/15\/[Dd]oc\.aspx\?(?:[^#]*&)?sourcedoc=(?:%7B|\{)?([0-9a-fA-F-]{36})/,
+  },
   {
     provider: "microsoft_365",
     type: "sharepoint-folder",
@@ -104,12 +111,6 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     provider: "microsoft_365",
     type: "sharepoint-file",
     regex: /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/:[a-z]:\/[a-z]\/([^?#]+)/,
-  },
-  {
-    provider: "microsoft_365",
-    type: "sharepoint-doc",
-    regex:
-      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:[^?#]*\/)?_layouts\/15\/Doc\.aspx\?(?:[^#]*&)?sourcedoc=(?:%7B|\{)?([0-9a-fA-F-]{36})/,
   },
   {
     provider: "microsoft_365",
@@ -503,11 +504,13 @@ export function describeIntegrationLink(
     case "google-drive-file":
       return describe("Google Drive file");
 
-    case "sharepoint-file":
+    case "sharepoint-file": {
+      const name = match[2]?.split("/").filter(Boolean).pop();
       return describe(
-        match[2]?.includes(".") ? safeDecode(match[2]) : "SharePoint file",
+        name?.includes(".") ? safeDecode(name) : "SharePoint file",
         hostOf(url),
       );
+    }
     case "sharepoint-doc":
       return describe(fileParamOf(url) ?? "SharePoint document", hostOf(url));
     case "sharepoint-folder":
@@ -555,7 +558,8 @@ function safeDecode(value: string): string {
 
 function fileParamOf(url: string): string | undefined {
   try {
-    return new URL(url).searchParams.get("file") || undefined;
+    const file = new URL(url).searchParams.get("file");
+    return file ? encodeUnsafe(file) : undefined;
   } catch {
     return undefined;
   }
