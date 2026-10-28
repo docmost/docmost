@@ -81,19 +81,25 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     provider: "microsoft_365",
     type: "sharepoint-list",
     regex:
-      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams)\/[^\/?#]+\/)?Lists\/([^\/?#]+)(?:\/[^?#]*)?(?:\?[^#]*)?$/,
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?Lists\/([^\/?#]+)(?:\/[^?#]*)?(?:\?[^#]*)?$/,
   },
   {
     provider: "microsoft_365",
     type: "sharepoint-library-item",
     regex:
-      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams)\/[^\/?#]+\/)?[^\/?#]+\/Forms\/[^\/?#]+\.aspx\?(?:[^#]*&)?(?:id|RootFolder)=(%2[Ff][^&#]+)/,
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?[^\/?#]+\/Forms\/[^\/?#]+\.aspx\?(?:[^#]*&)?(?:id|RootFolder)=((?:%2[Ff]|\/)[^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-library-item",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?_layouts\/15\/onedrive\.aspx\?(?:[^#]*&)?id=((?:%2[Ff]|\/)personal(?:%2[Ff]|\/)[^&#]+)/,
   },
   {
     provider: "microsoft_365",
     type: "sharepoint-library",
     regex:
-      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams)\/[^\/?#]+\/)?([^\/?#]+)\/Forms\/[^\/?#]+\.aspx(?:\?[^#]*)?$/,
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?([^\/?#]+)\/Forms\/[^\/?#]+\.aspx(?:\?[^#]*)?$/,
   },
   {
     provider: "microsoft_365",
@@ -521,7 +527,7 @@ export function describeIntegrationLink(
       return describe(safeDecode(match[2]), hostOf(url));
     case "sharepoint-library-item":
       return describe(
-        safeDecode(match[2].split(/%2F/i).filter(Boolean).pop() ?? "") ||
+        safeDecode(match[2].split(/\/|%2F/i).filter(Boolean).pop() ?? "") ||
           "SharePoint item",
         hostOf(url),
       );

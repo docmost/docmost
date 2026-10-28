@@ -377,6 +377,45 @@ describe("SharePoint library links", () => {
   });
 });
 
+describe("OneDrive folder view links", () => {
+  const ONEDRIVE = "https://contoso-my.sharepoint.com";
+  const PERSONAL = `${ONEDRIVE}/personal/adele_contoso_com`;
+  const FOLDER_ID = "/personal/adele_contoso_com/Documents/Projects";
+
+  it.each([
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=${FOLDER_ID}`, "sharepoint-library-item"],
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FPlan.docx`, "sharepoint-library-item"],
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=Q3`, "sharepoint-library"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2fpersonal%2fadele_contoso_com%2fDocuments%2fProjects`, "sharepoint-library-item"],
+    [`${PERSONAL}/_layouts/15/onedrive.aspx?view=0&id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FPlan.docx`, "sharepoint-library-item"],
+  ])("identifies %s as %s", (url, type) => {
+    expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type });
+  });
+
+  it.each([
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=${FOLDER_ID}`, "Projects"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FQ3%20Plan.docx`, "Q3 Plan.docx"],
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=Q3`, "Documents"],
+  ])("labels %s as %s", (url, title) => {
+    expect(describeIntegrationLink(url)).toEqual({
+      provider: "microsoft_365",
+      title,
+      description: "contoso-my.sharepoint.com",
+    });
+  });
+
+  it.each([
+    `${ONEDRIVE}/_layouts/15/onedrive.aspx?id=Q3`,
+    `${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fsites%2FMarketing%2FShared%20Documents%2FQ3`,
+    `http://contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
+    `https://contoso-my.sharepoint.com.evil.example/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
+    `https://user:pass@contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
+  ])("does not read %s as a OneDrive link", (url) => {
+    expect(matchIntegrationLink(url)).toBeNull();
+  });
+});
+
 describe("SharePoint Office document links", () => {
   const SOURCEDOC = "sourcedoc=%7B1D3F2A44-9C1B-4E2A-8F0A-1234567890AB%7D";
   const WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/doc.aspx?${SOURCEDOC}&action=edit`;
