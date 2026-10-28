@@ -15,6 +15,16 @@ describe("integration link matching", () => {
     ["https://gitlab.com/docmost/docmost", "gitlab", "gitlab-project"],
     ["https://code.example.com/o/r/pull/1", "github", "github-pr"],
     ["https://code.example.com/o/r/-/merge_requests/1", "gitlab", "gitlab-mr"],
+    [
+      "https://contoso.sharepoint.com/browse/AB-1.docx",
+      "microsoft_365",
+      "sharepoint-file",
+    ],
+    [
+      "https://contoso.sharepoint.com/secure/RapidBoard.jspa?selectedIssue=AB-1",
+      "microsoft_365",
+      "sharepoint-file",
+    ],
   ])("identifies %s as %s", (url, provider, type) => {
     expect(matchIntegrationLink(url)).toMatchObject({ provider, type });
   });

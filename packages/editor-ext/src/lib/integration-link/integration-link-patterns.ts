@@ -60,41 +60,6 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     regex:
       /^https:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))([A-Za-z0-9-]+)\.visualstudio\.com(?:\/DefaultCollection)?\/((?!_)[^\/?#]+)\/_(?:boards|backlogs|sprints)\/[^?#]*\?(?:[^#]*&)?workitem=(\d{1,10})(?=[&#]|$)/,
   },
-  // Jira issue (cloud + self-hosted): /browse/KEY-123 (must precede the GitHub repo pattern)
-  {
-    provider: "jira",
-    type: "jira-issue",
-    regex: /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+\/browse\/([A-Za-z0-9]+-\d+)/,
-  },
-  // Jira legacy board (cloud + self-hosted): RapidBoard.jspa?…selectedIssue=KEY
-  {
-    provider: "jira",
-    type: "jira-issue",
-    regex:
-      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+\/secure\/RapidBoard\.jspa\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
-  },
-  // Jira cloud board/backlog with a selected issue
-  {
-    provider: "jira",
-    type: "jira-issue",
-    regex:
-      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[A-Za-z0-9-]+\.[Aa][Tt][Ll][Aa][Ss][Ss][Ii][Aa][Nn]\.[Nn][Ee][Tt]\/jira\/software(?:\/c)?\/projects\/[\w-]+\/boards\/\d+(?:\/\w+)?\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
-  },
-  // Jira Data Center under a context path, e.g. /jira/browse/KEY-123
-  {
-    provider: "jira",
-    type: "jira-issue",
-    regex:
-      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+(?:\/[^\/?#]+)+?\/browse\/([A-Za-z0-9]+-\d+)/,
-    requiresProviderHost: true,
-  },
-  {
-    provider: "jira",
-    type: "jira-issue",
-    regex:
-      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+(?:\/[^\/?#]+)+?\/secure\/RapidBoard\.jspa\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
-    requiresProviderHost: true,
-  },
   // Must stay ahead of the sharing links, which also match Office address-bar links.
   {
     provider: "microsoft_365",
@@ -141,6 +106,41 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     type: "sharepoint-site",
     regex:
       /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:sites|teams)\/([^\/?#]+)\/?(?:\?[^#]*)?$/,
+  },
+  // Jira issue (cloud + self-hosted): /browse/KEY-123 (must precede the GitHub repo pattern)
+  {
+    provider: "jira",
+    type: "jira-issue",
+    regex: /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+\/browse\/([A-Za-z0-9]+-\d+)/,
+  },
+  // Jira legacy board (cloud + self-hosted): RapidBoard.jspa?…selectedIssue=KEY
+  {
+    provider: "jira",
+    type: "jira-issue",
+    regex:
+      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+\/secure\/RapidBoard\.jspa\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
+  },
+  // Jira cloud board/backlog with a selected issue
+  {
+    provider: "jira",
+    type: "jira-issue",
+    regex:
+      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[A-Za-z0-9-]+\.[Aa][Tt][Ll][Aa][Ss][Ss][Ii][Aa][Nn]\.[Nn][Ee][Tt]\/jira\/software(?:\/c)?\/projects\/[\w-]+\/boards\/\d+(?:\/\w+)?\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
+  },
+  // Jira Data Center under a context path, e.g. /jira/browse/KEY-123
+  {
+    provider: "jira",
+    type: "jira-issue",
+    regex:
+      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+(?:\/[^\/?#]+)+?\/browse\/([A-Za-z0-9]+-\d+)/,
+    requiresProviderHost: true,
+  },
+  {
+    provider: "jira",
+    type: "jira-issue",
+    regex:
+      /^https?:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))[^\/]+(?:\/[^\/?#]+)+?\/secure\/RapidBoard\.jspa\?(?:.*&)?selectedIssue=([A-Za-z0-9]+-\d+)/,
+    requiresProviderHost: true,
   },
   // GitHub PR commit (must be before generic PR pattern)
   {
