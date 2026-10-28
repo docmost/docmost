@@ -55,6 +55,7 @@ import {
   Tab,
   TabLabel,
   TabPanel,
+  MicrosoftFile,
 } from '@docmost/editor-ext';
 import {
   extensions as coreExtensions,
@@ -140,7 +141,8 @@ export const tiptapExtensions = [
   Footnote,
   FootnoteReference,
   IntegrationCard,
-  IntegrationMention
+  IntegrationMention,
+  MicrosoftFile,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
