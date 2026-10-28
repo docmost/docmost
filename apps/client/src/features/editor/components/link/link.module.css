@@ -3,13 +3,6 @@
   display: inline;
 }
 
-.linkWrapper[data-active="true"] > a {
-  border-radius: 4px;
-  outline: 2px solid
-    light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-6));
-  outline-offset: 2px;
-}
-
 .integrationPopover {
   overflow: hidden;
   border-color: light-dark(
