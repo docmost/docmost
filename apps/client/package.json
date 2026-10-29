@@ -43,7 +43,7 @@
     "file-saver": "2.0.5",
     "highlightjs-sap-abap": "0.3.0",
     "i18next": "25.10.1",
-    "i18next-http-backend": "4.0.2",
+    "i18next-http-backend": "4.0.6",
     "jotai": "2.20.1",
     "jotai-optics": "0.4.0",
     "js-cookie": "3.0.7",
