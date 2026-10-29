@@ -202,15 +202,18 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     setIsSaving(true);
 
     try {
-      const { exportToSvg } = await import("@excalidraw/excalidraw");
+      const { exportScene } = await import("@excalidraw/excalidraw");
 
-      const svg = await exportToSvg({
-        elements: excalidrawAPI?.getSceneElements(),
-        appState: {
-          exportEmbedScene: true,
-          exportWithDarkMode: false,
+      const svg = await exportScene({
+        type: "svg",
+        data: {
+          elements: excalidrawAPI?.getSceneElements(),
+          files: excalidrawAPI?.getFiles(),
         },
-        files: excalidrawAPI?.getFiles(),
+        config: {
+          embedScene: true,
+          theme: "light",
+        },
       });
 
       const serializer = new XMLSerializer();
@@ -449,7 +452,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         <div style={{ height: "90vh" }}>
           <Suspense fallback={null}>
             <ExcalidrawComponent
-              excalidrawAPI={(api) => setExcalidrawAPI(api)}
+              onExcalidrawAPI={(api) => setExcalidrawAPI(api)}
               onChange={(elements, _appState, files) => {
                 const fingerprint = `${elements.length}:${elements.reduce((s, e) => s + (e.version || 0), 0)}:${Object.keys(files).length}`;
                 if (isInitialLoadRef.current) {
