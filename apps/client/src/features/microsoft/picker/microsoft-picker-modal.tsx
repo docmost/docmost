@@ -26,7 +26,6 @@ import {
   useM365Children,
   useM365Drives,
   useM365Search,
-  useM365SharedWithMe,
   useM365Sites,
 } from "@/features/microsoft/queries/microsoft-query";
 import { listMicrosoftChildren } from "@/features/microsoft/services/microsoft-service";
@@ -37,7 +36,7 @@ import { PickerBreadcrumbs, PickerCrumb } from "./picker-breadcrumbs";
 import { PickerNeedsConnection } from "./picker-needs-connection";
 import classes from "./picker.module.css";
 
-type PickerTab = "search" | "sites" | "onedrive" | "shared";
+type PickerTab = "search" | "sites" | "onedrive";
 
 type Browse = {
   driveId: string;
@@ -109,7 +108,6 @@ export function MicrosoftPickerModal({
   const currentFolder = browse ? browse.crumbs[browse.crumbs.length - 1] : null;
   const browsing = opened && Boolean(browse);
 
-  const shared = useM365SharedWithMe(opened && tab === "shared");
   const search = useM365Search(debouncedQuery, opened && tab === "search");
   const sites = useM365Sites(debouncedQuery, opened && tab === "sites" && !site);
   const drives = useM365Drives(site?.siteId ?? null, opened && tab === "sites" && Boolean(site) && !browse);
@@ -120,7 +118,7 @@ export function MicrosoftPickerModal({
     browsing,
   );
 
-  const needsConnection = needsConnectionOf(shared, search, sites, drives, children);
+  const needsConnection = needsConnectionOf(search, sites, drives, children);
 
   const openFolder = (item: M365Item) => {
     setBrowse((current) => ({
@@ -192,17 +190,15 @@ export function MicrosoftPickerModal({
   };
 
   const listState: M365RequestState<unknown> =
-    browse ? children : tab === "shared" ? shared : tab === "search" ? search : sites;
+    browse ? children : tab === "search" ? search : sites;
 
   const items: M365Item[] = browse
     ? children.state === "loaded"
       ? [...children.data.items, ...extraItems]
       : []
-    : tab === "shared" && shared.state === "loaded"
-      ? shared.data
-      : tab === "search" && search.state === "loaded"
-        ? search.data
-        : [];
+    : tab === "search" && search.state === "loaded"
+      ? search.data
+      : [];
 
   const selectedKeys = useMemo(() => new Set(selected.keys()), [selected]);
 
@@ -329,7 +325,6 @@ export function MicrosoftPickerModal({
           <Tabs.Tab value="onedrive">{t("My OneDrive")}</Tabs.Tab>
           <Tabs.Tab value="search">{t("Search")}</Tabs.Tab>
           <Tabs.Tab value="sites">{t("Sites")}</Tabs.Tab>
-          <Tabs.Tab value="shared">{t("Shared with me")}</Tabs.Tab>
         </Tabs.List>
       </Tabs>
       <div style={{ marginTop: "var(--mantine-spacing-sm)" }}>{body}</div>

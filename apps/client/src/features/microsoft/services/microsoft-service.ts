@@ -29,11 +29,6 @@ export async function getMicrosoftPreview(data: {
   return req.data;
 }
 
-export async function listMicrosoftSharedWithMe(): Promise<M365Item[]> {
-  const req = await api.post<{ items: M365Item[] }>(`${BASE}/shared-with-me`);
-  return req.data.items;
-}
-
 export async function listMicrosoftSites(data: { query?: string }): Promise<M365Site[]> {
   const req = await api.post<{ items: M365Site[] }>(`${BASE}/sites`, data);
   return req.data.items;

@@ -19,13 +19,6 @@ export function useM365Preview(driveId: string, itemId: string, enabled = true) 
   );
 }
 
-export function useM365SharedWithMe(enabled = true) {
-  return useM365Request(["m365", "shared-with-me"], microsoftService.listMicrosoftSharedWithMe, {
-    enabled,
-    staleTime: 0,
-  });
-}
-
 export function useM365Sites(query: string, enabled = true) {
   return useM365Request(
     ["m365", "sites", query],
