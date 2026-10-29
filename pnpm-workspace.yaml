@@ -30,6 +30,8 @@ overrides:
   smol-toml@<1.9.0: 1.9.0
 shamefullyHoist: true
 minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - qs@6.17.1
 allowBuilds:
   '@swc/core': true
   bcrypt: true

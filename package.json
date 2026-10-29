@@ -94,5 +94,5 @@
       "packages/*"
     ]
   },
-  "packageManager": "pnpm@11.28.2"
+  "packageManager": "pnpm@12.16.1"
 }
