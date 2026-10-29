@@ -13,6 +13,7 @@
 
 .embedWrapper {
   position: relative;
+  min-width: 0;
 }
 
 .hoverMenu {
