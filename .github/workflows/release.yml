@@ -67,6 +67,8 @@ jobs:
           file: Dockerfile.hardened
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=docmost/docmost,push-by-digest=true,name-canonical=true,push=true
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=${{ matrix.suffix }}
           cache-to: type=gha,scope=${{ matrix.suffix }},mode=max
 
