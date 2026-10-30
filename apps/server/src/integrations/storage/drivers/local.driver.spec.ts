@@ -1,4 +1,6 @@
-import { resolve, sep } from 'path';
+import { tmpdir } from 'os';
+import { join, resolve, sep } from 'path';
+import * as fs from 'fs-extra';
 import { LocalDriver } from './local.driver';
 
 type FullPath = (filePath: string) => string;
@@ -63,5 +65,61 @@ describe('LocalDriver._fullPath', () => {
       expect(fullPath('.')).toBe(ROOT);
       expect(fullPath('a/..')).toBe(ROOT);
     });
+  });
+});
+
+describe('LocalDriver.delete', () => {
+  let sandbox: string;
+  let root: string;
+  let driver: LocalDriver;
+
+  beforeEach(async () => {
+    sandbox = await fs.mkdtemp(join(tmpdir(), 'local-driver-'));
+    root = join(sandbox, 'storage');
+    await fs.mkdir(root);
+    driver = new LocalDriver({ storagePath: root });
+  });
+
+  afterEach(async () => {
+    await fs.remove(sandbox);
+  });
+
+  it('removes the uuid directory along with its only file', async () => {
+    await driver.upload('workspace-id/files/uuid/file.pdf', Buffer.from('x'));
+
+    await driver.delete('workspace-id/files/uuid/file.pdf');
+
+    expect(await fs.pathExists(join(root, 'workspace-id/files/uuid'))).toBe(false);
+    expect(await fs.pathExists(join(root, 'workspace-id/files'))).toBe(true);
+  });
+
+  it('keeps a shared directory that still holds other files', async () => {
+    await driver.upload('workspace-id/avatars/a.png', Buffer.from('a'));
+    await driver.upload('workspace-id/avatars/b.png', Buffer.from('b'));
+
+    await driver.delete('workspace-id/avatars/a.png');
+
+    expect(await fs.pathExists(join(root, 'workspace-id/avatars/a.png'))).toBe(false);
+    expect(await fs.pathExists(join(root, 'workspace-id/avatars/b.png'))).toBe(true);
+  });
+
+  it('resolves when the file and its directory are already gone', async () => {
+    await expect(
+      driver.delete('workspace-id/files/uuid/file.pdf'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('keeps the storage root when its last file is deleted', async () => {
+    await driver.upload('file.pdf', Buffer.from('x'));
+
+    await driver.delete('file.pdf');
+
+    expect(await fs.pathExists(root)).toBe(true);
+  });
+
+  it('never removes the directory above the storage root', async () => {
+    await driver.delete('.');
+
+    expect(await fs.pathExists(sandbox)).toBe(true);
   });
 });

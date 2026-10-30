@@ -112,7 +112,14 @@ export class LocalDriver implements StorageDriver {
 
   async delete(filePath: string): Promise<void> {
     try {
-      await fs.remove(this._fullPath(filePath));
+      const fullPath = this._fullPath(filePath);
+      await fs.remove(fullPath);
+
+      const parentDir = dirname(fullPath);
+      if (parentDir.startsWith(resolve(this.config.storagePath) + sep)) {
+        // the file is gone and rmdir refuses non-empty directories, so errors are ignored
+        await fs.rmdir(parentDir).catch(() => undefined);
+      }
     } catch (err) {
       throw new Error(`Failed to delete file: ${(err as Error).message}`);
     }
