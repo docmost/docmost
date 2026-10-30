@@ -1,0 +1,5 @@
+/* Excalidraw portals its dialogs to body at the top of the document; keep them on screen when the page is scrolled */
+body > .excalidraw.excalidraw-modal-container {
+  position: fixed;
+  inset: 0;
+}
