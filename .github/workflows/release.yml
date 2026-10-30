@@ -66,7 +66,7 @@ jobs:
           context: .
           file: Dockerfile.hardened
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=docmost/docmost,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=docmost/docmost,push-by-digest=true,name-canonical=true,push=true,compression=gzip,force-compression=true
           provenance: mode=max
           sbom: true
           cache-from: type=gha,scope=${{ matrix.suffix }}
@@ -99,7 +99,7 @@ jobs:
           tags: |
             docmost/docmost:latest
             docmost/docmost:${{ steps.strip-v.outputs.version }}
-          outputs: type=docker,dest=docmost-${{ matrix.suffix }}.docker.tar
+          outputs: type=docker,dest=docmost-${{ matrix.suffix }}.docker.tar,compression=gzip,force-compression=true
           cache-from: type=gha,scope=${{ matrix.suffix }}
 
       - name: Compress image
