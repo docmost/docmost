@@ -162,7 +162,8 @@ async function bootstrap() {
 
   app.enableCors();
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor(reflector));
-  app.enableShutdownHooks();
+  // the signal Nest re-raises by default is ignored when node runs as PID 1
+  app.enableShutdownHooks([], { useProcessExit: true });
 
   const logger = new Logger('NestApplication');
 
