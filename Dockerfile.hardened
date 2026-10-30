@@ -1,5 +1,4 @@
 FROM dhi.io/node:26-debian13-dev AS base
-LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
 RUN npm install -g --allow-scripts=pnpm pnpm@12.16.1
 
