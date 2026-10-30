@@ -10,7 +10,8 @@ WORKDIR /app
 COPY . .
 
 RUN pnpm install --frozen-lockfile
-RUN pnpm build
+# the nx daemon's plugin workers fail to start inside image builds
+RUN NX_DAEMON=false pnpm build
 
 FROM base AS installer
 
