@@ -110,7 +110,7 @@
     "postgres": "3.4.8",
     "postmark": "4.0.7",
     "react": "19.2.7",
-    "react-email": "6.6.3",
+    "react-email": "6.11.6",
     "reflect-metadata": "0.2.2",
     "rxjs": "^7.8.2",
     "sanitize-filename": "1.6.3",
