@@ -5,9 +5,10 @@ import { EmailButton, MailBody } from '../partials/partials';
 
 interface Props {
   inviteLink: string;
+  expiresInDays: number;
 }
 
-export const InvitationEmail = ({ inviteLink }: Props) => {
+export const InvitationEmail = ({ inviteLink, expiresInDays }: Props) => {
   return (
     <MailBody>
       <Section style={content}>
@@ -15,6 +16,9 @@ export const InvitationEmail = ({ inviteLink }: Props) => {
         <Text style={paragraph}>You have been invited to Docmost.</Text>
         <Text style={paragraph}>
           Please click the button below to accept this invitation.
+        </Text>
+        <Text style={paragraph}>
+          This link is valid for {expiresInDays} days.
         </Text>
       </Section>
       <EmailButton href={inviteLink}>Accept Invite</EmailButton>

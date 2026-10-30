@@ -177,6 +177,8 @@ export function useCreateInvitationMutation() {
 }
 
 export function useResendInvitationMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation<
     void,
     Error,
@@ -187,6 +189,9 @@ export function useResendInvitationMutation() {
     mutationFn: (data) => resendInvitation(data),
     onSuccess: (data, variables) => {
       notifications.show({ message: "Invitation resent" });
+      queryClient.invalidateQueries({
+        queryKey: ["invitations"],
+      });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
