@@ -1531,6 +1531,7 @@
   "Verify TLS certificate": "Verify TLS certificate",
   "e.g. Splunk prod": "e.g. Splunk prod",
   "Manage workspace integrations.": "Manage workspace integrations.",
+  "Setup guide": "Setup guide",
   "No integrations available.": "No integrations available.",
   "Install": "Install",
   "Uninstall": "Uninstall",

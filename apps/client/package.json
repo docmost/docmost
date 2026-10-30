@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.96.0",
+  "version": "0.97.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -43,7 +43,7 @@
     "file-saver": "2.0.5",
     "highlightjs-sap-abap": "0.3.0",
     "i18next": "25.10.1",
-    "i18next-http-backend": "4.0.2",
+    "i18next-http-backend": "4.0.6",
     "jotai": "2.20.1",
     "jotai-optics": "0.4.0",
     "js-cookie": "3.0.7",
@@ -66,7 +66,7 @@
     "semver": "7.7.4",
     "socket.io-client": "4.8.3",
     "yet-another-react-lightbox": "^3.32.2",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "9.28.0",
@@ -94,7 +94,7 @@
     "prettier": "3.8.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.57.1",
-    "vite": "8.0.16",
-    "vitest": "4.1.11"
+    "vite": "8.3.4",
+    "vitest": "4.1.12"
   }
 }

@@ -7,17 +7,17 @@ overrides:
   prosemirror-changeset: 2.4.0
   glob: 13.0.6
   ws: 8.21.3
-  dompurify: 3.4.16
-  undici: 7.29.1
+  dompurify: 3.4.17
+  undici: 7.30.1
   tmp: 0.2.7
   nanoid@^3: 3.3.18
   flatted: 3.4.2
   find-my-way: 9.7.0
-  fastify: 5.12.5
+  fastify: 5.12.7
   yaml@>=2.0.0 <2.8.3: 2.8.3
   brace-expansion@^5: 5.0.12
   axios: 1.20.0
-  fast-uri: 3.1.8
+  fast-uri: 3.1.9
   form-data@>=4.0.0 <4.0.6: 4.0.6
   nanoid@>=4.0.0 <5.1.16: 5.1.16
   esbuild@>=0.27.3 <0.28.1: 0.28.1
@@ -30,6 +30,7 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - '@excalidraw/*'
   - pele
+  - qs@6.17.1
 allowBuilds:
   '@swc/core': true
   bcrypt: true
