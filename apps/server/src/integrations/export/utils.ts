@@ -138,23 +138,29 @@ export function extractPageSlugId(input: string): string {
 
 export function buildTree(pages: Page[]): PageExportTree {
   const tree: PageExportTree = {};
-  const titleCount: Record<string, Record<string, number>> = {};
+  const usedTitles = new Map<string, Set<string>>();
 
   for (const page of pages) {
     const parentPageId = page.parentPageId;
 
-    if (!titleCount[parentPageId]) {
-      titleCount[parentPageId] = {};
+    if (!usedTitles.has(parentPageId)) {
+      usedTitles.set(parentPageId, new Set());
     }
 
-    let title = getPageTitle(page.title);
+    const siblingTitles = usedTitles.get(parentPageId);
+    const baseTitle = getPageTitle(page.title);
+    let title = baseTitle;
+    let suffix = 1;
 
-    if (titleCount[parentPageId][title]) {
-      title = `${title} (${titleCount[parentPageId][title]})`;
-      titleCount[parentPageId][getPageTitle(page.title)] += 1;
-    } else {
-      titleCount[parentPageId][title] = 1;
+    while (siblingTitles.has(getSafePageTitle(title))) {
+      const ending = ` (${suffix++})`;
+      const characters = Array.from(getSafePageTitle(baseTitle));
+      while (Buffer.byteLength(characters.join('') + ending) > 255) {
+        characters.pop();
+      }
+      title = characters.join('') + ending;
     }
+    siblingTitles.add(getSafePageTitle(title));
 
     page.title = title;
     if (!tree[parentPageId]) {
