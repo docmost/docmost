@@ -1,7 +1,7 @@
-FROM node:26-slim AS base
+FROM dhi.io/node:26-debian13-dev AS base
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
-RUN npm install -g pnpm@12.16.1
+RUN npm install -g --allow-scripts=pnpm pnpm@12.16.1
 
 FROM base AS builder
 
@@ -40,7 +40,7 @@ RUN pnpm install --frozen-lockfile --prod --filter '!./apps/client'
 
 RUN mkdir -p /app/data/storage
 
-# runtime image has no shell or package manager, so everything above happens in node:26-slim
+# runtime image has no shell or package manager, so everything above happens in the dev variant
 FROM dhi.io/node:26-debian13
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
