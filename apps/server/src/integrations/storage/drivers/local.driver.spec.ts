@@ -117,9 +117,83 @@ describe('LocalDriver.delete', () => {
     expect(await fs.pathExists(root)).toBe(true);
   });
 
-  it('never removes the directory above the storage root', async () => {
-    await driver.delete('.');
+  describe('paths resolving to the storage root', () => {
+    it.each(['', '.', './', 'workspace-id/..', 'workspace-id/files/../..'])(
+      'rejects %j and keeps the stored files',
+      async (input) => {
+        await driver.upload('workspace-id/files/uuid/file.pdf', Buffer.from('x'));
 
-    expect(await fs.pathExists(sandbox)).toBe(true);
+        await expect(driver.delete(input)).rejects.toThrow('Invalid file path');
+
+        expect(await fs.pathExists(join(root, 'workspace-id/files/uuid/file.pdf'))).toBe(true);
+      },
+    );
+  });
+
+  describe('paths leaving the storage root', () => {
+    let outsideFile: string;
+
+    beforeEach(async () => {
+      outsideFile = join(sandbox, 'storage-evil/secret.txt');
+      await fs.outputFile(outsideFile, 'x');
+    });
+
+    it.each([
+      '..',
+      '../storage-evil/secret.txt',
+      'workspace-id/../../storage-evil/secret.txt',
+      'workspace-id/files/uuid/../../../../storage-evil/secret.txt',
+    ])('rejects %j and keeps the file', async (input) => {
+      await expect(driver.delete(input)).rejects.toThrow('Invalid file path');
+
+      expect(await fs.pathExists(outsideFile)).toBe(true);
+    });
+
+    it('rejects an absolute path and keeps the file', async () => {
+      await expect(driver.delete(outsideFile)).rejects.toThrow('Invalid file path');
+
+      expect(await fs.pathExists(outsideFile)).toBe(true);
+    });
+
+    it.each(['%2e%2e/storage-evil/secret.txt', '..%2Fstorage-evil%2Fsecret.txt'])(
+      'treats %j as a literal name',
+      async (input) => {
+        await driver.upload(input, Buffer.from('x'));
+
+        await driver.delete(input);
+
+        expect(await fs.pathExists(join(root, input))).toBe(false);
+        expect(await fs.pathExists(outsideFile)).toBe(true);
+      },
+    );
+  });
+
+  describe('symlinks', () => {
+    let target: string;
+
+    beforeEach(async () => {
+      target = join(sandbox, 'outside-dir');
+      await fs.outputFile(join(target, 'only.txt'), 'x');
+      await fs.ensureDir(join(root, 'workspace-id/files/uuid'));
+    });
+
+    it('removes a link without touching its target', async () => {
+      await fs.symlink(target, join(root, 'workspace-id/files/uuid/file.pdf'));
+
+      await driver.delete('workspace-id/files/uuid/file.pdf');
+
+      expect(await fs.pathExists(join(root, 'workspace-id/files/uuid'))).toBe(false);
+      expect(await fs.pathExists(join(target, 'only.txt'))).toBe(true);
+    });
+
+    it('keeps a linked directory after its last file is deleted through it', async () => {
+      const link = join(root, 'workspace-id/files/link');
+      await fs.symlink(target, link);
+
+      await driver.delete('workspace-id/files/link/only.txt');
+
+      expect((await fs.lstat(link)).isSymbolicLink()).toBe(true);
+      expect(await fs.pathExists(target)).toBe(true);
+    });
   });
 });
