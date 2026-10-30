@@ -95,10 +95,15 @@ export class S3Driver implements StorageDriver {
   async copy(fromFilePath: string, toFilePath: string): Promise<void> {
     try {
       if (await this.exists(fromFilePath)) {
+        // CopySource must be URL-encoded (non-ASCII file names, spaces, "+").
+        const encodedPath = fromFilePath
+          .split('/')
+          .map(encodeURIComponent)
+          .join('/');
         await this.s3Client.send(
           new CopyObjectCommand({
             Bucket: this.config.bucket,
-            CopySource: `${this.config.bucket}/${fromFilePath}`,
+            CopySource: `${this.config.bucket}/${encodedPath}`,
             Key: toFilePath,
           }),
         );
