@@ -3,6 +3,8 @@ export enum WorkspaceStatus {
   Suspended = 'suspended',
 }
 
+export const INVITATION_EXPIRY_DAYS = 7;
+
 export const DISALLOWED_HOSTNAMES = [
   'app',
   'help',

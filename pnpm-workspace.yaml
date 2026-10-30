@@ -31,6 +31,8 @@ minimumReleaseAgeExclude:
   - '@excalidraw/*'
   - pele
   - qs@6.17.1
+  - react-email@6.11.6
+  - '@react-email/render@2.2.0'
 allowBuilds:
   '@swc/core': true
   bcrypt: true
