@@ -83,6 +83,10 @@ export class EnvironmentService {
     return this.configService.get<string>('STORAGE_DRIVER', 'local');
   }
 
+  getStorageLocalPath(): string | undefined {
+    return this.configService.get<string>('STORAGE_LOCAL_PATH');
+  }
+
   getFileUploadSizeLimit(): string {
     return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
   }

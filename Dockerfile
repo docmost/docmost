@@ -50,14 +50,17 @@ COPY --from=builder /app/patches /app/patches
 
 RUN chown -R node:node /app
 
+RUN mkdir -p /var/lib/docmost/storage && chown -R node:node /var/lib/docmost
+
 USER node
 
 # client package.json is only copied for the lockfile check; its deps are bundled in dist
 RUN pnpm install --frozen-lockfile --prod --filter '!./apps/client' && rm -rf /home/node/.cache/pnpm
 
+# kept so old /app/data/storage mounts still get node ownership
 RUN mkdir -p /app/data/storage
 
-VOLUME ["/app/data/storage"]
+VOLUME ["/var/lib/docmost/storage"]
 
 EXPOSE 3000
 

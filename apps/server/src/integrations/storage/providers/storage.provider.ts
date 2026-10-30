@@ -12,9 +12,10 @@ import {
   StorageOption,
 } from '../interfaces';
 import { AzureDriver, LocalDriver, S3Driver } from '../drivers';
-import * as process from 'node:process';
-import { LOCAL_STORAGE_PATH } from '../../../common/helpers';
-import path from 'path';
+import { Logger } from '@nestjs/common';
+import { resolveLocalStoragePath } from '../storage.utils';
+
+const logger = new Logger('StorageModule');
 
 function createStorageDriver(disk: StorageConfig): StorageDriver {
   switch (disk.driver) {
@@ -35,13 +36,19 @@ export const storageDriverConfigProvider = {
     const driver = environmentService.getStorageDriver().toLowerCase();
 
     switch (driver) {
-      case StorageOption.LOCAL:
+      case StorageOption.LOCAL: {
+        const storagePath = resolveLocalStoragePath(
+          environmentService.getStorageLocalPath(),
+        );
+        logger.log(`Local storage path: ${storagePath}`);
+
         return {
           driver,
           config: {
-            storagePath: LOCAL_STORAGE_PATH,
+            storagePath,
           },
         };
+      }
 
       case StorageOption.S3:
         { const s3Config = {

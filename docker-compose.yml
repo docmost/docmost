@@ -13,7 +13,7 @@ services:
       - "3000:3000"
     restart: unless-stopped
     volumes:
-      - docmost:/app/data/storage
+      - docmost:/var/lib/docmost/storage
 
   db:
     image: postgres:18
