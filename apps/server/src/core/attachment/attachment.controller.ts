@@ -350,6 +350,11 @@ export class AttachmentController {
 
       return res.send(fileResponse);
     } catch (err: any) {
+      if (err?.statusCode === 413) {
+        throw new BadRequestException(
+          `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
+        );
+      }
       this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
     }

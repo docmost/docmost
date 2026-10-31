@@ -6,6 +6,7 @@ import * as fs from 'fs-extra';
 import { FastifyInstance } from 'fastify';
 import { BlockBlobClient } from '@azure/storage-blob';
 import { AttachmentController } from './attachment.controller';
+import { MAX_AVATAR_SIZE } from './attachment.constants';
 import { AttachmentService } from './services/attachment.service';
 import { StorageService } from '../../integrations/storage/storage.service';
 import { LocalDriver } from '../../integrations/storage/drivers/local.driver';
@@ -132,7 +133,7 @@ describe.each([
   ['local', createLocalStorage],
   ['s3', createS3Storage],
   ['azure', createAzureStorage],
-])('POST /files/upload on %s storage', (_name, createStorage) => {
+])('AttachmentController uploads on %s storage', (_name, createStorage) => {
   let storage: StorageFixture;
   let app: FastifyInstance;
   let uploadLimit: string;
@@ -227,6 +228,13 @@ describe.each([
         );
         return result;
       },
+      '/attachments/upload-image': (req, res) =>
+        controller.uploadAvatarOrLogo(
+          req,
+          res,
+          USER as any,
+          WORKSPACE as any,
+        ),
     });
   });
 
@@ -302,6 +310,36 @@ describe.each([
       expect((await routeError).message).toBe('Error processing file upload.');
       expect(await storage.leftovers()).toEqual([]);
       expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('avatar and icon images', () => {
+    const postImage = (fileName: string, size: number) =>
+      app.inject({
+        method: 'POST',
+        url: '/attachments/upload-image',
+        headers: MULTIPART_HEADERS,
+        payload: multipartBody(fileName, Buffer.alloc(size), { type: 'avatar' }),
+      });
+
+    it('reports the limit for an image over it', async () => {
+      const response = await postImage(
+        'avatar.png',
+        bytes(MAX_AVATAR_SIZE) + 1,
+      );
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toBe(
+        `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
+      );
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('keeps the generic message for other failures', async () => {
+      const response = await postImage('avatar.gif', 1024);
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toBe('Error processing file upload.');
     });
   });
 
