@@ -39,6 +39,7 @@ import ReactClearModal from "react-clear-modal";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
+import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
 import classes from "../common/toolbar-menu.module.css";
 
@@ -256,8 +257,9 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     try {
       await saveData();
       close();
-    } catch {
+    } catch (err) {
       // save failed, modal stays open
+      notifyDiagramSaveError(err);
     }
   }, [saveData, close]);
 
