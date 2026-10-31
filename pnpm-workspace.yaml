@@ -8,12 +8,9 @@ overrides:
   glob: 13.0.6
   ws: 8.21.3
   dompurify: 3.4.17
-  mermaid: 11.16.1
-  katex: 0.19.0
   undici: 7.30.1
   tmp: 0.2.7
   nanoid@^3: 3.3.18
-  lodash-es: 4.18.1
   flatted: 3.4.2
   find-my-way: 9.7.0
   fastify: 5.12.7
@@ -31,7 +28,11 @@ overrides:
 shamefullyHoist: true
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
+  - '@excalidraw/*'
+  - pele
   - qs@6.17.1
+  - react-email@6.11.6
+  - '@react-email/render@2.2.0'
 allowBuilds:
   '@swc/core': true
   bcrypt: true

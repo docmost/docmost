@@ -1575,5 +1575,9 @@
   "Delete tab": "Delete tab",
   "Tab label": "Tab label",
   "Tab actions for {{name}}": "Tab actions for {{name}}",
-  "Inline base": "Inline base"
+  "Inline base": "Inline base",
+  "Zoom in": "Zoom in",
+  "Zoom out": "Zoom out",
+  "Reset zoom": "Reset zoom",
+  "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired."
 }

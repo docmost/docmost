@@ -92,6 +92,7 @@ export interface IInvitation {
   workspaceId: string;
   invitedById: string;
   createdAt: Date;
+  expiresAt: Date;
   enforceSso: boolean;
 }
 

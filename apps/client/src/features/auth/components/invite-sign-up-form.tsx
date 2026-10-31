@@ -59,7 +59,7 @@ export function InviteSignUpForm() {
   }
 
   if (isError) {
-    return <div>{t("invalid invitation link")}</div>;
+    return <div>{t("This invitation link is invalid or has expired.")}</div>;
   }
 
   if (!invitation) {
