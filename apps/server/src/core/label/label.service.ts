@@ -8,7 +8,7 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { normalizeLabelName } from './utils';
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { EventName } from "src/common/events/event.contants";
+import { EventName } from '../../common/events/event.contants';
 
 @Injectable()
 export class LabelService {

@@ -1,7 +1,7 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { QueueJob, QueueName } from 'src/integrations/queue/constants';
+import { QueueJob, QueueName } from '../../queue/constants';
 import { FileImportTaskService } from '../services/file-import-task.service';
 import { FileTaskStatus } from '../utils/file.utils';
 import { StorageService } from '../../storage/storage.service';

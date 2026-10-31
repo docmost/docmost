@@ -2,7 +2,7 @@ import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { AttachmentService } from '../services/attachment.service';
-import { QueueJob, QueueName } from 'src/integrations/queue/constants';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { ModuleRef } from '@nestjs/core';
 
 @Processor(QueueName.ATTACHMENT_QUEUE)
