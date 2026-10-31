@@ -26,7 +26,7 @@ import {
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { Public } from 'src/common/decorators/public.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { ModuleRef } from '@nestjs/core';
 import { PublicSpaceService } from '../public-space/public-space.service';

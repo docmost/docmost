@@ -1,4 +1,4 @@
-import { jsonToNode } from 'src/collaboration/collaboration.util';
+import { jsonToNode } from '../../collaboration/collaboration.util';
 import { Logger } from '@nestjs/common';
 import { ExportFormat } from './dto/export-dto';
 import { Node } from '@tiptap/pm/model';

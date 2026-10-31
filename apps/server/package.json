@@ -23,11 +23,11 @@
     "migration:reset": "tsx src/database/migrate.ts down-to NO_MIGRATIONS",
     "migration:codegen": "kysely-codegen --dialect=postgres --camel-case --env-file=../../.env --out-file=./src/database/types/db.d.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config test/jest-e2e.json"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "test:cov": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
+    "test:debug": "node --inspect-brk --experimental-vm-modules -r tsconfig-paths/register -r ts-node/register ./node_modules/jest/bin/jest.js --runInBand",
+    "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config test/jest-e2e.json"
   },
   "dependencies": {
     "@ai-sdk/google": "3.0.123",
@@ -50,22 +50,22 @@
     "@langchain/textsplitters": "1.0.1",
     "@modelcontextprotocol/server": "2.3.1",
     "@nest-lab/throttler-storage-redis": "1.2.0",
-    "@nestjs-labs/nestjs-ioredis": "11.0.4",
-    "@nestjs/bullmq": "11.0.5",
-    "@nestjs/cache-manager": "3.1.3",
-    "@nestjs/common": "11.2.7",
-    "@nestjs/config": "4.0.4",
-    "@nestjs/core": "11.2.7",
-    "@nestjs/event-emitter": "3.1.0",
-    "@nestjs/jwt": "11.0.2",
-    "@nestjs/mapped-types": "2.1.1",
-    "@nestjs/passport": "11.0.5",
-    "@nestjs/platform-fastify": "11.2.7",
-    "@nestjs/platform-socket.io": "11.2.7",
-    "@nestjs/schedule": "6.1.3",
-    "@nestjs/terminus": "11.1.1",
-    "@nestjs/throttler": "6.5.0",
-    "@nestjs/websockets": "11.2.7",
+    "@nestjs-labs/nestjs-ioredis": "12.0.0",
+    "@nestjs/bullmq": "12.0.0",
+    "@nestjs/cache-manager": "12.0.2",
+    "@nestjs/common": "12.3.2",
+    "@nestjs/config": "12.0.1",
+    "@nestjs/core": "12.3.2",
+    "@nestjs/event-emitter": "12.0.1",
+    "@nestjs/jwt": "12.0.3",
+    "@nestjs/mapped-types": "12.0.0",
+    "@nestjs/passport": "12.0.0",
+    "@nestjs/platform-fastify": "12.3.2",
+    "@nestjs/platform-socket.io": "12.3.2",
+    "@nestjs/schedule": "12.0.2",
+    "@nestjs/terminus": "12.1.0",
+    "@nestjs/throttler": "6.7.1",
+    "@nestjs/websockets": "12.3.2",
     "@node-saml/passport-saml": "5.1.0",
     "@socket.io/redis-adapter": "8.3.0",
     "@turbopuffer/turbopuffer": "^2.8.0",
@@ -94,9 +94,9 @@
     "mime-types": "3.0.2",
     "msgpackr": "1.11.9",
     "nanoid": "5.1.16",
-    "nestjs-cls": "6.2.0",
-    "nestjs-kysely": "3.1.2",
-    "nestjs-pino": "4.6.1",
+    "nestjs-cls": "7.0.2",
+    "nestjs-kysely": "3.1.4",
+    "nestjs-pino": "5.3.1",
     "nodemailer": "10.1.7",
     "openid-client": "6.8.2",
     "otpauth": "9.5.0",
@@ -127,9 +127,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
-    "@nestjs/cli": "^11.0.21",
-    "@nestjs/schematics": "^11.0.10",
-    "@nestjs/testing": "^11.1.19",
+    "@nestjs/cli": "^12.0.11",
+    "@nestjs/schematics": "^12.0.12",
+    "@nestjs/testing": "^12.3.2",
     "@types/bcrypt": "^6.0.0",
     "@types/debounce": "^1.2.4",
     "@types/fs-extra": "^11.0.4",
@@ -144,17 +144,17 @@
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
-    "jest": "^30.3.0",
+    "jest": "^30.5.2",
     "kysely-codegen": "^0.20.0",
     "prettier": "^3.8.1",
     "source-map-support": "^0.5.21",
     "supertest": "^7.2.2",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.15",
     "ts-loader": "^9.5.7",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.57.1"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -166,26 +166,17 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "happy-dom.+\\.js$": [
-        "babel-jest",
+      "^.+\\.(t|j)sx?$": [
+        "ts-jest",
         {
-          "presets": [
-            [
-              "@babel/preset-env",
-              {
-                "targets": {
-                  "node": "current"
-                }
-              }
+          "diagnostics": {
+            "ignoreCodes": [
+              151002
             ]
-          ]
+          }
         }
-      ],
-      "^.+\\.(t|j)sx?$": "ts-jest"
+      ]
     },
-    "transformIgnorePatterns": [
-      "/node_modules/(?!(\\.pnpm/)?(nanoid|uuid|image-dimensions|marked|happy-dom)(@|/))"
-    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],

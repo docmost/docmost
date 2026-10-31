@@ -1,4 +1,4 @@
-import * as crypto from 'node:crypto';
+import crypto from 'node:crypto';
 import { decryptA256CbcHs512, encryptA256CbcHs512 } from './a256cbc-hs512';
 
 // RFC 7518 Appendix B.3: independent known-answer values

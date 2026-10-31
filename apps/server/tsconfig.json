@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -9,7 +12,6 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -19,6 +21,7 @@
     "noFallthroughCasesInSwitch": false,
     "strict": true,
     "jsx": "react",
+    "types": ["node", "jest"],
     "paths": {
       "@docmost/db/*": ["./src/database/*"],
       "@docmost/transactional/*": ["./src/integrations/transactional/*"],

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { NotificationSettingKey } from '../notification/notification.constants';
-import { comparePasswordHash, diffAuditTrackedFields } from 'src/common/helpers/utils';
+import { comparePasswordHash, diffAuditTrackedFields } from '../../common/helpers/utils';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { validateSsoEnforcement } from '../auth/auth.util';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
