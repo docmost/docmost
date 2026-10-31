@@ -28,6 +28,7 @@ import { useTranslation } from "react-i18next";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 import { modals } from "@mantine/modals";
+import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 
 const ExcalidrawComponent = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
@@ -133,8 +134,8 @@ export default function ExcalidrawView(props: NodeViewProps) {
     try {
       await saveData();
       close();
-    } catch {
-      /* empty */
+    } catch (err) {
+      notifyDiagramSaveError(err);
     }
   }, [saveData, close]);
 

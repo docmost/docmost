@@ -24,6 +24,7 @@ import clsx from "clsx";
 import { IconEdit } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { modals } from "@mantine/modals";
+import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 
 export default function DrawioView(props: NodeViewProps) {
   const { t } = useTranslation();
@@ -165,7 +166,7 @@ export default function DrawioView(props: NodeViewProps) {
                   if (data.parentEvent !== "save") {
                     return;
                   }
-                  saveData(data.xml, true).then(() => close()).catch(() => {});
+                  saveData(data.xml, true).then(() => close()).catch(notifyDiagramSaveError);
                 }}
                 onClose={(data: EventExit) => {
                   if (data.parentEvent) {
