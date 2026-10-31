@@ -1,7 +1,7 @@
 import { MultipartFile } from '@fastify/multipart';
 import * as path from 'path';
 import { AttachmentType } from './attachment.constants';
-import { sanitizeFileName } from '../../common/helpers';
+import { bufferMultipartFile, sanitizeFileName } from '../../common/helpers';
 import { getMimeType } from '../../common/helpers';
 
 export interface PreparedFile {
@@ -28,7 +28,7 @@ export async function prepareFile(
     let fileSize = 0;
 
     if (!options.skipBuffer) {
-      buffer = await file.toBuffer();
+      buffer = await bufferMultipartFile(file);
       fileSize = buffer.length;
     }
 

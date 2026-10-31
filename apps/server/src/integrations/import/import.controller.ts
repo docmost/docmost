@@ -53,7 +53,8 @@ export class ImportController {
   ) {
     const validFileExtensions = ['.md', '.html', '.docx', '.pdf'];
 
-    const maxFileSize = bytes('30mb');
+    const sizeLimit = '30mb';
+    const maxFileSize = bytes(sizeLimit);
 
     let file = null;
     try {
@@ -64,7 +65,7 @@ export class ImportController {
       this.logger.error(err.message);
       if (err?.statusCode === 413) {
         throw new BadRequestException(
-          `File too large. Exceeds the 10mb import limit`,
+          `File too large. Exceeds the ${sizeLimit} import limit`,
         );
       }
     }
@@ -90,12 +91,22 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
-    const createdPage = await this.importService.importPage(
-      file,
-      user.id,
-      spaceId,
-      workspace.id,
-    );
+    let createdPage = null;
+    try {
+      createdPage = await this.importService.importPage(
+        file,
+        user.id,
+        spaceId,
+        workspace.id,
+      );
+    } catch (err: any) {
+      if (err?.statusCode === 413) {
+        throw new BadRequestException(
+          `File too large. Exceeds the ${sizeLimit} import limit`,
+        );
+      }
+      throw err;
+    }
 
     const ext = path.extname(file.filename).toLowerCase();
     const sourceMap: Record<string, string> = {
@@ -177,6 +188,24 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
+    let fileTask = null;
+    try {
+      fileTask = await this.importService.importZip(
+        file,
+        source,
+        user.id,
+        spaceId,
+        workspace.id,
+      );
+    } catch (err: any) {
+      if (err?.statusCode === 413) {
+        throw new BadRequestException(
+          `File too large. Exceeds the ${this.environmentService.getFileImportSizeLimit()} import limit`,
+        );
+      }
+      throw err;
+    }
+
     this.auditService.log({
       event: AuditEvent.PAGE_IMPORTED,
       resourceType: AuditResource.PAGE,
@@ -189,12 +218,6 @@ export class ImportController {
       },
     });
 
-    return this.importService.importZip(
-      file,
-      source,
-      user.id,
-      spaceId,
-      workspace.id,
-    );
+    return fileTask;
   }
 }
