@@ -305,7 +305,7 @@ describe('OutboundUrlGuard.validate', () => {
   });
 
   it('an unparseable value denies everything private or reserved and logs once per process', async () => {
-    const errorSpy = jest
+    const errorSpy = vi
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
     const g = guard(false, [{ address: '10.1.2.3', family: 4 }], 'all,10.0.0.0/8, not-a-cidr');
@@ -373,7 +373,7 @@ describe('OutboundUrlGuard.validate', () => {
   });
 
   it('a public address is allowed in every mode', async () => {
-    const errorSpy = jest
+    const errorSpy = vi
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
 

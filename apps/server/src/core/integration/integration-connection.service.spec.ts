@@ -4,12 +4,12 @@ const connectedAt = new Date('2026-10-07T09:00:00.000Z');
 
 function buildService(rows: Record<string, unknown>[]) {
   const connectionRepo = {
-    findByUserAndWorkspace: jest.fn().mockResolvedValue(rows),
+    findByUserAndWorkspace: vi.fn().mockResolvedValue(rows),
   };
   return new IntegrationConnectionService(
     connectionRepo as any,
     {} as any,
-    { log: jest.fn() } as any,
+    { log: vi.fn() } as any,
   );
 }
 

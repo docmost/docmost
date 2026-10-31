@@ -31,7 +31,7 @@ describe('UnfurlController throttling', () => {
 
   function contextFor(userId: string): ExecutionContext {
     const req = { ip: '10.0.0.1', headers: {}, user: { user: { id: userId } } };
-    const res = { header: jest.fn() };
+    const res = { header: vi.fn() };
     return {
       getHandler: () => UnfurlController.prototype.unfurl,
       getClass: () => UnfurlController,

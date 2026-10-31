@@ -1,13 +1,14 @@
 import { proxyFetch } from '../../../../common/proxy-fetch';
 import { FigmaProvider } from './figma.provider';
 import { FigmaService } from './figma.service';
+import type { Mock } from 'vitest';
 
 // Mock only proxyFetch so the real providerApiFetch handles statuses.
-jest.mock('../../../../common/proxy-fetch', () => ({
-  proxyFetch: jest.fn(),
+vi.mock('../../../../common/proxy-fetch', () => ({
+  proxyFetch: vi.fn(),
 }));
 
-const fetchMock = proxyFetch as jest.Mock;
+const fetchMock = proxyFetch as Mock;
 
 function json(body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -19,7 +20,11 @@ function json(body: unknown): Response {
 describe('Figma connected account', () => {
   const provider = new FigmaProvider(new FigmaService());
 
-  beforeEach(() => fetchMock.mockReset());
+  beforeEach(() => {
+
+    fetchMock.mockReset();
+
+  });
 
   it('asks for the profile scope beside file metadata', () => {
     expect(provider.definition.oauth?.scopes).toEqual([

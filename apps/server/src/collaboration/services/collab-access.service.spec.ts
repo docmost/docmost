@@ -7,7 +7,7 @@ function makeService(publish: (...args: any[]) => Promise<number>) {
 
 describe('CollabAccessService', () => {
   it('publishes the users or pages to recheck', async () => {
-    const publish = jest.fn(async () => 1);
+    const publish = vi.fn(async () => 1);
 
     await makeService(publish).recheckAccess({ userIds: ['user_1'] });
     await makeService(publish).recheckAccess({ userIds: [], pageIds: [] });

@@ -2,16 +2,16 @@ import { WsService } from './ws.service';
 
 function makeService(accessBySpace: Record<string, string[]>) {
   const spaceMemberRepo = {
-    getUserIdsWithSpaceAccess: jest.fn(
+    getUserIdsWithSpaceAccess: vi.fn(
       async (_userIds: string[], spaceId: string) =>
         new Set(accessBySpace[spaceId] ?? []),
     ),
   };
   const baseRealtime = {
-    removeUsersFromSpaceBases: jest.fn(async () => undefined),
+    removeUsersFromSpaceBases: vi.fn(async () => undefined),
   };
-  const socketsLeave = jest.fn();
-  const server = { in: jest.fn(() => ({ socketsLeave })) };
+  const socketsLeave = vi.fn();
+  const server = { in: vi.fn(() => ({ socketsLeave })) };
 
   const service = new WsService(
     {} as any,

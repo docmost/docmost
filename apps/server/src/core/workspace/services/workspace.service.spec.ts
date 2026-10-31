@@ -7,30 +7,30 @@ const authUser = { id: 'admin-1', role: UserRole.ADMIN } as any;
 
 function buildService() {
   const trx = {
-    deleteFrom: jest.fn(() => ({
-      where: jest.fn(() => ({ execute: jest.fn() })),
+    deleteFrom: vi.fn(() => ({
+      where: vi.fn(() => ({ execute: vi.fn() })),
     })),
   };
   const db = {
     transaction: () => ({ execute: (cb: (t: any) => any) => cb(trx) }),
   };
   const workspaceRepo = {
-    findById: jest.fn().mockResolvedValue({ id: workspaceId }),
+    findById: vi.fn().mockResolvedValue({ id: workspaceId }),
   };
   const userRepo = {
-    findById: jest.fn().mockResolvedValue({
+    findById: vi.fn().mockResolvedValue({
       id: userId,
       role: UserRole.MEMBER,
       deactivatedAt: null,
       deletedAt: null,
     }),
-    updateUser: jest.fn(),
+    updateUser: vi.fn(),
   };
   const repoDeletingByUser = () => ({
-    deleteByUserAndWorkspace: jest.fn(),
+    deleteByUserAndWorkspace: vi.fn(),
   });
-  const userSessionRepo = { revokeByUserId: jest.fn() };
-  const integrationConnectionRepo = { deleteUserConnections: jest.fn() };
+  const userSessionRepo = { revokeByUserId: vi.fn() };
+  const integrationConnectionRepo = { deleteUserConnections: vi.fn() };
 
   const service = new WorkspaceService(
     workspaceRepo as any,
@@ -47,10 +47,10 @@ function buildService() {
     repoDeletingByUser() as any,
     repoDeletingByUser() as any,
     db as any,
-    { add: jest.fn() } as any,
+    { add: vi.fn() } as any,
     {} as any,
     {} as any,
-    { log: jest.fn() } as any,
+    { log: vi.fn() } as any,
     userSessionRepo as any,
     integrationConnectionRepo as any,
   );

@@ -8,18 +8,18 @@ function fakeRedis() {
   const keys = new Map<string, string>();
   return {
     keys,
-    set: jest.fn(async (key: string, value: string) => {
+    set: vi.fn(async (key: string, value: string) => {
       if (keys.has(key)) return null;
       keys.set(key, value);
       return 'OK';
     }),
-    eval: jest.fn(async (_script: string, _numKeys: number, key: string, token: string) => {
+    eval: vi.fn(async (_script: string, _numKeys: number, key: string, token: string) => {
       if (keys.get(key) !== token) return 0;
       keys.delete(key);
       return 1;
     }),
-    del: jest.fn(async (key: string) => Number(keys.delete(key))),
-    exists: jest.fn(async (key: string) => (keys.has(key) ? 1 : 0)),
+    del: vi.fn(async (key: string) => Number(keys.delete(key))),
+    exists: vi.fn(async (key: string) => (keys.has(key) ? 1 : 0)),
   };
 }
 
@@ -28,11 +28,11 @@ describe('RefreshLock', () => {
   let lock: RefreshLock;
 
   beforeAll(() => {
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
   });
 
   afterAll(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   beforeEach(() => {

@@ -20,12 +20,12 @@ function createCtx(): ExecutionContext {
 
 function createGuard(scopeMetadata?: unknown, requireSession?: boolean) {
   const reflector = {
-    getAllAndOverride: jest.fn((key: string) =>
+    getAllAndOverride: vi.fn((key: string) =>
       key === REQUIRE_SESSION_AUTH_KEY ? requireSession : scopeMetadata,
     ),
   } as any;
   const environmentService = {
-    isCloud: jest.fn().mockReturnValue(false),
+    isCloud: vi.fn().mockReturnValue(false),
   } as any;
   const guard = new JwtAuthGuard(reflector, environmentService);
   return { guard, reflector };
@@ -164,7 +164,7 @@ describe('JwtAuthGuard.handleRequest', () => {
       [classSentinel, 'read'],
     ]);
     const reflector = {
-      getAllAndOverride: jest.fn((key: string, targets: unknown[]) => {
+      getAllAndOverride: vi.fn((key: string, targets: unknown[]) => {
         if (key === REQUIRE_SESSION_AUTH_KEY) {
           return undefined;
         }
@@ -176,7 +176,7 @@ describe('JwtAuthGuard.handleRequest', () => {
         return undefined;
       }),
     } as any;
-    const environmentService = { isCloud: jest.fn().mockReturnValue(false) } as any;
+    const environmentService = { isCloud: vi.fn().mockReturnValue(false) } as any;
     const guard = new JwtAuthGuard(reflector, environmentService);
 
     expect(() =>

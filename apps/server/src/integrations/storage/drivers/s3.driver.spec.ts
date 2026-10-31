@@ -6,7 +6,7 @@ describe('S3Driver.copy', () => {
     endpoint: 'https://s3.example.com',
     bucket: 'docmost',
   });
-  const send = jest.fn().mockResolvedValue({});
+  const send = vi.fn().mockResolvedValue({});
   driver.getDriver().send = send;
 
   it.each([

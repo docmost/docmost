@@ -33,6 +33,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { SessionActivityService } from '../../session/session-activity.service';
+import type { MockInstance } from 'vitest';
 
 const workspace = { id: 'workspace-1' } as Workspace;
 const encryptionService = new EncryptionService({
@@ -58,11 +59,11 @@ function userWithRole(role: UserRole): User {
 }
 
 function cookieReply() {
-  return { setCookie: jest.fn() } as any;
+  return { setCookie: vi.fn() } as any;
 }
 
 function redirectReply() {
-  return { redirect: jest.fn(), clearCookie: jest.fn() } as any;
+  return { redirect: vi.fn(), clearCookie: vi.fn() } as any;
 }
 
 const signedStatePayload: OAuthStatePayload = {
@@ -81,10 +82,10 @@ function buildController(
   state: Partial<OAuthStatePayload> = {},
   environment = environmentService,
 ) {
-  const getInstallAuthorizationUrl = jest.fn().mockResolvedValue({ authorizationUrl, nonce: 'install-nonce' });
-  const getAuthorizationUrl = jest.fn().mockResolvedValue({ authorizationUrl, type: 'github', nonce: 'connect-nonce' });
-  const exchangeCodeForTokens = jest.fn().mockResolvedValue({});
-  const verifySignedState = jest.fn((signed: string) =>
+  const getInstallAuthorizationUrl = vi.fn().mockResolvedValue({ authorizationUrl, nonce: 'install-nonce' });
+  const getAuthorizationUrl = vi.fn().mockResolvedValue({ authorizationUrl, type: 'github', nonce: 'connect-nonce' });
+  const exchangeCodeForTokens = vi.fn().mockResolvedValue({});
+  const verifySignedState = vi.fn((signed: string) =>
     signed === 'signed-state' ? { ...signedStatePayload, ...state } : null,
   );
 
@@ -92,8 +93,8 @@ function buildController(
     { getInstallAuthorizationUrl, getAuthorizationUrl, exchangeCodeForTokens, verifySignedState } as any,
     {} as any,
     new WorkspaceAbilityFactory(),
-    { hasFeature: jest.fn().mockReturnValue(true) } as any,
-    { getProvider: jest.fn().mockReturnValue({ definition: {} }) } as any,
+    { hasFeature: vi.fn().mockReturnValue(true) } as any,
+    { getProvider: vi.fn().mockReturnValue({ definition: {} }) } as any,
     encryptionService,
     environment,
   );
@@ -114,13 +115,15 @@ function issueTicket(fields: Record<string, unknown> = {}, purpose = EncryptionP
   );
 }
 
-let warn: jest.SpyInstance;
+let warn: MockInstance;
 beforeAll(() => {
-  jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-  warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+  vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+  warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
 });
-beforeEach(() => warn.mockClear());
-afterAll(() => jest.restoreAllMocks());
+beforeEach(() => {
+  warn.mockClear();
+});
+afterAll(() => vi.restoreAllMocks());
 
 describe('OAuthController install authorization', () => {
   it('refuses a workspace member', async () => {
@@ -475,7 +478,7 @@ describe('OAuthController complete', () => {
     [IdentityTenantMismatchError, 'tenant_mismatch'],
     [IntegrationTenantInUseError, 'tenant_in_use'],
     [Error, 'oauth_failed'],
-  ])('reports %p as %s', async (ErrorClass, code) => {
+  ])('reports %o as %s', async (ErrorClass, code) => {
     const { res } = await complete({ error: new ErrorClass() });
 
     expect(res.clearCookie).toHaveBeenCalledTimes(1);

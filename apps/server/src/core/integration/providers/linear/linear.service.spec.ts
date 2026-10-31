@@ -1,13 +1,14 @@
 import { proxyFetch } from '../../../../common/proxy-fetch';
 import { LinearProvider } from './linear.provider';
 import { LinearService } from './linear.service';
+import type { Mock } from 'vitest';
 
 // Mock only proxyFetch so the real providerApiFetch handles statuses.
-jest.mock('../../../../common/proxy-fetch', () => ({
-  proxyFetch: jest.fn(),
+vi.mock('../../../../common/proxy-fetch', () => ({
+  proxyFetch: vi.fn(),
 }));
 
-const fetchMock = proxyFetch as jest.Mock;
+const fetchMock = proxyFetch as Mock;
 
 function json(body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -19,7 +20,11 @@ function json(body: unknown): Response {
 describe('Linear connected account', () => {
   const provider = new LinearProvider(new LinearService());
 
-  beforeEach(() => fetchMock.mockReset());
+  beforeEach(() => {
+
+    fetchMock.mockReset();
+
+  });
 
   it('reads the viewer as the connected account', async () => {
     fetchMock.mockResolvedValue(

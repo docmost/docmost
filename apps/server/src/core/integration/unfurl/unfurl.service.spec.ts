@@ -10,6 +10,7 @@ import {
   TokenExpiredError,
   TokenInvalidError,
 } from '../registry/integration-provider.interface';
+import type { MockInstance } from 'vitest';
 
 const GHE_BASE = 'https://github.acme.com';
 const CONNECTED_AT = new Date('2026-10-01T09:00:00Z');
@@ -38,32 +39,32 @@ class WorkspaceScopedProvider extends IntegrationProvider {
     oauth: { authUrl: '', tokenUrl: '', scopes: [], connectionScope: 'workspace' },
     unfurlPatterns: [{ regex: /^https:\/\/chat\.example\/m\/(\w+)$/, type: 'message' }],
   };
-  unfurl = jest.fn().mockResolvedValue({ title: 'Message' });
+  unfurl = vi.fn().mockResolvedValue({ title: 'Message' });
 }
 
 function build() {
-  const unfurlPullRequest = jest.fn().mockResolvedValue({ title: 'PR' });
+  const unfurlPullRequest = vi.fn().mockResolvedValue({ title: 'PR' });
   const registry = new IntegrationRegistry();
   registry.register(new GitHubProvider({ unfurlPullRequest } as any));
 
   const integration = { id: 'i1', type: 'github', settings: {} };
   const integrationRepo = {
-    findByWorkspaceAndType: jest.fn().mockResolvedValue(integration),
-    findAllByWorkspace: jest.fn().mockResolvedValue([integration]),
+    findByWorkspaceAndType: vi.fn().mockResolvedValue(integration),
+    findAllByWorkspace: vi.fn().mockResolvedValue([integration]),
   };
   const connectionRepo = {
-    findByIntegrationAndUser: jest
+    findByIntegrationAndUser: vi
       .fn()
       .mockResolvedValue({ id: 'c1', invalidatedAt: null, updatedAt: CONNECTED_AT }),
-    findWorkspaceConnection: jest.fn().mockResolvedValue(undefined),
-    invalidate: jest.fn().mockResolvedValue(undefined),
+    findWorkspaceConnection: vi.fn().mockResolvedValue(undefined),
+    invalidate: vi.fn().mockResolvedValue(undefined),
   };
   const oauthService = {
-    getValidAccessToken: jest.fn().mockResolvedValue('token'),
+    getValidAccessToken: vi.fn().mockResolvedValue('token'),
   };
   const redis = {
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn().mockResolvedValue('OK'),
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
   };
 
   const service = new UnfurlService(
@@ -255,7 +256,7 @@ describe('UnfurlService cache', () => {
     unfurlPullRequest.mockRejectedValue(
       new ProviderApiError('GitHub', 404, 'Not Found'),
     );
-    const error = jest
+    const error = vi
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
 
@@ -367,11 +368,11 @@ describe('UnfurlService cache', () => {
 
 describe('UnfurlService public cards', () => {
   const url = 'https://github.com/o/r/pull/1';
-  let warn: jest.SpyInstance;
+  let warn: MockInstance;
 
   beforeEach(() => {
     delete process.env.INTEGRATION_GITHUB_URL;
-    warn = jest
+    warn = vi
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
   });

@@ -13,35 +13,35 @@ function buildService(existingLinkUserId?: string) {
         identity: { tokenUrl: 'https://slack.example/token' },
       },
     },
-    resolveIdentity: jest.fn().mockResolvedValue({ account: { id: providerUserId } }),
+    resolveIdentity: vi.fn().mockResolvedValue({ account: { id: providerUserId } }),
   };
 
-  const findUserLink = jest
+  const findUserLink = vi
     .fn()
     .mockResolvedValue(
       existingLinkUserId ? { userId: existingLinkUserId } : undefined,
     );
-  const upsertUserLink = jest.fn().mockResolvedValue({ id: 'connection-1' });
+  const upsertUserLink = vi.fn().mockResolvedValue({ id: 'connection-1' });
 
   const service = new OAuthService(
     {} as any,
     {} as any,
     {} as any,
-    { getProvider: jest.fn().mockReturnValue(provider) } as any,
+    { getProvider: vi.fn().mockReturnValue(provider) } as any,
     {
-      findById: jest.fn().mockResolvedValue({ id: integrationId, workspaceId, settings: {} }),
+      findById: vi.fn().mockResolvedValue({ id: integrationId, workspaceId, settings: {} }),
     } as any,
     { findUserLink, upsertUserLink } as any,
     {} as any,
     {} as any,
     {} as any,
     {} as any,
-    { log: jest.fn() } as any,
+    { log: vi.fn() } as any,
     { getOrThrow: () => ({}) } as any,
   );
 
   // Stub the live token exchange with the provider
-  (service as any).requestTokens = jest
+  (service as any).requestTokens = vi
     .fn()
     .mockResolvedValue({ access_token: 'token' });
 

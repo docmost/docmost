@@ -22,7 +22,7 @@ describe('toProviderAccount', () => {
   });
 
   it.each([undefined, null, '', {}])(
-    'refuses a profile without an id (%p)',
+    'refuses a profile without an id (%o)',
     (id) => {
       expect(() => toProviderAccount({ id })).toThrow(
         'Provider profile has no account id',

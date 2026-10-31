@@ -2,12 +2,12 @@ import { SessionService } from './session.service';
 
 function makeService(revoked: boolean) {
   const userSessionRepo = {
-    revokeById: jest.fn(async () => revoked),
-    revokeAllExceptCurrent: jest.fn(async () => undefined),
+    revokeById: vi.fn(async () => revoked),
+    revokeAllExceptCurrent: vi.fn(async () => undefined),
   };
   const wsService = {
-    disconnectSession: jest.fn(),
-    disconnectOtherSessions: jest.fn(),
+    disconnectSession: vi.fn(),
+    disconnectOtherSessions: vi.fn(),
   };
   const service = new SessionService(
     {} as any,

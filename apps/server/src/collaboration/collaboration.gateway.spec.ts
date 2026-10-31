@@ -15,9 +15,9 @@ function makeGateway() {
     {} as any,
   );
   const redisSync = {
-    onSocketOpen: jest.fn(),
-    onSocketMessage: jest.fn(),
-    onSocketClose: jest.fn(),
+    onSocketOpen: vi.fn(),
+    onSocketMessage: vi.fn(),
+    onSocketClose: vi.fn(),
   };
   (gateway as any).redisSync = redisSync;
   return { gateway, redisSync };
@@ -37,7 +37,7 @@ describe('CollaborationGateway.handleConnection', () => {
       socket: { remoteAddress: '10.42.0.66' },
     } as unknown as IncomingMessage;
 
-    gateway.handleConnection({ on: jest.fn() } as unknown as WebSocket, request);
+    gateway.handleConnection({ on: vi.fn() } as unknown as WebSocket, request);
 
     expect(redisSync.onSocketOpen).toHaveBeenCalledWith(
       expect.anything(),

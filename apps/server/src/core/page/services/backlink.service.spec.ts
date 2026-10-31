@@ -2,22 +2,23 @@ import { Test } from '@nestjs/testing';
 import { BacklinkService } from './backlink.service';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import type { Mocked } from 'vitest';
 
 describe('BacklinkService.countByPageId', () => {
   let service: BacklinkService;
-  let backlinkRepo: jest.Mocked<BacklinkRepo>;
-  let permissionRepo: jest.Mocked<PagePermissionRepo>;
+  let backlinkRepo: Mocked<BacklinkRepo>;
+  let permissionRepo: Mocked<PagePermissionRepo>;
 
   const pageId = '00000000-0000-0000-0000-000000000001';
   const userId = '00000000-0000-0000-0000-000000000099';
 
   beforeEach(async () => {
-    const backlinkRepoMock: jest.Mocked<Partial<BacklinkRepo>> = {
-      findRelatedPageIds: jest.fn(),
-      findPagesByIdsPaginated: jest.fn(),
+    const backlinkRepoMock: Mocked<Partial<BacklinkRepo>> = {
+      findRelatedPageIds: vi.fn(),
+      findPagesByIdsPaginated: vi.fn(),
     };
-    const permissionRepoMock: jest.Mocked<Partial<PagePermissionRepo>> = {
-      filterAccessiblePageIds: jest.fn(),
+    const permissionRepoMock: Mocked<Partial<PagePermissionRepo>> = {
+      filterAccessiblePageIds: vi.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -29,10 +30,10 @@ describe('BacklinkService.countByPageId', () => {
     }).compile();
 
     service = module.get(BacklinkService);
-    backlinkRepo = module.get(BacklinkRepo) as jest.Mocked<BacklinkRepo>;
+    backlinkRepo = module.get(BacklinkRepo) as Mocked<BacklinkRepo>;
     permissionRepo = module.get(
       PagePermissionRepo,
-    ) as jest.Mocked<PagePermissionRepo>;
+    ) as Mocked<PagePermissionRepo>;
   });
 
   it('returns post-filter counts for both directions', async () => {
@@ -87,19 +88,19 @@ describe('BacklinkService.countByPageId', () => {
 
 describe('BacklinkService.findByPageId', () => {
   let service: BacklinkService;
-  let backlinkRepo: jest.Mocked<BacklinkRepo>;
-  let permissionRepo: jest.Mocked<PagePermissionRepo>;
+  let backlinkRepo: Mocked<BacklinkRepo>;
+  let permissionRepo: Mocked<PagePermissionRepo>;
 
   const pageId = '00000000-0000-0000-0000-000000000001';
   const userId = '00000000-0000-0000-0000-000000000099';
 
   beforeEach(async () => {
-    const backlinkRepoMock: jest.Mocked<Partial<BacklinkRepo>> = {
-      findRelatedPageIds: jest.fn(),
-      findPagesByIdsPaginated: jest.fn(),
+    const backlinkRepoMock: Mocked<Partial<BacklinkRepo>> = {
+      findRelatedPageIds: vi.fn(),
+      findPagesByIdsPaginated: vi.fn(),
     };
-    const permissionRepoMock: jest.Mocked<Partial<PagePermissionRepo>> = {
-      filterAccessiblePageIds: jest.fn(),
+    const permissionRepoMock: Mocked<Partial<PagePermissionRepo>> = {
+      filterAccessiblePageIds: vi.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -111,10 +112,10 @@ describe('BacklinkService.findByPageId', () => {
     }).compile();
 
     service = module.get(BacklinkService);
-    backlinkRepo = module.get(BacklinkRepo) as jest.Mocked<BacklinkRepo>;
+    backlinkRepo = module.get(BacklinkRepo) as Mocked<BacklinkRepo>;
     permissionRepo = module.get(
       PagePermissionRepo,
-    ) as jest.Mocked<PagePermissionRepo>;
+    ) as Mocked<PagePermissionRepo>;
   });
 
   it('passes filtered ids through to the paginated repo call', async () => {

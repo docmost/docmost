@@ -20,18 +20,18 @@ describe('SearchController', () => {
 
 describe('SearchController public-space-search gate', () => {
   function makeController(overrides: any = {}) {
-    const searchService = { searchPage: jest.fn().mockResolvedValue([]) };
+    const searchService = { searchPage: vi.fn().mockResolvedValue([]) };
     const environmentService = {
-      getSearchDriver: jest.fn().mockReturnValue('postgres'),
+      getSearchDriver: vi.fn().mockReturnValue('postgres'),
     };
     const publicSpaceService = {
-      getPublicSpace: jest
+      getPublicSpace: vi
         .fn()
         .mockRejectedValue(new NotFoundException('Space not found')),
       ...overrides.publicSpaceService,
     };
     const pageRepo = {
-      getSpacePagesExcludingRestricted: jest
+      getSpacePagesExcludingRestricted: vi
         .fn()
         .mockResolvedValue([{ id: 'p1' }, { id: 'p2' }]),
     };
@@ -64,7 +64,7 @@ describe('SearchController public-space-search gate', () => {
     const { controller, searchService, publicSpaceService, pageRepo } =
       makeController({
         publicSpaceService: {
-          getPublicSpace: jest
+          getPublicSpace: vi
             .fn()
             .mockResolvedValue({ space: { id: 's1' }, publicSpace: {} }),
         },

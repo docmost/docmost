@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": false,
     "strict": true,
     "jsx": "react",
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
     "paths": {
       "@docmost/db/*": ["./src/database/*"],
       "@docmost/transactional/*": ["./src/integrations/transactional/*"],

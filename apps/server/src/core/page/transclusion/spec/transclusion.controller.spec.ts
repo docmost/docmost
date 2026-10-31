@@ -2,16 +2,17 @@ import { Test } from '@nestjs/testing';
 import { TransclusionController } from '../transclusion.controller';
 import { TransclusionService } from '../transclusion.service';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import type { Mocked } from 'vitest';
 
 describe('TransclusionController.lookup', () => {
   let controller: TransclusionController;
-  let service: jest.Mocked<TransclusionService>;
+  let service: Mocked<TransclusionService>;
 
   beforeEach(async () => {
     service = {
-      lookup: jest.fn(),
-      listReferences: jest.fn(),
-      unsyncReference: jest.fn(),
+      lookup: vi.fn(),
+      listReferences: vi.fn(),
+      unsyncReference: vi.fn(),
     } as any;
 
     const module = await Test.createTestingModule({

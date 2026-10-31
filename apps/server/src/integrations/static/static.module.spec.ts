@@ -3,9 +3,9 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { StaticModule } from './static.module';
 import { EnvironmentService } from '../environment/environment.service';
 
-jest.mock('node:fs', () => {
-  const actual = jest.requireActual<typeof import('node:fs')>('node:fs');
-  const { Readable } = jest.requireActual<typeof import('node:stream')>(
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+  const { Readable } = await vi.importActual<typeof import('node:stream')>(
     'node:stream',
   );
   const isClientDist = (path: unknown) => String(path).includes('client/dist');

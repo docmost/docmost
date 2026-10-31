@@ -17,6 +17,7 @@ import {
   TokenExpiredError,
   TokenInvalidError,
 } from '../registry/integration-provider.interface';
+import type { Mock } from 'vitest';
 
 type RecordedRequest = { method: string; url: string; body: string; authorization?: string };
 
@@ -79,17 +80,17 @@ function fakeRedis() {
   const keys = new Map<string, string>();
   return {
     keys,
-    set: jest.fn(async (key: string, value: string) => {
+    set: vi.fn(async (key: string, value: string) => {
       if (keys.has(key)) return null;
       keys.set(key, value);
       return 'OK';
     }),
-    eval: jest.fn(async (_script: string, _numKeys: number, key: string, token: string) => {
+    eval: vi.fn(async (_script: string, _numKeys: number, key: string, token: string) => {
       if (keys.get(key) !== token) return 0;
       keys.delete(key);
       return 1;
     }),
-    exists: jest.fn(async (key: string) => (keys.has(key) ? 1 : 0)),
+    exists: vi.fn(async (key: string) => (keys.has(key) ? 1 : 0)),
   };
 }
 
@@ -119,15 +120,15 @@ describe('OAuthService', () => {
   let currentRole: UserRole;
   let currentUserDisabledAt: Date | null;
   let currentUserEmail: string;
-  let resolveIdentity: jest.Mock;
-  let chatOnConnected: jest.Mock;
-  let acmeOnConnected: jest.Mock;
-  let chatResolveAccount: jest.Mock;
-  let trackerResolveAccount: jest.Mock;
-  let connectionRepo: Record<string, jest.Mock>;
-  let integrationRepo: Record<string, jest.Mock>;
-  let db: { transaction: jest.Mock };
-  let auditService: { log: jest.Mock };
+  let resolveIdentity: Mock;
+  let chatOnConnected: Mock;
+  let acmeOnConnected: Mock;
+  let chatResolveAccount: Mock;
+  let trackerResolveAccount: Mock;
+  let connectionRepo: Record<string, Mock>;
+  let integrationRepo: Record<string, Mock>;
+  let db: { transaction: Mock };
+  let auditService: { log: Mock };
   let redis: ReturnType<typeof fakeRedis>;
   let service: OAuthService;
   const trx = { name: 'install-trx' };
@@ -136,7 +137,7 @@ describe('OAuthService', () => {
   const connectState = (integrationId: string, type: string) => ({ flow: 'connect' as const, integrationId, type, userId, workspaceId });
 
   beforeAll(async () => {
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     for (const type of ['ACME', 'CHAT', 'LEGACY', 'HIDDEN', 'ENTRA', 'DESIGN', 'TRACKER']) {
       process.env[`INTEGRATION_${type}_CLIENT_ID`] = `${type.toLowerCase()}-client-id`;
       process.env[`INTEGRATION_${type}_CLIENT_SECRET`] = `${type.toLowerCase()}-client-secret`;
@@ -146,7 +147,7 @@ describe('OAuthService', () => {
   });
 
   afterAll(async () => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     for (const type of ['ACME', 'CHAT', 'LEGACY', 'HIDDEN', 'ENTRA', 'DESIGN', 'TRACKER']) {
       delete process.env[`INTEGRATION_${type}_CLIENT_ID`];
       delete process.env[`INTEGRATION_${type}_CLIENT_SECRET`];
@@ -164,18 +165,18 @@ describe('OAuthService', () => {
     currentRole = UserRole.ADMIN;
     currentUserDisabledAt = null;
     currentUserEmail = 'user@example.com';
-    resolveIdentity = jest.fn(async ({ settings }) => ({
+    resolveIdentity = vi.fn(async ({ settings }) => ({
       account: { id: 'U-42' },
       metadata: { tenantId: settings.tenantId },
     }));
-    chatResolveAccount = jest.fn(async () => ({ id: 'U-INSTALLER', displayName: 'Ada' }));
-    trackerResolveAccount = jest.fn(async () => ({
+    chatResolveAccount = vi.fn(async () => ({ id: 'U-INSTALLER', displayName: 'Ada' }));
+    trackerResolveAccount = vi.fn(async () => ({
       id: '583231',
       displayName: 'Ada Lovelace',
       username: 'ada',
     }));
-    chatOnConnected = jest.fn(async () => undefined);
-    acmeOnConnected = jest.fn(async () => undefined);
+    chatOnConnected = vi.fn(async () => undefined);
+    acmeOnConnected = vi.fn(async () => undefined);
 
     const providerOAuth = (scopes: string[]) => ({
       authUrl: `${tokenEndpoint.url}/oauth/authorize`,
@@ -248,18 +249,18 @@ describe('OAuthService', () => {
     };
 
     connectionRepo = {
-      upsert: jest.fn(async (values) => values),
-      upsertWorkspaceConnection: jest.fn(async (values) => values),
-      upsertUserLink: jest.fn(async (values) => values),
-      findUserLink: jest.fn(async () => undefined),
-      findById: jest.fn(async () => undefined),
-      updateIfTokensMatch: jest.fn(async () => true),
-      invalidate: jest.fn(async () => undefined),
+      upsert: vi.fn(async (values) => values),
+      upsertWorkspaceConnection: vi.fn(async (values) => values),
+      upsertUserLink: vi.fn(async (values) => values),
+      findUserLink: vi.fn(async () => undefined),
+      findById: vi.fn(async () => undefined),
+      updateIfTokensMatch: vi.fn(async () => true),
+      invalidate: vi.fn(async () => undefined),
     };
     integrationRepo = {
-      findById: jest.fn(async (id: string) => integrations[id] ?? null),
-      findByWorkspaceAndType: jest.fn(async () => null),
-      insertOrRestore: jest.fn(async ({ type }: { type: string }) => ({
+      findById: vi.fn(async (id: string) => integrations[id] ?? null),
+      findByWorkspaceAndType: vi.fn(async () => null),
+      insertOrRestore: vi.fn(async ({ type }: { type: string }) => ({
         id: `integration-${type}`,
         type,
         workspaceId,
@@ -267,10 +268,10 @@ describe('OAuthService', () => {
       })),
     };
 
-    auditService = { log: jest.fn() };
+    auditService = { log: vi.fn() };
     redis = fakeRedis();
     db = {
-      transaction: jest.fn(() => ({
+      transaction: vi.fn(() => ({
         execute: (callback: (t: typeof trx) => Promise<unknown>) => callback(trx),
       })),
     };
@@ -577,7 +578,7 @@ describe('OAuthService', () => {
     });
 
     it('still connects when the profile read fails, without an account', async () => {
-      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
       trackerResolveAccount.mockRejectedValue(new Error('tracker API error: 500'));
 
       await service.exchangeCodeForTokens('tracker', 'auth-code', connectState('integration-tracker', 'tracker'));
@@ -681,10 +682,10 @@ describe('OAuthService', () => {
       ['an access token that is not a string', { access_token: { value: 'def-SECRET' } }],
       ['a refresh token with an escape character', { access_token: 'access-token', refresh_token: 'abc\x1bdef-SECRET' }],
     ];
-    const errorLog = () => jest.mocked(Logger.prototype.error).mock.calls;
+    const errorLog = () => vi.mocked(Logger.prototype.error).mock.calls;
 
     beforeEach(() => {
-      jest.mocked(Logger.prototype.error).mockClear();
+      vi.mocked(Logger.prototype.error).mockClear();
     });
 
     it.each(malformed)('fails an install on %s without writing or logging the token', async (_label, body) => {
@@ -716,7 +717,7 @@ describe('OAuthService', () => {
   });
 
   describe('token endpoint responses during the code exchange', () => {
-    const errorLog = () => jest.mocked(Logger.prototype.error).mock.calls;
+    const errorLog = () => vi.mocked(Logger.prototype.error).mock.calls;
     const exchange = (type = 'acme') =>
       service.exchangeCodeForTokens(type, 'auth-code', installState(type)).catch((err) => err);
     const expectNothingWritten = () => {
@@ -726,7 +727,7 @@ describe('OAuthService', () => {
     };
 
     beforeEach(() => {
-      jest.mocked(Logger.prototype.error).mockClear();
+      vi.mocked(Logger.prototype.error).mockClear();
     });
 
     it('logs the status and error code of a refused exchange and nothing else from the body', async () => {
@@ -800,7 +801,7 @@ describe('OAuthService', () => {
       });
       expect(second.nonce).not.toBe(first.nonce);
 
-      const now = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60_000);
+      const now = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60_000);
       try {
         expect(service.verifySignedState(state)).toBeNull();
       } finally {
@@ -1081,7 +1082,7 @@ describe('OAuthService', () => {
       ['a JSON null', null],
       ['a refresh token with a NUL', { access_token: 'new-access-token', refresh_token: 'abc\x00def-SECRET' }],
     ])('keeps the connection as it was when the refresh returns %s, without logging the token', async (_label, body) => {
-      const logged = jest.mocked(Logger.prototype.error);
+      const logged = vi.mocked(Logger.prototype.error);
       logged.mockClear();
       tokenEndpointReply = (_req, res) => tokenJson(res, body);
 
@@ -1095,7 +1096,7 @@ describe('OAuthService', () => {
     });
 
     it('rejects truncated JSON during refresh without changing the connection or logging the body', async () => {
-      const logged = jest.mocked(Logger.prototype.error);
+      const logged = vi.mocked(Logger.prototype.error);
       logged.mockClear();
       tokenEndpointReply = (_req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1125,7 +1126,7 @@ describe('OAuthService', () => {
 
     describe('when the token endpoint rejects the refresh', () => {
       beforeEach(() => {
-        jest.mocked(Logger.prototype.error).mockClear();
+        vi.mocked(Logger.prototype.error).mockClear();
       });
 
       it.each([
@@ -1142,7 +1143,7 @@ describe('OAuthService', () => {
 
         expect(connectionRepo.invalidate).not.toHaveBeenCalled();
         expect(connectionRepo.updateIfTokensMatch).not.toHaveBeenCalled();
-        const logs = JSON.stringify(jest.mocked(Logger.prototype.error).mock.calls);
+        const logs = JSON.stringify(vi.mocked(Logger.prototype.error).mock.calls);
         expect(logs).toContain(status + ' ' + error);
         expect(logs).not.toContain('PRIVATE');
         expect(redis.keys.size).toBe(0);
@@ -1157,7 +1158,7 @@ describe('OAuthService', () => {
 
         expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
         expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
-        expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([[`Token refresh failed for ${type}: 400 invalid_grant`]]);
+        expect(vi.mocked(Logger.prototype.error).mock.calls).toEqual([[`Token refresh failed for ${type}: 400 invalid_grant`]]);
       });
 
       it('retires the connection on interaction_required', async () => {
@@ -1183,7 +1184,7 @@ describe('OAuthService', () => {
 
         expect(connectionRepo.invalidate).toHaveBeenCalledWith('connection-1', { refreshToken: 'refresh-token' });
         expect(row).toMatchObject({ invalidatedAt: expect.any(Date), refreshToken: null });
-        expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([['Token refresh failed for acme: 200 bad_refresh_token']]);
+        expect(vi.mocked(Logger.prototype.error).mock.calls).toEqual([['Token refresh failed for acme: 200 bad_refresh_token']]);
       });
 
       it.each([
@@ -1198,7 +1199,7 @@ describe('OAuthService', () => {
         await expect(service.refreshAccessToken(expiringConnection())).rejects.toBeInstanceOf(BadRequestException);
 
         expect(connectionRepo.invalidate).not.toHaveBeenCalled();
-        expect(jest.mocked(Logger.prototype.error).mock.calls).toEqual([
+        expect(vi.mocked(Logger.prototype.error).mock.calls).toEqual([
           ['Token refresh failed for acme: 400'], ['Token refresh error: Token refresh failed'],
         ]);
       });
@@ -1287,15 +1288,15 @@ describe('OAuthService', () => {
       });
 
       it('gives up after five seconds while another process still holds the lock, without retiring the connection', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         try {
           const row = storeRow({ ...expiringConnection() });
           redis.keys.set(lockKey, 'other-process');
 
           const outcome = service.getValidAccessToken(expiringConnection()).catch((err) => err);
-          await jest.advanceTimersByTimeAsync(4_800);
+          await vi.advanceTimersByTimeAsync(4_800);
           expect(connectionRepo.findById).not.toHaveBeenCalled();
-          await jest.advanceTimersByTimeAsync(400);
+          await vi.advanceTimersByTimeAsync(400);
 
           expect(await outcome).toBeInstanceOf(TokenExpiredError);
           expect(connectionRepo.findById).toHaveBeenCalledTimes(1);
@@ -1304,12 +1305,12 @@ describe('OAuthService', () => {
           expect(row).toMatchObject({ refreshToken: 'refresh-token', invalidatedAt: null });
           expect(redis.keys.get(lockKey)).toBe('other-process');
         } finally {
-          jest.useRealTimers();
+          vi.useRealTimers();
         }
       });
 
       it('reports the token expired without refreshing when Redis fails', async () => {
-        jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+        vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
         storeRow({ ...expiringConnection() });
         redis.set.mockRejectedValue(new Error('connection lost'));
         redis.exists.mockRejectedValue(new Error('connection lost'));

@@ -51,7 +51,7 @@ describe('getProxyAwareFetch', () => {
 
     const original = globalThis.fetch;
     const response = new Response('ok');
-    const spy = jest.fn().mockResolvedValue(response);
+    const spy = vi.fn().mockResolvedValue(response);
     globalThis.fetch = spy as unknown as typeof fetch;
 
     try {

@@ -2,15 +2,15 @@ import { withCache } from './with-cache';
 
 function makeCache(cached?: unknown) {
   return {
-    get: jest.fn(async () => (cached === undefined ? undefined : { v: cached })),
-    set: jest.fn(async () => undefined),
+    get: vi.fn(async () => (cached === undefined ? undefined : { v: cached })),
+    set: vi.fn(async () => undefined),
   };
 }
 
 describe('withCache', () => {
   it('returns a cached value without running the lookup', async () => {
     const cache = makeCache('cached');
-    const lookup = jest.fn(async () => 'fresh');
+    const lookup = vi.fn(async () => 'fresh');
 
     await expect(withCache(cache as any, 'key', 1000, lookup)).resolves.toBe('cached');
     expect(lookup).not.toHaveBeenCalled();
@@ -18,7 +18,7 @@ describe('withCache', () => {
 
   it('skips the cache entirely when asked', async () => {
     const cache = makeCache('cached');
-    const lookup = jest.fn(async () => 'fresh');
+    const lookup = vi.fn(async () => 'fresh');
 
     await expect(
       withCache(cache as any, 'key', 1000, lookup, { skipCache: true }),

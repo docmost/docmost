@@ -23,11 +23,11 @@
     "migration:reset": "tsx src/database/migrate.ts down-to NO_MIGRATIONS",
     "migration:codegen": "kysely-codegen --dialect=postgres --camel-case --env-file=../../.env --out-file=./src/database/types/db.d.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config test/jest-e2e.json"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "test:debug": "vitest --inspect-brk --no-file-parallelism",
+    "test:e2e": "vitest run --config vitest.config.e2e.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "3.0.123",
@@ -133,7 +133,6 @@
     "@types/bcrypt": "^6.0.0",
     "@types/debounce": "^1.2.4",
     "@types/fs-extra": "^11.0.4",
-    "@types/jest": "^30.0.0",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^25.5.0",
     "@types/passport-google-oauth20": "^2.0.17",
@@ -141,63 +140,17 @@
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",
     "@types/yauzl": "^2.10.3",
+    "@vitest/coverage-v8": "4.1.12",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
-    "jest": "^30.3.0",
     "kysely-codegen": "^0.20.0",
     "prettier": "^3.8.1",
     "source-map-support": "^0.5.21",
     "supertest": "^7.2.2",
-    "ts-jest": "^29.4.15",
     "ts-loader": "^9.5.7",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.1"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts",
-      "tsx"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "happy-dom.+\\.js$": [
-        "babel-jest",
-        {
-          "presets": [
-            [
-              "@babel/preset-env",
-              {
-                "targets": {
-                  "node": "current"
-                }
-              }
-            ]
-          ]
-        }
-      ],
-      "^.+\\.(t|j)sx?$": "ts-jest"
-    },
-    "transformIgnorePatterns": [
-      "/node_modules/(?!(\\.pnpm/)?(nanoid|uuid|image-dimensions|marked|happy-dom)(@|/))"
-    ],
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "moduleNameMapper": {
-      "^@docmost/db/(.*)$": "<rootDir>/database/$1",
-      "^@docmost/transactional/(.*)$": "<rootDir>/integrations/transactional/$1",
-      "^@docmost/ee/(.*)$": "<rootDir>/ee/$1",
-      "^src/(.*)$": "<rootDir>/$1",
-      "^@docmost/base-formula/server$": "<rootDir>/../../../packages/base-formula/src/index.server.ts",
-      "^@docmost/base-formula/client$": "<rootDir>/../../../packages/base-formula/src/index.client.ts"
-    }
+    "typescript-eslint": "^8.72.1",
+    "vitest": "4.1.12"
   }
 }

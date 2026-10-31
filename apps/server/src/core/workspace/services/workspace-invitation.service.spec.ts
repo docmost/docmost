@@ -41,9 +41,9 @@ function buildService(invitation?: Record<string, unknown>) {
       if (event.level === 'query') queries.push(event.query);
     },
   });
-  const userRepo = { findById: jest.fn().mockResolvedValue({ name: 'Grace' }) };
+  const userRepo = { findById: vi.fn().mockResolvedValue({ name: 'Grace' }) };
   const domainService = { getUrl: () => 'https://acme.example.com' };
-  const auditService = { log: jest.fn() };
+  const auditService = { log: vi.fn() };
   const service = new WorkspaceInvitationService(
     userRepo as any,
     {} as any,
@@ -143,7 +143,7 @@ describe('WorkspaceInvitationService expiry', () => {
 
   it('keeps the token when resending a live invitation', async () => {
     const { service, queries } = buildService(liveInvitation());
-    const sendInvitationMail = jest
+    const sendInvitationMail = vi
       .spyOn(service, 'sendInvitationMail')
       .mockResolvedValue(undefined);
 
@@ -166,7 +166,7 @@ describe('WorkspaceInvitationService expiry', () => {
 
   it('issues a new token when resending an expired invitation', async () => {
     const { service, queries } = buildService(expiredInvitation());
-    const sendInvitationMail = jest
+    const sendInvitationMail = vi
       .spyOn(service, 'sendInvitationMail')
       .mockResolvedValue(undefined);
 

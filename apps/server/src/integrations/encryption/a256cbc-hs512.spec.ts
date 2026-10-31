@@ -1,6 +1,11 @@
 import * as crypto from 'node:crypto';
 import { decryptA256CbcHs512, encryptA256CbcHs512 } from './a256cbc-hs512';
 
+vi.mock('node:crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:crypto')>();
+  return { ...actual, createDecipheriv: vi.fn(actual.createDecipheriv) };
+});
+
 // RFC 7518 Appendix B.3: independent known-answer values
 const key = Buffer.from(Array.from({ length: 64 }, (_, i) => i));
 const iv = Buffer.from('1af38c2dc2b96ffdd86694092341bc04', 'hex');
@@ -37,19 +42,16 @@ describe('A256CBC-HS512', () => {
   });
 
   it('rejects bad authentication before invoking CBC decryption', () => {
-    const decrypt = jest.spyOn(crypto, 'createDecipheriv');
-    try {
-      expect(() =>
-        decryptA256CbcHs512(
-          { iv, cipherText, authTag: Buffer.alloc(32) },
-          key,
-          aad,
-        ),
-      ).toThrow('Ciphertext authentication failed');
-      expect(decrypt).not.toHaveBeenCalled();
-    } finally {
-      decrypt.mockRestore();
-    }
+    vi.mocked(crypto.createDecipheriv).mockClear();
+
+    expect(() =>
+      decryptA256CbcHs512(
+        { iv, cipherText, authTag: Buffer.alloc(32) },
+        key,
+        aad,
+      ),
+    ).toThrow('Ciphertext authentication failed');
+    expect(crypto.createDecipheriv).not.toHaveBeenCalled();
   });
 
   it('authenticates the additional data', () => {

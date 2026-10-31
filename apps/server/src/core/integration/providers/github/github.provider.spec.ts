@@ -2,13 +2,14 @@ import { Logger } from '@nestjs/common';
 import { GitHubProvider } from './github.provider';
 import { IntegrationRegistry } from '../../registry/integration-registry';
 import { UnfurlPattern } from '../../registry/integration-provider.interface';
+import type { MockInstance } from 'vitest';
 
 const GHE_BASE = 'https://github.acme.com';
 const PUBLIC_PR = 'https://github.com/o/r/pull/1';
 const GHE_PR = `${GHE_BASE}/o/r/pull/1`;
 
 function buildProvider() {
-  const unfurlPullRequest = jest.fn().mockResolvedValue({});
+  const unfurlPullRequest = vi.fn().mockResolvedValue({});
   const provider = new GitHubProvider({ unfurlPullRequest } as any);
   return { provider, unfurlPullRequest };
 }
@@ -104,10 +105,10 @@ describe('GitHubProvider host matching', () => {
   });
 
   describe('INTEGRATION_GITHUB_URL validation', () => {
-    let warn: jest.SpyInstance;
+    let warn: MockInstance;
 
     beforeEach(() => {
-      warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     });
 
     afterEach(() => warn.mockRestore());

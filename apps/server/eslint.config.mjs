@@ -13,7 +13,7 @@ export default [
   },
   {
     languageOptions: {
-      globals: { ...globals.node, ...globals.jest },
+      globals: { ...globals.node, ...globals.vitest },
       sourceType: 'module',
       parser: tseslint.parser,
       parserOptions: {

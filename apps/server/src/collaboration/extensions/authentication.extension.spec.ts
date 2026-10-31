@@ -12,8 +12,8 @@ function makeConnection(userId: string) {
   return {
     context: { user: { id: userId, workspaceId: 'ws_1' } },
     readOnly: false,
-    close: jest.fn(),
-    sendStateless: jest.fn(),
+    close: vi.fn(),
+    sendStateless: vi.fn(),
   };
 }
 
@@ -22,36 +22,36 @@ async function makeExtension(
   documents: Record<string, ReturnType<typeof makeConnection>[]> = {},
 ) {
   const subscriber = {
-    on: jest.fn(),
-    subscribe: jest.fn(async () => undefined),
-    disconnect: jest.fn(),
+    on: vi.fn(),
+    subscribe: vi.fn(async () => undefined),
+    disconnect: vi.fn(),
   };
   const spaceMemberRepo = {
-    getUserSpaceRoles: jest.fn(async (userId: string) => spaceRoles[userId]),
+    getUserSpaceRoles: vi.fn(async (userId: string) => spaceRoles[userId]),
   };
   const pagePermissionRepo = {
-    canUserEditPage: jest.fn(async () => ({
+    canUserEditPage: vi.fn(async () => ({
       hasAnyRestriction: false,
       canAccess: true,
       canEdit: true,
     })),
   };
   const extension = new AuthenticationExtension(
-    { verifyJwt: jest.fn(async (token: string) => ({ sub: token, workspaceId: 'ws_1' })) } as any,
+    { verifyJwt: vi.fn(async (token: string) => ({ sub: token, workspaceId: 'ws_1' })) } as any,
     {
-      findById: jest.fn(async (id: string) => {
+      findById: vi.fn(async (id: string) => {
         if (id === 'user_broken') throw new Error('db down');
         return { id, workspaceId: 'ws_1' };
       }),
     } as any,
     {
-      findById: jest.fn(async (id: string) => ({
+      findById: vi.fn(async (id: string) => ({
         id,
         spaceId: 'space_1',
         workspaceId: id === 'page_other_ws' ? 'ws_2' : 'ws_1',
         deletedAt: null,
       })),
-      getPageAndDescendants: jest.fn(async (id: string) => [{ id }, { id: 'child_page' }]),
+      getPageAndDescendants: vi.fn(async (id: string) => [{ id }, { id: 'child_page' }]),
     } as any,
     spaceMemberRepo as any,
     pagePermissionRepo as any,

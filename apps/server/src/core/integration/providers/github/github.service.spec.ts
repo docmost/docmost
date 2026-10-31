@@ -2,13 +2,14 @@ import { proxyFetch } from '../../../../common/proxy-fetch';
 import { UnfurlForbiddenError } from '../../registry/integration-provider.interface';
 import { GitHubProvider } from './github.provider';
 import { GitHubService } from './github.service';
+import type { Mock } from 'vitest';
 
 // Mock only proxyFetch so the real providerApiFetch handles statuses.
-jest.mock('../../../../common/proxy-fetch', () => ({
-  proxyFetch: jest.fn(),
+vi.mock('../../../../common/proxy-fetch', () => ({
+  proxyFetch: vi.fn(),
 }));
 
-const fetchMock = proxyFetch as jest.Mock;
+const fetchMock = proxyFetch as Mock;
 
 const API = 'https://api.github.com';
 const ENTERPRISE_API = 'https://github.acme.com/api/v3';
