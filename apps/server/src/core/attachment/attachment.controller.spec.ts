@@ -270,7 +270,7 @@ describe.each([
 
       const response = await post(randomBytes(size));
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(413);
       expect(response.json().message).toBe(
         `File too large. Exceeds the ${limit} limit`,
       );
@@ -289,7 +289,7 @@ describe.each([
         MULTIPART_TAIL,
       ]);
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(413);
       expect(JSON.parse(response.body).message).toBe(
         'File too large. Exceeds the 2mb limit',
       );
@@ -328,7 +328,7 @@ describe.each([
         bytes(MAX_AVATAR_SIZE) + 1,
       );
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(413);
       expect(response.json().message).toBe(
         `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
       );
@@ -378,7 +378,7 @@ describe.each([
           attachmentId: ATTACHMENT_ID,
         });
 
-        expect(response.statusCode).toBe(400);
+        expect(response.statusCode).toBe(413);
         expect(response.json().message).toBe(
           `File too large. Exceeds the ${limit} limit`,
         );

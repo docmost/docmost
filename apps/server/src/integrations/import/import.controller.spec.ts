@@ -142,7 +142,7 @@ describe('ImportController uploads', () => {
         Buffer.alloc(LIMIT + 1, 'a'),
       );
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(413);
       expect(response.json().message).toBe(
         'File too large. Exceeds the 30mb import limit',
       );
@@ -162,7 +162,7 @@ describe('ImportController uploads', () => {
       });
       payload.destroy();
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(413);
       expect(response.json().message).toBe(
         'File too large. Exceeds the 30mb import limit',
       );
@@ -207,7 +207,7 @@ describe('ImportController uploads', () => {
         { source: 'generic' },
       );
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(413);
       expect(response.json().message).toBe(
         `File too large. Exceeds the ${IMPORT_LIMIT} import limit`,
       );

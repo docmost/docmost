@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Inject,
   Logger,
+  PayloadTooLargeException,
   Post,
   Req,
   UseGuards,
@@ -64,7 +65,7 @@ export class ImportController {
     } catch (err: any) {
       this.logger.error(err.message);
       if (err?.statusCode === 413) {
-        throw new BadRequestException(
+        throw new PayloadTooLargeException(
           `File too large. Exceeds the ${sizeLimit} import limit`,
         );
       }
@@ -101,7 +102,7 @@ export class ImportController {
       );
     } catch (err: any) {
       if (err?.statusCode === 413) {
-        throw new BadRequestException(
+        throw new PayloadTooLargeException(
           `File too large. Exceeds the ${sizeLimit} import limit`,
         );
       }
@@ -153,7 +154,7 @@ export class ImportController {
     } catch (err: any) {
       this.logger.error(err.message);
       if (err?.statusCode === 413) {
-        throw new BadRequestException(
+        throw new PayloadTooLargeException(
           `File too large. Exceeds the ${this.environmentService.getFileImportSizeLimit()} import limit`,
         );
       }
@@ -199,7 +200,7 @@ export class ImportController {
       );
     } catch (err: any) {
       if (err?.statusCode === 413) {
-        throw new BadRequestException(
+        throw new PayloadTooLargeException(
           `File too large. Exceeds the ${this.environmentService.getFileImportSizeLimit()} import limit`,
         );
       }
