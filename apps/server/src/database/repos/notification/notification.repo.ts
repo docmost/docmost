@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '../../types/kysely.types';
+import { KyselyDB } from '../../types/kysely.types.js';
 import {
   InsertableNotification,
   Notification,
-} from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+} from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 import { ExpressionBuilder } from 'kysely';
-import { DB } from '@docmost/db/types/db';
+import { DB } from '@docmost/db/types/db.js';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
 import {
   NotificationTab,
   NotificationType,
-} from '../../../core/notification/notification.constants';
+} from '../../../core/notification/notification.constants.js';
 
 @Injectable()
 export class NotificationRepo {

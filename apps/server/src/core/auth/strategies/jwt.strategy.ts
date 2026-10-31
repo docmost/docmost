@@ -1,20 +1,21 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
 import {
   JwtApiKeyPayload,
   JwtOAuthPayload,
   JwtPayload,
   JwtType,
-} from '../dto/jwt-payload';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { SessionActivityService } from '../../session/session-activity.service';
+} from '../dto/jwt-payload.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo.js';
+import { SessionActivityService } from '../../session/session-activity.service.js';
 import { FastifyRequest } from 'fastify';
-import { extractBearerTokenFromHeader, isUserDisabled } from '../../../common/helpers';
+import { extractBearerTokenFromHeader, isUserDisabled } from '../../../common/helpers/index.js';
 import { ModuleRef } from '@nestjs/core';
+import { importEe } from '../../../common/helpers/ee-loader.js';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -100,8 +101,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     let isApiKeyModuleReady = false;
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      ApiKeyModule = require('./../../../ee/api-key/api-key.service');
+      ApiKeyModule = await importEe('api-key/api-key.service');
       isApiKeyModuleReady = true;
     } catch (err) {
       this.logger.debug(
@@ -126,8 +126,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     let isOAuthModuleReady = false;
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      OAuthStrategyModule = require('./../../../ee/oauth/services/oauth-strategy.service');
+      OAuthStrategyModule = await importEe('oauth/services/oauth-strategy.service');
       isOAuthModuleReady = true;
     } catch (err) {
       this.logger.debug(

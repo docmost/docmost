@@ -1,7 +1,7 @@
 import {
   collectReferencesFromPmJson,
   collectTransclusionsFromPmJson,
-} from '../utils/transclusion-prosemirror.util';
+} from '../utils/transclusion-prosemirror.util.js';
 
 describe('collectTransclusionsFromPmJson', () => {
   it('returns [] for null/undefined doc', () => {

@@ -1,7 +1,7 @@
 import {
   parseOutboundNetworkPolicy,
   policyNamesAddress,
-} from './outbound-network-policy';
+} from './outbound-network-policy.js';
 
 describe('parseOutboundNetworkPolicy', () => {
   it('parses a bare mode', () => {

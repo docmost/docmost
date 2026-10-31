@@ -1,8 +1,8 @@
-import { makeErrorCell, isErrorCell } from "./error";
-import { valueToString } from "./number";
-import { MAX_EVAL_DEPTH } from "./types";
-import type { FormulaAST, OpCode } from "./ast";
-import type { Value, EvalContext } from "./types";
+import { makeErrorCell, isErrorCell } from "./error.js";
+import { valueToString } from "./number.js";
+import { MAX_EVAL_DEPTH } from "./types.js";
+import type { FormulaAST, OpCode } from "./ast.js";
+import type { Value, EvalContext } from "./types.js";
 
 export function evaluate(
   ast: FormulaAST,

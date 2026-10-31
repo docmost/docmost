@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { STORAGE_DRIVER_TOKEN } from './constants/storage.constants';
-import { StorageDriver } from './interfaces';
+import { STORAGE_DRIVER_TOKEN } from './constants/storage.constants.js';
+import { StorageDriver } from './interfaces/index.js';
 import { Readable } from 'stream';
 
 @Injectable()

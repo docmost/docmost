@@ -7,7 +7,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { Transform, TransformFnParams } from 'class-transformer';
-import { NoUrls } from '../../../common/validators/no-urls.validator';
+import { NoUrls } from '../../../common/validators/no-urls.validator.js';
 
 export class CreateUserDto {
   @IsOptional()

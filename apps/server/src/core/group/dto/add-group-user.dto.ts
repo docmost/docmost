@@ -1,5 +1,5 @@
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsUUID } from 'class-validator';
-import { GroupIdDto } from './group-id.dto';
+import { GroupIdDto } from './group-id.dto.js';
 
 export class AddGroupUserDto extends GroupIdDto {
   @IsArray()

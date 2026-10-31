@@ -1,20 +1,20 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { QueueJob, QueueName } from '../constants';
+import { QueueJob, QueueName } from '../constants/index.js';
 import {
   IAddPageWatchersJob,
   IPageBacklinkJob,
-} from '../constants/queue.interface';
+} from '../constants/queue.interface.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo.js';
 import {
   WatcherRepo,
   WatcherType,
-} from '@docmost/db/repos/watcher/watcher.repo';
-import { InsertableWatcher } from '@docmost/db/types/entity.types';
-import { processBacklinks } from '../tasks/backlinks.task';
+} from '@docmost/db/repos/watcher/watcher.repo.js';
+import { InsertableWatcher } from '@docmost/db/types/entity.types.js';
+import { processBacklinks } from '../tasks/backlinks.task.js';
 
 @Processor(QueueName.GENERAL_QUEUE)
 export class GeneralQueueProcessor

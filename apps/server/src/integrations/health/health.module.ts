@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
-import { HealthController } from './health.controller';
+import { HealthController } from './health.controller.js';
 import { TerminusModule } from '@nestjs/terminus';
-import { PostgresHealthIndicator } from './postgres.health';
-import { RedisHealthIndicator } from './redis.health';
+import { PostgresHealthIndicator } from './postgres.health.js';
+import { RedisHealthIndicator } from './redis.health.js';
 
 @Global()
 @Module({

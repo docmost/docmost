@@ -1,21 +1,21 @@
 import { Module } from '@nestjs/common';
-import { AppController } from '../../app.controller';
-import { AppService } from '../../app.service';
-import { EnvironmentModule } from '../../integrations/environment/environment.module';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { CollaborationModule } from '../collaboration.module';
-import { DatabaseModule } from '@docmost/db/database.module';
-import { QueueModule } from '../../integrations/queue/queue.module';
+import { AppController } from '../../app.controller.js';
+import { AppService } from '../../app.service.js';
+import { EnvironmentModule } from '../../integrations/environment/environment.module.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { CollaborationModule } from '../collaboration.module.js';
+import { DatabaseModule } from '@docmost/db/database.module.js';
+import { QueueModule } from '../../integrations/queue/queue.module.js';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { HealthModule } from '../../integrations/health/health.module';
-import { CollaborationController } from './collaboration.controller';
-import { LoggerModule } from '../../common/logger/logger.module';
+import { HealthModule } from '../../integrations/health/health.module.js';
+import { CollaborationController } from './collaboration.controller.js';
+import { LoggerModule } from '../../common/logger/logger.module.js';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
-import { RedisConfigService } from '../../integrations/redis/redis-config.service';
-import { CaslModule } from '../../core/casl/casl.module';
+import { RedisConfigService } from '../../integrations/redis/redis-config.service.js';
+import { CaslModule } from '../../core/casl/casl.module.js';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis, { defaultReconnectStrategy } from '@keyv/redis';
-import { parseRedisUrl } from '../../common/helpers';
+import { parseRedisUrl } from '../../common/helpers/index.js';
 
 @Module({
   imports: [

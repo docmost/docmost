@@ -5,7 +5,7 @@ import {
   mergeAttributes,
   wrappingInputRule,
 } from "@tiptap/core";
-import { icon, setAttributes } from "../utils";
+import { icon, setAttributes } from "../utils.js";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {

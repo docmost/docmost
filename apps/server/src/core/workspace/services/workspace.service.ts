@@ -6,53 +6,53 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
-import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
-import { SpaceService } from '../../space/services/space.service';
-import { CreateSpaceDto } from '../../space/dto/create-space.dto';
-import { SpaceRole, UserRole } from '../../../common/helpers/types/permission';
-import { SpaceMemberService } from '../../space/services/space-member.service';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service.js';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo.js';
+import { CreateWorkspaceDto } from '../dto/create-workspace.dto.js';
+import { UpdateWorkspaceDto } from '../dto/update-workspace.dto.js';
+import { SpaceService } from '../../space/services/space.service.js';
+import { CreateSpaceDto } from '../../space/dto/create-space.dto.js';
+import { SpaceRole, UserRole } from '../../../common/helpers/types/permission.js';
+import { SpaceMemberService } from '../../space/services/space-member.service.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { executeTx } from '@docmost/db/utils.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { Feature } from '../../../common/features';
-import { User } from '@docmost/db/types/entity.types';
-import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { GroupRepo } from '@docmost/db/repos/group/group.repo';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { DomainService } from '../../../integrations/environment/domain.service';
+import { Feature } from '../../../common/features.js';
+import { User } from '@docmost/db/types/entity.types.js';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo.js';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
+import { DomainService } from '../../../integrations/environment/domain.service.js';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
-import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
-import { isAdminActingOnOwner } from '../workspace.util';
+import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants.js';
+import { isAdminActingOnOwner } from '../workspace.util.js';
 import { v4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants/index.js';
 import { Queue } from 'bullmq';
 import {
   generateRandomSuffixNumbers,
   diffAuditTrackedFields,
-} from '../../../common/helpers';
-import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
-import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import { ShareRepo } from '@docmost/db/repos/share/share.repo';
-import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo';
-import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+} from '../../../common/helpers/index.js';
+import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers.js';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination.js';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo.js';
+import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo.js';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo.js';
+import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
-import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
-import { WsService } from '../../../ws/ws.service';
-import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+} from '../../../integrations/audit/audit.service.js';
+import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo.js';
+import { WsService } from '../../../ws/ws.service.js';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service.js';
 
 @Injectable()
 export class WorkspaceService {

@@ -3,7 +3,7 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { Migrator, FileMigrationProvider } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 
 @Injectable()
 export class MigrationService {
@@ -17,7 +17,7 @@ export class MigrationService {
       provider: new FileMigrationProvider({
         fs,
         path,
-        migrationFolder: path.join(__dirname, '..', 'migrations'),
+        migrationFolder: path.join(import.meta.dirname, '..', 'migrations'),
       }),
     });
 

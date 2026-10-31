@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PageService } from './page.service';
+import { PageService } from './page.service.js';
 
 describe('PageService', () => {
   let service: PageService;

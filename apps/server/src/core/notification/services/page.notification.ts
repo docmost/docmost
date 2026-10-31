@@ -2,26 +2,26 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import {
   IPageMentionNotificationJob,
   IPageUpdateNotificationJob,
   IPermissionGrantedNotificationJob,
-} from '../../../integrations/queue/constants/queue.interface';
-import { NotificationService } from '../notification.service';
-import { NotificationType } from '../notification.constants';
-import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { PageUpdateEmailRateLimiter } from './page-update-email-rate-limiter';
-import { PageMentionEmail } from '@docmost/transactional/emails/page-mention-email';
-import { PageUpdateEmail } from '@docmost/transactional/emails/page-update-email';
-import { PageUpdateDigestEmail } from '@docmost/transactional/emails/page-update-digest-email';
-import { PermissionGrantedEmail } from '@docmost/transactional/emails/permission-granted-email';
-import { getPageTitle } from '../../../common/helpers';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
-import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+} from '../../../integrations/queue/constants/queue.interface.js';
+import { NotificationService } from '../notification.service.js';
+import { NotificationType } from '../notification.constants.js';
+import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo.js';
+import { PageUpdateEmailRateLimiter } from './page-update-email-rate-limiter.js';
+import { PageMentionEmail } from '@docmost/transactional/emails/page-mention-email.js';
+import { PageUpdateEmail } from '@docmost/transactional/emails/page-update-email.js';
+import { PageUpdateDigestEmail } from '@docmost/transactional/emails/page-update-digest-email.js';
+import { PermissionGrantedEmail } from '@docmost/transactional/emails/permission-granted-email.js';
+import { getPageTitle } from '../../../common/helpers/index.js';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants/index.js';
+import { CollaborationGateway } from '../../../collaboration/collaboration.gateway.js';
 
 const PAGE_UPDATE_COOLDOWN_HOURS = 7;
 const DIGEST_DELAY_MS = 12 * 60 * 60 * 1000; // 12 hours

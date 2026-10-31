@@ -1,6 +1,6 @@
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type { NodeView, ViewMutationRecord } from '@tiptap/pm/view';
-import { getColStyleDeclaration } from './utils/col-style';
+import { getColStyleDeclaration } from './utils/col-style.js';
 
 export function updateColumns(
   node: ProseMirrorNode,

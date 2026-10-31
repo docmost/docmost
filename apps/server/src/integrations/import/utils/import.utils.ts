@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { ExportMetadata } from '../../../common/helpers/types/export-metadata.types';
+import { ExportMetadata } from '../../../common/helpers/types/export-metadata.types.js';
 
 export async function buildAttachmentCandidates(
   extractDir: string,

@@ -9,30 +9,30 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { CommentService } from './comment.service';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
-import { PageIdDto, CommentIdDto } from './dto/comments.input';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { CommentService } from './comment.service.js';
+import { CreateCommentDto } from './dto/create-comment.dto.js';
+import { UpdateCommentDto } from './dto/update-comment.dto.js';
+import { PageIdDto, CommentIdDto } from './dto/comments.input.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
-import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
-import { PageAccessService } from '../page/page-access/page-access.service';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+} from '../casl/interfaces/space-ability.type.js';
+import { CommentRepo } from '@docmost/db/repos/comment/comment.repo.js';
+import { PageAccessService } from '../page/page-access/page-access.service.js';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
-import { WsService } from '../../ws/ws.service';
+} from '../../integrations/audit/audit.service.js';
+import { WsService } from '../../ws/ws.service.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')

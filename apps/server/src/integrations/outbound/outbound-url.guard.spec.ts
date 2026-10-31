@@ -6,7 +6,7 @@ import {
   isPrivateNetworkAddress,
   OutboundUrlError,
   OutboundUrlGuard,
-} from './outbound-url.guard';
+} from './outbound-url.guard.js';
 
 function guard(
   isCloud: boolean,

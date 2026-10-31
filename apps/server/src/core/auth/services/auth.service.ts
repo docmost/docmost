@@ -6,44 +6,44 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { LoginDto } from '../dto/login.dto';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { TokenService } from './token.service';
-import { SessionService } from '../../session/session.service';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { SignupService } from './signup.service';
-import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { LoginDto } from '../dto/login.dto.js';
+import { CreateUserDto } from '../dto/create-user.dto.js';
+import { TokenService } from './token.service.js';
+import { SessionService } from '../../session/session.service.js';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo.js';
+import { SignupService } from './signup.service.js';
+import { CreateAdminUserDto } from '../dto/create-admin-user.dto.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
 import {
   comparePasswordHash,
   hashPassword,
   isUserDisabled,
   nanoIdGen,
-} from '../../../common/helpers';
-import { throwIfEmailNotVerified } from '../auth.util';
-import { ChangePasswordDto } from '../dto/change-password.dto';
-import { MailService } from '../../../integrations/mail/mail.service';
-import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';
-import { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email';
-import { UserTokenRepo } from '@docmost/db/repos/user-token/user-token.repo';
-import { PasswordResetDto } from '../dto/password-reset.dto';
-import { User, UserToken, Workspace } from '@docmost/db/types/entity.types';
-import { UserTokenType } from '../auth.constants';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+} from '../../../common/helpers/index.js';
+import { throwIfEmailNotVerified } from '../auth.util.js';
+import { ChangePasswordDto } from '../dto/change-password.dto.js';
+import { MailService } from '../../../integrations/mail/mail.service.js';
+import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email.js';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto.js';
+import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email.js';
+import { UserTokenRepo } from '@docmost/db/repos/user-token/user-token.repo.js';
+import { PasswordResetDto } from '../dto/password-reset.dto.js';
+import { User, UserToken, Workspace } from '@docmost/db/types/entity.types.js';
+import { UserTokenType } from '../auth.constants.js';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { executeTx } from '@docmost/db/utils';
-import { WsService } from '../../../ws/ws.service';
-import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
-import { DomainService } from '../../../integrations/environment/domain.service';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { executeTx } from '@docmost/db/utils.js';
+import { WsService } from '../../../ws/ws.service.js';
+import { VerifyUserTokenDto } from '../dto/verify-user-token.dto.js';
+import { DomainService } from '../../../integrations/environment/domain.service.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
+} from '../../../integrations/audit/audit.service.js';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EventName } from '../../../common/events/event.contants';
+import { EventName } from '../../../common/events/event.contants.js';
 
 @Injectable()
 export class AuthService {

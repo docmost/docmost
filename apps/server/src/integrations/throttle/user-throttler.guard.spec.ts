@@ -1,7 +1,7 @@
 import { Reflector } from '@nestjs/core';
 import { ThrottlerStorageService } from '@nestjs/throttler';
-import { JwtType } from '../../core/auth/dto/jwt-payload';
-import { UserThrottlerGuard } from './user-throttler.guard';
+import { JwtType } from '../../core/auth/dto/jwt-payload.js';
+import { UserThrottlerGuard } from './user-throttler.guard.js';
 
 const guard = new UserThrottlerGuard(
   [],

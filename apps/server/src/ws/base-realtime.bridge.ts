@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Server, Socket } from 'socket.io';
+import { requireEe } from '../common/helpers/ee-loader.js';
 
 @Injectable()
 export class BaseRealtimeBridge {
@@ -12,8 +13,7 @@ export class BaseRealtimeBridge {
 
   protected loadServiceClass(): any {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      return require('../ee/base/realtime/base-ws.service').BaseWsService;
+      return requireEe('base/realtime/base-ws.service').BaseWsService;
     } catch {
       this.logger.debug(
         'Base realtime requested but enterprise module not bundled in this build',

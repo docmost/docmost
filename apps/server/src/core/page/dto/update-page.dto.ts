@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreatePageDto, ContentFormat } from './create-page.dto';
+import { CreatePageDto, ContentFormat } from './create-page.dto.js';
 import { IsIn, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { Transform } from 'class-transformer';
 

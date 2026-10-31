@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateWorkspaceDto } from './create-workspace.dto';
+import { CreateWorkspaceDto } from './create-workspace.dto.js';
 import {
   IsArray,
   IsBoolean,

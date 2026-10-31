@@ -1,25 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { cleanUrlString } from '../utils/file.utils';
-import { StorageService } from '../../storage/storage.service';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { cleanUrlString } from '../utils/file.utils.js';
+import { StorageService } from '../../storage/storage.service.js';
 import { createReadStream } from 'node:fs';
 import { promises as fs } from 'fs';
 import { Readable } from 'stream';
-import { getMimeType, sanitizeFileName } from '../../../common/helpers';
+import { getMimeType, sanitizeFileName } from '../../../common/helpers/index.js';
 import { v7 } from 'uuid';
-import { FileTask } from '@docmost/db/types/entity.types';
-import { getAttachmentFolderPath } from '../../../core/attachment/attachment.utils';
-import { AttachmentType } from '../../../core/attachment/attachment.constants';
-import { unwrapFromParagraph } from '../utils/import-formatter';
-import { resolveRelativeAttachmentPath } from '../utils/import.utils';
+import { FileTask } from '@docmost/db/types/entity.types.js';
+import { getAttachmentFolderPath } from '../../../core/attachment/attachment.utils.js';
+import { AttachmentType } from '../../../core/attachment/attachment.constants.js';
+import { unwrapFromParagraph } from '../utils/import-formatter.js';
+import { resolveRelativeAttachmentPath } from '../utils/import.utils.js';
 import { imageDimensionsFromData } from 'image-dimensions';
 import { load } from 'cheerio';
 import pLimit from 'p-limit';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QueueJob, QueueName } from '../../queue/constants';
+import { QueueJob, QueueName } from '../../queue/constants/index.js';
 
 interface AttachmentInfo {
   href: string;

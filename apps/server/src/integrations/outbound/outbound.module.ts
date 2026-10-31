@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { OutboundAgentFactory } from './outbound-agent.factory';
-import { OutboundUrlGuard } from './outbound-url.guard';
+import { OutboundAgentFactory } from './outbound-agent.factory.js';
+import { OutboundUrlGuard } from './outbound-url.guard.js';
 
 @Global()
 @Module({

@@ -7,7 +7,7 @@ import {
   PostgresIntrospector,
   PostgresQueryCompiler,
 } from 'kysely';
-import { IntegrationConnectionRepo } from './integration-connection.repo';
+import { IntegrationConnectionRepo } from './integration-connection.repo.js';
 
 function buildRepo() {
   const queries: CompiledQuery[] = [];

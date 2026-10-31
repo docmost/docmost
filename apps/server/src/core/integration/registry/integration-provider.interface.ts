@@ -1,5 +1,5 @@
-import { FeatureKey } from '../../../common/features';
-import { KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { FeatureKey } from '../../../common/features.js';
+import { KyselyTransaction } from '@docmost/db/types/kysely.types.js';
 
 export type IntegrationCapability = 'oauth' | 'unfurl' | 'actions';
 

@@ -2,7 +2,7 @@ import {
   resolveFrameHeader,
   resolveFrameHeadersForPath,
   SecurityHeader,
-} from './security-headers';
+} from './security-headers.js';
 
 describe('resolveFrameHeader', () => {
   it('denies framing with X-Frame-Options when embedding is off', () => {

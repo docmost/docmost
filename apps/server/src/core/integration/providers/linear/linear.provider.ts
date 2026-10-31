@@ -7,9 +7,9 @@ import {
   ResolveAccountOpts,
   UnfurlOpts,
   UnfurlResult,
-} from '../../registry/integration-provider.interface';
-import { LinearService } from './linear.service';
-import { linearPatterns } from './linear-patterns';
+} from '../../registry/integration-provider.interface.js';
+import { LinearService } from './linear.service.js';
+import { linearPatterns } from './linear-patterns.js';
 
 @Injectable()
 export class LinearProvider extends IntegrationProvider {

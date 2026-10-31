@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PageController } from './page.controller';
-import { PageService } from './services/page.service';
+import { PageController } from './page.controller.js';
+import { PageService } from './services/page.service.js';
 
 describe('PageController', () => {
   let controller: PageController;

@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
-import { BacklinkService } from './backlink.service';
-import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { BacklinkService } from './backlink.service.js';
+import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
 import type { Mocked } from 'vitest';
 
 describe('BacklinkService.countByPageId', () => {

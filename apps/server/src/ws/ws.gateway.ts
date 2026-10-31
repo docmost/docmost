@@ -8,17 +8,17 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { TokenService } from '../core/auth/services/token.service';
-import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload';
+import { TokenService } from '../core/auth/services/token.service.js';
+import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload.js';
 import { OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
 import { JsonWebTokenError } from '@nestjs/jwt';
-import { WsService } from './ws.service';
+import { WsService } from './ws.service.js';
 import {
   getSessionRoomName,
   getSpaceRoomName,
   getUserRoomName,
-} from './ws.utils';
-import { BaseRealtimeBridge } from './base-realtime.bridge';
+} from './ws.utils.js';
+import { BaseRealtimeBridge } from './base-realtime.bridge.js';
 import * as cookie from 'cookie';
 
 @WebSocketGateway({

@@ -4,10 +4,10 @@ import { TiptapTransformer } from '@hocuspocus/transformer';
 import {
   prosemirrorNodeToYElement,
   tiptapExtensions,
-} from './collaboration.util';
-import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
+} from './collaboration.util.js';
+import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util.js';
 import * as Y from 'yjs';
-import { User } from '@docmost/db/types/entity.types';
+import { User } from '@docmost/db/types/entity.types.js';
 
 export type CollabEventHandlers = ReturnType<
   CollaborationHandler['getHandlers']

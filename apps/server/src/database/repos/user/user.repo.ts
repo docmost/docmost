@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { DB, Users } from '@docmost/db/types/db';
-import { hashPassword } from '../../../common/helpers';
-import { dbOrTx } from '@docmost/db/utils';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { DB, Users } from '@docmost/db/types/db.js';
+import { hashPassword } from '../../../common/helpers/index.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 import {
   InsertableUser,
   UpdatableUser,
   User,
-} from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+} from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '../../pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 import { ExpressionBuilder, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { NotificationSettingKey } from '../../../core/notification/notification.constants';
+import { NotificationSettingKey } from '../../../core/notification/notification.constants.js';
 
 @Injectable()
 export class UserRepo {

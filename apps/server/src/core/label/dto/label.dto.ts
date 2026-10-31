@@ -11,9 +11,9 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { LabelType } from '@docmost/db/repos/label/label.repo';
-import { PageIdDto } from '../../page/dto/page.dto';
-import { normalizeLabelName } from '../utils';
+import { LabelType } from '@docmost/db/repos/label/label.repo.js';
+import { PageIdDto } from '../../page/dto/page.dto.js';
+import { normalizeLabelName } from '../utils.js';
 
 //TODO: We may support SPACE/TEMPLATE labels in the future
 const SUPPORTED_LABEL_TYPES: LabelType[] = [LabelType.PAGE];

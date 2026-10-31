@@ -5,7 +5,7 @@ import {
   type ResolvedPos,
 } from '@tiptap/pm/model';
 import type { Transaction } from '@tiptap/pm/state';
-import { generateNodeId } from '../utils';
+import { generateNodeId } from '../utils.js';
 
 export const tabLabelAt = (index: number) => `Tab ${index + 1}`;
 

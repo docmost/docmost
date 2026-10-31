@@ -1,19 +1,19 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
 import { MultipartFile } from '@fastify/multipart';
 import * as path from 'path';
 import {
   htmlToJson,
   jsonToText,
   tiptapExtensions,
-} from '../../../collaboration/collaboration.util';
+} from '../../../collaboration/collaboration.util.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import {
   generateSlugId,
   sanitizeFileName,
   createByteCountingStream,
-} from '../../../common/helpers';
+} from '../../../common/helpers/index.js';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
@@ -22,15 +22,16 @@ import {
   FileTaskStatus,
   FileTaskType,
   getFileTaskFolderPath,
-} from '../utils/file.utils';
+} from '../utils/file.utils.js';
 import { v7 as uuid7 } from 'uuid';
-import { StorageService } from '../../storage/storage.service';
+import { StorageService } from '../../storage/storage.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QueueJob, QueueName } from '../../queue/constants';
+import { QueueJob, QueueName } from '../../queue/constants/index.js';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
-import { normalizeImportHtml } from '../utils/import-formatter';
+import { normalizeImportHtml } from '../utils/import-formatter.js';
+import { importEe } from '../../../common/helpers/ee-loader.js';
 
 @Injectable()
 export class ImportService {
@@ -168,8 +169,7 @@ export class ImportService {
   ): Promise<any> {
     let DocxImportModule: any;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      DocxImportModule = require('./../../../ee/document-import/docx-import.service');
+      DocxImportModule = await importEe('document-import/docx-import.service');
     } catch (err) {
       this.logger.error(
         'DOCX import requested but EE module not bundled in this build',
@@ -204,8 +204,7 @@ export class ImportService {
   ): Promise<any> {
     let PdfImportModule: any;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      PdfImportModule = require('./../../../ee/document-import/pdf-import.service');
+      PdfImportModule = await importEe('document-import/pdf-import.service');
     } catch (err) {
       this.logger.error(
         'PDF import requested but EE module not bundled in this build',

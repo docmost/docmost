@@ -1,4 +1,4 @@
-import { getProxyAwareFetch, proxyFetch } from './proxy-fetch';
+import { getProxyAwareFetch, proxyFetch } from './proxy-fetch.js';
 
 describe('getProxyAwareFetch', () => {
   const originalEnv = { ...process.env };

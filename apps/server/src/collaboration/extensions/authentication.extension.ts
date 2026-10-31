@@ -14,19 +14,19 @@ import {
 } from '@nestjs/common';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
 import type { Redis } from 'ioredis';
-import { TokenService } from '../../core/auth/services/token.service';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
-import { Page, User } from '@docmost/db/types/entity.types';
-import { SpaceRole } from '../../common/helpers/types/permission';
-import { isUserDisabled } from '../../common/helpers';
-import { getPageId } from '../collaboration.util';
-import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
-import { CollabAccessRecheck } from '../services/collab-access.service';
-import { JwtCollabPayload, JwtType } from '../../core/auth/dto/jwt-payload';
+import { TokenService } from '../../core/auth/services/token.service.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils.js';
+import { Page, User } from '@docmost/db/types/entity.types.js';
+import { SpaceRole } from '../../common/helpers/types/permission.js';
+import { isUserDisabled } from '../../common/helpers/index.js';
+import { getPageId } from '../collaboration.util.js';
+import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants.js';
+import { CollabAccessRecheck } from '../services/collab-access.service.js';
+import { JwtCollabPayload, JwtType } from '../../core/auth/dto/jwt-payload.js';
 
 type CollabAccess = 'none' | 'read' | 'write';
 

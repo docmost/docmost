@@ -1,5 +1,5 @@
 import { integrationLinkPatterns } from '@docmost/editor-ext';
-import { buildGitHubPatterns } from './github-patterns';
+import { buildGitHubPatterns } from './github-patterns.js';
 
 function firstMatch(patterns: { type: string; regex: RegExp }[], url: string) {
   for (const pattern of patterns) {

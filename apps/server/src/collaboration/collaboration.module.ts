@@ -1,21 +1,21 @@
 import { Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { AuthenticationExtension } from './extensions/authentication.extension';
-import { PersistenceExtension } from './extensions/persistence.extension';
-import { CollaborationGateway } from './collaboration.gateway';
+import { AuthenticationExtension } from './extensions/authentication.extension.js';
+import { PersistenceExtension } from './extensions/persistence.extension.js';
+import { CollaborationGateway } from './collaboration.gateway.js';
 import { HttpAdapterHost } from '@nestjs/core';
-import { CollabWsAdapter } from './adapter/collab-ws.adapter';
+import { CollabWsAdapter } from './adapter/collab-ws.adapter.js';
 import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
-import { TokenModule } from '../core/auth/token.module';
-import { HistoryProcessor } from './processors/history.processor';
-import { LoggerExtension } from './extensions/logger.extension';
-import { CollaborationHandler } from './collaboration.handler';
-import { CollabHistoryService } from './services/collab-history.service';
-import { WatcherModule } from '../core/watcher/watcher.module';
-import { TransclusionService } from '../core/page/transclusion/transclusion.service';
-import { TransclusionModule } from '../core/page/transclusion/transclusion.module';
-import { StorageModule } from '../integrations/storage/storage.module';
-import { EnvironmentModule } from '../integrations/environment/environment.module';
+import { TokenModule } from '../core/auth/token.module.js';
+import { HistoryProcessor } from './processors/history.processor.js';
+import { LoggerExtension } from './extensions/logger.extension.js';
+import { CollaborationHandler } from './collaboration.handler.js';
+import { CollabHistoryService } from './services/collab-history.service.js';
+import { WatcherModule } from '../core/watcher/watcher.module.js';
+import { TransclusionService } from '../core/page/transclusion/transclusion.service.js';
+import { TransclusionModule } from '../core/page/transclusion/transclusion.module.js';
+import { StorageModule } from '../integrations/storage/storage.module.js';
+import { EnvironmentModule } from '../integrations/environment/environment.module.js';
 
 @Module({
   providers: [

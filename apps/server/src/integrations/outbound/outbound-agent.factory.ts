@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Agent, Dispatcher } from 'undici';
-import { OutboundUrlGuard } from './outbound-url.guard';
+import { OutboundUrlGuard } from './outbound-url.guard.js';
 
 export const OUTBOUND_REQUEST_TIMEOUT_MS = 10_000;
 

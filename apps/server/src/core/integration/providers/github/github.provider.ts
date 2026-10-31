@@ -10,11 +10,11 @@ import {
   UnfurlPattern,
   UnfurlOpts,
   UnfurlResult,
-} from '../../registry/integration-provider.interface';
-import { GitHubService } from './github.service';
-import { buildGitHubPatterns } from './github-patterns';
-import { normalizeBaseUrl } from '../../utils/integration.utils';
-import { credentialEnvKey } from '../../oauth/credential-env';
+} from '../../registry/integration-provider.interface.js';
+import { GitHubService } from './github.service.js';
+import { buildGitHubPatterns } from './github-patterns.js';
+import { normalizeBaseUrl } from '../../utils/integration.utils.js';
+import { credentialEnvKey } from '../../oauth/credential-env.js';
 
 const DEFAULT_BASE_URL = 'https://github.com';
 

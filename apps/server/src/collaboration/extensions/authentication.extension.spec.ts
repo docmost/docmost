@@ -1,7 +1,7 @@
 import { Forbidden } from '@hocuspocus/common';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { AuthenticationExtension } from './authentication.extension';
-import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
+import { AuthenticationExtension } from './authentication.extension.js';
+import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants.js';
 
 const WRITER = [{ userId: 'any', role: 'writer' }];
 const READER = [{ userId: 'any', role: 'reader' }];

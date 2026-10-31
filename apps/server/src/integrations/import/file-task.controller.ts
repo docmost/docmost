@@ -8,26 +8,26 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../../core/casl/interfaces/space-ability.type';
+} from '../../core/casl/interfaces/space-ability.type.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../../core/casl/interfaces/workspace-ability.type';
-import WorkspaceAbilityFactory from '../../core/casl/abilities/workspace-ability.factory';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
+} from '../../core/casl/interfaces/workspace-ability.type.js';
+import WorkspaceAbilityFactory from '../../core/casl/abilities/workspace-ability.factory.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { FileTaskIdDto } from './dto/file-task-dto';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { FileTaskIdDto } from './dto/file-task-dto.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 
 @Controller('file-tasks')
 export class FileTaskController {

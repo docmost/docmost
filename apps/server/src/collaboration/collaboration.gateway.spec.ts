@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'node:http';
 import WebSocket from 'ws';
-import { CollaborationGateway } from './collaboration.gateway';
+import { CollaborationGateway } from './collaboration.gateway.js';
 
 function makeGateway() {
   const environmentService = {

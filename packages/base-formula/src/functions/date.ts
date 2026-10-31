@@ -1,5 +1,5 @@
-import { register } from "./registry";
-import { makeErrorCell } from "../error";
+import { register } from "./registry.js";
+import { makeErrorCell } from "../error.js";
 
 const toDate = (v: unknown): Date | null => {
   if (v == null) return null;

@@ -10,7 +10,7 @@ import {
 } from 'docx';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
 import { TableMap } from '@tiptap/pm/tables';
-import { IFootnotes, SerializationState } from './types';
+import { IFootnotes, SerializationState } from './types.js';
 
 // twips between the margins of docx's default page
 export const TEXT_WIDTH =

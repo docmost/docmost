@@ -1,14 +1,14 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { CollabAppModule } from './collab-app.module';
+import { CollabAppModule } from './collab-app.module.js';
 import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor';
+import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor.js';
 import { Logger } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
-import { InternalLogFilter } from '../../common/logger/internal-log-filter';
-import { overrideRequestIp } from '../../common/helpers';
+import { InternalLogFilter } from '../../common/logger/internal-log-filter.js';
+import { overrideRequestIp } from '../../common/helpers/index.js';
 
 async function bootstrap() {
   const adapter = new FastifyAdapter({

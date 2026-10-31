@@ -1,8 +1,8 @@
 import { MultipartFile } from '@fastify/multipart';
 import * as path from 'path';
-import { AttachmentType } from './attachment.constants';
-import { sanitizeFileName } from '../../common/helpers';
-import { getMimeType } from '../../common/helpers';
+import { AttachmentType } from './attachment.constants.js';
+import { sanitizeFileName } from '../../common/helpers/index.js';
+import { getMimeType } from '../../common/helpers/index.js';
 
 export interface PreparedFile {
   buffer?: Buffer;

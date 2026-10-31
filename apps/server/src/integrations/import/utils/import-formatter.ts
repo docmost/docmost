@@ -2,10 +2,10 @@ import { getEmbedUrlAndProvider } from '@docmost/editor-ext';
 import { Logger } from '@nestjs/common';
 import * as path from 'path';
 import { v7 } from 'uuid';
-import { InsertableBacklink } from '@docmost/db/types/entity.types';
+import { InsertableBacklink } from '@docmost/db/types/entity.types.js';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import slugify from '@sindresorhus/slugify';
-import { normalizeTableColumnWidths } from './table-utils';
+import { normalizeTableColumnWidths } from './table-utils.js';
 
 // Check if text contains Unicode characters (for emojis/icons)
 function isUnicodeCharacter(text: string): boolean {

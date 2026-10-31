@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import {
   WatcherRepo,
   WatcherType,
-} from '@docmost/db/repos/watcher/watcher.repo';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { InsertableWatcher } from '@docmost/db/types/entity.types';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+} from '@docmost/db/repos/watcher/watcher.repo.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { InsertableWatcher } from '@docmost/db/types/entity.types.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
 
 @Injectable()
 export class WatcherService {

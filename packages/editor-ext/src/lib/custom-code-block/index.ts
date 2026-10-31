@@ -1,1 +1,1 @@
-export { CustomCodeBlock } from "./custom-code-block";
+export { CustomCodeBlock } from "./custom-code-block.js";

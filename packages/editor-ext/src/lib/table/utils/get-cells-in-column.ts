@@ -1,8 +1,8 @@
 import type { Selection } from '@tiptap/pm/state'
 import { TableMap } from '@tiptap/pm/tables'
 
-import { findTable } from './query'
-import type { CellPos } from './types'
+import { findTable } from './query.js'
+import type { CellPos } from './types.js'
 
 /**
  * Returns an array of cells in a column(s), where `columnIndex` could be a column index or an array of column indexes.

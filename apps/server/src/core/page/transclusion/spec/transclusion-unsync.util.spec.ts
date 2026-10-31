@@ -1,7 +1,7 @@
 import {
   rewriteAttachmentsForUnsync,
   type AttachmentRewritePlan,
-} from '../utils/transclusion-unsync.util';
+} from '../utils/transclusion-unsync.util.js';
 
 describe('rewriteAttachmentsForUnsync', () => {
   const fixedIds = (() => {

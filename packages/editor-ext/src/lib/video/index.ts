@@ -1,2 +1,2 @@
-export { TiptapVideo } from "./video";
-export * from "./video-upload";
+export { TiptapVideo } from "./video.js";
+export * from "./video-upload.js";

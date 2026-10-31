@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MAIL_DRIVER_TOKEN } from './mail.constants';
-import { MailDriver } from './drivers/interfaces/mail-driver.interface';
-import { MailMessage } from './interfaces/mail.message';
-import { EnvironmentService } from '../environment/environment.service';
+import { MAIL_DRIVER_TOKEN } from './mail.constants.js';
+import { MailDriver } from './drivers/interfaces/mail-driver.interface.js';
+import { MailMessage } from './interfaces/mail.message.js';
+import { EnvironmentService } from '../environment/environment.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
-import { QueueName, QueueJob } from '../queue/constants';
+import { QueueName, QueueJob } from '../queue/constants/index.js';
 import { Queue } from 'bullmq';
 import { render } from 'react-email';
 

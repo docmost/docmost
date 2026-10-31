@@ -1,2 +1,2 @@
-export { TiptapPdf } from "./pdf";
-export * from "./pdf-upload";
+export { TiptapPdf } from "./pdf.js";
+export * from "./pdf-upload.js";

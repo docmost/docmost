@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { EventName } from '../../common/events/event.contants';
+import { EventName } from '../../common/events/event.contants.js';
 import { InjectQueue } from '@nestjs/bullmq';
-import { QueueJob, QueueName } from '../../integrations/queue/constants';
+import { QueueJob, QueueName } from '../../integrations/queue/constants/index.js';
 import { Queue } from 'bullmq';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
 
 export class WorkspaceEvent {
   workspaceId: string;

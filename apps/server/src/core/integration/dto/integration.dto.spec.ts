@@ -4,7 +4,7 @@ import {
   OAuthAuthorizeDto,
   OAuthDisconnectDto,
   UninstallIntegrationDto,
-} from './integration.dto';
+} from './integration.dto.js';
 
 describe.each([
   ['UninstallIntegrationDto', UninstallIntegrationDto],

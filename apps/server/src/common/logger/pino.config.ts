@@ -1,6 +1,6 @@
 import { Params } from 'nestjs-pino';
 import { stdTimeFunctions } from 'pino';
-import { redactSensitiveUrl } from '../helpers/utils';
+import { redactSensitiveUrl } from '../helpers/utils.js';
 
 const CONTEXTS_TO_IGNORE = [
   'InstanceLoader',

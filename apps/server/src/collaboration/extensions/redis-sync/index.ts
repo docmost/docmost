@@ -1,2 +1,2 @@
-export * from './redis-sync.extension';
-export type { SerializedHTTPRequest } from './redis-sync.extension';
+export * from './redis-sync.extension.js';
+export type { SerializedHTTPRequest } from './redis-sync.extension.js';

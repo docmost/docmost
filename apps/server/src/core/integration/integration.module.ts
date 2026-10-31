@@ -1,17 +1,17 @@
 import { Module } from '@nestjs/common';
-import { IntegrationRegistry } from './registry/integration-registry';
-import { IntegrationService } from './integration.service';
-import { IntegrationConnectionService } from './integration-connection.service';
-import { IntegrationController } from './integration.controller';
-import { OAuthController } from './oauth/oauth.controller';
-import { OAuthService } from './oauth/oauth.service';
-import { UnfurlController } from './unfurl/unfurl.controller';
-import { UnfurlService } from './unfurl/unfurl.service';
-import { IntegrationRepo } from './repos/integration.repo';
-import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
-import { IntegrationListener } from './integration.listener';
-import { IntegrationProcessor } from './integration.processor';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
+import { IntegrationRegistry } from './registry/integration-registry.js';
+import { IntegrationService } from './integration.service.js';
+import { IntegrationConnectionService } from './integration-connection.service.js';
+import { IntegrationController } from './integration.controller.js';
+import { OAuthController } from './oauth/oauth.controller.js';
+import { OAuthService } from './oauth/oauth.service.js';
+import { UnfurlController } from './unfurl/unfurl.controller.js';
+import { UnfurlService } from './unfurl/unfurl.service.js';
+import { IntegrationRepo } from './repos/integration.repo.js';
+import { IntegrationConnectionRepo } from './repos/integration-connection.repo.js';
+import { IntegrationListener } from './integration.listener.js';
+import { IntegrationProcessor } from './integration.processor.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
 
 @Module({
   controllers: [IntegrationController, OAuthController, UnfurlController],

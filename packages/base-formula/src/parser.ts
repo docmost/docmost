@@ -1,8 +1,8 @@
-import { tokenize, Token, TokenKind } from "./tokenizer";
-import { FormulaParseError } from "./error";
-import { MAX_PARSE_DEPTH } from "./types";
-import type { OpCode } from "./ast";
-import type { RawFormulaAST } from "./ast";
+import { tokenize, Token, TokenKind } from "./tokenizer.js";
+import { FormulaParseError } from "./error.js";
+import { MAX_PARSE_DEPTH } from "./types.js";
+import type { OpCode } from "./ast.js";
+import type { RawFormulaAST } from "./ast.js";
 
 /*
  * Pratt parser. Top-level entry parses a full expression and then asserts EOF.

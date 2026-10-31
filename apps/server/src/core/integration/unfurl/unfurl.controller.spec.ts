@@ -1,12 +1,12 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ThrottlerException, ThrottlerStorageService } from '@nestjs/throttler';
-import { UnfurlController } from './unfurl.controller';
-import { UserThrottlerGuard } from '../../../integrations/throttle/user-throttler.guard';
+import { UnfurlController } from './unfurl.controller.js';
+import { UserThrottlerGuard } from '../../../integrations/throttle/user-throttler.guard.js';
 import {
   AUTH_THROTTLER,
   UNFURL_THROTTLER,
-} from '../../../integrations/throttle/throttler-names';
+} from '../../../integrations/throttle/throttler-names.js';
 
 describe('UnfurlController throttling', () => {
   let storage: ThrottlerStorageService;

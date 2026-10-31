@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
-import { GitHubProvider } from './github.provider';
-import { IntegrationRegistry } from '../../registry/integration-registry';
-import { UnfurlPattern } from '../../registry/integration-provider.interface';
+import { GitHubProvider } from './github.provider.js';
+import { IntegrationRegistry } from '../../registry/integration-registry.js';
+import { UnfurlPattern } from '../../registry/integration-provider.interface.js';
 import type { MockInstance } from 'vitest';
 
 const GHE_BASE = 'https://github.acme.com';

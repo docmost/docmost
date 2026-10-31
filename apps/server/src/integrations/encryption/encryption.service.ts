@@ -5,15 +5,15 @@ import {
   hkdfSync,
   randomBytes,
 } from 'node:crypto';
-import { UnableToDecrypt, UnableToInitialize } from './encryption.errors';
-import { EnvironmentService } from '../environment/environment.service';
+import { UnableToDecrypt, UnableToInitialize } from './encryption.errors.js';
+import { EnvironmentService } from '../environment/environment.service.js';
 import {
   decryptA256CbcHs512,
   encryptA256CbcHs512,
   V2_ALGORITHM,
   V2_IV_LENGTH,
   V2_KEY_LENGTH,
-} from './a256cbc-hs512';
+} from './a256cbc-hs512.js';
 
 export enum EncryptionPurpose {
   SIEM_CREDENTIALS = 'siem-credentials',

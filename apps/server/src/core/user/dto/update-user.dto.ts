@@ -8,7 +8,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { CreateUserDto } from '../../auth/dto/create-user.dto';
+import { CreateUserDto } from '../../auth/dto/create-user.dto.js';
 
 export class UpdateUserDto extends PartialType(
   OmitType(CreateUserDto, ['password'] as const),

@@ -5,30 +5,30 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateSpaceDto } from '../dto/create-space.dto';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Space, User } from '@docmost/db/types/entity.types';
-import { UpdateSpaceDto } from '../dto/update-space.dto';
-import { executeTx } from '@docmost/db/utils';
+import { CreateSpaceDto } from '../dto/create-space.dto.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { Space, User } from '@docmost/db/types/entity.types.js';
+import { UpdateSpaceDto } from '../dto/update-space.dto.js';
+import { executeTx } from '@docmost/db/utils.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { Feature } from '../../../common/features';
-import { SpaceMemberService } from './space-member.service';
-import { SpaceRole } from '../../../common/helpers/types/permission';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { Feature } from '../../../common/features.js';
+import { SpaceMemberService } from './space-member.service.js';
+import { SpaceRole } from '../../../common/helpers/types/permission.js';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants/index.js';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
-import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import { ShareRepo } from '@docmost/db/repos/share/share.repo';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
-import { diffAuditTrackedFields } from '../../../common/helpers';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination.js';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
+import { diffAuditTrackedFields } from '../../../common/helpers/index.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
+} from '../../../integrations/audit/audit.service.js';
 
 @Injectable()
 export class SpaceService {

@@ -1,8 +1,8 @@
 import { Module, OnModuleInit } from '@nestjs/common';
-import { GitHubProvider } from './github.provider';
-import { GitHubService } from './github.service';
-import { IntegrationRegistry } from '../../registry/integration-registry';
-import { IntegrationModule } from '../../integration.module';
+import { GitHubProvider } from './github.provider.js';
+import { GitHubService } from './github.service.js';
+import { IntegrationRegistry } from '../../registry/integration-registry.js';
+import { IntegrationModule } from '../../integration.module.js';
 
 @Module({
   imports: [IntegrationModule],

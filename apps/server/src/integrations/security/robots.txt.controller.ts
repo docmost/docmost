@@ -1,5 +1,5 @@
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
-import { SkipTransform } from '../../common/decorators/skip-transform.decorator';
+import { SkipTransform } from '../../common/decorators/skip-transform.decorator.js';
 
 @Controller('robots.txt')
 export class RobotsTxtController {

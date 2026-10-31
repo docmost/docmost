@@ -13,7 +13,7 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { FastifyRequest } from 'fastify';
-import { overrideRequestIp, resolveClientIp } from './client-ip.utils';
+import { overrideRequestIp, resolveClientIp } from './client-ip.utils.js';
 
 const CLIENT = '198.51.100.20';
 const ATTACKER = '203.0.113.66';

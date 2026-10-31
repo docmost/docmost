@@ -5,14 +5,14 @@ import {
   evaluate,
   registry,
   DEFAULT_MAX_DEPTH,
-} from "../src/index.server";
+} from "../src/index.server.js";
 import type {
   FormulaAST,
   EvalContext,
   PropertyLookup,
   Value,
   FormulaResultType,
-} from "../src/index.server";
+} from "../src/index.server.js";
 
 // sample row: properties a..j (numbers), name (string)
 const NUM_PROPS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];

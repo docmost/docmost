@@ -1,6 +1,6 @@
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PublicSpaceService } from './public-space.service';
-import { Feature } from '../../common/features';
+import { PublicSpaceService } from './public-space.service.js';
+import { Feature } from '../../common/features.js';
 
 const WORKSPACE_ID = '018f0000-0000-7000-8000-000000000001';
 const SPACE_ID = '018f0000-0000-7000-8000-000000000002';

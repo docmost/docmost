@@ -1,4 +1,4 @@
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
 import {
   BadRequestException,
   Inject,
@@ -6,16 +6,16 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { NotificationSettingKey } from '../notification/notification.constants';
-import { comparePasswordHash, diffAuditTrackedFields } from '../../common/helpers/utils';
-import { Workspace } from '@docmost/db/types/entity.types';
-import { validateSsoEnforcement } from '../auth/auth.util';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import { UpdateUserDto } from './dto/update-user.dto.js';
+import { NotificationSettingKey } from '../notification/notification.constants.js';
+import { comparePasswordHash, diffAuditTrackedFields } from '../../common/helpers/utils.js';
+import { Workspace } from '@docmost/db/types/entity.types.js';
+import { validateSsoEnforcement } from '../auth/auth.util.js';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
 
 @Injectable()
 export class UserService {

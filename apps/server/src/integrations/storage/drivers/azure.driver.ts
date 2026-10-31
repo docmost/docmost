@@ -3,7 +3,7 @@ import {
   AzureStorageConfig,
   StorageDriver,
   StorageOption,
-} from '../interfaces';
+} from '../interfaces/index.js';
 import {
   BlobSASPermissions,
   BlobServiceClient,
@@ -14,7 +14,7 @@ import {
   StorageSharedKeyCredential,
 } from '@azure/storage-blob';
 import { Logger } from '@nestjs/common';
-import { getMimeType } from '../../../common/helpers';
+import { getMimeType } from '../../../common/helpers/index.js';
 
 export class AzureDriver implements StorageDriver {
   private readonly config: AzureStorageConfig;

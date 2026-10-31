@@ -2,12 +2,12 @@ import { Transform } from "@tiptap/pm/transform";
 import { Node, Schema } from "@tiptap/pm/model";
 import { applyPatch, createPatch, Operation } from "rfc6902";
 import { diffWordsWithSpace, diffChars } from "diff";
-import { AnyObject } from "./types";
-import { getReplaceStep } from "./getReplaceStep";
-import { simplifyTransform } from "./simplifyTransform";
-import { removeMarks } from "./removeMarks";
-import { getFromPath } from "./getFromPath";
-import { copy } from "./copy";
+import { AnyObject } from "./types.js";
+import { getReplaceStep } from "./getReplaceStep.js";
+import { simplifyTransform } from "./simplifyTransform.js";
+import { removeMarks } from "./removeMarks.js";
+import { getFromPath } from "./getFromPath.js";
+import { copy } from "./copy.js";
 
 export interface Options {
   complexSteps?: boolean;

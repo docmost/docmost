@@ -2,8 +2,8 @@ import {
   ProviderApiError,
   TokenInvalidError,
   UnfurlForbiddenError,
-} from '../registry/integration-provider.interface';
-import { proxyFetch } from '../../../common/proxy-fetch';
+} from '../registry/integration-provider.interface.js';
+import { proxyFetch } from '../../../common/proxy-fetch.js';
 
 export const INTEGRATION_HTTP_TIMEOUT_MS = 10_000;
 

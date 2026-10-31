@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { SearchDTO, SearchSuggestionDTO } from './dto/search.dto';
-import { SearchResponseDto } from './dto/search-response.dto';
+import { SearchDTO, SearchSuggestionDTO } from './dto/search.dto.js';
+import { SearchResponseDto } from './dto/search-response.dto.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import { sql } from 'kysely';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { ShareRepo } from '@docmost/db/repos/share/share.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import createTsquery from 'pg-tsquery';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const tsquery = require('pg-tsquery')();
+const tsquery = createTsquery();
 
 @Injectable()
 export class SearchService {

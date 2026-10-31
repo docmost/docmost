@@ -17,57 +17,57 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { AttachmentService } from './services/attachment.service';
+import { AttachmentService } from './services/attachment.service.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { FileInterceptor } from '../../common/interceptors/file.interceptor';
+import { FileInterceptor } from '../../common/interceptors/file.interceptor.js';
 import bytes from 'bytes';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
-import { StorageService } from '../../integrations/storage/storage.service';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator.js';
+import { Attachment, User, Workspace } from '@docmost/db/types/entity.types.js';
+import { StorageService } from '../../integrations/storage/storage.service.js';
 import {
   getAttachmentFolderPath,
   validAttachmentTypes,
-} from './attachment.utils';
-import { getMimeType } from '../../common/helpers';
+} from './attachment.utils.js';
+import { getMimeType } from '../../common/helpers/index.js';
 import {
   AttachmentType,
   inlineFileExtensions,
   MAX_AVATAR_SIZE,
-} from './attachment.constants';
+} from './attachment.constants.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+} from '../casl/interfaces/space-ability.type.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../casl/interfaces/workspace-ability.type';
-import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+} from '../casl/interfaces/workspace-ability.type.js';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo.js';
 import { validate as isValidUUID } from 'uuid';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { TokenService } from '../auth/services/token.service';
-import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { TokenService } from '../auth/services/token.service.js';
+import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload.js';
 import * as path from 'path';
 import {
   AttachmentInfoDto,
   DeleteAttachmentDto,
   PageIdDto,
   RemoveIconDto,
-} from './dto/attachment.dto';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PageAccessService } from '../page/page-access/page-access.service';
-import { DomainService } from '../../integrations/environment/domain.service';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+} from './dto/attachment.dto.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { PageAccessService } from '../page/page-access/page-access.service.js';
+import { DomainService } from '../../integrations/environment/domain.service.js';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
 
 @Controller()
 export class AttachmentController {

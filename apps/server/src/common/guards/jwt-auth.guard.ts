@@ -6,15 +6,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 import {
   OAUTH_SCOPE_KEY,
   OAuthRouteScope,
-} from '../decorators/oauth-scope.decorator';
-import { REQUIRE_SESSION_AUTH_KEY } from '../decorators/require-session-auth.decorator';
-import { JwtType } from '../../core/auth/dto/jwt-payload';
+} from '../decorators/oauth-scope.decorator.js';
+import { REQUIRE_SESSION_AUTH_KEY } from '../decorators/require-session-auth.decorator.js';
+import { JwtType } from '../../core/auth/dto/jwt-payload.js';
 import { Reflector } from '@nestjs/core';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
 import { addDays } from 'date-fns';
 
 @Injectable()

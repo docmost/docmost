@@ -4,16 +4,16 @@ import {
   createMongoAbility,
   MongoAbility,
 } from '@casl/ability';
-import { SpaceRole } from '../../../common/helpers/types/permission';
-import { User } from '@docmost/db/types/entity.types';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { SpaceRole } from '../../../common/helpers/types/permission.js';
+import { User } from '@docmost/db/types/entity.types.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
 import {
   SpaceCaslAction,
   ISpaceAbility,
   SpaceCaslSubject,
-} from '../interfaces/space-ability.type';
-import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
-import { CacheOptions } from '../../../common/helpers/with-cache';
+} from '../interfaces/space-ability.type.js';
+import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils.js';
+import { CacheOptions } from '../../../common/helpers/with-cache.js';
 
 @Injectable()
 export default class SpaceAbilityFactory {

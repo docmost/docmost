@@ -15,6 +15,8 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['src/**/*.spec.ts'],
+    // Match Node's CommonJS interop, or namespace imports that break at runtime pass here.
+    deps: { interopDefault: false },
     coverage: { reportsDirectory: './coverage' },
   },
 });

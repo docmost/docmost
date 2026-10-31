@@ -1,4 +1,4 @@
-import { KyselyDB, KyselyTransaction } from './types/kysely.types';
+import { KyselyDB, KyselyTransaction } from './types/kysely.types.js';
 
 /*
  * Executes a transaction or a callback using the provided database instance.

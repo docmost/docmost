@@ -1,8 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
-import { PostgresHealthIndicator } from './postgres.health';
-import { RedisHealthIndicator } from './redis.health';
-import { SkipTransform } from '../../common/decorators/skip-transform.decorator';
+import { PostgresHealthIndicator } from './postgres.health.js';
+import { RedisHealthIndicator } from './redis.health.js';
+import { SkipTransform } from '../../common/decorators/skip-transform.decorator.js';
 
 @Controller('health')
 export class HealthController {

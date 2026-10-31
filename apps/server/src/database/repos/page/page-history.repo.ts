@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { dbOrTx } from '../../utils';
+import { KyselyDB, KyselyTransaction } from '../../types/kysely.types.js';
+import { dbOrTx } from '../../utils.js';
 import {
   InsertablePageHistory,
   Page,
   PageHistory,
-} from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+} from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { ExpressionBuilder, sql } from 'kysely';
-import { DB } from '@docmost/db/types/db';
+import { DB } from '@docmost/db/types/db.js';
 
 @Injectable()
 export class PageHistoryRepo {

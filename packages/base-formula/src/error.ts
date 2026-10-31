@@ -1,4 +1,4 @@
-import type { ErrorCell, ErrorCode } from "./types";
+import type { ErrorCell, ErrorCode } from "./types.js";
 
 export type ParseErrorCode =
   | "UNEXPECTED_TOKEN"

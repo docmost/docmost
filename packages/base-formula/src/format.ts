@@ -1,4 +1,4 @@
-import type { FormulaAST, OpCode } from "./ast";
+import type { FormulaAST, OpCode } from "./ast.js";
 
 const OP_STR: Partial<Record<OpCode, string>> = {
   "+": " + ", "-": " - ", "*": " * ", "/": " / ", "%": " % ",

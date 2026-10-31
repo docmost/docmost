@@ -14,29 +14,30 @@ import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import {
   ALL_NAMED_THROTTLERS_SKIPPED,
   AUTH_THROTTLER,
-} from '../../integrations/throttle/throttler-names';
-import { LoginDto } from './dto/login.dto';
-import { AuthService } from './services/auth.service';
-import { SessionService } from '../session/session.service';
-import { SetupGuard } from './guards/setup.guard';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { CreateAdminUserDto } from './dto/create-admin-user.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { PasswordResetDto } from './dto/password-reset.dto';
-import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
+} from '../../integrations/throttle/throttler-names.js';
+import { LoginDto } from './dto/login.dto.js';
+import { AuthService } from './services/auth.service.js';
+import { SessionService } from '../session/session.service.js';
+import { SetupGuard } from './guards/setup.guard.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
+import { PasswordResetDto } from './dto/password-reset.dto.js';
+import { VerifyUserTokenDto } from './dto/verify-user-token.dto.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { validateSsoEnforcement } from './auth.util';
+import { validateSsoEnforcement } from './auth.util.js';
 import { ModuleRef } from '@nestjs/core';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
+import { importEe } from '../../common/helpers/ee-loader.js';
 
 @SkipThrottle({ ...ALL_NAMED_THROTTLERS_SKIPPED, [AUTH_THROTTLER]: false })
 @UseGuards(ThrottlerGuard)
@@ -64,8 +65,7 @@ export class AuthController {
     let MfaModule: any;
     let isMfaModuleReady = false;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      MfaModule = require('./../../ee/mfa/services/mfa.service');
+      MfaModule = await importEe('mfa/services/mfa.service');
       isMfaModuleReady = true;
     } catch (err) {
       this.logger.debug(

@@ -7,22 +7,22 @@ import {
 import { isDeepStrictEqual } from 'node:util';
 import { v7 as uuid7 } from 'uuid';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { PageTransclusionsRepo } from '@docmost/db/repos/page-transclusions/page-transclusions.repo';
-import { PageTransclusionReferencesRepo } from '@docmost/db/repos/page-transclusions/page-transclusion-references.repo';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { StorageService } from '../../../integrations/storage/storage.service';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { PageTransclusionsRepo } from '@docmost/db/repos/page-transclusions/page-transclusions.repo.js';
+import { PageTransclusionReferencesRepo } from '@docmost/db/repos/page-transclusions/page-transclusion-references.repo.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo.js';
+import { StorageService } from '../../../integrations/storage/storage.service.js';
 import {
   collectReferencesFromPmJson,
   collectTransclusionsFromPmJson,
-} from './utils/transclusion-prosemirror.util';
-import { rewriteAttachmentsForUnsync } from './utils/transclusion-unsync.util';
-import { TransclusionLookup } from './transclusion.types';
-import { Page, User } from '@docmost/db/types/entity.types';
-import { PageAccessService } from '../page-access/page-access.service';
+} from './utils/transclusion-prosemirror.util.js';
+import { rewriteAttachmentsForUnsync } from './utils/transclusion-unsync.util.js';
+import { TransclusionLookup } from './transclusion.types.js';
+import { Page, User } from '@docmost/db/types/entity.types.js';
+import { PageAccessService } from '../page-access/page-access.service.js';
 
 type ReferencingPageInfo = {
   id: string;

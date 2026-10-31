@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { StringValue } from 'ms';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
 import {
   JwtApiKeyPayload,
   JwtAttachmentPayload,
@@ -16,9 +16,9 @@ import {
   JwtPdfExportDownloadPayload,
   JwtPdfRenderPayload,
   JwtType,
-} from '../dto/jwt-payload';
-import { User } from '@docmost/db/types/entity.types';
-import { isUserDisabled } from '../../../common/helpers';
+} from '../dto/jwt-payload.js';
+import { User } from '@docmost/db/types/entity.types.js';
+import { isUserDisabled } from '../../../common/helpers/index.js';
 
 @Injectable()
 export class TokenService {

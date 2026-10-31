@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-import { ContentFormat } from './create-page.dto';
+import { ContentFormat } from './create-page.dto.js';
 
 export class PageIdDto {
   @IsString()

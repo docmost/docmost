@@ -1,4 +1,4 @@
-import type { FormulaResultType, Value, EvalContext } from "../types";
+import type { FormulaResultType, Value, EvalContext } from "../types.js";
 
 export type FormulaFn = {
   name: string;

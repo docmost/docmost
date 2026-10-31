@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { UpdatePageDto } from './update-page.dto';
+import { UpdatePageDto } from './update-page.dto.js';
 
 describe('UpdatePageDto', () => {
   it('defaults format to json when content is sent without one', async () => {

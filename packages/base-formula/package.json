@@ -2,6 +2,7 @@
   "name": "@docmost/base-formula",
   "homepage": "https://docmost.com",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc --build",
     "dev": "tsc --watch",

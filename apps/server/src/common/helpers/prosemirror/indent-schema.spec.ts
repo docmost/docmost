@@ -1,4 +1,4 @@
-import { htmlToJson, jsonToHtml } from '../../../collaboration/collaboration.util';
+import { htmlToJson, jsonToHtml } from '../../../collaboration/collaboration.util.js';
 
 const findFirstChild = (
   json: any,

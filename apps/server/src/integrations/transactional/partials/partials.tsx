@@ -1,4 +1,4 @@
-import { button as buttonStyle, container, footer, h1, logo, main } from '../css/styles';
+import { button as buttonStyle, container, footer, h1, logo, main } from '../css/styles.js';
 import {
   Body,
   Container,

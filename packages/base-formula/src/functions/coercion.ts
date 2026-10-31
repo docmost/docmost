@@ -1,5 +1,5 @@
-import { register } from "./registry";
-import { valueToString } from "../number";
+import { register } from "./registry.js";
+import { valueToString } from "../number.js";
 
 register({
   name: "toNumber", arity: { min: 1, max: 1 }, paramTypes: "any", returnType: "number",

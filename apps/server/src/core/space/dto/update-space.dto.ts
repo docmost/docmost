@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateSpaceDto } from './create-space.dto';
+import { CreateSpaceDto } from './create-space.dto.js';
 import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class UpdateSpaceDto extends PartialType(CreateSpaceDto) {

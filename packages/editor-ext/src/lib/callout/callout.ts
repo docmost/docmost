@@ -6,7 +6,7 @@ import {
 } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { CalloutType, getValidCalloutType } from "./utils";
+import { CalloutType, getValidCalloutType } from "./utils.js";
 
 export interface CalloutOptions {
   HTMLAttributes: Record<string, any>;

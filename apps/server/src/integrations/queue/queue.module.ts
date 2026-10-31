@@ -1,9 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { EnvironmentService } from '../environment/environment.service';
-import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
-import { QueueName } from './constants';
-import { GeneralQueueProcessor } from './processors/general-queue.processor';
+import { EnvironmentService } from '../environment/environment.service.js';
+import { createRetryStrategy, parseRedisUrl } from '../../common/helpers/index.js';
+import { QueueName } from './constants/index.js';
+import { GeneralQueueProcessor } from './processors/general-queue.processor.js';
 
 @Global()
 @Module({

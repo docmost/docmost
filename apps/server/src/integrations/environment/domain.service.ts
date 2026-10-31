@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EnvironmentService } from './environment.service';
+import { EnvironmentService } from './environment.service.js';
 
 @Injectable()
 export class DomainService {

@@ -1,5 +1,5 @@
-import { IntegrationRegistry } from './integration-registry';
-import { IntegrationProvider } from './integration-provider.interface';
+import { IntegrationRegistry } from './integration-registry.js';
+import { IntegrationProvider } from './integration-provider.interface.js';
 
 const provider = (type: string) =>
   ({ definition: { type, name: type } }) as unknown as IntegrationProvider;

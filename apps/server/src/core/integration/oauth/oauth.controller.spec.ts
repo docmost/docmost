@@ -3,36 +3,36 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { OAuthController } from './oauth.controller';
-import { OAuthCompleteAuthFilter } from './oauth-complete-auth.filter';
-import { OAuthStatePayload } from './oauth.service';
-import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
-import { UserRole } from '../../../common/helpers/types/permission';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import { OAuthController } from './oauth.controller.js';
+import { OAuthCompleteAuthFilter } from './oauth-complete-auth.filter.js';
+import { OAuthStatePayload } from './oauth.service.js';
+import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory.js';
+import { UserRole } from '../../../common/helpers/types/permission.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
 import {
   IdentityEmailMismatchError,
   IdentityTenantMismatchError,
   IntegrationTenantInUseError,
-} from '../registry/integration-provider.interface';
+} from '../registry/integration-provider.interface.js';
 import {
   EncryptionPurpose,
   EncryptionService,
-} from '../../../integrations/encryption/encryption.service';
+} from '../../../integrations/encryption/encryption.service.js';
 import { Test } from '@nestjs/testing';
 import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { JwtStrategy } from '../../auth/strategies/jwt.strategy';
-import { OAuthService } from './oauth.service';
-import { IntegrationConnectionService } from '../integration-connection.service';
-import { IntegrationRegistry } from '../registry/integration-registry';
-import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { SessionActivityService } from '../../session/session-activity.service';
+import { JwtStrategy } from '../../auth/strategies/jwt.strategy.js';
+import { OAuthService } from './oauth.service.js';
+import { IntegrationConnectionService } from '../integration-connection.service.js';
+import { IntegrationRegistry } from '../registry/integration-registry.js';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service.js';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo.js';
+import { SessionActivityService } from '../../session/session-activity.service.js';
 import type { MockInstance } from 'vitest';
 
 const workspace = { id: 'workspace-1' } as Workspace;

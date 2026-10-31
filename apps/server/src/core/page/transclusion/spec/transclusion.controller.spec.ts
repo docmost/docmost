@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
-import { TransclusionController } from '../transclusion.controller';
-import { TransclusionService } from '../transclusion.service';
-import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { TransclusionController } from '../transclusion.controller.js';
+import { TransclusionService } from '../transclusion.service.js';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard.js';
 import type { Mocked } from 'vitest';
 
 describe('TransclusionController.lookup', () => {

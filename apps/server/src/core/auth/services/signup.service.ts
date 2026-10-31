@@ -1,22 +1,22 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { WorkspaceService } from '../../workspace/services/workspace.service';
-import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
-import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { getWorkspaceDefaultPageEditMode } from '../../workspace/workspace.util';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { CreateUserDto } from '../dto/create-user.dto.js';
+import { WorkspaceService } from '../../workspace/services/workspace.service.js';
+import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto.js';
+import { CreateAdminUserDto } from '../dto/create-admin-user.dto.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { getWorkspaceDefaultPageEditMode } from '../../workspace/workspace.util.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { executeTx } from '@docmost/db/utils.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { UserRole } from '../../../common/helpers/types/permission';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo.js';
+import { UserRole } from '../../../common/helpers/types/permission.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
+} from '../../../integrations/audit/audit.service.js';
 
 @Injectable()
 export class SignupService {

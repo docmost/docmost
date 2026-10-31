@@ -3,11 +3,11 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { join } from 'path';
 import * as fs from 'node:fs';
 import { validate as isValidUUID } from 'uuid';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { Workspace } from '@docmost/db/types/entity.types';
-import { htmlEscape } from '../../common/helpers/html-escaper';
-import { PublicSpaceService } from './public-space.service';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { Workspace } from '@docmost/db/types/entity.types.js';
+import { htmlEscape } from '../../common/helpers/html-escaper.js';
+import { PublicSpaceService } from './public-space.service.js';
 
 @Controller('docs')
 export class PublicSpaceSeoController {
@@ -31,7 +31,7 @@ export class PublicSpaceSeoController {
     const workspace = await this.resolveWorkspace(req);
 
     const clientDistPath = join(
-      __dirname,
+      import.meta.dirname,
       '..',
       '..',
       '..',
@@ -78,7 +78,7 @@ export class PublicSpaceSeoController {
     const workspace = await this.resolveWorkspace(req);
 
     const clientDistPath = join(
-      __dirname,
+      import.meta.dirname,
       '..',
       '..',
       '..',

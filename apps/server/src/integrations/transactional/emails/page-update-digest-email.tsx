@@ -1,7 +1,7 @@
 import { Link, Section, Text } from 'react-email';
 import * as React from 'react';
-import { content, link, paragraph } from '../css/styles';
-import { getGreetingName, MailBody } from '../partials/partials';
+import { content, link, paragraph } from '../css/styles.js';
+import { getGreetingName, MailBody } from '../partials/partials.js';
 
 interface PageUpdate {
   title: string;

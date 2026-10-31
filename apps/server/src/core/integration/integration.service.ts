@@ -1,19 +1,19 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
-import { IntegrationRepo } from './repos/integration.repo';
-import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
-import { IntegrationRegistry } from './registry/integration-registry';
-import { Integration } from '@docmost/db/types/entity.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { executeTx } from '@docmost/db/utils.js';
+import { IntegrationRepo } from './repos/integration.repo.js';
+import { IntegrationConnectionRepo } from './repos/integration-connection.repo.js';
+import { IntegrationRegistry } from './registry/integration-registry.js';
+import { Integration } from '@docmost/db/types/entity.types.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
 import {
   AuditEvent,
   AuditResource,
-} from '../../common/events/audit-events';
+} from '../../common/events/audit-events.js';
 
 @Injectable()
 export class IntegrationService {

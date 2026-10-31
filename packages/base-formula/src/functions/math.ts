@@ -1,6 +1,6 @@
-import { register } from "./registry";
-import { makeErrorCell } from "../error";
-import type { Value } from "../types";
+import { register } from "./registry.js";
+import { makeErrorCell } from "../error.js";
+import type { Value } from "../types.js";
 
 const num = (v: unknown): number | null => v == null ? null : Number(v);
 

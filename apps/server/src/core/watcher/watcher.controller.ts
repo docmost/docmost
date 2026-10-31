@@ -7,14 +7,14 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { WatcherService } from './watcher.service';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { WatcherPageDto } from './dto/watcher.dto';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { PageAccessService } from '../page/page-access/page-access.service';
+import { WatcherService } from './watcher.service.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { WatcherPageDto } from './dto/watcher.dto.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { PageAccessService } from '../page/page-access/page-access.service.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')

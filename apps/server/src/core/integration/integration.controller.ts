@@ -7,18 +7,18 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { IntegrationService } from './integration.service';
-import { IntegrationConnectionService } from './integration-connection.service';
-import { UninstallIntegrationDto } from './dto/integration.dto';
-import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { IntegrationService } from './integration.service.js';
+import { IntegrationConnectionService } from './integration-connection.service.js';
+import { UninstallIntegrationDto } from './dto/integration.dto.js';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../casl/interfaces/workspace-ability.type';
+} from '../casl/interfaces/workspace-ability.type.js';
 
 @Controller('integrations')
 export class IntegrationController {

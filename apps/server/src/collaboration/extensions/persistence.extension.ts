@@ -14,31 +14,31 @@ import {
   isRenderableObject,
   jsonToText,
   tiptapExtensions,
-} from '../collaboration.util';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
+} from '../collaboration.util.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { executeTx } from '@docmost/db/utils.js';
 import { InjectQueue } from '@nestjs/bullmq';
-import { QueueJob, QueueName } from '../../integrations/queue/constants';
+import { QueueJob, QueueName } from '../../integrations/queue/constants/index.js';
 import { Queue } from 'bullmq';
 import {
   extractMentions,
   extractUserMentions,
-} from '../../common/helpers/prosemirror/utils';
+} from '../../common/helpers/prosemirror/utils.js';
 import { isDeepStrictEqual } from 'node:util';
 import {
   IPageHistoryJob,
   IPageMentionNotificationJob,
-} from '../../integrations/queue/constants/queue.interface';
-import { Page } from '@docmost/db/types/entity.types';
-import { CollabHistoryService } from '../services/collab-history.service';
+} from '../../integrations/queue/constants/queue.interface.js';
+import { Page } from '@docmost/db/types/entity.types.js';
+import { CollabHistoryService } from '../services/collab-history.service.js';
 import {
   HISTORY_FAST_INTERVAL,
   HISTORY_FAST_THRESHOLD,
   HISTORY_INTERVAL,
-} from '../constants';
-import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
+} from '../constants.js';
+import { TransclusionService } from '../../core/page/transclusion/transclusion.service.js';
 
 @Injectable()
 export class PersistenceExtension implements Extension {

@@ -1,10 +1,10 @@
-import { MailDriver } from './interfaces/mail-driver.interface';
-import { SMTPConfig } from '../interfaces';
+import { MailDriver } from './interfaces/mail-driver.interface.js';
+import { SMTPConfig } from '../interfaces/index.js';
 import { Transporter } from 'nodemailer';
 import * as nodemailer from 'nodemailer';
-import { MailMessage } from '../interfaces/mail.message';
+import { MailMessage } from '../interfaces/mail.message.js';
 import { Logger } from '@nestjs/common';
-import { mailLogName } from '../mail.utils';
+import { mailLogName } from '../mail.utils.js';
 
 export class SmtpDriver implements MailDriver {
   private readonly logger = new Logger(mailLogName(SmtpDriver.name));

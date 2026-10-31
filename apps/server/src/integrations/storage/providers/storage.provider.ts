@@ -1,8 +1,8 @@
 import {
   STORAGE_CONFIG_TOKEN,
   STORAGE_DRIVER_TOKEN,
-} from '../constants/storage.constants';
-import { EnvironmentService } from '../../environment/environment.service';
+} from '../constants/storage.constants.js';
+import { EnvironmentService } from '../../environment/environment.service.js';
 import {
   AzureStorageConfig,
   LocalStorageConfig,
@@ -10,10 +10,10 @@ import {
   StorageConfig,
   StorageDriver,
   StorageOption,
-} from '../interfaces';
-import { AzureDriver, LocalDriver, S3Driver } from '../drivers';
+} from '../interfaces/index.js';
+import { AzureDriver, LocalDriver, S3Driver } from '../drivers/index.js';
 import * as process from 'node:process';
-import { LOCAL_STORAGE_PATH } from '../../../common/helpers';
+import { LOCAL_STORAGE_PATH } from '../../../common/helpers/index.js';
 import path from 'path';
 
 function createStorageDriver(disk: StorageConfig): StorageDriver {

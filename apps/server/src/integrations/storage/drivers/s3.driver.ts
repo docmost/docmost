@@ -1,4 +1,4 @@
-import { S3StorageConfig, StorageDriver, StorageOption } from '../interfaces';
+import { S3StorageConfig, StorageDriver, StorageOption } from '../interfaces/index.js';
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -8,10 +8,10 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { streamToBuffer } from '../storage.utils';
+import { streamToBuffer } from '../storage.utils.js';
 import { Readable } from 'stream';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getMimeType } from '../../../common/helpers';
+import { getMimeType } from '../../../common/helpers/index.js';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Logger } from '@nestjs/common';
 

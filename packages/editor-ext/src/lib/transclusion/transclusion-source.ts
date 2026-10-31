@@ -1,6 +1,6 @@
 import { mergeAttributes, Node } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { TRANSCLUSION_SOURCE_CONTENT_EXPRESSION } from "./constants";
+import { TRANSCLUSION_SOURCE_CONTENT_EXPRESSION } from "./constants.js";
 
 export interface TransclusionSourceOptions {
   HTMLAttributes: Record<string, any>;

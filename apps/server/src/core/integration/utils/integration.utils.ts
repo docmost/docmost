@@ -1,4 +1,4 @@
-import { ProviderAccount } from '../registry/integration-provider.interface';
+import { ProviderAccount } from '../registry/integration-provider.interface.js';
 
 export function normalizeBaseUrl(value: string): string | null {
   try {

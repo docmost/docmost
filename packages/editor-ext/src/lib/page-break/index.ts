@@ -1,1 +1,1 @@
-export * from "./page-break";
+export * from "./page-break.js";

@@ -9,24 +9,24 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { LabelService } from './label.service';
+import { LabelService } from './label.service.js';
 import {
   FindPagesByLabelDto,
   LabelInfoDto,
   ListLabelsDto,
-} from './dto/label.dto';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { LabelRepo, LabelType } from '@docmost/db/repos/label/label.repo';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { emptyCursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+} from './dto/label.dto.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { LabelRepo, LabelType } from '@docmost/db/repos/label/label.repo.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { emptyCursorPaginationResult } from '@docmost/db/pagination/cursor-pagination.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
+} from '../casl/interfaces/space-ability.type.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('labels')

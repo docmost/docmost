@@ -1,6 +1,6 @@
 import { computePosition, offset, shift, ReferenceElement } from "@floating-ui/dom";
-import { DraggingDOMs } from "../utils";
-import { clearPreviewDOM, createPreviewDOM } from "./render-preview";
+import { DraggingDOMs } from "../utils.js";
+import { clearPreviewDOM, createPreviewDOM } from "./render-preview.js";
 
 export class PreviewController {
     private _preview: HTMLElement;

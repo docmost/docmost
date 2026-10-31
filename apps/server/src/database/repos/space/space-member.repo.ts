@@ -2,24 +2,24 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { dbOrTx } from '@docmost/db/utils';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 import { sql } from 'kysely';
 import {
   InsertableSpaceMember,
   SpaceMember,
   UpdatableSpaceMember,
-} from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '../../pagination/pagination-options';
-import { MemberInfo, UserSpaceRole } from './types';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { GroupRepo } from '@docmost/db/repos/group/group.repo';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
+} from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '../../pagination/pagination-options.js';
+import { MemberInfo, UserSpaceRole } from './types.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
+import { CacheOptions, withCache } from '../../../common/helpers/with-cache.js';
 import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
-} from '../../../common/helpers/cache-keys';
+} from '../../../common/helpers/cache-keys.js';
 
 @Injectable()
 export class SpaceMemberRepo {

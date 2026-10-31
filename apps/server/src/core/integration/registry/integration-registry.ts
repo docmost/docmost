@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   IntegrationDefinition,
   IntegrationProvider,
-} from './integration-provider.interface';
+} from './integration-provider.interface.js';
 
 // Docmost Cloud only offers the providers it has OAuth apps for.
 const CLOUD_INTEGRATION_TYPES = new Set(['github', 'gitlab', 'linear']);

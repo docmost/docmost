@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
 import type { Redis } from 'ioredis';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
 
 const THROTTLE_SECONDS = 15 * 60; // 15 minutes
 

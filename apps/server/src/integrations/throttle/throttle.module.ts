@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import { EnvironmentService } from '../environment/environment.service';
-import { EnvironmentModule } from '../environment/environment.module';
-import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
+import { EnvironmentService } from '../environment/environment.service.js';
+import { EnvironmentModule } from '../environment/environment.module.js';
+import { createRetryStrategy, parseRedisUrl } from '../../common/helpers/index.js';
 import {
   AUTH_THROTTLER,
   AI_CHAT_THROTTLER,
@@ -13,8 +13,8 @@ import {
   SIEM_TEST_THROTTLER,
   UNFURL_THROTTLER,
   CLOUD_EMAIL_THROTTLER,
-} from './throttler-names';
-import Redis from 'ioredis';
+} from './throttler-names.js';
+import { Redis } from 'ioredis';
 
 @Module({
   imports: [

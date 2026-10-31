@@ -1,4 +1,4 @@
-import { AnyObject } from "./types";
+import { AnyObject } from "./types.js";
 
 /**
  * get target value from json-pointer (e.g. /content/0/content)

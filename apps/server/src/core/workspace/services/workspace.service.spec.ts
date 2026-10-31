@@ -1,5 +1,5 @@
-import { WorkspaceService } from './workspace.service';
-import { UserRole } from '../../../common/helpers/types/permission';
+import { WorkspaceService } from './workspace.service.js';
+import { UserRole } from '../../../common/helpers/types/permission.js';
 
 const workspaceId = 'workspace-1';
 const userId = 'user-1';

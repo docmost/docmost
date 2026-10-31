@@ -7,13 +7,13 @@ import {
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { JwtPayload } from '../core/auth/dto/jwt-payload';
-import { isUserDisabled } from '../common/helpers';
-import { SpaceRole } from '../common/helpers/types/permission';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo.js';
+import { JwtPayload } from '../core/auth/dto/jwt-payload.js';
+import { isUserDisabled } from '../common/helpers/index.js';
+import { SpaceRole } from '../common/helpers/types/permission.js';
 import {
   TREE_EVENTS,
   WS_SPACE_RESTRICTION_CACHE_PREFIX,
@@ -21,8 +21,8 @@ import {
   getSessionRoomName,
   getSpaceRoomName,
   getUserRoomName,
-} from './ws.utils';
-import { BaseRealtimeBridge } from './base-realtime.bridge';
+} from './ws.utils.js';
+import { BaseRealtimeBridge } from './base-realtime.bridge.js';
 
 @Injectable()
 export class WsService {

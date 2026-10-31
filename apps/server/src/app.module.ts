@@ -1,43 +1,43 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { EnvironmentService } from './integrations/environment/environment.service';
-import { AuditActorInterceptor } from './common/interceptors/audit-actor.interceptor';
-import { CoreModule } from './core/core.module';
-import { EnvironmentModule } from './integrations/environment/environment.module';
-import { CollaborationModule } from './collaboration/collaboration.module';
-import { CollabAccessModule } from './collaboration/collab-access.module';
-import { WsModule } from './ws/ws.module';
-import { DatabaseModule } from '@docmost/db/database.module';
-import { StorageModule } from './integrations/storage/storage.module';
-import { MailModule } from './integrations/mail/mail.module';
-import { QueueModule } from './integrations/queue/queue.module';
-import { StaticModule } from './integrations/static/static.module';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { EnvironmentService } from './integrations/environment/environment.service.js';
+import { AuditActorInterceptor } from './common/interceptors/audit-actor.interceptor.js';
+import { CoreModule } from './core/core.module.js';
+import { EnvironmentModule } from './integrations/environment/environment.module.js';
+import { CollaborationModule } from './collaboration/collaboration.module.js';
+import { CollabAccessModule } from './collaboration/collab-access.module.js';
+import { WsModule } from './ws/ws.module.js';
+import { DatabaseModule } from '@docmost/db/database.module.js';
+import { StorageModule } from './integrations/storage/storage.module.js';
+import { MailModule } from './integrations/mail/mail.module.js';
+import { QueueModule } from './integrations/queue/queue.module.js';
+import { StaticModule } from './integrations/static/static.module.js';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { HealthModule } from './integrations/health/health.module';
-import { ExportModule } from './integrations/export/export.module';
-import { ImportModule } from './integrations/import/import.module';
-import { SecurityModule } from './integrations/security/security.module';
-import { TelemetryModule } from './integrations/telemetry/telemetry.module';
+import { HealthModule } from './integrations/health/health.module.js';
+import { ExportModule } from './integrations/export/export.module.js';
+import { ImportModule } from './integrations/import/import.module.js';
+import { SecurityModule } from './integrations/security/security.module.js';
+import { TelemetryModule } from './integrations/telemetry/telemetry.module.js';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
-import { RedisConfigService } from './integrations/redis/redis-config.service';
+import { RedisConfigService } from './integrations/redis/redis-config.service.js';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis, { defaultReconnectStrategy } from '@keyv/redis';
-import { parseRedisUrl } from './common/helpers';
-import { LoggerModule } from './common/logger/logger.module';
+import { parseRedisUrl } from './common/helpers/index.js';
+import { LoggerModule } from './common/logger/logger.module.js';
 import { ClsModule } from 'nestjs-cls';
-import { NoopAuditModule } from './integrations/audit/audit.module';
-import { ThrottleModule } from './integrations/throttle/throttle.module';
-import { OutboundModule } from './integrations/outbound/outbound.module';
-import { EncryptionModule } from './integrations/encryption/encryption.module';
+import { NoopAuditModule } from './integrations/audit/audit.module.js';
+import { ThrottleModule } from './integrations/throttle/throttle.module.js';
+import { OutboundModule } from './integrations/outbound/outbound.module.js';
+import { EncryptionModule } from './integrations/encryption/encryption.module.js';
+import { importEe } from './common/helpers/ee-loader.js';
 
 const enterpriseModules = [];
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  if (require('./ee/ee.module')?.EeModule) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    enterpriseModules.push(require('./ee/ee.module')?.EeModule);
+  const { EeModule } = await importEe('ee.module');
+  if (EeModule) {
+    enterpriseModules.push(EeModule);
   }
 } catch (err) {
   if (process.env.CLOUD === 'true') {

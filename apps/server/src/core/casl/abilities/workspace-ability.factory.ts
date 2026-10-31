@@ -4,13 +4,13 @@ import {
   createMongoAbility,
   MongoAbility,
 } from '@casl/ability';
-import { UserRole } from '../../../common/helpers/types/permission';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import { UserRole } from '../../../common/helpers/types/permission.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
 import {
   IWorkspaceAbility,
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../interfaces/workspace-ability.type';
+} from '../interfaces/workspace-ability.type.js';
 
 @Injectable()
 export default class WorkspaceAbilityFactory {

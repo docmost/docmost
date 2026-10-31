@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IntegrationRegistry } from '../registry/integration-registry';
-import { IntegrationConnectionRepo } from '../repos/integration-connection.repo';
-import { IntegrationRepo } from '../repos/integration.repo';
-import { OAuthService } from '../oauth/oauth.service';
+import { IntegrationRegistry } from '../registry/integration-registry.js';
+import { IntegrationConnectionRepo } from '../repos/integration-connection.repo.js';
+import { IntegrationRepo } from '../repos/integration.repo.js';
+import { OAuthService } from '../oauth/oauth.service.js';
 import {
   UnfurlResult,
   UnfurlNeedsConnection,
@@ -12,8 +12,8 @@ import {
   TokenInvalidError,
   ProviderApiError,
   IntegrationProvider,
-} from '../registry/integration-provider.interface';
-import { IntegrationConnection } from '@docmost/db/types/entity.types';
+} from '../registry/integration-provider.interface.js';
+import { IntegrationConnection } from '@docmost/db/types/entity.types.js';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
 import type { Redis } from 'ioredis';
 import * as crypto from 'crypto';

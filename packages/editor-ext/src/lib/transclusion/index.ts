@@ -1,3 +1,3 @@
-export * from "./constants";
-export * from "./transclusion-source";
-export * from "./transclusion-reference";
+export * from "./constants.js";
+export * from "./transclusion-source.js";
+export * from "./transclusion-reference.js";

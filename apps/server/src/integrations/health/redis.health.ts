@@ -3,9 +3,9 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import { Injectable, Logger } from '@nestjs/common';
-import { EnvironmentService } from '../environment/environment.service';
+import { EnvironmentService } from '../environment/environment.service.js';
 import { Redis } from 'ioredis';
-import { parseRedisUrl } from '../../common/helpers';
+import { parseRedisUrl } from '../../common/helpers/index.js';
 
 @Injectable()
 export class RedisHealthIndicator {

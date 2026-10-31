@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { normalizeFileUrl } from "../media-utils";
-import { sanitizeUrl, isInternalFileUrl } from "../utils";
+import { normalizeFileUrl } from "../media-utils.js";
+import { sanitizeUrl, isInternalFileUrl } from "../utils.js";
 
 export interface AudioOptions {
   view: any;

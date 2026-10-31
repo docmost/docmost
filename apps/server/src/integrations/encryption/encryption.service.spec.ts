@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EncryptionPurpose, EncryptionService } from './encryption.service';
-import { UnableToDecrypt, UnableToInitialize } from './encryption.errors';
-import { EnvironmentService } from '../environment/environment.service';
+import { EncryptionPurpose, EncryptionService } from './encryption.service.js';
+import { UnableToDecrypt, UnableToInitialize } from './encryption.errors.js';
+import { EnvironmentService } from '../environment/environment.service.js';
 
 const APP_SECRET = 'test-app-secret-with-plenty-of-entropy-1234567890';
 // Produced by the shipped v0.96.0 writer, with a fixed IV and a synthetic secret.

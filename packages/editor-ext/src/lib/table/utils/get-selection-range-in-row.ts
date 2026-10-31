@@ -1,8 +1,8 @@
 import type { Transaction } from '@tiptap/pm/state'
 
-import { getCellsInColumn } from './get-cells-in-column'
-import { getCellsInRow } from './get-cells-in-row'
-import type { CellSelectionRange } from './types'
+import { getCellsInColumn } from './get-cells-in-column.js'
+import { getCellsInRow } from './get-cells-in-row.js'
+import type { CellSelectionRange } from './types.js'
 
 /**
  * Returns a range of rectangular selection spanning all merged cells around a

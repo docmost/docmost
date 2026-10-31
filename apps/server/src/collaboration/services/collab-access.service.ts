@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
-import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
+import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants.js';
 
 export type CollabAccessRecheck = {
   userIds?: string[];

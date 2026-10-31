@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import {
   IApprovalRejectedNotificationJob,
   IApprovalRequestedNotificationJob,
   IPageVerifiedNotificationJob,
   IVerificationExpiringNotificationJob,
   IVerificationExpiredNotificationJob,
-} from '../../../integrations/queue/constants/queue.interface';
-import { NotificationService } from '../notification.service';
-import { NotificationType } from '../notification.constants';
-import { VerificationExpiringEmail } from '@docmost/transactional/emails/verification-expiring-email';
-import { VerificationExpiredEmail } from '@docmost/transactional/emails/verification-expired-email';
-import { ApprovalRequestedEmail } from '@docmost/transactional/emails/approval-requested-email';
-import { ApprovalRejectedEmail } from '@docmost/transactional/emails/approval-rejected-email';
-import { getPageTitle } from '../../../common/helpers';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+} from '../../../integrations/queue/constants/queue.interface.js';
+import { NotificationService } from '../notification.service.js';
+import { NotificationType } from '../notification.constants.js';
+import { VerificationExpiringEmail } from '@docmost/transactional/emails/verification-expiring-email.js';
+import { VerificationExpiredEmail } from '@docmost/transactional/emails/verification-expired-email.js';
+import { ApprovalRequestedEmail } from '@docmost/transactional/emails/approval-requested-email.js';
+import { ApprovalRejectedEmail } from '@docmost/transactional/emails/approval-rejected-email.js';
+import { getPageTitle } from '../../../common/helpers/index.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
 
 @Injectable()
 export class VerificationNotificationService {

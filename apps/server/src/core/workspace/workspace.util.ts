@@ -1,4 +1,4 @@
-import { UserRole } from '../../common/helpers/types/permission';
+import { UserRole } from '../../common/helpers/types/permission.js';
 
 export function isAdminActingOnOwner(
   authUserRole: string,

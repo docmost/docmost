@@ -1,7 +1,7 @@
 import { Button, Link, Section, Text } from 'react-email';
 import * as React from 'react';
-import { button, content, paragraph } from '../css/styles';
-import { MailBody } from '../partials/partials';
+import { button, content, paragraph } from '../css/styles.js';
+import { MailBody } from '../partials/partials.js';
 
 interface Props {
   username: string;

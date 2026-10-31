@@ -1,2 +1,2 @@
-export { Attachment } from "./attachment";
-export * from "./attachment-upload";
+export { Attachment } from "./attachment.js";
+export * from "./attachment-upload.js";

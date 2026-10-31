@@ -1,8 +1,8 @@
 import { Logger, NotFoundException } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { IntegrationProcessor } from './integration.processor';
-import { TokenInvalidError } from './registry/integration-provider.interface';
-import { QueueJob } from '../../integrations/queue/constants/queue.constants';
+import { IntegrationProcessor } from './integration.processor.js';
+import { TokenInvalidError } from './registry/integration-provider.interface.js';
+import { QueueJob } from '../../integrations/queue/constants/queue.constants.js';
 import type { Mock } from 'vitest';
 
 describe('IntegrationProcessor token refresh', () => {

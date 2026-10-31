@@ -1,4 +1,4 @@
-import { OAuthConfig } from '../registry/integration-provider.interface';
+import { OAuthConfig } from '../registry/integration-provider.interface.js';
 
 // Workspace-scoped providers can only connect through the identity flow
 export function supportsOAuthConnect(

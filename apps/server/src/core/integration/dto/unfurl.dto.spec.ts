@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { UnfurlDto } from './integration.dto';
+import { UnfurlDto } from './integration.dto.js';
 
 async function violations(url: string): Promise<string[]> {
   const errors = await validate(plainToInstance(UnfurlDto, { url }));

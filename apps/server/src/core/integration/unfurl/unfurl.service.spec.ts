@@ -1,15 +1,15 @@
 import * as crypto from 'crypto';
 import { Logger } from '@nestjs/common';
-import { UnfurlService } from './unfurl.service';
-import { IntegrationRegistry } from '../registry/integration-registry';
-import { GitHubProvider } from '../providers/github/github.provider';
+import { UnfurlService } from './unfurl.service.js';
+import { IntegrationRegistry } from '../registry/integration-registry.js';
+import { GitHubProvider } from '../providers/github/github.provider.js';
 import {
   IntegrationDefinition,
   IntegrationProvider,
   ProviderApiError,
   TokenExpiredError,
   TokenInvalidError,
-} from '../registry/integration-provider.interface';
+} from '../registry/integration-provider.interface.js';
 import type { MockInstance } from 'vitest';
 
 const GHE_BASE = 'https://github.acme.com';

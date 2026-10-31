@@ -7,18 +7,18 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { CreateCommentDto, yjsSelectionSchema } from './dto/create-comment.dto';
-import { CollaborationGateway } from '../../collaboration/collaboration.gateway';
-import { UpdateCommentDto } from './dto/update-comment.dto';
-import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
-import { Comment, Page, User } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import { QueueJob, QueueName } from '../../integrations/queue/constants';
-import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
-import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
-import { WsService } from '../../ws/ws.service';
+import { CreateCommentDto, yjsSelectionSchema } from './dto/create-comment.dto.js';
+import { CollaborationGateway } from '../../collaboration/collaboration.gateway.js';
+import { UpdateCommentDto } from './dto/update-comment.dto.js';
+import { CommentRepo } from '@docmost/db/repos/comment/comment.repo.js';
+import { Comment, Page, User } from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination.js';
+import { QueueJob, QueueName } from '../../integrations/queue/constants/index.js';
+import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils.js';
+import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface.js';
+import { WsService } from '../../ws/ws.service.js';
 
 @Injectable()
 export class CommentService {

@@ -9,35 +9,35 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { Public } from '../../common/decorators/public.decorator';
-import { PublicSpaceService } from './public-space.service';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { Public } from '../../common/decorators/public.decorator.js';
+import { PublicSpaceService } from './public-space.service.js';
 import {
   PublicSpaceForSpaceDto,
   PublicSpacePageDto,
   PublicSpaceSlugDto,
   PublicSpaceTransclusionLookupDto,
   PublishSpaceDto,
-} from './dto/public-space.dto';
-import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+} from './dto/public-space.dto.js';
+import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
-import { LicenseCheckService } from '../../integrations/environment/license-check.service';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+} from '../casl/interfaces/space-ability.type.js';
+import { LicenseCheckService } from '../../integrations/environment/license-check.service.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
-import { Feature, FeatureKey } from '../../common/features';
+} from '../../integrations/audit/audit.service.js';
+import { Feature, FeatureKey } from '../../common/features.js';
 
 const PUBLIC_SPACE_FEATURES: FeatureKey[] = [Feature.PUBLIC_SPACE_APPEARANCE];
 

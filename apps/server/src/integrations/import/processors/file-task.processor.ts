@@ -1,13 +1,14 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { QueueJob, QueueName } from '../../queue/constants';
-import { FileImportTaskService } from '../services/file-import-task.service';
-import { FileTaskStatus } from '../utils/file.utils';
-import { StorageService } from '../../storage/storage.service';
+import { QueueJob, QueueName } from '../../queue/constants/index.js';
+import { FileImportTaskService } from '../services/file-import-task.service.js';
+import { FileTaskStatus } from '../utils/file.utils.js';
+import { StorageService } from '../../storage/storage.service.js';
 import { ModuleRef } from '@nestjs/core';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { importEe } from '../../../common/helpers/ee-loader.js';
 
 @Processor(QueueName.FILE_TASK_QUEUE)
 export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
@@ -41,21 +42,20 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
     }
   }
 
-  private getPdfExportService() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const PdfExportModule = require('./../../../ee/pdf-export/pdf-export.service');
+  private async getPdfExportService() {
+    const PdfExportModule = await importEe('pdf-export/pdf-export.service');
     return this.moduleRef.get(PdfExportModule.PdfExportService, {
       strict: false,
     });
   }
 
   private async processExportTask(fileTaskId: string): Promise<void> {
-    const pdfExportService = this.getPdfExportService();
+    const pdfExportService = await this.getPdfExportService();
     await pdfExportService.generateAndStorePdf(fileTaskId);
   }
 
   private async processExportCleanup(): Promise<void> {
-    const pdfExportService = this.getPdfExportService();
+    const pdfExportService = await this.getPdfExportService();
     await pdfExportService.cleanupExpiredExports();
   }
 

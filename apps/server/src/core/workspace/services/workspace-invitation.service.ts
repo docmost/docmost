@@ -6,46 +6,46 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { AcceptInviteDto, InviteUserDto } from '../dto/invitation.dto';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { AcceptInviteDto, InviteUserDto } from '../dto/invitation.dto.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import { sql } from 'kysely';
-import { executeTx } from '@docmost/db/utils';
+import { executeTx } from '@docmost/db/utils.js';
 import {
   Group,
   User,
   Workspace,
   WorkspaceInvitation,
-} from '@docmost/db/types/entity.types';
-import { MailService } from '../../../integrations/mail/mail.service';
-import InvitationEmail from '@docmost/transactional/emails/invitation-email';
-import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
-import { TokenService } from '../../auth/services/token.service';
-import { SessionService } from '../../session/session.service';
-import { nanoIdGen } from '../../../common/helpers';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { DomainService } from '../../../integrations/environment/domain.service';
+} from '@docmost/db/types/entity.types.js';
+import { MailService } from '../../../integrations/mail/mail.service.js';
+import InvitationEmail from '@docmost/transactional/emails/invitation-email.js';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo.js';
+import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email.js';
+import { TokenService } from '../../auth/services/token.service.js';
+import { SessionService } from '../../session/session.service.js';
+import { nanoIdGen } from '../../../common/helpers/index.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
+import { DomainService } from '../../../integrations/environment/domain.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants/index.js';
 import { Queue } from 'bullmq';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
 import {
   validateAllowedEmail,
   validateSsoEnforcement,
-} from '../../auth/auth.util';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+} from '../../auth/auth.util.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
+} from '../../../integrations/audit/audit.service.js';
 import {
   getWorkspaceDefaultPageEditMode,
   isAdminActingOnOwner,
-} from '../workspace.util';
-import { INVITATION_EXPIRY_DAYS } from '../workspace.constants';
+} from '../workspace.util.js';
+import { INVITATION_EXPIRY_DAYS } from '../workspace.constants.js';
 import { addDays } from 'date-fns';
 
 @Injectable()

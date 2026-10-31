@@ -29,7 +29,7 @@ import {
   WidthType,
 } from 'docx';
 import { imageDimensionsFromData } from 'image-dimensions';
-import { createNumbering, NumberingStyles } from './numbering';
+import { createNumbering, NumberingStyles } from './numbering.js';
 import {
   buildDoc,
   CELL_MARGIN,
@@ -37,8 +37,8 @@ import {
   getTableCellWidths,
   getTableColumnWidths,
   TEXT_WIDTH,
-} from './utils';
-import { IFootnotes, INumbering, Mutable, SectionConfig, SerializationState } from './types';
+} from './utils.js';
+import { IFootnotes, INumbering, Mutable, SectionConfig, SerializationState } from './types.js';
 
 // This is duplicated from @curvenote/schema
 export type AlignOptions = 'left' | 'center' | 'right';

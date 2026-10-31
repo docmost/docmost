@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { SearchController } from './search.controller';
+import { SearchController } from './search.controller.js';
 
 describe('SearchController', () => {
   let controller: SearchController;

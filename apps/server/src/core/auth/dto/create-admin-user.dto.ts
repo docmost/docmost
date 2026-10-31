@@ -5,9 +5,9 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { CreateUserDto } from './create-user.dto';
+import { CreateUserDto } from './create-user.dto.js';
 import { Transform, TransformFnParams } from 'class-transformer';
-import { NoUrls } from '../../../common/validators/no-urls.validator';
+import { NoUrls } from '../../../common/validators/no-urls.validator.js';
 
 export class CreateAdminUserDto extends CreateUserDto {
   @IsNotEmpty()

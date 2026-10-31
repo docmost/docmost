@@ -1,6 +1,6 @@
 //Source MIT - https://github.com/buttondown/tiptap-footnotes
 import OrderedList from "@tiptap/extension-ordered-list";
-import FootnoteRules from "./rules";
+import FootnoteRules from "./rules.js";
 
 const Footnotes = OrderedList.extend({
   name: "footnotes",

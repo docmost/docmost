@@ -23,7 +23,7 @@ import {
   DecorationSet,
   type DecorationSource,
 } from '@tiptap/pm/view';
-import { fixTabIds, getPanelContentPos, isTabsNode } from './tabs.utils';
+import { fixTabIds, getPanelContentPos, isTabsNode } from './tabs.utils.js';
 
 type ActiveTab = { tabId: string; index: number };
 

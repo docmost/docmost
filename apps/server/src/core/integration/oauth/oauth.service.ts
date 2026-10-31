@@ -7,20 +7,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { DomainService } from '../../../integrations/environment/domain.service';
-import { IntegrationRegistry } from '../registry/integration-registry';
-import { IntegrationRepo } from '../repos/integration.repo';
-import { IntegrationConnectionRepo } from '../repos/integration-connection.repo';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { executeTx } from '@docmost/db/utils.js';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
+import { DomainService } from '../../../integrations/environment/domain.service.js';
+import { IntegrationRegistry } from '../registry/integration-registry.js';
+import { IntegrationRepo } from '../repos/integration.repo.js';
+import { IntegrationConnectionRepo } from '../repos/integration-connection.repo.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
 import {
   EncryptionPurpose,
   EncryptionService,
-} from '../../../integrations/encryption/encryption.service';
-import { IntegrationConnection } from '@docmost/db/types/entity.types';
+} from '../../../integrations/encryption/encryption.service.js';
+import { IntegrationConnection } from '@docmost/db/types/entity.types.js';
 import {
   IdentityEmailMismatchError,
   IntegrationProvider,
@@ -28,28 +28,28 @@ import {
   ProviderAccount,
   TokenExpiredError,
   TokenInvalidError,
-} from '../registry/integration-provider.interface';
-import { proxyFetch } from '../../../common/proxy-fetch';
-import { readCappedResponse } from '../utils/provider-fetch';
-import { isUserDisabled } from '../../../common/helpers/utils';
-import { credentialEnvKey } from './credential-env';
-import { supportsOAuthConnect } from './oauth-connect';
-import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
+} from '../registry/integration-provider.interface.js';
+import { proxyFetch } from '../../../common/proxy-fetch.js';
+import { readCappedResponse } from '../utils/provider-fetch.js';
+import { isUserDisabled } from '../../../common/helpers/utils.js';
+import { credentialEnvKey } from './credential-env.js';
+import { supportsOAuthConnect } from './oauth-connect.js';
+import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../../casl/interfaces/workspace-ability.type';
+} from '../../casl/interfaces/workspace-ability.type.js';
 import * as crypto from 'crypto';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
+} from '../../../integrations/audit/audit.service.js';
 import {
   AuditEvent,
   AuditResource,
-} from '../../../common/events/audit-events';
+} from '../../../common/events/audit-events.js';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
-import { RefreshLock } from '../utils/refresh-lock';
+import { RefreshLock } from '../utils/refresh-lock.js';
 
 const OAUTH_HTTP_TIMEOUT_MS = 10_000;
 // Room for the provider call that follows, and far inside the refresh job's 15-minute window.

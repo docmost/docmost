@@ -1,5 +1,5 @@
 import { IsIn, IsNotEmpty, IsString } from 'class-validator';
-import { PageIdDto } from './page.dto';
+import { PageIdDto } from './page.dto.js';
 
 export type BacklinkDirection = 'incoming' | 'outgoing';
 

@@ -1,10 +1,10 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { QueueName } from '../../queue/constants';
+import { QueueName } from '../../queue/constants/index.js';
 import { Job } from 'bullmq';
-import { MailService } from '../mail.service';
-import { MailMessage } from '../interfaces/mail.message';
-import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
+import { MailService } from '../mail.service.js';
+import { MailMessage } from '../interfaces/mail.message.js';
+import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo.js';
 
 @Processor(QueueName.EMAIL_QUEUE)
 export class EmailProcessor extends WorkerHost implements OnModuleDestroy {

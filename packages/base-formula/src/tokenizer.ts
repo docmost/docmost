@@ -1,5 +1,5 @@
-import { FormulaParseError } from "./error";
-import { MAX_FORMULA_SOURCE_LENGTH } from "./types";
+import { FormulaParseError } from "./error.js";
+import { MAX_FORMULA_SOURCE_LENGTH } from "./types.js";
 
 export enum TokenKind {
   NUMBER = "NUMBER",

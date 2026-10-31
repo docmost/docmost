@@ -1,5 +1,5 @@
-import { UnfurlPattern } from '../../registry/integration-provider.interface';
-import { CANONICAL_PATH } from '../../utils/canonical-path';
+import { UnfurlPattern } from '../../registry/integration-provider.interface.js';
+import { CANONICAL_PATH } from '../../utils/canonical-path.js';
 
 const LINEAR_APP = String.raw`^https?:\/\/${CANONICAL_PATH}linear\.app`;
 

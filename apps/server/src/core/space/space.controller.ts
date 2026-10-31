@@ -9,32 +9,32 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SpaceService } from './services/space.service';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { SpaceIdDto } from './dto/space-id.dto';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { SpaceMemberService } from './services/space-member.service';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { AddSpaceMembersDto } from './dto/add-space-members.dto';
-import { RemoveSpaceMemberDto } from './dto/remove-space-member.dto';
-import { UpdateSpaceMemberRoleDto } from './dto/update-space-member-role.dto';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+import { SpaceService } from './services/space.service.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator.js';
+import { SpaceIdDto } from './dto/space-id.dto.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { SpaceMemberService } from './services/space-member.service.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { AddSpaceMembersDto } from './dto/add-space-members.dto.js';
+import { RemoveSpaceMemberDto } from './dto/remove-space-member.dto.js';
+import { UpdateSpaceMemberRoleDto } from './dto/update-space-member-role.dto.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
-import { UpdateSpaceDto } from './dto/update-space.dto';
-import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+} from '../casl/interfaces/space-ability.type.js';
+import { UpdateSpaceDto } from './dto/update-space.dto.js';
+import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../casl/interfaces/workspace-ability.type';
-import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
-import { CreateSpaceDto } from './dto/create-space.dto';
+} from '../casl/interfaces/workspace-ability.type.js';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory.js';
+import { CreateSpaceDto } from './dto/create-space.dto.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')

@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Label } from '@docmost/db/types/entity.types';
-import { LabelRepo, LabelType } from '@docmost/db/repos/label/label.repo';
+import { Label } from '@docmost/db/types/entity.types.js';
+import { LabelRepo, LabelType } from '@docmost/db/repos/label/label.repo.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { normalizeLabelName } from './utils';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { executeTx } from '@docmost/db/utils.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { normalizeLabelName } from './utils.js';
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { EventName } from '../../common/events/event.contants';
+import { EventName } from '../../common/events/event.contants.js';
 
 @Injectable()
 export class LabelService {

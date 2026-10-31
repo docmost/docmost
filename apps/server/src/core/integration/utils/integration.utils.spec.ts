@@ -1,4 +1,4 @@
-import { toProviderAccount } from './integration.utils';
+import { toProviderAccount } from './integration.utils.js';
 
 describe('toProviderAccount', () => {
   it('stringifies a numeric id and keeps the names', () => {

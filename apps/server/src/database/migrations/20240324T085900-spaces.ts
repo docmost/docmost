@@ -2,7 +2,7 @@ import { Kysely, sql } from 'kysely';
 import {
   SpaceRole,
   SpaceVisibility,
-} from '../../common/helpers/types/permission';
+} from '../../common/helpers/types/permission.js';
 
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema

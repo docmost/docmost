@@ -1,4 +1,4 @@
-import { isHttpUrl, sanitizeUrl } from "../utils";
+import { isHttpUrl, sanitizeUrl } from "../utils.js";
 
 // Only web urls survive, kept as given because sanitizeUrl decodes percent-escapes.
 export function sanitizeIntegrationUrl(url: string | null | undefined): string {

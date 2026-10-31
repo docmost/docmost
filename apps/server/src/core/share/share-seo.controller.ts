@@ -1,13 +1,13 @@
 import { Controller, Get, Param, Req, Res } from '@nestjs/common';
-import { ShareService } from './share.service';
+import { ShareService } from './share.service.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { join } from 'path';
 import * as fs from 'node:fs';
 import { validate as isValidUUID } from 'uuid';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { Workspace } from '@docmost/db/types/entity.types';
-import { htmlEscape } from '../../common/helpers/html-escaper';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { Workspace } from '@docmost/db/types/entity.types.js';
+import { htmlEscape } from '../../common/helpers/html-escaper.js';
 
 @Controller('share')
 export class ShareSeoController {
@@ -43,7 +43,7 @@ export class ShareSeoController {
     }
 
     const clientDistPath = join(
-      __dirname,
+      import.meta.dirname,
       '..',
       '..',
       '..',

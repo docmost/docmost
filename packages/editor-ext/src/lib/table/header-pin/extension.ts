@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 
-import { attach, detach, getController } from './controller';
+import { attach, detach, getController } from './controller.js';
 
 const tableHeaderPinKey = new PluginKey('tableHeaderPin');
 

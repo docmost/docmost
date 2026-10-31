@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { TelemetryService } from './telemetry.service';
+import { TelemetryService } from './telemetry.service.js';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({

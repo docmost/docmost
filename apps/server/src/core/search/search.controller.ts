@@ -9,28 +9,29 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SearchService } from './search.service';
+import { SearchService } from './search.service.js';
 import {
   SearchDTO,
   SearchPublicSpaceDTO,
   SearchShareDTO,
   SearchSuggestionDTO,
-} from './dto/search.dto';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+} from './dto/search.dto.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
+} from '../casl/interfaces/space-ability.type.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { Public } from '../../common/decorators/public.decorator.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
 import { ModuleRef } from '@nestjs/core';
-import { PublicSpaceService } from '../public-space/public-space.service';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PublicSpaceService } from '../public-space/public-space.service.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { importEe } from '../../common/helpers/ee-loader.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')
@@ -161,8 +162,7 @@ export class SearchController {
     const { userId, workspaceId, publicPageIds } = opts;
     let TypesenseModule: any;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      TypesenseModule = require('./../../ee/typesense/services/page-search.service');
+      TypesenseModule = await importEe('typesense/services/page-search.service');
 
       const PageSearchService = this.moduleRef.get(
         TypesenseModule.PageSearchService,

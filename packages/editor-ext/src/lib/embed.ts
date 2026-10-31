@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { sanitizeUrl } from "./utils";
+import { sanitizeUrl } from "./utils.js";
 
 export interface EmbedOptions {
   HTMLAttributes: Record<string, any>;

@@ -1,6 +1,6 @@
 import { Agent } from 'undici';
-import { OutboundAgentFactory } from './outbound-agent.factory';
-import { OutboundUrlError } from './outbound-url.guard';
+import { OutboundAgentFactory } from './outbound-agent.factory.js';
+import { OutboundUrlError } from './outbound-url.guard.js';
 
 describe('OutboundAgentFactory', () => {
   it('validates the URL through the guard and returns a releasable undici Agent', async () => {

@@ -3,5 +3,5 @@ export {
   TableHandleCommandsExtension,
   TableDndKey,
   getTableHandlePluginSpec,
-} from "./dnd-extension";
-export type { TableHandleState, TableHandlePluginSpec } from "./dnd-extension";
+} from "./dnd-extension.js";
+export type { TableHandleState, TableHandlePluginSpec } from "./dnd-extension.js";

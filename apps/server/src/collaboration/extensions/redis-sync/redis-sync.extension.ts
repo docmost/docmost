@@ -9,8 +9,8 @@ import {
   WebSocketLike,
 } from '@hocuspocus/server';
 import { ConnectionTimeout, Unauthorized } from '@hocuspocus/common';
-import RedisClient from 'ioredis';
-import { CollabProxySocket } from './collab-proxy-socket';
+import { Redis as RedisClient } from 'ioredis';
+import { CollabProxySocket } from './collab-proxy-socket.js';
 import {
   Configuration,
   CustomEvents,
@@ -27,9 +27,9 @@ import {
   OriginConnection,
   ProxyConnection,
   toWebRequest,
-} from './redis-sync.types';
+} from './redis-sync.types.js';
 
-export type { Pack, SerializedHTTPRequest } from './redis-sync.types';
+export type { Pack, SerializedHTTPRequest } from './redis-sync.types.js';
 
 type ServerId = string;
 type DocumentName = string;

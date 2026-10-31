@@ -1,4 +1,4 @@
-import { generateNodeId } from "../utils";
+import { generateNodeId } from "../utils.js";
 import { UniqueID as TiptapUniqueID } from "@tiptap/extension-unique-id";
 
 export const UniqueID = TiptapUniqueID.extend({

@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { CollabAccessService } from './services/collab-access.service';
+import { CollabAccessService } from './services/collab-access.service.js';
 
 @Global()
 @Module({

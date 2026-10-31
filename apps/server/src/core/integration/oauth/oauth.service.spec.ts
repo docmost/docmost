@@ -7,16 +7,16 @@ import {
 import * as crypto from 'crypto';
 import * as http from 'http';
 import { AddressInfo } from 'net';
-import { IntegrationConnection } from '@docmost/db/types/entity.types';
-import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
-import { UserRole } from '../../../common/helpers/types/permission';
-import { OAuthService, OAuthStatePayload } from './oauth.service';
+import { IntegrationConnection } from '@docmost/db/types/entity.types.js';
+import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory.js';
+import { UserRole } from '../../../common/helpers/types/permission.js';
+import { OAuthService, OAuthStatePayload } from './oauth.service.js';
 import {
   IdentityEmailMismatchError,
   ProviderApiError,
   TokenExpiredError,
   TokenInvalidError,
-} from '../registry/integration-provider.interface';
+} from '../registry/integration-provider.interface.js';
 import type { Mock } from 'vitest';
 
 type RecordedRequest = { method: string; url: string; body: string; authorization?: string };

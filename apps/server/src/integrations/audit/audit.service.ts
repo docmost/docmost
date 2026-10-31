@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogPayload, ActorType } from '../../common/events/audit-events';
+import { AuditLogPayload, ActorType } from '../../common/events/audit-events.js';
 
 export type AuditLogContext = {
   workspaceId: string;

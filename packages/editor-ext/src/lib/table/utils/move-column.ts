@@ -5,12 +5,12 @@ import {
   TableMap,
 } from '@tiptap/pm/tables'
 
-import { convertArrayOfRowsToTableNode } from './convert-array-of-rows-to-table-node'
-import { convertTableNodeToArrayOfRows } from './convert-table-node-to-array-of-rows'
-import { getSelectionRangeInColumn } from './get-selection-range-in-column'
-import { moveRowInArrayOfRows } from './move-row-in-array-of-rows'
-import { findTable } from './query'
-import { transpose } from './transpose'
+import { convertArrayOfRowsToTableNode } from './convert-array-of-rows-to-table-node.js'
+import { convertTableNodeToArrayOfRows } from './convert-table-node-to-array-of-rows.js'
+import { getSelectionRangeInColumn } from './get-selection-range-in-column.js'
+import { moveRowInArrayOfRows } from './move-row-in-array-of-rows.js'
+import { findTable } from './query.js'
+import { transpose } from './transpose.js'
 
 export interface MoveColumnParams {
   tr: Transaction

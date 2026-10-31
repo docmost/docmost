@@ -1,4 +1,4 @@
-import { OAuthConfig } from '../registry/integration-provider.interface';
+import { OAuthConfig } from '../registry/integration-provider.interface.js';
 
 // Products on one authorization server (Atlassian, Google) share credentials via credentialsKey
 export function credentialEnvKey(

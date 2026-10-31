@@ -2,7 +2,7 @@ import type { Extensions, JSONContent } from "@tiptap/core";
 import { findChildren, getSchema } from "@tiptap/core";
 import { Node } from "@tiptap/pm/model";
 import { EditorState } from "@tiptap/pm/state";
-import type { UniqueID } from "./unique-id";
+import type { UniqueID } from "./unique-id.js";
 
 /**
  * Creates a new document with unique IDs added to the nodes. Does the same

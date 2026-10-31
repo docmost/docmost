@@ -1,4 +1,4 @@
-import { collapseBlankLines } from './text.utils';
+import { collapseBlankLines } from './text.utils.js';
 
 describe('collapseBlankLines', () => {
   it.each([

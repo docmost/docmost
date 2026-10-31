@@ -1,4 +1,4 @@
-import { WsService } from './ws.service';
+import { WsService } from './ws.service.js';
 
 function makeService(accessBySpace: Record<string, string[]>) {
   const spaceMemberRepo = {

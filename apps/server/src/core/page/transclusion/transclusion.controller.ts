@@ -6,13 +6,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { AuthUser } from '../../../common/decorators/auth-user.decorator';
-import { User } from '@docmost/db/types/entity.types';
-import { TransclusionService } from './transclusion.service';
-import { LookupDto } from './dto/lookup.dto';
-import { ReferencesDto } from './dto/references.dto';
-import { UnsyncReferenceDto } from './dto/unsync-reference.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard.js';
+import { AuthUser } from '../../../common/decorators/auth-user.decorator.js';
+import { User } from '@docmost/db/types/entity.types.js';
+import { TransclusionService } from './transclusion.service.js';
+import { LookupDto } from './dto/lookup.dto.js';
+import { ReferencesDto } from './dto/references.dto.js';
+import { UnsyncReferenceDto } from './dto/unsync-reference.dto.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages/transclusion')

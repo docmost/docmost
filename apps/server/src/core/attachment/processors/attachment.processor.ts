@@ -1,9 +1,10 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { AttachmentService } from '../services/attachment.service';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { AttachmentService } from '../services/attachment.service.js';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants/index.js';
 import { ModuleRef } from '@nestjs/core';
+import { importEe } from '../../../common/helpers/ee-loader.js';
 
 @Processor(QueueName.ATTACHMENT_QUEUE)
 export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
@@ -39,8 +40,7 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
       ) {
         let AttachmentEeModule: any;
         try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          AttachmentEeModule = require('./../../../ee/attachments-ee/attachment-ee.service');
+          AttachmentEeModule = await importEe('attachments-ee/attachment-ee.service');
         } catch (err) {
           this.logger.debug(
             'Attachment enterprise module requested but EE module not bundled in this build',

@@ -2,7 +2,7 @@
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { ReplaceStep } from "@tiptap/pm/transform";
 import { Extension } from "@tiptap/core";
-import { updateFootnotesList } from "./utils";
+import { updateFootnotesList } from "./utils.js";
 
 const FootnoteRules = Extension.create({
   name: "footnoteRules",

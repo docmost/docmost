@@ -1,2 +1,2 @@
-export { TiptapAudio } from "./audio";
-export * from "./audio-upload";
+export { TiptapAudio } from "./audio.js";
+export * from "./audio-upload.js";

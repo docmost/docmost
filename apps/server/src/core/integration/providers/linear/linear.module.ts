@@ -1,8 +1,8 @@
 import { Module, OnModuleInit } from '@nestjs/common';
-import { LinearProvider } from './linear.provider';
-import { LinearService } from './linear.service';
-import { IntegrationRegistry } from '../../registry/integration-registry';
-import { IntegrationModule } from '../../integration.module';
+import { LinearProvider } from './linear.provider.js';
+import { LinearService } from './linear.service.js';
+import { IntegrationRegistry } from '../../registry/integration-registry.js';
+import { IntegrationModule } from '../../integration.module.js';
 
 @Module({
   imports: [IntegrationModule],

@@ -1,15 +1,15 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
-import { IntegrationRepo } from './repos/integration.repo';
+import { IntegrationConnectionRepo } from './repos/integration-connection.repo.js';
+import { IntegrationRepo } from './repos/integration.repo.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
 import {
   AuditEvent,
   AuditResource,
-} from '../../common/events/audit-events';
-import { ProviderAccount } from './registry/integration-provider.interface';
+} from '../../common/events/audit-events.js';
+import { ProviderAccount } from './registry/integration-provider.interface.js';
 
 @Injectable()
 export class IntegrationConnectionService {

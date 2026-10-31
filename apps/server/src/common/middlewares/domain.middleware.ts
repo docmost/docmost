@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware, NotFoundException } from '@nestjs/common';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
 
 @Injectable()
 export class DomainMiddleware implements NestMiddleware {

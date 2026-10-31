@@ -1,4 +1,4 @@
-import { isAttachmentNode } from '../../../../common/helpers/prosemirror/attachment-node-types';
+import { isAttachmentNode } from '../../../../common/helpers/prosemirror/attachment-node-types.js';
 
 export type AttachmentRewritePlan = {
   oldAttachmentId: string;

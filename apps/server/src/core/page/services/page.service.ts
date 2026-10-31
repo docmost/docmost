@@ -5,24 +5,24 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreatePageDto, ContentFormat } from '../dto/create-page.dto';
-import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { CreatePageDto, ContentFormat } from '../dto/create-page.dto.js';
+import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { InsertablePage, Page, User } from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
 import {
   CursorPaginationResult,
   executeWithCursorPagination,
-} from '@docmost/db/pagination/cursor-pagination';
+} from '@docmost/db/pagination/cursor-pagination.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
-import { MovePageDto } from '../dto/move-page.dto';
-import { generateSlugId } from '../../../common/helpers';
-import { getPageTitle } from '../../../common/helpers';
-import { dbOrTx, executeTx } from '@docmost/db/utils';
-import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { MovePageDto } from '../dto/move-page.dto.js';
+import { generateSlugId } from '../../../common/helpers/index.js';
+import { getPageTitle } from '../../../common/helpers/index.js';
+import { dbOrTx, executeTx } from '@docmost/db/utils.js';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo.js';
 import { v7 as uuid7 } from 'uuid';
 import {
   createYdocFromJson,
@@ -30,35 +30,35 @@ import {
   getProsemirrorContent,
   isAttachmentNode,
   removeMarkTypeFromDoc,
-} from '../../../common/helpers/prosemirror/utils';
+} from '../../../common/helpers/prosemirror/utils.js';
 import {
   htmlToJson,
   jsonToNode,
   jsonToText,
-} from '../../../collaboration/collaboration.util';
+} from '../../../collaboration/collaboration.util.js';
 import {
   CopyPageMapEntry,
   ICopyPageAttachment,
-} from '../dto/duplicate-page.dto';
+} from '../dto/duplicate-page.dto.js';
 import { Node as PMNode } from '@tiptap/pm/model';
-import { StorageService } from '../../../integrations/storage/storage.service';
+import { StorageService } from '../../../integrations/storage/storage.service.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
-import { EventName } from '../../../common/events/event.contants';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants/index.js';
+import { EventName } from '../../../common/events/event.contants.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import { CollaborationGateway } from '../../../collaboration/collaboration.gateway.js';
 import {
   INTERNAL_LINK_REGEX,
   extractPageSlugId,
-} from '../../../integrations/export/utils';
+} from '../../../integrations/export/utils.js';
 import { markdownToHtml } from '@docmost/editor-ext';
-import { WatcherService } from '../../watcher/watcher.service';
+import { WatcherService } from '../../watcher/watcher.service.js';
 import { sql } from 'kysely';
-import { TransclusionService } from '../transclusion/transclusion.service';
-import { LabelRepo } from '@docmost/db/repos/label/label.repo';
-import { WsService } from '../../../ws/ws.service';
-import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { TransclusionService } from '../transclusion/transclusion.service.js';
+import { LabelRepo } from '@docmost/db/repos/label/label.repo.js';
+import { WsService } from '../../../ws/ws.service.js';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service.js';
 
 @Injectable()
 export class PageService {

@@ -1,32 +1,32 @@
 import { Hocuspocus } from '@hocuspocus/server';
 import { IncomingMessage } from 'http';
 import WebSocket from 'ws';
-import { AuthenticationExtension } from './extensions/authentication.extension';
-import { PersistenceExtension } from './extensions/persistence.extension';
+import { AuthenticationExtension } from './extensions/authentication.extension.js';
+import { PersistenceExtension } from './extensions/persistence.extension.js';
 import { Injectable } from '@nestjs/common';
-import { EnvironmentService } from '../integrations/environment/environment.service';
+import { EnvironmentService } from '../integrations/environment/environment.service.js';
 import {
   createRetryStrategy,
   parseRedisUrl,
   RedisConfig,
   resolveClientIp,
-} from '../common/helpers';
-import { LoggerExtension } from './extensions/logger.extension';
+} from '../common/helpers/index.js';
+import { LoggerExtension } from './extensions/logger.extension.js';
 import {
   RedisSyncExtension,
   SerializedHTTPRequest,
-} from './extensions/redis-sync';
-import { toWebRequest } from './extensions/redis-sync/redis-sync.types';
-import { WsSocketWrapper } from './extensions/redis-sync/ws-socket-wrapper';
-import RedisClient from 'ioredis';
+} from './extensions/redis-sync/index.js';
+import { toWebRequest } from './extensions/redis-sync/redis-sync.types.js';
+import { WsSocketWrapper } from './extensions/redis-sync/ws-socket-wrapper.js';
+import { Redis as RedisClient } from 'ioredis';
 import { pack, unpack } from 'msgpackr';
 import { nanoid } from 'nanoid';
 import * as os from 'node:os';
-import { CollabWsAdapter } from './adapter/collab-ws.adapter';
+import { CollabWsAdapter } from './adapter/collab-ws.adapter.js';
 import {
   CollaborationHandler,
   CollabEventHandlers,
-} from './collaboration.handler';
+} from './collaboration.handler.js';
 
 @Injectable()
 export class CollaborationGateway {

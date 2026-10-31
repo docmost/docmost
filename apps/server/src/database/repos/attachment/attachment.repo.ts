@@ -2,17 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { ExpressionBuilder, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { DB } from '@docmost/db/types/db';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { dbOrTx } from '@docmost/db/utils';
+import { DB } from '@docmost/db/types/db.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 import {
   Attachment,
   InsertableAttachment,
   UpdatableAttachment,
-} from '@docmost/db/types/entity.types';
-import { AttachmentType } from '../../../core/attachment/attachment.constants';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+} from '@docmost/db/types/entity.types.js';
+import { AttachmentType } from '../../../core/attachment/attachment.constants.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 
 @Injectable()
 export class AttachmentRepo {

@@ -6,9 +6,9 @@ import {
   ResolveAccountOpts,
   UnfurlOpts,
   UnfurlResult,
-} from '../../registry/integration-provider.interface';
-import { FigmaService } from './figma.service';
-import { figmaPatterns } from './figma-patterns';
+} from '../../registry/integration-provider.interface.js';
+import { FigmaService } from './figma.service.js';
+import { figmaPatterns } from './figma-patterns.js';
 
 @Injectable()
 export class FigmaProvider extends IntegrationProvider {

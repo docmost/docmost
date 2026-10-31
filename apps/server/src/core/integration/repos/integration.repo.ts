@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { sql } from 'kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
 import {
   Integration,
   InsertableIntegration,
   UpdatableIntegration,
-} from '@docmost/db/types/entity.types';
-import { dbOrTx } from '@docmost/db/utils';
+} from '@docmost/db/types/entity.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 
 @Injectable()
 export class IntegrationRepo {

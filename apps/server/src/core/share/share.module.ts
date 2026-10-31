@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ShareController } from './share.controller';
-import { ShareService } from './share.service';
-import { TokenModule } from '../auth/token.module';
-import { ShareSeoController } from './share-seo.controller';
-import { TransclusionModule } from '../page/transclusion/transclusion.module';
+import { ShareController } from './share.controller.js';
+import { ShareService } from './share.service.js';
+import { TokenModule } from '../auth/token.module.js';
+import { ShareSeoController } from './share-seo.controller.js';
+import { TransclusionModule } from '../page/transclusion/transclusion.module.js';
 
 @Module({
   imports: [TokenModule, TransclusionModule],

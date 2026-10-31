@@ -6,7 +6,7 @@ import {
   Slice,
 } from "@tiptap/pm/model";
 import { NodeSelection, Plugin, PluginKey } from "@tiptap/pm/state";
-import { generateNodeId } from "../utils";
+import { generateNodeId } from "../utils.js";
 
 
 const REFNUM_ATTR = "data-reference-number";

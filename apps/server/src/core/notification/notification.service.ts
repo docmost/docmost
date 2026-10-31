@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
-import { InsertableNotification } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { WsGateway } from '../../ws/ws.gateway';
-import { MailService } from '../../integrations/mail/mail.service';
-import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { EventName } from '../../common/events/event.contants';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo.js';
+import { InsertableNotification } from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { WsGateway } from '../../ws/ws.gateway.js';
+import { MailService } from '../../integrations/mail/mail.service.js';
+import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { EventName } from '../../common/events/event.contants.js';
 
 @Injectable()
 export class NotificationService {

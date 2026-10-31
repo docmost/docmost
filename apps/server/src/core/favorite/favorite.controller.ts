@@ -9,21 +9,21 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { FavoriteService } from './services/favorite.service';
-import { AddFavoriteDto, RemoveFavoriteDto } from './dto/favorite.dto';
-import { FavoriteIdsDto } from './dto/favorite-ids.dto';
-import { ListFavoritesDto } from './dto/list-favorites.dto';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { Page, User, Workspace } from '@docmost/db/types/entity.types';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { PageAccessService } from '../page/page-access/page-access.service';
-import { TemplateRepo } from '@docmost/db/repos/template/template.repo';
-import { FavoriteType } from '@docmost/db/repos/favorite/favorite.repo';
+import { FavoriteService } from './services/favorite.service.js';
+import { AddFavoriteDto, RemoveFavoriteDto } from './dto/favorite.dto.js';
+import { FavoriteIdsDto } from './dto/favorite-ids.dto.js';
+import { ListFavoritesDto } from './dto/list-favorites.dto.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { Page, User, Workspace } from '@docmost/db/types/entity.types.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { PageAccessService } from '../page/page-access/page-access.service.js';
+import { TemplateRepo } from '@docmost/db/repos/template/template.repo.js';
+import { FavoriteType } from '@docmost/db/repos/favorite/favorite.repo.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('favorites')

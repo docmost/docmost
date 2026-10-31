@@ -1,4 +1,4 @@
-import { supportsOAuthConnect } from './oauth-connect';
+import { supportsOAuthConnect } from './oauth-connect.js';
 
 const base = { authUrl: 'https://p.example/authorize', tokenUrl: 'https://p.example/token', scopes: [] };
 

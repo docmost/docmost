@@ -2,30 +2,30 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { dbOrTx } from '@docmost/db/utils';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 import {
   InsertablePageAccess,
   InsertablePagePermission,
   PageAccess,
   PagePermission,
-} from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+} from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
 import { ExpressionBuilder, sql, SqlBool } from 'kysely';
-import { GroupRepo } from '@docmost/db/repos/group/group.repo';
-import { DB } from '@docmost/db/types/db';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo.js';
+import { DB } from '@docmost/db/types/db.js';
 import {
   CursorPaginationResult,
   executeWithCursorPagination,
-} from '@docmost/db/pagination/cursor-pagination';
-import { PagePermissionMember } from './types/page-permission.types';
-import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
+} from '@docmost/db/pagination/cursor-pagination.js';
+import { PagePermissionMember } from './types/page-permission.types.js';
+import { CacheOptions, withCache } from '../../../common/helpers/with-cache.js';
 import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
-} from '../../../common/helpers/cache-keys';
+} from '../../../common/helpers/cache-keys.js';
 
-export { PagePermissionMember } from './types/page-permission.types';
+export { PagePermissionMember } from './types/page-permission.types.js';
 
 @Injectable()
 export class PagePermissionRepo {

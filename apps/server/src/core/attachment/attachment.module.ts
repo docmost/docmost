@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AttachmentService } from './services/attachment.service';
-import { AttachmentController } from './attachment.controller';
-import { StorageModule } from '../../integrations/storage/storage.module';
-import { UserModule } from '../user/user.module';
-import { WorkspaceModule } from '../workspace/workspace.module';
-import { AttachmentProcessor } from './processors/attachment.processor';
-import { TokenModule } from '../auth/token.module';
+import { AttachmentService } from './services/attachment.service.js';
+import { AttachmentController } from './attachment.controller.js';
+import { StorageModule } from '../../integrations/storage/storage.module.js';
+import { UserModule } from '../user/user.module.js';
+import { WorkspaceModule } from '../workspace/workspace.module.js';
+import { AttachmentProcessor } from './processors/attachment.processor.js';
+import { TokenModule } from '../auth/token.module.js';
 
 @Module({
   imports: [StorageModule, UserModule, WorkspaceModule, TokenModule],

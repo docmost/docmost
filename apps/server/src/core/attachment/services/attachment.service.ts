@@ -5,28 +5,28 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Readable } from 'stream';
-import { StorageService } from '../../../integrations/storage/storage.service';
+import { StorageService } from '../../../integrations/storage/storage.service.js';
 import { MultipartFile } from '@fastify/multipart';
 import {
   getAttachmentFolderPath,
   PreparedFile,
   prepareFile,
   validateFileType,
-} from '../attachment.utils';
+} from '../attachment.utils.js';
 import { v4 as uuid4, v7 as uuid7 } from 'uuid';
-import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { AttachmentType, validImageExtensions } from '../attachment.constants';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo.js';
+import { AttachmentType, validImageExtensions } from '../attachment.constants.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { Attachment, User, Workspace } from '@docmost/db/types/entity.types.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { executeTx } from '@docmost/db/utils';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { executeTx } from '@docmost/db/utils.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
 import { InjectQueue } from '@nestjs/bullmq';
-import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants/index.js';
 import { Queue } from 'bullmq';
-import { createByteCountingStream } from '../../../common/helpers/utils';
+import { createByteCountingStream } from '../../../common/helpers/utils.js';
 
 @Injectable()
 export class AttachmentService {

@@ -5,25 +5,26 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { GroupService } from './group.service';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { GroupService } from './group.service.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { executeTx } from '@docmost/db/utils';
-import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { UserRepo } from '@docmost/db/repos/user/user.repo.js';
+import { executeTx } from '@docmost/db/utils.js';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo.js';
+import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
-import { dbOrTx } from '@docmost/db/utils';
-import { WsService } from '../../../ws/ws.service';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+} from '../../../integrations/audit/audit.service.js';
+import { dbOrTx } from '@docmost/db/utils.js';
+import { WsService } from '../../../ws/ws.service.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service.js';
+import { WrapperType } from '../../../common/helpers/types/wrapper-type.js';
 
 export type GroupAccess = { spaceIds: string[]; pageIds: string[] };
 
@@ -34,7 +35,7 @@ export class GroupUserService {
     private spaceMemberRepo: SpaceMemberRepo,
     private userRepo: UserRepo,
     @Inject(forwardRef(() => GroupService))
-    private groupService: GroupService,
+    private groupService: WrapperType<GroupService>,
     private readonly watcherRepo: WatcherRepo,
     private readonly favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,

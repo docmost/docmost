@@ -4,28 +4,28 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { AddSpaceMembersDto } from '../dto/add-space-members.dto';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo.js';
+import { AddSpaceMembersDto } from '../dto/add-space-members.dto.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { Space, User } from '@docmost/db/types/entity.types';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
-import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
-import { SpaceRole } from '../../../common/helpers/types/permission';
-import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
-import { executeTx } from '@docmost/db/utils';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { Space, User } from '@docmost/db/types/entity.types.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
+import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto.js';
+import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto.js';
+import { SpaceRole } from '../../../common/helpers/types/permission.js';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination.js';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo.js';
+import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo.js';
+import { executeTx } from '@docmost/db/utils.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
-import { WsService } from '../../../ws/ws.service';
-import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+} from '../../../integrations/audit/audit.service.js';
+import { WsService } from '../../../ws/ws.service.js';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service.js';
 
 @Injectable()
 export class SpaceMemberService {

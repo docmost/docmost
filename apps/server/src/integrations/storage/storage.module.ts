@@ -1,10 +1,10 @@
 import { DynamicModule, Global, Module } from '@nestjs/common';
-import { StorageModuleOptions } from './interfaces';
-import { StorageService } from './storage.service';
+import { StorageModuleOptions } from './interfaces/index.js';
+import { StorageService } from './storage.service.js';
 import {
   storageDriverConfigProvider,
   storageDriverProvider,
-} from './providers/storage.provider';
+} from './providers/storage.provider.js';
 
 @Global()
 @Module({})

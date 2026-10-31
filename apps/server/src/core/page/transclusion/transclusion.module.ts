@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { TransclusionController } from './transclusion.controller';
-import { TransclusionService } from './transclusion.service';
+import { TransclusionController } from './transclusion.controller.js';
+import { TransclusionService } from './transclusion.service.js';
 
 @Module({
   controllers: [TransclusionController],

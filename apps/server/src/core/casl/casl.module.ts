@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import SpaceAbilityFactory from './abilities/space-ability.factory';
-import WorkspaceAbilityFactory from './abilities/workspace-ability.factory';
+import SpaceAbilityFactory from './abilities/space-ability.factory.js';
+import WorkspaceAbilityFactory from './abilities/workspace-ability.factory.js';
 
 @Global()
 @Module({

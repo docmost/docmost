@@ -1,2 +1,2 @@
-export * from "./utils/marked.utils";
-export * from "./utils/turndown.utils";
+export * from "./utils/marked.utils.js";
+export * from "./utils/turndown.utils.js";

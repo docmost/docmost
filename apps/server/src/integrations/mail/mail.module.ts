@@ -2,10 +2,10 @@ import { DynamicModule, Global, Module } from '@nestjs/common';
 import {
   mailDriverConfigProvider,
   mailDriverProvider,
-} from './providers/mail.provider';
-import { MailModuleOptions } from './interfaces';
-import { MailService } from './mail.service';
-import { EmailProcessor } from './processors/email.processor';
+} from './providers/mail.provider.js';
+import { MailModuleOptions } from './interfaces/index.js';
+import { MailService } from './mail.service.js';
+import { EmailProcessor } from './processors/email.processor.js';
 
 @Global()
 @Module({

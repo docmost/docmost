@@ -1,7 +1,7 @@
 import { Node } from "@tiptap/pm/model";
-import { MediaUploadOptions, UploadFn } from "../media-utils";
-import { IAttachment } from "../types";
-import { generateNodeId } from "../utils";
+import { MediaUploadOptions, UploadFn } from "../media-utils.js";
+import { IAttachment } from "../types.js";
+import { generateNodeId } from "../utils.js";
 import { Command } from "@tiptap/core";
 
 const findAttachmentNodeByPlaceholderId = (

@@ -1,6 +1,6 @@
 import { IncomingHttpHeaders } from 'node:http2';
-import RedisClient from 'ioredis';
-import { CollabProxySocket } from './collab-proxy-socket';
+import { Redis as RedisClient } from 'ioredis';
+import { CollabProxySocket } from './collab-proxy-socket.js';
 import { type Hocuspocus, type WebSocketLike } from '@hocuspocus/server';
 
 export type SecondParam<T> = T extends (

@@ -8,18 +8,18 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { WatcherService } from './watcher.service';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { SpaceWatcherDto } from './dto/space-watcher.dto';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+import { WatcherService } from './watcher.service.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { SpaceWatcherDto } from './dto/space-watcher.dto.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
+} from '../casl/interfaces/space-ability.type.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')

@@ -1,5 +1,5 @@
 import { Token, marked } from 'marked';
-import { generateNodeId } from '../../utils';
+import { generateNodeId } from '../../utils.js';
 
 interface FootnoteRefToken {
   type: 'footnoteRef';

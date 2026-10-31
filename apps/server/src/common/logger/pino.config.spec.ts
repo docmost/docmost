@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'node:http';
 import { stdSerializers } from 'pino';
-import { createPinoConfig } from './pino.config';
+import { createPinoConfig } from './pino.config.js';
 
 type RequestSerializer = (req: unknown) => Record<string, unknown>;
 

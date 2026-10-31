@@ -1,5 +1,5 @@
 // MIT - https://github.com/typestack/class-validator/pull/2626
-import isISO6391Validator from 'validator/lib/isISO6391';
+import isISO6391Validator from 'validator/lib/isISO6391.js';
 import { buildMessage, ValidateBy, ValidationOptions } from 'class-validator';
 
 export const IS_ISO6391 = 'isISO6391';
@@ -8,7 +8,7 @@ export const IS_ISO6391 = 'isISO6391';
  * Check if the string is a valid [ISO 639-1](https://en.wikipedia.org/wiki/ISO_639-1) officially assigned language code.
  */
 export function isISO6391(value: unknown): boolean {
-  return typeof value === 'string' && isISO6391Validator(value);
+  return typeof value === 'string' && isISO6391Validator.default(value);
 }
 
 /**

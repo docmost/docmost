@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { decryptA256CbcHs512, encryptA256CbcHs512 } from './a256cbc-hs512';
+import { decryptA256CbcHs512, encryptA256CbcHs512 } from './a256cbc-hs512.js';
 
 vi.mock('node:crypto', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:crypto')>();

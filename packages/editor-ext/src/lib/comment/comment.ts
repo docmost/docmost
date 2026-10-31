@@ -1,5 +1,5 @@
 import { Mark, mergeAttributes } from "@tiptap/core";
-import { commentDecoration } from "./comment-decoration";
+import { commentDecoration } from "./comment-decoration.js";
 import { Plugin } from "@tiptap/pm/state";
 
 export interface ICommentOptions {

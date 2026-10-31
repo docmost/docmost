@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Page } from '@docmost/db/types/entity.types';
-import { WsService } from './ws.service';
+import { Page } from '@docmost/db/types/entity.types.js';
+import { WsService } from './ws.service.js';
 
 @Injectable()
 export class WsTreeService {

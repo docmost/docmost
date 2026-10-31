@@ -1,2 +1,2 @@
-export { TiptapImage } from "./image";
-export * from "./image-upload";
+export { TiptapImage } from "./image.js";
+export * from "./image-upload.js";

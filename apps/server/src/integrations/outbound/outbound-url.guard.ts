@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { promises as dns } from 'node:dns';
 import { BlockList, isIPv4, isIPv6 } from 'node:net';
-import { EnvironmentService } from '../environment/environment.service';
+import { EnvironmentService } from '../environment/environment.service.js';
 import {
   OutboundNetworkPolicy,
   parseOutboundNetworkPolicy,
   policyNamesAddress,
-} from './outbound-network-policy';
+} from './outbound-network-policy.js';
 
 export const OUTBOUND_LOOKUP = 'OUTBOUND_LOOKUP';
 

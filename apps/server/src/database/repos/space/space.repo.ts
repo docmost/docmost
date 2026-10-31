@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { dbOrTx } from '@docmost/db/utils';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 import {
   InsertableSpace,
   Space,
   UpdatableSpace,
-} from '@docmost/db/types/entity.types';
+} from '@docmost/db/types/entity.types.js';
 import { ExpressionBuilder, sql } from 'kysely';
-import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { DB } from '@docmost/db/types/db';
+import { PaginationOptions } from '../../pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
+import { DB } from '@docmost/db/types/db.js';
 import { validate as isValidUUID } from 'uuid';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EventName } from '../../../common/events/event.contants';
+import { EventName } from '../../../common/events/event.contants.js';
 
 @Injectable()
 export class SpaceRepo {

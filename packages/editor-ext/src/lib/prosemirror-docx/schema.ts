@@ -7,14 +7,14 @@ import {
   TextRun,
 } from 'docx';
 import { Node } from 'prosemirror-model';
-import { sanitizeIntegrationUrl } from '../integration-link/integration-link';
+import { sanitizeIntegrationUrl } from '../integration-link/integration-link.js';
 import {
   DocxSerializerAsync,
   MarkSerializer,
   NodeSerializerAsync,
   OptionsAsync,
-} from './serializer';
-import { writeDocx } from './utils';
+} from './serializer.js';
+import { writeDocx } from './utils.js';
 
 export type DocxImageResolver = OptionsAsync['getImageBuffer'];
 

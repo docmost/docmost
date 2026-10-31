@@ -1,16 +1,17 @@
+import { createRequire } from 'node:module';
 import {
   BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util';
-import { ExportFormat } from './dto/export-dto';
-import { Page } from '@docmost/db/types/entity.types';
+import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util.js';
+import { ExportFormat } from './dto/export-dto.js';
+import { Page } from '@docmost/db/types/entity.types.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import JSZip from 'jszip';
-import { StorageService } from '../storage/storage.service';
+import { StorageService } from '../storage/storage.service.js';
 import {
   buildTree,
   computeLocalPath,
@@ -20,24 +21,24 @@ import {
   PageExportTree,
   replaceInternalLinks,
   updateAttachmentUrlsToLocalPaths,
-} from './utils';
+} from './utils.js';
 import {
   ExportMetadata,
   ExportPageMetadata,
-} from '../../common/helpers/types/export-metadata.types';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+} from '../../common/helpers/types/export-metadata.types.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
 import slugify from '@sindresorhus/slugify';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+const require = createRequire(import.meta.url);
 const packageJson = require('../../../package.json');
-import { EnvironmentService } from '../environment/environment.service';
-import { DomainService } from '../environment/domain.service';
+import { EnvironmentService } from '../environment/environment.service.js';
+import { DomainService } from '../environment/domain.service.js';
 import {
   getAttachmentIds,
   getProsemirrorContent,
-} from '../../common/helpers/prosemirror/utils';
+} from '../../common/helpers/prosemirror/utils.js';
 import { htmlToMarkdown } from '@docmost/editor-ext';
 
 type AllowedAttachment = { id: string; fileName: string; filePath: string };

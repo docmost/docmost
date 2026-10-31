@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { sql } from 'kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Json } from '@docmost/db/types/db';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { Json } from '@docmost/db/types/db.js';
 import {
   IntegrationConnection,
   InsertableIntegrationConnection,
   UpdatableIntegrationConnection,
-} from '@docmost/db/types/entity.types';
-import { dbOrTx } from '@docmost/db/utils';
+} from '@docmost/db/types/entity.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 
 type ExpectedTokens = Partial<
   Pick<IntegrationConnection, 'accessToken' | 'refreshToken'>

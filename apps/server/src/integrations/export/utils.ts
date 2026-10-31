@@ -1,12 +1,12 @@
-import { jsonToNode } from '../../collaboration/collaboration.util';
+import { jsonToNode } from '../../collaboration/collaboration.util.js';
 import { Logger } from '@nestjs/common';
-import { ExportFormat } from './dto/export-dto';
+import { ExportFormat } from './dto/export-dto.js';
 import { Node } from '@tiptap/pm/model';
 import { validate as isValidUUID } from 'uuid';
 import * as path from 'path';
-import { Page } from '@docmost/db/types/entity.types';
-import { isAttachmentNode } from '../../common/helpers/prosemirror/utils';
-import { sanitizeFileName } from '../../common/helpers';
+import { Page } from '@docmost/db/types/entity.types.js';
+import { isAttachmentNode } from '../../common/helpers/prosemirror/utils.js';
+import { sanitizeFileName } from '../../common/helpers/index.js';
 
 export type PageExportTree = Record<string, Page[]>;
 

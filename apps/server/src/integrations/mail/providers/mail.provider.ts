@@ -1,9 +1,9 @@
-import { EnvironmentService } from '../../environment/environment.service';
-import { MailOption, PostmarkConfig, SMTPConfig } from '../interfaces';
-import { SmtpDriver, PostmarkDriver, LogDriver } from '../drivers';
-import { MailDriver } from '../drivers/interfaces/mail-driver.interface';
-import { MailConfig } from '../interfaces';
-import { MAIL_CONFIG_TOKEN, MAIL_DRIVER_TOKEN } from '../mail.constants';
+import { EnvironmentService } from '../../environment/environment.service.js';
+import { MailOption, PostmarkConfig, SMTPConfig } from '../interfaces/index.js';
+import { SmtpDriver, PostmarkDriver, LogDriver } from '../drivers/index.js';
+import { MailDriver } from '../drivers/interfaces/mail-driver.interface.js';
+import { MailConfig } from '../interfaces/index.js';
+import { MAIL_CONFIG_TOKEN, MAIL_DRIVER_TOKEN } from '../mail.constants.js';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 function createMailDriver(mail: MailConfig): MailDriver {

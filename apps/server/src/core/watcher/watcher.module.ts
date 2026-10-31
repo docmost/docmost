@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { WatcherService } from './watcher.service';
-import { WatcherController } from './watcher.controller';
-import { SpaceWatcherController } from './space-watcher.controller';
-import { PageAccessModule } from '../page/page-access/page-access.module';
+import { WatcherService } from './watcher.service.js';
+import { WatcherController } from './watcher.controller.js';
+import { SpaceWatcherController } from './space-watcher.controller.js';
+import { PageAccessModule } from '../page/page-access/page-access.module.js';
 
 @Module({
   imports: [PageAccessModule],

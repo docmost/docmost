@@ -1,5 +1,5 @@
 import { Kysely, sql } from 'kysely';
-import { UserRole } from '../../common/helpers/types/permission';
+import { UserRole } from '../../common/helpers/types/permission.js';
 
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema

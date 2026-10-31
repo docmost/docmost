@@ -10,31 +10,31 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ExportService } from './export.service';
-import { ExportPageDto, ExportSpaceDto } from './dto/export-dto';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { User } from '@docmost/db/types/entity.types';
-import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { PageAccessService } from '../../core/page/page-access/page-access.service';
+import { ExportService } from './export.service.js';
+import { ExportPageDto, ExportSpaceDto } from './dto/export-dto.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { User } from '@docmost/db/types/entity.types.js';
+import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { PageAccessService } from '../../core/page/page-access/page-access.service.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../../core/casl/interfaces/space-ability.type';
+} from '../../core/casl/interfaces/space-ability.type.js';
 import { FastifyReply } from 'fastify';
-import { getExportExtension } from './utils';
+import { getExportExtension } from './utils.js';
 import {
   getMimeType,
   getPageTitle,
   sanitizeFileName,
-} from '../../common/helpers';
+} from '../../common/helpers/index.js';
 import * as path from 'path';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
 
 @Controller()
 export class ExportController {

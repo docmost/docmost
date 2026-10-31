@@ -2,7 +2,7 @@ import { Node } from '@tiptap/pm/model';
 import {
   jsonToNode,
   tiptapExtensions,
-} from '../../../collaboration/collaboration.util';
+} from '../../../collaboration/collaboration.util.js';
 import { validate as isValidUUID } from 'uuid';
 import { Transform } from '@tiptap/pm/transform';
 import { TiptapTransformer } from '@hocuspocus/transformer';
@@ -10,8 +10,8 @@ import * as Y from 'yjs';
 import {
   INTERNAL_LINK_REGEX,
   extractPageSlugId,
-} from '../../../integrations/export/utils';
-import { isAttachmentNode } from './attachment-node-types';
+} from '../../../integrations/export/utils.js';
+import { isAttachmentNode } from './attachment-node-types.js';
 
 export interface MentionNode {
   id: string;

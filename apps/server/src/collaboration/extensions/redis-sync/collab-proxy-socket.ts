@@ -1,6 +1,6 @@
-import type RedisClient from 'ioredis';
+import type { Redis as RedisClient } from 'ioredis';
 import type { WebSocketLike } from '@hocuspocus/server';
-import type { Pack, RSAMessageClose, RSAMessageSend } from './redis-sync.types';
+import type { Pack, RSAMessageClose, RSAMessageSend } from './redis-sync.types.js';
 
 // Stands in for the client WebSocket on the server that owns the document.
 // Outgoing traffic is relayed over redis to the origin server, which holds the real socket.

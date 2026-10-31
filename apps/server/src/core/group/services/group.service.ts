@@ -5,23 +5,24 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateGroupDto, DefaultGroup } from '../dto/create-group.dto';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { UpdateGroupDto } from '../dto/update-group.dto';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { GroupRepo } from '@docmost/db/repos/group/group.repo';
-import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
-import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import { GroupUserService } from './group-user.service';
-import { executeTx } from '@docmost/db/utils';
+import { CreateGroupDto, DefaultGroup } from '../dto/create-group.dto.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { UpdateGroupDto } from '../dto/update-group.dto.js';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo.js';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo.js';
+import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types.js';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination.js';
+import { GroupUserService } from './group-user.service.js';
+import { executeTx } from '@docmost/db/utils.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
-import { diffAuditTrackedFields } from '../../../common/helpers';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
+import { diffAuditTrackedFields } from '../../../common/helpers/index.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
+} from '../../../integrations/audit/audit.service.js';
+import { WrapperType } from '../../../common/helpers/types/wrapper-type.js';
 
 @Injectable()
 export class GroupService {
@@ -29,7 +30,7 @@ export class GroupService {
     private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
     @Inject(forwardRef(() => GroupUserService))
-    private groupUserService: GroupUserService,
+    private groupUserService: WrapperType<GroupUserService>,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}

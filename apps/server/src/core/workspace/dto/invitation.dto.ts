@@ -11,8 +11,8 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { InviteUserRole } from '../../../common/helpers/types/permission';
-import { NoUrls } from '../../../common/validators/no-urls.validator';
+import { InviteUserRole } from '../../../common/helpers/types/permission.js';
+import { NoUrls } from '../../../common/validators/no-urls.validator.js';
 
 export class InviteUserDto {
   @IsArray()

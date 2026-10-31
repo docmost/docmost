@@ -1,7 +1,7 @@
 import { Section, Text } from 'react-email';
 import * as React from 'react';
-import { content, paragraph } from '../css/styles';
-import { EmailButton, MailBody } from '../partials/partials';
+import { content, paragraph } from '../css/styles.js';
+import { EmailButton, MailBody } from '../partials/partials.js';
 
 interface Props {
   pageTitle: string;

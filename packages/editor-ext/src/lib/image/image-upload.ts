@@ -1,7 +1,7 @@
 import { imageDimensionsFromData } from 'image-dimensions';
-import { MediaUploadOptions, UploadFn } from '../media-utils';
-import { IAttachment } from '../types';
-import { generateNodeId } from '../utils';
+import { MediaUploadOptions, UploadFn } from '../media-utils.js';
+import { IAttachment } from '../types.js';
+import { generateNodeId } from '../utils.js';
 import { Node } from '@tiptap/pm/model';
 import { Command } from '@tiptap/core';
 

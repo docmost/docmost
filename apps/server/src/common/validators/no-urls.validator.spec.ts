@@ -1,4 +1,4 @@
-import { containsDomain } from './no-urls.validator';
+import { containsDomain } from './no-urls.validator.js';
 
 // containsDomain returns true if value contains a domain-like pattern
 // The full NoUrls validator also checks for https:// URLs separately

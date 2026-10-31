@@ -4,7 +4,7 @@ import {
   IntegrationLinkAttributes,
   IntegrationLinkOptions,
   sanitizeIntegrationUrl,
-} from "./integration-link";
+} from "./integration-link.js";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {

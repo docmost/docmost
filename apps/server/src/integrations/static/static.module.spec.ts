@@ -1,7 +1,7 @@
 import { HttpAdapterHost } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
-import { StaticModule } from './static.module';
-import { EnvironmentService } from '../environment/environment.service';
+import { StaticModule } from './static.module.js';
+import { EnvironmentService } from '../environment/environment.service.js';
 
 vi.mock('node:fs', async () => {
   const actual = await vi.importActual<typeof import('node:fs')>('node:fs');

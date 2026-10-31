@@ -1,4 +1,4 @@
-import { AzureDriver } from './azure.driver';
+import { AzureDriver } from './azure.driver.js';
 
 describe('AzureDriver.getSignedUrl', () => {
   const driver = new AzureDriver({

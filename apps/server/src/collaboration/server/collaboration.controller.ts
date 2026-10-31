@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { CollaborationGateway } from '../collaboration.gateway';
+import { CollaborationGateway } from '../collaboration.gateway.js';
 
 @Controller('collab')
 export class CollaborationController {

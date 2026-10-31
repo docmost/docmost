@@ -1,5 +1,5 @@
-import { register } from "./registry";
-import { valueToString } from "../number";
+import { register } from "./registry.js";
+import { valueToString } from "../number.js";
 
 const s = (v: unknown): string => valueToString(v);
 

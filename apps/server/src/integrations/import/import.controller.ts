@@ -11,25 +11,25 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../../core/casl/interfaces/space-ability.type';
-import { FileInterceptor } from '../../common/interceptors/file.interceptor';
+} from '../../core/casl/interfaces/space-ability.type.js';
+import { FileInterceptor } from '../../common/interceptors/file.interceptor.js';
 import bytes from 'bytes';
 import * as path from 'path';
-import { ImportService } from './services/import.service';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { EnvironmentService } from '../environment/environment.service';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import { ImportService } from './services/import.service.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { EnvironmentService } from '../environment/environment.service.js';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
 
 @Controller()
 export class ImportController {

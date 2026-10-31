@@ -3,8 +3,8 @@ import { AddressInfo } from 'net';
 import {
   ProviderApiError,
   TokenInvalidError,
-} from '../registry/integration-provider.interface';
-import { MAX_PROVIDER_RESPONSE_BYTES, providerApiFetch } from './provider-fetch';
+} from '../registry/integration-provider.interface.js';
+import { MAX_PROVIDER_RESPONSE_BYTES, providerApiFetch } from './provider-fetch.js';
 
 type TestServer = { server: http.Server; url: string; hits: number };
 

@@ -1,4 +1,4 @@
-import { credentialEnvKey } from './credential-env';
+import { credentialEnvKey } from './credential-env.js';
 
 describe('credentialEnvKey', () => {
   it('names credentials after the provider type by default', () => {

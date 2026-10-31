@@ -1,10 +1,10 @@
-import { proxyFetch } from '../../../../common/proxy-fetch';
-import { LinearProvider } from './linear.provider';
-import { LinearService } from './linear.service';
+import { proxyFetch } from '../../../../common/proxy-fetch.js';
+import { LinearProvider } from './linear.provider.js';
+import { LinearService } from './linear.service.js';
 import type { Mock } from 'vitest';
 
 // Mock only proxyFetch so the real providerApiFetch handles statuses.
-vi.mock('../../../../common/proxy-fetch', () => ({
+vi.mock('../../../../common/proxy-fetch.js', () => ({
   proxyFetch: vi.fn(),
 }));
 

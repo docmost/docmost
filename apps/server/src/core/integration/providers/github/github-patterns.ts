@@ -1,6 +1,6 @@
-import { UnfurlPattern } from '../../registry/integration-provider.interface';
-import { CANONICAL_PATH } from '../../utils/canonical-path';
-import { escapeForRegex } from '../../utils/integration.utils';
+import { UnfurlPattern } from '../../registry/integration-provider.interface.js';
+import { CANONICAL_PATH } from '../../utils/canonical-path.js';
+import { escapeForRegex } from '../../utils/integration.utils.js';
 
 export function buildGitHubPatterns(baseUrl: string): UnfurlPattern[] {
   const prefix = `^${escapeForRegex(baseUrl)}${CANONICAL_PATH}`;

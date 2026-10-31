@@ -1,14 +1,14 @@
 // Client-side public surface: parse, typecheck, cycle-detect, pretty-print.
-import "./functions/index";
-export * from "./ast";
-export * from "./types";
-export * from "./error";
-export * from "./tokenizer";
-export * from "./parser";
-export * from "./resolver";
-export * from "./typecheck";
-export * from "./format";
-export { registry, register } from "./functions/registry";
-export type { FormulaFn } from "./functions/registry";
-export * from "./graph";
-export * from "./number";
+import "./functions/index.js";
+export * from "./ast.js";
+export * from "./types.js";
+export * from "./error.js";
+export * from "./tokenizer.js";
+export * from "./parser.js";
+export * from "./resolver.js";
+export * from "./typecheck.js";
+export * from "./format.js";
+export { registry, register } from "./functions/registry.js";
+export type { FormulaFn } from "./functions/registry.js";
+export * from "./graph.js";
+export * from "./number.js";

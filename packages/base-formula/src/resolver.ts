@@ -1,5 +1,5 @@
-import { FormulaParseError } from "./error";
-import type { FormulaAST, RawFormulaAST } from "./ast";
+import { FormulaParseError } from "./error.js";
+import type { FormulaAST, RawFormulaAST } from "./ast.js";
 
 export type ResolveResult = {
   ast: FormulaAST;

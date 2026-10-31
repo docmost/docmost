@@ -10,31 +10,31 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { ShareService } from './share.service';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { ShareService } from './share.service.js';
 import {
   CreateShareDto,
   ShareIdDto,
   ShareInfoDto,
   SharePageIdDto,
   UpdateShareDto,
-} from './dto/share.dto';
-import { ShareTransclusionLookupDto } from './dto/share-transclusion-lookup.dto';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { PageAccessService } from '../page/page-access/page-access.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { Public } from '../../common/decorators/public.decorator';
-import { ShareRepo } from '@docmost/db/repos/share/share.repo';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { LicenseCheckService } from '../../integrations/environment/license-check.service';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+} from './dto/share.dto.js';
+import { ShareTransclusionLookupDto } from './dto/share-transclusion-lookup.dto.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { PageAccessService } from '../page/page-access/page-access.service.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { Public } from '../../common/decorators/public.decorator.js';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { LicenseCheckService } from '../../integrations/environment/license-check.service.js';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
+} from '../../integrations/audit/audit.service.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')

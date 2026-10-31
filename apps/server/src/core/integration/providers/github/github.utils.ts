@@ -1,4 +1,4 @@
-import { UnfurlForbiddenError } from '../../registry/integration-provider.interface';
+import { UnfurlForbiddenError } from '../../registry/integration-provider.interface.js';
 
 export function repoApiPath(owner: string, repo: string): string {
   // encodeURIComponent keeps . and .., which the URL parser would resolve out of the path.

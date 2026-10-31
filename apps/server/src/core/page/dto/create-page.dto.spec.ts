@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { CreatePageDto } from './create-page.dto';
+import { CreatePageDto } from './create-page.dto.js';
 
 describe('CreatePageDto', () => {
   it('defaults format to json when content is sent without one', async () => {

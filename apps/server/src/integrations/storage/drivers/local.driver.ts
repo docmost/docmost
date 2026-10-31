@@ -2,9 +2,9 @@ import {
   StorageDriver,
   LocalStorageConfig,
   StorageOption,
-} from '../interfaces';
+} from '../interfaces/index.js';
 import { dirname, resolve, sep } from 'path';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import { Readable } from 'stream';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';

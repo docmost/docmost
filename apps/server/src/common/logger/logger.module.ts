@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
-import { createPinoConfig } from './pino.config';
+import { createPinoConfig } from './pino.config.js';
 
 @Module({
   imports: [PinoLoggerModule.forRoot(createPinoConfig())],

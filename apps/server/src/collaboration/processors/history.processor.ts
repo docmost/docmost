@@ -2,23 +2,23 @@ import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
-import { QueueJob, QueueName } from '../../integrations/queue/constants';
+import { QueueJob, QueueName } from '../../integrations/queue/constants/index.js';
 import {
   IPageBacklinkJob,
   IPageHistoryJob,
   IPageUpdateNotificationJob,
-} from '../../integrations/queue/constants/queue.interface';
+} from '../../integrations/queue/constants/queue.interface.js';
 import {
   extractMentions,
   extractPageMentions,
   extractInternalLinkSlugIds,
-} from '../../common/helpers/prosemirror/utils';
-import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
+} from '../../common/helpers/prosemirror/utils.js';
+import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
 import { isDeepStrictEqual } from 'node:util';
-import { CollabHistoryService } from '../services/collab-history.service';
-import { WatcherService } from '../../core/watcher/watcher.service';
-import { isEmptyParagraphDoc } from '../collaboration.util';
+import { CollabHistoryService } from '../services/collab-history.service.js';
+import { WatcherService } from '../../core/watcher/watcher.service.js';
+import { isEmptyParagraphDoc } from '../collaboration.util.js';
 
 @Processor(QueueName.HISTORY_QUEUE)
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {

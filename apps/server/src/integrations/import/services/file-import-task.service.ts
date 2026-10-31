@@ -1,26 +1,26 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
-import { jsonToText } from '../../../collaboration/collaboration.util';
+import { jsonToText } from '../../../collaboration/collaboration.util.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import {
   extractZip,
   FileImportSource,
   FileTaskStatus,
-} from '../utils/file.utils';
-import { StorageService } from '../../storage/storage.service';
+} from '../utils/file.utils.js';
+import { StorageService } from '../../storage/storage.service.js';
 import * as tmp from 'tmp-promise';
 import { pipeline } from 'node:stream/promises';
 import { createWriteStream } from 'node:fs';
-import { ImportService } from './import.service';
+import { ImportService } from './import.service.js';
 import { promises as fs } from 'fs';
-import { generateSlugId } from '../../../common/helpers';
+import { generateSlugId } from '../../../common/helpers/index.js';
 import { v7 } from 'uuid';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
-import { FileTask, InsertablePage } from '@docmost/db/types/entity.types';
+import { FileTask, InsertablePage } from '@docmost/db/types/entity.types.js';
 import { markdownToHtml } from '@docmost/editor-ext';
-import { getProsemirrorContent } from '../../../common/helpers/prosemirror/utils';
-import { formatImportHtml } from '../utils/import-formatter';
+import { getProsemirrorContent } from '../../../common/helpers/prosemirror/utils.js';
+import { formatImportHtml } from '../utils/import-formatter.js';
 import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
@@ -28,20 +28,21 @@ import {
   extractNotionPartialId,
   readDocmostMetadata,
   stripNotionID,
-} from '../utils/import.utils';
-import { executeTx } from '@docmost/db/utils';
-import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
-import { ImportAttachmentService } from './import-attachment.service';
+} from '../utils/import.utils.js';
+import { executeTx } from '@docmost/db/utils.js';
+import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo.js';
+import { ImportAttachmentService } from './import-attachment.service.js';
 import { ModuleRef } from '@nestjs/core';
-import { PageService } from '../../../core/page/services/page.service';
-import { ImportPageNode } from '../dto/file-task-dto';
+import { PageService } from '../../../core/page/services/page.service.js';
+import { ImportPageNode } from '../dto/file-task-dto.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EventName } from '../../../common/events/event.contants';
-import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { EventName } from '../../../common/events/event.contants.js';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../../integrations/audit/audit.service';
+} from '../../../integrations/audit/audit.service.js';
+import { importEe } from '../../../common/helpers/ee-loader.js';
 
 @Injectable()
 export class FileImportTaskService {
@@ -118,8 +119,7 @@ export class FileImportTaskService {
       if (fileTask.source === FileImportSource.Confluence) {
         let ConfluenceModule: any;
         try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          ConfluenceModule = require('./../../../ee/confluence-import/confluence-import.service');
+          ConfluenceModule = await importEe('confluence-import/confluence-import.service');
         } catch (err) {
           this.logger.error(
             'Confluence import requested but EE module not bundled in this build',

@@ -1,4 +1,4 @@
-import { SessionService } from './session.service';
+import { SessionService } from './session.service.js';
 
 function makeService(revoked: boolean) {
   const userSessionRepo = {

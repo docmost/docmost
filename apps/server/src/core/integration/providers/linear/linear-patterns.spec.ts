@@ -1,5 +1,5 @@
 import { integrationLinkPatterns } from '@docmost/editor-ext';
-import { linearPatterns } from './linear-patterns';
+import { linearPatterns } from './linear-patterns.js';
 
 function firstMatch(url: string) {
   for (const pattern of linearPatterns) {

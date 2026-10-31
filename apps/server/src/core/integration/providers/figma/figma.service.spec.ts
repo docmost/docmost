@@ -1,10 +1,10 @@
-import { proxyFetch } from '../../../../common/proxy-fetch';
-import { FigmaProvider } from './figma.provider';
-import { FigmaService } from './figma.service';
+import { proxyFetch } from '../../../../common/proxy-fetch.js';
+import { FigmaProvider } from './figma.provider.js';
+import { FigmaService } from './figma.service.js';
 import type { Mock } from 'vitest';
 
 // Mock only proxyFetch so the real providerApiFetch handles statuses.
-vi.mock('../../../../common/proxy-fetch', () => ({
+vi.mock('../../../../common/proxy-fetch.js', () => ({
   proxyFetch: vi.fn(),
 }));
 

@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
-import { UserRole } from '../../../common/helpers/types/permission';
+import { UserRole } from '../../../common/helpers/types/permission.js';
 
 export class UpdateWorkspaceUserRoleDto {
   @IsNotEmpty()

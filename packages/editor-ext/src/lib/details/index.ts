@@ -1,3 +1,3 @@
-export { Details } from "./details";
-export { DetailsSummary } from "./details-summary";
-export { DetailsContent } from "./details-content";
+export { Details } from "./details.js";
+export { DetailsSummary } from "./details-summary.js";
+export { DetailsContent } from "./details-content.js";

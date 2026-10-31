@@ -3,9 +3,9 @@ import { format } from 'date-fns';
 import {
   ProviderAccount,
   UnfurlResult,
-} from '../../registry/integration-provider.interface';
-import { providerApiFetch } from '../../utils/provider-fetch';
-import { toProviderAccount } from '../../utils/integration.utils';
+} from '../../registry/integration-provider.interface.js';
+import { providerApiFetch } from '../../utils/provider-fetch.js';
+import { toProviderAccount } from '../../utils/integration.utils.js';
 
 const LINEAR_API = 'https://api.linear.app/graphql';
 

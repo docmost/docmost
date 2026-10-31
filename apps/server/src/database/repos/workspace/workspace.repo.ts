@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { dbOrTx } from '../../utils';
+import { KyselyDB, KyselyTransaction } from '../../types/kysely.types.js';
+import { dbOrTx } from '../../utils.js';
 import {
   InsertableWorkspace,
   UpdatableWorkspace,
   Workspace,
-} from '@docmost/db/types/entity.types';
+} from '@docmost/db/types/entity.types.js';
 import { ExpressionBuilder, sql } from 'kysely';
-import { DB, Workspaces } from '@docmost/db/types/db';
+import { DB, Workspaces } from '@docmost/db/types/db.js';
 
 @Injectable()
 export class WorkspaceRepo {

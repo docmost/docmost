@@ -8,13 +8,13 @@ import {
 } from '@tiptap/pm/state';
 import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
-import { generateNodeId } from '../utils';
+import { generateNodeId } from '../utils.js';
 import {
   getActiveTabIndex,
   setActiveTabMeta,
   tabIdsPlugin,
   tabsViewPlugin,
-} from './tabs-state';
+} from './tabs-state.js';
 import {
   clampIndex,
   fixTabIds,
@@ -27,7 +27,7 @@ import {
   isTabsNode,
   tabLabelAt,
   withFreshTabIds,
-} from './tabs.utils';
+} from './tabs.utils.js';
 
 export interface TabsOptions {
   HTMLAttributes: Record<string, unknown>;

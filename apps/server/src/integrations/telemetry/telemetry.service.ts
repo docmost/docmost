@@ -1,11 +1,12 @@
+import { createRequire } from 'node:module';
 import { Injectable } from '@nestjs/common';
 import { Interval, SchedulerRegistry } from '@nestjs/schedule';
-import { EnvironmentService } from '../environment/environment.service';
+import { EnvironmentService } from '../environment/environment.service.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
 import { createHmac } from 'node:crypto';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
+const require = createRequire(import.meta.url);
 const packageJson = require('./../../../package.json');
 
 @Injectable()

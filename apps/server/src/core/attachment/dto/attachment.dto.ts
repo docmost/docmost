@@ -6,7 +6,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { AttachmentType } from '../attachment.constants';
+import { AttachmentType } from '../attachment.constants.js';
 
 export class AttachmentInfoDto {
   @IsNotEmpty()

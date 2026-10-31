@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { InsertableFavorite, Favorite } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { InsertableFavorite, Favorite } from '@docmost/db/types/entity.types.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { ExpressionBuilder, SelectQueryBuilder, sql } from 'kysely';
-import { DB } from '@docmost/db/types/db';
-import { dbOrTx } from '@docmost/db/utils';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { DB } from '@docmost/db/types/db.js';
+import { dbOrTx } from '@docmost/db/utils.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
 
 export const FavoriteType = {
   PAGE: 'page',

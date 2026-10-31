@@ -1,7 +1,7 @@
-import { FormulaParseError } from "./error";
-import type { FormulaAST, OpCode } from "./ast";
-import type { FormulaResultType } from "./types";
-import type { FormulaFn } from "./functions";
+import { FormulaParseError } from "./error.js";
+import type { FormulaAST, OpCode } from "./ast.js";
+import type { FormulaResultType } from "./types.js";
+import type { FormulaFn } from "./functions/index.js";
 
 export type PropertyTypeMap = ReadonlyMap<string, FormulaResultType>;
 

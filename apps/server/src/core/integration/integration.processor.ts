@@ -1,11 +1,11 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { QueueJob, QueueName } from '../../integrations/queue/constants';
-import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
-import { OAuthService } from './oauth/oauth.service';
+import { QueueJob, QueueName } from '../../integrations/queue/constants/index.js';
+import { IntegrationConnectionRepo } from './repos/integration-connection.repo.js';
+import { OAuthService } from './oauth/oauth.service.js';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
-import { RefreshLock } from './utils/refresh-lock';
+import { RefreshLock } from './utils/refresh-lock.js';
 
 const TOKEN_REFRESH_WINDOW_MS = 15 * 60 * 1000;
 // Even at 2 s per refresh, a full batch finishes inside JOB_TIMEOUT_MS.

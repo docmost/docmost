@@ -1,5 +1,5 @@
 import { AlignmentType, convertInchesToTwip, ILevelsOptions, LevelFormat } from 'docx';
-import { INumbering } from './types';
+import { INumbering } from './types.js';
 
 function basicIndentStyle(indent: number): Pick<ILevelsOptions, 'style' | 'alignment'> {
   return {

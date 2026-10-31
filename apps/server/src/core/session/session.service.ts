@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import { TokenService } from '../auth/services/token.service';
-import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { User } from '@docmost/db/types/entity.types';
+import { TokenService } from '../auth/services/token.service.js';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { User } from '@docmost/db/types/entity.types.js';
 import { ClsService } from 'nestjs-cls';
 import {
   AuditContext,
   AUDIT_CONTEXT_KEY,
-} from '../../common/middlewares/audit-context.middleware';
-import * as Bowser from 'bowser';
-import { WsService } from '../../ws/ws.service';
+} from '../../common/middlewares/audit-context.middleware.js';
+import Bowser from 'bowser';
+import { WsService } from '../../ws/ws.service.js';
 
 const MAX_SESSIONS_PER_USER = 25;
 const RETENTION_DAYS = 7;

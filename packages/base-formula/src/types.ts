@@ -1,4 +1,4 @@
-import type { FormulaAST } from "./ast";
+import type { FormulaAST } from "./ast.js";
 
 export type FormulaResultType =
   | "number"
@@ -45,7 +45,7 @@ export type ErrorCode =
  * nodes to their formula ASTs when nested, and the current recursion depth.
  */
 export type EvalContext = {
-  registry: ReadonlyMap<string, import("./functions/registry").FormulaFn>;
+  registry: ReadonlyMap<string, import("./functions/registry.js").FormulaFn>;
   properties: ReadonlyMap<string, PropertyLookup>;
   depth: number;
   maxDepth: number;

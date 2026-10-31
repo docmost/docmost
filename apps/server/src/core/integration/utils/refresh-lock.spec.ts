@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { RefreshLock } from './refresh-lock';
+import { RefreshLock } from './refresh-lock.js';
 
 const KEY = 'integration:refresh:connection-1';
 

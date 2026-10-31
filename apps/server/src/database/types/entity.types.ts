@@ -48,8 +48,8 @@ import {
   OauthAuthorizationCodes,
   OauthGrants,
   OauthTokens,
-} from './db';
-import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
+} from './db.js';
+import { PageEmbeddings } from '@docmost/db/types/embeddings.types.js';
 
 // AI Chat
 export type AiChat = Selectable<AiChats>;

@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { COMPLETION_FALLBACK_REDIRECT } from './oauth.utils';
+import { COMPLETION_FALLBACK_REDIRECT } from './oauth.utils.js';
 
 // Redirects a browser back into the app instead of showing a JSON auth error.
 @Catch(UnauthorizedException, ForbiddenException)

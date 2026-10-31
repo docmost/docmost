@@ -1,4 +1,4 @@
-import { Json, Timestamp, Generated } from '@docmost/db/types/db';
+import { Json, Timestamp, Generated } from '@docmost/db/types/db.js';
 
 // embeddings type
 export interface PageEmbeddings {

@@ -5,7 +5,7 @@ import {
 import * as Y from 'yjs';
 import { Document } from '@hocuspocus/server';
 import { getSchema } from '@tiptap/core';
-import { tiptapExtensions } from './collaboration.util';
+import { tiptapExtensions } from './collaboration.util.js';
 
 export type YjsSelection = {
   anchor: any;

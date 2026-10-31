@@ -1,8 +1,8 @@
 import { Node, mergeAttributes } from "@tiptap/core";
-import { ResizableNodeView } from "./resizable-nodeview";
-import type { ResizableNodeViewDirection } from "./resizable-nodeview";
+import { ResizableNodeView } from "./resizable-nodeview.js";
+import type { ResizableNodeViewDirection } from "./resizable-nodeview.js";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { normalizeFileUrl, syncAltBadge } from "./media-utils";
+import { normalizeFileUrl, syncAltBadge } from "./media-utils.js";
 
 export type DrawioResizeOptions = {
   enabled: boolean;

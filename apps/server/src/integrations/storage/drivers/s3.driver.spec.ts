@@ -1,4 +1,4 @@
-import { S3Driver } from './s3.driver';
+import { S3Driver } from './s3.driver.js';
 
 describe('S3Driver.copy', () => {
   const driver = new S3Driver({

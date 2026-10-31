@@ -3,23 +3,23 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { ShareService } from '../share/share.service';
-import { TransclusionService } from '../page/transclusion/transclusion.service';
-import { TransclusionLookup } from '../page/transclusion/transclusion.types';
+import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.repo.js';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { ShareService } from '../share/share.service.js';
+import { TransclusionService } from '../page/transclusion/transclusion.service.js';
+import { TransclusionLookup } from '../page/transclusion/transclusion.types.js';
 import {
   Page,
   PublicSpace,
   Space,
   Workspace,
-} from '@docmost/db/types/entity.types';
-import { PublicSpaceAppearanceDto } from './dto/public-space.dto';
-import { LicenseCheckService } from '../../integrations/environment/license-check.service';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { Feature, FeatureKey } from '../../common/features';
+} from '@docmost/db/types/entity.types.js';
+import { PublicSpaceAppearanceDto } from './dto/public-space.dto.js';
+import { LicenseCheckService } from '../../integrations/environment/license-check.service.js';
+import { EnvironmentService } from '../../integrations/environment/environment.service.js';
+import { Feature, FeatureKey } from '../../common/features.js';
 
 @Injectable()
 export class PublicSpaceService {

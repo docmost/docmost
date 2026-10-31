@@ -3,7 +3,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { join } from 'path';
 import * as fs from 'node:fs';
 import fastifyStatic from '@fastify/static';
-import { EnvironmentService } from '../environment/environment.service';
+import { EnvironmentService } from '../environment/environment.service.js';
 
 @Module({})
 export class StaticModule implements OnModuleInit {
@@ -17,7 +17,7 @@ export class StaticModule implements OnModuleInit {
     const app = httpAdapter.getInstance();
 
     const clientDistPath = join(
-      __dirname,
+      import.meta.dirname,
       '..',
       '..',
       '..',

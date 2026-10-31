@@ -10,12 +10,12 @@ import {
   getDndRelatedDOMs,
   getHoveringCell,
   HoveringCellInfo,
-} from "./utils";
-import { getDragOverColumn, getDragOverRow } from "./calc-drag-over";
-import { findTable } from "../utils/query";
-import { moveColumn, moveRow } from "../utils";
-import { PreviewController } from "./preview/preview-controller";
-import { DropIndicatorController } from "./preview/drop-indicator-controller";
+} from "./utils.js";
+import { getDragOverColumn, getDragOverRow } from "./calc-drag-over.js";
+import { findTable } from "../utils/query.js";
+import { moveColumn, moveRow } from "../utils/index.js";
+import { PreviewController } from "./preview/preview-controller.js";
+import { DropIndicatorController } from "./preview/drop-indicator-controller.js";
 
 export interface TableHandleState {
   hoveringCell: HoveringCellInfo | null;

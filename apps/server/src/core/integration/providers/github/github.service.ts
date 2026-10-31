@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import {
   ProviderAccount,
   UnfurlResult,
-} from '../../registry/integration-provider.interface';
-import { relativeTime } from '../../utils/relative-time';
-import { providerApiFetch } from '../../utils/provider-fetch';
-import { toProviderAccount } from '../../utils/integration.utils';
-import { repoApiPath } from './github.utils';
+} from '../../registry/integration-provider.interface.js';
+import { relativeTime } from '../../utils/relative-time.js';
+import { providerApiFetch } from '../../utils/provider-fetch.js';
+import { toProviderAccount } from '../../utils/integration.utils.js';
+import { repoApiPath } from './github.utils.js';
 
 @Injectable()
 export class GitHubService {

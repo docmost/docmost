@@ -1,22 +1,22 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
-import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
-import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
+import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor.js';
+import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter.js';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
-import { InternalLogFilter } from './common/logger/internal-log-filter';
-import { EnvironmentService } from './integrations/environment/environment.service';
+import { InternalLogFilter } from './common/logger/internal-log-filter.js';
+import { EnvironmentService } from './integrations/environment/environment.service.js';
 import {
   overrideRequestIp,
   resolveFrameHeader,
   resolveFrameHeadersForPath,
-} from './common/helpers';
+} from './common/helpers/index.js';
 
 // Provider redirects land on the central app host, outside any workspace.
 const OAUTH_CALLBACK_PATH =

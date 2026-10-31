@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { Label } from '@docmost/db/types/entity.types';
-import { dbOrTx } from '@docmost/db/utils';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+import { KyselyDB, KyselyTransaction } from '../../types/kysely.types.js';
+import { Label } from '@docmost/db/types/entity.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
-import { normalizeLabelName } from '../../../core/label/utils';
+import { normalizeLabelName } from '../../../core/label/utils.js';
 
 export const LabelType = {
   PAGE: 'page',

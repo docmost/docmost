@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import {
   ProviderAccount,
   UnfurlResult,
-} from '../../registry/integration-provider.interface';
-import { providerApiFetch } from '../../utils/provider-fetch';
-import { toProviderAccount } from '../../utils/integration.utils';
+} from '../../registry/integration-provider.interface.js';
+import { providerApiFetch } from '../../utils/provider-fetch.js';
+import { toProviderAccount } from '../../utils/integration.utils.js';
 
 const FIGMA_API = 'https://api.figma.com/v1';
 

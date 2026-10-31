@@ -1,11 +1,11 @@
-import { proxyFetch } from '../../../../common/proxy-fetch';
-import { UnfurlForbiddenError } from '../../registry/integration-provider.interface';
-import { GitHubProvider } from './github.provider';
-import { GitHubService } from './github.service';
+import { proxyFetch } from '../../../../common/proxy-fetch.js';
+import { UnfurlForbiddenError } from '../../registry/integration-provider.interface.js';
+import { GitHubProvider } from './github.provider.js';
+import { GitHubService } from './github.service.js';
 import type { Mock } from 'vitest';
 
 // Mock only proxyFetch so the real providerApiFetch handles statuses.
-vi.mock('../../../../common/proxy-fetch', () => ({
+vi.mock('../../../../common/proxy-fetch.js', () => ({
   proxyFetch: vi.fn(),
 }));
 

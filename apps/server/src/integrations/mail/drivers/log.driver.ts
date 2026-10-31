@@ -1,7 +1,7 @@
-import { MailDriver } from './interfaces/mail-driver.interface';
+import { MailDriver } from './interfaces/mail-driver.interface.js';
 import { Logger } from '@nestjs/common';
-import { MailMessage } from '../interfaces/mail.message';
-import { mailLogName } from '../mail.utils';
+import { MailMessage } from '../interfaces/mail.message.js';
+import { mailLogName } from '../mail.utils.js';
 import * as process from 'node:process';
 
 export class LogDriver implements MailDriver {

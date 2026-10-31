@@ -1,5 +1,5 @@
 import { registerDecorator, ValidationOptions } from 'class-validator';
-import tlds from 'tlds';
+import tlds from 'tlds' with { type: 'json' };
 
 const URL_PATTERN = /https?:\/\//i;
 const tldSet = new Set(tlds.map((t) => t.toLowerCase()));

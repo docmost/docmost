@@ -6,14 +6,14 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { UserService } from './user.service';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { UserService } from './user.service.js';
+import { UpdateUserDto } from './dto/update-user.dto.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')

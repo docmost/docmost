@@ -1,7 +1,7 @@
 import { tmpdir } from 'os';
 import { join, resolve, sep } from 'path';
-import * as fs from 'fs-extra';
-import { LocalDriver } from './local.driver';
+import fs from 'fs-extra';
+import { LocalDriver } from './local.driver.js';
 
 type FullPath = (filePath: string) => string;
 

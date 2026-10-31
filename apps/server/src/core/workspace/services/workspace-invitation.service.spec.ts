@@ -8,8 +8,8 @@ import {
   PostgresQueryCompiler,
 } from 'kysely';
 import { addDays } from 'date-fns';
-import { AuditEvent } from '../../../common/events/audit-events';
-import { WorkspaceInvitationService } from './workspace-invitation.service';
+import { AuditEvent } from '../../../common/events/audit-events.js';
+import { WorkspaceInvitationService } from './workspace-invitation.service.js';
 
 const WORKSPACE = { id: 'ws_1', hostname: 'acme' } as any;
 

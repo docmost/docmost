@@ -10,49 +10,49 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { PageService } from './services/page.service';
-import { BacklinkService } from './services/backlink.service';
-import { PageAccessService } from './page-access/page-access.service';
-import { CreatePageDto } from './dto/create-page.dto';
-import { UpdatePageDto } from './dto/update-page.dto';
-import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto';
+import { PageService } from './services/page.service.js';
+import { BacklinkService } from './services/backlink.service.js';
+import { PageAccessService } from './page-access/page-access.service.js';
+import { CreatePageDto } from './dto/create-page.dto.js';
+import { UpdatePageDto } from './dto/update-page.dto.js';
+import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto.js';
 import {
   DeletePageDto,
   PageHistoryIdDto,
   PageIdDto,
   PageInfoDto,
-} from './dto/page.dto';
-import { PageHistoryService } from './services/page-history.service';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { Page, User, Workspace } from '@docmost/db/types/entity.types';
-import { SidebarPageDto } from './dto/sidebar-page.dto';
+} from './dto/page.dto.js';
+import { PageHistoryService } from './services/page-history.service.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OAuthScope } from '../../common/decorators/oauth-scope.decorator.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { Page, User, Workspace } from '@docmost/db/types/entity.types.js';
+import { SidebarPageDto } from './dto/sidebar-page.dto.js';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { RecentPageDto } from './dto/recent-page.dto';
-import { CreatedByUserDto } from './dto/created-by-user.dto';
-import { DuplicatePageDto } from './dto/duplicate-page.dto';
-import { DeletedPageDto } from './dto/deleted-page.dto';
-import { BacklinksListDto } from './dto/backlink.dto';
-import { LabelService } from '../label/label.service';
-import { AddLabelsDto, RemoveLabelDto } from '../label/dto/label.dto';
+} from '../casl/interfaces/space-ability.type.js';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { RecentPageDto } from './dto/recent-page.dto.js';
+import { CreatedByUserDto } from './dto/created-by-user.dto.js';
+import { DuplicatePageDto } from './dto/duplicate-page.dto.js';
+import { DeletedPageDto } from './dto/deleted-page.dto.js';
+import { BacklinksListDto } from './dto/backlink.dto.js';
+import { LabelService } from '../label/label.service.js';
+import { AddLabelsDto, RemoveLabelDto } from '../label/dto/label.dto.js';
 import {
   jsonToHtml,
   jsonToMarkdown,
-} from '../../collaboration/collaboration.util';
-import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+} from '../../collaboration/collaboration.util.js';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events.js';
 import {
   AUDIT_SERVICE,
   IAuditService,
-} from '../../integrations/audit/audit.service';
-import { getPageTitle } from '../../common/helpers';
+} from '../../integrations/audit/audit.service.js';
+import { getPageTitle } from '../../common/helpers/index.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')

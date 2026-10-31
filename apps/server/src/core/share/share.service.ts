@@ -4,28 +4,28 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateShareDto, ShareInfoDto, UpdateShareDto } from './dto/share.dto';
+import { CreateShareDto, ShareInfoDto, UpdateShareDto } from './dto/share.dto.js';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { nanoIdGen } from '../../common/helpers';
-import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { TokenService } from '../auth/services/token.service';
-import { jsonToNode } from '../../collaboration/collaboration.util';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { nanoIdGen } from '../../common/helpers/index.js';
+import { PageRepo } from '@docmost/db/repos/page/page.repo.js';
+import { TokenService } from '../auth/services/token.service.js';
+import { jsonToNode } from '../../collaboration/collaboration.util.js';
 import {
   getAttachmentIds,
   getProsemirrorContent,
   isAttachmentNode,
   removeMarkTypeFromDoc,
-} from '../../common/helpers/prosemirror/utils';
+} from '../../common/helpers/prosemirror/utils.js';
 import { Node } from '@tiptap/pm/model';
-import { ShareRepo } from '@docmost/db/repos/share/share.repo';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { updateAttachmentAttr } from './share.util';
-import { Page } from '@docmost/db/types/entity.types';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo.js';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo.js';
+import { updateAttachmentAttr } from './share.util.js';
+import { Page } from '@docmost/db/types/entity.types.js';
 import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
-import { TransclusionService } from '../page/transclusion/transclusion.service';
-import { TransclusionLookup } from '../page/transclusion/transclusion.types';
+import { TransclusionService } from '../page/transclusion/transclusion.service.js';
+import { TransclusionLookup } from '../page/transclusion/transclusion.types.js';
 
 @Injectable()
 export class ShareService {

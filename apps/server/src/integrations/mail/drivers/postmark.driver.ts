@@ -1,9 +1,9 @@
-import { MailDriver } from './interfaces/mail-driver.interface';
-import { PostmarkConfig } from '../interfaces';
+import { MailDriver } from './interfaces/mail-driver.interface.js';
+import { PostmarkConfig } from '../interfaces/index.js';
 import { ServerClient } from 'postmark';
-import { MailMessage } from '../interfaces/mail.message';
+import { MailMessage } from '../interfaces/mail.message.js';
 import { Logger } from '@nestjs/common';
-import { mailLogName } from '../mail.utils';
+import { mailLogName } from '../mail.utils.js';
 
 export class PostmarkDriver implements MailDriver {
   private readonly logger = new Logger(mailLogName(PostmarkDriver.name));

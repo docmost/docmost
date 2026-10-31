@@ -1,13 +1,13 @@
 import { marked } from "marked";
-import { calloutExtension } from "./callout.marked";
-import { mathBlockExtension } from "./math-block.marked";
-import { mathInlineExtension } from "./math-inline.marked";
+import { calloutExtension } from "./callout.marked.js";
+import { mathBlockExtension } from "./math-block.marked.js";
+import { mathInlineExtension } from "./math-inline.marked.js";
 import {
   footnoteDefExtension,
   footnoteRefExtension,
   renderFootnotesList,
   resetFootnotes,
-} from "./footnotes.marked";
+} from "./footnotes.marked.js";
 
 marked.use({
   renderer: {

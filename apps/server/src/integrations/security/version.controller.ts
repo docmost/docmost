@@ -6,9 +6,9 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { VersionService } from './version.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { EnvironmentService } from '../environment/environment.service';
+import { VersionService } from './version.service.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { EnvironmentService } from '../environment/environment.service.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('version')

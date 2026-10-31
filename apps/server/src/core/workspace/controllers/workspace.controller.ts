@@ -9,34 +9,34 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { WorkspaceService } from '../services/workspace.service';
-import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
-import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
-import { AuthUser } from '../../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { WorkspaceInvitationService } from '../services/workspace-invitation.service';
-import { Public } from '../../../common/decorators/public.decorator';
+import { WorkspaceService } from '../services/workspace.service.js';
+import { UpdateWorkspaceDto } from '../dto/update-workspace.dto.js';
+import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto.js';
+import { AuthUser } from '../../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { WorkspaceInvitationService } from '../services/workspace-invitation.service.js';
+import { Public } from '../../../common/decorators/public.decorator.js';
 import {
   AcceptInviteDto,
   InvitationIdDto,
   InviteUserDto,
   RevokeInviteDto,
-} from '../dto/invitation.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { OAuthScope } from '../../../common/decorators/oauth-scope.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
+} from '../dto/invitation.dto.js';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard.js';
+import { OAuthScope } from '../../../common/decorators/oauth-scope.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../../casl/interfaces/workspace-ability.type';
+} from '../../casl/interfaces/workspace-ability.type.js';
 import { FastifyReply } from 'fastify';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
-import { CheckHostnameDto } from '../dto/check-hostname.dto';
-import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service.js';
+import { CheckHostnameDto } from '../dto/check-hostname.dto.js';
+import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto.js';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')

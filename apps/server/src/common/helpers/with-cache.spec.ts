@@ -1,4 +1,4 @@
-import { withCache } from './with-cache';
+import { withCache } from './with-cache.js';
 
 function makeCache(cached?: unknown) {
   return {

@@ -5,9 +5,9 @@ import {
   mergeAttributes,
   Range,
 } from "@tiptap/core";
-import { ResizableNodeView } from "../resizable-nodeview";
-import type { ResizableNodeViewDirection } from "../resizable-nodeview";
-import { normalizeFileUrl, syncAltBadge } from "../media-utils";
+import { ResizableNodeView } from "../resizable-nodeview.js";
+import type { ResizableNodeViewDirection } from "../resizable-nodeview.js";
+import { normalizeFileUrl, syncAltBadge } from "../media-utils.js";
 
 export type ImageResizeOptions = {
   enabled: boolean;

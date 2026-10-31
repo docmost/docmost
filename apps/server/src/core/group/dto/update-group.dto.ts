@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateGroupDto } from './create-group.dto';
+import { CreateGroupDto } from './create-group.dto.js';
 import { IsNotEmpty, IsUUID } from 'class-validator';
 
 export class UpdateGroupDto extends PartialType(CreateGroupDto) {

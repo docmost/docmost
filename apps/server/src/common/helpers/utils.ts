@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
-import sanitize = require('sanitize-filename');
+import sanitize from 'sanitize-filename';
 import { FastifyRequest } from 'fastify';
 import { Readable, Transform } from 'stream';
 

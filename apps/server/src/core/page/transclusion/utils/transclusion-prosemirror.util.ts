@@ -1,4 +1,4 @@
-import { TransclusionNodeSnapshot } from '../transclusion.types';
+import { TransclusionNodeSnapshot } from '../transclusion.types.js';
 
 const TRANSCLUSION_TYPE = 'transclusionSource';
 const REFERENCE_TYPE = 'transclusionReference';

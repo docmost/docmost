@@ -1,4 +1,4 @@
-import { UnfurlPattern } from '../../registry/integration-provider.interface';
+import { UnfurlPattern } from '../../registry/integration-provider.interface.js';
 
 export const figmaPatterns: UnfurlPattern[] = [
   {

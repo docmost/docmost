@@ -1,5 +1,5 @@
-import { CollabAccessService } from './collab-access.service';
-import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
+import { CollabAccessService } from './collab-access.service.js';
+import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants.js';
 
 function makeService(publish: (...args: any[]) => Promise<number>) {
   return new CollabAccessService({ getOrThrow: () => ({ publish }) } as any);

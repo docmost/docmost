@@ -1,5 +1,5 @@
 import { mergeAttributes, Node } from '@tiptap/core';
-import { generateNodeId } from "../utils";
+import { generateNodeId } from "../utils.js";
 
 export interface TabOptions {
   HTMLAttributes: Record<string, unknown>;

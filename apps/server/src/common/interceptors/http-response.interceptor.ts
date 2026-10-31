@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
-import { SKIP_TRANSFORM_KEY } from '../decorators/skip-transform.decorator';
+import { SKIP_TRANSFORM_KEY } from '../decorators/skip-transform.decorator.js';
 export interface Response<T> {
   data: T;
 }

@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { dbOrTx } from '@docmost/db/utils';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types.js';
+import { dbOrTx } from '@docmost/db/utils.js';
 import {
   Group,
   InsertableGroup,
   UpdatableGroup,
-} from '@docmost/db/types/entity.types';
+} from '@docmost/db/types/entity.types.js';
 import { ExpressionBuilder, sql } from 'kysely';
-import { PaginationOptions } from '../../pagination/pagination-options';
-import { DB, Groups } from '@docmost/db/types/db';
-import { DefaultGroup } from '../../../core/group/dto/create-group.dto';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+import { PaginationOptions } from '../../pagination/pagination-options.js';
+import { DB, Groups } from '@docmost/db/types/db.js';
+import { DefaultGroup } from '../../../core/group/dto/create-group.dto.js';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination.js';
 
 @Injectable()
 export class GroupRepo {

@@ -1,2 +1,2 @@
-export { MathInline } from "./math-inline";
-export { MathBlock } from "./math-block";
+export { MathInline } from "./math-inline.js";
+export { MathBlock } from "./math-block.js";

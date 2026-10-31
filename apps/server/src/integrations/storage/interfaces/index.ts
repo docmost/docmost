@@ -1,2 +1,2 @@
-export * from './storage-driver.interface';
-export * from './storage.interface';
+export * from './storage-driver.interface.js';
+export * from './storage.interface.js';

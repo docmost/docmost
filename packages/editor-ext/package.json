@@ -2,6 +2,7 @@
   "name": "@docmost/editor-ext",
   "homepage": "https://docmost.com",
   "private": true,
+  "type": "module",
   "sideEffects": false,
   "scripts": {
     "build": "tsc --build",

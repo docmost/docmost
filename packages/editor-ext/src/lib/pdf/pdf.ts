@@ -1,6 +1,6 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { Node, mergeAttributes } from "@tiptap/core";
-import { sanitizeUrl, isInternalFileUrl } from "../utils";
+import { sanitizeUrl, isInternalFileUrl } from "../utils.js";
 
 export type PdfOptions = {
   view: any;

@@ -1,5 +1,5 @@
 import { computePosition, offset } from "@floating-ui/dom";
-import { DraggingDOMs } from "../utils";
+import { DraggingDOMs } from "../utils.js";
 
 const DROP_INDICATOR_WIDTH = 2;
 

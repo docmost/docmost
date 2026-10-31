@@ -1,6 +1,6 @@
 // Per-table header-pin controller: native sticky when table fits its wrapper, transform fallback when it doesn't.
 
-import { computePinTop, pinOffsetWatcher } from './offset';
+import { computePinTop, pinOffsetWatcher } from './offset.js';
 
 const WRAPPER_NO_OVERFLOW = 'tableWrapperNoOverflow';
 const HEADER_PINNED = 'tableHeaderPinned';

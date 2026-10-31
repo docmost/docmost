@@ -3,8 +3,8 @@ import { ModuleRef } from '@nestjs/core';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { QueueJob, QueueName } from '../../integrations/queue/constants';
+import { KyselyDB } from '@docmost/db/types/kysely.types.js';
+import { QueueJob, QueueName } from '../../integrations/queue/constants/index.js';
 import {
   IApprovalRejectedNotificationJob,
   IApprovalRequestedNotificationJob,
@@ -17,11 +17,12 @@ import {
   IVerificationExpiringNotificationJob,
   IVerificationExpiredNotificationJob,
   IVerificationReconcileJob,
-} from '../../integrations/queue/constants/queue.interface';
-import { CommentNotificationService } from './services/comment.notification';
-import { PageNotificationService } from './services/page.notification';
-import { VerificationNotificationService } from './services/verification.notification';
-import { DomainService } from '../../integrations/environment/domain.service';
+} from '../../integrations/queue/constants/queue.interface.js';
+import { CommentNotificationService } from './services/comment.notification.js';
+import { PageNotificationService } from './services/page.notification.js';
+import { VerificationNotificationService } from './services/verification.notification.js';
+import { DomainService } from '../../integrations/environment/domain.service.js';
+import { importEe } from '../../common/helpers/ee-loader.js';
 
 @Processor(QueueName.NOTIFICATION_QUEUE)
 export class NotificationProcessor
@@ -187,8 +188,7 @@ export class NotificationProcessor
   private async runVerificationReconcile(): Promise<void> {
     let eeModule: { PageVerificationSchedulerService?: unknown };
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      eeModule = require('../../ee/page-verification/page-verification-scheduler.service');
+      eeModule = await importEe('page-verification/page-verification-scheduler.service');
     } catch {
       this.logger.debug(
         'VERIFICATION_RECONCILE fired but EE scheduler not bundled in this build',

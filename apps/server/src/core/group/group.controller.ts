@@ -7,23 +7,23 @@ import {
   HttpStatus,
   ForbiddenException,
 } from '@nestjs/common';
-import { GroupService } from './services/group.service';
-import { CreateGroupDto } from './dto/create-group.dto';
-import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import { GroupUserService } from './services/group-user.service';
-import { GroupIdDto } from './dto/group-id.dto';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { AddGroupUserDto } from './dto/add-group-user.dto';
-import { RemoveGroupUserDto } from './dto/remove-group-user.dto';
-import { UpdateGroupDto } from './dto/update-group.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
+import { GroupService } from './services/group.service.js';
+import { CreateGroupDto } from './dto/create-group.dto.js';
+import { AuthUser } from '../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator.js';
+import { GroupUserService } from './services/group-user.service.js';
+import { GroupIdDto } from './dto/group-id.dto.js';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options.js';
+import { AddGroupUserDto } from './dto/add-group-user.dto.js';
+import { RemoveGroupUserDto } from './dto/remove-group-user.dto.js';
+import { UpdateGroupDto } from './dto/update-group.dto.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../casl/interfaces/workspace-ability.type';
+} from '../casl/interfaces/workspace-ability.type.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')

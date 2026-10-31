@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { OAuthService } from './oauth.service';
+import { OAuthService } from './oauth.service.js';
 
 const integrationId = 'integration-1';
 const workspaceId = 'workspace-1';

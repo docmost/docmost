@@ -3,10 +3,10 @@ import {
   ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { OAUTH_SCOPE_KEY } from '../decorators/oauth-scope.decorator';
-import { REQUIRE_SESSION_AUTH_KEY } from '../decorators/require-session-auth.decorator';
-import { JwtType } from '../../core/auth/dto/jwt-payload';
+import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { OAUTH_SCOPE_KEY } from '../decorators/oauth-scope.decorator.js';
+import { REQUIRE_SESSION_AUTH_KEY } from '../decorators/require-session-auth.decorator.js';
+import { JwtType } from '../../core/auth/dto/jwt-payload.js';
 
 const handlerSentinel = () => 'handler';
 const classSentinel = class Controller {};

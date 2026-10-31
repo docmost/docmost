@@ -1,2 +1,2 @@
-export { UniqueID } from "./unique-id";
-export * from "./unique-id.util";
+export { UniqueID } from "./unique-id.js";
+export * from "./unique-id.util.js";

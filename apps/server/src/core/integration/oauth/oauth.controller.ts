@@ -18,37 +18,37 @@ import {
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { addMinutes } from 'date-fns';
 import * as crypto from 'crypto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { AuthUser } from '../../../common/decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
-import { RequireSessionAuth } from '../../../common/decorators/require-session-auth.decorator';
-import { User, Workspace } from '@docmost/db/types/entity.types';
-import { OAuthService } from './oauth.service';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard.js';
+import { AuthUser } from '../../../common/decorators/auth-user.decorator.js';
+import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator.js';
+import { RequireSessionAuth } from '../../../common/decorators/require-session-auth.decorator.js';
+import { User, Workspace } from '@docmost/db/types/entity.types.js';
+import { OAuthService } from './oauth.service.js';
 import {
   OAuthAuthorizeDto,
   OAuthDisconnectDto,
   OAuthInstallDto,
-} from '../dto/integration.dto';
-import { IntegrationConnectionService } from '../integration-connection.service';
-import { IntegrationRegistry } from '../registry/integration-registry';
-import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
+} from '../dto/integration.dto.js';
+import { IntegrationConnectionService } from '../integration-connection.service.js';
+import { IntegrationRegistry } from '../registry/integration-registry.js';
+import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory.js';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../../casl/interfaces/workspace-ability.type';
-import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+} from '../../casl/interfaces/workspace-ability.type.js';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service.js';
 import {
   IdentityEmailMismatchError,
   IdentityTenantMismatchError,
   IntegrationTenantInUseError,
-} from '../registry/integration-provider.interface';
+} from '../registry/integration-provider.interface.js';
 import {
   EncryptionPurpose,
   EncryptionService,
-} from '../../../integrations/encryption/encryption.service';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { COMPLETION_FALLBACK_REDIRECT, nonceCookieName } from './oauth.utils';
-import { OAuthCompleteAuthFilter } from './oauth-complete-auth.filter';
+} from '../../../integrations/encryption/encryption.service.js';
+import { EnvironmentService } from '../../../integrations/environment/environment.service.js';
+import { COMPLETION_FALLBACK_REDIRECT, nonceCookieName } from './oauth.utils.js';
+import { OAuthCompleteAuthFilter } from './oauth-complete-auth.filter.js';
 
 const OAUTH_ROUTE_PREFIX = '/api/integrations/oauth';
 const COMPLETION_TICKET_PURPOSE = 'oauth-completion';
