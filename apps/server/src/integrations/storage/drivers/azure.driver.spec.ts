@@ -1,3 +1,5 @@
+import { Readable } from 'stream';
+import { BlockBlobClient } from '@azure/storage-blob';
 import { AzureDriver } from './azure.driver';
 
 describe('AzureDriver.getSignedUrl', () => {
@@ -27,5 +29,52 @@ describe('AzureDriver.getSignedUrl', () => {
     const url = await driver.getSignedUrl('ws/files/id/스크린샷.png', 60);
 
     expect(new URL(url).searchParams.get('sig')).toBeTruthy();
+  });
+});
+
+describe('AzureDriver.upload with a stream', () => {
+  const FILE_PATH = 'ws/files/id/file.pdf';
+  const driver = new AzureDriver({
+    accountName: 'account',
+    accountKey: Buffer.from('key').toString('base64'),
+    container: 'docmost',
+  });
+
+  let stageBlock: jest.SpyInstance;
+  let commitBlockList: jest.SpyInstance;
+
+  beforeEach(() => {
+    stageBlock = jest
+      .spyOn(BlockBlobClient.prototype, 'stageBlock')
+      .mockResolvedValue({} as any);
+    commitBlockList = jest
+      .spyOn(BlockBlobClient.prototype, 'commitBlockList')
+      .mockResolvedValue({ _response: { status: 201 } } as any);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('commits a stream that ends cleanly', async () => {
+    await driver.upload(FILE_PATH, Readable.from([Buffer.alloc(1024)]));
+
+    expect(stageBlock).toHaveBeenCalledTimes(1);
+    expect(commitBlockList).toHaveBeenCalledTimes(1);
+  });
+
+  it('commits nothing when the stream fails', async () => {
+    const stream = Readable.from(
+      (async function* () {
+        yield Buffer.alloc(1024);
+        throw new Error('stream failed');
+      })(),
+    );
+
+    await expect(driver.upload(FILE_PATH, stream)).rejects.toThrow(
+      'Failed to upload file: stream failed',
+    );
+
+    expect(commitBlockList).not.toHaveBeenCalled();
   });
 });

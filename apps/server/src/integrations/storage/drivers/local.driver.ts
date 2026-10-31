@@ -3,9 +3,10 @@ import {
   LocalStorageConfig,
   StorageOption,
 } from '../interfaces';
-import { dirname, resolve, sep } from 'path';
+import { dirname, join, resolve, sep } from 'path';
 import * as fs from 'fs-extra';
 import { Readable } from 'stream';
+import { randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 
@@ -25,14 +26,42 @@ export class LocalDriver implements StorageDriver {
     return fullPath;
   }
 
+  // Goes through a temp file so a failed stream never touches the file at fullPath
+  private async _writeStream(fullPath: string, file: Readable): Promise<void> {
+    // _fullPath accepts the root itself, whose parent is outside the storage
+    if (fullPath === resolve(this.config.storagePath)) {
+      throw new Error('Invalid file path');
+    }
+
+    const parentDir = dirname(fullPath);
+    // a name of its own, as the target's can already be at the file system limit
+    const tempPath = join(parentDir, `.${randomUUID()}.tmp`);
+    await fs.mkdir(parentDir, { recursive: true });
+
+    try {
+      await pipeline(file, createWriteStream(tempPath));
+      await fs.rename(tempPath, fullPath);
+    } catch (err) {
+      await fs.remove(tempPath).catch(() => undefined);
+      await this._removeEmptyDir(parentDir);
+      throw err;
+    }
+  }
+
+  private async _removeEmptyDir(dir: string): Promise<void> {
+    if (dir !== resolve(this.config.storagePath)) {
+      // rmdir refuses non-empty directories, so errors are ignored
+      await fs.rmdir(dir).catch(() => undefined);
+    }
+  }
+
   async upload(filePath: string, file: Buffer | Readable): Promise<void> {
     try {
       const fullPath = this._fullPath(filePath);
-      if (file instanceof Buffer) {
+      if (Buffer.isBuffer(file)) {
         await fs.outputFile(fullPath, file);
       } else {
-        await fs.mkdir(dirname(fullPath), { recursive: true });
-        await pipeline(file, createWriteStream(fullPath));
+        await this._writeStream(fullPath, file);
       }
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
@@ -41,9 +70,7 @@ export class LocalDriver implements StorageDriver {
 
   async uploadStream(filePath: string, file: Readable, options?: { recreateClient?: boolean }): Promise<void> {
     try {
-      const fullPath = this._fullPath(filePath);
-      await fs.mkdir(dirname(fullPath), { recursive: true });
-      await pipeline(file, createWriteStream(fullPath));
+      await this._writeStream(this._fullPath(filePath), file);
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
@@ -119,12 +146,7 @@ export class LocalDriver implements StorageDriver {
         throw new Error('Invalid file path');
       }
       await fs.remove(fullPath);
-
-      const parentDir = dirname(fullPath);
-      if (parentDir !== storageRoot) {
-        // the file is gone and rmdir refuses non-empty directories, so errors are ignored
-        await fs.rmdir(parentDir).catch(() => undefined);
-      }
+      await this._removeEmptyDir(dirname(fullPath));
     } catch (err) {
       throw new Error(`Failed to delete file: ${(err as Error).message}`);
     }

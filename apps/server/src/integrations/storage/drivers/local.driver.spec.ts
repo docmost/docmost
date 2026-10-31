@@ -1,6 +1,7 @@
 import { tmpdir } from 'os';
 import { join, resolve, sep } from 'path';
 import * as fs from 'fs-extra';
+import { Readable } from 'stream';
 import { LocalDriver } from './local.driver';
 
 type FullPath = (filePath: string) => string;
@@ -195,5 +196,87 @@ describe('LocalDriver.delete', () => {
       expect((await fs.lstat(link)).isSymbolicLink()).toBe(true);
       expect(await fs.pathExists(target)).toBe(true);
     });
+  });
+});
+
+describe.each(['upload', 'uploadStream'] as const)('LocalDriver.%s with a stream', (method) => {
+  const FILE_PATH = 'workspace-id/files/uuid/file.pdf';
+  let sandbox: string;
+  let root: string;
+  let driver: LocalDriver;
+
+  // stored bytes, then a failure in place of the end of the stream
+  const failingStream = () =>
+    Readable.from(
+      (async function* () {
+        yield Buffer.from('partial');
+        throw new Error('stream failed');
+      })(),
+    );
+
+  beforeEach(async () => {
+    sandbox = await fs.mkdtemp(join(tmpdir(), 'local-driver-'));
+    root = join(sandbox, 'storage');
+    await fs.mkdir(root);
+    driver = new LocalDriver({ storagePath: root });
+  });
+
+  afterEach(async () => {
+    await fs.remove(sandbox);
+  });
+
+  it('stores the stream at the target path', async () => {
+    await driver[method](FILE_PATH, Readable.from([Buffer.from('content')]));
+
+    expect(await fs.readFile(join(root, FILE_PATH), 'utf8')).toBe('content');
+    expect(await fs.readdir(join(root, 'workspace-id/files/uuid'))).toEqual(['file.pdf']);
+  });
+
+  it('replaces an existing file', async () => {
+    await driver.upload(FILE_PATH, Buffer.from('old'));
+
+    await driver[method](FILE_PATH, Readable.from([Buffer.from('new')]));
+
+    expect(await fs.readFile(join(root, FILE_PATH), 'utf8')).toBe('new');
+    expect(await fs.readdir(join(root, 'workspace-id/files/uuid'))).toEqual(['file.pdf']);
+  });
+
+  it('keeps an existing file when the stream fails', async () => {
+    await driver.upload(FILE_PATH, Buffer.from('old'));
+
+    await expect(driver[method](FILE_PATH, failingStream())).rejects.toThrow(
+      'Failed to upload file: stream failed',
+    );
+
+    expect(await fs.readFile(join(root, FILE_PATH), 'utf8')).toBe('old');
+    expect(await fs.readdir(join(root, 'workspace-id/files/uuid'))).toEqual(['file.pdf']);
+  });
+
+  it('leaves nothing behind when the stream fails on a new path', async () => {
+    await expect(driver[method](FILE_PATH, failingStream())).rejects.toThrow('stream failed');
+
+    expect(await fs.pathExists(join(root, 'workspace-id/files/uuid'))).toBe(false);
+  });
+
+  it('keeps the storage root when a stream fails at its top level', async () => {
+    await expect(driver[method]('file.pdf', failingStream())).rejects.toThrow('stream failed');
+
+    expect(await fs.readdir(root)).toEqual([]);
+  });
+
+  it.each(['', '.', 'workspace-id/..'])('rejects %j as a target', async (input) => {
+    await expect(
+      driver[method](input, Readable.from([Buffer.from('x')])),
+    ).rejects.toThrow('Failed to upload file: Invalid file path');
+
+    expect(await fs.readdir(sandbox)).toEqual(['storage']);
+  });
+
+  it('accepts a file name at the file system limit', async () => {
+    const name = `${'a'.repeat(251)}.pdf`;
+
+    await driver[method](`workspace-id/files/uuid/${name}`, Readable.from([Buffer.from('x')]));
+
+    expect(await fs.readdir(join(root, 'workspace-id/files/uuid'))).toEqual([name]);
   });
 });
