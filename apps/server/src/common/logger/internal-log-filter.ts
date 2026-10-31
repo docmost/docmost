@@ -75,8 +75,16 @@ export class InternalLogFilter extends ConsoleLogger {
     logLevel?: LogLevel,
     writeStreamType?: 'stdout' | 'stderr',
     errorStack?: unknown,
+    params?: Record<string, any>,
   ): void {
     const level = logLevel === 'log' ? ('info' as LogLevel) : logLevel;
-    super.printMessages(messages, context, level, writeStreamType, errorStack);
+    super.printMessages(
+      messages,
+      context,
+      level,
+      writeStreamType,
+      errorStack,
+      params,
+    );
   }
 }

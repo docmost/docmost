@@ -21,3 +21,24 @@ index e74b8f52137e3267f3d065c4210a1114c4f32dd1..5740606b18851c0ac4f55cfa33315235
          
          /**
           * @typedef {Object} PatchOpDetails
+diff --git a/dist/lib/messages.js b/dist/lib/messages.js
+index 4b42fb09c0ebbb736c23651b419ae26b39eacd54..f82447bbd8117fc8955b818c59aedd9a4d9b7b5b 100644
+--- a/dist/lib/messages.js
++++ b/dist/lib/messages.js
+@@ -499,9 +499,14 @@ class PatchOp {
+             }
+         }
+         
++        /** Reason: Commented out to avoid failing patch requests when filters don't match.
++         * Some IdPs send patch paths like `addresses[type eq "work"].country` even if no such address exists. We can't always decide what the end user IdPs send.
++         * Since we manually control patch application, we safely ignore these cases.
++         * example error: "noTarget","detail":"Filter 'addresses[type eq \"work\"].country' does not match any values for 'add' op of operation 5 in PatchOp request body
++         */
+         // No targets, bail out!
+-        if (targets.length === 0 && op !== "remove")
+-            throw new Types.Error(400, "noTarget", `Filter '${path}' does not match any values for '${op}' op of operation ${index} in PatchOp request body`);
++        //  if (targets.length === 0 && op !== "remove")
++      //      throw new Types.Error(400, "noTarget", `Filter '${path}' does not match any values for '${op}' op of operation ${index} in PatchOp request body`);
+         
+         /**
+          * @typedef {Object} PatchOpDetails

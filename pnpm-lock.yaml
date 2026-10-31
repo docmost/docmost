@@ -186,7 +186,7 @@ overrides:
   smol-toml@<1.9.0: 1.9.0
 
 patchedDependencies:
-  scimmy@1.3.5: 775d80f86830b2c5dd1a250c9802c10f8fc3da3c7898373de5aa0c23993d1673
+  scimmy@1.3.5: caa20ee15827070b3bc3061fe1ec78a547187c46928848e1a77d33d959b72a31
 
 importers:
 
@@ -898,7 +898,7 @@ importers:
         version: 1.6.3
       scimmy:
         specifier: 1.3.5
-        version: 1.3.5(patch_hash=775d80f86830b2c5dd1a250c9802c10f8fc3da3c7898373de5aa0c23993d1673)
+        version: 1.3.5(patch_hash=caa20ee15827070b3bc3061fe1ec78a547187c46928848e1a77d33d959b72a31)
       socket.io:
         specifier: 4.8.4
         version: 4.8.4(supports-color@10.2.2)
@@ -17132,7 +17132,7 @@ snapshots:
       ajv-formats: 2.1.1
       ajv-keywords: 5.1.0(ajv@8.20.0)
 
-  scimmy@1.3.5(patch_hash=775d80f86830b2c5dd1a250c9802c10f8fc3da3c7898373de5aa0c23993d1673): {}
+  scimmy@1.3.5(patch_hash=caa20ee15827070b3bc3061fe1ec78a547187c46928848e1a77d33d959b72a31): {}
 
   secure-json-parse@4.0.0: {}
 
