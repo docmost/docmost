@@ -794,9 +794,6 @@ importers:
       csv-stringify:
         specifier: 6.8.0
         version: 6.8.0
-      fast-bm25:
-        specifier: 0.0.5
-        version: 0.0.5(typescript@5.9.3)
       fs-extra:
         specifier: 11.3.4
         version: 11.3.4
@@ -875,6 +872,9 @@ importers:
       pino-pretty:
         specifier: 13.2.0
         version: 13.2.0
+      porter2:
+        specifier: 2.0.0
+        version: 2.0.0
       postgres:
         specifier: 3.4.8
         version: 3.4.8
@@ -6241,12 +6241,6 @@ packages:
     resolution: {integrity: sha512-1zQrciTiQfRdo7qJM1uG4navm8DayFa2TgCSRlzUyNkhcJ6XUZF3hjnpkyr3VhAqPH7i/9GkG7Tv5abz6fqz0Q==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
-  fast-bm25@0.0.5:
-    resolution: {integrity: sha512-6HTiLmPkgeqcPJHccN0pXdqnA7OzhaEQZTFzWnfjIyPoX5sGVKUUpfRc2K2o6zMwK+g009miRhADYn/f2Ax0Mg==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      typescript: ^5.6.3
-
   fast-copy@4.1.2:
     resolution: {integrity: sha512-DUHggaYcouhy5I1LacDJ+JDSqGlumVJP2EAi5Nwt1pWPeLpSvIjkrY+x4fsoI1/+GlTyq+DM9zdgWCFSfqNODA==}
 
@@ -8106,8 +8100,8 @@ packages:
   points-on-path@0.2.1:
     resolution: {integrity: sha512-25ClnWWuw7JbWZcgqY/gJ4FQWadKxGWk+3kR/7kD0tCaDtPPMj7oHu2ToLaVhfpnHrZzYby2w6tUA0eOIuUg8g==}
 
-  porter2@1.1.0:
-    resolution: {integrity: sha512-Io2cLEdZn0O1dH60pRsjmr/cH/qJJ/j6Cjubz8wQWi0b6vPdQIUxSBQKyx9d+8CN7fSnY+5uOU3rErMFjNqcLw==}
+  porter2@2.0.0:
+    resolution: {integrity: sha512-xPP5MpmapEh5sekPO/6TynotcXfIuLjPwPMybnew68QE2Wmf9+OJ7xuyRZy6VIthS8uh2PQIyq0wOeYgkmA8dA==}
 
   possible-typed-array-names@1.0.0:
     resolution: {integrity: sha512-d7Uw+eZoloe0EHDIYoe+bQ5WXnGMOpmiZFTuMWCwpjzzkL2nTjcKiAk4hh8TjnGye2TwWOk3UXucZ+3rbmBa8Q==}
@@ -15785,11 +15779,6 @@ snapshots:
       jest-mock: 30.3.0
       jest-util: 30.3.0
 
-  fast-bm25@0.0.5(typescript@5.9.3):
-    dependencies:
-      porter2: 1.1.0
-      typescript: 5.9.3
-
   fast-copy@4.1.2: {}
 
   fast-decode-uri-component@1.0.1: {}
@@ -17881,7 +17870,7 @@ snapshots:
       path-data-parser: 0.1.0
       points-on-curve: 0.2.0
 
-  porter2@1.1.0: {}
+  porter2@2.0.0: {}
 
   possible-typed-array-names@1.0.0: {}
 
