@@ -1,0 +1,61 @@
+FROM dhi.io/node:26-debian13-dev AS base
+
+RUN npm install -g --allow-scripts=pnpm pnpm@12.16.1
+
+FROM base AS builder
+
+WORKDIR /app
+
+COPY . .
+
+RUN pnpm install --frozen-lockfile
+RUN NX_DAEMON=false pnpm build
+
+FROM base AS installer
+
+WORKDIR /app
+
+# Copy apps
+COPY --from=builder /app/apps/server/dist /app/apps/server/dist
+COPY --from=builder /app/apps/client/dist /app/apps/client/dist
+COPY --from=builder /app/apps/client/package.json /app/apps/client/package.json
+COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
+
+# Copy packages
+COPY --from=builder /app/packages/editor-ext/dist /app/packages/editor-ext/dist
+COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-ext/package.json
+COPY --from=builder /app/packages/base-formula/dist /app/packages/base-formula/dist
+COPY --from=builder /app/packages/base-formula/package.json /app/packages/base-formula/package.json
+
+# Copy root package files
+COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/pnpm*.yaml /app/
+
+# Copy patches
+COPY --from=builder /app/patches /app/patches
+
+# client package.json is only copied for the lockfile check; its deps are bundled in dist
+RUN pnpm install --frozen-lockfile --prod --filter '!./apps/client'
+RUN find /app/node_modules/.pnpm -type f \( -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' -o -name '*.d.ts.map' -o -name '*.d.mts.map' -o -name '*.d.cts.map' \) -delete
+
+RUN mkdir -p /app/data/storage
+
+# runtime image has no shell or package manager, so everything above happens in the dev variant
+FROM dhi.io/node:26-debian13
+LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
+
+COPY --from=installer --chown=1000:1000 /app /app
+
+# storage and .env resolve two levels above the working directory
+WORKDIR /app/apps/server
+
+ENV NODE_ENV=production
+ENV NODE_OPTIONS=--no-webstorage
+
+USER 1000
+
+VOLUME ["/app/data/storage"]
+
+EXPOSE 3000
+
+CMD ["node", "dist/main"]
