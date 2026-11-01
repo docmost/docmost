@@ -749,6 +749,9 @@ importers:
       '@node-saml/passport-saml':
         specifier: 5.1.0
         version: 5.1.0(supports-color@10.2.2)
+      '@react-email/render':
+        specifier: 2.2.0
+        version: 2.2.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@socket.io/redis-adapter':
         specifier: 8.3.0
         version: 8.3.0(socket.io-adapter@2.5.4(supports-color@10.2.2))(supports-color@10.2.2)
@@ -878,9 +881,6 @@ importers:
       react:
         specifier: 19.2.7
         version: 19.2.7
-      react-email:
-        specifier: 6.11.6
-        version: 6.11.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@10.2.2)
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
@@ -984,6 +984,9 @@ importers:
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
+      react-email:
+        specifier: 6.11.6
+        version: 6.11.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@10.2.2)
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21

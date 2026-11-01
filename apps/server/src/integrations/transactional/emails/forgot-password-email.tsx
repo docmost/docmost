@@ -1,4 +1,4 @@
-import { Button, Link, Section, Text } from 'react-email';
+import { Link, Section, Text } from '../components';
 import * as React from 'react';
 import { button, content, paragraph } from '../css/styles';
 import { MailBody } from '../partials/partials';

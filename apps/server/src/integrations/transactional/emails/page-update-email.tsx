@@ -1,4 +1,4 @@
-import { Link, Section, Text } from 'react-email';
+import { Link, Section, Text } from '../components';
 import * as React from 'react';
 import { content, link, paragraph } from '../css/styles';
 import { EmailButton, getGreetingName, MailBody } from '../partials/partials';
