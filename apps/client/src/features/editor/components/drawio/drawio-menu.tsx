@@ -40,6 +40,7 @@ import {
 import { decodeBase64ToSvgString, svgStringToFile } from "@/lib/utils";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
 import { modals } from "@mantine/modals";
+import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
 import classes from "../common/toolbar-menu.module.css";
@@ -411,7 +412,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
                   if (data.parentEvent !== "save") {
                     return;
                   }
-                  saveData(data.xml).then(() => close()).catch(() => {});
+                  saveData(data.xml).then(() => close()).catch(notifyDiagramSaveError);
                 }}
                 onClose={(data: EventExit) => {
                   if (data.parentEvent) {

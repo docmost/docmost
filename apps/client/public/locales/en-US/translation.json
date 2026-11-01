@@ -98,6 +98,7 @@
   "Failed to load page. An error occurred.": "Failed to load page. An error occurred.",
   "Failed to load presentation. An error occurred.": "Failed to load presentation. An error occurred.",
   "Failed to update data": "Failed to update data",
+  "Failed to save diagram": "Failed to save diagram",
   "Failed to create base": "Failed to create base",
   "Failed to update base": "Failed to update base",
   "Failed to delete base": "Failed to delete base",
