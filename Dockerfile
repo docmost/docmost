@@ -61,4 +61,6 @@ VOLUME ["/app/data/storage"]
 
 EXPOSE 3000
 
+ENV NODE_OPTIONS=--no-webstorage
+
 CMD ["pnpm", "start"]
