@@ -66,4 +66,34 @@ describe('htmlToMarkdown', () => {
       '#### Windows\n\nRun setup.exe\n\n#### Linux \\*beta\\*\n\nRun setup.sh',
     );
   });
+
+  it('keeps nested tabs inside the panel of their parent tab', () => {
+    const markdown = htmlToMarkdown(
+      '<div data-type="tabs"><div data-type="tab">' +
+        '<div data-type="tabLabel">Outer</div>' +
+        '<div data-type="tabPanel"><p>Before</p>' +
+        '<div data-type="tabs"><div data-type="tab">' +
+        '<div data-type="tabLabel">Inner</div>' +
+        '<div data-type="tabPanel"><p>Nested</p></div>' +
+        '</div></div>' +
+        '</div></div></div>',
+    );
+
+    expect(markdown.trim()).toBe('#### Outer\n\nBefore\n\n#### Inner\n\nNested');
+  });
+
+  it('stays fast on large tables', () => {
+    const rows = Array.from(
+      { length: 500 },
+      (_, row) =>
+        `<tr>${Array.from({ length: 8 }, () => `<td><p>${row}</p></td>`).join('')}</tr>`,
+    ).join('');
+
+    const start = performance.now();
+    const markdown = htmlToMarkdown(`<table><tbody>${rows}</tbody></table>`);
+    const elapsed = performance.now() - start;
+
+    expect(markdown.trim().split('\n')).toHaveLength(502);
+    expect(elapsed).toBeLessThan(2000);
+  });
 });

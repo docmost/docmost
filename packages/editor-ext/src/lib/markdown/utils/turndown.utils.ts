@@ -45,20 +45,22 @@ export function htmlToMarkdown(html: string): string {
   return turndownService.turndown(htmlWithoutColgroups).replaceAll('<br>', ' ');
 }
 
+// domino, the server's DOM, silently matches nothing for :scope selectors
+function getChildDivs(node: Element, dataType: string): Element[] {
+  return Array.from(node.children).filter(
+    (child) =>
+      child.nodeName === 'DIV' && child.getAttribute('data-type') === dataType,
+  );
+}
+
 function tabs(turndownService: _TurndownService) {
   turndownService.addRule('tabs', {
     filter: (node: HTMLInputElement) =>
       node.nodeName === 'DIV' && node.getAttribute('data-type') === 'tabs',
     replacement: (_content: string, node: HTMLInputElement) => {
-      const sections = Array.from(
-        node.querySelectorAll(':scope > div[data-type="tab"]'),
-      ).map((tabNode) => {
-        const label =
-          tabNode.querySelector(':scope > div[data-type="tabLabel"]')
-            ?.textContent ?? '';
-        const panel = tabNode.querySelector(
-          ':scope > div[data-type="tabPanel"]',
-        );
+      const sections = getChildDivs(node, 'tab').map((tabNode) => {
+        const label = getChildDivs(tabNode, 'tabLabel')[0]?.textContent ?? '';
+        const panel = getChildDivs(tabNode, 'tabPanel')[0];
         const heading = `#### ${turndownService.escape(label.replace(/\s+/g, ' ').trim())}`;
         const body = panel
           ? turndownService.turndown(panel.innerHTML).trim()
@@ -161,7 +163,9 @@ function preserveDetail(turndownService: _TurndownService) {
       return node.nodeName === 'DETAILS';
     },
     replacement: function (_content: string, node: HTMLInputElement) {
-      const summary = node.querySelector(':scope > summary');
+      const summary = Array.from(node.children).find(
+        (child) => child.nodeName === 'SUMMARY',
+      );
       let detailSummary = '';
 
       if (summary) {
