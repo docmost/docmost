@@ -50,6 +50,7 @@ COPY --from=installer --chown=1000:1000 /app /app
 WORKDIR /app/apps/server
 
 ENV NODE_ENV=production
+ENV NODE_OPTIONS=--no-webstorage
 
 USER 1000
 
