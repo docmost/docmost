@@ -36,6 +36,7 @@ COPY --from=builder /app/patches /app/patches
 
 # client package.json is only copied for the lockfile check; its deps are bundled in dist
 RUN pnpm install --frozen-lockfile --prod --filter '!./apps/client'
+RUN find /app/node_modules/.pnpm -type f \( -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' -o -name '*.d.ts.map' -o -name '*.d.mts.map' -o -name '*.d.cts.map' \) -delete
 
 RUN mkdir -p /app/data/storage
 
