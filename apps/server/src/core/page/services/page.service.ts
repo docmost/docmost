@@ -868,7 +868,7 @@ export class PageService {
         trx,
       );
 
-      const currentPage = await this.pageRepo.findById(dto.pageId, { trx });
+      const currentPage = await this.pageRepo.findById(movedPage.id, { trx });
       if (!currentPage || currentPage.deletedAt) {
         throw new NotFoundException('Moved page not found');
       }
@@ -893,7 +893,7 @@ export class PageService {
           }
           if (
             await this.pageRepo.isPageDescendant(
-              dto.pageId,
+              movedPage.id,
               parentPage.id,
               trx,
             )
@@ -911,7 +911,7 @@ export class PageService {
           position: dto.position,
           parentPageId: parentPageId,
         },
-        dto.pageId,
+        movedPage.id,
         trx,
       );
 
@@ -926,8 +926,8 @@ export class PageService {
     });
 
     if (mayLoseAccess) {
-      await this.collabAccessService.recheckAccess({ pageIds: [dto.pageId] });
-      await this.wsService.removeBaseSubscribersWithoutAccess([dto.pageId]);
+      await this.collabAccessService.recheckAccess({ pageIds: [movedPage.id] });
+      await this.wsService.removeBaseSubscribersWithoutAccess([movedPage.id]);
     }
   }
 
