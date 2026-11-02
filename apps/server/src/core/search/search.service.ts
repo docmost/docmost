@@ -116,7 +116,9 @@ export class SearchService {
         .where(
           'spaceId',
           'in',
-          this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId),
+          this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId, {
+            excludeArchived: true,
+          }),
         )
         .where('workspaceId', '=', opts.workspaceId);
     } else if (opts.publicPageIds && !opts.userId) {
@@ -298,7 +300,11 @@ export class SearchService {
         .limit(limit);
 
       // search all spaces the user has access to, prioritizing the current space
-      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
+      // archived spaces are left out, except the current one
+      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId, {
+        excludeArchived: true,
+        keepArchivedSpaceId: suggestion.spaceId,
+      });
 
       if (userSpaceIds?.length > 0) {
         pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
