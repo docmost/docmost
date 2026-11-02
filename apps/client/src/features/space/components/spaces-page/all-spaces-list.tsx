@@ -7,6 +7,7 @@ import {
   Space,
   Menu,
   Anchor,
+  SegmentedControl,
   Tooltip,
   VisuallyHidden,
 } from "@mantine/core";
@@ -76,6 +77,9 @@ function WatchButton({ spaceId, watchedIds, size = 16 }: { spaceId: string; watc
 
 interface AllSpacesListProps {
   spaces: any[];
+  archived: boolean;
+  onArchivedChange: (archived: boolean) => void;
+  emptyText?: string;
   onSearch: (query: string) => void;
   hasPrevPage?: boolean;
   hasNextPage?: boolean;
@@ -85,6 +89,9 @@ interface AllSpacesListProps {
 
 export default function AllSpacesList({
   spaces,
+  archived,
+  onArchivedChange,
+  emptyText,
   onSearch,
   hasPrevPage,
   hasNextPage,
@@ -104,7 +111,18 @@ export default function AllSpacesList({
 
   return (
     <Box>
-      <SearchInput onSearch={onSearch} />
+      <Group align="flex-start">
+        <SearchInput onSearch={onSearch} />
+        <SegmentedControl
+          value={archived ? "archived" : "active"}
+          onChange={(value) => onArchivedChange(value === "archived")}
+          data={[
+            { label: t("Active"), value: "active" },
+            { label: t("Archived"), value: "archived" },
+          ]}
+          withItemsBorders={false}
+        />
+      </Group>
 
       <Space h="md" />
 
@@ -200,7 +218,7 @@ export default function AllSpacesList({
                 </Table.Tr>
               ))
             ) : (
-              <NoTableResults colSpan={3} />
+              <NoTableResults colSpan={3} text={emptyText} />
             )}
           </Table.Tbody>
         </Table>

@@ -1,4 +1,4 @@
-import { Group, Table, Text } from "@mantine/core";
+import { Group, SegmentedControl, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
@@ -16,8 +16,14 @@ import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 export default function SpaceList() {
   const { t } = useTranslation();
-  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
-  const { data, isLoading } = useGetSpacesQuery({ cursor, query: search });
+  const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
+    usePaginateAndSearch();
+  const [archived, setArchived] = useState(false);
+  const { data, isPlaceholderData } = useGetSpacesQuery({
+    cursor,
+    query: search,
+    archived: archived || undefined,
+  });
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
 
@@ -26,9 +32,28 @@ export default function SpaceList() {
     open();
   };
 
+  const handleArchivedChange = (value: string) => {
+    setArchived(value === "archived");
+    resetPagination();
+  };
+
+  const noActiveSpaces =
+    !archived && !search && !isPlaceholderData && data?.items.length === 0;
+
   return (
     <>
-      <SearchInput onSearch={handleSearch} />
+      <Group align="flex-start">
+        <SearchInput onSearch={handleSearch} />
+        <SegmentedControl
+          value={archived ? "archived" : "active"}
+          onChange={handleArchivedChange}
+          data={[
+            { label: t("Active"), value: "active" },
+            { label: t("Archived"), value: "archived" },
+          ]}
+          withItemsBorders={false}
+        />
+      </Group>
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Thead>
@@ -82,7 +107,14 @@ export default function SpaceList() {
               </Table.Tr>
             ))
             ) : (
-              <NoTableResults colSpan={2} />
+              <NoTableResults
+                colSpan={2}
+                text={
+                  noActiveSpaces
+                    ? t("No active spaces. Archived spaces are under Archived.")
+                    : undefined
+                }
+              />
             )}
           </Table.Tbody>
         </Table>

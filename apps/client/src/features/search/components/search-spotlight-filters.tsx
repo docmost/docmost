@@ -20,7 +20,11 @@ import {
   IconLetterCase,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
 import { SpaceFilterMenu } from "@/features/space/components/space-filter-menu";
 import { CreatorFilterMenu } from "@/features/search/components/creator-filter-menu";
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
@@ -61,8 +65,11 @@ export function SearchSpotlightFilters({
   const [workspace] = useAtom(workspaceAtom);
 
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
+  const { data: selectedSpace } = useSpaceQuery(selectedSpaceId);
   const selectedSpaceData = selectedSpaceId
-    ? spacesData?.items.find((space) => space.id === selectedSpaceId)
+    ? includeSpace(spacesData?.items ?? [], selectedSpace).find(
+        (space) => space.id === selectedSpaceId,
+      )
     : null;
 
   const contentTypeOptions = [

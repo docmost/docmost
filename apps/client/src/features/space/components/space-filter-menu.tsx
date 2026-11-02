@@ -12,7 +12,11 @@ import {
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
 
 type SpaceFilterMenuProps = {
@@ -46,16 +50,17 @@ export function SpaceFilterMenu({
     limit: 100,
     query: debouncedQuery,
   });
-  const spaces = spacesData?.items ?? [];
+  const { data: selectedSpace } = useSpaceQuery(value);
 
   const orderedSpaces = useMemo(() => {
+    const spaces = includeSpace(spacesData?.items ?? [], selectedSpace);
     if (!value) return spaces;
     return [...spaces].sort((a, b) => {
       if (a.id === value) return -1;
       if (b.id === value) return 1;
       return 0;
     });
-  }, [spaces, value]);
+  }, [spacesData, selectedSpace, value]);
 
   return (
     <Menu shadow="md" width={width} position={position} zIndex={zIndex}>
