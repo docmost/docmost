@@ -35,6 +35,7 @@ import {
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { CreateSpaceDto } from './dto/create-space.dto';
+import { ListSpacesDto } from './dto/list-spaces.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -50,15 +51,10 @@ export class SpaceController {
   @HttpCode(HttpStatus.OK)
   @Post('/')
   @OAuthScope('read')
-  async getWorkspaceSpaces(
-    @Body()
-    pagination: PaginationOptions,
-    @AuthUser() user: User,
-  ) {
-    const result = await this.spaceMemberService.getUserSpaces(
-      user.id,
-      pagination,
-    );
+  async getWorkspaceSpaces(@Body() dto: ListSpacesDto, @AuthUser() user: User) {
+    const result = await this.spaceMemberService.getUserSpaces(user.id, dto, {
+      archived: dto.archived,
+    });
 
     if (result.items.length > 0) {
       const spaceIds = result.items.map((s) => s.id);

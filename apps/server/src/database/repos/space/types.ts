@@ -20,3 +20,8 @@ interface SpaceGroupInfo {
 }
 
 export type MemberInfo = SpaceUserInfo | SpaceGroupInfo;
+
+export type UserSpaceIdsOptions = {
+  excludeArchived?: boolean;
+  keepArchivedSpaceId?: string; // with excludeArchived: still keep this space
+};
