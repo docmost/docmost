@@ -8,7 +8,7 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
-import { formattedDate } from "@/lib/time.ts";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
 
 type SpaceArchivedNoticeProps = {
   space: ISpace;
@@ -18,6 +18,7 @@ export default function SpaceArchivedNotice({
   space,
 }: SpaceArchivedNoticeProps) {
   const { t } = useTranslation();
+  const locale = useDateFnsLocale();
   const spaceAbility = useSpaceAbility(space?.membership?.permissions);
   const unarchiveSpaceMutation = useUnarchiveSpaceMutation();
 
@@ -30,6 +31,7 @@ export default function SpaceArchivedNotice({
       variant="light"
       color="gray"
       icon={<IconArchive size={18} />}
+      role="note"
       title={t("This space is archived")}
       mb="lg"
     >
@@ -37,7 +39,14 @@ export default function SpaceArchivedNotice({
         <Text size="sm">
           {t(
             "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.",
-            { date: formattedDate(new Date(space.archivedAt)) },
+            {
+              date: formatLocalized(
+                space.archivedAt,
+                "MMM dd, yyyy",
+                "PP",
+                locale,
+              ),
+            },
           )}
         </Text>
         {spaceAbility.can(
