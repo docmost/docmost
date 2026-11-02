@@ -1592,5 +1592,8 @@
   "Space archived": "Space archived",
   "Space unarchived": "Space unarchived",
   "Archived space": "Archived space",
-  "Unarchived space": "Unarchived space"
+  "Unarchived space": "Unarchived space",
+  "This space is archived": "This space is archived",
+  "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.": "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.",
+  "Archived": "Archived"
 }

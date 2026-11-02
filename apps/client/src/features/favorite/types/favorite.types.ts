@@ -22,6 +22,7 @@ export type IFavorite = {
     name: string;
     slug: string;
     logo: string | null;
+    archivedAt?: Date | null;
   };
   template?: {
     id: string;
