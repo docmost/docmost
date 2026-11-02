@@ -352,7 +352,13 @@ export class PageRepo {
       .selectFrom('pages')
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
-      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
+      .where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+          excludeArchived: true,
+        }),
+      )
       .where('deletedAt', 'is', null);
 
     return executeWithCursorPagination(query, {
@@ -381,7 +387,13 @@ export class PageRepo {
     if (spaceId) {
       query = query.where('spaceId', '=', spaceId);
     } else {
-      query = query.where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId));
+      query = query.where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId, {
+          excludeArchived: true,
+        }),
+      );
     }
 
     return executeWithCursorPagination(query, {
