@@ -20,3 +20,19 @@ function updateAttachmentUrl(src: string, jwtToken: string) {
   const separator = updatedSrc.includes('?') ? '&' : '?';
   return `${updatedSrc}${separator}jwt=${jwtToken}`;
 }
+
+export function canReadShares({
+  workspaceSettings,
+  spaceSettings,
+  archivedAt,
+}: {
+  workspaceSettings: unknown;
+  spaceSettings: unknown;
+  archivedAt: Date | null;
+}): boolean {
+  const workspaceDisabled =
+    (workspaceSettings as any)?.sharing?.disabled === true;
+  const spaceDisabled = (spaceSettings as any)?.sharing?.disabled === true;
+
+  return !workspaceDisabled && !spaceDisabled && !archivedAt;
+}

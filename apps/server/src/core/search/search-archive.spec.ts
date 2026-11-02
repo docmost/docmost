@@ -27,14 +27,17 @@ function buildService() {
   const pagePermissionRepo = {
     filterAccessiblePageIds: jest.fn().mockResolvedValue([]),
   };
+  const shareRepo = { findById: jest.fn() };
+  const spaceRepo = { isArchived: jest.fn().mockResolvedValue(false) };
   const service = new SearchService(
     db as any,
     pageRepo as any,
-    {} as any,
+    shareRepo as any,
     spaceMemberRepo as any,
     pagePermissionRepo as any,
+    spaceRepo as any,
   );
-  return { service, spaceMemberRepo };
+  return { service, spaceMemberRepo, shareRepo, spaceRepo };
 }
 
 describe('SearchService archived spaces', () => {
@@ -76,5 +79,23 @@ describe('SearchService archived spaces', () => {
       excludeArchived: true,
       keepArchivedSpaceId: 'space-1',
     });
+  });
+
+  it('returns nothing from share search while the space is archived', async () => {
+    const { service, shareRepo, spaceRepo } = buildService();
+    shareRepo.findById.mockResolvedValue({
+      id: 'share-1',
+      workspaceId: 'ws-1',
+      spaceId: 'space-1',
+    });
+    spaceRepo.isArchived.mockResolvedValue(true);
+
+    await expect(
+      service.searchPage({ query: 'roadmap', shareId: 'share-1' } as any, {
+        workspaceId: 'ws-1',
+      }),
+    ).resolves.toEqual({ items: [] });
+
+    expect(spaceRepo.isArchived).toHaveBeenCalledWith('space-1');
   });
 });

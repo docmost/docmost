@@ -165,6 +165,21 @@ describe('PublicSpaceService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
+    it('404s when the space is archived', async () => {
+      const { service } = makeService({
+        spaceRepo: {
+          findBySlug: jest.fn().mockResolvedValue({
+            id: SPACE_ID,
+            deletedAt: null,
+            archivedAt: new Date(),
+          }),
+        },
+      });
+      await expect(
+        service.getPublicSpace('handbook', makeWorkspace(optInSettings)),
+      ).rejects.toThrow(NotFoundException);
+    });
+
     it('resolves when opted in, enabled, and space exists', async () => {
       const { service } = makeService();
       const result = await service.getPublicSpace(
@@ -1055,6 +1070,25 @@ describe('PublicSpaceService', () => {
                 ? { id: 'ps1', spaceId: SPACE_ID, enabled: true }
                 : { id: 'ps2', spaceId, enabled: false },
             ),
+        },
+      });
+      await expect(
+        service.getPublicPage(
+          'handbook',
+          'crossSlug001',
+          makeWorkspace(optInSettings),
+          { includeContent: false },
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('treats a cross-space page in an archived space as unpublished', async () => {
+      const { service } = makeService({
+        pageRepo: { findById: jest.fn().mockResolvedValue(crossSpacePage) },
+        spaceRepo: {
+          findById: jest
+            .fn()
+            .mockResolvedValue({ ...otherSpace, archivedAt: new Date() }),
         },
       });
       await expect(

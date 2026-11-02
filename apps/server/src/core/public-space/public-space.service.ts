@@ -58,7 +58,7 @@ export class PublicSpaceService {
     }
 
     const space = await this.spaceRepo.findBySlug(spaceSlug, workspace.id);
-    if (!space || space.deletedAt) {
+    if (!space || space.deletedAt || space.archivedAt) {
       throw new NotFoundException('Space not found');
     }
 
@@ -172,10 +172,10 @@ export class PublicSpaceService {
     };
   }
 
-  /** Uniform 404 unless the target page's own space is published, not deleted, in this workspace, and unrestricted. */
+  /** Uniform 404 unless the target page's own space is published, not deleted or archived, in this workspace, and unrestricted. */
   private async resolveCrossSpacePublicPage(page: Page, workspace: Workspace) {
     const space = await this.spaceRepo.findById(page.spaceId, workspace.id);
-    if (!space || space.deletedAt) {
+    if (!space || space.deletedAt || space.archivedAt) {
       throw new NotFoundException('Page not found');
     }
 

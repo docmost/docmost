@@ -89,7 +89,8 @@ export class PublicSpaceRepo {
           selectFrom('spaces')
             .select('spaces.id')
             .whereRef('spaces.id', '=', 'publicSpaces.spaceId')
-            .where('spaces.deletedAt', 'is', null),
+            .where('spaces.deletedAt', 'is', null)
+            .where('spaces.archivedAt', 'is', null),
         ),
       );
 
@@ -178,6 +179,7 @@ export class PublicSpaceRepo {
       .where('publicSpaces.workspaceId', '=', workspaceId)
       .where('publicSpaces.enabled', '=', true)
       .where('spaces.deletedAt', 'is', null)
+      .where('spaces.archivedAt', 'is', null)
       .orderBy('spaces.name', 'asc')
       .execute();
   }

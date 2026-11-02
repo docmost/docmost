@@ -71,11 +71,11 @@ export class ShareController {
 
     const shareData = await this.shareService.getSharedPage(dto, workspace.id);
 
-    const sharingAllowed = await this.shareService.isSharingAllowed(
+    const shareReadable = await this.shareService.isShareReadable(
       workspace.id,
       shareData.share.spaceId,
     );
-    if (!sharingAllowed) {
+    if (!shareReadable) {
       throw new NotFoundException('Shared page not found');
     }
 
@@ -100,11 +100,11 @@ export class ShareController {
       throw new NotFoundException('Share not found');
     }
 
-    const sharingAllowed = await this.shareService.isSharingAllowed(
+    const shareReadable = await this.shareService.isShareReadable(
       share.workspaceId,
       share.spaceId,
     );
-    if (!sharingAllowed) {
+    if (!shareReadable) {
       throw new NotFoundException('Share not found');
     }
 
@@ -262,11 +262,11 @@ export class ShareController {
       workspace.id,
     );
 
-    const sharingAllowed = await this.shareService.isSharingAllowed(
+    const shareReadable = await this.shareService.isShareReadable(
       workspace.id,
       treeData.share.spaceId,
     );
-    if (!sharingAllowed) {
+    if (!shareReadable) {
       throw new NotFoundException('Share not found');
     }
 
