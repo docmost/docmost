@@ -183,6 +183,44 @@ export class SpaceController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('archive')
+  async archiveSpace(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      spaceIdDto.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+    return this.spaceService.archiveSpace(
+      spaceIdDto.spaceId,
+      user.id,
+      workspace.id,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('unarchive')
+  async unarchiveSpace(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      spaceIdDto.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+    return this.spaceService.unarchiveSpace(spaceIdDto.spaceId, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('members')
   async getSpaceMembers(
     @Body() spaceIdDto: SpaceIdDto,

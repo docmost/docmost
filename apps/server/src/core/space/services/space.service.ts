@@ -295,4 +295,72 @@ export class SpaceService {
       },
     });
   }
+
+  async archiveSpace(
+    spaceId: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<Space> {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId);
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    if (space.isPersonal) {
+      throw new BadRequestException('Personal spaces cannot be archived');
+    }
+
+    if (space.archivedAt) {
+      return space;
+    }
+
+    const archivedSpace = await this.spaceRepo.updateSpace(
+      { archivedAt: new Date(), archivedById: userId },
+      spaceId,
+      workspaceId,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_ARCHIVED,
+      resourceType: AuditResource.SPACE,
+      resourceId: spaceId,
+      spaceId: spaceId,
+      changes: {
+        before: { name: space.name, archivedAt: space.archivedAt },
+        after: { archivedAt: archivedSpace.archivedAt },
+      },
+    });
+
+    return archivedSpace;
+  }
+
+  async unarchiveSpace(spaceId: string, workspaceId: string): Promise<Space> {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId);
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    if (!space.archivedAt) {
+      return space;
+    }
+
+    const unarchivedSpace = await this.spaceRepo.updateSpace(
+      { archivedAt: null, archivedById: null },
+      spaceId,
+      workspaceId,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_UNARCHIVED,
+      resourceType: AuditResource.SPACE,
+      resourceId: spaceId,
+      spaceId: spaceId,
+      changes: {
+        before: { name: space.name, archivedAt: space.archivedAt },
+        after: { archivedAt: unarchivedSpace.archivedAt },
+      },
+    });
+
+    return unarchivedSpace;
+  }
 }
