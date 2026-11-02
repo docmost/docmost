@@ -46,7 +46,6 @@ LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
 COPY --from=installer --chown=1000:1000 /app /app
 
-# storage and .env resolve two levels above the working directory
 WORKDIR /app/apps/server
 
 ENV NODE_ENV=production
