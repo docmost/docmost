@@ -10,8 +10,14 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceMemberRepo } from './space-member.repo';
 import { SpaceRepo } from './space.repo';
+import { INTEGRATION_CALLER_KEY } from '../../../common/helpers/integration-caller';
 
-function buildRepo() {
+const integrationCls = {
+  isActive: () => true,
+  get: (key: string) => key === INTEGRATION_CALLER_KEY,
+};
+
+function buildRepo(cls: object = { isActive: () => false }) {
   const queries: CompiledQuery[] = [];
   const db = new Kysely<any>({
     dialect: {
@@ -30,6 +36,7 @@ function buildRepo() {
     {} as any,
     new SpaceRepo(db as any, {} as any),
     {} as any,
+    cls as any,
   );
   return { repo, queries };
 }
@@ -67,6 +74,25 @@ describe('SpaceMemberRepo archived spaces', () => {
       countOf(sql, '("spaces"."archived_at" is null or "spaces"."id" = $'),
     ).toBe(2);
     expect(parameters).toEqual(['user-1', 'space-1', 'user-1', 'space-1']);
+  });
+
+  it('always filters archived spaces for OAuth and MCP callers', () => {
+    const { sql } = buildRepo(integrationCls)
+      .repo.getUserSpaceIdsQuery('user-1')
+      .compile();
+    expect(countOf(sql, '"spaces"."archived_at" is null')).toBe(2);
+  });
+
+  it('ignores keepArchivedSpaceId for OAuth and MCP callers', () => {
+    const { sql, parameters } = buildRepo(integrationCls)
+      .repo.getUserSpaceIdsQuery('user-1', {
+        excludeArchived: true,
+        keepArchivedSpaceId: 'space-1',
+      })
+      .compile();
+    expect(countOf(sql, '"spaces"."archived_at" is null')).toBe(2);
+    expect(sql).not.toContain('"spaces"."id" = $');
+    expect(parameters).toEqual(['user-1', 'user-1']);
   });
 
   it('lists only active spaces by default', async () => {

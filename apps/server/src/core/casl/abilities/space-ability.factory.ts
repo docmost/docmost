@@ -4,9 +4,11 @@ import {
   createMongoAbility,
   MongoAbility,
 } from '@casl/ability';
+import { ClsService } from 'nestjs-cls';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { User } from '@docmost/db/types/entity.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import {
   SpaceCaslAction,
   ISpaceAbility,
@@ -14,11 +16,23 @@ import {
 } from '../interfaces/space-ability.type';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { CacheOptions } from '../../../common/helpers/with-cache';
+import { isIntegrationCaller } from '../../../common/helpers/integration-caller';
 
 @Injectable()
 export default class SpaceAbilityFactory {
-  constructor(private readonly spaceMemberRepo: SpaceMemberRepo) {}
+  constructor(
+    private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly spaceRepo: SpaceRepo,
+    private readonly cls: ClsService,
+  ) {}
   async createForUser(user: User, spaceId: string, opts?: CacheOptions) {
+    if (
+      isIntegrationCaller(this.cls) &&
+      (await this.spaceRepo.isArchived(spaceId))
+    ) {
+      throw new NotFoundException('Space permissions not found');
+    }
+
     const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
       user.id,
       spaceId,

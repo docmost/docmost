@@ -84,6 +84,15 @@ export class SpaceRepo {
       .executeTakeFirst();
   }
 
+  async isArchived(spaceId: string): Promise<boolean> {
+    const row = await this.db
+      .selectFrom('spaces')
+      .select('archivedAt')
+      .where('id', '=', spaceId)
+      .executeTakeFirst();
+    return Boolean(row?.archivedAt);
+  }
+
   async slugExists(
     slug: string,
     workspaceId: string,
