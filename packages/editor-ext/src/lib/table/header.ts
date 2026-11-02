@@ -2,6 +2,7 @@ import { TableHeader as TiptapTableHeader } from "@tiptap/extension-table";
 
 export const TableHeader = TiptapTableHeader.extend({
   name: "tableHeader",
+  allowGapCursor: true,
   content:
     "(paragraph | heading | bulletList | orderedList | taskList | blockquote | callout | image | video | audio | subpages | attachment | mathBlock | details | codeBlock)+",
 
