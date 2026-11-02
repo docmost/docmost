@@ -1580,5 +1580,17 @@
   "Zoom in": "Zoom in",
   "Zoom out": "Zoom out",
   "Reset zoom": "Reset zoom",
-  "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired."
+  "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired.",
+  "Archive": "Archive",
+  "Unarchive": "Unarchive",
+  "Archive space": "Archive space",
+  "Unarchive space": "Unarchive space",
+  "Hide this space from the space list, search outside the space, AI answers and connected AI apps. Members keep access.": "Hide this space from the space list, search outside the space, AI answers and connected AI apps. Members keep access.",
+  "Bring this space back to the space list, search, AI answers and connected AI apps.": "Bring this space back to the space list, search, AI answers and connected AI apps.",
+  "Archive this space?": "Archive this space?",
+  "The space is hidden from the space list, from search outside the space, from AI answers and from connected AI apps. Members keep access and can still edit it. Public links pause until you unarchive it.": "The space is hidden from the space list, from search outside the space, from AI answers and from connected AI apps. Members keep access and can still edit it. Public links pause until you unarchive it.",
+  "Space archived": "Space archived",
+  "Space unarchived": "Space unarchived",
+  "Archived space": "Archived space",
+  "Unarchived space": "Unarchived space"
 }

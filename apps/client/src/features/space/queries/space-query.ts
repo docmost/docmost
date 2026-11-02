@@ -22,6 +22,8 @@ import {
   createSpace,
   updateSpace,
   deleteSpace,
+  archiveSpace,
+  unarchiveSpace,
 } from "@/features/space/services/space-service.ts";
 import { notifications } from "@mantine/notifications";
 import { IPagination, QueryParams } from "@/lib/types.ts";
@@ -189,6 +191,50 @@ export function useDeleteSpaceMutation() {
       notifications.show({ message: errorMessage, color: "red" });
     },
   });
+}
+
+function useArchiveStateMutation(
+  mutationFn: (spaceId: string) => Promise<ISpace>,
+  successMessage: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<ISpace, Error, string>({
+    mutationFn,
+    onSuccess: (data) => {
+      notifications.show({ message: successMessage });
+
+      // the response is the bare row, so merge it to keep membership in the cache
+      for (const key of [data.id, data.slug]) {
+        queryClient.setQueryData<ISpace>(["space", key], (cached) =>
+          cached ? { ...cached, ...data } : cached,
+        );
+      }
+
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["spaces", "recent-changes", "favorites"].includes(
+            item.queryKey[0] as string,
+          ),
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
+  });
+}
+
+export function useArchiveSpaceMutation() {
+  const { t } = useTranslation();
+
+  return useArchiveStateMutation(archiveSpace, t("Space archived"));
+}
+
+export function useUnarchiveSpaceMutation() {
+  const { t } = useTranslation();
+
+  return useArchiveStateMutation(unarchiveSpace, t("Space unarchived"));
 }
 
 export function useSpaceMembersInfiniteQuery(

@@ -3,6 +3,7 @@ import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { EditSpaceForm } from "@/features/space/components/edit-space-form.tsx";
 import { Button, Divider, Text, Title } from "@mantine/core";
 import DeleteSpaceModal from "./delete-space-modal";
+import ArchiveSpaceModal from "./archive-space-modal";
 import { useDisclosure } from "@mantine/hooks";
 import ExportModal from "@/components/common/export-modal.tsx";
 import AvatarUploader from "@/components/common/avatar-uploader.tsx";
@@ -105,6 +106,34 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
               </ResponsiveSettingsRow>
 
               <Divider my="lg" />
+
+              {!space.isPersonal && (
+                <>
+                  <ResponsiveSettingsRow>
+                    <ResponsiveSettingsContent>
+                      <Text size="md">
+                        {space.archivedAt
+                          ? t("Unarchive space")
+                          : t("Archive space")}
+                      </Text>
+                      <Text size="sm" c="dimmed">
+                        {space.archivedAt
+                          ? t(
+                              "Bring this space back to the space list, search, AI answers and connected AI apps.",
+                            )
+                          : t(
+                              "Hide this space from the space list, search outside the space, AI answers and connected AI apps. Members keep access.",
+                            )}
+                      </Text>
+                    </ResponsiveSettingsContent>
+                    <ResponsiveSettingsControl>
+                      <ArchiveSpaceModal space={space} />
+                    </ResponsiveSettingsControl>
+                  </ResponsiveSettingsRow>
+
+                  <Divider my="lg" />
+                </>
+              )}
 
               <ResponsiveSettingsRow>
                 <ResponsiveSettingsContent>
