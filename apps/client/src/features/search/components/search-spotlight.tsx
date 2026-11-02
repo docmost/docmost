@@ -17,6 +17,7 @@ import { useAtomValue } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { hintVectorCache } from "@/ee/ai/services/ai-search-service.ts";
 import { getAiVectorDriver } from "@/lib/config.ts";
+import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 
 interface SearchSpotlightProps {
   spaceId?: string;
@@ -38,6 +39,8 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     contentType: "page",
   });
   const [isAiMode, setIsAiMode] = useState(false);
+  const { data: selectedSpace } = useSpaceQuery(filters.spaceId);
+  const isArchivedSpaceSelected = !!selectedSpace?.archivedAt;
 
   // Build unified search params
   const searchParams = useMemo(() => {
@@ -142,7 +145,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   };
 
   const handleAiSearchTrigger = () => {
-    if (query.trim() && isAiMode) {
+    if (query.trim() && isAiMode && !isArchivedSpaceSelected) {
       triggerAiSearchMutation(searchParams);
     }
   };
@@ -179,7 +182,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
               size="xs"
               leftSection={<IconSparkles size={16} />}
               onClick={handleAiSearchTrigger}
-              disabled={!query.trim()}
+              disabled={!query.trim() || isArchivedSpaceSelected}
               loading={isAiLoading}
             >
               Ask
@@ -213,7 +216,13 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
         </VisuallyHidden>
 
         <Spotlight.ActionsList>
-          {isAiMode ? (
+          {isAiMode && isArchivedSpaceSelected ? (
+            <Spotlight.Empty>
+              <Text size="sm" c="dimmed">
+                {t("AI answers don't cover archived spaces.")}
+              </Text>
+            </Spotlight.Empty>
+          ) : isAiMode ? (
             <>
               {query.length === 0 && (
                 <Spotlight.Empty>{t("Ask a question...")}</Spotlight.Empty>

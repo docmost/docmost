@@ -133,6 +133,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
               isRestricted={isRestricted}
               workspaceSharingDisabled={workspaceSharingDisabled}
               spaceSharingDisabled={spaceSharingDisabled}
+              spaceArchived={!!space?.archivedAt}
             />
           </Tabs.Panel>
         </Tabs>

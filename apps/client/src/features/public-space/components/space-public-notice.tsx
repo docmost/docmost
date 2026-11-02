@@ -16,31 +16,39 @@ export default function SpacePublicNotice({ space }: SpacePublicNoticeProps) {
     return null;
   }
 
+  const isArchived = !!space.archivedAt;
+
   return (
     <Alert
       variant="light"
       color="blue"
       icon={<IconWorld size={18} />}
-      title={t("This space is public")}
+      title={isArchived ? t("Public site paused") : t("This space is public")}
       mb="lg"
     >
       <Group justify="space-between" gap="xs">
         <Text size="sm">
-          {t(
-            "Anyone on the internet can read the pages in this space, except restricted pages.",
-          )}
+          {isArchived
+            ? t(
+                "This space is archived, so its public site is offline until you unarchive it.",
+              )
+            : t(
+                "Anyone on the internet can read the pages in this space, except restricted pages.",
+              )}
         </Text>
-        <Anchor
-          size="sm"
-          fw={500}
-          href={buildPublicSpaceUrl({ spaceSlug: space.slug })}
-          target="_blank"
-          rel="noopener"
-          style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-        >
-          {t("Open public site")}
-          <IconExternalLink size={14} />
-        </Anchor>
+        {!isArchived && (
+          <Anchor
+            size="sm"
+            fw={500}
+            href={buildPublicSpaceUrl({ spaceSlug: space.slug })}
+            target="_blank"
+            rel="noopener"
+            style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+          >
+            {t("Open public site")}
+            <IconExternalLink size={14} />
+          </Anchor>
+        )}
       </Group>
     </Alert>
   );

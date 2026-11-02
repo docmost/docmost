@@ -176,6 +176,12 @@ export default function PublishSpaceSettings({
         />
       </Group>
 
+      {space.archivedAt && (
+        <Text size="sm" c="dimmed" mt="xs">
+          {t("The public site is paused while this space is archived.")}
+        </Text>
+      )}
+
       {published && (
         <>
           <Group justify="space-between" wrap="nowrap" gap="xl" mt="md">

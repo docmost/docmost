@@ -1596,5 +1596,10 @@
   "This space is archived": "This space is archived",
   "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.": "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.",
   "Archived": "Archived",
-  "No active spaces. Archived spaces are under Archived.": "No active spaces. Archived spaces are under Archived."
+  "No active spaces. Archived spaces are under Archived.": "No active spaces. Archived spaces are under Archived.",
+  "This public link is paused while the space is archived.": "This public link is paused while the space is archived.",
+  "Public site paused": "Public site paused",
+  "This space is archived, so its public site is offline until you unarchive it.": "This space is archived, so its public site is offline until you unarchive it.",
+  "The public site is paused while this space is archived.": "The public site is paused while this space is archived.",
+  "AI answers don't cover archived spaces.": "AI answers don't cover archived spaces."
 }
