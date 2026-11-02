@@ -41,6 +41,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   const [isAiMode, setIsAiMode] = useState(false);
   const { data: selectedSpace } = useSpaceQuery(filters.spaceId);
   const isArchivedSpaceSelected = !!selectedSpace?.archivedAt;
+  const archivedAiNote = t("AI answers don't cover archived spaces.");
 
   // Build unified search params
   const searchParams = useMemo(() => {
@@ -205,9 +206,11 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
         <VisuallyHidden role="status" aria-live="polite">
           {isAiMode
-            ? query.length > 0 && !isAiLoading && !aiSearchResult
-              ? t("No answer available")
-              : ""
+            ? isArchivedSpaceSelected
+              ? archivedAiNote
+              : query.length > 0 && !isAiLoading && !aiSearchResult
+                ? t("No answer available")
+                : ""
             : (query.length > 0 || isFilterBrowse) && !isFetching
               ? resultItems.length === 0
                 ? t("No results found")
@@ -219,7 +222,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
           {isAiMode && isArchivedSpaceSelected ? (
             <Spotlight.Empty>
               <Text size="sm" c="dimmed">
-                {t("AI answers don't cover archived spaces.")}
+                {archivedAiNote}
               </Text>
             </Spotlight.Empty>
           ) : isAiMode ? (
