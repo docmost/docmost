@@ -213,9 +213,13 @@ function useArchiveStateMutation(
 
       queryClient.invalidateQueries({
         predicate: (item) =>
-          ["spaces", "recent-changes", "favorites"].includes(
-            item.queryKey[0] as string,
-          ),
+          [
+            "spaces",
+            "recent-changes",
+            "favorites",
+            "unified-search",
+            "pages-created-by-user",
+          ].includes(item.queryKey[0] as string),
       });
     },
     onError: (error) => {
