@@ -9,6 +9,7 @@ import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import {
   getAttachmentFolderPath,
+  normalizeLegacyFileMeta,
   PreparedFile,
   prepareFile,
   validateFileType,
@@ -147,7 +148,12 @@ export class AttachmentService {
     },
   ): Promise<Attachment> {
     const attachmentId = uuid7();
-    const filePath = `${getAttachmentFolderPath(AttachmentType.File, target.workspaceId)}/${attachmentId}/${source.fileName}`;
+    const { fileName, fileExt, mimeType } = normalizeLegacyFileMeta({
+      fileName: source.fileName,
+      fileExt: source.fileExt,
+      mimeType: source.mimeType,
+    });
+    const filePath = `${getAttachmentFolderPath(AttachmentType.File, target.workspaceId)}/${attachmentId}/${fileName}`;
     
     await this.storageService.copy(source.filePath, filePath);
     
@@ -160,10 +166,10 @@ export class AttachmentService {
         id: attachmentId,
         type: AttachmentType.File,
         filePath,
-        fileName: source.fileName,
+        fileName,
         fileSize: source.fileSize,
-        mimeType: source.mimeType,
-        fileExt: source.fileExt,
+        mimeType,
+        fileExt,
         creatorId: target.userId,
         workspaceId: target.workspaceId,
         pageId: target.pageId,
