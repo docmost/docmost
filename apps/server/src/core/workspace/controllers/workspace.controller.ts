@@ -313,6 +313,7 @@ export class WorkspaceController {
 
     res.setCookie('authToken', result.authToken, {
       httpOnly: true,
+      sameSite: 'lax',
       path: '/',
       expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),

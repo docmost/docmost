@@ -7,7 +7,7 @@ import {
   Row,
   Section,
   Text,
-} from 'react-email';
+} from '../components';
 import * as React from 'react';
 
 interface MailBodyProps {

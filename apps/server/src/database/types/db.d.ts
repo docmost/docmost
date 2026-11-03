@@ -464,6 +464,7 @@ export interface UserTokens {
 export interface WorkspaceInvitations {
   createdAt: Generated<Timestamp>;
   email: string | null;
+  expiresAt: Timestamp;
   groupIds: string[] | null;
   id: Generated<string>;
   invitedById: string | null;

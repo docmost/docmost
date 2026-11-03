@@ -98,6 +98,7 @@
   "Failed to load page. An error occurred.": "Failed to load page. An error occurred.",
   "Failed to load presentation. An error occurred.": "Failed to load presentation. An error occurred.",
   "Failed to update data": "Failed to update data",
+  "Failed to save diagram": "Failed to save diagram",
   "Failed to create base": "Failed to create base",
   "Failed to update base": "Failed to update base",
   "Failed to delete base": "Failed to delete base",
@@ -1576,6 +1577,10 @@
   "Tab label": "Tab label",
   "Tab actions for {{name}}": "Tab actions for {{name}}",
   "Inline base": "Inline base",
+  "Zoom in": "Zoom in",
+  "Zoom out": "Zoom out",
+  "Reset zoom": "Reset zoom",
+  "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired."
   "Failed to load more files": "Failed to load more files",
   "SharePoint file": "SharePoint file",
   "Embed a SharePoint file": "Embed a SharePoint file",

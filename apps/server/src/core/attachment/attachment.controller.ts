@@ -10,6 +10,7 @@ import {
   Logger,
   NotFoundException,
   Param,
+  PayloadTooLargeException,
   Post,
   Query,
   Req,
@@ -107,7 +108,7 @@ export class AttachmentController {
     } catch (err: any) {
       this.logger.error(err.message);
       if (err?.statusCode === 413) {
-        throw new BadRequestException(
+        throw new PayloadTooLargeException(
           `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`,
         );
       }
@@ -168,7 +169,7 @@ export class AttachmentController {
       if (err?.statusCode === 413) {
         const errMessage = `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`;
         this.logger.error(errMessage);
-        throw new BadRequestException(errMessage);
+        throw new PayloadTooLargeException(errMessage);
       }
       this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
@@ -290,7 +291,7 @@ export class AttachmentController {
       });
     } catch (err: any) {
       if (err?.statusCode === 413) {
-        throw new BadRequestException(
+        throw new PayloadTooLargeException(
           `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
         );
       }
@@ -350,6 +351,11 @@ export class AttachmentController {
 
       return res.send(fileResponse);
     } catch (err: any) {
+      if (err?.statusCode === 413) {
+        throw new PayloadTooLargeException(
+          `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
+        );
+      }
       this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
     }

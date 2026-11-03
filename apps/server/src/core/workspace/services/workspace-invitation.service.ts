@@ -45,6 +45,8 @@ import {
   getWorkspaceDefaultPageEditMode,
   isAdminActingOnOwner,
 } from '../workspace.util';
+import { INVITATION_EXPIRY_DAYS } from '../workspace.constants';
+import { addDays } from 'date-fns';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -65,7 +67,7 @@ export class WorkspaceInvitationService {
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
     let query = this.db
       .selectFrom('workspaceInvitations')
-      .select(['id', 'email', 'role', 'workspaceId', 'createdAt'])
+      .select(['id', 'email', 'role', 'workspaceId', 'createdAt', 'expiresAt'])
       .where('workspaceId', '=', workspaceId);
 
     if (pagination.query) {
@@ -90,7 +92,7 @@ export class WorkspaceInvitationService {
   async getInvitationById(invitationId: string, workspace: Workspace) {
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
-      .select(['id', 'email', 'createdAt'])
+      .select(['id', 'email', 'createdAt', 'expiresAt'])
       .where('id', '=', invitationId)
       .where('workspaceId', '=', workspace.id)
       .executeTakeFirst();
@@ -99,13 +101,17 @@ export class WorkspaceInvitationService {
       throw new NotFoundException('Invitation not found');
     }
 
+    if (invitation.expiresAt < new Date()) {
+      throw new BadRequestException('Invitation has expired');
+    }
+
     return { ...invitation, enforceSso: workspace.enforceSso };
   }
 
   async getInvitationTokenById(invitationId: string, workspaceId: string) {
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
-      .select(['token'])
+      .select(['id', 'email', 'role', 'token', 'expiresAt'])
       .where('id', '=', invitationId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -145,8 +151,8 @@ export class WorkspaceInvitationService {
           existingUserEmails = findExistingUsers.map((user) => user.email);
         }
 
-        // filter out existing users
-        const inviteEmails = emails.filter(
+        // filter out existing users; a repeated email would fail the upsert
+        const inviteEmails = [...new Set(emails)].filter(
           (email) => !existingUserEmails.includes(email),
         );
 
@@ -167,16 +173,30 @@ export class WorkspaceInvitationService {
           workspaceId: workspace.id,
           invitedById: authUser.id,
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
+          expiresAt: addDays(new Date(), INVITATION_EXPIRY_DAYS),
         }));
 
         if (invitesToInsert.length < 1) {
           return;
         }
 
+        // re-inviting an expired invitation renews it; live ones are left alone
         invites = await trx
           .insertInto('workspaceInvitations')
           .values(invitesToInsert)
-          .onConflict((oc) => oc.columns(['email', 'workspaceId']).doNothing())
+          .onConflict((oc) =>
+            oc
+              .columns(['email', 'workspaceId'])
+              .doUpdateSet((eb) => ({
+                role: eb.ref('excluded.role'),
+                token: eb.ref('excluded.token'),
+                groupIds: eb.ref('excluded.groupIds'),
+                invitedById: eb.ref('excluded.invitedById'),
+                expiresAt: eb.ref('excluded.expiresAt'),
+                updatedAt: new Date(),
+              }))
+              .where('workspaceInvitations.expiresAt', '<', new Date()),
+          )
           .returningAll()
           .execute();
       });
@@ -240,6 +260,10 @@ export class WorkspaceInvitationService {
 
     if (dto.token !== invitation.token) {
       throw new BadRequestException('Invalid invitation token');
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      throw new BadRequestException('Invitation has expired');
     }
 
     validateSsoEnforcement(workspace);
@@ -381,6 +405,8 @@ export class WorkspaceInvitationService {
       throw new BadRequestException('Invitation not found');
     }
 
+    const token = await this.renewInvitation(invitation);
+
     const invitedByUser = await this.userRepo.findById(
       invitation.invitedById,
       workspace.id,
@@ -389,7 +415,7 @@ export class WorkspaceInvitationService {
     await this.sendInvitationMail(
       invitation.id,
       invitation.email,
-      invitation.token,
+      token,
       invitedByUser.name,
       workspace.hostname,
     );
@@ -403,6 +429,26 @@ export class WorkspaceInvitationService {
         role: invitation.role,
       },
     });
+  }
+
+  private async renewInvitation(
+    invitation: Pick<WorkspaceInvitation, 'id' | 'token' | 'expiresAt'>,
+  ): Promise<string> {
+    // expired links stay dead; a live invite keeps its token for earlier emails
+    const token =
+      invitation.expiresAt < new Date() ? nanoIdGen(16) : invitation.token;
+
+    await this.db
+      .updateTable('workspaceInvitations')
+      .set({
+        token,
+        expiresAt: addDays(new Date(), INVITATION_EXPIRY_DAYS),
+        updatedAt: new Date(),
+      })
+      .where('id', '=', invitation.id)
+      .execute();
+
+    return token;
   }
 
   async revokeInvitation(
@@ -441,10 +487,31 @@ export class WorkspaceInvitationService {
     invitationId: string,
     workspace: Workspace,
   ): Promise<string> {
-    const token = await this.getInvitationTokenById(invitationId, workspace.id);
+    const invitation = await this.getInvitationTokenById(
+      invitationId,
+      workspace.id,
+    );
+    let inviteToken = invitation.token;
+
+    // instances without SMTP rely on this link, so it renews an expired invite
+    if (invitation.expiresAt < new Date()) {
+      inviteToken = await this.renewInvitation(invitation);
+
+      this.auditService.log({
+        event: AuditEvent.WORKSPACE_INVITE_RESENT,
+        resourceType: AuditResource.WORKSPACE_INVITATION,
+        resourceId: invitation.id,
+        metadata: {
+          email: invitation.email,
+          role: invitation.role,
+          source: 'copy_link',
+        },
+      });
+    }
+
     return this.buildInviteLink({
       invitationId,
-      inviteToken: token.token,
+      inviteToken,
       hostname: workspace.hostname,
     });
   }
@@ -473,6 +540,7 @@ export class WorkspaceInvitationService {
 
     const emailTemplate = InvitationEmail({
       inviteLink,
+      expiresInDays: INVITATION_EXPIRY_DAYS,
     });
 
     await this.mailService.sendToQueue({
