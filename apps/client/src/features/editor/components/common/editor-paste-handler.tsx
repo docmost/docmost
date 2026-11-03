@@ -18,6 +18,7 @@ import {
 import { Fragment, Slice, type Node as PMNode } from "@tiptap/pm/model";
 import { notifications } from "@mantine/notifications";
 import i18n from "@/i18n";
+import { IAttachment } from "@/features/attachments/types/attachment.types";
 
 const DIAGRAM_TYPES = new Set(["drawio", "excalidraw"]);
 
@@ -184,46 +185,49 @@ export const handlePaste = (
     return true;
   }
 
-  if ((!htmlData || !ATTACHMENT_URL_RE.test(htmlData))) return false;
+  if (!htmlData || !ATTACHMENT_URL_RE.test(htmlData)) return false;
 
   const pasteFrom = editor.state.selection.from;
-  setTimeout(() => {
-    reuploadPastedAttachments(editor, pageId, pasteFrom);
-  }, 0);
+  const uploads = slice ? copyDiagrams(slice, pageId) : null;
+  if (!uploads) {
+    setTimeout(() => {
+      reuploadPastedAttachments(editor, pageId, pasteFrom);
+    }, 0);
+    return false;
+  }
+  event.preventDefault();
 
- const uploads = slice ? copyDiagrams(slice, pageId) : null;
- if (!uploads) return false;
- event.preventDefault();
+  let bookmark = editor.state.selection.getBookmark();
+  const mapBookmark = ({ transaction }: { transaction: any }) => {
+    bookmark = bookmark.map(transaction.mapping);
+  };
+  editor.on("transaction", mapBookmark);
 
- let bookmark = editor.state.selection.getBookmark();
- const mapBookmark = ({ transaction }: { transaction: any }) => {
-   bookmark = bookmark.map(transaction.mapping);
- };
- editor.on("transaction", mapBookmark);
+  void uploads
+    .then((pastedSlice) => {
+      if (editor.isDestroyed) return;
 
- void uploads
-   .then((pastedSlice) => {
-     if (editor.isDestroyed) return;
+      const state = editor.state;
+      const selection = bookmark.resolve(state.doc);
+      editor.view.dispatch(
+        state.tr
+          .setSelection(bookmark.resolve(state.doc))
+          .replaceSelection(pastedSlice)
+          .scrollIntoView()
+      );
+      void reuploadPastedAttachments(editor, pageId, selection.from);
+    })
+    .catch(() => {
+      notifications.show({
+        message: i18n.t("Failed to paste"),
+        color: "red",
+      });
+    })
+    .finally(() => {
+      editor.off("transaction", mapBookmark);
+    });
 
-     const state = editor.state;
-     editor.view.dispatch(
-       state.tr
-         .setSelection(bookmark.resolve(state.doc))
-         .replaceSelection(pastedSlice)
-         .scrollIntoView()
-     );
-   })
-   .catch(() => {
-     notifications.show({
-       message: i18n.t("Failed to paste"),
-       color: "red",
-     });
-   })
-   .finally(() => {
-     editor.off("transaction", mapBookmark);
-   });
-
- return true;
+  return true;
 };
 
 async function reuploadPastedAttachments(
@@ -389,7 +393,7 @@ export const handleFileDrop = (
 };
 
 function copyDiagrams(slice: Slice, pageId: string): Promise<Slice> | null {
-  const attachmentIds = new Set<string>();
+  const attachmentIds: string[] = [];
 
   const visit = (fragment: Fragment) => {
     fragment.forEach((node) => {
@@ -401,7 +405,7 @@ function copyDiagrams(slice: Slice, pageId: string): Promise<Slice> | null {
         attachmentId &&
         ATTACHMENT_URL_RE.exec(src)?.[1] === attachmentId
       ) {
-        attachmentIds.add(attachmentId);
+        attachmentIds.push(attachmentId);
       }
 
       if (node.content.size > 0) visit(node.content);
@@ -409,57 +413,75 @@ function copyDiagrams(slice: Slice, pageId: string): Promise<Slice> | null {
   };
 
   visit(slice.content);
-  if (attachmentIds.size === 0) return null;
+  if (attachmentIds.length === 0) return null;
 
-  return copyFiles([...attachmentIds], pageId).then((results) => {
-    const copies = new Map(results?.map((r) => [r.sourceId, r.attachment]));
+  return (async () => {
+    const results: { sourceId: string; attachment: IAttachment }[] = [];
+    const batchSize = 50;
+
+    for (let offset = 0; offset < attachmentIds.length; offset += batchSize) {
+      const batch = attachmentIds.slice(offset, offset + batchSize);
+      results.push(...(await copyFiles(batch, pageId)));
+    }
+
     return new Slice(
-      remapDiagramFragment(slice.content, copies),
+      remapDiagramFragment(
+        slice.content,
+        results.map((result) => result.attachment)
+      ),
       slice.openStart,
       slice.openEnd
     );
-  });
+  })();
 }
 
 function remapDiagramFragment(
   fragment: Fragment,
-  copies: Map<string, UploadedAttachment>
+  copies: IAttachment[],
 ): Fragment {
-  let changed = false;
-  const nodes: PMNode[] = [];
+  let copyIndex = 0;
 
-  fragment.forEach((node) => {
-    const content =
-      node.content.size > 0
-        ? remapDiagramFragment(node.content, copies)
-        : node.content;
-    const nested = content === node.content ? node : node.copy(content);
-    const copy =
-      nested.type.name === "drawio" || nested.type.name === "excalidraw"
-        ? copies.get(nested.attrs.attachmentId)
-        : undefined;
+  const remap = (current: Fragment): Fragment => {
+    let changed = false;
+    const nodes: PMNode[] = [];
 
-    if (!copy) {
-      nodes.push(nested);
-      changed ||= nested !== node;
-      return;
-    }
+    current.forEach((node) => {
+      const { attachmentId } = node.attrs;
+      const src: string = node.attrs.src || "";
+      const isCopyableDiagram =
+        DIAGRAM_TYPES.has(node.type.name) &&
+        attachmentId &&
+        ATTACHMENT_URL_RE.exec(src)?.[1] === attachmentId;
+      const copy = isCopyableDiagram ? copies[copyIndex++] : undefined;
 
-    nodes.push(
-      nested.type.create(
-        {
-          ...nested.attrs,
-          attachmentId: copy.id,
-          src: `/api/files/${copy.id}/${copy.fileName}?t=${new Date(copy.updatedAt).getTime()}`,
-          title: copy.fileName,
-          size: copy.fileSize,
-        },
-        nested.content,
-        nested.marks
-      )
-    );
-    changed = true;
-  });
+      const content =
+        node.content.size > 0 ? remap(node.content) : node.content;
+      const nested = content === node.content ? node : node.copy(content);
 
-  return changed ? Fragment.fromArray(nodes) : fragment;
+      if (!copy) {
+        nodes.push(nested);
+        changed ||= nested !== node;
+        return;
+      }
+
+      nodes.push(
+        nested.type.create(
+          {
+            ...nested.attrs,
+            attachmentId: copy.id,
+            src: `/api/files/${copy.id}/${copy.fileName}?t=${new Date(copy.updatedAt).getTime()}`,
+            title: copy.fileName,
+            size: copy.fileSize,
+          },
+          nested.content,
+          nested.marks,
+        ),
+      );
+      changed = true;
+    });
+
+    return changed ? Fragment.fromArray(nodes) : current;
+  };
+
+  return remap(fragment);
 }

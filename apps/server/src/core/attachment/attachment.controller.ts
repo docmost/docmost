@@ -192,10 +192,8 @@ export class AttachmentController {
 
     await this.pageAccessService.validateCanEdit(targetPage, user);
 
-    const sourceIds = [...new Set(dto.attachmentIds)];
-
-    return Promise.all(
-      sourceIds.map(async (sourceId) => {
+    const results = await Promise.allSettled(
+      dto.attachmentIds.map(async (sourceId) => {
         const source = await this.attachmentRepo.findById(sourceId);
         if (
           !source ||
@@ -226,6 +224,24 @@ export class AttachmentController {
         };
       }),
     );
+
+    return results.map((result, index) => {
+      const sourceId = dto.attachmentIds[index];
+
+      if (result.status === 'fulfilled') {
+        return { index, ...result.value };
+      }
+
+      this.logger.warn(
+        `Failed to copy attachment ${sourceId}: ${
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+        }`,
+      );
+
+      return { index, sourceId, attachment: null };
+    });
   }
 
   @UseGuards(JwtAuthGuard)

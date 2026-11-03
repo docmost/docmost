@@ -148,9 +148,13 @@ export class AttachmentService {
   ): Promise<Attachment> {
     const attachmentId = uuid7();
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, target.workspaceId)}/${attachmentId}/${source.fileName}`;
-
+    
     await this.storageService.copy(source.filePath, filePath);
-
+    
+    if (!(await this.storageService.exists(filePath))) {
+      throw new NotFoundException('File not found');
+    }
+    
     try {
       return await this.attachmentRepo.insertAttachment({
         id: attachmentId,
