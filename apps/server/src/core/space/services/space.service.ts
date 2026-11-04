@@ -29,6 +29,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class SpaceService {
@@ -41,6 +42,7 @@ export class SpaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly wsService: WsService,
   ) {}
 
   async createSpace(
@@ -331,6 +333,8 @@ export class SpaceService {
       },
     });
 
+    this.emitArchiveUpdate(spaceId, archivedSpace.archivedAt);
+
     return archivedSpace;
   }
 
@@ -361,6 +365,16 @@ export class SpaceService {
       },
     });
 
+    this.emitArchiveUpdate(spaceId, unarchivedSpace.archivedAt);
+
     return unarchivedSpace;
+  }
+
+  private emitArchiveUpdate(spaceId: string, archivedAt: Date | null): void {
+    this.wsService.emitToSpace(spaceId, {
+      operation: 'spaceArchiveUpdated',
+      spaceId,
+      archivedAt,
+    });
   }
 }

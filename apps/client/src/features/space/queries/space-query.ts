@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  QueryClient,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -193,6 +194,28 @@ export function useDeleteSpaceMutation() {
   });
 }
 
+export function applySpaceArchiveChange(
+  queryClient: QueryClient,
+  spaceId: string,
+  archivedAt: Date | null,
+) {
+  // patch every cached copy (keyed by id or slug) so membership fields survive
+  queryClient.setQueriesData<ISpace>({ queryKey: ["space"] }, (cached) =>
+    cached?.id === spaceId ? { ...cached, archivedAt } : cached,
+  );
+
+  queryClient.invalidateQueries({
+    predicate: (item) =>
+      [
+        "spaces",
+        "recent-changes",
+        "favorites",
+        "unified-search",
+        "pages-created-by-user",
+      ].includes(item.queryKey[0] as string),
+  });
+}
+
 function useArchiveStateMutation(
   mutationFn: (spaceId: string) => Promise<ISpace>,
   successMessage: string,
@@ -203,24 +226,7 @@ function useArchiveStateMutation(
     mutationFn,
     onSuccess: (data) => {
       notifications.show({ message: successMessage });
-
-      // the response is the bare row, so merge it to keep membership in the cache
-      for (const key of [data.id, data.slug]) {
-        queryClient.setQueryData<ISpace>(["space", key], (cached) =>
-          cached ? { ...cached, ...data } : cached,
-        );
-      }
-
-      queryClient.invalidateQueries({
-        predicate: (item) =>
-          [
-            "spaces",
-            "recent-changes",
-            "favorites",
-            "unified-search",
-            "pages-created-by-user",
-          ].includes(item.queryKey[0] as string),
-      });
+      applySpaceArchiveChange(queryClient, data.id, data.archivedAt);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;

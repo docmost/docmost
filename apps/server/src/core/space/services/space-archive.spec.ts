@@ -9,11 +9,12 @@ function buildService(space: any) {
   };
   const shareRepo = { deleteBySpaceId: jest.fn() };
   const auditService = { log: jest.fn() };
+  const wsService = { emitToSpace: jest.fn() };
   const service = new SpaceService(
     spaceRepo as any, {} as any, shareRepo as any, {} as any,
-    {} as any, {} as any, {} as any, auditService as any,
+    {} as any, {} as any, {} as any, auditService as any, wsService as any,
   );
-  return { service, spaceRepo, shareRepo, auditService };
+  return { service, spaceRepo, shareRepo, auditService, wsService };
 }
 
 describe('SpaceService archive', () => {
@@ -54,6 +55,30 @@ describe('SpaceService archive', () => {
     const { service, spaceRepo } = buildService({ id: 'space-1', isPersonal: false, archivedAt: null });
     await service.unarchiveSpace('space-1', 'ws-1');
     expect(spaceRepo.updateSpace).not.toHaveBeenCalled();
+  });
+
+  it('tells connected members when a space is archived', async () => {
+    const { service, wsService } = buildService({ id: 'space-1', isPersonal: false, archivedAt: null });
+    await service.archiveSpace('space-1', 'user-1', 'ws-1');
+    expect(wsService.emitToSpace).toHaveBeenCalledWith('space-1', {
+      operation: 'spaceArchiveUpdated', spaceId: 'space-1', archivedAt: expect.any(Date) });
+  });
+
+  it('tells connected members when a space is unarchived', async () => {
+    const { service, wsService } = buildService({ id: 'space-1', isPersonal: false, archivedAt: new Date() });
+    await service.unarchiveSpace('space-1', 'ws-1');
+    expect(wsService.emitToSpace).toHaveBeenCalledWith('space-1', {
+      operation: 'spaceArchiveUpdated', spaceId: 'space-1', archivedAt: null });
+  });
+
+  it('sends nothing when the archive state does not change', async () => {
+    const archived = buildService({ id: 'space-1', isPersonal: false, archivedAt: new Date() });
+    await archived.service.archiveSpace('space-1', 'user-1', 'ws-1');
+    expect(archived.wsService.emitToSpace).not.toHaveBeenCalled();
+
+    const active = buildService({ id: 'space-1', isPersonal: false, archivedAt: null });
+    await active.service.unarchiveSpace('space-1', 'ws-1');
+    expect(active.wsService.emitToSpace).not.toHaveBeenCalled();
   });
 
   it('throws NotFound for a missing space', async () => {

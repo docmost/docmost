@@ -90,6 +90,12 @@ export type VerificationUpdatedEvent = {
   pageId: string;
 };
 
+export type SpaceArchiveUpdatedEvent = {
+  operation: "spaceArchiveUpdated";
+  spaceId: string;
+  archivedAt: Date | null;
+};
+
 export type WebSocketEvent =
   | InvalidateEvent
   | CommentCreatedEvent
@@ -102,4 +108,5 @@ export type WebSocketEvent =
   | MoveTreeNodeEvent
   | DeleteTreeNodeEvent
   | RefetchRootTreeNodeEvent
-  | VerificationUpdatedEvent;
+  | VerificationUpdatedEvent
+  | SpaceArchiveUpdatedEvent;
