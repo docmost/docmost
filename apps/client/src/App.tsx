@@ -75,6 +75,9 @@ const WorkspaceApiKeys = lazyWithPrefetch(
 const AiSettings = lazyWithPrefetch(() => import("@/ee/ai/pages/ai-settings.tsx"));
 const BasePage = lazyWithPrefetch(() => import("@/ee/base/pages/base-page.tsx"));
 const AuditLogs = lazyWithPrefetch(() => import("@/ee/audit/pages/audit-logs.tsx"));
+const PageViewAnalytics = lazyWithPrefetch(
+  () => import("@/ee/page-analytics/pages/page-analytics.tsx"),
+);
 const VerifiedPages = lazyWithPrefetch(
   () => import("@/ee/page-verification/pages/verified-pages.tsx"),
 );
@@ -155,7 +158,10 @@ export default function App() {
         <Route
           path={"/integrations/slack/link"}
           element={
-            <Navigate to="/settings/account/connections?connect=slack" replace />
+            <Navigate
+              to="/settings/account/connections?connect=slack"
+              replace
+            />
           }
         />
 
@@ -167,16 +173,10 @@ export default function App() {
           <Route path={"/favorites"} element={<FavoritesPage />} />
           <Route path={"/labels/:labelName"} element={<LabelPage />} />
           <Route path={"/templates"} element={<TemplateList />} />
-          <Route
-            path={"/templates/:templateId"}
-            element={<TemplateEditor />}
-          />
+          <Route path={"/templates/:templateId"} element={<TemplateEditor />} />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
           <Route path={"/s/:spaceSlug/trash"} element={<SpaceTrash />} />
-          <Route
-            path={"/s/:spaceSlug/p/:pageSlug"}
-            element={<Page />}
-          />
+          <Route path={"/s/:spaceSlug/p/:pageSlug"} element={<Page />} />
 
           <Route path={"/base/:pageId"} element={<BasePage />} />
 
@@ -203,6 +203,7 @@ export default function App() {
             <Route path={"ai"} element={<AiSettings />} />
             <Route path={"ai/mcp"} element={<AiSettings />} />
             <Route path={"audit"} element={<AuditLogs />} />
+            <Route path={"analytics"} element={<PageViewAnalytics />} />
             <Route path={"audit/siem"} element={<AuditLogs />} />
             <Route
               path={"siem"}

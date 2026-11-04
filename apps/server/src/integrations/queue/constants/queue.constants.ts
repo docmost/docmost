@@ -15,6 +15,7 @@ export enum QueueName {
   SLACK_ASK = '{slack-ask}',
   // Outbound DMs, kept off the inbound event queue
   SLACK_NOTIFY = '{slack-notify}',
+  PAGE_ANALYTICS_QUEUE = '{page-analytics-queue}',
   BASE_QUEUE = '{base-queue}',
   SIEM_QUEUE = '{siem-queue}',
 }
@@ -89,6 +90,8 @@ export enum QueueJob {
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',
+  PAGE_ANALYTICS_TRACK = 'page-analytics-track',
+  PAGE_ANALYTICS_CLEANUP = 'page-analytics-cleanup',
 
   SIEM_SWEEP = 'siem-sweep',
   SIEM_DELIVER = 'siem-deliver',
