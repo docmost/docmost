@@ -464,12 +464,13 @@ export class ImportAttachmentService {
     };
 
     const resolveSource = (raw?: string): ResolvedFile | null => {
-      const src = raw?.trim()
+      const src = raw?.trim();
+      if (!src) return null;
       if (src.toLowerCase().startsWith('data:')) {
         return resolveEmbeddedFile(src);
       }
-      
-      const url = cleanUrlString(src ?? '');
+
+      const url = cleanUrlString(src);
       if (!url || url.startsWith('http')) return null;
 
       const relPath = resolveRelativeAttachmentPath(
@@ -482,7 +483,7 @@ export class ImportAttachmentService {
     };
 
     const resolveRelPath = (raw?: string): string | null => {
-      const value = cleanUrlString(raw ?? '').trim();
+      const value = cleanUrlString(raw ?? '')?.trim();
       if (
         !value ||
         value.startsWith('http') ||
