@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ISpace } from "@/features/space/types/space.types.ts";
 import SpacePublicSharingToggle from "@/ee/security/components/space-public-sharing-toggle.tsx";
+import SpaceExportToggle from "@/ee/security/components/space-export-toggle.tsx";
 import SpaceViewerCommentsToggle from "@/ee/security/components/space-viewer-comments-toggle.tsx";
 
 type SpaceSecuritySettingsProps = {
@@ -25,6 +26,10 @@ export default function SpaceSecuritySettings({
       </Title>
 
       <SpacePublicSharingToggle space={space} />
+
+      <Divider my="lg" />
+
+      <SpaceExportToggle space={space} />
 
       <Divider my="lg" />
 
