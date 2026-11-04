@@ -49,6 +49,7 @@ export default function DocsShell({
     docsMobileSidebarAtom,
   );
   const [mobileTocOpen, setMobileTocOpen] = useAtom(docsMobileTocAtom);
+  const [announcementsHeight, setAnnouncementsHeight] = React.useState(0);
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -93,9 +94,12 @@ export default function DocsShell({
     <DocsSurfaceProvider value={surface}>
       <div className={clsx(styles.root, "public-typography")}>
         <SkipToMain />
-        <AnnouncementBanners surface="public" />
+        <AnnouncementBanners
+          surface="public"
+          onHeightChange={setAnnouncementsHeight}
+        />
 
-        <header className={styles.header}>
+        <header className={styles.header} data-page-header="true">
           <div className={styles.headerInner}>
             <div className={styles.headerLeft}>
               {hasSidebar && (
@@ -190,7 +194,7 @@ export default function DocsShell({
           </main>
 
           <aside className={styles.toc} aria-label={t("On this page")}>
-            <DocsToc />
+            <DocsToc bannersHeight={announcementsHeight} />
             {showEditPage && <DocsEditPage />}
           </aside>
         </div>
@@ -214,7 +218,7 @@ export default function DocsShell({
           size={300}
           padding="md"
         >
-          <DocsToc />
+          <DocsToc bannersHeight={announcementsHeight} />
           {showEditPage && <DocsEditPage />}
         </Drawer>
 

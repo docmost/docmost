@@ -7,23 +7,21 @@ import {
   HeadingLink,
   recalculateLinks,
 } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
-import { ANNOUNCEMENT_BANNERS_HEIGHT_VAR } from "@/ee/announcement/announcement.constants.ts";
 import styles from "./docs.module.css";
 
-function getHeaderOffset(): number {
-  const rootStyle = getComputedStyle(document.documentElement);
-  const header = parseInt(rootStyle.getPropertyValue("--docs-header-h"), 10);
-  const banners = parseInt(
-    rootStyle.getPropertyValue(ANNOUNCEMENT_BANNERS_HEIGHT_VAR),
-    10,
+type DocsTocProps = {
+  bannersHeight: number;
+};
+
+function getHeaderOffset(bannersHeight: number): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(
+    "--docs-header-h",
   );
-  return (
-    (Number.isNaN(header) ? 56 : header) +
-    (Number.isNaN(banners) ? 0 : banners)
-  );
+  const parsed = parseInt(raw, 10);
+  return (Number.isNaN(parsed) ? 56 : parsed) + bannersHeight;
 }
 
-export default function DocsToc() {
+export default function DocsToc({ bannersHeight }: DocsTocProps) {
   const { t } = useTranslation();
   const editor = useAtomValue(readOnlyEditorAtom);
   const [links, setLinks] = useState<HeadingLink[]>([]);
@@ -59,7 +57,7 @@ export default function DocsToc() {
         });
       },
       {
-        rootMargin: `-${getHeaderOffset()}px 0px -85% 0px`,
+        rootMargin: `-${getHeaderOffset(bannersHeight)}px 0px -85% 0px`,
         threshold: 0,
         root: null,
       },
@@ -69,7 +67,7 @@ export default function DocsToc() {
     return () => {
       headingDOMNodes.forEach((heading) => observer.unobserve(heading));
     };
-  }, [headingDOMNodes]);
+  }, [headingDOMNodes, bannersHeight]);
 
   const handleScrollToHeading = (position: number) => {
     if (!editor || editor.isDestroyed) return;
@@ -81,7 +79,7 @@ export default function DocsToc() {
     const scrollPosition =
       element.getBoundingClientRect().top +
       window.scrollY -
-      getHeaderOffset() -
+      getHeaderOffset(bannersHeight) -
       16;
 
     window.scrollTo({ top: scrollPosition, behavior: "smooth" });

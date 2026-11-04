@@ -11,9 +11,16 @@ import {
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AnnouncementBanners from "./announcement-banners";
-import { ANNOUNCEMENT_BANNERS_HEIGHT_VAR } from "../announcement.constants";
+import {
+  ANNOUNCEMENT_BANNERS_HEIGHT_VAR,
+  ANNOUNCEMENT_COLOR_STYLES,
+} from "../announcement.constants";
 import { dismissAnnouncement } from "../announcement.utils";
-import type { IAnnouncementBanner } from "../types/announcement.types";
+import type {
+  AnnouncementColor,
+  AnnouncementKind,
+  IAnnouncementBanner,
+} from "../types/announcement.types";
 
 const mocks = vi.hoisted(() => ({
   banners: [] as IAnnouncementBanner[],
@@ -132,6 +139,28 @@ describe("AnnouncementBanners", () => {
     expect(
       screen.queryByRole("button", { name: "Dismiss announcement" }),
     ).toBeNull();
+  });
+
+  it("falls back to the gray preset and no icon for an unknown color and kind", () => {
+    mocks.banners = [
+      banner("unknown-1", "From a newer server", {
+        kind: "sparkle" as AnnouncementKind,
+        color: "teal" as AnnouncementColor,
+        isDismissible: false,
+      }),
+    ];
+
+    renderBanners();
+
+    const bar = screen
+      .getByText("From a newer server")
+      .closest<HTMLElement>("[style]");
+    const gray = document.createElement("div");
+    gray.style.backgroundColor = ANNOUNCEMENT_COLOR_STYLES.gray.background;
+    gray.style.color = ANNOUNCEMENT_COLOR_STYLES.gray.text;
+    expect(bar?.style.backgroundColor).toBe(gray.style.backgroundColor);
+    expect(bar?.style.color).toBe(gray.style.color);
+    expect(bar?.querySelector("svg")).toBeNull();
   });
 
   it("hides ended and shows started banners on the 30-second tick", () => {

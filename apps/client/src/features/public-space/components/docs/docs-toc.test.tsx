@@ -29,6 +29,7 @@ beforeAll(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   editor?.destroy();
   editor = null;
 });
@@ -79,7 +80,7 @@ describe("DocsToc", () => {
     store.set(readOnlyEditorAtom as PrimitiveAtom<Editor | null>, editor);
     render(
       <Provider store={store}>
-        <DocsToc />
+        <DocsToc bannersHeight={0} />
       </Provider>,
     );
 
@@ -89,5 +90,34 @@ describe("DocsToc", () => {
 
     expect(activeWhenScrolled).toBe(1);
     expect(getActiveTabIndex(editor.state, 0)).toBe(1);
+  });
+
+  it("moves the active-heading band below the banners when their height changes", () => {
+    const rootMargins: string[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(
+          _callback: IntersectionObserverCallback,
+          options: IntersectionObserverInit,
+        ) {
+          rootMargins.push(options.rootMargin);
+        }
+
+        observe() {}
+
+        unobserve() {}
+
+        disconnect() {}
+      },
+    );
+
+    const { rerender } = render(<DocsToc bannersHeight={0} />);
+    rerender(<DocsToc bannersHeight={36} />);
+
+    expect(rootMargins).toEqual([
+      "-56px 0px -85% 0px",
+      "-92px 0px -85% 0px",
+    ]);
   });
 });

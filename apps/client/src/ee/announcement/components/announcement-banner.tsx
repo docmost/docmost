@@ -24,8 +24,11 @@ export function AnnouncementBanner({
 }: AnnouncementBannerProps) {
   const { t } = useTranslation();
   const messageId = useId();
-  const colors = ANNOUNCEMENT_COLOR_STYLES[announcement.color];
-  const KindIcon = ANNOUNCEMENT_KIND_ICONS[announcement.kind];
+  // A newer server can send a preset this bundle does not know yet
+  const colors =
+    ANNOUNCEMENT_COLOR_STYLES[announcement.color] ??
+    ANNOUNCEMENT_COLOR_STYLES.gray;
+  const KindIcon = ANNOUNCEMENT_KIND_ICONS[announcement.kind] ?? null;
 
   return (
     <div
