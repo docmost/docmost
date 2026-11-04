@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { createStore, Provider as JotaiProvider } from "jotai";
 import { notifications } from "@mantine/notifications";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import {
@@ -30,7 +31,11 @@ const mocks = vi.hoisted(() => ({ isCloud: vi.fn() }));
 vi.mock("@/lib/config", () => ({ isCloud: mocks.isCloud }));
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, values?: Record<string, unknown>) =>
+      key.replace(/{{(\w+)}}/g, (_match, name) => String(values?.[name] ?? "")),
+    i18n: { language: "en-US" },
+  }),
 }));
 vi.mock("../services/announcement-service");
 
@@ -233,6 +238,61 @@ describe("mutations that confirm with a toast", () => {
     });
 
     expect(notifications.show).toHaveBeenCalledWith({ message: "Announcement not found", color: "red" });
+  });
+});
+
+describe("restoring into a full schedule", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("shows the clashing announcements and time in the error toast", async () => {
+    vi.mocked(service.restoreAnnouncement).mockRejectedValue(
+      requestError({
+        message: "Up to two announcements can show at the same time",
+        conflict: {
+          from: "2026-11-05T09:00:00.000Z",
+          to: "2026-11-05T18:00:00.000Z",
+          announcements: [
+            { id: "b", preview: "Acceptable use policy" },
+            { id: "c", preview: "Holiday hours" },
+          ],
+        },
+      }),
+    );
+    const { result } = setup(() => useRestoreAnnouncementMutation());
+
+    await act(async () => {
+      await result.current.mutateAsync({ announcementId: "a1" }).catch(() => undefined);
+    });
+
+    const { message, ...toast } = vi.mocked(notifications.show).mock.calls[0][0];
+    expect(toast).toEqual({
+      color: "red",
+      title: "Up to two announcements can show at the same time.",
+    });
+    render(<MantineProvider env="test">{message}</MantineProvider>);
+    const format = (iso: string) =>
+      new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+    expect(
+      screen.getByText(
+        `These already show between ${format("2026-11-05T09:00:00.000Z")} and ${format("2026-11-05T18:00:00.000Z")}:`,
+      ),
+    ).toBeTruthy();
+    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "Acceptable use policy",
+      "Holiday hours",
+    ]);
   });
 });
 

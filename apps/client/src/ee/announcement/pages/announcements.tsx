@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Alert, Button, Group, Space, Tabs, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
 import Paginate from "@/components/common/paginate";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
@@ -28,6 +30,8 @@ export default function Announcements() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
   const hasFeature = useHasFeature(Feature.ANNOUNCEMENTS);
+  // Entitlements stay null until they load, which must not read as unlicensed
+  const isUnlicensed = useAtomValue(entitlementAtom) !== null && !hasFeature;
   const [tab, setTab] = useState<AnnouncementsTab>("current");
   const { cursor, goNext, goPrev } = useCursorPaginate();
   const [formOpened, setFormOpened] = useState(false);
@@ -89,7 +93,7 @@ export default function Announcements() {
 
       <SettingsTitle title={t("Announcements")} />
 
-      {!hasFeature && (
+      {isUnlicensed && (
         <Alert icon={<IconInfoCircle size={16} />} color="yellow" mb="md">
           {t("Announcements require an Enterprise license.")}
         </Alert>
@@ -103,7 +107,7 @@ export default function Announcements() {
         </Text>
         <Button
           onClick={() => openForm(null)}
-          disabled={!hasFeature}
+          disabled={isUnlicensed}
           style={{ flexShrink: 0 }}
         >
           {t("New announcement")}
@@ -125,7 +129,7 @@ export default function Announcements() {
         </Tabs.List>
 
         <Tabs.Panel value="current" pt="md">
-          {currentQuery.isError ? (
+          {currentQuery.isError && !currentQuery.data ? (
             loadError(currentQuery.error)
           ) : (
             <AnnouncementTable
@@ -138,7 +142,7 @@ export default function Announcements() {
         </Tabs.Panel>
 
         <Tabs.Panel value="archived" pt="md">
-          {archivedQuery.isError ? (
+          {archivedQuery.isError && !archivedQuery.data ? (
             loadError(archivedQuery.error)
           ) : (
             <>

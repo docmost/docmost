@@ -9,6 +9,10 @@ const SAFE_LINK_PROTOCOLS = ["https:", "http:", "mailto:"];
 const UNSAFE_CHARACTERS = /[\p{Cc}\p{Cs}]/u;
 const DISMISSED_KEY_PREFIX = "docmost.announcement.dismissed.";
 const PICKER_FORMAT = "yyyy-MM-dd HH:mm:ss";
+const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  dateStyle: "medium",
+  timeStyle: "short",
+};
 
 const sessionDismissals = new Map<string, string>();
 
@@ -95,4 +99,11 @@ export function toPickerValue(iso: string): string {
 
 export function fromPickerValue(value: string): string {
   return new Date(value.replace(" ", "T")).toISOString();
+}
+
+export function formatAnnouncementTime(
+  time: string | number,
+  language: string,
+): string {
+  return new Date(time).toLocaleString(language, DATE_TIME_FORMAT);
 }

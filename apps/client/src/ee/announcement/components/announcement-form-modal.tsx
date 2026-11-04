@@ -13,19 +13,16 @@ import {
   ColorSwatch,
   Group,
   Input,
-  List,
   Modal,
   SegmentedControl,
   SimpleGrid,
   Skeleton,
   Stack,
   Switch,
-  Text,
   useMatches,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
-import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import {
   ANNOUNCEMENT_COLOR_STYLES,
@@ -34,14 +31,17 @@ import {
   ANNOUNCEMENT_KIND_ICONS,
   ANNOUNCEMENT_KIND_LABELS,
   ANNOUNCEMENT_KINDS,
-  ANNOUNCEMENT_MAX_TEXT_LENGTH,
 } from "@/ee/announcement/announcement.constants";
-import {
-  fromPickerValue,
-  getAnnouncementPlainText,
-  toPickerValue,
-} from "@/ee/announcement/announcement.utils";
+import { getAnnouncementPlainText } from "@/ee/announcement/announcement.utils";
 import { AnnouncementBanner } from "@/ee/announcement/components/announcement-banner";
+import { AnnouncementConflictSummary } from "@/ee/announcement/components/announcement-conflict-summary";
+import {
+  type AnnouncementFormValues,
+  formatPickerValue,
+  getInitialValues,
+  toAnnouncementInput,
+  validateAnnouncementForm,
+} from "@/ee/announcement/components/announcement-form.utils";
 import { AnnouncementMessageEditor } from "@/ee/announcement/components/announcement-message-editor";
 import {
   getAnnouncementErrorMessage,
@@ -51,11 +51,8 @@ import {
 } from "@/ee/announcement/queries/announcement-query";
 import type {
   AnnouncementAudience,
-  AnnouncementColor,
   AnnouncementKind,
   IAnnouncement,
-  IAnnouncementContent,
-  IAnnouncementInput,
 } from "@/ee/announcement/types/announcement.types";
 
 const DateTimePicker = lazy(() =>
@@ -64,11 +61,6 @@ const DateTimePicker = lazy(() =>
   })),
 );
 
-const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
-  dateStyle: "medium",
-  timeStyle: "short",
-};
-
 const RADIO_KEY_STEPS: Record<string, number> = {
   ArrowRight: 1,
   ArrowDown: 1,
@@ -76,127 +68,11 @@ const RADIO_KEY_STEPS: Record<string, number> = {
   ArrowUp: -1,
 };
 
-type AnnouncementFormValues = {
-  kind: AnnouncementKind;
-  color: AnnouncementColor;
-  content: IAnnouncementContent | null;
-  audience: AnnouncementAudience;
-  isDismissible: boolean;
-  startMode: "now" | "date";
-  startsAt: string | null;
-  endMode: "none" | "date";
-  endsAt: string | null;
-};
-
 type AnnouncementFormModalProps = {
   opened: boolean;
   onClose: () => void;
   announcement: IAnnouncement | null;
 };
-
-function getInitialValues(
-  announcement: IAnnouncement | null,
-): AnnouncementFormValues {
-  if (!announcement) {
-    return {
-      kind: "info",
-      color: ANNOUNCEMENT_KIND_DEFAULT_COLOR.info,
-      content: null,
-      audience: "members",
-      isDismissible: false,
-      startMode: "now",
-      startsAt: null,
-      endMode: "none",
-      endsAt: null,
-    };
-  }
-  return {
-    kind: announcement.kind,
-    color: announcement.color,
-    content: announcement.content,
-    audience: announcement.audience,
-    isDismissible: announcement.isDismissible,
-    startMode: "date",
-    startsAt: toPickerValue(announcement.startsAt),
-    endMode: announcement.endsAt ? "date" : "none",
-    endsAt: announcement.endsAt ? toPickerValue(announcement.endsAt) : null,
-  };
-}
-
-function getPickerTime(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-  try {
-    return Date.parse(fromPickerValue(value));
-  } catch {
-    return null;
-  }
-}
-
-// The picker drops milliseconds, so an untouched time is sent as stored
-function toInputTime(value: string, stored: string | null): string {
-  return stored && toPickerValue(stored) === value
-    ? stored
-    : fromPickerValue(value);
-}
-
-function validateAnnouncementForm(
-  values: AnnouncementFormValues,
-  storedEndsAt: string | null,
-  t: TFunction,
-): Partial<Record<keyof AnnouncementFormValues, string>> {
-  const errors: Partial<Record<keyof AnnouncementFormValues, string>> = {};
-  const text = values.content ? getAnnouncementPlainText(values.content) : "";
-  if (!text.trim()) {
-    errors.content = t("Announcement message is required");
-  } else if (text.length > ANNOUNCEMENT_MAX_TEXT_LENGTH) {
-    errors.content = t("Announcement message is too long");
-  }
-
-  const now = Date.now();
-  const startTime =
-    values.startMode === "now" ? now : getPickerTime(values.startsAt);
-  if (startTime === null) {
-    errors.startsAt = t("Start time is required");
-  }
-
-  if (values.endMode === "date") {
-    const endTime = getPickerTime(values.endsAt);
-    // Like the server, an end left as stored may already have passed
-    const endChanged =
-      !storedEndsAt || values.endsAt !== toPickerValue(storedEndsAt);
-    if (endTime === null) {
-      errors.endsAt = t("End time is required");
-    } else if (endChanged && endTime <= now) {
-      errors.endsAt = t("End time must be in the future");
-    } else if (startTime !== null && endTime <= startTime) {
-      errors.endsAt = t("End time must be after the start time");
-    }
-  }
-  return errors;
-}
-
-function toAnnouncementInput(
-  values: AnnouncementFormValues,
-  announcement: IAnnouncement | null,
-): IAnnouncementInput {
-  return {
-    kind: values.kind,
-    color: values.color,
-    content: values.content,
-    isDismissible: values.isDismissible,
-    audience: values.audience,
-    startsAt:
-      values.startMode === "now"
-        ? null
-        : toInputTime(values.startsAt, announcement?.startsAt ?? null),
-    endsAt:
-      values.endMode === "none"
-        ? null
-        : toInputTime(values.endsAt, announcement?.endsAt ?? null),
-  };
-}
 
 function moveRadioSelection(event: KeyboardEvent<HTMLButtonElement>) {
   const step = RADIO_KEY_STEPS[event.key];
@@ -278,12 +154,8 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
     }
   }, [mutation.error]);
 
-  const formatTime = (time: string | number) =>
-    new Date(time).toLocaleString(i18n.language, DATE_TIME_FORMAT);
-  const formatPickerValue = (value: string) => {
-    const time = getPickerTime(value);
-    return time === null ? value : formatTime(time);
-  };
+  const formatPickerTime = (value: string) =>
+    formatPickerValue(value, i18n.language);
 
   const handleSubmit = async (submitted: AnnouncementFormValues) => {
     const input = toAnnouncementInput(submitted, announcement);
@@ -317,23 +189,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
             }
           >
             {conflict ? (
-              <>
-                <Text size="sm">
-                  {conflict.to
-                    ? t("These already show between {{from}} and {{to}}:", {
-                        from: formatTime(conflict.from),
-                        to: formatTime(conflict.to),
-                      })
-                    : t("These already show from {{from}} with no end:", {
-                        from: formatTime(conflict.from),
-                      })}
-                </Text>
-                <List size="sm" mt={4}>
-                  {conflict.announcements.map((clash) => (
-                    <List.Item key={clash.id}>{clash.preview}</List.Item>
-                  ))}
-                </List>
-              </>
+              <AnnouncementConflictSummary conflict={conflict} />
             ) : (
               getAnnouncementErrorMessage(mutation.error)
             )}
@@ -406,22 +262,16 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
           id={audienceId}
           label={t("Audience")}
           labelElement="div"
-          description={
-            values.audience === "everyone"
-              ? t("Also shows on the login page and public pages")
-              : undefined
-          }
+          description={t(
+            "Everyone also includes the login page and public pages.",
+          )}
           inputWrapperOrder={["label", "input", "description"]}
           descriptionProps={{ mt: 6 }}
         >
           <SegmentedControl
             fullWidth
             aria-labelledby={`${audienceId}-label`}
-            aria-describedby={
-              values.audience === "everyone"
-                ? `${audienceId}-description`
-                : undefined
-            }
+            aria-describedby={`${audienceId}-description`}
             value={values.audience}
             onChange={(value) =>
               form.setFieldValue("audience", value as AnnouncementAudience)
@@ -468,7 +318,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
                     onChange={(value) =>
                       form.setFieldValue("startsAt", value as string | null)
                     }
-                    valueFormat={formatPickerValue}
+                    valueFormat={formatPickerTime}
                     error={form.errors.startsAt}
                   />
                 </Suspense>
@@ -502,7 +352,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
                     onChange={(value) =>
                       form.setFieldValue("endsAt", value as string | null)
                     }
-                    valueFormat={formatPickerValue}
+                    valueFormat={formatPickerTime}
                     error={form.errors.endsAt}
                   />
                 </Suspense>

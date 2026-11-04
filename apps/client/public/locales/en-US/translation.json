@@ -1610,7 +1610,7 @@
   "Black": "Black",
   "Logged-in users": "Logged-in users",
   "Everyone": "Everyone",
-  "Also shows on the login page and public pages": "Also shows on the login page and public pages",
+  "Everyone also includes the login page and public pages.": "Everyone also includes the login page and public pages.",
   "Allow people to dismiss it": "Allow people to dismiss it",
   "Starts": "Starts",
   "Ends": "Ends",

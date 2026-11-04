@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnnouncementTable } from "./announcement-table";
 import type {
+  AnnouncementColor,
+  AnnouncementKind,
   AnnouncementStatus,
   IAnnouncement,
 } from "../types/announcement.types";
@@ -144,6 +146,21 @@ describe("AnnouncementTable", () => {
     expect(within(active).getByText("Logged-in users")).toBeTruthy();
     expect(within(active).getByText("No end")).toBeTruthy();
     expect(within(active).getByText("Active")).toBeTruthy();
+  });
+
+  it("shows a kind, color or status it does not know without failing", () => {
+    renderTable([
+      announcement("active", {
+        kind: "sparkle" as AnnouncementKind,
+        color: "teal" as AnnouncementColor,
+        status: "paused" as AnnouncementStatus,
+      }),
+    ]);
+    const [, row] = screen.getAllByRole("row");
+
+    expect(within(row).getByText("sparkle")).toBeTruthy();
+    expect(within(row).getByText("paused")).toBeTruthy();
+    expect(within(row).getByRole("img", { name: "Gray" })).toBeTruthy();
   });
 
   it("shows three skeleton rows while loading", () => {

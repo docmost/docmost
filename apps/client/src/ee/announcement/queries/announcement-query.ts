@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import {
   keepPreviousData,
   useMutation,
@@ -11,6 +12,7 @@ import { isCloud } from "@/lib/config.ts";
 import { IPagination } from "@/lib/types";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
+import { AnnouncementConflictSummary } from "@/ee/announcement/components/announcement-conflict-summary";
 import {
   archiveAnnouncement,
   createAnnouncement,
@@ -163,7 +165,18 @@ export function useRestoreAnnouncementMutation() {
       notifications.show({ message: t("Announcement restored") });
       invalidate();
     },
-    onError: showError,
+    onError: (error) => {
+      const conflict = getAnnouncementLimitConflict(error);
+      if (!conflict) {
+        showError(error);
+        return;
+      }
+      notifications.show({
+        color: "red",
+        title: t("Up to two announcements can show at the same time."),
+        message: createElement(AnnouncementConflictSummary, { conflict }),
+      });
+    },
   });
 }
 

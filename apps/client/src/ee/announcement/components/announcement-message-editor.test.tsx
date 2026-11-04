@@ -171,6 +171,9 @@ describe("AnnouncementMessageEditor", () => {
 
     expect(screen.queryByRole("textbox", { name: "URL" })).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(
+      screen.getByRole("textbox", { name: "Message" }),
+    );
   });
 
   it("opens the link popover with Mod-k", () => {

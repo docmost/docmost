@@ -22,7 +22,10 @@ import {
   ANNOUNCEMENT_COLOR_STYLES,
   ANNOUNCEMENT_KIND_LABELS,
 } from "@/ee/announcement/announcement.constants";
-import { getAnnouncementPlainText } from "@/ee/announcement/announcement.utils";
+import {
+  formatAnnouncementTime,
+  getAnnouncementPlainText,
+} from "@/ee/announcement/announcement.utils";
 import type {
   AnnouncementStatus,
   IAnnouncement,
@@ -36,11 +39,6 @@ const STATUS_BADGES: Record<
   scheduled: { label: "Scheduled", color: "blue" },
   ended: { label: "Ended", color: "gray" },
   archived: { label: "Archived", color: "gray" },
-};
-
-const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
-  dateStyle: "medium",
-  timeStyle: "short",
 };
 
 type AnnouncementTableProps = {
@@ -98,8 +96,6 @@ export function AnnouncementTable({
   onDelete,
 }: AnnouncementTableProps) {
   const { t, i18n } = useTranslation();
-  const formatTime = (iso: string) =>
-    new Date(iso).toLocaleString(i18n.language, DATE_TIME_FORMAT);
 
   return (
     <Table.ScrollContainer minWidth={760}>
@@ -120,10 +116,11 @@ export function AnnouncementTable({
           ) : announcements.length > 0 ? (
             announcements.map((announcement) => {
               const preview = getAnnouncementPlainText(announcement.content);
-              // A newer server can send a preset this bundle does not know yet
+              // A bundle loaded before a deploy can meet a kind, color or status it does not know
               const color =
                 ANNOUNCEMENT_COLOR_STYLES[announcement.color] ??
                 ANNOUNCEMENT_COLOR_STYLES.gray;
+              const kindLabel = ANNOUNCEMENT_KIND_LABELS[announcement.kind];
               const status = STATUS_BADGES[announcement.status];
               const canArchive =
                 announcement.status === "active" ||
@@ -150,10 +147,7 @@ export function AnnouncementTable({
                   </Table.Td>
                   <Table.Td>
                     <Text fz="sm">
-                      {t(
-                        ANNOUNCEMENT_KIND_LABELS[announcement.kind] ??
-                          announcement.kind,
-                      )}
+                      {kindLabel ? t(kindLabel) : announcement.kind}
                     </Text>
                   </Table.Td>
                   <Table.Td>
@@ -165,17 +159,23 @@ export function AnnouncementTable({
                   </Table.Td>
                   <Table.Td>
                     <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                      {formatTime(announcement.startsAt)}
+                      {formatAnnouncementTime(
+                        announcement.startsAt,
+                        i18n.language,
+                      )}
                     </Text>
                     <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
                       {announcement.endsAt
-                        ? formatTime(announcement.endsAt)
+                        ? formatAnnouncementTime(
+                            announcement.endsAt,
+                            i18n.language,
+                          )
                         : t("No end")}
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Badge variant="light" color={status.color}>
-                      {t(status.label)}
+                    <Badge variant="light" color={status?.color ?? "gray"}>
+                      {status ? t(status.label) : announcement.status}
                     </Badge>
                   </Table.Td>
                   <Table.Td>

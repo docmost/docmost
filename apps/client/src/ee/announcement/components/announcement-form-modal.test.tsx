@@ -227,6 +227,16 @@ describe("AnnouncementFormModal", () => {
     expect(service.createAnnouncement).not.toHaveBeenCalled();
   });
 
+  it("describes the Everyone audience before it is chosen", () => {
+    renderModal();
+    const audience = screen.getByRole("radiogroup", { name: "Audience" });
+    expect(audience.getAttribute("aria-describedby")).toBeTruthy();
+    expect(
+      document.getElementById(audience.getAttribute("aria-describedby"))
+        ?.textContent,
+    ).toBe("Everyone also includes the login page and public pages.");
+  });
+
   it("shows the preview once the message has text", () => {
     renderModal();
     expect(screen.queryByText("Preview")).toBeNull();

@@ -1,0 +1,253 @@
+import type { TFunction } from "i18next";
+import { describe, expect, it } from "vitest";
+import {
+  type AnnouncementFormValues,
+  formatPickerValue,
+  getInitialValues,
+  getPickerTime,
+  toAnnouncementInput,
+  validateAnnouncementForm,
+} from "./announcement-form.utils";
+import {
+  formatAnnouncementTime,
+  fromPickerValue,
+  toPickerValue,
+} from "../announcement.utils";
+import type {
+  IAnnouncement,
+  IAnnouncementContent,
+} from "../types/announcement.types";
+
+const t = ((key: string) => key) as unknown as TFunction;
+const NOW = Date.parse("2026-11-05T12:00:00.000Z");
+
+const doc = (text: string): IAnnouncementContent => ({
+  type: "doc",
+  content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+});
+
+const stored = (overrides: Partial<IAnnouncement> = {}): IAnnouncement => ({
+  id: "a1",
+  kind: "warning",
+  color: "yellow",
+  content: doc("Planned maintenance"),
+  isDismissible: true,
+  audience: "everyone",
+  startsAt: "2026-11-04T09:00:00.123Z",
+  endsAt: "2026-11-06T18:00:00.456Z",
+  archivedAt: null,
+  status: "active",
+  createdAt: "2026-11-03T09:00:00.000Z",
+  updatedAt: "2026-11-03T09:00:00.000Z",
+  ...overrides,
+});
+
+const values = (
+  overrides: Partial<AnnouncementFormValues> = {},
+): AnnouncementFormValues => ({
+  ...getInitialValues(null),
+  content: doc("Maintenance tonight"),
+  ...overrides,
+});
+
+const validate = (
+  formValues: AnnouncementFormValues,
+  storedEndsAt: string | null = null,
+) => validateAnnouncementForm(formValues, storedEndsAt, t, NOW);
+
+describe("getInitialValues", () => {
+  it("starts a new announcement as info, blue, for logged-in users, not dismissible, now and without an end", () => {
+    expect(getInitialValues(null)).toEqual({
+      kind: "info",
+      color: "blue",
+      content: null,
+      audience: "members",
+      isDismissible: false,
+      startMode: "now",
+      startsAt: null,
+      endMode: "none",
+      endsAt: null,
+    });
+  });
+
+  it("puts both stored times in the pickers when editing", () => {
+    const announcement = stored();
+    expect(getInitialValues(announcement)).toEqual({
+      kind: "warning",
+      color: "yellow",
+      content: announcement.content,
+      audience: "everyone",
+      isDismissible: true,
+      startMode: "date",
+      startsAt: toPickerValue(announcement.startsAt),
+      endMode: "date",
+      endsAt: toPickerValue(announcement.endsAt),
+    });
+  });
+
+  it("edits an announcement without an end as No end", () => {
+    expect(getInitialValues(stored({ endsAt: null }))).toMatchObject({
+      endMode: "none",
+      endsAt: null,
+    });
+  });
+});
+
+describe("toAnnouncementInput", () => {
+  it("sends null for Now and No end", () => {
+    expect(
+      toAnnouncementInput(
+        values({ kind: "critical", color: "purple", audience: "everyone", isDismissible: true }),
+        null,
+      ),
+    ).toEqual({
+      kind: "critical",
+      color: "purple",
+      content: doc("Maintenance tonight"),
+      isDismissible: true,
+      audience: "everyone",
+      startsAt: null,
+      endsAt: null,
+    });
+  });
+
+  it("sends the picked times as ISO when creating", () => {
+    const input = toAnnouncementInput(
+      values({
+        startMode: "date",
+        startsAt: "2026-11-10 09:30:00",
+        endMode: "date",
+        endsAt: "2026-11-12 18:00:00",
+      }),
+      null,
+    );
+    expect(input.startsAt).toBe(fromPickerValue("2026-11-10 09:30:00"));
+    expect(input.endsAt).toBe(fromPickerValue("2026-11-12 18:00:00"));
+  });
+
+  it("re-sends the stored times when the pickers are untouched", () => {
+    const announcement = stored();
+    expect(
+      toAnnouncementInput(getInitialValues(announcement), announcement),
+    ).toMatchObject({
+      startsAt: "2026-11-04T09:00:00.123Z",
+      endsAt: "2026-11-06T18:00:00.456Z",
+    });
+  });
+
+  it("sends the new times when the pickers changed", () => {
+    const announcement = stored();
+    const input = toAnnouncementInput(
+      {
+        ...getInitialValues(announcement),
+        startsAt: "2026-11-10 10:00:00",
+        endsAt: "2026-11-12 10:00:00",
+      },
+      announcement,
+    );
+    expect(input.startsAt).toBe(fromPickerValue("2026-11-10 10:00:00"));
+    expect(input.endsAt).toBe(fromPickerValue("2026-11-12 10:00:00"));
+  });
+
+  it("sends null when an edit switches to Now and No end", () => {
+    const announcement = stored();
+    expect(
+      toAnnouncementInput(
+        { ...getInitialValues(announcement), startMode: "now", endMode: "none" },
+        announcement,
+      ),
+    ).toMatchObject({ startsAt: null, endsAt: null });
+  });
+});
+
+describe("validateAnnouncementForm", () => {
+  it("accepts a message that starts now and never ends", () => {
+    expect(validate(values())).toEqual({});
+  });
+
+  it.each([
+    ["no message", null, "Announcement message is required"],
+    ["a blank message", doc("   "), "Announcement message is required"],
+    ["a message over 500 characters", doc("a".repeat(501)), "Announcement message is too long"],
+  ])("rejects %s", (_label, content, message) => {
+    expect(validate(values({ content })).content).toBe(message);
+  });
+
+  it("accepts a message of exactly 500 characters", () => {
+    expect(validate(values({ content: doc("a".repeat(500)) }))).toEqual({});
+  });
+
+  it("asks for the times a date was chosen for", () => {
+    expect(validate(values({ startMode: "date", endMode: "date" }))).toEqual({
+      startsAt: "Start time is required",
+      endsAt: "End time is required",
+    });
+  });
+
+  it("rejects a new end that is not in the future", () => {
+    const pastEnd = toPickerValue(new Date(NOW - 60_000).toISOString());
+    expect(validate(values({ endMode: "date", endsAt: pastEnd })).endsAt).toBe(
+      "End time must be in the future",
+    );
+  });
+
+  it("rejects an end before the start", () => {
+    expect(
+      validate(
+        values({
+          startMode: "date",
+          startsAt: "2026-11-10 10:00:00",
+          endMode: "date",
+          endsAt: "2026-11-09 10:00:00",
+        }),
+      ).endsAt,
+    ).toBe("End time must be after the start time");
+  });
+
+  it("keeps a stored end that has passed when it was not touched", () => {
+    const endsAt = "2026-11-01T18:00:00.000Z";
+    expect(
+      validate(
+        values({
+          startMode: "date",
+          startsAt: "2026-10-30 09:00:00",
+          endMode: "date",
+          endsAt: toPickerValue(endsAt),
+        }),
+        endsAt,
+      ),
+    ).toEqual({});
+  });
+
+  it("rejects starting now while the stored end has passed", () => {
+    const endsAt = "2026-11-01T18:00:00.000Z";
+    expect(
+      validate(values({ endMode: "date", endsAt: toPickerValue(endsAt) }), endsAt)
+        .endsAt,
+    ).toBe("End time must be after the start time");
+  });
+});
+
+describe("getPickerTime", () => {
+  it.each([[null], [""], ["not a date"]])("returns null for %j", (value) => {
+    expect(getPickerTime(value)).toBeNull();
+  });
+
+  it("reads a picker value as local time", () => {
+    expect(getPickerTime("2026-11-06 09:30:00")).toBe(
+      new Date(2026, 10, 6, 9, 30).getTime(),
+    );
+  });
+});
+
+describe("formatPickerValue", () => {
+  it("formats a picker value in the admin's language", () => {
+    expect(formatPickerValue("2026-11-06 09:30:00", "en-US")).toBe(
+      formatAnnouncementTime(new Date(2026, 10, 6, 9, 30).getTime(), "en-US"),
+    );
+  });
+
+  it("shows an unreadable value as it is", () => {
+    expect(formatPickerValue("soon", "en-US")).toBe("soon");
+  });
+});

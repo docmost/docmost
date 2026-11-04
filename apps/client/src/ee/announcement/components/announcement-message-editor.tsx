@@ -154,6 +154,7 @@ export function AnnouncementMessageEditor({
             width={320}
             shadow="md"
             trapFocus
+            closeOnEscape={false}
           >
             <Popover.Target>
               <ActionIcon
@@ -166,9 +167,15 @@ export function AnnouncementMessageEditor({
               </ActionIcon>
             </Popover.Target>
             <Popover.Dropdown
+              data-mantine-stop-propagation
               onKeyDownCapture={(event) => {
-                if (event.key === "Escape" && editor && !editor.isDestroyed) {
-                  editor.commands.focus();
+                if (event.key !== "Escape") {
+                  return;
+                }
+                // Mantine's own Escape unmounts the focused input and leaves focus outside the modal
+                setLinkOpened(false);
+                if (editor && !editor.isDestroyed) {
+                  editor.view.focus();
                 }
               }}
             >
