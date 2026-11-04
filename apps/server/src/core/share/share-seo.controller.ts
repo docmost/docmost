@@ -8,6 +8,8 @@ import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { htmlEscape } from '../../common/helpers/html-escaper';
+import { getWorkspaceDefaultLocale } from '../workspace/workspace.util';
+import { DEFAULT_LOCALE } from '../workspace/workspace.constants';
 
 @Controller('share')
 export class ShareSeoController {
@@ -88,8 +90,11 @@ export class ShareSeoController {
         .filter(Boolean)
         .join('\n    ');
 
+      const lang = getWorkspaceDefaultLocale(workspace) ?? DEFAULT_LOCALE;
+
       const html = fs.readFileSync(indexFilePath, 'utf8');
       const transformedHtml = html
+        .replace(/<html lang="[^"]*"/i, () => `<html lang="${lang}"`)
         .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${metaTitle}</title>`)
         .replace(metaTagVar, () => metaTags);
 

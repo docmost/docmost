@@ -9,6 +9,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
+import { SUPPORTED_LOCALES } from '../workspace.constants';
 
 export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
@@ -77,6 +78,11 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsString()
   @IsIn(['read', 'edit'])
   defaultPageEditMode: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(SUPPORTED_LOCALES)
+  defaultLocale: string;
 
   @IsOptional()
   @IsBoolean()
