@@ -21,6 +21,8 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print.ts";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -60,6 +62,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  const { exportDisabledLabel } = useExportDisabled(page?.space?.slug);
+  useDisablePrint(exportDisabledLabel);
   const setAsideState = useSetAtom(asideStateAtom);
 
   // Keep above useCommentDeepLink so a deep link can reopen the aside.
