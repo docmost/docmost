@@ -27,3 +27,23 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.chip {
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+
+  &:hover {
+    background-color: light-dark(
+      var(--mantine-color-gray-1),
+      var(--mantine-color-dark-5)
+    );
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}

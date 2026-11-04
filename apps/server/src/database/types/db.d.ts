@@ -464,6 +464,7 @@ export interface UserTokens {
 export interface WorkspaceInvitations {
   createdAt: Generated<Timestamp>;
   email: string | null;
+  expiresAt: Timestamp;
   groupIds: string[] | null;
   id: Generated<string>;
   invitedById: string | null;
@@ -542,6 +543,34 @@ export interface Watchers {
   addedById: string | null;
   mutedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
+}
+
+export interface Integrations {
+  id: Generated<string>;
+  workspaceId: string;
+  type: string;
+  settings: Json | null;
+  installedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
+export interface IntegrationConnections {
+  id: Generated<string>;
+  integrationId: string;
+  userId: string;
+  workspaceId: string;
+  providerUserId: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  tokenExpiresAt: Timestamp | null;
+  invalidatedAt: Timestamp | null;
+  scopes: string | null;
+  kind: string;
+  metadata: Json | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface Labels {
@@ -763,6 +792,8 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  integrationConnections: IntegrationConnections;
+  integrations: Integrations;
   labels: Labels;
   notifications: Notifications;
   pageAccess: PageAccess;

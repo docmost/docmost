@@ -13,6 +13,7 @@ import {
 export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
   emailDomains: string[];
 
   @IsOptional()

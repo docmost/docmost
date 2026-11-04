@@ -12,13 +12,15 @@ import {
   IconMarkdown,
   IconMessage,
   IconPaperclip,
+  IconPresentation,
   IconPrinter,
   IconStar,
   IconStarFilled,
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Content } from "@tiptap/react";
 import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { useAtom, useAtomValue } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
@@ -39,11 +41,13 @@ import { htmlToMarkdown } from "@docmost/editor-ext";
 import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
+  yjsSyncedAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate } from "@/lib/time.ts";
 import { PageEditModeToggle } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import PageAttachmentsModal from "@/features/attachments/components/page-attachments-modal.tsx";
+import PresentationModal from "@/features/editor/components/presentation/presentation-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
 import {
@@ -78,10 +82,17 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     [
       [
         "mod+F",
-        () => {
+        (keyboardEvent) => {
+          // keepMounted modals (page import) stay in the DOM while closed
+          const modalOpen = Array.from(
+            document.querySelectorAll('[aria-modal="true"]'),
+          ).some((modal) => modal.getClientRects().length > 0);
+          if (modalOpen) return;
+          keyboardEvent.preventDefault();
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
         },
+        { preventDefault: false },
       ],
       [
         "Escape",
@@ -163,6 +174,10 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     attachmentsOpened,
     { open: openAttachmentsModal, close: closeAttachmentsModal },
   ] = useDisclosure(false);
+  const [
+    presentationOpened,
+    { open: openPresentationModal, close: closePresentationModal },
+  ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
   const favoriteIds = useFavoriteIds("page", page?.spaceId);
@@ -202,6 +217,18 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
 
   const handleDeletePage = () => {
     openDeleteModal({ onConfirm: () => handleDelete(page.id) });
+  };
+
+  const yjsSynced = useAtomValue(yjsSyncedAtom);
+  const [presentationContent, setPresentationContent] = useState<Content>(null);
+
+  const handleOpenPresentation = () => {
+    const liveContent =
+      yjsSynced && pageEditor && !pageEditor.isDestroyed
+        ? pageEditor.getJSON()
+        : null;
+    setPresentationContent(liveContent ?? page?.content ?? null);
+    openPresentationModal();
   };
 
   const handleToggleFavorite = () => {
@@ -305,6 +332,15 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
               onClick={openAttachmentsModal}
             >
               {t("Attachments")}
+            </Menu.Item>
+          )}
+
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconPresentation size={16} />}
+              onClick={handleOpenPresentation}
+            >
+              {t("Presentation mode")}
             </Menu.Item>
           )}
 
@@ -413,8 +449,17 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
 
       <PageAttachmentsModal
         pageId={page.id}
+        readOnly={readOnly}
         open={attachmentsOpened}
         onClose={closeAttachmentsModal}
+      />
+
+      <PresentationModal
+        pageId={page.id}
+        title={page.title}
+        content={presentationContent}
+        opened={presentationOpened}
+        onClose={closePresentationModal}
       />
     </>
   );

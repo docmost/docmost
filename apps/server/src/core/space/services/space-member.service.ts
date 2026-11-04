@@ -24,6 +24,8 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WsService } from '../../../ws/ws.service';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class SpaceMemberService {
@@ -35,6 +37,8 @@ export class SpaceMemberService {
     private favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly wsService: WsService,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async addUserToSpace(
@@ -283,6 +287,11 @@ export class SpaceMemberService {
       return { space, spaceMember };
     });
 
+    await this.collabAccessService.recheckAccess({ userIds: affectedUserIds });
+    await this.wsService.removeUsersWithoutSpaceAccess(affectedUserIds, [
+      dto.spaceId,
+    ]);
+
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_REMOVED,
       resourceType: AuditResource.SPACE_MEMBER,
@@ -337,7 +346,7 @@ export class SpaceMemberService {
       }
 
       if (spaceMember.role === dto.role) {
-        return { changed: false, space, spaceMember };
+        return { changed: false, space, spaceMember, demotedUserIds: [] };
       }
 
       if (spaceMember.role === SpaceRole.ADMIN) {
@@ -351,14 +360,25 @@ export class SpaceMemberService {
         trx,
       );
 
-      return { changed: true, space, spaceMember };
+      let demotedUserIds: string[] = [];
+      if (dto.role === SpaceRole.READER) {
+        demotedUserIds = spaceMember.userId
+          ? [spaceMember.userId]
+          : await this.groupUserRepo.getUserIdsByGroupId(spaceMember.groupId, {
+              trx,
+            });
+      }
+
+      return { changed: true, space, spaceMember, demotedUserIds };
     });
 
     if (!result.changed) {
       return;
     }
 
-    const { space, spaceMember } = result;
+    const { space, spaceMember, demotedUserIds } = result;
+
+    await this.collabAccessService.recheckAccess({ userIds: demotedUserIds });
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,

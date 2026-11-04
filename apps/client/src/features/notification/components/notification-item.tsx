@@ -74,13 +74,16 @@ export function NotificationItem({
     }
   };
 
+  const commentParam = notification.commentId
+    ? `?commentId=${notification.commentId}`
+    : "";
   const pageUrl =
     notification.page && notification.space
       ? buildPageUrl(
           notification.space.slug,
           notification.page.slugId,
           notification.page.title,
-        )
+        ) + commentParam
       : undefined;
 
   const isSiemDestination = notification.type.startsWith("siem_destination.");

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useDebouncedCallback } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
 import { timeAgo } from "@/lib/time.ts";
+import { AUTOSAVE_DELAY_MS } from "@/ee/base/constants/autosave";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
 
 type RowDetailTitleProps = {
@@ -24,21 +26,23 @@ export function RowDetailTitle({
     ? (((row.cells ?? {})[primaryProperty.id] as string) ?? "")
     : "";
   const [value, setValue] = useState(initial);
-  const cancelRef = useRef(false);
+  const focusedRef = useRef(false);
 
-  const commit = () => {
-    onEditingChange?.(false);
-    if (cancelRef.current) {
-      cancelRef.current = false;
-      setValue(initial);
-      return;
-    }
+  const save = () => {
     if (value !== initial) onCommit(value);
   };
+  const autosave = useDebouncedCallback(save, AUTOSAVE_DELAY_MS);
 
-  // Re-sync when the row changes underneath us (navigation or remote edit).
+  const commit = () => {
+    focusedRef.current = false;
+    onEditingChange?.(false);
+    autosave.cancel();
+    save();
+  };
+
+  // Re-sync when the row changes underneath us (navigation or remote edit), but not mid-typing.
   useEffect(() => {
-    setValue(initial);
+    if (!focusedRef.current) setValue(initial);
   }, [initial]);
 
   const updatedAgo = row.updatedAt ? timeAgo(new Date(row.updatedAt)) : "";
@@ -55,13 +59,16 @@ export function RowDetailTitle({
           value={value}
           maxLength={1000}
           onFocus={() => {
+            focusedRef.current = true;
             onEditingChange?.(true);
           }}
-          onChange={(e) => setValue(e.currentTarget.value)}
+          onChange={(e) => {
+            setValue(e.currentTarget.value);
+            autosave();
+          }}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
-              cancelRef.current = true;
               e.currentTarget.blur();
             } else if (e.key === "Enter") {
               e.preventDefault();

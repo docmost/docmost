@@ -391,6 +391,16 @@ export function sanitizeUrl(url: string | undefined): string {
   return sanitized === "about:blank" ? "" : sanitized;
 }
 
+export function isHttpUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function isInternalFileUrl(url: string | undefined): boolean {
   if (!url) return false;
   const normalized = url.trim();

@@ -13,6 +13,7 @@ import {
   IconKey,
   IconWorld,
   IconSparkles,
+  IconPlug,
   IconHistory,
   IconShieldCheck,
   IconChartBar,
@@ -45,6 +46,7 @@ import AppVersion from "@/components/settings/app-version.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { useSettingsNavigation } from "@/hooks/use-settings-navigation";
+import { useInstalledIntegrations } from "@/features/integration/queries/integration-query";
 
 type DataItem = {
   label: string;
@@ -53,6 +55,7 @@ type DataItem = {
   feature?: string;
   role?: "admin" | "owner";
   env?: "cloud" | "selfhosted";
+  requiresInstalledIntegration?: boolean;
 };
 
 type DataGroup = {
@@ -75,6 +78,12 @@ const groupedData: DataGroup[] = [
         icon: IconKey,
         path: "/settings/account/api-keys",
         feature: Feature.API_KEYS,
+      },
+      {
+        label: "Connections",
+        icon: IconPlug,
+        path: "/settings/account/connections",
+        requiresInstalledIntegration: true,
       },
     ],
   },
@@ -128,6 +137,12 @@ const groupedData: DataGroup[] = [
         env: "selfhosted",
       },
       {
+        label: "Integrations",
+        icon: IconPlug,
+        path: "/settings/integrations",
+        role: "admin",
+      },
+      {
         label: "Page analytics",
         icon: IconChartBar,
         path: "/settings/analytics",
@@ -163,6 +178,8 @@ export default function SettingsSidebar() {
     setActive(location.pathname);
   }, [location.pathname]);
 
+  const { data: installedIntegrations } = useInstalledIntegrations();
+
   const hasFeature = (f: string) =>
     entitlements?.features?.includes(f) ?? false;
 
@@ -171,6 +188,9 @@ export default function SettingsSidebar() {
     if (item.env === "selfhosted" && isCloud()) return false;
     if (item.role === "admin" && !isAdmin) return false;
     if (item.role === "owner" && !isOwner) return false;
+    if (item.requiresInstalledIntegration && !installedIntegrations?.length) {
+      return false;
+    }
     return true;
   };
 

@@ -556,6 +556,7 @@ export class PageController {
       );
     }
     let spaceId = dto.spaceId;
+    let pageId: string;
 
     if (dto.pageId) {
       const page = await this.pageRepo.findById(dto.pageId);
@@ -564,6 +565,7 @@ export class PageController {
       }
 
       spaceId = page.spaceId;
+      pageId = page.id;
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
@@ -579,7 +581,7 @@ export class PageController {
     return this.pageService.getSidebarPages(
       spaceId,
       pagination,
-      dto.pageId,
+      pageId,
       user.id,
       spaceCanEdit,
     );
