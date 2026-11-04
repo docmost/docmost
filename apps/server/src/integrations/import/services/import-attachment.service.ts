@@ -207,14 +207,13 @@ export class ImportAttachmentService {
     const {
       html,
       pageRelativePath,
-      extractDir,
       pageId,
       fileTask,
-      attachmentCandidates = new Map(),
-      pageAttachments = [],
       isConfluenceImport,
     } = opts;
 
+    const attachmentCandidates = opts.attachmentCandidates ?? new Map();
+    const pageAttachments = opts.pageAttachments ?? []
     const attachmentTasks: (() => Promise<void>)[] = [];
     const limit = pLimit(this.CONCURRENT_UPLOADS);
     const uploadStats: UploadStats = {
