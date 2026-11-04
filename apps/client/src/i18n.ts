@@ -1,14 +1,10 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import Backend from "i18next-http-backend";
-import { LANGUAGE_OPTIONS } from "@/lib/constants.ts";
+import { getStartLanguage } from "@/lib/locale.ts";
 
-// public pages served by the server carry the workspace language in <html lang>
-const serverLanguage = LANGUAGE_OPTIONS.some(
-  (option) => option.value === document.documentElement.lang,
-)
-  ? document.documentElement.lang
-  : undefined;
+// known before the first render, so pages don't show English first
+export const startLanguage = getStartLanguage();
 
 i18n
   // load translation using http -> see /public/locales (i.e. https://github.com/i18next/react-i18next/tree/master/example/react/public/locales)
@@ -20,7 +16,7 @@ i18n
   // init i18next
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    lng: serverLanguage,
+    lng: startLanguage,
     fallbackLng: "en-US",
     debug: false,
     showSupportNotice: false,
