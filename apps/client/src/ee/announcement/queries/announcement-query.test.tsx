@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { createStore, Provider as JotaiProvider } from "jotai";
 import { notifications } from "@mantine/notifications";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
+import { Feature } from "@/ee/features";
 import {
   ANNOUNCEMENTS_KEY,
   getAnnouncementErrorMessage,
@@ -46,12 +49,23 @@ const banners: IAnnouncementBanner[] = [
   },
 ];
 
-const requestError = (data: unknown) =>
-  Object.assign(new Error("Request failed with status code 409"), {
-    response: { status: 409, data },
+const requestError = (data: unknown, status = 409) =>
+  Object.assign(new Error(`Request failed with status code ${status}`), {
+    response: { status, data },
   });
 
-function setup<T>(useHook: () => T) {
+const enterprise = (features: string[]) => ({
+  cloud: false,
+  tier: "enterprise" as const,
+  features,
+});
+
+// features: the workspace entitlements; leave undefined for "not loaded yet"
+function setup<T>(useHook: () => T, features?: string[]) {
+  const store = createStore();
+  if (features) {
+    store.set(entitlementAtom, enterprise(features));
+  }
   // the app's defaults from main.tsx, without the retry delay
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -65,14 +79,18 @@ function setup<T>(useHook: () => T) {
     },
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <JotaiProvider store={store}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </JotaiProvider>
   );
-  return { queryClient, wrapper, ...renderHook(useHook, { wrapper }) };
+  return { store, queryClient, wrapper, ...renderHook(useHook, { wrapper }) };
 }
 
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.isCloud.mockReturnValue(false);
+  // the entitlement atom persists to localStorage and would rehydrate on mount
+  localStorage.clear();
 });
 
 // react-query only re-renders for the fields read during render
@@ -84,28 +102,47 @@ function useVisibleState(surface: AnnouncementSurface) {
 describe("useVisibleAnnouncementsQuery", () => {
   it("loads the logged-in list on the app surface", async () => {
     vi.mocked(service.getVisibleAnnouncements).mockResolvedValue(banners);
-    const { result } = setup(() => useVisibleState("app"));
+    const { result } = setup(() => useVisibleState("app"), [Feature.ANNOUNCEMENTS]);
     await waitFor(() => expect(result.current.data).toEqual(banners));
     expect(service.getPublicAnnouncements).not.toHaveBeenCalled();
   });
 
-  it("loads the public list on the public surface", async () => {
+  it("does not ask for the logged-in list when the workspace lacks the feature", () => {
+    const { result } = setup(() => useVisibleState("app"), []);
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
+  });
+
+  it("starts asking for the logged-in list once the entitlements load", async () => {
+    vi.mocked(service.getVisibleAnnouncements).mockResolvedValue(banners);
+    const { result, store } = setup(() => useVisibleState("app"));
+    expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
+
+    act(() => {
+      store.set(entitlementAtom, enterprise([Feature.ANNOUNCEMENTS]));
+    });
+
+    await waitFor(() => expect(result.current.data).toEqual(banners));
+  });
+
+  it("loads the public list on the public surface without any entitlement", async () => {
     vi.mocked(service.getPublicAnnouncements).mockResolvedValue(banners);
     const { result } = setup(() => useVisibleState("public"));
     await waitFor(() => expect(result.current.data).toEqual(banners));
     expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
   });
 
-  it("does not load anything on cloud", () => {
+  it.each(["app", "public"] as const)("does not load anything on cloud (%s surface)", (surface) => {
     mocks.isCloud.mockReturnValue(true);
-    const { result } = setup(() => useVisibleState("app"));
+    const { result } = setup(() => useVisibleState(surface), [Feature.ANNOUNCEMENTS]);
     expect(result.current.fetchStatus).toBe("idle");
     expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
+    expect(service.getPublicAnnouncements).not.toHaveBeenCalled();
   });
 
   it("keeps the last list when a refresh fails", async () => {
     vi.mocked(service.getVisibleAnnouncements).mockResolvedValueOnce(banners);
-    const { result } = setup(() => useVisibleState("app"));
+    const { result } = setup(() => useVisibleState("app"), [Feature.ANNOUNCEMENTS]);
     await waitFor(() => expect(result.current.data).toEqual(banners));
 
     vi.mocked(service.getVisibleAnnouncements).mockRejectedValue(new Error("offline"));
@@ -115,6 +152,32 @@ describe("useVisibleAnnouncementsQuery", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.data).toEqual(banners);
+  });
+
+  it("does not retry a 404, because the server has no announcements routes", async () => {
+    vi.mocked(service.getPublicAnnouncements).mockRejectedValue(requestError({ message: "Not Found" }, 404));
+    const { result } = setup(() => useVisibleState("public"));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries any other error once", async () => {
+    vi.mocked(service.getPublicAnnouncements).mockRejectedValue(requestError({ message: "Bad Gateway" }, 502));
+    const { result } = setup(() => useVisibleState("public"));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops polling after a 404 and keeps polling after other errors", async () => {
+    vi.mocked(service.getPublicAnnouncements).mockResolvedValue(banners);
+    const { queryClient, result } = setup(() => useVisibleState("public"));
+    await waitFor(() => expect(result.current.data).toEqual(banners));
+
+    const query = queryClient.getQueryCache().find({ queryKey: [...ANNOUNCEMENTS_KEY, "visible", "public"] });
+    const refetchInterval = query!.observers[0].options.refetchInterval as unknown as (q: unknown) => number | false;
+    expect(refetchInterval({ state: { error: null } })).toBe(300_000);
+    expect(refetchInterval({ state: { error: requestError({}, 502) } })).toBe(300_000);
+    expect(refetchInterval({ state: { error: requestError({}, 404) } })).toBe(false);
   });
 });
 

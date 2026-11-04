@@ -9,6 +9,8 @@ import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
 import { IPagination } from "@/lib/types";
+import { Feature } from "@/ee/features";
+import { useHasFeature } from "@/ee/hooks/use-feature";
 import {
   archiveAnnouncement,
   createAnnouncement,
@@ -62,6 +64,11 @@ function showError(error: Error) {
   });
 }
 
+// A 404 means the server has no announcements routes (no ee module), so neither retry nor poll
+function isNotFound(error: unknown): boolean {
+  return (error as { response?: { status?: number } })?.response?.status === 404;
+}
+
 function useInvalidateAnnouncements() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: ANNOUNCEMENTS_KEY });
@@ -95,15 +102,17 @@ export function useArchivedAnnouncementsQuery(
 export function useVisibleAnnouncementsQuery(
   surface: AnnouncementSurface,
 ): UseQueryResult<IAnnouncementBanner[], Error> {
+  const hasFeature = useHasFeature(Feature.ANNOUNCEMENTS);
   return useQuery({
     queryKey: [...ANNOUNCEMENTS_KEY, "visible", surface],
     queryFn:
       surface === "app" ? getVisibleAnnouncements : getPublicAnnouncements,
-    enabled: !isCloud(),
+    enabled: !isCloud() && (surface === "public" || hasFeature),
     staleTime: 60_000,
-    refetchInterval: 300_000,
+    refetchInterval: (query) =>
+      isNotFound(query.state.error) ? false : 300_000,
     refetchOnWindowFocus: true,
-    retry: 1,
+    retry: (failureCount, error) => !isNotFound(error) && failureCount < 1,
   });
 }
 
