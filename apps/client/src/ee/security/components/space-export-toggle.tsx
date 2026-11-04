@@ -1,4 +1,5 @@
 import { Group, Text, Switch, Tooltip } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import React, { useState } from "react";
@@ -25,8 +26,7 @@ export default function SpaceExportToggle({ space }: SpaceExportToggleProps) {
   const isDisabled = workspaceDisabled || (!hasExportControls && !checked);
   const updateSpaceMutation = useUpdateSpaceMutation();
 
-  const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.currentTarget.checked;
+  const applyChange = async (value: boolean) => {
     try {
       await updateSpaceMutation.mutateAsync({
         spaceId: space.id,
@@ -36,6 +36,27 @@ export default function SpaceExportToggle({ space }: SpaceExportToggleProps) {
     } catch {
       // error handled by mutation
     }
+  };
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.currentTarget.checked;
+
+    modals.openConfirmModal({
+      title: value ? t("Disable export") : t("Enable export"),
+      children: (
+        <Text size="sm">
+          {value
+            ? t(
+                "Are you sure you want to disable export? No one, including admins, will be able to export content from this space.",
+              )
+            : t("Are you sure you want to enable export for this space?")}
+        </Text>
+      ),
+      centered: true,
+      labels: { confirm: t("Confirm"), cancel: t("Cancel") },
+      confirmProps: value ? { color: "red" } : {},
+      onConfirm: () => applyChange(value),
+    });
   };
 
   return (

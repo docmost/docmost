@@ -29,11 +29,11 @@ export default function SpaceSecuritySettings({
 
       <Divider my="lg" />
 
-      <SpaceExportToggle space={space} />
+      <SpaceViewerCommentsToggle space={space} />
 
       <Divider my="lg" />
 
-      <SpaceViewerCommentsToggle space={space} />
+      <SpaceExportToggle space={space} />
     </div>
   );
 }
