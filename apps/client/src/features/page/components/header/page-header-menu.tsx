@@ -159,7 +159,9 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const { data: page, isLoading } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
-  const { exportDisabled, exportDisabledLabel } = useExportDisabled(spaceSlug);
+  const { exportDisabled, exportDisabledLabel } = useExportDisabled(
+    page?.space?.slug,
+  );
   const { openDeleteModal } = useDeletePageModal();
   const { handleDelete } = useTreeMutation(page?.spaceId ?? "");
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =

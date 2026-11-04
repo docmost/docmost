@@ -153,6 +153,7 @@ export function BaseToolbar({
             onClick={exportDisabled ? undefined : handleExport}
             data-disabled={exportDisabled || undefined}
             aria-disabled={exportDisabled || undefined}
+            aria-label={t("Export CSV")}
           >
             <IconDownload size={16} />
           </ActionIcon>
