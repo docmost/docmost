@@ -79,6 +79,9 @@ const AuditLogs = lazyWithPrefetch(() => import("@/ee/audit/pages/audit-logs.tsx
 const VerifiedPages = lazyWithPrefetch(
   () => import("@/ee/page-verification/pages/verified-pages.tsx"),
 );
+const Announcements = lazyWithPrefetch(
+  () => import("@/ee/announcement/pages/announcements"),
+);
 const TemplateList = lazyWithPrefetch(() => import("@/ee/template/pages/template-list"));
 const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
@@ -211,6 +214,9 @@ export default function App() {
             />
             <Route path={"verifications"} element={<VerifiedPages />} />
             <Route path={"integrations"} element={<Integrations />} />
+            {!isCloud() && (
+              <Route path={"announcements"} element={<Announcements />} />
+            )}
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>

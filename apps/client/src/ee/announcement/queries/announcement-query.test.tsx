@@ -316,4 +316,12 @@ describe("getAnnouncementErrorMessage", () => {
   it("falls back to the error message", () => {
     expect(getAnnouncementErrorMessage(new Error("Network Error"))).toBe("Network Error");
   });
+
+  it.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["a thrown string", "boom"],
+  ])("returns an empty string for %s", (_label, error) => {
+    expect(getAnnouncementErrorMessage(error)).toBe("");
+  });
 });

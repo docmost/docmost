@@ -1,0 +1,242 @@
+import {
+  ActionIcon,
+  Badge,
+  ColorSwatch,
+  Group,
+  Menu,
+  Skeleton,
+  Stack,
+  Table,
+  Text,
+} from "@mantine/core";
+import {
+  IconArchive,
+  IconDots,
+  IconEdit,
+  IconRestore,
+  IconTrash,
+} from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
+import NoTableResults from "@/components/common/no-table-results";
+import {
+  ANNOUNCEMENT_COLOR_STYLES,
+  ANNOUNCEMENT_KIND_LABELS,
+} from "@/ee/announcement/announcement.constants";
+import { getAnnouncementPlainText } from "@/ee/announcement/announcement.utils";
+import type {
+  AnnouncementStatus,
+  IAnnouncement,
+} from "@/ee/announcement/types/announcement.types";
+
+const STATUS_BADGES: Record<
+  AnnouncementStatus,
+  { label: string; color: string }
+> = {
+  active: { label: "Active", color: "green" },
+  scheduled: { label: "Scheduled", color: "blue" },
+  ended: { label: "Ended", color: "gray" },
+  archived: { label: "Archived", color: "gray" },
+};
+
+const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  dateStyle: "medium",
+  timeStyle: "short",
+};
+
+type AnnouncementTableProps = {
+  announcements: IAnnouncement[];
+  isLoading: boolean;
+  emptyMessage: string;
+  onEdit: (announcement: IAnnouncement) => void;
+  onArchive: (announcement: IAnnouncement) => void;
+  onRestore: (announcement: IAnnouncement) => void;
+  onDelete: (announcement: IAnnouncement) => void;
+};
+
+function TableSkeleton() {
+  return (
+    <>
+      {[220, 160, 260].map((width) => (
+        <Table.Tr key={width}>
+          <Table.Td>
+            <Group gap="xs" wrap="nowrap">
+              <Skeleton height={12} width={12} circle />
+              <Skeleton height={14} width={width} />
+            </Group>
+          </Table.Td>
+          <Table.Td>
+            <Skeleton height={14} width={60} />
+          </Table.Td>
+          <Table.Td>
+            <Skeleton height={14} width={100} />
+          </Table.Td>
+          <Table.Td>
+            <Stack gap={6}>
+              <Skeleton height={14} width={140} />
+              <Skeleton height={14} width={110} />
+            </Stack>
+          </Table.Td>
+          <Table.Td>
+            <Skeleton height={20} width={70} radius="xl" />
+          </Table.Td>
+          <Table.Td>
+            <Skeleton height={28} width={28} circle />
+          </Table.Td>
+        </Table.Tr>
+      ))}
+    </>
+  );
+}
+
+export function AnnouncementTable({
+  announcements,
+  isLoading,
+  emptyMessage,
+  onEdit,
+  onArchive,
+  onRestore,
+  onDelete,
+}: AnnouncementTableProps) {
+  const { t, i18n } = useTranslation();
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleString(i18n.language, DATE_TIME_FORMAT);
+
+  return (
+    <Table.ScrollContainer minWidth={760}>
+      <Table highlightOnHover verticalSpacing="sm" aria-busy={isLoading}>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>{t("Message")}</Table.Th>
+            <Table.Th>{t("Kind")}</Table.Th>
+            <Table.Th>{t("Audience")}</Table.Th>
+            <Table.Th>{t("Schedule")}</Table.Th>
+            <Table.Th>{t("Status")}</Table.Th>
+            <Table.Th aria-label={t("Actions")} />
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {isLoading ? (
+            <TableSkeleton />
+          ) : announcements.length > 0 ? (
+            announcements.map((announcement) => {
+              const preview = getAnnouncementPlainText(announcement.content);
+              // A newer server can send a preset this bundle does not know yet
+              const color =
+                ANNOUNCEMENT_COLOR_STYLES[announcement.color] ??
+                ANNOUNCEMENT_COLOR_STYLES.gray;
+              const status = STATUS_BADGES[announcement.status];
+              const canArchive =
+                announcement.status === "active" ||
+                announcement.status === "scheduled";
+              const canDelete =
+                announcement.status === "archived" ||
+                announcement.status === "ended";
+
+              return (
+                <Table.Tr key={announcement.id}>
+                  <Table.Td>
+                    <Group gap="xs" wrap="nowrap">
+                      <ColorSwatch
+                        color={color.background}
+                        size={12}
+                        role="img"
+                        aria-label={t(color.label)}
+                        style={{ flexShrink: 0 }}
+                      />
+                      <Text fz="sm" lineClamp={1}>
+                        {preview}
+                      </Text>
+                    </Group>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text fz="sm">
+                      {t(
+                        ANNOUNCEMENT_KIND_LABELS[announcement.kind] ??
+                          announcement.kind,
+                      )}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
+                      {announcement.audience === "everyone"
+                        ? t("Everyone")
+                        : t("Logged-in users")}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
+                      {formatTime(announcement.startsAt)}
+                    </Text>
+                    <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
+                      {announcement.endsAt
+                        ? formatTime(announcement.endsAt)
+                        : t("No end")}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge variant="light" color={status.color}>
+                      {t(status.label)}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Menu shadow="md" width={180} position="bottom-end">
+                      <Menu.Target>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label={t("Actions for {{name}}", {
+                            name: preview,
+                          })}
+                        >
+                          <IconDots size={18} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          leftSection={<IconEdit size={16} />}
+                          onClick={() => onEdit(announcement)}
+                        >
+                          {t("Edit")}
+                        </Menu.Item>
+                        {canArchive && (
+                          <Menu.Item
+                            leftSection={<IconArchive size={16} />}
+                            onClick={() => onArchive(announcement)}
+                          >
+                            {t("Archive")}
+                          </Menu.Item>
+                        )}
+                        {announcement.status === "archived" && (
+                          <Menu.Item
+                            leftSection={<IconRestore size={16} />}
+                            onClick={() => onRestore(announcement)}
+                          >
+                            {t("Restore")}
+                          </Menu.Item>
+                        )}
+                        {canDelete && (
+                          <>
+                            <Menu.Divider />
+                            <Menu.Item
+                              color="red"
+                              leftSection={<IconTrash size={16} />}
+                              onClick={() => onDelete(announcement)}
+                            >
+                              {t("Delete")}
+                            </Menu.Item>
+                          </>
+                        )}
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })
+          ) : (
+            <NoTableResults colSpan={6} text={emptyMessage} />
+          )}
+        </Table.Tbody>
+      </Table>
+    </Table.ScrollContainer>
+  );
+}

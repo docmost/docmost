@@ -45,9 +45,14 @@ function getErrorResponseData(error: unknown): ErrorResponseData | undefined {
     ?.response?.data;
 }
 
-export function getAnnouncementErrorMessage(error: Error): string {
-  const message = getErrorResponseData(error)?.message ?? error.message;
-  return Array.isArray(message) ? message.join(", ") : String(message);
+export function getAnnouncementErrorMessage(error: unknown): string {
+  const message =
+    getErrorResponseData(error)?.message ??
+    (error as { message?: unknown } | null)?.message;
+  if (Array.isArray(message)) {
+    return message.join(", ");
+  }
+  return message == null ? "" : String(message);
 }
 
 export function getAnnouncementLimitConflict(

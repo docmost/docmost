@@ -40,6 +40,8 @@ function getResourceUrl(entry: IAuditLog): string | null {
     case "space":
     case "space_member":
       return entry.resource.slug ? `/s/${entry.resource.slug}` : null;
+    case "announcement":
+      return "/settings/announcements";
     default:
       return null;
   }
