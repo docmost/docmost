@@ -141,6 +141,7 @@ export class SpaceService {
 
     if (
       typeof updateSpaceDto.disablePublicSharing !== 'undefined' ||
+      typeof updateSpaceDto.disableExport !== 'undefined' ||
       typeof updateSpaceDto.allowViewerComments !== 'undefined'
     ) {
       const workspace = await this.workspaceRepo.findById(workspaceId, {
@@ -152,6 +153,17 @@ export class SpaceService {
         !this.licenseCheckService.hasFeature(
           workspace.licenseKey,
           Feature.SECURITY_SETTINGS,
+          workspace.plan,
+        )
+      ) {
+        throw new ForbiddenException('This feature requires a valid license');
+      }
+
+      if (
+        updateSpaceDto.disableExport === true &&
+        !this.licenseCheckService.hasFeature(
+          workspace.licenseKey,
+          Feature.EXPORT_CONTROLS,
           workspace.plan,
         )
       ) {
@@ -200,6 +212,22 @@ export class SpaceService {
         if (updateSpaceDto.disablePublicSharing) {
           await this.shareRepo.deleteBySpaceId(updateSpaceDto.spaceId, trx);
         }
+      }
+
+      if (typeof updateSpaceDto.disableExport !== 'undefined') {
+        const prev = settingsBefore?.export?.disabled ?? false;
+        if (prev !== updateSpaceDto.disableExport) {
+          before.disableExport = prev;
+          after.disableExport = updateSpaceDto.disableExport;
+        }
+
+        await this.spaceRepo.updateExportSettings(
+          updateSpaceDto.spaceId,
+          workspaceId,
+          'disabled',
+          updateSpaceDto.disableExport,
+          trx,
+        );
       }
 
       if (typeof updateSpaceDto.allowViewerComments !== 'undefined') {

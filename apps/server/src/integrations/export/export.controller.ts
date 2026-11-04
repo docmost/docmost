@@ -63,6 +63,10 @@ export class ExportController {
     }
 
     await this.pageAccessService.validateCanView(page, user);
+    await this.pageAccessService.validateCanExport(
+      page.spaceId,
+      page.workspaceId,
+    );
 
     const result = await this.exportService.exportPages(
       dto.pageId,
@@ -127,6 +131,11 @@ export class ExportController {
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
+
+    await this.pageAccessService.validateCanExport(
+      dto.spaceId,
+      user.workspaceId,
+    );
 
     const exportFile = await this.exportService.exportSpace(
       dto.spaceId,
