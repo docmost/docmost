@@ -15,7 +15,7 @@
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/docmost-or-production-team-wiki)
 
 
-To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
+To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing).
 
 ## Features
 
@@ -52,7 +52,7 @@ All files in the following directories are licensed under the Docmost Enterprise
 See the [development documentation](https://docmost.com/docs/self-hosting/development)
 
 ## Thanks
-Special thanks to;
+Special thanks to:
 
 <img width="100" alt="Crowdin" src="https://github.com/user-attachments/assets/a6c3d352-e41b-448d-b6cd-3fbca3109f07" />
 
