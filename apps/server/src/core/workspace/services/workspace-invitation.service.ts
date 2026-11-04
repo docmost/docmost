@@ -42,6 +42,7 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import {
+  getWorkspaceDefaultLocale,
   getWorkspaceDefaultPageEditMode,
   isAdminActingOnOwner,
 } from '../workspace.util';
@@ -284,7 +285,10 @@ export class WorkspaceInvitationService {
             workspaceId: workspace.id,
           },
           trx,
-          { pageEditMode: getWorkspaceDefaultPageEditMode(workspace) },
+          {
+            pageEditMode: getWorkspaceDefaultPageEditMode(workspace),
+            locale: getWorkspaceDefaultLocale(workspace),
+          },
         );
 
         // add user to default group

@@ -1,4 +1,5 @@
 import { UserRole } from '../../common/helpers/types/permission';
+import { SUPPORTED_LOCALES } from './workspace.constants';
 
 export function isAdminActingOnOwner(
   authUserRole: string,
@@ -18,6 +19,19 @@ export function getWorkspaceDefaultPageEditMode(
   const mode = settings.defaultPageEditMode;
   if (mode === 'read' || mode === 'edit') {
     return mode;
+  }
+  return undefined;
+}
+
+export function getWorkspaceDefaultLocale(
+  workspace: { settings?: unknown } | null | undefined,
+): string | undefined {
+  const settings = (workspace?.settings ?? {}) as {
+    defaultLocale?: unknown;
+  };
+  const locale = settings.defaultLocale;
+  if (typeof locale === 'string' && SUPPORTED_LOCALES.includes(locale)) {
+    return locale;
   }
   return undefined;
 }

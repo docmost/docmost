@@ -35,6 +35,7 @@ export interface IWorkspace {
   allowMemberTemplates?: boolean;
   allowPersonalSpaces?: boolean;
   defaultPageEditMode?: string;
+  defaultLocale?: string;
   isScimEnabled?: boolean;
 }
 
@@ -46,6 +47,7 @@ export interface IWorkspaceSettings {
   spaces?: IWorkspaceSpaceSettings;
   publicSpaces?: IWorkspacePublicSpacesSettings;
   defaultPageEditMode?: string;
+  defaultLocale?: string;
 }
 
 export interface IWorkspaceApiSettings {
@@ -114,6 +116,7 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
+  defaultLocale: string;
 }
 
 export interface IVersion {
