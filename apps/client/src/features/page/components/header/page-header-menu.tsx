@@ -64,6 +64,7 @@ import {
   useWatchPageMutation,
   useUnwatchPageMutation,
 } from "@/features/page/queries/watcher-query";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -158,6 +159,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const { data: page, isLoading } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
+  const { exportDisabled, exportDisabledLabel } = useExportDisabled(spaceSlug);
   const { openDeleteModal } = useDeletePageModal();
   const { handleDelete } = useTreeMutation(page?.spaceId ?? "");
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
@@ -270,12 +272,21 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           </Menu.Item>
 
           {!page?.isBase && (
-            <Menu.Item
-              leftSection={<IconMarkdown size={16} />}
-              onClick={handleCopyAsMarkdown}
+            <Tooltip
+              label={exportDisabledLabel}
+              disabled={!exportDisabled}
+              position="left"
+              withArrow
             >
-              {t("Copy as Markdown")}
-            </Menu.Item>
+              <Menu.Item
+                leftSection={<IconMarkdown size={16} />}
+                onClick={exportDisabled ? undefined : handleCopyAsMarkdown}
+                data-disabled={exportDisabled || undefined}
+                aria-disabled={exportDisabled || undefined}
+              >
+                {t("Copy as Markdown")}
+              </Menu.Item>
+            </Tooltip>
           )}
 
           <Menu.Item
@@ -362,19 +373,37 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          <Menu.Item
-            leftSection={<IconFileExport size={16} />}
-            onClick={openExportModal}
+          <Tooltip
+            label={exportDisabledLabel}
+            disabled={!exportDisabled}
+            position="left"
+            withArrow
           >
-            {t("Export")}
-          </Menu.Item>
+            <Menu.Item
+              leftSection={<IconFileExport size={16} />}
+              onClick={exportDisabled ? undefined : openExportModal}
+              data-disabled={exportDisabled || undefined}
+              aria-disabled={exportDisabled || undefined}
+            >
+              {t("Export")}
+            </Menu.Item>
+          </Tooltip>
 
-          <Menu.Item
-            leftSection={<IconPrinter size={16} />}
-            onClick={handlePrint}
+          <Tooltip
+            label={exportDisabledLabel}
+            disabled={!exportDisabled}
+            position="left"
+            withArrow
           >
-            {t("Print PDF")}
-          </Menu.Item>
+            <Menu.Item
+              leftSection={<IconPrinter size={16} />}
+              onClick={exportDisabled ? undefined : handlePrint}
+              data-disabled={exportDisabled || undefined}
+              aria-disabled={exportDisabled || undefined}
+            >
+              {t("Print PDF")}
+            </Menu.Item>
+          </Tooltip>
 
           {!readOnly && (
             <>
