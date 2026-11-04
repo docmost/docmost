@@ -12,6 +12,9 @@
 
 ## Getting started
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/docmost-or-production-team-wiki)
+
+
 To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
 
 ## Features
@@ -59,4 +62,3 @@ Special thanks to;
 <img width="48" alt="Algolia-mark-square-white" src="https://github.com/user-attachments/assets/6ccad04a-9589-4965-b6a1-d5cb1f4f9e94" />
 
 [Algolia](https://www.algolia.com/) for providing full-text search to the docs.
-
