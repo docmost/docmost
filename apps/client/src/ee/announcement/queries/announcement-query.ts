@@ -175,6 +175,7 @@ export function useRestoreAnnouncementMutation() {
         color: "red",
         title: t("Up to two announcements can show at the same time."),
         message: createElement(AnnouncementConflictSummary, { conflict }),
+        autoClose: 10_000,
       });
     },
   });

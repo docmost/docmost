@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { type MouseEvent, useId } from "react";
 import { ActionIcon } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,7 @@ type AnnouncementBannerProps = {
     IAnnouncementBanner,
     "kind" | "color" | "content" | "isDismissible"
   >;
-  onDismiss?: () => void;
+  onDismiss?: (event: MouseEvent<HTMLButtonElement>) => void;
 };
 
 export function AnnouncementBanner({

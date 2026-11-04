@@ -30,6 +30,8 @@ export const ANNOUNCEMENT_COLORS: AnnouncementColor[] = [
 
 export const ANNOUNCEMENT_MAX_TEXT_LENGTH = 500;
 
+export const ANNOUNCEMENT_PREVIEW_LENGTH = 80;
+
 export const ANNOUNCEMENT_BANNERS_HEIGHT_VAR = "--announcement-banners-height";
 
 export const ANNOUNCEMENT_KIND_LABELS: Record<AnnouncementKind, string> = {

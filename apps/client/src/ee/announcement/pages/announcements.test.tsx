@@ -115,6 +115,17 @@ describe("Announcements page", () => {
     expect(newAnnouncementButton().disabled).toBe(false);
   });
 
+  it("shows skeleton rows, not an empty list, while the entitlements load", () => {
+    renderPage();
+    expect(screen.queryByText("No current announcements")).toBeNull();
+    expect(screen.queryByText("No archived announcements")).toBeNull();
+    expect(
+      screen
+        .getAllByRole("table", { hidden: true })
+        .map((table) => table.getAttribute("aria-busy")),
+    ).toEqual(["true", "true"]);
+  });
+
   it("asks for a license once the entitlements lack the feature", () => {
     renderPage([]);
     expect(screen.getByText(LICENSE_ALERT)).toBeTruthy();

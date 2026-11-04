@@ -280,6 +280,7 @@ describe("restoring into a full schedule", () => {
     expect(toast).toEqual({
       color: "red",
       title: "Up to two announcements can show at the same time.",
+      autoClose: 10_000,
     });
     render(<MantineProvider env="test">{message}</MantineProvider>);
     const format = (iso: string) =>

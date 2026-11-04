@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AnnouncementContent } from "./announcement-content";
@@ -17,6 +17,22 @@ const renderContent = (c: IAnnouncementContent) =>
       <AnnouncementContent content={c} />
     </MemoryRouter>,
   );
+
+// The client router cancels the browser navigation of the links it handles
+function isRoutedInApp(link: HTMLElement): boolean {
+  let routed = false;
+  document.addEventListener(
+    "click",
+    (event) => {
+      routed = event.defaultPrevented;
+      // jsdom cannot navigate
+      event.preventDefault();
+    },
+    { once: true },
+  );
+  fireEvent.click(link);
+  return routed;
+}
 
 describe("AnnouncementContent", () => {
   it("renders bold, italic and underline", () => {
@@ -57,6 +73,28 @@ describe("AnnouncementContent", () => {
     const link = screen.getByRole("link", { name: "Policy" });
     expect(link.getAttribute("href")).toBe("/s/general/p/policy-abc");
     expect(link.hasAttribute("target")).toBe(false);
+    expect(isRoutedInApp(link)).toBe(true);
+  });
+
+  it("leaves server paths such as file links to the browser, in the same tab", () => {
+    renderContent(
+      doc({
+        type: "text",
+        text: "Handbook",
+        marks: [
+          {
+            type: "link",
+            attrs: { href: "/api/files/019a4f7e-handbook/handbook.pdf" },
+          },
+        ],
+      }),
+    );
+    const link = screen.getByRole("link", { name: "Handbook" });
+    expect(link.getAttribute("href")).toBe(
+      "/api/files/019a4f7e-handbook/handbook.pdf",
+    );
+    expect(link.hasAttribute("target")).toBe(false);
+    expect(isRoutedInApp(link)).toBe(false);
   });
 
   it("drops unsafe links but keeps their text", () => {

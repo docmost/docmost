@@ -151,7 +151,7 @@ export function AnnouncementMessageEditor({
             opened={linkOpened}
             onChange={setLinkOpened}
             position="bottom-start"
-            width={320}
+            width={360}
             shadow="md"
             trapFocus
             closeOnEscape={false}

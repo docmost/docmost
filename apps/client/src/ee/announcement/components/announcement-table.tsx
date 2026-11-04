@@ -25,6 +25,7 @@ import {
 import {
   formatAnnouncementTime,
   getAnnouncementPlainText,
+  getAnnouncementPreview,
 } from "@/ee/announcement/announcement.utils";
 import type {
   AnnouncementStatus,
@@ -185,7 +186,7 @@ export function AnnouncementTable({
                           variant="subtle"
                           color="gray"
                           aria-label={t("Actions for {{name}}", {
-                            name: preview,
+                            name: getAnnouncementPreview(announcement.content),
                           })}
                         >
                           <IconDots size={18} />

@@ -30,8 +30,9 @@ export default function Announcements() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
   const hasFeature = useHasFeature(Feature.ANNOUNCEMENTS);
-  // Entitlements stay null until they load, which must not read as unlicensed
-  const isUnlicensed = useAtomValue(entitlementAtom) !== null && !hasFeature;
+  // Entitlements stay null until they load, which must read as loading, not as unlicensed
+  const entitlements = useAtomValue(entitlementAtom);
+  const isUnlicensed = entitlements !== null && !hasFeature;
   const [tab, setTab] = useState<AnnouncementsTab>("current");
   const { cursor, goNext, goPrev } = useCursorPaginate();
   const [formOpened, setFormOpened] = useState(false);
@@ -134,7 +135,7 @@ export default function Announcements() {
           ) : (
             <AnnouncementTable
               announcements={currentQuery.data ?? []}
-              isLoading={currentQuery.isLoading}
+              isLoading={currentQuery.isLoading || entitlements === null}
               emptyMessage={t("No current announcements")}
               {...tableActions}
             />
@@ -148,7 +149,7 @@ export default function Announcements() {
             <>
               <AnnouncementTable
                 announcements={archivedQuery.data?.items ?? []}
-                isLoading={archivedQuery.isLoading}
+                isLoading={archivedQuery.isLoading || entitlements === null}
                 emptyMessage={t("No archived announcements")}
                 {...tableActions}
               />

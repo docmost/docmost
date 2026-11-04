@@ -146,7 +146,11 @@ export default function GlobalAppShell({
         )}
         {showGlobalSidebar && <GlobalSidebar />}
       </AppShell.Navbar>
-      <AppShell.Main id={MAIN_CONTENT_ID} tabIndex={-1}>
+      <AppShell.Main
+        id={MAIN_CONTENT_ID}
+        tabIndex={-1}
+        className={classes.main}
+      >
         {isSettingsRoute ? (
           <Container size={900} pb={80}>
             {children}

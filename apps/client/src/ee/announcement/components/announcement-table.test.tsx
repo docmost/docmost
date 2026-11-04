@@ -163,6 +163,23 @@ describe("AnnouncementTable", () => {
     expect(within(row).getByRole("img", { name: "Gray" })).toBeTruthy();
   });
 
+  it("keeps the row menu name to a short preview of a long message", () => {
+    const text = "Planned maintenance on the storage cluster. ".repeat(6).trim();
+    renderTable([
+      announcement("active", {
+        content: {
+          type: "doc",
+          content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+        },
+      }),
+    ]);
+    expect(
+      screen.getByRole("button", {
+        name: `Actions for ${text.slice(0, 79)}…`,
+      }),
+    ).toBeTruthy();
+  });
+
   it("shows three skeleton rows while loading", () => {
     renderTable([], { isLoading: true });
     expect(screen.getAllByRole("row")).toHaveLength(4);

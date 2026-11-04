@@ -1,9 +1,11 @@
-import { useEffect, useReducer } from "react";
-import { useElementSize, useInterval } from "@mantine/hooks";
+import { useCallback, useLayoutEffect, useReducer, useRef } from "react";
+import { useInterval } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
+import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
 import { ANNOUNCEMENT_BANNERS_HEIGHT_VAR } from "@/ee/announcement/announcement.constants";
 import {
   dismissAnnouncement,
+  getAnnouncementFingerprint,
   isAnnouncementDismissed,
   isAnnouncementVisibleAt,
 } from "@/ee/announcement/announcement.utils";
@@ -24,19 +26,10 @@ export default function AnnouncementBanners({
   const { t } = useTranslation();
   const { data } = useVisibleAnnouncementsQuery(surface);
   const [, rerender] = useReducer((count: number) => count + 1, 0);
-  const { ref, height } = useElementSize();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const publishedHeightRef = useRef<number | null>(null);
 
   useInterval(rerender, 30_000, { autoInvoke: true });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty(ANNOUNCEMENT_BANNERS_HEIGHT_VAR, `${height}px`);
-    onHeightChange?.(height);
-    return () => {
-      root.style.removeProperty(ANNOUNCEMENT_BANNERS_HEIGHT_VAR);
-      onHeightChange?.(0);
-    };
-  }, [height, onHeightChange]);
 
   const now = Date.now();
   const banners = (data ?? []).filter(
@@ -45,10 +38,48 @@ export default function AnnouncementBanners({
       !(announcement.isDismissible && isAnnouncementDismissed(announcement)),
   );
   const hasBanners = banners.length > 0;
+  const bannersKey = banners
+    .map(
+      (announcement) =>
+        `${announcement.id}:${getAnnouncementFingerprint(announcement)}`,
+    )
+    .join(",");
+
+  const publishHeight = useCallback(() => {
+    const height = rootRef.current.getBoundingClientRect().height;
+    if (height === publishedHeightRef.current) {
+      return;
+    }
+    publishedHeightRef.current = height;
+    document.documentElement.style.setProperty(
+      ANNOUNCEMENT_BANNERS_HEIGHT_VAR,
+      `${height}px`,
+    );
+    onHeightChange?.(height);
+  }, [onHeightChange]);
+
+  // Before paint, so the header and sidebars never show a frame sized for other banners
+  useLayoutEffect(() => {
+    publishHeight();
+  }, [bannersKey, publishHeight]);
+
+  // A layout cleanup runs before a replacing layout's banners publish, so it cannot erase their height
+  useLayoutEffect(() => {
+    const observer = new ResizeObserver(publishHeight);
+    observer.observe(rootRef.current);
+    return () => {
+      observer.disconnect();
+      publishedHeightRef.current = null;
+      document.documentElement.style.removeProperty(
+        ANNOUNCEMENT_BANNERS_HEIGHT_VAR,
+      );
+      onHeightChange?.(0);
+    };
+  }, [publishHeight, onHeightChange]);
 
   return (
     <div
-      ref={ref}
+      ref={rootRef}
       className={classes.root}
       role={hasBanners ? "region" : undefined}
       aria-label={hasBanners ? t("Announcements") : undefined}
@@ -57,8 +88,15 @@ export default function AnnouncementBanners({
         <AnnouncementBanner
           key={announcement.id}
           announcement={announcement}
-          onDismiss={() => {
+          onDismiss={(event) => {
+            const closeButtons = Array.from(
+              rootRef.current.querySelectorAll("button"),
+            );
+            const nextFocus =
+              closeButtons[closeButtons.indexOf(event.currentTarget) + 1] ??
+              document.getElementById(MAIN_CONTENT_ID);
             dismissAnnouncement(announcement);
+            nextFocus?.focus({ preventScroll: true });
             rerender();
           }}
         />

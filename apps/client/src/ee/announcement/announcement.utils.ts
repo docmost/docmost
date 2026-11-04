@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { ANNOUNCEMENT_PREVIEW_LENGTH } from "./announcement.constants";
 import type {
   IAnnouncementBanner,
   IAnnouncementContent,
@@ -52,6 +53,15 @@ export function getAnnouncementPlainText(
     .flatMap((paragraph) => paragraph.content ?? [])
     .map((node) => node.text)
     .join("");
+}
+
+export function getAnnouncementPreview(content: IAnnouncementContent): string {
+  const text = getAnnouncementPlainText(content).replace(/\s+/g, " ").trim();
+  const characters = Array.from(text);
+  if (characters.length <= ANNOUNCEMENT_PREVIEW_LENGTH) {
+    return text;
+  }
+  return `${characters.slice(0, ANNOUNCEMENT_PREVIEW_LENGTH - 1).join("")}…`;
 }
 
 export function getAnnouncementFingerprint(

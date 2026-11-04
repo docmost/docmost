@@ -3,6 +3,7 @@ import {
   dismissAnnouncement,
   fromPickerValue,
   getAnnouncementPlainText,
+  getAnnouncementPreview,
   isAnnouncementDismissed,
   isAnnouncementVisibleAt,
   isSafeAnnouncementHref,
@@ -175,6 +176,22 @@ describe("getAnnouncementPlainText", () => {
   it("is empty for an empty paragraph", () => {
     const emptyDoc = { type: "doc", content: [{ type: "paragraph" }] } as unknown as IAnnouncementContent;
     expect(getAnnouncementPlainText(emptyDoc)).toBe("");
+  });
+});
+
+describe("getAnnouncementPreview", () => {
+  it("keeps a message of up to 80 characters whole", () => {
+    const text = "a".repeat(80);
+    expect(getAnnouncementPreview(content(text))).toBe(text);
+  });
+
+  it("cuts a longer message to 79 characters and an ellipsis", () => {
+    expect(getAnnouncementPreview(content("a".repeat(81)))).toBe(`${"a".repeat(79)}…`);
+  });
+
+  it("collapses whitespace and counts an emoji as one character", () => {
+    const text = `  Big   news ${"🎉".repeat(80)}`;
+    expect(getAnnouncementPreview(content(text))).toBe(`Big news ${"🎉".repeat(70)}…`);
   });
 });
 

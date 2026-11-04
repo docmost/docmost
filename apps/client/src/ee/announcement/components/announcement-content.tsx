@@ -25,13 +25,22 @@ export function AnnouncementContent({ content }: AnnouncementContentProps) {
 
         if (href !== null && isSafeAnnouncementHref(href)) {
           const target = href.trim();
-          element = target.startsWith("/") ? (
-            <Link to={target}>{element}</Link>
-          ) : (
-            <a href={target} target="_blank" rel="noopener noreferrer nofollow">
-              {element}
-            </a>
-          );
+          if (!target.startsWith("/")) {
+            element = (
+              <a
+                href={target}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+              >
+                {element}
+              </a>
+            );
+          } else if (target.startsWith("/api/")) {
+            // Server routes such as file downloads would hit the client router's 404 page
+            element = <a href={target}>{element}</a>;
+          } else {
+            element = <Link to={target}>{element}</Link>;
+          }
         }
 
         return <Fragment key={index}>{element}</Fragment>;
