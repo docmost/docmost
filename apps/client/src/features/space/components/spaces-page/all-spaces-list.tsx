@@ -117,7 +117,7 @@ export default function AllSpacesList({
       <Space h="md" />
 
       <Table.ScrollContainer minWidth={500}>
-        <Table highlightOnHover verticalSpacing="sm">
+        <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Caption>
             <VisuallyHidden>
               {t("List of spaces in this workspace")}
@@ -152,6 +152,7 @@ export default function AllSpacesList({
                       <Group
                         gap="sm"
                         wrap="nowrap"
+                        style={{ minWidth: 0 }}
                         onMouseEnter={() => prefetchSpace(space.slug, space.id)}
                       >
                         <CustomAvatar
