@@ -1,4 +1,4 @@
-import { Group, SegmentedControl, Table, Text } from "@mantine/core";
+import { Group, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
@@ -13,6 +13,7 @@ import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
+import SpaceArchiveFilter from "@/features/space/components/space-archive-filter.tsx";
 
 export default function SpaceList() {
   const { t } = useTranslation();
@@ -32,8 +33,8 @@ export default function SpaceList() {
     open();
   };
 
-  const handleArchivedChange = (value: string) => {
-    setArchived(value === "archived");
+  const handleArchivedChange = (value: boolean) => {
+    setArchived(value);
     resetPagination();
   };
 
@@ -42,16 +43,11 @@ export default function SpaceList() {
 
   return (
     <>
-      <Group align="flex-start">
-        <SearchInput onSearch={handleSearch} />
-        <SegmentedControl
-          value={archived ? "archived" : "active"}
+      <SearchInput onSearch={handleSearch} />
+      <Group mb="sm">
+        <SpaceArchiveFilter
+          archived={archived}
           onChange={handleArchivedChange}
-          data={[
-            { label: t("Active"), value: "active" },
-            { label: t("Archived"), value: "archived" },
-          ]}
-          withItemsBorders={false}
         />
       </Group>
       <Table.ScrollContainer minWidth={500}>

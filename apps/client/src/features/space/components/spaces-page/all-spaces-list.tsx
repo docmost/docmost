@@ -7,7 +7,6 @@ import {
   Space,
   Menu,
   Anchor,
-  SegmentedControl,
   Tooltip,
   VisuallyHidden,
 } from "@mantine/core";
@@ -29,6 +28,7 @@ import { SearchInput } from "@/components/common/search-input";
 import Paginate from "@/components/common/paginate";
 import NoTableResults from "@/components/common/no-table-results";
 import SpaceSettingsModal from "@/features/space/components/settings-modal";
+import SpaceArchiveFilter from "@/features/space/components/space-archive-filter";
 import classes from "./all-spaces-list.module.css";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
 import clsx from "clsx";
@@ -111,18 +111,8 @@ export default function AllSpacesList({
 
   return (
     <Box>
-      <Group align="flex-start">
-        <SearchInput onSearch={onSearch} />
-        <SegmentedControl
-          value={archived ? "archived" : "active"}
-          onChange={(value) => onArchivedChange(value === "archived")}
-          data={[
-            { label: t("Active"), value: "active" },
-            { label: t("Archived"), value: "archived" },
-          ]}
-          withItemsBorders={false}
-        />
-      </Group>
+      <SearchInput onSearch={onSearch} />
+      <SpaceArchiveFilter archived={archived} onChange={onArchivedChange} />
 
       <Space h="md" />
 

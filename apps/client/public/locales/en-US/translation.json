@@ -1596,6 +1596,8 @@
   "This space is archived": "This space is archived",
   "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.": "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.",
   "Archived": "Archived",
+  "Active spaces": "Active spaces",
+  "Archived spaces": "Archived spaces",
   "No active spaces. Archived spaces are under Archived.": "No active spaces. Archived spaces are under Archived.",
   "This public link is paused while the space is archived.": "This public link is paused while the space is archived.",
   "Public site paused": "Public site paused",
