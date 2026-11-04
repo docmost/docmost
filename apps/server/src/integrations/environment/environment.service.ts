@@ -10,6 +10,10 @@ export class EnvironmentService {
     return this.configService.get<string>('NODE_ENV', 'development');
   }
 
+  getDefaultLocale(): string {
+    return this.configService.get<string>('DEFAULT_LOCALE', 'en-US');
+  }
+
   isDevelopment(): boolean {
     return this.getNodeEnv() === 'development';
   }
