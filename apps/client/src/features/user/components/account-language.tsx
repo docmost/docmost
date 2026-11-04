@@ -53,6 +53,7 @@ function LanguageSwitcher() {
         { value: "uk-UA", label: "Українська (Ukrainian)" },
         { value: "ru-RU", label: "Русский (Russian)" },
         { value: "zh-CN", label: "中文 (简体)" },
+        { value: "cs-CZ", label: "Čeština (Czech)" },
       ]}
       value={language || "en-US"}
       onChange={handleChange}
