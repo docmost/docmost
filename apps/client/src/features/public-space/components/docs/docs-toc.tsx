@@ -7,14 +7,20 @@ import {
   HeadingLink,
   recalculateLinks,
 } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
+import { ANNOUNCEMENT_BANNERS_HEIGHT_VAR } from "@/ee/announcement/announcement.constants.ts";
 import styles from "./docs.module.css";
 
 function getHeaderOffset(): number {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(
-    "--docs-header-h",
+  const rootStyle = getComputedStyle(document.documentElement);
+  const header = parseInt(rootStyle.getPropertyValue("--docs-header-h"), 10);
+  const banners = parseInt(
+    rootStyle.getPropertyValue(ANNOUNCEMENT_BANNERS_HEIGHT_VAR),
+    10,
   );
-  const parsed = parseInt(raw, 10);
-  return Number.isNaN(parsed) ? 56 : parsed;
+  return (
+    (Number.isNaN(header) ? 56 : header) +
+    (Number.isNaN(banners) ? 0 : banners)
+  );
 }
 
 export default function DocsToc() {

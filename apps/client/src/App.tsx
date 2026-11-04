@@ -7,6 +7,7 @@ import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts
 import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
+import AnnouncementBanners from "@/ee/announcement/components/announcement-banners.tsx";
 
 
 const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
@@ -215,7 +216,15 @@ export default function App() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Error404 />} />
+        <Route
+          path="*"
+          element={
+            <>
+              <AnnouncementBanners surface="public" />
+              <Error404 />
+            </>
+          }
+        />
       </Routes>
     </Suspense>
   );

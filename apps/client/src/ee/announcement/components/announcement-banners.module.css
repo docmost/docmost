@@ -1,0 +1,48 @@
+.root {
+  position: sticky;
+  top: 0;
+  z-index: 91;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 44px;
+  position: relative;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.bar a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Mantine's primary-color focus ring disappears on the blue preset */
+.bar :is(a, button):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.close {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 8px;
+  display: flex;
+  align-items: center;
+}
+
+@media print {
+  .root {
+    display: none;
+  }
+}

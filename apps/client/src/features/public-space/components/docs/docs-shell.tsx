@@ -22,6 +22,7 @@ import DocsThemeToggle from "@/features/public-space/components/docs/docs-theme-
 import DocsFooterBranding from "@/features/public-space/components/docs/docs-footer-branding.tsx";
 import { MAIN_CONTENT_ID, SkipToMain } from "@/components/ui/skip-to-main.tsx";
 import { SearchMobileControl } from "@/features/search/components/search-control.tsx";
+import AnnouncementBanners from "@/ee/announcement/components/announcement-banners.tsx";
 import styles from "./docs.module.css";
 
 const MemoizedDocsSidebarTree = React.memo(DocsSidebarTree);
@@ -92,6 +93,7 @@ export default function DocsShell({
     <DocsSurfaceProvider value={surface}>
       <div className={clsx(styles.root, "public-typography")}>
         <SkipToMain />
+        <AnnouncementBanners surface="public" />
 
         <header className={styles.header}>
           <div className={styles.headerInner}>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Group, Text } from "@mantine/core";
+import AnnouncementBanners from "@/ee/announcement/components/announcement-banners.tsx";
 import classes from "./auth.module.css";
 
 type AuthLayoutProps = {
@@ -9,6 +10,7 @@ type AuthLayoutProps = {
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <>
+      <AnnouncementBanners surface="public" />
       <Group justify="center" gap={8} className={classes.logo}>
         <img
           src="/icons/favicon-32x32.png"

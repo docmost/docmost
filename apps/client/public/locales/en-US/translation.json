@@ -1583,5 +1583,7 @@
   "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired.",
   "Announcement archived": "Announcement archived",
   "Announcement restored": "Announcement restored",
-  "Announcement deleted": "Announcement deleted"
+  "Announcement deleted": "Announcement deleted",
+  "Announcements": "Announcements",
+  "Dismiss announcement": "Dismiss announcement"
 }

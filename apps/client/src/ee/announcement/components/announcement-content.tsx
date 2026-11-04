@@ -1,0 +1,41 @@
+import { Fragment, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { isSafeAnnouncementHref } from "@/ee/announcement/announcement.utils";
+import type { IAnnouncementContent } from "@/ee/announcement/types/announcement.types";
+
+type AnnouncementContentProps = {
+  content: IAnnouncementContent;
+};
+
+export function AnnouncementContent({ content }: AnnouncementContentProps) {
+  const nodes = content.content.flatMap((paragraph) => paragraph.content ?? []);
+
+  return (
+    <>
+      {nodes.map((node, index) => {
+        let element: ReactNode = <span>{node.text}</span>;
+        let href: string | null = null;
+
+        for (const mark of node.marks ?? []) {
+          if (mark.type === "bold") element = <strong>{element}</strong>;
+          if (mark.type === "italic") element = <em>{element}</em>;
+          if (mark.type === "underline") element = <u>{element}</u>;
+          if (mark.type === "link") href = mark.attrs.href;
+        }
+
+        if (href !== null && isSafeAnnouncementHref(href)) {
+          const target = href.trim();
+          element = target.startsWith("/") ? (
+            <Link to={target}>{element}</Link>
+          ) : (
+            <a href={target} target="_blank" rel="noopener noreferrer nofollow">
+              {element}
+            </a>
+          );
+        }
+
+        return <Fragment key={index}>{element}</Fragment>;
+      })}
+    </>
+  );
+}
