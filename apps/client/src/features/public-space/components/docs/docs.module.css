@@ -209,6 +209,7 @@
  * they drop into flow above the content so breadcrumbs never run under them. */
 .articleActions {
   position: absolute;
+  z-index: 1;
   top: rem(30px);
   right: rem(24px);
   display: inline-flex;
@@ -585,6 +586,16 @@
   }
 }
 
+/* Empty breadcrumb row so the title never runs under the pinned page actions. */
+.breadcrumbsSpacer {
+  height: rem(22px);
+  margin-bottom: rem(6px);
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    display: none;
+  }
+}
+
 .crumbLink {
   color: var(--docs-muted);
   text-decoration: none;
@@ -920,6 +931,7 @@
   .toc,
   .articleActions,
   .breadcrumbs,
+  .breadcrumbsSpacer,
   .pageNav,
   .footer {
     display: none !important;
