@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Container, Title, Text, Group, Box } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useHasArchivedSpaces,
+} from "@/features/space/queries/space-query";
 import CreateSpaceModal from "@/features/space/components/create-space-modal";
 import { AllSpacesList } from "@/features/space/components/spaces-page";
 import FavoriteSpacesGrid from "@/features/space/components/spaces-page/favorite-spaces-grid";
@@ -28,8 +31,10 @@ export default function Spaces() {
     resetPagination();
   };
 
-  const noActiveSpaces =
+  const activeListEmpty =
     !archived && !search && !isPlaceholderData && data?.items.length === 0;
+  const hasArchivedSpaces = useHasArchivedSpaces(activeListEmpty);
+  const noActiveSpaces = activeListEmpty && hasArchivedSpaces;
 
   return (
     <>

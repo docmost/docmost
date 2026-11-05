@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import type { ISpace } from "@/features/space/types/space.types";
 
 vi.mock("@/main.tsx", async () => ({
@@ -9,7 +9,7 @@ vi.mock("@/main.tsx", async () => ({
 const { applySpaceArchiveChange } = await import("./space-query");
 
 describe("applySpaceArchiveChange", () => {
-  it("marks every cached copy of the space and refreshes the space lists", () => {
+  it("marks every cached copy of the space and drops the inactive space lists", () => {
     const queryClient = new QueryClient();
     const space = { id: "space-1", slug: "eng", archivedAt: null } as ISpace;
     const other = { id: "space-2", slug: "ops", archivedAt: null } as ISpace;
@@ -26,8 +26,8 @@ describe("applySpaceArchiveChange", () => {
     expect(queryClient.getQueryData<ISpace>(["space", "space-1"])?.archivedAt).toEqual(archivedAt);
     expect(queryClient.getQueryData<ISpace>(["space", "eng"])?.archivedAt).toEqual(archivedAt);
     expect(queryClient.getQueryData<ISpace>(["space", "space-2"])?.archivedAt).toBeNull();
-    expect(queryClient.getQueryState(["spaces", { page: 1 }])?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(["favorites", "spaces"])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(["spaces", { page: 1 }])).toBeUndefined();
+    expect(queryClient.getQueryState(["favorites", "spaces"])).toBeUndefined();
     expect(queryClient.getQueryState(["spaceMembers", "space-1", ""])?.isInvalidated).toBe(false);
   });
 
@@ -42,5 +42,56 @@ describe("applySpaceArchiveChange", () => {
     applySpaceArchiveChange(queryClient, "space-1", null);
 
     expect(queryClient.getQueryData<ISpace>(["space", "eng"])?.archivedAt).toBeNull();
+  });
+
+  it("does not rewrite cached spaces that did not change", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(
+      ["space", "space-2"],
+      { id: "space-2", slug: "ops", archivedAt: null } as ISpace,
+      { updatedAt: 1000 },
+    );
+
+    applySpaceArchiveChange(queryClient, "space-1", new Date());
+
+    expect(queryClient.getQueryState(["space", "space-2"])?.dataUpdatedAt).toBe(1000);
+  });
+
+  it("drops inactive copies of the other server-filtered lists", () => {
+    const queryClient = new QueryClient();
+    const prefixes = [
+      "published-spaces",
+      "templates",
+      "verification-list",
+      "label-pages",
+      "workspace-labels",
+      "search-suggestion",
+    ];
+    for (const prefix of prefixes) {
+      queryClient.setQueryData([prefix, "x"], []);
+    }
+
+    applySpaceArchiveChange(queryClient, "space-1", new Date());
+
+    for (const prefix of prefixes) {
+      expect(queryClient.getQueryState([prefix, "x"])).toBeUndefined();
+    }
+  });
+
+  it("removes inactive matches and invalidates active ones", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["spaces", "inactive"], []);
+    queryClient.setQueryData(["spaces", "active"], []);
+    const observer = new QueryObserver(queryClient, {
+      queryKey: ["spaces", "active"],
+      queryFn: () => [],
+    });
+    const unsubscribe = observer.subscribe(() => {});
+
+    applySpaceArchiveChange(queryClient, "space-1", new Date());
+
+    expect(queryClient.getQueryState(["spaces", "inactive"])).toBeUndefined();
+    expect(queryClient.getQueryState(["spaces", "active"])?.isInvalidated).toBe(true);
+    unsubscribe();
   });
 });

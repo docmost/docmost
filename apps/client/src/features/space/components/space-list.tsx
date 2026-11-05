@@ -1,6 +1,9 @@
 import { Group, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
+import {
+  useGetSpacesQuery,
+  useHasArchivedSpaces,
+} from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { formatMemberCount } from "@/lib";
@@ -41,8 +44,10 @@ export default function SpaceList() {
     resetPagination();
   };
 
-  const noActiveSpaces =
+  const activeListEmpty =
     !archived && !search && !isPlaceholderData && data?.items.length === 0;
+  const hasArchivedSpaces = useHasArchivedSpaces(activeListEmpty);
+  const noActiveSpaces = activeListEmpty && hasArchivedSpaces;
 
   return (
     <>
