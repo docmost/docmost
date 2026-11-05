@@ -212,7 +212,7 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
                     time: verifiedAtAgo,
                   })}
             </Text>
-            {info.expiresAt && (
+            {info.expiresAt && status !== "invalidated" && (
               <Text size="xs" c="dimmed">
                 {t(status === "expired" ? "Expired {{date}}" : "Expires {{date}}", {
                   date: new Date(info.expiresAt).toLocaleDateString(

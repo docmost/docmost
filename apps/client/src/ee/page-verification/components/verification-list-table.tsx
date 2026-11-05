@@ -34,6 +34,8 @@ function statusBadge(status: VerificationStatus | null, t: (s: string) => string
       return <Badge color="green" variant="light" size="sm">{t("Verified")}</Badge>;
     case "expiring":
       return <Badge color="orange" variant="light" size="sm">{t("Expiring")}</Badge>;
+    case "invalidated":
+      return <Badge color="orange" variant="light" size="sm">{t("Unverified changes")}</Badge>;
     case "expired":
       return <Badge color="red" variant="light" size="sm">{t("Expired")}</Badge>;
     case "approved":
@@ -59,6 +61,7 @@ function verifiedUntilText(
     return "—";
   }
 
+  if (item.status === "invalidated") return "—";
   if (!item.expiresAt) return t("Indefinitely");
 
   const expires = new Date(item.expiresAt);

@@ -37,9 +37,7 @@ export function PageVerificationModal({
   onClose,
 }: PageVerificationModalProps) {
   const { t } = useTranslation();
-  const { data: verificationInfo } = usePageVerificationInfoQuery(
-    opened ? pageId : undefined,
-  );
+  const { data: verificationInfo } = usePageVerificationInfoQuery(pageId);
 
   const status = verificationInfo?.status ?? "none";
 
