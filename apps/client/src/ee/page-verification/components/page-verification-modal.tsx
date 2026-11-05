@@ -23,7 +23,11 @@ import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { SetupVerificationForm } from "./setup-verification-form";
 import { ManageVerificationForm } from "./manage-verification-form";
-import { getStatusColor, getStatusLabel } from "./verification-status";
+import {
+  getStatusColor,
+  getStatusCssColor,
+  getStatusLabel,
+} from "./verification-status";
 
 type PageVerificationModalProps = {
   pageId: string;
@@ -54,13 +58,7 @@ export function PageVerificationModal({
           <IconShieldCheck
             size={20}
             stroke={1.5}
-            color={
-              status === "verified" || status === "approved"
-                ? "var(--mantine-color-blue-6)"
-                : status === "expired"
-                  ? "var(--mantine-color-red-6)"
-                  : undefined
-            }
+            color={status === "none" ? undefined : getStatusCssColor(status)}
           />
           <Text fw={600}>
             {status === "none" ? t("Set up verification") : t("Verify page")}
@@ -151,7 +149,7 @@ export function PageVerificationBadge({
           >
             <IconRosetteDiscountCheckFilled
               size={18}
-              color={`var(--mantine-color-${getStatusColor(status).replace(".", "-")})`}
+              color={getStatusCssColor(status)}
               aria-hidden="true"
             />
             <Text size="sm" c={getStatusColor(status)}>
