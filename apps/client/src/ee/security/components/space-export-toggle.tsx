@@ -2,7 +2,7 @@ import { Group, Text, Switch, Tooltip } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { ISpace } from "@/features/space/types/space.types.ts";
 import { useUpdateSpaceMutation } from "@/features/space/queries/space-query.ts";
@@ -20,9 +20,7 @@ export default function SpaceExportToggle({ space }: SpaceExportToggleProps) {
   const workspaceDisabled = workspace?.settings?.export?.disabled === true;
   const hasExportControls = useHasFeature(Feature.EXPORT_CONTROLS);
   const upgradeLabel = useUpgradeLabel();
-  const [checked, setChecked] = useState(
-    space.settings?.export?.disabled === true,
-  );
+  const checked = space.settings?.export?.disabled === true;
   const isDisabled = workspaceDisabled || (!hasExportControls && !checked);
   const updateSpaceMutation = useUpdateSpaceMutation();
 
@@ -32,7 +30,6 @@ export default function SpaceExportToggle({ space }: SpaceExportToggleProps) {
         spaceId: space.id,
         disableExport: value,
       });
-      setChecked(value);
     } catch {
       // error handled by mutation
     }

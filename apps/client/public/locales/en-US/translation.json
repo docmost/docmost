@@ -1593,5 +1593,6 @@
   "Are you sure you want to disable export? No one in this workspace, including admins, will be able to export content.": "Are you sure you want to disable export? No one in this workspace, including admins, will be able to export content.",
   "Are you sure you want to enable export? Members will be able to export content.": "Are you sure you want to enable export? Members will be able to export content.",
   "Are you sure you want to disable export? No one, including admins, will be able to export content from this space.": "Are you sure you want to disable export? No one, including admins, will be able to export content from this space.",
-  "Are you sure you want to enable export for this space?": "Are you sure you want to enable export for this space?"
+  "Are you sure you want to enable export for this space?": "Are you sure you want to enable export for this space?",
+  "Failed to update setting": "Failed to update setting"
 }

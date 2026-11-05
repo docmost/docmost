@@ -2,10 +2,11 @@ import { Group, Text, Switch, Tooltip } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useHasFeature } from "@/ee/hooks/use-feature.ts";
 import { Feature } from "@/ee/features.ts";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label.ts";
@@ -30,9 +31,7 @@ export default function DisableExport() {
 function DisableExportToggle() {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
-  const [checked, setChecked] = useState(
-    workspace?.settings?.export?.disabled === true,
-  );
+  const checked = workspace?.settings?.export?.disabled === true;
   const hasExportControls = useHasFeature(Feature.EXPORT_CONTROLS);
   const upgradeLabel = useUpgradeLabel();
   // turning it off must work without a license
@@ -43,11 +42,10 @@ function DisableExportToggle() {
       const updatedWorkspace = await updateWorkspace({
         disableExport: value,
       });
-      setChecked(value);
       setWorkspace(updatedWorkspace);
     } catch (err) {
       notifications.show({
-        message: err?.response?.data?.message,
+        message: getApiErrorMessage(err, t("Failed to update setting")),
         color: "red",
       });
     }
