@@ -274,7 +274,7 @@ export class VerificationNotificationService {
           actorName,
           pageTitle,
           spaceName,
-          pageUrl: basePageUrl,
+          pageUrl: `${basePageUrl}?review=changes`,
         }),
       );
     }
@@ -392,7 +392,7 @@ export class VerificationNotificationService {
           actorName,
           pageTitle,
           spaceName,
-          pageUrl: basePageUrl,
+          pageUrl: `${basePageUrl}?review=changes`,
           verificationType,
           previousStatus,
         }),
