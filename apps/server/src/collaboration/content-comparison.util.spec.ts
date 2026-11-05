@@ -270,8 +270,14 @@ describe('toReviewDocument', () => {
       content: [text('h')],
     });
     const footnotes = { type: 'footnotes' };
+    const commented = (resolved: boolean) =>
+      doc({
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'hi', marks: [comment(resolved)] }],
+      });
     const pairs: [unknown, unknown][] = [
       [doc(p('hello world')), withComment],
+      [commented(false), commented(true)],
       [doc(p('a', { id: null }), heading(null)), doc(p('a', { id: ID }), heading(ID))],
       [doc(details(false)), doc(details(true))],
       [doc(p('a')), doc(p('a'), { type: 'paragraph' })],
