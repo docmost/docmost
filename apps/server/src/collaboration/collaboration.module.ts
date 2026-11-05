@@ -11,6 +11,7 @@ import { HistoryProcessor } from './processors/history.processor';
 import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
 import { CollabHistoryService } from './services/collab-history.service';
+import { PageHistoryRecorderService } from './services/page-history-recorder.service';
 import { WatcherModule } from '../core/watcher/watcher.module';
 import { TransclusionService } from '../core/page/transclusion/transclusion.service';
 import { TransclusionModule } from '../core/page/transclusion/transclusion.module';
@@ -26,10 +27,11 @@ import { EnvironmentModule } from '../integrations/environment/environment.modul
     LoggerExtension,
     HistoryProcessor,
     CollabHistoryService,
+    PageHistoryRecorderService,
     CollaborationHandler,
     TransclusionService,
   ],
-  exports: [CollaborationGateway],
+  exports: [CollaborationGateway, PageHistoryRecorderService],
   imports: [
     TokenModule,
     WatcherModule,
