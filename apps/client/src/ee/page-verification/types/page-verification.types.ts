@@ -1,3 +1,5 @@
+import type { JSONContent } from "@tiptap/react";
+
 export type VerificationType = "expiring" | "qms";
 
 export type ExpirationMode = "period" | "fixed" | "indefinite";
@@ -46,8 +48,38 @@ export type IPageVerificationInfo = {
   rejectionComment?: string | null;
   invalidatedAt?: string | null;
   invalidatedBy?: IUserRef | null;
+  verifiedHistoryId?: string | null;
+  rejectedHistoryId?: string | null;
   verifiers?: IVerifier[];
   permissions?: IPageVerificationPermissions;
+};
+
+export type VerificationChangesBaselineKind = "verified" | "rejected";
+
+export type IVerificationChangesBaseline = {
+  historyId: string;
+  title: string | null;
+  content: JSONContent;
+  at: string | null;
+  by: IUserRef | null;
+  hasChanges: boolean;
+};
+
+export type IVerificationChanges = {
+  type: VerificationType;
+  verified: IVerificationChangesBaseline | null;
+  rejected: IVerificationChangesBaseline | null;
+  current: {
+    title: string | null;
+    content: JSONContent;
+    updatedAt: string;
+    lastUpdatedBy: IUserRef | null;
+  };
+};
+
+export type IReviewChangesRequest = {
+  pageId: string;
+  source: "modal" | "link";
 };
 
 export type IPageVerificationPermissions = {

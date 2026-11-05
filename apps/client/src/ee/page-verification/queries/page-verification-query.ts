@@ -9,10 +9,12 @@ import {
   IPageVerificationInfo,
   ISetupVerification,
   IUpdateVerification,
+  IVerificationChanges,
   IVerificationListItem,
   IVerificationListParams,
 } from "@/ee/page-verification/types/page-verification.types";
 import {
+  getVerificationChanges,
   getVerificationInfo,
   getVerificationList,
   markObsolete,
@@ -35,6 +37,20 @@ export function usePageVerificationInfoQuery(
     queryFn: () => getVerificationInfo(pageId!),
     enabled: !!pageId,
     refetchOnMount: true,
+  });
+}
+
+// every open fetches again: the server flushes pending edits first
+export function useVerificationChangesQuery(
+  pageId: string | undefined,
+  enabled: boolean,
+): UseQueryResult<IVerificationChanges, Error> {
+  return useQuery({
+    queryKey: ["page-verification-changes", pageId],
+    queryFn: () => getVerificationChanges(pageId!),
+    enabled: enabled && !!pageId,
+    staleTime: 0,
+    gcTime: 0,
   });
 }
 

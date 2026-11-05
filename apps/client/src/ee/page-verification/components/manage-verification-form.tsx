@@ -11,8 +11,11 @@ import {
   Textarea,
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
+import { useSetAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n.ts";
+import { reviewChangesAtom } from "@/ee/page-verification/atoms/review-changes-atom";
+import { canReviewChanges } from "@/ee/page-verification/page-verification.utils";
 import {
   useMarkObsoleteMutation,
   usePageVerificationInfoQuery,
@@ -71,6 +74,28 @@ type ManageContentProps = {
   info: IPageVerificationInfo;
   onClose: () => void;
 };
+
+function ReviewChangesButton({
+  pageId,
+  info,
+}: Pick<ManageContentProps, "pageId" | "info">) {
+  const { t } = useTranslation();
+  const setReviewChanges = useSetAtom(reviewChangesAtom);
+
+  if (!canReviewChanges(info)) return null;
+
+  return (
+    <div>
+      <Button
+        variant="light"
+        size="compact-sm"
+        onClick={() => setReviewChanges({ pageId, source: "modal" })}
+      >
+        {t("Review changes")}
+      </Button>
+    </div>
+  );
+}
 
 function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
   const { t } = useTranslation();
@@ -229,6 +254,8 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
           </div>
         </Group>
       )}
+
+      <ReviewChangesButton pageId={pageId} info={info} />
 
       <Divider />
 
@@ -513,6 +540,8 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
           {t("This document has been marked as obsolete.")}
         </Text>
       )}
+
+      <ReviewChangesButton pageId={pageId} info={info} />
 
       <Divider />
 

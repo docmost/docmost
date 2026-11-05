@@ -12,17 +12,21 @@ import {
   IconRosetteDiscountCheckFilled,
   IconShieldCheck,
 } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { usePageVerificationInfoQuery } from "@/ee/page-verification/queries/page-verification-query";
+import { reviewChangesAtom } from "@/ee/page-verification/atoms/review-changes-atom";
+import { useReviewChangesDeepLink } from "@/ee/page-verification/hooks/use-review-changes-deep-link";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { SetupVerificationForm } from "./setup-verification-form";
 import { ManageVerificationForm } from "./manage-verification-form";
+import { VerificationChangesModal } from "./verification-changes-modal";
 import {
   getStatusColor,
   getStatusCssColor,
@@ -45,6 +49,8 @@ export function PageVerificationModal({
   const { data: verificationInfo } = usePageVerificationInfoQuery(
     hasVerificationFeature ? pageId : undefined,
   );
+  // Mantine closes every open modal on Escape; leave it to the review dialog on top
+  const isReviewOpen = useAtomValue(reviewChangesAtom)?.pageId === pageId;
 
   const status = verificationInfo?.status ?? "none";
 
@@ -52,6 +58,7 @@ export function PageVerificationModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      closeOnEscape={!isReviewOpen}
       aria-label={status === "none" ? t("Set up verification") : t("Verify page")}
       title={
         <Group gap="xs">
@@ -92,10 +99,20 @@ export function PageVerificationBadge({
   const { data: page } = usePageQuery({ pageId: pageSlugId });
   const pageId = page?.id;
 
-  const { data: verificationInfo, isLoading } = usePageVerificationInfoQuery(
-    hasVerificationFeature ? pageId : undefined,
-  );
+  const {
+    data: verificationInfo,
+    isLoading,
+    isFetching,
+  } = usePageVerificationInfoQuery(hasVerificationFeature ? pageId : undefined);
   const upgradeLabel = useUpgradeLabel();
+
+  useReviewChangesDeepLink({
+    pageId,
+    info: verificationInfo,
+    // wait out a refetch so the link acts on the current status
+    isLoading: isLoading || isFetching,
+    onOpenVerification: open,
+  });
 
   if (!pageId) return null;
   if (!hasVerificationFeature) {
@@ -171,6 +188,7 @@ export function PageVerificationBadge({
       ) : null}
 
       <PageVerificationModal pageId={pageId} opened={opened} onClose={close} />
+      <VerificationChangesModal pageId={pageId} onOpenVerification={open} />
     </>
   );
 }
