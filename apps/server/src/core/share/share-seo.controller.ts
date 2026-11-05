@@ -68,13 +68,6 @@ export class ShareSeoController {
           workspace.id,
           { includeContent: false },
         );
-        const shareReadable = await this.shareService.isShareReadable(
-          workspace.id,
-          shared.share.spaceId,
-        );
-        if (!shareReadable) {
-          return this.sendIndex(indexFilePath, res);
-        }
         title = shared.page.title;
         searchIndexing = shared.share.searchIndexing;
       } catch (err) {

@@ -46,6 +46,10 @@ export class ShareService {
       throw new NotFoundException('Share not found');
     }
 
+    if (!(await this.isShareReadable(workspaceId, share.spaceId))) {
+      throw new NotFoundException('Share not found');
+    }
+
     const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
       share.pageId,
     );
@@ -121,6 +125,10 @@ export class ShareService {
     const share = await this.getShareForPage(dto.pageId, workspaceId);
 
     if (!share) {
+      throw new NotFoundException('Shared page not found');
+    }
+
+    if (!(await this.isShareReadable(workspaceId, share.spaceId))) {
       throw new NotFoundException('Shared page not found');
     }
 

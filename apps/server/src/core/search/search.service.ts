@@ -8,7 +8,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { ShareService } from '../share/share.service';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tsquery = require('pg-tsquery')();
@@ -21,7 +21,7 @@ export class SearchService {
     private shareRepo: ShareRepo,
     private spaceMemberRepo: SpaceMemberRepo,
     private pagePermissionRepo: PagePermissionRepo,
-    private spaceRepo: SpaceRepo,
+    private shareService: ShareService,
   ) {}
 
   async searchPage(
@@ -140,7 +140,11 @@ export class SearchService {
         return { items: [] };
       }
 
-      if (await this.spaceRepo.isArchived(share.spaceId)) {
+      const shareReadable = await this.shareService.isShareReadable(
+        opts.workspaceId,
+        share.spaceId,
+      );
+      if (!shareReadable) {
         return { items: [] };
       }
 
