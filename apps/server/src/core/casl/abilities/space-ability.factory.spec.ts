@@ -14,10 +14,13 @@ function buildFactory(opts: { integration: boolean; archived: boolean }) {
       .mockResolvedValue([{ userId: 'user-1', role: SpaceRole.ADMIN }]),
   };
   const spaceRepo = { isArchived: jest.fn().mockResolvedValue(opts.archived) };
+  const store = new Map<string, unknown>([
+    [INTEGRATION_CALLER_KEY, opts.integration],
+  ]);
   const cls = {
     isActive: () => true,
-    get: (key: string) =>
-      key === INTEGRATION_CALLER_KEY ? opts.integration : undefined,
+    get: (key: string) => store.get(key),
+    set: (key: string, value: unknown) => store.set(key, value),
   };
   return {
     factory: new SpaceAbilityFactory(
@@ -54,6 +57,36 @@ describe('SpaceAbilityFactory archived spaces', () => {
     expect(ability.can(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)).toBe(
       true,
     );
+    expect(spaceRepo.isArchived).not.toHaveBeenCalled();
+  });
+
+  it('looks an integration caller space up once per request', async () => {
+    const { factory, spaceRepo } = buildFactory({
+      integration: true,
+      archived: false,
+    });
+    await factory.createForUser({ id: 'user-1' } as any, 'space-1');
+    await factory.createForUser({ id: 'user-1' } as any, 'space-1');
+    expect(spaceRepo.isArchived).toHaveBeenCalledTimes(1);
+  });
+
+  it('looks each space up separately', async () => {
+    const { factory, spaceRepo } = buildFactory({
+      integration: true,
+      archived: false,
+    });
+    await factory.createForUser({ id: 'user-1' } as any, 'space-1');
+    await factory.createForUser({ id: 'user-1' } as any, 'space-2');
+    expect(spaceRepo.isArchived).toHaveBeenCalledTimes(2);
+  });
+
+  it('never looks up for callers that are not integrations', async () => {
+    const { factory, spaceRepo } = buildFactory({
+      integration: false,
+      archived: true,
+    });
+    await factory.createForUser({ id: 'user-1' } as any, 'space-1');
+    await factory.createForUser({ id: 'user-1' } as any, 'space-2');
     expect(spaceRepo.isArchived).not.toHaveBeenCalled();
   });
 

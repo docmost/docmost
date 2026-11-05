@@ -15,6 +15,11 @@ const dto = { spaceId: 'space-1' } as any;
 const handlers = ['archiveSpace', 'unarchiveSpace'] as const;
 
 function buildController(roles?: SpaceRole[]) {
+  const spaceRepo = {
+    findById: jest.fn(async (id: string) =>
+      id === 'space-1' || id === 'my-slug' ? { id: 'space-1' } : undefined,
+    ),
+  };
   const spaceService = {
     archiveSpace: jest.fn().mockResolvedValue({ id: 'space-1' }),
     unarchiveSpace: jest.fn().mockResolvedValue({ id: 'space-1' }),
@@ -35,8 +40,9 @@ function buildController(roles?: SpaceRole[]) {
     spaceMemberRepo as any,
     spaceAbility,
     {} as any,
+    spaceRepo as any,
   );
-  return { controller, spaceService };
+  return { controller, spaceService, spaceMemberRepo, spaceRepo };
 }
 
 describe.each(handlers)('SpaceController.%s', (handler) => {
@@ -67,6 +73,39 @@ describe.each(handlers)('SpaceController.%s', (handler) => {
     await expect(
       controller[handler](dto, user, workspace),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(spaceService[handler]).not.toHaveBeenCalled();
+  });
+});
+
+describe.each(handlers)('SpaceController.%s space resolution', (handler) => {
+  it('resolves a slug to the space id for the ability check and the service', async () => {
+    const { controller, spaceService, spaceMemberRepo, spaceRepo } =
+      buildController([SpaceRole.ADMIN]);
+
+    await controller[handler]({ spaceId: 'my-slug' } as any, user, workspace);
+
+    expect(spaceRepo.findById).toHaveBeenCalledWith('my-slug', 'ws-1');
+    expect(spaceMemberRepo.getUserSpaceRoles).toHaveBeenCalledWith(
+      'user-1',
+      'space-1',
+      undefined,
+    );
+    expect(spaceService[handler]).toHaveBeenCalledWith(
+      ...(handler === 'archiveSpace'
+        ? ['space-1', 'user-1', 'ws-1']
+        : ['space-1', 'ws-1']),
+    );
+  });
+
+  it('answers 404 for an unknown space before the ability check', async () => {
+    const { controller, spaceService, spaceMemberRepo } = buildController([
+      SpaceRole.ADMIN,
+    ]);
+
+    await expect(
+      controller[handler]({ spaceId: 'nope' } as any, user, workspace),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(spaceMemberRepo.getUserSpaceRoles).not.toHaveBeenCalled();
     expect(spaceService[handler]).not.toHaveBeenCalled();
   });
 });

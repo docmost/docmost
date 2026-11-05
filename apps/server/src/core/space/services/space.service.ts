@@ -333,7 +333,7 @@ export class SpaceService {
       },
     });
 
-    this.emitArchiveUpdate(spaceId, archivedSpace.archivedAt);
+    this.emitArchiveUpdate(archivedSpace.id, archivedSpace.archivedAt);
 
     return archivedSpace;
   }
@@ -365,7 +365,7 @@ export class SpaceService {
       },
     });
 
-    this.emitArchiveUpdate(spaceId, unarchivedSpace.archivedAt);
+    this.emitArchiveUpdate(unarchivedSpace.id, unarchivedSpace.archivedAt);
 
     return unarchivedSpace;
   }

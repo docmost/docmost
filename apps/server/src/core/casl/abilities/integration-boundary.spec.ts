@@ -92,6 +92,7 @@ function buildBoundary(opts: { archived?: boolean } = {}) {
     spaceMemberRepo,
     spaceAbility,
     {} as any,
+    spaceRepo,
   );
   const pageController = new PageController(
     {} as any,

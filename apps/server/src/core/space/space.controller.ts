@@ -29,6 +29,7 @@ import {
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
@@ -46,6 +47,7 @@ export class SpaceController {
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
+    private readonly spaceRepo: SpaceRepo,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -185,18 +187,12 @@ export class SpaceController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      spaceIdDto.spaceId,
-    );
+    const space = await this.findSpaceOrFail(spaceIdDto.spaceId, workspace.id);
+    const ability = await this.spaceAbility.createForUser(user, space.id);
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
-    return this.spaceService.archiveSpace(
-      spaceIdDto.spaceId,
-      user.id,
-      workspace.id,
-    );
+    return this.spaceService.archiveSpace(space.id, user.id, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -206,14 +202,12 @@ export class SpaceController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      spaceIdDto.spaceId,
-    );
+    const space = await this.findSpaceOrFail(spaceIdDto.spaceId, workspace.id);
+    const ability = await this.spaceAbility.createForUser(user, space.id);
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
-    return this.spaceService.unarchiveSpace(spaceIdDto.spaceId, workspace.id);
+    return this.spaceService.unarchiveSpace(space.id, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -299,6 +293,14 @@ export class SpaceController {
     }
 
     return this.spaceMemberService.updateSpaceMemberRole(dto, workspace.id);
+  }
+
+  private async findSpaceOrFail(spaceId: string, workspaceId: string) {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId);
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+    return space;
   }
 
   validateIds(dto: RemoveSpaceMemberDto | UpdateSpaceMemberRoleDto) {
