@@ -18,7 +18,7 @@ import { HistoryEditor } from "@/features/page-history/components/history-editor
 import { HistoryDiffBar } from "@/features/page-history/components/history-diff-bar";
 import { useDiffNavigation } from "@/features/page-history/hooks";
 import { diffCountsAtom } from "@/features/page-history/atoms/history-atoms";
-import { formattedDate } from "@/lib/time";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale";
 import { reviewChangesAtom } from "@/ee/page-verification/atoms/review-changes-atom";
 import {
   usePageVerificationInfoQuery,
@@ -26,6 +26,7 @@ import {
 } from "@/ee/page-verification/queries/page-verification-query";
 import {
   containsDiagram,
+  getDefaultBaselineKind,
   normalizeReviewTitle,
 } from "@/ee/page-verification/page-verification.utils";
 import {
@@ -55,7 +56,10 @@ export function VerificationChangesModal({
     [pageId, setReview],
   );
 
-  const close = () => setReview(null);
+  // deferred so a verification modal's Escape listener for this keypress still sees the review open
+  const close = () => {
+    setTimeout(() => setReview(null), 0);
+  };
 
   return (
     <Modal.Root
@@ -105,10 +109,11 @@ function VerificationChangesContent({
   onOpenVerification,
 }: VerificationChangesContentProps) {
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   // kept through the close transition, after the request is cleared
   const [source] = useState(requestSource);
   const [baselineChoice, setBaselineChoice] =
-    useState<VerificationChangesBaselineKind>("verified");
+    useState<VerificationChangesBaselineKind | null>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [diffCounts, setDiffCounts] = useAtom(diffCountsAtom);
 
@@ -126,13 +131,14 @@ function VerificationChangesContent({
     return () => setDiffCounts(null);
   }, [setDiffCounts]);
 
-  // info stands in for the response while it loads, so the title is right early
-  const hasVerified = changes ? !!changes.verified : !!info?.verifiedHistoryId;
-  const hasRejected = changes ? !!changes.rejected : !!info?.rejectedHistoryId;
-  const baselineKind: VerificationChangesBaselineKind =
-    hasRejected && (baselineChoice === "rejected" || !hasVerified)
-      ? "rejected"
-      : "verified";
+  // info pointers stand in for the response while it loads, so the title is right early
+  const defaultBaselineKind = getDefaultBaselineKind(
+    changes ?? {
+      verified: info?.verifiedHistoryId,
+      rejected: info?.rejectedHistoryId,
+    },
+  );
+  const baselineKind = baselineChoice ?? defaultBaselineKind ?? "verified";
   const baseline = changes?.[baselineKind] ?? null;
   const copy = getBaselineCopy(baselineKind, changes?.type ?? info?.type, t);
 
@@ -204,7 +210,7 @@ function VerificationChangesContent({
     main = (
       <>
         <div className={classes.meta}>
-          {hasVerified && hasRejected && (
+          {changes.verified && changes.rejected && (
             <SegmentedControl<VerificationChangesBaselineKind>
               size="xs"
               aria-label={t("Compare with")}
@@ -221,7 +227,12 @@ function VerificationChangesContent({
               <Text size="sm" c="dimmed">
                 {copy.byLine({
                   name: baseline.by?.name ?? t("Someone"),
-                  date: formattedDate(new Date(baseline.at)),
+                  date: formatLocalized(
+                    baseline.at,
+                    "MMM dd, yyyy, h:mma",
+                    "PPp",
+                    dateLocale,
+                  ),
                 })}
               </Text>
             )}
@@ -289,16 +300,16 @@ function VerificationChangesContent({
       <Modal.Body p={0} className={classes.body}>
         <div className={classes.main}>{main}</div>
 
-        <Group justify="flex-end" gap="sm" className={classes.footer}>
-          <Button variant="default" onClick={onClose}>
-            {t("Close")}
-          </Button>
-          {canOpenVerification && (
+        {canOpenVerification && (
+          <Group justify="flex-end" gap="sm" className={classes.footer}>
+            <Button variant="default" onClick={onClose}>
+              {t("Close")}
+            </Button>
             <Button color="dark" onClick={handleOpenVerification}>
               {t("Open verification")}
             </Button>
-          )}
-        </Group>
+          </Group>
+        )}
       </Modal.Body>
     </>
   );

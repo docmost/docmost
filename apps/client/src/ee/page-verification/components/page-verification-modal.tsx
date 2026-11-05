@@ -102,15 +102,13 @@ export function PageVerificationBadge({
   const {
     data: verificationInfo,
     isLoading,
-    isFetching,
+    refetch: refetchVerificationInfo,
   } = usePageVerificationInfoQuery(hasVerificationFeature ? pageId : undefined);
   const upgradeLabel = useUpgradeLabel();
 
   useReviewChangesDeepLink({
-    pageId,
-    info: verificationInfo,
-    // wait out a refetch so the link acts on the current status
-    isLoading: isLoading || isFetching,
+    pageId: hasVerificationFeature ? pageId : undefined,
+    refetchInfo: refetchVerificationInfo,
     onOpenVerification: open,
   });
 

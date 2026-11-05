@@ -82,6 +82,8 @@ export type IReviewChangesRequest = {
   source: "modal" | "link";
 };
 
+export type ReviewLinkTarget = "review" | "verification" | "none";
+
 export type IPageVerificationPermissions = {
   canVerify: boolean;
   canManage: boolean;

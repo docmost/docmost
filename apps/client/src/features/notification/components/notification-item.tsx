@@ -84,7 +84,7 @@ export function NotificationItem({
   const isReviewNotification =
     notification.type === "page.approval_requested" ||
     notification.type === "page.verification_invalidated";
-  const commentParam = isReviewNotification
+  const queryParam = isReviewNotification
     ? "?review=changes"
     : notification.commentId
       ? `?commentId=${notification.commentId}`
@@ -95,7 +95,7 @@ export function NotificationItem({
           notification.space.slug,
           notification.page.slugId,
           notification.page.title,
-        ) + commentParam
+        ) + queryParam
       : undefined;
 
   const isSiemDestination = notification.type.startsWith("siem_destination.");

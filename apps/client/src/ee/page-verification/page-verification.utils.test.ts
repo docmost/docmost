@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   canReviewChanges,
   containsDiagram,
+  getDefaultBaselineKind,
+  getReviewLinkTarget,
   normalizeReviewTitle,
 } from "./page-verification.utils";
-import { IPageVerificationInfo } from "./types/page-verification.types";
+import {
+  IPageVerificationInfo,
+  IVerificationChangesBaseline,
+} from "./types/page-verification.types";
 
 const info = (
   overrides: Partial<IPageVerificationInfo>,
@@ -130,6 +135,74 @@ describe("canReviewChanges", () => {
   it("is not offered without a verification", () => {
     expect(canReviewChanges(undefined)).toBe(false);
     expect(canReviewChanges(info({ status: "none" }))).toBe(false);
+  });
+});
+
+describe("getReviewLinkTarget", () => {
+  it("opens the review when there are changes to review", () => {
+    expect(
+      getReviewLinkTarget(
+        info({ type: "qms", status: "in_approval", verifiedHistoryId: "v1" }),
+      ),
+    ).toBe("review");
+  });
+
+  it("opens the verification when there is nothing to review", () => {
+    expect(
+      getReviewLinkTarget(
+        info({ type: "qms", status: "approved", verifiedHistoryId: "v1" }),
+      ),
+    ).toBe("verification");
+    expect(getReviewLinkTarget(info({ type: "qms", status: "draft" }))).toBe(
+      "verification",
+    );
+    expect(
+      getReviewLinkTarget(
+        info({
+          type: "expiring",
+          status: "verified",
+          verifiedHistoryId: "v1",
+        }),
+      ),
+    ).toBe("verification");
+  });
+
+  it("opens nothing without a verification", () => {
+    expect(getReviewLinkTarget(info({ status: "none" }))).toBe("none");
+    expect(getReviewLinkTarget(undefined)).toBe("none");
+  });
+});
+
+describe("getDefaultBaselineKind", () => {
+  const baseline: IVerificationChangesBaseline = {
+    historyId: "h1",
+    title: "Title",
+    content: { type: "doc" },
+    at: null,
+    by: null,
+    hasChanges: true,
+  };
+
+  it("prefers the approved or verified version", () => {
+    expect(
+      getDefaultBaselineKind({ verified: baseline, rejected: baseline }),
+    ).toBe("verified");
+    expect(getDefaultBaselineKind({ verified: baseline, rejected: null })).toBe(
+      "verified",
+    );
+  });
+
+  it("falls back to the rejected version", () => {
+    expect(getDefaultBaselineKind({ verified: null, rejected: baseline })).toBe(
+      "rejected",
+    );
+  });
+
+  it("has no default without a version", () => {
+    expect(getDefaultBaselineKind({ verified: null, rejected: null })).toBe(
+      null,
+    );
+    expect(getDefaultBaselineKind(undefined)).toBe(null);
   });
 });
 

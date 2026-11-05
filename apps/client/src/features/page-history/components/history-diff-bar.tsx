@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { ActionIcon, Group, Paper, Switch, Text } from "@mantine/core";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
@@ -13,7 +14,7 @@ interface HistoryDiffBarProps {
   onNext: () => void;
   compact?: boolean;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
 
 export function HistoryDiffBar({
