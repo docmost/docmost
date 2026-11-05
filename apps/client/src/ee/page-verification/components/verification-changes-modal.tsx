@@ -58,7 +58,10 @@ export function VerificationChangesModal({
 
   // deferred so a verification modal's Escape listener for this keypress still sees the review open
   const close = () => {
-    setTimeout(() => setReview(null), 0);
+    setTimeout(
+      () => setReview((current) => (current?.pageId === pageId ? null : current)),
+      0,
+    );
   };
 
   return (
@@ -138,7 +141,11 @@ function VerificationChangesContent({
       rejected: info?.rejectedHistoryId,
     },
   );
-  const baselineKind = baselineChoice ?? defaultBaselineKind ?? "verified";
+  // a choice the latest response no longer offers falls back to the default
+  const baselineKind =
+    baselineChoice && (!changes || changes[baselineChoice])
+      ? baselineChoice
+      : (defaultBaselineKind ?? "verified");
   const baseline = changes?.[baselineKind] ?? null;
   const copy = getBaselineCopy(baselineKind, changes?.type ?? info?.type, t);
 
