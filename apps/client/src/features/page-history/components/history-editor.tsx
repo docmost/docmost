@@ -5,6 +5,7 @@ import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Title } from "@mantine/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import historyClasses from "./css/history.module.css";
+import { normalizeHistoryTitle } from "@/features/page-history/history.utils";
 import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "@tiptap/pm/changeset";
@@ -32,7 +33,9 @@ export function HistoryEditor({
 
   // The title is change 1 when it differs from the previous version
   const titleChanged =
-    !!previousContent && previousTitle != null && previousTitle !== title;
+    !!previousContent &&
+    previousTitle !== undefined &&
+    normalizeHistoryTitle(previousTitle) !== normalizeHistoryTitle(title);
 
   const editor = useEditor({
     extensions: mainExtensions,

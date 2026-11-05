@@ -27,8 +27,8 @@ import {
 import {
   containsDiagram,
   getDefaultBaselineKind,
-  normalizeReviewTitle,
 } from "@/ee/page-verification/page-verification.utils";
+import { normalizeHistoryTitle } from "@/features/page-history/history.utils";
 import {
   IReviewChangesRequest,
   VerificationChangesBaselineKind,
@@ -268,9 +268,9 @@ function VerificationChangesContent({
           >
             <div {...documentProps}>
               <HistoryEditor
-                title={normalizeReviewTitle(changes.current.title)}
+                title={normalizeHistoryTitle(changes.current.title)}
                 content={changes.current.content}
-                previousTitle={normalizeReviewTitle(baseline.title)}
+                previousTitle={normalizeHistoryTitle(baseline.title)}
                 previousContent={baseline.content}
               />
             </div>

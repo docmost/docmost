@@ -49,8 +49,3 @@ export function containsDiagram(doc: JSONContent | null | undefined): boolean {
   if (DIAGRAM_NODE_TYPES.has(doc.type)) return true;
   return (doc.content ?? []).some(containsDiagram);
 }
-
-// same whitespace rule as the server's title comparison
-export function normalizeReviewTitle(title: string | null | undefined): string {
-  return (title ?? "").replace(/\s+/g, " ").trim();
-}

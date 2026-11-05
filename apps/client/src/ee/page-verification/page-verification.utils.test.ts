@@ -4,7 +4,6 @@ import {
   containsDiagram,
   getDefaultBaselineKind,
   getReviewLinkTarget,
-  normalizeReviewTitle,
 } from "./page-verification.utils";
 import {
   IPageVerificationInfo,
@@ -238,17 +237,5 @@ describe("containsDiagram", () => {
       }),
     ).toBe(false);
     expect(containsDiagram(undefined)).toBe(false);
-  });
-});
-
-describe("normalizeReviewTitle", () => {
-  it("collapses whitespace like the change detection", () => {
-    expect(normalizeReviewTitle("  Release  notes \n v2 ")).toBe(
-      "Release notes v2",
-    );
-  });
-
-  it("treats a missing title as empty", () => {
-    expect(normalizeReviewTitle(null)).toBe("");
   });
 });
