@@ -127,7 +127,7 @@ export const AuditEvent = {
   ANNOUNCEMENT_CREATED: 'announcement.created',
   ANNOUNCEMENT_UPDATED: 'announcement.updated',
   ANNOUNCEMENT_ARCHIVED: 'announcement.archived',
-  ANNOUNCEMENT_RESTORED: 'announcement.restored',
+  ANNOUNCEMENT_UNARCHIVED: 'announcement.unarchived',
   ANNOUNCEMENT_DELETED: 'announcement.deleted',
 } as const;
 

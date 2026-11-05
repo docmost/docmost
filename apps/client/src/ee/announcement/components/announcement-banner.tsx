@@ -4,7 +4,7 @@ import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   ANNOUNCEMENT_COLOR_STYLES,
-  ANNOUNCEMENT_KIND_ICONS,
+  ANNOUNCEMENT_TYPE_ICONS,
 } from "@/ee/announcement/announcement.constants";
 import { AnnouncementContent } from "@/ee/announcement/components/announcement-content";
 import type { IAnnouncementBanner } from "@/ee/announcement/types/announcement.types";
@@ -13,7 +13,7 @@ import classes from "./announcement-banners.module.css";
 type AnnouncementBannerProps = {
   announcement: Pick<
     IAnnouncementBanner,
-    "kind" | "color" | "content" | "isDismissible"
+    "type" | "color" | "content" | "isDismissible"
   >;
   onDismiss?: (event: MouseEvent<HTMLButtonElement>) => void;
 };
@@ -28,14 +28,14 @@ export function AnnouncementBanner({
   const colors =
     ANNOUNCEMENT_COLOR_STYLES[announcement.color] ??
     ANNOUNCEMENT_COLOR_STYLES.gray;
-  const KindIcon = ANNOUNCEMENT_KIND_ICONS[announcement.kind] ?? null;
+  const TypeIcon = ANNOUNCEMENT_TYPE_ICONS[announcement.type] ?? null;
 
   return (
     <div
       className={classes.bar}
       style={{ backgroundColor: colors.background, color: colors.text }}
     >
-      {KindIcon && <KindIcon size={18} className={classes.icon} aria-hidden />}
+      {TypeIcon && <TypeIcon size={18} className={classes.icon} aria-hidden />}
       <div id={messageId}>
         <AnnouncementContent content={announcement.content} />
       </div>

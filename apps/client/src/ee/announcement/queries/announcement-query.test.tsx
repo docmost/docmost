@@ -11,12 +11,11 @@ import {
   ANNOUNCEMENTS_KEY,
   getAnnouncementErrorMessage,
   getAnnouncementLimitConflict,
+  useAnnouncementsQuery,
   useArchiveAnnouncementMutation,
-  useArchivedAnnouncementsQuery,
   useCreateAnnouncementMutation,
-  useCurrentAnnouncementsQuery,
   useDeleteAnnouncementMutation,
-  useRestoreAnnouncementMutation,
+  useUnarchiveAnnouncementMutation,
   useUpdateAnnouncementMutation,
   useVisibleAnnouncementsQuery,
 } from "./announcement-query";
@@ -42,7 +41,7 @@ vi.mock("../services/announcement-service");
 const banners: IAnnouncementBanner[] = [
   {
     id: "a1",
-    kind: "info",
+    type: "info",
     color: "blue",
     content: {
       type: "doc",
@@ -187,31 +186,37 @@ describe("useVisibleAnnouncementsQuery", () => {
 });
 
 describe("admin lists", () => {
+  const emptyPage = {
+    items: [],
+    meta: { limit: 20, hasNextPage: false, hasPrevPage: false, nextCursor: null, prevCursor: null },
+  };
+
   it.each([
-    ["current", () => useCurrentAnnouncementsQuery(true), service.getCurrentAnnouncements],
-    ["archived", () => useArchivedAnnouncementsQuery({ limit: 20 }, true), service.getArchivedAnnouncements],
-  ])("%s list refetches on mount after an invalidation", async (_name, useHook, serviceFn) => {
-    vi.mocked(serviceFn).mockResolvedValue([] as never);
-    const { queryClient, wrapper, result, unmount } = setup(() => useHook());
-    await waitFor(() => expect(result.current.data).toEqual([]));
+    ["current", { limit: 20 }],
+    ["archived", { archived: true, limit: 20 }],
+  ])("%s list asks for its tab and refetches on mount after an invalidation", async (_name, params) => {
+    vi.mocked(service.getAnnouncements).mockResolvedValue(emptyPage);
+    const { queryClient, wrapper, result, unmount } = setup(() => useAnnouncementsQuery(params, true));
+    await waitFor(() => expect(result.current.data).toEqual(emptyPage));
+    expect(service.getAnnouncements).toHaveBeenCalledWith(params);
     unmount();
 
     await queryClient.invalidateQueries({ queryKey: ANNOUNCEMENTS_KEY });
-    renderHook(() => useHook(), { wrapper });
+    renderHook(() => useAnnouncementsQuery(params, true), { wrapper });
 
-    await waitFor(() => expect(serviceFn).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(service.getAnnouncements).toHaveBeenCalledTimes(2));
   });
 
-  it("does not load the archived list until enabled", () => {
-    setup(() => useArchivedAnnouncementsQuery({ limit: 20 }, false));
-    expect(service.getArchivedAnnouncements).not.toHaveBeenCalled();
+  it("does not load a list until enabled", () => {
+    setup(() => useAnnouncementsQuery({ archived: true, limit: 20 }, false));
+    expect(service.getAnnouncements).not.toHaveBeenCalled();
   });
 });
 
 describe("mutations that confirm with a toast", () => {
   const rows = [
     ["archive", useArchiveAnnouncementMutation, service.archiveAnnouncement, "Announcement archived"],
-    ["restore", useRestoreAnnouncementMutation, service.restoreAnnouncement, "Announcement restored"],
+    ["unarchive", useUnarchiveAnnouncementMutation, service.unarchiveAnnouncement, "Announcement unarchived"],
     ["delete", useDeleteAnnouncementMutation, service.deleteAnnouncement, "Announcement deleted"],
   ] as const;
 
@@ -241,7 +246,7 @@ describe("mutations that confirm with a toast", () => {
   });
 });
 
-describe("restoring into a full schedule", () => {
+describe("unarchiving into a full schedule", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "matchMedia",
@@ -257,7 +262,7 @@ describe("restoring into a full schedule", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("shows the clashing announcements and time in the error toast", async () => {
-    vi.mocked(service.restoreAnnouncement).mockRejectedValue(
+    vi.mocked(service.unarchiveAnnouncement).mockRejectedValue(
       requestError({
         message: "Up to two announcements can show at the same time",
         conflict: {
@@ -270,7 +275,7 @@ describe("restoring into a full schedule", () => {
         },
       }),
     );
-    const { result } = setup(() => useRestoreAnnouncementMutation());
+    const { result } = setup(() => useUnarchiveAnnouncementMutation());
 
     await act(async () => {
       await result.current.mutateAsync({ announcementId: "a1" }).catch(() => undefined);
@@ -299,7 +304,7 @@ describe("restoring into a full schedule", () => {
 
 describe("create and update", () => {
   const input = {
-    kind: "info",
+    type: "info",
     color: "blue",
     content: banners[0].content,
     isDismissible: true,
@@ -371,7 +376,7 @@ describe("getAnnouncementErrorMessage", () => {
   });
 
   it("joins validation messages", () => {
-    expect(getAnnouncementErrorMessage(requestError({ message: ["kind must be valid", "color must be valid"] }))).toBe("kind must be valid, color must be valid");
+    expect(getAnnouncementErrorMessage(requestError({ message: ["type must be valid", "color must be valid"] }))).toBe("type must be valid, color must be valid");
   });
 
   it("falls back to the error message", () => {

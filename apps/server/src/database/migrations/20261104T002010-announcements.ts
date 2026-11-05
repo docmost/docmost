@@ -10,7 +10,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('workspace_id', 'uuid', (col) =>
       col.notNull().references('workspaces.id').onDelete('cascade'),
     )
-    .addColumn('kind', 'varchar', (col) => col.notNull())
+    .addColumn('type', 'varchar', (col) => col.notNull())
     .addColumn('color', 'varchar', (col) => col.notNull())
     .addColumn('content', 'jsonb', (col) => col.notNull())
     .addColumn('is_dismissible', 'boolean', (col) =>

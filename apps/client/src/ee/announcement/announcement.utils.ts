@@ -65,9 +65,9 @@ export function getAnnouncementPreview(content: IAnnouncementContent): string {
 }
 
 export function getAnnouncementFingerprint(
-  a: Pick<IAnnouncementBanner, "kind" | "color" | "content">,
+  a: Pick<IAnnouncementBanner, "type" | "color" | "content">,
 ): string {
-  const text = JSON.stringify([a.kind, a.color, a.content]);
+  const text = JSON.stringify([a.type, a.color, a.content]);
   let hash = 5381;
   for (let i = 0; i < text.length; i++) {
     hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
@@ -78,7 +78,7 @@ export function getAnnouncementFingerprint(
 const getDismissedKey = (id: string) => `${DISMISSED_KEY_PREFIX}${id}`;
 
 export function isAnnouncementDismissed(
-  a: Pick<IAnnouncementBanner, "id" | "kind" | "color" | "content">,
+  a: Pick<IAnnouncementBanner, "id" | "type" | "color" | "content">,
 ): boolean {
   const fingerprint = getAnnouncementFingerprint(a);
   if (sessionDismissals.get(a.id) === fingerprint) {
@@ -92,7 +92,7 @@ export function isAnnouncementDismissed(
 }
 
 export function dismissAnnouncement(
-  a: Pick<IAnnouncementBanner, "id" | "kind" | "color" | "content">,
+  a: Pick<IAnnouncementBanner, "id" | "type" | "color" | "content">,
 ): void {
   const fingerprint = getAnnouncementFingerprint(a);
   sessionDismissals.set(a.id, fingerprint);

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert, Button, Group, Space, Tabs, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
@@ -9,6 +10,7 @@ import Paginate from "@/components/common/paginate";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import type { IPagination } from "@/lib/types";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
@@ -16,11 +18,10 @@ import { AnnouncementFormModal } from "@/ee/announcement/components/announcement
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
 import {
   getAnnouncementErrorMessage,
+  useAnnouncementsQuery,
   useArchiveAnnouncementMutation,
-  useArchivedAnnouncementsQuery,
-  useCurrentAnnouncementsQuery,
   useDeleteAnnouncementMutation,
-  useRestoreAnnouncementMutation,
+  useUnarchiveAnnouncementMutation,
 } from "@/ee/announcement/queries/announcement-query";
 import type { IAnnouncement } from "@/ee/announcement/types/announcement.types";
 
@@ -34,17 +35,21 @@ export default function Announcements() {
   const entitlements = useAtomValue(entitlementAtom);
   const isUnlicensed = entitlements !== null && !hasFeature;
   const [tab, setTab] = useState<AnnouncementsTab>("current");
-  const { cursor, goNext, goPrev } = useCursorPaginate();
+  const currentPage = useCursorPaginate();
+  const archivedPage = useCursorPaginate();
   const [formOpened, setFormOpened] = useState(false);
   const [selected, setSelected] = useState<IAnnouncement | null>(null);
   const canLoad = isAdmin && hasFeature;
-  const currentQuery = useCurrentAnnouncementsQuery(canLoad);
-  const archivedQuery = useArchivedAnnouncementsQuery(
-    { cursor, limit: 20 },
+  const currentQuery = useAnnouncementsQuery(
+    { cursor: currentPage.cursor, limit: 20 },
+    canLoad,
+  );
+  const archivedQuery = useAnnouncementsQuery(
+    { archived: true, cursor: archivedPage.cursor, limit: 20 },
     canLoad && tab === "archived",
   );
   const archiveMutation = useArchiveAnnouncementMutation();
-  const restoreMutation = useRestoreAnnouncementMutation();
+  const unarchiveMutation = useUnarchiveAnnouncementMutation();
   const deleteMutation = useDeleteAnnouncementMutation();
 
   if (!isAdmin) {
@@ -75,8 +80,8 @@ export default function Announcements() {
     onEdit: openForm,
     onArchive: (announcement: IAnnouncement) =>
       archiveMutation.mutate({ announcementId: announcement.id }),
-    onRestore: (announcement: IAnnouncement) =>
-      restoreMutation.mutate({ announcementId: announcement.id }),
+    onUnarchive: (announcement: IAnnouncement) =>
+      unarchiveMutation.mutate({ announcementId: announcement.id }),
     onDelete: confirmDelete,
   };
 
@@ -87,6 +92,35 @@ export default function Announcements() {
       })}
     </Alert>
   );
+
+  const renderList = (
+    query: UseQueryResult<IPagination<IAnnouncement>, Error>,
+    page: ReturnType<typeof useCursorPaginate>,
+    emptyMessage: string,
+  ) =>
+    query.isError && !query.data ? (
+      loadError(query.error)
+    ) : (
+      <>
+        <AnnouncementTable
+          announcements={query.data?.items ?? []}
+          isLoading={query.isLoading || entitlements === null}
+          emptyMessage={emptyMessage}
+          {...tableActions}
+        />
+
+        <Space h="md" />
+
+        {query.data?.items.length > 0 && (
+          <Paginate
+            hasPrevPage={query.data.meta.hasPrevPage}
+            hasNextPage={query.data.meta.hasNextPage}
+            onNext={() => page.goNext(query.data.meta.nextCursor)}
+            onPrev={page.goPrev}
+          />
+        )}
+      </>
+    );
 
   return (
     <>
@@ -130,41 +164,14 @@ export default function Announcements() {
         </Tabs.List>
 
         <Tabs.Panel value="current" pt="md">
-          {currentQuery.isError && !currentQuery.data ? (
-            loadError(currentQuery.error)
-          ) : (
-            <AnnouncementTable
-              announcements={currentQuery.data ?? []}
-              isLoading={currentQuery.isLoading || entitlements === null}
-              emptyMessage={t("No current announcements")}
-              {...tableActions}
-            />
-          )}
+          {renderList(currentQuery, currentPage, t("No current announcements"))}
         </Tabs.Panel>
 
         <Tabs.Panel value="archived" pt="md">
-          {archivedQuery.isError && !archivedQuery.data ? (
-            loadError(archivedQuery.error)
-          ) : (
-            <>
-              <AnnouncementTable
-                announcements={archivedQuery.data?.items ?? []}
-                isLoading={archivedQuery.isLoading || entitlements === null}
-                emptyMessage={t("No archived announcements")}
-                {...tableActions}
-              />
-
-              <Space h="md" />
-
-              {archivedQuery.data?.items.length > 0 && (
-                <Paginate
-                  hasPrevPage={archivedQuery.data.meta.hasPrevPage}
-                  hasNextPage={archivedQuery.data.meta.hasNextPage}
-                  onNext={() => goNext(archivedQuery.data.meta.nextCursor)}
-                  onPrev={goPrev}
-                />
-              )}
-            </>
+          {renderList(
+            archivedQuery,
+            archivedPage,
+            t("No archived announcements"),
           )}
         </Tabs.Panel>
       </Tabs>

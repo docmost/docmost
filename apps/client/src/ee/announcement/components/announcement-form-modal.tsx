@@ -1,11 +1,4 @@
-import {
-  type KeyboardEvent,
-  lazy,
-  Suspense,
-  useEffect,
-  useId,
-  useRef,
-} from "react";
+import { type KeyboardEvent, lazy, Suspense, useEffect, useRef } from "react";
 import {
   Alert,
   Box,
@@ -14,12 +7,11 @@ import {
   Group,
   Input,
   Modal,
-  SegmentedControl,
+  Select,
   SimpleGrid,
   Skeleton,
   Stack,
   Switch,
-  useMatches,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
@@ -27,10 +19,10 @@ import { useTranslation } from "react-i18next";
 import {
   ANNOUNCEMENT_COLOR_STYLES,
   ANNOUNCEMENT_COLORS,
-  ANNOUNCEMENT_KIND_DEFAULT_COLOR,
-  ANNOUNCEMENT_KIND_ICONS,
-  ANNOUNCEMENT_KIND_LABELS,
-  ANNOUNCEMENT_KINDS,
+  ANNOUNCEMENT_TYPE_DEFAULT_COLOR,
+  ANNOUNCEMENT_TYPE_ICONS,
+  ANNOUNCEMENT_TYPE_LABELS,
+  ANNOUNCEMENT_TYPES,
 } from "@/ee/announcement/announcement.constants";
 import { getAnnouncementPlainText } from "@/ee/announcement/announcement.utils";
 import { AnnouncementBanner } from "@/ee/announcement/components/announcement-banner";
@@ -51,7 +43,7 @@ import {
 } from "@/ee/announcement/queries/announcement-query";
 import type {
   AnnouncementAudience,
-  AnnouncementKind,
+  AnnouncementType,
   IAnnouncement,
 } from "@/ee/announcement/types/announcement.types";
 
@@ -122,15 +114,7 @@ type AnnouncementFormProps = {
 
 function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
   const { t, i18n } = useTranslation();
-  const kindId = useId();
-  const audienceId = useId();
-  const startId = useId();
-  const endId = useId();
   const alertRef = useRef<HTMLDivElement>(null);
-  const kindOrientation = useMatches<"vertical" | "horizontal">(
-    { base: "vertical", xs: "horizontal" },
-    { getInitialValueInEffect: false },
-  );
   const createMutation = useCreateAnnouncementMutation();
   const updateMutation = useUpdateAnnouncementMutation();
   const mutation = announcement ? updateMutation : createMutation;
@@ -147,6 +131,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
   const focusableColor = ANNOUNCEMENT_COLORS.includes(values.color)
     ? values.color
     : ANNOUNCEMENT_COLORS[0];
+  const TypeIcon = ANNOUNCEMENT_TYPE_ICONS[values.type];
 
   useEffect(() => {
     if (mutation.error) {
@@ -196,33 +181,23 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
           </Alert>
         )}
 
-        <Input.Wrapper id={kindId} label={t("Kind")} labelElement="div">
-          <SegmentedControl
-            fullWidth
-            orientation={kindOrientation}
-            aria-labelledby={`${kindId}-label`}
-            value={values.kind}
-            onChange={(value) => {
-              const kind = value as AnnouncementKind;
-              form.setValues({
-                kind,
-                color: ANNOUNCEMENT_KIND_DEFAULT_COLOR[kind],
-              });
-            }}
-            data={ANNOUNCEMENT_KINDS.map((kind) => {
-              const KindIcon = ANNOUNCEMENT_KIND_ICONS[kind];
-              return {
-                value: kind,
-                label: (
-                  <Group gap={6} wrap="nowrap" justify="center">
-                    {KindIcon && <KindIcon size={16} aria-hidden />}
-                    <span>{t(ANNOUNCEMENT_KIND_LABELS[kind])}</span>
-                  </Group>
-                ),
-              };
-            })}
-          />
-        </Input.Wrapper>
+        <Select
+          label={t("Type")}
+          data={ANNOUNCEMENT_TYPES.map((type) => ({
+            value: type,
+            label: t(ANNOUNCEMENT_TYPE_LABELS[type]),
+          }))}
+          value={values.type}
+          onChange={(value) => {
+            const type = value as AnnouncementType;
+            form.setValues({
+              type,
+              color: ANNOUNCEMENT_TYPE_DEFAULT_COLOR[type],
+            });
+          }}
+          allowDeselect={false}
+          leftSection={TypeIcon && <TypeIcon size={16} aria-hidden />}
+        />
 
         <AnnouncementMessageEditor
           initialContent={announcement?.content ?? null}
@@ -258,30 +233,21 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
           </Group>
         </Input.Wrapper>
 
-        <Input.Wrapper
-          id={audienceId}
+        <Select
           label={t("Audience")}
-          labelElement="div"
           description={t(
             "Everyone also includes the login page and public pages.",
           )}
-          inputWrapperOrder={["label", "input", "description"]}
-          descriptionProps={{ mt: 6 }}
-        >
-          <SegmentedControl
-            fullWidth
-            aria-labelledby={`${audienceId}-label`}
-            aria-describedby={`${audienceId}-description`}
-            value={values.audience}
-            onChange={(value) =>
-              form.setFieldValue("audience", value as AnnouncementAudience)
-            }
-            data={[
-              { value: "members", label: t("Logged-in users") },
-              { value: "everyone", label: t("Everyone") },
-            ]}
-          />
-        </Input.Wrapper>
+          data={[
+            { value: "members", label: t("Logged-in users") },
+            { value: "everyone", label: t("Everyone") },
+          ]}
+          value={values.audience}
+          onChange={(value) =>
+            form.setFieldValue("audience", value as AnnouncementAudience)
+          }
+          allowDeselect={false}
+        />
 
         <Switch
           label={t("Allow people to dismiss it")}
@@ -292,73 +258,45 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
         />
 
         <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="md">
-          <Input.Wrapper id={startId} label={t("Starts")} labelElement="div">
-            <Stack gap="xs">
-              <SegmentedControl
-                fullWidth
-                aria-labelledby={`${startId}-label`}
-                value={values.startMode}
-                onChange={(value) =>
-                  form.setFieldValue(
-                    "startMode",
-                    value as AnnouncementFormValues["startMode"],
-                  )
-                }
-                data={[
-                  { value: "now", label: t("Now") },
-                  { value: "date", label: t("At a date") },
-                ]}
-              />
-              {values.startMode === "date" && (
-                <Suspense fallback={<Skeleton height={36} radius="sm" />}>
-                  <DateTimePicker
-                    aria-label={t("Start time")}
-                    placeholder={t("Pick date and time")}
-                    value={values.startsAt}
-                    onChange={(value) =>
-                      form.setFieldValue("startsAt", value as string | null)
-                    }
-                    valueFormat={formatPickerTime}
-                    error={form.errors.startsAt}
-                  />
-                </Suspense>
-              )}
-            </Stack>
-          </Input.Wrapper>
+          <Suspense
+            fallback={
+              <Input.Wrapper label={t("Starts")} labelElement="div">
+                <Skeleton height={36} radius="sm" />
+              </Input.Wrapper>
+            }
+          >
+            <DateTimePicker
+              label={t("Starts")}
+              placeholder={t("Now")}
+              clearable
+              value={values.startsAt}
+              onChange={(value) =>
+                form.setFieldValue("startsAt", value as string | null)
+              }
+              valueFormat={formatPickerTime}
+              error={form.errors.startsAt}
+            />
+          </Suspense>
 
-          <Input.Wrapper id={endId} label={t("Ends")} labelElement="div">
-            <Stack gap="xs">
-              <SegmentedControl
-                fullWidth
-                aria-labelledby={`${endId}-label`}
-                value={values.endMode}
-                onChange={(value) =>
-                  form.setFieldValue(
-                    "endMode",
-                    value as AnnouncementFormValues["endMode"],
-                  )
-                }
-                data={[
-                  { value: "none", label: t("No end") },
-                  { value: "date", label: t("At a date") },
-                ]}
-              />
-              {values.endMode === "date" && (
-                <Suspense fallback={<Skeleton height={36} radius="sm" />}>
-                  <DateTimePicker
-                    aria-label={t("End time")}
-                    placeholder={t("Pick date and time")}
-                    value={values.endsAt}
-                    onChange={(value) =>
-                      form.setFieldValue("endsAt", value as string | null)
-                    }
-                    valueFormat={formatPickerTime}
-                    error={form.errors.endsAt}
-                  />
-                </Suspense>
-              )}
-            </Stack>
-          </Input.Wrapper>
+          <Suspense
+            fallback={
+              <Input.Wrapper label={t("Ends")} labelElement="div">
+                <Skeleton height={36} radius="sm" />
+              </Input.Wrapper>
+            }
+          >
+            <DateTimePicker
+              label={t("Ends")}
+              placeholder={t("No end")}
+              clearable
+              value={values.endsAt}
+              onChange={(value) =>
+                form.setFieldValue("endsAt", value as string | null)
+              }
+              valueFormat={formatPickerTime}
+              error={form.errors.endsAt}
+            />
+          </Suspense>
         </SimpleGrid>
 
         {hasText && (
@@ -372,7 +310,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
             >
               <AnnouncementBanner
                 announcement={{
-                  kind: values.kind,
+                  type: values.type,
                   color: values.color,
                   content: values.content,
                   isDismissible: values.isDismissible,

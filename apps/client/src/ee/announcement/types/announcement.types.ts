@@ -1,4 +1,4 @@
-export type AnnouncementKind =
+export type AnnouncementType =
   | "info"
   | "success"
   | "warning"
@@ -37,7 +37,7 @@ export type IAnnouncementContent = {
 
 export type IAnnouncementBanner = {
   id: string;
-  kind: AnnouncementKind;
+  type: AnnouncementType;
   color: AnnouncementColor;
   content: IAnnouncementContent;
   isDismissible: boolean;
@@ -54,7 +54,7 @@ export type IAnnouncement = IAnnouncementBanner & {
 };
 
 export type IAnnouncementInput = {
-  kind: AnnouncementKind;
+  type: AnnouncementType;
   color: AnnouncementColor;
   content: IAnnouncementContent;
   isDismissible: boolean;
@@ -74,7 +74,8 @@ export type IAnnouncementLimitConflict = {
   announcements: { id: string; preview: string }[];
 };
 
-export type IAnnouncementArchivedParams = {
+export type IAnnouncementListParams = {
+  archived?: boolean;
   cursor?: string;
   limit?: number;
 };

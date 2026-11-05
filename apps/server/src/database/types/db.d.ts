@@ -40,9 +40,9 @@ export interface Announcements {
   endsAt: Timestamp | null;
   id: Generated<string>;
   isDismissible: Generated<boolean>;
-  kind: string;
   lastUpdatedById: string | null;
   startsAt: Generated<Timestamp>;
+  type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }

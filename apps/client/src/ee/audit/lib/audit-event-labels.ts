@@ -102,7 +102,7 @@ export const auditEventLabels: Record<string, string> = {
   "announcement.created": "Created announcement",
   "announcement.updated": "Updated announcement",
   "announcement.archived": "Archived announcement",
-  "announcement.restored": "Restored announcement",
+  "announcement.unarchived": "Unarchived announcement",
   "announcement.deleted": "Deleted announcement",
 };
 
@@ -265,7 +265,7 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "announcement.created", label: "Created announcement" },
       { value: "announcement.updated", label: "Updated announcement" },
       { value: "announcement.archived", label: "Archived announcement" },
-      { value: "announcement.restored", label: "Restored announcement" },
+      { value: "announcement.unarchived", label: "Unarchived announcement" },
       { value: "announcement.deleted", label: "Deleted announcement" },
     ],
   },

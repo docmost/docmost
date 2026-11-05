@@ -7,10 +7,10 @@ import {
 } from "@tabler/icons-react";
 import type {
   AnnouncementColor,
-  AnnouncementKind,
+  AnnouncementType,
 } from "./types/announcement.types";
 
-export const ANNOUNCEMENT_KINDS: AnnouncementKind[] = [
+export const ANNOUNCEMENT_TYPES: AnnouncementType[] = [
   "info",
   "success",
   "warning",
@@ -34,7 +34,7 @@ export const ANNOUNCEMENT_PREVIEW_LENGTH = 80;
 
 export const ANNOUNCEMENT_BANNERS_HEIGHT_VAR = "--announcement-banners-height";
 
-export const ANNOUNCEMENT_KIND_LABELS: Record<AnnouncementKind, string> = {
+export const ANNOUNCEMENT_TYPE_LABELS: Record<AnnouncementType, string> = {
   info: "Info",
   success: "Success",
   warning: "Warning",
@@ -42,8 +42,8 @@ export const ANNOUNCEMENT_KIND_LABELS: Record<AnnouncementKind, string> = {
   neutral: "Neutral",
 };
 
-export const ANNOUNCEMENT_KIND_DEFAULT_COLOR: Record<
-  AnnouncementKind,
+export const ANNOUNCEMENT_TYPE_DEFAULT_COLOR: Record<
+  AnnouncementType,
   AnnouncementColor
 > = {
   info: "blue",
@@ -53,7 +53,7 @@ export const ANNOUNCEMENT_KIND_DEFAULT_COLOR: Record<
   neutral: "gray",
 };
 
-export const ANNOUNCEMENT_KIND_ICONS: Record<AnnouncementKind, Icon | null> = {
+export const ANNOUNCEMENT_TYPE_ICONS: Record<AnnouncementType, Icon | null> = {
   info: IconInfoCircle,
   success: IconCircleCheck,
   warning: IconAlertTriangle,

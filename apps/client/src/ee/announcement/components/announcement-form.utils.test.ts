@@ -28,7 +28,7 @@ const doc = (text: string): IAnnouncementContent => ({
 
 const stored = (overrides: Partial<IAnnouncement> = {}): IAnnouncement => ({
   id: "a1",
-  kind: "warning",
+  type: "warning",
   color: "yellow",
   content: doc("Planned maintenance"),
   isDismissible: true,
@@ -58,14 +58,12 @@ const validate = (
 describe("getInitialValues", () => {
   it("starts a new announcement as info, blue, for logged-in users, not dismissible, now and without an end", () => {
     expect(getInitialValues(null)).toEqual({
-      kind: "info",
+      type: "info",
       color: "blue",
       content: null,
       audience: "members",
       isDismissible: false,
-      startMode: "now",
       startsAt: null,
-      endMode: "none",
       endsAt: null,
     });
   });
@@ -73,21 +71,18 @@ describe("getInitialValues", () => {
   it("puts both stored times in the pickers when editing", () => {
     const announcement = stored();
     expect(getInitialValues(announcement)).toEqual({
-      kind: "warning",
+      type: "warning",
       color: "yellow",
       content: announcement.content,
       audience: "everyone",
       isDismissible: true,
-      startMode: "date",
       startsAt: toPickerValue(announcement.startsAt),
-      endMode: "date",
       endsAt: toPickerValue(announcement.endsAt),
     });
   });
 
   it("edits an announcement without an end as No end", () => {
     expect(getInitialValues(stored({ endsAt: null }))).toMatchObject({
-      endMode: "none",
       endsAt: null,
     });
   });
@@ -97,11 +92,11 @@ describe("toAnnouncementInput", () => {
   it("sends null for Now and No end", () => {
     expect(
       toAnnouncementInput(
-        values({ kind: "critical", color: "purple", audience: "everyone", isDismissible: true }),
+        values({ type: "critical", color: "purple", audience: "everyone", isDismissible: true }),
         null,
       ),
     ).toEqual({
-      kind: "critical",
+      type: "critical",
       color: "purple",
       content: doc("Maintenance tonight"),
       isDismissible: true,
@@ -114,9 +109,7 @@ describe("toAnnouncementInput", () => {
   it("sends the picked times as ISO when creating", () => {
     const input = toAnnouncementInput(
       values({
-        startMode: "date",
         startsAt: "2026-11-10 09:30:00",
-        endMode: "date",
         endsAt: "2026-11-12 18:00:00",
       }),
       null,
@@ -153,7 +146,7 @@ describe("toAnnouncementInput", () => {
     const announcement = stored();
     expect(
       toAnnouncementInput(
-        { ...getInitialValues(announcement), startMode: "now", endMode: "none" },
+        { ...getInitialValues(announcement), startsAt: null, endsAt: null },
         announcement,
       ),
     ).toMatchObject({ startsAt: null, endsAt: null });
@@ -177,16 +170,14 @@ describe("validateAnnouncementForm", () => {
     expect(validate(values({ content: doc("a".repeat(500)) }))).toEqual({});
   });
 
-  it("asks for the times a date was chosen for", () => {
-    expect(validate(values({ startMode: "date", endMode: "date" }))).toEqual({
-      startsAt: "Start time is required",
-      endsAt: "End time is required",
-    });
+  it("reads an empty start as now when it checks the end", () => {
+    const soon = toPickerValue(new Date(NOW + 60_000).toISOString());
+    expect(validate(values({ startsAt: null, endsAt: soon }))).toEqual({});
   });
 
   it("rejects a new end that is not in the future", () => {
     const pastEnd = toPickerValue(new Date(NOW - 60_000).toISOString());
-    expect(validate(values({ endMode: "date", endsAt: pastEnd })).endsAt).toBe(
+    expect(validate(values({ endsAt: pastEnd })).endsAt).toBe(
       "End time must be in the future",
     );
   });
@@ -195,9 +186,7 @@ describe("validateAnnouncementForm", () => {
     expect(
       validate(
         values({
-          startMode: "date",
           startsAt: "2026-11-10 10:00:00",
-          endMode: "date",
           endsAt: "2026-11-09 10:00:00",
         }),
       ).endsAt,
@@ -209,9 +198,7 @@ describe("validateAnnouncementForm", () => {
     expect(
       validate(
         values({
-          startMode: "date",
           startsAt: "2026-10-30 09:00:00",
-          endMode: "date",
           endsAt: toPickerValue(endsAt),
         }),
         endsAt,
@@ -222,7 +209,7 @@ describe("validateAnnouncementForm", () => {
   it("rejects starting now while the stored end has passed", () => {
     const endsAt = "2026-11-01T18:00:00.000Z";
     expect(
-      validate(values({ endMode: "date", endsAt: toPickerValue(endsAt) }), endsAt)
+      validate(values({ endsAt: toPickerValue(endsAt) }), endsAt)
         .endsAt,
     ).toBe("End time must be after the start time");
   });

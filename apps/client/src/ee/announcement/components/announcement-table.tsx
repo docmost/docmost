@@ -11,16 +11,16 @@ import {
 } from "@mantine/core";
 import {
   IconArchive,
+  IconArchiveOff,
   IconDots,
   IconEdit,
-  IconRestore,
   IconTrash,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import NoTableResults from "@/components/common/no-table-results";
 import {
   ANNOUNCEMENT_COLOR_STYLES,
-  ANNOUNCEMENT_KIND_LABELS,
+  ANNOUNCEMENT_TYPE_LABELS,
 } from "@/ee/announcement/announcement.constants";
 import {
   formatAnnouncementTime,
@@ -48,7 +48,7 @@ type AnnouncementTableProps = {
   emptyMessage: string;
   onEdit: (announcement: IAnnouncement) => void;
   onArchive: (announcement: IAnnouncement) => void;
-  onRestore: (announcement: IAnnouncement) => void;
+  onUnarchive: (announcement: IAnnouncement) => void;
   onDelete: (announcement: IAnnouncement) => void;
 };
 
@@ -93,7 +93,7 @@ export function AnnouncementTable({
   emptyMessage,
   onEdit,
   onArchive,
-  onRestore,
+  onUnarchive,
   onDelete,
 }: AnnouncementTableProps) {
   const { t, i18n } = useTranslation();
@@ -104,7 +104,7 @@ export function AnnouncementTable({
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t("Message")}</Table.Th>
-            <Table.Th>{t("Kind")}</Table.Th>
+            <Table.Th>{t("Type")}</Table.Th>
             <Table.Th>{t("Audience")}</Table.Th>
             <Table.Th>{t("Schedule")}</Table.Th>
             <Table.Th>{t("Status")}</Table.Th>
@@ -117,11 +117,11 @@ export function AnnouncementTable({
           ) : announcements.length > 0 ? (
             announcements.map((announcement) => {
               const preview = getAnnouncementPlainText(announcement.content);
-              // A bundle loaded before a deploy can meet a kind, color or status it does not know
+              // A bundle loaded before a deploy can meet a type, color or status it does not know
               const color =
                 ANNOUNCEMENT_COLOR_STYLES[announcement.color] ??
                 ANNOUNCEMENT_COLOR_STYLES.gray;
-              const kindLabel = ANNOUNCEMENT_KIND_LABELS[announcement.kind];
+              const typeLabel = ANNOUNCEMENT_TYPE_LABELS[announcement.type];
               const status = STATUS_BADGES[announcement.status];
               const canArchive =
                 announcement.status === "active" ||
@@ -148,7 +148,7 @@ export function AnnouncementTable({
                   </Table.Td>
                   <Table.Td>
                     <Text fz="sm">
-                      {kindLabel ? t(kindLabel) : announcement.kind}
+                      {typeLabel ? t(typeLabel) : announcement.type}
                     </Text>
                   </Table.Td>
                   <Table.Td>
@@ -209,10 +209,10 @@ export function AnnouncementTable({
                         )}
                         {announcement.status === "archived" && (
                           <Menu.Item
-                            leftSection={<IconRestore size={16} />}
-                            onClick={() => onRestore(announcement)}
+                            leftSection={<IconArchiveOff size={16} />}
+                            onClick={() => onUnarchive(announcement)}
                           >
-                            {t("Restore")}
+                            {t("Unarchive")}
                           </Menu.Item>
                         )}
                         {canDelete && (

@@ -12,9 +12,9 @@ import {
 import {
   ANNOUNCEMENT_COLOR_STYLES,
   ANNOUNCEMENT_COLORS,
-  ANNOUNCEMENT_KIND_DEFAULT_COLOR,
-  ANNOUNCEMENT_KIND_LABELS,
-  ANNOUNCEMENT_KINDS,
+  ANNOUNCEMENT_TYPE_DEFAULT_COLOR,
+  ANNOUNCEMENT_TYPE_LABELS,
+  ANNOUNCEMENT_TYPES,
 } from "./announcement.constants";
 import type {
   IAnnouncementBanner,
@@ -27,7 +27,7 @@ const content = (text: string): IAnnouncementContent => ({
 });
 const banner = (over: Partial<IAnnouncementBanner> = {}): IAnnouncementBanner => ({
   id: "a1",
-  kind: "info",
+  type: "info",
   color: "blue",
   content: content("Hi"),
   isDismissible: true,
@@ -78,9 +78,9 @@ describe("dismissal", () => {
     expect(isAnnouncementDismissed(banner({ endsAt: "2026-12-01T00:00:00.000Z" }))).toBe(true);
   });
 
-  it("shows the announcement again when only its kind changes", () => {
+  it("shows the announcement again when only its type changes", () => {
     dismissAnnouncement(banner({ id: "k1" }));
-    expect(isAnnouncementDismissed(banner({ id: "k1", kind: "warning" }))).toBe(false);
+    expect(isAnnouncementDismissed(banner({ id: "k1", type: "warning" }))).toBe(false);
   });
 
   it("only hides the announcement that was dismissed", () => {
@@ -200,10 +200,10 @@ describe("presets", () => {
     expect(contrastRatio(background, text)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("defines a label and a default preset color for every kind", () => {
-    expect(Object.keys(ANNOUNCEMENT_KIND_LABELS).sort()).toEqual([...ANNOUNCEMENT_KINDS].sort());
-    expect(Object.keys(ANNOUNCEMENT_KIND_DEFAULT_COLOR).sort()).toEqual([...ANNOUNCEMENT_KINDS].sort());
-    ANNOUNCEMENT_KINDS.forEach((kind) => expect(ANNOUNCEMENT_COLORS).toContain(ANNOUNCEMENT_KIND_DEFAULT_COLOR[kind]));
+  it("defines a label and a default preset color for every type", () => {
+    expect(Object.keys(ANNOUNCEMENT_TYPE_LABELS).sort()).toEqual([...ANNOUNCEMENT_TYPES].sort());
+    expect(Object.keys(ANNOUNCEMENT_TYPE_DEFAULT_COLOR).sort()).toEqual([...ANNOUNCEMENT_TYPES].sort());
+    ANNOUNCEMENT_TYPES.forEach((type) => expect(ANNOUNCEMENT_COLORS).toContain(ANNOUNCEMENT_TYPE_DEFAULT_COLOR[type]));
   });
 
   it("styles every color", () => {

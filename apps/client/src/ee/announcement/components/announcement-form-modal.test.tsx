@@ -67,14 +67,16 @@ vi.mock("./announcement-message-editor", () => ({
 
 vi.mock("@mantine/dates", () => ({
   DateTimePicker: (props: {
+    label: string;
+    placeholder: string;
     value: string | null;
     onChange: (value: string | null) => void;
-    "aria-label": string;
     error?: string;
   }) => (
     <div>
       <input
-        aria-label={props["aria-label"]}
+        aria-label={props.label}
+        placeholder={props.placeholder}
         value={props.value ?? ""}
         onChange={(event) => props.onChange(event.target.value || null)}
       />
@@ -85,7 +87,7 @@ vi.mock("@mantine/dates", () => ({
 
 const stored = (overrides: Partial<IAnnouncement> = {}): IAnnouncement => ({
   id: "a1",
-  kind: "warning",
+  type: "warning",
   color: "yellow",
   content: doc("Planned maintenance"),
   isDismissible: true,
@@ -133,8 +135,15 @@ const typeMessage = (text: string) =>
 const submit = (label = "Create") =>
   fireEvent.click(screen.getByRole("button", { name: label }));
 
+const choose = (field: string, option: string) => {
+  fireEvent.click(screen.getByRole("combobox", { name: field }));
+  fireEvent.click(screen.getByRole("option", { name: option }));
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
+  // the Select dropdown scrolls its selected option into view
+  Element.prototype.scrollIntoView = () => {};
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -172,7 +181,7 @@ describe("AnnouncementFormModal", () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(vi.mocked(service.createAnnouncement).mock.calls[0][0]).toEqual({
-      kind: "info",
+      type: "info",
       color: "blue",
       content: doc("Maintenance tonight"),
       isDismissible: false,
@@ -182,12 +191,12 @@ describe("AnnouncementFormModal", () => {
     });
   });
 
-  it("preselects the kind's color and still lets the admin pick another", async () => {
+  it("preselects the type's color and still lets the admin pick another", async () => {
     vi.mocked(service.createAnnouncement).mockResolvedValue(stored());
     const { onClose } = renderModal();
     const colors = screen.getByRole("radiogroup", { name: "Color" });
 
-    fireEvent.click(screen.getByRole("radio", { name: "Critical" }));
+    choose("Type", "Critical");
     expect(
       within(colors).getByRole("radio", { name: "Red" }).getAttribute("aria-checked"),
     ).toBe("true");
@@ -198,7 +207,7 @@ describe("AnnouncementFormModal", () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(vi.mocked(service.createAnnouncement).mock.calls[0][0]).toMatchObject({
-      kind: "critical",
+      type: "critical",
       color: "purple",
     });
   });
@@ -229,7 +238,7 @@ describe("AnnouncementFormModal", () => {
 
   it("describes the Everyone audience before it is chosen", () => {
     renderModal();
-    const audience = screen.getByRole("radiogroup", { name: "Audience" });
+    const audience = screen.getByRole("combobox", { name: "Audience" });
     expect(audience.getAttribute("aria-describedby")).toBeTruthy();
     expect(
       document.getElementById(audience.getAttribute("aria-describedby"))
@@ -247,23 +256,20 @@ describe("AnnouncementFormModal", () => {
     expect(screen.getByText("Maintenance tonight")).toBeTruthy();
   });
 
-  it("asks for a time when a date is chosen but left empty", async () => {
+  it("shows empty times as Now and No end", async () => {
     renderModal();
-    typeMessage("Maintenance tonight");
-    fireEvent.click(screen.getAllByRole("radio", { name: "At a date" })[1]);
-    await screen.findByRole("textbox", { name: "End time" });
-
-    submit();
-
-    expect(screen.getByText("End time is required")).toBeTruthy();
-    expect(service.createAnnouncement).not.toHaveBeenCalled();
+    const starts = await screen.findByRole("textbox", { name: "Starts" });
+    const ends = screen.getByRole("textbox", { name: "Ends" });
+    expect([starts, ends].map((input) => input.getAttribute("placeholder"))).toEqual([
+      "Now",
+      "No end",
+    ]);
   });
 
   it("does not send an end time in the past", async () => {
     renderModal();
     typeMessage("Maintenance tonight");
-    fireEvent.click(screen.getAllByRole("radio", { name: "At a date" })[1]);
-    fireEvent.change(await screen.findByRole("textbox", { name: "End time" }), {
+    fireEvent.change(await screen.findByRole("textbox", { name: "Ends" }), {
       target: { value: "2020-01-01 10:00:00" },
     });
 
@@ -279,7 +285,7 @@ describe("AnnouncementFormModal", () => {
     const { onClose } = renderModal(announcement);
     expect(screen.getByRole("dialog", { name: "Edit announcement" })).toBeTruthy();
     expect(
-      (await screen.findByRole("textbox", { name: "Start time" }) as HTMLInputElement).value,
+      (await screen.findByRole("textbox", { name: "Starts" }) as HTMLInputElement).value,
     ).toBe(toPickerValue(announcement.startsAt));
 
     typeMessage("Planned maintenance moved");
@@ -288,7 +294,7 @@ describe("AnnouncementFormModal", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(vi.mocked(service.updateAnnouncement).mock.calls[0][0]).toEqual({
       announcementId: "a1",
-      kind: "warning",
+      type: "warning",
       color: "yellow",
       content: doc("Planned maintenance moved"),
       isDismissible: true,
@@ -302,9 +308,9 @@ describe("AnnouncementFormModal", () => {
     const ended = stored({ status: "ended", endsAt: "2020-01-01T18:00:00.789Z", startsAt: "2019-12-30T09:00:00.000Z" });
     vi.mocked(service.updateAnnouncement).mockResolvedValue(ended);
     const { onClose } = renderModal(ended);
-    await screen.findByRole("textbox", { name: "End time" });
+    await screen.findByRole("textbox", { name: "Ends" });
 
-    fireEvent.click(screen.getByRole("radio", { name: "Logged-in users" }));
+    choose("Audience", "Logged-in users");
     submit("Save");
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
@@ -317,9 +323,9 @@ describe("AnnouncementFormModal", () => {
   it("does not start an ended announcement now while its end is in the past", async () => {
     const ended = stored({ status: "ended", endsAt: "2020-01-01T18:00:00.000Z", startsAt: "2019-12-30T09:00:00.000Z" });
     renderModal(ended);
-    await screen.findByRole("textbox", { name: "End time" });
-
-    fireEvent.click(screen.getByRole("radio", { name: "Now" }));
+    fireEvent.change(await screen.findByRole("textbox", { name: "Starts" }), {
+      target: { value: "" },
+    });
     submit("Save");
 
     expect(screen.getByText("End time must be after the start time")).toBeTruthy();

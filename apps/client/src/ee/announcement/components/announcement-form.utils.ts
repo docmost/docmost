@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import {
-  ANNOUNCEMENT_KIND_DEFAULT_COLOR,
+  ANNOUNCEMENT_TYPE_DEFAULT_COLOR,
   ANNOUNCEMENT_MAX_TEXT_LENGTH,
 } from "@/ee/announcement/announcement.constants";
 import {
@@ -12,21 +12,20 @@ import {
 import type {
   AnnouncementAudience,
   AnnouncementColor,
-  AnnouncementKind,
+  AnnouncementType,
   IAnnouncement,
   IAnnouncementContent,
   IAnnouncementInput,
 } from "@/ee/announcement/types/announcement.types";
 
 export type AnnouncementFormValues = {
-  kind: AnnouncementKind;
+  type: AnnouncementType;
   color: AnnouncementColor;
   content: IAnnouncementContent | null;
   audience: AnnouncementAudience;
   isDismissible: boolean;
-  startMode: "now" | "date";
+  // An empty start means now and an empty end means no end
   startsAt: string | null;
-  endMode: "none" | "date";
   endsAt: string | null;
 };
 
@@ -39,26 +38,22 @@ export function getInitialValues(
 ): AnnouncementFormValues {
   if (!announcement) {
     return {
-      kind: "info",
-      color: ANNOUNCEMENT_KIND_DEFAULT_COLOR.info,
+      type: "info",
+      color: ANNOUNCEMENT_TYPE_DEFAULT_COLOR.info,
       content: null,
       audience: "members",
       isDismissible: false,
-      startMode: "now",
       startsAt: null,
-      endMode: "none",
       endsAt: null,
     };
   }
   return {
-    kind: announcement.kind,
+    type: announcement.type,
     color: announcement.color,
     content: announcement.content,
     audience: announcement.audience,
     isDismissible: announcement.isDismissible,
-    startMode: "date",
     startsAt: toPickerValue(announcement.startsAt),
-    endMode: announcement.endsAt ? "date" : "none",
     endsAt: announcement.endsAt ? toPickerValue(announcement.endsAt) : null,
   };
 }
@@ -95,20 +90,13 @@ export function validateAnnouncementForm(
     errors.content = t("Announcement message is too long");
   }
 
-  const startTime =
-    values.startMode === "now" ? now : getPickerTime(values.startsAt);
-  if (startTime === null) {
-    errors.startsAt = t("Start time is required");
-  }
-
-  if (values.endMode === "date") {
-    const endTime = getPickerTime(values.endsAt);
+  const startTime = values.startsAt ? getPickerTime(values.startsAt) : now;
+  const endTime = getPickerTime(values.endsAt);
+  if (endTime !== null) {
     // Like the server, an end left as stored may already have passed
     const endChanged =
       !storedEndsAt || values.endsAt !== toPickerValue(storedEndsAt);
-    if (endTime === null) {
-      errors.endsAt = t("End time is required");
-    } else if (endChanged && endTime <= now) {
+    if (endChanged && endTime <= now) {
       errors.endsAt = t("End time must be in the future");
     } else if (startTime !== null && endTime <= startTime) {
       errors.endsAt = t("End time must be after the start time");
@@ -122,19 +110,17 @@ export function toAnnouncementInput(
   announcement: IAnnouncement | null,
 ): IAnnouncementInput {
   return {
-    kind: values.kind,
+    type: values.type,
     color: values.color,
     content: values.content,
     isDismissible: values.isDismissible,
     audience: values.audience,
-    startsAt:
-      values.startMode === "now"
-        ? null
-        : toInputTime(values.startsAt, announcement?.startsAt ?? null),
-    endsAt:
-      values.endMode === "none"
-        ? null
-        : toInputTime(values.endsAt, announcement?.endsAt ?? null),
+    startsAt: values.startsAt
+      ? toInputTime(values.startsAt, announcement?.startsAt ?? null)
+      : null,
+    endsAt: values.endsAt
+      ? toInputTime(values.endsAt, announcement?.endsAt ?? null)
+      : null,
   };
 }
 

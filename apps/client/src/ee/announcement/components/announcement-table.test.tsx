@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnnouncementTable } from "./announcement-table";
 import type {
   AnnouncementColor,
-  AnnouncementKind,
+  AnnouncementType,
   AnnouncementStatus,
   IAnnouncement,
 } from "../types/announcement.types";
@@ -22,7 +22,7 @@ const announcement = (
   overrides: Partial<IAnnouncement> = {},
 ): IAnnouncement => ({
   id: `id-${status}`,
-  kind: "warning",
+  type: "warning",
   color: "yellow",
   content: {
     type: "doc",
@@ -44,7 +44,7 @@ const announcement = (
 const handlers = () => ({
   onEdit: vi.fn(),
   onArchive: vi.fn(),
-  onRestore: vi.fn(),
+  onUnarchive: vi.fn(),
   onDelete: vi.fn(),
 });
 
@@ -104,7 +104,7 @@ describe("AnnouncementTable", () => {
     ["active", ["Edit", "Archive"]],
     ["scheduled", ["Edit", "Archive"]],
     ["ended", ["Edit", "Delete"]],
-    ["archived", ["Edit", "Restore", "Delete"]],
+    ["archived", ["Edit", "Unarchive", "Delete"]],
   ] as const)("offers the actions an %s announcement allows", (status, labels) => {
     renderTable([announcement(status)]);
     openActions();
@@ -115,7 +115,7 @@ describe("AnnouncementTable", () => {
 
   it.each([
     ["Edit", "onEdit"],
-    ["Restore", "onRestore"],
+    ["Unarchive", "onUnarchive"],
     ["Delete", "onDelete"],
   ] as const)("passes the announcement to %s", (label, handler) => {
     const archived = announcement("archived");
@@ -125,7 +125,7 @@ describe("AnnouncementTable", () => {
     expect(actions[handler]).toHaveBeenCalledWith(archived);
   });
 
-  it("shows the kind, audience, schedule and status", () => {
+  it("shows the type, audience, schedule and status", () => {
     renderTable([
       announcement("scheduled", { endsAt: "2026-11-05T18:00:00.000Z" }),
       announcement("active", { id: "a2", audience: "members" }),
@@ -148,10 +148,10 @@ describe("AnnouncementTable", () => {
     expect(within(active).getByText("Active")).toBeTruthy();
   });
 
-  it("shows a kind, color or status it does not know without failing", () => {
+  it("shows a type, color or status it does not know without failing", () => {
     renderTable([
       announcement("active", {
-        kind: "sparkle" as AnnouncementKind,
+        type: "sparkle" as AnnouncementType,
         color: "teal" as AnnouncementColor,
         status: "paused" as AnnouncementStatus,
       }),

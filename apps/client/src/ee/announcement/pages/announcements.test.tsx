@@ -28,7 +28,7 @@ const LICENSE_ALERT = "Announcements require an Enterprise license.";
 
 const announcement: IAnnouncement = {
   id: "a1",
-  kind: "info",
+  type: "info",
   color: "blue",
   content: {
     type: "doc",
@@ -45,6 +45,11 @@ const announcement: IAnnouncement = {
   createdAt: "2026-11-03T09:00:00.000Z",
   updatedAt: "2026-11-03T09:00:00.000Z",
 };
+
+const page = (items: IAnnouncement[]) => ({
+  items,
+  meta: { limit: 20, hasNextPage: false, hasPrevPage: false, nextCursor: null, prevCursor: null },
+});
 
 // features: the loaded entitlements; leave undefined for "not loaded yet"
 function renderPage(features?: string[]) {
@@ -133,16 +138,18 @@ describe("Announcements page", () => {
   });
 
   it("lists the current announcements when licensed", async () => {
-    vi.mocked(service.getCurrentAnnouncements).mockResolvedValue([announcement]);
+    vi.mocked(service.getAnnouncements).mockResolvedValue(page([announcement]));
     renderPage([Feature.ANNOUNCEMENTS]);
     expect(await screen.findByText("Planned maintenance")).toBeTruthy();
+    expect(service.getAnnouncements).toHaveBeenCalledTimes(1);
+    expect(service.getAnnouncements).toHaveBeenCalledWith({ limit: 20 });
     expect(screen.queryByText(LICENSE_ALERT)).toBeNull();
     expect(newAnnouncementButton().disabled).toBe(false);
   });
 
   it("keeps the list when a refresh fails", async () => {
-    vi.mocked(service.getCurrentAnnouncements)
-      .mockResolvedValueOnce([announcement])
+    vi.mocked(service.getAnnouncements)
+      .mockResolvedValueOnce(page([announcement]))
       .mockRejectedValue(new Error("Network Error"));
     const { queryClient } = renderPage([Feature.ANNOUNCEMENTS]);
     await screen.findByText("Planned maintenance");
@@ -154,14 +161,15 @@ describe("Announcements page", () => {
     });
 
     expect(
-      queryClient.getQueryState([...ANNOUNCEMENTS_KEY, "current"])?.status,
+      queryClient.getQueryState([...ANNOUNCEMENTS_KEY, "list", { limit: 20 }])
+        ?.status,
     ).toBe("error");
     expect(screen.getByText("Planned maintenance")).toBeTruthy();
     expect(screen.queryByText(/Could not load announcements/)).toBeNull();
   });
 
   it("explains a list that failed to load", async () => {
-    vi.mocked(service.getCurrentAnnouncements).mockRejectedValue(
+    vi.mocked(service.getAnnouncements).mockRejectedValue(
       new Error("Network Error"),
     );
     renderPage([Feature.ANNOUNCEMENTS]);

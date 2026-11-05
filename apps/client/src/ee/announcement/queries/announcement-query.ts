@@ -17,21 +17,20 @@ import {
   archiveAnnouncement,
   createAnnouncement,
   deleteAnnouncement,
-  getArchivedAnnouncements,
-  getCurrentAnnouncements,
+  getAnnouncements,
   getPublicAnnouncements,
   getVisibleAnnouncements,
-  restoreAnnouncement,
+  unarchiveAnnouncement,
   updateAnnouncement,
 } from "@/ee/announcement/services/announcement-service";
 import {
   AnnouncementSurface,
   IAnnouncement,
-  IAnnouncementArchivedParams,
   IAnnouncementBanner,
   IAnnouncementIdInput,
   IAnnouncementInput,
   IAnnouncementLimitConflict,
+  IAnnouncementListParams,
   IUpdateAnnouncementInput,
 } from "@/ee/announcement/types/announcement.types";
 
@@ -81,25 +80,14 @@ function useInvalidateAnnouncements() {
   return () => queryClient.invalidateQueries({ queryKey: ANNOUNCEMENTS_KEY });
 }
 
-// Both admin lists refetch on mount: the app default (false) would keep an invalidated list stale
-export function useCurrentAnnouncementsQuery(
-  enabled: boolean,
-): UseQueryResult<IAnnouncement[], Error> {
-  return useQuery({
-    queryKey: [...ANNOUNCEMENTS_KEY, "current"],
-    queryFn: getCurrentAnnouncements,
-    enabled,
-    refetchOnMount: "always",
-  });
-}
-
-export function useArchivedAnnouncementsQuery(
-  params: IAnnouncementArchivedParams,
+// The admin list refetches on mount: the app default (false) would keep an invalidated list stale
+export function useAnnouncementsQuery(
+  params: IAnnouncementListParams,
   enabled: boolean,
 ): UseQueryResult<IPagination<IAnnouncement>, Error> {
   return useQuery({
-    queryKey: [...ANNOUNCEMENTS_KEY, "archived", params],
-    queryFn: () => getArchivedAnnouncements(params),
+    queryKey: [...ANNOUNCEMENTS_KEY, "list", params],
+    queryFn: () => getAnnouncements(params),
     enabled,
     placeholderData: keepPreviousData,
     refetchOnMount: "always",
@@ -156,13 +144,13 @@ export function useArchiveAnnouncementMutation() {
   });
 }
 
-export function useRestoreAnnouncementMutation() {
+export function useUnarchiveAnnouncementMutation() {
   const { t } = useTranslation();
   const invalidate = useInvalidateAnnouncements();
   return useMutation<IAnnouncement, Error, IAnnouncementIdInput>({
-    mutationFn: restoreAnnouncement,
+    mutationFn: unarchiveAnnouncement,
     onSuccess: () => {
-      notifications.show({ message: t("Announcement restored") });
+      notifications.show({ message: t("Announcement unarchived") });
       invalidate();
     },
     onError: (error) => {

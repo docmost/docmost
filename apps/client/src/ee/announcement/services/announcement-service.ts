@@ -2,23 +2,18 @@ import api from "@/lib/api-client";
 import { IPagination } from "@/lib/types";
 import {
   IAnnouncement,
-  IAnnouncementArchivedParams,
   IAnnouncementBanner,
   IAnnouncementIdInput,
   IAnnouncementInput,
+  IAnnouncementListParams,
   IUpdateAnnouncementInput,
 } from "@/ee/announcement/types/announcement.types";
 
-export async function getCurrentAnnouncements(): Promise<IAnnouncement[]> {
-  const req = await api.post<IAnnouncement[]>("/announcements/current");
-  return req.data;
-}
-
-export async function getArchivedAnnouncements(
-  params: IAnnouncementArchivedParams,
+export async function getAnnouncements(
+  params: IAnnouncementListParams,
 ): Promise<IPagination<IAnnouncement>> {
   const req = await api.post<IPagination<IAnnouncement>>(
-    "/announcements/archived",
+    "/announcements",
     params,
   );
   return req.data;
@@ -55,10 +50,10 @@ export async function archiveAnnouncement(
   return req.data;
 }
 
-export async function restoreAnnouncement(
+export async function unarchiveAnnouncement(
   data: IAnnouncementIdInput,
 ): Promise<IAnnouncement> {
-  const req = await api.post<IAnnouncement>("/announcements/restore", data);
+  const req = await api.post<IAnnouncement>("/announcements/unarchive", data);
   return req.data;
 }
 

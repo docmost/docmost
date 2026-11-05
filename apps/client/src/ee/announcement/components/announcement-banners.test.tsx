@@ -20,7 +20,7 @@ import {
 import { dismissAnnouncement } from "../announcement.utils";
 import type {
   AnnouncementColor,
-  AnnouncementKind,
+  AnnouncementType,
   IAnnouncementBanner,
 } from "../types/announcement.types";
 
@@ -87,7 +87,7 @@ const banner = (
   overrides: Partial<IAnnouncementBanner> = {},
 ): IAnnouncementBanner => ({
   id,
-  kind: "info",
+  type: "info",
   color: "blue",
   content: {
     type: "doc",
@@ -193,10 +193,10 @@ describe("AnnouncementBanners", () => {
     ).toBeNull();
   });
 
-  it("falls back to the gray preset and no icon for an unknown color and kind", () => {
+  it("falls back to the gray preset and no icon for an unknown color and type", () => {
     mocks.banners = [
       banner("unknown-1", "From a newer server", {
-        kind: "sparkle" as AnnouncementKind,
+        type: "sparkle" as AnnouncementType,
         color: "teal" as AnnouncementColor,
         isDismissible: false,
       }),
