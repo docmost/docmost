@@ -118,6 +118,7 @@ export class VerificationNotificationService {
         pageVerificationId: verification.id,
         data: { expiresAt: expiresAtIso },
       });
+      if (!notification) continue;
 
       const subject = `"${pageTitle}" needs to be re-verified soon`;
 
@@ -192,6 +193,7 @@ export class VerificationNotificationService {
         spaceId: verification.spaceId,
         pageVerificationId: verification.id,
       });
+      if (!notification) continue;
 
       const subject = `"${pageTitle}" verification has expired`;
 
@@ -260,6 +262,7 @@ export class VerificationNotificationService {
         pageId,
         spaceId,
       });
+      if (!notification) continue;
 
       const subject = `"${pageTitle}" needs your approval`;
 
@@ -305,6 +308,7 @@ export class VerificationNotificationService {
       pageId,
       spaceId,
     });
+    if (!notification) return;
 
     const subject = `"${pageTitle}" was returned for revision`;
 
