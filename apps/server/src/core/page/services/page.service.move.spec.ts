@@ -69,6 +69,7 @@ describe('PageService movePage', () => {
       {} as any,
       wsService as any,
       collabAccessService as any,
+      {} as any,
     );
 
     return { service, pageRepo, wsService, collabAccessService };

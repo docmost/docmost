@@ -59,6 +59,7 @@ import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { PageVerificationInvalidationService } from '../verification/page-verification-invalidation.service';
 
 @Injectable()
 export class PageService {
@@ -80,6 +81,7 @@ export class PageService {
     private readonly labelRepo: LabelRepo,
     private readonly wsService: WsService,
     private readonly collabAccessService: CollabAccessService,
+    private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
   ) {}
 
   async findById(
@@ -234,17 +236,43 @@ export class PageService {
     const contributors = new Set<string>(page.contributorIds);
     contributors.add(user.id);
     const contributorIds = Array.from(contributors);
+    const titleChanged =
+      updatePageDto.title !== undefined &&
+      (updatePageDto.title ?? '') !== (page.title ?? '');
 
-    await this.pageRepo.updatePage(
-      {
-        title: updatePageDto.title,
-        icon: updatePageDto.icon,
-        lastUpdatedById: user.id,
-        updatedAt: new Date(),
-        contributorIds: contributorIds,
-      },
-      page.id,
-    );
+    const invalidation = await executeTx(this.db, async (trx) => {
+      await this.pageRepo.updatePage(
+        {
+          title: updatePageDto.title,
+          icon: updatePageDto.icon,
+          lastUpdatedById: user.id,
+          updatedAt: new Date(),
+          contributorIds: contributorIds,
+        },
+        page.id,
+        trx,
+      );
+
+      if (!titleChanged) return null;
+
+      return this.pageVerificationInvalidationService.invalidateForEdit(
+        {
+          pageId: page.id,
+          userId: user.id,
+          changedAt: null,
+          isMeaningfulChange: () => true,
+        },
+        trx,
+      );
+    });
+
+    if (invalidation) {
+      await this.pageVerificationInvalidationService.notifyInvalidated(
+        invalidation,
+        user.id,
+        'title',
+      );
+    }
 
     this.generalQueue
       .add(QueueJob.ADD_PAGE_WATCHERS, {

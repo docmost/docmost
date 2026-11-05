@@ -14,6 +14,7 @@ import { CollabHistoryService } from './services/collab-history.service';
 import { WatcherModule } from '../core/watcher/watcher.module';
 import { TransclusionService } from '../core/page/transclusion/transclusion.service';
 import { TransclusionModule } from '../core/page/transclusion/transclusion.module';
+import { PageVerificationInvalidationModule } from '../core/page/verification/page-verification-invalidation.module';
 import { StorageModule } from '../integrations/storage/storage.module';
 import { EnvironmentModule } from '../integrations/environment/environment.module';
 
@@ -36,6 +37,7 @@ import { EnvironmentModule } from '../integrations/environment/environment.modul
       imports: [EnvironmentModule],
     }),
     TransclusionModule,
+    PageVerificationInvalidationModule,
   ],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
