@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { getSchema } from '@tiptap/core';
+import { getSchema, JSONContent } from '@tiptap/core';
 import { Mark, Node, Schema } from '@tiptap/pm/model';
 import { tiptapExtensions } from './collaboration.util';
 
@@ -10,6 +10,8 @@ type Comparable = {
   marks?: Comparable[];
   content?: Comparable[];
 };
+
+type BlockLike = { type?: string; content?: unknown[] };
 
 const EMPTY_DOCUMENT = { type: 'doc', content: [] };
 
@@ -41,11 +43,11 @@ function toComparableMark(mark: Mark): Comparable {
   return { type: mark.type.name, ...(attrs && { attrs }) };
 }
 
-function isEmptyParagraph(node: Comparable): boolean {
+function isEmptyParagraph(node: BlockLike): boolean {
   return node.type === 'paragraph' && !node.content?.length;
 }
 
-function dropTrailingEmptyParagraphs(content: Comparable[]): Comparable[] {
+function dropTrailingEmptyParagraphs<T extends BlockLike>(content: T[]): T[] {
   const result = [...content];
   const footnotes =
     result[result.length - 1]?.type === 'footnotes' ? result.pop() : undefined;
@@ -119,4 +121,37 @@ export function isSameDocumentContent(
     return isDeepStrictEqual(previous, next);
   }
   return isDeepStrictEqual(previousComparable, nextComparable);
+}
+
+const REVIEW_ID_STRIPPED_TYPES = ['heading', 'paragraph', 'transclusionSource'];
+
+function toReviewNode(node: JSONContent): JSONContent {
+  const { attrs, marks, content, ...rest } = node;
+  let nextAttrs = attrs;
+  if (node.type === 'details') {
+    nextAttrs = { ...attrs, open: true };
+  } else if (attrs && REVIEW_ID_STRIPPED_TYPES.includes(node.type ?? '')) {
+    const { id: _id, ...others } = attrs;
+    nextAttrs = Object.keys(others).length ? others : undefined;
+  }
+  const nextMarks = marks?.filter((mark) => mark.type !== 'comment');
+  const nextContent = content?.map(toReviewNode);
+  return {
+    ...rest,
+    ...(nextAttrs && { attrs: nextAttrs }),
+    ...(nextMarks?.length && { marks: nextMarks }),
+    ...(nextContent && {
+      content:
+        node.type === 'doc'
+          ? dropTrailingEmptyParagraphs(nextContent)
+          : nextContent,
+    }),
+  };
+}
+
+// Display sibling of isSameDocumentContent: keeps ids the client needs to render.
+export function toReviewDocument(content: unknown): JSONContent {
+  const source =
+    content && typeof content === 'object' ? content : EMPTY_DOCUMENT;
+  return toReviewNode(source as JSONContent);
 }
