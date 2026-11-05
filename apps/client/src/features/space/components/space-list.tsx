@@ -14,9 +14,12 @@ import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
 import SpaceArchiveFilter from "@/features/space/components/space-archive-filter.tsx";
+import CreateSpaceModal from "@/features/space/components/create-space-modal.tsx";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function SpaceList() {
   const { t } = useTranslation();
+  const { isAdmin } = useUserRole();
   const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
     usePaginateAndSearch();
   const [archived, setArchived] = useState(false);
@@ -43,13 +46,14 @@ export default function SpaceList() {
 
   return (
     <>
-      <SearchInput onSearch={handleSearch} />
-      <Group mb="sm">
+      <Group my="md" justify="space-between">
         <SpaceArchiveFilter
           archived={archived}
           onChange={handleArchivedChange}
         />
+        {isAdmin && <CreateSpaceModal />}
       </Group>
+      <SearchInput onSearch={handleSearch} />
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Thead>

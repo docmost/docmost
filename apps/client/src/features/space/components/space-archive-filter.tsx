@@ -1,9 +1,7 @@
 import { Button, Menu } from "@mantine/core";
-import { IconArchive, IconCheck, IconChevronDown } from "@tabler/icons-react";
-import cx from "clsx";
+import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
-import classes from "@/features/search/components/search-spotlight-filters.module.css";
 
 interface SpaceArchiveFilterProps {
   archived: boolean;
@@ -24,17 +22,9 @@ export default function SpaceArchiveFilter({
     <Menu shadow="md" width={180} position="bottom-start">
       <Menu.Target>
         <Button
-          variant={archived ? "light" : "subtle"}
-          color={archived ? "blue" : "gray"}
+          variant="default"
           size="sm"
-          radius="xl"
-          leftSection={<IconArchive size={16} />}
           rightSection={<IconChevronDown size={14} />}
-          className={cx(
-            classes.filterButton,
-            archived && classes.filterButtonActive,
-          )}
-          fw={500}
           aria-label={archived ? t("Archived spaces") : t("Active spaces")}
         >
           {archived ? t("Archived") : t("Active")}
