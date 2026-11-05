@@ -11,6 +11,8 @@ type Comparable = {
   content?: Comparable[];
 };
 
+const EMPTY_DOCUMENT = { type: 'doc', content: [] };
+
 let cachedSchema: Schema | null = null;
 
 function getServerSchema(): Schema {
@@ -111,8 +113,8 @@ export function isSameDocumentContent(
   previous: unknown,
   next: unknown,
 ): boolean {
-  const previousComparable = parseDocument(previous);
-  const nextComparable = parseDocument(next);
+  const previousComparable = parseDocument(previous ?? EMPTY_DOCUMENT);
+  const nextComparable = parseDocument(next ?? EMPTY_DOCUMENT);
   if (!previousComparable || !nextComparable) {
     return isDeepStrictEqual(previous, next);
   }

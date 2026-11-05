@@ -1,5 +1,6 @@
 import {
   getVerificationStateEnteredAt,
+  isSameTitle,
   shouldInvalidateVerification,
 } from './page-verification-invalidation.utils';
 import { VerificationEditState } from './page-verification-invalidation.types';
@@ -144,5 +145,31 @@ describe('shouldInvalidateVerification', () => {
 
   it('invalidates when the change time is unknown', () => {
     expect(shouldInvalidateVerification(qms('approved'), null, NOW)).toBe(true);
+  });
+});
+
+describe('isSameTitle', () => {
+  it('returns true for equal titles', () => {
+    expect(isSameTitle('Release notes', 'Release notes')).toBe(true);
+  });
+
+  it('ignores leading and trailing spaces', () => {
+    expect(isSameTitle('Release notes ', 'Release notes')).toBe(true);
+    expect(isSameTitle(' Release notes', 'Release notes')).toBe(true);
+  });
+
+  it('ignores repeated spaces', () => {
+    expect(isSameTitle('Release  notes', 'Release notes')).toBe(true);
+  });
+
+  it('treats null, undefined and empty titles as the same', () => {
+    expect(isSameTitle(null, '')).toBe(true);
+    expect(isSameTitle(undefined, '')).toBe(true);
+    expect(isSameTitle(null, '  ')).toBe(true);
+  });
+
+  it('detects a real change', () => {
+    expect(isSameTitle('Release notes', 'Release notes v2')).toBe(false);
+    expect(isSameTitle(null, 'Release notes')).toBe(false);
   });
 });

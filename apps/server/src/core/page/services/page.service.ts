@@ -60,6 +60,7 @@ import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 import { PageVerificationInvalidationService } from '../verification/page-verification-invalidation.service';
+import { isSameTitle } from '../verification/page-verification-invalidation.utils';
 
 @Injectable()
 export class PageService {
@@ -238,7 +239,7 @@ export class PageService {
     const contributorIds = Array.from(contributors);
     const titleChanged =
       updatePageDto.title !== undefined &&
-      (updatePageDto.title ?? '') !== (page.title ?? '');
+      !isSameTitle(page.title, updatePageDto.title);
 
     const invalidation = await executeTx(this.db, async (trx) => {
       await this.pageRepo.updatePage(

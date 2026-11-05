@@ -27,3 +27,12 @@ export function shouldInvalidateVerification(
   const enteredAt = getVerificationStateEnteredAt(verification);
   return !changedAt || !enteredAt || changedAt > enteredAt;
 }
+
+export function isSameTitle(
+  previous: string | null | undefined,
+  next: string | null | undefined,
+): boolean {
+  const normalize = (title: string | null | undefined) =>
+    (title ?? '').replace(/\s+/g, ' ').trim();
+  return normalize(previous) === normalize(next);
+}

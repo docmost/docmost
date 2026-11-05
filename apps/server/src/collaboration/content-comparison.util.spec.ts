@@ -121,8 +121,15 @@ describe('isSameDocumentContent', () => {
     ).toBe(false);
   });
 
-  it('handles null previous content', () => {
-    expect(isSameDocumentContent(null, doc(p()))).toBe(false);
+  it('treats missing content as an empty document', () => {
+    expect(isSameDocumentContent(null, doc(p()))).toBe(true);
+    expect(isSameDocumentContent(undefined, doc(p()))).toBe(true);
+    expect(isSameDocumentContent(doc(p()), null)).toBe(true);
     expect(isSameDocumentContent(null, null)).toBe(true);
+  });
+
+  it('detects text added to missing content', () => {
+    expect(isSameDocumentContent(null, doc(p('a')))).toBe(false);
+    expect(isSameDocumentContent(doc(p('a')), undefined)).toBe(false);
   });
 });
