@@ -1,6 +1,7 @@
 import {
   getVerificationStateEnteredAt,
   isSameTitle,
+  needsLegacyBaseline,
   shouldInvalidateVerification,
 } from './page-verification-invalidation.utils';
 import { VerificationEditState } from './page-verification-invalidation.types';
@@ -171,5 +172,37 @@ describe('isSameTitle', () => {
   it('detects a real change', () => {
     expect(isSameTitle('Release notes', 'Release notes v2')).toBe(false);
     expect(isSameTitle(null, 'Release notes')).toBe(false);
+  });
+});
+
+describe('needsLegacyBaseline', () => {
+  it('is true for approved qms without a pointer', () => {
+    expect(
+      needsLegacyBaseline({ type: 'qms', status: 'approved', verifiedHistoryId: null }),
+    ).toBe(true);
+  });
+
+  it('is false for approved qms with a pointer', () => {
+    expect(
+      needsLegacyBaseline({ type: 'qms', status: 'approved', verifiedHistoryId: 'h1' }),
+    ).toBe(false);
+  });
+
+  it('is false for qms in approval without a pointer', () => {
+    expect(
+      needsLegacyBaseline({ type: 'qms', status: 'in_approval', verifiedHistoryId: null }),
+    ).toBe(false);
+  });
+
+  it('is true for expiring without a pointer', () => {
+    expect(
+      needsLegacyBaseline({ type: 'expiring', status: null, verifiedHistoryId: null }),
+    ).toBe(true);
+  });
+
+  it('is false for expiring with a pointer', () => {
+    expect(
+      needsLegacyBaseline({ type: 'expiring', status: null, verifiedHistoryId: 'h1' }),
+    ).toBe(false);
   });
 });

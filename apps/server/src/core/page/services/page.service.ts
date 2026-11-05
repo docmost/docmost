@@ -262,6 +262,13 @@ export class PageService {
           userId: user.id,
           changedAt: null,
           isMeaningfulChange: () => true,
+          loadPreviousState: async () => {
+            const current = await this.pageRepo.findById(page.id, {
+              includeContent: true,
+              trx,
+            });
+            return { ...page, content: current.content };
+          },
         },
         trx,
       );

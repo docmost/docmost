@@ -4,7 +4,11 @@ import { Queue } from 'bullmq';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { IVerificationInvalidatedJob } from '../../../integrations/queue/constants/queue.interface';
-import { shouldInvalidateVerification } from './page-verification-invalidation.utils';
+import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
+import {
+  needsLegacyBaseline,
+  shouldInvalidateVerification,
+} from './page-verification-invalidation.utils';
 import {
   InvalidateForEditInput,
   PageVerificationInvalidation,
@@ -19,6 +23,7 @@ export class PageVerificationInvalidationService {
   constructor(
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
     private readonly notificationQueue: Queue,
+    private readonly pageHistoryRepo: PageHistoryRepo,
   ) {}
 
   async invalidateForEdit(
@@ -38,6 +43,7 @@ export class PageVerificationInvalidationService {
         'requestedAt',
         'expiresAt',
         'invalidatedAt',
+        'verifiedHistoryId',
       ])
       .where('pageId', '=', input.pageId)
       .forUpdate()
@@ -53,17 +59,40 @@ export class PageVerificationInvalidationService {
     }
 
     const isQms = verification.type === 'qms';
+
+    let verifiedHistoryId: string | undefined;
+    if (needsLegacyBaseline(verification)) {
+      const prev = await input.loadPreviousState();
+      const baseline = await this.pageHistoryRepo.insertPageHistory(
+        {
+          pageId: verification.pageId,
+          slugId: prev.slugId,
+          title: prev.title,
+          content: prev.content,
+          icon: prev.icon,
+          coverPhoto: prev.coverPhoto,
+          lastUpdatedById: prev.lastUpdatedById ?? prev.creatorId,
+          contributorIds: [],
+          spaceId: prev.spaceId,
+          workspaceId: prev.workspaceId,
+        },
+        trx,
+      );
+      verifiedHistoryId = baseline.id;
+    }
     await trx
       .updateTable('pageVerifications')
       .set({
         invalidatedAt: now,
         invalidatedById: input.userId,
         updatedAt: now,
+        ...(verifiedHistoryId && { verifiedHistoryId }),
         ...(isQms && {
           status: 'draft',
           rejectedAt: null,
           rejectedById: null,
           rejectionComment: null,
+          rejectedHistoryId: null,
         }),
       })
       .where('id', '=', verification.id)

@@ -179,6 +179,7 @@ export class PersistenceExtension implements Extension {
               changedAt: lastChangeAt ? new Date(lastChangeAt) : null,
               isMeaningfulChange: () =>
                 !isSameDocumentContent(page.content, tiptapJson),
+              loadPreviousState: async () => page,
             },
             trx,
           );

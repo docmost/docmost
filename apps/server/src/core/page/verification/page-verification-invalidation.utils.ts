@@ -1,3 +1,4 @@
+import { PageVerification } from '@docmost/db/types/entity.types';
 import { VerificationEditState } from './page-verification-invalidation.types';
 
 export function getVerificationStateEnteredAt(
@@ -35,4 +36,14 @@ export function isSameTitle(
   const normalize = (title: string | null | undefined) =>
     (title ?? '').replace(/\s+/g, ' ').trim();
   return normalize(previous) === normalize(next);
+}
+
+export function needsLegacyBaseline(
+  state: Pick<PageVerification, 'type' | 'status' | 'verifiedHistoryId'>,
+): boolean {
+  if (state.verifiedHistoryId) return false;
+  return (
+    state.type === 'expiring' ||
+    (state.type === 'qms' && state.status === 'approved')
+  );
 }
