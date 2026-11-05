@@ -23,6 +23,7 @@ import { exportBaseToCsv } from "@/ee/base/services/base-service";
 import { normalizeFilter } from "@/ee/base/queries/base-row-query";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
 import { ViewTabs } from "@/ee/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/ee/base/components/views/view-sort-config";
 import { ViewFilterConfigPopover } from "@/ee/base/components/views/view-filter-config";
@@ -66,6 +67,7 @@ export function BaseToolbar({
   const { exportDisabled, exportDisabledLabel } = useExportDisabled(
     base.spaceId,
   );
+  useDisablePrint(exportDisabledLabel);
   const [sortOpened, setSortOpened] = useState(false);
   const [filterOpened, setFilterOpened] = useState(false);
   const [propertiesOpened, setPropertiesOpened] = useState(false);

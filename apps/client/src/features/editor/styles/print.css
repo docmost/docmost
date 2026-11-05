@@ -20,13 +20,4 @@
   .tableWrapper {
     overflow: hidden !important;
   }
-
-  /* set by useDisablePrint while export is disabled */
-  body[data-export-disabled] > * {
-    display: none !important;
-  }
-
-  body[data-export-disabled]::before {
-    content: attr(data-export-disabled);
-  }
 }

@@ -65,6 +65,7 @@ import {
   useUnwatchPageMutation,
 } from "@/features/page/queries/watcher-query";
 import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
+import { usePrintBlockReason } from "@/ee/security/hooks/use-disable-print.ts";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -162,6 +163,8 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const { exportDisabled, exportDisabledLabel } = useExportDisabled(
     page?.space?.slug,
   );
+  // also set by bases and synced blocks embedded from other spaces
+  const printBlockReason = usePrintBlockReason();
   const { openDeleteModal } = useDeletePageModal();
   const { handleDelete } = useTreeMutation(page?.spaceId ?? "");
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
@@ -392,16 +395,16 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           </Tooltip>
 
           <Tooltip
-            label={exportDisabledLabel}
-            disabled={!exportDisabled}
+            label={printBlockReason}
+            disabled={!printBlockReason}
             position="left"
             withArrow
           >
             <Menu.Item
               leftSection={<IconPrinter size={16} />}
-              onClick={exportDisabled ? undefined : handlePrint}
-              data-disabled={exportDisabled || undefined}
-              aria-disabled={exportDisabled || undefined}
+              onClick={printBlockReason ? undefined : handlePrint}
+              data-disabled={printBlockReason ? true : undefined}
+              aria-disabled={printBlockReason ? true : undefined}
             >
               {t("Print PDF")}
             </Menu.Item>
