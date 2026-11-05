@@ -221,7 +221,7 @@ export class NotificationProcessor
     }
 
     try {
-      this.wsService.emitCommentEvent(spaceId, pageId, {
+      await this.wsService.emitCommentEvent(spaceId, pageId, {
         operation: 'verificationUpdated',
         pageId,
       });
