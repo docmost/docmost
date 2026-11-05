@@ -378,6 +378,7 @@ export class VerificationNotificationService {
         pageVerificationId: verificationId,
         data: { verificationType, previousStatus },
       });
+      if (!notification) continue;
 
       await this.notificationService.queueEmail(
         userId,

@@ -170,11 +170,11 @@ export class NotificationProcessor
 
         case QueueJob.PAGE_VERIFICATION_INVALIDATED: {
           const data = job.data as IVerificationInvalidatedJob;
+          await this.afterVerificationInvalidated(data);
           await this.verificationNotificationService.processVerificationInvalidated(
             data,
             appUrl,
           );
-          await this.afterVerificationInvalidated(data);
           break;
         }
 
@@ -213,7 +213,11 @@ export class NotificationProcessor
             source: data.source,
           },
         },
-        { workspaceId, actorId: actorId ?? undefined, actorType: 'user' },
+        {
+          workspaceId,
+          actorId: actorId ?? undefined,
+          actorType: actorId ? 'user' : 'system',
+        },
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
