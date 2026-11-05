@@ -7,7 +7,6 @@ import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtomValue } from "jotai";
 import {
-  currentPageEditModeAtom,
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
@@ -28,6 +27,7 @@ import localEmitter from "@/lib/local-emitter.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { platformModifierKey } from "@/lib";
+import { usePageEditMode } from "@/ee/page-verification";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -54,7 +54,8 @@ export function TitleEditor({
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
-  const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
+  // bases have no edit mode toggle, so a verification must not lock their title
+  const { editMode } = usePageEditMode(isBase ? undefined : pageId);
 
   const titleEditor = useEditor({
     extensions: [
@@ -188,8 +189,8 @@ export function TitleEditor({
 
   useEffect(() => {
     if (!titleEditor) return;
-    titleEditor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
-  }, [currentPageEditMode, titleEditor, editable]);
+    titleEditor.setEditable(editable && editMode === PageEditMode.Edit);
+  }, [editMode, titleEditor, editable]);
 
   const openSearchDialog = () => {
     const event = new CustomEvent("openFindDialogFromEditor", {});
