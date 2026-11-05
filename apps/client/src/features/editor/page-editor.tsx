@@ -79,7 +79,7 @@ import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
-import { usePageEditMode } from "@/ee/page-verification";
+import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
@@ -508,7 +508,10 @@ function CollabPageEditor({
         <EditorContent editor={editor} />
 
         {editor && (
-          <SearchAndReplaceDialog editor={editor} editable={editable} />
+          <SearchAndReplaceDialog
+            editor={editor}
+            editable={editable && editMode === PageEditMode.Edit}
+          />
         )}
         {editor && <SearchNavigationDialog editor={editor} />}
 

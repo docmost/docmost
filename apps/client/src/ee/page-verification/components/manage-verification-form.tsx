@@ -184,10 +184,10 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
         {t("Assigned verifiers must periodically re-verify this page.")}
       </Text>
 
-      {status === "invalidated" && info.invalidatedBy && info.invalidatedAt && (
+      {status === "invalidated" && info.invalidatedAt && (
         <Text size="sm">
           {t("Changed by {{name}} {{time}}", {
-            name: info.invalidatedBy.name,
+            name: info.invalidatedBy?.name ?? t("Someone"),
             time: invalidatedAtAgo,
           })}
         </Text>
@@ -473,10 +473,10 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
             </div>
           )}
           {!info.rejectedBy &&
-            (info.invalidatedBy ? (
+            (info.invalidatedAt ? (
               <Text size="sm">
                 {t("Changed by {{name}} {{time}}. Submit it for approval again.", {
-                  name: info.invalidatedBy.name,
+                  name: info.invalidatedBy?.name ?? t("Someone"),
                   time: invalidatedAtAgo,
                 })}
               </Text>

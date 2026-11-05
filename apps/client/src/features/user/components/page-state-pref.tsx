@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
-import { usePageEditMode } from "@/ee/page-verification";
+import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 
 export default function PageStatePref() {
   const { t } = useTranslation();

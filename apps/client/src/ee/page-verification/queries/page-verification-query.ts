@@ -34,6 +34,7 @@ export function usePageVerificationInfoQuery(
     queryKey: ["page-verification-info", pageId],
     queryFn: () => getVerificationInfo(pageId!),
     enabled: !!pageId,
+    refetchOnMount: true,
   });
 }
 
