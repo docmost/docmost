@@ -186,6 +186,7 @@ export function SearchSpotlightFilters({
       <SpaceFilterMenu
         value={selectedSpaceId}
         onChange={handleSpaceSelect}
+        currentSpaceId={spaceId}
         position="bottom-start"
         width={250}
         zIndex={getDefaultZIndex("max")}

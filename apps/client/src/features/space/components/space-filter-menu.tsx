@@ -32,6 +32,7 @@ type SpaceFilterMenuProps = {
     | "top-end"
     | "top";
   zIndex?: number;
+  currentSpaceId?: string | null;
 };
 
 export function SpaceFilterMenu({
@@ -41,6 +42,7 @@ export function SpaceFilterMenu({
   width = 280,
   position = "bottom-end",
   zIndex,
+  currentSpaceId,
 }: SpaceFilterMenuProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,16 +53,20 @@ export function SpaceFilterMenu({
     query: debouncedQuery,
   });
   const { data: selectedSpace } = useSpaceQuery(value);
+  const { data: currentSpace } = useSpaceQuery(currentSpaceId);
 
   const orderedSpaces = useMemo(() => {
-    const spaces = includeSpace(spacesData?.items ?? [], selectedSpace);
+    const spaces = includeSpace(
+      includeSpace(spacesData?.items ?? [], currentSpace),
+      selectedSpace,
+    );
     if (!value) return spaces;
     return [...spaces].sort((a, b) => {
       if (a.id === value) return -1;
       if (b.id === value) return 1;
       return 0;
     });
-  }, [spacesData, selectedSpace, value]);
+  }, [spacesData, currentSpace, selectedSpace, value]);
 
   return (
     <Menu shadow="md" width={width} position={position} zIndex={zIndex}>

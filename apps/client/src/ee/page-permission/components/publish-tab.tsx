@@ -211,11 +211,13 @@ export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDis
           <Text size="sm">
             {isPagePublic ? t("Shared to web") : t("Share to web")}
           </Text>
-          <Text size="xs" c="dimmed">
-            {isPagePublic
-              ? t("Anyone with the link can view this page")
-              : t("Make this page publicly accessible")}
-          </Text>
+          {!(isPagePublic && spaceArchived) && (
+            <Text size="xs" c="dimmed">
+              {isPagePublic
+                ? t("Anyone with the link can view this page")
+                : t("Make this page publicly accessible")}
+            </Text>
+          )}
         </div>
         <Switch
           onChange={handleChange}

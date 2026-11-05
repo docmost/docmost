@@ -69,6 +69,7 @@ export default function TemplatePickerModal({
 
   const { data, isPending } = useGetTemplatesQuery({
     spaceId: scope === "current" ? initialSpaceId : undefined,
+    currentSpaceId: scope === "all" ? initialSpaceId : undefined,
   });
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
   const { data: initialSpace } = useSpaceQuery(initialSpaceId);
