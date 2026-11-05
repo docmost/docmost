@@ -94,6 +94,9 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
   const [fixedDate, setFixedDate] = useState<string>(initialFixedDate);
 
   const verifiedAtAgo = useTimeAgo(info.verifiedAt ?? new Date().toISOString());
+  const invalidatedAtAgo = useTimeAgo(
+    info.invalidatedAt ?? new Date().toISOString(),
+  );
 
   const hasExpirationChange =
     mode !== initialMode ||
@@ -181,12 +184,26 @@ function ExpiringManageContent({ pageId, info, onClose }: ManageContentProps) {
         {t("Assigned verifiers must periodically re-verify this page.")}
       </Text>
 
+      {status === "invalidated" && info.invalidatedBy && info.invalidatedAt && (
+        <Text size="sm">
+          {t("Changed by {{name}} {{time}}", {
+            name: info.invalidatedBy.name,
+            time: invalidatedAtAgo,
+          })}
+        </Text>
+      )}
+
       {info.verifiedBy && (
         <Group gap="sm">
           <div>
             <Text size="sm">
               {status === "expired"
                 ? t("Last verified by {{name}} {{time}} (expired)", {
+                    name: info.verifiedBy.name,
+                    time: verifiedAtAgo,
+                  })
+                : status === "invalidated"
+                ? t("Last verified by {{name}} {{time}}", {
                     name: info.verifiedBy.name,
                     time: verifiedAtAgo,
                   })
@@ -342,6 +359,9 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
     info.requestedAt ?? new Date().toISOString(),
   );
   const rejectedAtAgo = useTimeAgo(info.rejectedAt ?? new Date().toISOString());
+  const invalidatedAtAgo = useTimeAgo(
+    info.invalidatedAt ?? new Date().toISOString(),
+  );
 
   const status = info.status;
 
@@ -452,9 +472,17 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
               )}
             </div>
           )}
-          {!info.rejectedBy && (
-            <Text size="sm">{t("No approval has been requested yet.")}</Text>
-          )}
+          {!info.rejectedBy &&
+            (info.invalidatedBy ? (
+              <Text size="sm">
+                {t("Changed by {{name}} {{time}}. Submit it for approval again.", {
+                  name: info.invalidatedBy.name,
+                  time: invalidatedAtAgo,
+                })}
+              </Text>
+            ) : (
+              <Text size="sm">{t("No approval has been requested yet.")}</Text>
+            ))}
         </>
       )}
 

@@ -12,6 +12,7 @@ export type VerificationStatus =
   | "in_approval"
   | "approved"
   | "obsolete"
+  | "invalidated"
   | "none";
 
 export type IUserRef = {
@@ -43,6 +44,8 @@ export type IPageVerificationInfo = {
   rejectedAt?: string | null;
   rejectedBy?: IUserRef | null;
   rejectionComment?: string | null;
+  invalidatedAt?: string | null;
+  invalidatedBy?: IUserRef | null;
   verifiers?: IVerifier[];
   permissions?: IPageVerificationPermissions;
 };

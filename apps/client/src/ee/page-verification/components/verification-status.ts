@@ -6,6 +6,7 @@ export function getStatusColor(status: VerificationStatus): string {
     case "approved":
       return "blue.7";
     case "expiring":
+    case "invalidated":
     case "in_approval":
       return "orange.8";
     case "expired":
@@ -29,6 +30,8 @@ export function getStatusLabel(
       return t("Review needed");
     case "expired":
       return t("Verification expired");
+    case "invalidated":
+      return t("Unverified changes");
     case "draft":
       return t("Draft");
     case "in_approval":
