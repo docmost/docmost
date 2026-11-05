@@ -32,6 +32,11 @@ export class CollaborationHandler {
         }
         return [...userIds];
       },
+      flushDocument: async (documentName: string, _payload: object = {}) => {
+        const document = hocuspocus.documents.get(documentName);
+        if (!document || document.isLoading) return;
+        await hocuspocus.debouncer.executeNow(`onStoreDocument-${documentName}`);
+      },
       alterState: async (documentName: string, payload: { pageId: string }) => {
         // dummy
         // this.logger.log('Processing', documentName, payload);
