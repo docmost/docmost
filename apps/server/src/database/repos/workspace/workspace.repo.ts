@@ -249,6 +249,24 @@ export class WorkspaceRepo {
       .executeTakeFirst();
   }
 
+  async updateExternalEmbeddingBlacklist(
+    workspaceId: string,
+    urls: string[],
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('workspaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('externalEmbeddingBlacklist', ${JSON.stringify(urls)}::jsonb)`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', workspaceId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
+  }
+
   async updatePublicSpacesSettings(
     workspaceId: string,
     prefKey: string,

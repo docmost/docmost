@@ -60,6 +60,7 @@ import {
 import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { sql } from "kysely";
 
 @Injectable()
 export class WorkspaceService {
@@ -115,6 +116,9 @@ export class WorkspaceService {
         'licenseKey',
         'plan',
         'settings',
+        sql<string | null>`settings->>'externalEmbeddingBlacklist'`.as(
+          'externalEmbeddingBlacklist',
+        ),
       ])
       .select((eb) =>
         jsonArrayFrom(
@@ -141,6 +145,9 @@ export class WorkspaceService {
     return {
       ...rest,
       defaultLocale: getWorkspaceDefaultLocale(workspace) ?? DEFAULT_LOCALE,
+      settings: {
+        externalEmbeddingBlacklist: workspace.externalEmbeddingBlacklist ?? "",
+      },
     };
   }
 
@@ -372,7 +379,9 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
       typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
       typeof updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly !== 'undefined' ||
-      typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined'
+      typeof updateWorkspaceDto.enforceMcpOauth !== 'undefined' ||
+      typeof updateWorkspaceDto.addExternalEmbeddingBlacklistUrl !== 'undefined' ||
+      typeof updateWorkspaceDto.removeExternalEmbeddingBlacklistUrl !== 'undefined'
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
@@ -443,7 +452,9 @@ export class WorkspaceService {
         typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
         typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
         typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
-        typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined'
+        typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
+        typeof updateWorkspaceDto.addExternalEmbeddingBlacklistUrl !== 'undefined' ||
+        typeof updateWorkspaceDto.removeExternalEmbeddingBlacklistUrl !== 'undefined'
       ) {
         if (!this.licenseCheckService.hasFeature(ws.licenseKey, Feature.SECURITY_SETTINGS, ws.plan)) {
           throw new ForbiddenException(
@@ -480,6 +491,44 @@ export class WorkspaceService {
     >;
 
     await executeTx(this.db, async (trx) => {
+      if (
+        updateWorkspaceDto.addExternalEmbeddingBlacklistUrl !== undefined ||
+        updateWorkspaceDto.removeExternalEmbeddingBlacklistUrl !== undefined
+      ) {
+        const lockedWorkspace = await this.workspaceRepo.findById(workspaceId, {
+          withLock: true,
+          trx,
+        });
+        const lockedSettings = (lockedWorkspace?.settings ?? {}) as Record<
+          string,
+          any
+        >;
+
+        const rawUrls = lockedSettings.externalEmbeddingBlacklist;
+        const currentUrls: string[] = Array.isArray(rawUrls)
+          ? rawUrls
+          : typeof rawUrls === 'string'
+            ? JSON.parse(rawUrls)
+            : [];
+        const url = new URL(
+          updateWorkspaceDto.addExternalEmbeddingBlacklistUrl ??
+          updateWorkspaceDto.removeExternalEmbeddingBlacklistUrl,
+        ).toString();
+        const nextUrls = updateWorkspaceDto.addExternalEmbeddingBlacklistUrl
+          ? Array.from(new Set([...currentUrls, url]))
+          : currentUrls.filter((blockedUrl) => blockedUrl !== url);
+
+        if (currentUrls.join('\n') !== nextUrls.join('\n')) {
+          before.externalEmbeddingBlacklist = currentUrls;
+          after.externalEmbeddingBlacklist = nextUrls;
+          await this.workspaceRepo.updateExternalEmbeddingBlacklist(
+            workspaceId,
+            nextUrls,
+            trx,
+          );
+        }
+      }
+
       if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
         const prev = settingsBefore?.api?.restrictToAdmins ?? false;
         if (prev !== updateWorkspaceDto.restrictApiToAdmins) {
@@ -720,6 +769,8 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiChatReadOnly;
       delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
       delete updateWorkspaceDto.enforceMcpOauth;
+      delete updateWorkspaceDto.addExternalEmbeddingBlacklistUrl;
+      delete updateWorkspaceDto.removeExternalEmbeddingBlacklistUrl;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,

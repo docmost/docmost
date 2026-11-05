@@ -6,6 +6,7 @@ import {
 import { validate as isValidUUID } from 'uuid';
 import { Transform } from '@tiptap/pm/transform';
 import { TiptapTransformer } from '@hocuspocus/transformer';
+import type { JSONContent } from '@tiptap/core';
 import * as Y from 'yjs';
 import {
   INTERNAL_LINK_REGEX,
@@ -167,4 +168,97 @@ export function createYdocFromJson(prosemirrorJson: any): Buffer | null {
     return Buffer.from(Y.encodeStateAsUpdate(ydoc));
   }
   return null;
+}
+
+function normalizeHostname(hostname: string) {
+  return hostname.toLowerCase().replace(/\.$/, '');
+}
+
+function normalizePath(path: string) {
+  return path.replace(/\/+$/, '') || '/';
+}
+
+function isBlacklistedUrl(url: string, blockedUrls: string[]): boolean {
+  try {
+    const target = new URL(url);
+    const targetHostname = normalizeHostname(target.hostname);
+    const targetPath = normalizePath(target.pathname);
+
+    return blockedUrls.some((blockedUrl) => {
+      try {
+        const blocked = new URL(blockedUrl);
+        const blockedHostname = normalizeHostname(blocked.hostname);
+        const blockedPath = normalizePath(blocked.pathname);
+
+        const hostMatches =
+          targetHostname === blockedHostname ||
+          targetHostname.endsWith(`.${blockedHostname}`);
+
+        if (!hostMatches) {
+          return false;
+        }
+
+        if (blockedPath === '/') {
+          return true;
+        }
+
+        return (
+          targetPath === blockedPath || targetPath.startsWith(`${blockedPath}/`)
+        );
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+export function filterBlacklistedEmbeds(
+  content: JSONContent,
+  blacklist: string,
+): JSONContent {
+  let blockedUrls = [];
+  if(!blacklist) {
+    return content
+  };
+
+  try {
+    blockedUrls = JSON.parse(blacklist);
+  } catch (err) {
+    return content;
+  }
+
+  if(!blockedUrls.length){
+    return content;
+  }
+
+  function filterNode(node: JSONContent): JSONContent | null {
+    const src = node.attrs?.src;
+
+    if (
+      node.type === 'embed' &&
+      typeof src === 'string' &&
+      isBlacklistedUrl(src, blockedUrls)
+    ) {
+      return null;
+    }
+
+    if (!node.content) {
+      return node;
+    }
+
+    const filteredChildren: JSONContent[] = [];
+
+    for (const child of node.content) {
+      const filteredChild = filterNode(child);
+      if (filteredChild) {
+        filteredChildren.push(filteredChild);
+      }
+    }
+
+    return { ...node, content: filteredChildren };
+  }
+
+  return filterNode(content) ?? content;
 }

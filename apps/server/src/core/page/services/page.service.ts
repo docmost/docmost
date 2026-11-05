@@ -26,6 +26,7 @@ import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { v7 as uuid7 } from 'uuid';
 import {
   createYdocFromJson,
+  filterBlacklistedEmbeds,
   getAttachmentIds,
   getProsemirrorContent,
   isAttachmentNode,
@@ -131,9 +132,17 @@ export class PageService {
         createPageDto.format,
       );
 
-      content = prosemirrorJson;
-      textContent = jsonToText(prosemirrorJson);
-      ydoc = createYdocFromJson(prosemirrorJson);
+      const workspace = await this.db
+        .selectFrom('workspaces')
+        .select('settings')
+        .where('id', '=', workspaceId)
+        .executeTakeFirst();
+
+      const embedBlacklist = workspace.settings?.['externalEmbeddingBlacklist'];
+      content = filterBlacklistedEmbeds(prosemirrorJson, embedBlacklist)
+
+      textContent = jsonToText(content);
+      ydoc = createYdocFromJson(content);
     }
 
     const page = await this.pageRepo.insertPage({

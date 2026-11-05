@@ -3,6 +3,7 @@ import { IUser } from "@/features/user/types/user.types";
 import {
   ICreateInvite,
   IInvitation,
+  IUpdateWorkspace,
   IWorkspace,
   IAcceptInvite,
   IPublicWorkspace,
@@ -54,7 +55,7 @@ export async function activateWorkspaceMember(data: {
   await api.post("/workspace/members/activate", data);
 }
 
-export async function updateWorkspace(data: Partial<IWorkspace>) {
+export async function updateWorkspace(data: IUpdateWorkspace) {
   const req = await api.post<IWorkspace>("/workspace/update", data);
   return req.data;
 }
