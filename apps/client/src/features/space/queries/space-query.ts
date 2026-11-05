@@ -105,7 +105,10 @@ export function useCreateSpaceMutation() {
       notifications.show({ message: t("Space created successfully") });
     },
     onError: (error) => {
-      notifications.show({ message: getApiErrorMessage(error), color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -145,7 +148,10 @@ export function useUpdateSpaceMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: getApiErrorMessage(error), color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -198,7 +204,10 @@ export function useDeleteSpaceMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: getApiErrorMessage(error), color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -239,6 +248,7 @@ function useArchiveStateMutation(
   successMessage: string,
 ) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<ISpace, Error, string>({
     mutationFn,
@@ -247,7 +257,10 @@ function useArchiveStateMutation(
       applySpaceArchiveChange(queryClient, data.id, data.archivedAt);
     },
     onError: (error) => {
-      notifications.show({ message: getApiErrorMessage(error), color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -293,7 +306,10 @@ export function useAddSpaceMemberMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: getApiErrorMessage(error), color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -311,7 +327,10 @@ export function useRemoveSpaceMemberMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: getApiErrorMessage(error), color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -330,7 +349,10 @@ export function useChangeSpaceMemberRoleMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: getApiErrorMessage(error), color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }

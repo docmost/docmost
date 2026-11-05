@@ -27,8 +27,6 @@ export class ShareSeoController {
     @Param('shareId') shareId: string,
     @Param('pageSlug') pageSlug: string,
   ) {
-    // resolve the workspace from the host here instead of reading what DomainMiddleware sets
-
     let workspace: Workspace = null;
     if (this.environmentService.isSelfHosted()) {
       workspace = await this.workspaceRepo.findFirst();
