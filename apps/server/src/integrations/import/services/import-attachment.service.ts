@@ -1140,7 +1140,10 @@ export class ImportAttachmentService {
     uri: string,
   ): { buffer: Buffer; mimeType: string; fileExt: string; encoded: string } | null {
     const commaIndex = uri.indexOf(',');
-    if (commaIndex === -1) return null;
+    if (commaIndex === -1) {
+      this.logger.warn(`Skipping malformed embedded`);
+      return null;
+    }
 
     const metadata = uri.slice(5, commaIndex);
     const metadataParts = metadata.split(';');
@@ -1150,6 +1153,7 @@ export class ImportAttachmentService {
     );
 
     if (!mimeType || !isBase64Payload) {
+      this.logger.warn(`Skipping malformed embedded ${mimeType} payload`);
       return null;
     }
 
@@ -1188,7 +1192,10 @@ export class ImportAttachmentService {
     }
 
     const buffer = Buffer.from(encoded, 'base64');
-    if (buffer.length === 0) return null;
+    if (buffer.length === 0) {
+      this.logger.warn(`Skipping empty embedded ${mimeType} payload`);
+      return null;
+    }
     if (buffer.length > maxFileSize) {
       this.logger.warn(
         `Skipping embedded ${mimeType} payload exceeding size limit (${buffer.length} bytes)`,
