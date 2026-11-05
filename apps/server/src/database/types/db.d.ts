@@ -630,6 +630,8 @@ export interface PageVerifications {
   rejectionComment: string | null;
   invalidatedAt: Timestamp | null;
   invalidatedById: string | null;
+  verifiedHistoryId: string | null;
+  rejectedHistoryId: string | null;
   data: Json | null;
   creatorId: string | null;
   createdAt: Generated<Timestamp>;
