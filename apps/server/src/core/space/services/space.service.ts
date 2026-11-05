@@ -141,7 +141,7 @@ export class SpaceService {
 
     if (
       typeof updateSpaceDto.disablePublicSharing !== 'undefined' ||
-      typeof updateSpaceDto.disableExport !== 'undefined' ||
+      typeof updateSpaceDto.disableExport === 'boolean' ||
       typeof updateSpaceDto.allowViewerComments !== 'undefined'
     ) {
       const workspace = await this.workspaceRepo.findById(workspaceId, {
@@ -214,7 +214,7 @@ export class SpaceService {
         }
       }
 
-      if (typeof updateSpaceDto.disableExport !== 'undefined') {
+      if (typeof updateSpaceDto.disableExport === 'boolean') {
         const prev = settingsBefore?.export?.disabled ?? false;
         if (prev !== updateSpaceDto.disableExport) {
           before.disableExport = prev;

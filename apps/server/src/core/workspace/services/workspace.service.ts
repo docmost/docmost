@@ -345,7 +345,7 @@ export class WorkspaceService {
 
     if (
       typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
-      typeof updateWorkspaceDto.disableExport !== 'undefined' ||
+      typeof updateWorkspaceDto.disableExport === 'boolean' ||
       typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
       typeof updateWorkspaceDto.mcpEnabled !== 'undefined' ||
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
@@ -532,7 +532,7 @@ export class WorkspaceService {
         }
       }
 
-      if (typeof updateWorkspaceDto.disableExport !== 'undefined') {
+      if (typeof updateWorkspaceDto.disableExport === 'boolean') {
         const prev = settingsBefore?.export?.disabled ?? false;
         if (prev !== updateWorkspaceDto.disableExport) {
           before.disableExport = prev;

@@ -68,6 +68,19 @@ export class SpaceRepo {
       .executeTakeFirst();
   }
 
+  async findSettingsWithWorkspace(spaceId: string, workspaceId: string) {
+    return this.db
+      .selectFrom('spaces')
+      .innerJoin('workspaces', 'workspaces.id', 'spaces.workspaceId')
+      .select([
+        'spaces.settings as spaceSettings',
+        'workspaces.settings as workspaceSettings',
+      ])
+      .where('spaces.id', '=', spaceId)
+      .where('spaces.workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+  }
+
   async findPersonalSpace(
     userId: string,
     workspaceId: string,

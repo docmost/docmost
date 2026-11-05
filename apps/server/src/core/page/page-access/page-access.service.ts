@@ -7,7 +7,6 @@ import {
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { CacheOptions } from '../../../common/helpers/with-cache';
 
 @Injectable()
@@ -16,7 +15,6 @@ export class PageAccessService {
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly spaceRepo: SpaceRepo,
-    private readonly workspaceRepo: WorkspaceRepo,
   ) {}
 
   /**
@@ -147,17 +145,23 @@ export class PageAccessService {
   }
 
   async validateCanExport(spaceId: string, workspaceId: string): Promise<void> {
-    const [workspace, space] = await Promise.all([
-      this.workspaceRepo.findById(workspaceId),
-      this.spaceRepo.findById(spaceId, workspaceId),
-    ]);
+    const settings = await this.spaceRepo.findSettingsWithWorkspace(
+      spaceId,
+      workspaceId,
+    );
+    if (!settings) {
+      throw new ForbiddenException();
+    }
 
-    const workspaceSettings = workspace?.settings as Record<string, any> | null;
+    const workspaceSettings = settings.workspaceSettings as Record<
+      string,
+      any
+    > | null;
     if (workspaceSettings?.export?.disabled === true) {
       throw new ForbiddenException('Export is disabled in this workspace');
     }
 
-    const spaceSettings = space?.settings as Record<string, any> | null;
+    const spaceSettings = settings.spaceSettings as Record<string, any> | null;
     if (spaceSettings?.export?.disabled === true) {
       throw new ForbiddenException('Export is disabled in this space');
     }
