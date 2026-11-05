@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { EditSpaceForm } from "@/features/space/components/edit-space-form.tsx";
-import { Button, Divider, Text, Title } from "@mantine/core";
+import { Button, Divider, Text, Title, Tooltip } from "@mantine/core";
 import DeleteSpaceModal from "./delete-space-modal";
 import { useDisclosure } from "@mantine/hooks";
 import ExportModal from "@/components/common/export-modal.tsx";
@@ -98,14 +98,23 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
                 <ResponsiveSettingsContent>
                   <Text size="md">{t("Export space")}</Text>
                   <Text size="sm" c="dimmed">
-                    {exportDisabledLabel ??
-                      t("Export all pages and attachments in this space.")}
+                    {t("Export all pages and attachments in this space.")}
                   </Text>
                 </ResponsiveSettingsContent>
                 <ResponsiveSettingsControl>
-                  <Button onClick={openExportModal} disabled={exportDisabled}>
-                    {t("Export")}
-                  </Button>
+                  <Tooltip
+                    label={exportDisabledLabel}
+                    disabled={!exportDisabled}
+                    withArrow
+                  >
+                    <Button
+                      onClick={openExportModal}
+                      disabled={exportDisabled}
+                      data-disabled={exportDisabled || undefined}
+                    >
+                      {t("Export")}
+                    </Button>
+                  </Tooltip>
                 </ResponsiveSettingsControl>
               </ResponsiveSettingsRow>
 
