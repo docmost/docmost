@@ -85,6 +85,7 @@ export const AuditEvent = {
   PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
   PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
   PAGE_MARKED_OBSOLETE: 'page.marked_obsolete',
+  PAGE_VERIFICATION_INVALIDATED: 'page.verification_invalidated',
 
   // Share
   SHARE_CREATED: 'share.created',
