@@ -18,15 +18,21 @@ export interface HistoryEditorProps {
   title: string;
   content: any;
   previousContent?: any;
+  previousTitle?: string | null;
 }
 
 export function HistoryEditor({
   title,
   content,
   previousContent,
+  previousTitle,
 }: HistoryEditorProps) {
   const [highlightChanges] = useAtom(highlightChangesAtom);
   const [, setDiffCounts] = useAtom(diffCountsAtom);
+
+  // The title is change 1 when it differs from the previous version
+  const titleChanged =
+    !!previousContent && previousTitle != null && previousTitle !== title;
 
   const editor = useEditor({
     extensions: mainExtensions,
@@ -38,7 +44,7 @@ export function HistoryEditor({
     if (!editor || editor.isDestroyed || !content) return;
 
     let decorationSet = DecorationSet.empty;
-    let addedCount = 0;
+    let addedCount = titleChanged ? 1 : 0;
     let deletedCount = 0;
 
     if (previousContent) {
@@ -77,7 +83,7 @@ export function HistoryEditor({
         ]);
 
         const decorations: Decoration[] = [];
-        let changeIndex = 0;
+        let changeIndex = titleChanged ? 1 : 0;
 
         for (const change of changes) {
           if (change.toB > change.fromB) {
@@ -185,18 +191,32 @@ export function HistoryEditor({
     content,
     editor,
     previousContent,
+    titleChanged,
     highlightChanges,
     setDiffCounts,
   ]);
 
   return (
-    <div>
-      <Title order={1}>{title}</Title>
+    <div className={historyClasses.historyEditor}>
+      <Title order={1}>
+        {titleChanged && highlightChanges ? (
+          <>
+            {previousTitle && (
+              <span className="history-diff-deleted" data-diff-index="1">
+                {previousTitle}
+              </span>
+            )}
+            {previousTitle && " "}
+            <span className="history-diff-added" data-diff-index="1">
+              {title}
+            </span>
+          </>
+        ) : (
+          title
+        )}
+      </Title>
       {editor && (
-        <EditorContent
-          editor={editor}
-          className={historyClasses.historyEditor}
-        />
+        <EditorContent editor={editor} />
       )}
     </div>
   );

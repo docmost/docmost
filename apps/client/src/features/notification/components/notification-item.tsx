@@ -81,9 +81,14 @@ export function NotificationItem({
     }
   };
 
-  const commentParam = notification.commentId
-    ? `?commentId=${notification.commentId}`
-    : "";
+  const isReviewNotification =
+    notification.type === "page.approval_requested" ||
+    notification.type === "page.verification_invalidated";
+  const commentParam = isReviewNotification
+    ? "?review=changes"
+    : notification.commentId
+      ? `?commentId=${notification.commentId}`
+      : "";
   const pageUrl =
     notification.page && notification.space
       ? buildPageUrl(
