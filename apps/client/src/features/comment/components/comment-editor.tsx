@@ -99,7 +99,7 @@ const CommentEditor = forwardRef(
         },
       },
       onUpdate({ editor }) {
-        if (onUpdate) onUpdate(editor.getJSON());
+        if (onUpdate) onUpdate(editor.getJSON(), editor.isEmpty);
       },
       content: defaultContent,
       editable,
