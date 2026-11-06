@@ -9,6 +9,7 @@ import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import {
   getAttachmentFolderPath,
+  normalizeLegacyFileMeta,
   PreparedFile,
   prepareFile,
   validateFileType,
@@ -135,6 +136,49 @@ export class AttachmentService {
     }
 
     return attachment;
+  }
+
+  async copyAttachment(
+    source: Attachment,
+    target: {
+      pageId: string;
+      spaceId: string;
+      userId: string;
+      workspaceId: string;
+    },
+  ): Promise<Attachment> {
+    const attachmentId = uuid7();
+    const { fileName, fileExt, mimeType } = normalizeLegacyFileMeta({
+      fileName: source.fileName,
+      fileExt: source.fileExt,
+      mimeType: source.mimeType,
+    });
+    const filePath = `${getAttachmentFolderPath(AttachmentType.File, target.workspaceId)}/${attachmentId}/${fileName}`;
+    
+    await this.storageService.copy(source.filePath, filePath);
+    
+    if (!(await this.storageService.exists(filePath))) {
+      throw new NotFoundException('File not found');
+    }
+    
+    try {
+      return await this.attachmentRepo.insertAttachment({
+        id: attachmentId,
+        type: AttachmentType.File,
+        filePath,
+        fileName,
+        fileSize: source.fileSize,
+        mimeType,
+        fileExt,
+        creatorId: target.userId,
+        workspaceId: target.workspaceId,
+        pageId: target.pageId,
+        spaceId: target.spaceId,
+      });
+    } catch (err) {
+      await this.storageService.delete(filePath).catch(() => undefined);
+      throw err;
+    }
   }
 
   async uploadImage(

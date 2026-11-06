@@ -49,6 +49,25 @@ export async function prepareFile(
   }
 }
 
+// Older Draw.io saves uploaded `diagram.drawio.svg?t=...`; sanitizing dropped only the `?`.
+export function normalizeLegacyFileMeta(meta: {
+  fileName: string;
+  fileExt: string;
+  mimeType: string;
+}) {
+  const queryStart = meta.fileExt.indexOf('?');
+  if (queryStart === -1) return meta;
+
+  const fileExt = meta.fileExt.slice(0, queryStart);
+  const leakedQuery = meta.fileExt.slice(queryStart + 1);
+  const fileName =
+    leakedQuery && meta.fileName.endsWith(fileExt + leakedQuery)
+      ? meta.fileName.slice(0, -leakedQuery.length)
+      : meta.fileName;
+
+  return { fileName, fileExt, mimeType: getMimeType(fileName) };
+}
+
 export function validateFileType(
   fileExtension: string,
   allowedTypes: string[],

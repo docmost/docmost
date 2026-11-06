@@ -1,4 +1,7 @@
 import {
+  ArrayMaxSize,
+  ArrayNotEmpty,
+  IsArray,
   IsEnum,
   IsIn,
   IsNotEmpty,
@@ -18,6 +21,18 @@ export class DeleteAttachmentDto {
   @IsNotEmpty()
   @IsUUID()
   attachmentId: string;
+}
+
+export class CopyAttachmentsDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  attachmentIds: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  pageId: string;
 }
 
 export class PageIdDto {
