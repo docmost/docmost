@@ -16,14 +16,16 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('page_verifications_verified_history_id_idx')
+    .createIndex('idx_page_verifications_verified_history_id')
+    .ifNotExists()
     .on('page_verifications')
     .column('verified_history_id')
     .where('verified_history_id', 'is not', null)
     .execute();
 
   await db.schema
-    .createIndex('page_verifications_rejected_history_id_idx')
+    .createIndex('idx_page_verifications_rejected_history_id')
+    .ifNotExists()
     .on('page_verifications')
     .column('rejected_history_id')
     .where('rejected_history_id', 'is not', null)
@@ -32,10 +34,12 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
-    .dropIndex('page_verifications_rejected_history_id_idx')
+    .dropIndex('idx_page_verifications_rejected_history_id')
+    .ifExists()
     .execute();
   await db.schema
-    .dropIndex('page_verifications_verified_history_id_idx')
+    .dropIndex('idx_page_verifications_verified_history_id')
+    .ifExists()
     .execute();
 
   await db.schema

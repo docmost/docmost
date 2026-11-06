@@ -14,7 +14,7 @@ import {
 } from "@/features/page-history/atoms/history-atoms";
 import HistoryView from "@/features/page-history/components/history-view";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { HistoryDiffBar } from "@/features/page-history/components/history-diff-bar";
+import HistoryDiffBar from "@/features/page-history/components/history-diff-bar";
 import { IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { usePageHistoryListQuery } from "@/features/page-history/queries/page-history-query";

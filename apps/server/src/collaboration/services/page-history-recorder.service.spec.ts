@@ -36,7 +36,9 @@ describe('PageHistoryRecorderService', () => {
       addContributors: jest.fn().mockResolvedValue(undefined),
       clearContributors: jest.fn().mockResolvedValue(undefined),
     };
-    watcherService = { addPageWatchers: jest.fn().mockResolvedValue(undefined) };
+    watcherService = {
+      addPageWatchers: jest.fn().mockResolvedValue(undefined),
+    };
     notificationQueue = { add: jest.fn().mockResolvedValue(undefined) };
     generalQueue = { add: jest.fn().mockResolvedValue(undefined) };
     service = new PageHistoryRecorderService(

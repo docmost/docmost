@@ -534,7 +534,7 @@ export class PageService {
           .where('pageId', 'in', pageIdsToMove)
           .execute();
 
-        // Page history follows the page
+        // Update page history
         await trx
           .updateTable('pageHistory')
           .set({ spaceId: spaceId })

@@ -9,7 +9,7 @@ import {
 } from "@/features/page-history/atoms/history-atoms";
 import HistoryView from "@/features/page-history/components/history-view";
 import { useMemo, useRef } from "react";
-import { HistoryDiffBar } from "@/features/page-history/components/history-diff-bar";
+import HistoryDiffBar from "@/features/page-history/components/history-diff-bar";
 import { useTranslation } from "react-i18next";
 import {
   useDiffNavigation,

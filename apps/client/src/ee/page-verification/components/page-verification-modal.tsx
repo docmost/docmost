@@ -26,7 +26,7 @@ import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { SetupVerificationForm } from "./setup-verification-form";
 import { ManageVerificationForm } from "./manage-verification-form";
-import { VerificationChangesModal } from "./verification-changes-modal";
+import { ReviewChangesModal } from "./review-changes-modal";
 import {
   getStatusColor,
   getStatusCssColor,
@@ -186,7 +186,7 @@ export function PageVerificationBadge({
       ) : null}
 
       <PageVerificationModal pageId={pageId} opened={opened} onClose={close} />
-      <VerificationChangesModal pageId={pageId} onOpenVerification={open} />
+      <ReviewChangesModal pageId={pageId} onOpenVerification={open} />
     </>
   );
 }

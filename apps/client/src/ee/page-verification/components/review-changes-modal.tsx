@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Box,
   Button,
   getDefaultZIndex,
   Group,
@@ -12,54 +13,59 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useAtom } from "jotai";
-import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { HistoryEditor } from "@/features/page-history/components/history-editor";
-import { HistoryDiffBar } from "@/features/page-history/components/history-diff-bar";
+import HistoryDiffBar from "@/features/page-history/components/history-diff-bar";
 import { useDiffNavigation } from "@/features/page-history/hooks";
 import { diffCountsAtom } from "@/features/page-history/atoms/history-atoms";
-import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale";
+import { normalizeHistoryTitle } from "@/features/page-history/utils/normalize-history-title";
+import { useTimeAgo } from "@/hooks/use-time-ago";
 import { reviewChangesAtom } from "@/ee/page-verification/atoms/review-changes-atom";
 import {
+  usePageVerificationChangesQuery,
   usePageVerificationInfoQuery,
-  useVerificationChangesQuery,
 } from "@/ee/page-verification/queries/page-verification-query";
 import {
   containsDiagram,
+  getBaselineCopy,
   getDefaultBaselineKind,
 } from "@/ee/page-verification/page-verification.utils";
-import { normalizeHistoryTitle } from "@/features/page-history/history.utils";
 import {
-  IReviewChangesRequest,
+  ReviewChangesRequest,
   VerificationChangesBaselineKind,
-  VerificationType,
 } from "@/ee/page-verification/types/page-verification.types";
-import classes from "./verification-changes-modal.module.css";
+import classes from "./review-changes-modal.module.css";
 
-type VerificationChangesModalProps = {
+type ReviewChangesModalProps = {
   pageId: string;
   onOpenVerification: () => void;
 };
 
-export function VerificationChangesModal({
+export function ReviewChangesModal({
   pageId,
   onOpenVerification,
-}: VerificationChangesModalProps) {
-  const [review, setReview] = useAtom(reviewChangesAtom);
+}: ReviewChangesModalProps) {
+  const { t } = useTranslation();
+  const [reviewChanges, setReviewChanges] = useAtom(reviewChangesAtom);
   const isMobile = useMediaQuery("(max-width: 800px)");
-  const opened = review?.pageId === pageId;
+  const opened = reviewChanges?.pageId === pageId;
 
   // a request left over from this page must not reopen the dialog later
   useEffect(
     () => () =>
-      setReview((current) => (current?.pageId === pageId ? null : current)),
-    [pageId, setReview],
+      setReviewChanges((current) =>
+        current?.pageId === pageId ? null : current,
+      ),
+    [pageId, setReviewChanges],
   );
 
   // deferred so a verification modal's Escape listener for this keypress still sees the review open
   const close = () => {
     setTimeout(
-      () => setReview((current) => (current?.pageId === pageId ? null : current)),
+      () =>
+        setReviewChanges((current) =>
+          current?.pageId === pageId ? null : current,
+        ),
       0,
     );
   };
@@ -68,22 +74,21 @@ export function VerificationChangesModal({
     <Modal.Root
       opened={opened}
       onClose={close}
-      size={1000}
-      centered
+      size={1400}
       fullScreen={isMobile}
       zIndex={getDefaultZIndex("modal") + 1}
+      aria-label={t("Review changes")}
     >
       <Modal.Overlay />
       {/* className and style would also reach the centering wrapper */}
       <Modal.Content
         classNames={{ content: classes.content }}
         styles={{ content: { overflow: "hidden" } }}
-        h={isMobile ? undefined : 820}
       >
-        <VerificationChangesContent
+        <ReviewChangesContent
           pageId={pageId}
           opened={opened}
-          source={review?.source}
+          source={reviewChanges?.source}
           isMobile={isMobile}
           onClose={close}
           onOpenVerification={onOpenVerification}
@@ -93,26 +98,25 @@ export function VerificationChangesModal({
   );
 }
 
-type VerificationChangesContentProps = {
+type ReviewChangesContentProps = {
   pageId: string;
   opened: boolean;
-  source: IReviewChangesRequest["source"] | undefined;
+  source: ReviewChangesRequest["source"] | undefined;
   isMobile: boolean;
   onClose: () => void;
   onOpenVerification: () => void;
 };
 
 // mounted only while the dialog is open, so every open starts fresh
-function VerificationChangesContent({
+function ReviewChangesContent({
   pageId,
   opened,
   source: requestSource,
   isMobile,
   onClose,
   onOpenVerification,
-}: VerificationChangesContentProps) {
+}: ReviewChangesContentProps) {
   const { t } = useTranslation();
-  const dateLocale = useDateFnsLocale();
   // kept through the close transition, after the request is cleared
   const [source] = useState(requestSource);
   const [baselineChoice, setBaselineChoice] =
@@ -121,7 +125,7 @@ function VerificationChangesContent({
   const [diffCounts, setDiffCounts] = useAtom(diffCountsAtom);
 
   const { data: info } = usePageVerificationInfoQuery(pageId);
-  const { data: changes, isError } = useVerificationChangesQuery(
+  const { data: changes, isError } = usePageVerificationChangesQuery(
     pageId,
     opened,
   );
@@ -158,6 +162,7 @@ function VerificationChangesContent({
           date: changes?.verified?.verifiedAt,
           user: changes?.verified?.verifiedBy,
         };
+  const decisionTimeAgo = useTimeAgo(decision.date);
   const copy = getBaselineCopy(baselineKind, changes?.type ?? info?.type, t);
 
   const showsDiagramNote = useMemo(
@@ -190,6 +195,8 @@ function VerificationChangesContent({
     className: classes.document,
     "data-mobile": isMobile || undefined,
   };
+  // page history's document height; full screen on mobile
+  const documentHeight = isMobile ? undefined : 650;
 
   let main: ReactNode;
   if (isError || (changes && !baseline)) {
@@ -200,19 +207,14 @@ function VerificationChangesContent({
     );
   } else if (!changes) {
     main = (
-      <div
-        role="status"
-        aria-busy="true"
-        aria-label={t("Loading changes")}
-        className={classes.main}
-      >
+      <div className={classes.main} aria-hidden="true">
         <div className={classes.meta}>
           <Stack gap="xs" py={5}>
             <Skeleton height={12} width={260} />
             <Skeleton height={12} width={180} />
           </Stack>
         </div>
-        <div {...documentProps}>
+        <Box h={documentHeight} {...documentProps}>
           <Skeleton height={32} width="45%" mb="xl" />
           <Stack gap="md">
             {["96%", "88%", "92%", "70%", "94%", "84%", "58%"].map(
@@ -221,7 +223,7 @@ function VerificationChangesContent({
               ),
             )}
           </Stack>
-        </div>
+        </Box>
       </div>
     );
   } else {
@@ -245,12 +247,7 @@ function VerificationChangesContent({
               <Text size="sm" c="dimmed">
                 {copy.byLine({
                   name: decision.user?.name ?? t("Someone"),
-                  date: formatLocalized(
-                    decision.date,
-                    "MMM dd, yyyy, h:mma",
-                    "PPp",
-                    dateLocale,
-                  ),
+                  time: decisionTimeAgo,
                 })}
               </Text>
             )}
@@ -274,6 +271,7 @@ function VerificationChangesContent({
         <div className={classes.viewer}>
           <ScrollArea
             className={classes.scrollArea}
+            h={documentHeight}
             viewportRef={scrollViewportRef}
             scrollbarSize={5}
           >
@@ -292,6 +290,7 @@ function VerificationChangesContent({
             currentChangeIndex={currentChangeIndex}
             onPrev={handlePrevChange}
             onNext={handleNextChange}
+            className={isMobile ? classes.floatingBar : undefined}
             style={{
               position: "absolute",
               bottom: 16,
@@ -324,45 +323,11 @@ function VerificationChangesContent({
               {t("Close")}
             </Button>
             <Button color="dark" onClick={handleOpenVerification}>
-              {t("Open verification")}
+              {t("Verify page")}
             </Button>
           </Group>
         )}
       </Modal.Body>
     </>
   );
-}
-
-type BaselineCopy = {
-  title: string;
-  byLine: (values: { name: string; date: string }) => string;
-  matches: string;
-};
-
-function getBaselineCopy(
-  kind: VerificationChangesBaselineKind,
-  type: VerificationType | undefined,
-  t: TFunction,
-): BaselineCopy {
-  if (kind === "rejected") {
-    return {
-      title: t("Changes since rejection"),
-      byLine: (values) => t("Rejected by {{name}} on {{date}}", values),
-      matches: t("The current page matches the rejected version."),
-    };
-  }
-
-  if (type === "qms") {
-    return {
-      title: t("Changes since approval"),
-      byLine: (values) => t("Approved by {{name}} on {{date}}", values),
-      matches: t("The current page matches the approved version."),
-    };
-  }
-
-  return {
-    title: t("Changes since verification"),
-    byLine: (values) => t("Verified by {{name}} on {{date}}", values),
-    matches: t("The current page matches the verified version."),
-  };
 }

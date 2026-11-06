@@ -1,8 +1,11 @@
 import type { JSONContent } from "@tiptap/react";
+import type { TFunction } from "i18next";
 import {
+  BaselineCopy,
   IPageVerificationInfo,
   ReviewLinkTarget,
   VerificationChangesBaselineKind,
+  VerificationType,
 } from "@/ee/page-verification/types/page-verification.types";
 import { DIAGRAM_NODE_TYPES } from "@/ee/page-verification/page-verification.constants";
 
@@ -42,6 +45,34 @@ export function getDefaultBaselineKind(baselines?: {
   if (baselines?.verified) return "verified";
   if (baselines?.rejected) return "rejected";
   return null;
+}
+
+export function getBaselineCopy(
+  kind: VerificationChangesBaselineKind,
+  type: VerificationType | undefined,
+  t: TFunction,
+): BaselineCopy {
+  if (kind === "rejected") {
+    return {
+      title: t("Changes since rejection"),
+      byLine: (values) => t("Returned by {{name}} {{time}}", values),
+      matches: t("The current page matches the rejected version."),
+    };
+  }
+
+  if (type === "qms") {
+    return {
+      title: t("Changes since approval"),
+      byLine: (values) => t("Approved by {{name}} {{time}}", values),
+      matches: t("The current page matches the approved version."),
+    };
+  }
+
+  return {
+    title: t("Changes since verification"),
+    byLine: (values) => t("Last verified by {{name}} {{time}}", values),
+    matches: t("The current page matches the verified version."),
+  };
 }
 
 export function containsDiagram(doc: JSONContent | null | undefined): boolean {

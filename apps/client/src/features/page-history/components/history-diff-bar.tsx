@@ -17,7 +17,7 @@ interface HistoryDiffBarProps {
   style?: CSSProperties;
 }
 
-export function HistoryDiffBar({
+export default function HistoryDiffBar({
   currentChangeIndex,
   onPrev,
   onNext,

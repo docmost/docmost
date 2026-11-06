@@ -37,7 +37,7 @@
 }
 
 .scrollArea {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -54,4 +54,11 @@
   padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
   border-top: rem(1px) solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.floatingBar {
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-6)
+  );
 }

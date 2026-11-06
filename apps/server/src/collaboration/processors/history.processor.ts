@@ -9,14 +9,16 @@ import { PageHistoryRecorderService } from '../services/page-history-recorder.se
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(HistoryProcessor.name);
 
-  constructor(private readonly historyRecorder: PageHistoryRecorderService) {
+  constructor(
+    private readonly pageHistoryRecorder: PageHistoryRecorderService,
+  ) {
     super();
   }
 
   async process(job: Job<IPageHistoryJob, void>): Promise<void> {
     if (job.name !== QueueJob.PAGE_HISTORY) return;
 
-    await this.historyRecorder.recordPageHistory(job.data.pageId);
+    await this.pageHistoryRecorder.recordPageHistory(job.data.pageId);
   }
 
   @OnWorkerEvent('active')

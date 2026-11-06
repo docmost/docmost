@@ -85,9 +85,15 @@ export type IVerificationChanges = {
   };
 };
 
-export type IReviewChangesRequest = {
+export type ReviewChangesRequest = {
   pageId: string;
   source: "modal" | "link";
+};
+
+export type BaselineCopy = {
+  title: string;
+  byLine: (values: { name: string; time: string }) => string;
+  matches: string;
 };
 
 export type ReviewLinkTarget = "review" | "verification" | "none";

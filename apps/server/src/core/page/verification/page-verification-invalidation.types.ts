@@ -8,6 +8,7 @@ export type VerificationEditState = Pick<
   | 'requestedAt'
   | 'expiresAt'
   | 'invalidatedAt'
+  | 'verifiedHistoryId'
 >;
 
 export type PageVerificationInvalidation = {
@@ -20,23 +21,10 @@ export type PageVerificationInvalidation = {
   newStatus: string;
 };
 
-export type PreviousPageState = Pick<
-  Page,
-  | 'slugId'
-  | 'title'
-  | 'content'
-  | 'icon'
-  | 'coverPhoto'
-  | 'lastUpdatedById'
-  | 'creatorId'
-  | 'spaceId'
-  | 'workspaceId'
->;
-
 export type InvalidateForEditInput = {
   pageId: string;
   userId: string | null;
   changedAt: Date | null;
   isMeaningfulChange: () => boolean;
-  loadPreviousState: () => Promise<PreviousPageState>;
+  loadPreviousState: () => Promise<Page>;
 };

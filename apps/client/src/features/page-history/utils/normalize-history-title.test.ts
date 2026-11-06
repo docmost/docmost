@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeHistoryTitle } from "./history.utils";
+import { normalizeHistoryTitle } from "./normalize-history-title";
 
 describe("normalizeHistoryTitle", () => {
   it("collapses whitespace like the change detection", () => {

@@ -250,7 +250,7 @@ export class VerificationNotificationService {
     const context = await this.getPageContext(pageId, spaceId, appUrl);
     if (!context) return;
 
-    const { pageTitle, spaceName, basePageUrl } = context;
+    const { pageTitle, spaceName, reviewUrl } = context;
     const actorName = await this.getUserName(actorId);
 
     for (const userId of accessibleVerifierIds) {
@@ -274,7 +274,7 @@ export class VerificationNotificationService {
           actorName,
           pageTitle,
           spaceName,
-          pageUrl: `${basePageUrl}?review=changes`,
+          pageUrl: reviewUrl,
         }),
       );
     }
@@ -360,7 +360,7 @@ export class VerificationNotificationService {
     const context = await this.getPageContext(pageId, spaceId, appUrl);
     if (!context) return;
 
-    const { pageTitle, spaceName, basePageUrl } = context;
+    const { pageTitle, spaceName, reviewUrl } = context;
     const actorName = await this.getUserName(actorId);
 
     let subject = `"${pageTitle}" was changed after verification`;
@@ -392,7 +392,7 @@ export class VerificationNotificationService {
           actorName,
           pageTitle,
           spaceName,
-          pageUrl: `${basePageUrl}?review=changes`,
+          pageUrl: reviewUrl,
           verificationType,
           previousStatus,
         }),
@@ -431,6 +431,12 @@ export class VerificationNotificationService {
     if (!page || !space) return null;
 
     const basePageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
-    return { pageTitle: getPageTitle(page.title), spaceName: space.name ?? space.slug, basePageUrl };
+    const reviewUrl = `${basePageUrl}?review=changes`;
+    return {
+      pageTitle: getPageTitle(page.title),
+      spaceName: space.name ?? space.slug,
+      basePageUrl,
+      reviewUrl,
+    };
   }
 }

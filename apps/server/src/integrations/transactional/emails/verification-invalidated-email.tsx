@@ -41,7 +41,7 @@ export const VerificationInvalidatedEmail = ({
           {wasInApproval ? ' while it was in approval.' : '.'} {outcome}
         </Text>
       </Section>
-      <EmailButton href={pageUrl}>Review changes</EmailButton>
+      <EmailButton href={pageUrl}>Review page</EmailButton>
     </MailBody>
   );
 };

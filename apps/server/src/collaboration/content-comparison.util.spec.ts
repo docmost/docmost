@@ -278,7 +278,10 @@ describe('toReviewDocument', () => {
     const pairs: [unknown, unknown][] = [
       [doc(p('hello world')), withComment],
       [commented(false), commented(true)],
-      [doc(p('a', { id: null }), heading(null)), doc(p('a', { id: ID }), heading(ID))],
+      [
+        doc(p('a', { id: null }), heading(null)),
+        doc(p('a', { id: ID }), heading(ID)),
+      ],
       [doc(details(false)), doc(details(true))],
       [doc(p('a')), doc(p('a'), { type: 'paragraph' })],
       [doc(p('a'), footnotes), doc(p('a'), { type: 'paragraph' }, footnotes)],

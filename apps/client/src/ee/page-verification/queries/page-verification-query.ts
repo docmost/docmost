@@ -41,7 +41,7 @@ export function usePageVerificationInfoQuery(
 }
 
 // every open fetches again: the server flushes pending edits first
-export function useVerificationChangesQuery(
+export function usePageVerificationChangesQuery(
   pageId: string | undefined,
   enabled: boolean,
 ): UseQueryResult<IVerificationChanges, Error> {

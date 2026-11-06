@@ -1,8 +1,8 @@
 import {
   getVerificationStateEnteredAt,
   isSameTitle,
-  needsLegacyBaseline,
   shouldInvalidateVerification,
+  shouldRecordLegacyBaseline,
 } from './page-verification-invalidation.utils';
 import { VerificationEditState } from './page-verification-invalidation.types';
 
@@ -14,13 +14,18 @@ const NOW = new Date('2026-11-05T12:00:00.000Z');
 const secondsFrom = (date: Date, seconds: number) =>
   new Date(date.getTime() + seconds * 1000);
 
-const qms = (status: string): VerificationEditState => ({
+const qms = (
+  status: string,
+  overrides: Partial<VerificationEditState> = {},
+): VerificationEditState => ({
   type: 'qms',
   status,
   verifiedAt: VERIFIED_AT,
   requestedAt: REQUESTED_AT,
   expiresAt: null,
   invalidatedAt: null,
+  verifiedHistoryId: null,
+  ...overrides,
 });
 
 const expiring = (
@@ -32,6 +37,7 @@ const expiring = (
   requestedAt: null,
   expiresAt: new Date('2026-12-01T00:00:00.000Z'),
   invalidatedAt: null,
+  verifiedHistoryId: null,
   ...overrides,
 });
 
@@ -175,34 +181,28 @@ describe('isSameTitle', () => {
   });
 });
 
-describe('needsLegacyBaseline', () => {
+describe('shouldRecordLegacyBaseline', () => {
   it('is true for approved qms without a pointer', () => {
-    expect(
-      needsLegacyBaseline({ type: 'qms', status: 'approved', verifiedHistoryId: null }),
-    ).toBe(true);
+    expect(shouldRecordLegacyBaseline(qms('approved'))).toBe(true);
   });
 
   it('is false for approved qms with a pointer', () => {
     expect(
-      needsLegacyBaseline({ type: 'qms', status: 'approved', verifiedHistoryId: 'h1' }),
+      shouldRecordLegacyBaseline(qms('approved', { verifiedHistoryId: 'h1' })),
     ).toBe(false);
   });
 
   it('is false for qms in approval without a pointer', () => {
-    expect(
-      needsLegacyBaseline({ type: 'qms', status: 'in_approval', verifiedHistoryId: null }),
-    ).toBe(false);
+    expect(shouldRecordLegacyBaseline(qms('in_approval'))).toBe(false);
   });
 
   it('is true for expiring without a pointer', () => {
-    expect(
-      needsLegacyBaseline({ type: 'expiring', status: null, verifiedHistoryId: null }),
-    ).toBe(true);
+    expect(shouldRecordLegacyBaseline(expiring())).toBe(true);
   });
 
   it('is false for expiring with a pointer', () => {
     expect(
-      needsLegacyBaseline({ type: 'expiring', status: null, verifiedHistoryId: 'h1' }),
+      shouldRecordLegacyBaseline(expiring({ verifiedHistoryId: 'h1' })),
     ).toBe(false);
   });
 });

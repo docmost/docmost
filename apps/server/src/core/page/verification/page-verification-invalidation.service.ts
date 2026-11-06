@@ -6,8 +6,8 @@ import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { IVerificationInvalidatedJob } from '../../../integrations/queue/constants/queue.interface';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import {
-  needsLegacyBaseline,
   shouldInvalidateVerification,
+  shouldRecordLegacyBaseline,
 } from './page-verification-invalidation.utils';
 import {
   InvalidateForEditInput,
@@ -61,23 +61,12 @@ export class PageVerificationInvalidationService {
     const isQms = verification.type === 'qms';
 
     let verifiedHistoryId: string | undefined;
-    if (needsLegacyBaseline(verification)) {
+    if (shouldRecordLegacyBaseline(verification)) {
       const prev = await input.loadPreviousState();
-      const baseline = await this.pageHistoryRepo.insertPageHistory(
-        {
-          pageId: verification.pageId,
-          slugId: prev.slugId,
-          title: prev.title,
-          content: prev.content,
-          icon: prev.icon,
-          coverPhoto: prev.coverPhoto,
-          lastUpdatedById: prev.lastUpdatedById ?? prev.creatorId,
-          contributorIds: [],
-          spaceId: prev.spaceId,
-          workspaceId: prev.workspaceId,
-        },
+      const baseline = await this.pageHistoryRepo.saveHistory(prev, {
+        contributorIds: [],
         trx,
-      );
+      });
       verifiedHistoryId = baseline.id;
     }
     await trx

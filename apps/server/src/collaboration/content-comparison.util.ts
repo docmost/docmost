@@ -15,6 +15,8 @@ type BlockLike = { type?: string; content?: unknown[] };
 
 const EMPTY_DOCUMENT = { type: 'doc', content: [] };
 
+const REVIEW_ID_STRIPPED_TYPES = ['heading', 'paragraph', 'transclusionSource'];
+
 let cachedSchema: Schema | null = null;
 
 function getServerSchema(): Schema {
@@ -122,8 +124,6 @@ export function isSameDocumentContent(
   }
   return isDeepStrictEqual(previousComparable, nextComparable);
 }
-
-const REVIEW_ID_STRIPPED_TYPES = ['heading', 'paragraph', 'transclusionSource'];
 
 function toReviewNode(node: JSONContent): JSONContent {
   const { attrs, marks, content, ...rest } = node;
