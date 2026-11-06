@@ -303,13 +303,21 @@ export class PageService {
   }
 
   async getLiveContent(pageId: string): Promise<JSONContent | null> {
-    const content = await this.collaborationGateway.handleYjsEvent(
-      'getPageContent',
-      `page.${pageId}`,
-      undefined,
-      true,
-    );
-    return content ?? null;
+    try {
+      const content = await this.collaborationGateway.handleYjsEvent(
+        'getPageContent',
+        `page.${pageId}`,
+        undefined,
+        true,
+      );
+      return content ?? null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Reading live content of page ${pageId} failed: ${message}`,
+      );
+      return null;
+    }
   }
 
   async applyBlockEdits(
