@@ -9,6 +9,13 @@ export const TOOL_LABELS: Record<string, string> = {
   get_page: "Read page",
   create_page: "Created page",
   update_page: "Updated page",
+  edit_page: "Edited page",
+  read_page_sections: "Read page sections",
+  search_in_page: "Searched in page",
+  semantic_search: "Searched pages",
+  list_recent_pages: "Listed recent pages",
+  list_comments: "Read comments",
+  get_space: "Read space",
 };
 
 type Props = {
