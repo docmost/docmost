@@ -24,6 +24,7 @@ export * from "./lib/subpages";
 export * from "./lib/transclusion";
 export * from "./lib/highlight";
 export * from "./lib/indent";
+export * from "./lib/move-node/move-node";
 export * from "./lib/heading/heading";
 export * from "./lib/unique-id";
 export * from "./lib/shared-storage";
