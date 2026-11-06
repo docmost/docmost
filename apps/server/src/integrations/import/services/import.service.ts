@@ -32,6 +32,7 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
+import { extractMarkdownFrontMatter } from '../utils/import.utils';
 
 @Injectable()
 export class ImportService {
@@ -103,12 +104,24 @@ export class ImportService {
       throw new BadRequestException(message);
     }
 
+    let frontMatterTitle: string | null = null;
+    if (fileExtension.endsWith('.md')) {
+      const frontMatter = extractMarkdownFrontMatter(fileContent);
+      if (
+        frontMatter.title &&
+        typeof frontMatter.title === 'string' &&
+        frontMatter.title.trim()
+      ) {
+        frontMatterTitle = frontMatter.title.trim();
+      }
+    }
+
     const { title, prosemirrorJson } = this.extractTitleAndRemoveHeading(
       prosemirrorState,
       { anyHeadingLevel: true },
     );
 
-    const pageTitle = title || fileName;
+    const pageTitle = frontMatterTitle || title || fileName;
 
     if (prosemirrorJson) {
       try {
