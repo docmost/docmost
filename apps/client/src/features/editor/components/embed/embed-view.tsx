@@ -1,4 +1,4 @@
-import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import { NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
 import React, { useMemo, useCallback } from "react";
 import clsx from "clsx";
 import {
@@ -34,6 +34,11 @@ export default function EmbedView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, selected, updateAttributes, editor } = props;
   const { src, provider, width: nodeWidth, height: nodeHeight } = node.attrs;
+
+  const isEditable = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.isEditable ?? false,
+  });
 
   const embedUrl = useMemo(() => {
     if (src) {
@@ -93,7 +98,7 @@ export default function EmbedView(props: NodeViewProps) {
             minHeight={200}
             maxHeight={1200}
             onResize={handleResize}
-            isEditable={editor.isEditable}
+            isEditable={isEditable}
             selected={selected}
             className={clsx(classes.embedWrapper, {
               "ProseMirror-selectednode": selected,
@@ -116,7 +121,7 @@ export default function EmbedView(props: NodeViewProps) {
           position="bottom"
           withArrow
           shadow="md"
-          disabled={!editor.isEditable}
+          disabled={!isEditable}
         >
           <Popover.Target>
             <Card

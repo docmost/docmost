@@ -23,7 +23,6 @@ export default function PdfView(props: NodeViewProps) {
     selector: ({ editor }) => editor?.isEditable ?? false,
   });
 
-
   const safeSrc = useMemo(() => {
     if (!src || !isInternalFileUrl(src)) return null;
     return getFileUrl(src);

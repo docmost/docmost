@@ -91,7 +91,7 @@ export default function CodeBlockView(props: NodeViewProps) {
       <pre
         spellCheck="false"
         hidden={
-          ((language === "mermaid" && isEditable) ||
+          ((language === "mermaid" && !isEditable) ||
             (language === "mermaid" && !isSelected)) &&
           node.textContent.length > 0
         }
