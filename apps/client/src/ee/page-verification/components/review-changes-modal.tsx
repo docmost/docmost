@@ -74,7 +74,7 @@ export function ReviewChangesModal({
     <Modal.Root
       opened={opened}
       onClose={close}
-      size={1400}
+      size={1000}
       fullScreen={isMobile}
       zIndex={getDefaultZIndex("modal") + 1}
       aria-label={t("Review changes")}
