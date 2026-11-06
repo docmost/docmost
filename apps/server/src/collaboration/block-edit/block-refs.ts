@@ -11,8 +11,10 @@ export const BLOCK_REF_CONTAINERS: ReadonlySet<string> = new Set([
   'callout',
   'columns',
   'column',
+  'details',
   'detailsContent',
   'tabs',
+  'tab',
   'tabPanel',
   'transclusionSource',
 ]);

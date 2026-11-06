@@ -1,7 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import { jsonToNode, tiptapExtensions } from '../collaboration.util';
-import { computeBlockRefs } from './block-refs';
+import { BlockRefIndex, computeBlockRefs } from './block-refs';
 
 const text = (value: string): JSONContent => ({ type: 'text', text: value });
 const paragraph = (value: string): JSONContent => ({
@@ -30,9 +30,8 @@ describe('computeBlockRefs', () => {
   it("keeps a block's ref when another block changes", () => {
     const before = refsOf(doc(paragraph('one'), paragraph('two')));
     const after = refsOf(doc(paragraph('one'), paragraph('two changed')));
-    const refAt = (index: BlockIndex, i: number) =>
+    const refAt = (index: BlockRefIndex, i: number) =>
       [...index.byRef.values()].find((e) => e.path[0] === i).ref;
-    type BlockIndex = typeof before;
 
     expect(refAt(after, 0)).toBe(refAt(before, 0));
     expect(refAt(after, 1)).not.toBe(refAt(before, 1));
@@ -144,6 +143,45 @@ describe('computeBlockRefs', () => {
     ).toEqual(['table', 'tableRow']);
   });
 
+  it('addresses blocks inside toggles and tab panels', () => {
+    const { byRef } = refsOf(
+      doc(
+        {
+          type: 'details',
+          content: [
+            { type: 'detailsSummary', content: [text('Summary')] },
+            { type: 'detailsContent', content: [paragraph('hidden')] },
+          ],
+        },
+        {
+          type: 'tabs',
+          content: [
+            {
+              type: 'tab',
+              content: [
+                { type: 'tabLabel', content: [text('Label')] },
+                { type: 'tabPanel', content: [paragraph('panel')] },
+              ],
+            },
+          ],
+        },
+      ),
+    );
+    const paths = [...byRef.values()].map((e) => [e.node.type.name, e.path]);
+
+    expect(paths).toEqual([
+      ['details', [0]],
+      ['detailsSummary', [0, 0]],
+      ['detailsContent', [0, 1]],
+      ['paragraph', [0, 1, 0]],
+      ['tabs', [1]],
+      ['tab', [1, 0]],
+      ['tabLabel', [1, 0, 0]],
+      ['tabPanel', [1, 0, 1]],
+      ['paragraph', [1, 0, 1, 0]],
+    ]);
+  });
+
   it('maps nodes back to their refs by identity', () => {
     const node = jsonToNode(doc(paragraph('one')));
     const { byRef, byNode } = computeBlockRefs(node);
@@ -162,6 +200,35 @@ describe('computeBlockRefs', () => {
         content: [{ type: 'listItem', content: [paragraph('item')] }],
       },
       { type: 'callout', content: [paragraph('note')] },
+      {
+        type: 'table',
+        content: [
+          {
+            type: 'tableRow',
+            content: [
+              { type: 'tableHeader', content: [paragraph('head')] },
+              { type: 'tableCell', content: [paragraph('cell')] },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'taskList',
+        content: [
+          {
+            type: 'taskItem',
+            attrs: { checked: true },
+            content: [paragraph('done')],
+          },
+        ],
+      },
+      {
+        type: 'columns',
+        content: [
+          { type: 'column', content: [paragraph('left')] },
+          { type: 'column', content: [paragraph('right')] },
+        ],
+      },
     );
     const ydoc = TiptapTransformer.toYdoc(json, 'default', tiptapExtensions);
     const roundTripped = TiptapTransformer.fromYdoc(ydoc, 'default');
@@ -171,6 +238,7 @@ describe('computeBlockRefs', () => {
     const shape = (index: typeof stored) =>
       [...index.byRef.entries()].map(([ref, e]) => [ref, e.path]);
 
+    expect(stored.byRef.size).toBeGreaterThan(0);
     expect(shape(live)).toEqual(shape(stored));
   });
 });
