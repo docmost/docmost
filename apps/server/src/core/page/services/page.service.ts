@@ -41,6 +41,7 @@ import {
   ICopyPageAttachment,
 } from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
+import type { JSONContent } from '@tiptap/core';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -59,6 +60,10 @@ import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import {
+  BlockEdit,
+  BlockEditResult,
+} from '../../../collaboration/block-edit/block-edits.types';
 
 @Injectable()
 export class PageService {
@@ -294,6 +299,34 @@ export class PageService {
       'updatePageContent',
       documentName,
       { operation, prosemirrorJson, user },
+    );
+  }
+
+  async getLiveContent(pageId: string): Promise<JSONContent | null> {
+    const content = await this.collaborationGateway.handleYjsEvent(
+      'getPageContent',
+      `page.${pageId}`,
+      undefined,
+      true,
+    );
+    return content ?? null;
+  }
+
+  async applyBlockEdits(
+    pageId: string,
+    edits: BlockEdit[],
+    user: User,
+  ): Promise<BlockEditResult> {
+    const result = await this.collaborationGateway.handleYjsEvent(
+      'applyBlockEdits',
+      `page.${pageId}`,
+      { edits, user },
+    );
+    return (
+      result ?? {
+        ok: false,
+        error: 'The page could not be edited right now. Try again.',
+      }
     );
   }
 

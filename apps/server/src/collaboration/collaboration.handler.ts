@@ -1,13 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Hocuspocus, Document } from '@hocuspocus/server';
 import { TiptapTransformer } from '@hocuspocus/transformer';
+import type { JSONContent } from '@tiptap/core';
 import {
+  jsonToNode,
   prosemirrorNodeToYElement,
   tiptapExtensions,
 } from './collaboration.util';
 import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
 import * as Y from 'yjs';
 import { User } from '@docmost/db/types/entity.types';
+import { applyBlockSplices, planBlockEdits } from './block-edit/block-edits';
+import { BlockEdit, BlockEditResult } from './block-edit/block-edits.types';
 
 export type CollabEventHandlers = ReturnType<
   CollaborationHandler['getHandlers']
@@ -122,6 +126,38 @@ export class CollaborationHandler {
             }
           },
         );
+      },
+      getPageContent: async (
+        documentName: string,
+      ): Promise<JSONContent | null> => {
+        if (!hocuspocus.documents.has(documentName)) return null;
+        return TiptapTransformer.fromYdoc(
+          hocuspocus.documents.get(documentName),
+          'default',
+        );
+      },
+      applyBlockEdits: async (
+        documentName: string,
+        payload: { edits: BlockEdit[]; user: User },
+      ): Promise<BlockEditResult> => {
+        const { edits, user } = payload;
+        let result: BlockEditResult;
+        await this.withYdocConnection(
+          hocuspocus,
+          documentName,
+          { user },
+          (doc) => {
+            const content = TiptapTransformer.fromYdoc(doc, 'default');
+            const plan = planBlockEdits(jsonToNode(content), edits);
+            if (!plan.ok) {
+              result = plan;
+              return;
+            }
+            applyBlockSplices(doc.getXmlFragment('default'), plan.splices);
+            result = { ok: true, insertedRefs: plan.insertedRefs };
+          },
+        );
+        return result;
       },
     };
   }
