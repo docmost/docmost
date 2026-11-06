@@ -96,7 +96,7 @@ export default function HistoryModalBody({ pageId }: Props) {
         )}
 
         <ScrollArea
-          h={650}
+          className={classes.historyPreviewScrollArea}
           w="100%"
           scrollbarSize={5}
           viewportRef={scrollViewportRef}

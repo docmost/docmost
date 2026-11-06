@@ -95,6 +95,23 @@
   flex: 1;
 }
 
+/* Shrink on short screens so the modal (max-height: 100dvh minus twice the
+   y-offset) does not cut off the footer. The offsets cover the modal header
+   and paddings plus the list footer or the compare banner. */
+.historyListScrollArea {
+  height: min(
+    rem(620px),
+    calc(100dvh - var(--modal-y-offset) * 2 - rem(160px))
+  );
+}
+
+.historyPreviewScrollArea {
+  height: min(
+    rem(650px),
+    calc(100dvh - var(--modal-y-offset) * 2 - rem(120px))
+  );
+}
+
 .sidebarRightSection {
   flex: 1;
   padding: rem(16px) rem(40px);
