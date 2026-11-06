@@ -32,7 +32,7 @@ import {
   getAttachmentFolderPath,
   validAttachmentTypes,
 } from './attachment.utils';
-import { getMimeType } from '../../common/helpers';
+import { getMimeType, resolveAttachmentCsp } from '../../common/helpers';
 import {
   AttachmentType,
   inlineFileExtensions,
@@ -581,10 +581,7 @@ export class AttachmentController {
     const rangeHeader = req.headers.range;
 
     res.header('Accept-Ranges', 'bytes');
-    res.header(
-      'Content-Security-Policy',
-      "base-uri 'none'; object-src 'self'; default-src 'self';",
-    );
+    res.header('Content-Security-Policy', resolveAttachmentCsp(attachment.fileExt));
 
     if (!inlineFileExtensions.includes(attachment.fileExt)) {
       res.header(
