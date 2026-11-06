@@ -49,6 +49,7 @@ import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import { LIVE_READ_TIMEOUT_MS } from '../../../collaboration/constants';
 import {
   INTERNAL_LINK_REGEX,
   extractPageSlugId,
@@ -303,13 +304,23 @@ export class PageService {
   }
 
   async getLiveContent(pageId: string): Promise<JSONContent | null> {
-    try {
-      const content = await this.collaborationGateway.handleYjsEvent(
-        'getPageContent',
-        `page.${pageId}`,
-        undefined,
-        true,
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`timed out after ${LIVE_READ_TIMEOUT_MS} ms`)),
+        LIVE_READ_TIMEOUT_MS,
       );
+    });
+    try {
+      const content = await Promise.race([
+        this.collaborationGateway.handleYjsEvent(
+          'getPageContent',
+          `page.${pageId}`,
+          undefined,
+          true,
+        ),
+        timeout,
+      ]);
       return content ?? null;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -317,6 +328,8 @@ export class PageService {
         `Reading live content of page ${pageId} failed: ${message}`,
       );
       return null;
+    } finally {
+      clearTimeout(timer);
     }
   }
 

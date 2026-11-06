@@ -2,3 +2,4 @@ export const HISTORY_INTERVAL = 5 * 60 * 1000;
 export const HISTORY_FAST_INTERVAL = 60 * 1000;
 export const HISTORY_FAST_THRESHOLD = 5 * 60 * 1000;
 export const COLLAB_ACCESS_RECHECK_CHANNEL = 'collab:access-recheck';
+export const LIVE_READ_TIMEOUT_MS = 3000;

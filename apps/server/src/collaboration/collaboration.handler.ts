@@ -175,7 +175,7 @@ export class CollaborationHandler {
               : {
                   ok: false,
                   error:
-                    'This part of the page contains content that cannot be edited safely. Read the page again or use update_page.',
+                    'This part of the page contains content that cannot be edited safely. Read the page again, or add content with update_page append or prepend.',
                 };
           },
         );

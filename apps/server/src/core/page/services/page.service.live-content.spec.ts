@@ -39,6 +39,25 @@ describe('PageService getLiveContent', () => {
     );
   });
 
+  it('returns null when the live document does not answer within 3 seconds', async () => {
+    jest.useFakeTimers();
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const handleYjsEvent = jest.fn(() => new Promise(() => undefined));
+
+    try {
+      const content = makeService(handleYjsEvent).getLiveContent(PAGE_ID);
+      await jest.advanceTimersByTimeAsync(3000);
+
+      await expect(content).resolves.toBeNull();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('timed out'));
+    } finally {
+      warn.mockRestore();
+      jest.useRealTimers();
+    }
+  });
+
   it('returns null when the live document cannot be reached', async () => {
     const warn = jest
       .spyOn(Logger.prototype, 'warn')
