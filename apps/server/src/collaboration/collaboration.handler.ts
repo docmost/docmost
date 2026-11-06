@@ -11,7 +11,11 @@ import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
 import * as Y from 'yjs';
 import { User } from '@docmost/db/types/entity.types';
 import { applyBlockSplices, planBlockEdits } from './block-edit/block-edits';
-import { BlockEdit, BlockEditResult } from './block-edit/block-edits.types';
+import {
+  BlockEdit,
+  BlockEditPlan,
+  BlockEditResult,
+} from './block-edit/block-edits.types';
 
 export type CollabEventHandlers = ReturnType<
   CollaborationHandler['getHandlers']
@@ -147,14 +151,32 @@ export class CollaborationHandler {
           documentName,
           { user },
           (doc) => {
-            const content = TiptapTransformer.fromYdoc(doc, 'default');
-            const plan = planBlockEdits(jsonToNode(content), edits);
+            let plan: BlockEditPlan;
+            try {
+              const content = TiptapTransformer.fromYdoc(doc, 'default');
+              plan = planBlockEdits(jsonToNode(content), edits);
+            } catch (error) {
+              const message =
+                error instanceof Error ? error.message : String(error);
+              this.logger.warn(`Block edits on ${documentName}: ${message}`);
+              result = {
+                ok: false,
+                error: `The page could not be edited: ${message}`,
+              };
+              return;
+            }
             if (!plan.ok) {
               result = plan;
               return;
             }
-            applyBlockSplices(doc.getXmlFragment('default'), plan.splices);
-            result = { ok: true, insertedRefs: plan.insertedRefs };
+            const fragment = doc.getXmlFragment('default');
+            result = applyBlockSplices(fragment, plan.splices)
+              ? { ok: true, insertedRefs: plan.insertedRefs }
+              : {
+                  ok: false,
+                  error:
+                    'This part of the page contains content that cannot be edited safely. Read the page again or use update_page.',
+                };
           },
         );
         return result;

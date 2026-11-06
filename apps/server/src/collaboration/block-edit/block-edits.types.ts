@@ -21,11 +21,18 @@ export type BlockEditResult =
   | { ok: true; insertedRefs: string[][] }
   | { ok: false; error: string };
 
+export type ExpectedNode = {
+  path: number[];
+  type: string;
+  childCount?: number;
+};
+
 export type BlockSplice = {
   parentPath: number[];
   index: number;
   deleteCount: number;
   insert: Array<{ json: JSONContent } | { movedFrom: number[] }>;
+  expected: ExpectedNode[];
 };
 
 export type BlockEditPlan =

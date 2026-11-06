@@ -317,17 +317,22 @@ export class PageService {
     edits: BlockEdit[],
     user: User,
   ): Promise<BlockEditResult> {
-    const result = await this.collaborationGateway.handleYjsEvent(
-      'applyBlockEdits',
-      `page.${pageId}`,
-      { edits, user },
-    );
-    return (
-      result ?? {
-        ok: false,
-        error: 'The page could not be edited right now. Try again.',
-      }
-    );
+    const unavailable: BlockEditResult = {
+      ok: false,
+      error: 'The page could not be edited right now.',
+    };
+    try {
+      const result = await this.collaborationGateway.handleYjsEvent(
+        'applyBlockEdits',
+        `page.${pageId}`,
+        { edits, user },
+      );
+      return result ?? unavailable;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Block edits on page ${pageId} failed: ${message}`);
+      return unavailable;
+    }
   }
 
   async getSidebarPages(

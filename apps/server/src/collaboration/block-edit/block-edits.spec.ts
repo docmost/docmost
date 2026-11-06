@@ -26,6 +26,12 @@ const doc = (...content: JSONContent[]): JSONContent => ({
   content,
 });
 
+const yParagraph = (value: string) => {
+  const element = new Y.XmlElement('paragraph');
+  element.insert(0, [new Y.XmlText(value)]);
+  return element;
+};
+
 const textsOf = (node: Node) => {
   const texts: string[] = [];
   node.forEach((child) => texts.push(child.textContent));
@@ -44,11 +50,15 @@ function livePage(json: JSONContent) {
 
   const edit = (edits: BlockEdit[]) => {
     let plan: BlockEditPlan;
+    let applied = false;
     ydoc.transact(() => {
       plan = planBlockEdits(read(), edits);
-      if (plan.ok) applyBlockSplices(fragment, plan.splices);
+      if (plan.ok) applied = applyBlockSplices(fragment, plan.splices);
     });
-    if (plan.ok) expect(read().toJSON()).toEqual(plan.doc.toJSON());
+    if (plan.ok) {
+      expect(applied).toBe(true);
+      expect(read().toJSON()).toEqual(plan.doc.toJSON());
+    }
     return plan;
   };
 
@@ -172,6 +182,27 @@ describe('block edits', () => {
     );
   });
 
+  it('moves blocks across parents', () => {
+    const page = livePage(
+      doc(
+        { type: 'callout', content: [paragraph('c1'), paragraph('c2')] },
+        paragraph('p1'),
+        paragraph('p2'),
+      ),
+    );
+
+    const plan = page.edit([
+      { type: 'move_after', ref: page.refAt(0, 1), targetRef: page.refAt(1) },
+      { type: 'move_after', ref: page.refAt(2), targetRef: page.refAt(0, 0) },
+    ]);
+
+    expect(plan.ok).toBe(true);
+    const after = page.read();
+    expect(after.child(0).type.name).toBe('callout');
+    expect(textsOf(after.child(0))).toEqual(['c1', 'p2']);
+    expect(textsOf(after)).toEqual(['c1p2', 'p1', 'c2']);
+  });
+
   it('edits a list item inside a list', () => {
     const page = livePage(
       doc(paragraph('intro'), bulletList('one', 'two', 'three')),
@@ -252,6 +283,39 @@ describe('block edits', () => {
       ok: false,
       error: `Edit 1: endRef "${first}" must be a later sibling of ref "${second}".`,
     });
+  });
+
+  it('ignores targetRef on edits that do not move blocks', () => {
+    const page = livePage(doc(paragraph('one'), paragraph('two')));
+
+    const plan = page.edit([
+      {
+        type: 'replace',
+        ref: page.refAt(0),
+        targetRef: 'gone00',
+        content: [paragraph('ONE')],
+      },
+    ]);
+
+    expect(plan.ok).toBe(true);
+    expect(textsOf(page.read())).toEqual(['ONE', 'two']);
+  });
+
+  it('refuses edits when the live document holds a node the schema does not know', () => {
+    const page = livePage(doc(paragraph('p1'), paragraph('p2')));
+    const unknown = new Y.XmlElement('unknownNode');
+    unknown.insert(0, [yParagraph('c1'), yParagraph('c2')]);
+    page.fragment.insert(0, [unknown]);
+    const before = page.state();
+    const view = page.read();
+    expect(textsOf(view)).toEqual(['c1', 'c2', 'p1', 'p2']);
+
+    const plan = planBlockEdits(view, [{ type: 'delete', ref: page.refAt(2) }]);
+
+    expect(plan.ok).toBe(true);
+    const splices = plan.ok ? plan.splices : [];
+    expect(applyBlockSplices(page.fragment, splices)).toBe(false);
+    expect(page.state()).toEqual(before);
   });
 
   it('refuses content the parent cannot hold', () => {

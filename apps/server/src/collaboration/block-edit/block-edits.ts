@@ -3,7 +3,12 @@ import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
 import { tiptapExtensions } from '../collaboration.util';
 import { BlockRefIndex, computeBlockRefs } from './block-refs';
-import { BlockEdit, BlockEditPlan, BlockSplice } from './block-edits.types';
+import {
+  BlockEdit,
+  BlockEditPlan,
+  BlockSplice,
+  ExpectedNode,
+} from './block-edits.types';
 
 type BlockRange = { parentPath: number[]; from: number; to: number };
 
@@ -41,6 +46,54 @@ const comparePaths = (a: number[], b: number[]) => {
     if (a[depth] !== b[depth]) return a[depth] - b[depth];
   }
   return a.length - b.length;
+};
+
+const shapeAlong = (doc: Node, path: number[]): ExpectedNode[] =>
+  Array.from({ length: path.length + 1 }, (_, depth) => {
+    const prefix = path.slice(0, depth);
+    const node = nodeAt(doc, prefix);
+    return { path: prefix, type: node.type.name, childCount: node.childCount };
+  });
+
+const typeAt = (doc: Node, path: number[]): ExpectedNode => ({
+  path,
+  type: nodeAt(doc, path).type.name,
+});
+
+function expectedShape(doc: Node, splice: BlockSplice): ExpectedNode[] {
+  const { parentPath, index, deleteCount, insert } = splice;
+  const removed = Array.from({ length: deleteCount }, (_, k) =>
+    typeAt(doc, [...parentPath, index + k]),
+  );
+  const moved = insert.flatMap((item) =>
+    'movedFrom' in item
+      ? [
+          ...shapeAlong(doc, item.movedFrom.slice(0, -1)),
+          typeAt(doc, item.movedFrom),
+        ]
+      : [],
+  );
+  return [...shapeAlong(doc, parentPath), ...removed, ...moved];
+}
+
+const yNodeAt = (fragment: Y.XmlFragment, path: number[]) => {
+  let node = fragment;
+  for (const index of path) {
+    const child = node.get(index);
+    if (!(child instanceof Y.XmlElement)) return null;
+    node = child;
+  }
+  return node;
+};
+
+const matchesShape = (
+  fragment: Y.XmlFragment,
+  { path, type, childCount }: ExpectedNode,
+) => {
+  const node = yNodeAt(fragment, path);
+  if (!node) return false;
+  if (node instanceof Y.XmlElement && node.nodeName !== type) return false;
+  return childCount === undefined || node.length === childCount;
 };
 
 function buildContent(
@@ -154,7 +207,7 @@ function groupSplices(resolved: ResolvedEdit[]): PlannedSplice[] {
   const at = ({ parentPath, index }: BlockPosition) => {
     const key = [...parentPath, index].join();
     const entry = planned.get(key) ?? {
-      splice: { parentPath, index, deleteCount: 0, insert: [] },
+      splice: { parentPath, index, deleteCount: 0, insert: [], expected: [] },
       nodes: [],
       edits: [],
     };
@@ -249,10 +302,11 @@ function findSchemaError(newDoc: Node, parents: ChangedParent[]) {
 export function planBlockEdits(doc: Node, edits: BlockEdit[]): BlockEditPlan {
   const refs = computeBlockRefs(doc);
   for (const [i, edit] of edits.entries()) {
+    const moves = edit.type === 'move_before' || edit.type === 'move_after';
     const missing = [
       edit.ref,
       edit.endRef ?? edit.ref,
-      edit.targetRef ?? edit.ref,
+      ...(moves && edit.targetRef ? [edit.targetRef] : []),
     ].filter((ref) => !refs.byRef.has(ref));
     if (missing.length > 0) {
       return {
@@ -277,6 +331,9 @@ export function planBlockEdits(doc: Node, edits: BlockEdit[]): BlockEditPlan {
   const error = findSchemaError(newDoc, parents);
   if (error) return { ok: false, error };
 
+  for (const { splice } of planned) {
+    splice.expected = expectedShape(doc, splice);
+  }
   const newRefs = computeBlockRefs(newDoc);
   return {
     ok: true,
@@ -291,12 +348,12 @@ export function planBlockEdits(doc: Node, edits: BlockEdit[]): BlockEditPlan {
 export function applyBlockSplices(
   fragment: Y.XmlFragment,
   splices: BlockSplice[],
-): void {
-  const parentAt = (path: number[]) =>
-    path.reduce<Y.XmlFragment>(
-      (parent, index) => parent.get(index) as Y.XmlElement,
-      fragment,
-    );
+): boolean {
+  // The planned view can differ from Yjs: jsonToNode strips unknown node types.
+  const matches = splices.every(({ expected }) =>
+    expected.every((node) => matchesShape(fragment, node)),
+  );
+  if (!matches) return false;
 
   const json = splices.flatMap(({ insert }) =>
     insert.flatMap((item) => ('json' in item ? [item.json] : [])),
@@ -314,11 +371,11 @@ export function applyBlockSplices(
   // Resolve and clone before mutating: later splices delete moved elements.
   const steps = splices.map((splice) => ({
     splice,
-    parent: parentAt(splice.parentPath),
+    parent: yNodeAt(fragment, splice.parentPath),
     elements: splice.insert.map((item) =>
       'json' in item
         ? created.get(next++).clone()
-        : parentAt(item.movedFrom.slice(0, -1))
+        : yNodeAt(fragment, item.movedFrom.slice(0, -1))
             .get(lastOf(item.movedFrom))
             .clone(),
     ),
@@ -328,4 +385,5 @@ export function applyBlockSplices(
     if (splice.deleteCount > 0) parent.delete(splice.index, splice.deleteCount);
     if (elements.length > 0) parent.insert(splice.index, elements);
   }
+  return true;
 }
