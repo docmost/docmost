@@ -147,6 +147,17 @@ function VerificationChangesContent({
       ? baselineChoice
       : (defaultBaselineKind ?? "verified");
   const baseline = changes?.[baselineKind] ?? null;
+  // when and by whom the compared version was verified, approved or rejected
+  const decision =
+    baselineKind === "rejected"
+      ? {
+          date: changes?.rejected?.rejectedAt,
+          user: changes?.rejected?.rejectedBy,
+        }
+      : {
+          date: changes?.verified?.verifiedAt,
+          user: changes?.verified?.verifiedBy,
+        };
   const copy = getBaselineCopy(baselineKind, changes?.type ?? info?.type, t);
 
   const showsDiagramNote = useMemo(
@@ -230,12 +241,12 @@ function VerificationChangesContent({
             />
           )}
           <div>
-            {baseline.at && (
+            {decision.date && (
               <Text size="sm" c="dimmed">
                 {copy.byLine({
-                  name: baseline.by?.name ?? t("Someone"),
+                  name: decision.user?.name ?? t("Someone"),
                   date: formatLocalized(
-                    baseline.at,
+                    decision.date,
                     "MMM dd, yyyy, h:mma",
                     "PPp",
                     dateLocale,

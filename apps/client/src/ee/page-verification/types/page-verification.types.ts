@@ -60,15 +60,23 @@ export type IVerificationChangesBaseline = {
   historyId: string;
   title: string | null;
   content: JSONContent;
-  at: string | null;
-  by: IUserRef | null;
   hasChanges: boolean;
 };
 
 export type IVerificationChanges = {
   type: VerificationType;
-  verified: IVerificationChangesBaseline | null;
-  rejected: IVerificationChangesBaseline | null;
+  verified:
+    | (IVerificationChangesBaseline & {
+        verifiedAt: string | null;
+        verifiedBy: IUserRef | null;
+      })
+    | null;
+  rejected:
+    | (IVerificationChangesBaseline & {
+        rejectedAt: string | null;
+        rejectedBy: IUserRef | null;
+      })
+    | null;
   current: {
     title: string | null;
     content: JSONContent;

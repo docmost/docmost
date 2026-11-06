@@ -177,8 +177,6 @@ describe("getDefaultBaselineKind", () => {
     historyId: "h1",
     title: "Title",
     content: { type: "doc" },
-    at: null,
-    by: null,
     hasChanges: true,
   };
 
