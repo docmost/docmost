@@ -284,6 +284,7 @@ describe('PageService movePageToSpace', () => {
     await service.movePageToSpace(rootPage as any, OPEN_SPACE_ID, USER_ID);
 
     expect(homeClearQueries()).toHaveLength(1);
+    expect(homeClearQueries()[0].parameters[0]).toBeNull();
     expect(homeClearQueries()[0].parameters).toEqual(
       expect.arrayContaining([ROOT_ID, CHILD_ID]),
     );

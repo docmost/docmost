@@ -57,6 +57,7 @@ describe('PageRepo removePage', () => {
       ),
     );
     expect(homeClears).toHaveLength(1);
+    expect(homeClears[0].parameters[0]).toBeNull();
     expect(homeClears[0].parameters).toEqual(
       expect.arrayContaining([ROOT_ID, CHILD_ID]),
     );

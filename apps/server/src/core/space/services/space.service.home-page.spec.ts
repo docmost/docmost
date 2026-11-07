@@ -164,6 +164,30 @@ describe('SpaceService home page', () => {
       );
     });
 
+    it('writes the stored id when the request id differs only in case', async () => {
+      const { service, spaceRepo, auditService } = makeService({
+        homePageId: PAGE_ID,
+      });
+
+      await service.updateSpace(
+        { spaceId: SPACE_ID, homePageId: PAGE_ID.toUpperCase() } as any,
+        WORKSPACE_ID,
+      );
+
+      expect(spaceRepo.updateSpace).toHaveBeenCalledWith(
+        expect.objectContaining({ homePageId: PAGE_ID }),
+        SPACE_ID,
+        WORKSPACE_ID,
+        trx,
+      );
+      const changes = auditService.log.mock.calls[0]?.[0]?.changes;
+      const keys = [
+        ...Object.keys(changes?.before ?? {}),
+        ...Object.keys(changes?.after ?? {}),
+      ];
+      expect(keys.filter((key) => key.startsWith('homePage'))).toEqual([]);
+    });
+
     it('leaves the home page untouched when it is not in the request', async () => {
       const { service, spaceRepo, auditService } = makeService({
         homePageId: PAGE_ID,

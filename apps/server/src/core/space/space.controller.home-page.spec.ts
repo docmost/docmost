@@ -38,7 +38,7 @@ describe('SpaceController home page', () => {
       pagePermissionRepo as any,
     );
 
-    return { controller, spaceService, space };
+    return { controller, spaceService, space, pagePermissionRepo };
   }
 
   it('rejects a home page the caller cannot access', async () => {
@@ -52,6 +52,22 @@ describe('SpaceController home page', () => {
       ),
     ).rejects.toThrow(ForbiddenException);
     expect(spaceService.updateSpace).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['absent', {}],
+    ['null', { homePageId: null }],
+  ])('skips the page access check when homePageId is %s', async (_name, extra) => {
+    const { controller, spaceService, pagePermissionRepo } = makeController();
+
+    await controller.updateSpace(
+      { spaceId: SPACE_ID, name: 'Renamed', ...extra } as any,
+      user,
+      workspace,
+    );
+
+    expect(pagePermissionRepo.canUserAccessPage).not.toHaveBeenCalled();
+    expect(spaceService.updateSpace).toHaveBeenCalled();
   });
 
   it('returns the resolved home page with the updated space', async () => {

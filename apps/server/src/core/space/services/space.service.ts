@@ -192,6 +192,10 @@ export class SpaceService {
       }
     }
 
+    const homePageId = newHomePage
+      ? newHomePage.id
+      : updateSpaceDto.homePageId;
+
     const before: Record<string, any> = {};
     const after: Record<string, any> = {};
 
@@ -239,7 +243,7 @@ export class SpaceService {
           name: updateSpaceDto.name,
           description: updateSpaceDto.description,
           slug: updateSpaceDto.slug,
-          homePageId: updateSpaceDto.homePageId,
+          homePageId,
         },
         updateSpaceDto.spaceId,
         workspaceId,
@@ -260,15 +264,15 @@ export class SpaceService {
 
     const homePageBeforeId = spaceBefore?.homePageId ?? null;
     if (
-      typeof updateSpaceDto.homePageId !== 'undefined' &&
-      (updateSpaceDto.homePageId ?? null) !== homePageBeforeId
+      typeof homePageId !== 'undefined' &&
+      (homePageId ?? null) !== homePageBeforeId
     ) {
       const oldHomePage = homePageBeforeId
         ? await this.pageRepo.findById(homePageBeforeId)
         : null;
       before.homePageId = homePageBeforeId;
       before.homePageTitle = oldHomePage?.title ?? null;
-      after.homePageId = updateSpaceDto.homePageId ?? null;
+      after.homePageId = homePageId ?? null;
       after.homePageTitle = newHomePage?.title ?? null;
     }
 
