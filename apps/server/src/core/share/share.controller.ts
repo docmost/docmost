@@ -71,6 +71,14 @@ export class ShareController {
 
     const shareData = await this.shareService.getSharedPage(dto, workspace.id);
 
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      workspace.id,
+      shareData.share.spaceId,
+    );
+    if (!sharingAllowed) {
+      throw new NotFoundException('Shared page not found');
+    }
+
     return {
       ...shareData,
       features: this.licenseCheckService.resolveFeatures(
@@ -92,11 +100,11 @@ export class ShareController {
       throw new NotFoundException('Share not found');
     }
 
-    const shareReadable = await this.shareService.isShareReadable(
+    const sharingAllowed = await this.shareService.isSharingAllowed(
       share.workspaceId,
       share.spaceId,
     );
-    if (!shareReadable) {
+    if (!sharingAllowed) {
       throw new NotFoundException('Share not found');
     }
 
@@ -253,6 +261,14 @@ export class ShareController {
       dto.shareId,
       workspace.id,
     );
+
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      workspace.id,
+      treeData.share.spaceId,
+    );
+    if (!sharingAllowed) {
+      throw new NotFoundException('Share not found');
+    }
 
     return {
       ...treeData,

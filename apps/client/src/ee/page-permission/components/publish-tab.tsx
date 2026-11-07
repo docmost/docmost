@@ -30,10 +30,9 @@ type PublishTabProps = {
   isRestricted?: boolean;
   workspaceSharingDisabled?: boolean;
   spaceSharingDisabled?: boolean;
-  spaceArchived?: boolean;
 };
 
-export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDisabled, spaceSharingDisabled, spaceArchived }: PublishTabProps) {
+export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDisabled, spaceSharingDisabled }: PublishTabProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pageSlug, spaceSlug } = useParams();
@@ -117,12 +116,6 @@ export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDis
     [publicLink],
   );
 
-  const archivedNote = spaceArchived && (
-    <Text size="sm" c="dimmed">
-      {t("This public link is paused while the space is archived.")}
-    </Text>
-  );
-
   if (isCloud() && isTrial) {
     return (
       <Stack align="center" py="md">
@@ -175,7 +168,6 @@ export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDis
   if (isDescendantShared) {
     return (
       <Stack gap="sm">
-        {archivedNote}
         <Text size="sm">{t("Inherits public sharing from")}</Text>
         <Anchor
           size="sm"
@@ -205,19 +197,16 @@ export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDis
 
   return (
     <Stack gap="sm">
-      {archivedNote}
       <Group justify="space-between" wrap="nowrap" gap="xl">
         <div>
           <Text size="sm">
             {isPagePublic ? t("Shared to web") : t("Share to web")}
           </Text>
-          {!(isPagePublic && spaceArchived) && (
-            <Text size="xs" c="dimmed">
-              {isPagePublic
-                ? t("Anyone with the link can view this page")
-                : t("Make this page publicly accessible")}
-            </Text>
-          )}
+          <Text size="xs" c="dimmed">
+            {isPagePublic
+              ? t("Anyone with the link can view this page")
+              : t("Make this page publicly accessible")}
+          </Text>
         </div>
         <Switch
           onChange={handleChange}

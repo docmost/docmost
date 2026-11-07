@@ -20,7 +20,7 @@ import {
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { canReadShares, updateAttachmentAttr } from './share.util';
+import { updateAttachmentAttr } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
 import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
@@ -43,10 +43,6 @@ export class ShareService {
   async getShareTree(shareId: string, workspaceId: string) {
     const share = await this.shareRepo.findById(shareId);
     if (!share || share.workspaceId !== workspaceId) {
-      throw new NotFoundException('Share not found');
-    }
-
-    if (!(await this.isShareReadable(workspaceId, share.spaceId))) {
       throw new NotFoundException('Share not found');
     }
 
@@ -125,10 +121,6 @@ export class ShareService {
     const share = await this.getShareForPage(dto.pageId, workspaceId);
 
     if (!share) {
-      throw new NotFoundException('Shared page not found');
-    }
-
-    if (!(await this.isShareReadable(workspaceId, share.spaceId))) {
       throw new NotFoundException('Shared page not found');
     }
 
@@ -310,8 +302,7 @@ export class ShareService {
    * Resolve transclusion content for a public share viewer. Each requested
    * source page must itself be reachable via the share graph (its own share
    * or a shared ancestor with `includeSubPages`), in the same workspace as
-   * the requesting share, in a space where shares are readable (sharing on,
-   * not archived), with no restricted ancestors.
+   * the requesting share, with sharing allowed and no restricted ancestors.
    * Sources that don't qualify come back as `no_access` so the editor renders
    * the existing placeholder. The viewer's personal permissions are
    * intentionally ignored — share-served content is gated only by the share
@@ -326,11 +317,11 @@ export class ShareService {
     if (!share || share.workspaceId !== workspaceId) {
       throw new NotFoundException('Share not found');
     }
-    const shareReadable = await this.isShareReadable(
+    const sharingAllowed = await this.isSharingAllowed(
       workspaceId,
       share.spaceId,
     );
-    if (!shareReadable) {
+    if (!sharingAllowed) {
       throw new NotFoundException('Share not found');
     }
 
@@ -342,20 +333,20 @@ export class ShareService {
     // with bulk repo methods that take all candidate pageIds at once:
     //   - shareRepo.getSharesForPages(pageIds, workspaceId): Map<pageId, share>
     //   - pagePermissionRepo.filterRestrictedPageIds(pageIds): Set<pageId>
-    //   - isShareReadable for the distinct spaceIds in one query
+    //   - isSharingAllowed for the distinct spaceIds in one query
     // Brings per-request trip count from ~2N+1 (parallel) to 3 (constant)
     // for N unique candidate pages. Worth doing if profiling ever flags it.
 
     // Most candidates will share the host share's space, so cache by spaceId
     // and seed with the host space we just verified. Stores in-flight
     // promises so concurrent chains de-dupe at the request boundary.
-    const shareReadableCache = new Map<string, Promise<boolean>>();
-    shareReadableCache.set(share.spaceId, Promise.resolve(true));
-    const isShareReadableFor = (spaceId: string) => {
-      const cached = shareReadableCache.get(spaceId);
+    const sharingAllowedCache = new Map<string, Promise<boolean>>();
+    sharingAllowedCache.set(share.spaceId, Promise.resolve(true));
+    const isSharingAllowedFor = (spaceId: string) => {
+      const cached = sharingAllowedCache.get(spaceId);
       if (cached) return cached;
-      const p = this.isShareReadable(workspaceId, spaceId);
-      shareReadableCache.set(spaceId, p);
+      const p = this.isSharingAllowed(workspaceId, spaceId);
+      sharingAllowedCache.set(spaceId, p);
       return p;
     };
 
@@ -366,7 +357,7 @@ export class ShareService {
       candidatePageIds.map(async (pageId) => {
         const sourceShare = await this.getShareForPage(pageId, workspaceId);
         if (!sourceShare) return null;
-        if (!(await isShareReadableFor(sourceShare.spaceId))) return null;
+        if (!(await isSharingAllowedFor(sourceShare.spaceId))) return null;
         const restricted =
           await this.pagePermissionRepo.hasRestrictedAncestor(pageId);
         if (restricted) return null;
@@ -411,28 +402,6 @@ export class ShareService {
       (result.spaceSettings as any)?.sharing?.disabled === true;
 
     return !workspaceDisabled && !spaceDisabled;
-  }
-
-  // Gate for anonymous reads; also false while the space is archived.
-  async isShareReadable(
-    workspaceId: string,
-    spaceId: string,
-  ): Promise<boolean> {
-    const result = await this.db
-      .selectFrom('workspaces')
-      .innerJoin('spaces', 'spaces.workspaceId', 'workspaces.id')
-      .select([
-        'workspaces.settings as workspaceSettings',
-        'spaces.settings as spaceSettings',
-        'spaces.archivedAt',
-      ])
-      .where('workspaces.id', '=', workspaceId)
-      .where('spaces.id', '=', spaceId)
-      .executeTakeFirst();
-
-    if (!result) return false;
-
-    return canReadShares(result);
   }
 
   async updatePublicAttachments(page: Page): Promise<any> {

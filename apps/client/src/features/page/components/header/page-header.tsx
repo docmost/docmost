@@ -27,7 +27,6 @@ export default function PageHeader({ readOnly }: Props) {
   const showPublicBadge =
     isBetaPublicSpaces() &&
     space?.isPublished &&
-    !space?.archivedAt &&
     page &&
     page.permissions?.hasRestriction !== true;
 

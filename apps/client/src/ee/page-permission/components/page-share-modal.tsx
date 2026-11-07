@@ -50,7 +50,6 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
 
   const { data: share } = useShareForPageQuery(pageId);
   const isPubliclyShared = !!share;
-  const isShareLive = isPubliclyShared && !space?.archivedAt;
 
   const { data: restrictionInfo, isLoading: restrictionLoading } =
     usePageRestrictionInfoQuery(opened && hasPagePermissions ? pageId : undefined);
@@ -65,7 +64,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
             <Indicator color="red" offset={5} withBorder>
               <IconLock size={20} stroke={1.5} />
             </Indicator>
-          ) : isShareLive ? (
+          ) : isPubliclyShared ? (
             <Indicator color="green" offset={5} withBorder>
               <IconWorld size={20} stroke={1.5} />
             </Indicator>
@@ -93,7 +92,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
             <Tabs.Tab
               value="publish"
               rightSection={
-                isShareLive ? (
+                isPubliclyShared ? (
                   <Indicator color="green" size={8} processing />
                 ) : null
               }
@@ -134,7 +133,6 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
               isRestricted={isRestricted}
               workspaceSharingDisabled={workspaceSharingDisabled}
               spaceSharingDisabled={spaceSharingDisabled}
-              spaceArchived={!!space?.archivedAt}
             />
           </Tabs.Panel>
         </Tabs>

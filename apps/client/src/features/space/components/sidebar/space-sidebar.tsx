@@ -106,9 +106,7 @@ export function SpaceSidebar() {
               spaceName={space?.name}
               spaceSlug={space?.slug}
               spaceIcon={space?.logo}
-              isPublished={
-                isBetaPublicSpaces() && space?.isPublished && !space?.archivedAt
-              }
+              isPublished={isBetaPublicSpaces() && space?.isPublished}
               isArchived={!!space?.archivedAt}
             />
           </Group>
