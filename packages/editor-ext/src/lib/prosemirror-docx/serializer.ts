@@ -12,7 +12,6 @@ import {
   TabStopPosition,
   SequentialIdentifier,
   Bookmark,
-  ImageRun,
   AlignmentType,
   Table,
   TableRow,
@@ -28,14 +27,17 @@ import {
   IPropertiesOptions,
   WidthType,
 } from 'docx';
-import { imageDimensionsFromData } from 'image-dimensions';
 import { createNumbering, NumberingStyles } from './numbering';
 import {
   buildDoc,
   CELL_MARGIN,
+  createImageRun,
   createShortId,
+  getImageInfo,
   getTableCellWidths,
   getTableColumnWidths,
+  ImageWidth,
+  resolveImageWidth,
   TEXT_WIDTH,
 } from './utils';
 import { IFootnotes, INumbering, Mutable, SectionConfig, SerializationState } from './types';
@@ -73,7 +75,6 @@ export type IMathOpts = {
   id?: string | null;
   numbered?: boolean;
 };
-export type ImageType = 'jpg' | 'png' | 'gif' | 'bmp';
 
 export const MAX_IMAGE_WIDTH = 600;
 
@@ -289,35 +290,16 @@ export class DocxSerializerState {
 
   image(
     src: string,
-    widthPercent = 70,
+    requestedWidth?: ImageWidth,
     align: AlignOptions = 'center',
-    imageRunOpts?: IImageOptions,
-    imageType?: ImageType,
-  ) {
+    imageRunOpts?: Partial<IImageOptions>,
+  ): boolean {
     const buffer = this.options.getImageBuffer(src);
-    const dimensions = imageDimensionsFromData(buffer);
-    /* If the image is not a valid image, don't add it */
-    if (!dimensions) return;
-    const aspect = dimensions.height / dimensions.width;
-    const width = this.maxImageWidth * (widthPercent / 100);
-    let it;
-    try {
-      it = imageType || (src.replace(/.*\./, '').toLowerCase() as any);
-    } catch (e) {
-      it = 'png';
-    }
-    this.current.push(
-      new ImageRun({
-        data: buffer,
-        ...imageRunOpts,
-        type: it,
-        transformation: {
-          ...(imageRunOpts?.transformation || {}),
-          width,
-          height: width * aspect,
-        },
-      }),
-    );
+    const image = getImageInfo(buffer);
+    /* If the image cannot be placed in the document, don't add it */
+    if (!image) return false;
+    const width = resolveImageWidth(requestedWidth, image.width, this.maxImageWidth);
+    this.current.push(createImageRun(buffer, image, width, imageRunOpts));
     let alignment: string;
     switch (align) {
       case 'right':
@@ -332,6 +314,7 @@ export class DocxSerializerState {
     this.addParagraphOptions({
       alignment: alignment as any,
     });
+    return true;
   }
 
   table(
@@ -726,35 +709,16 @@ export class DocxSerializerStateAsync {
 
   async image(
     src: string,
-    widthPercent = 70,
+    requestedWidth?: ImageWidth,
     align: AlignOptions = 'center',
-    imageRunOpts?: IImageOptions,
-    imageType?: ImageType,
-  ) {
+    imageRunOpts?: Partial<IImageOptions>,
+  ): Promise<boolean> {
     const buffer = await Promise.resolve(this.options.getImageBuffer(src));
-    const dimensions = imageDimensionsFromData(buffer);
-    /* If the image is not a valid image, don't add it */
-    if (!dimensions) return;
-    const aspect = dimensions.height / dimensions.width;
-    const width = this.maxImageWidth * (widthPercent / 100);
-    let it;
-    try {
-      it = imageType || (src.replace(/.*\./, '').toLowerCase() as any);
-    } catch (e) {
-      it = 'png';
-    }
-    this.current.push(
-      new ImageRun({
-        data: buffer,
-        ...imageRunOpts,
-        type: it,
-        transformation: {
-          ...(imageRunOpts?.transformation || {}),
-          width,
-          height: width * aspect,
-        },
-      }),
-    );
+    const image = getImageInfo(buffer);
+    /* If the image cannot be placed in the document, don't add it */
+    if (!image) return false;
+    const width = resolveImageWidth(requestedWidth, image.width, this.maxImageWidth);
+    this.current.push(createImageRun(buffer, image, width, imageRunOpts));
     let alignment: string;
     switch (align) {
       case 'right':
@@ -769,6 +733,7 @@ export class DocxSerializerStateAsync {
     this.addParagraphOptions({
       alignment: alignment as any,
     });
+    return true;
   }
 
   async table(

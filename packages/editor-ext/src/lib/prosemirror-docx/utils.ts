@@ -1,5 +1,7 @@
 import {
   Document,
+  IImageOptions,
+  ImageRun,
   INumberingOptions,
   IPropertiesOptions,
   ISectionOptions,
@@ -8,6 +10,7 @@ import {
   sectionMarginDefaults,
   sectionPageSizeDefaults,
 } from 'docx';
+import { imageDimensionsFromData } from 'image-dimensions';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
 import { TableMap } from '@tiptap/pm/tables';
 import { IFootnotes, SerializationState } from './types';
@@ -66,6 +69,134 @@ export function getTableCellWidths(table: ProsemirrorNode, columnWidths: number[
     cellWidths.push(rowWidths);
   });
   return cellWidths;
+}
+
+export type ImageWidth = number | string | null;
+
+type ImageInfo = {
+  type: 'png' | 'jpg' | 'gif' | 'svg';
+  width: number;
+  height: number;
+};
+
+// The raster formats docx declares a content type for. Other formats, such as
+// WebP or HEIC, would produce a media part that Word cannot read.
+const DOCX_RASTER_TYPES: Record<string, ImageInfo['type']> = {
+  png: 'png',
+  jpeg: 'jpg',
+  gif: 'gif',
+};
+
+// The size browsers give an SVG that does not declare one
+const SVG_DEFAULT_WIDTH = 300;
+const SVG_DEFAULT_HEIGHT = 150;
+
+// The svg element has to be the root, so only a prolog can come before it. Its
+// tag is matched attribute by attribute since a value can contain ">".
+const SVG_ROOT_TAG =
+  /^\s*(?:<\?[\s\S]*?\?>\s*|<!--[\s\S]*?-->\s*|<!DOCTYPE[^>[]*(?:\[[\s\S]*?\])?\s*>\s*)*<svg\b((?:[^>"']|"[^"]*"|'[^']*')*)>/;
+const XML_ATTRIBUTE = /([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+const SVG_UNITS_IN_PX: Record<string, number> = {
+  '': 1,
+  px: 1,
+  pt: 96 / 72,
+  pc: 16,
+  in: 96,
+  cm: 96 / 2.54,
+  mm: 96 / 25.4,
+};
+
+// Word shows this to readers that cannot render SVG, stretched to the image size
+const SVG_FALLBACK_PNG = Uint8Array.from(
+  atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGO4BAAA1ADTqstRPwAAAABJRU5ErkJggg=='),
+  (char) => char.charCodeAt(0),
+);
+
+// Relative units are ignored because they say nothing about the image's own size
+function parseSvgLength(value?: string): number | undefined {
+  const match = value?.trim().match(/^(\d*\.?\d+)([a-z]*)$/);
+  const unit = match && SVG_UNITS_IN_PX[match[2]];
+  const length = unit ? parseFloat(match[1]) * unit : 0;
+  return length > 0 ? length : undefined;
+}
+
+function getSvgInfo(buffer: Uint8Array): ImageInfo | undefined {
+  const rootTag = new TextDecoder().decode(buffer).match(SVG_ROOT_TAG);
+  if (!rootTag) return undefined;
+
+  const attrs = new Map(
+    [...rootTag[1].matchAll(XML_ATTRIBUTE)].map(([, name, double, single]) => [
+      name,
+      double ?? single,
+    ]),
+  );
+  const width = parseSvgLength(attrs.get('width'));
+  const height = parseSvgLength(attrs.get('height'));
+  if (width && height) return { type: 'svg', width, height };
+
+  const [, , viewBoxWidth, viewBoxHeight] = (attrs.get('viewBox') ?? '')
+    .trim()
+    .split(/[\s,]+/)
+    .map(parseFloat);
+  if (viewBoxWidth > 0 && viewBoxHeight > 0) {
+    const aspect = viewBoxHeight / viewBoxWidth;
+    const resolvedWidth = width ?? (height ? height / aspect : viewBoxWidth);
+    return { type: 'svg', width: resolvedWidth, height: resolvedWidth * aspect };
+  }
+
+  return {
+    type: 'svg',
+    width: width ?? SVG_DEFAULT_WIDTH,
+    height: height ?? SVG_DEFAULT_HEIGHT,
+  };
+}
+
+// The type comes from the bytes because a src says little about the file: it
+// can be a data URI, have a query string, or have no extension at all.
+export function getImageInfo(buffer: Uint8Array): ImageInfo | undefined {
+  const dimensions = imageDimensionsFromData(buffer);
+  if (!dimensions) return getSvgInfo(buffer);
+
+  const type = DOCX_RASTER_TYPES[dimensions.type];
+  return type && { type, width: dimensions.width, height: dimensions.height };
+}
+
+// A number is in px and a string can also be a percentage of maxWidth. Without
+// a usable width the image keeps its natural size, up to maxWidth.
+export function resolveImageWidth(
+  width: ImageWidth | undefined,
+  naturalWidth: number,
+  maxWidth: number,
+): number {
+  const value = typeof width === 'string' ? parseFloat(width) : width;
+  if (!value || value < 0) return Math.min(naturalWidth, maxWidth);
+
+  const isPercent = typeof width === 'string' && width.trim().endsWith('%');
+  return Math.min(isPercent ? (maxWidth * value) / 100 : value, maxWidth);
+}
+
+export function createImageRun(
+  buffer: Uint8Array,
+  image: ImageInfo,
+  width: number,
+  imageRunOpts?: Partial<IImageOptions>,
+): ImageRun {
+  const typeOpts =
+    image.type === 'svg'
+      ? { type: image.type, fallback: { type: 'png', data: SVG_FALLBACK_PNG } }
+      : { type: image.type };
+
+  return new ImageRun({
+    data: buffer,
+    ...imageRunOpts,
+    ...typeOpts,
+    transformation: {
+      ...imageRunOpts?.transformation,
+      width,
+      height: width * (image.height / image.width),
+    },
+  } as IImageOptions);
 }
 
 export function buildDoc(state: SerializationState, opts?: IPropertiesOptions): Document {
