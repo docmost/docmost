@@ -30,7 +30,6 @@ function buildRepo() {
     {} as any,
     {} as any,
     {} as any,
-    { isActive: () => false } as any,
   );
   const repo = new LabelRepo(db as any, spaceMemberRepo);
   return { repo, queries };

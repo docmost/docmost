@@ -90,7 +90,6 @@ export class FavoriteService {
     pagination: PaginationOptions,
     type?: FavoriteType,
     spaceId?: string,
-    opts?: { excludeArchived?: boolean },
   ) {
     const result = await this.favoriteRepo.findUserFavorites(
       userId,
@@ -98,7 +97,6 @@ export class FavoriteService {
       pagination,
       type,
       spaceId,
-      opts,
     );
 
     if (result.items.length === 0) {

@@ -30,7 +30,6 @@ function buildRepo() {
     {} as any,
     {} as any,
     {} as any,
-    { isActive: () => false } as any,
   );
   const repo = new FavoriteRepo(db as any, spaceMemberRepo);
   return { repo, queries };
@@ -40,22 +39,7 @@ const pagination = Object.assign(new PaginationOptions(), { limit: 20 });
 const archivedFilter = '"spaces"."archived_at" is null';
 
 describe('FavoriteRepo archived spaces', () => {
-  it('leaves archived spaces out of favorites when asked', async () => {
-    const { repo, queries } = buildRepo();
-
-    await repo.findUserFavorites(
-      'user-1',
-      'ws-1',
-      pagination,
-      undefined,
-      undefined,
-      { excludeArchived: true },
-    );
-
-    expect(queries[0].sql).toContain(archivedFilter);
-  });
-
-  it('keeps archived favorites in the app list', async () => {
+  it('keeps archived favorites in the list', async () => {
     const { repo, queries } = buildRepo();
 
     await repo.findUserFavorites('user-1', 'ws-1', pagination);

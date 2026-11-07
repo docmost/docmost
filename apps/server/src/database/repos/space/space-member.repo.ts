@@ -2,7 +2,6 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
-import { ClsService } from 'nestjs-cls';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import { ExpressionBuilder, sql } from 'kysely';
@@ -17,7 +16,6 @@ import { MemberInfo, UserSpaceIdsOptions, UserSpaceRole } from './types';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { isIntegrationCaller } from '../../../common/helpers/integration-caller';
 import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
 import {
   CacheKey,
@@ -31,7 +29,6 @@ export class SpaceMemberRepo {
     private readonly groupRepo: GroupRepo,
     private readonly spaceRepo: SpaceRepo,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    private readonly cls: ClsService,
   ) {}
 
   async insertSpaceMember(
@@ -307,11 +304,8 @@ export class SpaceMemberRepo {
   }
 
   getUserSpaceIdsQuery(userId: string, opts?: UserSpaceIdsOptions) {
-    const integrationCaller = isIntegrationCaller(this.cls);
-    const excludeArchived = integrationCaller || opts?.excludeArchived;
-    const keepArchivedSpaceId = integrationCaller
-      ? undefined
-      : opts?.keepArchivedSpaceId;
+    const excludeArchived = !!opts?.excludeArchived;
+    const keepArchivedSpaceId = opts?.keepArchivedSpaceId;
 
     const notArchived = (eb: ExpressionBuilder<DB, 'spaces'>) => {
       const active = eb('spaces.archivedAt', 'is', null);

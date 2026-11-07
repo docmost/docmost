@@ -15,13 +15,10 @@ import { RedisConfigService } from '../../integrations/redis/redis-config.servic
 import { CaslModule } from '../../core/casl/casl.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis, { defaultReconnectStrategy } from '@keyv/redis';
-import { ClsModule } from 'nestjs-cls';
 import { parseRedisUrl } from '../../common/helpers';
 
 @Module({
   imports: [
-    // SpaceMemberRepo and SpaceAbilityFactory inject ClsService; no middleware, so it stays inactive here
-    ClsModule.forRoot({ global: true }),
     LoggerModule,
     DatabaseModule,
     EnvironmentModule,

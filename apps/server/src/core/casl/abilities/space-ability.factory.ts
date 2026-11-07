@@ -4,11 +4,9 @@ import {
   createMongoAbility,
   MongoAbility,
 } from '@casl/ability';
-import { ClsService } from 'nestjs-cls';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { User } from '@docmost/db/types/entity.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import {
   SpaceCaslAction,
   ISpaceAbility,
@@ -16,23 +14,11 @@ import {
 } from '../interfaces/space-ability.type';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { CacheOptions } from '../../../common/helpers/with-cache';
-import {
-  ARCHIVED_SPACE_LOOKUPS_KEY,
-  isIntegrationCaller,
-} from '../../../common/helpers/integration-caller';
 
 @Injectable()
 export default class SpaceAbilityFactory {
-  constructor(
-    private readonly spaceMemberRepo: SpaceMemberRepo,
-    private readonly spaceRepo: SpaceRepo,
-    private readonly cls: ClsService,
-  ) {}
+  constructor(private readonly spaceMemberRepo: SpaceMemberRepo) {}
   async createForUser(user: User, spaceId: string, opts?: CacheOptions) {
-    if (isIntegrationCaller(this.cls) && (await this.isArchived(spaceId))) {
-      throw new NotFoundException('Space permissions not found');
-    }
-
     const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
       user.id,
       spaceId,
@@ -51,21 +37,6 @@ export default class SpaceAbilityFactory {
       default:
         throw new NotFoundException('Space permissions not found');
     }
-  }
-
-  private isArchived(spaceId: string): Promise<boolean> {
-    let lookups =
-      this.cls.get<Map<string, Promise<boolean>>>(ARCHIVED_SPACE_LOOKUPS_KEY);
-    if (!lookups) {
-      lookups = new Map();
-      this.cls.set(ARCHIVED_SPACE_LOOKUPS_KEY, lookups);
-    }
-    let lookup = lookups.get(spaceId);
-    if (!lookup) {
-      lookup = this.spaceRepo.isArchived(spaceId);
-      lookups.set(spaceId, lookup);
-    }
-    return lookup;
   }
 }
 

@@ -9,7 +9,6 @@ import { ExpressionBuilder, SelectQueryBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { dbOrTx } from '@docmost/db/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { UserSpaceIdsOptions } from '@docmost/db/repos/space/types';
 
 export const FavoriteType = {
   PAGE: 'page',
@@ -113,7 +112,6 @@ export class FavoriteRepo {
     pagination: PaginationOptions,
     type?: FavoriteType,
     spaceId?: string,
-    opts?: { excludeArchived?: boolean },
   ) {
     let query = this.db
       .selectFrom('favorites')
@@ -121,7 +119,7 @@ export class FavoriteRepo {
       .where('favorites.userId', '=', userId)
       .where('favorites.workspaceId', '=', workspaceId);
 
-    query = this.applyMembershipFilter(query, userId, opts);
+    query = this.applyMembershipFilter(query, userId);
 
     if (type) {
       query = query.where('favorites.type', '=', type);
@@ -225,9 +223,8 @@ export class FavoriteRepo {
   private applyMembershipFilter<Q extends SelectQueryBuilder<any, any, any>>(
     query: Q,
     userId: string,
-    opts?: UserSpaceIdsOptions,
   ): Q {
-    const spaceIds = this.spaceMemberRepo.getUserSpaceIdsQuery(userId, opts);
+    const spaceIds = this.spaceMemberRepo.getUserSpaceIdsQuery(userId);
     return query.where((eb: any) =>
       eb.or([
         eb.and([

@@ -4,7 +4,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EnvironmentService } from './integrations/environment/environment.service';
 import { AuditActorInterceptor } from './common/interceptors/audit-actor.interceptor';
-import { IntegrationCallerInterceptor } from './common/interceptors/integration-caller.interceptor';
 import { CoreModule } from './core/core.module';
 import { EnvironmentModule } from './integrations/environment/environment.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
@@ -111,10 +110,6 @@ try {
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditActorInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: IntegrationCallerInterceptor,
     },
   ],
 })

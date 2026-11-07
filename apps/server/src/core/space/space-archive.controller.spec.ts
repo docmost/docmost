@@ -1,7 +1,5 @@
-import { AsyncLocalStorage } from 'async_hooks';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ClsService } from 'nestjs-cls';
 import { SpaceController } from './space.controller';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -29,11 +27,7 @@ function buildController(roles?: SpaceRole[]) {
       .fn()
       .mockResolvedValue(roles?.map((role) => ({ userId: user.id, role }))),
   };
-  const spaceAbility = new SpaceAbilityFactory(
-    spaceMemberRepo as any,
-    { isArchived: jest.fn().mockResolvedValue(true) } as any,
-    new ClsService(new AsyncLocalStorage()),
-  );
+  const spaceAbility = new SpaceAbilityFactory(spaceMemberRepo as any);
   const controller = new SpaceController(
     spaceService as any,
     {} as any,

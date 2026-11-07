@@ -30,7 +30,6 @@ function buildRepo() {
     {} as any,
     {} as any,
     {} as any,
-    { isActive: () => false } as any,
   );
   const repo = new PageRepo(db as any, spaceMemberRepo, {} as any);
   return { repo, queries };
