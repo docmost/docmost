@@ -90,6 +90,23 @@ export function extractInternalLinkSlugIds(prosemirrorJson: any): string[] {
   return slugIds;
 }
 
+// Markdown and HTML cannot express the link mark's `internal` attribute, so
+// page paths are flagged here to match what the editor stores for page links.
+// Links with a host are left alone as they may point to another site.
+export function markInternalPageLinks(prosemirrorJson: any): void {
+  for (const mark of prosemirrorJson.marks ?? []) {
+    if (mark.type !== 'link') continue;
+    const match = mark.attrs?.href?.match(INTERNAL_LINK_REGEX);
+    if (match && !match[1] && !match[2]) {
+      mark.attrs.internal = true;
+    }
+  }
+
+  for (const child of prosemirrorJson.content ?? []) {
+    markInternalPageLinks(child);
+  }
+}
+
 export function extractUserMentionIdsFromJson(json: any): string[] {
   const userIds: string[] = [];
 

@@ -31,9 +31,13 @@ import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { v7 as uuid7 } from 'uuid';
 import {
   createYdocFromJson,
+  extractInternalLinkSlugIds,
+  extractMentions,
+  extractPageMentions,
   getAttachmentIds,
   getProsemirrorContent,
   isAttachmentNode,
+  markInternalPageLinks,
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
 import {
@@ -50,6 +54,7 @@ import { StorageService } from '../../../integrations/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { IPageBacklinkJob } from '../../../integrations/queue/constants/queue.interface';
 import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
@@ -183,6 +188,21 @@ export class PageService {
         .catch((err) =>
           this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
         );
+
+      // Page history only records backlinks once the content changes, so a
+      // page created with content has to queue its own.
+      if (content) {
+        this.generalQueue
+          .add(QueueJob.PAGE_BACKLINKS, {
+            pageId: page.id,
+            workspaceId,
+            mentions: extractPageMentions(extractMentions(content)),
+            internalLinkSlugIds: extractInternalLinkSlugIds(content),
+          } as IPageBacklinkJob)
+          .catch((err) =>
+            this.logger.warn(`Failed to queue backlinks: ${err.message}`),
+          );
+      }
     }
 
     return page;
@@ -1169,10 +1189,12 @@ export class PageService {
       case 'markdown': {
         const html = await markdownToHtml(content as string);
         prosemirrorJson = htmlToJson(html as string);
+        markInternalPageLinks(prosemirrorJson);
         break;
       }
       case 'html': {
         prosemirrorJson = htmlToJson(content as string);
+        markInternalPageLinks(prosemirrorJson);
         break;
       }
       case 'json':
