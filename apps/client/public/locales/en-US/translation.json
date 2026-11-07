@@ -1598,5 +1598,6 @@
   "Active spaces": "Active spaces",
   "Archived spaces": "Archived spaces",
   "No active spaces. Archived spaces are under Archived.": "No active spaces. Archived spaces are under Archived.",
-  "AI answers don't cover archived spaces.": "AI answers don't cover archived spaces."
+  "AI answers don't cover archived spaces.": "AI answers don't cover archived spaces.",
+  "Include archived": "Include archived"
 }

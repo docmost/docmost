@@ -53,6 +53,20 @@ describe('SearchService archived spaces', () => {
     );
   });
 
+  it('searches archived spaces too when includeArchived is set', async () => {
+    const { service, spaceMemberRepo } = buildService();
+
+    await service.searchPage(
+      { query: 'roadmap', includeArchived: true } as any,
+      { userId: 'user-1', workspaceId: 'ws-1' },
+    );
+
+    expect(spaceMemberRepo.getUserSpaceIdsQuery).toHaveBeenCalledWith(
+      'user-1',
+      { excludeArchived: false },
+    );
+  });
+
   it('searches an archived space when the search is scoped to it', async () => {
     const { service, spaceMemberRepo } = buildService();
 

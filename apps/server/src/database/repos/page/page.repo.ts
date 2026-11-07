@@ -452,11 +452,17 @@ export class PageRepo {
     });
   }
 
-  withSpace(eb: ExpressionBuilder<DB, 'pages'>) {
+  withSpace(
+    eb: ExpressionBuilder<DB, 'pages'>,
+    opts?: { includeArchivedAt?: boolean },
+  ) {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
         .select(['spaces.id', 'spaces.name', 'spaces.slug'])
+        .$if(Boolean(opts?.includeArchivedAt), (qb) =>
+          qb.select('spaces.archivedAt'),
+        )
         .whereRef('spaces.id', '=', 'pages.spaceId'),
     ).as('space');
   }

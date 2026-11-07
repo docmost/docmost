@@ -35,6 +35,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     creatorId?: string | null;
     labelIds?: string[];
     titleOnly?: boolean;
+    includeArchived?: boolean;
   }>({
     contentType: "page",
   });
@@ -65,6 +66,10 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
     if (filters.titleOnly) {
       params.titleOnly = true;
+    }
+
+    if (filters.includeArchived) {
+      params.includeArchived = true;
     }
 
     return params;

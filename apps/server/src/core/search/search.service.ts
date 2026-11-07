@@ -105,7 +105,9 @@ export class SearchService {
       .offset(searchParams.offset || 0);
 
     if (!searchParams.shareId && !opts.publicPageIds) {
-      queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
+      queryResults = queryResults.select((eb) =>
+        this.pageRepo.withSpace(eb, { includeArchivedAt: true }),
+      );
     }
 
     if (searchParams.spaceId && opts.userId) {
@@ -117,7 +119,7 @@ export class SearchService {
           'spaceId',
           'in',
           this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId, {
-            excludeArchived: true,
+            excludeArchived: !searchParams.includeArchived,
           }),
         )
         .where('workspaceId', '=', opts.workspaceId);
