@@ -301,17 +301,9 @@ export class SpaceService {
   }
 
   async archiveSpace(
-    spaceId: string,
+    space: Space,
     user: User,
-    workspaceId: string,
   ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
-    const space = await this.spaceRepo.findById(spaceId, workspaceId, {
-      includeArchivedBy: true,
-    });
-    if (!space) {
-      throw new NotFoundException('Space not found');
-    }
-
     if (space.isPersonal) {
       throw new BadRequestException('Personal spaces cannot be archived');
     }
@@ -322,8 +314,8 @@ export class SpaceService {
 
     const archivedSpace = await this.spaceRepo.updateSpace(
       { archivedAt: new Date(), archivedById: user.id },
-      spaceId,
-      workspaceId,
+      space.id,
+      space.workspaceId,
     );
     const archivedBy: SpaceArchivedBy = {
       id: user.id,
@@ -334,8 +326,8 @@ export class SpaceService {
     this.auditService.log({
       event: AuditEvent.SPACE_ARCHIVED,
       resourceType: AuditResource.SPACE,
-      resourceId: spaceId,
-      spaceId: spaceId,
+      resourceId: space.id,
+      spaceId: space.id,
       changes: {
         before: { name: space.name, archivedAt: space.archivedAt },
         after: { archivedAt: archivedSpace.archivedAt },
@@ -352,29 +344,23 @@ export class SpaceService {
   }
 
   async unarchiveSpace(
-    spaceId: string,
-    workspaceId: string,
+    space: Space,
   ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
-    const space = await this.spaceRepo.findById(spaceId, workspaceId);
-    if (!space) {
-      throw new NotFoundException('Space not found');
-    }
-
     if (!space.archivedAt) {
       return space;
     }
 
     const unarchivedSpace = await this.spaceRepo.updateSpace(
       { archivedAt: null, archivedById: null },
-      spaceId,
-      workspaceId,
+      space.id,
+      space.workspaceId,
     );
 
     this.auditService.log({
       event: AuditEvent.SPACE_UNARCHIVED,
       resourceType: AuditResource.SPACE,
-      resourceId: spaceId,
-      spaceId: spaceId,
+      resourceId: space.id,
+      spaceId: space.id,
       changes: {
         before: { name: space.name, archivedAt: space.archivedAt },
         after: { archivedAt: unarchivedSpace.archivedAt },

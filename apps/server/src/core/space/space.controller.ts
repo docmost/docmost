@@ -187,12 +187,12 @@ export class SpaceController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const space = await this.findSpaceOrFail(spaceIdDto.spaceId, workspace.id);
-    const ability = await this.spaceAbility.createForUser(user, space.id);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
-      throw new ForbiddenException();
-    }
-    return this.spaceService.archiveSpace(space.id, user, workspace.id);
+    const space = await this.findManageableSpace(
+      spaceIdDto.spaceId,
+      user,
+      workspace.id,
+    );
+    return this.spaceService.archiveSpace(space, user);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -202,12 +202,12 @@ export class SpaceController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const space = await this.findSpaceOrFail(spaceIdDto.spaceId, workspace.id);
-    const ability = await this.spaceAbility.createForUser(user, space.id);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
-      throw new ForbiddenException();
-    }
-    return this.spaceService.unarchiveSpace(space.id, workspace.id);
+    const space = await this.findManageableSpace(
+      spaceIdDto.spaceId,
+      user,
+      workspace.id,
+    );
+    return this.spaceService.unarchiveSpace(space);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -295,10 +295,21 @@ export class SpaceController {
     return this.spaceMemberService.updateSpaceMemberRole(dto, workspace.id);
   }
 
-  private async findSpaceOrFail(spaceId: string, workspaceId: string) {
-    const space = await this.spaceRepo.findById(spaceId, workspaceId);
+  private async findManageableSpace(
+    spaceId: string,
+    user: User,
+    workspaceId: string,
+  ) {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId, {
+      includeArchivedBy: true,
+    });
     if (!space) {
       throw new NotFoundException('Space not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, space.id);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
     }
     return space;
   }

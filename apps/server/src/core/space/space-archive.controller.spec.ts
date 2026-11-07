@@ -84,16 +84,17 @@ describe.each(handlers)('SpaceController.%s space resolution', (handler) => {
 
     await controller[handler]({ spaceId: 'my-slug' } as any, user, workspace);
 
-    expect(spaceRepo.findById).toHaveBeenCalledWith('my-slug', 'ws-1');
+    expect(spaceRepo.findById).toHaveBeenCalledWith('my-slug', 'ws-1', {
+      includeArchivedBy: true,
+    });
     expect(spaceMemberRepo.getUserSpaceRoles).toHaveBeenCalledWith(
       'user-1',
       'space-1',
       undefined,
     );
+    const space = { id: 'space-1' };
     expect(spaceService[handler]).toHaveBeenCalledWith(
-      ...(handler === 'archiveSpace'
-        ? ['space-1', 'user-1', 'ws-1']
-        : ['space-1', 'ws-1']),
+      ...(handler === 'archiveSpace' ? [space, user] : [space]),
     );
   });
 
