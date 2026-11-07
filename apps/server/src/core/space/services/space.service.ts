@@ -9,7 +9,7 @@ import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Space, User } from '@docmost/db/types/entity.types';
+import { Page, Space, User } from '@docmost/db/types/entity.types';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
@@ -21,6 +21,8 @@ import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -41,6 +43,8 @@ export class SpaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private pageRepo: PageRepo,
+    private pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   async createSpace(
@@ -176,6 +180,18 @@ export class SpaceService {
     );
     const settingsBefore = (spaceBefore?.settings ?? {}) as Record<string, any>;
 
+    let newHomePage: Page | undefined;
+    if (updateSpaceDto.homePageId) {
+      newHomePage = await this.pageRepo.findById(updateSpaceDto.homePageId);
+      if (
+        !newHomePage ||
+        newHomePage.deletedAt ||
+        newHomePage.spaceId !== spaceBefore?.id
+      ) {
+        throw new BadRequestException('Home page must be a page in this space');
+      }
+    }
+
     const before: Record<string, any> = {};
     const after: Record<string, any> = {};
 
@@ -223,6 +239,7 @@ export class SpaceService {
           name: updateSpaceDto.name,
           description: updateSpaceDto.description,
           slug: updateSpaceDto.slug,
+          homePageId: updateSpaceDto.homePageId,
         },
         updateSpaceDto.spaceId,
         workspaceId,
@@ -239,6 +256,20 @@ export class SpaceService {
     if (columnChanges) {
       Object.assign(before, columnChanges.before);
       Object.assign(after, columnChanges.after);
+    }
+
+    const homePageBeforeId = spaceBefore?.homePageId ?? null;
+    if (
+      typeof updateSpaceDto.homePageId !== 'undefined' &&
+      (updateSpaceDto.homePageId ?? null) !== homePageBeforeId
+    ) {
+      const oldHomePage = homePageBeforeId
+        ? await this.pageRepo.findById(homePageBeforeId)
+        : null;
+      before.homePageId = homePageBeforeId;
+      before.homePageTitle = oldHomePage?.title ?? null;
+      after.homePageId = updateSpaceDto.homePageId ?? null;
+      after.homePageTitle = newHomePage?.title ?? null;
     }
 
     if (Object.keys(after).length > 0) {
@@ -263,6 +294,24 @@ export class SpaceService {
     }
 
     return space;
+  }
+
+  async getHomePage(
+    space: Pick<Space, 'id' | 'homePageId'>,
+    userId: string,
+  ): Promise<Pick<Page, 'id' | 'slugId' | 'title'> | null> {
+    if (!space.homePageId) return null;
+
+    const page = await this.pageRepo.findById(space.homePageId);
+    if (!page || page.deletedAt || page.spaceId !== space.id) return null;
+
+    const canAccess = await this.pagePermissionRepo.canUserAccessPage(
+      userId,
+      page.id,
+    );
+    if (!canAccess) return null;
+
+    return { id: page.id, slugId: page.slugId, title: page.title };
   }
 
   async getWorkspaceSpaces(
