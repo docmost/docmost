@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { sql } from 'kysely';
 import {
   IApprovalRejectedNotificationJob,
   IApprovalRequestedNotificationJob,
@@ -32,12 +33,23 @@ export class VerificationNotificationService {
   private async getAlreadyNotifiedUserIds(
     pageVerificationId: string,
     type: string,
+    expiresAt: Date,
   ): Promise<Set<string>> {
     const rows = await this.db
       .selectFrom('notifications')
       .select('userId')
       .where('pageVerificationId', '=', pageVerificationId)
       .where('type', '=', type)
+      // Only this expiry date's notices count, so each cycle notifies again
+      .where((eb) =>
+        type === NotificationType.PAGE_VERIFICATION_EXPIRING
+          ? eb(
+              sql<string>`data->>'expiresAt'`,
+              '=',
+              new Date(expiresAt).toISOString(),
+            )
+          : eb('createdAt', '>=', expiresAt),
+      )
       .execute();
     return new Set(rows.map((r) => r.userId));
   }
@@ -92,6 +104,7 @@ export class VerificationNotificationService {
     const alreadyNotified = await this.getAlreadyNotifiedUserIds(
       verification.id,
       NotificationType.PAGE_VERIFICATION_EXPIRING,
+      verification.expiresAt,
     );
     const recipients = accessibleVerifierIds.filter(
       (id) => !alreadyNotified.has(id),
@@ -169,6 +182,7 @@ export class VerificationNotificationService {
     const alreadyNotified = await this.getAlreadyNotifiedUserIds(
       verification.id,
       NotificationType.PAGE_VERIFICATION_EXPIRED,
+      verification.expiresAt,
     );
     const recipients = accessibleVerifierIds.filter(
       (id) => !alreadyNotified.has(id),
