@@ -9,7 +9,12 @@ import { CreatePageDto, ContentFormat } from '../dto/create-page.dto';
 import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
+import {
+  InsertablePage,
+  Page,
+  Share,
+  User,
+} from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
   CursorPaginationResult,
@@ -59,6 +64,7 @@ import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { ShareService } from '../../share/share.service';
 
 @Injectable()
 export class PageService {
@@ -80,6 +86,7 @@ export class PageService {
     private readonly labelRepo: LabelRepo,
     private readonly wsService: WsService,
     private readonly collabAccessService: CollabAccessService,
+    private readonly shareService: ShareService,
   ) {}
 
   async findById(
@@ -403,6 +410,11 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      rootPage.workspaceId,
+      spaceId,
+    );
+
     const result = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [rootPage.spaceId, spaceId],
@@ -464,6 +476,7 @@ export class PageService {
       const childPageIds = pageIdsToMove.filter(
         (id) => id !== currentRootPage.id,
       );
+      let deletedShares: Pick<Share, 'id' | 'pageId' | 'spaceId'>[] = [];
 
       if (pageIdsToMove.length > 1) {
         // Update sub pages (all accessible pages except root)
@@ -477,12 +490,20 @@ export class PageService {
           .where('pageId', 'in', pageIdsToMove)
           .execute();
 
-        // update spaceId in shares
-        await trx
-          .updateTable('shares')
-          .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIdsToMove)
-          .execute();
+        // shares only follow pages into spaces that allow public sharing
+        if (sharingAllowed) {
+          await trx
+            .updateTable('shares')
+            .set({ spaceId: spaceId })
+            .where('pageId', 'in', pageIdsToMove)
+            .execute();
+        } else {
+          deletedShares = await trx
+            .deleteFrom('shares')
+            .where('pageId', 'in', pageIdsToMove)
+            .returning(['id', 'pageId', 'spaceId'])
+            .execute();
+        }
 
         // Update comments
         await trx
@@ -538,7 +559,7 @@ export class PageService {
         );
       }
 
-      return { childPageIds };
+      return { childPageIds, deletedShares };
     });
 
     await this.collabAccessService.recheckAccess({ pageIds: [rootPage.id] });
