@@ -226,7 +226,14 @@ describe('PageService movePageToSpace', () => {
         /^(update|delete from) "shares"/.test(query.sql),
       );
 
-    return { service, sharesQueries };
+    const homeClearQueries = () =>
+      queries.filter((query) =>
+        /^update "spaces" set "home_page_id" = .+ where "home_page_id" in \(/.test(
+          query.sql,
+        ),
+      );
+
+    return { service, sharesQueries, homeClearQueries };
   }
 
   it('deletes the shares of moved pages when the target space has public sharing disabled', async () => {
@@ -269,5 +276,16 @@ describe('PageService movePageToSpace', () => {
       }),
     ]);
     expect(result.deletedShares).toEqual([]);
+  });
+
+  it('clears the space home when its page moves to another space', async () => {
+    const { service, homeClearQueries } = makeService();
+
+    await service.movePageToSpace(rootPage as any, OPEN_SPACE_ID, USER_ID);
+
+    expect(homeClearQueries()).toHaveLength(1);
+    expect(homeClearQueries()[0].parameters).toEqual(
+      expect.arrayContaining([ROOT_ID, CHILD_ID]),
+    );
   });
 });
