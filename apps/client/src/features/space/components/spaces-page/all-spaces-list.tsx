@@ -159,7 +159,7 @@ export default function AllSpacesList({
                             {space.name}
                           </AutoTooltipText>
                           {space.description && (
-                            <Text fz="xs" c="dimmed" lineClamp={2}>
+                            <Text fz="xs" c="dimmed" lineClamp={4}>
                               {space.description}
                             </Text>
                           )}
