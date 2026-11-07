@@ -231,6 +231,7 @@ export default function AllSpacesList({
           spaceId={selectedSpaceId}
           opened={settingsOpened}
           onClose={closeSettings}
+          showOpenSpace
         />
       )}
     </Box>

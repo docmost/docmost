@@ -135,6 +135,7 @@ export default function SpaceList() {
           opened={opened}
           onClose={close}
           spaceId={selectedSpaceId}
+          showOpenSpace
         />
       )}
     </>
