@@ -100,7 +100,7 @@ export const docxSerializer = new DocxSerializerAsync(
     ...defaultAsyncNodes,
     async image(state, node) {
       const { src } = node.attrs;
-      await state.image(src, 70, 'center', undefined, 'png');
+      await state.image(src, '70%', 'center');
       state.closeBlock(node);
     },
   },

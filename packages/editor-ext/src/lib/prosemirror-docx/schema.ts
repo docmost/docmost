@@ -44,16 +44,18 @@ function toDocxColor(input?: string): string | undefined {
   return undefined;
 }
 
-// Images and diagrams embed via the image resolver; the URL (with its file
-// extension) is passed through so docx can infer the image type.
+// Images and diagrams embed via the image resolver. One that cannot be placed
+// leaves a note, rather than a silent gap or a failed export.
 const renderImage: NodeSerializerAsync[string] = async (state, node) => {
   const src = node.attrs?.src || node.attrs?.attachmentId;
   if (src) {
+    let placed = false;
     try {
-      await state.image(src, 100);
+      placed = await state.image(src, node.attrs?.width, node.attrs?.align);
     } catch {
-      // Unrenderable/missing image: skip rather than fail the whole export.
+      // Handled below, the same as an unsupported format.
     }
+    if (!placed) state.text('[Image not exported]');
   }
   state.closeBlock(node);
 };
