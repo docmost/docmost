@@ -98,12 +98,14 @@ export function useCreateSpaceMutation() {
 
 export function useGetSpaceBySlugQuery(
   spaceId: string,
+  options?: { staleTime?: number },
 ): UseQueryResult<ISpace, Error> {
   return useQuery({
     queryKey: ["space", spaceId],
     queryFn: () => getSpaceById(spaceId),
     enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 }
 

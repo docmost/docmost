@@ -140,6 +140,7 @@ export function useRemovePageMutation() {
       }
 
       invalidateOnDeletePage(pageId);
+      queryClient.invalidateQueries({ queryKey: ["space"] });
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["trash-list"].includes(item.queryKey[0] as string),
