@@ -119,7 +119,9 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
                       <Text size="sm" c="dimmed">
                         {space.archivedAt
                           ? t("Make this space active again.")
-                          : t("Hide this space without deleting it.")}
+                          : t(
+                              "Archive a stale space to keep it out of lists and search.",
+                            )}
                       </Text>
                     </ResponsiveSettingsContent>
                     <ResponsiveSettingsControl>
