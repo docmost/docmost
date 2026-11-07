@@ -13,6 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import { queryClient } from "@/main.tsx";
+import SpaceHomePageSelect from "@/features/space/components/space-home-page-select.tsx";
 import {
   ResponsiveSettingsContent,
   ResponsiveSettingsControl,
@@ -87,6 +88,20 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
           </div>
 
           <EditSpaceForm space={space} readOnly={readOnly} />
+
+          <Divider my="lg" />
+
+          <ResponsiveSettingsRow>
+            <ResponsiveSettingsContent>
+              <Text size="md">{t("Home page")}</Text>
+              <Text size="sm" c="dimmed">
+                {t("The page people see when they open this space.")}
+              </Text>
+            </ResponsiveSettingsContent>
+            <ResponsiveSettingsControl>
+              <SpaceHomePageSelect space={space} readOnly={readOnly} />
+            </ResponsiveSettingsControl>
+          </ResponsiveSettingsRow>
 
           {!readOnly && (
             <>

@@ -1582,5 +1582,8 @@
   "Zoom in": "Zoom in",
   "Zoom out": "Zoom out",
   "Reset zoom": "Reset zoom",
-  "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired."
+  "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired.",
+  "Home page": "Home page",
+  "Space overview": "Space overview",
+  "The page people see when they open this space.": "The page people see when they open this space."
 }
