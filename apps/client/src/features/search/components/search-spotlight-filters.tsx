@@ -25,7 +25,7 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   useGetSpacesQuery,
-  useSpaceQuery,
+  useUnlistedSpaceQuery,
 } from "@/features/space/queries/space-query";
 import { includeSpace } from "@/features/space/space.utils";
 import { SpaceFilterMenu } from "@/features/space/components/space-filter-menu";
@@ -71,12 +71,16 @@ export function SearchSpotlightFilters({
   const [workspace] = useAtom(workspaceAtom);
 
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
-  const { data: selectedSpace } = useSpaceQuery(selectedSpaceId);
+  const { data: selectedSpace } = useUnlistedSpaceQuery(
+    selectedSpaceId,
+    spacesData?.items,
+  );
   const selectedSpaceData = selectedSpaceId
     ? includeSpace(spacesData?.items ?? [], selectedSpace).find(
         (space) => space.id === selectedSpaceId,
       )
     : null;
+  const spaceArchived = !!selectedSpaceData?.archivedAt;
 
   const contentTypeOptions = [
     { value: "page", label: t("Pages") },
@@ -90,6 +94,7 @@ export function SearchSpotlightFilters({
   useEffect(() => {
     onFiltersChange?.({
       spaceId: selectedSpaceId,
+      spaceArchived,
       contentType,
       creatorId: selectedCreatorId,
       labelIds: selectedLabelIds,
@@ -98,6 +103,7 @@ export function SearchSpotlightFilters({
     });
   }, [
     selectedSpaceId,
+    spaceArchived,
     contentType,
     selectedCreatorId,
     selectedLabelIds,

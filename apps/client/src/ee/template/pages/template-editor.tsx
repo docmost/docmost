@@ -30,7 +30,7 @@ import {
 } from "../queries/template-query";
 import {
   useGetSpacesQuery,
-  useSpaceQuery,
+  useUnlistedSpaceQuery,
 } from "@/features/space/queries/space-query";
 import { includeSpace } from "@/features/space/space.utils";
 import useUserRole from "@/hooks/use-user-role";
@@ -66,7 +66,10 @@ export default function TemplateEditor() {
   const [icon, setIcon] = useState<string | null>(null);
   const [spaceId, setSpaceId] = useState<string | null>(null);
   const [draftSpaceId, setDraftSpaceId] = useState<string | null>(null);
-  const { data: templateSpace } = useSpaceQuery(spaceId);
+  const { data: templateSpace } = useUnlistedSpaceQuery(
+    spaceId,
+    spaces?.items,
+  );
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
 

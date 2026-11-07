@@ -17,7 +17,6 @@ import { useAtomValue } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { hintVectorCache } from "@/ee/ai/services/ai-search-service.ts";
 import { getAiVectorDriver } from "@/lib/config.ts";
-import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 
 interface SearchSpotlightProps {
   spaceId?: string;
@@ -31,6 +30,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   const [debouncedSearchQuery] = useDebouncedValue(query, 300);
   const [filters, setFilters] = useState<{
     spaceId?: string | null;
+    spaceArchived?: boolean;
     contentType?: string;
     creatorId?: string | null;
     labelIds?: string[];
@@ -40,8 +40,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     contentType: "page",
   });
   const [isAiMode, setIsAiMode] = useState(false);
-  const { data: selectedSpace } = useSpaceQuery(filters.spaceId);
-  const isArchivedSpaceSelected = !!selectedSpace?.archivedAt;
+  const isArchivedSpaceSelected = !!filters.spaceArchived;
   const archivedAiNote = t("AI answers don't cover archived spaces.");
 
   // Build unified search params

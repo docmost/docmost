@@ -24,7 +24,7 @@ import {
 } from "@/ee/template/queries/template-query";
 import {
   useGetSpacesQuery,
-  useSpaceQuery,
+  useUnlistedSpaceQuery,
 } from "@/features/space/queries/space-query";
 import { includeSpace } from "@/features/space/space.utils";
 import { ITemplate } from "@/ee/template/types/template.types";
@@ -72,7 +72,10 @@ export default function TemplatePickerModal({
     currentSpaceId: scope === "all" ? initialSpaceId : undefined,
   });
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
-  const { data: initialSpace } = useSpaceQuery(initialSpaceId);
+  const { data: initialSpace } = useUnlistedSpaceQuery(
+    initialSpaceId,
+    spacesData?.items,
+  );
 
   const spaces = useMemo(
     () => includeSpace(spacesData?.items ?? [], initialSpace),

@@ -76,6 +76,15 @@ export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   return query;
 }
 
+export function useUnlistedSpaceQuery(
+  spaceId: string | null | undefined,
+  spaces: ISpace[] | undefined,
+): UseQueryResult<ISpace, Error> {
+  const isUnlisted =
+    !!spaceId && !!spaces && !spaces.some((space) => space.id === spaceId);
+  return useSpaceQuery(isUnlisted ? spaceId : null);
+}
+
 export const prefetchSpace = (spaceSlug: string, spaceId?: string) => {
   queryClient.prefetchQuery({
     queryKey: ["space", spaceSlug],

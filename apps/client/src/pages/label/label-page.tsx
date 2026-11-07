@@ -21,7 +21,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { useLabelPagesQuery } from "@/features/label/queries/label-query.ts";
 import {
   useGetSpacesQuery,
-  useSpaceQuery,
+  useUnlistedSpaceQuery,
 } from "@/features/space/queries/space-query.ts";
 import { includeSpace } from "@/features/space/space.utils.ts";
 import { getLabelColor } from "@/features/label/utils/label-colors.ts";
@@ -50,7 +50,10 @@ export default function LabelPage() {
   const activeSpaceId = spaceId ?? undefined;
 
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
-  const { data: filterSpace } = useSpaceQuery(spaceId);
+  const { data: filterSpace } = useUnlistedSpaceQuery(
+    spaceId,
+    spacesData?.items,
+  );
   const spaces = includeSpace(spacesData?.items ?? [], filterSpace);
 
   const {

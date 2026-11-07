@@ -14,7 +14,7 @@ import { IconCheck, IconSearch } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   useGetSpacesQuery,
-  useSpaceQuery,
+  useUnlistedSpaceQuery,
 } from "@/features/space/queries/space-query";
 import { includeSpace } from "@/features/space/space.utils";
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
@@ -52,8 +52,14 @@ export function SpaceFilterMenu({
     limit: 100,
     query: debouncedQuery,
   });
-  const { data: selectedSpace } = useSpaceQuery(value);
-  const { data: currentSpace } = useSpaceQuery(currentSpaceId);
+  const { data: selectedSpace } = useUnlistedSpaceQuery(
+    value,
+    spacesData?.items,
+  );
+  const { data: currentSpace } = useUnlistedSpaceQuery(
+    currentSpaceId,
+    spacesData?.items,
+  );
 
   const orderedSpaces = useMemo(() => {
     const spaces = includeSpace(

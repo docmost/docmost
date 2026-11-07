@@ -5,7 +5,7 @@ import { IconSearch, IconFileDescription } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   useGetSpacesQuery,
-  useSpaceQuery,
+  useUnlistedSpaceQuery,
 } from "@/features/space/queries/space-query";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query";
 import { ISpace } from "@/features/space/types/space.types";
@@ -39,7 +39,10 @@ export function DestinationPicker({
   const { data: spacesData, isLoading: spacesLoading } = useGetSpacesQuery({
     limit: 100,
   });
-  const { data: initialSpace } = useSpaceQuery(initialSpaceId);
+  const { data: initialSpace } = useUnlistedSpaceQuery(
+    initialSpaceId,
+    spacesData?.items,
+  );
 
   const spaces = useMemo(
     () => includeSpace(spacesData?.items ?? [], initialSpace),
