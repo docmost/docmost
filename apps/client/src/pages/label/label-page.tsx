@@ -40,14 +40,22 @@ export default function LabelPage() {
   const scheme = useComputedColorScheme("light");
   const c = getLabelColor(labelName, scheme);
 
-  const [searchParams] = useSearchParams();
-  const [spaceId, setSpaceId] = useState<string | null>(
-    searchParams.get("spaceId"),
-  );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const spaceId = searchParams.get("spaceId");
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebouncedValue(search.trim(), 200);
 
   const activeSpaceId = spaceId ?? undefined;
+
+  const setSpaceId = (nextSpaceId: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextSpaceId) {
+      next.set("spaceId", nextSpaceId);
+    } else {
+      next.delete("spaceId");
+    }
+    setSearchParams(next, { replace: true });
+  };
 
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
   const { data: filterSpace } = useUnlistedSpaceQuery(
