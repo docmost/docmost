@@ -111,8 +111,10 @@ export default function AllSpacesList({
 
   return (
     <Box>
-      <SearchInput onSearch={onSearch} />
-      <SpaceArchiveFilter archived={archived} onChange={onArchivedChange} />
+      <Group gap="sm" align="flex-start">
+        <SearchInput onSearch={onSearch} />
+        <SpaceArchiveFilter archived={archived} onChange={onArchivedChange} />
+      </Group>
 
       <Space h="md" />
 
