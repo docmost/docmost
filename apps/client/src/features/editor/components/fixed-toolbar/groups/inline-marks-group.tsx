@@ -24,6 +24,31 @@ interface Props {
   state: ToolbarState;
 }
 
+const LIST_ITEM_TYPES = new Set(["listItem", "taskItem"]);
+
+// List items are nested with their own commands, as the indent extension leaves
+// them out. The closest one is used so a task in a bullet list moves the task.
+function getClosestListItemType(editor: Editor): string | null {
+  const { $from } = editor.state.selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const { name } = $from.node(depth).type;
+    if (LIST_ITEM_TYPES.has(name)) return name;
+  }
+  return null;
+}
+
+function increaseIndent(editor: Editor) {
+  const listItemType = getClosestListItemType(editor);
+  const chain = editor.chain().focus();
+  (listItemType ? chain.sinkListItem(listItemType) : chain.indent()).run();
+}
+
+function decreaseIndent(editor: Editor) {
+  const listItemType = getClosestListItemType(editor);
+  const chain = editor.chain().focus();
+  (listItemType ? chain.liftListItem(listItemType) : chain.outdent()).run();
+}
+
 export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
   const { t } = useTranslation();
 
@@ -107,13 +132,13 @@ export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
           <Menu.Divider />
           <Menu.Item
             leftSection={<IconIndentIncrease size={16} />}
-            onClick={() => editor.chain().focus().indent().run()}
+            onClick={() => increaseIndent(editor)}
           >
             {t("Increase indent")}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconIndentDecrease size={16} />}
-            onClick={() => editor.chain().focus().outdent().run()}
+            onClick={() => decreaseIndent(editor)}
           >
             {t("Decrease indent")}
           </Menu.Item>
