@@ -1591,7 +1591,7 @@
   "Space restored": "Space restored",
   "Archived space": "Archived space",
   "Unarchived space": "Unarchived space",
-  "This space is archived": "This space is archived",
+  "This space is archived.": "This space is archived.",
   "Archived on {{date}}.": "Archived on {{date}}.",
   "Archived by {{name}} on {{date}}.": "Archived by {{name}} on {{date}}.",
   "Archived": "Archived",

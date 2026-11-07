@@ -69,7 +69,8 @@ describe("SpaceArchivedNotice", () => {
 
     const notice = screen.getByRole("note").textContent;
 
-    expect(notice).toContain("Archived on Nov 02, 2026.");
+    expect(notice).toContain("This space is archived.");
+    expect(notice).toContain("Archived on Nov 2, 2026.");
     expect(notice).not.toMatch(/today|yesterday/i);
   });
 
@@ -81,7 +82,7 @@ describe("SpaceArchivedNotice", () => {
     });
 
     expect(screen.getByRole("note").textContent).toContain(
-      "Archived by Ada Lovelace on Nov 02, 2026.",
+      "Archived by Ada Lovelace on Nov 2, 2026.",
     );
   });
 

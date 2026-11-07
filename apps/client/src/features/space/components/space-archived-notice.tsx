@@ -1,6 +1,7 @@
-import { Alert, Button, Group, Text } from "@mantine/core";
+import { Button, Group, Paper, Text } from "@mantine/core";
 import { IconArchive } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import clsx from "clsx";
 import { ISpace } from "@/features/space/types/space.types.ts";
 import { useUnarchiveSpaceMutation } from "@/features/space/queries/space-query.ts";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
@@ -9,6 +10,7 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
+import classes from "./space-archived-notice.module.css";
 
 type SpaceArchivedNoticeProps = {
   space: ISpace;
@@ -26,26 +28,35 @@ export default function SpaceArchivedNotice({
     return null;
   }
 
-  const date = formatLocalized(space.archivedAt, "MMM dd, yyyy", "PP", locale);
+  const date = formatLocalized(space.archivedAt, "MMM d, yyyy", "PP", locale);
 
   return (
-    <Alert
-      variant="light"
-      color="gray"
-      icon={<IconArchive size={18} />}
+    <Paper
+      className={clsx("print-hide", classes.notice)}
       role="note"
-      title={t("This space is archived")}
+      withBorder
+      radius="md"
       mb="lg"
+      px="md"
+      py="xs"
     >
-      <Group justify="space-between" gap="xs">
-        <Text size="sm">
-          {space.archivedBy?.name
-            ? t("Archived by {{name}} on {{date}}.", {
-                name: space.archivedBy.name,
-                date,
-              })
-            : t("Archived on {{date}}.", { date })}
-        </Text>
+      <Group justify="space-between" wrap="wrap" gap="sm">
+        <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+          <IconArchive size={18} aria-hidden style={{ flexShrink: 0 }} />
+          <Text size="sm">
+            <Text span fw={600} inherit>
+              {t("This space is archived.")}
+            </Text>{" "}
+            <Text span inherit className={classes.meta}>
+              {space.archivedBy?.name
+                ? t("Archived by {{name}} on {{date}}.", {
+                    name: space.archivedBy.name,
+                    date,
+                  })
+                : t("Archived on {{date}}.", { date })}
+            </Text>
+          </Text>
+        </Group>
         {spaceAbility.can(
           SpaceCaslAction.Manage,
           SpaceCaslSubject.Settings,
@@ -60,6 +71,6 @@ export default function SpaceArchivedNotice({
           </Button>
         )}
       </Group>
-    </Alert>
+    </Paper>
   );
 }
