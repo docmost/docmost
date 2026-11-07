@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import cx from "clsx";
 import {
   Button,
@@ -65,6 +65,7 @@ export function SearchSpotlightFilters({
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [titleOnly, setTitleOnly] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const filterMenuTargetRef = useRef<HTMLButtonElement>(null);
   const [openedFilter, setOpenedFilter] = useState<string | null>(null);
   const [visibleFilters, setVisibleFilters] = useState<string[]>([]);
   const [workspace] = useAtom(workspaceAtom);
@@ -104,6 +105,16 @@ export function SearchSpotlightFilters({
     includeArchived,
     onFiltersChange,
   ]);
+
+  // the chip can push the open menu's target out of the scrolled row
+  useLayoutEffect(() => {
+    if (includeArchived) {
+      filterMenuTargetRef.current?.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [includeArchived]);
 
   const handleSpaceSelect = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
@@ -371,7 +382,10 @@ export function SearchSpotlightFilters({
           className={cx(classes.filterButton, classes.filterButtonActive)}
           fw={500}
           aria-pressed
-          onClick={() => setIncludeArchived(false)}
+          onClick={() => {
+            setIncludeArchived(false);
+            filterMenuTargetRef.current?.focus();
+          }}
         >
           {t("Include archived")}
         </Button>
@@ -386,6 +400,7 @@ export function SearchSpotlightFilters({
         >
           <Menu.Target>
             <Button
+              ref={filterMenuTargetRef}
               variant="subtle"
               color="gray"
               size="sm"

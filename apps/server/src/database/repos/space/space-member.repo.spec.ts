@@ -83,6 +83,13 @@ describe('SpaceMemberRepo archived spaces', () => {
     expect(countOf(sql, '"spaces"."archived_at" is null')).toBe(2);
   });
 
+  it('still filters archived spaces for OAuth and MCP callers that ask to include them', () => {
+    const { sql } = buildRepo(integrationCls)
+      .repo.getUserSpaceIdsQuery('user-1', { excludeArchived: false })
+      .compile();
+    expect(countOf(sql, '"spaces"."archived_at" is null')).toBe(2);
+  });
+
   it('ignores keepArchivedSpaceId for OAuth and MCP callers', () => {
     const { sql, parameters } = buildRepo(integrationCls)
       .repo.getUserSpaceIdsQuery('user-1', {
