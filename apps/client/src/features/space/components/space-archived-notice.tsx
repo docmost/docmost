@@ -26,6 +26,8 @@ export default function SpaceArchivedNotice({
     return null;
   }
 
+  const date = formatLocalized(space.archivedAt, "MMM dd, yyyy", "PP", locale);
+
   return (
     <Alert
       variant="light"
@@ -37,14 +39,12 @@ export default function SpaceArchivedNotice({
     >
       <Group justify="space-between" gap="xs">
         <Text size="sm">
-          {t("Archived on {{date}}.", {
-            date: formatLocalized(
-              space.archivedAt,
-              "MMM dd, yyyy",
-              "PP",
-              locale,
-            ),
-          })}
+          {space.archivedBy?.name
+            ? t("Archived by {{name}} on {{date}}.", {
+                name: space.archivedBy.name,
+                date,
+              })
+            : t("Archived on {{date}}.", { date })}
         </Text>
         {spaceAbility.can(
           SpaceCaslAction.Manage,
@@ -56,7 +56,7 @@ export default function SpaceArchivedNotice({
             onClick={() => unarchiveSpaceMutation.mutate(space.id)}
             loading={unarchiveSpaceMutation.isPending}
           >
-            {t("Unarchive")}
+            {t("Restore space")}
           </Button>
         )}
       </Group>

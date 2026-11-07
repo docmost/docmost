@@ -230,10 +230,11 @@ export function applySpaceArchiveChange(
   queryClient: QueryClient,
   spaceId: string,
   archivedAt: Date | null,
+  archivedBy: ISpace["archivedBy"],
 ) {
   // patch every cached copy (keyed by id or slug) so membership fields survive
   queryClient.setQueriesData<ISpace>({ queryKey: ["space"] }, (cached) =>
-    cached?.id === spaceId ? { ...cached, archivedAt } : undefined,
+    cached?.id === spaceId ? { ...cached, archivedAt, archivedBy } : undefined,
   );
 
   // refetchOnMount is off app-wide, so inactive copies are dropped to load fresh
@@ -254,7 +255,12 @@ function useArchiveStateMutation(
     mutationFn,
     onSuccess: (data) => {
       notifications.show({ message: successMessage });
-      applySpaceArchiveChange(queryClient, data.id, data.archivedAt);
+      applySpaceArchiveChange(
+        queryClient,
+        data.id,
+        data.archivedAt,
+        data.archivedBy ?? null,
+      );
     },
     onError: (error) => {
       notifications.show({
@@ -274,7 +280,7 @@ export function useArchiveSpaceMutation() {
 export function useUnarchiveSpaceMutation() {
   const { t } = useTranslation();
 
-  return useArchiveStateMutation(unarchiveSpace, t("Space unarchived"));
+  return useArchiveStateMutation(unarchiveSpace, t("Space restored"));
 }
 
 export function useSpaceMembersInfiniteQuery(

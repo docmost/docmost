@@ -23,7 +23,7 @@ export default function ArchiveSpaceModal({ space }: ArchiveSpaceModalProps) {
         onClick={() => unarchiveSpaceMutation.mutate(space.id)}
         loading={unarchiveSpaceMutation.isPending}
       >
-        {t("Unarchive")}
+        {t("Restore")}
       </Button>
     );
   }

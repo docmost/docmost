@@ -8,6 +8,7 @@ import {
 import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { SpaceArchivedBy } from '@docmost/db/repos/space/types';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Space, User } from '@docmost/db/types/entity.types';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
@@ -259,6 +260,7 @@ export class SpaceService {
   async getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId, {
       includeMemberCount: true,
+      includeArchivedBy: true,
     });
     if (!space) {
       throw new NotFoundException('Space not found');
@@ -300,10 +302,12 @@ export class SpaceService {
 
   async archiveSpace(
     spaceId: string,
-    userId: string,
+    user: User,
     workspaceId: string,
-  ): Promise<Space> {
-    const space = await this.spaceRepo.findById(spaceId, workspaceId);
+  ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId, {
+      includeArchivedBy: true,
+    });
     if (!space) {
       throw new NotFoundException('Space not found');
     }
@@ -317,10 +321,15 @@ export class SpaceService {
     }
 
     const archivedSpace = await this.spaceRepo.updateSpace(
-      { archivedAt: new Date(), archivedById: userId },
+      { archivedAt: new Date(), archivedById: user.id },
       spaceId,
       workspaceId,
     );
+    const archivedBy: SpaceArchivedBy = {
+      id: user.id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+    };
 
     this.auditService.log({
       event: AuditEvent.SPACE_ARCHIVED,
@@ -333,12 +342,19 @@ export class SpaceService {
       },
     });
 
-    this.emitArchiveUpdate(archivedSpace.id, archivedSpace.archivedAt);
+    this.emitArchiveUpdate(
+      archivedSpace.id,
+      archivedSpace.archivedAt,
+      archivedBy,
+    );
 
-    return archivedSpace;
+    return { ...archivedSpace, archivedBy };
   }
 
-  async unarchiveSpace(spaceId: string, workspaceId: string): Promise<Space> {
+  async unarchiveSpace(
+    spaceId: string,
+    workspaceId: string,
+  ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId);
     if (!space) {
       throw new NotFoundException('Space not found');
@@ -365,16 +381,25 @@ export class SpaceService {
       },
     });
 
-    this.emitArchiveUpdate(unarchivedSpace.id, unarchivedSpace.archivedAt);
+    this.emitArchiveUpdate(
+      unarchivedSpace.id,
+      unarchivedSpace.archivedAt,
+      null,
+    );
 
-    return unarchivedSpace;
+    return { ...unarchivedSpace, archivedBy: null };
   }
 
-  private emitArchiveUpdate(spaceId: string, archivedAt: Date | null): void {
+  private emitArchiveUpdate(
+    spaceId: string,
+    archivedAt: Date | null,
+    archivedBy: SpaceArchivedBy | null,
+  ): void {
     this.wsService.emitToSpace(spaceId, {
       operation: 'spaceArchiveUpdated',
       spaceId,
       archivedAt,
+      archivedBy,
     });
   }
 }

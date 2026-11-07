@@ -21,9 +21,11 @@ describe("applySpaceArchiveChange", () => {
     queryClient.setQueryData(["spaceMembers", "space-1", ""], []);
 
     const archivedAt = new Date("2026-11-04T10:00:00Z");
-    applySpaceArchiveChange(queryClient, "space-1", archivedAt);
+    const archivedBy = { id: "user-1", name: "Ada", avatarUrl: "" };
+    applySpaceArchiveChange(queryClient, "space-1", archivedAt, archivedBy);
 
     expect(queryClient.getQueryData<ISpace>(["space", "space-1"])?.archivedAt).toEqual(archivedAt);
+    expect(queryClient.getQueryData<ISpace>(["space", "space-1"])?.archivedBy).toEqual(archivedBy);
     expect(queryClient.getQueryData<ISpace>(["space", "eng"])?.archivedAt).toEqual(archivedAt);
     expect(queryClient.getQueryData<ISpace>(["space", "space-2"])?.archivedAt).toBeNull();
     expect(queryClient.getQueryState(["spaces", { page: 1 }])).toBeUndefined();
@@ -39,7 +41,7 @@ describe("applySpaceArchiveChange", () => {
       archivedAt: new Date("2026-11-01T10:00:00Z"),
     } as ISpace);
 
-    applySpaceArchiveChange(queryClient, "space-1", null);
+    applySpaceArchiveChange(queryClient, "space-1", null, null);
 
     expect(queryClient.getQueryData<ISpace>(["space", "eng"])?.archivedAt).toBeNull();
   });
@@ -52,7 +54,7 @@ describe("applySpaceArchiveChange", () => {
       { updatedAt: 1000 },
     );
 
-    applySpaceArchiveChange(queryClient, "space-1", new Date());
+    applySpaceArchiveChange(queryClient, "space-1", new Date(), null);
 
     expect(queryClient.getQueryState(["space", "space-2"])?.dataUpdatedAt).toBe(1000);
   });
@@ -71,7 +73,7 @@ describe("applySpaceArchiveChange", () => {
       queryClient.setQueryData([prefix, "x"], []);
     }
 
-    applySpaceArchiveChange(queryClient, "space-1", new Date());
+    applySpaceArchiveChange(queryClient, "space-1", new Date(), null);
 
     for (const prefix of prefixes) {
       expect(queryClient.getQueryState([prefix, "x"])).toBeUndefined();
@@ -88,7 +90,7 @@ describe("applySpaceArchiveChange", () => {
     });
     const unsubscribe = observer.subscribe(() => {});
 
-    applySpaceArchiveChange(queryClient, "space-1", new Date());
+    applySpaceArchiveChange(queryClient, "space-1", new Date(), null);
 
     expect(queryClient.getQueryState(["spaces", "inactive"])).toBeUndefined();
     expect(queryClient.getQueryState(["spaces", "active"])?.isInvalidated).toBe(true);

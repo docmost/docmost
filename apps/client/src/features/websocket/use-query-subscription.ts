@@ -153,7 +153,12 @@ export const useQuerySubscription = () => {
           });
           break;
         case "spaceArchiveUpdated":
-          applySpaceArchiveChange(queryClient, data.spaceId, data.archivedAt);
+          applySpaceArchiveChange(
+            queryClient,
+            data.spaceId,
+            data.archivedAt,
+            data.archivedBy ?? null,
+          );
           break;
       }
     });

@@ -192,7 +192,7 @@ export class SpaceController {
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
-    return this.spaceService.archiveSpace(space.id, user.id, workspace.id);
+    return this.spaceService.archiveSpace(space.id, user, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)

@@ -1,3 +1,7 @@
+import { User } from '@docmost/db/types/entity.types';
+
+export type SpaceArchivedBy = Pick<User, 'id' | 'name' | 'avatarUrl'>;
+
 export interface UserSpaceRole {
   userId: string;
   role: string;

@@ -7,8 +7,10 @@ import SpaceArchivedNotice from "./space-archived-notice";
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
-    t: (value: string, options?: { date?: string }) =>
-      value.replace("{{date}}", options?.date ?? ""),
+    t: (value: string, options?: { date?: string; name?: string }) =>
+      value
+        .replace("{{date}}", options?.date ?? "")
+        .replace("{{name}}", options?.name ?? ""),
     i18n: { language: "en-US" },
   }),
 }));
@@ -41,8 +43,8 @@ function setMediaMatch() {
   });
 }
 
-function renderNotice(archivedAt: Date) {
-  const space = { id: "space-1", slug: "docs", archivedAt } as ISpace;
+function renderNotice(archivedAt: Date, archivedBy: ISpace["archivedBy"] = null) {
+  const space = { id: "space-1", slug: "docs", archivedAt, archivedBy } as ISpace;
 
   return render(
     <MantineProvider>
@@ -69,6 +71,18 @@ describe("SpaceArchivedNotice", () => {
 
     expect(notice).toContain("Archived on Nov 02, 2026.");
     expect(notice).not.toMatch(/today|yesterday/i);
+  });
+
+  it("names who archived the space", () => {
+    renderNotice(new Date(2026, 10, 2, 15, 45), {
+      id: "user-1",
+      name: "Ada Lovelace",
+      avatarUrl: "",
+    });
+
+    expect(screen.getByRole("note").textContent).toContain(
+      "Archived by Ada Lovelace on Nov 02, 2026.",
+    );
   });
 
   it("is a note, so it is not announced as an alert on every page", () => {

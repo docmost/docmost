@@ -113,7 +113,7 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
                     <ResponsiveSettingsContent>
                       <Text size="md">
                         {space.archivedAt
-                          ? t("Unarchive space")
+                          ? t("Restore space")
                           : t("Archive space")}
                       </Text>
                       <Text size="sm" c="dimmed">

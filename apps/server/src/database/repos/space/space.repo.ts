@@ -8,6 +8,7 @@ import {
   UpdatableSpace,
 } from '@docmost/db/types/entity.types';
 import { ExpressionBuilder, sql } from 'kysely';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { DB } from '@docmost/db/types/db';
@@ -27,6 +28,7 @@ export class SpaceRepo {
     workspaceId: string,
     opts?: {
       includeMemberCount?: boolean;
+      includeArchivedBy?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
     },
@@ -37,6 +39,7 @@ export class SpaceRepo {
       .selectFrom('spaces')
       .selectAll('spaces')
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
+      .$if(opts?.includeArchivedBy, (qb) => qb.select(this.withArchivedBy))
       .select((eb) => this.withIsPublished(eb))
       .where('workspaceId', '=', workspaceId);
 
@@ -252,6 +255,15 @@ export class SpaceRepo {
           .where('publicSpaces.enabled', '=', true),
       )
       .as('isPublished');
+  }
+
+  withArchivedBy(eb: ExpressionBuilder<DB, 'spaces'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'spaces.archivedById'),
+    ).as('archivedBy');
   }
 
   async deleteSpace(spaceId: string, workspaceId: string): Promise<void> {
