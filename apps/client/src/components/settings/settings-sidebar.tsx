@@ -105,7 +105,12 @@ const groupedData: DataGroup[] = [
         role: "admin",
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
-      { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      {
+        label: "Spaces",
+        icon: IconSpaces,
+        path: "/settings/spaces",
+        role: "admin",
+      },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
       {
         label: "Verified pages",

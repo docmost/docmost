@@ -10,13 +10,17 @@ export default function Spaces() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
 
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <>
       <DocumentTitle title={t("Spaces")} />
       <SettingsTitle title={t("Spaces")} />
 
       <Group my="md" justify="flex-end">
-        {isAdmin && <CreateSpaceModal />}
+        <CreateSpaceModal />
       </Group>
 
       <SpaceList />
