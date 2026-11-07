@@ -27,6 +27,12 @@ export class ShareSeoController {
     @Param('shareId') shareId: string,
     @Param('pageSlug') pageSlug: string,
   ) {
+    // Nestjs does not to apply middlewares to paths excluded from the global /api prefix
+    // https://github.com/nestjs/nest/issues/9124
+    // https://github.com/nestjs/nest/issues/11572
+    // https://github.com/nestjs/nest/issues/13401
+    // we have to duplicate the DomainMiddleware code here as a workaround
+
     let workspace: Workspace = null;
     if (this.environmentService.isSelfHosted()) {
       workspace = await this.workspaceRepo.findFirst();
