@@ -118,12 +118,8 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
                       </Text>
                       <Text size="sm" c="dimmed">
                         {space.archivedAt
-                          ? t(
-                              "Bring this space back to the space list, search, AI answers and connected AI apps.",
-                            )
-                          : t(
-                              "Hide this space from the space list, search outside the space, AI answers and connected AI apps. Members keep access.",
-                            )}
+                          ? t("Make this space active again.")
+                          : t("Hide this space without deleting it.")}
                       </Text>
                     </ResponsiveSettingsContent>
                     <ResponsiveSettingsControl>

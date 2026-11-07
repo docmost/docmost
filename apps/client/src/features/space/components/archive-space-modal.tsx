@@ -30,12 +30,10 @@ export default function ArchiveSpaceModal({ space }: ArchiveSpaceModalProps) {
 
   const openArchiveConfirm = () =>
     modals.openConfirmModal({
-      title: t("Archive this space?"),
+      title: t("Archive space"),
       children: (
         <Text size="sm">
-          {t(
-            "The space is hidden from the space list, from search outside the space, from AI answers and from connected AI apps. Members keep access and can still edit it. Public links pause until you unarchive it.",
-          )}
+          {t("Are you sure you want to archive this space?")}
         </Text>
       ),
       centered: true,

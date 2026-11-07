@@ -37,17 +37,14 @@ export default function SpaceArchivedNotice({
     >
       <Group justify="space-between" gap="xs">
         <Text size="sm">
-          {t(
-            "Archived on {{date}}. It is hidden from the space list, search outside this space, AI answers and connected AI apps.",
-            {
-              date: formatLocalized(
-                space.archivedAt,
-                "MMM dd, yyyy",
-                "PP",
-                locale,
-              ),
-            },
-          )}
+          {t("Archived on {{date}}.", {
+            date: formatLocalized(
+              space.archivedAt,
+              "MMM dd, yyyy",
+              "PP",
+              locale,
+            ),
+          })}
         </Text>
         {spaceAbility.can(
           SpaceCaslAction.Manage,
