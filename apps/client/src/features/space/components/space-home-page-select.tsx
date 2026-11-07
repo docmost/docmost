@@ -20,15 +20,19 @@ export default function SpaceHomePageSelect({
   const [debouncedQuery] = useDebouncedValue(searchValue, 300);
   const updateSpaceMutation = useUpdateSpaceMutation();
 
+  const currentId = space.homePageId ?? null;
+  const currentLabel = space.homePage
+    ? space.homePage.title || t("Untitled")
+    : t("Restricted page");
+
   const { data: suggestion } = useSearchSuggestionsQuery({
-    query: debouncedQuery,
+    query: currentId && debouncedQuery === currentLabel ? "" : debouncedQuery,
     includePages: true,
     spaceId: space.id,
     limit: 25,
-    preload: true,
+    preload: !readOnly,
   });
 
-  const currentId = space.homePageId ?? null;
   const options = (suggestion?.pages ?? [])
     .filter((page) => page.spaceId === space.id)
     .map((page) => ({ value: page.id, label: page.title || t("Untitled") }));
@@ -36,9 +40,7 @@ export default function SpaceHomePageSelect({
   if (currentId && !options.some((option) => option.value === currentId)) {
     options.unshift({
       value: currentId,
-      label: space.homePage
-        ? space.homePage.title || t("Untitled")
-        : t("Restricted page"),
+      label: currentLabel,
     });
   }
 
@@ -62,6 +64,7 @@ export default function SpaceHomePageSelect({
       nothingFoundMessage={t("No results found")}
       variant="filled"
       disabled={readOnly}
+      aria-label={t("Home page")}
     />
   );
 }

@@ -8,7 +8,7 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 
 export default function SpaceHome() {
     const {spaceSlug} = useParams();
-    const {data: space, isFetchedAfterMount} = useGetSpaceBySlugQuery(spaceSlug, {staleTime: 0});
+    const {data: space, isFetchedAfterMount} = useGetSpaceBySlugQuery(spaceSlug, {staleTime: 0, refetchOnMount: true});
 
     if (space?.homePage) {
         if (!isFetchedAfterMount) return null;

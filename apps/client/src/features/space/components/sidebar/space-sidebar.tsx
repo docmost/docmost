@@ -84,12 +84,14 @@ export function SpaceSidebar() {
   }
 
   const homePage = space.homePage;
-  const homeUrl = homePage
-    ? buildPageUrl(space.slug, homePage.slugId, homePage.title)
-    : getSpaceUrl(spaceSlug);
   const isHomeActive = homePage
     ? !!pageSlug && extractPageSlugId(pageSlug) === homePage.slugId
     : location.pathname.toLowerCase() === getSpaceUrl(spaceSlug);
+
+  const homeUrl =
+    homePage && isHomeActive
+      ? buildPageUrl(space.slug, homePage.slugId, homePage.title)
+      : getSpaceUrl(spaceSlug);
 
   function handleCreatePage() {
     handleCreate(null);

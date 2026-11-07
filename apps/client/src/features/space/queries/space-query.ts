@@ -98,7 +98,7 @@ export function useCreateSpaceMutation() {
 
 export function useGetSpaceBySlugQuery(
   spaceId: string,
-  options?: { staleTime?: number },
+  options?: { staleTime?: number; refetchOnMount?: boolean | "always" },
 ): UseQueryResult<ISpace, Error> {
   return useQuery({
     queryKey: ["space", spaceId],
