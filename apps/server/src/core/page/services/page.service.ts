@@ -13,6 +13,7 @@ import {
   InsertablePage,
   Page,
   Share,
+  UpdatablePage,
   User,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
@@ -65,6 +66,12 @@ import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 import { ShareService } from '../../share/share.service';
+import {
+  buildCoverFileUrl,
+  getCoverAttachmentId,
+  isPresetCover,
+} from '../page-cover.utils';
+import { COVER_IMAGE_MIME_TYPES } from '../page-cover.constants';
 
 @Injectable()
 export class PageService {
@@ -242,10 +249,13 @@ export class PageService {
     contributors.add(user.id);
     const contributorIds = Array.from(contributors);
 
+    const coverFields = await this.resolveCoverFields(page, updatePageDto);
+
     await this.pageRepo.updatePage(
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
+        ...coverFields,
         lastUpdatedById: user.id,
         updatedAt: new Date(),
         contributorIds: contributorIds,
@@ -285,6 +295,51 @@ export class PageService {
       includeLastUpdatedBy: true,
       includeContributors: true,
     });
+  }
+
+  private async resolveCoverFields(
+    page: Page,
+    dto: UpdatePageDto,
+  ): Promise<Pick<UpdatablePage, 'coverPhoto' | 'coverPosition'>> {
+    const fields: Pick<UpdatablePage, 'coverPhoto' | 'coverPosition'> = {};
+
+    if (dto.coverPhoto !== undefined) {
+      fields.coverPhoto = await this.validateCoverPhoto(page, dto.coverPhoto);
+      if (fields.coverPhoto !== page.coverPhoto) {
+        fields.coverPosition = null;
+      }
+    }
+
+    if (dto.coverPosition !== undefined) {
+      fields.coverPosition = dto.coverPosition;
+    }
+
+    return fields;
+  }
+
+  private async validateCoverPhoto(
+    page: Page,
+    coverPhoto: string | null,
+  ): Promise<string | null> {
+    if (coverPhoto === null || isPresetCover(coverPhoto)) {
+      return coverPhoto;
+    }
+
+    const attachmentId = getCoverAttachmentId(coverPhoto);
+    const attachment = attachmentId
+      ? await this.attachmentRepo.findById(attachmentId)
+      : null;
+
+    if (
+      !attachment ||
+      attachment.workspaceId !== page.workspaceId ||
+      attachment.pageId !== page.id ||
+      !COVER_IMAGE_MIME_TYPES.includes(attachment.mimeType)
+    ) {
+      throw new BadRequestException('Invalid cover photo');
+    }
+
+    return buildCoverFileUrl(attachment);
   }
 
   async updatePageContent(
@@ -663,6 +718,25 @@ export class PageService {
           });
         }
 
+        let coverPhoto = page.coverPhoto;
+        const coverAttachmentId = getCoverAttachmentId(page.coverPhoto);
+        if (coverAttachmentId) {
+          const copied = attachmentMap.get(coverAttachmentId);
+          const newAttachmentId = copied?.newAttachmentId ?? uuid7();
+          if (!copied) {
+            attachmentMap.set(coverAttachmentId, {
+              newPageId: pageFromMap.newPageId,
+              oldPageId: page.id,
+              oldAttachmentId: coverAttachmentId,
+              newAttachmentId,
+            });
+          }
+          coverPhoto = page.coverPhoto.replace(
+            coverAttachmentId,
+            newAttachmentId,
+          );
+        }
+
         // Update internal page links in mention nodes
         prosemirrorDoc.descendants((node: PMNode) => {
           if (
@@ -729,6 +803,8 @@ export class PageService {
           slugId: pageFromMap.newSlugId,
           title: title,
           icon: page.icon,
+          coverPhoto,
+          coverPosition: page.coverPosition,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
           ydoc: createYdocFromJson(prosemirrorJson),

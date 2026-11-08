@@ -53,6 +53,9 @@ function makeService(overrides: any = {}) {
   };
   const shareService = {
     updatePublicAttachments: jest.fn().mockImplementation(async (p) => p.content),
+    updatePublicCoverPhoto: jest
+      .fn()
+      .mockImplementation(async (p) => p.coverPhoto),
     sanitizeTransclusionItemsForPublic: jest
       .fn()
       .mockImplementation(async (items) => items),
@@ -242,6 +245,34 @@ describe('PublicSpaceService', () => {
         result.page,
       );
       expect(result.page.content).toBe(sanitizedDoc);
+    });
+
+    it('serves an uploaded cover through its public link', async () => {
+      const publicCover = '/api/files/public/a1/cover.jpg?jwt=signed';
+      const { service } = makeService({
+        pageRepo: {
+          findById: jest.fn().mockResolvedValue({
+            id: 'page1',
+            slugId: 'abc123XYZ0',
+            spaceId: SPACE_ID,
+            workspaceId: WORKSPACE_ID,
+            deletedAt: null,
+            content: { type: 'doc', content: [] },
+            coverPhoto: '/api/files/a1/cover.jpg',
+          }),
+        },
+        shareService: {
+          updatePublicCoverPhoto: jest.fn().mockResolvedValue(publicCover),
+        },
+      });
+
+      const result = await service.getPublicPage(
+        'handbook',
+        'abc123XYZ0',
+        makeWorkspace(optInSettings),
+      );
+
+      expect(result.page.coverPhoto).toBe(publicCover);
     });
 
     it('returns page null for an empty published space', async () => {
