@@ -91,9 +91,11 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
   const imageSrc = cover.kind === "image" ? cover.src : null;
   const failed = imageSrc !== null && failedSrc === imageSrc;
   const canReposition = cover.kind === "image" && !failed;
-  const credit = failed
-    ? null
-    : getCoverCredit(page.coverPhoto, page.coverAttribution);
+  // credit outside the picker is off for now
+  const credit: ReturnType<typeof getCoverCredit> = null;
+  // const credit = failed
+  //   ? null
+  //   : getCoverCredit(page.coverPhoto, page.coverAttribution);
   const savedPosition = getCoverPosition(page.coverPosition);
   const position = draft ?? savedPosition;
   const showReposition = repositioning && canEdit;

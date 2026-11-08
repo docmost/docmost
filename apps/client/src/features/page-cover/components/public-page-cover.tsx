@@ -26,7 +26,9 @@ export function PublicPageCover({
   if (!cover) return null;
   if (cover.kind === "image" && failedSrc === cover.src) return null;
 
-  const credit = getCoverCredit(coverPhoto, coverAttribution);
+  // credit outside the picker is off for now
+  const credit: ReturnType<typeof getCoverCredit> = null;
+  // const credit = getCoverCredit(coverPhoto, coverAttribution);
 
   return (
     <div className={clsx(classes.inlineCover, "print-hide")}>
