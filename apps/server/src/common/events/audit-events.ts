@@ -44,6 +44,8 @@ export const AuditEvent = {
   SPACE_CREATED: 'space.created',
   SPACE_UPDATED: 'space.updated',
   SPACE_DELETED: 'space.deleted',
+  SPACE_ARCHIVED: 'space.archived',
+  SPACE_UNARCHIVED: 'space.unarchived',
   SPACE_MEMBER_ADDED: 'space.member_added',
   SPACE_MEMBER_REMOVED: 'space.member_removed',
   SPACE_MEMBER_ROLE_CHANGED: 'space.member_role_changed',

@@ -41,6 +41,7 @@ export interface IPageSearchParams {
   creatorId?: string;
   labelIds?: string[];
   titleOnly?: boolean;
+  includeArchived?: boolean;
 }
 
 export interface IAttachmentSearch {
@@ -57,6 +58,7 @@ export interface IAttachmentSearch {
     name: string;
     slug: string;
     icon: string;
+    archivedAt?: Date | null;
   };
   page: {
     id: string;
