@@ -141,12 +141,12 @@ describe('UnsplashService', () => {
     expect(result.items.map((item) => item.id)).toEqual(['ok']);
   });
 
-  it('turns a listed photo into a cover, tracking the download', async () => {
+  it('turns a listed wallpaper into a cover, tracking the download', async () => {
     const { service } = makeService();
     fetchMock
-      .mockResolvedValueOnce(jsonResponse({ total_pages: 1, results: [apiPhoto('a1')] }))
+      .mockResolvedValueOnce(jsonResponse([apiPhoto('a1')]))
       .mockResolvedValueOnce(jsonResponse({ url: 'https://images.unsplash.com/x' }));
-    await service.listPhotos('mountains', 1);
+    await service.listPhotos('', 1);
 
     const cover = await service.getCover('a1', USER_ID);
 
@@ -163,6 +163,26 @@ describe('UnsplashService', () => {
         authorUsername: 'author_a1',
       },
     });
+  });
+
+  it('looks a photo found by search up again, so the cover carries no search term', async () => {
+    const { service } = makeService();
+    const searched = apiPhoto('a1', {
+      urls: {
+        raw: 'https://images.unsplash.com/photo-a1?ixid=from-search',
+        small: 'https://images.unsplash.com/photo-a1?ixid=from-search&w=400',
+      },
+    });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ total_pages: 1, results: [searched] }))
+      .mockResolvedValueOnce(jsonResponse(apiPhoto('a1')))
+      .mockResolvedValueOnce(jsonResponse({}));
+    await service.listPhotos('team offsite', 1);
+
+    const cover = await service.getCover('a1', USER_ID);
+
+    expect(requestedUrl(1).pathname).toBe('/photos/a1');
+    expect(cover.coverPhoto).not.toContain('from-search');
   });
 
   it('looks up a photo it has not listed', async () => {

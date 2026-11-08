@@ -68,8 +68,10 @@ export class UnsplashService {
       ? await this.searchPhotos(search, page)
       : await this.listTopicPhotos(page);
 
-    // a chosen photo is usually one just listed, so it needs no lookup
-    await Promise.all(photos.map((photo) => this.cachePhoto(photo)));
+    // only wallpapers are kept for picks, search results carry the search term in their addresses
+    if (!search) {
+      await Promise.all(photos.map((photo) => this.cachePhoto(photo)));
+    }
 
     const result = {
       items: photos.map(toPublicPhoto),
