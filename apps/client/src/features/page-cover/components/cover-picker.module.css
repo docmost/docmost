@@ -1,0 +1,101 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-xs);
+  padding-inline: var(--mantine-spacing-md) var(--mantine-spacing-xs);
+  border-bottom: 1px solid var(--tab-border-color, var(--mantine-color-default-border));
+}
+
+.tabList {
+  flex: 1;
+  min-width: 0;
+
+  &::before {
+    display: none;
+  }
+}
+
+.body {
+  padding: var(--mantine-spacing-md);
+}
+
+.section + .section {
+  margin-top: var(--mantine-spacing-md);
+}
+
+.sectionTitle {
+  margin-bottom: rem(8px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: rem(8px);
+}
+
+.colorGrid {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.tile {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: var(--mantine-radius-sm);
+  background-size: cover;
+  background-position: center;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  box-shadow: inset 0 0 0 1px
+    light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.1));
+  transition: filter 120ms ease;
+
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(0.94);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 4px;
+  }
+
+  &[data-selected="true"] {
+    box-shadow:
+      0 0 0 2px var(--mantine-color-body),
+      0 0 0 4px var(--mantine-primary-color-filled);
+  }
+}
+
+.colorTile {
+  aspect-ratio: 5 / 3;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: rem(10px);
+  min-height: rem(180px);
+  padding: var(--mantine-spacing-lg);
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+
+  &[data-dragging] {
+    border-color: var(--mantine-primary-color-filled);
+    background-color: var(--mantine-primary-color-light);
+  }
+}
+
+.dropIcon {
+  color: var(--mantine-color-dimmed);
+}

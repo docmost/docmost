@@ -21,6 +21,8 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { PageCover } from "@/features/page-cover/components/page-cover.tsx";
+import { resolveCover } from "@/features/page-cover/page-cover.utils.ts";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -178,6 +180,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
         <MemoizedPageHeader readOnly={!canEdit} />
 
+        <PageCover page={page} editable={canEdit} />
+
         <MemoizedFullEditor
           key={page.id}
           pageId={page.id}
@@ -190,6 +194,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           creator={page.creator}
           contributors={page.contributors}
           canComment={canComment}
+          hasCover={Boolean(resolveCover(page.coverPhoto))}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

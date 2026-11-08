@@ -6,7 +6,8 @@ export interface IPage {
   title: string;
   content: string;
   icon: string;
-  coverPhoto: string;
+  coverPhoto: string | null;
+  coverPosition?: number | null;
   parentPageId: string;
   creatorId: string;
   spaceId: string;
@@ -84,7 +85,8 @@ export interface IPageInput {
   title: string;
   parentPageId: string;
   icon: string;
-  coverPhoto: string;
+  coverPhoto: string | null;
+  coverPosition: number | null;
   position: string;
   isLocked: boolean;
 }

@@ -27,6 +27,7 @@ import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page
 import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { EmptyPageGetStarted } from "@/features/editor/components/empty-page/empty-page-get-started";
+import { AddCoverButton } from "@/features/page-cover/components/add-cover-button.tsx";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -54,6 +55,7 @@ export interface FullEditorProps {
   creator?: PageUser;
   contributors?: IContributor[];
   canComment?: boolean;
+  hasCover?: boolean;
 }
 
 export function FullEditor({
@@ -67,6 +69,7 @@ export function FullEditor({
   creator,
   contributors,
   canComment,
+  hasCover,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user?.settings?.preferences?.fullPageWidth;
@@ -92,20 +95,29 @@ export function FullEditor({
     <Container
       fluid={fullPageWidth}
       size={!fullPageWidth && 900}
-      className={classes.editor}
+      className={clsx(classes.editor, hasCover && classes.editorWithCover)}
       style={{ display: "flex", flexDirection: "column" }}
     >
       {editorToolbarEnabled && editable && isEditMode && (
         <MemoizedFixedToolbar />
       )}
       <MemoizedDeletedPageBanner slugId={slugId} />
-      <MemoizedTitleEditor
-        pageId={pageId}
-        slugId={slugId}
-        title={title}
-        spaceSlug={spaceSlug}
-        editable={editable}
-      />
+      <div className={classes.titleArea}>
+        {editable && !hasCover && (
+          <div className={clsx("print-hide", classes.coverRow)}>
+            {isEditMode && (
+              <AddCoverButton slugId={slugId} className={classes.addCover} />
+            )}
+          </div>
+        )}
+        <MemoizedTitleEditor
+          pageId={pageId}
+          slugId={slugId}
+          title={title}
+          spaceSlug={spaceSlug}
+          editable={editable}
+        />
+      </div>
       <PageByline
         creator={creator}
         contributors={contributors}

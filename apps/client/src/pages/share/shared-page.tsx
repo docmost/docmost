@@ -13,6 +13,7 @@ import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import DocsBreadcrumbs from "@/features/public-space/components/docs/docs-breadcrumbs.tsx";
 import DocsPageNav from "@/features/public-space/components/docs/docs-page-nav.tsx";
 import DocsFooterBranding from "@/features/public-space/components/docs/docs-footer-branding.tsx";
+import { PublicPageCover } from "@/features/page-cover/components/public-page-cover.tsx";
 
 export default function SharedPage() {
   const { t } = useTranslation();
@@ -73,6 +74,11 @@ export default function SharedPage() {
       </DocumentTitle>
 
       <DocsBreadcrumbs />
+
+      <PublicPageCover
+        coverPhoto={data.page.coverPhoto}
+        coverPosition={data.page.coverPosition}
+      />
 
       <ReadonlyPageEditor
         key={data.page.id}

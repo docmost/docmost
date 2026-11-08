@@ -1,0 +1,125 @@
+.cover {
+  position: relative;
+  height: clamp(160px, 30vh, 280px);
+  margin-top: calc(var(--page-header-height) - var(--app-shell-padding, 0px));
+  margin-inline: calc(var(--app-shell-padding, 0px) * -1);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  user-select: none;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    height: clamp(140px, 22vh, 200px);
+  }
+
+  @media print {
+    display: none;
+  }
+}
+
+.inlineCover {
+  position: relative;
+  aspect-ratio: 4 / 1;
+  min-height: rem(120px);
+  margin-top: rem(10px);
+  margin-bottom: rem(28px);
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+
+  @media print {
+    display: none;
+  }
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 180ms ease;
+
+  &[data-loaded] {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.controls {
+  position: absolute;
+  bottom: rem(12px);
+  inset-inline: var(--app-shell-padding, 0px);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+}
+
+.cover:hover .controls,
+.cover:focus-within .controls,
+.cover[data-active] .controls {
+  opacity: 1;
+}
+
+.controlsInner {
+  display: flex;
+  justify-content: flex-end;
+  padding-inline: 3rem;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    padding-inline: 1rem;
+  }
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.dragSurface {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+
+  &[data-dragging] {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -4px;
+  }
+}
+
+.hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: rem(4px) rem(10px);
+  border-radius: var(--mantine-radius-sm);
+  background-color: rgba(0, 0, 0, 0.55);
+  color: var(--mantine-color-white);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
