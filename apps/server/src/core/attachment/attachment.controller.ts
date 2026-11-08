@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Inject,
   Logger,
@@ -141,7 +142,8 @@ export class AttachmentController {
 
     const type = file.fields?.type?.value;
     const isCover = type === AttachmentType.PageCover;
-    if ((type !== undefined && !isCover) || (isCover && attachmentId)) {
+    const isFile = type === undefined || type === AttachmentType.File;
+    if ((!isFile && !isCover) || (isCover && attachmentId)) {
       throw new BadRequestException('Invalid attachment type');
     }
 
@@ -173,6 +175,10 @@ export class AttachmentController {
         url: this.buildFileUrl(workspace, fileResponse),
       });
     } catch (err: any) {
+      // cover uploads tell the user why they were refused
+      if (isCover && err instanceof HttpException) {
+        throw err;
+      }
       if (err?.statusCode === 413) {
         const errMessage = `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`;
         this.logger.error(errMessage);

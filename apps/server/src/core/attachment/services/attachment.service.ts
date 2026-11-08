@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
@@ -32,7 +33,10 @@ import {
   getCoverAttachmentId,
   queueCoverCleanup,
 } from '../../page/page-cover.utils';
-import { COVER_IMAGE_MIME_TYPES } from '../../page/page-cover.constants';
+import {
+  COVER_IMAGE_MIME_TYPES,
+  COVER_MAX_BYTES,
+} from '../../page/page-cover.constants';
 
 @Injectable()
 export class AttachmentService {
@@ -67,7 +71,7 @@ export class AttachmentService {
       type === AttachmentType.PageCover &&
       !COVER_IMAGE_MIME_TYPES.includes(preparedFile.mimeType)
     ) {
-      throw new BadRequestException('Cover must be a JPG, PNG, WebP or GIF image');
+      throw new BadRequestException('Cover must be a JPG, PNG or WebP image');
     }
 
     let isUpdate = false;
@@ -101,10 +105,24 @@ export class AttachmentService {
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
     // Update fileSize from the consumed stream
-    preparedFile.fileSize = await streamMultipartFile(
-      preparedFile.multiPartFile,
-      (stream) => this.uploadToDrive(filePath, stream),
-    );
+    const isCover = type === AttachmentType.PageCover;
+    try {
+      preparedFile.fileSize = await streamMultipartFile(
+        preparedFile.multiPartFile,
+        (stream) => this.uploadToDrive(filePath, stream),
+        isCover ? COVER_MAX_BYTES : undefined,
+      );
+    } catch (err: any) {
+      // past the general upload limit, the controller reports that limit instead
+      if (
+        isCover &&
+        err?.statusCode === 413 &&
+        !preparedFile.multiPartFile.file.truncated
+      ) {
+        throw new PayloadTooLargeException('Cover image must be 5 MB or smaller');
+      }
+      throw err;
+    }
 
     let attachment: Attachment = null;
     try {

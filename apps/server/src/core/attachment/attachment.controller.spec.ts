@@ -273,12 +273,45 @@ describe.each([
       );
     });
 
-    it('rejects a cover that is not an image', async () => {
-      const response = await postFile('notes.pdf', randomBytes(1024), {
+    it.each([
+      ['not an image', 'notes.pdf'],
+      ['a GIF', 'anim.gif'],
+    ])('rejects a cover that is %s and says why', async (_label, fileName) => {
+      const response = await postFile(fileName, randomBytes(1024), {
         type: 'page-cover',
       });
 
       expect(response.statusCode).toBe(400);
+      expect(response.json().message).toBe(
+        'Cover must be a JPG, PNG or WebP image',
+      );
+      expect(await storage.leftovers()).toEqual([]);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('stores a cover of exactly 5 MB', async () => {
+      uploadLimit = '10mb';
+
+      const response = await postFile('cover.jpg', randomBytes(bytes('5mb')), {
+        type: 'page-cover',
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('rejects a cover over 5 MB and leaves nothing behind', async () => {
+      uploadLimit = '10mb';
+
+      const response = await postFile(
+        'cover.jpg',
+        randomBytes(bytes('5mb') + 1),
+        { type: 'page-cover' },
+      );
+
+      expect(response.statusCode).toBe(413);
+      expect(response.json().message).toBe(
+        'Cover image must be 5 MB or smaller',
+      );
       expect(await storage.leftovers()).toEqual([]);
       expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
     });
@@ -301,6 +334,16 @@ describe.each([
 
       expect(response.statusCode).toBe(400);
       expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('treats type=file as a plain upload', async () => {
+      const response = await post(randomBytes(1024), { type: 'file' });
+
+      expect(response.statusCode).toBe(200);
+      expect(attachmentRepo.insertAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'file' }),
+        undefined,
+      );
     });
   });
 
