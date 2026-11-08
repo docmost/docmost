@@ -46,7 +46,7 @@ export async function queueCoverCleanup(
 export function buildCoverFileUrl(
   attachment: Pick<Attachment, 'id' | 'fileName'>,
 ): string {
-  return `/api/files/${attachment.id}/${attachment.fileName}`;
+  return `/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`;
 }
 
 export function remapCopiedCover(

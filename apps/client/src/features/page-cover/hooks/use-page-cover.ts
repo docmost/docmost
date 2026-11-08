@@ -97,7 +97,7 @@ export function usePageCover(page: IPage) {
       const attachment = await uploadCoverImage(file, page.id);
       return updatePage({
         pageId: page.id,
-        coverPhoto: `/api/files/${attachment.id}/${attachment.fileName}`,
+        coverPhoto: `/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`,
       });
     },
     onSuccess: applySavedCover,

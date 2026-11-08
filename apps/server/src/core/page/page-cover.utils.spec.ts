@@ -1,4 +1,5 @@
 import {
+  buildCoverFileUrl,
   getCoverAttachmentId,
   getUnsplashPhotoId,
   isPresetCover,
@@ -7,6 +8,14 @@ import {
 
 const ATTACHMENT_ID = '019a1f00-0000-7000-8000-0000000000aa';
 const COPY_ID = '019a1f00-0000-7000-8000-0000000000bb';
+
+describe('buildCoverFileUrl', () => {
+  it('encodes the file name so the address stays valid', () => {
+    expect(
+      buildCoverFileUrl({ id: ATTACHMENT_ID, fileName: '50%_off banner.jpg' }),
+    ).toBe(`/api/files/${ATTACHMENT_ID}/50%25_off%20banner.jpg`);
+  });
+});
 
 describe('remapCopiedCover', () => {
   const newId = () => COPY_ID;
