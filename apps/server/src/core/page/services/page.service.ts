@@ -314,6 +314,12 @@ export class PageService {
       fields.coverPosition = dto.coverPosition;
     }
 
+    const coverPhoto =
+      fields.coverPhoto !== undefined ? fields.coverPhoto : page.coverPhoto;
+    if (coverPhoto === null && fields.coverPosition !== undefined) {
+      fields.coverPosition = null;
+    }
+
     return fields;
   }
 

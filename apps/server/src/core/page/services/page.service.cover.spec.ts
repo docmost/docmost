@@ -199,6 +199,14 @@ describe('PageService.update cover', () => {
     });
   });
 
+  it('drops a position sent for a page without a cover', async () => {
+    const { service, savedFields } = makeService();
+
+    await service.update(makePage(), { pageId: PAGE_ID, coverPosition: 40 } as any, user);
+
+    expect(savedFields().coverPosition).toBeNull();
+  });
+
   it('leaves the cover alone on a title update', async () => {
     const { service, savedFields } = makeService();
     const page = makePage({ coverPhoto: 'preset:color-red', coverPosition: 35 });
