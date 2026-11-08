@@ -87,6 +87,11 @@ export function toPublicPhoto(record: UnsplashPhotoRecord): UnsplashPhoto {
   return photo;
 }
 
+// frees the connection when the body is not needed
+export async function discardBody(response: Response): Promise<void> {
+  await response.body?.cancel().catch(() => undefined);
+}
+
 export async function isRateLimited(response: Response): Promise<boolean> {
   if (response.status === 429) return true;
   if (response.status !== 403) return false;

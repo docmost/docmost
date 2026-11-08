@@ -29,6 +29,13 @@ export type UnsplashPhotoList = {
   hasMore: boolean;
 };
 
+export type UnsplashPhotoPage = {
+  photos: UnsplashPhotoRecord[];
+  hasMore: boolean;
+};
+
+export type UnsplashCoverBudget = { used: number; resetAt: number };
+
 export type UnsplashAttribution = {
   source: 'unsplash';
   photoId: string;

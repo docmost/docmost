@@ -5,6 +5,7 @@ import {
   Text,
   TextInput,
   UnstyledButton,
+  VisuallyHidden,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
@@ -38,13 +39,20 @@ export function UnsplashPanel({
     data,
     error,
     isPending,
+    isFetching,
     isFetchingNextPage,
+    isFetchNextPageError,
     hasNextPage,
     fetchNextPage,
     refetch,
   } = useUnsplashPhotosQuery(query);
   const photos = data?.pages.flatMap((page) => page.items) ?? [];
   const rateLimited = (error as any)?.response?.status === 429;
+  const errorMessage = rateLimited
+    ? t("Unsplash rate limit reached. Try again later.")
+    : t("Failed to load photos");
+  const loading = isPending || (Boolean(error) && isFetching && photos.length === 0);
+  const noResults = !loading && !error && photos.length === 0;
 
   return (
     <>
@@ -53,19 +61,22 @@ export function UnsplashPanel({
           value={search}
           onChange={(event) => onSearchChange(event.currentTarget.value)}
           placeholder={t("Search photos")}
-          aria-label={t("Search Unsplash")}
+          aria-label={t("Search photos")}
           leftSection={<IconSearch size={16} stroke={1.75} />}
           maxLength={100}
         />
+        <VisuallyHidden role="status">
+          {noResults ? t("No results found") : ""}
+        </VisuallyHidden>
       </div>
       <ScrollArea.Autosize
-        mah="max(160px, calc(var(--cover-picker-available-height, 480px) - 102px))"
+        mah="max(160px, calc(var(--cover-picker-available-height, 480px) - 140px))"
         type="auto"
         scrollbarSize={6}
         style={{ overscrollBehavior: "contain" }}
       >
         <div className={classes.photoBody}>
-          {isPending ? (
+          {loading ? (
             <div className={classes.photoGrid} aria-hidden>
               {Array.from({ length: UNSPLASH_SKELETON_COUNT }, (_, index) => (
                 <Skeleton key={index} className={classes.photoSkeleton} />
@@ -74,9 +85,7 @@ export function UnsplashPanel({
           ) : error && photos.length === 0 ? (
             <div className={classes.photoMessage} role="alert">
               <Text size="sm" c="dimmed">
-                {rateLimited
-                  ? t("Unsplash rate limit reached. Try again later.")
-                  : t("Failed to load photos")}
+                {errorMessage}
               </Text>
               {!rateLimited && (
                 <Button variant="default" size="xs" onClick={() => refetch()}>
@@ -84,10 +93,10 @@ export function UnsplashPanel({
                 </Button>
               )}
             </div>
-          ) : photos.length === 0 ? (
+          ) : noResults ? (
             <div className={classes.photoMessage}>
               <Text size="sm" c="dimmed">
-                {t("No photos match your search.")}
+                {t("No results found")}
               </Text>
             </div>
           ) : (
@@ -103,9 +112,15 @@ export function UnsplashPanel({
             </div>
           )}
 
-          {hasNextPage && (
+          {isFetchNextPageError && (
+            <Text size="sm" c="dimmed" ta="center" mt="sm" role="alert">
+              {errorMessage}
+            </Text>
+          )}
+
+          {hasNextPage && !rateLimited && (
             <Button
-              variant="default"
+              variant="subtle"
               size="xs"
               fullWidth
               mt="sm"
@@ -115,23 +130,18 @@ export function UnsplashPanel({
               {t("Load more")}
             </Button>
           )}
-
-          <Text size="xs" c="dimmed" className={classes.photoSource}>
-            <Trans
-              i18nKey="Photos from <unsplash>Unsplash</unsplash>"
-              components={{
-                unsplash: (
-                  <a
-                    href={UNSPLASH_HOME_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
-                ),
-              }}
-            />
-          </Text>
         </div>
       </ScrollArea.Autosize>
+      <Text size="xs" c="dimmed" className={classes.photoSource}>
+        <Trans
+          i18nKey="Photos from <unsplash>Unsplash</unsplash>"
+          components={{
+            unsplash: (
+              <a href={UNSPLASH_HOME_URL} target="_blank" rel="noopener noreferrer" />
+            ),
+          }}
+        />
+      </Text>
     </>
   );
 }
@@ -170,8 +180,8 @@ function UnsplashTile({ photo, selected, onSelect }: UnsplashTileProps) {
           className={classes.photoImage}
         />
       </UnstyledButton>
-      <span className={classes.photoCreditBar}>
-        {/* the button already names the photographer for keyboard users */}
+      {/* the button already names the photographer, so this link is for pointers only */}
+      <span className={classes.photoCreditBar} aria-hidden>
         <a
           href={getUnsplashProfileUrl(photo.authorUsername)}
           target="_blank"

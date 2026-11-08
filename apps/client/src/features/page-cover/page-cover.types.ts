@@ -29,6 +29,11 @@ export type PageCoverFields = PageCoverUpdate & {
   coverAttribution?: CoverAttribution | null;
 };
 
+export type CoverChange = PageCoverUpdate & {
+  // shown until the server answers, for covers it resolves itself
+  preview?: PageCoverFields;
+};
+
 export type UnsplashPhoto = {
   id: string;
   description: string | null;

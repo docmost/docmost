@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { listUnsplashPhotos } from "@/features/page-cover/services/unsplash-service.ts";
+import { listUnsplashPhotos } from "@/features/page-cover/services/page-cover-service.ts";
 
 export function useUnsplashPhotosQuery(query: string) {
   return useInfiniteQuery({

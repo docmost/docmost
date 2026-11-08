@@ -8,6 +8,7 @@ const COVER = `/api/files/${ATTACHMENT_ID}/team-offsite.jpg`;
 
 const attachment = {
   id: ATTACHMENT_ID,
+  type: 'page-cover',
   pageId: PAGE_ID,
   workspaceId: WORKSPACE_ID,
   filePath: `${WORKSPACE_ID}/files/${ATTACHMENT_ID}/team-offsite.jpg`,
@@ -83,6 +84,10 @@ describe('AttachmentService.handleDeleteUnusedCover', () => {
     [
       'belongs to another page',
       { attachment: { ...attachment, pageId: OTHER_PAGE_ID }, page: makePage() },
+    ],
+    [
+      'was not uploaded as a cover',
+      { attachment: { ...attachment, type: 'file' }, page: makePage() },
     ],
     ['is already gone', { attachment: null, page: makePage() }],
     ['has no page left', { attachment, page: null }],

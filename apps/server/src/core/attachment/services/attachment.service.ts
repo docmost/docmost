@@ -28,7 +28,11 @@ import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { streamMultipartFile } from '../../../common/helpers';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { getCoverAttachmentId } from '../../page/page-cover.utils';
+import {
+  getCoverAttachmentId,
+  queueCoverCleanup,
+} from '../../page/page-cover.utils';
+import { COVER_IMAGE_MIME_TYPES } from '../../page/page-cover.constants';
 
 @Injectable()
 export class AttachmentService {
@@ -51,11 +55,20 @@ export class AttachmentService {
     spaceId: string;
     workspaceId: string;
     attachmentId?: string;
+    type?: AttachmentType.File | AttachmentType.PageCover;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
+    const type = opts.type ?? AttachmentType.File;
     const preparedFile: PreparedFile = await prepareFile(filePromise, {
       skipBuffer: true,
     });
+
+    if (
+      type === AttachmentType.PageCover &&
+      !COVER_IMAGE_MIME_TYPES.includes(preparedFile.mimeType)
+    ) {
+      throw new BadRequestException('Cover must be a JPG, PNG, WebP or GIF image');
+    }
 
     let isUpdate = false;
     let attachmentId = null;
@@ -108,11 +121,19 @@ export class AttachmentService {
           attachmentId,
           preparedFile,
           filePath,
-          type: AttachmentType.File,
+          type,
           userId,
           spaceId,
           workspaceId,
           pageId,
+        });
+      }
+
+      // a cover upload that never becomes the cover is deleted too
+      if (type === AttachmentType.PageCover) {
+        await queueCoverCleanup(this.attachmentQueue, {
+          pageId,
+          attachmentId: attachment.id,
         });
       }
 
@@ -390,7 +411,13 @@ export class AttachmentService {
   }): Promise<void> {
     const { pageId, attachmentId } = opts;
     const attachment = await this.attachmentRepo.findById(attachmentId);
-    if (!attachment || attachment.pageId !== pageId) return;
+    if (
+      !attachment ||
+      attachment.type !== AttachmentType.PageCover ||
+      attachment.pageId !== pageId
+    ) {
+      return;
+    }
 
     // deleting a page deletes its attachments too
     const page = await this.pageRepo.findById(pageId, { includeContent: true });

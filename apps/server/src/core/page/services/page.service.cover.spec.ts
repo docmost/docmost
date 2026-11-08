@@ -30,7 +30,7 @@ function makePage(overrides: Record<string, unknown> = {}) {
 function makeAttachment(overrides: Record<string, unknown> = {}) {
   return {
     id: ATTACHMENT_ID,
-    type: 'file',
+    type: 'page-cover',
     fileName: 'team-offsite.jpg',
     filePath: `${WORKSPACE_ID}/files/${ATTACHMENT_ID}/team-offsite.jpg`,
     fileSize: 1024,
@@ -63,7 +63,10 @@ function makeService(attachment: unknown = null) {
   const attachmentRepo = {
     findById: jest.fn(async () => attachment),
   };
-  const attachmentQueue = { add: jest.fn(async () => undefined) };
+  const attachmentQueue = {
+    add: jest.fn(async () => undefined),
+    remove: jest.fn(async () => 1),
+  };
   const generalQueue = { add: jest.fn(async () => undefined) };
   const unsplashService = {
     getCover: jest.fn(async () => ({
@@ -156,6 +159,11 @@ describe('PageService.update cover', () => {
       'a non-image attachment',
       `/api/files/${ATTACHMENT_ID}/notes.pdf`,
       makeAttachment({ fileName: 'notes.pdf', mimeType: 'application/pdf' }),
+    ],
+    [
+      'a page file that was not uploaded as a cover',
+      `/api/files/${ATTACHMENT_ID}/team-offsite.jpg`,
+      makeAttachment({ type: 'file' }),
     ],
     [
       'an svg attachment',
@@ -276,7 +284,7 @@ describe('PageService.update Unsplash cover', () => {
       user,
     );
 
-    expect(unsplashService.getCover).toHaveBeenCalledWith('Abc_123');
+    expect(unsplashService.getCover).toHaveBeenCalledWith('Abc_123', USER_ID);
     expect(savedFields()).toMatchObject({
       coverPhoto: UNSPLASH_URL,
       coverAttribution: UNSPLASH_CREDIT,
@@ -369,11 +377,14 @@ describe('PageService.update cover cleanup', () => {
 
     await service.update(page, { pageId: PAGE_ID, coverPhoto } as any, user);
 
+    // a newer schedule replaces an older one, so the delay restarts
+    const jobId = `cover-cleanup-${ATTACHMENT_ID}`;
+    expect(attachmentQueue.remove).toHaveBeenCalledWith(jobId);
     expect(cleanupJobs(attachmentQueue)).toEqual([
       [
         QueueJob.DELETE_UNUSED_COVER,
         { pageId: PAGE_ID, attachmentId: ATTACHMENT_ID },
-        expect.objectContaining({ delay: COVER_CLEANUP_DELAY_MS }),
+        expect.objectContaining({ jobId, delay: COVER_CLEANUP_DELAY_MS }),
       ],
     ]);
   });

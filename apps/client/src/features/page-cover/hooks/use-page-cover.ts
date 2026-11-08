@@ -3,26 +3,19 @@ import { useMutation } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { queryClient } from "@/main.tsx";
-import {
-  updatePage,
-  uploadFile,
-} from "@/features/page/services/page-service.ts";
+import { updatePage } from "@/features/page/services/page-service.ts";
+import { uploadCoverImage } from "@/features/page-cover/services/page-cover-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { getFileUploadSizeLimit } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
 import {
+  CoverChange,
   PageCoverFields,
-  PageCoverUpdate,
   UnsplashPhoto,
 } from "@/features/page-cover/page-cover.types.ts";
 import { compressCoverImage } from "@/features/page-cover/compress-cover-image.ts";
 import { toUnsplashCoverValue } from "@/features/page-cover/page-cover.utils.ts";
-
-export type CoverChange = PageCoverUpdate & {
-  // shown until the server answers, for covers it resolves itself
-  preview?: PageCoverFields;
-};
 
 function setCachedCover(page: IPage, fields: PageCoverFields) {
   for (const key of [page.id, page.slugId]) {
@@ -101,7 +94,7 @@ export function usePageCover(page: IPage) {
     mutationKey,
     scope,
     mutationFn: async (file: File) => {
-      const attachment = await uploadFile(file, page.id);
+      const attachment = await uploadCoverImage(file, page.id);
       return updatePage({
         pageId: page.id,
         coverPhoto: `/api/files/${attachment.id}/${attachment.fileName}`,

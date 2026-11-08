@@ -114,6 +114,10 @@ export function toCssUrl(src: string): string {
   return `url("${src.replace(/["\\]/g, "\\$&")}")`;
 }
 
+export function isUploadedCover(coverPhoto: unknown): coverPhoto is string {
+  return typeof coverPhoto === "string" && COVER_FILE_PATTERN.test(coverPhoto);
+}
+
 export function getCoverPosition(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return DEFAULT_COVER_POSITION;

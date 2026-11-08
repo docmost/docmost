@@ -139,6 +139,13 @@ export class AttachmentController {
       throw new BadRequestException('Invalid attachment id');
     }
 
+    // page covers are the only special upload, and they are never overwritten
+    const type = file.fields?.type?.value;
+    const isCover = type === AttachmentType.PageCover;
+    if ((type !== undefined && !isCover) || (isCover && attachmentId)) {
+      throw new BadRequestException('Invalid attachment type');
+    }
+
     try {
       const fileResponse = await this.attachmentService.uploadFile({
         filePromise: file,
@@ -147,6 +154,7 @@ export class AttachmentController {
         userId: user.id,
         workspaceId: workspace.id,
         attachmentId: attachmentId,
+        type: isCover ? AttachmentType.PageCover : AttachmentType.File,
       });
 
       this.auditService.log({
@@ -310,7 +318,8 @@ export class AttachmentController {
 
     if (
       !validAttachmentTypes.includes(attachmentType) ||
-      attachmentType === AttachmentType.File
+      attachmentType === AttachmentType.File ||
+      attachmentType === AttachmentType.PageCover
     ) {
       throw new BadRequestException('Invalid image attachment type');
     }
@@ -370,7 +379,8 @@ export class AttachmentController {
   ) {
     if (
       !validAttachmentTypes.includes(attachmentType) ||
-      attachmentType === AttachmentType.File
+      attachmentType === AttachmentType.File ||
+      attachmentType === AttachmentType.PageCover
     ) {
       throw new BadRequestException('Invalid image attachment type');
     }

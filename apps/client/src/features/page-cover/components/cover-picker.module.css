@@ -26,6 +26,11 @@
 
 .sectionTitle {
   margin-bottom: rem(8px);
+
+  & a {
+    color: inherit;
+    text-decoration: underline;
+  }
 }
 
 .grid {
@@ -192,7 +197,7 @@
   display: flex;
   padding: rem(16px) rem(6px) rem(4px);
   border-radius: 0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 55%, transparent);
   opacity: 0;
   transition: opacity 120ms ease;
   pointer-events: none;
@@ -254,7 +259,8 @@
 }
 
 .photoSource {
-  margin-top: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  border-top: 1px solid var(--mantine-color-default-border);
   text-align: center;
 
   & a {

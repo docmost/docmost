@@ -11,12 +11,16 @@ import {
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { EnvironmentService } from '../environment/environment.service';
+import { proxyFetch } from '../../common/proxy-fetch';
 import {
   UNSPLASH_API_URL,
   UNSPLASH_CACHE_PREFIX,
+  UNSPLASH_COVER_LIMIT,
+  UNSPLASH_COVER_WINDOW_MS,
   UNSPLASH_DEFAULT_TOPIC,
   UNSPLASH_DISABLED_MESSAGE,
   UNSPLASH_LIST_TTL_MS,
+  UNSPLASH_MAX_PAGE,
   UNSPLASH_PER_PAGE,
   UNSPLASH_PHOTO_ID_PATTERN,
   UNSPLASH_PHOTO_TTL_MS,
@@ -26,18 +30,19 @@ import {
 } from './unsplash.constants';
 import {
   UnsplashCover,
+  UnsplashCoverBudget,
   UnsplashPhotoList,
+  UnsplashPhotoPage,
   UnsplashPhotoRecord,
 } from './unsplash.types';
 import {
+  discardBody,
   isRateLimited,
   normalizeQuery,
   toPhotoRecord,
   toPhotoRecords,
   toPublicPhoto,
 } from './unsplash.utils';
-
-type PhotoPage = { photos: UnsplashPhotoRecord[]; hasMore: boolean };
 
 @Injectable()
 export class UnsplashService {
@@ -66,16 +71,20 @@ export class UnsplashService {
     // a chosen photo is usually one just listed, so it needs no lookup
     await Promise.all(photos.map((photo) => this.cachePhoto(photo)));
 
-    const result = { items: photos.map(toPublicPhoto), hasMore };
+    const result = {
+      items: photos.map(toPublicPhoto),
+      hasMore: hasMore && page < UNSPLASH_MAX_PAGE,
+    };
     await this.cacheManager.set(cacheKey, result, UNSPLASH_LIST_TTL_MS);
     return result;
   }
 
-  async getCover(photoId: string): Promise<UnsplashCover> {
+  async getCover(photoId: string, userId: string): Promise<UnsplashCover> {
     this.assertEnabled();
     if (!UNSPLASH_PHOTO_ID_PATTERN.test(photoId)) {
       throw new BadRequestException('Invalid cover photo');
     }
+    await this.takeCoverBudget(userId);
 
     const photo =
       (await this.cacheManager.get<UnsplashPhotoRecord>(
@@ -95,8 +104,14 @@ export class UnsplashService {
     };
   }
 
-  private async searchPhotos(query: string, page: number): Promise<PhotoPage> {
-    const response = await this.request(
+  private async searchPhotos(
+    query: string,
+    page: number,
+  ): Promise<UnsplashPhotoPage> {
+    const body = await this.requestJson<{
+      total_pages?: number;
+      results?: unknown;
+    }>(
       this.buildUrl('/search/photos', {
         query,
         page,
@@ -105,38 +120,37 @@ export class UnsplashService {
         content_filter: 'high',
       }),
     );
-    const body = (await response.json()) as {
-      total_pages?: number;
-      results?: unknown;
-    };
+    this.assertList(body?.results);
 
     return {
-      photos: toPhotoRecords(body?.results),
-      hasMore: page < Number(body?.total_pages ?? 0),
+      photos: toPhotoRecords(body.results),
+      hasMore: page < Number(body.total_pages ?? 0),
     };
   }
 
-  private async listTopicPhotos(page: number): Promise<PhotoPage> {
-    const response = await this.request(
+  private async listTopicPhotos(page: number): Promise<UnsplashPhotoPage> {
+    let total = 0;
+    const results = await this.requestJson<unknown>(
       this.buildUrl(`/topics/${UNSPLASH_DEFAULT_TOPIC}/photos`, {
         page,
         per_page: UNSPLASH_PER_PAGE,
         orientation: 'landscape',
       }),
+      (response) => (total = Number(response.headers.get('x-total'))),
     );
-    const results = await response.json();
-    const total = Number(response.headers.get('x-total'));
+    this.assertList(results);
+
     const hasMore =
       total > 0
         ? page * UNSPLASH_PER_PAGE < total
-        : Array.isArray(results) && results.length === UNSPLASH_PER_PAGE;
-
+        : results.length === UNSPLASH_PER_PAGE;
     return { photos: toPhotoRecords(results), hasMore };
   }
 
   private async fetchPhoto(photoId: string): Promise<UnsplashPhotoRecord> {
-    const response = await this.request(this.buildUrl(`/photos/${photoId}`));
-    const photo = toPhotoRecord(await response.json());
+    const photo = toPhotoRecord(
+      await this.requestJson<unknown>(this.buildUrl(`/photos/${photoId}`)),
+    );
     if (!photo) {
       throw new ServiceUnavailableException(UNSPLASH_UNAVAILABLE_MESSAGE);
     }
@@ -147,7 +161,7 @@ export class UnsplashService {
   // Unsplash asks apps to report each photo a user picks
   private async trackDownload(photo: UnsplashPhotoRecord): Promise<void> {
     try {
-      await this.request(photo.downloadLocation);
+      await discardBody(await this.request(photo.downloadLocation));
     } catch (err) {
       this.logger.warn(
         `Failed to report Unsplash download for ${photo.id}: ${(err as Error).message}`,
@@ -155,10 +169,44 @@ export class UnsplashService {
     }
   }
 
+  // page updates have no throttle, so picking a photo has its own per-user limit
+  private async takeCoverBudget(userId: string): Promise<void> {
+    const key = `${UNSPLASH_CACHE_PREFIX}covers:${userId}`;
+    const now = Date.now();
+    const saved = await this.cacheManager.get<UnsplashCoverBudget>(key);
+    const budget =
+      saved && saved.resetAt > now
+        ? saved
+        : { used: 0, resetAt: now + UNSPLASH_COVER_WINDOW_MS };
+
+    if (budget.used >= UNSPLASH_COVER_LIMIT) {
+      throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
+    }
+    await this.cacheManager.set(
+      key,
+      { used: budget.used + 1, resetAt: budget.resetAt },
+      budget.resetAt - now,
+    );
+  }
+
+  private async requestJson<T>(
+    url: string,
+    onResponse?: (response: Response) => void,
+  ): Promise<T> {
+    const response = await this.request(url);
+    onResponse?.(response);
+    try {
+      return (await response.json()) as T;
+    } catch {
+      this.logger.warn('Unsplash returned a response that is not JSON');
+      throw new ServiceUnavailableException(UNSPLASH_UNAVAILABLE_MESSAGE);
+    }
+  }
+
   private async request(url: string): Promise<Response> {
     let response: Response;
     try {
-      response = await fetch(url, {
+      response = await proxyFetch(url, {
         headers: {
           Authorization: `Client-ID ${this.environmentService.getUnsplashAccessKey()}`,
           'Accept-Version': 'v1',
@@ -177,12 +225,21 @@ export class UnsplashService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+    await discardBody(response);
     if (response.status === 404) {
       throw new NotFoundException('Photo not found');
     }
 
     this.logger.warn(`Unsplash responded with status ${response.status}`);
     throw new ServiceUnavailableException(UNSPLASH_UNAVAILABLE_MESSAGE);
+  }
+
+  // an unexpected answer must not be cached as an empty list
+  private assertList(value: unknown): asserts value is unknown[] {
+    if (!Array.isArray(value)) {
+      this.logger.warn('Unsplash returned an unexpected list');
+      throw new ServiceUnavailableException(UNSPLASH_UNAVAILABLE_MESSAGE);
+    }
   }
 
   private buildUrl(

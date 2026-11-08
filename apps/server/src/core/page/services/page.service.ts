@@ -71,18 +71,13 @@ import {
   getCoverAttachmentId,
   getUnsplashPhotoId,
   isPresetCover,
+  queueCoverCleanup,
   remapCopiedCover,
 } from '../page-cover.utils';
-import {
-  COVER_CLEANUP_DELAY_MS,
-  COVER_IMAGE_MIME_TYPES,
-} from '../page-cover.constants';
+import { COVER_IMAGE_MIME_TYPES } from '../page-cover.constants';
+import { CoverFields } from '../page-cover.types';
 import { UnsplashService } from '../../../integrations/unsplash/unsplash.service';
-
-type CoverFields = Pick<
-  UpdatablePage,
-  'coverPhoto' | 'coverPosition' | 'coverAttribution'
->;
+import { AttachmentType } from '../../attachment/attachment.constants';
 
 @Injectable()
 export class PageService {
@@ -261,7 +256,11 @@ export class PageService {
     contributors.add(user.id);
     const contributorIds = Array.from(contributors);
 
-    const coverFields = await this.resolveCoverFields(page, updatePageDto);
+    const coverFields = await this.resolveCoverFields(
+      page,
+      updatePageDto,
+      user,
+    );
 
     await this.pageRepo.updatePage(
       {
@@ -314,12 +313,13 @@ export class PageService {
   private async resolveCoverFields(
     page: Page,
     dto: UpdatePageDto,
+    user: User,
   ): Promise<CoverFields> {
     const fields: CoverFields = {};
 
     // sending back the current cover changes nothing
     if (dto.coverPhoto !== undefined && dto.coverPhoto !== page.coverPhoto) {
-      const cover = await this.resolveCover(page, dto.coverPhoto);
+      const cover = await this.resolveCover(page, dto.coverPhoto, user);
       fields.coverPhoto = cover.coverPhoto;
       if (cover.coverPhoto !== page.coverPhoto) {
         fields.coverPosition = null;
@@ -343,6 +343,7 @@ export class PageService {
   private async resolveCover(
     page: Page,
     coverPhoto: string | null,
+    user: User,
   ): Promise<Pick<CoverFields, 'coverPhoto' | 'coverAttribution'>> {
     if (coverPhoto === null || isPresetCover(coverPhoto)) {
       return { coverPhoto, coverAttribution: null };
@@ -350,7 +351,7 @@ export class PageService {
 
     const unsplashPhotoId = getUnsplashPhotoId(coverPhoto);
     if (unsplashPhotoId) {
-      return this.unsplashService.getCover(unsplashPhotoId);
+      return this.unsplashService.getCover(unsplashPhotoId, user.id);
     }
 
     return {
@@ -368,8 +369,10 @@ export class PageService {
       ? await this.attachmentRepo.findById(attachmentId)
       : null;
 
+    // only cover uploads, so the cleanup job never touches a file the page shows elsewhere
     if (
       !attachment ||
+      attachment.type !== AttachmentType.PageCover ||
       attachment.workspaceId !== page.workspaceId ||
       attachment.pageId !== page.id ||
       !COVER_IMAGE_MIME_TYPES.includes(attachment.mimeType)
@@ -389,15 +392,12 @@ export class PageService {
       return;
     }
 
-    this.attachmentQueue
-      .add(
-        QueueJob.DELETE_UNUSED_COVER,
-        { pageId: page.id, attachmentId },
-        { delay: COVER_CLEANUP_DELAY_MS, removeOnComplete: true },
-      )
-      .catch((err) =>
-        this.logger.warn(`Failed to queue cover cleanup: ${err.message}`),
-      );
+    queueCoverCleanup(this.attachmentQueue, {
+      pageId: page.id,
+      attachmentId,
+    }).catch((err) =>
+      this.logger.warn(`Failed to queue cover cleanup: ${err.message}`),
+    );
   }
 
   async updatePageContent(

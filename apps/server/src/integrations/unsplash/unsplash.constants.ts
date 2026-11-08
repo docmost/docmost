@@ -15,6 +15,8 @@ export const UNSPLASH_REQUEST_TIMEOUT_MS = 10_000;
 export const UNSPLASH_CACHE_PREFIX = 'unsplash:';
 export const UNSPLASH_LIST_TTL_MS = 10 * 60_000;
 export const UNSPLASH_PHOTO_TTL_MS = 60 * 60_000;
+export const UNSPLASH_COVER_LIMIT = 30;
+export const UNSPLASH_COVER_WINDOW_MS = 60_000;
 
 export const UNSPLASH_RATE_LIMIT_MESSAGE =
   'Unsplash rate limit reached. Try again later.';

@@ -2,6 +2,7 @@ import { BadRequestException, HttpException } from '@nestjs/common';
 import { UnsplashService } from './unsplash.service';
 
 const API = 'https://api.unsplash.com';
+const USER_ID = '019a1f00-0000-7000-8000-000000000005';
 
 function apiPhoto(id: string, overrides: Record<string, unknown> = {}) {
   return {
@@ -147,7 +148,7 @@ describe('UnsplashService', () => {
       .mockResolvedValueOnce(jsonResponse({ url: 'https://images.unsplash.com/x' }));
     await service.listPhotos('mountains', 1);
 
-    const cover = await service.getCover('a1');
+    const cover = await service.getCover('a1', USER_ID);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(requestedUrl(1).toString()).toBe(`${API}/photos/a1/download?ixid=abc`);
@@ -170,7 +171,7 @@ describe('UnsplashService', () => {
       .mockResolvedValueOnce(jsonResponse(apiPhoto('z9')))
       .mockResolvedValueOnce(jsonResponse({}));
 
-    const cover = await service.getCover('z9');
+    const cover = await service.getCover('z9', USER_ID);
 
     expect(requestedUrl(0).pathname).toBe('/photos/z9');
     expect(cover.coverAttribution.photoId).toBe('z9');
@@ -182,7 +183,7 @@ describe('UnsplashService', () => {
       .mockResolvedValueOnce(jsonResponse(apiPhoto('z9')))
       .mockRejectedValueOnce(new Error('network down'));
 
-    await expect(service.getCover('z9')).resolves.toMatchObject({
+    await expect(service.getCover('z9', USER_ID)).resolves.toMatchObject({
       coverAttribution: { photoId: 'z9' },
     });
   });
@@ -211,8 +212,57 @@ describe('UnsplashService', () => {
     const { service } = makeService();
     fetchMock.mockResolvedValueOnce(new Response('', { status: 404 }));
 
-    const error = await service.getCover('missing').catch((err) => err);
+    const error = await service.getCover('missing', USER_ID).catch((err) => err);
 
     expect(error.getStatus()).toBe(404);
+  });
+
+  it('reports a rejected access key as unavailable, never as 401', async () => {
+    const { service } = makeService();
+    fetchMock.mockResolvedValueOnce(new Response('OAuth error', { status: 401 }));
+
+    const error = await service.listPhotos('x', 1).catch((err) => err);
+
+    expect(error.getStatus()).toBe(503);
+  });
+
+  it('reports a malformed response as unavailable and does not cache it', async () => {
+    const { service } = makeService();
+    fetchMock
+      .mockResolvedValueOnce(new Response('<html>maintenance</html>', { status: 200 }))
+      .mockResolvedValueOnce(jsonResponse({ total_pages: 1, results: {} }))
+      .mockResolvedValueOnce(jsonResponse({ total_pages: 1, results: [apiPhoto('a1')] }));
+
+    expect((await service.listPhotos('x', 1).catch((err) => err)).getStatus()).toBe(503);
+    expect((await service.listPhotos('x', 1).catch((err) => err)).getStatus()).toBe(503);
+    const result = await service.listPhotos('x', 1);
+
+    expect(result.items.map((item) => item.id)).toEqual(['a1']);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops at the last page it accepts', async () => {
+    const { service } = makeService();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ total_pages: 200, results: [apiPhoto('a1')] }),
+    );
+
+    const result = await service.listPhotos('x', 50);
+
+    expect(result.hasMore).toBe(false);
+  });
+
+  it('limits how many covers one user can pick a minute', async () => {
+    const { service } = makeService();
+    fetchMock.mockImplementation(async () => jsonResponse(apiPhoto('z9')));
+
+    for (let i = 0; i < 30; i++) {
+      await service.getCover('z9', USER_ID);
+    }
+    const error = await service.getCover('z9', USER_ID).catch((err) => err);
+    const otherUser = await service.getCover('z9', 'another-user');
+
+    expect(error.getStatus()).toBe(429);
+    expect(otherUser.coverAttribution.photoId).toBe('z9');
   });
 });

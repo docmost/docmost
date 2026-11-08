@@ -148,19 +148,25 @@ describe.each([
     insertAttachment: jest.fn(),
     updateAttachment: jest.fn(),
   };
-  const attachmentQueue = { add: jest.fn() };
+  const attachmentQueue = { add: jest.fn(), remove: jest.fn() };
   const auditService = { log: jest.fn() };
 
-  const post = (content: Buffer, fields: Record<string, string> = {}) =>
+  const postFile = (
+    fileName: string,
+    content: Buffer,
+    fields: Record<string, string> = {},
+  ) =>
     app.inject({
       method: 'POST',
       url: '/files/upload',
       headers: MULTIPART_HEADERS,
-      payload: multipartBody('diagram.pdf', content, {
+      payload: multipartBody(fileName, content, {
         pageId: PAGE_ID,
         ...fields,
       }),
     });
+  const post = (content: Buffer, fields: Record<string, string> = {}) =>
+    postFile('diagram.pdf', content, fields);
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -242,6 +248,60 @@ describe.each([
   afterEach(async () => {
     await app.close();
     await storage.cleanup();
+  });
+
+  describe('cover uploads', () => {
+    it('stores a cover image as a page cover and queues its cleanup', async () => {
+      const content = randomBytes(1024);
+
+      const response = await postFile('team offsite.jpg', content, {
+        type: 'page-cover',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const { id, filePath } = response.json();
+      expect(await storage.read(filePath)).toEqual(content);
+      expect(attachmentRepo.insertAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({ id, type: 'page-cover', pageId: PAGE_ID }),
+        undefined,
+      );
+      expect(attachmentQueue.remove).toHaveBeenCalledWith(`cover-cleanup-${id}`);
+      expect(attachmentQueue.add).toHaveBeenCalledWith(
+        'delete-unused-cover',
+        { pageId: PAGE_ID, attachmentId: id },
+        expect.objectContaining({ jobId: `cover-cleanup-${id}`, delay: 3_600_000 }),
+      );
+    });
+
+    it('rejects a cover that is not an image', async () => {
+      const response = await postFile('notes.pdf', randomBytes(1024), {
+        type: 'page-cover',
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(await storage.leftovers()).toEqual([]);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('never overwrites an existing attachment with a cover', async () => {
+      const response = await postFile('cover.jpg', randomBytes(1024), {
+        type: 'page-cover',
+        attachmentId: ATTACHMENT_ID,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects any other attachment type', async () => {
+      const response = await postFile('cover.jpg', randomBytes(1024), {
+        type: 'avatar',
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
   });
 
   describe('new attachments', () => {

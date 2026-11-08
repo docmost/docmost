@@ -112,7 +112,7 @@
   max-width: 100%;
   padding: rem(3px) rem(8px);
   border-radius: var(--mantine-radius-sm);
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   color: rgba(255, 255, 255, 0.85);
   font-size: rem(11px);
   line-height: rem(16px);
@@ -156,7 +156,7 @@
   opacity: 1;
 }
 
-/* phones have no room for both, so the open controls cover the credit */
+/* phones have no room for both in one row, so the controls sit above the credit */
 @media (max-width: $mantine-breakpoint-sm) {
   .controlsInner {
     position: relative;
@@ -168,10 +168,8 @@
     bottom: 0;
   }
 
-  .cover:is(:hover, :focus-within, [data-active]):not(:has(.bandCredit :focus))
-    .bandCredit {
-    opacity: 0;
-    pointer-events: none;
+  .controlsInner:has(.bandCredit) > .pill {
+    bottom: calc(100% + rem(8px));
   }
 }
 
@@ -232,7 +230,7 @@
   transform: translate(-50%, -50%);
   padding: rem(4px) rem(10px);
   border-radius: var(--mantine-radius-sm);
-  background-color: rgba(0, 0, 0, 0.55);
+  background-color: rgba(0, 0, 0, 0.6);
   color: var(--mantine-color-white);
   font-size: var(--mantine-font-size-xs);
   font-weight: 500;

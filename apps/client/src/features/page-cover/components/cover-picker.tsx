@@ -13,14 +13,13 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCheck, IconPhotoUp } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { useSetAtom } from "jotai";
 import clsx from "clsx";
 import classes from "./cover-picker.module.css";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { isUnsplashEnabled } from "@/lib/config.ts";
 import { usePageCover } from "@/features/page-cover/hooks/use-page-cover.ts";
 import { UnsplashPanel } from "@/features/page-cover/components/unsplash-panel.tsx";
-import { coverFocusRequestAtom } from "@/features/page-cover/atoms/page-cover-atoms.ts";
+import { CoverCreditText } from "@/features/page-cover/components/cover-credit.tsx";
 import {
   COVER_COLOR_PRESETS,
   COVER_GRADIENT_PRESETS,
@@ -29,7 +28,7 @@ import {
 } from "@/features/page-cover/page-cover.constants.ts";
 import {
   getCoverCredit,
-  getCoverPreset,
+  isUploadedCover,
   resolveCover,
   toCoverValue,
   toCssUrl,
@@ -60,7 +59,6 @@ export function CoverPicker({
   const [unsplashSearch, setUnsplashSearch] = useState("");
   const [wasOpened, setWasOpened] = useState(opened);
   const [openedWith, setOpenedWith] = useState<PageCoverFields | null>(null);
-  const setFocusRequest = useSetAtom(coverFocusRequestAtom);
   const { updateCover, uploadCover, selectUnsplashPhoto, isUploading } =
     usePageCover(page);
   const unsplashEnabled = isUnsplashEnabled();
@@ -77,14 +75,15 @@ export function CoverPicker({
     }
   }
 
-  const openedCover =
-    openedWith?.coverPhoto && !getCoverPreset(openedWith.coverPhoto)
-      ? resolveCover(openedWith.coverPhoto)
-      : null;
   const openedCredit = getCoverCredit(
     openedWith?.coverPhoto,
     openedWith?.coverAttribution,
   );
+  // an Unsplash photo is looked up again, so it needs Unsplash to be on
+  const openedCover =
+    isUploadedCover(openedWith?.coverPhoto) || (openedCredit && unsplashEnabled)
+      ? resolveCover(openedWith.coverPhoto)
+      : null;
   const currentCredit = getCoverCredit(page.coverPhoto, page.coverAttribution);
 
   const selectPreset = (preset: CoverPreset) => {
@@ -106,16 +105,6 @@ export function CoverPicker({
       return;
     }
     updateCover({ coverPhoto: openedWith.coverPhoto, coverPosition });
-  };
-
-  const removeCover = () => {
-    setFocusRequest({
-      pageId: page.id,
-      target: "add-cover",
-      requestedAt: Date.now(),
-    });
-    onChange(false);
-    updateCover({ coverPhoto: null });
   };
 
   const uploadImage = async (file: File | null) => {
@@ -143,7 +132,7 @@ export function CoverPicker({
       middlewares={{
         // never flip over the cover being previewed; scroll instead
         flip: false,
-        shift: true,
+        shift: { padding: 12 },
         size: {
           padding: 12,
           apply: ({ availableHeight, elements }) => {
@@ -176,15 +165,6 @@ export function CoverPicker({
               <Tabs.Tab value="upload">{t("Upload")}</Tabs.Tab>
               {unsplashEnabled && <Tabs.Tab value="unsplash">Unsplash</Tabs.Tab>}
             </Tabs.List>
-            <Button
-              variant="subtle"
-              color="gray"
-              size="compact-sm"
-              fw={500}
-              onClick={removeCover}
-            >
-              {t("Remove")}
-            </Button>
           </div>
 
           <Tabs.Panel value="gallery">
@@ -196,7 +176,15 @@ export function CoverPicker({
             >
               <div className={classes.body}>
                 {openedCover?.kind === "image" && (
-                  <TileGroup title={openedCredit ? "Unsplash" : t("Uploaded")}>
+                  <TileGroup
+                    title={
+                      openedCredit ? (
+                        <CoverCreditText attribution={openedCredit} />
+                      ) : (
+                        t("Uploaded")
+                      )
+                    }
+                  >
                     <CoverTile
                       label={
                         openedCredit
@@ -257,7 +245,7 @@ export function CoverPicker({
 }
 
 type TileGroupProps = {
-  title: string;
+  title: React.ReactNode;
   compact?: boolean;
   children: React.ReactNode;
 };

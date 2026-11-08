@@ -1625,12 +1625,10 @@
   "Uploading image": "Uploading image",
   "Remove cover": "Remove cover",
   "Search photos": "Search photos",
-  "Search Unsplash": "Search Unsplash",
   "Photo by {{name}}": "Photo by {{name}}",
   "{{description}}, photo by {{name}}": "{{description}}, photo by {{name}}",
   "Failed to load photos": "Failed to load photos",
-  "No photos match your search.": "No photos match your search.",
   "Unsplash rate limit reached. Try again later.": "Unsplash rate limit reached. Try again later.",
-  "Photo by <author>{{name}}</author> on <unsplash>Unsplash</unsplash>": "Photo by <author>{{name}}</author> on <unsplash>Unsplash</unsplash>",
+  "Photo by <author/> on <unsplash>Unsplash</unsplash>": "Photo by <author/> on <unsplash>Unsplash</unsplash>",
   "Photos from <unsplash>Unsplash</unsplash>": "Photos from <unsplash>Unsplash</unsplash>"
 }
