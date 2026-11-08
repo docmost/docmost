@@ -1,8 +1,10 @@
 import { CoverPreset } from "@/features/page-cover/page-cover.types.ts";
 
+// as files, so the picker's thumbnails stay out of the page bundle
 const assets = import.meta.glob<string>("./assets/*.webp", {
   eager: true,
   import: "default",
+  query: "?no-inline",
 });
 
 function imagePreset(
@@ -82,24 +84,20 @@ export const UNSPLASH_LICENSE_URL = `https://unsplash.com/license?${UNSPLASH_REF
 export const UNSPLASH_SEARCH_DEBOUNCE_MS = 400;
 export const UNSPLASH_SKELETON_COUNT = 24;
 
-export const COVER_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-];
-
 // the first extension is the one written for converted files
 export const COVER_TYPE_EXTENSIONS: Record<string, string[]> = {
   "image/jpeg": ["jpg", "jpeg"],
   "image/png": ["png"],
   "image/webp": ["webp"],
-  "image/gif": ["gif"],
 };
+
+export const COVER_IMAGE_TYPES = Object.keys(COVER_TYPE_EXTENSIONS);
 
 export const DEFAULT_COVER_POSITION = 50;
 export const COVER_POSITION_STEP = 10;
 export const COVER_FOCUS_REQUEST_TTL = 2000;
 export const COVER_MAX_DIMENSION = 2560;
 export const COVER_COMPRESS_THRESHOLD = 1.5 * 1024 * 1024;
-export const COVER_JPEG_QUALITY = 0.85;
+export const COVER_MAX_BYTES = 5 * 1024 * 1024;
+export const COVER_QUALITY_STEPS = [0.85, 0.7, 0.55, 0.4];
+export const COVER_SCALE_STEPS = [1, 0.75, 0.5625, 0.421875];

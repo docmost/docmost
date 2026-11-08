@@ -1,4 +1,4 @@
-import React, { useId, useState } from "react";
+import React, { useId, useRef, useState } from "react";
 import {
   Button,
   FileButton,
@@ -83,6 +83,10 @@ export function CoverPicker({
       ? resolveCover(openedWith.coverPhoto)
       : null;
   const currentCredit = getCoverCredit(page.coverPhoto, page.coverAttribution);
+  // a restored photo comes back with a new address, so photos match by id
+  const openedIsCurrent = openedCredit
+    ? currentCredit?.photoId === openedCredit.photoId
+    : page.coverPhoto === openedWith?.coverPhoto;
 
   const selectPreset = (preset: CoverPreset) => {
     const coverPhoto = toCoverValue(preset);
@@ -91,7 +95,7 @@ export function CoverPicker({
   };
 
   const restoreOpenedCover = () => {
-    if (!openedWith || page.coverPhoto === openedWith.coverPhoto) return;
+    if (!openedWith || openedIsCurrent) return;
     const coverPosition = openedWith.coverPosition ?? null;
     if (openedCredit) {
       updateCover({
@@ -111,7 +115,7 @@ export function CoverPicker({
     if (!file || isUploading) return;
     if (!COVER_IMAGE_TYPES.includes(file.type)) {
       notifications.show({
-        message: t("Use a JPG, PNG, WebP or GIF image."),
+        message: t("Use a JPG, PNG or WebP image."),
         color: "red",
       });
       return;
@@ -185,7 +189,7 @@ export function CoverPicker({
                             })
                           : t("Uploaded image")
                       }
-                      selected={page.coverPhoto === openedWith.coverPhoto}
+                      selected={openedIsCurrent}
                       style={{ backgroundImage: toCssUrl(openedCover.src) }}
                       onClick={restoreOpenedCover}
                     />
@@ -336,6 +340,13 @@ type UploadDropzoneProps = {
 function UploadDropzone({ uploading, onFile }: UploadDropzoneProps) {
   const { t } = useTranslation();
   const [dragging, setDragging] = useState(false);
+  const resetFileInput = useRef<() => void>(null);
+
+  // an unchanged input fires no change event, so retrying the same file needs a reset
+  const pickFile = (file: File | null) => {
+    resetFileInput.current?.();
+    onFile(file);
+  };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -355,7 +366,11 @@ function UploadDropzone({ uploading, onFile }: UploadDropzoneProps) {
       onDrop={handleDrop}
     >
       <IconPhotoUp size={28} stroke={1.5} className={classes.dropIcon} />
-      <FileButton onChange={onFile} accept={COVER_IMAGE_TYPES.join(",")}>
+      <FileButton
+        resetRef={resetFileInput}
+        onChange={pickFile}
+        accept={COVER_IMAGE_TYPES.join(",")}
+      >
         {(props) => (
           // stays focusable while uploading, a disabled button would drop focus
           <Button

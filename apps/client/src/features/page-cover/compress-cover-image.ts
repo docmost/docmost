@@ -1,8 +1,10 @@
 import loadImage from "blueimp-load-image";
 import {
   COVER_COMPRESS_THRESHOLD,
-  COVER_JPEG_QUALITY,
+  COVER_MAX_BYTES,
   COVER_MAX_DIMENSION,
+  COVER_QUALITY_STEPS,
+  COVER_SCALE_STEPS,
   COVER_TYPE_EXTENSIONS,
 } from "@/features/page-cover/page-cover.constants.ts";
 
@@ -11,7 +13,6 @@ export function getCoverOutputType(
   downscaled: boolean,
   hasAlpha: () => boolean,
 ): "original" | "image/webp" | "image/jpeg" {
-  if (file.type === "image/gif") return "original";
   if (!downscaled && file.size <= COVER_COMPRESS_THRESHOLD) return "original";
 
   const mayHaveAlpha = file.type === "image/png" || file.type === "image/webp";
@@ -39,6 +40,22 @@ export function withCoverExtension(file: File): File {
   return new File([file], `${baseName}.${extensions[0]}`, { type: file.type });
 }
 
+// quality goes down before size, so the cover stays as sharp as it can
+export async function encodeWithinLimit(
+  encode: (scale: number, quality: number) => Promise<File>,
+  maxBytes = COVER_MAX_BYTES,
+): Promise<File | null> {
+  for (const scale of COVER_SCALE_STEPS) {
+    for (const quality of COVER_QUALITY_STEPS) {
+      const file = await encode(scale, quality);
+      if (file.size <= maxBytes) return file;
+      // png ignores the quality setting
+      if (file.type === "image/png") break;
+    }
+  }
+  return null;
+}
+
 function canvasHasAlpha(canvas: HTMLCanvasElement): boolean {
   const ctx = canvas.getContext("2d");
   if (!ctx) return false;
@@ -49,10 +66,24 @@ function canvasHasAlpha(canvas: HTMLCanvasElement): boolean {
   return false;
 }
 
+function scaleCanvas(canvas: HTMLCanvasElement, scale: number): HTMLCanvasElement {
+  if (scale === 1) return canvas;
+  const scaled = document.createElement("canvas");
+  scaled.width = Math.round(canvas.width * scale);
+  scaled.height = Math.round(canvas.height * scale);
+  const ctx = scaled.getContext("2d");
+  if (ctx) {
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, scaled.width, scaled.height);
+  }
+  return scaled;
+}
+
 function canvasToFile(
   canvas: HTMLCanvasElement,
   type: string,
   baseName: string,
+  quality: number,
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -68,14 +99,12 @@ function canvasToFile(
         );
       },
       type,
-      COVER_JPEG_QUALITY,
+      quality,
     );
   });
 }
 
-export async function compressCoverImage(file: File): Promise<File> {
-  if (file.type === "image/gif") return withCoverExtension(file);
-
+export async function compressCoverImage(file: File): Promise<File | null> {
   const { image, originalWidth, originalHeight } = await loadImage(file, {
     maxWidth: COVER_MAX_DIMENSION,
     maxHeight: COVER_MAX_DIMENSION,
@@ -94,6 +123,11 @@ export async function compressCoverImage(file: File): Promise<File> {
   if (outputType === "original") return withCoverExtension(file);
 
   const baseName = file.name.replace(/\.[^.]+$/, "") || "cover";
-  const encoded = await canvasToFile(canvas, outputType, baseName);
+  const scaled = new Map<number, HTMLCanvasElement>();
+  const encoded = await encodeWithinLimit((scale, quality) => {
+    if (!scaled.has(scale)) scaled.set(scale, scaleCanvas(canvas, scale));
+    return canvasToFile(scaled.get(scale), outputType, baseName, quality);
+  });
+  if (!encoded) return null;
   return withCoverExtension(pickSmallerCoverFile(file, encoded, downscaled));
 }

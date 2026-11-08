@@ -7,8 +7,6 @@ import { updatePage } from "@/features/page/services/page-service.ts";
 import { uploadCoverImage } from "@/features/page-cover/services/page-cover-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
-import { getFileUploadSizeLimit } from "@/lib/config.ts";
-import { formatBytes } from "@/lib";
 import {
   CoverChange,
   PageCoverFields,
@@ -116,15 +114,6 @@ export function usePageCover(page: IPage) {
       if (!compressed) {
         notifications.show({
           message: t("Failed to upload image"),
-          color: "red",
-        });
-        return false;
-      }
-      if (compressed.size > getFileUploadSizeLimit()) {
-        notifications.show({
-          message: t("File exceeds the {{limit}} attachment limit", {
-            limit: formatBytes(getFileUploadSizeLimit()),
-          }),
           color: "red",
         });
         return false;
