@@ -9,7 +9,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconPhotoUp } from "@tabler/icons-react";
+import { IconCheck, IconPhotoUp } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import classes from "./cover-picker.module.css";
@@ -21,8 +21,15 @@ import {
   COVER_IMAGE_TYPES,
   COVER_TEXTURE_PRESETS,
 } from "@/features/page-cover/page-cover.constants.ts";
-import { toCoverValue } from "@/features/page-cover/page-cover.utils.ts";
-import { CoverPreset } from "@/features/page-cover/page-cover.types.ts";
+import {
+  getCoverPreset,
+  resolveCover,
+  toCoverValue,
+} from "@/features/page-cover/page-cover.utils.ts";
+import {
+  CoverPreset,
+  PageCoverUpdate,
+} from "@/features/page-cover/page-cover.types.ts";
 
 type CoverPickerProps = {
   page: IPage;
@@ -39,10 +46,32 @@ export function CoverPicker({
 }: CoverPickerProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<string | null>("gallery");
+  const [wasOpened, setWasOpened] = useState(opened);
+  const [openedWith, setOpenedWith] = useState<PageCoverUpdate | null>(null);
   const { updateCover, uploadCover, isUploading } = usePageCover(page);
+
+  // remember an uploaded cover so trying presets never loses it
+  if (opened !== wasOpened) {
+    setWasOpened(opened);
+    if (opened) {
+      setOpenedWith({
+        coverPhoto: page.coverPhoto,
+        coverPosition: page.coverPosition ?? null,
+      });
+    }
+  }
+
+  const uploadedCover =
+    openedWith?.coverPhoto && !getCoverPreset(openedWith.coverPhoto)
+      ? resolveCover(openedWith.coverPhoto)
+      : null;
 
   const selectPreset = (preset: CoverPreset) => {
     updateCover({ coverPhoto: toCoverValue(preset) });
+  };
+
+  const restoreUploadedCover = () => {
+    if (openedWith) updateCover(openedWith);
   };
 
   const removeCover = () => {
@@ -68,7 +97,7 @@ export function CoverPicker({
       onChange={onChange}
       position="bottom-end"
       shadow="lg"
-      offset={8}
+      offset={20}
       trapFocus
       returnFocus
       withRoles={false}
@@ -124,6 +153,23 @@ export function CoverPicker({
               style={{ overscrollBehavior: "contain" }}
             >
               <div className={classes.body}>
+                {uploadedCover?.kind === "image" && (
+                  <section className={classes.section} aria-label={t("Uploaded")}>
+                    <Text size="xs" fw={500} c="dimmed" className={classes.sectionTitle}>
+                      {t("Uploaded")}
+                    </Text>
+                    <div className={classes.grid}>
+                      <CoverTile
+                        label={t("Uploaded image")}
+                        selected={page.coverPhoto === openedWith.coverPhoto}
+                        style={{
+                          backgroundImage: `url("${encodeURI(uploadedCover.src)}")`,
+                        }}
+                        onClick={restoreUploadedCover}
+                      />
+                    </div>
+                  </section>
+                )}
                 <PresetSection
                   title={t("Colors")}
                   presets={COVER_COLOR_PRESETS}
@@ -181,26 +227,49 @@ function PresetSection({
         {title}
       </Text>
       <div className={clsx(classes.grid, compact && classes.colorGrid)}>
-        {presets.map((preset) => {
-          const selected = toCoverValue(preset) === current;
-          return (
-            <UnstyledButton
-              key={preset.id}
-              className={clsx(classes.tile, compact && classes.colorTile)}
-              style={
-                preset.color
-                  ? { backgroundColor: preset.color }
-                  : { backgroundImage: `url(${preset.thumb})` }
-              }
-              aria-label={t(preset.label)}
-              aria-pressed={selected}
-              data-selected={selected || undefined}
-              onClick={() => onSelect(preset)}
-            />
-          );
-        })}
+        {presets.map((preset) => (
+          <CoverTile
+            key={preset.id}
+            label={t(preset.label)}
+            selected={toCoverValue(preset) === current}
+            compact={compact}
+            style={
+              preset.color
+                ? { backgroundColor: preset.color }
+                : { backgroundImage: `url("${preset.thumb}")` }
+            }
+            onClick={() => onSelect(preset)}
+          />
+        ))}
       </div>
     </section>
+  );
+}
+
+type CoverTileProps = {
+  label: string;
+  selected: boolean;
+  style: React.CSSProperties;
+  onClick: () => void;
+  compact?: boolean;
+};
+
+function CoverTile({ label, selected, style, onClick, compact }: CoverTileProps) {
+  return (
+    <UnstyledButton
+      className={clsx(classes.tile, compact && classes.colorTile)}
+      style={style}
+      aria-label={label}
+      aria-pressed={selected}
+      data-selected={selected || undefined}
+      onClick={onClick}
+    >
+      {selected && (
+        <span className={classes.check} aria-hidden>
+          <IconCheck size={11} stroke={3} />
+        </span>
+      )}
+    </UnstyledButton>
   );
 }
 
@@ -240,7 +309,7 @@ function UploadDropzone({ uploading, onFile }: UploadDropzoneProps) {
         )}
       </FileButton>
       <Text size="xs" c="dimmed">
-        {t("Images wider than 1500 pixels work best.")}
+        {t("Or drop an image here. Landscape images fill the cover best.")}
       </Text>
     </div>
   );

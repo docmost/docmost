@@ -15,6 +15,7 @@ import { DEFAULT_COVER_POSITION } from "@/features/page-cover/page-cover.constan
 import {
   getCoverOverflow,
   getCoverPositionAfterDrag,
+  getCoverPreset,
   resolveCover,
 } from "@/features/page-cover/page-cover.utils.ts";
 import { ResolvedCover } from "@/features/page-cover/page-cover.types.ts";
@@ -64,6 +65,8 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
 
   const imageSrc = cover.kind === "image" ? cover.src : null;
   const failed = imageSrc !== null && failedSrc === imageSrc;
+  // presets are seamless or evenly lit, so only uploads are worth repositioning
+  const isUpload = cover.kind === "image" && !getCoverPreset(page.coverPhoto);
   const savedPosition = page.coverPosition ?? DEFAULT_COVER_POSITION;
   const repositioning = draft !== null;
   const position = draft ?? savedPosition;
@@ -156,6 +159,8 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
       className={clsx(classes.cover, "print-hide")}
       data-active={pickerOpened || repositioning || undefined}
       data-below-toolbar={belowToolbar || undefined}
+      // lets a tap reveal the controls on touch screens
+      tabIndex={canEdit ? -1 : undefined}
     >
       {cover.kind === "color" ? (
         <div className={classes.fill} style={{ backgroundColor: cover.color }} />
@@ -192,17 +197,17 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
             onKeyDown={handleKeyDown}
           />
           <span id={hintId} className={classes.hint}>
-            {t("Drag image to reposition")}
+            {t("Drag the image up or down")}
           </span>
         </>
       )}
 
       {canEdit && (
         <div className={classes.controls}>
-          <Container fluid={fullPageWidth} size={!fullPageWidth && 900}>
+          <Container fluid={fullPageWidth} size={!fullPageWidth && 900} px={0}>
             <div className={classes.controlsInner}>
               {repositioning ? (
-                <Button.Group>
+                <Button.Group className={classes.pill}>
                   <Button {...pillButtonProps} onClick={savePosition}>
                     {t("Save position")}
                   </Button>
@@ -216,7 +221,7 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
                   opened={pickerOpened}
                   onChange={setPickerOpened}
                 >
-                  <Button.Group>
+                  <Button.Group className={classes.pill}>
                     <Button
                       {...pillButtonProps}
                       aria-haspopup="dialog"
@@ -225,7 +230,7 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
                     >
                       {t("Change cover")}
                     </Button>
-                    {cover.kind === "image" && !failed && (
+                    {isUpload && !failed && (
                       <Button
                         {...pillButtonProps}
                         ref={repositionButtonRef}

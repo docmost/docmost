@@ -29,7 +29,7 @@ export const COVER_COLOR_PRESETS: CoverPreset[] = [
   { id: "color-teal", kind: "color", label: "Teal", color: "#3d8f96" },
   { id: "color-blue", kind: "color", label: "Blue", color: "#4a7bc4" },
   { id: "color-purple", kind: "color", label: "Purple", color: "#7d66b5" },
-  { id: "color-graphite", kind: "color", label: "Graphite", color: "#3b4048" },
+  { id: "color-graphite", kind: "color", label: "Graphite", color: "#4b5563" },
 ];
 
 export const COVER_GRADIENT_PRESETS: CoverPreset[] = [
@@ -44,14 +44,23 @@ export const COVER_GRADIENT_PRESETS: CoverPreset[] = [
 ];
 
 export const COVER_TEXTURE_PRESETS: CoverPreset[] = [
-  imagePreset("texture", "paper", "Paper"),
+  imagePreset("texture", "sand", "Sand"),
+  imagePreset("texture", "kraft", "Kraft"),
   imagePreset("texture", "linen", "Linen"),
-  imagePreset("texture", "marbled", "Marbled"),
   imagePreset("texture", "terrazzo", "Terrazzo"),
+  imagePreset("texture", "graph", "Graph paper"),
   imagePreset("texture", "topography", "Topography"),
   imagePreset("texture", "blueprint", "Blueprint"),
-  imagePreset("texture", "concrete", "Concrete"),
   imagePreset("texture", "waves", "Waves"),
+];
+
+// "Add cover" picks from the quieter gradients only
+export const COVER_RANDOM_GRADIENT_IDS = [
+  "gradient-sky",
+  "gradient-slate",
+  "gradient-dusk",
+  "gradient-aurora",
+  "gradient-dune",
 ];
 
 export const COVER_PRESETS: CoverPreset[] = [

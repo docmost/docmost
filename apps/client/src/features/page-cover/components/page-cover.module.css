@@ -31,7 +31,6 @@
 .inlineCover {
   position: relative;
   aspect-ratio: 4 / 1;
-  min-height: rem(120px);
   margin-top: rem(10px);
   margin-bottom: rem(28px);
   border-radius: var(--mantine-radius-md);
@@ -40,6 +39,10 @@
     var(--mantine-color-gray-1),
     var(--mantine-color-dark-6)
   );
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    aspect-ratio: 5 / 2;
+  }
 
   @media print {
     display: none;
@@ -69,6 +72,10 @@
   }
 }
 
+.cover:focus {
+  outline: none;
+}
+
 .controls {
   position: absolute;
   bottom: rem(12px);
@@ -76,16 +83,6 @@
   opacity: 0;
   transition: opacity 120ms ease;
   pointer-events: none;
-
-  @media (hover: none) {
-    opacity: 1;
-  }
-}
-
-.cover:hover .controls,
-.cover:focus-within .controls,
-.cover[data-active] .controls {
-  opacity: 1;
 }
 
 .controlsInner {
@@ -96,10 +93,25 @@
   @media (max-width: $mantine-breakpoint-sm) {
     padding-inline: 1rem;
   }
+}
 
-  > * {
-    pointer-events: auto;
-  }
+.cover:hover .controls,
+.cover:focus-within .controls,
+.cover[data-active] .controls {
+  opacity: 1;
+}
+
+.cover:hover .controlsInner > *,
+.cover:focus-within .controlsInner > *,
+.cover[data-active] .controlsInner > * {
+  pointer-events: auto;
+}
+
+.pill {
+  border-radius: var(--mantine-radius-sm);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .dragSurface {

@@ -3,6 +3,7 @@ import {
   getCoverOutputType,
   getCoverOverflow,
   getCoverPositionAfterDrag,
+  pickRandomGradient,
   pickSmallerCoverFile,
   resolveCover,
 } from "./page-cover.utils";
@@ -51,6 +52,26 @@ describe("resolveCover", () => {
     [undefined],
   ])("renders nothing for %s", (value) => {
     expect(resolveCover(value)).toBeNull();
+  });
+});
+
+describe("pickRandomGradient", () => {
+  const calm = [
+    "gradient-sky",
+    "gradient-slate",
+    "gradient-dusk",
+    "gradient-aurora",
+    "gradient-dune",
+  ];
+
+  it("only picks calm gradients and never repeats the current cover", () => {
+    const picked = new Set<string>();
+    for (let i = 0; i < 300; i++) {
+      picked.add(pickRandomGradient("preset:gradient-sky").id);
+    }
+    expect([...picked].sort()).toEqual(
+      calm.filter((id) => id !== "gradient-sky").sort(),
+    );
   });
 });
 

@@ -9,6 +9,7 @@ import {
   COVER_MAX_DIMENSION,
   COVER_PRESET_PREFIX,
   COVER_PRESETS,
+  COVER_RANDOM_GRADIENT_IDS,
 } from "@/features/page-cover/page-cover.constants.ts";
 import {
   CoverPreset,
@@ -51,7 +52,9 @@ export function resolveCover(
 
 export function pickRandomGradient(currentCover?: string | null): CoverPreset {
   const options = COVER_GRADIENT_PRESETS.filter(
-    (preset) => toCoverValue(preset) !== currentCover,
+    (preset) =>
+      COVER_RANDOM_GRADIENT_IDS.includes(preset.id) &&
+      toCoverValue(preset) !== currentCover,
   );
   return options[Math.floor(Math.random() * options.length)];
 }
