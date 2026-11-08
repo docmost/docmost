@@ -13,7 +13,10 @@ import {
   UnsplashPhoto,
 } from "@/features/page-cover/page-cover.types.ts";
 import { compressCoverImage } from "@/features/page-cover/compress-cover-image.ts";
-import { toUnsplashCoverValue } from "@/features/page-cover/page-cover.utils.ts";
+import {
+  isSameUnsplashPhoto,
+  toUnsplashCoverValue,
+} from "@/features/page-cover/page-cover.utils.ts";
 
 function setCachedCover(page: IPage, fields: PageCoverFields) {
   for (const key of [page.id, page.slugId]) {
@@ -40,7 +43,14 @@ export function usePageCover(page: IPage) {
       coverPosition: saved.coverPosition,
       coverAttribution: saved.coverAttribution ?? null,
     };
-    setCachedCover(page, fields);
+    // the same photo saved under a new address keeps the image already loaded
+    const shown = queryClient.getQueryData<IPage>(["pages", page.slugId]);
+    setCachedCover(
+      page,
+      isSameUnsplashPhoto(shown, fields)
+        ? { ...fields, coverPhoto: shown.coverPhoto }
+        : fields,
+    );
     emit({
       operation: "updateOne",
       spaceId: page.spaceId,

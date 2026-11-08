@@ -108,6 +108,17 @@ export function getCoverCredit(
   return getCoverAttribution(attribution);
 }
 
+type CoverValue = { coverPhoto?: unknown; coverAttribution?: unknown };
+
+export function isSameUnsplashPhoto(
+  shown: CoverValue | undefined,
+  saved: CoverValue,
+): boolean {
+  const savedId = getCoverCredit(saved.coverPhoto, saved.coverAttribution)?.photoId;
+  const shownId = getCoverCredit(shown?.coverPhoto, shown?.coverAttribution)?.photoId;
+  return Boolean(savedId) && shownId === savedId;
+}
+
 export function getUnsplashProfileUrl(username: string): string {
   return `https://unsplash.com/@${encodeURIComponent(username)}?${UNSPLASH_REFERRAL}`;
 }

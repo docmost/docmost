@@ -6,6 +6,7 @@ import {
   getCoverPosition,
   getCoverPositionAfterDrag,
   getUnsplashProfileUrl,
+  isSameUnsplashPhoto,
   mergeUnsplashPages,
   pickRandomGradient,
   resolveCover,
@@ -13,6 +14,34 @@ import {
 } from "./page-cover.utils";
 import { UNSPLASH_HOME_URL } from "./page-cover.constants";
 import { UnsplashPhoto } from "./page-cover.types";
+
+describe("isSameUnsplashPhoto", () => {
+  const photo = (photoId: string, ixid: string) => ({
+    coverPhoto: `https://images.unsplash.com/photo-${photoId}?ixid=${ixid}&w=2560`,
+    coverAttribution: {
+      source: "unsplash" as const,
+      photoId,
+      authorName: "Ada",
+      authorUsername: "ada",
+    },
+  });
+
+  it("matches the same photo saved under a new address", () => {
+    expect(isSameUnsplashPhoto(photo("a1", "search"), photo("a1", "all"))).toBe(
+      true,
+    );
+  });
+
+  it("tells different photos apart", () => {
+    expect(isSameUnsplashPhoto(photo("a1", "x"), photo("b2", "x"))).toBe(false);
+  });
+
+  it("never matches a cover that is not an Unsplash photo", () => {
+    const preset = { coverPhoto: "preset:gradient-sky", coverAttribution: null };
+    expect(isSameUnsplashPhoto(preset, photo("a1", "x"))).toBe(false);
+    expect(isSameUnsplashPhoto(undefined, photo("a1", "x"))).toBe(false);
+  });
+});
 
 const FILE_ID = "019a1f00-0000-7000-8000-0000000000aa";
 
