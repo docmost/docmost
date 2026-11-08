@@ -15,6 +15,8 @@ import {
   CoverAttribution,
   CoverPreset,
   ResolvedCover,
+  UnsplashPhoto,
+  UnsplashPhotoList,
 } from "@/features/page-cover/page-cover.types.ts";
 
 type Size = { width: number; height: number };
@@ -108,6 +110,15 @@ export function getCoverCredit(
 
 export function getUnsplashProfileUrl(username: string): string {
   return `https://unsplash.com/@${encodeURIComponent(username)}?${UNSPLASH_REFERRAL}`;
+}
+
+// the feed can shift between page loads and repeat a photo on the next page
+export function mergeUnsplashPages(pages: UnsplashPhotoList[]): UnsplashPhoto[] {
+  const photos = new Map<string, UnsplashPhoto>();
+  for (const photo of pages.flatMap((page) => page.items)) {
+    if (!photos.has(photo.id)) photos.set(photo.id, photo);
+  }
+  return [...photos.values()];
 }
 
 export function toCssUrl(src: string): string {

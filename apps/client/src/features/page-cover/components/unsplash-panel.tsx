@@ -18,7 +18,10 @@ import {
   UNSPLASH_SEARCH_DEBOUNCE_MS,
   UNSPLASH_SKELETON_COUNT,
 } from "@/features/page-cover/page-cover.constants.ts";
-import { getUnsplashProfileUrl } from "@/features/page-cover/page-cover.utils.ts";
+import {
+  getUnsplashProfileUrl,
+  mergeUnsplashPages,
+} from "@/features/page-cover/page-cover.utils.ts";
 
 type UnsplashPanelProps = {
   search: string;
@@ -46,7 +49,7 @@ export function UnsplashPanel({
     fetchNextPage,
     refetch,
   } = useUnsplashPhotosQuery(query);
-  const photos = data?.pages.flatMap((page) => page.items) ?? [];
+  const photos = mergeUnsplashPages(data?.pages ?? []);
   const rateLimited = (error as any)?.response?.status === 429;
   const errorMessage = rateLimited
     ? t("Unsplash rate limit reached. Try again later.")

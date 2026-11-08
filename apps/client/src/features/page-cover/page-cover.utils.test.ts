@@ -6,11 +6,13 @@ import {
   getCoverPosition,
   getCoverPositionAfterDrag,
   getUnsplashProfileUrl,
+  mergeUnsplashPages,
   pickRandomGradient,
   resolveCover,
   toCssUrl,
 } from "./page-cover.utils";
 import { UNSPLASH_HOME_URL } from "./page-cover.constants";
+import { UnsplashPhoto } from "./page-cover.types";
 
 const FILE_ID = "019a1f00-0000-7000-8000-0000000000aa";
 
@@ -147,6 +149,30 @@ describe("Unsplash links", () => {
     expect(UNSPLASH_HOME_URL).toBe(
       "https://unsplash.com/?utm_source=docmost&utm_medium=referral",
     );
+  });
+});
+
+describe("mergeUnsplashPages", () => {
+  const photo = (id: string): UnsplashPhoto => ({
+    id,
+    description: null,
+    color: null,
+    thumbUrl: `https://images.unsplash.com/photo-${id}?w=400`,
+    coverUrl: `https://images.unsplash.com/photo-${id}?w=2560`,
+    authorName: "Ada",
+    authorUsername: "ada",
+  });
+
+  it("keeps each photo once when a later page repeats it", () => {
+    const pages = [
+      { items: [photo("a"), photo("b")], hasMore: true },
+      { items: [photo("b"), photo("c")], hasMore: false },
+    ];
+    expect(mergeUnsplashPages(pages).map((item) => item.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
   });
 });
 
