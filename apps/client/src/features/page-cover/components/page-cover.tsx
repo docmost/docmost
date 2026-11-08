@@ -353,37 +353,40 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
                   onChange={setPickerOpened}
                   dropdownId={pickerId}
                 >
-                  <Button.Group className={classes.pill}>
-                    <Button
-                      {...pillButtonProps}
-                      ref={changeCoverButtonRef}
-                      aria-haspopup="dialog"
-                      aria-expanded={pickerOpened}
-                      aria-controls={pickerOpened ? pickerId : undefined}
-                      onClick={() => setPickerOpened((opened) => !opened)}
-                    >
-                      {t("Change cover")}
-                    </Button>
-                    {canReposition && (
+                  <div className={classes.pillRow}>
+                    <Button.Group className={classes.pill}>
                       <Button
                         {...pillButtonProps}
-                        ref={repositionButtonRef}
-                        onClick={startRepositioning}
+                        ref={changeCoverButtonRef}
+                        aria-haspopup="dialog"
+                        aria-expanded={pickerOpened}
+                        aria-controls={pickerOpened ? pickerId : undefined}
+                        onClick={() => setPickerOpened((opened) => !opened)}
                       >
-                        {t("Reposition")}
+                        {t("Change cover")}
                       </Button>
-                    )}
+                      {canReposition && (
+                        <Button
+                          {...pillButtonProps}
+                          ref={repositionButtonRef}
+                          onClick={startRepositioning}
+                        >
+                          {t("Reposition")}
+                        </Button>
+                      )}
+                    </Button.Group>
                     <Tooltip label={t("Remove cover")} withArrow openDelay={250}>
                       <Button
                         {...pillButtonProps}
                         px={8}
+                        className={classes.pill}
                         aria-label={t("Remove cover")}
                         onClick={removeCover}
                       >
                         <IconTrash size={14} stroke={2} />
                       </Button>
                     </Tooltip>
-                  </Button.Group>
+                  </div>
                 </CoverPicker>
               )}
             </div>

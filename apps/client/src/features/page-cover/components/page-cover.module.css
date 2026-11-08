@@ -161,13 +161,15 @@
     position: relative;
   }
 
-  .controlsInner > .pill {
+  .controlsInner > .pill,
+  .controlsInner > .pillRow {
     position: absolute;
     right: 1rem;
     bottom: 0;
   }
 
-  .controlsInner:has(.bandCredit) > .pill {
+  .controlsInner:has(.bandCredit) > .pill,
+  .controlsInner:has(.bandCredit) > .pillRow {
     bottom: calc(100% + rem(8px));
   }
 }
@@ -188,6 +190,11 @@
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.08),
     0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.pillRow {
+  display: flex;
+  gap: rem(6px);
 }
 
 /* two-tone ring so focus stays visible on any cover */
