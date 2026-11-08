@@ -80,6 +80,7 @@ export default function SpaceHomePageView({
             title={page.title}
             content={page.content}
             pageId={page.id}
+            withLightbox
           />
         )}
       </Container>
