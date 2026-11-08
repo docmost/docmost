@@ -15,6 +15,7 @@ import { useUnsplashPhotosQuery } from "@/features/page-cover/queries/unsplash-q
 import { UnsplashPhoto } from "@/features/page-cover/page-cover.types.ts";
 import {
   UNSPLASH_HOME_URL,
+  UNSPLASH_LICENSE_URL,
   UNSPLASH_SEARCH_DEBOUNCE_MS,
   UNSPLASH_SKELETON_COUNT,
 } from "@/features/page-cover/page-cover.constants.ts";
@@ -137,10 +138,13 @@ export function UnsplashPanel({
       </ScrollArea.Autosize>
       <Text size="xs" c="dimmed" className={classes.photoSource}>
         <Trans
-          i18nKey="Photos from <unsplash>Unsplash</unsplash>"
+          i18nKey="Photos from <unsplash>Unsplash</unsplash> · <license>License</license>"
           components={{
             unsplash: (
               <a href={UNSPLASH_HOME_URL} target="_blank" rel="noopener noreferrer" />
+            ),
+            license: (
+              <a href={UNSPLASH_LICENSE_URL} target="_blank" rel="noopener noreferrer" />
             ),
           }}
         />

@@ -1630,5 +1630,5 @@
   "Failed to load photos": "Failed to load photos",
   "Unsplash rate limit reached. Try again later.": "Unsplash rate limit reached. Try again later.",
   "Photo by <author/> on <unsplash>Unsplash</unsplash>": "Photo by <author/> on <unsplash>Unsplash</unsplash>",
-  "Photos from <unsplash>Unsplash</unsplash>": "Photos from <unsplash>Unsplash</unsplash>"
+  "Photos from <unsplash>Unsplash</unsplash> · <license>License</license>": "Photos from <unsplash>Unsplash</unsplash> · <license>License</license>"
 }

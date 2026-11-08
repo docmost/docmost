@@ -78,6 +78,7 @@ export const UNSPLASH_IMAGE_HOST = "images.unsplash.com";
 export const UNSPLASH_USERNAME_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
 export const UNSPLASH_REFERRAL = "utm_source=docmost&utm_medium=referral";
 export const UNSPLASH_HOME_URL = `https://unsplash.com/?${UNSPLASH_REFERRAL}`;
+export const UNSPLASH_LICENSE_URL = `https://unsplash.com/license?${UNSPLASH_REFERRAL}`;
 export const UNSPLASH_SEARCH_DEBOUNCE_MS = 400;
 export const UNSPLASH_SKELETON_COUNT = 24;
 
