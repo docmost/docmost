@@ -32,19 +32,12 @@
     }
 
     @media (hover: none) {
-        pointer-events: none;
+        opacity: 1;
     }
 }
 
 .titleArea:hover .addCover {
     opacity: 1;
-}
-
-@media (hover: none) {
-    .titleArea:focus-within .addCover {
-        opacity: 1;
-        pointer-events: auto;
-    }
 }
 
 .byline {
