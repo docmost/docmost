@@ -48,6 +48,7 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
   const fullPageWidth = user?.settings?.preferences?.fullPageWidth;
   const editMode = useAtomValue(currentPageEditModeAtom);
   const canEdit = editable && editMode === PageEditMode.Edit;
+  const belowToolbar = canEdit && user?.settings?.preferences?.editorToolbar;
   const { updateCover } = usePageCover(page);
 
   const [pickerOpened, setPickerOpened] = useState(false);
@@ -154,6 +155,7 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
       ref={coverRef}
       className={clsx(classes.cover, "print-hide")}
       data-active={pickerOpened || repositioning || undefined}
+      data-below-toolbar={belowToolbar || undefined}
     >
       {cover.kind === "color" ? (
         <div className={classes.fill} style={{ backgroundColor: cover.color }} />

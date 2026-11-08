@@ -11,14 +11,6 @@
     }
 }
 
-.editorWithCover {
-    margin-top: 28px;
-
-    @media print {
-        margin-top: 0;
-    }
-}
-
 .coverRow {
     display: flex;
     align-items: center;

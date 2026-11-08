@@ -2,6 +2,8 @@
   position: relative;
   height: clamp(160px, 30vh, 280px);
   margin-top: calc(var(--page-header-height) - var(--app-shell-padding, 0px));
+  /* collapses with the editor's 48px top margin into a 28px gap */
+  margin-bottom: -20px;
   margin-inline: calc(var(--app-shell-padding, 0px) * -1);
   overflow: hidden;
   background-color: light-dark(
@@ -9,6 +11,13 @@
     var(--mantine-color-dark-6)
   );
   user-select: none;
+
+  /* the optional fixed editor toolbar sits under the page header */
+  &[data-below-toolbar] {
+    margin-top: calc(
+      var(--page-header-height) * 2 - var(--app-shell-padding, 0px)
+    );
+  }
 
   @media (max-width: $mantine-breakpoint-sm) {
     height: clamp(140px, 22vh, 200px);

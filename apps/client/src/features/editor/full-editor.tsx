@@ -95,11 +95,11 @@ export function FullEditor({
     <Container
       fluid={fullPageWidth}
       size={!fullPageWidth && 900}
-      className={clsx(classes.editor, hasCover && classes.editorWithCover)}
+      className={classes.editor}
       style={{ display: "flex", flexDirection: "column" }}
     >
       {editorToolbarEnabled && editable && isEditMode && (
-        <MemoizedFixedToolbar />
+        <MemoizedFixedToolbar withSpacer={!hasCover} />
       )}
       <MemoizedDeletedPageBanner slugId={slugId} />
       <div className={classes.titleArea}>
