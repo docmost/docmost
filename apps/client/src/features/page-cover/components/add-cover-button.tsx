@@ -30,7 +30,6 @@ function AddCoverAction({ page, className }: { page: IPage; className?: string }
   const [focusRequest, setFocusRequest] = useAtom(coverFocusRequestAtom);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // the cover was removed while focus was on it
   useEffect(() => {
     if (focusRequest?.pageId !== page.id) return;
     if (focusRequest.target !== "add-cover") return;

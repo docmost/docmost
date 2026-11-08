@@ -12,7 +12,6 @@
   );
   user-select: none;
 
-  /* the optional fixed editor toolbar sits under the page header */
   &[data-below-toolbar] {
     margin-top: calc(
       var(--page-header-height) * 2 - var(--app-shell-padding, 0px)
@@ -173,7 +172,6 @@
   }
 }
 
-/* touch screens cannot hover, so the photo credit stays visible */
 @media (hover: none) {
   .controlsInner > .bandCredit {
     opacity: 1;

@@ -139,7 +139,6 @@ export class AttachmentController {
       throw new BadRequestException('Invalid attachment id');
     }
 
-    // page covers are the only special upload, and they are never overwritten
     const type = file.fields?.type?.value;
     const isCover = type === AttachmentType.PageCover;
     if ((type !== undefined && !isCover) || (isCover && attachmentId)) {

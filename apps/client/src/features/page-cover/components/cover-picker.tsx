@@ -63,7 +63,6 @@ export function CoverPicker({
     usePageCover(page);
   const unsplashEnabled = isUnsplashEnabled();
 
-  // remember a photo cover so trying presets never loses it
   if (opened !== wasOpened) {
     setWasOpened(opened);
     if (opened) {
@@ -324,7 +323,6 @@ function CoverTile({ label, selected, style, onClick, compact }: CoverTileProps)
       aria-label={label}
       aria-pressed={selected}
       data-selected={selected || undefined}
-      // keyboard users start on the current cover
       data-autofocus={selected || undefined}
       onClick={onClick}
     >

@@ -98,7 +98,6 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
   const position = draft ?? savedPosition;
   const showReposition = repositioning && canEdit;
 
-  // a new cover, here or from another tab, ends repositioning
   useEffect(() => {
     if (previousCoverRef.current === page.coverPhoto) return;
     previousCoverRef.current = page.coverPhoto;

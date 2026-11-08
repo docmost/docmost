@@ -230,7 +230,6 @@
   }
 }
 
-/* touch screens always show the credit, a tap anywhere still picks the photo */
 @media (hover: none) {
   .photoCreditBar {
     opacity: 1;

@@ -317,7 +317,6 @@ export class PageService {
   ): Promise<CoverFields> {
     const fields: CoverFields = {};
 
-    // sending back the current cover changes nothing
     if (dto.coverPhoto !== undefined && dto.coverPhoto !== page.coverPhoto) {
       const cover = await this.resolveCover(page, dto.coverPhoto, user);
       fields.coverPhoto = cover.coverPhoto;
@@ -383,7 +382,6 @@ export class PageService {
     return buildCoverFileUrl(attachment);
   }
 
-  // a replaced upload is deleted later, so the open cover picker can still restore it
   private scheduleCoverCleanup(page: Page, fields: CoverFields): void {
     if (fields.coverPhoto === undefined) return;
 

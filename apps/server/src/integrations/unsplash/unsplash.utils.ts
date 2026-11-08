@@ -35,7 +35,6 @@ function cleanText(value: unknown, maxLength: number): string | null {
   return value.trim().slice(0, maxLength) || null;
 }
 
-// keeps only photos served from Unsplash's own hosts
 export function toPhotoRecord(value: unknown): UnsplashPhotoRecord | null {
   const photo = value as Partial<UnsplashApiPhoto> | null;
   if (!photo || typeof photo !== 'object') return null;

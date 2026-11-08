@@ -138,7 +138,6 @@ export function usePageCover(page: IPage) {
     }
   };
 
-  // the server looks the photo up again, the client never sends its address
   const selectUnsplashPhoto = (photo: UnsplashPhoto) => {
     updateMutation.mutate({
       coverPhoto: toUnsplashCoverValue(photo.id),

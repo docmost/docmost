@@ -30,7 +30,6 @@ export type PageCoverFields = PageCoverUpdate & {
 };
 
 export type CoverChange = PageCoverUpdate & {
-  // shown until the server answers, for covers it resolves itself
   preview?: PageCoverFields;
 };
 

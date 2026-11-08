@@ -1,4 +1,3 @@
-// the parts of an Unsplash API photo we use
 export type UnsplashApiPhoto = {
   id: string;
   description: string | null;
