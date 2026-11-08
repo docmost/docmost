@@ -26,11 +26,6 @@
 
 .sectionTitle {
   margin-bottom: rem(8px);
-
-  & a {
-    color: inherit;
-    text-decoration: underline;
-  }
 }
 
 .grid {

@@ -19,7 +19,6 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { isUnsplashEnabled } from "@/lib/config.ts";
 import { usePageCover } from "@/features/page-cover/hooks/use-page-cover.ts";
 import { UnsplashPanel } from "@/features/page-cover/components/unsplash-panel.tsx";
-import { CoverCreditText } from "@/features/page-cover/components/cover-credit.tsx";
 import {
   COVER_COLOR_PRESETS,
   COVER_GRADIENT_PRESETS,
@@ -175,15 +174,7 @@ export function CoverPicker({
             >
               <div className={classes.body}>
                 {openedCover?.kind === "image" && (
-                  <TileGroup
-                    title={
-                      openedCredit ? (
-                        <CoverCreditText attribution={openedCredit} />
-                      ) : (
-                        t("Uploaded")
-                      )
-                    }
-                  >
+                  <TileGroup title={openedCredit ? "Unsplash" : t("Uploaded")}>
                     <CoverTile
                       label={
                         openedCredit
@@ -244,7 +235,7 @@ export function CoverPicker({
 }
 
 type TileGroupProps = {
-  title: React.ReactNode;
+  title: string;
   compact?: boolean;
   children: React.ReactNode;
 };
