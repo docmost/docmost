@@ -497,6 +497,8 @@
   "Character count: {{characterCount}}": "Character count: {{characterCount}}",
   "New update": "New update",
   "{{latestVersion}} is available": "{{latestVersion}} is available",
+  "Default language": "Default language",
+  "The workspace language and the default for new members.": "The workspace language and the default for new members.",
   "Default page edit mode": "Default page edit mode",
   "Choose your preferred page edit mode. Avoid accidental edits.": "Choose your preferred page edit mode. Avoid accidental edits.",
   "Choose {{format}} file": "Choose {{format}} file",
