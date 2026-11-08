@@ -70,6 +70,7 @@ export default function PublicSpacePage() {
       <PublicPageCover
         coverPhoto={data.page.coverPhoto}
         coverPosition={data.page.coverPosition}
+        coverAttribution={data.page.coverAttribution}
       />
 
       <ReadonlyPageEditor

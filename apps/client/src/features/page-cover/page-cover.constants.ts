@@ -73,6 +73,14 @@ export const COVER_PRESETS: CoverPreset[] = [
 export const COVER_FILE_PATTERN =
   /^\/api\/files\/(public\/)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?!\.\.?(?:\?|$))[^/?#\\]+(\?jwt=[\w.-]+)?$/i;
 
+export const UNSPLASH_COVER_PREFIX = "unsplash:";
+export const UNSPLASH_IMAGE_HOST = "images.unsplash.com";
+export const UNSPLASH_USERNAME_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
+export const UNSPLASH_REFERRAL = "utm_source=docmost&utm_medium=referral";
+export const UNSPLASH_HOME_URL = `https://unsplash.com/?${UNSPLASH_REFERRAL}`;
+export const UNSPLASH_SEARCH_DEBOUNCE_MS = 400;
+export const UNSPLASH_SKELETON_COUNT = 12;
+
 export const COVER_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",

@@ -27,6 +27,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { streamMultipartFile } from '../../../common/helpers';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { getCoverAttachmentId } from '../../page/page-cover.utils';
 
 @Injectable()
 export class AttachmentService {
@@ -39,6 +41,7 @@ export class AttachmentService {
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    private readonly pageRepo: PageRepo,
   ) {}
 
   async uploadFile(opts: {
@@ -379,6 +382,26 @@ export class AttachmentService {
     } catch (err) {
       throw err;
     }
+  }
+
+  async handleDeleteUnusedCover(opts: {
+    pageId: string;
+    attachmentId: string;
+  }): Promise<void> {
+    const { pageId, attachmentId } = opts;
+    const attachment = await this.attachmentRepo.findById(attachmentId);
+    if (!attachment || attachment.pageId !== pageId) return;
+
+    // deleting a page deletes its attachments too
+    const page = await this.pageRepo.findById(pageId, { includeContent: true });
+    if (!page) return;
+
+    const stillUsed =
+      getCoverAttachmentId(page.coverPhoto) === attachmentId ||
+      JSON.stringify(page.content ?? null).includes(attachmentId);
+    if (stillUsed) return;
+
+    await this.deleteAttachment(attachment);
   }
 
   async handleDeletePageAttachments(pageId: string) {

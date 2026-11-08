@@ -11,10 +11,20 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { getFileUploadSizeLimit } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
-import { PageCoverUpdate } from "@/features/page-cover/page-cover.types.ts";
+import {
+  PageCoverFields,
+  PageCoverUpdate,
+  UnsplashPhoto,
+} from "@/features/page-cover/page-cover.types.ts";
 import { compressCoverImage } from "@/features/page-cover/compress-cover-image.ts";
+import { toUnsplashCoverValue } from "@/features/page-cover/page-cover.utils.ts";
 
-function setCachedCover(page: IPage, fields: PageCoverUpdate) {
+export type CoverChange = PageCoverUpdate & {
+  // shown until the server answers, for covers it resolves itself
+  preview?: PageCoverFields;
+};
+
+function setCachedCover(page: IPage, fields: PageCoverFields) {
   for (const key of [page.id, page.slugId]) {
     queryClient.setQueryData<IPage>(["pages", key], (old) =>
       old ? { ...old, ...fields } : old,
@@ -34,9 +44,10 @@ export function usePageCover(page: IPage) {
 
   const applySavedCover = (saved: IPage) => {
     if (hasNewerChange()) return;
-    const fields = {
+    const fields: PageCoverFields = {
       coverPhoto: saved.coverPhoto,
       coverPosition: saved.coverPosition,
+      coverAttribution: saved.coverAttribution ?? null,
     };
     setCachedCover(page, fields);
     emit({
@@ -55,19 +66,22 @@ export function usePageCover(page: IPage) {
   const updateMutation = useMutation({
     mutationKey,
     scope,
-    mutationFn: (update: PageCoverUpdate) =>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mutationFn: ({ preview, ...update }: CoverChange) =>
       updatePage({ pageId: page.id, ...update }),
-    onMutate: (update) => {
-      const previous: PageCoverUpdate = {
+    onMutate: ({ preview, ...update }) => {
+      const previous: PageCoverFields = {
         coverPhoto: page.coverPhoto,
         coverPosition: page.coverPosition,
+        coverAttribution: page.coverAttribution ?? null,
       };
       const coverChanged =
         update.coverPhoto !== undefined &&
         update.coverPhoto !== page.coverPhoto;
       setCachedCover(page, {
-        ...(coverChanged ? { coverPosition: null } : {}),
+        ...(coverChanged ? { coverPosition: null, coverAttribution: null } : {}),
         ...update,
+        ...preview,
       });
       return { previous };
     },
@@ -131,9 +145,26 @@ export function usePageCover(page: IPage) {
     }
   };
 
+  // the server looks the photo up again, the client never sends its address
+  const selectUnsplashPhoto = (photo: UnsplashPhoto) => {
+    updateMutation.mutate({
+      coverPhoto: toUnsplashCoverValue(photo.id),
+      preview: {
+        coverPhoto: photo.coverUrl,
+        coverAttribution: {
+          source: "unsplash",
+          photoId: photo.id,
+          authorName: photo.authorName,
+          authorUsername: photo.authorUsername,
+        },
+      },
+    });
+  };
+
   return {
     updateCover: updateMutation.mutate,
     uploadCover,
+    selectUnsplashPhoto,
     isUploading,
   };
 }

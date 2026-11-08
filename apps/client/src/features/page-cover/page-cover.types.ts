@@ -18,6 +18,32 @@ export type PageCoverUpdate = {
   coverPosition?: number | null;
 };
 
+export type CoverAttribution = {
+  source: "unsplash";
+  photoId: string;
+  authorName: string;
+  authorUsername: string;
+};
+
+export type PageCoverFields = PageCoverUpdate & {
+  coverAttribution?: CoverAttribution | null;
+};
+
+export type UnsplashPhoto = {
+  id: string;
+  description: string | null;
+  color: string | null;
+  thumbUrl: string;
+  coverUrl: string;
+  authorName: string;
+  authorUsername: string;
+};
+
+export type UnsplashPhotoList = {
+  items: UnsplashPhoto[];
+  hasMore: boolean;
+};
+
 export type CoverFocusRequest = {
   pageId: string;
   target: "change-cover" | "add-cover";

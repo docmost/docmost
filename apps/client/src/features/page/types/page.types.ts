@@ -1,4 +1,5 @@
 import { ISpace } from "@/features/space/types/space.types.ts";
+import { CoverAttribution } from "@/features/page-cover/page-cover.types.ts";
 
 export interface IPage {
   id: string;
@@ -8,6 +9,7 @@ export interface IPage {
   icon: string;
   coverPhoto: string | null;
   coverPosition?: number | null;
+  coverAttribution?: CoverAttribution | null;
   parentPageId: string;
   creatorId: string;
   spaceId: string;

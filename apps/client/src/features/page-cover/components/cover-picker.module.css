@@ -126,3 +126,139 @@
 .dropIcon {
   color: var(--mantine-color-dimmed);
 }
+
+.searchRow {
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-md) 0;
+}
+
+.photoBody {
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md)
+    var(--mantine-spacing-md);
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: rem(8px);
+}
+
+.photoTile {
+  position: relative;
+}
+
+.photoButton {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  transition: filter 120ms ease;
+
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(0.94);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 4px;
+  }
+}
+
+.photoTile[data-selected] .photoButton {
+  box-shadow:
+    0 0 0 2px var(--mantine-color-body),
+    0 0 0 4px
+      light-dark(var(--mantine-primary-color-filled), var(--mantine-color-blue-4));
+}
+
+.photoImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* only the name is a link, the rest of the bar lets clicks through to the photo */
+.photoCreditBar {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  padding: rem(16px) rem(6px) rem(4px);
+  border-radius: 0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.photoCredit {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mantine-color-white);
+  font-size: rem(11px);
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  pointer-events: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.photoTile:hover .photoCreditBar,
+.photoTile:focus-within .photoCreditBar {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .photoTile:hover .photoCredit {
+    pointer-events: auto;
+  }
+}
+
+/* touch screens always show the credit, a tap anywhere still picks the photo */
+@media (hover: none) {
+  .photoCreditBar {
+    opacity: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .photoTile[data-selected] .photoButton {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+.photoSkeleton {
+  aspect-ratio: 3 / 2;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.photoMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: rem(10px);
+  padding: rem(32px) var(--mantine-spacing-md);
+  text-align: center;
+}
+
+.photoSource {
+  margin-top: var(--mantine-spacing-sm);
+  text-align: center;
+
+  & a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}

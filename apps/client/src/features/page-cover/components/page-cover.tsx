@@ -12,7 +12,7 @@ import {
   Tooltip,
   VisuallyHidden,
 } from "@mantine/core";
-import { IconArrowDown, IconArrowUp } from "@tabler/icons-react";
+import { IconArrowDown, IconArrowUp, IconTrash } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
@@ -24,16 +24,17 @@ import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { usePageCover } from "@/features/page-cover/hooks/use-page-cover.ts";
 import { CoverPicker } from "@/features/page-cover/components/cover-picker.tsx";
 import { CoverImage } from "@/features/page-cover/components/cover-image.tsx";
+import { CoverCredit } from "@/features/page-cover/components/cover-credit.tsx";
 import { coverFocusRequestAtom } from "@/features/page-cover/atoms/page-cover-atoms.ts";
 import {
   COVER_FOCUS_REQUEST_TTL,
   COVER_POSITION_STEP,
 } from "@/features/page-cover/page-cover.constants.ts";
 import {
+  getCoverCredit,
   getCoverOverflow,
   getCoverPosition,
   getCoverPositionAfterDrag,
-  getCoverPreset,
   resolveCover,
 } from "@/features/page-cover/page-cover.utils.ts";
 import { ResolvedCover } from "@/features/page-cover/page-cover.types.ts";
@@ -89,8 +90,10 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
 
   const imageSrc = cover.kind === "image" ? cover.src : null;
   const failed = imageSrc !== null && failedSrc === imageSrc;
-  // presets are seamless or evenly lit, so only uploads are worth repositioning
-  const isUpload = cover.kind === "image" && !getCoverPreset(page.coverPhoto);
+  const canReposition = cover.kind === "image" && !failed;
+  const credit = failed
+    ? null
+    : getCoverCredit(page.coverPhoto, page.coverAttribution);
   const savedPosition = getCoverPosition(page.coverPosition);
   const position = draft ?? savedPosition;
   const showReposition = repositioning && canEdit;
@@ -170,6 +173,15 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
   const cancelRepositioning = () => {
     setDraft(null);
     endRepositioning();
+  };
+
+  const removeCover = () => {
+    setFocusRequest({
+      pageId: page.id,
+      target: "add-cover",
+      requestedAt: Date.now(),
+    });
+    updateCover({ coverPhoto: null });
   };
 
   const savePosition = () => {
@@ -297,11 +309,14 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
         </>
       )}
 
-      {canEdit && (
+      {(canEdit || credit) && (
         <div className={classes.controls}>
           <Container fluid={fullPageWidth} size={!fullPageWidth && 900} px={0}>
             <div className={classes.controlsInner}>
-              {showReposition ? (
+              {credit && !showReposition && (
+                <CoverCredit attribution={credit} className={classes.bandCredit} />
+              )}
+              {!canEdit ? null : showReposition ? (
                 <Button.Group className={classes.pill}>
                   <Tooltip label={t("Move image up")} withArrow openDelay={250}>
                     <Button
@@ -348,7 +363,7 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
                     >
                       {t("Change cover")}
                     </Button>
-                    {isUpload && !failed && (
+                    {canReposition && (
                       <Button
                         {...pillButtonProps}
                         ref={repositionButtonRef}
@@ -357,6 +372,16 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
                         {t("Reposition")}
                       </Button>
                     )}
+                    <Tooltip label={t("Remove cover")} withArrow openDelay={250}>
+                      <Button
+                        {...pillButtonProps}
+                        px={8}
+                        aria-label={t("Remove cover")}
+                        onClick={removeCover}
+                      >
+                        <IconTrash size={14} stroke={2} />
+                      </Button>
+                    </Tooltip>
                   </Button.Group>
                 </CoverPicker>
               )}

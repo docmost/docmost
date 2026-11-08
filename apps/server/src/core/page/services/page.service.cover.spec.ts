@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { PageService } from './page.service';
+import { QueueJob } from '../../../integrations/queue/constants';
+import { COVER_CLEANUP_DELAY_MS } from '../page-cover.constants';
 
 const WORKSPACE_ID = '019a1f00-0000-7000-8000-000000000001';
 const SPACE_ID = '019a1f00-0000-7000-8000-000000000002';
@@ -43,6 +45,16 @@ function makeAttachment(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const UNSPLASH_URL =
+  'https://images.unsplash.com/photo-1?ixid=abc&w=2560&q=80&auto=format&fit=max';
+const UNSPLASH_CREDIT = {
+  source: 'unsplash',
+  photoId: 'Abc_123',
+  authorName: 'Ada Lovelace',
+  authorUsername: 'ada',
+};
+const UPLOADED_COVER = `/api/files/${ATTACHMENT_ID}/team-offsite.jpg`;
+
 function makeService(attachment: unknown = null) {
   const pageRepo = {
     updatePage: jest.fn(async () => undefined),
@@ -51,7 +63,14 @@ function makeService(attachment: unknown = null) {
   const attachmentRepo = {
     findById: jest.fn(async () => attachment),
   };
+  const attachmentQueue = { add: jest.fn(async () => undefined) };
   const generalQueue = { add: jest.fn(async () => undefined) };
+  const unsplashService = {
+    getCover: jest.fn(async () => ({
+      coverPhoto: UNSPLASH_URL,
+      coverAttribution: UNSPLASH_CREDIT,
+    })),
+  };
 
   const service = new PageService(
     pageRepo as any,
@@ -59,7 +78,7 @@ function makeService(attachment: unknown = null) {
     attachmentRepo as any,
     {} as any,
     {} as any,
-    {} as any,
+    attachmentQueue as any,
     {} as any,
     generalQueue as any,
     {} as any,
@@ -70,11 +89,19 @@ function makeService(attachment: unknown = null) {
     {} as any,
     {} as any,
     {} as any,
+    unsplashService as any,
   );
 
   const savedFields = () => (pageRepo.updatePage.mock.calls[0] as any[])[0];
 
-  return { service, pageRepo, attachmentRepo, savedFields };
+  return {
+    service,
+    pageRepo,
+    attachmentRepo,
+    attachmentQueue,
+    unsplashService,
+    savedFields,
+  };
 }
 
 describe('PageService.update cover', () => {
@@ -235,5 +262,150 @@ describe('PageService.update cover', () => {
     expect(savedFields().title).toBe('New title');
     expect(savedFields().coverPhoto).toBeUndefined();
     expect(savedFields().coverPosition).toBeUndefined();
+  });
+});
+
+describe('PageService.update Unsplash cover', () => {
+  it('stores the photo Unsplash returns, with its credit', async () => {
+    const { service, unsplashService, savedFields } = makeService();
+    const page = makePage({ coverPhoto: 'preset:color-red', coverPosition: 20 });
+
+    await service.update(
+      page,
+      { pageId: PAGE_ID, coverPhoto: 'unsplash:Abc_123' } as any,
+      user,
+    );
+
+    expect(unsplashService.getCover).toHaveBeenCalledWith('Abc_123');
+    expect(savedFields()).toMatchObject({
+      coverPhoto: UNSPLASH_URL,
+      coverAttribution: UNSPLASH_CREDIT,
+      coverPosition: null,
+    });
+  });
+
+  it('drops the credit when another cover replaces the photo', async () => {
+    const { service, savedFields } = makeService();
+    const page = makePage({
+      coverPhoto: UNSPLASH_URL,
+      coverAttribution: UNSPLASH_CREDIT,
+    });
+
+    await service.update(
+      page,
+      { pageId: PAGE_ID, coverPhoto: 'preset:gradient-aurora' } as any,
+      user,
+    );
+
+    expect(savedFields()).toMatchObject({
+      coverPhoto: 'preset:gradient-aurora',
+      coverAttribution: null,
+    });
+  });
+
+  it('accepts the current photo sent back unchanged', async () => {
+    const { service, unsplashService, savedFields } = makeService();
+    const page = makePage({
+      coverPhoto: UNSPLASH_URL,
+      coverAttribution: UNSPLASH_CREDIT,
+      coverPosition: 35,
+    });
+
+    await service.update(
+      page,
+      { pageId: PAGE_ID, coverPhoto: UNSPLASH_URL } as any,
+      user,
+    );
+
+    expect(unsplashService.getCover).not.toHaveBeenCalled();
+    expect(savedFields().coverPhoto).toBeUndefined();
+    expect(savedFields().coverAttribution).toBeUndefined();
+    expect(savedFields().coverPosition).toBeUndefined();
+  });
+
+  it.each([
+    ['an Unsplash address sent directly', UNSPLASH_URL],
+    ['a malformed photo id', 'unsplash:../photos'],
+  ])('rejects %s', async (_label, coverPhoto) => {
+    const { service, unsplashService, pageRepo } = makeService();
+
+    await expect(
+      service.update(makePage(), { pageId: PAGE_ID, coverPhoto } as any, user),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(unsplashService.getCover).not.toHaveBeenCalled();
+    expect(pageRepo.updatePage).not.toHaveBeenCalled();
+  });
+
+  it('passes on an Unsplash error and saves nothing', async () => {
+    const { service, unsplashService, pageRepo } = makeService();
+    unsplashService.getCover.mockRejectedValueOnce(
+      new BadRequestException('Unsplash is not enabled'),
+    );
+
+    await expect(
+      service.update(
+        makePage(),
+        { pageId: PAGE_ID, coverPhoto: 'unsplash:Abc_123' } as any,
+        user,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(pageRepo.updatePage).not.toHaveBeenCalled();
+  });
+});
+
+describe('PageService.update cover cleanup', () => {
+  const cleanupJobs = (attachmentQueue: { add: jest.Mock }) =>
+    attachmentQueue.add.mock.calls.filter(
+      ([name]) => name === QueueJob.DELETE_UNUSED_COVER,
+    );
+
+  it.each([
+    ['replaced by a preset', 'preset:gradient-aurora'],
+    ['replaced by an Unsplash photo', 'unsplash:Abc_123'],
+    ['removed', null],
+  ])('schedules an upload %s for deletion', async (_label, coverPhoto) => {
+    const { service, attachmentQueue } = makeService();
+    const page = makePage({ coverPhoto: UPLOADED_COVER });
+
+    await service.update(page, { pageId: PAGE_ID, coverPhoto } as any, user);
+
+    expect(cleanupJobs(attachmentQueue)).toEqual([
+      [
+        QueueJob.DELETE_UNUSED_COVER,
+        { pageId: PAGE_ID, attachmentId: ATTACHMENT_ID },
+        expect.objectContaining({ delay: COVER_CLEANUP_DELAY_MS }),
+      ],
+    ]);
+  });
+
+  it('keeps an upload sent again under another name', async () => {
+    const { service, attachmentQueue } = makeService(makeAttachment());
+    const page = makePage({ coverPhoto: UPLOADED_COVER });
+
+    await service.update(
+      page,
+      { pageId: PAGE_ID, coverPhoto: `/api/files/${ATTACHMENT_ID}/x.jpg` } as any,
+      user,
+    );
+
+    expect(cleanupJobs(attachmentQueue)).toEqual([]);
+  });
+
+  it('schedules nothing when the old cover was not an upload', async () => {
+    const { service, attachmentQueue } = makeService();
+    const page = makePage({ coverPhoto: 'preset:color-red' });
+
+    await service.update(page, { pageId: PAGE_ID, coverPhoto: null } as any, user);
+
+    expect(cleanupJobs(attachmentQueue)).toEqual([]);
+  });
+
+  it('schedules nothing when the cover is left alone', async () => {
+    const { service, attachmentQueue } = makeService();
+    const page = makePage({ coverPhoto: UPLOADED_COVER });
+
+    await service.update(page, { pageId: PAGE_ID, coverPosition: 20 } as any, user);
+
+    expect(cleanupJobs(attachmentQueue)).toEqual([]);
   });
 });

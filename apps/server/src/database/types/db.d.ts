@@ -313,6 +313,7 @@ export interface PageHistory {
 export interface Pages {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
+  coverAttribution: Json | null;
   coverPhoto: string | null;
   coverPosition: number | null;
   createdAt: Generated<Timestamp>;

@@ -78,6 +78,7 @@ export default function SharedPage() {
       <PublicPageCover
         coverPhoto={data.page.coverPhoto}
         coverPosition={data.page.coverPosition}
+        coverAttribution={data.page.coverAttribution}
       />
 
       <ReadonlyPageEditor

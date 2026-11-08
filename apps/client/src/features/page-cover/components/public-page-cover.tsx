@@ -2,7 +2,9 @@ import { useState } from "react";
 import clsx from "clsx";
 import classes from "./page-cover.module.css";
 import { CoverImage } from "@/features/page-cover/components/cover-image.tsx";
+import { CoverCredit } from "@/features/page-cover/components/cover-credit.tsx";
 import {
+  getCoverCredit,
   getCoverPosition,
   resolveCover,
 } from "@/features/page-cover/page-cover.utils.ts";
@@ -10,17 +12,21 @@ import {
 type PublicPageCoverProps = {
   coverPhoto: string | null;
   coverPosition?: number | null;
+  coverAttribution?: unknown;
 };
 
 export function PublicPageCover({
   coverPhoto,
   coverPosition,
+  coverAttribution,
 }: PublicPageCoverProps) {
   const cover = resolveCover(coverPhoto);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   if (!cover) return null;
   if (cover.kind === "image" && failedSrc === cover.src) return null;
+
+  const credit = getCoverCredit(coverPhoto, coverAttribution);
 
   return (
     <div className={clsx(classes.inlineCover, "print-hide")}>
@@ -33,6 +39,9 @@ export function PublicPageCover({
           position={getCoverPosition(coverPosition)}
           onError={() => setFailedSrc(cover.src)}
         />
+      )}
+      {credit && (
+        <CoverCredit attribution={credit} className={classes.inlineCredit} />
       )}
     </div>
   );

@@ -192,6 +192,7 @@ describe.each([
       {} as any,
       {} as any,
       attachmentQueue as any,
+      {} as any,
     );
     const controller = new AttachmentController(
       attachmentService,

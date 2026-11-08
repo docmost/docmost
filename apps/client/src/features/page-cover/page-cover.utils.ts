@@ -6,8 +6,13 @@ import {
   COVER_PRESETS,
   COVER_RANDOM_GRADIENT_IDS,
   DEFAULT_COVER_POSITION,
+  UNSPLASH_COVER_PREFIX,
+  UNSPLASH_IMAGE_HOST,
+  UNSPLASH_REFERRAL,
+  UNSPLASH_USERNAME_PATTERN,
 } from "@/features/page-cover/page-cover.constants.ts";
 import {
+  CoverAttribution,
   CoverPreset,
   ResolvedCover,
 } from "@/features/page-cover/page-cover.types.ts";
@@ -27,6 +32,24 @@ export function toCoverValue(preset: CoverPreset): string {
   return COVER_PRESET_PREFIX + preset.id;
 }
 
+export function toUnsplashCoverValue(photoId: string): string {
+  return UNSPLASH_COVER_PREFIX + photoId;
+}
+
+function isUnsplashImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.host === UNSPLASH_IMAGE_HOST &&
+      !url.username &&
+      !url.password
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function resolveCover(coverPhoto: unknown): ResolvedCover | null {
   if (typeof coverPhoto !== "string" || !coverPhoto) return null;
 
@@ -41,7 +64,54 @@ export function resolveCover(coverPhoto: unknown): ResolvedCover | null {
     return { kind: "image", src: getFileUrl(coverPhoto) };
   }
 
+  if (isUnsplashImageUrl(coverPhoto)) {
+    return { kind: "image", src: coverPhoto };
+  }
+
   return null;
+}
+
+export function getCoverAttribution(value: unknown): CoverAttribution | null {
+  if (!value || typeof value !== "object") return null;
+  const credit = value as Partial<CoverAttribution>;
+  if (credit.source !== "unsplash" || typeof credit.photoId !== "string") {
+    return null;
+  }
+  if (typeof credit.authorName !== "string" || !credit.authorName.trim()) {
+    return null;
+  }
+  if (
+    typeof credit.authorUsername !== "string" ||
+    !UNSPLASH_USERNAME_PATTERN.test(credit.authorUsername)
+  ) {
+    return null;
+  }
+
+  return {
+    source: "unsplash",
+    photoId: credit.photoId,
+    authorName: credit.authorName,
+    authorUsername: credit.authorUsername,
+  };
+}
+
+// a credit only shows next to the photo it belongs to
+export function getCoverCredit(
+  coverPhoto: unknown,
+  attribution: unknown,
+): CoverAttribution | null {
+  if (typeof coverPhoto !== "string" || !isUnsplashImageUrl(coverPhoto)) {
+    return null;
+  }
+  return getCoverAttribution(attribution);
+}
+
+export function getUnsplashProfileUrl(username: string): string {
+  return `https://unsplash.com/@${encodeURIComponent(username)}?${UNSPLASH_REFERRAL}`;
+}
+
+export function toCssUrl(src: string): string {
+  return `url("${src.replace(/["\\]/g, "\\$&")}")`;
 }
 
 export function getCoverPosition(value: unknown): number {

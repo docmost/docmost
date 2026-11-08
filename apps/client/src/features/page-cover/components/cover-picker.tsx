@@ -17,7 +17,9 @@ import { useSetAtom } from "jotai";
 import clsx from "clsx";
 import classes from "./cover-picker.module.css";
 import { IPage } from "@/features/page/types/page.types.ts";
+import { isUnsplashEnabled } from "@/lib/config.ts";
 import { usePageCover } from "@/features/page-cover/hooks/use-page-cover.ts";
+import { UnsplashPanel } from "@/features/page-cover/components/unsplash-panel.tsx";
 import { coverFocusRequestAtom } from "@/features/page-cover/atoms/page-cover-atoms.ts";
 import {
   COVER_COLOR_PRESETS,
@@ -26,13 +28,16 @@ import {
   COVER_TEXTURE_PRESETS,
 } from "@/features/page-cover/page-cover.constants.ts";
 import {
+  getCoverCredit,
   getCoverPreset,
   resolveCover,
   toCoverValue,
+  toCssUrl,
+  toUnsplashCoverValue,
 } from "@/features/page-cover/page-cover.utils.ts";
 import {
   CoverPreset,
-  PageCoverUpdate,
+  PageCoverFields,
 } from "@/features/page-cover/page-cover.types.ts";
 
 type CoverPickerProps = {
@@ -52,33 +57,55 @@ export function CoverPicker({
 }: CoverPickerProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<string | null>("gallery");
+  const [unsplashSearch, setUnsplashSearch] = useState("");
   const [wasOpened, setWasOpened] = useState(opened);
-  const [openedWith, setOpenedWith] = useState<PageCoverUpdate | null>(null);
+  const [openedWith, setOpenedWith] = useState<PageCoverFields | null>(null);
   const setFocusRequest = useSetAtom(coverFocusRequestAtom);
-  const { updateCover, uploadCover, isUploading } = usePageCover(page);
+  const { updateCover, uploadCover, selectUnsplashPhoto, isUploading } =
+    usePageCover(page);
+  const unsplashEnabled = isUnsplashEnabled();
 
-  // remember an uploaded cover so trying presets never loses it
+  // remember a photo cover so trying presets never loses it
   if (opened !== wasOpened) {
     setWasOpened(opened);
     if (opened) {
       setOpenedWith({
         coverPhoto: page.coverPhoto,
         coverPosition: page.coverPosition ?? null,
+        coverAttribution: page.coverAttribution ?? null,
       });
     }
   }
 
-  const uploadedCover =
+  const openedCover =
     openedWith?.coverPhoto && !getCoverPreset(openedWith.coverPhoto)
       ? resolveCover(openedWith.coverPhoto)
       : null;
+  const openedCredit = getCoverCredit(
+    openedWith?.coverPhoto,
+    openedWith?.coverAttribution,
+  );
+  const currentCredit = getCoverCredit(page.coverPhoto, page.coverAttribution);
 
   const selectPreset = (preset: CoverPreset) => {
     updateCover({ coverPhoto: toCoverValue(preset) });
   };
 
-  const restoreUploadedCover = () => {
-    if (openedWith) updateCover(openedWith);
+  const restoreOpenedCover = () => {
+    if (!openedWith || page.coverPhoto === openedWith.coverPhoto) return;
+    const coverPosition = openedWith.coverPosition ?? null;
+    if (openedCredit) {
+      updateCover({
+        coverPhoto: toUnsplashCoverValue(openedCredit.photoId),
+        coverPosition,
+        preview: {
+          coverPhoto: openedWith.coverPhoto,
+          coverAttribution: openedCredit,
+        },
+      });
+      return;
+    }
+    updateCover({ coverPhoto: openedWith.coverPhoto, coverPosition });
   };
 
   const removeCover = () => {
@@ -147,6 +174,7 @@ export function CoverPicker({
             <Tabs.List className={classes.tabList}>
               <Tabs.Tab value="gallery">{t("Gallery")}</Tabs.Tab>
               <Tabs.Tab value="upload">{t("Upload")}</Tabs.Tab>
+              {unsplashEnabled && <Tabs.Tab value="unsplash">Unsplash</Tabs.Tab>}
             </Tabs.List>
             <Button
               variant="subtle"
@@ -167,15 +195,19 @@ export function CoverPicker({
               style={{ overscrollBehavior: "contain" }}
             >
               <div className={classes.body}>
-                {uploadedCover?.kind === "image" && (
-                  <TileGroup title={t("Uploaded")}>
+                {openedCover?.kind === "image" && (
+                  <TileGroup title={openedCredit ? "Unsplash" : t("Uploaded")}>
                     <CoverTile
-                      label={t("Uploaded image")}
+                      label={
+                        openedCredit
+                          ? t("Photo by {{name}}", {
+                              name: openedCredit.authorName,
+                            })
+                          : t("Uploaded image")
+                      }
                       selected={page.coverPhoto === openedWith.coverPhoto}
-                      style={{
-                        backgroundImage: `url("${encodeURI(uploadedCover.src)}")`,
-                      }}
-                      onClick={restoreUploadedCover}
+                      style={{ backgroundImage: toCssUrl(openedCover.src) }}
+                      onClick={restoreOpenedCover}
                     />
                   </TileGroup>
                 )}
@@ -207,6 +239,17 @@ export function CoverPicker({
               <UploadDropzone uploading={isUploading} onFile={uploadImage} />
             </div>
           </Tabs.Panel>
+
+          {unsplashEnabled && (
+            <Tabs.Panel value="unsplash">
+              <UnsplashPanel
+                search={unsplashSearch}
+                onSearchChange={setUnsplashSearch}
+                selectedPhotoId={currentCredit?.photoId ?? null}
+                onSelect={selectUnsplashPhoto}
+              />
+            </Tabs.Panel>
+          )}
         </Tabs>
       </Popover.Dropdown>
     </Popover>

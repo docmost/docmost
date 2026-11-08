@@ -1,5 +1,6 @@
 import {
   getCoverAttachmentId,
+  getUnsplashPhotoId,
   isPresetCover,
   remapCopiedCover,
 } from './page-cover.utils';
@@ -124,5 +125,20 @@ describe('getCoverAttachmentId', () => {
     [undefined, null],
   ])('%s -> %s', (value, expected) => {
     expect(getCoverAttachmentId(value)).toBe(expected);
+  });
+});
+
+describe('getUnsplashPhotoId', () => {
+  it.each([
+    ['unsplash:Abc_123-x', 'Abc_123-x'],
+    ['unsplash:', null],
+    ['unsplash:../photos', null],
+    ['unsplash:abc?w=1', null],
+    ['https://images.unsplash.com/photo-1', null],
+    ['preset:gradient-aurora', null],
+    [null, null],
+    [undefined, null],
+  ])('%s -> %s', (value, expected) => {
+    expect(getUnsplashPhotoId(value)).toBe(expected);
   });
 });

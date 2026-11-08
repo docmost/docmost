@@ -80,31 +80,111 @@
   position: absolute;
   bottom: rem(12px);
   inset-inline: var(--app-shell-padding, 0px);
-  opacity: 0;
-  transition: opacity 120ms ease;
   pointer-events: none;
 }
 
 .controlsInner {
   display: flex;
+  align-items: flex-end;
   justify-content: flex-end;
+  gap: rem(12px);
   padding-inline: 3rem;
 
   @media (max-width: $mantine-breakpoint-sm) {
     padding-inline: 1rem;
   }
-}
 
-.cover:hover .controls,
-.cover:focus-within .controls,
-.cover[data-active] .controls {
-  opacity: 1;
+  & > * {
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
 }
 
 .cover:hover .controlsInner > *,
 .cover:focus-within .controlsInner > *,
 .cover[data-active] .controlsInner > * {
+  opacity: 1;
   pointer-events: auto;
+}
+
+.credit {
+  min-width: 0;
+  max-width: 100%;
+  padding: rem(3px) rem(8px);
+  border-radius: var(--mantine-radius-sm);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: rem(11px);
+  line-height: rem(16px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  & a {
+    color: var(--mantine-color-white);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  & a:hover {
+    text-decoration: underline;
+  }
+
+  & a:focus-visible {
+    outline: 2px solid var(--mantine-color-white);
+    outline-offset: 1px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.85);
+  }
+}
+
+.bandCredit {
+  margin-inline-end: auto;
+}
+
+.inlineCredit {
+  position: absolute;
+  left: rem(10px);
+  bottom: rem(10px);
+  max-width: calc(100% - rem(20px));
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.inlineCover:hover .inlineCredit,
+.inlineCover:focus-within .inlineCredit {
+  opacity: 1;
+}
+
+/* phones have no room for both, so the open controls cover the credit */
+@media (max-width: $mantine-breakpoint-sm) {
+  .controlsInner {
+    position: relative;
+  }
+
+  .controlsInner > .pill {
+    position: absolute;
+    right: 1rem;
+    bottom: 0;
+  }
+
+  .cover:is(:hover, :focus-within, [data-active]):not(:has(.bandCredit :focus))
+    .bandCredit {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* touch screens cannot hover, so the photo credit stays visible */
+@media (hover: none) {
+  .controlsInner > .bandCredit {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .inlineCredit {
+    opacity: 1;
+  }
 }
 
 .pill {

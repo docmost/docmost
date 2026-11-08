@@ -69,10 +69,20 @@ import { ShareService } from '../../share/share.service';
 import {
   buildCoverFileUrl,
   getCoverAttachmentId,
+  getUnsplashPhotoId,
   isPresetCover,
   remapCopiedCover,
 } from '../page-cover.utils';
-import { COVER_IMAGE_MIME_TYPES } from '../page-cover.constants';
+import {
+  COVER_CLEANUP_DELAY_MS,
+  COVER_IMAGE_MIME_TYPES,
+} from '../page-cover.constants';
+import { UnsplashService } from '../../../integrations/unsplash/unsplash.service';
+
+type CoverFields = Pick<
+  UpdatablePage,
+  'coverPhoto' | 'coverPosition' | 'coverAttribution'
+>;
 
 @Injectable()
 export class PageService {
@@ -95,6 +105,7 @@ export class PageService {
     private readonly wsService: WsService,
     private readonly collabAccessService: CollabAccessService,
     private readonly shareService: ShareService,
+    private readonly unsplashService: UnsplashService,
   ) {}
 
   async findById(
@@ -264,6 +275,8 @@ export class PageService {
       page.id,
     );
 
+    this.scheduleCoverCleanup(page, coverFields);
+
     this.generalQueue
       .add(QueueJob.ADD_PAGE_WATCHERS, {
         userIds: [user.id],
@@ -301,13 +314,16 @@ export class PageService {
   private async resolveCoverFields(
     page: Page,
     dto: UpdatePageDto,
-  ): Promise<Pick<UpdatablePage, 'coverPhoto' | 'coverPosition'>> {
-    const fields: Pick<UpdatablePage, 'coverPhoto' | 'coverPosition'> = {};
+  ): Promise<CoverFields> {
+    const fields: CoverFields = {};
 
-    if (dto.coverPhoto !== undefined) {
-      fields.coverPhoto = await this.validateCoverPhoto(page, dto.coverPhoto);
-      if (fields.coverPhoto !== page.coverPhoto) {
+    // sending back the current cover changes nothing
+    if (dto.coverPhoto !== undefined && dto.coverPhoto !== page.coverPhoto) {
+      const cover = await this.resolveCover(page, dto.coverPhoto);
+      fields.coverPhoto = cover.coverPhoto;
+      if (cover.coverPhoto !== page.coverPhoto) {
         fields.coverPosition = null;
+        fields.coverAttribution = cover.coverAttribution;
       }
     }
 
@@ -324,14 +340,29 @@ export class PageService {
     return fields;
   }
 
-  private async validateCoverPhoto(
+  private async resolveCover(
     page: Page,
     coverPhoto: string | null,
-  ): Promise<string | null> {
+  ): Promise<Pick<CoverFields, 'coverPhoto' | 'coverAttribution'>> {
     if (coverPhoto === null || isPresetCover(coverPhoto)) {
-      return coverPhoto;
+      return { coverPhoto, coverAttribution: null };
     }
 
+    const unsplashPhotoId = getUnsplashPhotoId(coverPhoto);
+    if (unsplashPhotoId) {
+      return this.unsplashService.getCover(unsplashPhotoId);
+    }
+
+    return {
+      coverPhoto: await this.validateCoverFile(page, coverPhoto),
+      coverAttribution: null,
+    };
+  }
+
+  private async validateCoverFile(
+    page: Page,
+    coverPhoto: string,
+  ): Promise<string> {
     const attachmentId = getCoverAttachmentId(coverPhoto);
     const attachment = attachmentId
       ? await this.attachmentRepo.findById(attachmentId)
@@ -347,6 +378,26 @@ export class PageService {
     }
 
     return buildCoverFileUrl(attachment);
+  }
+
+  // a replaced upload is deleted later, so the open cover picker can still restore it
+  private scheduleCoverCleanup(page: Page, fields: CoverFields): void {
+    if (fields.coverPhoto === undefined) return;
+
+    const attachmentId = getCoverAttachmentId(page.coverPhoto);
+    if (!attachmentId || attachmentId === getCoverAttachmentId(fields.coverPhoto)) {
+      return;
+    }
+
+    this.attachmentQueue
+      .add(
+        QueueJob.DELETE_UNUSED_COVER,
+        { pageId: page.id, attachmentId },
+        { delay: COVER_CLEANUP_DELAY_MS, removeOnComplete: true },
+      )
+      .catch((err) =>
+        this.logger.warn(`Failed to queue cover cleanup: ${err.message}`),
+      );
   }
 
   async updatePageContent(
@@ -804,6 +855,7 @@ export class PageService {
           icon: page.icon,
           coverPhoto,
           coverPosition: page.coverPosition,
+          coverAttribution: page.coverAttribution,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
           ydoc: createYdocFromJson(prosemirrorJson),

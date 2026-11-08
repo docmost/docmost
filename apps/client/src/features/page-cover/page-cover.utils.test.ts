@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  getCoverAttribution,
+  getCoverCredit,
   getCoverOverflow,
   getCoverPosition,
   getCoverPositionAfterDrag,
+  getUnsplashProfileUrl,
   pickRandomGradient,
   resolveCover,
+  toCssUrl,
 } from "./page-cover.utils";
+import { UNSPLASH_HOME_URL } from "./page-cover.constants";
 
 const FILE_ID = "019a1f00-0000-7000-8000-0000000000aa";
 
@@ -62,6 +67,87 @@ describe("resolveCover", () => {
       expect(resolveCover(value)).toBeNull();
     },
   );
+
+  it("resolves an Unsplash photo to its hotlinked address", () => {
+    const src =
+      "https://images.unsplash.com/photo-1?ixid=abc&w=2560&q=80&auto=format&fit=max";
+    expect(resolveCover(src)).toEqual({ kind: "image", src });
+  });
+
+  it.each([
+    ["http://images.unsplash.com/photo-1"],
+    ["https://images.unsplash.com.evil.example/photo-1"],
+    ["https://evil.example/?https://images.unsplash.com/photo-1"],
+    ["https://user@images.unsplash.com/photo-1"],
+    ["https://images.unsplash.com:8443/photo-1"],
+  ])("renders nothing for a lookalike Unsplash address %s", (value) => {
+    expect(resolveCover(value)).toBeNull();
+  });
+});
+
+describe("getCoverAttribution", () => {
+  const credit = {
+    source: "unsplash",
+    photoId: "Abc_123",
+    authorName: "Ada Lovelace",
+    authorUsername: "ada",
+  };
+
+  it("keeps a valid Unsplash credit", () => {
+    expect(getCoverAttribution(credit)).toEqual(credit);
+  });
+
+  it.each([
+    [null],
+    [undefined],
+    ["unsplash"],
+    [{ ...credit, source: "pexels" }],
+    [{ ...credit, authorName: 42 }],
+    [{ ...credit, authorName: "" }],
+    [{ ...credit, authorUsername: "ada/../../x" }],
+    [{ ...credit, authorUsername: undefined }],
+  ])("drops %o", (value) => {
+    expect(getCoverAttribution(value)).toBeNull();
+  });
+});
+
+describe("getCoverCredit", () => {
+  const credit = {
+    source: "unsplash",
+    photoId: "Abc_123",
+    authorName: "Ada Lovelace",
+    authorUsername: "ada",
+  };
+
+  it("credits the photographer of an Unsplash cover", () => {
+    expect(
+      getCoverCredit("https://images.unsplash.com/photo-1?w=2560", credit),
+    ).toEqual(credit);
+  });
+
+  it("ignores a credit left over next to another cover", () => {
+    expect(getCoverCredit("preset:gradient-aurora", credit)).toBeNull();
+    expect(getCoverCredit(`/api/files/${FILE_ID}/cover.jpg`, credit)).toBeNull();
+  });
+});
+
+describe("toCssUrl", () => {
+  it("quotes the address and escapes quotes and backslashes", () => {
+    expect(toCssUrl('https://images.unsplash.com/a?b="c"\\d')).toBe(
+      'url("https://images.unsplash.com/a?b=\\"c\\"\\\\d")',
+    );
+  });
+});
+
+describe("Unsplash links", () => {
+  it("credits the photographer and Unsplash with referral tags", () => {
+    expect(getUnsplashProfileUrl("ada")).toBe(
+      "https://unsplash.com/@ada?utm_source=docmost&utm_medium=referral",
+    );
+    expect(UNSPLASH_HOME_URL).toBe(
+      "https://unsplash.com/?utm_source=docmost&utm_medium=referral",
+    );
+  });
 });
 
 describe("getCoverPosition", () => {

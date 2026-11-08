@@ -2,6 +2,7 @@ import { Attachment } from '@docmost/db/types/entity.types';
 import {
   COVER_FILE_PATTERN,
   COVER_PRESET_PATTERN,
+  COVER_UNSPLASH_PATTERN,
 } from './page-cover.constants';
 import { ICopyPageAttachment } from './dto/duplicate-page.dto';
 
@@ -13,6 +14,12 @@ export function getCoverAttachmentId(
   coverPhoto: string | null | undefined,
 ): string | null {
   return coverPhoto?.match(COVER_FILE_PATTERN)?.[1] ?? null;
+}
+
+export function getUnsplashPhotoId(
+  coverPhoto: string | null | undefined,
+): string | null {
+  return coverPhoto?.match(COVER_UNSPLASH_PATTERN)?.[1] ?? null;
 }
 
 export function buildCoverFileUrl(
