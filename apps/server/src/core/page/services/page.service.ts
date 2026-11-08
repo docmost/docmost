@@ -70,6 +70,7 @@ import {
   buildCoverFileUrl,
   getCoverAttachmentId,
   isPresetCover,
+  remapCopiedCover,
 } from '../page-cover.utils';
 import { COVER_IMAGE_MIME_TYPES } from '../page-cover.constants';
 
@@ -690,13 +691,17 @@ export class PageService {
         if (attachmentIds.length > 0) {
           attachmentIds.forEach((attachmentId: string) => {
             const newPageId = pageFromMap.newPageId;
-            const newAttachmentId = uuid7();
-            attachmentMap.set(attachmentId, {
-              newPageId: newPageId,
-              oldPageId: page.id,
-              oldAttachmentId: attachmentId,
-              newAttachmentId: newAttachmentId,
-            });
+            // pages that show the same file share one copy of it
+            const newAttachmentId =
+              attachmentMap.get(attachmentId)?.newAttachmentId ?? uuid7();
+            if (!attachmentMap.has(attachmentId)) {
+              attachmentMap.set(attachmentId, {
+                newPageId: newPageId,
+                oldPageId: page.id,
+                oldAttachmentId: attachmentId,
+                newAttachmentId: newAttachmentId,
+              });
+            }
 
             prosemirrorDoc.descendants((node: PMNode) => {
               if (isAttachmentNode(node.type.name)) {
@@ -724,24 +729,12 @@ export class PageService {
           });
         }
 
-        let coverPhoto = page.coverPhoto;
-        const coverAttachmentId = getCoverAttachmentId(page.coverPhoto);
-        if (coverAttachmentId) {
-          const copied = attachmentMap.get(coverAttachmentId);
-          const newAttachmentId = copied?.newAttachmentId ?? uuid7();
-          if (!copied) {
-            attachmentMap.set(coverAttachmentId, {
-              newPageId: pageFromMap.newPageId,
-              oldPageId: page.id,
-              oldAttachmentId: coverAttachmentId,
-              newAttachmentId,
-            });
-          }
-          coverPhoto = page.coverPhoto.replace(
-            coverAttachmentId,
-            newAttachmentId,
-          );
-        }
+        const coverPhoto = remapCopiedCover(
+          page.coverPhoto,
+          { oldPageId: page.id, newPageId: pageFromMap.newPageId },
+          attachmentMap,
+          uuid7,
+        );
 
         // Update internal page links in mention nodes
         prosemirrorDoc.descendants((node: PMNode) => {

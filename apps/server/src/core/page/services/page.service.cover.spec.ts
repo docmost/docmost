@@ -174,6 +174,25 @@ describe('PageService.update cover', () => {
     expect(savedFields().coverPosition).toBeUndefined();
   });
 
+  it('keeps the saved position when the same upload is sent under another name', async () => {
+    const { service, savedFields } = makeService(makeAttachment());
+    const page = makePage({
+      coverPhoto: `/api/files/${ATTACHMENT_ID}/team-offsite.jpg`,
+      coverPosition: 35,
+    });
+
+    await service.update(
+      page,
+      { pageId: PAGE_ID, coverPhoto: `/api/files/${ATTACHMENT_ID}/other-name.jpg` } as any,
+      user,
+    );
+
+    expect(savedFields().coverPhoto).toBe(
+      `/api/files/${ATTACHMENT_ID}/team-offsite.jpg`,
+    );
+    expect(savedFields().coverPosition).toBeUndefined();
+  });
+
   it('saves a new position without touching the cover', async () => {
     const { service, savedFields } = makeService();
     const page = makePage({ coverPhoto: 'preset:gradient-aurora' });
