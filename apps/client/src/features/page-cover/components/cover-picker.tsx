@@ -85,7 +85,9 @@ export function CoverPicker({
   const currentCredit = getCoverCredit(page.coverPhoto, page.coverAttribution);
 
   const selectPreset = (preset: CoverPreset) => {
-    updateCover({ coverPhoto: toCoverValue(preset) });
+    const coverPhoto = toCoverValue(preset);
+    if (coverPhoto === page.coverPhoto) return;
+    updateCover({ coverPhoto });
   };
 
   const restoreOpenedCover = () => {
