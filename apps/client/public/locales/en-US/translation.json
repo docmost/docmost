@@ -1611,7 +1611,7 @@
   "Blueprint": "Blueprint",
   "Graph paper": "Graph paper",
   "Waves": "Waves",
-  "Or drop an image here. Landscape images fill the cover best.": "Or drop an image here. Landscape images fill the cover best.",
+  "Or drop an image here. Use an image at least 1200 pixels wide.": "Or drop an image here. Use an image at least 1200 pixels wide.",
   "Failed to update cover": "Failed to update cover",
   "Failed to upload image": "Failed to upload image",
   "Use a JPG, PNG, WebP or GIF image.": "Use a JPG, PNG, WebP or GIF image.",

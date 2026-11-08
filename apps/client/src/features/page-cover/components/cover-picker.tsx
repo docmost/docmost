@@ -348,7 +348,7 @@ function UploadDropzone({ uploading, onFile }: UploadDropzoneProps) {
         )}
       </FileButton>
       <Text size="xs" c="dimmed">
-        {t("Or drop an image here. Landscape images fill the cover best.")}
+        {t("Or drop an image here. Use an image at least 1200 pixels wide.")}
       </Text>
       <VisuallyHidden role="status">
         {uploading ? t("Uploading image") : ""}
