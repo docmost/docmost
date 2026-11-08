@@ -36,8 +36,6 @@ import { useDisclosure } from "@mantine/hooks";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl, isBetaPublicSpaces } from "@/lib/config.ts";
-import { extractPageSlugId } from "@/lib";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
@@ -72,7 +70,7 @@ export function SpaceSidebar() {
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
-  const { spaceSlug, pageSlug } = useParams();
+  const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
 
   const spaceRules = space?.membership?.permissions;
@@ -82,16 +80,6 @@ export function SpaceSidebar() {
   if (!space) {
     return <></>;
   }
-
-  const homePage = space.homePage;
-  const isHomeActive = homePage
-    ? !!pageSlug && extractPageSlugId(pageSlug) === homePage.slugId
-    : location.pathname.toLowerCase() === getSpaceUrl(spaceSlug);
-
-  const homeUrl =
-    homePage && isHomeActive
-      ? buildPageUrl(space.slug, homePage.slugId, homePage.title)
-      : getSpaceUrl(spaceSlug);
 
   function handleCreatePage() {
     handleCreate(null);
@@ -127,10 +115,12 @@ export function SpaceSidebar() {
           <div className={classes.menuItems}>
             <UnstyledButton
               component={Link}
-              to={homeUrl}
+              to={getSpaceUrl(spaceSlug)}
               className={clsx(
                 classes.menu,
-                isHomeActive ? classes.activeButton : "",
+                location.pathname.toLowerCase() === getSpaceUrl(spaceSlug)
+                  ? classes.activeButton
+                  : "",
               )}
             >
               <div className={classes.menuItemInner}>
@@ -139,7 +129,7 @@ export function SpaceSidebar() {
                   className={classes.menuItemIcon}
                   stroke={2}
                 />
-                <span>{homePage ? t("Home") : t("Overview")}</span>
+                <span>{space.homePage ? t("Home") : t("Overview")}</span>
               </div>
             </UnstyledButton>
 
