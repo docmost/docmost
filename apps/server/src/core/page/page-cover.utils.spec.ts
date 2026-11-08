@@ -4,96 +4,37 @@ import {
   isPresetCover,
   remapCopiedCover,
 } from './page-cover.utils';
-import { ICopyPageAttachment } from './dto/duplicate-page.dto';
 
 const ATTACHMENT_ID = '019a1f00-0000-7000-8000-0000000000aa';
-const PAGE_ID = '019a1f00-0000-7000-8000-000000000001';
-const PAGE_COPY_ID = '019a1f00-0000-7000-8000-000000000101';
-const OTHER_PAGE_ID = '019a1f00-0000-7000-8000-000000000002';
-const OTHER_PAGE_COPY_ID = '019a1f00-0000-7000-8000-000000000102';
 const COPY_ID = '019a1f00-0000-7000-8000-0000000000bb';
 
 describe('remapCopiedCover', () => {
-  const pages = { oldPageId: PAGE_ID, newPageId: PAGE_COPY_ID };
   const newId = () => COPY_ID;
 
   it('keeps a preset cover and copies nothing', () => {
-    const attachments = new Map<string, ICopyPageAttachment>();
+    const copies = new Map<string, string>();
 
-    expect(
-      remapCopiedCover('preset:gradient-dusk', pages, attachments, newId),
-    ).toBe('preset:gradient-dusk');
-    expect(attachments.size).toBe(0);
+    expect(remapCopiedCover('preset:gradient-dusk', copies, newId)).toBe(
+      'preset:gradient-dusk',
+    );
+    expect(copies.size).toBe(0);
   });
 
   it('points an uploaded cover at a new copy of its file', () => {
-    const attachments = new Map<string, ICopyPageAttachment>();
+    const copies = new Map<string, string>();
 
     expect(
-      remapCopiedCover(
-        `/api/files/${ATTACHMENT_ID}/offsite.jpg`,
-        pages,
-        attachments,
-        newId,
-      ),
+      remapCopiedCover(`/api/files/${ATTACHMENT_ID}/offsite.jpg`, copies, newId),
     ).toBe(`/api/files/${COPY_ID}/offsite.jpg`);
-    expect(attachments.get(ATTACHMENT_ID)).toEqual({
-      oldAttachmentId: ATTACHMENT_ID,
-      newAttachmentId: COPY_ID,
-      oldPageId: PAGE_ID,
-      newPageId: PAGE_COPY_ID,
-    });
+    expect(copies.get(ATTACHMENT_ID)).toBe(COPY_ID);
   });
 
   it('reuses the copy made for the same image in the page content', () => {
-    const attachments = new Map<string, ICopyPageAttachment>([
-      [
-        ATTACHMENT_ID,
-        {
-          oldAttachmentId: ATTACHMENT_ID,
-          newAttachmentId: 'content-copy-id',
-          oldPageId: PAGE_ID,
-          newPageId: PAGE_COPY_ID,
-        },
-      ],
-    ]);
+    const copies = new Map([[ATTACHMENT_ID, 'content-copy-id']]);
 
     expect(
-      remapCopiedCover(
-        `/api/files/${ATTACHMENT_ID}/offsite.jpg`,
-        pages,
-        attachments,
-        newId,
-      ),
+      remapCopiedCover(`/api/files/${ATTACHMENT_ID}/offsite.jpg`, copies, newId),
     ).toBe('/api/files/content-copy-id/offsite.jpg');
-  });
-
-  it('keeps the file with the cover page when another page also shows it', () => {
-    const attachments = new Map<string, ICopyPageAttachment>([
-      [
-        ATTACHMENT_ID,
-        {
-          oldAttachmentId: ATTACHMENT_ID,
-          newAttachmentId: 'content-copy-id',
-          oldPageId: OTHER_PAGE_ID,
-          newPageId: OTHER_PAGE_COPY_ID,
-        },
-      ],
-    ]);
-
-    remapCopiedCover(
-      `/api/files/${ATTACHMENT_ID}/offsite.jpg`,
-      pages,
-      attachments,
-      newId,
-    );
-
-    expect(attachments.get(ATTACHMENT_ID)).toEqual({
-      oldAttachmentId: ATTACHMENT_ID,
-      newAttachmentId: 'content-copy-id',
-      oldPageId: PAGE_ID,
-      newPageId: PAGE_COPY_ID,
-    });
   });
 });
 

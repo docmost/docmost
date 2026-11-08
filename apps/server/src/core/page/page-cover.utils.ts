@@ -9,7 +9,6 @@ import {
 } from './page-cover.constants';
 import { QueueJob } from '../../integrations/queue/constants';
 import { UNSPLASH_PHOTO_ID_PATTERN } from '../../integrations/unsplash/unsplash.constants';
-import { ICopyPageAttachment } from './dto/duplicate-page.dto';
 
 export function isPresetCover(coverPhoto: string): boolean {
   return COVER_PRESET_PATTERN.test(coverPhoto);
@@ -52,21 +51,14 @@ export function buildCoverFileUrl(
 
 export function remapCopiedCover(
   coverPhoto: string | null,
-  pages: { oldPageId: string; newPageId: string },
-  attachmentMap: Map<string, ICopyPageAttachment>,
+  copiedAttachmentIds: Map<string, string>,
   generateId: () => string,
 ): string | null {
   const attachmentId = getCoverAttachmentId(coverPhoto);
   if (!attachmentId) return coverPhoto;
 
-  const newAttachmentId =
-    attachmentMap.get(attachmentId)?.newAttachmentId ?? generateId();
-  // a cover file always belongs to its page, so that page owns the copy
-  attachmentMap.set(attachmentId, {
-    oldAttachmentId: attachmentId,
-    newAttachmentId,
-    ...pages,
-  });
+  const newAttachmentId = copiedAttachmentIds.get(attachmentId) ?? generateId();
+  copiedAttachmentIds.set(attachmentId, newAttachmentId);
 
   return coverPhoto.replace(attachmentId, newAttachmentId);
 }

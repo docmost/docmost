@@ -42,10 +42,7 @@ import {
   jsonToNode,
   jsonToText,
 } from 'src/collaboration/collaboration.util';
-import {
-  CopyPageMapEntry,
-  ICopyPageAttachment,
-} from '../dto/duplicate-page.dto';
+import { CopyPageMapEntry } from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -725,7 +722,7 @@ export class PageService {
       slugIdMap.set(entry.oldSlugId, entry);
     }
 
-    const attachmentMap = new Map<string, ICopyPageAttachment>();
+    const copiedAttachmentIds = new Map<string, string>();
 
     const insertablePages: InsertablePage[] = await Promise.all(
       pages.map(async (page) => {
@@ -739,18 +736,9 @@ export class PageService {
 
         if (attachmentIds.length > 0) {
           attachmentIds.forEach((attachmentId: string) => {
-            const newPageId = pageFromMap.newPageId;
             // pages that show the same file share one copy of it
-            const newAttachmentId =
-              attachmentMap.get(attachmentId)?.newAttachmentId ?? uuid7();
-            if (!attachmentMap.has(attachmentId)) {
-              attachmentMap.set(attachmentId, {
-                newPageId: newPageId,
-                oldPageId: page.id,
-                oldAttachmentId: attachmentId,
-                newAttachmentId: newAttachmentId,
-              });
-            }
+            const newAttachmentId = copiedAttachmentIds.get(attachmentId) ?? uuid7();
+            copiedAttachmentIds.set(attachmentId, newAttachmentId);
 
             prosemirrorDoc.descendants((node: PMNode) => {
               if (isAttachmentNode(node.type.name)) {
@@ -778,12 +766,7 @@ export class PageService {
           });
         }
 
-        const coverPhoto = remapCopiedCover(
-          page.coverPhoto,
-          { oldPageId: page.id, newPageId: pageFromMap.newPageId },
-          attachmentMap,
-          uuid7,
-        );
+        const coverPhoto = remapCopiedCover(page.coverPhoto, copiedAttachmentIds, uuid7);
 
         // Update internal page links in mention nodes
         prosemirrorDoc.descendants((node: PMNode) => {
@@ -922,7 +905,7 @@ export class PageService {
     });
 
     //TODO: best to handle this in a queue
-    const attachmentsIds = Array.from(attachmentMap.keys());
+    const attachmentsIds = Array.from(copiedAttachmentIds.keys());
     if (attachmentsIds.length > 0) {
       const attachments = await this.db
         .selectFrom('attachments')
@@ -933,16 +916,15 @@ export class PageService {
 
       for (const attachment of attachments) {
         try {
-          const pageAttachment = attachmentMap.get(attachment.id);
-
-          // make sure the copied attachment belongs to the page it was copied from
-          if (attachment.pageId !== pageAttachment.oldPageId) {
+          // only files owned by a copied page are copied, and they go to that page's copy
+          const owner = pageMap.get(attachment.pageId);
+          if (!owner) {
             continue;
           }
 
-          const newAttachmentId = pageAttachment.newAttachmentId;
+          const newAttachmentId = copiedAttachmentIds.get(attachment.id);
 
-          const newPageId = pageAttachment.newPageId;
+          const newPageId = owner.newPageId;
 
           const newPathFile = attachment.filePath.replace(
             attachment.id,
