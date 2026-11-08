@@ -227,6 +227,7 @@ export function CoverPicker({
           {unsplashEnabled && (
             <Tabs.Panel value="unsplash">
               <UnsplashPanel
+                pageId={page.id}
                 search={unsplashSearch}
                 onSearchChange={setUnsplashSearch}
                 selectedPhotoId={currentCredit?.photoId ?? null}

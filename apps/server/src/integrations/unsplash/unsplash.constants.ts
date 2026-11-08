@@ -13,7 +13,7 @@ export const UNSPLASH_COVER_IMAGE_PARAMS = 'w=2560&q=80&auto=format&fit=max';
 
 export const UNSPLASH_REQUEST_TIMEOUT_MS = 10_000;
 export const UNSPLASH_CACHE_PREFIX = 'unsplash:';
-export const UNSPLASH_LIST_TTL_MS = 10 * 60_000;
+export const UNSPLASH_LIST_TTL_MS = 30 * 60_000;
 export const UNSPLASH_PHOTO_TTL_MS = 60 * 60_000;
 export const UNSPLASH_COVER_LIMIT = 30;
 export const UNSPLASH_COVER_WINDOW_MS = 60_000;

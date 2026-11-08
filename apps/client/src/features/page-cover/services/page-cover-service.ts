@@ -24,6 +24,7 @@ export async function uploadCoverImage(
 export async function listUnsplashPhotos(params: {
   query: string;
   page: number;
+  pageId: string;
 }): Promise<UnsplashPhotoList> {
   const req = await api.post<UnsplashPhotoList>("/unsplash/photos", params);
   return req.data;

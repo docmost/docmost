@@ -25,6 +25,7 @@ import {
 } from "@/features/page-cover/page-cover.utils.ts";
 
 type UnsplashPanelProps = {
+  pageId: string;
   search: string;
   onSearchChange: (search: string) => void;
   selectedPhotoId: string | null;
@@ -32,6 +33,7 @@ type UnsplashPanelProps = {
 };
 
 export function UnsplashPanel({
+  pageId,
   search,
   onSearchChange,
   selectedPhotoId,
@@ -49,13 +51,14 @@ export function UnsplashPanel({
     hasNextPage,
     fetchNextPage,
     refetch,
-  } = useUnsplashPhotosQuery(query);
+  } = useUnsplashPhotosQuery(query, pageId);
   const photos = mergeUnsplashPages(data?.pages ?? []);
   const rateLimited = (error as any)?.response?.status === 429;
   const errorMessage = rateLimited
     ? t("Unsplash rate limit reached. Try again later.")
     : t("Failed to load photos");
-  const loading = isPending || (Boolean(error) && isFetching && photos.length === 0);
+  const loading =
+    isPending || (Boolean(error) && isFetching && photos.length === 0);
   const noResults = !loading && !error && photos.length === 0;
 
   return (
@@ -141,10 +144,18 @@ export function UnsplashPanel({
           i18nKey="Photos from <unsplash>Unsplash</unsplash> · <license>License</license>"
           components={{
             unsplash: (
-              <a href={UNSPLASH_HOME_URL} target="_blank" rel="noopener noreferrer" />
+              <a
+                href={UNSPLASH_HOME_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              />
             ),
             license: (
-              <a href={UNSPLASH_LICENSE_URL} target="_blank" rel="noopener noreferrer" />
+              <a
+                href={UNSPLASH_LICENSE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              />
             ),
           }}
         />
