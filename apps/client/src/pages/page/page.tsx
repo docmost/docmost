@@ -180,7 +180,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
         <MemoizedPageHeader readOnly={!canEdit} />
 
-        <PageCover page={page} editable={canEdit} />
+        <PageCover key={page.id} page={page} editable={canEdit} />
 
         <MemoizedFullEditor
           key={page.id}

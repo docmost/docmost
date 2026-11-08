@@ -2,8 +2,10 @@ import { useState } from "react";
 import clsx from "clsx";
 import classes from "./page-cover.module.css";
 import { CoverImage } from "@/features/page-cover/components/cover-image.tsx";
-import { DEFAULT_COVER_POSITION } from "@/features/page-cover/page-cover.constants.ts";
-import { resolveCover } from "@/features/page-cover/page-cover.utils.ts";
+import {
+  getCoverPosition,
+  resolveCover,
+} from "@/features/page-cover/page-cover.utils.ts";
 
 type PublicPageCoverProps = {
   coverPhoto: string | null;
@@ -28,7 +30,7 @@ export function PublicPageCover({
         <CoverImage
           key={cover.src}
           src={cover.src}
-          position={coverPosition ?? DEFAULT_COVER_POSITION}
+          position={getCoverPosition(coverPosition)}
           onError={() => setFailedSrc(cover.src)}
         />
       )}

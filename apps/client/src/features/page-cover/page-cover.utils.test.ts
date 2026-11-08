@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  getCoverOutputType,
   getCoverOverflow,
+  getCoverPosition,
   getCoverPositionAfterDrag,
   pickRandomGradient,
-  pickSmallerCoverFile,
   resolveCover,
 } from "./page-cover.utils";
 
@@ -47,11 +46,38 @@ describe("resolveCover", () => {
     ["javascript:alert(1)"],
     [`/api/files/${FILE_ID}/cover.jpg?w=1`],
     [`/api/files/${FILE_ID}/../../secret`],
+    [`/api/files/${FILE_ID}/..`],
+    [`/api/files/${FILE_ID}/.`],
+    [`/api/files/${FILE_ID}/a\\b.png`],
     [""],
     [null],
     [undefined],
   ])("renders nothing for %s", (value) => {
     expect(resolveCover(value)).toBeNull();
+  });
+
+  it.each([[1], [true], [{}], [["preset:color-red"]]])(
+    "renders nothing for a non-string %o from another client",
+    (value) => {
+      expect(resolveCover(value)).toBeNull();
+    },
+  );
+});
+
+describe("getCoverPosition", () => {
+  it.each([
+    [42, 42],
+    [0, 0],
+    [100, 100],
+    [150, 100],
+    [-5, 0],
+    [null, 50],
+    [undefined, 50],
+    ["30", 50],
+    [Number.NaN, 50],
+    [Number.POSITIVE_INFINITY, 50],
+  ])("%o -> %d", (value, expected) => {
+    expect(getCoverPosition(value)).toBe(expected);
   });
 });
 
@@ -101,56 +127,4 @@ describe("getCoverPositionAfterDrag", () => {
       );
     },
   );
-});
-
-describe("pickSmallerCoverFile", () => {
-  const file = (size: number, name: string) =>
-    new File([new Uint8Array(size)], name);
-
-  it("keeps the original when re-encoding without downscaling made it bigger", () => {
-    const original = file(6_000, "diagram.png");
-    const encoded = file(9_000, "diagram.webp");
-    expect(pickSmallerCoverFile(original, encoded, false)).toBe(original);
-  });
-
-  it("uses the re-encoded file when it is smaller", () => {
-    const original = file(9_000, "photo.jpg");
-    const encoded = file(2_000, "photo.jpg");
-    expect(pickSmallerCoverFile(original, encoded, false)).toBe(encoded);
-  });
-
-  it("always uses the downscaled file", () => {
-    const original = file(6_000, "huge.png");
-    const encoded = file(7_000, "huge.webp");
-    expect(pickSmallerCoverFile(original, encoded, true)).toBe(encoded);
-  });
-});
-
-describe("getCoverOutputType", () => {
-  const MB = 1024 * 1024;
-  const opaque = () => false;
-  const transparent = () => true;
-
-  it.each([
-    ["a small photo that fits", "image/jpeg", 0.8 * MB, false, opaque, "original"],
-    ["a large photo", "image/jpeg", 4 * MB, false, opaque, "image/jpeg"],
-    ["a small photo that was downscaled", "image/jpeg", 0.8 * MB, true, opaque, "image/jpeg"],
-    ["a large png with transparency", "image/png", 3 * MB, false, transparent, "image/webp"],
-    ["a large opaque png", "image/png", 3 * MB, false, opaque, "image/jpeg"],
-    ["a large webp with transparency", "image/webp", 3 * MB, true, transparent, "image/webp"],
-    ["an animated gif", "image/gif", 6 * MB, true, opaque, "original"],
-  ])("%s -> %s", (_label, type, size, downscaled, hasAlpha, expected) => {
-    expect(getCoverOutputType({ type, size }, downscaled, hasAlpha)).toBe(
-      expected,
-    );
-  });
-
-  it("only checks transparency when it matters", () => {
-    let checked = false;
-    getCoverOutputType({ type: "image/jpeg", size: 4 * MB }, false, () => {
-      checked = true;
-      return false;
-    });
-    expect(checked).toBe(false);
-  });
 });

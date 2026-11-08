@@ -68,12 +68,24 @@
   &[data-selected="true"] {
     box-shadow:
       0 0 0 2px var(--mantine-color-body),
-      0 0 0 4px var(--mantine-primary-color-filled);
+      0 0 0 4px
+        light-dark(var(--mantine-primary-color-filled), var(--mantine-color-blue-4));
   }
 }
 
 .colorTile {
   aspect-ratio: 5 / 3;
+}
+
+@media (forced-colors: active) {
+  .tile[data-selected="true"] {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .colorTile {
+    forced-color-adjust: none;
+  }
 }
 
 .check {

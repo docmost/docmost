@@ -71,7 +71,7 @@ export const COVER_PRESETS: CoverPreset[] = [
 
 // the server tokenizes uploaded covers on public pages with ?jwt=
 export const COVER_FILE_PATTERN =
-  /^\/api\/files\/(public\/)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[^/?#]+(\?jwt=[\w.-]+)?$/i;
+  /^\/api\/files\/(public\/)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?!\.\.?(?:\?|$))[^/?#\\]+(\?jwt=[\w.-]+)?$/i;
 
 export const COVER_IMAGE_TYPES = [
   "image/jpeg",
@@ -80,13 +80,17 @@ export const COVER_IMAGE_TYPES = [
   "image/gif",
 ];
 
-export const COVER_FILE_EXTENSIONS: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/png": "png",
+// the first extension is the one written for converted files
+export const COVER_TYPE_EXTENSIONS: Record<string, string[]> = {
+  "image/jpeg": ["jpg", "jpeg"],
+  "image/png": ["png"],
+  "image/webp": ["webp"],
+  "image/gif": ["gif"],
 };
 
 export const DEFAULT_COVER_POSITION = 50;
+export const COVER_POSITION_STEP = 10;
+export const COVER_FOCUS_REQUEST_TTL = 2000;
 export const COVER_MAX_DIMENSION = 2560;
 export const COVER_COMPRESS_THRESHOLD = 1.5 * 1024 * 1024;
 export const COVER_JPEG_QUALITY = 0.85;

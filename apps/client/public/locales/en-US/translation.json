@@ -1616,5 +1616,11 @@
   "Failed to upload image": "Failed to upload image",
   "Use a JPG, PNG, WebP or GIF image.": "Use a JPG, PNG, WebP or GIF image.",
   "Uploaded": "Uploaded",
-  "Uploaded image": "Uploaded image"
+  "Uploaded image": "Uploaded image",
+  "Move image up": "Move image up",
+  "Move image down": "Move image down",
+  "{{value}}% from the top": "{{value}}% from the top",
+  "Use the arrow keys to move the image. Press Enter to save or Escape to cancel.": "Use the arrow keys to move the image. Press Enter to save or Escape to cancel.",
+  "Cover image not found": "Cover image not found",
+  "Uploading image": "Uploading image"
 }

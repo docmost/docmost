@@ -1,20 +1,24 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import {
   Button,
   FileButton,
+  Loader,
   Popover,
   ScrollArea,
   Tabs,
   Text,
   UnstyledButton,
+  VisuallyHidden,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconCheck, IconPhotoUp } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { useSetAtom } from "jotai";
 import clsx from "clsx";
 import classes from "./cover-picker.module.css";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { usePageCover } from "@/features/page-cover/hooks/use-page-cover.ts";
+import { coverFocusRequestAtom } from "@/features/page-cover/atoms/page-cover-atoms.ts";
 import {
   COVER_COLOR_PRESETS,
   COVER_GRADIENT_PRESETS,
@@ -35,6 +39,7 @@ type CoverPickerProps = {
   page: IPage;
   opened: boolean;
   onChange: (opened: boolean) => void;
+  dropdownId: string;
   children: React.ReactElement;
 };
 
@@ -42,12 +47,14 @@ export function CoverPicker({
   page,
   opened,
   onChange,
+  dropdownId,
   children,
 }: CoverPickerProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<string | null>("gallery");
   const [wasOpened, setWasOpened] = useState(opened);
   const [openedWith, setOpenedWith] = useState<PageCoverUpdate | null>(null);
+  const setFocusRequest = useSetAtom(coverFocusRequestAtom);
   const { updateCover, uploadCover, isUploading } = usePageCover(page);
 
   // remember an uploaded cover so trying presets never loses it
@@ -75,12 +82,17 @@ export function CoverPicker({
   };
 
   const removeCover = () => {
+    setFocusRequest({
+      pageId: page.id,
+      target: "add-cover",
+      requestedAt: Date.now(),
+    });
     onChange(false);
     updateCover({ coverPhoto: null });
   };
 
   const uploadImage = async (file: File | null) => {
-    if (!file) return;
+    if (!file || isUploading) return;
     if (!COVER_IMAGE_TYPES.includes(file.type)) {
       notifications.show({
         message: t("Use a JPG, PNG, WebP or GIF image."),
@@ -118,8 +130,10 @@ export function CoverPicker({
     >
       <Popover.Target>{children}</Popover.Target>
       <Popover.Dropdown
-        p={0}
+        id={dropdownId}
+        role="dialog"
         aria-label={t("Change cover")}
+        p={0}
         style={{ width: "min(520px, calc(100vw - 24px))" }}
       >
         <Tabs
@@ -147,43 +161,38 @@ export function CoverPicker({
 
           <Tabs.Panel value="gallery">
             <ScrollArea.Autosize
-              mah="calc(var(--cover-picker-available-height, 480px) - 50px)"
+              mah="max(160px, calc(var(--cover-picker-available-height, 480px) - 50px))"
               type="auto"
               scrollbarSize={6}
               style={{ overscrollBehavior: "contain" }}
             >
               <div className={classes.body}>
                 {uploadedCover?.kind === "image" && (
-                  <section className={classes.section} aria-label={t("Uploaded")}>
-                    <Text size="xs" fw={500} c="dimmed" className={classes.sectionTitle}>
-                      {t("Uploaded")}
-                    </Text>
-                    <div className={classes.grid}>
-                      <CoverTile
-                        label={t("Uploaded image")}
-                        selected={page.coverPhoto === openedWith.coverPhoto}
-                        style={{
-                          backgroundImage: `url("${encodeURI(uploadedCover.src)}")`,
-                        }}
-                        onClick={restoreUploadedCover}
-                      />
-                    </div>
-                  </section>
+                  <TileGroup title={t("Uploaded")}>
+                    <CoverTile
+                      label={t("Uploaded image")}
+                      selected={page.coverPhoto === openedWith.coverPhoto}
+                      style={{
+                        backgroundImage: `url("${encodeURI(uploadedCover.src)}")`,
+                      }}
+                      onClick={restoreUploadedCover}
+                    />
+                  </TileGroup>
                 )}
-                <PresetSection
+                <PresetGroup
                   title={t("Colors")}
                   presets={COVER_COLOR_PRESETS}
                   current={page.coverPhoto}
                   onSelect={selectPreset}
                   compact
                 />
-                <PresetSection
+                <PresetGroup
                   title={t("Gradients")}
                   presets={COVER_GRADIENT_PRESETS}
                   current={page.coverPhoto}
                   onSelect={selectPreset}
                 />
-                <PresetSection
+                <PresetGroup
                   title={t("Textures")}
                   presets={COVER_TEXTURE_PRESETS}
                   current={page.coverPhoto}
@@ -204,7 +213,34 @@ export function CoverPicker({
   );
 }
 
-type PresetSectionProps = {
+type TileGroupProps = {
+  title: string;
+  compact?: boolean;
+  children: React.ReactNode;
+};
+
+function TileGroup({ title, compact, children }: TileGroupProps) {
+  const titleId = useId();
+
+  return (
+    <div className={classes.section} role="group" aria-labelledby={titleId}>
+      <Text
+        id={titleId}
+        size="xs"
+        fw={500}
+        c="dimmed"
+        className={classes.sectionTitle}
+      >
+        {title}
+      </Text>
+      <div className={clsx(classes.grid, compact && classes.colorGrid)}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+type PresetGroupProps = {
   title: string;
   presets: CoverPreset[];
   current: string | null;
@@ -212,37 +248,32 @@ type PresetSectionProps = {
   compact?: boolean;
 };
 
-function PresetSection({
+function PresetGroup({
   title,
   presets,
   current,
   onSelect,
   compact,
-}: PresetSectionProps) {
+}: PresetGroupProps) {
   const { t } = useTranslation();
 
   return (
-    <section className={classes.section} aria-label={title}>
-      <Text size="xs" fw={500} c="dimmed" className={classes.sectionTitle}>
-        {title}
-      </Text>
-      <div className={clsx(classes.grid, compact && classes.colorGrid)}>
-        {presets.map((preset) => (
-          <CoverTile
-            key={preset.id}
-            label={t(preset.label)}
-            selected={toCoverValue(preset) === current}
-            compact={compact}
-            style={
-              preset.color
-                ? { backgroundColor: preset.color }
-                : { backgroundImage: `url("${preset.thumb}")` }
-            }
-            onClick={() => onSelect(preset)}
-          />
-        ))}
-      </div>
-    </section>
+    <TileGroup title={title} compact={compact}>
+      {presets.map((preset) => (
+        <CoverTile
+          key={preset.id}
+          label={t(preset.label)}
+          selected={toCoverValue(preset) === current}
+          compact={compact}
+          style={
+            preset.color
+              ? { backgroundColor: preset.color }
+              : { backgroundImage: `url("${preset.thumb}")` }
+          }
+          onClick={() => onSelect(preset)}
+        />
+      ))}
+    </TileGroup>
   );
 }
 
@@ -262,6 +293,8 @@ function CoverTile({ label, selected, style, onClick, compact }: CoverTileProps)
       aria-label={label}
       aria-pressed={selected}
       data-selected={selected || undefined}
+      // keyboard users start on the current cover
+      data-autofocus={selected || undefined}
       onClick={onClick}
     >
       {selected && (
@@ -285,7 +318,6 @@ function UploadDropzone({ uploading, onFile }: UploadDropzoneProps) {
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragging(false);
-    if (uploading) return;
     onFile(event.dataTransfer.files?.[0] ?? null);
   };
 
@@ -303,7 +335,14 @@ function UploadDropzone({ uploading, onFile }: UploadDropzoneProps) {
       <IconPhotoUp size={28} stroke={1.5} className={classes.dropIcon} />
       <FileButton onChange={onFile} accept={COVER_IMAGE_TYPES.join(",")}>
         {(props) => (
-          <Button {...props} variant="default" loading={uploading}>
+          // stays focusable while uploading, a disabled button would drop focus
+          <Button
+            {...props}
+            variant="default"
+            aria-disabled={uploading || undefined}
+            leftSection={uploading ? <Loader size={14} /> : undefined}
+            onClick={uploading ? undefined : props.onClick}
+          >
             {t("Upload image")}
           </Button>
         )}
@@ -311,6 +350,9 @@ function UploadDropzone({ uploading, onFile }: UploadDropzoneProps) {
       <Text size="xs" c="dimmed">
         {t("Or drop an image here. Landscape images fill the cover best.")}
       </Text>
+      <VisuallyHidden role="status">
+        {uploading ? t("Uploading image") : ""}
+      </VisuallyHidden>
     </div>
   );
 }

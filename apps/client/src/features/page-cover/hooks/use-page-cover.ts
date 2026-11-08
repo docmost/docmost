@@ -12,7 +12,7 @@ import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { getFileUploadSizeLimit } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
 import { PageCoverUpdate } from "@/features/page-cover/page-cover.types.ts";
-import { compressCoverImage } from "@/features/page-cover/page-cover.utils.ts";
+import { compressCoverImage } from "@/features/page-cover/compress-cover-image.ts";
 
 function setCachedCover(page: IPage, fields: PageCoverUpdate) {
   for (const key of [page.id, page.slugId]) {
@@ -26,10 +26,14 @@ export function usePageCover(page: IPage) {
   const { t } = useTranslation();
   const emit = useQueryEmit();
   const [isUploading, setIsUploading] = useState(false);
-  // one queue per page, so a slow request never lands after a newer choice
+  const mutationKey = ["page-cover", page.id];
+  // one queue per page, so requests reach the server in the order they were made
   const scope = { id: `page-cover-${page.id}` };
+  // only the newest pending change may touch the cache, older replies would undo it
+  const hasNewerChange = () => queryClient.isMutating({ mutationKey }) > 1;
 
   const applySavedCover = (saved: IPage) => {
+    if (hasNewerChange()) return;
     const fields = {
       coverPhoto: saved.coverPhoto,
       coverPosition: saved.coverPosition,
@@ -49,6 +53,7 @@ export function usePageCover(page: IPage) {
   };
 
   const updateMutation = useMutation({
+    mutationKey,
     scope,
     mutationFn: (update: PageCoverUpdate) =>
       updatePage({ pageId: page.id, ...update }),
@@ -67,16 +72,19 @@ export function usePageCover(page: IPage) {
       return { previous };
     },
     onError: (_error, _update, context) => {
-      if (context) setCachedCover(page, context.previous);
       notifications.show({
         message: t("Failed to update cover"),
         color: "red",
       });
+      if (hasNewerChange()) return;
+      if (context) setCachedCover(page, context.previous);
+      queryClient.invalidateQueries({ queryKey: ["pages", page.slugId] });
     },
     onSuccess: applySavedCover,
   });
 
   const uploadMutation = useMutation({
+    mutationKey,
     scope,
     mutationFn: async (file: File) => {
       const attachment = await uploadFile(file, page.id);

@@ -17,3 +17,9 @@ export type PageCoverUpdate = {
   coverPhoto?: string | null;
   coverPosition?: number | null;
 };
+
+export type CoverFocusRequest = {
+  pageId: string;
+  target: "change-cover" | "add-cover";
+  requestedAt: number;
+};
