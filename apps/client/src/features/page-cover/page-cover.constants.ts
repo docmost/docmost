@@ -44,8 +44,8 @@ export const COVER_GRADIENT_PRESETS: CoverPreset[] = [
 ];
 
 export const COVER_TEXTURE_PRESETS: CoverPreset[] = [
-  imagePreset("texture", "sand", "Sand"),
-  imagePreset("texture", "kraft", "Kraft"),
+  imagePreset("texture", "clouds", "Clouds"),
+  imagePreset("texture", "northern-lights", "Northern lights"),
   imagePreset("texture", "linen", "Linen"),
   imagePreset("texture", "terrazzo", "Terrazzo"),
   imagePreset("texture", "graph", "Graph paper"),
