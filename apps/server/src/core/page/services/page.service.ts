@@ -9,7 +9,13 @@ import { CreatePageDto, ContentFormat } from '../dto/create-page.dto';
 import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
+import {
+  InsertablePage,
+  Page,
+  Share,
+  UpdatablePage,
+  User,
+} from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
   CursorPaginationResult,
@@ -36,10 +42,7 @@ import {
   jsonToNode,
   jsonToText,
 } from 'src/collaboration/collaboration.util';
-import {
-  CopyPageMapEntry,
-  ICopyPageAttachment,
-} from '../dto/duplicate-page.dto';
+import { CopyPageMapEntry } from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -59,6 +62,21 @@ import { TransclusionService } from '../transclusion/transclusion.service';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import { ShareService } from '../../share/share.service';
+import {
+  buildCoverFileUrl,
+  getCoverAttachmentId,
+  getUnsplashPhotoId,
+  isPresetCover,
+  queueCoverCleanup,
+  remapCopiedCover,
+} from '../page-cover.utils';
+import { COVER_IMAGE_MIME_TYPES } from '../page-cover.constants';
+import { CoverFields } from '../page-cover.types';
+import { UnsplashService } from '../../../integrations/unsplash/unsplash.service';
+import { AttachmentType } from '../../attachment/attachment.constants';
+import { PageVerificationInvalidationService } from '../verification/page-verification-invalidation.service';
+import { isSameTitle } from '../verification/page-verification-invalidation.utils';
 
 @Injectable()
 export class PageService {
@@ -80,6 +98,9 @@ export class PageService {
     private readonly labelRepo: LabelRepo,
     private readonly wsService: WsService,
     private readonly collabAccessService: CollabAccessService,
+    private readonly shareService: ShareService,
+    private readonly unsplashService: UnsplashService,
+    private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
   ) {}
 
   async findById(
@@ -234,17 +255,59 @@ export class PageService {
     const contributors = new Set<string>(page.contributorIds);
     contributors.add(user.id);
     const contributorIds = Array.from(contributors);
+    const titleChanged =
+      updatePageDto.title !== undefined &&
+      !isSameTitle(page.title, updatePageDto.title);
 
-    await this.pageRepo.updatePage(
-      {
-        title: updatePageDto.title,
-        icon: updatePageDto.icon,
-        lastUpdatedById: user.id,
-        updatedAt: new Date(),
-        contributorIds: contributorIds,
-      },
-      page.id,
+    const coverFields = await this.resolveCoverFields(
+      page,
+      updatePageDto,
+      user,
     );
+
+    const invalidation = await executeTx(this.db, async (trx) => {
+      await this.pageRepo.updatePage(
+        {
+          title: updatePageDto.title,
+          icon: updatePageDto.icon,
+          ...coverFields,
+          lastUpdatedById: user.id,
+          updatedAt: new Date(),
+          contributorIds: contributorIds,
+        },
+        page.id,
+        trx,
+      );
+
+      if (!titleChanged) return null;
+
+      return this.pageVerificationInvalidationService.invalidateForEdit(
+        {
+          pageId: page.id,
+          userId: user.id,
+          changedAt: null,
+          isMeaningfulChange: () => true,
+          loadPreviousState: async () => {
+            const current = await this.pageRepo.findById(page.id, {
+              includeContent: true,
+              trx,
+            });
+            return { ...page, content: current.content };
+          },
+        },
+        trx,
+      );
+    });
+
+    if (invalidation) {
+      await this.pageVerificationInvalidationService.notifyInvalidated(
+        invalidation,
+        user.id,
+        'title',
+      );
+    }
+
+    this.scheduleCoverCleanup(page, coverFields);
 
     this.generalQueue
       .add(QueueJob.ADD_PAGE_WATCHERS, {
@@ -278,6 +341,94 @@ export class PageService {
       includeLastUpdatedBy: true,
       includeContributors: true,
     });
+  }
+
+  private async resolveCoverFields(
+    page: Page,
+    dto: UpdatePageDto,
+    user: User,
+  ): Promise<CoverFields> {
+    const fields: CoverFields = {};
+
+    if (dto.coverPhoto !== undefined && dto.coverPhoto !== page.coverPhoto) {
+      const cover = await this.resolveCover(page, dto.coverPhoto, user);
+      fields.coverPhoto = cover.coverPhoto;
+      if (cover.coverPhoto !== page.coverPhoto) {
+        fields.coverPosition = null;
+        fields.coverAttribution = cover.coverAttribution;
+      }
+    }
+
+    if (dto.coverPosition !== undefined) {
+      fields.coverPosition = dto.coverPosition;
+    }
+
+    const coverPhoto =
+      fields.coverPhoto !== undefined ? fields.coverPhoto : page.coverPhoto;
+    if (coverPhoto === null && fields.coverPosition !== undefined) {
+      fields.coverPosition = null;
+    }
+
+    return fields;
+  }
+
+  private async resolveCover(
+    page: Page,
+    coverPhoto: string | null,
+    user: User,
+  ): Promise<Pick<CoverFields, 'coverPhoto' | 'coverAttribution'>> {
+    if (coverPhoto === null || isPresetCover(coverPhoto)) {
+      return { coverPhoto, coverAttribution: null };
+    }
+
+    const unsplashPhotoId = getUnsplashPhotoId(coverPhoto);
+    if (unsplashPhotoId) {
+      return this.unsplashService.getCover(unsplashPhotoId, user.id);
+    }
+
+    return {
+      coverPhoto: await this.validateCoverFile(page, coverPhoto),
+      coverAttribution: null,
+    };
+  }
+
+  private async validateCoverFile(
+    page: Page,
+    coverPhoto: string,
+  ): Promise<string> {
+    const attachmentId = getCoverAttachmentId(coverPhoto);
+    const attachment = attachmentId
+      ? await this.attachmentRepo.findById(attachmentId)
+      : null;
+
+    // only cover uploads, so the cleanup job never touches a file the page shows elsewhere
+    if (
+      !attachment ||
+      attachment.type !== AttachmentType.PageCover ||
+      attachment.workspaceId !== page.workspaceId ||
+      attachment.pageId !== page.id ||
+      !COVER_IMAGE_MIME_TYPES.includes(attachment.mimeType)
+    ) {
+      throw new BadRequestException('Invalid cover photo');
+    }
+
+    return buildCoverFileUrl(attachment);
+  }
+
+  private scheduleCoverCleanup(page: Page, fields: CoverFields): void {
+    if (fields.coverPhoto === undefined) return;
+
+    const attachmentId = getCoverAttachmentId(page.coverPhoto);
+    if (!attachmentId || attachmentId === getCoverAttachmentId(fields.coverPhoto)) {
+      return;
+    }
+
+    queueCoverCleanup(this.attachmentQueue, {
+      pageId: page.id,
+      attachmentId,
+    }).catch((err) =>
+      this.logger.warn(`Failed to queue cover cleanup: ${err.message}`),
+    );
   }
 
   async updatePageContent(
@@ -403,6 +554,11 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      rootPage.workspaceId,
+      spaceId,
+    );
+
     const result = await executeTx(this.db, async (trx) => {
       await this.pageRepo.lockPageHierarchySpaces(
         [rootPage.spaceId, spaceId],
@@ -464,6 +620,7 @@ export class PageService {
       const childPageIds = pageIdsToMove.filter(
         (id) => id !== currentRootPage.id,
       );
+      let deletedShares: Pick<Share, 'id' | 'pageId' | 'spaceId'>[] = [];
 
       if (pageIdsToMove.length > 1) {
         // Update sub pages (all accessible pages except root)
@@ -477,11 +634,25 @@ export class PageService {
           .where('pageId', 'in', pageIdsToMove)
           .execute();
 
-        // update spaceId in shares
+        // shares only follow pages into spaces that allow public sharing
+        if (sharingAllowed) {
+          await trx
+            .updateTable('shares')
+            .set({ spaceId: spaceId })
+            .where('pageId', 'in', pageIdsToMove)
+            .execute();
+        } else {
+          deletedShares = await trx
+            .deleteFrom('shares')
+            .where('pageId', 'in', pageIdsToMove)
+            .returning(['id', 'pageId', 'spaceId'])
+            .execute();
+        }
+
         await trx
-          .updateTable('shares')
-          .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIdsToMove)
+          .updateTable('spaces')
+          .set({ homePageId: null })
+          .where('homePageId', 'in', pageIdsToMove)
           .execute();
 
         // Update comments
@@ -494,6 +665,13 @@ export class PageService {
         // Update page verifications
         await trx
           .updateTable('pageVerifications')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIdsToMove)
+          .execute();
+
+        // Update page history
+        await trx
+          .updateTable('pageHistory')
           .set({ spaceId: spaceId })
           .where('pageId', 'in', pageIdsToMove)
           .execute();
@@ -538,7 +716,7 @@ export class PageService {
         );
       }
 
-      return { childPageIds };
+      return { childPageIds, deletedShares };
     });
 
     await this.collabAccessService.recheckAccess({ pageIds: [rootPage.id] });
@@ -593,7 +771,7 @@ export class PageService {
       slugIdMap.set(entry.oldSlugId, entry);
     }
 
-    const attachmentMap = new Map<string, ICopyPageAttachment>();
+    const copiedAttachmentIds = new Map<string, string>();
 
     const insertablePages: InsertablePage[] = await Promise.all(
       pages.map(async (page) => {
@@ -607,14 +785,9 @@ export class PageService {
 
         if (attachmentIds.length > 0) {
           attachmentIds.forEach((attachmentId: string) => {
-            const newPageId = pageFromMap.newPageId;
-            const newAttachmentId = uuid7();
-            attachmentMap.set(attachmentId, {
-              newPageId: newPageId,
-              oldPageId: page.id,
-              oldAttachmentId: attachmentId,
-              newAttachmentId: newAttachmentId,
-            });
+            // pages that show the same file share one copy of it
+            const newAttachmentId = copiedAttachmentIds.get(attachmentId) ?? uuid7();
+            copiedAttachmentIds.set(attachmentId, newAttachmentId);
 
             prosemirrorDoc.descendants((node: PMNode) => {
               if (isAttachmentNode(node.type.name)) {
@@ -641,6 +814,8 @@ export class PageService {
             });
           });
         }
+
+        const coverPhoto = remapCopiedCover(page.coverPhoto, copiedAttachmentIds, uuid7);
 
         // Update internal page links in mention nodes
         prosemirrorDoc.descendants((node: PMNode) => {
@@ -708,6 +883,9 @@ export class PageService {
           slugId: pageFromMap.newSlugId,
           title: title,
           icon: page.icon,
+          coverPhoto,
+          coverPosition: page.coverPosition,
+          coverAttribution: page.coverAttribution,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
           ydoc: createYdocFromJson(prosemirrorJson),
@@ -776,7 +954,7 @@ export class PageService {
     });
 
     //TODO: best to handle this in a queue
-    const attachmentsIds = Array.from(attachmentMap.keys());
+    const attachmentsIds = Array.from(copiedAttachmentIds.keys());
     if (attachmentsIds.length > 0) {
       const attachments = await this.db
         .selectFrom('attachments')
@@ -787,16 +965,15 @@ export class PageService {
 
       for (const attachment of attachments) {
         try {
-          const pageAttachment = attachmentMap.get(attachment.id);
-
-          // make sure the copied attachment belongs to the page it was copied from
-          if (attachment.pageId !== pageAttachment.oldPageId) {
+          // only files owned by a copied page are copied, and they go to that page's copy
+          const owner = pageMap.get(attachment.pageId);
+          if (!owner) {
             continue;
           }
 
-          const newAttachmentId = pageAttachment.newAttachmentId;
+          const newAttachmentId = copiedAttachmentIds.get(attachment.id);
 
-          const newPageId = pageAttachment.newPageId;
+          const newPageId = owner.newPageId;
 
           const newPathFile = attachment.filePath.replace(
             attachment.id,

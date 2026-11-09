@@ -54,7 +54,6 @@ import {
   FigmaIcon,
   FramerIcon,
   GoogleDriveIcon,
-  GoogleSheetsIcon,
   LoomIcon,
   Microsoft365Icon,
   MiroIcon,
@@ -783,8 +782,17 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Google Drive",
-      description: "Embed Google Drive content",
-      searchTerms: ["google drive", "gdrive"],
+      description: "Embed Google Docs, Sheets, Slides or Drive files",
+      searchTerms: [
+        "google drive",
+        "gdrive",
+        "google docs",
+        "gdocs",
+        "google sheets",
+        "gsheets",
+        "google slides",
+        "gslides",
+      ],
       icon: GoogleDriveIcon,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -792,20 +800,6 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setEmbed({ provider: "gdrive" })
-          .run();
-      },
-    },
-    {
-      title: "Google Sheets",
-      description: "Embed Google Sheets content",
-      searchTerms: ["google sheets", "gsheets"],
-      icon: GoogleSheetsIcon,
-      command: ({ editor, range }: CommandProps) => {
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .setEmbed({ provider: "gsheets" })
           .run();
       },
     },

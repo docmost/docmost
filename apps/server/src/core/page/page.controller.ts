@@ -607,11 +607,8 @@ export class PageController {
     await this.pageAccessService.validateCanEdit(movedPage, user);
 
     // Moves only accessible pages; inaccessible child pages become root pages in original space
-    const { childPageIds } = await this.pageService.movePageToSpace(
-      movedPage,
-      dto.spaceId,
-      user.id,
-    );
+    const { childPageIds, deletedShares } =
+      await this.pageService.movePageToSpace(movedPage, dto.spaceId, user.id);
 
     this.auditService.log({
       event: AuditEvent.PAGE_MOVED_TO_SPACE,
@@ -627,6 +624,21 @@ export class PageController {
         ...(childPageIds.length > 0 && { childPageIds }),
       },
     });
+
+    for (const share of deletedShares) {
+      this.auditService.log({
+        event: AuditEvent.SHARE_DELETED,
+        resourceType: AuditResource.SHARE,
+        resourceId: share.id,
+        spaceId: share.spaceId,
+        changes: {
+          before: {
+            pageId: share.pageId,
+            spaceId: share.spaceId,
+          },
+        },
+      });
+    }
   }
 
   @HttpCode(HttpStatus.OK)

@@ -14,6 +14,7 @@ import {
   UNFURL_THROTTLER,
   CLOUD_EMAIL_THROTTLER,
   MICROSOFT_GRAPH_THROTTLER,
+  UNSPLASH_THROTTLER,
 } from './throttler-names';
 import Redis from 'ioredis';
 
@@ -35,6 +36,7 @@ import Redis from 'ioredis';
             { name: UNFURL_THROTTLER, ttl: 60_000, limit: 120 },
             { name: CLOUD_EMAIL_THROTTLER, ttl: 60_000, limit: 5 },
             { name: MICROSOFT_GRAPH_THROTTLER, ttl: 60_000, limit: 120 },
+            { name: UNSPLASH_THROTTLER, ttl: 60_000, limit: 30 },
           ],
           errorMessage: 'Too many requests',
           storage: new ThrottlerStorageRedisService(

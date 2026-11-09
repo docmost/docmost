@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  QueryClient,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -22,6 +23,8 @@ import {
   createSpace,
   updateSpace,
   deleteSpace,
+  archiveSpace,
+  unarchiveSpace,
 } from "@/features/space/services/space-service.ts";
 import { notifications } from "@mantine/notifications";
 import { IPagination, QueryParams } from "@/lib/types.ts";
@@ -29,7 +32,10 @@ import { useTranslation } from "react-i18next";
 import { queryClient } from "@/main.tsx";
 import { getRecentChanges } from "@/features/page/services/page-service.ts";
 import { useEffect } from "react";
+import { getApiErrorMessage } from "@/lib/api-error.ts";
 import { validate as isValidUuid } from "uuid";
+
+const ARCHIVED_PROBE_PARAMS: QueryParams = { archived: true, limit: 1 };
 
 export function useGetSpacesQuery(
   params?: QueryParams,
@@ -40,6 +46,15 @@ export function useGetSpacesQuery(
     placeholderData: keepPreviousData,
     refetchOnMount: true,
   });
+}
+
+export function useHasArchivedSpaces(enabled: boolean): boolean {
+  const { data } = useQuery({
+    queryKey: ["spaces", ARCHIVED_PROBE_PARAMS],
+    queryFn: () => getSpaces(ARCHIVED_PROBE_PARAMS),
+    enabled,
+  });
+  return (data?.items.length ?? 0) > 0;
 }
 
 export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
@@ -59,6 +74,15 @@ export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   }, [query.data]);
 
   return query;
+}
+
+export function useUnlistedSpaceQuery(
+  spaceId: string | null | undefined,
+  spaces: ISpace[] | undefined,
+): UseQueryResult<ISpace, Error> {
+  const isUnlisted =
+    !!spaceId && !!spaces && !spaces.some((space) => space.id === spaceId);
+  return useSpaceQuery(isUnlisted ? spaceId : null);
 }
 
 export const prefetchSpace = (spaceSlug: string, spaceId?: string) => {
@@ -90,20 +114,24 @@ export function useCreateSpaceMutation() {
       notifications.show({ message: t("Space created successfully") });
     },
     onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
 
 export function useGetSpaceBySlugQuery(
   spaceId: string,
+  options?: { staleTime?: number; refetchOnMount?: boolean | "always" },
 ): UseQueryResult<ISpace, Error> {
   return useQuery({
     queryKey: ["space", spaceId],
     queryFn: () => getSpaceById(spaceId),
     enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 }
 
@@ -131,8 +159,10 @@ export function useUpdateSpaceMutation() {
       });
     },
     onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -185,10 +215,83 @@ export function useDeleteSpaceMutation() {
       });
     },
     onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
+}
+
+const ARCHIVE_REFRESHED_QUERIES = [
+  "spaces",
+  "recent-changes",
+  "favorites",
+  "unified-search",
+  "pages-created-by-user",
+  "published-spaces",
+  "templates",
+  "verification-list",
+  "label-pages",
+  "workspace-labels",
+  "search-suggestion",
+];
+
+export function applySpaceArchiveChange(
+  queryClient: QueryClient,
+  spaceId: string,
+  archivedAt: Date | null,
+  archivedBy: ISpace["archivedBy"],
+) {
+  // patch every cached copy (keyed by id or slug) so membership fields survive
+  queryClient.setQueriesData<ISpace>({ queryKey: ["space"] }, (cached) =>
+    cached?.id === spaceId ? { ...cached, archivedAt, archivedBy } : undefined,
+  );
+
+  // refetchOnMount is off app-wide, so inactive copies are dropped to load fresh
+  const refreshed = (item: { queryKey: readonly unknown[] }) =>
+    ARCHIVE_REFRESHED_QUERIES.includes(item.queryKey[0] as string);
+  queryClient.removeQueries({ predicate: refreshed, type: "inactive" });
+  queryClient.invalidateQueries({ predicate: refreshed });
+}
+
+function useArchiveStateMutation(
+  mutationFn: (spaceId: string) => Promise<ISpace>,
+  successMessage: string,
+) {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation<ISpace, Error, string>({
+    mutationFn,
+    onSuccess: (data) => {
+      notifications.show({ message: successMessage });
+      applySpaceArchiveChange(
+        queryClient,
+        data.id,
+        data.archivedAt,
+        data.archivedBy ?? null,
+      );
+    },
+    onError: (error) => {
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useArchiveSpaceMutation() {
+  const { t } = useTranslation();
+
+  return useArchiveStateMutation(archiveSpace, t("Space archived"));
+}
+
+export function useUnarchiveSpaceMutation() {
+  const { t } = useTranslation();
+
+  return useArchiveStateMutation(unarchiveSpace, t("Space restored"));
 }
 
 export function useSpaceMembersInfiniteQuery(
@@ -220,8 +323,10 @@ export function useAddSpaceMemberMutation() {
       });
     },
     onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -239,8 +344,10 @@ export function useRemoveSpaceMemberMutation() {
       });
     },
     onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }
@@ -259,8 +366,10 @@ export function useChangeSpaceMemberRoleMutation() {
       });
     },
     onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
+      notifications.show({
+        message: getApiErrorMessage(error, t("Something went wrong")),
+        color: "red",
+      });
     },
   });
 }

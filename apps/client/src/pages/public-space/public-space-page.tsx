@@ -12,6 +12,7 @@ import DocsPageNav from "@/features/public-space/components/docs/docs-page-nav.t
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { timeAgo } from "@/lib/time.ts";
 import styles from "@/features/public-space/components/docs/docs.module.css";
+import { PublicPageCover } from "@/features/page-cover/components/public-page-cover.tsx";
 
 export default function PublicSpacePage() {
   const { t } = useTranslation();
@@ -65,6 +66,12 @@ export default function PublicSpacePage() {
       </DocumentTitle>
 
       <DocsBreadcrumbs />
+
+      <PublicPageCover
+        coverPhoto={data.page.coverPhoto}
+        coverPosition={data.page.coverPosition}
+        coverAttribution={data.page.coverAttribution}
+      />
 
       <ReadonlyPageEditor
         key={data.page.id}

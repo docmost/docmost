@@ -94,10 +94,18 @@ export default function OAuthConsent() {
   );
 
   const currentUserQuery = useCurrentUser();
+  const [, setCurrentUser] = useAtom(currentUserAtom);
   const infoQuery = useQuery({
     queryKey: ["oauth-authorize-info", params],
     queryFn: () => getOAuthAuthorizeInfo(params),
   });
+
+  // the persisted user decides this page's language
+  useEffect(() => {
+    if (currentUserQuery.data?.user) {
+      setCurrentUser(currentUserQuery.data);
+    }
+  }, [currentUserQuery.data]);
 
   const isUnauthenticated =
     errorStatus(currentUserQuery.error) === 401 ||
