@@ -5,6 +5,30 @@ export interface IEmbedProvider {
   getEmbedUrl: (match: RegExpMatchArray, url?: string) => string;
 }
 
+const googleDrive: Pick<IEmbedProvider, "regex" | "getEmbedUrl"> = {
+  regex:
+    /^(?:(?:https?:)?\/\/)?(?:(?:www|m)\.)?(?:drive\.google\.com\/file|docs\.google\.com\/(document|spreadsheets|presentation))(?:\/u\/\d+)?\/d\/(e\/)?([\w-]+)(?:\/(\w+))?/,
+  getEmbedUrl: (match, url: string) => {
+    const [, editor, published, id, page] = match;
+    // Google refuses to frame a published presentation's /pub page.
+    if (editor === "presentation" && page === "pub") {
+      return url.replace(`${id}/pub`, `${id}/embed`);
+    }
+    if (published || ["pub", "pubhtml", "embed"].includes(page)) {
+      return url;
+    }
+
+    const { searchParams, hash } = new URL(url, "https://docs.google.com");
+    const resourceKey = searchParams.get("resourcekey");
+    const previewUrl = editor
+      ? `https://docs.google.com/${editor}/d/${id}/preview`
+      : `https://drive.google.com/file/d/${id}/preview`;
+    return resourceKey
+      ? `${previewUrl}?resourcekey=${encodeURIComponent(resourceKey)}${hash}`
+      : `${previewUrl}${hash}`;
+  },
+};
+
 export const embedProviders: IEmbedProvider[] = [
   {
     id: "loom",
@@ -90,24 +114,9 @@ export const embedProviders: IEmbedProvider[] = [
       return url;
     },
   },
-  {
-    id: "gdrive",
-    name: "Google Drive",
-    regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(drive\.google\.com)\/file\/d\/([a-zA-Z0-9_-]+)\/.*$/,
-    getEmbedUrl: (match) => {
-      return `https://drive.google.com/file/d/${match[4]}/preview`;
-    },
-  },
-  {
-    id: "gsheets",
-    name: "Google Sheets",
-    regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/([a-zA-Z0-9_-]+)\/.*$/,
-    getEmbedUrl: (match, url: string) => {
-      return url;
-    },
-  },
+  { id: "gdrive", name: "Google Drive", ...googleDrive },
+  // Embeds saved with the old Google Sheets option still use this id.
+  { id: "gsheets", name: "Google Sheets", ...googleDrive },
   {
     id: "iframe",
     name: "Iframe",
