@@ -465,35 +465,34 @@ export function DragHandlePlugin(
       dragHandleElement.dataset.dragHandle = "";
       dragHandleElement.classList.add("drag-handle");
 
+      // Driving auto-scrolling with the drag event is not very reliable
       // Firefox reports clientY = 0 on every `drag` event (Mozilla bug 505521),
-      // so fall back to the pointer position from `dragover`.
-      let dragOverClientY = 0;
-
-      function onDocumentDragOver(e: DragEvent) {
-        dragOverClientY = e.clientY;
-      }
-
-      function onDragHandleDragStart(e: DragEvent) {
-        dragOverClientY = e.clientY;
-        handleDragStart(e, view);
-      }
-
-      dragHandleElement.addEventListener("dragstart", onDragHandleDragStart);
-
+      // and Chromium emits a final `drag` event with clientY = 0 right before
+      // `dragend`. Drive auto-scrolling from `dragover` where `clientY` is more
+      // reliable across browsers, scoped only to active handle drags.
       function onDragHandleDrag(e: DragEvent) {
         hideDragHandle();
-        const clientY = e.clientY || dragOverClientY;
-        if (!clientY) return;
-        let scrollY = window.scrollY;
-        if (clientY < options.scrollThreshold) {
+        if (!e.clientY) return;
+        const scrollY = window.scrollY;
+        if (e.clientY < options.scrollThreshold) {
           window.scrollTo({ top: scrollY - 30, behavior: "smooth" });
-        } else if (window.innerHeight - clientY < options.scrollThreshold) {
+        } else if (window.innerHeight - e.clientY < options.scrollThreshold) {
           window.scrollTo({ top: scrollY + 30, behavior: "smooth" });
         }
       }
 
-      dragHandleElement.addEventListener("drag", onDragHandleDrag);
-      document.addEventListener("dragover", onDocumentDragOver);
+      function onDragHandleDragStart(e: DragEvent) {
+        handleDragStart(e, view);
+        document.addEventListener("dragover", onDragHandleDrag);
+      }
+
+      function onDragHandleDragEnd() {
+        document.removeEventListener("dragover", onDragHandleDrag);
+      }
+
+      dragHandleElement.addEventListener("dragstart", onDragHandleDragStart);
+
+      dragHandleElement.addEventListener("dragend", onDragHandleDragEnd);
 
       hideDragHandle();
 
@@ -510,8 +509,11 @@ export function DragHandlePlugin(
           if (!handleBySelector) {
             dragHandleElement?.remove?.();
           }
-          dragHandleElement?.removeEventListener("drag", onDragHandleDrag);
-          document.removeEventListener("dragover", onDocumentDragOver);
+          onDragHandleDragEnd()
+          dragHandleElement?.removeEventListener(
+            "dragend",
+            onDragHandleDragEnd,
+          );
           dragHandleElement?.removeEventListener(
             "dragstart",
             onDragHandleDragStart,
