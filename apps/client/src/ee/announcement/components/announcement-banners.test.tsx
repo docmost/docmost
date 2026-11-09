@@ -7,6 +7,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { createStore, Provider } from "jotai";
 import { type ReactNode, useLayoutEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,6 +18,7 @@ import {
   ANNOUNCEMENT_BANNERS_HEIGHT_VAR,
   ANNOUNCEMENT_COLOR_STYLES,
 } from "../announcement.constants";
+import { announcementBannersHeightAtom } from "../atoms/announcement-atoms";
 import { dismissAnnouncement } from "../announcement.utils";
 import type {
   AnnouncementColor,
@@ -26,15 +28,22 @@ import type {
 
 const mocks = vi.hoisted(() => ({
   banners: [] as IAnnouncementBanner[],
+  offsetMs: 0,
 }));
 
 vi.mock("@/ee/announcement/queries/announcement-query", () => ({
-  useVisibleAnnouncementsQuery: () => ({ data: mocks.banners }),
+  useVisibleAnnouncementsQuery: () => ({
+    data: { items: mocks.banners, offsetMs: mocks.offsetMs },
+  }),
 }));
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, string>) =>
+      key.replace(/{{(\w+)}}/g, (_, name) => options?.[name] ?? ""),
+  }),
 }));
 
+let store: ReturnType<typeof createStore>;
 let barHeight: number;
 let rootMeasurements: number;
 let resizeObservers: ResizeObserverStub[];
@@ -112,12 +121,14 @@ function bannersTree(
   sibling?: ReactNode,
 ) {
   return (
-    <MantineProvider>
-      <MemoryRouter>
-        <AnnouncementBanners surface="app" onHeightChange={onHeightChange} />
-        {sibling}
-      </MemoryRouter>
-    </MantineProvider>
+    <Provider store={store}>
+      <MantineProvider>
+        <MemoryRouter>
+          <AnnouncementBanners surface="app" onHeightChange={onHeightChange} />
+          {sibling}
+        </MemoryRouter>
+      </MantineProvider>
+    </Provider>
   );
 }
 
@@ -130,6 +141,8 @@ function renderBanners(
 
 beforeEach(() => {
   mocks.banners = [];
+  mocks.offsetMs = 0;
+  store = createStore();
   barHeight = 36;
   rootMeasurements = 0;
   resizeObservers = [];
@@ -168,7 +181,7 @@ describe("AnnouncementBanners", () => {
     expect(within(region).getByText("Maintenance tonight")).toBeTruthy();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Dismiss announcement" }),
+      screen.getByRole("button", { name: "Dismiss Maintenance tonight" }),
     );
     expect(screen.queryByText("Maintenance tonight")).toBeNull();
     expect(screen.queryByRole("region")).toBeNull();
@@ -189,8 +202,56 @@ describe("AnnouncementBanners", () => {
 
     expect(screen.getByText("Policy update")).toBeTruthy();
     expect(
-      screen.queryByRole("button", { name: "Dismiss announcement" }),
+      screen.queryByRole("button", { name: "Dismiss Policy update" }),
     ).toBeNull();
+  });
+
+  it("names the type for screen readers, except for neutral", () => {
+    mocks.banners = [
+      banner("type-1", "Heads up", { type: "warning" }),
+      banner("type-2", "Plain note", { type: "neutral" }),
+    ];
+
+    renderBanners();
+
+    const [warning, neutral] = Array.from(
+      document.querySelectorAll<HTMLElement>(`.${classes.bar}`),
+    );
+    expect(warning.textContent).toContain("Warning:");
+    expect(neutral.textContent).not.toContain(":");
+  });
+
+  it("makes the stack focusable only while it overflows", () => {
+    mocks.banners = [banner("scroll-1", "First")];
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(
+      200,
+    );
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(
+      100,
+    );
+    const { unmount } = renderBanners();
+    const region = screen.getByRole("region", { name: "Announcements" });
+    expect(region.getAttribute("tabindex")).toBe("0");
+    unmount();
+
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(
+      100,
+    );
+    renderBanners();
+    expect(
+      screen.getByRole("region", { name: "Announcements" }).hasAttribute(
+        "tabindex",
+      ),
+    ).toBe(false);
+  });
+
+  it("shares its height with the layout and resets it on unmount", () => {
+    mocks.banners = [banner("atom-1", "First"), banner("atom-2", "Second")];
+    const { unmount } = renderBanners();
+    expect(store.get(announcementBannersHeightAtom)).toBe(72);
+
+    unmount();
+    expect(store.get(announcementBannersHeightAtom)).toBe(0);
   });
 
   it("falls back to the gray preset and no icon for an unknown color and type", () => {
@@ -213,6 +274,25 @@ describe("AnnouncementBanners", () => {
     expect(bar?.style.backgroundColor).toBe(gray.style.backgroundColor);
     expect(bar?.style.color).toBe(gray.style.color);
     expect(bar?.querySelector("svg")).toBeNull();
+  });
+
+  it("judges the schedule by the server clock when the local clock is off", () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    vi.setSystemTime(new Date("2026-11-04T10:00:00.000Z"));
+    mocks.offsetMs = 3_600_000;
+    mocks.banners = [
+      banner("late-1", "Started on the server", {
+        startsAt: "2026-11-04T10:30:00.000Z",
+      }),
+      banner("early-1", "Ended on the server", {
+        endsAt: "2026-11-04T10:30:00.000Z",
+      }),
+    ];
+
+    renderBanners();
+
+    expect(screen.getByText("Started on the server")).toBeTruthy();
+    expect(screen.queryByText("Ended on the server")).toBeNull();
   });
 
   it("hides ended and shows started banners on the 30-second tick", () => {
@@ -261,7 +341,7 @@ describe("AnnouncementBanners", () => {
     renderBanners(onHeightChange);
 
     fireEvent.click(
-      screen.getAllByRole("button", { name: "Dismiss announcement" })[0],
+      screen.getByRole("button", { name: "Dismiss First" }),
     );
 
     expect(publishedHeight()).toBe("36px");
@@ -343,9 +423,8 @@ describe("AnnouncementBanners", () => {
   it("hands focus to the next close button, then to the main content, as banners are dismissed", () => {
     mocks.banners = [banner("focus-1", "First"), banner("focus-2", "Second")];
     renderBanners(undefined, <main id={MAIN_CONTENT_ID} tabIndex={-1} />);
-    const [first, second] = screen.getAllByRole("button", {
-      name: "Dismiss announcement",
-    });
+    const first = screen.getByRole("button", { name: "Dismiss First" });
+    const second = screen.getByRole("button", { name: "Dismiss Second" });
 
     first.focus();
     fireEvent.click(first);

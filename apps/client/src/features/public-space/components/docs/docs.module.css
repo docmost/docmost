@@ -35,6 +35,9 @@
 }
 
 .root {
+  --editor-pin-offset: calc(
+    var(--docs-header-h) + var(--announcement-banners-height, 0px)
+  );
   min-height: 100dvh;
   background-color: var(--docs-bg);
   color: var(--docs-fg);

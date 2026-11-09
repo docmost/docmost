@@ -1,6 +1,12 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnnouncementContent } from "./announcement-content";
 import type {
   IAnnouncementContent,
@@ -13,9 +19,11 @@ const doc = (...nodes: IAnnouncementText[]): IAnnouncementContent => ({
 });
 const renderContent = (c: IAnnouncementContent) =>
   render(
-    <MemoryRouter>
-      <AnnouncementContent content={c} />
-    </MemoryRouter>,
+    <MantineProvider env="test">
+      <MemoryRouter>
+        <AnnouncementContent content={c} />
+      </MemoryRouter>
+    </MantineProvider>,
   );
 
 // The client router cancels the browser navigation of the links it handles
@@ -33,6 +41,25 @@ function isRoutedInApp(link: HTMLElement): boolean {
   fireEvent.click(link);
   return routed;
 }
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    })),
+  );
+});
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("AnnouncementContent", () => {
   it("renders bold, italic and underline", () => {
@@ -56,7 +83,9 @@ describe("AnnouncementContent", () => {
         marks: [{ type: "link", attrs: { href: "https://status.test" } }],
       }),
     );
-    const link = screen.getByRole("link", { name: "Status" });
+    const link = screen.getByRole("link", {
+      name: "Status (opens in a new tab)",
+    });
     expect(link.getAttribute("href")).toBe("https://status.test");
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer nofollow");

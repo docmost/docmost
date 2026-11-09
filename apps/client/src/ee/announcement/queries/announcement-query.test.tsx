@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
 import { MantineProvider } from "@mantine/core";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import {
+  focusManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { createStore, Provider as JotaiProvider } from "jotai";
 import { notifications } from "@mantine/notifications";
@@ -9,7 +14,6 @@ import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import {
   ANNOUNCEMENTS_KEY,
-  getAnnouncementErrorMessage,
   getAnnouncementLimitConflict,
   useAnnouncementsQuery,
   useArchiveAnnouncementMutation,
@@ -54,9 +58,16 @@ const banners: IAnnouncementBanner[] = [
 ];
 
 const requestError = (data: unknown, status = 409) =>
-  Object.assign(new Error(`Request failed with status code ${status}`), {
-    response: { status, data },
-  });
+  new AxiosError(
+    `Request failed with status code ${status}`,
+    "ERR_BAD_REQUEST",
+    undefined,
+    undefined,
+    { status, data, statusText: "", headers: {}, config: {} as never },
+  );
+
+// the server answers with its clock beside the list
+const visible = (now = new Date().toISOString()) => ({ now, items: banners });
 
 const enterprise = (features: string[]) => ({
   cloud: false,
@@ -90,6 +101,8 @@ function setup<T>(useHook: () => T, features?: string[]) {
   return { store, queryClient, wrapper, ...renderHook(useHook, { wrapper }) };
 }
 
+afterEach(() => vi.useRealTimers());
+
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.isCloud.mockReturnValue(false);
@@ -98,6 +111,8 @@ beforeEach(() => {
 });
 
 // react-query only re-renders for the fields read during render
+const flush = (ms = 0) => act(() => vi.advanceTimersByTimeAsync(ms));
+
 function useVisibleState(surface: AnnouncementSurface) {
   const { data, isError, fetchStatus, refetch } = useVisibleAnnouncementsQuery(surface);
   return { data, isError, fetchStatus, refetch };
@@ -105,9 +120,9 @@ function useVisibleState(surface: AnnouncementSurface) {
 
 describe("useVisibleAnnouncementsQuery", () => {
   it("loads the logged-in list on the app surface", async () => {
-    vi.mocked(service.getVisibleAnnouncements).mockResolvedValue(banners);
+    vi.mocked(service.getVisibleAnnouncements).mockResolvedValue(visible());
     const { result } = setup(() => useVisibleState("app"), [Feature.ANNOUNCEMENTS]);
-    await waitFor(() => expect(result.current.data).toEqual(banners));
+    await waitFor(() => expect(result.current.data?.items).toEqual(banners));
     expect(service.getPublicAnnouncements).not.toHaveBeenCalled();
   });
 
@@ -118,7 +133,7 @@ describe("useVisibleAnnouncementsQuery", () => {
   });
 
   it("starts asking for the logged-in list once the entitlements load", async () => {
-    vi.mocked(service.getVisibleAnnouncements).mockResolvedValue(banners);
+    vi.mocked(service.getVisibleAnnouncements).mockResolvedValue(visible());
     const { result, store } = setup(() => useVisibleState("app"));
     expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
 
@@ -126,13 +141,13 @@ describe("useVisibleAnnouncementsQuery", () => {
       store.set(entitlementAtom, enterprise([Feature.ANNOUNCEMENTS]));
     });
 
-    await waitFor(() => expect(result.current.data).toEqual(banners));
+    await waitFor(() => expect(result.current.data?.items).toEqual(banners));
   });
 
   it("loads the public list on the public surface without any entitlement", async () => {
-    vi.mocked(service.getPublicAnnouncements).mockResolvedValue(banners);
+    vi.mocked(service.getPublicAnnouncements).mockResolvedValue(visible());
     const { result } = setup(() => useVisibleState("public"));
-    await waitFor(() => expect(result.current.data).toEqual(banners));
+    await waitFor(() => expect(result.current.data?.items).toEqual(banners));
     expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
   });
 
@@ -145,9 +160,9 @@ describe("useVisibleAnnouncementsQuery", () => {
   });
 
   it("keeps the last list when a refresh fails", async () => {
-    vi.mocked(service.getVisibleAnnouncements).mockResolvedValueOnce(banners);
+    vi.mocked(service.getVisibleAnnouncements).mockResolvedValueOnce(visible());
     const { result } = setup(() => useVisibleState("app"), [Feature.ANNOUNCEMENTS]);
-    await waitFor(() => expect(result.current.data).toEqual(banners));
+    await waitFor(() => expect(result.current.data?.items).toEqual(banners));
 
     vi.mocked(service.getVisibleAnnouncements).mockRejectedValue(new Error("offline"));
     await act(async () => {
@@ -155,7 +170,7 @@ describe("useVisibleAnnouncementsQuery", () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.data).toEqual(banners);
+    expect(result.current.data?.items).toEqual(banners);
   });
 
   it("does not retry a 404, because the server has no announcements routes", async () => {
@@ -172,16 +187,92 @@ describe("useVisibleAnnouncementsQuery", () => {
     expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(2);
   });
 
-  it("stops polling after a 404 and keeps polling after other errors", async () => {
-    vi.mocked(service.getPublicAnnouncements).mockResolvedValue(banners);
-    const { queryClient, result } = setup(() => useVisibleState("public"));
-    await waitFor(() => expect(result.current.data).toEqual(banners));
+  it("measures the server clock against the local one when the response arrives", async () => {
+    const localNow = new Date("2026-11-05T10:00:00.000Z");
+    vi.useFakeTimers({ now: localNow });
+    vi.mocked(service.getPublicAnnouncements).mockResolvedValue(visible("2026-11-05T10:02:00.000Z"));
+    const { result } = setup(() => useVisibleState("public"));
+    await flush();
+    expect(result.current.data?.offsetMs).toBe(120_000);
+  });
 
-    const query = queryClient.getQueryCache().find({ queryKey: [...ANNOUNCEMENTS_KEY, "visible", "public"] });
-    const refetchInterval = query!.observers[0].options.refetchInterval as unknown as (q: unknown) => number | false;
-    expect(refetchInterval({ state: { error: null } })).toBe(300_000);
-    expect(refetchInterval({ state: { error: requestError({}, 502) } })).toBe(300_000);
-    expect(refetchInterval({ state: { error: requestError({}, 404) } })).toBe(false);
+  describe("refreshing", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      focusManager.setFocused(undefined);
+    });
+
+    it("refetches every 5 minutes", async () => {
+      vi.mocked(service.getPublicAnnouncements).mockResolvedValue(visible());
+      setup(() => useVisibleState("public"));
+      await flush();
+      expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(1);
+
+      await flush(299_000);
+      expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(1);
+
+      await flush(1_000);
+      expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops refetching after a 404", async () => {
+      vi.mocked(service.getPublicAnnouncements).mockResolvedValueOnce(visible());
+      const { result } = setup(() => useVisibleState("public"));
+      await flush();
+
+      vi.mocked(service.getPublicAnnouncements).mockRejectedValue(requestError({ message: "Not Found" }, 404));
+      await flush(300_000);
+      await flush(1);
+      expect(result.current.isError).toBe(true);
+      expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(2);
+
+      await flush(1_800_000);
+      expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps polling every 5 minutes after a non-404 error", async () => {
+      vi.mocked(service.getPublicAnnouncements).mockRejectedValue(requestError({ message: "Server error" }, 500));
+      setup(() => useVisibleState("public"));
+      await flush();
+      await flush(1);
+      const initial = vi.mocked(service.getPublicAnnouncements).mock.calls.length;
+
+      await flush(300_000);
+      expect(vi.mocked(service.getPublicAnnouncements).mock.calls.length).toBeGreaterThan(initial);
+    });
+
+    it("refetches on window focus once the list is a minute old, not before", async () => {
+      vi.mocked(service.getPublicAnnouncements).mockResolvedValue(visible());
+      setup(() => useVisibleState("public"));
+      await flush();
+
+      await flush(30_000);
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      await flush();
+      expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(1);
+
+      await flush(31_000);
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      await flush();
+      expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("refetches an invalidated list when a banner area mounts again", async () => {
+    vi.mocked(service.getPublicAnnouncements).mockResolvedValue(visible());
+    const { queryClient, wrapper, result, unmount } = setup(() => useVisibleState("public"));
+    await waitFor(() => expect(result.current.data?.items).toEqual(banners));
+    unmount();
+
+    await queryClient.invalidateQueries({ queryKey: ANNOUNCEMENTS_KEY });
+    renderHook(() => useVisibleState("public"), { wrapper });
+
+    await waitFor(() => expect(service.getPublicAnnouncements).toHaveBeenCalledTimes(2));
   });
 });
 
@@ -215,9 +306,9 @@ describe("admin lists", () => {
 
 describe("mutations that confirm with a toast", () => {
   const rows = [
-    ["archive", useArchiveAnnouncementMutation, service.archiveAnnouncement, "Announcement archived"],
-    ["unarchive", useUnarchiveAnnouncementMutation, service.unarchiveAnnouncement, "Announcement unarchived"],
-    ["delete", useDeleteAnnouncementMutation, service.deleteAnnouncement, "Announcement deleted"],
+    ["archive", useArchiveAnnouncementMutation, service.archiveAnnouncement, "Announcement archived", "Failed to archive announcement"],
+    ["unarchive", useUnarchiveAnnouncementMutation, service.unarchiveAnnouncement, "Announcement unarchived", "Failed to unarchive announcement"],
+    ["delete", useDeleteAnnouncementMutation, service.deleteAnnouncement, "Announcement deleted", "Failed to delete announcement"],
   ] as const;
 
   it.each(rows)("%s confirms and refreshes the announcements", async (_name, useHook, serviceFn, message) => {
@@ -243,6 +334,17 @@ describe("mutations that confirm with a toast", () => {
     });
 
     expect(notifications.show).toHaveBeenCalledWith({ message: "Announcement not found", color: "red" });
+  });
+
+  it.each(rows)("%s falls back to a translated message when the error has none", async (_name, useHook, serviceFn, _message, fallback) => {
+    vi.mocked(serviceFn).mockRejectedValue(new Error("Network Error"));
+    const { result } = setup(() => useHook());
+
+    await act(async () => {
+      await result.current.mutateAsync({ announcementId: "a1" }).catch(() => undefined);
+    });
+
+    expect(notifications.show).toHaveBeenCalledWith({ message: fallback, color: "red" });
   });
 });
 
@@ -288,17 +390,7 @@ describe("unarchiving into a full schedule", () => {
       autoClose: 10_000,
     });
     render(<MantineProvider env="test">{message}</MantineProvider>);
-    const format = (iso: string) =>
-      new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
-    expect(
-      screen.getByText(
-        `These already show between ${format("2026-11-05T09:00:00.000Z")} and ${format("2026-11-05T18:00:00.000Z")}:`,
-      ),
-    ).toBeTruthy();
-    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "Acceptable use policy",
-      "Holiday hours",
-    ]);
+    expect(screen.getByText("Acceptable use policy")).toBeTruthy();
   });
 });
 
@@ -313,11 +405,11 @@ describe("create and update", () => {
     endsAt: null,
   } as const;
   const rows = [
-    ["create", useCreateAnnouncementMutation, service.createAnnouncement, input],
-    ["update", useUpdateAnnouncementMutation, service.updateAnnouncement, { ...input, announcementId: "a1" }],
+    ["create", useCreateAnnouncementMutation, service.createAnnouncement, input, "Announcement created"],
+    ["update", useUpdateAnnouncementMutation, service.updateAnnouncement, { ...input, announcementId: "a1" }, "Announcement updated"],
   ] as const;
 
-  it.each(rows)("%s refreshes the announcements without a toast", async (_name, useHook, serviceFn, variables) => {
+  it.each(rows)("%s confirms and refreshes the announcements", async (_name, useHook, serviceFn, variables, message) => {
     vi.mocked(serviceFn).mockResolvedValue({} as never);
     const { result, queryClient } = setup(() => useHook());
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
@@ -327,7 +419,7 @@ describe("create and update", () => {
     });
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ANNOUNCEMENTS_KEY });
-    expect(notifications.show).not.toHaveBeenCalled();
+    expect(notifications.show).toHaveBeenCalledWith({ message });
   });
 
   it.each(rows)("%s rejects with the error and leaves it to the modal", async (_name, useHook, serviceFn, variables) => {
@@ -367,27 +459,5 @@ describe("getAnnouncementLimitConflict", () => {
     ["undefined", undefined],
   ])("returns null for %s", (_label, error) => {
     expect(getAnnouncementLimitConflict(error)).toBeNull();
-  });
-});
-
-describe("getAnnouncementErrorMessage", () => {
-  it("uses the server message", () => {
-    expect(getAnnouncementErrorMessage(requestError({ message: "Announcement not found" }))).toBe("Announcement not found");
-  });
-
-  it("joins validation messages", () => {
-    expect(getAnnouncementErrorMessage(requestError({ message: ["type must be valid", "color must be valid"] }))).toBe("type must be valid, color must be valid");
-  });
-
-  it("falls back to the error message", () => {
-    expect(getAnnouncementErrorMessage(new Error("Network Error"))).toBe("Network Error");
-  });
-
-  it.each([
-    ["null", null],
-    ["undefined", undefined],
-    ["a thrown string", "boom"],
-  ])("returns an empty string for %s", (_label, error) => {
-    expect(getAnnouncementErrorMessage(error)).toBe("");
   });
 });

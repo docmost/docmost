@@ -2,10 +2,15 @@
   position: sticky;
   top: 0;
   z-index: 91;
+  max-height: 40svh;
+  overflow-y: auto;
 
-  @media (max-width: $mantine-breakpoint-sm) {
-    max-height: 40dvh;
-    overflow-y: auto;
+  &[data-has-banners] {
+    border-bottom: 1px solid rgb(0 0 0 / 0.2);
+
+    @mixin dark {
+      border-bottom-color: rgb(255 255 255 / 0.2);
+    }
   }
 }
 
@@ -15,7 +20,7 @@
   justify-content: center;
   gap: 8px;
   min-height: 36px;
-  padding: 6px 44px;
+  padding: 6px 12px;
   position: relative;
   font-size: var(--mantine-font-size-sm);
   line-height: 1.4;
@@ -23,8 +28,21 @@
   overflow-wrap: anywhere;
 }
 
+.bar[data-dismissible] {
+  padding-inline: 44px;
+}
+
+.bar + .bar {
+  border-top: 1px solid rgb(0 0 0 / 0.2);
+
+  @mixin dark {
+    border-top-color: rgb(255 255 255 / 0.2);
+  }
+}
+
 .bar a {
   color: inherit;
+  font-weight: 600;
   text-decoration: underline;
 }
 

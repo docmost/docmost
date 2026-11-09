@@ -44,6 +44,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     .on('announcements')
     .columns(['workspace_id'])
     .execute();
+
+  await db.schema
+    .createIndex('idx_announcements_current')
+    .ifNotExists()
+    .on('announcements')
+    .columns(['workspace_id', 'starts_at', 'id'])
+    .where(sql.ref('archived_at'), 'is', null)
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {

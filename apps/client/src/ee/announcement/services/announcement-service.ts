@@ -2,11 +2,11 @@ import api from "@/lib/api-client";
 import { IPagination } from "@/lib/types";
 import {
   IAnnouncement,
-  IAnnouncementBanner,
   IAnnouncementIdInput,
   IAnnouncementInput,
   IAnnouncementListParams,
   IUpdateAnnouncementInput,
+  IVisibleAnnouncements,
 } from "@/ee/announcement/types/announcement.types";
 
 export async function getAnnouncements(
@@ -19,13 +19,13 @@ export async function getAnnouncements(
   return req.data;
 }
 
-export async function getVisibleAnnouncements(): Promise<IAnnouncementBanner[]> {
-  const req = await api.post<IAnnouncementBanner[]>("/announcements/visible");
+export async function getVisibleAnnouncements(): Promise<IVisibleAnnouncements> {
+  const req = await api.post<IVisibleAnnouncements>("/announcements/visible");
   return req.data;
 }
 
-export async function getPublicAnnouncements(): Promise<IAnnouncementBanner[]> {
-  const req = await api.post<IAnnouncementBanner[]>("/announcements/public");
+export async function getPublicAnnouncements(): Promise<IVisibleAnnouncements> {
+  const req = await api.post<IVisibleAnnouncements>("/announcements/public");
   return req.data;
 }
 

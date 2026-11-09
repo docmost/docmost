@@ -1,6 +1,13 @@
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { ModalsProvider } from "@mantine/modals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { createStore, Provider as JotaiProvider } from "jotai";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
@@ -69,9 +76,11 @@ function renderPage(features?: string[]) {
       <QueryClientProvider client={queryClient}>
         <MantineProvider env="test">
           <HelmetProvider>
-            <MemoryRouter>
-              <Announcements />
-            </MemoryRouter>
+            <ModalsProvider>
+              <MemoryRouter>
+                <Announcements />
+              </MemoryRouter>
+            </ModalsProvider>
           </HelmetProvider>
         </MantineProvider>
       </QueryClientProvider>
@@ -165,7 +174,24 @@ describe("Announcements page", () => {
         ?.status,
     ).toBe("error");
     expect(screen.getByText("Planned maintenance")).toBeTruthy();
-    expect(screen.queryByText(/Could not load announcements/)).toBeNull();
+    expect(screen.queryByText("Failed to load announcements")).toBeNull();
+  });
+
+  it("names the announcement in the delete confirmation", async () => {
+    vi.mocked(service.getAnnouncements).mockResolvedValue(
+      page([{ ...announcement, status: "ended" }]),
+    );
+    renderPage([Feature.ANNOUNCEMENTS]);
+    await screen.findByText("Planned maintenance");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Actions for Planned maintenance" }),
+    );
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
+
+    expect(
+      await screen.findByText("“Planned maintenance” will be permanently deleted."),
+    ).toBeTruthy();
   });
 
   it("explains a list that failed to load", async () => {
@@ -174,7 +200,7 @@ describe("Announcements page", () => {
     );
     renderPage([Feature.ANNOUNCEMENTS]);
     expect(
-      await screen.findByText("Could not load announcements: Network Error"),
+      await screen.findByText("Failed to load announcements"),
     ).toBeTruthy();
   });
 });

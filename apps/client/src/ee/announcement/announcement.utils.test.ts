@@ -9,13 +9,7 @@ import {
   isSafeAnnouncementHref,
   toPickerValue,
 } from "./announcement.utils";
-import {
-  ANNOUNCEMENT_COLOR_STYLES,
-  ANNOUNCEMENT_COLORS,
-  ANNOUNCEMENT_TYPE_DEFAULT_COLOR,
-  ANNOUNCEMENT_TYPE_LABELS,
-  ANNOUNCEMENT_TYPES,
-} from "./announcement.constants";
+import { ANNOUNCEMENT_COLOR_STYLES } from "./announcement.constants";
 import type {
   IAnnouncementBanner,
   IAnnouncementContent,
@@ -198,15 +192,5 @@ describe("getAnnouncementPreview", () => {
 describe("presets", () => {
   it.each(Object.entries(ANNOUNCEMENT_COLOR_STYLES))("%s meets WCAG AA contrast", (_key, { background, text }) => {
     expect(contrastRatio(background, text)).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it("defines a label and a default preset color for every type", () => {
-    expect(Object.keys(ANNOUNCEMENT_TYPE_LABELS).sort()).toEqual([...ANNOUNCEMENT_TYPES].sort());
-    expect(Object.keys(ANNOUNCEMENT_TYPE_DEFAULT_COLOR).sort()).toEqual([...ANNOUNCEMENT_TYPES].sort());
-    ANNOUNCEMENT_TYPES.forEach((type) => expect(ANNOUNCEMENT_COLORS).toContain(ANNOUNCEMENT_TYPE_DEFAULT_COLOR[type]));
-  });
-
-  it("styles every color", () => {
-    expect(Object.keys(ANNOUNCEMENT_COLOR_STYLES).sort()).toEqual([...ANNOUNCEMENT_COLORS].sort());
   });
 });

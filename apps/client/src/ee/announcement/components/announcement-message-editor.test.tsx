@@ -1,5 +1,11 @@
 import { MantineProvider, Modal } from "@mantine/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnnouncementMessageEditor } from "./announcement-message-editor";
 import type {
@@ -79,6 +85,14 @@ describe("AnnouncementMessageEditor", () => {
     expect(screen.getByText("501/500").style.color).toContain("red");
   });
 
+  it("groups the format buttons in a labelled toolbar", () => {
+    renderEditor();
+    const toolbar = screen.getByRole("toolbar", { name: "Editor toolbar" });
+    expect(
+      within(toolbar).getAllByRole("button").map((button) => button.ariaLabel),
+    ).toEqual(["Bold", "Italic", "Underline", "Link"]);
+  });
+
   it("reports the pressed state of a format button", () => {
     renderEditor(doc({ type: "text", text: "Hello" }));
     const bold = screen.getByRole("button", { name: "Bold" });
@@ -87,6 +101,17 @@ describe("AnnouncementMessageEditor", () => {
     fireEvent.click(bold);
 
     expect(bold.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("marks the link button as a popover trigger that reports when it is open", () => {
+    renderEditor();
+    const link = screen.getByRole("button", { name: "Link" });
+    expect(link.getAttribute("aria-haspopup")).toBe("dialog");
+    expect(link.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(link);
+
+    expect(link.getAttribute("aria-expanded")).toBe("true");
   });
 
   it("rejects an unsafe link and inserts a safe one", () => {

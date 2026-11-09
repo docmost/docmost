@@ -16,6 +16,7 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { getApiErrorMessage } from "@/lib/api-error";
 import {
   ANNOUNCEMENT_COLOR_STYLES,
   ANNOUNCEMENT_COLORS,
@@ -36,7 +37,6 @@ import {
 } from "@/ee/announcement/components/announcement-form.utils";
 import { AnnouncementMessageEditor } from "@/ee/announcement/components/announcement-message-editor";
 import {
-  getAnnouncementErrorMessage,
   getAnnouncementLimitConflict,
   useCreateAnnouncementMutation,
   useUpdateAnnouncementMutation,
@@ -115,6 +115,7 @@ type AnnouncementFormProps = {
 function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
   const { t, i18n } = useTranslation();
   const alertRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateAnnouncementMutation();
   const updateMutation = useUpdateAnnouncementMutation();
   const mutation = announcement ? updateMutation : createMutation;
@@ -142,6 +143,15 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
   const formatPickerTime = (value: string) =>
     formatPickerValue(value, i18n.language);
 
+  const handleValidationFailure = () => {
+    // Wait for the errors to render so aria-invalid is set
+    setTimeout(() => {
+      formRef.current
+        ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+        ?.focus();
+    }, 0);
+  };
+
   const handleSubmit = async (submitted: AnnouncementFormValues) => {
     const input = toAnnouncementInput(submitted, announcement);
     try {
@@ -160,7 +170,10 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
   };
 
   return (
-    <form onSubmit={form.onSubmit(handleSubmit)}>
+    <form
+      ref={formRef}
+      onSubmit={form.onSubmit(handleSubmit, handleValidationFailure)}
+    >
       <Stack gap="md">
         {mutation.error && (
           <Alert
@@ -176,7 +189,12 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
             {conflict ? (
               <AnnouncementConflictSummary conflict={conflict} />
             ) : (
-              getAnnouncementErrorMessage(mutation.error)
+              getApiErrorMessage(
+                mutation.error,
+                announcement
+                  ? t("Failed to update announcement")
+                  : t("Failed to create announcement"),
+              )
             )}
           </Alert>
         )}
@@ -269,6 +287,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
               label={t("Starts")}
               placeholder={t("Now")}
               clearable
+              clearButtonProps={{ "aria-label": t("Clear start time") }}
               value={values.startsAt}
               onChange={(value) =>
                 form.setFieldValue("startsAt", value as string | null)
@@ -289,6 +308,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
               label={t("Ends")}
               placeholder={t("No end")}
               clearable
+              clearButtonProps={{ "aria-label": t("Clear end time") }}
               value={values.endsAt}
               onChange={(value) =>
                 form.setFieldValue("endsAt", value as string | null)
@@ -315,7 +335,6 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
                   content: values.content,
                   isDismissible: values.isDismissible,
                 }}
-                onDismiss={() => {}}
               />
             </Box>
           </Input.Wrapper>

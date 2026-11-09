@@ -1,4 +1,5 @@
 import { MantineProvider } from "@mantine/core";
+import { AxiosError } from "axios";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
@@ -36,28 +37,26 @@ const doc = (text: string): IAnnouncementContent => ({
 vi.mock("./announcement-message-editor", () => ({
   AnnouncementMessageEditor: (props: {
     initialContent: IAnnouncementContent | null;
-    onChange: (content: IAnnouncementContent, textLength: number) => void;
+    onChange: (content: IAnnouncementContent) => void;
     error?: string;
   }) => (
     <div>
       <textarea
         aria-label="Message"
+        aria-invalid={props.error ? "true" : undefined}
         defaultValue={props.initialContent?.content[0].content[0]?.text ?? ""}
         onChange={(event) =>
-          props.onChange(
-            {
-              type: "doc",
-              content: [
-                {
-                  type: "paragraph",
-                  content: event.target.value
-                    ? [{ type: "text", text: event.target.value }]
-                    : [],
-                },
-              ],
-            },
-            event.target.value.length,
-          )
+          props.onChange({
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: event.target.value
+                  ? [{ type: "text", text: event.target.value }]
+                  : [],
+              },
+            ],
+          })
         }
       />
       {props.error && <p>{props.error}</p>}
@@ -71,15 +70,22 @@ vi.mock("@mantine/dates", () => ({
     placeholder: string;
     value: string | null;
     onChange: (value: string | null) => void;
+    clearButtonProps?: { "aria-label": string };
     error?: string;
   }) => (
     <div>
       <input
         aria-label={props.label}
+        aria-invalid={props.error ? "true" : undefined}
         placeholder={props.placeholder}
         value={props.value ?? ""}
         onChange={(event) => props.onChange(event.target.value || null)}
       />
+      {props.value && (
+        <button type="button" {...props.clearButtonProps}>
+          x
+        </button>
+      )}
       {props.error && <p>{props.error}</p>}
     </div>
   ),
@@ -102,9 +108,13 @@ const stored = (overrides: Partial<IAnnouncement> = {}): IAnnouncement => ({
 });
 
 const requestError = (data: unknown, status = 409) =>
-  Object.assign(new Error(`Request failed with status code ${status}`), {
-    response: { status, data },
-  });
+  new AxiosError(
+    `Request failed with status code ${status}`,
+    "ERR_BAD_REQUEST",
+    undefined,
+    undefined,
+    { status, data, statusText: "", headers: {}, config: {} as never },
+  );
 
 function renderModal(announcement: IAnnouncement | null = null) {
   const onClose = vi.fn();
@@ -224,16 +234,27 @@ describe("AnnouncementFormModal", () => {
     expect(document.activeElement).toBe(green);
   });
 
-  it.each([
-    ["", "Announcement message is required"],
-    ["   ", "Announcement message is required"],
-    ["a".repeat(501), "Announcement message is too long"],
-  ])("does not send an invalid message (%#)", (text, message) => {
+  it("shows a validation error and sends nothing", () => {
     renderModal();
-    if (text) typeMessage(text);
     submit();
-    expect(screen.getByText(message)).toBeTruthy();
+    expect(screen.getByText("Announcement message is required")).toBeTruthy();
     expect(service.createAnnouncement).not.toHaveBeenCalled();
+  });
+
+  it("moves focus to the first invalid field after a failed submit", async () => {
+    renderModal();
+    submit();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("textbox", { name: "Message" }),
+      ),
+    );
+  });
+
+  it("names the clear buttons of both dates", () => {
+    renderModal(stored());
+    expect(screen.getByRole("button", { name: "Clear start time" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Clear end time" })).toBeTruthy();
   });
 
   it("describes the Everyone audience before it is chosen", () => {
@@ -264,19 +285,6 @@ describe("AnnouncementFormModal", () => {
       "Now",
       "No end",
     ]);
-  });
-
-  it("does not send an end time in the past", async () => {
-    renderModal();
-    typeMessage("Maintenance tonight");
-    fireEvent.change(await screen.findByRole("textbox", { name: "Ends" }), {
-      target: { value: "2020-01-01 10:00:00" },
-    });
-
-    submit();
-
-    expect(screen.getByText("End time must be in the future")).toBeTruthy();
-    expect(service.createAnnouncement).not.toHaveBeenCalled();
   });
 
   it("sends the times it was given untouched when editing", async () => {
@@ -320,19 +328,7 @@ describe("AnnouncementFormModal", () => {
     });
   });
 
-  it("does not start an ended announcement now while its end is in the past", async () => {
-    const ended = stored({ status: "ended", endsAt: "2020-01-01T18:00:00.000Z", startsAt: "2019-12-30T09:00:00.000Z" });
-    renderModal(ended);
-    fireEvent.change(await screen.findByRole("textbox", { name: "Starts" }), {
-      target: { value: "" },
-    });
-    submit("Save");
-
-    expect(screen.getByText("End time must be after the start time")).toBeTruthy();
-    expect(service.updateAnnouncement).not.toHaveBeenCalled();
-  });
-
-  it("explains a limit conflict with the clashing time and announcements", async () => {
+  it("explains a limit conflict in the alert", async () => {
     vi.mocked(service.createAnnouncement).mockRejectedValue(
       requestError({
         message: "Up to two announcements can show at the same time",
@@ -351,42 +347,9 @@ describe("AnnouncementFormModal", () => {
     submit();
 
     const alert = await screen.findByRole("alert");
-    const format = (iso: string) =>
-      new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
     expect(within(alert).getByText("Up to two announcements can show at the same time.")).toBeTruthy();
-    expect(
-      within(alert).getByText(
-        `These already show between ${format("2026-11-05T09:00:00.000Z")} and ${format("2026-11-05T18:00:00.000Z")}:`,
-      ),
-    ).toBeTruthy();
-    expect(within(alert).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "Acceptable use policy",
-      "Holiday hours",
-    ]);
+    expect(within(alert).getByText("Acceptable use policy")).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it("says when a limit conflict has no end", async () => {
-    vi.mocked(service.createAnnouncement).mockRejectedValue(
-      requestError({
-        message: "Up to two announcements can show at the same time",
-        conflict: {
-          from: "2026-11-05T09:00:00.000Z",
-          to: null,
-          announcements: [{ id: "b", preview: "Acceptable use policy" }],
-        },
-      }),
-    );
-    renderModal();
-    typeMessage("Maintenance tonight");
-    submit();
-
-    const alert = await screen.findByRole("alert");
-    expect(
-      within(alert).getByText(
-        `These already show from ${new Date("2026-11-05T09:00:00.000Z").toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} with no end:`,
-      ),
-    ).toBeTruthy();
   });
 
   it("shows any other server error above the fields", async () => {

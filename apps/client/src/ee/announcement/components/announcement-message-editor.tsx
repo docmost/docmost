@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
 import type { EditorProps } from "@tiptap/pm/view";
 import {
@@ -22,6 +23,7 @@ import {
   IconLink,
   IconUnderline,
 } from "@tabler/icons-react";
+import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 import { platformModifierKey } from "@/lib";
 import { ANNOUNCEMENT_MAX_TEXT_LENGTH } from "@/ee/announcement/announcement.constants";
@@ -31,13 +33,14 @@ import {
 } from "@/ee/announcement/announcement.utils";
 import { createAnnouncementEditorExtensions } from "@/ee/announcement/components/announcement-editor-extensions";
 import type { IAnnouncementContent } from "@/ee/announcement/types/announcement.types";
+import toolbarClasses from "@/features/editor/components/fixed-toolbar/fixed-toolbar.module.css";
 import classes from "./announcement-message-editor.module.css";
 
 const COUNTER_THRESHOLD = 400;
 
 type AnnouncementMessageEditorProps = {
   initialContent: IAnnouncementContent | null;
-  onChange: (content: IAnnouncementContent, textLength: number) => void;
+  onChange: (content: IAnnouncementContent) => void;
   error?: string;
 };
 
@@ -86,9 +89,8 @@ export function AnnouncementMessageEditor({
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
     onUpdate: ({ editor: current }) => {
-      const length = current.state.doc.textContent.length;
-      setTextLength(length);
-      onChange(current.getJSON() as unknown as IAnnouncementContent, length);
+      setTextLength(current.state.doc.textContent.length);
+      onChange(current.getJSON() as unknown as IAnnouncementContent);
     },
   });
 
@@ -133,18 +135,25 @@ export function AnnouncementMessageEditor({
       withAsterisk
     >
       <div className={classes.root} data-error={error ? true : undefined}>
-        <div className={classes.toolbar}>
+        <div
+          className={classes.toolbar}
+          role="toolbar"
+          aria-label={t("Editor toolbar")}
+        >
           {formatButtons.map(({ mark, label, Icon, toggle }) => (
-            <ActionIcon
-              key={mark}
-              variant={marks[mark] ? "light" : "subtle"}
-              color={marks[mark] ? "blue" : "gray"}
-              aria-label={label}
-              aria-pressed={marks[mark]}
-              onClick={() => editor && toggle(editor)}
-            >
-              <Icon size={16} aria-hidden />
-            </ActionIcon>
+            <Tooltip key={mark} label={label} withArrow>
+              <ActionIcon
+                variant="subtle"
+                color="dark"
+                size="md"
+                aria-label={label}
+                aria-pressed={marks[mark]}
+                className={clsx({ [toolbarClasses.active]: marks[mark] })}
+                onClick={() => editor && toggle(editor)}
+              >
+                <Icon size={16} aria-hidden />
+              </ActionIcon>
+            </Tooltip>
           ))}
 
           <Popover
@@ -156,16 +165,20 @@ export function AnnouncementMessageEditor({
             trapFocus
             closeOnEscape={false}
           >
-            <Popover.Target>
-              <ActionIcon
-                variant={marks.link ? "light" : "subtle"}
-                color={marks.link ? "blue" : "gray"}
-                aria-label={t("Link")}
-                onClick={() => setLinkOpened((opened) => !opened)}
-              >
-                <IconLink size={16} aria-hidden />
-              </ActionIcon>
-            </Popover.Target>
+            <Tooltip label={t("Link")} withArrow>
+              <Popover.Target>
+                <ActionIcon
+                  variant="subtle"
+                  color="dark"
+                  size="md"
+                  aria-label={t("Link")}
+                  className={clsx({ [toolbarClasses.active]: marks.link })}
+                  onClick={() => setLinkOpened((opened) => !opened)}
+                >
+                  <IconLink size={16} aria-hidden />
+                </ActionIcon>
+              </Popover.Target>
+            </Tooltip>
             <Popover.Dropdown
               data-mantine-stop-propagation
               onKeyDownCapture={(event) => {
@@ -191,7 +204,10 @@ export function AnnouncementMessageEditor({
               c={textLength > ANNOUNCEMENT_MAX_TEXT_LENGTH ? "red" : "dimmed"}
               className={classes.counter}
             >
-              {t("{{count}}/500", { count: textLength })}
+              {t("{{count}}/{{max}}", {
+                count: textLength,
+                max: ANNOUNCEMENT_MAX_TEXT_LENGTH,
+              })}
             </Text>
           )}
         </div>

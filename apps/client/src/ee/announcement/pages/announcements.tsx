@@ -10,14 +10,15 @@ import Paginate from "@/components/common/paginate";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { getApiErrorMessage } from "@/lib/api-error";
 import type { IPagination } from "@/lib/types";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
+import { getAnnouncementPreview } from "@/ee/announcement/announcement.utils";
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
 import {
-  getAnnouncementErrorMessage,
   useAnnouncementsQuery,
   useArchiveAnnouncementMutation,
   useDeleteAnnouncementMutation,
@@ -67,7 +68,9 @@ export default function Announcements() {
       centered: true,
       children: (
         <Text size="sm">
-          {t("This announcement will be permanently deleted.")}
+          {t("“{{name}}” will be permanently deleted.", {
+            name: getAnnouncementPreview(announcement.content),
+          })}
         </Text>
       ),
       labels: { confirm: t("Delete"), cancel: t("Cancel") },
@@ -87,9 +90,7 @@ export default function Announcements() {
 
   const loadError = (error: Error) => (
     <Alert icon={<IconAlertCircle size={16} />} color="red">
-      {t("Could not load announcements: {{message}}", {
-        message: getAnnouncementErrorMessage(error),
-      })}
+      {getApiErrorMessage(error, t("Failed to load announcements"))}
     </Alert>
   );
 

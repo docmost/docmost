@@ -1,4 +1,6 @@
 import { Fragment, type ReactNode } from "react";
+import { VisuallyHidden } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { isSafeAnnouncementHref } from "@/ee/announcement/announcement.utils";
 import type { IAnnouncementContent } from "@/ee/announcement/types/announcement.types";
@@ -8,6 +10,7 @@ type AnnouncementContentProps = {
 };
 
 export function AnnouncementContent({ content }: AnnouncementContentProps) {
+  const { t } = useTranslation();
   const nodes = content.content.flatMap((paragraph) => paragraph.content ?? []);
 
   return (
@@ -33,6 +36,7 @@ export function AnnouncementContent({ content }: AnnouncementContentProps) {
                 rel="noopener noreferrer nofollow"
               >
                 {element}
+                <VisuallyHidden> {t("(opens in a new tab)")}</VisuallyHidden>
               </a>
             );
           } else if (target.startsWith("/api/")) {

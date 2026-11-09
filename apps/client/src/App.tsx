@@ -2,6 +2,7 @@ import { Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
 import { useTranslation } from "react-i18next";
@@ -227,7 +228,9 @@ export default function App() {
           element={
             <>
               <AnnouncementBanners surface="public" />
-              <Error404 />
+              <main id={MAIN_CONTENT_ID} tabIndex={-1}>
+                <Error404 />
+              </main>
             </>
           }
         />

@@ -10,15 +10,15 @@ import type {
   AnnouncementType,
 } from "./types/announcement.types";
 
-export const ANNOUNCEMENT_TYPES: AnnouncementType[] = [
+export const ANNOUNCEMENT_TYPES = [
   "info",
   "success",
   "warning",
   "critical",
   "neutral",
-];
+] as const;
 
-export const ANNOUNCEMENT_COLORS: AnnouncementColor[] = [
+export const ANNOUNCEMENT_COLORS = [
   "blue",
   "green",
   "yellow",
@@ -26,7 +26,9 @@ export const ANNOUNCEMENT_COLORS: AnnouncementColor[] = [
   "purple",
   "gray",
   "black",
-];
+] as const;
+
+export const ANNOUNCEMENT_AUDIENCES = ["members", "everyone"] as const;
 
 export const ANNOUNCEMENT_MAX_TEXT_LENGTH = 500;
 
