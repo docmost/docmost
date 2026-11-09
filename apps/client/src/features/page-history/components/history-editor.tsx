@@ -6,6 +6,7 @@ import { Title } from "@mantine/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import historyClasses from "./css/history.module.css";
 import { normalizeHistoryTitle } from "@/features/page-history/utils/normalize-history-title";
+import { splitChangeRange } from "@/features/page-history/utils/split-change-range";
 import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "@tiptap/pm/changeset";
@@ -92,32 +93,24 @@ export function HistoryEditor({
           if (change.toB > change.fromB) {
             changeIndex++;
             const currentIndex = changeIndex;
-            let foundSpecialNode: { node: Node; pos: number } | null = null;
-            newContent.nodesBetween(change.fromB, change.toB, (node, pos) => {
-              if (specialNodeTypes.has(node.type.name)) {
-                const nodeEnd = pos + node.nodeSize;
-                if (change.fromB <= pos && change.toB >= nodeEnd) {
-                  foundSpecialNode = { node, pos };
-                  return false;
-                }
-              }
-            });
+            const segments = splitChangeRange(
+              newContent,
+              change.fromB,
+              change.toB,
+              specialNodeTypes,
+            );
 
-            if (foundSpecialNode) {
-              const nodeEnd =
-                foundSpecialNode.pos + foundSpecialNode.node.nodeSize;
+            for (const segment of segments) {
               decorations.push(
-                Decoration.node(foundSpecialNode.pos, nodeEnd, {
-                  class: "history-diff-node-added",
-                  "data-diff-index": String(currentIndex),
-                }),
-              );
-            } else {
-              decorations.push(
-                Decoration.inline(change.fromB, change.toB, {
-                  class: "history-diff-added",
-                  "data-diff-index": String(currentIndex),
-                }),
+                segment.node
+                  ? Decoration.node(segment.from, segment.to, {
+                      class: "history-diff-node-added",
+                      "data-diff-index": String(currentIndex),
+                    })
+                  : Decoration.inline(segment.from, segment.to, {
+                      class: "history-diff-added",
+                      "data-diff-index": String(currentIndex),
+                    }),
               );
             }
             addedCount += 1;
@@ -125,47 +118,62 @@ export function HistoryEditor({
           if (change.toA > change.fromA) {
             changeIndex++;
             const currentIndex = changeIndex;
-            let foundDeletedNode: { node: Node; pos: number } | null = null;
-            oldContent.nodesBetween(change.fromA, change.toA, (node, pos) => {
-              if (specialNodeTypes.has(node.type.name)) {
-                const nodeEnd = pos + node.nodeSize;
-                if (change.fromA <= pos && change.toA >= nodeEnd) {
-                  foundDeletedNode = { node, pos };
-                  return false;
-                }
-              }
-            });
+            const segments = splitChangeRange(
+              oldContent,
+              change.fromA,
+              change.toA,
+              specialNodeTypes,
+            );
 
-            if (foundDeletedNode) {
-              decorations.push(
-                Decoration.widget(change.fromB, () => {
-                  const wrapper = document.createElement("div");
-                  wrapper.className = "history-diff-node-deleted";
-                  wrapper.setAttribute("data-diff-index", String(currentIndex));
-                  const serializer = DOMSerializer.fromSchema(schema);
-                  const dom = serializer.serializeNode(foundDeletedNode!.node);
-                  wrapper.appendChild(dom);
-                  return wrapper;
-                }),
-              );
-            } else {
+            // side keeps the deleted pieces in document order at the same position
+            segments.forEach((segment, side) => {
+              const deletedNode = segment.node;
+              if (deletedNode) {
+                decorations.push(
+                  Decoration.widget(
+                    change.fromB,
+                    () => {
+                      const wrapper = document.createElement("div");
+                      wrapper.className = "history-diff-node-deleted";
+                      wrapper.setAttribute(
+                        "data-diff-index",
+                        String(currentIndex),
+                      );
+                      const serializer = DOMSerializer.fromSchema(schema);
+                      const dom = serializer.serializeNode(deletedNode);
+                      wrapper.appendChild(dom);
+                      return wrapper;
+                    },
+                    { side },
+                  ),
+                );
+                return;
+              }
+
               const deletedText = oldContent.textBetween(
-                change.fromA,
-                change.toA,
+                segment.from,
+                segment.to,
                 "",
               );
               if (deletedText) {
                 decorations.push(
-                  Decoration.widget(change.fromB, () => {
-                    const span = document.createElement("span");
-                    span.className = "history-diff-deleted";
-                    span.setAttribute("data-diff-index", String(currentIndex));
-                    span.textContent = deletedText;
-                    return span;
-                  }),
+                  Decoration.widget(
+                    change.fromB,
+                    () => {
+                      const span = document.createElement("span");
+                      span.className = "history-diff-deleted";
+                      span.setAttribute(
+                        "data-diff-index",
+                        String(currentIndex),
+                      );
+                      span.textContent = deletedText;
+                      return span;
+                    },
+                    { side },
+                  ),
                 );
               }
-            }
+            });
             deletedCount += 1;
           }
         }
