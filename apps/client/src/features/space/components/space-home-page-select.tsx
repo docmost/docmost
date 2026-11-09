@@ -1,15 +1,35 @@
-import { useRef, useState } from "react";
-import { Select, Text, Tooltip } from "@mantine/core";
+import { ReactNode, useState } from "react";
+import {
+  Button,
+  Center,
+  CheckIcon,
+  Combobox,
+  Flex,
+  Group,
+  InputBase,
+  ScrollArea,
+  Text,
+  useCombobox,
+} from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { modals } from "@mantine/modals";
+import { IconHome, IconSearch } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query";
 import { useUpdateSpaceMutation } from "@/features/space/queries/space-query";
 import { ISpace } from "@/features/space/types/space.types";
+import { getPageIcon } from "@/lib";
 
 type SpaceHomePageSelectProps = {
   space: ISpace;
   readOnly?: boolean;
+};
+
+type HomeOption = {
+  value: string;
+  label: string;
+  icon: ReactNode;
 };
 
 export default function SpaceHomePageSelect({
@@ -17,45 +37,62 @@ export default function SpaceHomePageSelect({
   readOnly,
 }: SpaceHomePageSelectProps) {
   const { t } = useTranslation();
-  const [searchValue, setSearchValue] = useState("");
-  const [debouncedQuery] = useDebouncedValue(searchValue, 300);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch] = useDebouncedValue(search.trim(), 300);
   const updateSpaceMutation = useUpdateSpaceMutation();
-  const clearButtonRef = useRef<HTMLButtonElement>(null);
 
-  const currentId = space.homePageId ?? null;
-  const currentLabel = space.homePage
-    ? space.homePage.title || t("Untitled")
-    : t("Restricted page");
+  const combobox = useCombobox({
+    onDropdownOpen: () => combobox.focusSearchInput(),
+    onDropdownClose: () => {
+      combobox.resetSelectedOption();
+      combobox.focusTarget();
+      setSearch("");
+    },
+  });
 
   const { data: suggestion } = useSearchSuggestionsQuery({
-    query: currentId && debouncedQuery === currentLabel ? "" : debouncedQuery,
+    query: debouncedSearch,
     includePages: true,
     spaceId: space.id,
     limit: 25,
     preload: !readOnly,
   });
 
-  const options = (suggestion?.pages ?? [])
+  const currentId = space.homePageId ?? null;
+  const currentLabel = !currentId
+    ? t("Space overview")
+    : space.homePage
+      ? space.homePage.title || t("Untitled")
+      : t("Restricted page");
+  const currentIcon = currentId ? (
+    getPageIcon(space.homePage?.icon)
+  ) : (
+    <IconHome size={18} color="var(--mantine-color-gray-6)" aria-hidden="true" />
+  );
+
+  const pageOptions: HomeOption[] = (suggestion?.pages ?? [])
     .filter((page) => page.spaceId === space.id)
-    .map((page) => ({ value: page.id, label: page.title || t("Untitled") }));
+    .map((page) => ({
+      value: page.id,
+      label: page.title || t("Untitled"),
+      icon: getPageIcon(page.icon),
+    }));
 
-  if (currentId && !options.some((option) => option.value === currentId)) {
-    options.unshift({
-      value: currentId,
-      label: currentLabel,
-    });
-  }
+  // Unfiltered, the current home leads the list.
+  const options: HomeOption[] =
+    debouncedSearch || !currentId
+      ? pageOptions
+      : [
+          { value: currentId, label: currentLabel, icon: currentIcon },
+          ...pageOptions.filter((option) => option.value !== currentId),
+        ];
 
-  const getConfirmMessage = (value: string | null) => {
-    if (!value) {
-      return t(
-        "Are you sure you want to remove '{{title}}' as the home page? The space overview will take its place.",
-        { title: currentLabel },
-      );
-    }
+  const handleOptionSubmit = (value: string) => {
+    combobox.closeDropdown();
+    if (value === currentId) return;
 
     const title = options.find((option) => option.value === value)?.label;
-    return currentId
+    const message = currentId
       ? t(
           "Are you sure you want to make '{{title}}' the home page of this space?",
           { title },
@@ -64,49 +101,133 @@ export default function SpaceHomePageSelect({
           "Are you sure you want to make '{{title}}' the home page of this space? It will replace the space overview.",
           { title },
         );
+
+    // Open once the dropdown has handed focus back to the button, so the dialog returns it there.
+    setTimeout(() =>
+      modals.openConfirmModal({
+        title: t("Set home page"),
+        children: <Text size="sm">{message}</Text>,
+        centered: true,
+        labels: { confirm: t("Confirm"), cancel: t("Cancel") },
+        onConfirm: () =>
+          updateSpaceMutation.mutate({ spaceId: space.id, homePageId: value }),
+      }),
+    );
   };
 
-  const handleChange = (value: string | null) => {
-    if (value === currentId) return;
-
+  const openResetModal = () =>
     modals.openConfirmModal({
-      title: value ? t("Set home page") : t("Remove home page"),
-      children: <Text size="sm">{getConfirmMessage(value)}</Text>,
+      title: t("Reset home page"),
+      children: (
+        <Text size="sm">
+          {t(
+            "Are you sure you want to reset the home page? The space overview will replace '{{title}}'.",
+            { title: currentLabel },
+          )}
+        </Text>
+      ),
       centered: true,
       labels: { confirm: t("Confirm"), cancel: t("Cancel") },
       onConfirm: () =>
-        updateSpaceMutation.mutate({ spaceId: space.id, homePageId: value }),
-      // Put the saved home back in the input; a confirmed change replaces it on save.
-      onClose: () => setSearchValue(currentId ? currentLabel : ""),
+        updateSpaceMutation.mutate(
+          { spaceId: space.id, homePageId: null },
+          // The Reset button goes away, so focus moves to the picker.
+          { onSuccess: () => combobox.focusTarget() },
+        ),
     });
-  };
 
   return (
-    <>
-      <Select
-        data={options}
-        value={currentId}
-        onChange={handleChange}
-        placeholder={t("Space overview")}
-        searchable
-        clearable
-        clearButtonProps={{ ref: clearButtonRef }}
-        allowDeselect={false}
-        openOnFocus={false}
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        filter={({ options }) => options}
-        nothingFoundMessage={t("No results found")}
-        variant="filled"
-        disabled={readOnly}
-        aria-label={t("Home page")}
-      />
-      <Tooltip
-        label={t("Remove home page")}
-        target={clearButtonRef}
-        openDelay={250}
-        withArrow
-      />
-    </>
+    <Flex
+      gap="xs"
+      direction={{ base: "column", xs: "row" }}
+      align={{ base: "flex-start", xs: "center" }}
+    >
+      <Combobox store={combobox} onOptionSubmit={handleOptionSubmit}>
+        <Combobox.Target withAriaAttributes={false}>
+          <InputBase
+            component="button"
+            type="button"
+            pointer
+            w={260}
+            variant="filled"
+            leftSection={currentIcon}
+            rightSection={<Combobox.Chevron />}
+            rightSectionPointerEvents="none"
+            onClick={() => combobox.toggleDropdown()}
+            disabled={readOnly}
+            aria-label={t("Home page: {{title}}", { title: currentLabel })}
+          >
+            <AutoTooltipText
+              span
+              size="sm"
+              display="block"
+              tooltipProps={{ withinPortal: true }}
+            >
+              {currentLabel}
+            </AutoTooltipText>
+          </InputBase>
+        </Combobox.Target>
+
+        <Combobox.Dropdown>
+          <Combobox.Search
+            value={search}
+            onChange={(event) => {
+              combobox.updateSelectedOptionIndex();
+              setSearch(event.currentTarget.value);
+            }}
+            leftSection={<IconSearch size={16} />}
+            placeholder={t("Search pages...")}
+            aria-label={t("Search pages...")}
+          />
+          <Combobox.Options>
+            <ScrollArea.Autosize
+              mah={220}
+              type="scroll"
+              scrollbars="y"
+              scrollbarSize="var(--combobox-padding)"
+              offsetScrollbars="y"
+              // Autosize content grows to its widest line; cap it so long titles truncate.
+              styles={{ content: { minWidth: 0 } }}
+            >
+              {options.length > 0 ? (
+                options.map((option) => (
+                  <Combobox.Option
+                    value={option.value}
+                    key={option.value}
+                    active={option.value === currentId}
+                  >
+                    <Group gap="xs" wrap="nowrap">
+                      <Center w={20}>{option.icon}</Center>
+                      <AutoTooltipText
+                        size="sm"
+                        flex={1}
+                        tooltipProps={{ withinPortal: true }}
+                      >
+                        {option.label}
+                      </AutoTooltipText>
+                      {option.value === currentId && (
+                        <CheckIcon size={12} opacity={0.4} />
+                      )}
+                    </Group>
+                  </Combobox.Option>
+                ))
+              ) : (
+                <Combobox.Empty>{t("No results found")}</Combobox.Empty>
+              )}
+            </ScrollArea.Autosize>
+          </Combobox.Options>
+        </Combobox.Dropdown>
+      </Combobox>
+
+      {currentId && !readOnly && (
+        <Button
+          variant="default"
+          onClick={openResetModal}
+          aria-label={t("Reset home page")}
+        >
+          {t("Reset")}
+        </Button>
+      )}
+    </Flex>
   );
 }
