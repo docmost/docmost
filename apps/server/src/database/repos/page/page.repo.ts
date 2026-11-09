@@ -31,6 +31,8 @@ export class PageRepo {
     'title',
     'icon',
     'coverPhoto',
+    'coverPosition',
+    'coverAttribution',
     'position',
     'parentPageId',
     'creatorId',
@@ -249,6 +251,12 @@ export class PageRepo {
           .execute();
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+
+        await trx
+          .updateTable('spaces')
+          .set({ homePageId: null })
+          .where('homePageId', 'in', pageIds)
+          .execute();
       });
 
       this.eventEmitter.emit(EventName.PAGE_SOFT_DELETED, {
@@ -534,6 +542,9 @@ export class PageRepo {
             'slugId',
             'title',
             'icon',
+            'coverPhoto',
+            'coverPosition',
+            'coverAttribution',
             'position',
             'parentPageId',
             'spaceId',
@@ -552,6 +563,9 @@ export class PageRepo {
                 'p.slugId',
                 'p.title',
                 'p.icon',
+                'p.coverPhoto',
+                'p.coverPosition',
+                'p.coverAttribution',
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',
