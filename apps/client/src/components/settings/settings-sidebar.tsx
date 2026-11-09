@@ -137,7 +137,6 @@ const groupedData: DataGroup[] = [
         path: "/settings/audit",
         feature: Feature.AUDIT_LOGS,
         role: "owner",
-        env: "selfhosted",
       },
       {
         label: "Integrations",
