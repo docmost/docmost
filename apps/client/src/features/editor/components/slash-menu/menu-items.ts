@@ -65,6 +65,7 @@ import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/in
 import { notifications } from "@mantine/notifications";
 import { isIntegrationInstalled } from "@/features/integration/utils/installed-integrations";
 import { requestMicrosoftPicker } from "@/features/microsoft/atoms/microsoft-atoms";
+import { isCloud } from "@/lib/config";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -808,6 +809,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       description: "Embed a SharePoint file",
       searchTerms: ["sharepoint", "onedrive", "microsoft", "office", "word", "excel", "powerpoint", "m365"],
       icon: Microsoft365Icon,
+      disable: () => isCloud(),
       command: ({ editor, range }: CommandProps) => {
         if (!isIntegrationInstalled("microsoft_365")) {
           notifications.show({
