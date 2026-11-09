@@ -134,6 +134,7 @@ export type IVerificationListItem = {
   periodAmount: number | null;
   periodUnit: PeriodUnit | null;
   verifiedAt: string | null;
+  verifiedBy: IUserRef | null;
   expiresAt: string | null;
   createdAt: string;
   pageTitle: string | null;
