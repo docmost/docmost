@@ -1,5 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
@@ -7,7 +7,6 @@ import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtomValue } from "jotai";
 import {
-  currentPageEditModeAtom,
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
@@ -28,6 +27,7 @@ import localEmitter from "@/lib/local-emitter.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { platformModifierKey } from "@/lib";
+import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -54,7 +54,9 @@ export function TitleEditor({
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
-  const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
+  const hasTitleEditRef = useRef(false);
+  // bases have no edit mode toggle, so a verification must not lock their title
+  const { editMode } = usePageEditMode(isBase ? undefined : pageId);
 
   const titleEditor = useEditor({
     extensions: [
@@ -82,6 +84,7 @@ export function TitleEditor({
       }
     },
     onUpdate({ editor }) {
+      hasTitleEditRef.current = true;
       debounceUpdate();
     },
     editable: editable,
@@ -167,7 +170,7 @@ export function TitleEditor({
       !titleEditor.isDestroyed &&
       title !== titleEditor.getText()
     ) {
-      titleEditor.commands.setContent(title);
+      titleEditor.commands.setContent(title, { emitUpdate: false });
     }
   }, [pageId, title, titleEditor]);
 
@@ -181,15 +184,16 @@ export function TitleEditor({
 
   useEffect(() => {
     return () => {
-      // force-save title on navigation
-      saveTitle();
+      // force-save title on navigation, only after a real edit
+      if (hasTitleEditRef.current) saveTitle();
+      hasTitleEditRef.current = false;
     };
   }, [pageId]);
 
   useEffect(() => {
     if (!titleEditor) return;
-    titleEditor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
-  }, [currentPageEditMode, titleEditor, editable]);
+    titleEditor.setEditable(editable && editMode === PageEditMode.Edit, false);
+  }, [editMode, titleEditor, editable]);
 
   const openSearchDialog = () => {
     const event = new CustomEvent("openFindDialogFromEditor", {});

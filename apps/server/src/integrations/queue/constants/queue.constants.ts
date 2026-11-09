@@ -87,6 +87,7 @@ export enum QueueJob {
   PAGE_VERIFIED_NOTIFICATION = 'page-verified-notification',
   PAGE_APPROVAL_REQUESTED_NOTIFICATION = 'page-approval-requested-notification',
   PAGE_APPROVAL_REJECTED_NOTIFICATION = 'page-approval-rejected-notification',
+  PAGE_VERIFICATION_INVALIDATED = 'page-verification-invalidated',
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',

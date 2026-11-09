@@ -68,18 +68,26 @@ function makeService(attachment: unknown = null) {
     remove: jest.fn(async () => 1),
   };
   const generalQueue = { add: jest.fn(async () => undefined) };
+  const db = {
+    transaction: () => ({
+      execute: (callback: (trx: unknown) => Promise<unknown>) => callback({}),
+    }),
+  };
   const unsplashService = {
     getCover: jest.fn(async () => ({
       coverPhoto: UNSPLASH_URL,
       coverAttribution: UNSPLASH_CREDIT,
     })),
   };
+  const pageVerificationInvalidationService = {
+    invalidateForEdit: jest.fn(async () => null),
+  };
 
   const service = new PageService(
     pageRepo as any,
     {} as any,
     attachmentRepo as any,
-    {} as any,
+    db as any,
     {} as any,
     attachmentQueue as any,
     {} as any,
@@ -93,6 +101,7 @@ function makeService(attachment: unknown = null) {
     {} as any,
     {} as any,
     unsplashService as any,
+    pageVerificationInvalidationService as any,
   );
 
   const savedFields = () => (pageRepo.updatePage.mock.calls[0] as any[])[0];
