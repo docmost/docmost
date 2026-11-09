@@ -8,6 +8,7 @@ import {
 import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { SpaceArchivedBy } from '@docmost/db/repos/space/types';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Page, Space, User } from '@docmost/db/types/entity.types';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
@@ -31,6 +32,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class SpaceService {
@@ -43,6 +45,7 @@ export class SpaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly wsService: WsService,
     private pageRepo: PageRepo,
     private pagePermissionRepo: PagePermissionRepo,
   ) {}
@@ -292,6 +295,7 @@ export class SpaceService {
   async getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId, {
       includeMemberCount: true,
+      includeArchivedBy: true,
     });
     if (!space) {
       throw new NotFoundException('Space not found');
@@ -351,6 +355,95 @@ export class SpaceService {
           description: space.description,
         },
       },
+    });
+  }
+
+  async archiveSpace(
+    space: Space,
+    user: User,
+  ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
+    if (space.isPersonal) {
+      throw new BadRequestException('Personal spaces cannot be archived');
+    }
+
+    if (space.archivedAt) {
+      return space;
+    }
+
+    const archivedSpace = await this.spaceRepo.updateSpace(
+      { archivedAt: new Date(), archivedById: user.id },
+      space.id,
+      space.workspaceId,
+    );
+    const archivedBy: SpaceArchivedBy = {
+      id: user.id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+    };
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_ARCHIVED,
+      resourceType: AuditResource.SPACE,
+      resourceId: space.id,
+      spaceId: space.id,
+      changes: {
+        before: { name: space.name, archivedAt: space.archivedAt },
+        after: { archivedAt: archivedSpace.archivedAt },
+      },
+    });
+
+    this.emitArchiveUpdate(
+      archivedSpace.id,
+      archivedSpace.archivedAt,
+      archivedBy,
+    );
+
+    return { ...archivedSpace, archivedBy };
+  }
+
+  async unarchiveSpace(
+    space: Space,
+  ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
+    if (!space.archivedAt) {
+      return space;
+    }
+
+    const unarchivedSpace = await this.spaceRepo.updateSpace(
+      { archivedAt: null, archivedById: null },
+      space.id,
+      space.workspaceId,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_UNARCHIVED,
+      resourceType: AuditResource.SPACE,
+      resourceId: space.id,
+      spaceId: space.id,
+      changes: {
+        before: { name: space.name, archivedAt: space.archivedAt },
+        after: { archivedAt: unarchivedSpace.archivedAt },
+      },
+    });
+
+    this.emitArchiveUpdate(
+      unarchivedSpace.id,
+      unarchivedSpace.archivedAt,
+      null,
+    );
+
+    return { ...unarchivedSpace, archivedBy: null };
+  }
+
+  private emitArchiveUpdate(
+    spaceId: string,
+    archivedAt: Date | null,
+    archivedBy: SpaceArchivedBy | null,
+  ): void {
+    this.wsService.emitToSpace(spaceId, {
+      operation: 'spaceArchiveUpdated',
+      spaceId,
+      archivedAt,
+      archivedBy,
     });
   }
 }

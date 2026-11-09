@@ -6,6 +6,7 @@ import HistoryModal from "@/features/page-history/components/history-modal";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import SpaceArchivedNotice from "@/features/space/components/space-archived-notice.tsx";
 import { useCommentDeepLink } from "@/features/comment/hooks/use-comment-deep-link";
 import { useTranslation } from "react-i18next";
 import React, { useEffect } from "react";
@@ -135,6 +136,9 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
             paddingInline: 24,
           }}
         >
+          <div style={{ flexShrink: 0 }}>
+            <SpaceArchivedNotice space={space} />
+          </div>
           <div
             style={{
               flex: 1,

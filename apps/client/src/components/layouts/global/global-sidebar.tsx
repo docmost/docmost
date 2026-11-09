@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollArea, Text, Divider, Modal, UnstyledButton, Tooltip } from "@mantine/core";
+import { ScrollArea, Text, Divider, Modal, UnstyledButton, Tooltip, Badge } from "@mantine/core";
 import {
   IconHome,
   IconClock,
@@ -130,6 +130,16 @@ export default function GlobalSidebar() {
                   <Text size="sm" fw={500} lineClamp={1}>
                     {fav.space!.name}
                   </Text>
+                  {fav.space!.archivedAt && (
+                    <Badge
+                      size="xs"
+                      variant="light"
+                      color="gray"
+                      style={{ flexShrink: 0 }}
+                    >
+                      {t("Archived")}
+                    </Badge>
+                  )}
                 </Link>
               ))}
               {sortedFavoriteSpaces.length > 10 && (

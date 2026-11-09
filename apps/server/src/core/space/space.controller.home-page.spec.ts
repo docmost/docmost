@@ -35,6 +35,7 @@ describe('SpaceController home page', () => {
       spaceMemberRepo as any,
       spaceAbility as any,
       {} as any,
+      {} as any,
       pagePermissionRepo as any,
     );
 

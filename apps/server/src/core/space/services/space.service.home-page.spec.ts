@@ -53,6 +53,7 @@ describe('SpaceService home page', () => {
       db as any,
       {} as any,
       auditService as any,
+      {} as any,
       pageRepo as any,
       pagePermissionRepo as any,
     );

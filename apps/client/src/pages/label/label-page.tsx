@@ -15,11 +15,15 @@ import {
   IconLabel,
   IconSearch,
 } from "@tabler/icons-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useLabelPagesQuery } from "@/features/label/queries/label-query.ts";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query.ts";
+import { includeSpace } from "@/features/space/space.utils.ts";
 import { getLabelColor } from "@/features/label/utils/label-colors.ts";
 import { LabelPageRow } from "@/features/label/components/label-page-row.tsx";
 import { LabelPageRowSkeleton } from "@/features/label/components/label-page-row-skeleton.tsx";
@@ -36,14 +40,29 @@ export default function LabelPage() {
   const scheme = useComputedColorScheme("light");
   const c = getLabelColor(labelName, scheme);
 
-  const [spaceId, setSpaceId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const spaceId = searchParams.get("spaceId");
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebouncedValue(search.trim(), 200);
 
   const activeSpaceId = spaceId ?? undefined;
 
+  const setSpaceId = (nextSpaceId: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextSpaceId) {
+      next.set("spaceId", nextSpaceId);
+    } else {
+      next.delete("spaceId");
+    }
+    setSearchParams(next, { replace: true });
+  };
+
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
-  const spaces = spacesData?.items ?? [];
+  const { data: filterSpace } = useUnlistedSpaceQuery(
+    spaceId,
+    spacesData?.items,
+  );
+  const spaces = includeSpace(spacesData?.items ?? [], filterSpace);
 
   const {
     data: pagesData,
