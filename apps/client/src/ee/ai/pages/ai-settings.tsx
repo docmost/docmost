@@ -13,7 +13,6 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
-import { isCloud } from "@/lib/config.ts";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useAtomValue } from "jotai";
@@ -73,7 +72,7 @@ export default function AiSettings() {
           )}
 
           <Stack gap="md">
-            {!isCloud() && <EnableAiSearch />}
+            <EnableAiSearch />
             <EnableGenerativeAi />
             <EnableAiChat />
             <Collapse expanded={aiChatEnabled}>
