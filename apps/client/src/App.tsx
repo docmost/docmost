@@ -13,6 +13,8 @@ import { useTrackOrigin } from "@/hooks/use-track-origin";
 const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
 const LoginPage = lazyWithPrefetch(() => import("@/pages/auth/login"));
 const Home = lazyWithPrefetch(() => import("@/pages/dashboard/home"));
+const DocumentTasksPage = lazyWithPrefetch(() => import("@/features/document-collaboration/tasks-page"));
+const ReadingConfirmationPage = lazyWithPrefetch(() => import("@/features/document-collaboration/reading-page"));
 const Page = lazyWithPrefetch(() => import("@/pages/page/page"), {
   prefetchFirst: true,
 });
@@ -170,6 +172,8 @@ export default function App() {
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
+          <Route path="/collaboration/tasks" element={<DocumentTasksPage />} />
+          <Route path="/collaboration/reading" element={<ReadingConfirmationPage />} />
           <Route path={"/ai"} element={<AiChat />} />
           <Route path={"/ai/chat/:chatId"} element={<AiChat />} />
           <Route path={"/spaces"} element={<SpacesPage />} />

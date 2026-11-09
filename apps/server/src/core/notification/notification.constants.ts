@@ -1,4 +1,6 @@
 export const NotificationType = {
+  DOCUMENT_TASK_ASSIGNED: 'document_task.assigned',
+  READING_CONFIRMATION_REQUESTED: 'reading_confirmation.requested',
   COMMENT_USER_MENTION: 'comment.user_mention',
   COMMENT_CREATED: 'comment.created',
   COMMENT_RESOLVED: 'comment.resolved',
@@ -38,6 +40,8 @@ export const NotificationTypeToSettingKey: Partial<
 export type NotificationTab = 'direct' | 'updates' | 'all';
 
 export const DIRECT_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.DOCUMENT_TASK_ASSIGNED,
+  NotificationType.READING_CONFIRMATION_REQUESTED,
   NotificationType.COMMENT_USER_MENTION,
   NotificationType.COMMENT_CREATED,
   NotificationType.COMMENT_RESOLVED,

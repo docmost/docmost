@@ -39,6 +39,10 @@ export function NotificationItem({
 
   const getNotificationMessageKey = (): string => {
     switch (notification.type) {
+      case "document_task.assigned":
+        return "<bold>{{name}}</bold> 分配了文档待办给你";
+      case "reading_confirmation.requested":
+        return "<bold>{{name}}</bold> 邀请你确认一份重要文档";
       case "comment.user_mention":
         return "<bold>{{name}}</bold> mentioned you in a comment";
       case "comment.created":
@@ -97,7 +101,10 @@ export function NotificationItem({
     typeof notification.data?.lastError === "string"
       ? notification.data.lastError
       : null;
-  const linkUrl = isSiemDestination ? "/settings/audit/siem" : pageUrl;
+  const resourceId = typeof notification.data?.resourceId === "string" ? notification.data.resourceId : "";
+  const linkUrl = notification.type === "document_task.assigned" ? "/collaboration/tasks"
+    : notification.type === "reading_confirmation.requested" ? `/collaboration/reading?batchId=${encodeURIComponent(resourceId)}`
+    : isSiemDestination ? "/settings/audit/siem" : pageUrl;
 
   const markReadIfNeeded = () => {
     if (isUnread) {

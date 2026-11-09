@@ -29,6 +29,7 @@ import { LinearModule } from './integration/providers/linear/linear.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { SessionModule } from './session/session.module';
 import { ClsMiddleware } from 'nestjs-cls';
+import { DocumentCollaborationModule } from './document-collaboration/document-collaboration.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ClsMiddleware } from 'nestjs-cls';
     FigmaModule,
     LinearModule,
     SessionModule,
+    DocumentCollaborationModule,
   ],
 })
 export class CoreModule implements NestModule {

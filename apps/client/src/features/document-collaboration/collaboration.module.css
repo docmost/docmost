@@ -1,0 +1,37 @@
+.snapshot {
+  font-size: 1rem;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.snapshot p {
+  margin: 0.6em 0;
+}
+.snapshot pre {
+  white-space: pre-wrap;
+  padding: 12px;
+  background: var(--mantine-color-default-hover);
+  border-radius: 4px;
+}
+.snapshot table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.snapshot th,
+.snapshot td {
+  border: 1px solid var(--mantine-color-default-border);
+  padding: 8px;
+  vertical-align: top;
+}
+.snapshot blockquote {
+  margin-inline: 0;
+  padding-left: 16px;
+  border-left: 3px solid var(--mantine-color-blue-5);
+}
+.omitted {
+  color: var(--mantine-color-dimmed);
+  font-size: 0.875rem;
+  margin-block: 8px;
+}
+.cardTitle {
+  overflow-wrap: anywhere;
+}

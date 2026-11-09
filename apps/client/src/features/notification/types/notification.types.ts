@@ -1,4 +1,6 @@
 export type NotificationType =
+  | "document_task.assigned"
+  | "reading_confirmation.requested"
   | "comment.user_mention"
   | "comment.created"
   | "comment.resolved"
