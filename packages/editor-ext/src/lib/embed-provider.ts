@@ -3,9 +3,16 @@ export interface IEmbedProvider {
   name: string;
   regex: RegExp;
   getEmbedUrl: (match: RegExpMatchArray, url?: string) => string;
+  getLabel?: (match: RegExpMatchArray) => string;
 }
 
-const googleDrive: Pick<IEmbedProvider, "regex" | "getEmbedUrl"> = {
+const GOOGLE_EDITOR_LABELS: Record<string, string> = {
+  document: "Google Docs",
+  spreadsheets: "Google Sheets",
+  presentation: "Google Slides",
+};
+
+const googleDrive: Pick<IEmbedProvider, "regex" | "getEmbedUrl" | "getLabel"> = {
   regex:
     /^(?:(?:https?:)?\/\/)?(?:(?:www|m)\.)?(?:drive\.google\.com\/file|docs\.google\.com\/(document|spreadsheets|presentation))(?:\/u\/\d+)?\/d\/(e\/)?([\w-]+)(?:\/(\w+))?/,
   getEmbedUrl: (match, url: string) => {
@@ -27,6 +34,7 @@ const googleDrive: Pick<IEmbedProvider, "regex" | "getEmbedUrl"> = {
       ? `${previewUrl}?resourcekey=${encodeURIComponent(resourceKey)}${hash}`
       : `${previewUrl}${hash}`;
   },
+  getLabel: (match) => GOOGLE_EDITOR_LABELS[match[1]] ?? "Google Drive",
 };
 
 export const embedProviders: IEmbedProvider[] = [
@@ -136,6 +144,8 @@ export function getEmbedProviderById(id: string) {
 export interface IEmbedResult {
   embedUrl: string;
   provider: string;
+  providerId: string;
+  label: string;
 }
 
 export function getEmbedUrlAndProvider(url: string): IEmbedResult {
@@ -145,11 +155,23 @@ export function getEmbedUrlAndProvider(url: string): IEmbedResult {
       return {
         embedUrl: provider.getEmbedUrl(match, url),
         provider: provider.name.toLowerCase(),
+        providerId: provider.id,
+        label: provider.getLabel?.(match) ?? provider.name,
       };
     }
   }
   return {
     embedUrl: url,
     provider: "iframe",
+    providerId: "iframe",
+    label: getIframeLabel(url),
   };
+}
+
+function getIframeLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "") || "Iframe";
+  } catch {
+    return "Iframe";
+  }
 }

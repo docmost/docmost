@@ -87,3 +87,17 @@ describe("Google Drive embed", () => {
     ).toBe(true);
   });
 });
+
+describe("embed label", () => {
+  it.each([
+    [`https://docs.google.com/document/d/${ID}/edit`, "gdrive", "Google Docs"],
+    [`https://docs.google.com/spreadsheets/d/${ID}/edit`, "gdrive", "Google Sheets"],
+    [`https://docs.google.com/presentation/d/e/${PUB}/pub`, "gdrive", "Google Slides"],
+    [`https://drive.google.com/file/d/${ID}/view`, "gdrive", "Google Drive"],
+    ["https://www.youtube.com/watch?v=aBcDeFgHiJk", "youtube", "YouTube"],
+    ["https://www.example.com/widgets/chart?id=7", "iframe", "example.com"],
+    ["not a url", "iframe", "Iframe"],
+  ])("labels %s", (url, providerId, label) => {
+    expect(getEmbedUrlAndProvider(url)).toMatchObject({ providerId, label });
+  });
+});
