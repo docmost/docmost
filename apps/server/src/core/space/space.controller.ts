@@ -29,12 +29,14 @@ import {
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { CreateSpaceDto } from './dto/create-space.dto';
+import { ListSpacesDto } from './dto/list-spaces.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -45,20 +47,16 @@ export class SpaceController {
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
+    private readonly spaceRepo: SpaceRepo,
   ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('/')
   @OAuthScope('read')
-  async getWorkspaceSpaces(
-    @Body()
-    pagination: PaginationOptions,
-    @AuthUser() user: User,
-  ) {
-    const result = await this.spaceMemberService.getUserSpaces(
-      user.id,
-      pagination,
-    );
+  async getWorkspaceSpaces(@Body() dto: ListSpacesDto, @AuthUser() user: User) {
+    const result = await this.spaceMemberService.getUserSpaces(user.id, dto, {
+      archived: dto.archived,
+    });
 
     if (result.items.length > 0) {
       const spaceIds = result.items.map((s) => s.id);
@@ -183,6 +181,36 @@ export class SpaceController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('archive')
+  async archiveSpace(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const space = await this.findManageableSpace(
+      spaceIdDto.spaceId,
+      user,
+      workspace.id,
+    );
+    return this.spaceService.archiveSpace(space, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('unarchive')
+  async unarchiveSpace(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const space = await this.findManageableSpace(
+      spaceIdDto.spaceId,
+      user,
+      workspace.id,
+    );
+    return this.spaceService.unarchiveSpace(space);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('members')
   async getSpaceMembers(
     @Body() spaceIdDto: SpaceIdDto,
@@ -265,6 +293,25 @@ export class SpaceController {
     }
 
     return this.spaceMemberService.updateSpaceMemberRole(dto, workspace.id);
+  }
+
+  private async findManageableSpace(
+    spaceId: string,
+    user: User,
+    workspaceId: string,
+  ) {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId, {
+      includeArchivedBy: true,
+    });
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, space.id);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+    return space;
   }
 
   validateIds(dto: RemoveSpaceMemberDto | UpdateSpaceMemberRoleDto) {

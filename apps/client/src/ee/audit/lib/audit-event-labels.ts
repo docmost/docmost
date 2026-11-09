@@ -50,6 +50,8 @@ export const auditEventLabels: Record<string, string> = {
   "space.member_removed": "Removed space member",
   "space.member_role_changed": "Changed space member role",
   "space.exported": "Exported space",
+  "space.archived": "Archived space",
+  "space.unarchived": "Unarchived space",
 
   "group.created": "Created group",
   "group.updated": "Updated group",
@@ -140,6 +142,8 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "space.deleted", label: "Deleted space" },
       { value: "space.member_added", label: "Added space member" },
       { value: "space.member_removed", label: "Removed space member" },
+      { value: "space.archived", label: "Archived space" },
+      { value: "space.unarchived", label: "Unarchived space" },
     ],
   },
   {

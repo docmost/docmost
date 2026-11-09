@@ -401,11 +401,14 @@ export interface SiemDestinations {
 }
 
 export interface Spaces {
+  archivedAt: Timestamp | null;
+  archivedById: string | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   defaultRole: Generated<string>;
   deletedAt: Timestamp | null;
   description: string | null;
+  homePageId: string | null;
   id: Generated<string>;
   isPersonal: Generated<boolean>;
   logo: string | null;

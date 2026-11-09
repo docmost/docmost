@@ -24,6 +24,8 @@ import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-t
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
+import SpaceArchivedNotice from "@/features/space/components/space-archived-notice.tsx";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { EmptyPageGetStarted } from "@/features/editor/components/empty-page/empty-page-get-started";
@@ -72,6 +74,7 @@ export function FullEditor({
   hasCover,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
+  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
   const fullPageWidth = user?.settings?.preferences?.fullPageWidth;
   const editorToolbarEnabled =
     user?.settings?.preferences?.editorToolbar ?? false;
@@ -101,6 +104,7 @@ export function FullEditor({
       {editorToolbarEnabled && editable && isEditMode && (
         <MemoizedFixedToolbar withSpacer={!hasCover} />
       )}
+      {space && <SpaceArchivedNotice space={space} />}
       <MemoizedDeletedPageBanner slugId={slugId} />
       <div className={classes.titleArea}>
         {editable && !hasCover && (
