@@ -12,6 +12,7 @@ import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import SpacePublicNotice from "@/features/public-space/components/space-public-notice.tsx";
 import SpaceHomePageSkeleton from "@/features/space/components/space-home-page-skeleton.tsx";
+import { PublicPageCover } from "@/features/page-cover/components/public-page-cover.tsx";
 import {
   ISpace,
   ISpaceHomePage,
@@ -56,7 +57,14 @@ export default function SpaceHomePageView({
     <>
       <DocumentTitle title={space.name} />
 
-      <Group justify="flex-end" px="md" pt="sm" mih={44} className="print-hide">
+      {/* Same height and offset as the page header, so a cover lines up with the page's. */}
+      <Group
+        justify="flex-end"
+        px="md"
+        h={45}
+        mt="calc(var(--app-shell-padding, 0px) * -1)"
+        className="print-hide"
+      >
         {canEdit && (
           <Button
             component={Link}
@@ -69,6 +77,15 @@ export default function SpaceHomePageView({
           </Button>
         )}
       </Group>
+
+      {!page.isBase && (
+        <PublicPageCover
+          variant="band"
+          coverPhoto={page.coverPhoto}
+          coverPosition={page.coverPosition}
+          coverAttribution={page.coverAttribution}
+        />
+      )}
 
       <Container fluid={fluid} size={!fluid && 900} pb="xl">
         <SpacePublicNotice space={space} />

@@ -13,12 +13,14 @@ type PublicPageCoverProps = {
   coverPhoto: string | null;
   coverPosition?: number | null;
   coverAttribution?: unknown;
+  variant?: "inline" | "band";
 };
 
 export function PublicPageCover({
   coverPhoto,
   coverPosition,
   coverAttribution,
+  variant = "inline",
 }: PublicPageCoverProps) {
   const cover = resolveCover(coverPhoto);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
@@ -31,7 +33,12 @@ export function PublicPageCover({
   // const credit = getCoverCredit(coverPhoto, coverAttribution);
 
   return (
-    <div className={clsx(classes.inlineCover, "print-hide")}>
+    <div
+      className={clsx(
+        variant === "band" ? classes.band : classes.inlineCover,
+        "print-hide",
+      )}
+    >
       {cover.kind === "color" ? (
         <div className={classes.fill} style={{ backgroundColor: cover.color }} />
       ) : (
