@@ -80,6 +80,7 @@ describe('PageService movePage', () => {
       collabAccessService as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     return { service, pageRepo, wsService, collabAccessService };
@@ -220,6 +221,7 @@ describe('PageService movePageToSpace', () => {
       } as any,
       { recheckAccess: jest.fn(async () => undefined) } as any,
       shareService as any,
+      {} as any,
       {} as any,
     );
 

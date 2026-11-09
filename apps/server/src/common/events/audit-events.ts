@@ -83,10 +83,13 @@ export const AuditEvent = {
   PAGE_VERIFICATION_CREATED: 'page.verification_created',
   PAGE_VERIFICATION_UPDATED: 'page.verification_updated',
   PAGE_VERIFICATION_REMOVED: 'page.verification_removed',
+  PAGE_VERIFIER_ADDED: 'page.verifier_added',
+  PAGE_VERIFIER_REMOVED: 'page.verifier_removed',
   PAGE_VERIFIED: 'page.verified',
   PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
   PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
   PAGE_MARKED_OBSOLETE: 'page.marked_obsolete',
+  PAGE_VERIFICATION_INVALIDATED: 'page.verification_invalidated',
 
   // Share
   SHARE_CREATED: 'share.created',

@@ -127,6 +127,10 @@ export class RecreateTransform {
         // operations have been applied
         ops = [];
         // console.log("%cop", logStyle, "- other", ops);
+      } else {
+        // the patch changed nothing visible; keep it so later patches still apply
+        this.currentJSON = afterStepJSON;
+        ops = [];
       }
     }
   }

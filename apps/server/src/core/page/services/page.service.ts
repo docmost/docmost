@@ -75,6 +75,8 @@ import { COVER_IMAGE_MIME_TYPES } from '../page-cover.constants';
 import { CoverFields } from '../page-cover.types';
 import { UnsplashService } from '../../../integrations/unsplash/unsplash.service';
 import { AttachmentType } from '../../attachment/attachment.constants';
+import { PageVerificationInvalidationService } from '../verification/page-verification-invalidation.service';
+import { isSameTitle } from '../verification/page-verification-invalidation.utils';
 
 @Injectable()
 export class PageService {
@@ -98,6 +100,7 @@ export class PageService {
     private readonly collabAccessService: CollabAccessService,
     private readonly shareService: ShareService,
     private readonly unsplashService: UnsplashService,
+    private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
   ) {}
 
   async findById(
@@ -252,6 +255,9 @@ export class PageService {
     const contributors = new Set<string>(page.contributorIds);
     contributors.add(user.id);
     const contributorIds = Array.from(contributors);
+    const titleChanged =
+      updatePageDto.title !== undefined &&
+      !isSameTitle(page.title, updatePageDto.title);
 
     const coverFields = await this.resolveCoverFields(
       page,
@@ -259,17 +265,47 @@ export class PageService {
       user,
     );
 
-    await this.pageRepo.updatePage(
-      {
-        title: updatePageDto.title,
-        icon: updatePageDto.icon,
-        ...coverFields,
-        lastUpdatedById: user.id,
-        updatedAt: new Date(),
-        contributorIds: contributorIds,
-      },
-      page.id,
-    );
+    const invalidation = await executeTx(this.db, async (trx) => {
+      await this.pageRepo.updatePage(
+        {
+          title: updatePageDto.title,
+          icon: updatePageDto.icon,
+          ...coverFields,
+          lastUpdatedById: user.id,
+          updatedAt: new Date(),
+          contributorIds: contributorIds,
+        },
+        page.id,
+        trx,
+      );
+
+      if (!titleChanged) return null;
+
+      return this.pageVerificationInvalidationService.invalidateForEdit(
+        {
+          pageId: page.id,
+          userId: user.id,
+          changedAt: null,
+          isMeaningfulChange: () => true,
+          loadPreviousState: async () => {
+            const current = await this.pageRepo.findById(page.id, {
+              includeContent: true,
+              trx,
+            });
+            return { ...page, content: current.content };
+          },
+        },
+        trx,
+      );
+    });
+
+    if (invalidation) {
+      await this.pageVerificationInvalidationService.notifyInvalidated(
+        invalidation,
+        user.id,
+        'title',
+      );
+    }
 
     this.scheduleCoverCleanup(page, coverFields);
 
@@ -629,6 +665,13 @@ export class PageService {
         // Update page verifications
         await trx
           .updateTable('pageVerifications')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIdsToMove)
+          .execute();
+
+        // Update page history
+        await trx
+          .updateTable('pageHistory')
           .set({ spaceId: spaceId })
           .where('pageId', 'in', pageIdsToMove)
           .execute();

@@ -11,6 +11,7 @@ import { TransclusionModule } from './transclusion/transclusion.module';
 import { LabelModule } from '../label/label.module';
 import { ShareModule } from '../share/share.module';
 import { UnsplashModule } from '../../integrations/unsplash/unsplash.module';
+import { PageVerificationInvalidationModule } from './verification/page-verification-invalidation.module';
 
 @Module({
   controllers: [PageController],
@@ -29,6 +30,7 @@ import { UnsplashModule } from '../../integrations/unsplash/unsplash.module';
     LabelModule,
     ShareModule,
     UnsplashModule,
+    PageVerificationInvalidationModule,
   ],
 })
 export class PageModule {}
