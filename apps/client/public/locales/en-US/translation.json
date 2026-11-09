@@ -1585,5 +1585,10 @@
   "This invitation link is invalid or has expired.": "This invitation link is invalid or has expired.",
   "Home page": "Home page",
   "Space overview": "Space overview",
-  "The page people see when they open this space.": "The page people see when they open this space."
+  "The page people see when they open this space.": "The page people see when they open this space.",
+  "Set home page": "Set home page",
+  "Remove home page": "Remove home page",
+  "Are you sure you want to make '{{title}}' the home page of this space?": "Are you sure you want to make '{{title}}' the home page of this space?",
+  "Are you sure you want to make '{{title}}' the home page of this space? It will replace the space overview.": "Are you sure you want to make '{{title}}' the home page of this space? It will replace the space overview.",
+  "Are you sure you want to remove '{{title}}' as the home page? The space overview will take its place.": "Are you sure you want to remove '{{title}}' as the home page? The space overview will take its place."
 }
