@@ -1691,5 +1691,10 @@
   "Failed to load photos": "Failed to load photos",
   "Unsplash rate limit reached. Try again later.": "Unsplash rate limit reached. Try again later.",
   "Photo by <author/> on <unsplash>Unsplash</unsplash>": "Photo by <author/> on <unsplash>Unsplash</unsplash>",
-  "Photos from <unsplash>Unsplash</unsplash> · <license>License</license>": "Photos from <unsplash>Unsplash</unsplash> · <license>License</license>"
+  "Photos from <unsplash>Unsplash</unsplash> · <license>License</license>": "Photos from <unsplash>Unsplash</unsplash> · <license>License</license>",
+  "Add a custom message": "Add a custom message",
+  "Message": "Message",
+  "(optional)": "(optional)",
+  "Included in the invitation email. Links will be removed.": "Included in the invitation email. Links will be removed.",
+  "Remove message": "Remove message"
 }

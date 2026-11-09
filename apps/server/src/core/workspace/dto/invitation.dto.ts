@@ -34,6 +34,11 @@ export class InviteUserDto {
 
   @IsEnum(InviteUserRole)
   role: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  message?: string;
 }
 
 export class InvitationIdDto {
