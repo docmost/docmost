@@ -473,6 +473,7 @@ export interface WorkspaceInvitations {
   groupIds: string[] | null;
   id: Generated<string>;
   invitedById: string | null;
+  message: string | null;
   role: string;
   token: string;
   updatedAt: Generated<Timestamp>;

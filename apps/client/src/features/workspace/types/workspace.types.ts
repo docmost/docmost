@@ -85,6 +85,7 @@ export interface ICreateInvite {
   role: string;
   emails: string[];
   groupIds: string[];
+  message?: string;
 }
 
 export interface IInvitation {
