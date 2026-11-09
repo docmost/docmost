@@ -303,7 +303,7 @@ export class SpaceService {
   async getHomePage(
     space: Pick<Space, 'id' | 'homePageId'>,
     userId: string,
-  ): Promise<Pick<Page, 'id' | 'slugId' | 'title'> | null> {
+  ): Promise<Pick<Page, 'id' | 'slugId' | 'title' | 'icon'> | null> {
     if (!space.homePageId) return null;
 
     const page = await this.pageRepo.findById(space.homePageId);
@@ -315,7 +315,12 @@ export class SpaceService {
     );
     if (!canAccess) return null;
 
-    return { id: page.id, slugId: page.slugId, title: page.title };
+    return {
+      id: page.id,
+      slugId: page.slugId,
+      title: page.title,
+      icon: page.icon,
+    };
   }
 
   async getWorkspaceSpaces(

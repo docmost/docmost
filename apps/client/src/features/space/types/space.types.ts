@@ -18,7 +18,12 @@ export interface ISpaceSettings {
   comments?: ISpaceCommentsSettings;
 }
 
-export type ISpaceHomePage = { id: string; slugId: string; title: string };
+export type ISpaceHomePage = {
+  id: string;
+  slugId: string;
+  title: string;
+  icon: string | null;
+};
 
 export interface ISpace {
   id: string;

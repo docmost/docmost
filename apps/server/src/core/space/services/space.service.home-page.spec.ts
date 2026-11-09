@@ -11,6 +11,7 @@ const livePage = {
   id: PAGE_ID,
   slugId: 'welcome01',
   title: 'Welcome',
+  icon: '👋',
   spaceId: SPACE_ID,
   deletedAt: null,
 };
@@ -65,7 +66,12 @@ describe('SpaceService home page', () => {
 
       await expect(
         service.getHomePage({ id: SPACE_ID, homePageId: PAGE_ID }, USER_ID),
-      ).resolves.toEqual({ id: PAGE_ID, slugId: 'welcome01', title: 'Welcome' });
+      ).resolves.toEqual({
+        id: PAGE_ID,
+        slugId: 'welcome01',
+        title: 'Welcome',
+        icon: '👋',
+      });
     });
 
     it('makes no queries when the space has no home page', async () => {
