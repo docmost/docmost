@@ -1,4 +1,4 @@
-import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import { NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
 import { ActionIcon, Group, Loader, Text, Tooltip } from "@mantine/core";
 import { useCallback, useMemo, useState } from "react";
 import { getFileUrl } from "@/lib/config.ts";
@@ -18,6 +18,10 @@ export default function PdfView(props: NodeViewProps) {
   const { editor, node, getPos, selected, updateAttributes } = props;
   const { src, placeholder, width: nodeWidth, height: nodeHeight } = node.attrs;
   const [hasError, setHasError] = useState(false);
+  const isEditable = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.isEditable ?? false,
+  });
 
   const safeSrc = useMemo(() => {
     if (!src || !isInternalFileUrl(src)) return null;
@@ -126,7 +130,7 @@ export default function PdfView(props: NodeViewProps) {
           minHeight={200}
           maxHeight={1200}
           onResize={handleResize}
-          isEditable={editor.isEditable}
+          isEditable={isEditable}
           selected={selected}
           className={clsx(classes.pdfResizeWrapper, {
             "ProseMirror-selectednode": selected,
@@ -150,7 +154,7 @@ export default function PdfView(props: NodeViewProps) {
               }
             }}
           />
-          {editor.isEditable && (
+          {isEditable && (
             <div className={classes.hoverMenu}>
               <Tooltip position="top" label={t("Convert to attachment")} withinPortal>
                 <ActionIcon

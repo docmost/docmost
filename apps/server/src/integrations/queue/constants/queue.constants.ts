@@ -25,6 +25,7 @@ export enum QueueJob {
   ATTACHMENT_INDEX_CONTENT = 'attachment-index-content',
   ATTACHMENT_INDEXING = 'attachment-indexing',
   DELETE_PAGE_ATTACHMENTS = 'delete-page-attachments',
+  DELETE_UNUSED_COVER = 'delete-unused-cover',
   DELETE_AI_CHAT_ATTACHMENTS = 'delete-ai-chat-attachments',
 
   DELETE_USER_AVATARS = 'delete-user-avatars',

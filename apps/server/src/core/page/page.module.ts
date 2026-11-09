@@ -9,6 +9,8 @@ import { CollaborationModule } from '../../collaboration/collaboration.module';
 import { WatcherModule } from '../watcher/watcher.module';
 import { TransclusionModule } from './transclusion/transclusion.module';
 import { LabelModule } from '../label/label.module';
+import { ShareModule } from '../share/share.module';
+import { UnsplashModule } from '../../integrations/unsplash/unsplash.module';
 import { PageVerificationInvalidationModule } from './verification/page-verification-invalidation.module';
 
 @Module({
@@ -26,6 +28,8 @@ import { PageVerificationInvalidationModule } from './verification/page-verifica
     WatcherModule,
     TransclusionModule,
     LabelModule,
+    ShareModule,
+    UnsplashModule,
     PageVerificationInvalidationModule,
   ],
 })

@@ -28,6 +28,7 @@ import { SearchInput } from "@/components/common/search-input";
 import Paginate from "@/components/common/paginate";
 import NoTableResults from "@/components/common/no-table-results";
 import SpaceSettingsModal from "@/features/space/components/settings-modal";
+import SpaceArchiveFilter from "@/features/space/components/space-archive-filter";
 import classes from "./all-spaces-list.module.css";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
 import clsx from "clsx";
@@ -76,6 +77,9 @@ function WatchButton({ spaceId, watchedIds, size = 16 }: { spaceId: string; watc
 
 interface AllSpacesListProps {
   spaces: any[];
+  archived: boolean;
+  onArchivedChange: (archived: boolean) => void;
+  emptyText?: string;
   onSearch: (query: string) => void;
   hasPrevPage?: boolean;
   hasNextPage?: boolean;
@@ -85,6 +89,9 @@ interface AllSpacesListProps {
 
 export default function AllSpacesList({
   spaces,
+  archived,
+  onArchivedChange,
+  emptyText,
   onSearch,
   hasPrevPage,
   hasNextPage,
@@ -104,12 +111,15 @@ export default function AllSpacesList({
 
   return (
     <Box>
-      <SearchInput onSearch={onSearch} />
+      <Group gap="sm" align="flex-start">
+        <SearchInput onSearch={onSearch} />
+        <SpaceArchiveFilter archived={archived} onChange={onArchivedChange} />
+      </Group>
 
       <Space h="md" />
 
       <Table.ScrollContainer minWidth={500}>
-        <Table highlightOnHover verticalSpacing="sm">
+        <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Caption>
             <VisuallyHidden>
               {t("List of spaces in this workspace")}
@@ -144,6 +154,7 @@ export default function AllSpacesList({
                       <Group
                         gap="sm"
                         wrap="nowrap"
+                        style={{ minWidth: 0 }}
                         onMouseEnter={() => prefetchSpace(space.slug, space.id)}
                       >
                         <CustomAvatar
@@ -200,7 +211,7 @@ export default function AllSpacesList({
                 </Table.Tr>
               ))
             ) : (
-              <NoTableResults colSpan={3} />
+              <NoTableResults colSpan={3} text={emptyText} />
             )}
           </Table.Tbody>
         </Table>
@@ -220,6 +231,7 @@ export default function AllSpacesList({
           spaceId={selectedSpaceId}
           opened={settingsOpened}
           onClose={closeSettings}
+          showOpenSpace
         />
       )}
     </Box>

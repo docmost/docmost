@@ -53,6 +53,9 @@ function makeService(overrides: any = {}) {
   };
   const shareService = {
     updatePublicAttachments: jest.fn().mockImplementation(async (p) => p.content),
+    updatePublicCoverPhoto: jest
+      .fn()
+      .mockImplementation(async (p) => p.coverPhoto),
     sanitizeTransclusionItemsForPublic: jest
       .fn()
       .mockImplementation(async (items) => items),
@@ -165,6 +168,23 @@ describe('PublicSpaceService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
+    it('keeps serving the space while it is archived', async () => {
+      const { service } = makeService({
+        spaceRepo: {
+          findBySlug: jest.fn().mockResolvedValue({
+            id: SPACE_ID,
+            deletedAt: null,
+            archivedAt: new Date(),
+          }),
+        },
+      });
+      const result = await service.getPublicSpace(
+        'handbook',
+        makeWorkspace(optInSettings),
+      );
+      expect(result.space.id).toBe(SPACE_ID);
+    });
+
     it('resolves when opted in, enabled, and space exists', async () => {
       const { service } = makeService();
       const result = await service.getPublicSpace(
@@ -242,6 +262,34 @@ describe('PublicSpaceService', () => {
         result.page,
       );
       expect(result.page.content).toBe(sanitizedDoc);
+    });
+
+    it('serves an uploaded cover through its public link', async () => {
+      const publicCover = '/api/files/public/a1/cover.jpg?jwt=signed';
+      const { service } = makeService({
+        pageRepo: {
+          findById: jest.fn().mockResolvedValue({
+            id: 'page1',
+            slugId: 'abc123XYZ0',
+            spaceId: SPACE_ID,
+            workspaceId: WORKSPACE_ID,
+            deletedAt: null,
+            content: { type: 'doc', content: [] },
+            coverPhoto: '/api/files/a1/cover.jpg',
+          }),
+        },
+        shareService: {
+          updatePublicCoverPhoto: jest.fn().mockResolvedValue(publicCover),
+        },
+      });
+
+      const result = await service.getPublicPage(
+        'handbook',
+        'abc123XYZ0',
+        makeWorkspace(optInSettings),
+      );
+
+      expect(result.page.coverPhoto).toBe(publicCover);
     });
 
     it('returns page null for an empty published space', async () => {
@@ -1065,6 +1113,24 @@ describe('PublicSpaceService', () => {
           { includeContent: false },
         ),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('resolves a cross-space page in an archived space', async () => {
+      const { service } = makeService({
+        pageRepo: { findById: jest.fn().mockResolvedValue(crossSpacePage) },
+        spaceRepo: {
+          findById: jest
+            .fn()
+            .mockResolvedValue({ ...otherSpace, archivedAt: new Date() }),
+        },
+      });
+      const result = await service.getPublicPage(
+        'handbook',
+        'crossSlug001',
+        makeWorkspace(optInSettings),
+        { includeContent: false },
+      );
+      expect(result.page.id).toBe('page2');
     });
 
     it('404s when the target space is outside the workspace', async () => {

@@ -313,7 +313,9 @@ export interface PageHistory {
 export interface Pages {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
+  coverAttribution: Json | null;
   coverPhoto: string | null;
+  coverPosition: number | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
@@ -399,11 +401,14 @@ export interface SiemDestinations {
 }
 
 export interface Spaces {
+  archivedAt: Timestamp | null;
+  archivedById: string | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   defaultRole: Generated<string>;
   deletedAt: Timestamp | null;
   description: string | null;
+  homePageId: string | null;
   id: Generated<string>;
   isPersonal: Generated<boolean>;
   logo: string | null;

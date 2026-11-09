@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  NotFoundException,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -31,6 +32,8 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { ModuleRef } from '@nestjs/core';
 import { PublicSpaceService } from '../public-space/public-space.service';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { ShareService } from '../share/share.service';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')
@@ -43,6 +46,8 @@ export class SearchController {
     private readonly environmentService: EnvironmentService,
     private readonly publicSpaceService: PublicSpaceService,
     private readonly pageRepo: PageRepo,
+    private readonly shareService: ShareService,
+    private readonly shareRepo: ShareRepo,
     private moduleRef: ModuleRef,
   ) {}
 
@@ -101,6 +106,14 @@ export class SearchController {
     delete searchDto.spaceId;
     if (!searchDto.shareId) {
       throw new BadRequestException('shareId is required');
+    }
+
+    const share = await this.shareRepo.findById(searchDto.shareId);
+    if (
+      !share ||
+      !(await this.shareService.isSharingAllowed(workspace.id, share.spaceId))
+    ) {
+      throw new NotFoundException('Share not found');
     }
 
     if (this.environmentService.getSearchDriver() === 'typesense') {

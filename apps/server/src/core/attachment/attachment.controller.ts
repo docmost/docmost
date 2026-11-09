@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Inject,
   Logger,
@@ -139,6 +140,13 @@ export class AttachmentController {
       throw new BadRequestException('Invalid attachment id');
     }
 
+    const type = file.fields?.type?.value;
+    const isCover = type === AttachmentType.PageCover;
+    const isFile = type === undefined || type === AttachmentType.File;
+    if ((!isFile && !isCover) || (isCover && attachmentId)) {
+      throw new BadRequestException('Invalid attachment type');
+    }
+
     try {
       const fileResponse = await this.attachmentService.uploadFile({
         filePromise: file,
@@ -147,6 +155,7 @@ export class AttachmentController {
         userId: user.id,
         workspaceId: workspace.id,
         attachmentId: attachmentId,
+        type: isCover ? AttachmentType.PageCover : AttachmentType.File,
       });
 
       this.auditService.log({
@@ -166,6 +175,10 @@ export class AttachmentController {
         url: this.buildFileUrl(workspace, fileResponse),
       });
     } catch (err: any) {
+      // cover uploads tell the user why they were refused
+      if (isCover && err instanceof HttpException) {
+        throw err;
+      }
       if (err?.statusCode === 413) {
         const errMessage = `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`;
         this.logger.error(errMessage);
@@ -310,7 +323,8 @@ export class AttachmentController {
 
     if (
       !validAttachmentTypes.includes(attachmentType) ||
-      attachmentType === AttachmentType.File
+      attachmentType === AttachmentType.File ||
+      attachmentType === AttachmentType.PageCover
     ) {
       throw new BadRequestException('Invalid image attachment type');
     }
@@ -370,7 +384,8 @@ export class AttachmentController {
   ) {
     if (
       !validAttachmentTypes.includes(attachmentType) ||
-      attachmentType === AttachmentType.File
+      attachmentType === AttachmentType.File ||
+      attachmentType === AttachmentType.PageCover
     ) {
       throw new BadRequestException('Invalid image attachment type');
     }
