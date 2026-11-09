@@ -465,11 +465,6 @@ export function DragHandlePlugin(
       dragHandleElement.dataset.dragHandle = "";
       dragHandleElement.classList.add("drag-handle");
 
-      // Driving auto-scrolling with the drag event is not very reliable
-      // Firefox reports clientY = 0 on every `drag` event (Mozilla bug 505521),
-      // and Chromium emits a final `drag` event with clientY = 0 right before
-      // `dragend`. Drive auto-scrolling from `dragover` where `clientY` is more
-      // reliable across browsers, scoped only to active handle drags.
       function onDragHandleDrag(e: DragEvent) {
         hideDragHandle();
         if (!e.clientY) return;
@@ -491,7 +486,6 @@ export function DragHandlePlugin(
       }
 
       dragHandleElement.addEventListener("dragstart", onDragHandleDragStart);
-
       dragHandleElement.addEventListener("dragend", onDragHandleDragEnd);
 
       hideDragHandle();
