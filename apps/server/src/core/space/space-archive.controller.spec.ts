@@ -35,6 +35,7 @@ function buildController(roles?: SpaceRole[]) {
     spaceAbility,
     {} as any,
     spaceRepo as any,
+    {} as any,
   );
   return { controller, spaceService, spaceMemberRepo, spaceRepo };
 }

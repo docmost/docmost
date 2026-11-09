@@ -613,6 +613,12 @@ export class PageService {
             .execute();
         }
 
+        await trx
+          .updateTable('spaces')
+          .set({ homePageId: null })
+          .where('homePageId', 'in', pageIdsToMove)
+          .execute();
+
         // Update comments
         await trx
           .updateTable('comments')

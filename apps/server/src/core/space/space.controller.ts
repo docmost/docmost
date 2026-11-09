@@ -37,6 +37,7 @@ import {
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { ListSpacesDto } from './dto/list-spaces.dto';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -48,6 +49,7 @@ export class SpaceController {
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
     private readonly spaceRepo: SpaceRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -125,7 +127,9 @@ export class SpaceController {
       permissions: ability.rules,
     };
 
-    return { ...space, membership };
+    const homePage = await this.spaceService.getHomePage(space, user.id);
+
+    return { ...space, membership, homePage };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -160,7 +164,24 @@ export class SpaceController {
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
-    return this.spaceService.updateSpace(updateSpaceDto, workspace.id);
+
+    if (updateSpaceDto.homePageId) {
+      const canAccessHomePage = await this.pagePermissionRepo.canUserAccessPage(
+        user.id,
+        updateSpaceDto.homePageId,
+      );
+      if (!canAccessHomePage) {
+        throw new ForbiddenException();
+      }
+    }
+
+    const updatedSpace = await this.spaceService.updateSpace(
+      updateSpaceDto,
+      workspace.id,
+    );
+    const homePage = await this.spaceService.getHomePage(updatedSpace, user.id);
+
+    return { ...updatedSpace, homePage };
   }
 
   @HttpCode(HttpStatus.OK)

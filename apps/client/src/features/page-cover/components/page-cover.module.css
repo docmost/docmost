@@ -48,6 +48,27 @@
   }
 }
 
+/* .cover for read-only views that lay out their own header */
+.band {
+  position: relative;
+  height: clamp(160px, 26vh, 240px);
+  margin-bottom: rem(36px);
+  margin-inline: calc(var(--app-shell-padding, 0px) * -1);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    height: clamp(120px, 18vh, 150px);
+  }
+
+  @media print {
+    display: none;
+  }
+}
+
 .fill {
   position: absolute;
   inset: 0;
