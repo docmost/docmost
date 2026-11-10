@@ -1,4 +1,6 @@
 import {
+  BuilderElement,
+  CheckBoxUtil,
   ExternalHyperlink,
   FootnoteReferenceRun,
   HeadingLevel,
@@ -46,13 +48,12 @@ function toDocxColor(input?: string): string | undefined {
   return undefined;
 }
 
-// Images and diagrams embed via the image resolver; the URL (with its file
-// extension) is passed through so docx can infer the image type.
+// Images and diagrams embed via the image resolver, at the node's width and alignment.
 const renderImage: NodeSerializerAsync[string] = async (state, node) => {
   const src = node.attrs?.src || node.attrs?.attachmentId;
   if (src) {
     try {
-      await state.image(src, 100);
+      await state.image(src, node.attrs?.width, node.attrs?.align);
     } catch {
       // Unrenderable/missing image: skip rather than fail the whole export.
     }
@@ -125,6 +126,21 @@ const renderMicrosoftFile: NodeSerializerAsync[string] = (state, node) => {
   }
 };
 
+// Word's checkbox content control. docx's CheckBox writes the glyph as a w:sym, which other
+// readers misdraw, so it goes in as text the way Word writes it.
+function createCheckBox(checked: boolean) {
+  return new BuilderElement({
+    name: 'w:sdt',
+    children: [
+      new BuilderElement({ name: 'w:sdtPr', children: [new CheckBoxUtil({ checked })] }),
+      new BuilderElement({
+        name: 'w:sdtContent',
+        children: [new TextRun({ text: checked ? '☒' : '☐', font: 'MS Gothic' })],
+      }),
+    ],
+  });
+}
+
 export const defaultAsyncNodes: NodeSerializerAsync = {
   text(state, node) {
     state.text(node.text ?? '');
@@ -169,13 +185,15 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
     await state.renderListItem(node);
   },
   async taskList(state, node) {
-    await state.renderList(node, 'bullets');
+    await state.renderList(node, 'tasks');
   },
   async taskItem(state, node) {
     if (state.currentNumbering) {
       state.addParagraphOptions({ numbering: state.currentNumbering });
     }
-    state.text(node.attrs?.checked ? '☑ ' : '☐ ');
+    // a checkbox content control, which the reader can tick in Word
+    state.current.push(createCheckBox(Boolean(node.attrs?.checked)));
+    state.text(' ');
     await state.renderContent(node);
   },
   async table(state, node) {
@@ -210,10 +228,10 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   },
   async detailsSummary(state, node) {
     await state.renderInline(node);
-    state.closeBlock(node, { heading: HeadingLevel.HEADING_4 });
+    state.closeBlock(node, { style: 'DetailsSummary' });
   },
   async detailsContent(state, node) {
-    await state.renderContent(node);
+    await state.renderContent(node, { style: 'DetailsContent' });
   },
   async tabs(state, node) {
     await state.renderContent(node);
@@ -386,6 +404,25 @@ export async function pageNodeToDocxBuffer(
               },
             },
           },
+          // Toggle blocks show expanded, without entering the outline as headings do.
+          paragraphStyles: [
+            {
+              id: 'DetailsSummary',
+              name: 'Toggle Summary',
+              basedOn: 'Normal',
+              next: 'DetailsContent',
+              quickFormat: true,
+              run: { bold: true },
+              paragraph: { keepNext: true },
+            },
+            {
+              id: 'DetailsContent',
+              name: 'Toggle Content',
+              basedOn: 'Normal',
+              quickFormat: true,
+              paragraph: { indent: { left: 360 } },
+            },
+          ],
         },
       }) as any,
   );
