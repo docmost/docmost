@@ -234,9 +234,7 @@ export default function App() {
             />
             <Route path={"verifications"} element={<VerifiedPages />} />
             <Route path={"integrations"} element={<Integrations />} />
-            {!isCloud() && (
-              <Route path={"announcements"} element={<Announcements />} />
-            )}
+            <Route path={"announcements"} element={<Announcements />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>
