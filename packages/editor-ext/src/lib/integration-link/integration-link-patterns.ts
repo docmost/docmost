@@ -93,7 +93,7 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     provider: "microsoft_365",
     type: "sharepoint-library-item",
     regex:
-      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?_layouts\/15\/onedrive\.aspx\?(?:[^#]*&)?id=((?:%2[Ff]|\/)personal(?:%2[Ff]|\/)[^&#]+)/,
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:(?:sites|teams|personal)\/[^\/?#]+\/)?_layouts\/15\/onedrive\.aspx|my)\?(?:[^#]*&)?id=((?:%2[Ff]|\/)(?:personal|sites|teams)(?:%2[Ff]|\/)[^&#]+)/,
   },
   {
     provider: "microsoft_365",

@@ -389,6 +389,10 @@ describe("OneDrive folder view links", () => {
     [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`, "sharepoint-library-item"],
     [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2fpersonal%2fadele_contoso_com%2fDocuments%2fProjects`, "sharepoint-library-item"],
     [`${PERSONAL}/_layouts/15/onedrive.aspx?view=0&id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FPlan.docx`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/my?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FAttachments&viewid=4f8f5950%2D9826`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/my?id=${FOLDER_ID}`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fsites%2FMarketing%2FShared%20Documents%2FQ3`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/my?id=%2Fteams%2FEng%2FShared%20Documents%2FSpec.pdf`, "sharepoint-library-item"],
   ])("identifies %s as %s", (url, type) => {
     expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type });
   });
@@ -397,6 +401,7 @@ describe("OneDrive folder view links", () => {
     [`${PERSONAL}/Documents/Forms/All.aspx?id=${FOLDER_ID}`, "Projects"],
     [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FQ3%20Plan.docx`, "Q3 Plan.docx"],
     [`${PERSONAL}/Documents/Forms/All.aspx?id=Q3`, "Documents"],
+    [`${ONEDRIVE}/my?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FAttachments&viewid=4f8f5950%2D9826`, "Attachments"],
   ])("labels %s as %s", (url, title) => {
     expect(describeIntegrationLink(url)).toEqual({
       provider: "microsoft_365",
@@ -407,7 +412,10 @@ describe("OneDrive folder view links", () => {
 
   it.each([
     `${ONEDRIVE}/_layouts/15/onedrive.aspx?id=Q3`,
-    `${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fsites%2FMarketing%2FShared%20Documents%2FQ3`,
+    `${ONEDRIVE}/my?id=Q3`,
+    `${ONEDRIVE}/my?id=%2FDocuments%2FQ3`,
+    `${ONEDRIVE}/myfiles?id=${FOLDER_ID}`,
+    `https://contoso-my.sharepoint.com.evil.example/my?id=${FOLDER_ID}`,
     `http://contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
     `https://contoso-my.sharepoint.com.evil.example/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
     `https://user:pass@contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
