@@ -31,9 +31,11 @@ import {
 import { imageDimensionsFromData } from 'image-dimensions';
 import { createNumbering, NumberingStyles } from './numbering';
 import {
+  BLANK_PNG,
   buildDoc,
   CELL_MARGIN,
   createShortId,
+  docxImageFromData,
   getTableCellWidths,
   getTableColumnWidths,
   TEXT_WIDTH,
@@ -724,36 +726,25 @@ export class DocxSerializerStateAsync {
   // not sure what this actually is, seems to be close for 8.5x11
   maxImageWidth = MAX_IMAGE_WIDTH;
 
-  async image(
-    src: string,
-    widthPercent = 70,
-    align: AlignOptions = 'center',
-    imageRunOpts?: IImageOptions,
-    imageType?: ImageType,
-  ) {
+  async image(src: string, widthPercent = 70, align: AlignOptions = 'center') {
     const buffer = await Promise.resolve(this.options.getImageBuffer(src));
-    const dimensions = imageDimensionsFromData(buffer);
+    const image = docxImageFromData(buffer);
     /* If the image is not a valid image, don't add it */
-    if (!dimensions) return;
-    const aspect = dimensions.height / dimensions.width;
+    if (!image) return;
+    const aspect = image.height / image.width;
     const width = this.maxImageWidth * (widthPercent / 100);
-    let it;
-    try {
-      it = imageType || (src.replace(/.*\./, '').toLowerCase() as any);
-    } catch (e) {
-      it = 'png';
-    }
+    const transformation = { width, height: width * aspect };
     this.current.push(
-      new ImageRun({
-        data: buffer,
-        ...imageRunOpts,
-        type: it,
-        transformation: {
-          ...(imageRunOpts?.transformation || {}),
-          width,
-          height: width * aspect,
-        },
-      }),
+      new ImageRun(
+        image.type === 'svg'
+          ? {
+              type: 'svg',
+              data: buffer,
+              fallback: { type: 'png', data: BLANK_PNG },
+              transformation,
+            }
+          : { type: image.type, data: buffer, transformation },
+      ),
     );
     let alignment: string;
     switch (align) {
