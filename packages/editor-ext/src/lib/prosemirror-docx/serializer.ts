@@ -875,10 +875,12 @@ export class DocxSerializerStateAsync {
   }
 
   closeBlock(node: Node, props?: IParagraphOptions) {
+    const opts = { ...this.nextParentParagraphOpts, ...props };
     const paragraph = new Paragraph({
       children: this.current,
-      ...this.nextParentParagraphOpts,
-      ...props,
+      ...opts,
+      // a paragraph takes one style, so a heading drops the quote or callout style
+      style: opts.heading ? undefined : opts.style,
     });
     this.current = [];
     delete this.nextParentParagraphOpts;
