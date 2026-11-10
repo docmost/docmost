@@ -212,10 +212,10 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   },
   async detailsSummary(state, node) {
     await state.renderInline(node);
-    state.closeBlock(node, { heading: HeadingLevel.HEADING_4 });
+    state.closeBlock(node, { style: 'DetailsSummary' });
   },
   async detailsContent(state, node) {
-    await state.renderContent(node);
+    await state.renderContent(node, { style: 'DetailsContent' });
   },
   async tabs(state, node) {
     await state.renderContent(node);
@@ -388,6 +388,25 @@ export async function pageNodeToDocxBuffer(
               },
             },
           },
+          // Toggle blocks show expanded, without entering the outline as headings do.
+          paragraphStyles: [
+            {
+              id: 'DetailsSummary',
+              name: 'Toggle Summary',
+              basedOn: 'Normal',
+              next: 'DetailsContent',
+              quickFormat: true,
+              run: { bold: true },
+              paragraph: { keepNext: true },
+            },
+            {
+              id: 'DetailsContent',
+              name: 'Toggle Content',
+              basedOn: 'Normal',
+              quickFormat: true,
+              paragraph: { indent: { left: 360 } },
+            },
+          ],
         },
       }) as any,
   );
