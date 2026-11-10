@@ -1,4 +1,5 @@
 import {
+  CheckBox,
   ExternalHyperlink,
   FootnoteReferenceRun,
   HeadingLevel,
@@ -168,13 +169,15 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
     await state.renderListItem(node);
   },
   async taskList(state, node) {
-    await state.renderList(node, 'bullets');
+    await state.renderList(node, 'tasks');
   },
   async taskItem(state, node) {
     if (state.currentNumbering) {
       state.addParagraphOptions({ numbering: state.currentNumbering });
     }
-    state.text(node.attrs?.checked ? '☑ ' : '☐ ');
+    // a checkbox content control, which the reader can tick in Word
+    state.current.push(new CheckBox({ checked: Boolean(node.attrs?.checked) }));
+    state.text(' ');
     await state.renderContent(node);
   },
   async table(state, node) {
