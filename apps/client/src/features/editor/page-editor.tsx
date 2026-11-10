@@ -29,10 +29,9 @@ import {
   collabExtensions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
-  currentPageEditModeAtom,
   lightboxRequestAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
@@ -41,6 +40,7 @@ import {
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
   activeCommentIdAtom,
+  commentPanelTabAtom,
   showCommentPopupAtom,
   showReadOnlyCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
@@ -79,8 +79,15 @@ import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
+import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
+import { BasePasteMenu } from "@/features/editor/components/base-embed/base-paste-menu.tsx";
+import MicrosoftFileMenu from "@/features/editor/components/microsoft/microsoft-file-menu.tsx";
+import MicrosoftFolderMenu from "@/features/editor/components/microsoft/microsoft-folder-menu.tsx";
+import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
+import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
 import {
@@ -118,6 +125,31 @@ export default function PageEditor({
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
       const message = JSON.parse(payload);
+      if (message?.type === "page.permissions") {
+        // applied locally, a refetch can still read the old access from the server cache
+        for (const key of [slugId, pageId]) {
+          queryClient.setQueryData<IPage>(
+            ["pages", key],
+            (page) =>
+              page && {
+                ...page,
+                permissions: { ...page.permissions, canEdit: false },
+              },
+          );
+        }
+        if (message.access === "none") {
+          queryClient
+            .getQueryCache()
+            .find({ queryKey: ["pages", slugId], exact: true })
+            ?.setState({
+              status: "error",
+              fetchStatus: "idle",
+              data: undefined,
+              error: Object.assign(new Error("Forbidden"), { status: 403 }),
+            });
+        }
+        return;
+      }
       if (message?.type !== "page.updated" || !message.updatedAt) return;
       const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
       if (pageData) {
@@ -188,6 +220,7 @@ function CollabPageEditor({
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
+  const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
@@ -203,7 +236,7 @@ function CollabPageEditor({
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
   const slugId = extractPageSlugId(pageSlug);
-  const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
+  const { editMode } = usePageEditMode(pageId);
   const canScroll = useCallback(
     () => Boolean(isComponentMounted.current && editorRef.current),
     [isComponentMounted],
@@ -367,6 +400,15 @@ function CollabPageEditor({
     [pageId, editable, extensions],
   );
 
+  useEffect(() => {
+    // Read by the paste handler with no observer, so it must not be garbage collected.
+    queryClient.prefetchQuery({
+      queryKey: ["installed-integrations"],
+      queryFn: getInstalledIntegrations,
+      gcTime: Infinity,
+    });
+  }, []);
+
   useLayoutEffect(() => {
     if (editor && !editor.isDestroyed) {
       // @ts-ignore
@@ -392,6 +434,7 @@ function CollabPageEditor({
     }
 
     setActiveCommentId(commentId);
+    setCommentPanelTab("open");
     setAsideState({ tab: "comments", isAsideOpen: true });
 
     //wait if aside is closed
@@ -415,7 +458,6 @@ function CollabPageEditor({
   useEffect(() => {
     setActiveCommentId(null);
     setShowCommentPopup(false);
-    setAsideState({ tab: "", isAsideOpen: false });
     setLightboxRequest(null);
   }, [pageId]);
 
@@ -440,8 +482,8 @@ function CollabPageEditor({
   }, [yjsConnectionStatus, isSynced]);
   useEffect(() => {
     if (!editor) return;
-    editor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
-  }, [currentPageEditMode, editor, editable]);
+    editor.setEditable(editable && editMode === PageEditMode.Edit);
+  }, [editMode, editor, editable]);
 
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
@@ -475,10 +517,14 @@ function CollabPageEditor({
         <EditorContent editor={editor} />
 
         {editor && (
-          <SearchAndReplaceDialog editor={editor} editable={editable} />
+          <SearchAndReplaceDialog
+            editor={editor}
+            editable={editable && editMode === PageEditMode.Edit}
+          />
         )}
         {editor && <SearchNavigationDialog editor={editor} />}
 
+        <MicrosoftFullscreenModal />
         {editor && editorIsEditable && (
           <div>
             <EditorAiMenu editor={editor} />
@@ -494,6 +540,10 @@ function CollabPageEditor({
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
+            <IntegrationPasteMenu editor={editor} />
+            <BasePasteMenu editor={editor} />
+            <MicrosoftFileMenu editor={editor} />
+            <MicrosoftFolderMenu editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && (

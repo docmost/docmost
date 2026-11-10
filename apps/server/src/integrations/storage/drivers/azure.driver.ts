@@ -161,7 +161,7 @@ export class AzureDriver implements StorageDriver {
       },
       this.sharedKeyCredential,
     ).toString();
-    return `${this.accountUrl}/${this.config.container}/${filePath}?${sas}`;
+    return `${this.blockBlob(filePath).url}?${sas}`;
   }
 
   async delete(filePath: string): Promise<void> {

@@ -8,8 +8,9 @@ import {
 import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { SpaceArchivedBy } from '@docmost/db/repos/space/types';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Space, User } from '@docmost/db/types/entity.types';
+import { Page, Space, User } from '@docmost/db/types/entity.types';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
@@ -21,6 +22,8 @@ import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -29,6 +32,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { WsService } from '../../../ws/ws.service';
 
 @Injectable()
 export class SpaceService {
@@ -41,6 +45,9 @@ export class SpaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly wsService: WsService,
+    private pageRepo: PageRepo,
+    private pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   async createSpace(
@@ -176,6 +183,22 @@ export class SpaceService {
     );
     const settingsBefore = (spaceBefore?.settings ?? {}) as Record<string, any>;
 
+    let newHomePage: Page | undefined;
+    if (updateSpaceDto.homePageId) {
+      newHomePage = await this.pageRepo.findById(updateSpaceDto.homePageId);
+      if (
+        !newHomePage ||
+        newHomePage.deletedAt ||
+        newHomePage.spaceId !== spaceBefore?.id
+      ) {
+        throw new BadRequestException('Home page must be a page in this space');
+      }
+    }
+
+    const homePageId = newHomePage
+      ? newHomePage.id
+      : updateSpaceDto.homePageId;
+
     const before: Record<string, any> = {};
     const after: Record<string, any> = {};
 
@@ -223,6 +246,7 @@ export class SpaceService {
           name: updateSpaceDto.name,
           description: updateSpaceDto.description,
           slug: updateSpaceDto.slug,
+          homePageId,
         },
         updateSpaceDto.spaceId,
         workspaceId,
@@ -241,6 +265,20 @@ export class SpaceService {
       Object.assign(after, columnChanges.after);
     }
 
+    const homePageBeforeId = spaceBefore?.homePageId ?? null;
+    if (
+      typeof homePageId !== 'undefined' &&
+      (homePageId ?? null) !== homePageBeforeId
+    ) {
+      const oldHomePage = homePageBeforeId
+        ? await this.pageRepo.findById(homePageBeforeId)
+        : null;
+      before.homePageId = homePageBeforeId;
+      before.homePageTitle = oldHomePage?.title ?? null;
+      after.homePageId = homePageId ?? null;
+      after.homePageTitle = newHomePage?.title ?? null;
+    }
+
     if (Object.keys(after).length > 0) {
       this.auditService.log({
         event: AuditEvent.SPACE_UPDATED,
@@ -257,12 +295,36 @@ export class SpaceService {
   async getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId, {
       includeMemberCount: true,
+      includeArchivedBy: true,
     });
     if (!space) {
       throw new NotFoundException('Space not found');
     }
 
     return space;
+  }
+
+  async getHomePage(
+    space: Pick<Space, 'id' | 'homePageId'>,
+    userId: string,
+  ): Promise<Pick<Page, 'id' | 'slugId' | 'title' | 'icon'> | null> {
+    if (!space.homePageId) return null;
+
+    const page = await this.pageRepo.findById(space.homePageId);
+    if (!page || page.deletedAt || page.spaceId !== space.id) return null;
+
+    const canAccess = await this.pagePermissionRepo.canUserAccessPage(
+      userId,
+      page.id,
+    );
+    if (!canAccess) return null;
+
+    return {
+      id: page.id,
+      slugId: page.slugId,
+      title: page.title,
+      icon: page.icon,
+    };
   }
 
   async getWorkspaceSpaces(
@@ -293,6 +355,95 @@ export class SpaceService {
           description: space.description,
         },
       },
+    });
+  }
+
+  async archiveSpace(
+    space: Space,
+    user: User,
+  ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
+    if (space.isPersonal) {
+      throw new BadRequestException('Personal spaces cannot be archived');
+    }
+
+    if (space.archivedAt) {
+      return space;
+    }
+
+    const archivedSpace = await this.spaceRepo.updateSpace(
+      { archivedAt: new Date(), archivedById: user.id },
+      space.id,
+      space.workspaceId,
+    );
+    const archivedBy: SpaceArchivedBy = {
+      id: user.id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+    };
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_ARCHIVED,
+      resourceType: AuditResource.SPACE,
+      resourceId: space.id,
+      spaceId: space.id,
+      changes: {
+        before: { name: space.name, archivedAt: space.archivedAt },
+        after: { archivedAt: archivedSpace.archivedAt },
+      },
+    });
+
+    this.emitArchiveUpdate(
+      archivedSpace.id,
+      archivedSpace.archivedAt,
+      archivedBy,
+    );
+
+    return { ...archivedSpace, archivedBy };
+  }
+
+  async unarchiveSpace(
+    space: Space,
+  ): Promise<Space & { archivedBy?: SpaceArchivedBy | null }> {
+    if (!space.archivedAt) {
+      return space;
+    }
+
+    const unarchivedSpace = await this.spaceRepo.updateSpace(
+      { archivedAt: null, archivedById: null },
+      space.id,
+      space.workspaceId,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_UNARCHIVED,
+      resourceType: AuditResource.SPACE,
+      resourceId: space.id,
+      spaceId: space.id,
+      changes: {
+        before: { name: space.name, archivedAt: space.archivedAt },
+        after: { archivedAt: unarchivedSpace.archivedAt },
+      },
+    });
+
+    this.emitArchiveUpdate(
+      unarchivedSpace.id,
+      unarchivedSpace.archivedAt,
+      null,
+    );
+
+    return { ...unarchivedSpace, archivedBy: null };
+  }
+
+  private emitArchiveUpdate(
+    spaceId: string,
+    archivedAt: Date | null,
+    archivedBy: SpaceArchivedBy | null,
+  ): void {
+    this.wsService.emitToSpace(spaceId, {
+      operation: 'spaceArchiveUpdated',
+      spaceId,
+      archivedAt,
+      archivedBy,
     });
   }
 }

@@ -21,6 +21,20 @@ export class CollaborationHandler {
 
   getHandlers(hocuspocus: Hocuspocus) {
     return {
+      getConnectedUserIds: async (documentName: string) => {
+        const document = hocuspocus.documents.get(documentName);
+        if (!document) return [];
+
+        const userIds = new Set<string>();
+        for (const state of document.awareness.getStates().values()) {
+          const userId = state?.user?.id;
+          if (typeof userId === 'string') userIds.add(userId);
+        }
+        return [...userIds];
+      },
+      flushDocument: async (documentName: string, _payload: object = {}) => {
+        await this.flushPendingStore(hocuspocus, documentName);
+      },
       alterState: async (documentName: string, payload: { pageId: string }) => {
         // dummy
         // this.logger.log('Processing', documentName, payload);
@@ -121,6 +135,8 @@ export class CollaborationHandler {
     context: any = {},
     fn: (doc: Document) => void,
   ): Promise<void> {
+    // store pending edits first so they are not saved under this connection's user
+    await this.flushPendingStore(hocuspocus, documentName);
     const connection = await hocuspocus.openDirectConnection(
       documentName,
       context,
@@ -130,5 +146,14 @@ export class CollaborationHandler {
     } finally {
       await connection.disconnect();
     }
+  }
+
+  private async flushPendingStore(
+    hocuspocus: Hocuspocus,
+    documentName: string,
+  ): Promise<void> {
+    const document = hocuspocus.documents.get(documentName);
+    if (!document || document.isLoading) return;
+    await hocuspocus.debouncer.executeNow(`onStoreDocument-${documentName}`);
   }
 }

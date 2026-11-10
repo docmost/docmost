@@ -1,3 +1,4 @@
+import { type Editor } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { TiptapCode } from "@/features/editor/extensions/code";
@@ -56,6 +57,10 @@ import {
   Indent,
   UniqueID,
   SharedStorage,
+  IntegrationCard,
+  IntegrationMention,
+  MicrosoftFile,
+  MicrosoftFolder,
   Columns,
   Column,
   Status,
@@ -66,6 +71,10 @@ import {
   Footnotes,
   Footnote,
   FootnoteReference,
+  Tabs,
+  Tab,
+  TabLabel,
+  TabPanel,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -94,9 +103,16 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import IntegrationCardView from "@/features/editor/components/integration-link/integration-card-view.tsx";
+import IntegrationMentionView from "@/features/editor/components/integration-link/integration-mention-view.tsx";
+import { IntegrationPasteMenuExtension } from "@/features/editor/extensions/integration-paste-menu";
+import { BasePasteMenuExtension } from "@/features/editor/extensions/base-paste-menu";
+import TabsView from "@/features/editor/components/tabs/tabs-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
+import MicrosoftFileView from "@/features/editor/components/microsoft/microsoft-file-view.tsx";
+import MicrosoftFolderView from "@/features/editor/components/microsoft/microsoft-folder-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -205,7 +221,7 @@ export const mainExtensions = [
   Typography,
   TrailingNode,
   GlobalDragHandle.configure({
-    customNodes: ["transclusionSource", "transclusionReference"],
+    customNodes: ["transclusionSource", "transclusionReference", "tabPanel"],
     atomNodes: ["base"],
   }),
   TextStyle,
@@ -260,6 +276,12 @@ export const mainExtensions = [
   Details,
   DetailsSummary,
   DetailsContent,
+  Tabs.configure({
+    view: TabsView,
+  }),
+  Tab,
+  TabLabel,
+  TabPanel,
   Youtube.configure({
     addPasteHandler: false,
     controls: true,
@@ -348,6 +370,20 @@ export const mainExtensions = [
   Subpages.configure({
     view: SubpagesView,
   }),
+  IntegrationCard.configure({
+    view: IntegrationCardView,
+  }),
+  IntegrationMention.configure({
+    view: IntegrationMentionView,
+  }),
+  IntegrationPasteMenuExtension,
+  BasePasteMenuExtension,
+  MicrosoftFile.configure({
+    view: MicrosoftFileView,
+  }),
+  MicrosoftFolder.configure({
+    view: MicrosoftFolderView,
+  }),
   Status.configure({
     view: StatusView,
   }),
@@ -406,14 +442,16 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Audio",
   "Synced block",
   "Base (Inline)",
-  "Kanban"
+  "Kanban",
+  "SharePoint file"
 ]);
 
 const TemplateSlashCommand = Command.configure({
   suggestion: {
-    items: ({ query }: { query: string }) =>
+    items: ({ query, editor }: { query: string; editor: Editor }) =>
       getSuggestionItems({
         query,
+        editor,
         excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS,
       }),
     render: renderItems,
@@ -434,7 +472,9 @@ export const collabExtensions: CollabExtensions = (provider, user) => [
   CollaborationCaret.configure({
     provider,
     user: {
+      id: user.id,
       name: user.name,
+      avatarUrl: user.avatarUrl,
       color: randomElement(userColors),
     },
   }),

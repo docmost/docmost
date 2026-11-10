@@ -36,6 +36,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { logout } from "@/features/auth/services/auth-service";
 import { ICurrentUser } from "@/features/user/types/user.types";
 import APP_ROUTE from "@/lib/app-route.ts";
+import { deleteLocalPageData } from "@/lib/local-page-data.ts";
 import {
   approveOAuthAuthorization,
   getOAuthAuthorizeInfo,
@@ -93,10 +94,18 @@ export default function OAuthConsent() {
   );
 
   const currentUserQuery = useCurrentUser();
+  const [, setCurrentUser] = useAtom(currentUserAtom);
   const infoQuery = useQuery({
     queryKey: ["oauth-authorize-info", params],
     queryFn: () => getOAuthAuthorizeInfo(params),
   });
+
+  // the persisted user decides this page's language
+  useEffect(() => {
+    if (currentUserQuery.data?.user) {
+      setCurrentUser(currentUserQuery.data);
+    }
+  }, [currentUserQuery.data]);
 
   const isUnauthenticated =
     errorStatus(currentUserQuery.error) === 401 ||
@@ -226,6 +235,7 @@ function ConsentCard({ info, currentUser, params }: ConsentCardProps) {
     }
     setCurrentUser(RESET);
     try {
+      await deleteLocalPageData();
       await logout();
     } finally {
       window.location.replace(

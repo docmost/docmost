@@ -1,5 +1,6 @@
 import { Menu, ActionIcon, Text } from "@mantine/core";
 import React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { IconCopy, IconDots, IconSend, IconTrash } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import {
@@ -22,6 +23,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
   const revokeInvitationMutation = useRevokeInvitationMutation();
   const { isAdmin } = useUserRole();
   const clipboard = useClipboard();
+  const queryClient = useQueryClient();
 
   const handleCopyLink = async (invitationId: string) => {
     try {
@@ -30,6 +32,8 @@ export default function InviteActionMenu({ invitationId }: Props) {
       const inviteLink = `${window.location.origin}${url.pathname}${url.search}`;
       clipboard.copy(inviteLink);
       notifications.show({ message: t("Link copied") });
+      // copying renews an expired invitation
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
     } catch (err) {
       notifications.show({
         message: err["response"]?.data?.message,

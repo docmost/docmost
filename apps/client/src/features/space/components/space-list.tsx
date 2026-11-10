@@ -1,6 +1,9 @@
 import { Group, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
+import {
+  useGetSpacesQuery,
+  useHasArchivedSpaces,
+} from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { formatMemberCount } from "@/lib";
@@ -13,11 +16,18 @@ import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
+import SpaceArchiveFilter from "@/features/space/components/space-archive-filter.tsx";
 
 export default function SpaceList() {
   const { t } = useTranslation();
-  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
-  const { data, isLoading } = useGetSpacesQuery({ cursor, query: search });
+  const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
+    usePaginateAndSearch();
+  const [archived, setArchived] = useState(false);
+  const { data, isPlaceholderData } = useGetSpacesQuery({
+    cursor,
+    query: search,
+    archived: archived || undefined,
+  });
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
 
@@ -26,9 +36,25 @@ export default function SpaceList() {
     open();
   };
 
+  const handleArchivedChange = (value: boolean) => {
+    setArchived(value);
+    resetPagination();
+  };
+
+  const activeListEmpty =
+    !archived && !search && !isPlaceholderData && data?.items.length === 0;
+  const hasArchivedSpaces = useHasArchivedSpaces(activeListEmpty);
+  const noActiveSpaces = activeListEmpty && hasArchivedSpaces;
+
   return (
     <>
-      <SearchInput onSearch={handleSearch} />
+      <Group gap="sm" align="flex-start">
+        <SearchInput onSearch={handleSearch} />
+        <SpaceArchiveFilter
+          archived={archived}
+          onChange={handleArchivedChange}
+        />
+      </Group>
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Thead>
@@ -82,7 +108,14 @@ export default function SpaceList() {
               </Table.Tr>
             ))
             ) : (
-              <NoTableResults colSpan={2} />
+              <NoTableResults
+                colSpan={2}
+                text={
+                  noActiveSpaces
+                    ? t("No active spaces. Archived spaces are under Archived.")
+                    : undefined
+                }
+              />
             )}
           </Table.Tbody>
         </Table>
@@ -102,6 +135,7 @@ export default function SpaceList() {
           opened={opened}
           onClose={close}
           spaceId={selectedSpaceId}
+          showOpenSpace
         />
       )}
     </>

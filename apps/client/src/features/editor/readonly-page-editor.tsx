@@ -22,6 +22,7 @@ import { TransclusionLookupProvider } from "@/features/editor/components/transcl
 import LightboxView, {
   getLightboxClickRequest,
 } from "@/features/editor/components/common/lightbox-view";
+import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
 
 interface PageEditorProps {
   title: string;
@@ -45,6 +46,8 @@ interface PageEditorProps {
   byline?: React.ReactNode;
   /** Set false when the consumer renders its own end matter (e.g. prev/next). */
   trailingSpace?: boolean;
+  /** Opens media in the lightbox on click outside public views too. */
+  withLightbox?: boolean;
 }
 
 export default function ReadonlyPageEditor({
@@ -56,13 +59,14 @@ export default function ReadonlyPageEditor({
   spaceSlug,
   byline,
   trailingSpace = true,
+  withLightbox = false,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [contentEditor, setContentEditor] = useState<Editor | null>(null);
   const isComponentMounted = useRef(false);
   const editorCreated = useRef(false);
-  const isPublicView = Boolean(shareId || spaceSlug);
+  const lightboxEnabled = withLightbox || Boolean(shareId || spaceSlug);
 
   const canScroll = useCallback(
     () => isComponentMounted.current && editorCreated.current,
@@ -78,9 +82,9 @@ export default function ReadonlyPageEditor({
   }, []);
 
   useEffect(() => {
-    if (!isPublicView) return;
+    if (!lightboxEnabled) return;
     setLightboxRequest(null);
-  }, [pageId, isPublicView]);
+  }, [pageId, lightboxEnabled]);
 
   const extensions = useMemo(() => {
     const excludedExtensions = new Set([
@@ -133,7 +137,7 @@ export default function ReadonlyPageEditor({
         extensions={extensions}
         content={content}
         editorProps={
-          isPublicView
+          lightboxEnabled
             ? {
                 handleClickOn: (_view, _pos, node) => {
                   const request = getLightboxClickRequest(node);
@@ -143,7 +147,7 @@ export default function ReadonlyPageEditor({
                   return true;
                 },
               }
-            : undefined
+            : {}
         }
         onCreate={({ editor }) => {
           if (editor) {
@@ -160,7 +164,7 @@ export default function ReadonlyPageEditor({
           }
         }}
       ></EditorProvider>
-      {isPublicView && contentEditor && (
+      {lightboxEnabled && contentEditor && (
         <LightboxView
           editor={contentEditor}
           open={!!lightboxRequest}
@@ -169,6 +173,7 @@ export default function ReadonlyPageEditor({
           onClose={() => setLightboxRequest(null)}
         />
       )}
+      <MicrosoftFullscreenModal />
       {trailingSpace && <div style={{ paddingBottom: "20vh" }}></div>}
     </TransclusionLookupProvider>
   );

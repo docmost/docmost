@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useDebouncedCallback } from "@mantine/hooks";
 import { IconExternalLink, IconMail } from "@tabler/icons-react";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
+import { AUTOSAVE_DELAY_MS } from "@/ee/base/constants/autosave";
 
 const toText = (value: unknown) => (typeof value === "string" ? value : "");
 
@@ -15,24 +17,22 @@ export function FieldText({
   const text = toText(value);
   const [draft, setDraft] = useState(text);
   const [focused, setFocused] = useState(false);
-  // Esc sets this; blur() then runs commit synchronously with the stale
-  // draft, so the revert must be decided here, not via setDraft.
-  const cancelRef = useRef(false);
 
   // Track remote/navigation updates while not typing.
   useEffect(() => {
     if (!focused) setDraft(text);
   }, [text, focused]);
 
+  const save = () => {
+    if (draft !== text) onChange(draft);
+  };
+  const autosave = useDebouncedCallback(save, AUTOSAVE_DELAY_MS);
+
   const commit = () => {
     setFocused(false);
     onEditingChange?.(false);
-    if (cancelRef.current) {
-      cancelRef.current = false;
-      setDraft(text);
-      return;
-    }
-    if (draft !== text) onChange(draft);
+    autosave.cancel();
+    save();
   };
 
   if (readOnly) {
@@ -65,14 +65,16 @@ export function FieldText({
           setFocused(true);
           onEditingChange?.(true);
         }}
-        onChange={(e) => setDraft(e.currentTarget.value)}
+        onChange={(e) => {
+          setDraft(e.currentTarget.value);
+          autosave();
+        }}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
             e.currentTarget.blur();
           } else if (e.key === "Escape") {
-            cancelRef.current = true;
             e.currentTarget.blur();
           }
         }}

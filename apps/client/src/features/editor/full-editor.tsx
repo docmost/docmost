@@ -14,19 +14,26 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import { PageVerificationBadge } from "@/ee/page-verification";
+import {
+  PageVerificationBadge,
+  usePageEditLockSync,
+  usePageEditMode,
+} from "@/ee/page-verification";
 import { useTranslation } from "react-i18next";
 import { IContributor } from "@/features/page/types/page.types.ts";
 import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
+import SpaceArchivedNotice from "@/features/space/components/space-archived-notice.tsx";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { EmptyPageGetStarted } from "@/features/editor/components/empty-page/empty-page-get-started";
+import { AddCoverButton } from "@/features/page-cover/components/add-cover-button.tsx";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -48,11 +55,13 @@ export interface FullEditorProps {
   slugId: string;
   title: string;
   content: string;
+  spaceId: string;
   spaceSlug: string;
   editable: boolean;
   creator?: PageUser;
   contributors?: IContributor[];
   canComment?: boolean;
+  hasCover?: boolean;
 }
 
 export function FullEditor({
@@ -60,31 +69,35 @@ export function FullEditor({
   title,
   slugId,
   content,
+  spaceId,
   spaceSlug,
   editable,
   creator,
   contributors,
   canComment,
+  hasCover,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
-  const fullPageWidth = user.settings?.preferences?.fullPageWidth;
+  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
+  const fullPageWidth = user?.settings?.preferences?.fullPageWidth;
   const editorToolbarEnabled =
-    user.settings?.preferences?.editorToolbar ?? false;
-  const [currentPageEditMode, setCurrentPageEditMode] = useAtom(
-    currentPageEditModeAtom,
-  );
+    user?.settings?.preferences?.editorToolbar ?? false;
+  const setCurrentPageEditMode = useSetAtom(currentPageEditModeAtom);
   const userPageEditMode =
-    user.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-  const isEditMode = currentPageEditMode === PageEditMode.Edit;
+    user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
+  const { editMode } = usePageEditMode(pageId);
+  const isEditMode = editMode === PageEditMode.Edit;
+
+  usePageEditLockSync(pageId);
 
   // Apply the user's saved preference only once on initial load, not on every
   // page navigation — so the mode sticks across navigations within a session.
   useEffect(() => {
-    if (!defaultEditModeApplied) {
+    if (user && !defaultEditModeApplied) {
       setCurrentPageEditMode(userPageEditMode as PageEditMode);
       defaultEditModeApplied = true;
     }
-  }, [userPageEditMode, setCurrentPageEditMode]);
+  }, [user, userPageEditMode, setCurrentPageEditMode]);
 
   return (
     <Container
@@ -94,16 +107,26 @@ export function FullEditor({
       style={{ display: "flex", flexDirection: "column" }}
     >
       {editorToolbarEnabled && editable && isEditMode && (
-        <MemoizedFixedToolbar />
+        <MemoizedFixedToolbar withSpacer={!hasCover} />
       )}
+      {space && <SpaceArchivedNotice space={space} />}
       <MemoizedDeletedPageBanner slugId={slugId} />
-      <MemoizedTitleEditor
-        pageId={pageId}
-        slugId={slugId}
-        title={title}
-        spaceSlug={spaceSlug}
-        editable={editable}
-      />
+      <div className={classes.titleArea}>
+        {editable && !hasCover && (
+          <div className={clsx("print-hide", classes.coverRow)}>
+            {isEditMode && (
+              <AddCoverButton slugId={slugId} className={classes.addCover} />
+            )}
+          </div>
+        )}
+        <MemoizedTitleEditor
+          pageId={pageId}
+          slugId={slugId}
+          title={title}
+          spaceSlug={spaceSlug}
+          editable={editable}
+        />
+      </div>
       <PageByline
         creator={creator}
         contributors={contributors}
@@ -115,7 +138,11 @@ export function FullEditor({
         content={content}
         canComment={canComment}
       />
-      <EmptyPageGetStarted pageId={pageId} editable={editable} />
+      <EmptyPageGetStarted
+        pageId={pageId}
+        spaceId={spaceId}
+        editable={editable}
+      />
     </Container>
   );
 }

@@ -1,0 +1,10 @@
+export { Tabs } from "./tabs";
+export { Tab } from "./tab";
+export { TabLabel } from "./tab-label";
+export { TabPanel } from "./tab-panel";
+export { getActiveTabIndex, getShownTabIndex } from "./tabs-state";
+export { hasTabsBlock } from "./tabs.utils";
+export type { TabsOptions } from "./tabs";
+export type { TabOptions } from "./tab";
+export type { TabLabelOptions } from "./tab-label";
+export type { TabPanelOptions } from "./tab-panel";
