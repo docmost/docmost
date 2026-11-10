@@ -16,6 +16,7 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import { PagePermissionRepo } from './page-permission.repo';
 
 @Injectable()
 export class PageRepo {
@@ -23,6 +24,7 @@ export class PageRepo {
     @InjectKysely() private readonly db: KyselyDB,
     private spaceMemberRepo: SpaceMemberRepo,
     private eventEmitter: EventEmitter2,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   private baseFields: Array<keyof Page> = [
@@ -324,11 +326,14 @@ export class PageRepo {
 
     // If we need to detach the restored page from its deleted parent
     if (shouldDetachFromParent) {
-      await this.db
-        .updateTable('pages')
-        .set({ parentPageId: null })
-        .where('id', '=', pageId)
-        .execute();
+      await executeTx(this.db, async (trx) => {
+        await this.pagePermissionRepo.copyInheritedRestriction([pageId], trx);
+        await trx
+          .updateTable('pages')
+          .set({ parentPageId: null })
+          .where('id', '=', pageId)
+          .execute();
+      });
     }
     this.eventEmitter.emit(EventName.PAGE_RESTORED, {
       pageIds: pageIds,

@@ -24,6 +24,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { PagePermissionRole } from '../../../common/helpers/types/permission';
 
 export { PagePermissionMember } from './types/page-permission.types';
 
@@ -74,6 +75,176 @@ export class PagePermissionRepo {
     if (permissions.length === 0) return;
     const db = dbOrTx(this.db, trx);
     await db.insertInto('pagePermissions').values(permissions).execute();
+  }
+
+  /**
+   * Give each page without its own restriction a copy of its nearest restricted
+   * ancestor's, so it keeps its audience when detached from its parent.
+   */
+  async copyInheritedRestriction(
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (pageIds.length === 0) return;
+    await sql`
+      WITH RECURSIVE ancestors AS (
+        SELECT pages.id AS page_id, pages.parent_page_id AS ancestor_id, 1 AS depth
+        FROM pages
+        WHERE pages.id = ANY(${pageIds}::uuid[])
+          AND NOT EXISTS (
+            SELECT 1 FROM page_access WHERE page_access.page_id = pages.id
+          )
+        UNION ALL
+        SELECT ancestors.page_id, parent.parent_page_id, ancestors.depth + 1
+        FROM ancestors
+        JOIN pages AS parent ON parent.id = ancestors.ancestor_id
+      ),
+      nearest AS (
+        SELECT DISTINCT ON (ancestors.page_id)
+          ancestors.page_id,
+          page_access.id AS page_access_id,
+          page_access.access_level,
+          page_access.creator_id
+        FROM ancestors
+        JOIN page_access ON page_access.page_id = ancestors.ancestor_id
+        ORDER BY ancestors.page_id, ancestors.depth
+      ),
+      copied AS (
+        INSERT INTO page_access (page_id, workspace_id, space_id, access_level, creator_id)
+        SELECT nearest.page_id, pages.workspace_id, pages.space_id, nearest.access_level, nearest.creator_id
+        FROM nearest
+        JOIN pages ON pages.id = nearest.page_id
+        RETURNING id, page_id
+      )
+      INSERT INTO page_permissions (page_access_id, user_id, group_id, role, added_by_id)
+      SELECT copied.id, page_permissions.user_id, page_permissions.group_id,
+        page_permissions.role, page_permissions.added_by_id
+      FROM copied
+      JOIN nearest ON nearest.page_id = copied.page_id
+      JOIN page_permissions ON page_permissions.page_access_id = nearest.page_access_id
+    `.execute(dbOrTx(this.db, trx));
+  }
+
+  /**
+   * Restrict each page like its source page, with writerId as a writer.
+   * With onlySpaceMembers, users and groups outside the space are left out.
+   * Returns how many pages were restricted.
+   */
+  async copyRestrictions(
+    copies: { sourcePageId: string; pageId: string }[],
+    opts: {
+      spaceId: string;
+      workspaceId: string;
+      writerId: string;
+      onlySpaceMembers: boolean;
+    },
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    if (copies.length === 0) return 0;
+    const db = dbOrTx(this.db, trx);
+
+    const sources = await db
+      .selectFrom('pageAccess')
+      .select(['id', 'pageId', 'accessLevel'])
+      .where('pageId', 'in', [...new Set(copies.map((c) => c.sourcePageId))])
+      .execute();
+    if (sources.length === 0) return 0;
+
+    const sourceByPageId = new Map(sources.map((s) => [s.pageId, s]));
+    const restrictedCopies = copies.filter((c) =>
+      sourceByPageId.has(c.sourcePageId),
+    );
+
+    const permissions = await db
+      .selectFrom('pagePermissions')
+      .select(['pageAccessId', 'userId', 'groupId', 'role'])
+      .where('pageAccessId', 'in', sources.map((s) => s.id))
+      .where((eb) =>
+        eb.or([
+          eb('pagePermissions.userId', 'is', null),
+          eb('pagePermissions.userId', '!=', opts.writerId),
+        ]),
+      )
+      .$if(opts.onlySpaceMembers, (qb) =>
+        qb.where((eb) =>
+          eb.or([
+            eb(
+              'pagePermissions.userId',
+              'in',
+              eb
+                .selectFrom('spaceMembers')
+                .select('spaceMembers.userId')
+                .where('spaceMembers.spaceId', '=', opts.spaceId)
+                .where('spaceMembers.userId', 'is not', null)
+                .union(
+                  eb
+                    .selectFrom('spaceMembers')
+                    .innerJoin(
+                      'groupUsers',
+                      'groupUsers.groupId',
+                      'spaceMembers.groupId',
+                    )
+                    .select('groupUsers.userId')
+                    .where('spaceMembers.spaceId', '=', opts.spaceId),
+                ),
+            ),
+            eb(
+              'pagePermissions.groupId',
+              'in',
+              eb
+                .selectFrom('spaceMembers')
+                .select('spaceMembers.groupId')
+                .where('spaceMembers.spaceId', '=', opts.spaceId)
+                .where('spaceMembers.groupId', 'is not', null),
+            ),
+          ]),
+        ),
+      )
+      .execute();
+
+    const inserted = await db
+      .insertInto('pageAccess')
+      .values(
+        restrictedCopies.map((copy) => ({
+          pageId: copy.pageId,
+          workspaceId: opts.workspaceId,
+          spaceId: opts.spaceId,
+          accessLevel: sourceByPageId.get(copy.sourcePageId).accessLevel,
+          creatorId: opts.writerId,
+        })),
+      )
+      .returning(['id', 'pageId'])
+      .execute();
+    const pageAccessIdByPageId = new Map(
+      inserted.map((access) => [access.pageId, access.id]),
+    );
+
+    await this.insertPagePermissions(
+      restrictedCopies.flatMap((copy) => {
+        const pageAccessId = pageAccessIdByPageId.get(copy.pageId);
+        const sourceAccessId = sourceByPageId.get(copy.sourcePageId).id;
+        return [
+          {
+            pageAccessId,
+            userId: opts.writerId,
+            role: PagePermissionRole.WRITER,
+            addedById: opts.writerId,
+          },
+          ...permissions
+            .filter((permission) => permission.pageAccessId === sourceAccessId)
+            .map((permission) => ({
+              pageAccessId,
+              userId: permission.userId,
+              groupId: permission.groupId,
+              role: permission.role,
+              addedById: opts.writerId,
+            })),
+        ];
+      }),
+      trx,
+    );
+
+    return inserted.length;
   }
 
   async findPagePermissionByUserId(

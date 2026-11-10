@@ -607,6 +607,37 @@ export class PageService {
         );
       }
 
+      const pageIdsToMove = accessiblePages.map((p) => p.id);
+
+      if (pageIdsToMove.length > 0) {
+        // trashed children stay in this space; detach them while the restrictions above them still apply
+        const leftBehindIds = (
+          await trx
+            .selectFrom('pages')
+            .select('id')
+            .where('parentPageId', 'in', pageIdsToMove)
+            .where((eb) =>
+              eb.or([
+                eb('deletedAt', 'is not', null),
+                eb('spaceId', '<>', currentRootPage.spaceId),
+              ]),
+            )
+            .execute()
+        ).map((p) => p.id);
+
+        if (leftBehindIds.length > 0) {
+          await this.pagePermissionRepo.copyInheritedRestriction(
+            leftBehindIds,
+            trx,
+          );
+          await trx
+            .updateTable('pages')
+            .set({ parentPageId: null })
+            .where('id', 'in', leftBehindIds)
+            .execute();
+        }
+      }
+
       // Update root page
       const nextPosition = await this.nextPagePosition(spaceId, null, trx);
       await this.pageRepo.updatePage(
@@ -614,8 +645,6 @@ export class PageService {
         currentRootPage.id,
         trx,
       );
-
-      const pageIdsToMove = accessiblePages.map((p) => p.id);
 
       const childPageIds = pageIdsToMove.filter(
         (id) => id !== currentRootPage.id,
@@ -628,14 +657,6 @@ export class PageService {
       }
 
       if (pageIdsToMove.length > 0) {
-        // pages left in another space, such as trashed children, stop pointing into the moved tree
-        await trx
-          .updateTable('pages')
-          .set({ parentPageId: null })
-          .where('parentPageId', 'in', pageIdsToMove)
-          .where('spaceId', '<>', spaceId)
-          .execute();
-
         await trx
           .updateTable('pageAccess')
           .set({ spaceId: spaceId })
@@ -779,6 +800,18 @@ export class PageService {
       slugIdMap.set(entry.oldSlugId, entry);
     }
 
+    const restrictedAncestor = isDuplicateInSameSpace
+      ? undefined
+      : await this.pagePermissionRepo.findRestrictedAncestor(rootPage.id);
+    const restrictionCopies = pages.map((page) => ({
+      // a copy in another space leaves the original's parents behind, so its root takes their nearest restriction
+      sourcePageId:
+        page.id === rootPage.id && restrictedAncestor
+          ? restrictedAncestor.pageId
+          : page.id,
+      pageId: pageMap.get(page.id).newPageId,
+    }));
+
     const copiedAttachmentIds = new Map<string, string>();
 
     const insertablePages: InsertablePage[] = await Promise.all(
@@ -914,13 +947,27 @@ export class PageService {
       }),
     );
 
-    await executeTx(this.db, async (trx) => {
+    const copiedRestrictions = await executeTx(this.db, async (trx) => {
       await trx.insertInto('pages').values(insertablePages).execute();
       await this.labelRepo.copyLabelsToPages(
         new Map([...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId])),
         trx,
       );
+      return this.pagePermissionRepo.copyRestrictions(
+        restrictionCopies,
+        {
+          spaceId,
+          workspaceId: rootPage.workspaceId,
+          writerId: authUser.id,
+          onlySpaceMembers: !isDuplicateInSameSpace,
+        },
+        trx,
+      );
     });
+
+    if (copiedRestrictions > 0) {
+      await this.wsService.invalidateSpaceRestrictionCache(spaceId);
+    }
 
     // Extract transclusions from every duplicated page and persist them in
     // one statement. Duplication bypasses Yjs onStoreDocument; brand-new
