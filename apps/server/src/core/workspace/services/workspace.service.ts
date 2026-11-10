@@ -29,8 +29,15 @@ import { EnvironmentService } from '../../../integrations/environment/environmen
 import { DomainService } from '../../../integrations/environment/domain.service';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
-import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
-import { isAdminActingOnOwner } from '../workspace.util';
+import {
+  DEFAULT_LOCALE,
+  DISALLOWED_HOSTNAMES,
+  WorkspaceStatus,
+} from '../workspace.constants';
+import {
+  getWorkspaceDefaultLocale,
+  isAdminActingOnOwner,
+} from '../workspace.util';
 import { v4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
@@ -99,7 +106,16 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey', 'plan'])
+      .select([
+        'id',
+        'name',
+        'logo',
+        'hostname',
+        'enforceSso',
+        'licenseKey',
+        'plan',
+        'settings',
+      ])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -120,9 +136,12 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
-    const { licenseKey, plan, ...rest } = workspace;
+    const { licenseKey, plan, settings, ...rest } = workspace;
 
-    return rest;
+    return {
+      ...rest,
+      defaultLocale: getWorkspaceDefaultLocale(workspace) ?? DEFAULT_LOCALE,
+    };
   }
 
   async create(
@@ -153,7 +172,7 @@ export class WorkspaceService {
           status = WorkspaceStatus.Active;
           plan = 'standard';
           billingEmail = user.email;
-          settings = { ai: { generative: true, chat: true } };
+          settings = { ai: { generative: true, chat: true, search: true } };
         }
 
         // create workspace
@@ -256,6 +275,13 @@ export class WorkspaceService {
           QueueJob.WELCOME_EMAIL,
           { userId: user.id },
           { delay: 30 * 60 * 1000 }, // 30m
+        );
+
+        // Saves the embedding fingerprint once the signup transaction has committed
+        await this.aiQueue.add(
+          QueueJob.WORKSPACE_CREATE_EMBEDDINGS,
+          { workspaceId: createdWorkspace.id },
+          { delay: 60 * 1000 },
         );
       } catch (err) {
         this.logger.error(err);
@@ -699,6 +725,19 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.defaultLocale !== 'undefined') {
+        const prev = getWorkspaceDefaultLocale(workspaceBefore) ?? DEFAULT_LOCALE;
+        if (prev !== updateWorkspaceDto.defaultLocale) {
+          before.defaultLocale = prev;
+          after.defaultLocale = updateWorkspaceDto.defaultLocale;
+        }
+        await this.workspaceRepo.updateDefaultLocale(
+          workspaceId,
+          updateWorkspaceDto.defaultLocale,
+          trx,
+        );
+      }
+
       delete updateWorkspaceDto.restrictApiToAdmins;
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
@@ -711,6 +750,7 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
       delete updateWorkspaceDto.defaultPageEditMode;
+      delete updateWorkspaceDto.defaultLocale;
       delete updateWorkspaceDto.aiChatReadOnly;
       delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
       delete updateWorkspaceDto.enforceMcpOauth;

@@ -116,7 +116,9 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     <>
       <ConnectionWarning />
 
-      {!readOnly && !page?.isBase && <PageEditModeToggle size="xs" />}
+      {!readOnly && !page?.isBase && (
+        <PageEditModeToggle size="xs" pageId={page?.id} />
+      )}
 
       <PageShareModal readOnly={readOnly} />
 

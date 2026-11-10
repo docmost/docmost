@@ -88,6 +88,7 @@
     "kysely-migration-cli": "0.4.2",
     "kysely-postgres-js": "3.0.0",
     "ldapts": "8.1.7",
+    "linkifyjs": "4.4.0",
     "mammoth": "1.13.0",
     "mime-types": "3.0.2",
     "msgpackr": "1.11.9",

@@ -1,4 +1,4 @@
-import { NodeViewContent, NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import { NodeViewContent, NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
 import { ActionIcon, Group, Select, Tooltip } from "@mantine/core";
 import { CopyButton } from "@/components/common/copy-button";
 import { useEffect, useState } from "react";
@@ -38,6 +38,11 @@ export default function CodeBlockView(props: NodeViewProps) {
     };
   }, [editor, getPos(), node.nodeSize]);
 
+  const isEditable = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.isEditable ?? false,
+  });
+
   function changeLanguage(language: string) {
     setLanguageValue(language);
     updateAttributes({
@@ -61,7 +66,7 @@ export default function CodeBlockView(props: NodeViewProps) {
           searchable
           style={{ maxWidth: "130px" }}
           classNames={{ input: classes.selectInput }}
-          disabled={!editor.isEditable}
+          disabled={!isEditable}
         />
 
         <CopyButton value={node?.textContent} timeout={2000}>
@@ -86,7 +91,7 @@ export default function CodeBlockView(props: NodeViewProps) {
       <pre
         spellCheck="false"
         hidden={
-          ((language === "mermaid" && !editor.isEditable) ||
+          ((language === "mermaid" && !isEditable) ||
             (language === "mermaid" && !isSelected)) &&
           node.textContent.length > 0
         }

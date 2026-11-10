@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Editor } from "@tiptap/core";
 import { getSuggestionItems } from "./menu-items";
+
+vi.mock("@/main.tsx", async () => {
+  const { QueryClient } = await import("@tanstack/react-query");
+  return { queryClient: new QueryClient() };
+});
 
 const editorWhere = (canInsertTabs: boolean) =>
   ({ can: () => ({ insertTabs: () => canInsertTabs }) }) as unknown as Editor;

@@ -10,6 +10,7 @@ export const NotificationType = {
   PAGE_VERIFIED: 'page.verified',
   PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
   PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
+  PAGE_VERIFICATION_INVALIDATED: 'page.verification_invalidated',
   SIEM_DESTINATION_FAILING: 'siem_destination.failing',
   SIEM_DESTINATION_DISABLED: 'siem_destination.disabled',
   SIEM_DESTINATION_RECOVERED: 'siem_destination.recovered',

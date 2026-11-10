@@ -65,13 +65,28 @@ export default function TemplateList() {
   const { data: spaces } = useGetSpacesQuery({ limit: 100 });
   const deleteTemplateMutation = useDeleteTemplateMutation();
 
+  const { data: archivedSpaces } = useGetSpacesQuery({
+    limit: 100,
+    archived: true,
+  });
+
+  const toOption = (s: { id: string; name: string }) => ({
+    value: s.id,
+    label: s.name,
+  });
   const spaceOptions = [
     { value: "", label: t("All templates") },
-    ...(spaces?.items?.map((s) => ({ value: s.id, label: s.name })) || []),
+    ...(spaces?.items?.map(toOption) || []),
+    ...(archivedSpaces?.items?.length
+      ? [{ group: t("Archived"), items: archivedSpaces.items.map(toOption) }]
+      : []),
   ];
 
   const spaceNameMap = new Map(
-    spaces?.items?.map((s) => [s.id, s.name]) || [],
+    [...(spaces?.items ?? []), ...(archivedSpaces?.items ?? [])].map((s) => [
+      s.id,
+      s.name,
+    ]),
   );
 
   const handlePreview = (template: ITemplate) => {

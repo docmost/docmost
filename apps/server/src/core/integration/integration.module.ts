@@ -12,6 +12,7 @@ import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
 import { IntegrationListener } from './integration.listener';
 import { IntegrationProcessor } from './integration.processor';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
+import { IntegrationAccessService } from './integration-access.service';
 
 @Module({
   controllers: [IntegrationController, OAuthController, UnfurlController],
@@ -30,6 +31,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
     IntegrationConnectionRepo,
     IntegrationListener,
     IntegrationProcessor,
+    IntegrationAccessService,
   ],
   exports: [
     IntegrationRegistry,
@@ -38,6 +40,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
     OAuthService,
     IntegrationRepo,
     IntegrationConnectionRepo,
+    IntegrationAccessService,
   ],
 })
 export class IntegrationModule {}

@@ -5,6 +5,24 @@ export enum WorkspaceStatus {
 
 export const INVITATION_EXPIRY_DAYS = 7;
 
+export const DEFAULT_LOCALE = 'en-US';
+
+// keep in sync with the languages in apps/client/public/locales
+export const SUPPORTED_LOCALES = [
+  'en-US',
+  'es-ES',
+  'de-DE',
+  'fr-FR',
+  'nl-NL',
+  'pt-BR',
+  'it-IT',
+  'ja-JP',
+  'ko-KR',
+  'uk-UA',
+  'ru-RU',
+  'zh-CN',
+];
+
 export const DISALLOWED_HOSTNAMES = [
   'app',
   'help',

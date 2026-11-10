@@ -39,11 +39,15 @@ import {
   HISTORY_INTERVAL,
 } from '../constants';
 import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
+import { PageVerificationInvalidationService } from '../../core/page/verification/page-verification-invalidation.service';
+import { PageVerificationInvalidation } from '../../core/page/verification/page-verification-invalidation.types';
+import { isSameDocumentContent } from '../content-comparison.util';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
   private readonly logger = new Logger(PersistenceExtension.name);
   private contributors: Map<string, Set<string>> = new Map();
+  private lastChangeAt = new Map<string, number>();
 
   constructor(
     private readonly pageRepo: PageRepo,
@@ -53,6 +57,7 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     private readonly collabHistory: CollabHistoryService,
     private readonly transclusionService: TransclusionService,
+    private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -105,6 +110,7 @@ export class PersistenceExtension implements Extension {
     const { documentName, document, lastContext } = data;
 
     const pageId = getPageId(documentName);
+    const lastChangeAt = this.lastChangeAt.get(documentName);
 
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
@@ -118,6 +124,7 @@ export class PersistenceExtension implements Extension {
     }
 
     let page: Page = null;
+    let invalidation: PageVerificationInvalidation | null = null;
     const editingUserIds = this.consumeContributors(documentName);
 
     try {
@@ -164,13 +171,35 @@ export class PersistenceExtension implements Extension {
           trx,
         );
 
+        invalidation =
+          await this.pageVerificationInvalidationService.invalidateForEdit(
+            {
+              pageId: page.id,
+              userId: lastContext?.user?.id ?? null,
+              changedAt: lastChangeAt ? new Date(lastChangeAt) : null,
+              isMeaningfulChange: () =>
+                !isSameDocumentContent(page.content, tiptapJson),
+              loadPreviousState: async () => page,
+            },
+            trx,
+          );
+
         this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
       page = null;
+      invalidation = null;
       editingUserIds.forEach((userId) =>
         this.trackContributor(documentName, userId),
+      );
+    }
+
+    if (invalidation) {
+      await this.pageVerificationInvalidationService.notifyInvalidated(
+        invalidation,
+        lastContext?.user?.id ?? null,
+        'content',
       );
     }
 
@@ -267,6 +296,7 @@ export class PersistenceExtension implements Extension {
   }
 
   async onChange(data: onChangePayload) {
+    this.lastChangeAt.set(data.documentName, Date.now());
     const userId = data.context?.user?.id;
     if (!userId) return;
     this.trackContributor(data.documentName, userId);
@@ -283,6 +313,7 @@ export class PersistenceExtension implements Extension {
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
     this.contributors.delete(documentName);
+    this.lastChangeAt.delete(documentName);
   }
 
   private consumeContributors(documentName: string): string[] {

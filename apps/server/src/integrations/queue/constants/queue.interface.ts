@@ -114,6 +114,18 @@ export interface IApprovalRejectedNotificationJob {
   comment?: string;
 }
 
+export interface IVerificationInvalidatedJob {
+  verificationId: string;
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string | null;
+  verificationType: string;
+  previousStatus: string;
+  newStatus: string;
+  source: 'content' | 'title';
+}
+
 export interface IBaseTypeConversionJob {
   pageId: string;
   propertyId: string;

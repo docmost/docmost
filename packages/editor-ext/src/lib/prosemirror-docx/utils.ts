@@ -10,6 +10,7 @@ import {
 } from 'docx';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
 import { TableMap } from '@tiptap/pm/tables';
+import { imageDimensionsFromData } from 'image-dimensions';
 import { IFootnotes, SerializationState } from './types';
 
 // twips between the margins of docx's default page
@@ -25,6 +26,94 @@ const CELL_MIN_WIDTH = 49;
 
 export function createShortId() {
   return Math.random().toString(36).slice(2, 11);
+}
+
+// docx requires a raster fallback next to an SVG; readers that cannot draw SVG show it
+export const BLANK_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=';
+
+// WebP, AVIF and HEIC have no docx image type
+const DOCX_RASTER_TYPES: Partial<Record<string, 'png' | 'jpg' | 'gif'>> = {
+  png: 'png',
+  jpeg: 'jpg',
+  gif: 'gif',
+};
+
+const SVG_UNITS_IN_PX: Record<string, number> = {
+  px: 1,
+  pt: 4 / 3,
+  pc: 16,
+  in: 96,
+  cm: 96 / 2.54,
+  mm: 96 / 25.4,
+};
+
+// XML declaration, comments and doctype may precede the root svg start tag. Each part
+// ends at its first terminator, so a failed match never backtracks across parts.
+const SVG_START_TAG =
+  /^(?:\s|<\?(?:[^?]|\?(?!>))*\?>|<!--(?:[^-]|-(?!->))*-->|<!DOCTYPE[^[>]*(?:\[(?:[^\]"']|"[^"]*"|'[^']*')*\][^>]*)?>)*<svg\b((?:[^>"']|"[^"]*"|'[^']*')*)>/i;
+
+function svgLength(value?: string): number | undefined {
+  const match = value
+    ?.trim()
+    .match(/^((?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?)(px|pt|pc|in|cm|mm)?$/i);
+  if (!match) return undefined;
+  const px = parseFloat(match[1]) * SVG_UNITS_IN_PX[(match[2] ?? 'px').toLowerCase()];
+  return px > 0 ? px : undefined;
+}
+
+// Sized like a browser sizes an SVG image: width and height, else the viewBox, else 300x150.
+function svgDimensionsFromData(
+  data: Uint8Array,
+): { width: number; height: number } | undefined {
+  const tag = new TextDecoder().decode(data).match(SVG_START_TAG)?.[1];
+  if (tag === undefined) return undefined;
+
+  const attrs: Record<string, string> = {};
+  // a name starts after whitespace, so a long run of name characters is read only once
+  for (const [, name, doubleQuoted, singleQuoted] of tag.matchAll(
+    /(?:^|\s)([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,
+  )) {
+    attrs[name] = doubleQuoted ?? singleQuoted;
+  }
+
+  let width = svgLength(attrs.width);
+  let height = svgLength(attrs.height);
+  const [, , boxWidth, boxHeight] = (attrs.viewBox ?? '').trim().split(/[\s,]+/).map(Number);
+  if (boxWidth > 0 && boxHeight > 0) {
+    width ??= height ? (height * boxWidth) / boxHeight : boxWidth;
+    height ??= (width * boxHeight) / boxWidth;
+  }
+  return { width: width ?? 300, height: height ?? 150 };
+}
+
+// The node's width in px or, on older pages, a percentage of the page, else the image's own
+// width, never wider than the page or table cell.
+export function getImageWidth(
+  nodeWidth: number | string | null | undefined,
+  naturalWidth: number,
+  maxWidth: number,
+): number {
+  let width = naturalWidth;
+  if (typeof nodeWidth === 'number' && nodeWidth > 0) {
+    width = nodeWidth;
+  } else if (typeof nodeWidth === 'string' && nodeWidth.endsWith('%')) {
+    width = (parseFloat(nodeWidth) / 100) * maxWidth || naturalWidth;
+  }
+  return Math.min(width, maxWidth);
+}
+
+// The type docx embeds the image as, read from its bytes since URLs may carry a query string.
+export function docxImageFromData(
+  data: Uint8Array,
+): { type: 'png' | 'jpg' | 'gif' | 'svg'; width: number; height: number } | undefined {
+  const raster = imageDimensionsFromData(data);
+  if (raster) {
+    const type = DOCX_RASTER_TYPES[raster.type];
+    return type && { type, width: raster.width, height: raster.height };
+  }
+  const svg = svgDimensionsFromData(data);
+  return svg && { type: 'svg', ...svg };
 }
 
 function sum(values: number[]) {

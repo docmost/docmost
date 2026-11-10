@@ -108,6 +108,7 @@ export function SpaceSidebar() {
               spaceSlug={space?.slug}
               spaceIcon={space?.logo}
               isPublished={isBetaPublicSpaces() && space?.isPublished}
+              isArchived={!!space?.archivedAt}
             />
           </Group>
         </div>
@@ -130,7 +131,7 @@ export function SpaceSidebar() {
                   className={classes.menuItemIcon}
                   stroke={2}
                 />
-                <span>{t("Overview")}</span>
+                <span>{space.homePage ? t("Home") : t("Overview")}</span>
               </div>
             </UnstyledButton>
 

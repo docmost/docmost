@@ -28,7 +28,11 @@ import {
   useUpdateTemplateMutation,
   useGetTemplateByIdQuery,
 } from "../queries/template-query";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
 import useUserRole from "@/hooks/use-user-role";
 import { useAtomValue } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
@@ -66,6 +70,10 @@ export default function TemplateEditor() {
   const [icon, setIcon] = useState<string | null>(null);
   const [spaceId, setSpaceId] = useState<string | null>(null);
   const [draftSpaceId, setDraftSpaceId] = useState<string | null>(null);
+  const { data: templateSpace } = useUnlistedSpaceQuery(
+    spaceId,
+    spaces?.items,
+  );
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
 
@@ -132,17 +140,19 @@ export default function TemplateEditor() {
     }
   }, [existingTemplate, editor]);
 
+  const scopeSpaces = includeSpace(spaces?.items ?? [], templateSpace);
+
   const spaceOptions = [
     ...(isWorkspaceAdmin
       ? [
           { group: t("Workspace"), items: [{ value: "", label: t("Global") }] },
         ]
       : []),
-    ...(spaces?.items?.length
+    ...(scopeSpaces.length
       ? [
           {
             group: t("Spaces"),
-            items: spaces.items.map((s) => ({ value: s.id, label: s.name })),
+            items: scopeSpaces.map((s) => ({ value: s.id, label: s.name })),
           },
         ]
       : []),

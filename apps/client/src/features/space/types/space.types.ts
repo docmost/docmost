@@ -23,6 +23,13 @@ export interface ISpaceSettings {
   comments?: ISpaceCommentsSettings;
 }
 
+export type ISpaceHomePage = {
+  id: string;
+  slugId: string;
+  title: string;
+  icon: string | null;
+};
+
 export interface ISpace {
   id: string;
   name: string;
@@ -34,11 +41,16 @@ export interface ISpace {
   creatorId: string;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt?: Date | null;
+  archivedById?: string | null;
+  archivedBy?: { id: string; name: string; avatarUrl: string } | null;
   memberCount?: number;
   isPublished?: boolean;
   spaceId?: string;
   membership?: IMembership;
   settings?: ISpaceSettings;
+  homePageId?: string | null;
+  homePage?: ISpaceHomePage | null;
   // for updates
   disablePublicSharing?: boolean;
   disableExport?: boolean;

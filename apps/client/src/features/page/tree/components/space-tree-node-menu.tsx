@@ -1,6 +1,6 @@
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ActionIcon, Menu, Tooltip, rem } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -52,6 +52,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { exportDisabled, exportDisabledLabel } = useExportDisabled(spaceSlug);
+  const navigate = useNavigate();
   const { openDeleteModal } = useDeletePageModal();
   const { handleDelete } = useTreeMutation(node.spaceId);
   const [data, setData] = useAtom(treeDataAtom);
@@ -122,6 +123,9 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
         });
       }, 50);
 
+      navigate(
+        buildPageUrl(spaceSlug, duplicatedPage.slugId, duplicatedPage.title),
+      );
       notifications.show({ message: t("Page duplicated successfully") });
     } catch (err: any) {
       notifications.show({
