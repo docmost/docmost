@@ -1,4 +1,6 @@
 import { UserRole } from '../../common/helpers/types/permission';
+import { SUPPORTED_LOCALES } from './workspace.constants';
+import { collapseBlankLines, stripLinks } from '../../common/helpers';
 
 export function isAdminActingOnOwner(
   authUserRole: string,
@@ -20,4 +22,29 @@ export function getWorkspaceDefaultPageEditMode(
     return mode;
   }
   return undefined;
+}
+
+export function getWorkspaceDefaultLocale(
+  workspace: { settings?: unknown } | null | undefined,
+): string | undefined {
+  const settings = (workspace?.settings ?? {}) as {
+    defaultLocale?: unknown;
+  };
+  const locale = settings.defaultLocale;
+  if (typeof locale === 'string' && SUPPORTED_LOCALES.includes(locale)) {
+    return locale;
+  }
+  return undefined;
+}
+
+export function normalizeInvitationMessage(
+  message?: string | null,
+): string | null {
+  if (!message) return null;
+  const normalized = collapseBlankLines(
+    stripLinks(message.replace(/\r\n?/g, '\n'))
+      .replace(/[ \t]+/g, ' ')
+      .replace(/ ?\n ?/g, '\n'),
+  ).trim();
+  return normalized || null;
 }

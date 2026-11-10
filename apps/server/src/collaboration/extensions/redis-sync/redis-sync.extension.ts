@@ -235,13 +235,11 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
   };
 
   async maintainLock(documentName: string) {
+    clearInterval(this.locks[documentName]);
     this.locks[documentName] = setInterval(() => {
-      this.pub.set(
-        this.getKey(documentName),
-        this.serverId,
-        'PX',
-        this.lockTTL,
-      );
+      this.pub
+        .set(this.getKey(documentName), this.serverId, 'PX', this.lockTTL)
+        .catch(() => {});
     }, this.lockTTL / 2);
   }
 

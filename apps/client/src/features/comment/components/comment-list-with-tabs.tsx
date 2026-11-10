@@ -29,11 +29,13 @@ import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts"
 import { IconArrowUp, IconMessageOff } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { commentPanelTabAtom } from "@/features/comment/atoms/comment-atom";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 
 function CommentListWithTabs() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+  const [activeTab, setActiveTab] = useAtom(commentPanelTabAtom);
   const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const {
     data: comments,
@@ -185,7 +187,10 @@ function CommentListWithTabs() {
       }}
     >
       <Tabs
-        defaultValue="open"
+        value={activeTab}
+        onChange={(value) =>
+          setActiveTab(value === "resolved" ? "resolved" : "open")
+        }
         variant="default"
         style={{
           flex: "1 1 auto",

@@ -6,11 +6,15 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
 } from 'class-validator';
+
+export const SEARCH_QUERY_MAX_LENGTH = 200;
 
 export class SearchDTO {
   @IsOptional()
   @IsString()
+  @MaxLength(SEARCH_QUERY_MAX_LENGTH)
   query?: string;
 
   @IsOptional()
@@ -33,6 +37,11 @@ export class SearchDTO {
   @IsOptional()
   @IsBoolean()
   titleOnly?: boolean;
+
+  // searches without a spaceId leave archived spaces out unless this is set
+  @IsOptional()
+  @IsBoolean()
+  includeArchived?: boolean;
 
   @IsOptional()
   @IsNumber()
@@ -61,6 +70,7 @@ export class SearchPublicSpaceDTO extends SearchDTO {
 
 export class SearchSuggestionDTO {
   @IsString()
+  @MaxLength(SEARCH_QUERY_MAX_LENGTH)
   query: string;
 
   @IsOptional()

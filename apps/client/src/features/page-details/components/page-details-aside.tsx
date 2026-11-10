@@ -13,6 +13,7 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { useBacklinksCountQuery } from "@/features/page-details/queries/backlinks-query.ts";
 import { BacklinksModal } from "./backlinks-modal";
@@ -22,10 +23,11 @@ import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { LabelsSection } from "@/features/label/components/labels-section.tsx";
 
 export function PageDetailsAside() {
-  const { pageSlug } = useParams();
+  const { pageSlug, spaceSlug } = useParams();
   const { data: page } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
+  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
   const pageEditor = useAtomValue(pageEditorAtom);
   const { data: counts, isLoading: countsLoading } = useBacklinksCountQuery(page?.id);
   const [modalOpened, { open: openModal, close: closeModal }] =
@@ -67,6 +69,7 @@ export function PageDetailsAside() {
         <LabelsSection
           pageId={page.id}
           canEdit={page.permissions?.canEdit ?? false}
+          spaceId={space?.archivedAt ? space.id : undefined}
         />
       </Stack>
 

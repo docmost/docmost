@@ -4,6 +4,8 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { v7 } from "uuid";
 import { extractPageSlugId } from "@/lib";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
+import { basePasteMenuKey } from "@/features/editor/extensions/base-paste-menu";
+import { canConvertMentionToBaseEmbed } from "@/features/editor/components/base-embed/convert-mention-to-base-embed";
 
 export type LinkFn = (
   url: string,
@@ -46,6 +48,9 @@ export const handleInternalLink =
         if (!node) return;
 
         const transaction = view.state.tr.replaceWith(pos, pos, node);
+        if (page.isBase && canConvertMentionToBaseEmbed(transaction.doc, pos)) {
+          transaction.setMeta(basePasteMenuKey, { pos });
+        }
         view.dispatch(transaction);
       },
       () => {

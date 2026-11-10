@@ -12,7 +12,11 @@ import {
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
 
 type SpaceFilterMenuProps = {
@@ -28,6 +32,7 @@ type SpaceFilterMenuProps = {
     | "top-end"
     | "top";
   zIndex?: number;
+  currentSpaceId?: string | null;
 };
 
 export function SpaceFilterMenu({
@@ -37,6 +42,7 @@ export function SpaceFilterMenu({
   width = 280,
   position = "bottom-end",
   zIndex,
+  currentSpaceId,
 }: SpaceFilterMenuProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,16 +52,27 @@ export function SpaceFilterMenu({
     limit: 100,
     query: debouncedQuery,
   });
-  const spaces = spacesData?.items ?? [];
+  const { data: selectedSpace } = useUnlistedSpaceQuery(
+    value,
+    spacesData?.items,
+  );
+  const { data: currentSpace } = useUnlistedSpaceQuery(
+    currentSpaceId,
+    spacesData?.items,
+  );
 
   const orderedSpaces = useMemo(() => {
+    const spaces = includeSpace(
+      includeSpace(spacesData?.items ?? [], currentSpace),
+      selectedSpace,
+    );
     if (!value) return spaces;
     return [...spaces].sort((a, b) => {
       if (a.id === value) return -1;
       if (b.id === value) return 1;
       return 0;
     });
-  }, [spaces, value]);
+  }, [spacesData, currentSpace, selectedSpace, value]);
 
   return (
     <Menu shadow="md" width={width} position={position} zIndex={zIndex}>

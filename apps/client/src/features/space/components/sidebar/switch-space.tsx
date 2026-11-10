@@ -2,7 +2,7 @@ import classes from "./switch-space.module.css";
 import { useNavigate } from "react-router-dom";
 import { SpaceSelect } from "./space-select";
 import { getSpaceUrl } from "@/lib/config";
-import { Button, Popover, Text, Tooltip } from "@mantine/core";
+import { Badge, Button, Popover, Text, Tooltip } from "@mantine/core";
 import {
   IconChevronDown,
   IconChevronUp,
@@ -19,6 +19,7 @@ interface SwitchSpaceProps {
   spaceSlug: string;
   spaceIcon?: string;
   isPublished?: boolean;
+  isArchived?: boolean;
 }
 
 export function SwitchSpace({
@@ -26,6 +27,7 @@ export function SwitchSpace({
   spaceSlug,
   spaceIcon,
   isPublished,
+  isArchived,
 }: SwitchSpaceProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -69,6 +71,17 @@ export function SwitchSpace({
           <Text className={classes.spaceName} size="md" fw={500} lineClamp={1}>
             {spaceName}
           </Text>
+
+          {isArchived && (
+            <Badge
+              size="xs"
+              variant="light"
+              color="gray"
+              style={{ flexShrink: 0 }}
+            >
+              {t("Archived")}
+            </Badge>
+          )}
 
           {isPublished && (
             <Tooltip label={t("This space is public")}>
