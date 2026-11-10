@@ -29,6 +29,12 @@ export const AuditEvent = {
   OAUTH_GRANT_CREATED: 'oauth_grant.created',
   OAUTH_GRANT_REVOKED: 'oauth_grant.revoked',
 
+  // Integrations
+  INTEGRATION_INSTALLED: 'integration.installed',
+  INTEGRATION_UNINSTALLED: 'integration.uninstalled',
+  INTEGRATION_CONNECTED: 'integration.connected',
+  INTEGRATION_DISCONNECTED: 'integration.disconnected',
+
   // SCIM Tokens
   SCIM_TOKEN_CREATED: 'scim_token.created',
   SCIM_TOKEN_UPDATED: 'scim_token.updated',
@@ -38,6 +44,8 @@ export const AuditEvent = {
   SPACE_CREATED: 'space.created',
   SPACE_UPDATED: 'space.updated',
   SPACE_DELETED: 'space.deleted',
+  SPACE_ARCHIVED: 'space.archived',
+  SPACE_UNARCHIVED: 'space.unarchived',
   SPACE_MEMBER_ADDED: 'space.member_added',
   SPACE_MEMBER_REMOVED: 'space.member_removed',
   SPACE_MEMBER_ROLE_CHANGED: 'space.member_role_changed',
@@ -75,10 +83,13 @@ export const AuditEvent = {
   PAGE_VERIFICATION_CREATED: 'page.verification_created',
   PAGE_VERIFICATION_UPDATED: 'page.verification_updated',
   PAGE_VERIFICATION_REMOVED: 'page.verification_removed',
+  PAGE_VERIFIER_ADDED: 'page.verifier_added',
+  PAGE_VERIFIER_REMOVED: 'page.verifier_removed',
   PAGE_VERIFIED: 'page.verified',
   PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
   PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
   PAGE_MARKED_OBSOLETE: 'page.marked_obsolete',
+  PAGE_VERIFICATION_INVALIDATED: 'page.verification_invalidated',
 
   // Share
   SHARE_CREATED: 'share.created',
@@ -105,7 +116,7 @@ export const AuditEvent = {
 
   // Attachment
   ATTACHMENT_UPLOADED: 'attachment.uploaded',
-  // ATTACHMENT_DELETED: 'attachment.deleted',
+  ATTACHMENT_DELETED: 'attachment.deleted',
 
   // SIEM streaming
   SIEM_DESTINATION_CREATED: 'siem_destination.created',
@@ -124,10 +135,6 @@ export const EXCLUDED_AUDIT_EVENTS: Set<string> = new Set([
   AuditEvent.PAGE_CREATED,
   AuditEvent.PAGE_MOVED_TO_SPACE,
   AuditEvent.PAGE_DUPLICATED,
-  AuditEvent.COMMENT_CREATED,
-  AuditEvent.COMMENT_UPDATED,
-  AuditEvent.COMMENT_RESOLVED,
-  AuditEvent.COMMENT_REOPENED,
   AuditEvent.ATTACHMENT_UPLOADED,
   AuditEvent.SIEM_DESTINATION_TEST,
 ]);
@@ -144,6 +151,7 @@ export const AuditResource = {
   API_KEY: 'api_key',
   OAUTH_CLIENT: 'oauth_client',
   OAUTH_GRANT: 'oauth_grant',
+  INTEGRATION: 'integration',
   SCIM_TOKEN: 'scim_token',
   SSO_PROVIDER: 'sso_provider',
   WORKSPACE_INVITATION: 'workspace_invitation',

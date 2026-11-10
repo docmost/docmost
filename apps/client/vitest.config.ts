@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@docmost/editor-ext': path.resolve(
+        __dirname,
+        '../../packages/editor-ext/src/index.ts',
+      ),
       '@': path.resolve(__dirname, './src'),
     },
   },

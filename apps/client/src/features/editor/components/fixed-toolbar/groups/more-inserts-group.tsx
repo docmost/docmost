@@ -8,6 +8,7 @@ import {
   IconChevronDown,
   IconInfoCircle,
   IconLayoutKanban,
+  IconLayoutNavbar,
   IconMath,
   IconMathFunction,
   IconRotate2,
@@ -24,7 +25,6 @@ import {
   FigmaIcon,
   FramerIcon,
   GoogleDriveIcon,
-  GoogleSheetsIcon,
   LoomIcon,
   MiroIcon,
   TypeformIcon,
@@ -86,6 +86,13 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => editor.chain().focus().setDetails().run()}
         >
           {t("Toggle block")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconLayoutNavbar size={16} />}
+          disabled={!editor.can().insertTabs()}
+          onClick={() => editor.chain().focus().insertTabs().run()}
+        >
+          {t("Tabs")}
         </Menu.Item>
         <Menu.Item
           leftSection={<IconTag size={16} />}
@@ -243,12 +250,6 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => setEmbed("gdrive")}
         >
           Google Drive
-        </Menu.Item>
-        <Menu.Item
-          leftSection={<GoogleSheetsIcon size={16} />}
-          onClick={() => setEmbed("gsheets")}
-        >
-          Google Sheets
         </Menu.Item>
 
         <Menu.Divider />

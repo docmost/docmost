@@ -1,4 +1,4 @@
-import { Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -16,11 +16,18 @@ import {
   IPermissionGrantedNotificationJob,
   IVerificationExpiringNotificationJob,
   IVerificationExpiredNotificationJob,
+  IVerificationInvalidatedJob,
   IVerificationReconcileJob,
 } from '../../integrations/queue/constants/queue.interface';
 import { CommentNotificationService } from './services/comment.notification';
 import { PageNotificationService } from './services/page.notification';
 import { VerificationNotificationService } from './services/verification.notification';
+import { WsService } from '../../ws/ws.service';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import { DomainService } from '../../integrations/environment/domain.service';
 
 @Processor(QueueName.NOTIFICATION_QUEUE)
@@ -36,6 +43,8 @@ export class NotificationProcessor
     private readonly verificationNotificationService: VerificationNotificationService,
     private readonly domainService: DomainService,
     private readonly moduleRef: ModuleRef,
+    private readonly wsService: WsService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {
     super();
@@ -53,7 +62,8 @@ export class NotificationProcessor
       | IVerificationReconcileJob
       | IPageVerifiedNotificationJob
       | IApprovalRequestedNotificationJob
-      | IApprovalRejectedNotificationJob,
+      | IApprovalRejectedNotificationJob
+      | IVerificationInvalidatedJob,
       void
     >,
   ): Promise<void> {
@@ -64,6 +74,12 @@ export class NotificationProcessor
       }
 
       const workspaceId = await this.resolveWorkspaceId(job);
+      if (!workspaceId) {
+        this.logger.debug(
+          `Skipping ${job.name} job ${job.id}: workspace not found`,
+        );
+        return;
+      }
       const appUrl = await this.getWorkspaceUrl(workspaceId);
 
       switch (job.name) {
@@ -152,6 +168,16 @@ export class NotificationProcessor
           break;
         }
 
+        case QueueJob.PAGE_VERIFICATION_INVALIDATED: {
+          const data = job.data as IVerificationInvalidatedJob;
+          await this.afterVerificationInvalidated(data);
+          await this.verificationNotificationService.processVerificationInvalidated(
+            data,
+            appUrl,
+          );
+          break;
+        }
+
         default:
           this.logger.warn(`Unknown notification job: ${job.name}`);
       }
@@ -162,7 +188,54 @@ export class NotificationProcessor
     }
   }
 
-  private async resolveWorkspaceId(job: Job): Promise<string> {
+  private async afterVerificationInvalidated(
+    data: IVerificationInvalidatedJob,
+  ): Promise<void> {
+    const { pageId, spaceId, workspaceId, actorId } = data;
+    try {
+      const page = await this.db
+        .selectFrom('pages')
+        .select('title')
+        .where('id', '=', pageId)
+        .executeTakeFirst();
+
+      await this.auditService.logWithContext(
+        {
+          event: AuditEvent.PAGE_VERIFICATION_INVALIDATED,
+          resourceType: AuditResource.PAGE,
+          resourceId: pageId,
+          spaceId,
+          metadata: {
+            pageTitle: page?.title,
+            verificationType: data.verificationType,
+            previousStatus: data.previousStatus,
+            newStatus: data.newStatus,
+            source: data.source,
+          },
+        },
+        {
+          workspaceId,
+          actorId: actorId ?? undefined,
+          actorType: actorId ? 'user' : 'system',
+        },
+      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`Failed to audit verification invalidation: ${message}`);
+    }
+
+    try {
+      await this.wsService.emitCommentEvent(spaceId, pageId, {
+        operation: 'verificationUpdated',
+        pageId,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`Failed to emit verificationUpdated: ${message}`);
+    }
+  }
+
+  private async resolveWorkspaceId(job: Job): Promise<string | undefined> {
     if (
       job.name === QueueJob.PAGE_VERIFICATION_EXPIRING ||
       job.name === QueueJob.PAGE_VERIFICATION_EXPIRED
@@ -173,9 +246,9 @@ export class NotificationProcessor
         .select('workspaceId')
         .where('id', '=', verificationId)
         .executeTakeFirst();
-      return row?.workspaceId ?? '';
+      return row?.workspaceId;
     }
-    return (job.data as { workspaceId: string }).workspaceId;
+    return (job.data as { workspaceId?: string }).workspaceId;
   }
 
   private async runVerificationReconcile(): Promise<void> {

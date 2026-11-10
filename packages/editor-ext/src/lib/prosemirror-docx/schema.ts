@@ -1,5 +1,15 @@
-import { FootnoteReferenceRun, HeadingLevel, Paragraph, ShadingType } from 'docx';
+import {
+  ExternalHyperlink,
+  FootnoteReferenceRun,
+  HeadingLevel,
+  Paragraph,
+  ShadingType,
+  TextRun,
+} from 'docx';
 import { Node } from 'prosemirror-model';
+import { sanitizeIntegrationUrl } from '../integration-link/integration-link';
+import { sanitizeMicrosoftFileItems } from '../microsoft/microsoft-file';
+import { sanitizeMicrosoftFolderUrl } from '../microsoft/microsoft-folder';
 import {
   DocxSerializerAsync,
   MarkSerializer,
@@ -62,6 +72,57 @@ const renderEmbedLine: NodeSerializerAsync[string] = (state, node) => {
   const label = node.attrs?.src || node.attrs?.url || 'embed';
   state.text(label);
   state.closeBlock(node);
+};
+
+const renderIntegrationMention: NodeSerializerAsync[string] = (state, node) => {
+  const url = sanitizeIntegrationUrl(node.attrs?.url);
+  if (!url) return;
+  state.current.push(
+    new ExternalHyperlink({
+      link: url,
+      children: [new TextRun({ text: url, style: 'Hyperlink' })],
+    }),
+  );
+};
+
+const renderIntegrationCard: NodeSerializerAsync[string] = async (
+  state,
+  node,
+  parent,
+  index,
+) => {
+  await renderIntegrationMention(state, node, parent, index);
+  state.closeBlock(node);
+};
+
+const renderMicrosoftFolder: NodeSerializerAsync[string] = (state, node) => {
+  const url = sanitizeMicrosoftFolderUrl(node.attrs?.webUrl);
+  const name = typeof node.attrs?.name === 'string' ? node.attrs.name : '';
+  if (url) {
+    state.current.push(
+      new ExternalHyperlink({
+        link: url,
+        children: [new TextRun({ text: name || url, style: 'Hyperlink' })],
+      }),
+    );
+  } else {
+    state.text(name);
+  }
+  state.closeBlock(node);
+};
+
+const renderMicrosoftFile: NodeSerializerAsync[string] = (state, node) => {
+  for (const item of sanitizeMicrosoftFileItems(node.attrs?.items)) {
+    state.current.push(
+      new ExternalHyperlink({
+        link: item.webUrl,
+        children: [
+          new TextRun({ text: item.name || item.webUrl, style: 'Hyperlink' }),
+        ],
+      }),
+    );
+    state.closeBlock(node);
+  }
 };
 
 export const defaultAsyncNodes: NodeSerializerAsync = {
@@ -137,6 +198,10 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   attachment: renderFileLine,
   embed: renderEmbedLine,
   youtube: renderEmbedLine,
+  integrationCard: renderIntegrationCard,
+  integrationMention: renderIntegrationMention,
+  microsoftFolder: renderMicrosoftFolder,
+  microsoftFile: renderMicrosoftFile,
   async callout(state, node) {
     await state.renderContent(node, { style: 'IntenseQuote' });
   },
@@ -148,6 +213,19 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
     state.closeBlock(node, { heading: HeadingLevel.HEADING_4 });
   },
   async detailsContent(state, node) {
+    await state.renderContent(node);
+  },
+  async tabs(state, node) {
+    await state.renderContent(node);
+  },
+  async tab(state, node) {
+    await state.renderContent(node);
+  },
+  async tabLabel(state, node) {
+    await state.renderInline(node);
+    state.closeBlock(node, { heading: HeadingLevel.HEADING_4 });
+  },
+  async tabPanel(state, node) {
     await state.renderContent(node);
   },
   async columns(state, node) {

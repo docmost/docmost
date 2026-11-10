@@ -9,6 +9,10 @@ export function getUserRoomName(userId: string): string {
   return `user-${userId}`;
 }
 
+export function getSessionRoomName(sessionId: string): string {
+  return `session-${sessionId}`;
+}
+
 export const TREE_EVENTS = new Set([
   'updateOne',
   'addTreeNode',

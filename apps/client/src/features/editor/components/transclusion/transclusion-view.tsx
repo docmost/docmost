@@ -2,6 +2,7 @@ import {
   NodeViewContent,
   NodeViewProps,
   NodeViewWrapper,
+  useEditorState,
 } from "@tiptap/react";
 import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
@@ -24,7 +25,11 @@ export default function TransclusionView(props: NodeViewProps) {
   const trackOpen = (open: boolean) =>
     setOpenMenus((n) => Math.max(0, n + (open ? 1 : -1)));
 
-  const isEditable = editor.isEditable;
+  const isEditable = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.isEditable ?? false,
+  });
+
   // @ts-ignore - editor.storage.pageId is set by the host editor (page-editor.tsx onCreate)
   const sourcePageId: string | undefined = editor.storage?.pageId;
   const transclusionId: string | null = node.attrs.id ?? null;

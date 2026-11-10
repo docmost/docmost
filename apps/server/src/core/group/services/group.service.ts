@@ -11,12 +11,9 @@ import { UpdateGroupDto } from '../dto/update-group.dto';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { GroupUserService } from './group-user.service';
-import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
@@ -31,11 +28,8 @@ export class GroupService {
   constructor(
     private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
-    private spaceMemberRepo: SpaceMemberRepo,
     @Inject(forwardRef(() => GroupUserService))
     private groupUserService: GroupUserService,
-    private readonly watcherRepo: WatcherRepo,
-    private readonly favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -176,29 +170,22 @@ export class GroupService {
       throw new BadRequestException('You cannot delete a default group');
     }
 
-    const [userIds, spaceIds] = await Promise.all([
+    const [userIds, groupAccess] = await Promise.all([
       this.groupUserRepo.getUserIdsByGroupId(groupId),
-      this.spaceMemberRepo.getSpaceIdsByGroupId(groupId),
+      this.groupUserService.getGroupAccess([groupId]),
     ]);
 
     // TODO: use queue instead
     await executeTx(this.db, async (trx) => {
       await this.groupRepo.delete(groupId, workspaceId, { trx });
-
-      for (const spaceId of spaceIds) {
-        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
-          userIds,
-          spaceId,
-          { trx },
-        );
-
-        await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
-          userIds,
-          spaceId,
-          { trx },
-        );
-      }
+      await this.groupUserService.removeWatchersAndFavoritesWithoutAccess(
+        userIds,
+        groupAccess.spaceIds,
+        trx,
+      );
     });
+
+    await this.groupUserService.revokeRealtimeAccess(userIds, groupAccess);
 
     this.auditService.log({
       event: AuditEvent.GROUP_DELETED,

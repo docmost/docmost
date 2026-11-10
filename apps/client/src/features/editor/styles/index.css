@@ -7,6 +7,7 @@
 @import "./table.css";
 @import "./youtube.css";
 @import "./media.css";
+@import "./excalidraw.css";
 @import "./code.css";
 @import "./print.css";
 @import "./page-break.css";
@@ -17,5 +18,6 @@
 @import "./indent.css";
 @import "./columns.css";
 @import "./status.css";
+@import "./tabs.css";
 @import "./base-embed.css";
 @import "./footnotes.css";

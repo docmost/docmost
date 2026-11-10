@@ -22,7 +22,11 @@ import {
   useGetTemplatesQuery,
   useUseTemplateMutation,
 } from "@/ee/template/queries/template-query";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
 import { ITemplate } from "@/ee/template/types/template.types";
 import UseTemplateModal from "@/ee/template/components/use-template-modal";
 import TemplatePreviewModal from "@/ee/template/components/template-preview-modal";
@@ -34,6 +38,8 @@ type TemplatePickerModalProps = {
   onClose: () => void;
   /** Pre-select this space in the destination picker after a template is chosen. */
   initialSpaceId?: string;
+  /** Receives the chosen template instead of creating a page from it. */
+  onUse?: (template: ITemplate) => void;
 };
 
 type ScopeFilter = "current" | "all";
@@ -42,6 +48,7 @@ export default function TemplatePickerModal({
   opened,
   onClose,
   initialSpaceId,
+  onUse,
 }: TemplatePickerModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -62,14 +69,24 @@ export default function TemplatePickerModal({
 
   const { data, isPending } = useGetTemplatesQuery({
     spaceId: scope === "current" ? initialSpaceId : undefined,
+    currentSpaceId: scope === "all" ? initialSpaceId : undefined,
   });
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
+  const { data: initialSpace } = useUnlistedSpaceQuery(
+    initialSpaceId,
+    spacesData?.items,
+  );
+
+  const spaces = useMemo(
+    () => includeSpace(spacesData?.items ?? [], initialSpace),
+    [spacesData, initialSpace],
+  );
 
   const spaceNamesById = useMemo(() => {
     const map = new Map<string, string>();
-    spacesData?.items?.forEach((s) => map.set(s.id, s.name));
+    spaces.forEach((s) => map.set(s.id, s.name));
     return map;
-  }, [spacesData]);
+  }, [spaces]);
 
   const filtered = useMemo(() => {
     const all = data?.pages.flatMap((p) => p.items) ?? [];
@@ -87,7 +104,7 @@ export default function TemplatePickerModal({
       });
       setPreviewTemplate(null);
       onClose();
-      const space = spacesData?.items?.find((s) => s.id === initialSpaceId);
+      const space = spaces.find((s) => s.id === initialSpaceId);
       if (page?.slugId && space?.slug) {
         navigate(buildPageUrl(space.slug, page.slugId, page.title));
       }
@@ -101,6 +118,11 @@ export default function TemplatePickerModal({
   };
 
   const handleQuickUse = (tpl: ITemplate) => {
+    if (onUse) {
+      onUse(tpl);
+      handleClose();
+      return;
+    }
     if (initialSpaceId) {
       createInInitialSpace(tpl);
       return;
@@ -114,6 +136,11 @@ export default function TemplatePickerModal({
   };
 
   const handlePreviewUse = () => {
+    if (onUse && previewTemplate) {
+      onUse(previewTemplate);
+      handleClose();
+      return;
+    }
     if (initialSpaceId && previewTemplate) {
       createInInitialSpace(previewTemplate);
       return;
@@ -183,41 +210,39 @@ export default function TemplatePickerModal({
             </div>
           ) : (
             filtered.map((tpl) => (
-              <UnstyledButton
-                key={tpl.id}
-                className={classes.row}
-                onClick={() => handlePick(tpl)}
-              >
-                <div className={classes.icon}>
-                  {tpl.icon ? (
-                    <span>{tpl.icon}</span>
-                  ) : (
-                    <IconFileText
-                      size={16}
-                      color="var(--mantine-color-gray-6)"
-                    />
-                  )}
-                </div>
-                <div className={classes.title}>{tpl.title}</div>
-                <div className={classes.scope}>
-                  {tpl.spaceId
-                    ? spaceNamesById.get(tpl.spaceId) ?? t("Space")
-                    : t("Global")}
-                </div>
+              <div key={tpl.id} className={classes.row}>
+                <UnstyledButton
+                  className={classes.pickButton}
+                  onClick={() => handlePick(tpl)}
+                >
+                  <div className={classes.icon}>
+                    {tpl.icon ? (
+                      <span>{tpl.icon}</span>
+                    ) : (
+                      <IconFileText
+                        size={16}
+                        color="var(--mantine-color-gray-6)"
+                      />
+                    )}
+                  </div>
+                  <div className={classes.title}>{tpl.title}</div>
+                  <div className={classes.scope}>
+                    {tpl.spaceId
+                      ? spaceNamesById.get(tpl.spaceId) ?? t("Space")
+                      : t("Global")}
+                  </div>
+                </UnstyledButton>
                 <Button
                   size="compact-xs"
                   variant="filled"
                   className={classes.useButton}
                   loading={useTemplateMutation.isPending}
                   disabled={useTemplateMutation.isPending}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleQuickUse(tpl);
-                  }}
+                  onClick={() => handleQuickUse(tpl)}
                 >
                   {t("Use")}
                 </Button>
-              </UnstyledButton>
+              </div>
             ))
           )}
         </ScrollArea>

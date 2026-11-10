@@ -314,7 +314,13 @@ export class FavoriteRepo {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
-        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+        .select([
+          'spaces.id',
+          'spaces.name',
+          'spaces.slug',
+          'spaces.logo',
+          'spaces.archivedAt',
+        ])
         .whereRef('spaces.id', '=', 'favorites.spaceId'),
     ).as('space');
   }
@@ -324,7 +330,13 @@ export class FavoriteRepo {
       eb
         .selectFrom('spaces')
         .innerJoin('pages', 'pages.spaceId', 'spaces.id')
-        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+        .select([
+          'spaces.id',
+          'spaces.name',
+          'spaces.slug',
+          'spaces.logo',
+          'spaces.archivedAt',
+        ])
         .whereRef('pages.id', '=', 'favorites.pageId'),
     ).as('space');
   }
@@ -333,7 +345,13 @@ export class FavoriteRepo {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
-        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+        .select([
+          'spaces.id',
+          'spaces.name',
+          'spaces.slug',
+          'spaces.logo',
+          'spaces.archivedAt',
+        ])
         .where(({ or, ref }) =>
           or([
             sql<boolean>`${ref('favorites.type')} = ${FavoriteType.SPACE} and ${ref('spaces.id')} = ${ref('favorites.spaceId')}`,

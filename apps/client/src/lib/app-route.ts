@@ -27,6 +27,7 @@ const APP_ROUTE = {
       SPACES: "/settings/spaces",
       BILLING: "/settings/billing",
       SECURITY: "/settings/security",
+      INTEGRATIONS: "/settings/integrations",
     },
   },
 };
@@ -43,6 +44,8 @@ export function safeRedirectPath(input: unknown): string | null {
   try {
     const resolved = new URL(input, window.location.origin);
     if (resolved.origin !== window.location.origin) return null;
+    // Dot segments like /.//host resolve to a protocol-relative //host.
+    if (resolved.pathname.startsWith("//")) return null;
     return resolved.pathname + resolved.search + resolved.hash;
   } catch {
     return null;

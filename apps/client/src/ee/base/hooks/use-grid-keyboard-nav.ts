@@ -106,6 +106,9 @@ export function useGridKeyboardNav({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Leave candidate selection to the IME, including Safari's confirm key.
+      if (e.isComposing || e.keyCode === 229) return;
+
       if (editingCell) {
         const inInput = isTextEntry(e.target as Element);
         switch (e.key) {
@@ -171,6 +174,8 @@ export function useGridKeyboardNav({
           }
           case "Escape": {
             e.preventDefault();
+            // Blurring saves the draft, as on Enter.
+            (document.activeElement as HTMLElement | null)?.blur();
             setEditingCell(null);
             setFocusedCell(editingCell);
             break;
