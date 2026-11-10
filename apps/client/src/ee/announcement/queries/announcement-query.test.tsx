@@ -366,13 +366,12 @@ describe("unarchiving into a full schedule", () => {
   it("shows the clashing announcements and time in the error toast", async () => {
     vi.mocked(service.unarchiveAnnouncement).mockRejectedValue(
       requestError({
-        message: "Up to two announcements can show at the same time",
+        message: "Only one announcement can show at a time",
         conflict: {
           from: "2026-11-05T09:00:00.000Z",
           to: "2026-11-05T18:00:00.000Z",
           announcements: [
             { id: "b", title: "Acceptable use policy" },
-            { id: "c", title: "Holiday hours" },
           ],
         },
       }),
@@ -386,7 +385,7 @@ describe("unarchiving into a full schedule", () => {
     const { message, ...toast } = vi.mocked(notifications.show).mock.calls[0][0];
     expect(toast).toEqual({
       color: "red",
-      title: "Up to two announcements can show at the same time.",
+      title: "Only one announcement can show at a time.",
       autoClose: 10_000,
     });
     render(<MantineProvider env="test">{message}</MantineProvider>);
@@ -441,12 +440,11 @@ describe("getAnnouncementLimitConflict", () => {
     to: null,
     announcements: [
       { id: "a", title: "Maintenance tonight" },
-      { id: "b", title: "New policy" },
     ],
   };
 
   it("reads the conflict from the response body", () => {
-    const error = requestError({ message: "Up to two announcements can show at the same time", conflict });
+    const error = requestError({ message: "Only one announcement can show at a time", conflict });
     expect(getAnnouncementLimitConflict(error)).toEqual(conflict);
   });
 

@@ -185,7 +185,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
             icon={<IconAlertCircle size={16} />}
             title={
               conflict
-                ? t("Up to two announcements can show at the same time.")
+                ? t("Only one announcement can show at a time.")
                 : undefined
             }
           >

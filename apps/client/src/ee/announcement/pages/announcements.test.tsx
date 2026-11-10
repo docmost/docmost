@@ -148,6 +148,13 @@ describe("Announcements page", () => {
     ).toEqual(["true"]);
   });
 
+  it("says only one announcement shows at a time", () => {
+    renderPage();
+    expect(
+      screen.getByText("Show a banner at the top of every page. Only one can show at a time."),
+    ).toBeTruthy();
+  });
+
   it("asks for a license once the entitlements lack the feature", () => {
     renderPage([]);
     expect(screen.getByText(LICENSE_ALERT)).toBeTruthy();

@@ -1603,7 +1603,7 @@
   "Delete announcement": "Delete announcement",
   "“{{name}}” will be permanently deleted.": "“{{name}}” will be permanently deleted.",
   "Announcements require an Enterprise license.": "Announcements require an Enterprise license.",
-  "Show a banner at the top of every page. Up to two can show at the same time.": "Show a banner at the top of every page. Up to two can show at the same time.",
+  "Show a banner at the top of every page. Only one can show at a time.": "Show a banner at the top of every page. Only one can show at a time.",
   "Failed to load announcements": "Failed to load announcements",
   "No active announcements": "No active announcements",
   "No archived announcements": "No archived announcements",
@@ -1636,7 +1636,7 @@
   "Announcement message is too long": "Announcement message is too long",
   "End time must be in the future": "End time must be in the future",
   "End time must be after the start time": "End time must be after the start time",
-  "Up to two announcements can show at the same time.": "Up to two announcements can show at the same time.",
+  "Only one announcement can show at a time.": "Only one announcement can show at a time.",
   "These already show between {{from}} and {{to}}:": "These already show between {{from}} and {{to}}:",
   "These already show from {{from}} with no end:": "These already show from {{from}} with no end:"
 }

@@ -101,7 +101,7 @@ export default function Announcements() {
       <Group justify="space-between" align="center" wrap="nowrap" mb="md">
         <Text size="sm" c="dimmed">
           {t(
-            "Show a banner at the top of every page. Up to two can show at the same time.",
+            "Show a banner at the top of every page. Only one can show at a time.",
           )}
         </Text>
         <Button

@@ -161,7 +161,7 @@ export function useUnarchiveAnnouncementMutation() {
       }
       notifications.show({
         color: "red",
-        title: t("Up to two announcements can show at the same time."),
+        title: t("Only one announcement can show at a time."),
         message: createElement(AnnouncementConflictSummary, { conflict }),
         autoClose: 10_000,
       });

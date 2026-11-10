@@ -343,13 +343,12 @@ describe("AnnouncementFormModal", () => {
   it("explains a limit conflict in the alert", async () => {
     vi.mocked(service.createAnnouncement).mockRejectedValue(
       requestError({
-        message: "Up to two announcements can show at the same time",
+        message: "Only one announcement can show at a time",
         conflict: {
           from: "2026-11-05T09:00:00.000Z",
           to: "2026-11-05T18:00:00.000Z",
           announcements: [
             { id: "b", title: "Acceptable use policy" },
-            { id: "c", title: "Holiday hours" },
           ],
         },
       }),
@@ -360,7 +359,7 @@ describe("AnnouncementFormModal", () => {
     submit();
 
     const alert = await screen.findByRole("alert");
-    expect(within(alert).getByText("Up to two announcements can show at the same time.")).toBeTruthy();
+    expect(within(alert).getByText("Only one announcement can show at a time.")).toBeTruthy();
     expect(within(alert).getByText("Acceptable use policy")).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
