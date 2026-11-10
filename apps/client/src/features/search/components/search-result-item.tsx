@@ -76,9 +76,26 @@ export function SearchResultItem({
                 {timeAgo(attachmentResult.updatedAt)}
               </Text>
             </Group>
-            <Text size="xs" opacity={0.6}>
-              {attachmentResult.space.name} • {attachmentResult.page.title}
-            </Text>
+            <Group
+              justify="space-between"
+              wrap="nowrap"
+              gap="xs"
+              align="flex-start"
+            >
+              <Text size="xs" opacity={0.6} miw={0}>
+                {attachmentResult.space.name} • {attachmentResult.page.title}
+              </Text>
+              {showSpace && attachmentResult.space.archivedAt && (
+                <Badge
+                  variant="light"
+                  size="xs"
+                  color="gray"
+                  style={{ flexShrink: 0 }}
+                >
+                  {t("Archived")}
+                </Badge>
+              )}
+            </Group>
 
             {attachmentResult?.highlight && (
               <Text
@@ -135,9 +152,16 @@ export function SearchResultItem({
             </Group>
 
             {showSpace && pageResult.space && (
-              <Badge variant="light" size="xs" color="gray">
-                {pageResult.space.name}
-              </Badge>
+              <Group justify="space-between" gap="xs">
+                <Badge variant="light" size="xs" color="gray">
+                  {pageResult.space.name}
+                </Badge>
+                {pageResult.space.archivedAt && (
+                  <Badge variant="light" size="xs" color="gray">
+                    {t("Archived")}
+                  </Badge>
+                )}
+              </Group>
             )}
 
             {pageResult?.highlight && (

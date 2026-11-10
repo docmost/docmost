@@ -105,7 +105,12 @@ const groupedData: DataGroup[] = [
         role: "admin",
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
-      { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      {
+        label: "Spaces",
+        icon: IconSpaces,
+        path: "/settings/spaces",
+        role: "admin",
+      },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
       {
         label: "Verified pages",
@@ -132,7 +137,6 @@ const groupedData: DataGroup[] = [
         path: "/settings/audit",
         feature: Feature.AUDIT_LOGS,
         role: "owner",
-        env: "selfhosted",
       },
       {
         label: "Integrations",

@@ -31,6 +31,8 @@ export class PageRepo {
     'title',
     'icon',
     'coverPhoto',
+    'coverPosition',
+    'coverAttribution',
     'position',
     'parentPageId',
     'creatorId',
@@ -249,6 +251,12 @@ export class PageRepo {
           .execute();
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+
+        await trx
+          .updateTable('spaces')
+          .set({ homePageId: null })
+          .where('homePageId', 'in', pageIds)
+          .execute();
       });
 
       this.eventEmitter.emit(EventName.PAGE_SOFT_DELETED, {
@@ -352,7 +360,13 @@ export class PageRepo {
       .selectFrom('pages')
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
-      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
+      .where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+          excludeArchived: true,
+        }),
+      )
       .where('deletedAt', 'is', null);
 
     return executeWithCursorPagination(query, {
@@ -381,7 +395,13 @@ export class PageRepo {
     if (spaceId) {
       query = query.where('spaceId', '=', spaceId);
     } else {
-      query = query.where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId));
+      query = query.where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId, {
+          excludeArchived: true,
+        }),
+      );
     }
 
     return executeWithCursorPagination(query, {
@@ -440,11 +460,17 @@ export class PageRepo {
     });
   }
 
-  withSpace(eb: ExpressionBuilder<DB, 'pages'>) {
+  withSpace(
+    eb: ExpressionBuilder<DB, 'pages'>,
+    opts?: { includeArchivedAt?: boolean },
+  ) {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
         .select(['spaces.id', 'spaces.name', 'spaces.slug'])
+        .$if(Boolean(opts?.includeArchivedAt), (qb) =>
+          qb.select('spaces.archivedAt'),
+        )
         .whereRef('spaces.id', '=', 'pages.spaceId'),
     ).as('space');
   }
@@ -516,6 +542,9 @@ export class PageRepo {
             'slugId',
             'title',
             'icon',
+            'coverPhoto',
+            'coverPosition',
+            'coverAttribution',
             'position',
             'parentPageId',
             'spaceId',
@@ -534,6 +563,9 @@ export class PageRepo {
                 'p.slugId',
                 'p.title',
                 'p.icon',
+                'p.coverPhoto',
+                'p.coverPosition',
+                'p.coverAttribution',
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',

@@ -303,6 +303,9 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
       <BaseBubbleMenu
         editor={editor}
         pluginKey={`excalidraw-menu`}
+        ref={(element) => {
+          if (element) element.style.zIndex = "99";
+        }}
         updateDelay={0}
         getReferencedVirtualElement={getReferencedVirtualElement}
         options={{

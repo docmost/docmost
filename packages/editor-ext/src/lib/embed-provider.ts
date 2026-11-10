@@ -3,7 +3,39 @@ export interface IEmbedProvider {
   name: string;
   regex: RegExp;
   getEmbedUrl: (match: RegExpMatchArray, url?: string) => string;
+  getLabel?: (match: RegExpMatchArray) => string;
 }
+
+const GOOGLE_EDITOR_LABELS: Record<string, string> = {
+  document: "Google Docs",
+  spreadsheets: "Google Sheets",
+  presentation: "Google Slides",
+};
+
+const googleDrive: Pick<IEmbedProvider, "regex" | "getEmbedUrl" | "getLabel"> = {
+  regex:
+    /^(?:(?:https?:)?\/\/)?(?:(?:www|m)\.)?(?:drive\.google\.com\/file|docs\.google\.com\/(document|spreadsheets|presentation))(?:\/u\/\d+)?\/d\/(e\/)?([\w-]+)(?:\/(\w+))?/,
+  getEmbedUrl: (match, url: string) => {
+    const [, editor, published, id, page] = match;
+    // Google refuses to frame a published presentation's /pub page.
+    if (editor === "presentation" && page === "pub") {
+      return url.replace(`${id}/pub`, `${id}/embed`);
+    }
+    if (published || ["pub", "pubhtml", "embed"].includes(page)) {
+      return url;
+    }
+
+    const { searchParams, hash } = new URL(url, "https://docs.google.com");
+    const resourceKey = searchParams.get("resourcekey");
+    const previewUrl = editor
+      ? `https://docs.google.com/${editor}/d/${id}/preview`
+      : `https://drive.google.com/file/d/${id}/preview`;
+    return resourceKey
+      ? `${previewUrl}?resourcekey=${encodeURIComponent(resourceKey)}${hash}`
+      : `${previewUrl}${hash}`;
+  },
+  getLabel: (match) => GOOGLE_EDITOR_LABELS[match[1]] ?? "Google Drive",
+};
 
 export const embedProviders: IEmbedProvider[] = [
   {
@@ -90,24 +122,9 @@ export const embedProviders: IEmbedProvider[] = [
       return url;
     },
   },
-  {
-    id: "gdrive",
-    name: "Google Drive",
-    regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(drive\.google\.com)\/file\/d\/([a-zA-Z0-9_-]+)\/.*$/,
-    getEmbedUrl: (match) => {
-      return `https://drive.google.com/file/d/${match[4]}/preview`;
-    },
-  },
-  {
-    id: "gsheets",
-    name: "Google Sheets",
-    regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/([a-zA-Z0-9_-]+)\/.*$/,
-    getEmbedUrl: (match, url: string) => {
-      return url;
-    },
-  },
+  { id: "gdrive", name: "Google Drive", ...googleDrive },
+  // Embeds saved with the old Google Sheets option still use this id.
+  { id: "gsheets", name: "Google Sheets", ...googleDrive },
   {
     id: "iframe",
     name: "Iframe",
@@ -127,6 +144,8 @@ export function getEmbedProviderById(id: string) {
 export interface IEmbedResult {
   embedUrl: string;
   provider: string;
+  providerId: string;
+  label: string;
 }
 
 export function getEmbedUrlAndProvider(url: string): IEmbedResult {
@@ -136,11 +155,23 @@ export function getEmbedUrlAndProvider(url: string): IEmbedResult {
       return {
         embedUrl: provider.getEmbedUrl(match, url),
         provider: provider.name.toLowerCase(),
+        providerId: provider.id,
+        label: provider.getLabel?.(match) ?? provider.name,
       };
     }
   }
   return {
     embedUrl: url,
     provider: "iframe",
+    providerId: "iframe",
+    label: getIframeLabel(url),
   };
+}
+
+function getIframeLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "") || "Iframe";
+  } catch {
+    return "Iframe";
+  }
 }

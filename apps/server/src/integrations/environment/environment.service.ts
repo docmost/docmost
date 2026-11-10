@@ -203,6 +203,10 @@ export class EnvironmentService {
     return this.configService.get<string>('DRAWIO_URL');
   }
 
+  getUnsplashAccessKey(): string | undefined {
+    return this.configService.get<string>('UNSPLASH_ACCESS_KEY')?.trim() || undefined;
+  }
+
   isCloud(): boolean {
     const cloudConfig = this.configService
       .get<string>('CLOUD', 'false')

@@ -172,7 +172,7 @@ export class WorkspaceService {
           status = WorkspaceStatus.Active;
           plan = 'standard';
           billingEmail = user.email;
-          settings = { ai: { generative: true, chat: true } };
+          settings = { ai: { generative: true, chat: true, search: true } };
         }
 
         // create workspace
@@ -275,6 +275,13 @@ export class WorkspaceService {
           QueueJob.WELCOME_EMAIL,
           { userId: user.id },
           { delay: 30 * 60 * 1000 }, // 30m
+        );
+
+        // Saves the embedding fingerprint once the signup transaction has committed
+        await this.aiQueue.add(
+          QueueJob.WORKSPACE_CREATE_EMBEDDINGS,
+          { workspaceId: createdWorkspace.id },
+          { delay: 60 * 1000 },
         );
       } catch (err) {
         this.logger.error(err);
