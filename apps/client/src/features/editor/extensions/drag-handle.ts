@@ -478,11 +478,11 @@ export function DragHandlePlugin(
 
       function onDragHandleDragStart(e: DragEvent) {
         handleDragStart(e, view);
-        document.addEventListener("dragover", onDragHandleDrag);
+        document.addEventListener("dragover", onDragHandleDrag, true);
       }
 
       function onDragHandleDragEnd() {
-        document.removeEventListener("dragover", onDragHandleDrag);
+        document.removeEventListener("dragover", onDragHandleDrag, true);
       }
 
       dragHandleElement.addEventListener("dragstart", onDragHandleDragStart);
