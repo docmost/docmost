@@ -166,6 +166,7 @@ export class ShareService {
             'pages.title',
             'pages.icon',
             'pages.parentPageId',
+            'pages.spaceId as pageSpaceId',
             sql`0`.as('level'),
             'shares.id as shareId',
             'shares.key as shareKey',
@@ -190,6 +191,7 @@ export class ShareService {
                   'p.title',
                   'p.icon',
                   'p.parentPageId',
+                  'p.spaceId as pageSpaceId',
                   sql`ph.level + 1`.as('level'),
                   's.id as shareId',
                   's.key as shareKey',
@@ -201,6 +203,7 @@ export class ShareService {
                   's.createdAt',
                 ])
                 .where('p.deletedAt', 'is', null)
+                .whereRef('p.spaceId', '=', 'ph.pageSpaceId')
                 .where(sql`ph.share_id`, 'is', null) // stop if share found
                 .where(sql`ph.level`, '<', sql`25`), // prevent loop
           ),

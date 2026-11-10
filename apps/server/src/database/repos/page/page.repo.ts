@@ -270,7 +270,7 @@ export class PageRepo {
     // First, check if the page being restored has a deleted parent
     const pageToRestore = await this.db
       .selectFrom('pages')
-      .select(['id', 'parentPageId'])
+      .select(['id', 'parentPageId', 'spaceId'])
       .where('id', '=', pageId)
       .executeTakeFirst();
 
@@ -283,12 +283,15 @@ export class PageRepo {
     if (pageToRestore.parentPageId) {
       const parent = await this.db
         .selectFrom('pages')
-        .select(['id', 'deletedAt'])
+        .select(['id', 'deletedAt', 'spaceId'])
         .where('id', '=', pageToRestore.parentPageId)
         .executeTakeFirst();
 
-      // If parent is deleted, we should detach this page from it
-      shouldDetachFromParent = parent?.deletedAt !== null;
+      // If parent is deleted or in another space, we should detach this page from it
+      shouldDetachFromParent =
+        !parent ||
+        parent.deletedAt !== null ||
+        parent.spaceId !== pageToRestore.spaceId;
     }
 
     // Find all descendants to restore
@@ -296,13 +299,14 @@ export class PageRepo {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select(['id', 'spaceId'])
           .where('id', '=', pageId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .select(['p.id', 'p.spaceId'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .whereRef('p.spaceId', '=', 'pd.spaceId'),
           ),
       )
       .selectFrom('page_descendants')
@@ -575,7 +579,8 @@ export class PageRepo {
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .whereRef('p.spaceId', '=', 'ph.spaceId'),
           ),
       )
       .selectFrom('page_hierarchy')
@@ -664,6 +669,7 @@ export class PageRepo {
                 ])
                 .$if(opts?.includeContent, (qb) => qb.select('p.content'))
                 .where('p.deletedAt', 'is', null)
+                .whereRef('p.spaceId', '=', 'ph.spaceId')
                 // Only recurse into children of non-restricted pages
                 .where('ph.isRestricted', '=', false),
             ),
@@ -730,6 +736,7 @@ export class PageRepo {
                 sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
               ])
               .where('p.deletedAt', 'is', null)
+              .whereRef('p.spaceId', '=', 'ph.spaceId')
               .where('ph.isRestricted', '=', false),
           ),
       )

@@ -628,6 +628,14 @@ export class PageService {
       }
 
       if (pageIdsToMove.length > 0) {
+        // pages left in another space, such as trashed children, stop pointing into the moved tree
+        await trx
+          .updateTable('pages')
+          .set({ parentPageId: null })
+          .where('parentPageId', 'in', pageIdsToMove)
+          .where('spaceId', '<>', spaceId)
+          .execute();
+
         await trx
           .updateTable('pageAccess')
           .set({ spaceId: spaceId })
@@ -1141,7 +1149,8 @@ export class PageService {
                 'p.deletedAt',
               ])
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .whereRef('p.spaceId', '=', 'pa.spaceId'),
           ),
       )
       .selectFrom('page_ancestors')
