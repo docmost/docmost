@@ -1,5 +1,6 @@
 import {
-  CheckBox,
+  BuilderElement,
+  CheckBoxUtil,
   ExternalHyperlink,
   FootnoteReferenceRun,
   HeadingLevel,
@@ -125,6 +126,21 @@ const renderMicrosoftFile: NodeSerializerAsync[string] = (state, node) => {
   }
 };
 
+// Word's checkbox content control. docx's CheckBox writes the glyph as a w:sym, which other
+// readers misdraw, so it goes in as text the way Word writes it.
+function createCheckBox(checked: boolean) {
+  return new BuilderElement({
+    name: 'w:sdt',
+    children: [
+      new BuilderElement({ name: 'w:sdtPr', children: [new CheckBoxUtil({ checked })] }),
+      new BuilderElement({
+        name: 'w:sdtContent',
+        children: [new TextRun({ text: checked ? '☒' : '☐', font: 'MS Gothic' })],
+      }),
+    ],
+  });
+}
+
 export const defaultAsyncNodes: NodeSerializerAsync = {
   text(state, node) {
     state.text(node.text ?? '');
@@ -176,7 +192,7 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
       state.addParagraphOptions({ numbering: state.currentNumbering });
     }
     // a checkbox content control, which the reader can tick in Word
-    state.current.push(new CheckBox({ checked: Boolean(node.attrs?.checked) }));
+    state.current.push(createCheckBox(Boolean(node.attrs?.checked)));
     state.text(' ');
     await state.renderContent(node);
   },
