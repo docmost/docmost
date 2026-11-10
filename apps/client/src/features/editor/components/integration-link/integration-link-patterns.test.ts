@@ -393,6 +393,9 @@ describe("OneDrive folder view links", () => {
     [`${ONEDRIVE}/my?id=${FOLDER_ID}`, "sharepoint-library-item"],
     [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fsites%2FMarketing%2FShared%20Documents%2FQ3`, "sharepoint-library-item"],
     [`${ONEDRIVE}/my?id=%2Fteams%2FEng%2FShared%20Documents%2FSpec.pdf`, "sharepoint-library-item"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library", "sharepoint-shared-library"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso.sharepoint.com%2Fsites%2FMarketing%2FShared%20Documents&viewid=4f8f5950%2D9826", "sharepoint-shared-library"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library&id=%2FMedia%20library%2FPhotos", "sharepoint-library-item"],
   ])("identifies %s as %s", (url, type) => {
     expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type });
   });
@@ -402,6 +405,8 @@ describe("OneDrive folder view links", () => {
     [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FQ3%20Plan.docx`, "Q3 Plan.docx"],
     [`${PERSONAL}/Documents/Forms/All.aspx?id=Q3`, "Documents"],
     [`${ONEDRIVE}/my?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FAttachments&viewid=4f8f5950%2D9826`, "Attachments"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library", "Media library"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library&id=%2FMedia%20library%2FPhotos", "Photos"],
   ])("labels %s as %s", (url, title) => {
     expect(describeIntegrationLink(url)).toEqual({
       provider: "microsoft_365",
@@ -416,6 +421,10 @@ describe("OneDrive folder view links", () => {
     `${ONEDRIVE}/my?id=%2FDocuments%2FQ3`,
     `${ONEDRIVE}/myfiles?id=${FOLDER_ID}`,
     `https://contoso-my.sharepoint.com.evil.example/my?id=${FOLDER_ID}`,
+    "https://contoso-my.sharepoint.com/shared",
+    "https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fevil%2Eexample%2FMedia%20library",
+    "https://contoso-my.sharepoint.com/shared?listurl=http%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library",
+    "https://contoso-my.sharepoint.com/shared?id=%2F%2Fevil.example%2Fx",
     `http://contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
     `https://contoso-my.sharepoint.com.evil.example/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
     `https://user:pass@contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,

@@ -97,6 +97,17 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
   },
   {
     provider: "microsoft_365",
+    type: "sharepoint-library-item",
+    regex: /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/shared\?(?:[^#]*&)?id=((?:%2[Ff]|\/)(?!%2[Ff]|\/)[^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-shared-library",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/shared\?(?:[^#]*&)?listurl=https(?:%3[Aa]|:)(?:%2[Ff]|\/){2}[a-z0-9-]+(?:%2[Ee]|\.)sharepoint(?:%2[Ee]|\.)com((?:%2[Ff]|\/)[^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
     type: "sharepoint-library",
     regex:
       /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?([^\/?#]+)\/Forms\/[^\/?#]+\.aspx(?:\?[^#]*)?$/,
@@ -525,6 +536,7 @@ export function describeIntegrationLink(
     case "sharepoint-library":
     case "sharepoint-site":
       return describe(safeDecode(match[2]), hostOf(url));
+    case "sharepoint-shared-library":
     case "sharepoint-library-item":
       return describe(
         safeDecode(match[2].split(/\/|%2F/i).filter(Boolean).pop() ?? "") ||
