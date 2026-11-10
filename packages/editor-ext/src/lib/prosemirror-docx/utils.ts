@@ -48,12 +48,15 @@ const SVG_UNITS_IN_PX: Record<string, number> = {
   mm: 96 / 25.4,
 };
 
-// XML declaration, comments and doctype may precede the root svg start tag
+// XML declaration, comments and doctype may precede the root svg start tag. Each part
+// ends at its first terminator, so a failed match never backtracks across parts.
 const SVG_START_TAG =
-  /^(?:\s|<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^[>]*(?:\[[\s\S]*?\])?\s*>)*<svg\b((?:[^>"']|"[^"]*"|'[^']*')*)>/i;
+  /^(?:\s|<\?(?:[^?]|\?(?!>))*\?>|<!--(?:[^-]|-(?!->))*-->|<!DOCTYPE[^[>]*(?:\[(?:[^\]"']|"[^"]*"|'[^']*')*\][^>]*)?>)*<svg\b((?:[^>"']|"[^"]*"|'[^']*')*)>/i;
 
 function svgLength(value?: string): number | undefined {
-  const match = value?.trim().match(/^(\d*\.?\d+(?:e[+-]?\d+)?)(px|pt|pc|in|cm|mm)?$/i);
+  const match = value
+    ?.trim()
+    .match(/^((?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?)(px|pt|pc|in|cm|mm)?$/i);
   if (!match) return undefined;
   const px = parseFloat(match[1]) * SVG_UNITS_IN_PX[(match[2] ?? 'px').toLowerCase()];
   return px > 0 ? px : undefined;
@@ -67,8 +70,9 @@ function svgDimensionsFromData(
   if (tag === undefined) return undefined;
 
   const attrs: Record<string, string> = {};
+  // a name starts after whitespace, so a long run of name characters is read only once
   for (const [, name, doubleQuoted, singleQuoted] of tag.matchAll(
-    /([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,
+    /(?:^|\s)([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,
   )) {
     attrs[name] = doubleQuoted ?? singleQuoted;
   }
