@@ -3,9 +3,13 @@ import { ActionIcon, TextInput, ScrollArea, Loader } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconSearch, IconFileDescription } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query";
 import { ISpace } from "@/features/space/types/space.types";
+import { includeSpace } from "@/features/space/space.utils";
 import { IPage } from "@/features/page/types/page.types";
 import { DestinationSelection } from "./destination-picker.types";
 import { SpaceRow } from "./space-row";
@@ -35,6 +39,15 @@ export function DestinationPicker({
   const { data: spacesData, isLoading: spacesLoading } = useGetSpacesQuery({
     limit: 100,
   });
+  const { data: initialSpace } = useUnlistedSpaceQuery(
+    initialSpaceId,
+    spacesData?.items,
+  );
+
+  const spaces = useMemo(
+    () => includeSpace(spacesData?.items ?? [], initialSpace),
+    [spacesData, initialSpace],
+  );
 
   const searchEnabled =
     !searchSpacesOnly && debouncedQuery && debouncedQuery.length >= 2;
@@ -49,16 +62,15 @@ export function DestinationPicker({
   const isSearching = !!searchEnabled;
 
   const filteredSpaces = useMemo(() => {
-    const items = spacesData?.items ?? [];
-    if (!searchSpacesOnly || !debouncedQuery) return items;
+    if (!searchSpacesOnly || !debouncedQuery) return spaces;
     const fold = (s: string) =>
       s
         .normalize("NFD")
         .replace(/[̀-ͯ]/g, "")
         .toLocaleLowerCase();
     const term = fold(debouncedQuery);
-    return items.filter((s) => fold(s.name).includes(term));
-  }, [spacesData, searchSpacesOnly, debouncedQuery]);
+    return spaces.filter((s) => fold(s.name).includes(term));
+  }, [spaces, searchSpacesOnly, debouncedQuery]);
 
   const selectedId =
     selection?.type === "space" ? selection.spaceId : selection?.pageId ?? null;
@@ -108,8 +120,8 @@ export function DestinationPicker({
   // Pre-select space when initialSpaceId is set and spaces have loaded.
   // Only runs once: skip if user has already made a selection.
   useEffect(() => {
-    if (!initialSpaceId || selection) return;
-    const match = spacesData?.items?.find((s) => s.id === initialSpaceId);
+    if (!initialSpaceId || selection || !spacesData) return;
+    const match = spaces.find((s) => s.id === initialSpaceId);
     if (match) {
       updateSelection({ type: "space", spaceId: match.id, space: match });
       requestAnimationFrame(() => {
@@ -119,7 +131,7 @@ export function DestinationPicker({
         el?.scrollIntoView({ block: "nearest" });
       });
     }
-  }, [initialSpaceId, selection, spacesData, updateSelection]);
+  }, [initialSpaceId, selection, spacesData, spaces, updateSelection]);
 
   return (
     <>

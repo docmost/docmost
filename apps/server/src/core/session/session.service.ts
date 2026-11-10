@@ -10,6 +10,7 @@ import {
   AUDIT_CONTEXT_KEY,
 } from '../../common/middlewares/audit-context.middleware';
 import * as Bowser from 'bowser';
+import { WsService } from '../../ws/ws.service';
 
 const MAX_SESSIONS_PER_USER = 25;
 const RETENTION_DAYS = 7;
@@ -23,6 +24,7 @@ export class SessionService {
     private readonly userSessionRepo: UserSessionRepo,
     private readonly environmentService: EnvironmentService,
     private readonly cls: ClsService,
+    private readonly wsService: WsService,
   ) {}
 
   @Interval('session-cleanup', 24 * 60 * 60 * 1000)
@@ -86,7 +88,14 @@ export class SessionService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    await this.userSessionRepo.revokeById(sessionId, userId, workspaceId);
+    const revoked = await this.userSessionRepo.revokeById(
+      sessionId,
+      userId,
+      workspaceId,
+    );
+    if (revoked) {
+      this.wsService.disconnectSession(sessionId);
+    }
   }
 
   async revokeAllOtherSessions(
@@ -99,6 +108,7 @@ export class SessionService {
       userId,
       workspaceId,
     );
+    this.wsService.disconnectOtherSessions(userId, currentSessionId);
   }
 
   private parseDeviceName(userAgent: string | null): string | null {

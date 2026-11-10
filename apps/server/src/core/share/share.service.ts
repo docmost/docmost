@@ -20,8 +20,9 @@ import {
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { updateAttachmentAttr } from './share.util';
+import { updateAttachmentAttr, updateAttachmentUrl } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
+import { getCoverAttachmentId } from '../page/page-cover.utils';
 import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
@@ -146,6 +147,7 @@ export class ShareService {
 
     if (includeContent) {
       page.content = await this.updatePublicAttachments(page);
+      page.coverPhoto = await this.updatePublicCoverPhoto(page);
     }
 
     return { page, share };
@@ -411,6 +413,18 @@ export class ShareService {
       page.workspaceId,
     );
     return doc?.toJSON() ?? page.content;
+  }
+
+  async updatePublicCoverPhoto(page: Page): Promise<string | null> {
+    const attachmentId = getCoverAttachmentId(page.coverPhoto);
+    if (!attachmentId) return page.coverPhoto;
+
+    const token = await this.tokenService.generateAttachmentToken({
+      attachmentId,
+      pageId: page.id,
+      workspaceId: page.workspaceId,
+    });
+    return updateAttachmentUrl(page.coverPhoto, token);
   }
 
   /**

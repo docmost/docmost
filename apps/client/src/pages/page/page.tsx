@@ -6,8 +6,12 @@ import HistoryModal from "@/features/page-history/components/history-modal";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import SpaceArchivedNotice from "@/features/space/components/space-archived-notice.tsx";
+import { useCommentDeepLink } from "@/features/comment/hooks/use-comment-deep-link";
 import { useTranslation } from "react-i18next";
-import React from "react";
+import React, { useEffect } from "react";
+import { useSetAtom } from "jotai";
+import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
@@ -18,6 +22,8 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { PageCover } from "@/features/page-cover/components/page-cover.tsx";
+import { resolveCover } from "@/features/page-cover/page-cover.utils.ts";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -57,6 +63,14 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  const setAsideState = useSetAtom(asideStateAtom);
+
+  // Keep above useCommentDeepLink so a deep link can reopen the aside.
+  useEffect(() => {
+    setAsideState({ tab: "", isAsideOpen: false });
+  }, [page?.id, setAsideState]);
+
+  useCommentDeepLink(page?.id);
 
   const hasBases = useHasFeature(Feature.BASES);
   const canEdit = !page?.deletedAt && (page?.permissions?.canEdit ?? false);
@@ -124,6 +138,9 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
             paddingInline: 24,
           }}
         >
+          <div style={{ flexShrink: 0 }}>
+            <SpaceArchivedNotice space={space} />
+          </div>
           <div
             style={{
               flex: 1,
@@ -167,17 +184,21 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
         <MemoizedPageHeader readOnly={!canEdit} />
 
+        <PageCover key={`cover-${page.id}`} page={page} editable={canEdit} />
+
         <MemoizedFullEditor
           key={page.id}
           pageId={page.id}
           title={page.title}
           content={page.content}
           slugId={page.slugId}
+          spaceId={page.spaceId}
           spaceSlug={page?.space?.slug}
           editable={canEdit}
           creator={page.creator}
           contributors={page.contributors}
           canComment={canComment}
+          hasCover={Boolean(resolveCover(page.coverPhoto))}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

@@ -1,4 +1,4 @@
-import { NodeViewWrapper, NodeViewProps } from "@tiptap/react";
+import { NodeViewWrapper, NodeViewProps, useEditorState } from "@tiptap/react";
 import { ActionIcon, Box, Menu, Text } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,8 +8,12 @@ import { useBaseQuery } from "@/ee/base/queries/base-query";
 import { pinOffsetWatcher } from "@docmost/editor-ext";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
-import { IconDots, IconTable, IconX } from "@tabler/icons-react";
+import { IconDots, IconLink, IconTable, IconX } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
 import { usePageQuery } from "@/features/page/queries/page-query";
+import { useClipboard } from "@/hooks/use-clipboard";
+import { getAppUrl } from "@/lib/config.ts";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
 import classes from "./base-embed.module.css";
 
 const SIDE_GUTTER = 8;
@@ -63,6 +67,19 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
     pendingKey ? "" : pageId ?? "",
   );
   const { data: page } = usePageQuery({ pageId: pageId ?? undefined });
+  const clipboard = useClipboard({ timeout: 500 });
+
+  const isEditable = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.isEditable ?? false,
+  });
+
+  const handleCopyLink = () => {
+    clipboard.copy(
+      getAppUrl() + buildPageUrl(page.space?.slug, page.slugId, page.title),
+    );
+    notifications.show({ message: t("Link copied") });
+  };
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -98,7 +115,8 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
   // mounts) is reserved only for the skeleton/loading/table states.
   const isCompact = !pendingKey && (!pageId || isError);
 
-  const showControls = editor.isEditable && !pendingKey;
+  // Also on the skeleton, so a placeholder stuck pending can still be removed.
+  const showControls = isEditable;
 
   let content: React.ReactNode;
   if (pendingKey) {
@@ -132,7 +150,7 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
       <BaseView
         pageId={pageId}
         embedded
-        editable={hasBases && editor.isEditable && (base?.permissions?.canEdit ?? false)}
+        editable={hasBases && isEditable && (base?.permissions?.canEdit ?? false)}
       />
     );
   }
@@ -159,6 +177,13 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconLink size={14} />}
+                disabled={!page}
+                onClick={handleCopyLink}
+              >
+                {t("Copy link")}
+              </Menu.Item>
               <Menu.Item
                 leftSection={<IconX size={14} />}
                 onClick={() => deleteNode()}

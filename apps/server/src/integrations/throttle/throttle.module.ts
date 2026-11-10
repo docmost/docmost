@@ -11,6 +11,10 @@ import {
   OAUTH_TOKEN_THROTTLER,
   OAUTH_AUTHORIZE_THROTTLER,
   SIEM_TEST_THROTTLER,
+  UNFURL_THROTTLER,
+  CLOUD_EMAIL_THROTTLER,
+  MICROSOFT_GRAPH_THROTTLER,
+  UNSPLASH_THROTTLER,
 } from './throttler-names';
 import Redis from 'ioredis';
 
@@ -29,6 +33,10 @@ import Redis from 'ioredis';
             { name: OAUTH_TOKEN_THROTTLER, ttl: 60_000, limit: 60 },
             { name: OAUTH_AUTHORIZE_THROTTLER, ttl: 60_000, limit: 30 },
             { name: SIEM_TEST_THROTTLER, ttl: 60_000, limit: 10 },
+            { name: UNFURL_THROTTLER, ttl: 60_000, limit: 120 },
+            { name: CLOUD_EMAIL_THROTTLER, ttl: 60_000, limit: 5 },
+            { name: MICROSOFT_GRAPH_THROTTLER, ttl: 60_000, limit: 120 },
+            { name: UNSPLASH_THROTTLER, ttl: 60_000, limit: 30 },
           ],
           errorMessage: 'Too many requests',
           storage: new ThrottlerStorageRedisService(

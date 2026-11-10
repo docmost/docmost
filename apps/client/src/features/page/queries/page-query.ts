@@ -43,22 +43,32 @@ import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 export function usePageQuery(
   pageInput: Partial<IPageInput>,
+  options?: { staleTime?: number; refetchOnMount?: boolean | "always" },
 ): UseQueryResult<IPage, Error> {
   const query = useQuery({
     queryKey: ["pages", pageInput.pageId],
     queryFn: () => getPageById(pageInput),
     enabled: !!pageInput.pageId,
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 
   useEffect(() => {
-    if (query.data) {
-      if (isValidUuid(pageInput.pageId)) {
-        queryClient.setQueryData(["pages", query.data.slugId], query.data);
-      } else {
-        queryClient.setQueryData(["pages", query.data.id], query.data);
-      }
+    const cached = queryClient.getQueryState<IPage>([
+      "pages",
+      pageInput.pageId,
+    ]);
+    if (!cached?.data) return;
+    const mirrorKey = isValidUuid(pageInput.pageId)
+      ? ["pages", cached.data.slugId]
+      : ["pages", cached.data.id];
+    const mirrored = queryClient.getQueryState(mirrorKey);
+    if (mirrored?.data && mirrored.dataUpdatedAt >= cached.dataUpdatedAt) {
+      return;
     }
+    queryClient.setQueryData(mirrorKey, cached.data, {
+      updatedAt: cached.dataUpdatedAt,
+    });
   }, [query.data]);
 
   return query;
@@ -132,6 +142,7 @@ export function useRemovePageMutation() {
       }
 
       invalidateOnDeletePage(pageId);
+      queryClient.invalidateQueries({ queryKey: ["space"] });
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["trash-list"].includes(item.queryKey[0] as string),

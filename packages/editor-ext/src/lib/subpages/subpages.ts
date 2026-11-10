@@ -6,7 +6,11 @@ export interface SubpagesOptions {
   view: any;
 }
 
-export interface SubpagesAttributes {}
+export type SubpagesSortBy = "default" | "title-asc" | "recent";
+
+export interface SubpagesAttributes {
+  sortBy?: SubpagesSortBy;
+}
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -23,6 +27,19 @@ export const Subpages = Node.create<SubpagesOptions>({
     return {
       HTMLAttributes: {},
       view: null,
+    };
+  },
+
+  addAttributes() {
+    return {
+      sortBy: {
+        default: "default",
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-sort-by") || "default",
+        renderHTML: (attributes: SubpagesAttributes) => ({
+          "data-sort-by": attributes.sortBy || "default",
+        }),
+      },
     };
   },
 

@@ -313,7 +313,9 @@ export interface PageHistory {
 export interface Pages {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
+  coverAttribution: Json | null;
   coverPhoto: string | null;
+  coverPosition: number | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
@@ -399,11 +401,14 @@ export interface SiemDestinations {
 }
 
 export interface Spaces {
+  archivedAt: Timestamp | null;
+  archivedById: string | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   defaultRole: Generated<string>;
   deletedAt: Timestamp | null;
   description: string | null;
+  homePageId: string | null;
   id: Generated<string>;
   isPersonal: Generated<boolean>;
   logo: string | null;
@@ -464,9 +469,11 @@ export interface UserTokens {
 export interface WorkspaceInvitations {
   createdAt: Generated<Timestamp>;
   email: string | null;
+  expiresAt: Timestamp;
   groupIds: string[] | null;
   id: Generated<string>;
   invitedById: string | null;
+  message: string | null;
   role: string;
   token: string;
   updatedAt: Generated<Timestamp>;
@@ -543,6 +550,34 @@ export interface Watchers {
   createdAt: Generated<Timestamp>;
 }
 
+export interface Integrations {
+  id: Generated<string>;
+  workspaceId: string;
+  type: string;
+  settings: Json | null;
+  installedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
+export interface IntegrationConnections {
+  id: Generated<string>;
+  integrationId: string;
+  userId: string;
+  workspaceId: string;
+  providerUserId: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  tokenExpiresAt: Timestamp | null;
+  invalidatedAt: Timestamp | null;
+  scopes: string | null;
+  kind: string;
+  metadata: Json | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface Labels {
   id: Generated<string>;
   name: string;
@@ -599,6 +634,10 @@ export interface PageVerifications {
   rejectedAt: Timestamp | null;
   rejectedById: string | null;
   rejectionComment: string | null;
+  invalidatedAt: Timestamp | null;
+  invalidatedById: string | null;
+  verifiedHistoryId: string | null;
+  rejectedHistoryId: string | null;
   data: Json | null;
   creatorId: string | null;
   createdAt: Generated<Timestamp>;
@@ -748,6 +787,8 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  integrationConnections: IntegrationConnections;
+  integrations: Integrations;
   labels: Labels;
   notifications: Notifications;
   pageAccess: PageAccess;

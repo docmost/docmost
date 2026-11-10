@@ -61,15 +61,17 @@ export class UserSessionRepo {
     id: string,
     userId: string,
     workspaceId: string,
-  ): Promise<void> {
-    await this.db
+  ): Promise<boolean> {
+    const revoked = await this.db
       .updateTable('userSessions')
       .set({ revokedAt: new Date() })
       .where('id', '=', id)
       .where('userId', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .where('revokedAt', 'is', null)
-      .execute();
+      .returning('id')
+      .executeTakeFirst();
+    return !!revoked;
   }
 
   async revokeAllExceptCurrent(

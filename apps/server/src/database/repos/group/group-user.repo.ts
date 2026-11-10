@@ -155,8 +155,11 @@ export class GroupUserRepo {
     );
   }
 
-  async getUserIdsByGroupId(groupId: string): Promise<string[]> {
-    const rows = await this.db
+  async getUserIdsByGroupId(
+    groupId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<string[]> {
+    const rows = await dbOrTx(this.db, opts?.trx)
       .selectFrom('groupUsers')
       .select('userId')
       .where('groupId', '=', groupId)

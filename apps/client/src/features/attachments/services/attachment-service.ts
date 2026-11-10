@@ -15,6 +15,10 @@ export async function getPageAttachments(
   return req.data;
 }
 
+export async function deleteAttachment(attachmentId: string): Promise<void> {
+  await api.post("/attachments/delete", { attachmentId });
+}
+
 async function compressAndResizeIcon(
   file: File,
   type: AvatarIconType,
