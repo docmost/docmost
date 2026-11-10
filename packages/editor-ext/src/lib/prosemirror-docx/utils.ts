@@ -83,6 +83,22 @@ function svgDimensionsFromData(
   return { width: width ?? 300, height: height ?? 150 };
 }
 
+// The node's width in px or, on older pages, a percentage of the page, else the image's own
+// width, never wider than the page or table cell.
+export function getImageWidth(
+  nodeWidth: number | string | null | undefined,
+  naturalWidth: number,
+  maxWidth: number,
+): number {
+  let width = naturalWidth;
+  if (typeof nodeWidth === 'number' && nodeWidth > 0) {
+    width = nodeWidth;
+  } else if (typeof nodeWidth === 'string' && nodeWidth.endsWith('%')) {
+    width = (parseFloat(nodeWidth) / 100) * maxWidth || naturalWidth;
+  }
+  return Math.min(width, maxWidth);
+}
+
 // The type docx embeds the image as, read from its bytes since URLs may carry a query string.
 export function docxImageFromData(
   data: Uint8Array,

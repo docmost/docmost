@@ -36,6 +36,7 @@ import {
   CELL_MARGIN,
   createShortId,
   docxImageFromData,
+  getImageWidth,
   getTableCellWidths,
   getTableColumnWidths,
   TEXT_WIDTH,
@@ -724,14 +725,14 @@ export class DocxSerializerStateAsync {
   // not sure what this actually is, seems to be close for 8.5x11
   maxImageWidth = MAX_IMAGE_WIDTH;
 
-  async image(src: string, widthPercent = 70, align: AlignOptions = 'center') {
+  async image(src: string, width?: number | string | null, align: AlignOptions = 'center') {
     const buffer = await Promise.resolve(this.options.getImageBuffer(src));
     const image = docxImageFromData(buffer);
     /* If the image is not a valid image, don't add it */
     if (!image) return;
     const aspect = image.height / image.width;
-    const width = this.maxImageWidth * (widthPercent / 100);
-    const transformation = { width, height: width * aspect };
+    const imageWidth = getImageWidth(width, image.width, this.maxImageWidth);
+    const transformation = { width: imageWidth, height: imageWidth * aspect };
     this.current.push(
       new ImageRun(
         image.type === 'svg'

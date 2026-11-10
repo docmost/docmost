@@ -46,13 +46,12 @@ function toDocxColor(input?: string): string | undefined {
   return undefined;
 }
 
-// Images and diagrams embed via the image resolver; the URL (with its file
-// extension) is passed through so docx can infer the image type.
+// Images and diagrams embed via the image resolver, at the node's width and alignment.
 const renderImage: NodeSerializerAsync[string] = async (state, node) => {
   const src = node.attrs?.src || node.attrs?.attachmentId;
   if (src) {
     try {
-      await state.image(src, 100);
+      await state.image(src, node.attrs?.width, node.attrs?.align);
     } catch {
       // Unrenderable/missing image: skip rather than fail the whole export.
     }
