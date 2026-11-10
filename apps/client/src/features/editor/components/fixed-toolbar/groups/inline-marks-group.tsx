@@ -107,13 +107,13 @@ export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
           <Menu.Divider />
           <Menu.Item
             leftSection={<IconIndentIncrease size={16} />}
-            onClick={() => editor.chain().focus().indent().run()}
+            onClick={() => editor.chain().focus().keyboardShortcut("Tab").run()}
           >
             {t("Increase indent")}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconIndentDecrease size={16} />}
-            onClick={() => editor.chain().focus().outdent().run()}
+            onClick={() => editor.chain().focus().keyboardShortcut("Shift-Tab").run()}
           >
             {t("Decrease indent")}
           </Menu.Item>
