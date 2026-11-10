@@ -114,7 +114,6 @@ const groupedData: DataGroup[] = [
         path: "/settings/announcements",
         feature: Feature.ANNOUNCEMENTS,
         role: "admin",
-        env: "selfhosted",
       },
       {
         label: "Verified pages",

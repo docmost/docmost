@@ -9,7 +9,6 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { isCloud } from "@/lib/config.ts";
 import { IPagination } from "@/lib/types";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
@@ -97,7 +96,7 @@ export function useVisibleAnnouncementsQuery(
         : getPublicAnnouncements());
       return { items, offsetMs: Date.parse(now) - Date.now() };
     },
-    enabled: !isCloud() && (surface === "public" || hasFeature),
+    enabled: surface === "public" || hasFeature,
     staleTime: 60_000,
     // The app default (false) would keep an invalidated list until the next poll
     refetchOnMount: true,

@@ -151,12 +151,12 @@ describe("useVisibleAnnouncementsQuery", () => {
     expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
   });
 
-  it.each(["app", "public"] as const)("does not load anything on cloud (%s surface)", (surface) => {
+  it.each(["app", "public"] as const)("loads on cloud too (%s surface)", async (surface) => {
     mocks.isCloud.mockReturnValue(true);
+    vi.mocked(service.getVisibleAnnouncements).mockResolvedValue(visible());
+    vi.mocked(service.getPublicAnnouncements).mockResolvedValue(visible());
     const { result } = setup(() => useVisibleState(surface), [Feature.ANNOUNCEMENTS]);
-    expect(result.current.fetchStatus).toBe("idle");
-    expect(service.getVisibleAnnouncements).not.toHaveBeenCalled();
-    expect(service.getPublicAnnouncements).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.data?.items).toEqual(banners));
   });
 
   it("keeps the last list when a refresh fails", async () => {

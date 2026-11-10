@@ -17,6 +17,7 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { isCloud } from "@/lib/config.ts";
 import {
   ANNOUNCEMENT_COLOR_STYLES,
   ANNOUNCEMENT_COLORS,
@@ -251,21 +252,24 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
           </Group>
         </Input.Wrapper>
 
-        <Select
-          label={t("Audience")}
-          description={t(
-            "Everyone also includes the login page and public pages.",
-          )}
-          data={[
-            { value: "members", label: t("Logged-in users") },
-            { value: "everyone", label: t("Everyone") },
-          ]}
-          value={values.audience}
-          onChange={(value) =>
-            form.setFieldValue("audience", value as AnnouncementAudience)
-          }
-          allowDeselect={false}
-        />
+        {/* Cloud shows announcements to logged-in users only */}
+        {!isCloud() && (
+          <Select
+            label={t("Audience")}
+            description={t(
+              "Everyone also includes the login page and public pages.",
+            )}
+            data={[
+              { value: "members", label: t("Logged-in users") },
+              { value: "everyone", label: t("Everyone") },
+            ]}
+            value={values.audience}
+            onChange={(value) =>
+              form.setFieldValue("audience", value as AnnouncementAudience)
+            }
+            allowDeselect={false}
+          />
+        )}
 
         <Switch
           label={t("Allow people to dismiss it")}
