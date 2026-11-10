@@ -78,7 +78,20 @@ export class NotificationService {
   }
 
   async getUnreadCount(userId: string) {
-    return this.notificationRepo.getUnreadCount(userId);
+    const unreadCounts =
+      await this.notificationRepo.getUnreadCountsByPageId(userId);
+
+    const pageIds = unreadCounts.map((c) => c.pageId).filter(Boolean);
+    const accessiblePageIds =
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds,
+        userId,
+      });
+    const accessibleSet = new Set(accessiblePageIds);
+
+    return unreadCounts
+      .filter((c) => !c.pageId || accessibleSet.has(c.pageId))
+      .reduce((total, c) => total + c.count, 0);
   }
 
   async markAsRead(notificationId: string, userId: string) {
