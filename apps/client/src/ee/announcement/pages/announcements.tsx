@@ -14,6 +14,7 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
+import { AnnouncementArchiveFilter } from "@/ee/announcement/components/announcement-archive-filter";
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
 import {
@@ -31,13 +32,19 @@ export default function Announcements() {
   // Entitlements stay null until they load, which must read as loading, not as unlicensed
   const entitlements = useAtomValue(entitlementAtom);
   const isUnlicensed = entitlements !== null && !hasFeature;
-  const { search, cursor, goNext, goPrev, handleSearch } =
+  const { search, cursor, goNext, goPrev, handleSearch, resetCursor } =
     usePaginateAndSearch();
+  const [archived, setArchived] = useState(false);
   const [formOpened, setFormOpened] = useState(false);
   const [selected, setSelected] = useState<IAnnouncement | null>(null);
   const canLoad = isAdmin && hasFeature;
   const query = useAnnouncementsQuery(
-    { cursor, limit: 20, query: search },
+    {
+      cursor,
+      limit: 20,
+      query: search,
+      ...(archived ? { archived: true } : {}),
+    },
     canLoad,
   );
   const archiveMutation = useArchiveAnnouncementMutation();
@@ -106,7 +113,16 @@ export default function Announcements() {
         </Button>
       </Group>
 
-      <SearchInput onSearch={handleSearch} />
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
+        <SearchInput onSearch={handleSearch} />
+        <AnnouncementArchiveFilter
+          archived={archived}
+          onChange={(next) => {
+            setArchived(next);
+            resetCursor();
+          }}
+        />
+      </Group>
 
       {query.isError && !query.data ? (
         <Alert icon={<IconAlertCircle size={16} />} color="red">
@@ -118,7 +134,11 @@ export default function Announcements() {
             announcements={query.data?.items ?? []}
             isLoading={query.isLoading || entitlements === null}
             emptyMessage={
-              search ? t("No results found...") : t("No announcements yet")
+              search
+                ? t("No results found...")
+                : archived
+                  ? t("No archived announcements")
+                  : t("No active announcements")
             }
             {...tableActions}
           />

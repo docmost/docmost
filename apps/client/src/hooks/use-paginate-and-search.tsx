@@ -30,5 +30,10 @@ export function usePaginateAndSearch(initialQuery: string = "") {
     });
   }, []);
 
-  return { search, cursor, goNext, goPrev, handleSearch };
+  const resetCursor = useCallback(() => {
+    setCursor(undefined);
+    setCursorStack([]);
+  }, []);
+
+  return { search, cursor, goNext, goPrev, handleSearch, resetCursor };
 }

@@ -85,4 +85,5 @@ export type IAnnouncementListParams = {
   cursor?: string;
   limit?: number;
   query?: string;
+  archived?: boolean;
 };
