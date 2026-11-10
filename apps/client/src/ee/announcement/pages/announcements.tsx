@@ -113,7 +113,7 @@ export default function Announcements() {
         </Button>
       </Group>
 
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
+      <Group gap="sm" align="flex-start">
         <SearchInput onSearch={handleSearch} />
         <AnnouncementArchiveFilter
           archived={archived}
