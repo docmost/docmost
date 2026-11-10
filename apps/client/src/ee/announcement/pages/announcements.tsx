@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Button, Group, Space, Tabs, Text } from "@mantine/core";
+import { Alert, Button, Group, Space, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
 import type { UseQueryResult } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { getAnnouncementPreview } from "@/ee/announcement/announcement.utils";
+import { AnnouncementArchiveFilter } from "@/ee/announcement/components/announcement-archive-filter";
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
 import {
@@ -26,8 +27,6 @@ import {
 } from "@/ee/announcement/queries/announcement-query";
 import type { IAnnouncement } from "@/ee/announcement/types/announcement.types";
 
-type AnnouncementsTab = "current" | "archived";
-
 export default function Announcements() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
@@ -35,7 +34,7 @@ export default function Announcements() {
   // Entitlements stay null until they load, which must read as loading, not as unlicensed
   const entitlements = useAtomValue(entitlementAtom);
   const isUnlicensed = entitlements !== null && !hasFeature;
-  const [tab, setTab] = useState<AnnouncementsTab>("current");
+  const [archived, setArchived] = useState(false);
   const currentPage = useCursorPaginate();
   const archivedPage = useCursorPaginate();
   const [formOpened, setFormOpened] = useState(false);
@@ -47,7 +46,7 @@ export default function Announcements() {
   );
   const archivedQuery = useAnnouncementsQuery(
     { archived: true, cursor: archivedPage.cursor, limit: 20 },
-    canLoad && tab === "archived",
+    canLoad && archived,
   );
   const archiveMutation = useArchiveAnnouncementMutation();
   const unarchiveMutation = useUnarchiveAnnouncementMutation();
@@ -150,32 +149,13 @@ export default function Announcements() {
         </Button>
       </Group>
 
-      <Tabs
-        color="dark"
-        value={tab}
-        onChange={(value) => setTab(value as AnnouncementsTab)}
-      >
-        <Tabs.List>
-          <Tabs.Tab fw={500} value="current">
-            {t("Current")}
-          </Tabs.Tab>
-          <Tabs.Tab fw={500} value="archived">
-            {t("Archived")}
-          </Tabs.Tab>
-        </Tabs.List>
+      <AnnouncementArchiveFilter archived={archived} onChange={setArchived} />
 
-        <Tabs.Panel value="current" pt="md">
-          {renderList(currentQuery, currentPage, t("No current announcements"))}
-        </Tabs.Panel>
+      <Space h="md" />
 
-        <Tabs.Panel value="archived" pt="md">
-          {renderList(
-            archivedQuery,
-            archivedPage,
-            t("No archived announcements"),
-          )}
-        </Tabs.Panel>
-      </Tabs>
+      {archived
+        ? renderList(archivedQuery, archivedPage, t("No archived announcements"))
+        : renderList(currentQuery, currentPage, t("No current announcements"))}
 
       <AnnouncementFormModal
         opened={formOpened}

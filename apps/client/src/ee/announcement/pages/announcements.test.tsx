@@ -137,7 +137,7 @@ describe("Announcements page", () => {
       screen
         .getAllByRole("table", { hidden: true })
         .map((table) => table.getAttribute("aria-busy")),
-    ).toEqual(["true", "true"]);
+    ).toEqual(["true"]);
   });
 
   it("asks for a license once the entitlements lack the feature", () => {
@@ -154,6 +154,38 @@ describe("Announcements page", () => {
     expect(service.getAnnouncements).toHaveBeenCalledWith({ limit: 20 });
     expect(screen.queryByText(LICENSE_ALERT)).toBeNull();
     expect(newAnnouncementButton().disabled).toBe(false);
+  });
+
+  it("switches to the archived list with the status filter", async () => {
+    // jsdom has no scrollIntoView, which Mantine's combobox calls
+    Element.prototype.scrollIntoView = () => {};
+    const archivedAnnouncement: IAnnouncement = {
+      ...announcement,
+      id: "a2",
+      content: {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Old notice" }] },
+        ],
+      },
+      archivedAt: "2026-11-05T09:00:00.000Z",
+      status: "archived",
+    };
+    vi.mocked(service.getAnnouncements).mockImplementation(async (params) =>
+      page(params.archived ? [archivedAnnouncement] : [announcement]),
+    );
+    renderPage([Feature.ANNOUNCEMENTS]);
+    await screen.findByText("Planned maintenance");
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Status" }));
+    fireEvent.click(screen.getByRole("option", { name: "Archived" }));
+
+    expect(await screen.findByText("Old notice")).toBeTruthy();
+    expect(service.getAnnouncements).toHaveBeenCalledWith({
+      archived: true,
+      limit: 20,
+    });
+    expect(screen.queryByText("Planned maintenance")).toBeNull();
   });
 
   it("keeps the list when a refresh fails", async () => {
