@@ -1,4 +1,19 @@
 import { Node } from '@tiptap/pm/model';
+import { validate as isValidUUID } from 'uuid';
+import { isAttachmentNode } from '../../common/helpers/prosemirror/utils';
+import { getAttachmentIdFromUrl } from '../../common/helpers/prosemirror/attachment-refs';
+
+/**
+ * The attachment a node points to: its `attachmentId`, or the id in its file
+ * url. Content that the editor did not write (markdown or html sent through
+ * the API, imports) only has the url.
+ */
+export function getNodeAttachmentId(node: Node): string | undefined {
+  if (!isAttachmentNode(node.type.name)) return undefined;
+  const { attachmentId, src, url } = node.attrs;
+  if (isValidUUID(attachmentId)) return attachmentId;
+  return getAttachmentIdFromUrl(src) ?? getAttachmentIdFromUrl(url);
+}
 
 export function updateAttachmentAttr(
   node: Node,

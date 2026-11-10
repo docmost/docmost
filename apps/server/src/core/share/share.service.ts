@@ -12,15 +12,17 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { TokenService } from '../auth/services/token.service';
 import { jsonToNode } from '../../collaboration/collaboration.util';
 import {
-  getAttachmentIds,
   getProsemirrorContent,
-  isAttachmentNode,
   removeMarkTypeFromDoc,
 } from '../../common/helpers/prosemirror/utils';
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { updateAttachmentAttr, updateAttachmentUrl } from './share.util';
+import {
+  getNodeAttachmentId,
+  updateAttachmentAttr,
+  updateAttachmentUrl,
+} from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
 import { getCoverAttachmentId } from '../page/page-cover.utils';
 import { validate as isValidUUID } from 'uuid';
@@ -470,6 +472,8 @@ export class ShareService {
    *    has to be passed in explicitly: the host page for direct shared
    *    content, the source page for transcluded source-block content
    *    (attachments in a sync block were uploaded onto the source page).
+   *    A node without an `attachmentId` is matched by the id in its file
+   *    url; that same check keeps its token from opening another page's file.
    *
    * 2. Strip `comment` marks. Comments are internal-team metadata and must
    *    not leak structure (existence, location, count, resolved state, or
@@ -486,11 +490,17 @@ export class ShareService {
     workspaceId: string,
   ): Promise<Node | null> {
     const pmJson = getProsemirrorContent(content);
-    const attachmentIds = getAttachmentIds(pmJson);
+    const doc = jsonToNode(pmJson);
+
+    const attachmentIds = new Set<string>();
+    doc?.descendants((node: Node) => {
+      const attachmentId = getNodeAttachmentId(node);
+      if (attachmentId) attachmentIds.add(attachmentId);
+    });
 
     const tokenMap = new Map<string, string>();
     await Promise.all(
-      attachmentIds.map(async (attachmentId: string) => {
+      Array.from(attachmentIds, async (attachmentId) => {
         const token = await this.tokenService.generateAttachmentToken({
           attachmentId,
           pageId: attachmentOwnerPageId,
@@ -500,10 +510,8 @@ export class ShareService {
       }),
     );
 
-    const doc = jsonToNode(pmJson);
     doc?.descendants((node: Node) => {
-      if (!isAttachmentNode(node.type.name)) return;
-      const token = tokenMap.get(node.attrs.attachmentId);
+      const token = tokenMap.get(getNodeAttachmentId(node));
       if (!token) return;
       updateAttachmentAttr(node, 'src', token);
       updateAttachmentAttr(node, 'url', token);
