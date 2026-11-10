@@ -34,6 +34,11 @@ export const auditEventLabels: Record<string, string> = {
   "api_key.updated": "Updated API key",
   "api_key.deleted": "Deleted API key",
 
+  "integration.installed": "Installed integration",
+  "integration.uninstalled": "Uninstalled integration",
+  "integration.connected": "Connected integration account",
+  "integration.disconnected": "Disconnected integration account",
+
   "scim_token.created": "Created SCIM token",
   "scim_token.updated": "Updated SCIM token",
   "scim_token.deleted": "Deleted SCIM token",
@@ -45,6 +50,8 @@ export const auditEventLabels: Record<string, string> = {
   "space.member_removed": "Removed space member",
   "space.member_role_changed": "Changed space member role",
   "space.exported": "Exported space",
+  "space.archived": "Archived space",
+  "space.unarchived": "Unarchived space",
 
   "group.created": "Created group",
   "group.updated": "Updated group",
@@ -52,7 +59,12 @@ export const auditEventLabels: Record<string, string> = {
   "group.member_added": "Added group member",
   "group.member_removed": "Removed group member",
 
+  "comment.updated": "Updated comment",
+  "comment.resolved": "Resolved comment",
+  "comment.reopened": "Reopened comment",
   "comment.deleted": "Deleted comment",
+
+  "attachment.deleted": "Deleted attachment",
 
   "page.trashed": "Trashed page",
   "page.deleted": "Deleted page",
@@ -67,6 +79,9 @@ export const auditEventLabels: Record<string, string> = {
   "page.verification_created": "Created page verification",
   "page.verification_updated": "Updated page verification",
   "page.verification_removed": "Removed page verification",
+  "page.verifier_added": "Added page verifier",
+  "page.verifier_removed": "Removed page verifier",
+  "page.verification_invalidated": "Invalidated page verification",
   "page.verified": "Verified page",
   "page.approval_requested": "Requested page approval",
   "page.approval_rejected": "Rejected page approval",
@@ -130,6 +145,8 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "space.deleted", label: "Deleted space" },
       { value: "space.member_added", label: "Added space member" },
       { value: "space.member_removed", label: "Removed space member" },
+      { value: "space.archived", label: "Archived space" },
+      { value: "space.unarchived", label: "Unarchived space" },
     ],
   },
   {
@@ -145,7 +162,16 @@ export const eventFilterOptions: EventGroup[] = [
   {
     group: "Comment",
     items: [
+      { value: "comment.updated", label: "Updated comment" },
+      { value: "comment.resolved", label: "Resolved comment" },
+      { value: "comment.reopened", label: "Reopened comment" },
       { value: "comment.deleted", label: "Deleted comment" },
+    ],
+  },
+  {
+    group: "Attachment",
+    items: [
+      { value: "attachment.deleted", label: "Deleted attachment" },
     ],
   },
   {
@@ -167,6 +193,9 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "page.verification_created", label: "Created page verification" },
       { value: "page.verification_updated", label: "Updated page verification" },
       { value: "page.verification_removed", label: "Removed page verification" },
+      { value: "page.verifier_added", label: "Added page verifier" },
+      { value: "page.verifier_removed", label: "Removed page verifier" },
+      { value: "page.verification_invalidated", label: "Invalidated page verification" },
       { value: "page.verified", label: "Verified page" },
       { value: "page.approval_requested", label: "Requested page approval" },
       { value: "page.approval_rejected", label: "Rejected page approval" },
@@ -193,6 +222,15 @@ export const eventFilterOptions: EventGroup[] = [
     items: [
       { value: "api_key.created", label: "Created API key" },
       { value: "api_key.deleted", label: "Deleted API key" },
+    ],
+  },
+  {
+    group: "Integrations",
+    items: [
+      { value: "integration.installed", label: "Installed integration" },
+      { value: "integration.uninstalled", label: "Uninstalled integration" },
+      { value: "integration.connected", label: "Connected integration account" },
+      { value: "integration.disconnected", label: "Disconnected integration account" },
     ],
   },
   {

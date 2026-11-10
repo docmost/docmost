@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { NumberTypeOptions } from "@/ee/base/types/base.types";
 import {
   formatNumber,
@@ -22,9 +22,6 @@ export function FieldNumber({
   const numValue = typeof value === "number" ? value : null;
   const [draft, setDraft] = useState(toDraft(value));
   const [focused, setFocused] = useState(false);
-  // Esc sets this; blur() then runs commit synchronously with the stale
-  // draft, so the revert must be decided here, not via setDraft.
-  const cancelRef = useRef(false);
 
   useEffect(() => {
     if (!focused) setDraft(toDraft(value));
@@ -43,11 +40,6 @@ export function FieldNumber({
   const commit = () => {
     setFocused(false);
     onEditingChange?.(false);
-    if (cancelRef.current) {
-      cancelRef.current = false;
-      setDraft(toDraft(value));
-      return;
-    }
     if (parseNumberDraft(draft) !== numValue) onChange(parseNumberDraft(draft));
   };
 
@@ -86,7 +78,6 @@ export function FieldNumber({
             e.preventDefault();
             e.currentTarget.blur();
           } else if (e.key === "Escape") {
-            cancelRef.current = true;
             e.currentTarget.blur();
           }
         }}

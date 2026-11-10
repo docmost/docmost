@@ -29,8 +29,15 @@ import { EnvironmentService } from '../../../integrations/environment/environmen
 import { DomainService } from '../../../integrations/environment/domain.service';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
-import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
-import { isAdminActingOnOwner } from '../workspace.util';
+import {
+  DEFAULT_LOCALE,
+  DISALLOWED_HOSTNAMES,
+  WorkspaceStatus,
+} from '../workspace.constants';
+import {
+  getWorkspaceDefaultLocale,
+  isAdminActingOnOwner,
+} from '../workspace.util';
 import { v4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
@@ -50,6 +57,9 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
+import { WsService } from '../../../ws/ws.service';
+import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -75,6 +85,9 @@ export class WorkspaceService {
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private userSessionRepo: UserSessionRepo,
+    private integrationConnectionRepo: IntegrationConnectionRepo,
+    private wsService: WsService,
+    private readonly collabAccessService: CollabAccessService,
   ) {}
 
   async findById(workspaceId: string) {
@@ -93,7 +106,16 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey', 'plan'])
+      .select([
+        'id',
+        'name',
+        'logo',
+        'hostname',
+        'enforceSso',
+        'licenseKey',
+        'plan',
+        'settings',
+      ])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -114,9 +136,12 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
-    const { licenseKey, plan, ...rest } = workspace;
+    const { licenseKey, plan, settings, ...rest } = workspace;
 
-    return rest;
+    return {
+      ...rest,
+      defaultLocale: getWorkspaceDefaultLocale(workspace) ?? DEFAULT_LOCALE,
+    };
   }
 
   async create(
@@ -147,7 +172,7 @@ export class WorkspaceService {
           status = WorkspaceStatus.Active;
           plan = 'standard';
           billingEmail = user.email;
-          settings = { ai: { generative: true, chat: true } };
+          settings = { ai: { generative: true, chat: true, search: true } };
         }
 
         // create workspace
@@ -251,6 +276,13 @@ export class WorkspaceService {
           { userId: user.id },
           { delay: 30 * 60 * 1000 }, // 30m
         );
+
+        // Saves the embedding fingerprint once the signup transaction has committed
+        await this.aiQueue.add(
+          QueueJob.WORKSPACE_CREATE_EMBEDDINGS,
+          { workspaceId: createdWorkspace.id },
+          { delay: 60 * 1000 },
+        );
       } catch (err) {
         this.logger.error(err);
       }
@@ -309,11 +341,19 @@ export class WorkspaceService {
 
     if (updateWorkspaceDto.emailDomains) {
       const regex =
-        /(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]/;
-      const emailDomains = updateWorkspaceDto.emailDomains || [];
-      updateWorkspaceDto.emailDomains = emailDomains
-        .map((domain) => regex.exec(domain)?.[0])
-        .filter(Boolean);
+        /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/;
+      const emailDomains = updateWorkspaceDto.emailDomains.map((domain) =>
+        domain.trim().toLowerCase().replace(/^@/, ''),
+      );
+      const invalidDomains = emailDomains.filter(
+        (domain) => !regex.test(domain),
+      );
+      if (invalidDomains.length > 0) {
+        throw new BadRequestException(
+          `Invalid email domains: ${invalidDomains.join(', ')}`,
+        );
+      }
+      updateWorkspaceDto.emailDomains = [...new Set(emailDomains)];
     }
 
     if (updateWorkspaceDto.hostname) {
@@ -659,6 +699,19 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.defaultLocale !== 'undefined') {
+        const prev = getWorkspaceDefaultLocale(workspaceBefore) ?? DEFAULT_LOCALE;
+        if (prev !== updateWorkspaceDto.defaultLocale) {
+          before.defaultLocale = prev;
+          after.defaultLocale = updateWorkspaceDto.defaultLocale;
+        }
+        await this.workspaceRepo.updateDefaultLocale(
+          workspaceId,
+          updateWorkspaceDto.defaultLocale,
+          trx,
+        );
+      }
+
       delete updateWorkspaceDto.restrictApiToAdmins;
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
@@ -670,6 +723,7 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
       delete updateWorkspaceDto.defaultPageEditMode;
+      delete updateWorkspaceDto.defaultLocale;
       delete updateWorkspaceDto.aiChatReadOnly;
       delete updateWorkspaceDto.aiChatWorkspaceKnowledgeOnly;
       delete updateWorkspaceDto.enforceMcpOauth;
@@ -904,9 +958,13 @@ export class WorkspaceService {
         trx,
       );
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+      await this.integrationConnectionRepo.deleteUserConnections(userId, trx);
 
       return user;
     });
+
+    this.wsService.disconnectUser(userId);
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
 
     this.auditService.log({
       event: AuditEvent.USER_DEACTIVATED,
@@ -1028,9 +1086,13 @@ export class WorkspaceService {
       });
 
       await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+      await this.integrationConnectionRepo.deleteUserConnections(userId, trx);
 
       return user;
     });
+
+    this.wsService.disconnectUser(userId);
+    await this.collabAccessService.recheckAccess({ userIds: [userId] });
 
     this.auditService.log({
       event: AuditEvent.USER_DELETED,

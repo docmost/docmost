@@ -2,7 +2,6 @@ import * as path from 'path';
 import * as bcrypt from 'bcrypt';
 import sanitize = require('sanitize-filename');
 import { FastifyRequest } from 'fastify';
-import { Readable, Transform } from 'stream';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
@@ -189,7 +188,7 @@ export function isUserDisabled(user: {
   return !!(user.deactivatedAt || user.deletedAt);
 }
 
-const SENSITIVE_URL_PREFIXES = ['/api/sso/'];
+const SENSITIVE_URL_PREFIXES = ['/api/sso/', '/api/integrations/oauth/'];
 
 export function redactSensitiveUrl(url: string): string {
   if (url && SENSITIVE_URL_PREFIXES.some((prefix) => url.includes(prefix))) {
@@ -199,19 +198,4 @@ export function redactSensitiveUrl(url: string): string {
     }
   }
   return url;
-}
-
-export function createByteCountingStream(source: Readable) {
-  let bytesRead = 0;
-  const stream = new Transform({
-    transform(chunk, encoding, callback) {
-      bytesRead += chunk.length;
-      callback(null, chunk);
-    },
-  });
-
-  source.pipe(stream);
-  source.on('error', (err) => stream.emit('error', err));
-
-  return { stream, getBytesRead: () => bytesRead };
 }

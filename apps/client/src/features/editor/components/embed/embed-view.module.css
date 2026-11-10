@@ -7,6 +7,53 @@
   justify-content: center;
 }
 
+.embedContainer[data-align="left"] {
+  justify-content: flex-start;
+}
+
+.embedContainer[data-align="right"] {
+  justify-content: flex-end;
+}
+
+.frame {
+  position: relative;
+}
+
+.controls {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.controls::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.frame:hover .controls,
+.frame[data-menu-open="true"] .controls,
+.controls:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media print {
+  .controls {
+    display: none !important;
+  }
+}
+
 .embedWrapper {
   @mixin light {
     background-color: var(--mantine-color-gray-0);

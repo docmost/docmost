@@ -1,5 +1,6 @@
 import {
   afterUnloadDocumentPayload,
+  beforeHandleAwarenessPayload,
   Extension,
   onChangePayload,
   onLoadDocumentPayload,
@@ -8,7 +9,12 @@ import {
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { getPageId, jsonToText, tiptapExtensions } from '../collaboration.util';
+import {
+  getPageId,
+  isRenderableObject,
+  jsonToText,
+  tiptapExtensions,
+} from '../collaboration.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -33,11 +39,15 @@ import {
   HISTORY_INTERVAL,
 } from '../constants';
 import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
+import { PageVerificationInvalidationService } from '../../core/page/verification/page-verification-invalidation.service';
+import { PageVerificationInvalidation } from '../../core/page/verification/page-verification-invalidation.types';
+import { isSameDocumentContent } from '../content-comparison.util';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
   private readonly logger = new Logger(PersistenceExtension.name);
   private contributors: Map<string, Set<string>> = new Map();
+  private lastChangeAt = new Map<string, number>();
 
   constructor(
     private readonly pageRepo: PageRepo,
@@ -47,6 +57,7 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     private readonly collabHistory: CollabHistoryService,
     private readonly transclusionService: TransclusionService,
+    private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -99,6 +110,7 @@ export class PersistenceExtension implements Extension {
     const { documentName, document, lastContext } = data;
 
     const pageId = getPageId(documentName);
+    const lastChangeAt = this.lastChangeAt.get(documentName);
 
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
@@ -112,6 +124,7 @@ export class PersistenceExtension implements Extension {
     }
 
     let page: Page = null;
+    let invalidation: PageVerificationInvalidation | null = null;
     const editingUserIds = this.consumeContributors(documentName);
 
     try {
@@ -158,13 +171,48 @@ export class PersistenceExtension implements Extension {
           trx,
         );
 
+        invalidation =
+          await this.pageVerificationInvalidationService.invalidateForEdit(
+            {
+              pageId: page.id,
+              userId: lastContext?.user?.id ?? null,
+              changedAt: lastChangeAt ? new Date(lastChangeAt) : null,
+              isMeaningfulChange: () =>
+                !isSameDocumentContent(page.content, tiptapJson),
+              loadPreviousState: async () => page,
+            },
+            trx,
+          );
+
         this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
+      page = null;
+      invalidation = null;
+      editingUserIds.forEach((userId) =>
+        this.trackContributor(documentName, userId),
+      );
+    }
+
+    if (invalidation) {
+      await this.pageVerificationInvalidationService.notifyInvalidated(
+        invalidation,
+        lastContext?.user?.id ?? null,
+        'content',
+      );
     }
 
     if (page) {
+      try {
+        await this.collabHistory.addContributors(pageId, editingUserIds);
+      } catch (err) {
+        this.logger.error(
+          { err, pageId },
+          'Failed to add history contributors for page',
+        );
+      }
+
       document.broadcastStateless(
         JSON.stringify({
           type: 'page.updated',
@@ -184,8 +232,6 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
-      await this.collabHistory.addContributors(pageId, editingUserIds);
-
       const mentions = extractMentions(tiptapJson);
 
       const userMentions = extractUserMentions(mentions);
@@ -217,12 +263,46 @@ export class PersistenceExtension implements Extension {
     }
   }
 
+  // Drop malformed awareness before it is broadcast
+  async beforeHandleAwareness({
+    states,
+    context,
+  }: beforeHandleAwarenessPayload) {
+    const user = context?.user;
+
+    for (const [clientId, state] of states) {
+      if (!isRenderableObject(state)) {
+        states.delete(clientId);
+        continue;
+      }
+
+      if ('user' in state && !isRenderableObject(state.user)) {
+        delete state.user;
+      }
+
+      if (state.user && user) {
+        state.user.id = user.id;
+        state.user.avatarUrl = user.avatarUrl ?? null;
+      }
+
+      if (
+        'cursor' in state &&
+        state.cursor !== null &&
+        !isRenderableObject(state.cursor)
+      ) {
+        delete state.cursor;
+      }
+    }
+  }
+
   async onChange(data: onChangePayload) {
-    const documentName = data.documentName;
+    this.lastChangeAt.set(data.documentName, Date.now());
     const userId = data.context?.user?.id;
-
     if (!userId) return;
+    this.trackContributor(data.documentName, userId);
+  }
 
+  private trackContributor(documentName: string, userId: string) {
     if (!this.contributors.has(documentName)) {
       this.contributors.set(documentName, new Set());
     }
@@ -233,6 +313,7 @@ export class PersistenceExtension implements Extension {
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
     this.contributors.delete(documentName);
+    this.lastChangeAt.delete(documentName);
   }
 
   private consumeContributors(documentName: string): string[] {

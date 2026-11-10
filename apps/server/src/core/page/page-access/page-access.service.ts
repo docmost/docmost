@@ -7,6 +7,7 @@ import {
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { CacheOptions } from '../../../common/helpers/with-cache';
 
 @Injectable()
 export class PageAccessService {
@@ -21,9 +22,17 @@ export class PageAccessService {
    * If page has restrictions: page-level permission determines access.
    * If no restrictions: space-level permission determines access.
    */
-  async validateCanView(page: Page, user: User): Promise<void> {
+  async validateCanView(
+    page: Page,
+    user: User,
+    opts?: CacheOptions,
+  ): Promise<void> {
     // TODO: cache by pageId and userId.
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+      opts,
+    );
 
     // User must be at least a space member
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
@@ -33,6 +42,7 @@ export class PageAccessService {
     const canAccess = await this.pagePermissionRepo.canUserAccessPage(
       user.id,
       page.id,
+      opts,
     );
     if (!canAccess) {
       throw new ForbiddenException();
@@ -100,6 +110,17 @@ export class PageAccessService {
     }
 
     return { hasRestriction: hasAnyRestriction };
+  }
+
+  /**
+   * Validate user can create a root page in the space, throws if not.
+   * For non-HTTP callers (Slack, integrations) that skip the controller check.
+   */
+  async validateCanCreate(spaceId: string, user: User): Promise<void> {
+    const ability = await this.spaceAbility.createForUser(user, spaceId);
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
   }
 
   async validateCanComment(

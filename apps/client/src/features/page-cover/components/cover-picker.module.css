@@ -1,0 +1,264 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-xs);
+  padding-inline: var(--mantine-spacing-md) var(--mantine-spacing-xs);
+  border-bottom: 1px solid var(--tab-border-color, var(--mantine-color-default-border));
+}
+
+.tabList {
+  flex: 1;
+  min-width: 0;
+
+  &::before {
+    display: none;
+  }
+}
+
+.body {
+  padding: var(--mantine-spacing-md);
+}
+
+.section + .section {
+  margin-top: var(--mantine-spacing-md);
+}
+
+.sectionTitle {
+  margin-bottom: rem(8px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: rem(8px);
+}
+
+.colorGrid {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: var(--mantine-radius-sm);
+  background-size: cover;
+  background-position: center;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  box-shadow: inset 0 0 0 1px
+    light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.16));
+  transition: filter 120ms ease;
+
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(0.94);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 4px;
+  }
+
+  &[data-selected="true"] {
+    box-shadow:
+      0 0 0 2px var(--mantine-color-body),
+      0 0 0 4px
+        light-dark(var(--mantine-primary-color-filled), var(--mantine-color-blue-4));
+  }
+}
+
+.colorTile {
+  aspect-ratio: 5 / 3;
+}
+
+@media (forced-colors: active) {
+  .tile[data-selected="true"] {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .colorTile {
+    forced-color-adjust: none;
+  }
+}
+
+.check {
+  position: absolute;
+  top: rem(4px);
+  right: rem(4px);
+  display: grid;
+  place-items: center;
+  width: rem(16px);
+  height: rem(16px);
+  border-radius: 50%;
+  background-color: var(--mantine-color-white);
+  color: var(--mantine-primary-color-filled);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: rem(10px);
+  min-height: rem(180px);
+  padding: var(--mantine-spacing-lg);
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+
+  &[data-dragging] {
+    border-color: var(--mantine-primary-color-filled);
+    background-color: var(--mantine-primary-color-light);
+  }
+}
+
+.dropIcon {
+  color: var(--mantine-color-dimmed);
+}
+
+.searchRow {
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-md) 0;
+}
+
+.photoBody {
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md)
+    var(--mantine-spacing-md);
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: rem(8px);
+}
+
+.photoTile {
+  position: relative;
+}
+
+.photoButton {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  transition: filter 120ms ease;
+
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(0.94);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 4px;
+  }
+}
+
+.photoTile[data-selected] .photoButton {
+  box-shadow:
+    0 0 0 2px var(--mantine-color-body),
+    0 0 0 4px
+      light-dark(var(--mantine-primary-color-filled), var(--mantine-color-blue-4));
+}
+
+.photoImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* only the name is a link, the rest of the bar lets clicks through to the photo */
+.photoCreditBar {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  padding: rem(16px) rem(6px) rem(4px);
+  border-radius: 0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 55%, transparent);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.photoCredit {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mantine-color-white);
+  font-size: rem(11px);
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  pointer-events: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.photoTile:hover .photoCreditBar,
+.photoTile:focus-within .photoCreditBar {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .photoTile:hover .photoCredit {
+    pointer-events: auto;
+  }
+}
+
+@media (hover: none) {
+  .photoCreditBar {
+    opacity: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .photoTile[data-selected] .photoButton {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+.photoSkeleton {
+  aspect-ratio: 3 / 2;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.photoMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: rem(10px);
+  padding: rem(32px) var(--mantine-spacing-md);
+  text-align: center;
+}
+
+.photoSource {
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  border-top: 1px solid var(--mantine-color-default-border);
+  text-align: center;
+
+  & a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}

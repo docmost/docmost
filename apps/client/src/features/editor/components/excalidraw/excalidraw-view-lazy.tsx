@@ -1,7 +1,8 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
+import { lazyWithPrefetch } from "@/lib/lazy-prefetch.ts";
 import { NodeViewProps } from "@tiptap/react";
 
-const ExcalidrawView = lazy(
+const ExcalidrawView = lazyWithPrefetch(
   () => import("@/features/editor/components/excalidraw/excalidraw-view.tsx"),
 );
 

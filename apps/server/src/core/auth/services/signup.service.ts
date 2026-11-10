@@ -5,7 +5,10 @@ import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { getWorkspaceDefaultPageEditMode } from '../../workspace/workspace.util';
+import {
+  getWorkspaceDefaultLocale,
+  getWorkspaceDefaultPageEditMode,
+} from '../../workspace/workspace.util';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
@@ -58,7 +61,10 @@ export class SignupService {
             workspaceId: workspaceId,
           },
           trx,
-          { pageEditMode: getWorkspaceDefaultPageEditMode(workspace) },
+          {
+            pageEditMode: getWorkspaceDefaultPageEditMode(workspace),
+            locale: getWorkspaceDefaultLocale(workspace),
+          },
         );
 
         // add user to workspace

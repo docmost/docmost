@@ -11,6 +11,35 @@
     }
 }
 
+.coverRow {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    margin-bottom: 4px;
+    padding-left: calc(3rem - 8px);
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        padding-left: calc(1rem - 8px);
+    }
+}
+
+.addCover {
+    opacity: 0;
+    transition: opacity 120ms ease;
+
+    &:focus-visible {
+        opacity: 1;
+    }
+
+    @media (hover: none) {
+        opacity: 1;
+    }
+}
+
+.titleArea:hover .addCover {
+    opacity: 1;
+}
+
 .byline {
     padding-left: 3rem;
 
