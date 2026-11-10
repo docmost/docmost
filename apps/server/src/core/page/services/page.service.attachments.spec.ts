@@ -210,6 +210,7 @@ describe('PageService attachments in content saved through the API', () => {
   it.each([
     ['of another workspace', { workspaceId: OTHER_WORKSPACE_ID }],
     ['that belongs to no page', { pageId: null }],
+    ['that is a page cover', { type: 'page-cover' }],
   ])('leaves a file %s alone', async (_case, overrides) => {
     const { save, attachments, storageService } = makeService({
       canViewOtherPage: true,

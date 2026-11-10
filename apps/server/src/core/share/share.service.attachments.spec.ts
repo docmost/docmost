@@ -92,7 +92,7 @@ describe('ShareService.updatePublicAttachments', () => {
   });
 
   it('leaves urls that are not attachment files alone', async () => {
-    const external = 'https://example.com/files/cat.png';
+    const external = `https://cdn.example.com/files/${FILE_ID}/cat.png`;
     const alreadyPublic = `/api/files/public/${FILE_ID}/cat.png?jwt=old`;
 
     const { attrs, tokenService } = await share(

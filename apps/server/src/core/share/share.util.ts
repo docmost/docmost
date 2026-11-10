@@ -12,7 +12,15 @@ export function getNodeAttachmentId(node: Node): string | undefined {
   if (!isAttachmentNode(node.type.name)) return undefined;
   const { attachmentId, src, url } = node.attrs;
   if (isValidUUID(attachmentId)) return attachmentId;
-  return getAttachmentIdFromUrl(src) ?? getAttachmentIdFromUrl(url);
+  return getIdFromRelativeUrl(src) ?? getIdFromRelativeUrl(url);
+}
+
+// Only this instance's own file urls: an absolute url can be an image on
+// another host whose path happens to look like one.
+function getIdFromRelativeUrl(url: unknown): string | undefined {
+  return typeof url === 'string' && url.startsWith('/')
+    ? getAttachmentIdFromUrl(url)
+    : undefined;
 }
 
 export function updateAttachmentAttr(

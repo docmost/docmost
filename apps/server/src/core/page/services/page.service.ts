@@ -1421,7 +1421,12 @@ export class PageService {
     let user: User;
 
     for (const attachment of attachments) {
-      if (attachment.workspaceId !== page.workspaceId || !attachment.pageId) {
+      if (
+        attachment.workspaceId !== page.workspaceId ||
+        !attachment.pageId ||
+        // page covers have their own lifecycle and are not content files
+        attachment.type !== AttachmentType.File
+      ) {
         continue;
       }
 
