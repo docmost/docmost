@@ -7,6 +7,7 @@ import {
   GoogleDocsIcon,
   JiraIcon,
   LinearIcon,
+  Microsoft365Icon,
   SlackIcon,
 } from "@/components/icons";
 import { IconPuzzle } from "@tabler/icons-react";
@@ -20,6 +21,7 @@ const integrationIconMap: Record<string, (size: number) => ReactNode> = {
   figma: (size) => <FigmaIcon size={size} />,
   google_docs: (size) => <GoogleDocsIcon size={size} />,
   azure_devops: (size) => <AzureDevOpsIcon size={size} />,
+  microsoft_365: (size) => <Microsoft365Icon size={size} />,
 };
 
 export function getIntegrationIcon(

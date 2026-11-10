@@ -55,12 +55,17 @@ import {
   FramerIcon,
   GoogleDriveIcon,
   LoomIcon,
+  Microsoft365Icon,
   MiroIcon,
   TypeformIcon,
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
 import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/insert-base-embed";
+import { notifications } from "@mantine/notifications";
+import { isIntegrationInstalled } from "@/features/integration/utils/installed-integrations";
+import { requestMicrosoftPicker } from "@/features/microsoft/atoms/microsoft-atoms";
+import { isCloud } from "@/lib/config";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -796,6 +801,30 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setEmbed({ provider: "gdrive" })
+          .run();
+      },
+    },
+    {
+      title: "SharePoint file",
+      description: "Embed a SharePoint file",
+      searchTerms: ["sharepoint", "onedrive", "microsoft", "office", "word", "excel", "powerpoint", "m365"],
+      icon: Microsoft365Icon,
+      disable: () => isCloud(),
+      command: ({ editor, range }: CommandProps) => {
+        if (!isIntegrationInstalled("microsoft_365")) {
+          notifications.show({
+            message: i18n.t("Ask a workspace admin to install the Microsoft 365 integration first"),
+            color: "red",
+          });
+          return;
+        }
+        const pendingKey = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+        requestMicrosoftPicker(pendingKey);
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setMicrosoftFile({ items: [], pendingKey })
           .run();
       },
     },

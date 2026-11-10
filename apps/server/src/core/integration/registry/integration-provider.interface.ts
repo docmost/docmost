@@ -179,6 +179,7 @@ export class ProviderApiError extends Error {
     readonly provider: string,
     readonly status: number,
     statusText = '',
+    readonly retryAfterSeconds?: number,
   ) {
     super(`${provider} API error: ${status} ${statusText}`.trimEnd());
     this.name = 'ProviderApiError';

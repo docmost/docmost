@@ -14,6 +14,7 @@ import { notifications } from "@mantine/notifications";
 import { describeIntegrationLink, isHttpUrl } from "@docmost/editor-ext";
 import { getIntegrationIcon } from "@/features/integration/components/integration-icons";
 import { getOAuthAuthorizeUrl } from "@/features/integration/services/integration-service";
+import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
 import { useUnfurl } from "./use-unfurl";
 import { badgeTextColor, toBadgeColor } from "./badge-color";
 import classes from "./integration-mention-view.module.css";
@@ -188,6 +189,21 @@ function IntegrationMentionView(props: any) {
         <span className={classes.mentionMeta}>{typeLabel}</span>
         <span className={classes.mentionText}>{data.title}</span>
         {statusBadge}
+      </>
+    );
+  } else if (provider === "microsoft_365") {
+    content = (
+      <>
+        <span className={classes.mentionIcon} style={{ display: "flex" }}>
+          {fileTypeIcon({
+            name: meta.name ?? data.title,
+            mimeType: meta.mimeType,
+            kind: meta.kind,
+            size: 14,
+          })}
+        </span>
+        <span className={classes.mentionText}>{data.title}</span>
+        {getIntegrationIcon(provider, 14)}
       </>
     );
   } else {
