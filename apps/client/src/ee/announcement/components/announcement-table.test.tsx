@@ -22,6 +22,7 @@ const announcement = (
   overrides: Partial<IAnnouncement> = {},
 ): IAnnouncement => ({
   id: `id-${status}`,
+  title: "Maintenance window",
   type: "warning",
   color: "yellow",
   content: {
@@ -68,7 +69,7 @@ function renderTable(
 
 function openActions() {
   fireEvent.click(
-    screen.getByRole("button", { name: "Actions for Planned maintenance" }),
+    screen.getByRole("button", { name: "Actions for Maintenance window" }),
   );
 }
 
@@ -103,7 +104,6 @@ describe("AnnouncementTable", () => {
   it.each([
     ["active", ["Edit", "Archive"]],
     ["scheduled", ["Edit", "Archive"]],
-    ["ended", ["Edit", "Delete"]],
     ["archived", ["Edit", "Unarchive", "Delete"]],
   ] as const)("offers the actions an %s announcement allows", (status, labels) => {
     renderTable([announcement(status)]);
@@ -111,6 +111,28 @@ describe("AnnouncementTable", () => {
     expect(
       screen.getAllByRole("menuitem").map((item) => item.textContent),
     ).toEqual(labels);
+  });
+
+  it("offers Unarchive for an archived announcement whose end is still ahead", () => {
+    renderTable([
+      announcement("archived", {
+        endsAt: new Date(Date.now() + 86_400_000).toISOString(),
+      }),
+    ]);
+    openActions();
+    expect(
+      screen.getAllByRole("menuitem").map((item) => item.textContent),
+    ).toEqual(["Edit", "Unarchive", "Delete"]);
+  });
+
+  it("hides Unarchive for an archived announcement whose end has passed", () => {
+    renderTable([
+      announcement("archived", { endsAt: "2020-01-01T18:00:00.000Z" }),
+    ]);
+    openActions();
+    expect(
+      screen.getAllByRole("menuitem").map((item) => item.textContent),
+    ).toEqual(["Edit", "Delete"]);
   });
 
   it.each([
@@ -163,21 +185,14 @@ describe("AnnouncementTable", () => {
     expect(within(row).getByRole("img", { name: "Gray" })).toBeTruthy();
   });
 
-  it("keeps the row menu name to a short preview of a long message", () => {
-    const text = "Planned maintenance on the storage cluster. ".repeat(6).trim();
-    renderTable([
-      announcement("active", {
-        content: {
-          type: "doc",
-          content: [{ type: "paragraph", content: [{ type: "text", text }] }],
-        },
-      }),
-    ]);
-    expect(
-      screen.getByRole("button", {
-        name: `Actions for ${text.slice(0, 79)}…`,
-      }),
-    ).toBeTruthy();
+  it("shows the title with a preview of the message beneath", () => {
+    renderTable([announcement("active")]);
+    const [, row] = screen.getAllByRole("row");
+
+    expect(within(row).getByText("Maintenance window")).toBeTruthy();
+    expect(within(row).getByText("Planned maintenance")).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Title" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Message" })).toBeNull();
   });
 
   it("shows three skeleton rows while loading", () => {

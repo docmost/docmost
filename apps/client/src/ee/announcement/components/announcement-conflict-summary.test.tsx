@@ -18,8 +18,8 @@ const format = (iso: string) =>
   });
 
 const announcements = [
-  { id: "b", preview: "Acceptable use policy" },
-  { id: "c", preview: "Holiday hours" },
+  { id: "b", title: "Acceptable use policy" },
+  { id: "c", title: "Holiday hours" },
 ];
 
 beforeEach(() => {

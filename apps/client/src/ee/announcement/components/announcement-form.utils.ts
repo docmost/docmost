@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import {
   ANNOUNCEMENT_TYPE_DEFAULT_COLOR,
   ANNOUNCEMENT_MAX_TEXT_LENGTH,
+  ANNOUNCEMENT_MAX_TITLE_LENGTH,
 } from "@/ee/announcement/announcement.constants";
 import {
   formatAnnouncementTime,
@@ -19,6 +20,7 @@ import type {
 } from "@/ee/announcement/types/announcement.types";
 
 export type AnnouncementFormValues = {
+  title: string;
   type: AnnouncementType;
   color: AnnouncementColor;
   content: IAnnouncementContent | null;
@@ -38,6 +40,7 @@ export function getInitialValues(
 ): AnnouncementFormValues {
   if (!announcement) {
     return {
+      title: "",
       type: "info",
       color: ANNOUNCEMENT_TYPE_DEFAULT_COLOR.info,
       content: null,
@@ -48,6 +51,7 @@ export function getInitialValues(
     };
   }
   return {
+    title: announcement.title,
     type: announcement.type,
     color: announcement.color,
     content: announcement.content,
@@ -83,6 +87,12 @@ export function validateAnnouncementForm(
   now = Date.now(),
 ): AnnouncementFormErrors {
   const errors: AnnouncementFormErrors = {};
+  const title = values.title.trim();
+  if (!title) {
+    errors.title = t("Announcement title is required");
+  } else if (title.length > ANNOUNCEMENT_MAX_TITLE_LENGTH) {
+    errors.title = t("Announcement title is too long");
+  }
   const text = values.content ? getAnnouncementPlainText(values.content) : "";
   if (!text.trim()) {
     errors.content = t("Announcement message is required");
@@ -110,6 +120,7 @@ export function toAnnouncementInput(
   announcement: IAnnouncement | null,
 ): IAnnouncementInput {
   return {
+    title: values.title.trim(),
     type: values.type,
     color: values.color,
     content: values.content,

@@ -93,6 +93,7 @@ vi.mock("@mantine/dates", () => ({
 
 const stored = (overrides: Partial<IAnnouncement> = {}): IAnnouncement => ({
   id: "a1",
+  title: "Maintenance window",
   type: "warning",
   color: "yellow",
   content: doc("Planned maintenance"),
@@ -136,6 +137,11 @@ function renderModal(announcement: IAnnouncement | null = null) {
   );
   return { onClose };
 }
+
+const typeTitle = (text: string) =>
+  fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
+    target: { value: text },
+  });
 
 const typeMessage = (text: string) =>
   fireEvent.change(screen.getByRole("textbox", { name: "Message" }), {
@@ -186,11 +192,13 @@ describe("AnnouncementFormModal", () => {
     const { onClose } = renderModal();
     expect(screen.getByRole("dialog", { name: "New announcement" })).toBeTruthy();
 
+    typeTitle("Maintenance");
     typeMessage("Maintenance tonight");
     submit();
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(vi.mocked(service.createAnnouncement).mock.calls[0][0]).toEqual({
+      title: "Maintenance",
       type: "info",
       color: "blue",
       content: doc("Maintenance tonight"),
@@ -212,6 +220,7 @@ describe("AnnouncementFormModal", () => {
     ).toBe("true");
 
     fireEvent.click(within(colors).getByRole("radio", { name: "Purple" }));
+    typeTitle("Outage");
     typeMessage("Outage");
     submit();
 
@@ -237,6 +246,7 @@ describe("AnnouncementFormModal", () => {
   it("shows a validation error and sends nothing", () => {
     renderModal();
     submit();
+    expect(screen.getByText("Announcement title is required")).toBeTruthy();
     expect(screen.getByText("Announcement message is required")).toBeTruthy();
     expect(service.createAnnouncement).not.toHaveBeenCalled();
   });
@@ -246,7 +256,7 @@ describe("AnnouncementFormModal", () => {
     submit();
     await waitFor(() =>
       expect(document.activeElement).toBe(
-        screen.getByRole("textbox", { name: "Message" }),
+        screen.getByRole("textbox", { name: "Title" }),
       ),
     );
   });
@@ -271,6 +281,7 @@ describe("AnnouncementFormModal", () => {
     renderModal();
     expect(screen.queryByText("Preview")).toBeNull();
 
+    typeTitle("Maintenance");
     typeMessage("Maintenance tonight");
 
     expect(screen.getByText("Preview")).toBeTruthy();
@@ -302,6 +313,7 @@ describe("AnnouncementFormModal", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(vi.mocked(service.updateAnnouncement).mock.calls[0][0]).toEqual({
       announcementId: "a1",
+      title: "Maintenance window",
       type: "warning",
       color: "yellow",
       content: doc("Planned maintenance moved"),
@@ -312,10 +324,10 @@ describe("AnnouncementFormModal", () => {
     });
   });
 
-  it("saves other fields of an ended announcement without moving its end", async () => {
-    const ended = stored({ status: "ended", endsAt: "2020-01-01T18:00:00.789Z", startsAt: "2019-12-30T09:00:00.000Z" });
-    vi.mocked(service.updateAnnouncement).mockResolvedValue(ended);
-    const { onClose } = renderModal(ended);
+  it("saves other fields of an expired announcement without moving its end", async () => {
+    const expired = stored({ status: "archived", endsAt: "2020-01-01T18:00:00.789Z", startsAt: "2019-12-30T09:00:00.000Z" });
+    vi.mocked(service.updateAnnouncement).mockResolvedValue(expired);
+    const { onClose } = renderModal(expired);
     await screen.findByRole("textbox", { name: "Ends" });
 
     choose("Audience", "Logged-in users");
@@ -336,13 +348,14 @@ describe("AnnouncementFormModal", () => {
           from: "2026-11-05T09:00:00.000Z",
           to: "2026-11-05T18:00:00.000Z",
           announcements: [
-            { id: "b", preview: "Acceptable use policy" },
-            { id: "c", preview: "Holiday hours" },
+            { id: "b", title: "Acceptable use policy" },
+            { id: "c", title: "Holiday hours" },
           ],
         },
       }),
     );
     const { onClose } = renderModal();
+    typeTitle("Maintenance");
     typeMessage("Maintenance tonight");
     submit();
 
@@ -357,6 +370,7 @@ describe("AnnouncementFormModal", () => {
       requestError({ message: "Unsupported link in announcement message" }, 400),
     );
     renderModal();
+    typeTitle("Maintenance");
     typeMessage("Maintenance tonight");
     submit();
 

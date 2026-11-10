@@ -42,6 +42,9 @@ export interface Announcements {
   isDismissible: Generated<boolean>;
   lastUpdatedById: string | null;
   startsAt: Generated<Timestamp>;
+  textContent: string;
+  title: string;
+  tsv: string | null;
   type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;

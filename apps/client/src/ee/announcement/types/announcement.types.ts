@@ -10,7 +10,7 @@ export type AnnouncementColor = (typeof ANNOUNCEMENT_COLORS)[number];
 
 export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
 
-export type AnnouncementStatus = "scheduled" | "active" | "ended" | "archived";
+export type AnnouncementStatus = "scheduled" | "active" | "archived";
 
 export type AnnouncementSurface = "app" | "public";
 
@@ -51,6 +51,7 @@ export type IVisibleBanners = {
 };
 
 export type IAnnouncement = IAnnouncementBanner & {
+  title: string;
   audience: AnnouncementAudience;
   archivedAt: string | null;
   status: AnnouncementStatus;
@@ -59,6 +60,7 @@ export type IAnnouncement = IAnnouncementBanner & {
 };
 
 export type IAnnouncementInput = {
+  title: string;
   type: AnnouncementType;
   color: AnnouncementColor;
   content: IAnnouncementContent;
@@ -76,11 +78,11 @@ export type IUpdateAnnouncementInput = IAnnouncementInput &
 export type IAnnouncementLimitConflict = {
   from: string;
   to: string | null;
-  announcements: { id: string; preview: string }[];
+  announcements: { id: string; title: string }[];
 };
 
 export type IAnnouncementListParams = {
-  archived?: boolean;
   cursor?: string;
   limit?: number;
+  query?: string;
 };

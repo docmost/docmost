@@ -30,6 +30,8 @@ export const ANNOUNCEMENT_COLORS = [
 
 export const ANNOUNCEMENT_AUDIENCES = ["members", "everyone"] as const;
 
+export const ANNOUNCEMENT_MAX_TITLE_LENGTH = 100;
+
 export const ANNOUNCEMENT_MAX_TEXT_LENGTH = 500;
 
 export const ANNOUNCEMENT_PREVIEW_LENGTH = 80;

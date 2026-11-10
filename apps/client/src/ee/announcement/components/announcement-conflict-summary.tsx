@@ -25,7 +25,7 @@ export function AnnouncementConflictSummary({
       </Text>
       <List size="sm" mt={4}>
         {conflict.announcements.map((clash) => (
-          <List.Item key={clash.id}>{clash.preview}</List.Item>
+          <List.Item key={clash.id}>{clash.title}</List.Item>
         ))}
       </List>
     </>

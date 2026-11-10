@@ -35,6 +35,7 @@ const LICENSE_ALERT = "Announcements require an Enterprise license.";
 
 const announcement: IAnnouncement = {
   id: "a1",
+  title: "Maintenance window",
   type: "info",
   color: "blue",
   content: {
@@ -131,8 +132,7 @@ describe("Announcements page", () => {
 
   it("shows skeleton rows, not an empty list, while the entitlements load", () => {
     renderPage();
-    expect(screen.queryByText("No active announcements")).toBeNull();
-    expect(screen.queryByText("No archived announcements")).toBeNull();
+    expect(screen.queryByText("No announcements yet")).toBeNull();
     expect(
       screen
         .getAllByRole("table", { hidden: true })
@@ -149,43 +149,52 @@ describe("Announcements page", () => {
   it("lists the current announcements when licensed", async () => {
     vi.mocked(service.getAnnouncements).mockResolvedValue(page([announcement]));
     renderPage([Feature.ANNOUNCEMENTS]);
-    expect(await screen.findByText("Planned maintenance")).toBeTruthy();
+    expect(await screen.findByText("Maintenance window")).toBeTruthy();
     expect(service.getAnnouncements).toHaveBeenCalledTimes(1);
-    expect(service.getAnnouncements).toHaveBeenCalledWith({ limit: 20 });
+    expect(service.getAnnouncements).toHaveBeenCalledWith({ limit: 20, query: "" });
     expect(screen.queryByText(LICENSE_ALERT)).toBeNull();
     expect(newAnnouncementButton().disabled).toBe(false);
   });
 
-  it("switches to the archived list with the status filter", async () => {
-    // jsdom has no scrollIntoView, which Mantine's combobox calls
-    Element.prototype.scrollIntoView = () => {};
-    const archivedAnnouncement: IAnnouncement = {
-      ...announcement,
-      id: "a2",
-      content: {
-        type: "doc",
-        content: [
-          { type: "paragraph", content: [{ type: "text", text: "Old notice" }] },
-        ],
-      },
-      archivedAt: "2026-11-05T09:00:00.000Z",
-      status: "archived",
-    };
+  it("searches by what the admin types and shows the matches", async () => {
     vi.mocked(service.getAnnouncements).mockImplementation(async (params) =>
-      page(params.archived ? [archivedAnnouncement] : [announcement]),
+      page(params.query ? [{ ...announcement, title: "Holiday hours" }] : [announcement]),
     );
     renderPage([Feature.ANNOUNCEMENTS]);
-    await screen.findByText("Planned maintenance");
+    await screen.findByText("Maintenance window");
 
-    fireEvent.click(screen.getByRole("combobox", { name: "Status" }));
-    fireEvent.click(screen.getByRole("option", { name: "Archived" }));
-
-    expect(await screen.findByText("Old notice")).toBeTruthy();
-    expect(service.getAnnouncements).toHaveBeenCalledWith({
-      archived: true,
-      limit: 20,
+    fireEvent.change(screen.getByRole("textbox", { name: "Search" }), {
+      target: { value: "holiday" },
     });
-    expect(screen.queryByText("Planned maintenance")).toBeNull();
+
+    expect(await screen.findByText("Holiday hours", {}, { timeout: 3000 })).toBeTruthy();
+    expect(service.getAnnouncements).toHaveBeenCalledWith({
+      limit: 20,
+      query: "holiday",
+    });
+    expect(screen.queryByText("Maintenance window")).toBeNull();
+  });
+
+  it("says nothing matched when a search finds no announcements", async () => {
+    vi.mocked(service.getAnnouncements).mockImplementation(async (params) =>
+      page(params.query ? [] : [announcement]),
+    );
+    renderPage([Feature.ANNOUNCEMENTS]);
+    await screen.findByText("Maintenance window");
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Search" }), {
+      target: { value: "nothing" },
+    });
+
+    expect(
+      await screen.findByText("No results found...", {}, { timeout: 3000 }),
+    ).toBeTruthy();
+  });
+
+  it("says there are no announcements yet for an empty list", async () => {
+    vi.mocked(service.getAnnouncements).mockResolvedValue(page([]));
+    renderPage([Feature.ANNOUNCEMENTS]);
+    expect(await screen.findByText("No announcements yet")).toBeTruthy();
   });
 
   it("keeps the list when a refresh fails", async () => {
@@ -193,7 +202,7 @@ describe("Announcements page", () => {
       .mockResolvedValueOnce(page([announcement]))
       .mockRejectedValue(new Error("Network Error"));
     const { queryClient } = renderPage([Feature.ANNOUNCEMENTS]);
-    await screen.findByText("Planned maintenance");
+    await screen.findByText("Maintenance window");
 
     await act(async () => {
       await queryClient.refetchQueries();
@@ -202,27 +211,27 @@ describe("Announcements page", () => {
     });
 
     expect(
-      queryClient.getQueryState([...ANNOUNCEMENTS_KEY, "list", { limit: 20 }])
+      queryClient.getQueryState([...ANNOUNCEMENTS_KEY, "list", { limit: 20, query: "" }])
         ?.status,
     ).toBe("error");
-    expect(screen.getByText("Planned maintenance")).toBeTruthy();
+    expect(screen.getByText("Maintenance window")).toBeTruthy();
     expect(screen.queryByText("Failed to load announcements")).toBeNull();
   });
 
   it("names the announcement in the delete confirmation", async () => {
     vi.mocked(service.getAnnouncements).mockResolvedValue(
-      page([{ ...announcement, status: "ended" }]),
+      page([{ ...announcement, status: "archived" }]),
     );
     renderPage([Feature.ANNOUNCEMENTS]);
-    await screen.findByText("Planned maintenance");
+    await screen.findByText("Maintenance window");
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Actions for Planned maintenance" }),
+      screen.getByRole("button", { name: "Actions for Maintenance window" }),
     );
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
 
     expect(
-      await screen.findByText("“Planned maintenance” will be permanently deleted."),
+      await screen.findByText("“Maintenance window” will be permanently deleted."),
     ).toBeTruthy();
   });
 

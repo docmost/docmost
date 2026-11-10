@@ -283,9 +283,9 @@ describe("admin lists", () => {
   };
 
   it.each([
-    ["current", { limit: 20 }],
-    ["archived", { archived: true, limit: 20 }],
-  ])("%s list asks for its tab and refetches on mount after an invalidation", async (_name, params) => {
+    ["unfiltered", { limit: 20 }],
+    ["searched", { limit: 20, query: "holiday" }],
+  ])("%s list asks for its params and refetches on mount after an invalidation", async (_name, params) => {
     vi.mocked(service.getAnnouncements).mockResolvedValue(emptyPage);
     const { queryClient, wrapper, result, unmount } = setup(() => useAnnouncementsQuery(params, true));
     await waitFor(() => expect(result.current.data).toEqual(emptyPage));
@@ -299,7 +299,7 @@ describe("admin lists", () => {
   });
 
   it("does not load a list until enabled", () => {
-    setup(() => useAnnouncementsQuery({ archived: true, limit: 20 }, false));
+    setup(() => useAnnouncementsQuery({ limit: 20 }, false));
     expect(service.getAnnouncements).not.toHaveBeenCalled();
   });
 });
@@ -371,8 +371,8 @@ describe("unarchiving into a full schedule", () => {
           from: "2026-11-05T09:00:00.000Z",
           to: "2026-11-05T18:00:00.000Z",
           announcements: [
-            { id: "b", preview: "Acceptable use policy" },
-            { id: "c", preview: "Holiday hours" },
+            { id: "b", title: "Acceptable use policy" },
+            { id: "c", title: "Holiday hours" },
           ],
         },
       }),
@@ -440,8 +440,8 @@ describe("getAnnouncementLimitConflict", () => {
     from: "2026-11-05T09:00:00.000Z",
     to: null,
     announcements: [
-      { id: "a", preview: "Maintenance tonight" },
-      { id: "b", preview: "New policy" },
+      { id: "a", title: "Maintenance tonight" },
+      { id: "b", title: "New policy" },
     ],
   };
 

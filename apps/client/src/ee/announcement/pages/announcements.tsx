@@ -2,21 +2,18 @@ import { useState } from "react";
 import { Alert, Button, Group, Space, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
-import type { UseQueryResult } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
 import Paginate from "@/components/common/paginate";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
-import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
+import { SearchInput } from "@/components/common/search-input";
+import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { getApiErrorMessage } from "@/lib/api-error";
-import type { IPagination } from "@/lib/types";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
-import { getAnnouncementPreview } from "@/ee/announcement/announcement.utils";
-import { AnnouncementArchiveFilter } from "@/ee/announcement/components/announcement-archive-filter";
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
 import {
@@ -34,19 +31,14 @@ export default function Announcements() {
   // Entitlements stay null until they load, which must read as loading, not as unlicensed
   const entitlements = useAtomValue(entitlementAtom);
   const isUnlicensed = entitlements !== null && !hasFeature;
-  const [archived, setArchived] = useState(false);
-  const currentPage = useCursorPaginate();
-  const archivedPage = useCursorPaginate();
+  const { search, cursor, goNext, goPrev, handleSearch } =
+    usePaginateAndSearch();
   const [formOpened, setFormOpened] = useState(false);
   const [selected, setSelected] = useState<IAnnouncement | null>(null);
   const canLoad = isAdmin && hasFeature;
-  const currentQuery = useAnnouncementsQuery(
-    { cursor: currentPage.cursor, limit: 20 },
+  const query = useAnnouncementsQuery(
+    { cursor, limit: 20, query: search },
     canLoad,
-  );
-  const archivedQuery = useAnnouncementsQuery(
-    { archived: true, cursor: archivedPage.cursor, limit: 20 },
-    canLoad && archived,
   );
   const archiveMutation = useArchiveAnnouncementMutation();
   const unarchiveMutation = useUnarchiveAnnouncementMutation();
@@ -68,7 +60,7 @@ export default function Announcements() {
       children: (
         <Text size="sm">
           {t("“{{name}}” will be permanently deleted.", {
-            name: getAnnouncementPreview(announcement.content),
+            name: announcement.title,
           })}
         </Text>
       ),
@@ -86,41 +78,6 @@ export default function Announcements() {
       unarchiveMutation.mutate({ announcementId: announcement.id }),
     onDelete: confirmDelete,
   };
-
-  const loadError = (error: Error) => (
-    <Alert icon={<IconAlertCircle size={16} />} color="red">
-      {getApiErrorMessage(error, t("Failed to load announcements"))}
-    </Alert>
-  );
-
-  const renderList = (
-    query: UseQueryResult<IPagination<IAnnouncement>, Error>,
-    page: ReturnType<typeof useCursorPaginate>,
-    emptyMessage: string,
-  ) =>
-    query.isError && !query.data ? (
-      loadError(query.error)
-    ) : (
-      <>
-        <AnnouncementTable
-          announcements={query.data?.items ?? []}
-          isLoading={query.isLoading || entitlements === null}
-          emptyMessage={emptyMessage}
-          {...tableActions}
-        />
-
-        <Space h="md" />
-
-        {query.data?.items.length > 0 && (
-          <Paginate
-            hasPrevPage={query.data.meta.hasPrevPage}
-            hasNextPage={query.data.meta.hasNextPage}
-            onNext={() => page.goNext(query.data.meta.nextCursor)}
-            onPrev={page.goPrev}
-          />
-        )}
-      </>
-    );
 
   return (
     <>
@@ -149,13 +106,35 @@ export default function Announcements() {
         </Button>
       </Group>
 
-      <AnnouncementArchiveFilter archived={archived} onChange={setArchived} />
+      <SearchInput onSearch={handleSearch} />
 
-      <Space h="md" />
+      {query.isError && !query.data ? (
+        <Alert icon={<IconAlertCircle size={16} />} color="red">
+          {getApiErrorMessage(query.error, t("Failed to load announcements"))}
+        </Alert>
+      ) : (
+        <>
+          <AnnouncementTable
+            announcements={query.data?.items ?? []}
+            isLoading={query.isLoading || entitlements === null}
+            emptyMessage={
+              search ? t("No results found...") : t("No announcements yet")
+            }
+            {...tableActions}
+          />
 
-      {archived
-        ? renderList(archivedQuery, archivedPage, t("No archived announcements"))
-        : renderList(currentQuery, currentPage, t("No active announcements"))}
+          <Space h="md" />
+
+          {query.data?.items.length > 0 && (
+            <Paginate
+              hasPrevPage={query.data.meta.hasPrevPage}
+              hasNextPage={query.data.meta.hasNextPage}
+              onNext={() => goNext(query.data.meta.nextCursor)}
+              onPrev={goPrev}
+            />
+          )}
+        </>
+      )}
 
       <AnnouncementFormModal
         opened={formOpened}

@@ -13,6 +13,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('type', 'varchar', (col) => col.notNull())
     .addColumn('color', 'varchar', (col) => col.notNull())
     .addColumn('content', 'jsonb', (col) => col.notNull())
+    .addColumn('title', 'varchar', (col) => col.notNull())
+    .addColumn('text_content', 'text', (col) => col.notNull())
+    .addColumn('tsv', sql`tsvector`, (col) => col)
     .addColumn('is_dismissible', 'boolean', (col) =>
       col.notNull().defaultTo(false),
     )
@@ -52,8 +55,31 @@ export async function up(db: Kysely<any>): Promise<void> {
     .columns(['workspace_id', 'starts_at', 'id'])
     .where(sql.ref('archived_at'), 'is', null)
     .execute();
+
+  await db.schema
+    .createIndex('idx_announcements_tsv')
+    .ifNotExists()
+    .on('announcements')
+    .using('GIN')
+    .column('tsv')
+    .execute();
+
+  await sql`
+    CREATE OR REPLACE FUNCTION announcements_tsvector_trigger() RETURNS trigger AS $$
+    begin
+        new.tsv :=
+                  setweight(to_tsvector('english', f_unaccent(coalesce(new.title, ''))), 'A') ||
+                  setweight(to_tsvector('english', f_unaccent(coalesce(new.text_content, ''))), 'B');
+        return new;
+    end;
+    $$ LANGUAGE plpgsql;
+  `.execute(db);
+
+  await sql`CREATE OR REPLACE TRIGGER announcements_tsvector_update BEFORE INSERT OR UPDATE OF title, text_content
+                ON announcements FOR EACH ROW EXECUTE FUNCTION announcements_tsvector_trigger();`.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('announcements').ifExists().execute();
+  await sql`DROP FUNCTION IF EXISTS announcements_tsvector_trigger`.execute(db);
 }

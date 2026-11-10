@@ -28,6 +28,7 @@ const doc = (text: string): IAnnouncementContent => ({
 
 const stored = (overrides: Partial<IAnnouncement> = {}): IAnnouncement => ({
   id: "a1",
+  title: "Maintenance window",
   type: "warning",
   color: "yellow",
   content: doc("Planned maintenance"),
@@ -46,6 +47,7 @@ const values = (
   overrides: Partial<AnnouncementFormValues> = {},
 ): AnnouncementFormValues => ({
   ...getInitialValues(null),
+  title: "Maintenance",
   content: doc("Maintenance tonight"),
   ...overrides,
 });
@@ -58,6 +60,7 @@ const validate = (
 describe("getInitialValues", () => {
   it("starts a new announcement as info, blue, for logged-in users, not dismissible, now and without an end", () => {
     expect(getInitialValues(null)).toEqual({
+      title: "",
       type: "info",
       color: "blue",
       content: null,
@@ -71,6 +74,7 @@ describe("getInitialValues", () => {
   it("puts both stored times in the pickers when editing", () => {
     const announcement = stored();
     expect(getInitialValues(announcement)).toEqual({
+      title: "Maintenance window",
       type: "warning",
       color: "yellow",
       content: announcement.content,
@@ -96,6 +100,7 @@ describe("toAnnouncementInput", () => {
         null,
       ),
     ).toEqual({
+      title: "Maintenance",
       type: "critical",
       color: "purple",
       content: doc("Maintenance tonight"),
@@ -104,6 +109,12 @@ describe("toAnnouncementInput", () => {
       startsAt: null,
       endsAt: null,
     });
+  });
+
+  it("sends the trimmed title", () => {
+    expect(
+      toAnnouncementInput(values({ title: "  Maintenance  " }), null).title,
+    ).toBe("Maintenance");
   });
 
   it("sends the picked times as ISO when creating", () => {
@@ -164,6 +175,18 @@ describe("validateAnnouncementForm", () => {
     ["a message over 500 characters", doc("a".repeat(501)), "Announcement message is too long"],
   ])("rejects %s", (_label, content, message) => {
     expect(validate(values({ content })).content).toBe(message);
+  });
+
+  it.each([
+    ["no title", "", "Announcement title is required"],
+    ["a blank title", "   ", "Announcement title is required"],
+    ["a title over 100 characters", "a".repeat(101), "Announcement title is too long"],
+  ])("rejects %s", (_label, title, message) => {
+    expect(validate(values({ title })).title).toBe(message);
+  });
+
+  it("accepts a title of exactly 100 characters", () => {
+    expect(validate(values({ title: "a".repeat(100) }))).toEqual({});
   });
 
   it("accepts a message of exactly 500 characters", () => {

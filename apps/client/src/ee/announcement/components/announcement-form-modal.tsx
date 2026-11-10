@@ -12,6 +12,7 @@ import {
   Skeleton,
   Stack,
   Switch,
+  TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
@@ -21,6 +22,7 @@ import { isCloud } from "@/lib/config.ts";
 import {
   ANNOUNCEMENT_COLOR_STYLES,
   ANNOUNCEMENT_COLORS,
+  ANNOUNCEMENT_MAX_TITLE_LENGTH,
   ANNOUNCEMENT_TYPE_DEFAULT_COLOR,
   ANNOUNCEMENT_TYPE_ICONS,
   ANNOUNCEMENT_TYPE_LABELS,
@@ -199,6 +201,14 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
             )}
           </Alert>
         )}
+
+        <TextInput
+          label={t("Title")}
+          description={t("Not shown in the banner.")}
+          withAsterisk
+          maxLength={ANNOUNCEMENT_MAX_TITLE_LENGTH}
+          {...form.getInputProps("title")}
+        />
 
         <Select
           label={t("Type")}

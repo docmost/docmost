@@ -24,7 +24,6 @@ import {
 } from "@/ee/announcement/announcement.constants";
 import {
   formatAnnouncementTime,
-  getAnnouncementPlainText,
   getAnnouncementPreview,
 } from "@/ee/announcement/announcement.utils";
 import type {
@@ -38,7 +37,6 @@ const STATUS_BADGES: Record<
 > = {
   active: { label: "Active", color: "green" },
   scheduled: { label: "Scheduled", color: "blue" },
-  ended: { label: "Ended", color: "gray" },
   archived: { label: "Archived", color: "gray" },
 };
 
@@ -103,7 +101,7 @@ export function AnnouncementTable({
       <Table highlightOnHover verticalSpacing="sm" aria-busy={isLoading}>
         <Table.Thead>
           <Table.Tr>
-            <Table.Th>{t("Message")}</Table.Th>
+            <Table.Th>{t("Title")}</Table.Th>
             <Table.Th>{t("Type")}</Table.Th>
             <Table.Th>{t("Audience")}</Table.Th>
             <Table.Th>{t("Schedule")}</Table.Th>
@@ -116,7 +114,7 @@ export function AnnouncementTable({
             <TableSkeleton />
           ) : announcements.length > 0 ? (
             announcements.map((announcement) => {
-              const preview = getAnnouncementPlainText(announcement.content);
+              const preview = getAnnouncementPreview(announcement.content);
               // A bundle loaded before a deploy can meet a type, color or status it does not know
               const color =
                 ANNOUNCEMENT_COLOR_STYLES[announcement.color] ??
@@ -126,9 +124,12 @@ export function AnnouncementTable({
               const canArchive =
                 announcement.status === "active" ||
                 announcement.status === "scheduled";
-              const canDelete =
-                announcement.status === "archived" ||
-                announcement.status === "ended";
+              const canDelete = announcement.status === "archived";
+              // An expired announcement needs a later end time before it can come back
+              const canUnarchive =
+                canDelete &&
+                (!announcement.endsAt ||
+                  Date.parse(announcement.endsAt) > Date.now());
 
               return (
                 <Table.Tr key={announcement.id}>
@@ -141,9 +142,14 @@ export function AnnouncementTable({
                         aria-label={t(color.label)}
                         style={{ flexShrink: 0 }}
                       />
-                      <Text fz="sm" lineClamp={1}>
-                        {preview}
-                      </Text>
+                      <div style={{ minWidth: 0 }}>
+                        <Text fz="sm" fw={500} lineClamp={1}>
+                          {announcement.title}
+                        </Text>
+                        <Text fz="xs" c="dimmed" lineClamp={1}>
+                          {preview}
+                        </Text>
+                      </div>
                     </Group>
                   </Table.Td>
                   <Table.Td>
@@ -186,7 +192,7 @@ export function AnnouncementTable({
                           variant="subtle"
                           color="gray"
                           aria-label={t("Actions for {{name}}", {
-                            name: getAnnouncementPreview(announcement.content),
+                            name: announcement.title,
                           })}
                         >
                           <IconDots size={18} />
@@ -207,7 +213,7 @@ export function AnnouncementTable({
                             {t("Archive")}
                           </Menu.Item>
                         )}
-                        {announcement.status === "archived" && (
+                        {canUnarchive && (
                           <Menu.Item
                             leftSection={<IconArchiveOff size={16} />}
                             onClick={() => onUnarchive(announcement)}
