@@ -278,6 +278,9 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
     <BaseBubbleMenu
       editor={editor}
       pluginKey="integration-display-menu"
+      ref={(element) => {
+        if (element) element.style.zIndex = "99";
+      }}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
