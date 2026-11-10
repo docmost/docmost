@@ -8,7 +8,13 @@ export enum QueueName {
   AI_QUEUE = '{ai-queue}',
   HISTORY_QUEUE = '{history-queue}',
   NOTIFICATION_QUEUE = '{notification-queue}',
+  INTEGRATION_QUEUE = '{integration-queue}',
   AUDIT_QUEUE = '{audit-queue}',
+  SLACK_INBOUND = '{slack-inbound}',
+  // /docmost ask takes seconds, so it stays off the inbound event queue
+  SLACK_ASK = '{slack-ask}',
+  // Outbound DMs, kept off the inbound event queue
+  SLACK_NOTIFY = '{slack-notify}',
   BASE_QUEUE = '{base-queue}',
   SIEM_QUEUE = '{siem-queue}',
 }
@@ -19,6 +25,7 @@ export enum QueueJob {
   ATTACHMENT_INDEX_CONTENT = 'attachment-index-content',
   ATTACHMENT_INDEXING = 'attachment-indexing',
   DELETE_PAGE_ATTACHMENTS = 'delete-page-attachments',
+  DELETE_UNUSED_COVER = 'delete-unused-cover',
   DELETE_AI_CHAT_ATTACHMENTS = 'delete-ai-chat-attachments',
 
   DELETE_USER_AVATARS = 'delete-user-avatars',
@@ -80,6 +87,7 @@ export enum QueueJob {
   PAGE_VERIFIED_NOTIFICATION = 'page-verified-notification',
   PAGE_APPROVAL_REQUESTED_NOTIFICATION = 'page-approval-requested-notification',
   PAGE_APPROVAL_REJECTED_NOTIFICATION = 'page-approval-rejected-notification',
+  PAGE_VERIFICATION_INVALIDATED = 'page-verification-invalidated',
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',
@@ -89,6 +97,11 @@ export enum QueueJob {
 
   PDF_EXPORT_TASK = 'pdf-export-task',
   PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',
+
+  INTEGRATION_TOKEN_REFRESH = 'integration-token-refresh',
+  SLACK_EVENT = 'slack-event',
+  SLACK_ASK = 'slack-ask',
+  SLACK_NOTIFICATION = 'slack-notification',
 
   BASE_TYPE_CONVERSION = 'base-type-conversion',
   BASE_CELL_GC = 'base-cell-gc',

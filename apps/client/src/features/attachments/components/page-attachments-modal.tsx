@@ -10,25 +10,38 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
+import { IconDownload, IconTrash } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import { SearchInput } from "@/components/common/search-input.tsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import { usePageAttachmentsQuery } from "@/features/attachments/queries/attachment-query.ts";
+import {
+  useDeleteAttachmentMutation,
+  usePageAttachmentsQuery,
+} from "@/features/attachments/queries/attachment-query.ts";
 import { IPageAttachment } from "@/features/attachments/types/attachment.types.ts";
 import { AttachmentFileIcon } from "@/features/attachments/components/attachment-file-icon.tsx";
 import { formatBytes } from "@/lib";
 import { getFileUrl } from "@/lib/config.ts";
 import { formattedDate } from "@/lib/time.ts";
+import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 interface PageAttachmentsModalProps {
   pageId: string;
+  readOnly?: boolean;
   open: boolean;
   onClose: () => void;
 }
 
 export default function PageAttachmentsModal({
   pageId,
+  readOnly,
   open,
   onClose,
 }: PageAttachmentsModalProps) {
@@ -42,12 +55,17 @@ export default function PageAttachmentsModal({
       size={800}
       closeButtonProps={{ "aria-label": t("Close") }}
     >
-      <PageAttachmentsList pageId={pageId} />
+      <PageAttachmentsList pageId={pageId} readOnly={readOnly} />
     </Modal>
   );
 }
 
-function PageAttachmentsList({ pageId }: { pageId: string }) {
+type PageAttachmentsListProps = {
+  pageId: string;
+  readOnly?: boolean;
+};
+
+function PageAttachmentsList({ pageId, readOnly }: PageAttachmentsListProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const {
@@ -59,6 +77,14 @@ function PageAttachmentsList({ pageId }: { pageId: string }) {
     hasNextPage,
     isFetchingNextPage,
   } = usePageAttachmentsQuery(pageId, search);
+  const deleteAttachmentMutation = useDeleteAttachmentMutation(pageId);
+
+  const { spaceSlug } = useParams();
+  const { data: space } = useSpaceQuery(spaceSlug);
+  const spaceAbility = useSpaceAbility(space?.membership?.permissions);
+  const canDelete =
+    !readOnly &&
+    spaceAbility.can(SpaceCaslAction.Manage, SpaceCaslSubject.Settings);
 
   const attachments = useMemo(
     () => data?.pages.flatMap((page) => page.items) ?? [],
@@ -85,6 +111,24 @@ function PageAttachmentsList({ pageId }: { pageId: string }) {
   }, [fetchNextPage, hasNextPage, isFetching]);
 
   const handleSearch = useCallback((value: string) => setSearch(value), []);
+
+  const handleDelete = (attachment: IPageAttachment) => {
+    modals.openConfirmModal({
+      title: t("Delete attachment"),
+      centered: true,
+      children: (
+        <Text size="sm">
+          {t(
+            "Are you sure you want to delete '{{title}}'? This action cannot be undone.",
+            { title: attachment.fileName },
+          )}
+        </Text>
+      ),
+      labels: { confirm: t("Delete"), cancel: t("Cancel") },
+      confirmProps: { color: "red" },
+      onConfirm: () => deleteAttachmentMutation.mutate(attachment.id),
+    });
+  };
 
   return (
     <>
@@ -114,7 +158,11 @@ function PageAttachmentsList({ pageId }: { pageId: string }) {
       ) : (
         <ScrollArea.Autosize mah={480} type="scroll" scrollbarSize={5}>
           {attachments.map((attachment) => (
-            <AttachmentRow key={attachment.id} attachment={attachment} />
+            <AttachmentRow
+              key={attachment.id}
+              attachment={attachment}
+              onDelete={canDelete ? handleDelete : undefined}
+            />
           ))}
           {hasNextPage && <div ref={loadMoreRef} style={{ height: 1 }} />}
           {isFetchingNextPage && (
@@ -128,7 +176,12 @@ function PageAttachmentsList({ pageId }: { pageId: string }) {
   );
 }
 
-function AttachmentRow({ attachment }: { attachment: IPageAttachment }) {
+type AttachmentRowProps = {
+  attachment: IPageAttachment;
+  onDelete?: (attachment: IPageAttachment) => void;
+};
+
+function AttachmentRow({ attachment, onDelete }: AttachmentRowProps) {
   const { t } = useTranslation();
   const fileUrl = getFileUrl(attachment.url);
 
@@ -186,6 +239,19 @@ function AttachmentRow({ attachment }: { attachment: IPageAttachment }) {
           <IconDownload size={18} />
         </ActionIcon>
       </Tooltip>
+
+      {onDelete && (
+        <Tooltip label={t("Delete attachment")} withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            aria-label={t("Delete {{name}}", { name: attachment.fileName })}
+            onClick={() => onDelete(attachment)}
+          >
+            <IconTrash size={18} />
+          </ActionIcon>
+        </Tooltip>
+      )}
     </Group>
   );
 }

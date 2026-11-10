@@ -15,10 +15,3 @@ export type CopyPageMapEntry = {
   newSlugId: string;
   oldSlugId: string;
 };
-
-export type ICopyPageAttachment = {
-  newPageId: string,
-  oldPageId: string,
-  oldAttachmentId: string,
-  newAttachmentId: string,
-};
