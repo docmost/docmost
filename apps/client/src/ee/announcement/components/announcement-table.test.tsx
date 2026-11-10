@@ -58,7 +58,7 @@ function renderTable(
       <AnnouncementTable
         announcements={announcements}
         isLoading={props.isLoading ?? false}
-        emptyMessage={props.emptyMessage ?? "No current announcements"}
+        emptyMessage={props.emptyMessage ?? "No active announcements"}
         {...actions}
       />
     </MantineProvider>,
@@ -184,7 +184,7 @@ describe("AnnouncementTable", () => {
     renderTable([], { isLoading: true });
     expect(screen.getAllByRole("row")).toHaveLength(4);
     expect(screen.getByRole("table").getAttribute("aria-busy")).toBe("true");
-    expect(screen.queryByText("No current announcements")).toBeNull();
+    expect(screen.queryByText("No active announcements")).toBeNull();
   });
 
   it("shows the empty message when there is nothing to list", () => {

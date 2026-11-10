@@ -131,7 +131,7 @@ describe("Announcements page", () => {
 
   it("shows skeleton rows, not an empty list, while the entitlements load", () => {
     renderPage();
-    expect(screen.queryByText("No current announcements")).toBeNull();
+    expect(screen.queryByText("No active announcements")).toBeNull();
     expect(screen.queryByText("No archived announcements")).toBeNull();
     expect(
       screen

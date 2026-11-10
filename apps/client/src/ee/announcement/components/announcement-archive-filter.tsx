@@ -18,10 +18,10 @@ export function AnnouncementArchiveFilter({
       w={170}
       aria-label={t("Status")}
       data={[
-        { value: "current", label: t("Current") },
+        { value: "active", label: t("Active") },
         { value: "archived", label: t("Archived") },
       ]}
-      value={archived ? "archived" : "current"}
+      value={archived ? "archived" : "active"}
       onChange={(value) => {
         const next = value === "archived";
         if (next !== archived) onChange(next);

@@ -155,7 +155,7 @@ export default function Announcements() {
 
       {archived
         ? renderList(archivedQuery, archivedPage, t("No archived announcements"))
-        : renderList(currentQuery, currentPage, t("No current announcements"))}
+        : renderList(currentQuery, currentPage, t("No active announcements"))}
 
       <AnnouncementFormModal
         opened={formOpened}
