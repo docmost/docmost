@@ -3,7 +3,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { TaskList, TaskItem } from "@tiptap/extension-list";
+import { TaskList } from "@tiptap/extension-list";
 import { CharacterCount, UndoRedo } from "@tiptap/extensions";
 import { Placeholder } from "@/features/editor/extensions/placeholder";
 import { Superscript } from "@tiptap/extension-superscript";
@@ -55,6 +55,8 @@ import {
   Heading,
   Highlight,
   Indent,
+  ListItem,
+  TaskItem,
   UniqueID,
   SharedStorage,
   IntegrationCard,
@@ -156,6 +158,7 @@ export const mainExtensions = [
     undoRedo: false,
     link: false,
     trailingNode: false,
+    listItem: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -238,6 +241,7 @@ export const mainExtensions = [
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   Indent,
+  ListItem,
   TaskList,
   TaskItem.configure({
     nested: true,
