@@ -547,6 +547,9 @@ export class DocxSerializerStateAsync {
 
   currentNumbering?: { reference: string; level: number };
 
+  // numbered lists around the list being rendered
+  numberedListDepth = 0;
+
   constructor(nodes: NodeSerializerAsync, marks: MarkSerializer, options: OptionsAsync) {
     this.nodes = nodes;
     this.marks = marks;
@@ -655,22 +658,17 @@ export class DocxSerializerStateAsync {
     closeLink();
   }
 
+  // Every list gets its own numbering, so a nested list keeps its kind and restarts its count.
   async renderList(node: Node, style: NumberingStyles) {
-    if (!this.currentNumbering) {
-      const nextId = createShortId();
-      this.numbering.push(createNumbering(nextId, style));
-      this.currentNumbering = { reference: nextId, level: 0 };
-    } else {
-      const { reference, level } = this.currentNumbering;
-      this.currentNumbering = { reference, level: level + 1 };
-    }
+    const parent = this.currentNumbering;
+    const level = parent ? parent.level + 1 : 0;
+    const reference = createShortId();
+    this.numbering.push(createNumbering(reference, style, level, this.numberedListDepth));
+    this.currentNumbering = { reference, level };
+    if (style === 'numbered') this.numberedListDepth += 1;
     await this.renderContent(node);
-    if (this.currentNumbering.level === 0) {
-      delete this.currentNumbering;
-    } else {
-      const { reference, level } = this.currentNumbering;
-      this.currentNumbering = { reference, level: level - 1 };
-    }
+    if (style === 'numbered') this.numberedListDepth -= 1;
+    this.currentNumbering = parent;
   }
 
   // This is a pass through to the paragraphs, etc. underneath they will close the block
