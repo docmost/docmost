@@ -29,10 +29,9 @@ import {
   collabExtensions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
-  currentPageEditModeAtom,
   lightboxRequestAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
@@ -80,10 +79,14 @@ import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
 import { BasePasteMenu } from "@/features/editor/components/base-embed/base-paste-menu.tsx";
+import MicrosoftFileMenu from "@/features/editor/components/microsoft/microsoft-file-menu.tsx";
+import MicrosoftFolderMenu from "@/features/editor/components/microsoft/microsoft-folder-menu.tsx";
+import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
 import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
@@ -233,7 +236,7 @@ function CollabPageEditor({
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
   const slugId = extractPageSlugId(pageSlug);
-  const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
+  const { editMode } = usePageEditMode(pageId);
   const canScroll = useCallback(
     () => Boolean(isComponentMounted.current && editorRef.current),
     [isComponentMounted],
@@ -473,8 +476,8 @@ function CollabPageEditor({
   }, [yjsConnectionStatus, isSynced]);
   useEffect(() => {
     if (!editor) return;
-    editor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
-  }, [currentPageEditMode, editor, editable]);
+    editor.setEditable(editable && editMode === PageEditMode.Edit);
+  }, [editMode, editor, editable]);
 
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
@@ -508,10 +511,14 @@ function CollabPageEditor({
         <EditorContent editor={editor} />
 
         {editor && (
-          <SearchAndReplaceDialog editor={editor} editable={editable} />
+          <SearchAndReplaceDialog
+            editor={editor}
+            editable={editable && editMode === PageEditMode.Edit}
+          />
         )}
         {editor && <SearchNavigationDialog editor={editor} />}
 
+        <MicrosoftFullscreenModal />
         {editor && editorIsEditable && (
           <div>
             <EditorAiMenu editor={editor} />
@@ -529,6 +536,8 @@ function CollabPageEditor({
             <ColumnsMenu editor={editor} />
             <IntegrationPasteMenu editor={editor} />
             <BasePasteMenu editor={editor} />
+            <MicrosoftFileMenu editor={editor} />
+            <MicrosoftFolderMenu editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && (

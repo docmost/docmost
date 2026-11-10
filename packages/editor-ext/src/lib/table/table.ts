@@ -3,34 +3,16 @@ import { Editor } from "@tiptap/core";
 import { DOMOutputSpec } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
 import { cellAround } from "@tiptap/pm/tables";
-
-const LIST_TYPES = ["bulletList", "orderedList", "taskList"];
-
-function isInList(editor: Editor): boolean {
-  const { $from } = editor.state.selection;
-
-  for (let depth = $from.depth; depth > 0; depth--) {
-    const node = $from.node(depth);
-    if (LIST_TYPES.includes(node.type.name)) {
-      return true;
-    }
-  }
-
-  return false;
-}
+import { closestListItem } from "../list-item";
 
 function handleListIndent(editor: Editor): boolean {
-  return (
-    editor.commands.sinkListItem("listItem") ||
-    editor.commands.sinkListItem("taskItem")
-  );
+  const listItem = closestListItem(editor.state);
+  return Boolean(listItem) && editor.commands.sinkListItem(listItem);
 }
 
 function handleListOutdent(editor: Editor): boolean {
-  return (
-    editor.commands.liftListItem("listItem") ||
-    editor.commands.liftListItem("taskItem")
-  );
+  const listItem = closestListItem(editor.state);
+  return Boolean(listItem) && editor.commands.liftListItem(listItem);
 }
 
 export const CustomTable = Table.extend({
@@ -66,7 +48,7 @@ export const CustomTable = Table.extend({
       },
       Tab: () => {
         // If we're in a list within a table, handle list indentation
-        if (isInList(this.editor) && this.editor.isActive("table")) {
+        if (this.editor.isActive("table")) {
           if (handleListIndent(this.editor)) {
             return true;
           }
@@ -85,7 +67,7 @@ export const CustomTable = Table.extend({
       },
       "Shift-Tab": () => {
         // If we're in a list within a table, handle list outdentation
-        if (isInList(this.editor) && this.editor.isActive("table")) {
+        if (this.editor.isActive("table")) {
           if (handleListOutdent(this.editor)) {
             return true;
           }

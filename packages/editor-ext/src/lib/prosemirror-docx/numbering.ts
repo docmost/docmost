@@ -12,36 +12,38 @@ function basicIndentStyle(indent: number): Pick<ILevelsOptions, 'style' | 'align
   };
 }
 
-const numbered = Array(3)
-  .fill([LevelFormat.DECIMAL, LevelFormat.LOWER_LETTER, LevelFormat.LOWER_ROMAN])
-  .flat()
-  .map((format, level) => ({
-    level,
-    format,
+const numberFormats = [LevelFormat.DECIMAL, LevelFormat.LOWER_LETTER, LevelFormat.LOWER_ROMAN];
+
+const bulletSymbols = ['●', '○', '■'];
+
+const markers = {
+  numbered: (level: number, firstFormat: number) => ({
+    format: numberFormats[(firstFormat + level) % 3],
     text: `%${level + 1}.`,
-    ...basicIndentStyle((level + 1) / 2),
-  }));
-
-const bullets = Array(3)
-  .fill(['●', '○', '■'])
-  .flat()
-  .map((text, level) => ({
-    level,
-    format: LevelFormat.BULLET,
-    text,
-    ...basicIndentStyle((level + 1) / 2),
-  }));
-
-const styles = {
-  numbered,
-  bullets,
+  }),
+  bullets: (level: number) => ({ format: LevelFormat.BULLET, text: bulletSymbols[level % 3] }),
+  // task items start with their own checkbox
+  tasks: () => ({ format: LevelFormat.NONE, text: '' }),
 };
 
-export type NumberingStyles = keyof typeof styles;
+export type NumberingStyles = keyof typeof markers;
 
-export function createNumbering(reference: string, style: NumberingStyles): INumbering {
+// Bullets change with the level. Number formats cycle so that `level` gets the format the
+// editor gives a numbered list inside `numberedDepth` other numbered lists.
+export function createNumbering(
+  reference: string,
+  style: NumberingStyles,
+  level = 0,
+  numberedDepth = 0,
+): INumbering {
+  const firstFormat = (((numberedDepth - level) % 3) + 3) % 3;
   return {
     reference,
-    levels: styles[style],
+    // Word lists have nine levels
+    levels: Array.from({ length: 9 }, (_, i) => ({
+      level: i,
+      ...markers[style](i, firstFormat),
+      ...basicIndentStyle((i + 1) / 2),
+    })),
   };
 }

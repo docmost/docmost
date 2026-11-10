@@ -6,14 +6,18 @@ export function usePaginateAndSearch(initialQuery: string = "") {
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([]);
   const prevSearchRef = useRef(search);
 
+  const resetPagination = useCallback(() => {
+    setCursor(undefined);
+    setCursorStack([]);
+  }, []);
+
   const handleSearch = useCallback((newQuery: string) => {
     if (prevSearchRef.current !== newQuery) {
       prevSearchRef.current = newQuery;
       setSearch(newQuery);
-      setCursor(undefined);
-      setCursorStack([]);
+      resetPagination();
     }
-  }, []);
+  }, [resetPagination]);
 
   const goNext = useCallback((nextCursor: string | null | undefined) => {
     if (nextCursor) {
@@ -30,10 +34,5 @@ export function usePaginateAndSearch(initialQuery: string = "") {
     });
   }, []);
 
-  const resetCursor = useCallback(() => {
-    setCursor(undefined);
-    setCursorStack([]);
-  }, []);
-
-  return { search, cursor, goNext, goPrev, handleSearch, resetCursor };
+  return { search, cursor, goNext, goPrev, handleSearch, resetPagination };
 }

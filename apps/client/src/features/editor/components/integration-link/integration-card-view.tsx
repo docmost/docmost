@@ -16,6 +16,12 @@ import { notifications } from "@mantine/notifications";
 import { describeIntegrationLink, isHttpUrl } from "@docmost/editor-ext";
 import { getIntegrationIcon } from "@/features/integration/components/integration-icons";
 import { getOAuthAuthorizeUrl } from "@/features/integration/services/integration-service";
+import { fileTypeIcon } from "@/features/microsoft/utils/file-type-icon";
+import { microsoftApp, microsoftAppIcon } from "@/features/microsoft/utils/microsoft-app";
+import {
+  convertCardToMicrosoftEmbed,
+  isEmbeddableMicrosoftKind,
+} from "@/features/microsoft/utils/convert-card";
 import { timeAgo } from "@/lib/time";
 import { useUnfurl } from "./use-unfurl";
 import { badgeTextColor, toBadgeColor } from "./badge-color";
@@ -303,6 +309,81 @@ function FigmaFileCard({
   );
 }
 
+function MicrosoftFileCard({
+  url,
+  unfurlData,
+  onSelect,
+  onEmbed,
+}: {
+  url: string;
+  unfurlData: Record<string, any>;
+  onSelect: React.MouseEventHandler<HTMLElement>;
+  onEmbed?: () => void;
+}) {
+  const { t } = useTranslation();
+  const meta = unfurlData.metadata ?? {};
+
+  const subtitle = [
+    unfurlData.description,
+    unfurlData.author ? t("Last modified by {{name}}", { name: unfurlData.author }) : null,
+    meta.lastModifiedDateTime ? timeAgo(new Date(meta.lastModifiedDateTime)) : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
+  return (
+    <NodeViewWrapper data-drag-handle="" onClickCapture={onSelect}>
+      <Card
+        className={classes.card}
+        withBorder
+        padding="sm"
+        radius="sm"
+        component="a"
+        href={url}
+        target="_blank"
+        rel="noopener"
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <Group gap="sm" wrap="nowrap">
+          <div style={{ flexShrink: 0 }}>
+            {fileTypeIcon({ name: meta.name ?? unfurlData.title, mimeType: meta.mimeType, kind: meta.kind, size: 28 })}
+          </div>
+
+          <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+            <Text size="sm" fw={600} truncate>
+              {unfurlData.title}
+            </Text>
+            {subtitle && (
+              <Text size="xs" c="dimmed" truncate>
+                {subtitle}
+              </Text>
+            )}
+          </Stack>
+
+          {onEmbed && isEmbeddableMicrosoftKind(meta) && (
+            <Button
+              size="compact-xs"
+              variant="light"
+              style={{ flexShrink: 0 }}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onEmbed();
+              }}
+            >
+              {t("Embed")}
+            </Button>
+          )}
+
+          <div style={{ flexShrink: 0, alignSelf: "center" }}>
+            {microsoftAppIcon(microsoftApp(url), 18)}
+          </div>
+        </Group>
+      </Card>
+    </NodeViewWrapper>
+  );
+}
+
 function IntegrationCardView(props: any) {
   const { editor, getPos, node } = props;
   const { url, provider } = node.attrs;
@@ -516,6 +597,24 @@ function IntegrationCardView(props: any) {
         url={safeUrl}
         unfurlData={unfurlData}
         onSelect={selectForEditing}
+      />
+    );
+  }
+
+  if (provider === "microsoft_365") {
+    return (
+      <MicrosoftFileCard
+        url={safeUrl}
+        unfurlData={unfurlData}
+        onSelect={selectForEditing}
+        onEmbed={
+          editor.isEditable
+            ? () => {
+                const pos = getPos();
+                if (typeof pos === "number") void convertCardToMicrosoftEmbed(editor, pos);
+              }
+            : undefined
+        }
       />
     );
   }

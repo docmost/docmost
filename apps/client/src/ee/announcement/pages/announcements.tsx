@@ -32,7 +32,7 @@ export default function Announcements() {
   // Entitlements stay null until they load, which must read as loading, not as unlicensed
   const entitlements = useAtomValue(entitlementAtom);
   const isUnlicensed = entitlements !== null && !hasFeature;
-  const { search, cursor, goNext, goPrev, handleSearch, resetCursor } =
+  const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
     usePaginateAndSearch();
   const [archived, setArchived] = useState(false);
   const [formOpened, setFormOpened] = useState(false);
@@ -119,7 +119,7 @@ export default function Announcements() {
           archived={archived}
           onChange={(next) => {
             setArchived(next);
-            resetCursor();
+            resetPagination();
           }}
         />
       </Group>

@@ -1,6 +1,7 @@
 import { Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
+import WorkspaceLocaleLayout from "@/features/workspace/components/workspace-locale-layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
 import { isCloud } from "@/lib/config.ts";
@@ -117,13 +118,49 @@ export default function App() {
     <Suspense fallback={null}>
       <Routes>
         <Route index element={<Navigate to="/home" />} />
-        <Route path={"/login"} element={<LoginPage />} />
-        <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
-        <Route path={"/forgot-password"} element={<ForgotPassword />} />
-        <Route path={"/password-reset"} element={<PasswordReset />} />
-        <Route path={"/login/mfa"} element={<MfaChallengePage />} />
-        <Route path={"/login/mfa/setup"} element={<MfaSetupRequiredPage />} />
-        <Route path={"/oauth/consent"} element={<OAuthConsent />} />
+
+        <Route element={<WorkspaceLocaleLayout />}>
+          <Route path={"/login"} element={<LoginPage />} />
+          <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
+          <Route path={"/forgot-password"} element={<ForgotPassword />} />
+          <Route path={"/password-reset"} element={<PasswordReset />} />
+          <Route path={"/login/mfa"} element={<MfaChallengePage />} />
+          <Route
+            path={"/login/mfa/setup"}
+            element={<MfaSetupRequiredPage />}
+          />
+          <Route path={"/oauth/consent"} element={<OAuthConsent />} />
+
+          <Route element={<ShareLayout />}>
+            <Route
+              path={"/share/:shareId/p/:pageSlug"}
+              element={<SharedPage />}
+            />
+            <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
+          </Route>
+          <Route path={"/share/:shareId"} element={<ShareRedirect />} />
+
+          <Route path={"/docs"} element={<PublicSpaceDirectoryPage />} />
+          <Route element={<PublicSpaceLayout />}>
+            <Route path={"/docs/:spaceSlug"} element={<PublicSpacePage />} />
+            <Route
+              path={"/docs/:spaceSlug/:pageSlug"}
+              element={<PublicSpacePage />}
+            />
+          </Route>
+
+          <Route
+            path="*"
+            element={
+              <>
+                <AnnouncementBanners surface="public" />
+                <main id={MAIN_CONTENT_ID} tabIndex={-1}>
+                  <Error404 />
+                </main>
+              </>
+            }
+          />
+        </Route>
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
@@ -137,25 +174,7 @@ export default function App() {
           </>
         )}
 
-        <Route element={<ShareLayout />}>
-          <Route
-            path={"/share/:shareId/p/:pageSlug"}
-            element={<SharedPage />}
-          />
-          <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
-        </Route>
-
-        <Route path={"/docs"} element={<PublicSpaceDirectoryPage />} />
-        <Route element={<PublicSpaceLayout />}>
-          <Route path={"/docs/:spaceSlug"} element={<PublicSpacePage />} />
-          <Route
-            path={"/docs/:spaceSlug/:pageSlug"}
-            element={<PublicSpacePage />}
-          />
-        </Route>
-
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />
-        <Route path={"/share/:shareId"} element={<ShareRedirect />} />
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
         <Route
           path={"/integrations/slack/link"}
@@ -222,18 +241,6 @@ export default function App() {
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>
         </Route>
-
-        <Route
-          path="*"
-          element={
-            <>
-              <AnnouncementBanners surface="public" />
-              <main id={MAIN_CONTENT_ID} tabIndex={-1}>
-                <Error404 />
-              </main>
-            </>
-          }
-        />
       </Routes>
     </Suspense>
   );
