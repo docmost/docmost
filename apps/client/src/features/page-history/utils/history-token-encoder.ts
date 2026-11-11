@@ -11,11 +11,12 @@ const ignoredAttrs = new Set([
   "class",
   "creatorId",
   "open",
+  "colwidth",
   "rel",
   "target",
 ]);
 // comments anchor on text without formatting it
-const ignoredMarks = new Set(["comment"]);
+export const ignoredMarks = new Set(["comment"]);
 
 // diff tokens that also carry marks and node attrs, so formatting-only edits count as changes
 export function createHistoryTokenEncoder(): TokenEncoder<number | string> {
@@ -52,7 +53,7 @@ export function createHistoryTokenEncoder(): TokenEncoder<number | string> {
   };
 }
 
-function attrsKey(attrs: Attrs): string {
+export function attrsKey(attrs: Attrs): string {
   let key = "";
   for (const name in attrs) {
     if (!ignoredAttrs.has(name)) key += `|${name}=${JSON.stringify(attrs[name])}`;

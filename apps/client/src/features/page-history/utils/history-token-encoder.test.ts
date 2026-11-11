@@ -3,6 +3,12 @@ import {
   getSchema,
   Node as TiptapNode,
 } from "@tiptap/core";
+import {
+  Table,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "@tiptap/extension-table";
 import { ChangeSet, simplifyChanges } from "@tiptap/pm/changeset";
 import { Node } from "@tiptap/pm/model";
 import { StarterKit } from "@tiptap/starter-kit";
@@ -24,6 +30,10 @@ const schema = getSchema([
   UniqueID.configure({ types: ["heading", "paragraph"] }),
   Comment,
   Image,
+  Table,
+  TableRow,
+  TableCell,
+  TableHeader,
 ]);
 
 const doc = (content: object[]) =>
@@ -111,6 +121,26 @@ describe("createHistoryTokenEncoder", () => {
     ]);
 
     expect(changes(before, after)).toEqual([]);
+  });
+
+  it("ignores column widths", () => {
+    const table = (colwidth: number) => ({
+      type: "table",
+      content: [
+        {
+          type: "tableRow",
+          content: [
+            {
+              type: "tableCell",
+              attrs: { colwidth: [colwidth] },
+              content: [paragraph(text("cell"))],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(changes(doc([table(100)]), doc([table(200)]))).toEqual([]);
   });
 
   it("still finds text edits", () => {
