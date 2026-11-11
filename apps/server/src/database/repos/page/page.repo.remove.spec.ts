@@ -41,7 +41,12 @@ describe('PageRepo removePage', () => {
       },
     });
 
-    const repo = new PageRepo(db as any, {} as any, { emit: jest.fn() } as any);
+    const repo = new PageRepo(
+      db as any,
+      {} as any,
+      { emit: jest.fn() } as any,
+      {} as any,
+    );
 
     return { repo, queries };
   }

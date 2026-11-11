@@ -24,6 +24,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { PagePermissionRole } from '../../../common/helpers/types/permission';
 
 export { PagePermissionMember } from './types/page-permission.types';
 
@@ -74,6 +75,130 @@ export class PagePermissionRepo {
     if (permissions.length === 0) return;
     const db = dbOrTx(this.db, trx);
     await db.insertInto('pagePermissions').values(permissions).execute();
+  }
+
+  /**
+   * Give each page without its own restriction a copy of its nearest restricted
+   * ancestor's, so it keeps its audience when detached from its parent.
+   */
+  async copyInheritedRestriction(
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (pageIds.length === 0) return;
+    await sql`
+      WITH RECURSIVE ancestors AS (
+        SELECT pages.id AS page_id, pages.parent_page_id AS ancestor_id, 1 AS depth
+        FROM pages
+        WHERE pages.id = ANY(${pageIds}::uuid[])
+          AND NOT EXISTS (
+            SELECT 1 FROM page_access WHERE page_access.page_id = pages.id
+          )
+        UNION ALL
+        SELECT ancestors.page_id, parent.parent_page_id, ancestors.depth + 1
+        FROM ancestors
+        JOIN pages AS parent ON parent.id = ancestors.ancestor_id
+      ),
+      nearest AS (
+        SELECT DISTINCT ON (ancestors.page_id)
+          ancestors.page_id,
+          page_access.id AS page_access_id,
+          page_access.access_level,
+          page_access.creator_id
+        FROM ancestors
+        JOIN page_access ON page_access.page_id = ancestors.ancestor_id
+        ORDER BY ancestors.page_id, ancestors.depth
+      ),
+      copied AS (
+        INSERT INTO page_access (page_id, workspace_id, space_id, access_level, creator_id)
+        SELECT nearest.page_id, pages.workspace_id, pages.space_id, nearest.access_level, nearest.creator_id
+        FROM nearest
+        JOIN pages ON pages.id = nearest.page_id
+        RETURNING id, page_id
+      )
+      INSERT INTO page_permissions (page_access_id, user_id, group_id, role, added_by_id)
+      SELECT copied.id, page_permissions.user_id, page_permissions.group_id,
+        page_permissions.role, page_permissions.added_by_id
+      FROM copied
+      JOIN nearest ON nearest.page_id = copied.page_id
+      JOIN page_permissions ON page_permissions.page_access_id = nearest.page_access_id
+    `.execute(dbOrTx(this.db, trx));
+  }
+
+  /**
+   * Restrict each page like its source page, with writerId as a writer.
+   * With onlySpaceMembers, users and groups outside the space are left out.
+   * Returns how many pages were restricted.
+   */
+  async copyRestrictions(
+    copies: { sourcePageId: string; pageId: string }[],
+    opts: {
+      spaceId: string;
+      workspaceId: string;
+      writerId: string;
+      onlySpaceMembers: boolean;
+    },
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    if (copies.length === 0) return 0;
+
+    const memberFilter = opts.onlySpaceMembers
+      ? sql`AND (
+          EXISTS (
+            SELECT 1 FROM space_members
+            WHERE space_members.space_id = ${opts.spaceId}::uuid
+              AND space_members.user_id = page_permissions.user_id
+          )
+          OR EXISTS (
+            SELECT 1 FROM space_members
+            JOIN group_users ON group_users.group_id = space_members.group_id
+            WHERE space_members.space_id = ${opts.spaceId}::uuid
+              AND group_users.user_id = page_permissions.user_id
+          )
+          OR EXISTS (
+            SELECT 1 FROM space_members
+            WHERE space_members.space_id = ${opts.spaceId}::uuid
+              AND space_members.group_id = page_permissions.group_id
+          )
+        )`
+      : sql``;
+
+    // one statement, so the copy sees a single snapshot and no row passes through the app
+    const { rows } = await sql<{ restricted: number }>`
+      WITH sources AS (
+        SELECT copies.page_id, page_access.id AS page_access_id, page_access.access_level
+        FROM unnest(
+          ${copies.map((copy) => copy.sourcePageId)}::uuid[],
+          ${copies.map((copy) => copy.pageId)}::uuid[]
+        ) AS copies(source_page_id, page_id)
+        JOIN page_access ON page_access.page_id = copies.source_page_id
+      ),
+      copied AS (
+        INSERT INTO page_access (page_id, workspace_id, space_id, access_level, creator_id)
+        SELECT sources.page_id, ${opts.workspaceId}::uuid, ${opts.spaceId}::uuid,
+          sources.access_level, ${opts.writerId}::uuid
+        FROM sources
+        RETURNING id, page_id
+      ),
+      writers AS (
+        INSERT INTO page_permissions (page_access_id, user_id, role, added_by_id)
+        SELECT copied.id, ${opts.writerId}::uuid, ${PagePermissionRole.WRITER}, ${opts.writerId}::uuid
+        FROM copied
+      ),
+      entries AS (
+        INSERT INTO page_permissions (page_access_id, user_id, group_id, role, added_by_id)
+        SELECT copied.id, page_permissions.user_id, page_permissions.group_id,
+          page_permissions.role, ${opts.writerId}::uuid
+        FROM copied
+        JOIN sources ON sources.page_id = copied.page_id
+        JOIN page_permissions ON page_permissions.page_access_id = sources.page_access_id
+        WHERE (page_permissions.user_id IS NULL OR page_permissions.user_id <> ${opts.writerId}::uuid)
+        ${memberFilter}
+      )
+      SELECT count(*)::int AS restricted FROM copied
+    `.execute(dbOrTx(this.db, trx));
+
+    return rows[0].restricted;
   }
 
   async findPagePermissionByUserId(

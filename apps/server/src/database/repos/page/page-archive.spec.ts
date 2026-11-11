@@ -31,7 +31,7 @@ function buildRepo() {
     {} as any,
     {} as any,
   );
-  const repo = new PageRepo(db as any, spaceMemberRepo, {} as any);
+  const repo = new PageRepo(db as any, spaceMemberRepo, {} as any, {} as any);
   return { repo, queries };
 }
 

@@ -72,6 +72,7 @@ export interface Attachments {
   filePath: string;
   fileSize: Int8 | null;
   id: Generated<string>;
+  indexedAt: Timestamp | null;
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
