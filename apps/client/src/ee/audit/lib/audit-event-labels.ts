@@ -103,6 +103,12 @@ export const auditEventLabels: Record<string, string> = {
 
   "template.created": "Created template",
   "template.deleted": "Deleted template",
+
+  "announcement.created": "Created announcement",
+  "announcement.updated": "Updated announcement",
+  "announcement.archived": "Archived announcement",
+  "announcement.unarchived": "Unarchived announcement",
+  "announcement.deleted": "Deleted announcement",
 };
 
 export function getEventLabel(event: string): string {
@@ -262,6 +268,16 @@ export const eventFilterOptions: EventGroup[] = [
     items: [
       { value: "template.created", label: "Created template" },
       { value: "template.deleted", label: "Deleted template" },
+    ],
+  },
+  {
+    group: "Announcement",
+    items: [
+      { value: "announcement.created", label: "Created announcement" },
+      { value: "announcement.updated", label: "Updated announcement" },
+      { value: "announcement.archived", label: "Archived announcement" },
+      { value: "announcement.unarchived", label: "Unarchived announcement" },
+      { value: "announcement.deleted", label: "Deleted announcement" },
     ],
   },
 ];

@@ -35,6 +35,9 @@
 }
 
 .root {
+  --editor-pin-offset: calc(
+    var(--docs-header-h) + var(--announcement-banners-height, 0px)
+  );
   min-height: 100dvh;
   background-color: var(--docs-bg);
   color: var(--docs-fg);
@@ -44,7 +47,7 @@
 
 .header {
   position: sticky;
-  top: 0;
+  top: var(--announcement-banners-height, 0px);
   z-index: 90;
   height: var(--docs-header-h);
   padding-inline: rem(20px);
@@ -253,8 +256,10 @@
   grid-column: 1;
   width: var(--docs-sidebar-w);
   position: sticky;
-  top: var(--docs-header-h);
-  height: calc(100dvh - var(--docs-header-h));
+  top: calc(var(--docs-header-h) + var(--announcement-banners-height, 0px));
+  height: calc(
+    100dvh - var(--docs-header-h) - var(--announcement-banners-height, 0px)
+  );
   display: flex;
   flex-direction: column;
   padding: rem(20px) rem(10px) rem(16px) rem(20px);
@@ -324,8 +329,10 @@
   grid-column: 3;
   width: var(--docs-toc-w);
   position: sticky;
-  top: var(--docs-header-h);
-  max-height: calc(100dvh - var(--docs-header-h));
+  top: calc(var(--docs-header-h) + var(--announcement-banners-height, 0px));
+  max-height: calc(
+    100dvh - var(--docs-header-h) - var(--announcement-banners-height, 0px)
+  );
   overflow-y: auto;
   scrollbar-width: thin;
   padding: rem(36px) rem(16px) rem(24px) rem(4px);
@@ -839,7 +846,9 @@
 .root :global(.ProseMirror) h2,
 .root :global(.ProseMirror) h3,
 .root :global(.ProseMirror) h4 {
-  scroll-margin-top: calc(var(--docs-header-h) + rem(16px));
+  scroll-margin-top: calc(
+    var(--docs-header-h) + var(--announcement-banners-height, 0px) + rem(16px)
+  );
 }
 
 /* ---------- Content tables ---------- */

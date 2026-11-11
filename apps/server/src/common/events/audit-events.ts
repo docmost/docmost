@@ -127,6 +127,13 @@ export const AuditEvent = {
   // Template
   TEMPLATE_CREATED: 'template.created',
   TEMPLATE_DELETED: 'template.deleted',
+
+  // Announcement
+  ANNOUNCEMENT_CREATED: 'announcement.created',
+  ANNOUNCEMENT_UPDATED: 'announcement.updated',
+  ANNOUNCEMENT_ARCHIVED: 'announcement.archived',
+  ANNOUNCEMENT_UNARCHIVED: 'announcement.unarchived',
+  ANNOUNCEMENT_DELETED: 'announcement.deleted',
 } as const;
 
 export type AuditEventType = (typeof AuditEvent)[keyof typeof AuditEvent];
@@ -159,6 +166,7 @@ export const AuditResource = {
   LICENSE: 'license',
   SIEM_DESTINATION: 'siem_destination',
   TEMPLATE: 'template',
+  ANNOUNCEMENT: 'announcement',
 } as const;
 
 export type AuditResourceType =
