@@ -153,6 +153,15 @@ export function useUpdateSpaceMutation() {
         queryClient.setQueryData(["space", variables.spaceId], updatedSpace);
         queryClient.setQueryData(["space", data.slug], updatedSpace);
       }
+      // a URL slug in another letter case caches the same space under its own key
+      queryClient.setQueriesData<ISpace>(
+        {
+          queryKey: ["space"],
+          predicate: (query) =>
+            (query.state.data as ISpace | undefined)?.id === data.id,
+        },
+        (cached) => ({ ...cached, ...data }),
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["spaces"],

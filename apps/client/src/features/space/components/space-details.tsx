@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { EditSpaceForm } from "@/features/space/components/edit-space-form.tsx";
-import { Button, Divider, Text, Title } from "@mantine/core";
+import { Button, Divider, Text, Title, Tooltip } from "@mantine/core";
 import DeleteSpaceModal from "./delete-space-modal";
 import ArchiveSpaceModal from "./archive-space-modal";
 import { useDisclosure } from "@mantine/hooks";
@@ -20,6 +20,7 @@ import {
   ResponsiveSettingsControl,
   ResponsiveSettingsRow,
 } from "@/components/ui/responsive-settings-row.tsx";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
 
 
 interface SpaceDetailsProps {
@@ -29,6 +30,7 @@ interface SpaceDetailsProps {
 export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
   const { t } = useTranslation();
   const { data: space, isLoading, refetch } = useSpaceQuery(spaceId);
+  const { exportDisabled, exportDisabledLabel } = useExportDisabled(spaceId);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [isIconUploading, setIsIconUploading] = useState(false);
@@ -116,7 +118,19 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
                   </Text>
                 </ResponsiveSettingsContent>
                 <ResponsiveSettingsControl>
-                  <Button onClick={openExportModal}>{t("Export")}</Button>
+                  <Tooltip
+                    label={exportDisabledLabel}
+                    disabled={!exportDisabled}
+                    withArrow
+                  >
+                    <Button
+                      onClick={openExportModal}
+                      disabled={exportDisabled}
+                      data-disabled={exportDisabled || undefined}
+                    >
+                      {t("Export")}
+                    </Button>
+                  </Tooltip>
                 </ResponsiveSettingsControl>
               </ResponsiveSettingsRow>
 

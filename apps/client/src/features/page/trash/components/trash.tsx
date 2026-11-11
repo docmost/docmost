@@ -31,6 +31,8 @@ import Paginate from "@/components/common/paginate.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useRestorePageModal } from "@/features/page/hooks/use-restore-page-modal.tsx";
 import { PageListIcon } from "@/components/common/page-list-icon";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print.ts";
 
 export default function Trash() {
   const { t } = useTranslation();
@@ -50,6 +52,8 @@ export default function Trash() {
     isBase?: boolean;
   } | null>(null);
   const [modalOpened, setModalOpened] = useState(false);
+  const { exportDisabledLabel } = useExportDisabled(spaceSlug);
+  useDisablePrint(modalOpened ? exportDisabledLabel : null);
 
   const handleRestorePage = async (pageId: string) => {
     await restorePageMutation.mutateAsync(pageId);

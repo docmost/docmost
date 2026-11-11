@@ -71,6 +71,19 @@ export class SpaceRepo {
       .executeTakeFirst();
   }
 
+  async findSettingsWithWorkspace(spaceId: string, workspaceId: string) {
+    return this.db
+      .selectFrom('spaces')
+      .innerJoin('workspaces', 'workspaces.id', 'spaces.workspaceId')
+      .select([
+        'spaces.settings as spaceSettings',
+        'workspaces.settings as workspaceSettings',
+      ])
+      .where('spaces.id', '=', spaceId)
+      .where('spaces.workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+  }
+
   async findPersonalSpace(
     userId: string,
     workspaceId: string,
@@ -141,6 +154,28 @@ export class SpaceRepo {
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
           || jsonb_build_object('sharing', COALESCE(settings->'sharing', '{}'::jsonb)
+          || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', spaceId)
+      .where('workspaceId', '=', workspaceId)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  async updateExportSettings(
+    spaceId: string,
+    workspaceId: string,
+    prefKey: string,
+    prefValue: string | boolean,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('spaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+          || jsonb_build_object('export', COALESCE(settings->'export', '{}'::jsonb)
           || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
         updatedAt: new Date(),
       })
