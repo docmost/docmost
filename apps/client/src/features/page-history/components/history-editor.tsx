@@ -7,6 +7,8 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import historyClasses from "./css/history.module.css";
 import { normalizeHistoryTitle } from "@/features/page-history/utils/normalize-history-title";
 import { splitChangeRange } from "@/features/page-history/utils/split-change-range";
+import { createHistoryTokenEncoder } from "@/features/page-history/utils/history-token-encoder";
+import { inlineFragment } from "@/features/page-history/utils/inline-fragment";
 import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "@tiptap/pm/changeset";
@@ -63,11 +65,11 @@ export function HistoryEditor({
           simplifyDiff: true,
         });
 
-        const changeSet = ChangeSet.create(oldContent).addSteps(
-          tr.doc,
-          tr.mapping.maps,
-          [],
-        );
+        const changeSet = ChangeSet.create(
+          oldContent,
+          undefined,
+          createHistoryTokenEncoder(),
+        ).addSteps(tr.doc, tr.mapping.maps, []);
         const changes = simplifyChanges(changeSet.changes, newContent);
 
         editor.commands.setContent(content);
@@ -90,17 +92,17 @@ export function HistoryEditor({
         let changeIndex = titleChanged ? 1 : 0;
 
         for (const change of changes) {
-          if (change.toB > change.fromB) {
+          const added = splitChangeRange(
+            newContent,
+            change.fromB,
+            change.toB,
+            specialNodeTypes,
+          );
+          if (added.length) {
             changeIndex++;
             const currentIndex = changeIndex;
-            const segments = splitChangeRange(
-              newContent,
-              change.fromB,
-              change.toB,
-              specialNodeTypes,
-            );
 
-            for (const segment of segments) {
+            for (const segment of added) {
               decorations.push(
                 segment.node
                   ? Decoration.node(segment.from, segment.to, {
@@ -115,18 +117,18 @@ export function HistoryEditor({
             }
             addedCount += 1;
           }
-          if (change.toA > change.fromA) {
+          const deleted = splitChangeRange(
+            oldContent,
+            change.fromA,
+            change.toA,
+            specialNodeTypes,
+          );
+          if (deleted.length) {
             changeIndex++;
             const currentIndex = changeIndex;
-            const segments = splitChangeRange(
-              oldContent,
-              change.fromA,
-              change.toA,
-              specialNodeTypes,
-            );
 
             // side keeps the deleted pieces in document order at the same position
-            segments.forEach((segment, side) => {
+            deleted.forEach((segment, side) => {
               const deletedNode = segment.node;
               if (deletedNode) {
                 decorations.push(
@@ -150,12 +152,18 @@ export function HistoryEditor({
                 return;
               }
 
+              // keep the old marks so removed formatting still shows
+              const fragment = inlineFragment(
+                oldContent,
+                segment.from,
+                segment.to,
+              );
               const deletedText = oldContent.textBetween(
                 segment.from,
                 segment.to,
                 "",
               );
-              if (deletedText) {
+              if (fragment || deletedText) {
                 decorations.push(
                   Decoration.widget(
                     change.fromB,
@@ -166,7 +174,15 @@ export function HistoryEditor({
                         "data-diff-index",
                         String(currentIndex),
                       );
-                      span.textContent = deletedText;
+                      if (fragment) {
+                        span.appendChild(
+                          DOMSerializer.fromSchema(schema).serializeFragment(
+                            fragment,
+                          ),
+                        );
+                      } else {
+                        span.textContent = deletedText;
+                      }
                       return span;
                     },
                     { side },
