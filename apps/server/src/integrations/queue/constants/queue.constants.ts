@@ -26,6 +26,7 @@ export enum QueueJob {
   ATTACHMENT_INDEX_CONTENT = 'attachment-index-content',
   ATTACHMENT_INDEXING = 'attachment-indexing',
   DELETE_PAGE_ATTACHMENTS = 'delete-page-attachments',
+  DELETE_UNUSED_COVER = 'delete-unused-cover',
   DELETE_AI_CHAT_ATTACHMENTS = 'delete-ai-chat-attachments',
 
   DELETE_USER_AVATARS = 'delete-user-avatars',
@@ -88,6 +89,7 @@ export enum QueueJob {
   PAGE_VERIFIED_NOTIFICATION = 'page-verified-notification',
   PAGE_APPROVAL_REQUESTED_NOTIFICATION = 'page-approval-requested-notification',
   PAGE_APPROVAL_REJECTED_NOTIFICATION = 'page-approval-rejected-notification',
+  PAGE_VERIFICATION_INVALIDATED = 'page-verification-invalidated',
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',

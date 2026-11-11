@@ -17,6 +17,7 @@ import {
   IconHistory,
   IconShieldCheck,
   IconFileImport,
+  IconSpeakerphone,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -107,8 +108,20 @@ const groupedData: DataGroup[] = [
         role: "admin",
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
-      { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      {
+        label: "Spaces",
+        icon: IconSpaces,
+        path: "/settings/spaces",
+        role: "admin",
+      },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
+      // No feature gate: without a license the page lists read-only, with archive and delete
+      {
+        label: "Announcements",
+        icon: IconSpeakerphone,
+        path: "/settings/announcements",
+        role: "admin",
+      },
       {
         label: "Verified pages",
         icon: IconShieldCheck,
@@ -129,18 +142,17 @@ const groupedData: DataGroup[] = [
         role: "admin",
       },
       {
+        label: "Integrations",
+        icon: IconPlug,
+        path: "/settings/integrations",
+        role: "admin",
+      },
+      {
         label: "Audit logs & SIEM",
         icon: IconHistory,
         path: "/settings/audit",
         feature: Feature.AUDIT_LOGS,
         role: "owner",
-        env: "selfhosted",
-      },
-      {
-        label: "Integrations",
-        icon: IconPlug,
-        path: "/settings/integrations",
-        role: "admin",
       },
       {
         label: "Import",
@@ -330,7 +342,7 @@ export default function SettingsSidebar() {
         <Text fw={500}>{t("Settings")}</Text>
       </Group>
 
-      <ScrollArea w="100%">{menuItems}</ScrollArea>
+      <ScrollArea w="100%" scrollbarSize={5}>{menuItems}</ScrollArea>
 
       {!isCloud() && <AppVersion />}
 

@@ -39,6 +39,7 @@ import ReactClearModal from "react-clear-modal";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
+import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
 import classes from "../common/toolbar-menu.module.css";
 
@@ -202,15 +203,18 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     setIsSaving(true);
 
     try {
-      const { exportToSvg } = await import("@excalidraw/excalidraw");
+      const { exportScene } = await import("@excalidraw/excalidraw");
 
-      const svg = await exportToSvg({
-        elements: excalidrawAPI?.getSceneElements(),
-        appState: {
-          exportEmbedScene: true,
-          exportWithDarkMode: false,
+      const svg = await exportScene({
+        type: "svg",
+        data: {
+          elements: excalidrawAPI?.getSceneElements(),
+          files: excalidrawAPI?.getFiles(),
         },
-        files: excalidrawAPI?.getFiles(),
+        config: {
+          embedScene: true,
+          theme: "light",
+        },
       });
 
       const serializer = new XMLSerializer();
@@ -253,8 +257,9 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     try {
       await saveData();
       close();
-    } catch {
+    } catch (err) {
       // save failed, modal stays open
+      notifyDiagramSaveError(err);
     }
   }, [saveData, close]);
 
@@ -298,6 +303,9 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
       <BaseBubbleMenu
         editor={editor}
         pluginKey={`excalidraw-menu`}
+        ref={(element) => {
+          if (element) element.style.zIndex = "99";
+        }}
         updateDelay={0}
         getReferencedVirtualElement={getReferencedVirtualElement}
         options={{
@@ -449,7 +457,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         <div style={{ height: "90vh" }}>
           <Suspense fallback={null}>
             <ExcalidrawComponent
-              excalidrawAPI={(api) => setExcalidrawAPI(api)}
+              onExcalidrawAPI={(api) => setExcalidrawAPI(api)}
               onChange={(elements, _appState, files) => {
                 const fingerprint = `${elements.length}:${elements.reduce((s, e) => s + (e.version || 0), 0)}:${Object.keys(files).length}`;
                 if (isInitialLoadRef.current) {

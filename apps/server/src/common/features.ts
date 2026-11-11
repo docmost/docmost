@@ -31,6 +31,7 @@ export const Feature = {
   MCP_CONTROLS: 'mcp:controls',
   PUBLIC_SPACE_APPEARANCE: 'public-space:appearance',
   SIEM: 'siem',
+  ANNOUNCEMENTS: 'announcements',
 } as const;
 
 export type FeatureKey = (typeof Feature)[keyof typeof Feature];

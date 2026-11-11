@@ -45,6 +45,7 @@ function HistoryView({ historyId, prevHistoryId }: Props) {
         content={data.content}
         title={data.title}
         previousContent={!isErrorPrev ? prevData?.content : undefined}
+        previousTitle={!isErrorPrev ? prevData?.title : undefined}
       />
     </div>
   );

@@ -95,6 +95,7 @@ export const IntegrationMention = Node.create<IntegrationLinkOptions>({
   },
 
   addNodeView() {
+    this.editor.isInitialized = true;
     return ReactNodeViewRenderer(this.options.view);
   },
 });

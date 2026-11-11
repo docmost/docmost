@@ -553,7 +553,6 @@ export default function LinkView(props: MarkViewProps) {
         <span
           ref={wrapperRef}
           className={classes.linkWrapper}
-          data-active={isPopoverVisible || undefined}
           onClick={handleClick}
         >
           <a

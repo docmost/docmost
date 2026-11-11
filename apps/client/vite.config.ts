@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
     AI_VECTOR_DRIVER,
     BETA_CONFLUENCE_IMPORTER,
     BETA_PUBLIC_SPACES,
+    UNSPLASH_ACCESS_KEY,
   } = loadEnv(mode, envPath, "");
 
   return {
@@ -37,6 +38,7 @@ export default defineConfig(({ mode }) => {
         AI_VECTOR_DRIVER,
         BETA_CONFLUENCE_IMPORTER,
         BETA_PUBLIC_SPACES,
+        UNSPLASH_ENABLED: UNSPLASH_ACCESS_KEY?.trim() ? "true" : undefined,
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },

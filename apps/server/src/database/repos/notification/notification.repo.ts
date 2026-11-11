@@ -77,9 +77,12 @@ export class NotificationRepo {
       .executeTakeFirst();
   }
 
-  async getUnreadCount(userId: string): Promise<number> {
-    const result = await this.db
+  async getUnreadCountsByPageId(
+    userId: string,
+  ): Promise<{ pageId: string | null; count: number }[]> {
+    const rows = await this.db
       .selectFrom('notifications')
+      .select('pageId')
       .select((eb) => eb.fn.count('id').as('count'))
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
@@ -93,9 +96,13 @@ export class NotificationRepo {
           ),
         ]),
       )
-      .executeTakeFirst();
+      .groupBy('pageId')
+      .execute();
 
-    return Number(result?.count ?? 0);
+    return rows.map((row) => ({
+      pageId: row.pageId,
+      count: Number(row.count),
+    }));
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<void> {
