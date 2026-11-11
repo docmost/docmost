@@ -136,6 +136,7 @@ describe('PageService movePageToSpace', () => {
   const ROOT_ID = '019a1f00-0000-7000-8000-000000000015';
   const CHILD_ID = '019a1f00-0000-7000-8000-000000000016';
   const SHARE_ID = '019a1f00-0000-7000-8000-000000000017';
+  const TRASHED_ID = '019a1f00-0000-7000-8000-000000000018';
 
   const rootPage = {
     id: ROOT_ID,
@@ -157,17 +158,25 @@ describe('PageService movePageToSpace', () => {
     deletedAt: null,
   };
 
-  // answers the shares delete with the root page's share, everything else with no rows
-  function makeService() {
+  // answers the shares delete with the root page's share, the trashed pages lookup with trashedPageIds, everything else with no rows
+  function makeService({ trashedPageIds = [] as string[] } = {}) {
     const queries: CompiledQuery[] = [];
     const driver = new DummyDriver();
     driver.acquireConnection = async () =>
       ({
-        executeQuery: async (query: CompiledQuery) => ({
-          rows: query.sql.startsWith('delete from "shares"')
-            ? [{ id: SHARE_ID, page_id: ROOT_ID, space_id: SOURCE_SPACE_ID }]
-            : [],
-        }),
+        executeQuery: async (query: CompiledQuery) => {
+          if (query.sql.startsWith('delete from "shares"')) {
+            return {
+              rows: [
+                { id: SHARE_ID, page_id: ROOT_ID, space_id: SOURCE_SPACE_ID },
+              ],
+            };
+          }
+          if (query.sql.startsWith('with recursive "trashed_pages"')) {
+            return { rows: trashedPageIds.map((id) => ({ id })) };
+          }
+          return { rows: [] };
+        },
         streamQuery: async function* () {},
       }) as any;
     const db = new Kysely<any>({
@@ -193,6 +202,7 @@ describe('PageService movePageToSpace', () => {
     const pagePermissionRepo = {
       filterAccessiblePageIds: jest.fn(async () => [ROOT_ID, CHILD_ID]),
     };
+    const aiQueue = { add: jest.fn(async () => undefined) };
     const shareService = {
       isSharingAllowed: jest.fn(
         async (workspaceId: string, spaceId: string) =>
@@ -208,7 +218,7 @@ describe('PageService movePageToSpace', () => {
       db as any,
       {} as any,
       {} as any,
-      { add: jest.fn(async () => undefined) } as any,
+      aiQueue as any,
       {} as any,
       {} as any,
       {} as any,
@@ -237,7 +247,21 @@ describe('PageService movePageToSpace', () => {
         ),
       );
 
-    return { service, sharesQueries, homeClearQueries };
+    const pageUpdateQueries = () =>
+      queries.filter((query) => /^update "pages" set/.test(query.sql));
+
+    const pageAccessQueries = () =>
+      queries.filter((query) => /^update "page_access" set/.test(query.sql));
+
+    return {
+      service,
+      sharesQueries,
+      homeClearQueries,
+      pageUpdateQueries,
+      pageAccessQueries,
+      pageRepo,
+      aiQueue,
+    };
   }
 
   it('deletes the shares of moved pages when the target space has public sharing disabled', async () => {
@@ -291,6 +315,37 @@ describe('PageService movePageToSpace', () => {
     expect(homeClearQueries()[0].parameters[0]).toBeNull();
     expect(homeClearQueries()[0].parameters).toEqual(
       expect.arrayContaining([ROOT_ID, CHILD_ID]),
+    );
+  });
+
+  it('moves trashed sub-pages and their restrictions with the root, keeping their parents', async () => {
+    const { service, pageUpdateQueries, pageAccessQueries, pageRepo, aiQueue } =
+      makeService({ trashedPageIds: [TRASHED_ID] });
+
+    await service.movePageToSpace(rootPage as any, OPEN_SPACE_ID, USER_ID);
+
+    expect(pageUpdateQueries()).toEqual([
+      expect.objectContaining({
+        sql: expect.stringMatching(
+          /^update "pages" set "space_id" = \$1 where "id" in \(\$2\)/,
+        ),
+        parameters: [OPEN_SPACE_ID, TRASHED_ID],
+      }),
+    ]);
+    expect(pageAccessQueries()).toEqual([
+      expect.objectContaining({
+        parameters: [OPEN_SPACE_ID, ROOT_ID, CHILD_ID, TRASHED_ID],
+      }),
+    ]);
+    expect(pageRepo.updatePages).toHaveBeenCalledWith(
+      { spaceId: OPEN_SPACE_ID },
+      [CHILD_ID],
+      expect.anything(),
+    );
+    expect(aiQueue.add).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ pageIds: [ROOT_ID, CHILD_ID] }),
+      expect.anything(),
     );
   });
 });
