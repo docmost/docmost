@@ -75,7 +75,7 @@ export const ANNOUNCEMENT_COLOR_STYLES: Record<
   green: { background: "#2a7d3d", text: "#ffffff", label: "Green" },
   yellow: { background: "#fcc419", text: "#1a1b1e", label: "Yellow" },
   red: { background: "#c92a2a", text: "#ffffff", label: "Red" },
-  purple: { background: "#6741d9", text: "#ffffff", label: "Purple" },
+  purple: { background: "#6e5dc6", text: "#ffffff", label: "Purple" },
   gray: { background: "#dee2e6", text: "#1a1b1e", label: "Gray" },
   black: { background: "#111111", text: "#ffffff", label: "Black" },
 };
