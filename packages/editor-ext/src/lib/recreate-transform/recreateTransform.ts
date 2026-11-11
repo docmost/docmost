@@ -6,6 +6,7 @@ import { AnyObject } from "./types";
 import { getReplaceStep } from "./getReplaceStep";
 import { simplifyTransform } from "./simplifyTransform";
 import { removeMarks } from "./removeMarks";
+import { diffJsonArrays } from "./diffJsonArrays";
 import { getFromPath } from "./getFromPath";
 import { copy } from "./copy";
 
@@ -53,14 +54,14 @@ export class RecreateTransform {
       // any mapping changes anyway.
       this.currentJSON = removeMarks(this.fromDoc).toJSON();
       this.finalJSON = removeMarks(this.toDoc).toJSON();
-      this.ops = createPatch(this.currentJSON, this.finalJSON);
+      this.ops = createPatch(this.currentJSON, this.finalJSON, diffJsonArrays);
       this.recreateChangeContentSteps();
       this.recreateChangeMarkSteps();
     } else {
       // We don't differentiate between mark changes and other changes.
       this.currentJSON = this.fromDoc.toJSON();
       this.finalJSON = this.toDoc.toJSON();
-      this.ops = createPatch(this.currentJSON, this.finalJSON);
+      this.ops = createPatch(this.currentJSON, this.finalJSON, diffJsonArrays);
       this.recreateChangeContentSteps();
     }
 
@@ -164,7 +165,7 @@ export class RecreateTransform {
       }
       this.currentJSON = removeMarks(this.tr.doc).toJSON();
       // setting the node markup may have invalidated the following ops, so we calculate them again.
-      this.ops = createPatch(this.currentJSON, this.finalJSON);
+      this.ops = createPatch(this.currentJSON, this.finalJSON, diffJsonArrays);
       return true;
     }
     return false;
