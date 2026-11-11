@@ -19,6 +19,12 @@ vi.mock("react-i18next", () => ({
       key.replace(/{{(\w+)}}/g, (_match, name) => String(values?.[name] ?? "")),
   }),
 }));
+// emoji-mart renders a web component jsdom cannot drive
+vi.mock("@/components/ui/emoji-picker.tsx", () => ({
+  default: ({ onEmojiSelect }: { onEmojiSelect: (emoji: { native: string }) => void }) => (
+    <button type="button" aria-label="Pick emoji" onClick={() => onEmojiSelect({ native: "🎉" })} />
+  ),
+}));
 
 const doc = (...nodes: IAnnouncementText[]): IAnnouncementContent => ({
   type: "doc",
@@ -90,7 +96,17 @@ describe("AnnouncementMessageEditor", () => {
     const toolbar = screen.getByRole("toolbar", { name: "Editor toolbar" });
     expect(
       within(toolbar).getAllByRole("button").map((button) => button.ariaLabel),
-    ).toEqual(["Bold", "Italic", "Underline", "Link"]);
+    ).toEqual(["Bold", "Italic", "Underline", "Link", "Pick emoji"]);
+  });
+
+  it("adds the picked emoji to the message", () => {
+    const { onChange } = renderEditor(doc({ type: "text", text: "Hello" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pick emoji" }));
+    const text = lastContent(onChange)
+      .content[0].content.map((node) => node.text)
+      .join("");
+    expect(text).toContain("🎉");
+    expect(text).toContain("Hello");
   });
 
   it("reports the pressed state of a format button", () => {

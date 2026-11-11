@@ -21,10 +21,12 @@ import {
   IconBold,
   IconItalic,
   IconLink,
+  IconMoodSmile,
   IconUnderline,
 } from "@tabler/icons-react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
+import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { platformModifierKey } from "@/lib";
 import { ANNOUNCEMENT_MAX_TEXT_LENGTH } from "@/ee/announcement/announcement.constants";
 import {
@@ -197,6 +199,15 @@ export function AnnouncementMessageEditor({
               )}
             </Popover.Dropdown>
           </Popover>
+
+          <EmojiPicker
+            onEmojiSelect={(emoji) =>
+              editor?.chain().focus().insertContent(emoji.native).run()
+            }
+            icon={<IconMoodSmile size={16} aria-hidden />}
+            readOnly={!editor}
+            actionIconProps={{ size: "md", variant: "subtle", c: "dark" }}
+          />
 
           {textLength >= COUNTER_THRESHOLD && (
             <Text
