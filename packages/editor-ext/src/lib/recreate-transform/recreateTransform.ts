@@ -1,6 +1,6 @@
 import { Transform } from "@tiptap/pm/transform";
-import { Node, Schema } from "@tiptap/pm/model";
-import { applyPatch, createPatch, Operation } from "rfc6902";
+import { Mark, Node, Schema } from "@tiptap/pm/model";
+import { createPatch, Operation } from "rfc6902";
 import { diffWordsWithSpace, diffChars } from "diff";
 import { AnyObject } from "./types";
 import { getReplaceStep } from "./getReplaceStep";
@@ -8,7 +8,7 @@ import { simplifyTransform } from "./simplifyTransform";
 import { removeMarks } from "./removeMarks";
 import { diffJsonArrays } from "./diffJsonArrays";
 import { getFromPath } from "./getFromPath";
-import { copy } from "./copy";
+import { patchCopy } from "./patchCopy";
 
 export interface Options {
   complexSteps?: boolean;
@@ -29,6 +29,10 @@ export class RecreateTransform {
   /* final document as json data */
   finalJSON: AnyObject;
   ops: Array<Operation>;
+  nodes = new WeakMap<AnyObject, Node>();
+  checked = new WeakSet<Node>();
+  // schema whose nodeFromJSON reuses the nodes built so far
+  nodeSchema: Schema;
 
   constructor(fromDoc: Node, toDoc: Node, options: Options = {}) {
     const o = {
@@ -45,6 +49,33 @@ export class RecreateTransform {
     this.simplifyDiff = o.simplifyDiff;
     this.schema = fromDoc.type.schema;
     this.tr = new Transform(fromDoc);
+    this.nodeSchema = Object.create(this.schema);
+    this.nodeSchema.nodeFromJSON = (json) => this.nodeFromJSON(json);
+  }
+
+  // json objects are never changed once built, so their nodes can be reused
+  nodeFromJSON(json: AnyObject): Node {
+    let node = this.nodes.get(json);
+    if (!node) {
+      node = Node.fromJSON(this.nodeSchema, json);
+      this.nodes.set(json, node);
+    }
+    return node;
+  }
+
+  // Node.check, skipping checked nodes (Node.fromJSON already checked attrs)
+  checkNode(node: Node) {
+    if (this.checked.has(node)) return;
+    if (!node.type.validContent(node.content)) {
+      throw new RangeError(`Invalid content for node ${node.type.name}`);
+    }
+    let marks = Mark.none;
+    for (const mark of node.marks) marks = mark.addToSet(marks);
+    if (!Mark.sameSet(marks, node.marks)) {
+      throw new RangeError(`Invalid marks for node ${node.type.name}`);
+    }
+    node.content.forEach((child) => this.checkNode(child));
+    this.checked.add(node);
   }
 
   init() {
@@ -82,18 +113,18 @@ export class RecreateTransform {
       ops.push(op);
 
       let toDoc;
-      const afterStepJSON = copy(this.currentJSON); // working document receiving patches
+      let afterStepJSON = this.currentJSON; // working document receiving patches
       const pathParts = op.path.split("/");
 
       // collect operations until we receive a valid document:
       // apply ops-patches until a valid prosemirror document is retrieved,
       // then try to create a transformation step or retry with next operation
       while (toDoc == null) {
-        applyPatch(afterStepJSON, [op]);
+        afterStepJSON = patchCopy(afterStepJSON, op);
 
         try {
-          toDoc = this.schema.nodeFromJSON(afterStepJSON);
-          toDoc.check();
+          toDoc = this.nodeFromJSON(afterStepJSON);
+          this.checkNode(toDoc);
         } catch (error) {
           toDoc = null;
           if (this.ops.length > 0) {
@@ -204,7 +235,7 @@ export class RecreateTransform {
    * From http://prosemirror.net/examples/footnote/
    */
   addReplaceStep(toDoc: Node, afterStepJSON: AnyObject) {
-    const fromDoc = this.schema.nodeFromJSON(this.currentJSON);
+    const fromDoc = this.nodeFromJSON(this.currentJSON);
     const step = getReplaceStep(fromDoc, toDoc);
 
     if (!step) {
@@ -222,12 +253,8 @@ export class RecreateTransform {
     // We find the position number of the first character in the string
     const op1 = { ...op, value: "xx" };
     const op2 = { ...op, value: "yy" };
-    const afterOP1JSON = copy(this.currentJSON);
-    const afterOP2JSON = copy(this.currentJSON);
-    applyPatch(afterOP1JSON, [op1]);
-    applyPatch(afterOP2JSON, [op2]);
-    const op1Doc = this.schema.nodeFromJSON(afterOP1JSON);
-    const op2Doc = this.schema.nodeFromJSON(afterOP2JSON);
+    const op1Doc = this.nodeFromJSON(patchCopy(this.currentJSON, op1));
+    const op2Doc = this.nodeFromJSON(patchCopy(this.currentJSON, op2));
 
     // get text diffs
     const finalText = op.value;
