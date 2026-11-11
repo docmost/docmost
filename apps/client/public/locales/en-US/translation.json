@@ -1777,7 +1777,7 @@
   "Edit announcement": "Edit announcement",
   "Delete announcement": "Delete announcement",
   "“{{name}}” will be permanently deleted.": "“{{name}}” will be permanently deleted.",
-  "Announcements require an Enterprise license.": "Announcements require an Enterprise license.",
+  "Announcements are available in the Docmost paid editions.": "Announcements are available in the Docmost paid editions.",
   "Show a banner at the top of every page. Only one can show at a time.": "Show a banner at the top of every page. Only one can show at a time.",
   "Failed to load announcements": "Failed to load announcements",
   "No active announcements": "No active announcements",

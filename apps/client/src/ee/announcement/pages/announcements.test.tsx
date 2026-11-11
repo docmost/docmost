@@ -32,7 +32,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
 vi.mock("../services/announcement-service");
 
-const LICENSE_ALERT = "Announcements require an Enterprise license.";
+const LICENSE_ALERT = "Announcements are available in the Docmost paid editions.";
 
 const announcement: IAnnouncement = {
   id: "a1",

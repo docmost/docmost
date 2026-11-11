@@ -98,7 +98,7 @@ export default function Announcements() {
 
       {isUnlicensed && (
         <Alert icon={<IconInfoCircle size={16} />} color="yellow" mb="md">
-          {t("Announcements require an Enterprise license.")}
+          {t("Announcements are available in the Docmost paid editions.")}
         </Alert>
       )}
 
