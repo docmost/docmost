@@ -68,6 +68,7 @@ export type IAnnouncementInput = {
   audience: AnnouncementAudience;
   startsAt: string | null;
   endsAt: string | null;
+  replace?: boolean;
 };
 
 export type IAnnouncementIdInput = { announcementId: string };
@@ -79,6 +80,13 @@ export type IAnnouncementLimitConflict = {
   from: string;
   to: string | null;
   announcements: { id: string; title: string }[];
+};
+
+export type IAnnouncementTakeover = { id: string; title: string; at: string };
+
+export type IAnnouncementReplacement = {
+  replaces: IAnnouncementTakeover[];
+  replacedBy: IAnnouncementTakeover[];
 };
 
 export type IAnnouncementListParams = {

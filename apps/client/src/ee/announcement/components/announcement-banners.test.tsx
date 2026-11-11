@@ -173,6 +173,31 @@ afterEach(() => {
 });
 
 describe("AnnouncementBanners", () => {
+  it("shows only the newest of the banners that are showing at once", () => {
+    mocks.banners = [
+      banner("old-1", "Older", { startsAt: "2026-01-01T09:00:00.000Z" }),
+      banner("new-1", "Newer", { startsAt: "2026-02-01T09:00:00.000Z" }),
+    ];
+
+    renderBanners();
+
+    expect(screen.getByText("Newer")).toBeTruthy();
+    expect(screen.queryByText("Older")).toBeNull();
+  });
+
+  it("does not bring back the replaced banner when the newest is dismissed", () => {
+    mocks.banners = [
+      banner("old-2", "Older", { startsAt: "2026-01-01T09:00:00.000Z" }),
+      banner("new-2", "Newer", { startsAt: "2026-02-01T09:00:00.000Z" }),
+    ];
+    renderBanners();
+
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss Newer" }));
+
+    expect(screen.queryByText("Older")).toBeNull();
+    expect(screen.queryByRole("region")).toBeNull();
+  });
+
   it("hides a dismissed banner, also after a remount", () => {
     mocks.banners = [banner("dismiss-1", "Maintenance tonight")];
     const { unmount } = renderBanners();
@@ -207,18 +232,18 @@ describe("AnnouncementBanners", () => {
   });
 
   it("names the type for screen readers, except for neutral", () => {
-    mocks.banners = [
-      banner("type-1", "Heads up", { type: "warning" }),
-      banner("type-2", "Plain note", { type: "neutral" }),
-    ];
+    mocks.banners = [banner("type-1", "Heads up", { type: "warning" })];
+    const { unmount } = renderBanners();
+    expect(
+      document.querySelector<HTMLElement>(`.${classes.bar}`)?.textContent,
+    ).toContain("Warning:");
+    unmount();
 
+    mocks.banners = [banner("type-2", "Plain note", { type: "neutral" })];
     renderBanners();
-
-    const [warning, neutral] = Array.from(
-      document.querySelectorAll<HTMLElement>(`.${classes.bar}`),
-    );
-    expect(warning.textContent).toContain("Warning:");
-    expect(neutral.textContent).not.toContain(":");
+    expect(
+      document.querySelector<HTMLElement>(`.${classes.bar}`)?.textContent,
+    ).not.toContain(":");
   });
 
   it("makes the stack focusable only while it overflows", () => {
@@ -246,9 +271,9 @@ describe("AnnouncementBanners", () => {
   });
 
   it("shares its height with the layout and resets it on unmount", () => {
-    mocks.banners = [banner("atom-1", "First"), banner("atom-2", "Second")];
+    mocks.banners = [banner("atom-1", "First")];
     const { unmount } = renderBanners();
-    expect(store.get(announcementBannersHeightAtom)).toBe(72);
+    expect(store.get(announcementBannersHeightAtom)).toBe(36);
 
     unmount();
     expect(store.get(announcementBannersHeightAtom)).toBe(0);
@@ -317,7 +342,7 @@ describe("AnnouncementBanners", () => {
   });
 
   it("publishes its height before the first paint", () => {
-    mocks.banners = [banner("paint-1", "First"), banner("paint-2", "Second")];
+    mocks.banners = [banner("paint-1", "First")];
     const onHeightChange = vi.fn();
     const seenBeforePaint: Array<[string, number[]]> = [];
     function LayoutProbe() {
@@ -332,11 +357,11 @@ describe("AnnouncementBanners", () => {
 
     renderBanners(onHeightChange, <LayoutProbe />);
 
-    expect(seenBeforePaint[0]).toEqual(["72px", [72]]);
+    expect(seenBeforePaint[0]).toEqual(["36px", [36]]);
   });
 
   it("publishes the new height as soon as a banner is dismissed", () => {
-    mocks.banners = [banner("shrink-1", "First"), banner("shrink-2", "Second")];
+    mocks.banners = [banner("shrink-1", "First")];
     const onHeightChange = vi.fn();
     renderBanners(onHeightChange);
 
@@ -344,8 +369,8 @@ describe("AnnouncementBanners", () => {
       screen.getByRole("button", { name: "Dismiss First" }),
     );
 
-    expect(publishedHeight()).toBe("36px");
-    expect(onHeightChange.mock.calls).toEqual([[72], [36]]);
+    expect(publishedHeight()).toBe("0px");
+    expect(onHeightChange.mock.calls).toEqual([[36], [0]]);
   });
 
   it("measures only when the banners change and reports each height once", () => {
@@ -378,7 +403,7 @@ describe("AnnouncementBanners", () => {
   });
 
   it("keeps the real height when it remounts with cached banners", async () => {
-    mocks.banners = [banner("cached-1", "First"), banner("cached-2", "Second")];
+    mocks.banners = [banner("cached-1", "First")];
     const onHeightChange = vi.fn();
     renderBanners(onHeightChange).unmount();
     onHeightChange.mockClear();
@@ -387,17 +412,17 @@ describe("AnnouncementBanners", () => {
     // leave time for anything that would publish later, after paint
     await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
 
-    expect(onHeightChange.mock.calls).toEqual([[72]]);
-    expect(publishedHeight()).toBe("72px");
+    expect(onHeightChange.mock.calls).toEqual([[36]]);
+    expect(publishedHeight()).toBe("36px");
   });
 
   it("publishes its height and clears it on unmount", () => {
-    mocks.banners = [banner("height-1", "First"), banner("height-2", "Second")];
+    mocks.banners = [banner("height-1", "First")];
     const onHeightChange = vi.fn();
 
     const { unmount } = renderBanners(onHeightChange);
-    expect(publishedHeight()).toBe("72px");
-    expect(onHeightChange).toHaveBeenLastCalledWith(72);
+    expect(publishedHeight()).toBe("36px");
+    expect(onHeightChange).toHaveBeenLastCalledWith(36);
 
     unmount();
     expect(publishedHeight()).toBe("");
@@ -405,7 +430,7 @@ describe("AnnouncementBanners", () => {
   });
 
   it("keeps the height of banners that replace others in the same commit", () => {
-    mocks.banners = [banner("swap-1", "First"), banner("swap-2", "Second")];
+    mocks.banners = [banner("swap-1", "First")];
     const layout = (surface: "app" | "public") => (
       <MantineProvider>
         <MemoryRouter>
@@ -417,20 +442,16 @@ describe("AnnouncementBanners", () => {
 
     rerender(layout("public"));
 
-    expect(publishedHeight()).toBe("72px");
+    expect(publishedHeight()).toBe("36px");
   });
 
-  it("hands focus to the next close button, then to the main content, as banners are dismissed", () => {
-    mocks.banners = [banner("focus-1", "First"), banner("focus-2", "Second")];
+  it("hands focus to the main content when the banner is dismissed", () => {
+    mocks.banners = [banner("focus-1", "First")];
     renderBanners(undefined, <main id={MAIN_CONTENT_ID} tabIndex={-1} />);
     const first = screen.getByRole("button", { name: "Dismiss First" });
-    const second = screen.getByRole("button", { name: "Dismiss Second" });
 
     first.focus();
     fireEvent.click(first);
-    expect(document.activeElement).toBe(second);
-
-    fireEvent.click(second);
     expect(document.activeElement).toBe(
       document.getElementById(MAIN_CONTENT_ID),
     );

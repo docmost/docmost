@@ -32,6 +32,7 @@ import {
   IAnnouncementInput,
   IAnnouncementLimitConflict,
   IAnnouncementListParams,
+  IAnnouncementReplacement,
   IUpdateAnnouncementInput,
 } from "@/ee/announcement/types/announcement.types";
 
@@ -39,6 +40,8 @@ export const ANNOUNCEMENTS_KEY = ["announcements"];
 
 type ErrorResponseData = {
   conflict?: IAnnouncementLimitConflict;
+  replaces?: IAnnouncementReplacement["replaces"];
+  replacedBy?: IAnnouncementReplacement["replacedBy"];
 };
 
 function getErrorResponseData(error: unknown): ErrorResponseData | undefined {
@@ -51,6 +54,19 @@ export function getAnnouncementLimitConflict(
 ): IAnnouncementLimitConflict | null {
   const conflict = getErrorResponseData(error)?.conflict;
   return Array.isArray(conflict?.announcements) ? conflict : null;
+}
+
+export function getAnnouncementReplacement(
+  error: unknown,
+): IAnnouncementReplacement | null {
+  const { replaces, replacedBy } = getErrorResponseData(error) ?? {};
+  if (!Array.isArray(replaces) && !Array.isArray(replacedBy)) {
+    return null;
+  }
+  return {
+    replaces: Array.isArray(replaces) ? replaces : [],
+    replacedBy: Array.isArray(replacedBy) ? replacedBy : [],
+  };
 }
 
 // A 404 means the server has no announcements routes (no ee module), so neither retry nor poll

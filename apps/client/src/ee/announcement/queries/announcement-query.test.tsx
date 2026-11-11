@@ -15,6 +15,7 @@ import { Feature } from "@/ee/features";
 import {
   ANNOUNCEMENTS_KEY,
   getAnnouncementLimitConflict,
+  getAnnouncementReplacement,
   useAnnouncementsQuery,
   useArchiveAnnouncementMutation,
   useCreateAnnouncementMutation,
@@ -457,5 +458,38 @@ describe("getAnnouncementLimitConflict", () => {
     ["undefined", undefined],
   ])("returns null for %s", (_label, error) => {
     expect(getAnnouncementLimitConflict(error)).toBeNull();
+  });
+});
+
+describe("getAnnouncementReplacement", () => {
+  const takeover = { id: "a", title: "Maintenance tonight", at: "2026-11-05T09:00:00.000Z" };
+
+  it("reads both lists from the response body", () => {
+    const error = requestError({
+      message: "This replaces another announcement",
+      replaces: [takeover],
+      replacedBy: [],
+    });
+    expect(getAnnouncementReplacement(error)).toEqual({
+      replaces: [takeover],
+      replacedBy: [],
+    });
+  });
+
+  it("fills a missing list with an empty one", () => {
+    const error = requestError({ replacedBy: [takeover] });
+    expect(getAnnouncementReplacement(error)).toEqual({
+      replaces: [],
+      replacedBy: [takeover],
+    });
+  });
+
+  it.each([
+    ["a limit conflict", requestError({ conflict: { from: "x", to: null, announcements: [] } })],
+    ["a plain error", new Error("boom")],
+    ["a non-json body", requestError("<html>Bad gateway</html>")],
+    ["null", null],
+  ])("returns null for %s", (_label, error) => {
+    expect(getAnnouncementReplacement(error)).toBeNull();
   });
 });

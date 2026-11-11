@@ -9,7 +9,10 @@ import { useInterval } from "@mantine/hooks";
 import { useSetAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
-import { ANNOUNCEMENT_BANNERS_HEIGHT_VAR } from "@/ee/announcement/announcement.constants";
+import {
+  ANNOUNCEMENT_BANNERS_HEIGHT_VAR,
+  ANNOUNCEMENT_MAX_VISIBLE,
+} from "@/ee/announcement/announcement.constants";
 import {
   dismissAnnouncement,
   getAnnouncementFingerprint,
@@ -43,11 +46,15 @@ export default function AnnouncementBanners({
   useInterval(rerender, 30_000, { autoInvoke: true });
 
   const now = Date.now() + (data?.offsetMs ?? 0);
-  const banners = items.filter(
-    (announcement) =>
-      isAnnouncementVisibleAt(announcement, now) &&
-      !(announcement.isDismissible && isAnnouncementDismissed(announcement)),
-  );
+  // Dismissed items drop last, so dismissing the newest never brings back the one it replaced
+  const banners = items
+    .filter((announcement) => isAnnouncementVisibleAt(announcement, now))
+    .sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt))
+    .slice(0, ANNOUNCEMENT_MAX_VISIBLE)
+    .filter(
+      (announcement) =>
+        !(announcement.isDismissible && isAnnouncementDismissed(announcement)),
+    );
   const hasBanners = banners.length > 0;
   const bannersKey = banners
     .map(

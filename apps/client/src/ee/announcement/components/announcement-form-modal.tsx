@@ -1,4 +1,11 @@
-import { type KeyboardEvent, lazy, Suspense, useEffect, useRef } from "react";
+import {
+  type KeyboardEvent,
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   Box,
@@ -6,6 +13,7 @@ import {
   ColorSwatch,
   Group,
   Input,
+  List,
   Modal,
   Select,
   SimpleGrid,
@@ -41,6 +49,7 @@ import {
 import { AnnouncementMessageEditor } from "@/ee/announcement/components/announcement-message-editor";
 import {
   getAnnouncementLimitConflict,
+  getAnnouncementReplacement,
   useCreateAnnouncementMutation,
   useUpdateAnnouncementMutation,
 } from "@/ee/announcement/queries/announcement-query";
@@ -48,6 +57,7 @@ import type {
   AnnouncementAudience,
   AnnouncementType,
   IAnnouncement,
+  IAnnouncementReplacement,
 } from "@/ee/announcement/types/announcement.types";
 
 const DateTimePicker = lazy(() =>
@@ -118,11 +128,14 @@ type AnnouncementFormProps = {
 function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
   const { t, i18n } = useTranslation();
   const alertRef = useRef<HTMLDivElement>(null);
+  const noticeRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateAnnouncementMutation();
   const updateMutation = useUpdateAnnouncementMutation();
   const mutation = announcement ? updateMutation : createMutation;
   const conflict = getAnnouncementLimitConflict(mutation.error);
+  const [replacement, setReplacement] =
+    useState<IAnnouncementReplacement | null>(null);
 
   const form = useForm<AnnouncementFormValues>({
     initialValues: getInitialValues(announcement),
@@ -143,6 +156,15 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
     }
   }, [mutation.error]);
 
+  // The submit button sits below the fold, so the notice would stay out of sight
+  useEffect(() => {
+    if (replacement) {
+      setTimeout(() => {
+        noticeRef.current?.scrollIntoView?.({ block: "nearest" });
+      }, 0);
+    }
+  }, [replacement]);
+
   const formatPickerTime = (value: string) =>
     formatPickerValue(value, i18n.language);
 
@@ -155,8 +177,17 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
     }, 0);
   };
 
+  const setTime = (field: "startsAt" | "endsAt", value: string | null) => {
+    form.setFieldValue(field, value);
+    setReplacement(null);
+    mutation.reset();
+  };
+
   const handleSubmit = async (submitted: AnnouncementFormValues) => {
     const input = toAnnouncementInput(submitted, announcement);
+    if (replacement) {
+      input.replace = true;
+    }
     try {
       if (announcement) {
         await updateMutation.mutateAsync({
@@ -167,8 +198,8 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
         await createMutation.mutateAsync(input);
       }
       onClose();
-    } catch {
-      // the alert above the fields shows the error
+    } catch (error) {
+      setReplacement(getAnnouncementReplacement(error));
     }
   };
 
@@ -178,7 +209,32 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
       onSubmit={form.onSubmit(handleSubmit, handleValidationFailure)}
     >
       <Stack gap="md">
-        {mutation.error && (
+        {replacement && (
+          <Alert
+            ref={noticeRef}
+            color="yellow"
+            icon={<IconAlertCircle size={16} />}
+          >
+            <List size="sm" listStyleType="none">
+              {replacement.replaces.map((item) => (
+                <List.Item key={`replaces-${item.id}`}>
+                  {t("“{{title}}” will be archived when this one starts.", {
+                    title: item.title,
+                  })}
+                </List.Item>
+              ))}
+              {replacement.replacedBy.map((item) => (
+                <List.Item key={`replaced-by-${item.id}`}>
+                  {t("This one will be archived when “{{title}}” starts.", {
+                    title: item.title,
+                  })}
+                </List.Item>
+              ))}
+            </List>
+          </Alert>
+        )}
+
+        {mutation.error && !replacement && (
           <Alert
             ref={alertRef}
             color="red"
@@ -303,9 +359,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
               clearable
               clearButtonProps={{ "aria-label": t("Clear start time") }}
               value={values.startsAt}
-              onChange={(value) =>
-                form.setFieldValue("startsAt", value as string | null)
-              }
+              onChange={(value) => setTime("startsAt", value as string | null)}
               valueFormat={formatPickerTime}
               error={form.errors.startsAt}
             />
@@ -324,9 +378,7 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
               clearable
               clearButtonProps={{ "aria-label": t("Clear end time") }}
               value={values.endsAt}
-              onChange={(value) =>
-                form.setFieldValue("endsAt", value as string | null)
-              }
+              onChange={(value) => setTime("endsAt", value as string | null)}
               valueFormat={formatPickerTime}
               error={form.errors.endsAt}
             />
@@ -359,7 +411,11 @@ function AnnouncementForm({ announcement, onClose }: AnnouncementFormProps) {
             {t("Cancel")}
           </Button>
           <Button type="submit" loading={mutation.isPending}>
-            {announcement ? t("Save") : t("Create")}
+            {replacement
+              ? t("Save and replace")
+              : announcement
+                ? t("Save")
+                : t("Create")}
           </Button>
         </Group>
       </Stack>

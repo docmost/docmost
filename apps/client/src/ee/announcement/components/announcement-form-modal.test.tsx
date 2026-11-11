@@ -364,6 +364,114 @@ describe("AnnouncementFormModal", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  describe("when the save would replace another announcement", () => {
+    const replaceAnswer = {
+      message: "This replaces another announcement",
+      replaces: [
+        { id: "b", title: "Acceptable use policy", at: "2026-11-05T09:00:00.000Z" },
+      ],
+      replacedBy: [
+        { id: "c", title: "Holiday hours", at: "2026-12-20T09:00:00.000Z" },
+      ],
+    };
+
+    async function triggerReplaceAnswer() {
+      vi.mocked(service.createAnnouncement).mockRejectedValueOnce(
+        requestError(replaceAnswer),
+      );
+      const { onClose } = renderModal();
+      typeTitle("Maintenance");
+      typeMessage("Maintenance tonight");
+      submit();
+      const alert = await screen.findByRole("alert");
+      return { alert, onClose };
+    }
+
+    it("lists what is archived when this one starts and when another one does", async () => {
+      const { alert, onClose } = await triggerReplaceAnswer();
+
+      expect(
+        within(alert).getByText(
+          "\u201cAcceptable use policy\u201d will be archived when this one starts.",
+        ),
+      ).toBeTruthy();
+      expect(
+        within(alert).getByText(
+          "This one will be archived when \u201cHoliday hours\u201d starts.",
+        ),
+      ).toBeTruthy();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("scrolls the notice into view when it appears", async () => {
+      const scrolled: Element[] = [];
+      Element.prototype.scrollIntoView = function (this: Element) {
+        scrolled.push(this);
+      };
+      const { alert } = await triggerReplaceAnswer();
+
+      await waitFor(() => expect(scrolled).toContain(alert));
+    });
+
+    it("switches the submit label and sends replace on the next submit", async () => {
+      const { onClose } = await triggerReplaceAnswer();
+      expect(vi.mocked(service.createAnnouncement).mock.calls[0][0]).not.toHaveProperty(
+        "replace",
+      );
+      vi.mocked(service.createAnnouncement).mockResolvedValue(stored());
+
+      expect(screen.queryByRole("button", { name: "Create" })).toBeNull();
+      submit("Save and replace");
+
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(vi.mocked(service.createAnnouncement).mock.calls[1][0]).toMatchObject({
+        title: "Maintenance",
+        replace: true,
+      });
+    });
+
+    it("sends replace when editing too", async () => {
+      vi.mocked(service.updateAnnouncement).mockRejectedValueOnce(
+        requestError(replaceAnswer),
+      );
+      const { onClose } = renderModal(stored());
+      await screen.findByRole("textbox", { name: "Starts" });
+      submit("Save");
+      await screen.findByRole("alert");
+      vi.mocked(service.updateAnnouncement).mockResolvedValue(stored());
+
+      submit("Save and replace");
+
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(vi.mocked(service.updateAnnouncement).mock.calls[1][0]).toMatchObject({
+        announcementId: "a1",
+        replace: true,
+      });
+    });
+
+    it.each(["Starts", "Ends"])(
+      "clears the notice and the confirmation when the %s time changes",
+      async (field) => {
+        await triggerReplaceAnswer();
+
+        fireEvent.change(screen.getByRole("textbox", { name: field }), {
+          target: { value: "2099-06-01 10:00:00" },
+        });
+
+        expect(screen.queryByRole("alert")).toBeNull();
+        expect(screen.queryByRole("button", { name: "Save and replace" })).toBeNull();
+        vi.mocked(service.createAnnouncement).mockRejectedValueOnce(
+          requestError(replaceAnswer),
+        );
+        submit();
+        await screen.findByRole("alert");
+        expect(vi.mocked(service.createAnnouncement).mock.calls[1][0]).not.toHaveProperty(
+          "replace",
+        );
+      },
+    );
+  });
+
   it("shows any other server error above the fields", async () => {
     vi.mocked(service.createAnnouncement).mockRejectedValue(
       requestError({ message: "Unsupported link in announcement message" }, 400),
