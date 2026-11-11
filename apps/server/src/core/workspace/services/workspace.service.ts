@@ -371,6 +371,7 @@ export class WorkspaceService {
 
     if (
       typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
+      typeof updateWorkspaceDto.disableExport === 'boolean' ||
       typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
       typeof updateWorkspaceDto.mcpEnabled !== 'undefined' ||
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
@@ -444,6 +445,17 @@ export class WorkspaceService {
         ) {
           throw new ForbiddenException('This feature requires a valid license');
         }
+      }
+
+      if (
+        updateWorkspaceDto.disableExport === true &&
+        !this.licenseCheckService.hasFeature(
+          ws.licenseKey,
+          Feature.EXPORT_CONTROLS,
+          ws.plan,
+        )
+      ) {
+        throw new ForbiddenException('This feature requires a valid license');
       }
 
       if (
@@ -544,6 +556,20 @@ export class WorkspaceService {
         if (updateWorkspaceDto.disablePublicSharing) {
           await this.shareRepo.deleteByWorkspaceId(workspaceId, trx);
         }
+      }
+
+      if (typeof updateWorkspaceDto.disableExport === 'boolean') {
+        const prev = settingsBefore?.export?.disabled ?? false;
+        if (prev !== updateWorkspaceDto.disableExport) {
+          before.disableExport = prev;
+          after.disableExport = updateWorkspaceDto.disableExport;
+        }
+        await this.workspaceRepo.updateExportSettings(
+          workspaceId,
+          'disabled',
+          updateWorkspaceDto.disableExport,
+          trx,
+        );
       }
 
       if (
@@ -716,6 +742,7 @@ export class WorkspaceService {
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
       delete updateWorkspaceDto.disablePublicSharing;
+      delete updateWorkspaceDto.disableExport;
       delete updateWorkspaceDto.allowPublicSpaces;
       delete updateWorkspaceDto.publicSpacesDirectory;
       delete updateWorkspaceDto.mcpEnabled;

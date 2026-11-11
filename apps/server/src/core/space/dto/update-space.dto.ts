@@ -14,6 +14,10 @@ export class UpdateSpaceDto extends PartialType(CreateSpaceDto) {
 
   @IsOptional()
   @IsBoolean()
+  disableExport: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   allowViewerComments: boolean;
 
   @IsOptional()

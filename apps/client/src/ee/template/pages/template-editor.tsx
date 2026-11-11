@@ -47,6 +47,8 @@ import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 import classes from "./template-editor.module.css";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
 
 export default function TemplateEditor() {
   const { t } = useTranslation();
@@ -57,6 +59,8 @@ export default function TemplateEditor() {
     user?.settings?.preferences?.editorToolbar ?? false;
 
   const { data: existingTemplate } = useGetTemplateByIdQuery(templateId || "");
+  const { exportDisabledLabel } = useExportDisabled(existingTemplate?.spaceId);
+  useDisablePrint(exportDisabledLabel);
   const { data: spaces } = useGetSpacesQuery({ limit: 100 });
   const updateMutation = useUpdateTemplateMutation();
   const updateMutationRef = useRef(updateMutation.mutateAsync);

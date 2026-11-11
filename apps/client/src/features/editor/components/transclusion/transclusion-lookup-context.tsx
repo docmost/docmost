@@ -32,6 +32,8 @@ type ContextValue = {
    * always sees a fresh server read.
    */
   refresh: (key: LookupKey) => Promise<void>;
+  /** True in the public share and public docs viewers. */
+  isPublic: boolean;
 };
 
 const TransclusionLookupContext = createContext<ContextValue | null>(null);
@@ -185,9 +187,10 @@ export function TransclusionLookupProvider({
     [],
   );
 
+  const isPublic = !!shareId || !!spaceSlug;
   const value = useMemo<ContextValue>(
-    () => ({ subscribe, refresh }),
-    [subscribe, refresh],
+    () => ({ subscribe, refresh, isPublic }),
+    [subscribe, refresh, isPublic],
   );
 
   return (
@@ -203,6 +206,7 @@ export function useTransclusionLookup(
 ): {
   result: TransclusionLookup | null;
   refresh: () => Promise<void>;
+  isPublic: boolean;
 } {
   const ctx = useContext(TransclusionLookupContext);
   const [result, setResult] = useState<TransclusionLookup | null>(null);
@@ -224,5 +228,5 @@ export function useTransclusionLookup(
     await ctx.refresh(`${sourcePageId}::${transclusionId}`);
   }, [ctx, sourcePageId, transclusionId]);
 
-  return { result, refresh };
+  return { result, refresh, isPublic: ctx?.isPublic ?? false };
 }

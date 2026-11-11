@@ -26,6 +26,7 @@ import { isBetaConfluenceImporter, isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useAtom } from "jotai";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import {
@@ -184,6 +185,7 @@ export default function SettingsSidebar() {
   const { goBack } = useSettingsNavigation();
   const { isAdmin, isOwner } = useUserRole();
   const [entitlements] = useAtom(entitlementAtom);
+  const [workspace] = useAtom(workspaceAtom);
   const upgradeLabel = useUpgradeLabel();
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
@@ -211,6 +213,13 @@ export default function SettingsSidebar() {
 
   const isItemDisabled = (item: DataItem) => {
     if (!item.feature) return false;
+    // a lapsed license must still reach the export switch to turn it off
+    if (
+      item.path === "/settings/security" &&
+      workspace?.settings?.export?.disabled
+    ) {
+      return false;
+    }
     return !hasFeature(item.feature);
   };
 

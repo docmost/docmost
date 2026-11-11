@@ -60,6 +60,7 @@ const TemplatePickerModal = React.lazy(
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
 import { ErrorBoundary } from "react-error-boundary";
 
 export function SpaceSidebar() {
@@ -262,6 +263,7 @@ function SpaceMenu({
   ] = useDisclosure(false);
   const hasTemplates = useHasFeature(Feature.TEMPLATES);
   const upgradeLabel = useUpgradeLabel();
+  const { exportDisabled, exportDisabledLabel } = useExportDisabled(spaceSlug);
 
   const { data: watchStatus } = useSpaceWatchStatusQuery(spaceId);
   const watchMutation = useWatchSpaceMutation();
@@ -363,12 +365,21 @@ function SpaceMenu({
                 {t("Import pages")}
               </Menu.Item>
 
-              <Menu.Item
-                onClick={openExportModal}
-                leftSection={<IconFileExport size={16} />}
+              <Tooltip
+                label={exportDisabledLabel}
+                disabled={!exportDisabled}
+                position="right"
+                withArrow
               >
-                {t("Export space")}
-              </Menu.Item>
+                <Menu.Item
+                  onClick={exportDisabled ? undefined : openExportModal}
+                  leftSection={<IconFileExport size={16} />}
+                  data-disabled={exportDisabled || undefined}
+                  aria-disabled={exportDisabled || undefined}
+                >
+                  {t("Export space")}
+                </Menu.Item>
+              </Tooltip>
 
               <Menu.Divider />
 
