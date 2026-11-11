@@ -7,6 +7,7 @@ import ManageHostname from "@/ee/components/manage-hostname.tsx";
 import { Divider } from "@mantine/core";
 import AllowMemberTemplates from "@/ee/security/components/allow-member-templates.tsx";
 import WorkspaceDefaultPageEditMode from "@/features/workspace/components/settings/components/workspace-default-page-edit-mode.tsx";
+import WorkspaceDefaultLanguage from "@/features/workspace/components/settings/components/workspace-default-language.tsx";
 import PersonalSpacesSetting from "@/ee/personal-space/components/personal-spaces-setting.tsx";
 import AllowPublicSpaces from "@/features/workspace/components/settings/components/allow-public-spaces.tsx";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
@@ -39,6 +40,9 @@ export default function WorkspaceSettings() {
           <ManageHostname />
         </>
       )}
+
+      <Divider my="md" />
+      <WorkspaceDefaultLanguage />
 
       <Divider my="md" />
       <WorkspaceDefaultPageEditMode />

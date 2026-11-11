@@ -1,0 +1,180 @@
+:global(.ProseMirror .node-microsoftFile.ProseMirror-selectednode) {
+  outline: none;
+}
+
+.embedNodeView {
+  margin: var(--mantine-spacing-xs) 0;
+}
+
+.embedContainer {
+  display: flex;
+  width: 100%;
+}
+
+.embedWrapper {
+  position: relative;
+  min-width: 0;
+}
+
+.hoverMenu {
+  position: absolute;
+  top: 44px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.hoverMenu::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+}
+
+.hoverMenu:focus-within {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .hoverMenu:hover {
+    opacity: 1;
+  }
+
+  .embedWrapper:hover .hoverMenu {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .embedWrapper:focus-within .hoverMenu {
+    opacity: 1;
+  }
+
+  .embedWrapper:not(:focus-within) .hoverMenu {
+    pointer-events: none;
+  }
+}
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+  background: var(--mantine-color-body);
+}
+
+.frameFill {
+  border: 0;
+  border-radius: 0;
+}
+
+.previewModal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.previewDialog {
+  height: calc(100dvh - var(--modal-y-offset) * 2);
+}
+
+.previewModalBody {
+  flex: 1;
+  min-height: 0;
+}
+
+.frameHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.frameTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+.frameBody {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--mantine-spacing-md);
+}
+
+.carousel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.carouselStage {
+  flex: 1;
+  min-height: 0;
+}
+
+.carouselNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.carouselPrev {
+  left: 8px;
+}
+
+.carouselNext {
+  right: 8px;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mantine-color-gray-4);
+  cursor: pointer;
+}
+
+.dotActive {
+  background: var(--mantine-primary-color-filled);
+}
+
+.emptyCard {
+  cursor: pointer;
+}

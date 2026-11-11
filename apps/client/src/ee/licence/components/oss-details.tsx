@@ -22,7 +22,8 @@ const enterpriseFeatures = [
   "Calendar",
   "Forms",
   "Templates",
-  "Personal Spaces"
+  "Personal Spaces",
+  "Announcements"
 ];
 
 export default function OssDetails() {

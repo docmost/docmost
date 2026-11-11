@@ -4,6 +4,7 @@ export interface QueryParams {
   beforeCursor?: string;
   limit?: number;
   adminView?: boolean;
+  archived?: boolean;
 }
 
 export enum UserRole {

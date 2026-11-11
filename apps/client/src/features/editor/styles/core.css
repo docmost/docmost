@@ -263,7 +263,7 @@
     opacity: 1;
   }
 
-  scroll-margin-top: 80px; /* match your header height */
+  scroll-margin-top: calc(80px + var(--announcement-banners-height, 0px)); /* match your header height */
 }
 
 .ProseMirror-icon {

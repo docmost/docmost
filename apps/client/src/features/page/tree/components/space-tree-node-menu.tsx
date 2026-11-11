@@ -1,7 +1,7 @@
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
-import { ActionIcon, Menu, rem } from "@mantine/core";
+import { useNavigate, useParams } from "react-router-dom";
+import { ActionIcon, Menu, Tooltip, rem } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
@@ -30,6 +30,7 @@ import {
   useAddFavoriteMutation,
   useRemoveFavoriteMutation,
 } from "@/features/favorite/queries/favorite-query";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
 
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
@@ -50,6 +51,8 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
   const { t } = useTranslation();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
+  const { exportDisabled, exportDisabledLabel } = useExportDisabled(spaceSlug);
+  const navigate = useNavigate();
   const { openDeleteModal } = useDeletePageModal();
   const { handleDelete } = useTreeMutation(node.spaceId);
   const [data, setData] = useAtom(treeDataAtom);
@@ -120,6 +123,9 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
         });
       }, 50);
 
+      navigate(
+        buildPageUrl(spaceSlug, duplicatedPage.slugId, duplicatedPage.title),
+      );
       notifications.show({ message: t("Page duplicated successfully") });
     } catch (err: any) {
       notifications.show({
@@ -180,16 +186,26 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
             {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
           </Menu.Item>
 
-          <Menu.Item
-            leftSection={<IconFileExport size={16} />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openExportModal();
-            }}
+          <Tooltip
+            label={exportDisabledLabel}
+            disabled={!exportDisabled}
+            position="right"
+            withArrow
           >
-            {t("Export page")}
-          </Menu.Item>
+            <Menu.Item
+              leftSection={<IconFileExport size={16} />}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (exportDisabled) return;
+                openExportModal();
+              }}
+              data-disabled={exportDisabled || undefined}
+              aria-disabled={exportDisabled || undefined}
+            >
+              {t("Export page")}
+            </Menu.Item>
+          </Tooltip>
 
           {canEdit && (
             <>

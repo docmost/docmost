@@ -27,7 +27,6 @@ import {
   FigmaIcon,
   FramerIcon,
   GoogleDriveIcon,
-  GoogleSheetsIcon,
   LoomIcon,
   MiroIcon,
   TypeformIcon,
@@ -298,12 +297,6 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => setEmbed("gdrive")}
         >
           Google Drive
-        </Menu.Item>
-        <Menu.Item
-          leftSection={<GoogleSheetsIcon size={16} />}
-          onClick={() => setEmbed("gsheets")}
-        >
-          Google Sheets
         </Menu.Item>
 
         <Menu.Divider />

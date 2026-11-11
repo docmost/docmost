@@ -15,6 +15,8 @@ import {
   CLOUD_EMAIL_THROTTLER,
   BASE_FORM_SUBMIT_THROTTLER,
   BASE_FORM_KEY_THROTTLER,
+  MICROSOFT_GRAPH_THROTTLER,
+  UNSPLASH_THROTTLER,
 } from './throttler-names';
 import Redis from 'ioredis';
 
@@ -37,6 +39,8 @@ import Redis from 'ioredis';
             { name: CLOUD_EMAIL_THROTTLER, ttl: 60_000, limit: 5 },
             { name: BASE_FORM_SUBMIT_THROTTLER, ttl: 60_000, limit: 30 },
             { name: BASE_FORM_KEY_THROTTLER, ttl: 60_000, limit: 600 },
+            { name: MICROSOFT_GRAPH_THROTTLER, ttl: 60_000, limit: 120 },
+            { name: UNSPLASH_THROTTLER, ttl: 60_000, limit: 30 },
           ],
           errorMessage: 'Too many requests',
           storage: new ThrottlerStorageRedisService(

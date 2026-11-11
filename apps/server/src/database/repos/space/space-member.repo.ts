@@ -4,14 +4,15 @@ import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
-import { sql } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
+import { DB } from '@docmost/db/types/db';
 import {
   InsertableSpaceMember,
   SpaceMember,
   UpdatableSpaceMember,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { MemberInfo, UserSpaceRole } from './types';
+import { MemberInfo, UserSpaceIdsOptions, UserSpaceRole } from './types';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
@@ -302,24 +303,39 @@ export class SpaceMemberRepo {
     return rows.map((r) => r.spaceId);
   }
 
-  getUserSpaceIdsQuery(userId: string) {
+  getUserSpaceIdsQuery(userId: string, opts?: UserSpaceIdsOptions) {
+    const excludeArchived = !!opts?.excludeArchived;
+    const keepArchivedSpaceId = opts?.keepArchivedSpaceId;
+
+    const notArchived = (eb: ExpressionBuilder<DB, 'spaces'>) => {
+      const active = eb('spaces.archivedAt', 'is', null);
+      return keepArchivedSpaceId
+        ? eb.or([active, eb('spaces.id', '=', keepArchivedSpaceId)])
+        : active;
+    };
+
     return this.db
       .selectFrom('spaceMembers')
       .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
       .select('spaces.id')
       .where('userId', '=', userId)
+      .$if(excludeArchived, (qb) => qb.where(notArchived))
       .union(
         this.db
           .selectFrom('spaceMembers')
           .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
           .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
           .select('spaces.id')
-          .where('groupUsers.userId', '=', userId),
+          .where('groupUsers.userId', '=', userId)
+          .$if(excludeArchived, (qb) => qb.where(notArchived)),
       );
   }
 
-  async getUserSpaceIds(userId: string): Promise<string[]> {
-    const membership = await this.getUserSpaceIdsQuery(userId).execute();
+  async getUserSpaceIds(
+    userId: string,
+    opts?: UserSpaceIdsOptions,
+  ): Promise<string[]> {
+    const membership = await this.getUserSpaceIdsQuery(userId, opts).execute();
     return membership.map((space) => space.id);
   }
 
@@ -349,12 +365,17 @@ export class SpaceMemberRepo {
       .execute();
   }
 
-  async getUserSpaces(userId: string, pagination: PaginationOptions) {
+  async getUserSpaces(
+    userId: string,
+    pagination: PaginationOptions,
+    opts?: { archived?: boolean },
+  ) {
     let query = this.db
       .selectFrom('spaces')
       .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
-      .where('id', 'in', this.getUserSpaceIdsQuery(userId));
+      .where('id', 'in', this.getUserSpaceIdsQuery(userId))
+      .where('archivedAt', opts?.archived ? 'is not' : 'is', null);
 
     if (pagination.query) {
       query = query.where((eb) =>

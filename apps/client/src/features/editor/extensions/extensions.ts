@@ -3,7 +3,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { TaskList, TaskItem } from "@tiptap/extension-list";
+import { TaskList } from "@tiptap/extension-list";
 import { CharacterCount, UndoRedo } from "@tiptap/extensions";
 import { Placeholder } from "@/features/editor/extensions/placeholder";
 import { Superscript } from "@tiptap/extension-superscript";
@@ -55,10 +55,14 @@ import {
   Heading,
   Highlight,
   Indent,
+  ListItem,
+  TaskItem,
   UniqueID,
   SharedStorage,
   IntegrationCard,
   IntegrationMention,
+  MicrosoftFile,
+  MicrosoftFolder,
   Columns,
   Column,
   Status,
@@ -110,6 +114,8 @@ import TransclusionView from "@/features/editor/components/transclusion/transclu
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
 import { isCalendarEventDrag } from "@/ee/base/components/calendar/calendar-frame";
+import MicrosoftFileView from "@/features/editor/components/microsoft/microsoft-file-view.tsx";
+import MicrosoftFolderView from "@/features/editor/components/microsoft/microsoft-folder-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -153,6 +159,7 @@ export const mainExtensions = [
     undoRedo: false,
     link: false,
     trailingNode: false,
+    listItem: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -235,6 +242,7 @@ export const mainExtensions = [
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   Indent,
+  ListItem,
   TaskList,
   TaskItem.configure({
     nested: true,
@@ -411,6 +419,12 @@ export const mainExtensions = [
   }),
   IntegrationPasteMenuExtension,
   BasePasteMenuExtension,
+  MicrosoftFile.configure({
+    view: MicrosoftFileView,
+  }),
+  MicrosoftFolder.configure({
+    view: MicrosoftFolderView,
+  }),
   Status.configure({
     view: StatusView,
   }),
@@ -477,7 +491,8 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Base (Inline)",
   "Kanban",
   "Calendar",
-  "Form"
+  "Form",
+  "SharePoint file"
 ]);
 
 const TemplateSlashCommand = Command.configure({

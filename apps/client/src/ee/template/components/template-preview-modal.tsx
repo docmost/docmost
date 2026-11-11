@@ -2,6 +2,8 @@ import { Modal, Text, ScrollArea, Button, Group, Center, Loader } from "@mantine
 import { useTranslation } from "react-i18next";
 import { useGetTemplateByIdQuery } from "@/ee/template/queries/template-query";
 import ReadonlyTemplateEditor from "@/ee/template/components/readonly-template-editor";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
 
 type TemplatePreviewModalProps = {
   templateId: string;
@@ -22,6 +24,8 @@ export default function TemplatePreviewModal({
 }: TemplatePreviewModalProps) {
   const { t } = useTranslation();
   const { data: template, isLoading } = useGetTemplateByIdQuery(templateId);
+  const { exportDisabledLabel } = useExportDisabled(template?.spaceId);
+  useDisablePrint(opened ? exportDisabledLabel : null);
 
   const title = template?.title || t("Untitled");
 

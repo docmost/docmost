@@ -1,4 +1,4 @@
-import { NodeViewWrapper, NodeViewProps } from "@tiptap/react";
+import { NodeViewWrapper, NodeViewProps, useEditorState } from "@tiptap/react";
 import { ActionIcon, Box, Menu, Text } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -69,6 +69,11 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
   const { data: page } = usePageQuery({ pageId: pageId ?? undefined });
   const clipboard = useClipboard({ timeout: 500 });
 
+  const isEditable = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.isEditable ?? false,
+  });
+
   const handleCopyLink = () => {
     clipboard.copy(
       getAppUrl() + buildPageUrl(page.space?.slug, page.slugId, page.title),
@@ -111,7 +116,7 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
   const isCompact = !pendingKey && (!pageId || isError);
 
   // Also on the skeleton, so a placeholder stuck pending can still be removed.
-  const showControls = editor.isEditable;
+  const showControls = isEditable;
 
   let content: React.ReactNode;
   if (pendingKey) {
@@ -145,7 +150,7 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
       <BaseView
         pageId={pageId}
         embedded
-        editable={hasBases && editor.isEditable && (base?.permissions?.canEdit ?? false)}
+        editable={hasBases && isEditable && (base?.permissions?.canEdit ?? false)}
       />
     );
   }

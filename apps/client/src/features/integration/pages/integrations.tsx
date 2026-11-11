@@ -1,9 +1,9 @@
-import { Text, Alert, Stack } from "@mantine/core";
+import { Text, Alert, Stack, Anchor } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useCallback } from "react";
-import { getAppName } from "@/lib/config";
+import { getAppName, isCloud } from "@/lib/config";
 import SettingsTitle from "@/components/settings/settings-title";
 import IntegrationRow from "../components/integration-row";
 import IntegrationListSkeleton from "../components/integration-list-skeleton";
@@ -80,6 +80,19 @@ export default function Integrations() {
 
       <Text size="sm" c="dimmed" mb="md">
         {t("Manage workspace integrations.")}
+        {!isCloud() && (
+          <>
+            {" "}
+            <Anchor
+              href="https://docmost.com/docs/self-hosting/integrations"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+            >
+              {t("Setup guide")}
+            </Anchor>
+          </>
+        )}
       </Text>
 
       {error === "oauth_failed" && (

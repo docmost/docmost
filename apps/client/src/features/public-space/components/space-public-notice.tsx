@@ -18,6 +18,7 @@ export default function SpacePublicNotice({ space }: SpacePublicNoticeProps) {
 
   return (
     <Alert
+      className="print-hide"
       variant="light"
       color="blue"
       icon={<IconWorld size={18} />}

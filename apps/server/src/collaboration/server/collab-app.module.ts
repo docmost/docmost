@@ -20,7 +20,8 @@ import { parseRedisUrl } from '../../common/helpers';
 @Module({
   imports: [
     LoggerModule,
-    DatabaseModule,
+    // the API server runs migrations
+    DatabaseModule.forRoot({ runMigrations: false }),
     EnvironmentModule,
     CaslModule,
     CollaborationModule,
