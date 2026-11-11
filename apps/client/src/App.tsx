@@ -3,11 +3,13 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
 import WorkspaceLocaleLayout from "@/features/workspace/components/workspace-locale-layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
 import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
+import AnnouncementBanners from "@/ee/announcement/components/announcement-banners.tsx";
 
 
 const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
@@ -79,6 +81,9 @@ const AuditLogs = lazyWithPrefetch(() => import("@/ee/audit/pages/audit-logs.tsx
 const VerifiedPages = lazyWithPrefetch(
   () => import("@/ee/page-verification/pages/verified-pages.tsx"),
 );
+const Announcements = lazyWithPrefetch(
+  () => import("@/ee/announcement/pages/announcements"),
+);
 const TemplateList = lazyWithPrefetch(() => import("@/ee/template/pages/template-list"));
 const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
@@ -144,7 +149,17 @@ export default function App() {
             />
           </Route>
 
-          <Route path="*" element={<Error404 />} />
+          <Route
+            path="*"
+            element={
+              <>
+                <AnnouncementBanners surface="public" />
+                <main id={MAIN_CONTENT_ID} tabIndex={-1}>
+                  <Error404 />
+                </main>
+              </>
+            }
+          />
         </Route>
 
         {!isCloud() && (
@@ -219,6 +234,7 @@ export default function App() {
             />
             <Route path={"verifications"} element={<VerifiedPages />} />
             <Route path={"integrations"} element={<Integrations />} />
+            <Route path={"announcements"} element={<Announcements />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>

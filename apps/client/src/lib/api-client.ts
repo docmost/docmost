@@ -48,6 +48,8 @@ api.interceptors.response.use(
           ) {
             break;
           }
+          // the banner poll runs in the background; an idle reader stays on the page
+          if (url === "/api/announcements/visible") break;
 
           // Handle unauthorized error
           redirectToLogin();

@@ -30,6 +30,26 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface Announcements {
+  archivedAt: Timestamp | null;
+  audience: Generated<string>;
+  color: string;
+  content: Json;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  endsAt: Timestamp | null;
+  id: Generated<string>;
+  isDismissible: Generated<boolean>;
+  lastUpdatedById: string | null;
+  startsAt: Generated<Timestamp>;
+  textContent: string;
+  title: string;
+  tsv: string | null;
+  type: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface ApiKeys {
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
@@ -52,6 +72,7 @@ export interface Attachments {
   filePath: string;
   fileSize: Int8 | null;
   id: Generated<string>;
+  indexedAt: Timestamp | null;
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
@@ -772,6 +793,7 @@ export interface OauthTokens {
 export interface DB {
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
+  announcements: Announcements;
   apiKeys: ApiKeys;
   attachments: Attachments;
   audit: Audit;

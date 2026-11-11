@@ -30,4 +30,5 @@ export const Feature = {
   EXPORT_CONTROLS: 'export:controls',
   PUBLIC_SPACE_APPEARANCE: 'public-space:appearance',
   SIEM: 'siem',
+  ANNOUNCEMENTS: 'announcements',
 } as const;

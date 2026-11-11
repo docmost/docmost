@@ -5,6 +5,8 @@ import classes from "./table-of-contents.module.css";
 import clsx from "clsx";
 import { Box, Text, Title } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { useAtomValue } from "jotai";
+import { announcementBannersHeightAtom } from "@/ee/announcement/atoms/announcement-atoms";
 
 type TableOfContentsProps = {
   editor: ReturnType<typeof useEditor>;
@@ -47,6 +49,7 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   const [links, setLinks] = useState<HeadingLink[]>([]);
   const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
   const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
+  const bannersHeight = useAtomValue(announcementBannersHeightAtom);
   const headerPaddingRef = useRef<HTMLDivElement | null>(null);
 
   const handleScrollToHeading = (position: number) => {
@@ -140,7 +143,7 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
     } catch (err) {
       console.log(err);
     }
-  }, [headingDOMNodes, props.editor]);
+  }, [headingDOMNodes, props.editor, bannersHeight]);
 
   if (!links.length) {
     return (

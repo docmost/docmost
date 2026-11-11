@@ -2,10 +2,17 @@
   background-color: light-dark(#f6f7f9, var(--mantine-color-dark-8));
 }
 
+/* Mantine also slides top, height and the top padding; they must jump with the header when banners change */
 .navbar, .aside {
+  transition-property: transform;
+
   @media (max-width: $mantine-breakpoint-sm) {
     width: 350px;
   }
+}
+
+.main {
+  transition-property: padding-left, padding-right;
 }
 
 .aside {
