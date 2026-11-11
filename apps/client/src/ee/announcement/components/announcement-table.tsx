@@ -44,9 +44,10 @@ type AnnouncementTableProps = {
   announcements: IAnnouncement[];
   isLoading: boolean;
   emptyMessage: string;
-  onEdit: (announcement: IAnnouncement) => void;
+  // Left out once the license lapses, which leaves archive and delete
+  onEdit?: (announcement: IAnnouncement) => void;
   onArchive: (announcement: IAnnouncement) => void;
-  onUnarchive: (announcement: IAnnouncement) => void;
+  onUnarchive?: (announcement: IAnnouncement) => void;
   onDelete: (announcement: IAnnouncement) => void;
 };
 
@@ -127,6 +128,7 @@ export function AnnouncementTable({
               const canDelete = announcement.status === "archived";
               // An expired announcement needs a later end time before it can come back
               const canUnarchive =
+                !!onUnarchive &&
                 canDelete &&
                 (!announcement.endsAt ||
                   Date.parse(announcement.endsAt) > Date.now());
@@ -199,12 +201,14 @@ export function AnnouncementTable({
                         </ActionIcon>
                       </Menu.Target>
                       <Menu.Dropdown>
-                        <Menu.Item
-                          leftSection={<IconEdit size={16} />}
-                          onClick={() => onEdit(announcement)}
-                        >
-                          {t("Edit")}
-                        </Menu.Item>
+                        {onEdit && (
+                          <Menu.Item
+                            leftSection={<IconEdit size={16} />}
+                            onClick={() => onEdit(announcement)}
+                          >
+                            {t("Edit")}
+                          </Menu.Item>
+                        )}
                         {canArchive && (
                           <Menu.Item
                             leftSection={<IconArchive size={16} />}
@@ -223,7 +227,7 @@ export function AnnouncementTable({
                         )}
                         {canDelete && (
                           <>
-                            <Menu.Divider />
+                            {(onEdit || canUnarchive) && <Menu.Divider />}
                             <Menu.Item
                               color="red"
                               leftSection={<IconTrash size={16} />}

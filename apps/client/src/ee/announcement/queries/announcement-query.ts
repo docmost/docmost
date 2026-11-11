@@ -69,8 +69,8 @@ export function getAnnouncementReplacement(
   };
 }
 
-// A 404 means the server has no announcements routes (no ee module), so neither retry nor poll
-function isNotFound(error: unknown): boolean {
+// A 404 means the server has no announcements routes (no ee module)
+export function isNotFound(error: unknown): boolean {
   return (error as { response?: { status?: number } })?.response?.status === 404;
 }
 

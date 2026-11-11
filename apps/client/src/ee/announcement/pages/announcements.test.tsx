@@ -155,10 +155,47 @@ describe("Announcements page", () => {
     ).toBeTruthy();
   });
 
-  it("asks for a license once the entitlements lack the feature", () => {
+  it("asks for a license once the entitlements lack the feature, and still lists", async () => {
+    vi.mocked(service.getAnnouncements).mockResolvedValue(page([]));
     renderPage([]);
     expect(screen.getByText(LICENSE_ALERT)).toBeTruthy();
     expect(newAnnouncementButton().disabled).toBe(true);
+    expect(await screen.findByText("No active announcements")).toBeTruthy();
+    expect(service.getAnnouncements).toHaveBeenCalledWith({ limit: 20, query: "" });
+  });
+
+  it("lets an admin without the feature archive an announcement but not edit it", async () => {
+    vi.mocked(service.getAnnouncements).mockResolvedValue(page([announcement]));
+    vi.mocked(service.archiveAnnouncement).mockResolvedValue({
+      ...announcement,
+      status: "archived",
+    });
+    renderPage([]);
+    await screen.findByText("Maintenance window");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Actions for Maintenance window" }),
+    );
+    expect(
+      (await screen.findAllByRole("menuitem")).map((item) => item.textContent),
+    ).toEqual(["Archive"]);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Archive" }));
+
+    await waitFor(() =>
+      expect(vi.mocked(service.archiveAnnouncement).mock.calls[0][0]).toEqual({
+        announcementId: "a1",
+      }),
+    );
+  });
+
+  it("shows the empty list, not an error, when the server has no announcements routes", async () => {
+    vi.mocked(service.getAnnouncements).mockRejectedValue(
+      Object.assign(new Error("Not Found"), { response: { status: 404 } }),
+    );
+    renderPage([]);
+    await waitFor(() => expect(service.getAnnouncements).toHaveBeenCalled());
+    expect(await screen.findByText("No active announcements")).toBeTruthy();
+    expect(screen.queryByText("Failed to load announcements")).toBeNull();
   });
 
   it("lists the current announcements when licensed", async () => {

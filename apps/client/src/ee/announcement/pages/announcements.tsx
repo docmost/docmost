@@ -18,6 +18,7 @@ import { AnnouncementArchiveFilter } from "@/ee/announcement/components/announce
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
 import {
+  isNotFound,
   useAnnouncementsQuery,
   useArchiveAnnouncementMutation,
   useDeleteAnnouncementMutation,
@@ -37,7 +38,8 @@ export default function Announcements() {
   const [archived, setArchived] = useState(false);
   const [formOpened, setFormOpened] = useState(false);
   const [selected, setSelected] = useState<IAnnouncement | null>(null);
-  const canLoad = isAdmin && hasFeature;
+  // Without the feature the list stays readable, so a lapsed license can still archive and delete
+  const canLoad = isAdmin && entitlements !== null;
   const query = useAnnouncementsQuery(
     {
       cursor,
@@ -78,11 +80,13 @@ export default function Announcements() {
     });
 
   const tableActions = {
-    onEdit: openForm,
+    onEdit: hasFeature ? openForm : undefined,
     onArchive: (announcement: IAnnouncement) =>
       archiveMutation.mutate({ announcementId: announcement.id }),
-    onUnarchive: (announcement: IAnnouncement) =>
-      unarchiveMutation.mutate({ announcementId: announcement.id }),
+    onUnarchive: hasFeature
+      ? (announcement: IAnnouncement) =>
+          unarchiveMutation.mutate({ announcementId: announcement.id })
+      : undefined,
     onDelete: confirmDelete,
   };
 
@@ -124,7 +128,7 @@ export default function Announcements() {
         />
       </Group>
 
-      {query.isError && !query.data ? (
+      {query.isError && !query.data && !isNotFound(query.error) ? (
         <Alert icon={<IconAlertCircle size={16} />} color="red">
           {getApiErrorMessage(query.error, t("Failed to load announcements"))}
         </Alert>

@@ -147,6 +147,36 @@ describe("AnnouncementTable", () => {
     expect(actions[handler]).toHaveBeenCalledWith(archived);
   });
 
+  it.each([
+    ["active", ["Archive"]],
+    ["scheduled", ["Archive"]],
+    ["archived", ["Delete"]],
+  ] as const)(
+    "offers only Archive or Delete for an %s announcement without edit and unarchive",
+    (status, labels) => {
+      const { onArchive, onDelete } = handlers();
+      render(
+        <MantineProvider env="test">
+          <AnnouncementTable
+            announcements={[
+              announcement(status, {
+                endsAt: new Date(Date.now() + 86_400_000).toISOString(),
+              }),
+            ]}
+            isLoading={false}
+            emptyMessage="No active announcements"
+            onArchive={onArchive}
+            onDelete={onDelete}
+          />
+        </MantineProvider>,
+      );
+      openActions();
+      expect(
+        screen.getAllByRole("menuitem").map((item) => item.textContent),
+      ).toEqual(labels);
+    },
+  );
+
   it("shows the type, audience, schedule and status", () => {
     renderTable([
       announcement("scheduled", { endsAt: "2026-11-05T18:00:00.000Z" }),

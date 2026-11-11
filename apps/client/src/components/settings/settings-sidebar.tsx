@@ -113,11 +113,11 @@ const groupedData: DataGroup[] = [
         role: "admin",
       },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
+      // No feature gate: without a license the page lists read-only, with archive and delete
       {
         label: "Announcements",
         icon: IconSpeakerphone,
         path: "/settings/announcements",
-        feature: Feature.ANNOUNCEMENTS,
         role: "admin",
       },
       {
