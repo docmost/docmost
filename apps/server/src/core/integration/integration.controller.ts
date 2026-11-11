@@ -30,14 +30,14 @@ export class IntegrationController {
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('available')
+  @Post('/')
   async getAvailableIntegrations() {
     return this.integrationService.getAvailableIntegrations();
   }
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('/')
+  @Post('installed')
   async getInstalledIntegrations(
     @AuthWorkspace() workspace: Workspace,
   ) {
