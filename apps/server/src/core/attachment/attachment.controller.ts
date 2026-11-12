@@ -70,6 +70,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @Controller()
 export class AttachmentController {
@@ -420,6 +421,7 @@ export class AttachmentController {
     }
   }
 
+  @ApiKeyScope('read')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('files/info')

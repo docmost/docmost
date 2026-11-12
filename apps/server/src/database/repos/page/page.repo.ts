@@ -149,7 +149,8 @@ export class PageRepo {
   ) {
     const result = await dbOrTx(this.db, trx)
       .updateTable('pages')
-      .set({ ...updatePageData, updatedAt: new Date() })
+      // a caller's updatedAt wins, so saves that aren't edits can keep it
+      .set({ updatedAt: new Date(), ...updatePageData })
       .where(
         pageIds.some((pageId) => !isValidUUID(pageId)) ? 'slugId' : 'id',
         'in',

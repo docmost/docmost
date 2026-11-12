@@ -35,6 +35,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @Controller()
 export class ExportController {
@@ -46,6 +47,7 @@ export class ExportController {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
+  @ApiKeyScope('read')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('pages/export')
@@ -119,6 +121,7 @@ export class ExportController {
     }
   }
 
+  @ApiKeyScope('read')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('spaces/export')

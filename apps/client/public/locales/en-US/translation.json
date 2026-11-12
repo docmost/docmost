@@ -1969,5 +1969,13 @@
   "These already show from {{from}} with no end:": "These already show from {{from}} with no end:",
   "Save and replace": "Save and replace",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” will be archived when this one starts.",
-  "This one will be archived when “{{title}}” starts.": "This one will be archived when “{{title}}” starts."
+  "This one will be archived when “{{title}}” starts.": "This one will be archived when “{{title}}” starts.",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight",
+  "Read and write": "Read and write",
+  "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
+  "View data in your workspace without making changes.": "View data in your workspace without making changes."
 }

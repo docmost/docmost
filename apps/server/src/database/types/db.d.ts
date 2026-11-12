@@ -57,6 +57,7 @@ export interface ApiKeys {
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
+  scopes: Generated<Json>;
   updatedAt: Generated<Timestamp>;
   creatorId: string;
   workspaceId: string;

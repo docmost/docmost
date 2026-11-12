@@ -2,3 +2,4 @@
 // https://github.com/sueddeutsche/prosemirror-recreate-transform - MIT
 export { recreateTransform, RecreateTransform } from "./recreateTransform";
 export type { Options } from "./recreateTransform";
+export { diffJsonArrays } from "./diffJsonArrays";

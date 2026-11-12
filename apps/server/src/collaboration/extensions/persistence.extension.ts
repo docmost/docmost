@@ -33,15 +33,12 @@ import {
 } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
 import { CollabHistoryService } from '../services/collab-history.service';
-import {
-  HISTORY_FAST_INTERVAL,
-  HISTORY_FAST_THRESHOLD,
-  HISTORY_INTERVAL,
-} from '../constants';
+import { HISTORY_FAST_INTERVAL, HISTORY_FAST_THRESHOLD } from '../constants';
 import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
 import { PageVerificationInvalidationService } from '../../core/page/verification/page-verification-invalidation.service';
 import { PageVerificationInvalidation } from '../../core/page/verification/page-verification-invalidation.types';
 import { isSameDocumentContent } from '../content-comparison.util';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -58,6 +55,7 @@ export class PersistenceExtension implements Extension {
     private readonly collabHistory: CollabHistoryService,
     private readonly transclusionService: TransclusionService,
     private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -124,6 +122,7 @@ export class PersistenceExtension implements Extension {
     }
 
     let page: Page = null;
+    let edited = false;
     let invalidation: PageVerificationInvalidation | null = null;
     const editingUserIds = this.consumeContributors(documentName);
 
@@ -145,6 +144,9 @@ export class PersistenceExtension implements Extension {
           return;
         }
 
+        // block ids, defaults and comments are saved too, but only visible changes count as an edit
+        edited = !isSameDocumentContent(page.content, tiptapJson);
+
         let contributorIds = undefined;
         try {
           const existingContributors = page.contributorIds || [];
@@ -164,8 +166,9 @@ export class PersistenceExtension implements Extension {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
-            lastUpdatedById: lastContext.user.id,
-            contributorIds: contributorIds,
+            ...(edited
+              ? { lastUpdatedById: lastContext.user.id, contributorIds }
+              : { updatedAt: page.updatedAt }),
           },
           pageId,
           trx,
@@ -177,8 +180,7 @@ export class PersistenceExtension implements Extension {
               pageId: page.id,
               userId: lastContext?.user?.id ?? null,
               changedAt: lastChangeAt ? new Date(lastChangeAt) : null,
-              isMeaningfulChange: () =>
-                !isSameDocumentContent(page.content, tiptapJson),
+              isMeaningfulChange: () => edited,
               loadPreviousState: async () => page,
             },
             trx,
@@ -203,7 +205,7 @@ export class PersistenceExtension implements Extension {
       );
     }
 
-    if (page) {
+    if (page && edited) {
       try {
         await this.collabHistory.addContributors(pageId, editingUserIds);
       } catch (err) {
@@ -227,7 +229,9 @@ export class PersistenceExtension implements Extension {
             : undefined,
         }),
       );
+    }
 
+    if (page) {
       await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
     }
 
@@ -259,7 +263,7 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
       });
 
-      await this.enqueuePageHistory(page);
+      if (edited) await this.enqueuePageHistory(page);
     }
   }
 
@@ -329,7 +333,7 @@ export class PersistenceExtension implements Extension {
     const delay =
       pageAge < HISTORY_FAST_THRESHOLD
         ? HISTORY_FAST_INTERVAL
-        : HISTORY_INTERVAL;
+        : this.environmentService.getPageHistoryInterval();
 
     await this.historyQueue.add(
       QueueJob.PAGE_HISTORY,
