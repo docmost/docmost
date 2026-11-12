@@ -1670,6 +1670,7 @@
   "Start time": "Start time",
   "End time": "End time",
   "{{label}}: {{date}}": "{{label}}: {{date}}",
+  "{{label}}, {{zone}}": "{{label}}, {{zone}}",
   "Hours": "Hours",
   "Minutes": "Minutes",
   "AM/PM": "AM/PM",

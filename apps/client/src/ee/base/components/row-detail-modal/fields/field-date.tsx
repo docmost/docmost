@@ -59,6 +59,7 @@ export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
       >
         <DateCellPicker
           property={property}
+          kind={kind}
           value={cell}
           onChange={onChange}
         />

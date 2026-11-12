@@ -8,7 +8,8 @@ import { DateValuePicker } from "@/ee/base/components/date-picker/date-value-pic
 import { useUpdatePropertyMutation } from "@/ee/base/queries/base-property-query";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
-import type { DateCell } from "@docmost/base-formula/client";
+import type { DateCell, DateKind } from "@docmost/base-formula/client";
+import { dateTypeOptionsOf } from "@/ee/base/utils/date-format";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import gridClasses from "@/ee/base/styles/grid.module.css";
@@ -24,22 +25,24 @@ type CellDateProps = {
 
 type DateCellPickerProps = {
   property: IBaseProperty;
+  kind: DateKind;
   value: DateCell | null;
   onChange: (next: DateCell | null) => void;
 };
 
 export function DateCellPicker({
   property,
+  kind,
   value,
   onChange,
 }: DateCellPickerProps) {
   const editable = useBaseEditable();
   const updatePropertyMutation = useUpdatePropertyMutation();
-  const typeOptions = (
+  const typeOptions = dateTypeOptionsOf(
     updatePropertyMutation.isPending
       ? updatePropertyMutation.variables.typeOptions
-      : property.typeOptions
-  ) as DateTypeOptions | undefined;
+      : property.typeOptions,
+  );
 
   const handlePropertyFormatChange = (
     patch: Pick<DateTypeOptions, "dateFormat" | "timeFormat">,
@@ -53,10 +56,10 @@ export function DateCellPicker({
   return (
     <DateValuePicker
       value={value}
+      kind={kind}
       onChange={onChange}
-      defaultIncludeTime={typeOptions?.includeTime}
-      dateFormat={typeOptions?.dateFormat}
-      timeFormat={typeOptions?.timeFormat}
+      dateFormat={typeOptions.dateFormat}
+      timeFormat={typeOptions.timeFormat}
       onPropertyFormatChange={editable ? handlePropertyFormatChange : undefined}
     />
   );
@@ -113,6 +116,7 @@ export function CellDate({
         >
           <DateCellPicker
             property={property}
+            kind={kind}
             value={cell}
             onChange={onValueChange}
           />
