@@ -80,7 +80,7 @@ function infer(
           span: { start: 0, end: 0 },
         }]);
       }
-      return typeof fn.returnType === "function" ? fn.returnType(argTypes) : fn.returnType;
+      return typeof fn.returnType === "function" ? fn.returnType(argTypes, ast.args) : fn.returnType;
     }
   }
 }

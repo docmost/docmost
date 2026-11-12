@@ -1,5 +1,20 @@
 import { register } from "./registry";
 import { makeErrorCell } from "../error";
+import { asDateValue, parseDateText } from "../date-value";
+import type { FormulaAST } from "../ast";
+import type { DateValue, ErrorCell, FormulaResultType, Value } from "../types";
+import type { DateKind } from "../date";
+
+const dateArg = (v: Value): DateValue | ErrorCell =>
+  asDateValue(v) ?? makeErrorCell("DATE_INVALID", "invalid date");
+
+const staticDateKind = (
+  type: FormulaResultType,
+  node: FormulaAST | undefined,
+): DateKind | null => {
+  if (type === "date" || type === "datetime") return type;
+  return node?.t === "str" ? (parseDateText(node.v)?.kind ?? null) : null;
+};
 
 const toDate = (v: unknown): Date | null => {
   if (v == null) return null;
@@ -50,4 +65,10 @@ register({
     return makeErrorCell("TYPE_MISMATCH", `unknown unit ${u}`);
   },
   doc: "Difference between two dates in a given unit.", category: "date",
+});
+register({
+  name: "parseDate", arity: { min: 1, max: 1 }, paramTypes: ["string"],
+  returnType: (types, args) => staticDateKind(types[0], args[0]) ?? "datetime",
+  eval: ([v]) => dateArg(v),
+  doc: "Reads text such as 2026-01-31 or 2026-01-31T09:00Z as a date.", category: "date",
 });

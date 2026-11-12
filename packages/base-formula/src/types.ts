@@ -1,5 +1,5 @@
 import type { FormulaAST } from "./ast";
-import type { DateCell } from "./date";
+import type { DateCell, DateKind } from "./date";
 
 export type FormulaResultType =
   | "number"
@@ -20,12 +20,13 @@ export type FormulaTypeOptions = {
 
 /*
  * The runtime value produced by evaluating a node. Strings and numbers are
- * their JS equivalents; dates are ISO 8601 UTC strings (matches how the date
- * property type already stores cells); booleans are booleans; missing or
+ * their JS equivalents; dates are DateValue objects; booleans are booleans; missing or
  * filtered-out values are null. Errors are distinguishable from all valid
  * values because they are objects with a `__err` key.
  */
-export type Value = number | string | boolean | null | ErrorCell;
+export type DateValue = { kind: DateKind; value: string };
+
+export type Value = number | string | boolean | null | DateValue | ErrorCell;
 
 export type FormulaCell = number | string | boolean | null | DateCell | ErrorCell;
 

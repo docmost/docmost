@@ -1,6 +1,7 @@
 import { makeErrorCell, isErrorCell } from "./error";
 import { valueToString, snapNumber } from "./number";
 import { isValidTimeZone } from "./date";
+import { asDateValue, coerceToResultType, dayOf, isDateValue } from "./date-value";
 import { registry } from "./functions/index";
 import { DEFAULT_MAX_DEPTH, MAX_EVAL_DEPTH } from "./types";
 import type { FormulaAST, OpCode } from "./ast";
@@ -41,7 +42,12 @@ export function evaluateCell(
   ctx: EvalContext,
 ): FormulaCell {
   try {
-    const v = evaluate(options.ast, row, ctx);
+    const v = coerceToResultType(
+      evaluate(options.ast, row, ctx),
+      options.resultType,
+      ctx.zone,
+    );
+    if (isDateValue(v)) return { start: v.value };
     return typeof v === "number" ? snapNumber(v) : v;
   } catch (e) {
     return makeErrorCell("TYPE_MISMATCH", (e as Error).message);
@@ -155,6 +161,25 @@ function normalize(v: unknown): Value {
   return null;
 }
 
+const COMPARISON_OPS: ReadonlySet<OpCode> = new Set(["==", "!=", "<", ">", "<=", ">="]);
+
+function compareDates(op: OpCode, a: Value, b: Value, zone: string): boolean {
+  const da = asDateValue(a);
+  const db = asDateValue(b);
+  if (!da || !db) return op === "!=";
+  const sameKind = da.kind === db.kind;
+  const x = sameKind ? da.value : dayOf(da, zone);
+  const y = sameKind ? db.value : dayOf(db, zone);
+  switch (op) {
+    case "==": return x === y;
+    case "!=": return x !== y;
+    case "<":  return x < y;
+    case ">":  return x > y;
+    case "<=": return x <= y;
+    default:   return x >= y;
+  }
+}
+
 function evalOp(
   op: OpCode,
   args: FormulaAST[],
@@ -170,9 +195,13 @@ function evalOp(
   const b = evaluate(args[1], row, ctx, astDepth);
   if (isErrorCell(b)) return { ...b, __err: "DEPENDENCY_ERROR" };
 
+  if (COMPARISON_OPS.has(op) && (isDateValue(a) || isDateValue(b))) {
+    return compareDates(op, a, b, ctx.zone);
+  }
+
   switch (op as Exclude<OpCode, "neg" | "not">) {
     case "+":
-      if (typeof a === "string" || typeof b === "string") return valueToString(a) + valueToString(b);
+      if (typeof a === "string" || typeof b === "string") return valueToString(a, ctx.zone) + valueToString(b, ctx.zone);
       if (a == null || b == null) return null;
       return Number(a) + Number(b);
     case "-": return a == null || b == null ? null : Number(a) - Number(b);
