@@ -1828,12 +1828,12 @@
   "Save and replace": "Salvar e substituir",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” será arquivado quando este começar.",
   "This one will be archived when “{{title}}” starts.": "Este será arquivado quando “{{title}}” começar.",
-  "{{formats}} added": "{{formats}} added",
-  "{{formats}} removed": "{{formats}} removed",
-  "{{formats}} changed": "{{formats}} changed",
-  "Formatting changed": "Formatting changed",
-  "Highlight": "Highlight",
-  "Read and write": "Read and write",
-  "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
-  "View data in your workspace without making changes.": "View data in your workspace without making changes."
+  "{{formats}} added": "{{formats}} adicionados",
+  "{{formats}} removed": "{{formats}} removidos",
+  "{{formats}} changed": "{{formats}} alterados",
+  "Formatting changed": "Formatação alterada",
+  "Highlight": "Destaque",
+  "Read and write": "Leitura e escrita",
+  "View, create and modify data in your workspace.": "Visualize, crie e modifique dados no seu espaço de trabalho.",
+  "View data in your workspace without making changes.": "Visualize dados no seu espaço de trabalho sem fazer alterações."
 }
