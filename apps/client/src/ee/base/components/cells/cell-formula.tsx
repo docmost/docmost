@@ -34,6 +34,6 @@ export function CellFormula(props: Props) {
   const readOnlyProps = { ...props, isEditing: false };
   if (resultType === "number") return <CellNumber {...readOnlyProps} />;
   if (resultType === "boolean") return <CellCheckbox {...readOnlyProps} />;
-  if (resultType === "date") return <CellDate {...readOnlyProps} />;
+  if (resultType === "date" || resultType === "datetime") return <CellDate {...readOnlyProps} />;
   return <CellText {...readOnlyProps} />;
 }

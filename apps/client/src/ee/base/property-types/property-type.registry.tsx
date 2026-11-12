@@ -35,8 +35,6 @@ import { CellEmail } from "@/ee/base/components/cells/cell-email";
 import { CellPerson } from "@/ee/base/components/cells/cell-person";
 import { CellFile } from "@/ee/base/components/cells/cell-file";
 import { CellPage } from "@/ee/base/components/cells/cell-page";
-import { CellCreatedAt } from "@/ee/base/components/cells/cell-created-at";
-import { CellLastEditedAt } from "@/ee/base/components/cells/cell-last-edited-at";
 import { CellSystemUser } from "@/ee/base/components/cells/cell-system-user";
 import { CellFormula } from "@/ee/base/components/cells/cell-formula";
 import { defaultStatusChoices } from "@/ee/base/components/property/choice-editor";
@@ -197,7 +195,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
   },
   createdAt: {
     type: "createdAt",
-    cellComponent: CellCreatedAt,
+    cellComponent: CellDate,
     icon: IconClockPlus,
     labelKey: "Created at",
     filterOperators: ["eq", "before", "after", "onOrBefore", "onOrAfter", "isWithin", "isEmpty", "isNotEmpty"],
@@ -219,7 +217,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
   },
   lastEditedAt: {
     type: "lastEditedAt",
-    cellComponent: CellLastEditedAt,
+    cellComponent: CellDate,
     icon: IconClockEdit,
     labelKey: "Last edited at",
     filterOperators: ["eq", "before", "after", "onOrBefore", "onOrAfter", "isWithin", "isEmpty", "isNotEmpty"],
