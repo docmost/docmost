@@ -163,15 +163,6 @@ export function parseDateValue(raw: unknown): DateValue | null {
   return end && isEndOrdered(start, end) ? { start, end } : { start };
 }
 
-function partToLocalDate(part: string): Date {
-  const parts = ymdParts(part);
-  if (!parts) return new Date(part);
-  const [y, mo, d] = parts;
-  const date = new Date(y, mo - 1, d);
-  date.setFullYear(y, mo - 1, d);
-  return date;
-}
-
 export function localDateToYmd(d: Date): string {
   const year = String(d.getFullYear()).padStart(4, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -307,16 +298,6 @@ export function dateValuesEqual(
 ): boolean {
   if (!a || !b) return !a && !b;
   return a.start === b.start && (a.end ?? null) === (b.end ?? null);
-}
-
-export function compareDateValues(
-  a: DateValue | null,
-  b: DateValue | null,
-): number {
-  if (!a || !b) return !a && !b ? 0 : a ? -1 : 1;
-  return Math.sign(
-    partToLocalDate(a.start).getTime() - partToLocalDate(b.start).getTime(),
-  );
 }
 
 export function resolveTimeFormat(
