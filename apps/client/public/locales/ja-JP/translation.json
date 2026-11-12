@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "これらは {{from}} から終了なしですでに表示されています:",
   "Save and replace": "保存して置き換える",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” はこれの開始時にアーカイブされます。",
-  "This one will be archived when “{{title}}” starts.": "これは “{{title}}” の開始時にアーカイブされます。"
+  "This one will be archived when “{{title}}” starts.": "これは “{{title}}” の開始時にアーカイブされます。",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
