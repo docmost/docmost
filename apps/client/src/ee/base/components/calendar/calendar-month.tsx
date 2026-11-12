@@ -37,8 +37,10 @@ import classes from "@/ee/base/styles/calendar.module.css";
 
 const MONTH_WEEKDAYS_HEIGHT = 37;
 const MONTH_WEEK_COUNT = 6;
-const MONTH_DAY_CHROME_HEIGHT = 52;
+const MONTH_DAY_LABEL_HEIGHT = 30;
 const MONTH_EVENT_ROW_HEIGHT = 24;
+// the shortest row that still holds a 12px title
+const MONTH_MIN_EVENT_ROW_HEIGHT = 21;
 const MONTH_MAX_EVENT_ROWS = 10;
 
 type MonthEventDrop = Parameters<NonNullable<MonthViewProps["onEventDrop"]>>[0];
@@ -240,14 +242,16 @@ export const CalendarMonth = memo(function CalendarMonth({
   }, []);
 
   const dayHeight = Math.max(
-    MONTH_DAY_CHROME_HEIGHT + MONTH_EVENT_ROW_HEIGHT,
+    MONTH_DAY_LABEL_HEIGHT + 2 * MONTH_MIN_EVENT_ROW_HEIGHT,
     Math.floor((height - MONTH_WEEKDAYS_HEIGHT) / MONTH_WEEK_COUNT),
   );
+  const eventsHeight = dayHeight - MONTH_DAY_LABEL_HEIGHT;
   const maxEventsPerDay = Math.min(
     MONTH_MAX_EVENT_ROWS,
-    Math.floor((dayHeight - MONTH_DAY_CHROME_HEIGHT) / MONTH_EVENT_ROW_HEIGHT),
+    Math.floor(eventsHeight / MONTH_MIN_EVENT_ROW_HEIGHT),
   );
-  const slack = dayHeight - MONTH_DAY_CHROME_HEIGHT - maxEventsPerDay * MONTH_EVENT_ROW_HEIGHT;
+  const slack =
+    eventsHeight - maxEventsPerDay * Math.min(MONTH_EVENT_ROW_HEIGHT, eventsHeight / maxEventsPerDay);
 
   const renderEvent = useCallback<CalendarRenderEvent>(
     (event, rootProps) => (

@@ -49,7 +49,7 @@
 .monthDay {
   height: var(
     --calendar-month-day-height,
-    calc(52px + var(--month-view-max-events, 2) * 24px)
+    calc(30px + var(--month-view-max-events, 2) * 24px)
   );
 }
 
@@ -111,9 +111,11 @@
 }
 
 .monthEvents {
-  bottom: calc(
-    1.375rem * var(--mantine-scale) + var(--calendar-month-slack, 0px)
-  );
+  bottom: var(--calendar-month-slack, 0px);
+}
+
+.monthEvents :global(.mantine-ScheduleEvent-eventInner) {
+  font-size: calc(0.75rem * var(--mantine-scale));
 }
 
 .monthResizeHandle {
