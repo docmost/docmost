@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "Deze worden al weergegeven vanaf {{from}} zonder eindtijd:",
   "Save and replace": "Opslaan en vervangen",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” wordt gearchiveerd wanneer deze begint.",
-  "This one will be archived when “{{title}}” starts.": "Deze wordt gearchiveerd wanneer “{{title}}” begint."
+  "This one will be archived when “{{title}}” starts.": "Deze wordt gearchiveerd wanneer “{{title}}” begint.",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
