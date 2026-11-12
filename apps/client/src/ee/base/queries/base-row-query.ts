@@ -39,9 +39,9 @@ import { markRequestIdOutbound } from "@/ee/base/hooks/use-base-socket";
 import { v7 as uuid7 } from "uuid";
 import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import type { ViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
-import { isSameTimeZone } from "@/ee/base/utils/viewer-zone";
 import { rowsDateKey } from "@/ee/base/queries/rows-date-key";
 import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
+import { notifyRowsZone } from "@/ee/base/queries/rows-zone-notice";
 import {
   BASE_ROW_MUTATION_KEY,
   beginRowUpdate,
@@ -227,20 +227,8 @@ export function useBaseRowsQuery(
   const serverZone = query.data?.pages[0]?.meta?.timeZone;
   const showingPlaceholder = query.isPlaceholderData;
   useEffect(() => {
-    if (
-      showingPlaceholder ||
-      !usesDates ||
-      typeof serverZone !== "string" ||
-      isSameTimeZone(serverZone, viewer.timeZone, new Date())
-    ) {
-      return;
-    }
-    notifications.show({
-      id: "base-rows-zone:" + pageId,
-      message: t("Date filters use {{zone}}, not your time zone", {
-        zone: serverZone,
-      }),
-    });
+    if (!pageId || showingPlaceholder || !usesDates) return;
+    notifyRowsZone(pageId, serverZone, viewer.timeZone, t);
   }, [showingPlaceholder, usesDates, serverZone, viewer.timeZone, pageId, t]);
 
   return query;

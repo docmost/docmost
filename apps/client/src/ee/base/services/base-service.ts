@@ -179,6 +179,27 @@ export async function listRows(
   return req.data;
 }
 
+export type ICalendarRowsPage = {
+  items: IBaseRow[];
+  references?: RowReferences;
+  meta: { total: number; truncated: boolean; timeZone: string };
+};
+
+export async function listCalendarRows(
+  params: {
+    pageId: string;
+    propertyId: string;
+    from: string;
+    to: string;
+    filter?: FilterNode;
+    limit?: number;
+  } & Partial<ViewerDateContext>,
+  signal?: AbortSignal,
+): Promise<ICalendarRowsPage> {
+  const req = await api.post("/bases/rows/calendar", params, { signal });
+  return req.data;
+}
+
 export async function reorderRow(data: ReorderRowInput): Promise<void> {
   await api.post("/bases/rows/reorder", data);
 }
