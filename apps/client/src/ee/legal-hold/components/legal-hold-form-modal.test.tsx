@@ -60,7 +60,6 @@ const legalHold: LegalHoldDetail = {
   updatedAt: "2026-11-12T10:00:00.000Z",
   releasedAt: null,
   preservedItemCount: 0,
-  pagesInScopeCount: 3,
 };
 
 const page = <T,>(items: T[]) => ({
@@ -76,6 +75,7 @@ const page = <T,>(items: T[]) => ({
 
 function renderModal(legalHoldId: string | null) {
   const onClose = vi.fn();
+  const onCreated = vi.fn();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -85,12 +85,13 @@ function renderModal(legalHoldId: string | null) {
         <LegalHoldFormModal
           opened
           onClose={onClose}
+          onCreated={onCreated}
           legalHoldId={legalHoldId}
         />
       </MantineProvider>
     </QueryClientProvider>,
   );
-  return { onClose };
+  return { onClose, onCreated };
 }
 
 const typeName = (text: string) =>
@@ -145,9 +146,9 @@ describe("LegalHoldFormModal", () => {
     expect(service.createLegalHold).not.toHaveBeenCalled();
   });
 
-  it("creates a hold with a trimmed name and one space", async () => {
+  it("creates a hold with a trimmed name and one space, then hands it over", async () => {
     vi.mocked(service.createLegalHold).mockResolvedValue(legalHold);
-    const { onClose } = renderModal(null);
+    const { onClose, onCreated } = renderModal(null);
     // the modal moves focus to the name field, which would close a dropdown opened first
     await waitFor(() =>
       expect(document.activeElement).toBe(
@@ -166,6 +167,7 @@ describe("LegalHoldFormModal", () => {
       userIds: [],
       spaceIds: [space.id],
     });
+    expect(onCreated).toHaveBeenCalledWith(legalHold);
   });
 
   it("shows the hold's custodians and spaces by name when editing", async () => {
@@ -179,7 +181,7 @@ describe("LegalHoldFormModal", () => {
 
   it("leaves unchanged custodians and spaces out of an update", async () => {
     vi.mocked(service.updateLegalHold).mockResolvedValue(legalHold);
-    const { onClose } = renderModal(legalHold.id);
+    const { onClose, onCreated } = renderModal(legalHold.id);
     await screen.findByText("Ada Lovelace");
     typeName("Contract dispute 2026");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -190,6 +192,7 @@ describe("LegalHoldFormModal", () => {
       name: "Contract dispute 2026",
       description: "Case 42",
     });
+    expect(onCreated).not.toHaveBeenCalled();
   });
 
   it("keeps the form open and shows the server error", async () => {

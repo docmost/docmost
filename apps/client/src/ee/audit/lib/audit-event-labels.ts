@@ -115,6 +115,7 @@ export const auditEventLabels: Record<string, string> = {
   "legal_hold.released": "Released legal hold",
   "legal_hold.exported": "Exported legal hold",
   "legal_hold.export_downloaded": "Downloaded legal hold export",
+  "legal_hold.file_downloaded": "Downloaded preserved file",
 };
 
 export function getEventLabel(event: string): string {
@@ -296,6 +297,10 @@ export const eventFilterOptions: EventGroup[] = [
       {
         value: "legal_hold.export_downloaded",
         label: "Downloaded legal hold export",
+      },
+      {
+        value: "legal_hold.file_downloaded",
+        label: "Downloaded preserved file",
       },
     ],
   },

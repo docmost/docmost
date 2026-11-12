@@ -33,6 +33,8 @@ import type { LegalHoldDetail } from "@/ee/legal-hold/types/legal-hold.types";
 type LegalHoldFormModalProps = {
   opened: boolean;
   onClose: () => void;
+  onExitTransitionEnd?: () => void;
+  onCreated?: (legalHold: LegalHoldDetail) => void;
   // null creates a new hold
   legalHoldId: string | null;
 };
@@ -40,6 +42,8 @@ type LegalHoldFormModalProps = {
 export function LegalHoldFormModal({
   opened,
   onClose,
+  onExitTransitionEnd,
+  onCreated,
   legalHoldId,
 }: LegalHoldFormModalProps) {
   const { t } = useTranslation();
@@ -50,6 +54,7 @@ export function LegalHoldFormModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      onExitTransitionEnd={onExitTransitionEnd}
       title={legalHoldId ? t("Edit legal hold") : t("New legal hold")}
       size="lg"
       closeButtonProps={{ "aria-label": t("Close") }}
@@ -70,6 +75,7 @@ export function LegalHoldFormModal({
           key={legalHold?.id ?? "new"}
           legalHold={legalHold}
           onClose={onClose}
+          onCreated={onCreated}
         />
       )}
     </Modal>
@@ -96,6 +102,7 @@ function FormSkeleton() {
 type LegalHoldFormProps = {
   legalHold: LegalHoldDetail | null;
   onClose: () => void;
+  onCreated?: (legalHold: LegalHoldDetail) => void;
 };
 
 function sameIds(a: string[], b: string[]): boolean {
@@ -103,7 +110,7 @@ function sameIds(a: string[], b: string[]): boolean {
   return a.length === b.length && b.every((id) => ids.has(id));
 }
 
-function LegalHoldForm({ legalHold, onClose }: LegalHoldFormProps) {
+function LegalHoldForm({ legalHold, onClose, onCreated }: LegalHoldFormProps) {
   const { t } = useTranslation();
   const formRef = useRef<HTMLFormElement>(null);
   const createMutation = useCreateLegalHoldMutation();
@@ -150,12 +157,13 @@ function LegalHoldForm({ legalHold, onClose }: LegalHoldFormProps) {
             : { spaceIds: values.spaceIds }),
         });
       } else {
-        await createMutation.mutateAsync({
+        const created = await createMutation.mutateAsync({
           name,
           description,
           userIds: values.userIds,
           spaceIds: values.spaceIds,
         });
+        onCreated?.(created);
       }
       onClose();
     } catch {

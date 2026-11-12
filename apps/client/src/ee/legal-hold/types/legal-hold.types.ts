@@ -63,6 +63,9 @@ export type LegalHoldDetail = Omit<LegalHoldListItem, "custodians"> & {
   custodians: LegalHoldUserView[];
   spaces: LegalHoldSpaceView[];
   preservedItemCount: number;
+};
+
+export type LegalHoldStats = {
   pagesInScopeCount: number;
 };
 

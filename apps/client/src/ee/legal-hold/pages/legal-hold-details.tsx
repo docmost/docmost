@@ -36,6 +36,7 @@ import { LEGAL_HOLD_STATUS_BADGES } from "@/ee/legal-hold/legal-hold.utils";
 import {
   useCreateLegalHoldExportMutation,
   useLegalHoldQuery,
+  useLegalHoldStatsQuery,
 } from "@/ee/legal-hold/queries/legal-hold-query";
 
 const TABS = ["custodians", "spaces", "preserved", "exports"];
@@ -81,8 +82,10 @@ export default function LegalHoldDetails() {
   const [formOpened, setFormOpened] = useState(false);
   const [releaseOpened, setReleaseOpened] = useState(false);
   const query = useLegalHoldQuery(isOwner ? legalHoldId : null);
+  const statsQuery = useLegalHoldStatsQuery(isOwner ? legalHoldId : null);
   const exportMutation = useCreateLegalHoldExportMutation();
   const legalHold = query.data;
+  const stats = statsQuery.data;
 
   if (!isOwner) {
     return null;
@@ -126,7 +129,7 @@ export default function LegalHoldDetails() {
         {t("Legal holds")}
       </Anchor>
 
-      {query.isError ? (
+      {query.isError && !legalHold ? (
         <Alert color="red" icon={<IconAlertCircle size={16} />} mt="md">
           {getApiErrorMessage(query.error, t("Failed to load legal hold"))}
         </Alert>
@@ -171,11 +174,17 @@ export default function LegalHoldDetails() {
                       })}
                 </Text>
               )}
-              <Text size="sm" c="dimmed">
-                {t("{{count}} pages in scope", {
-                  count: legalHold.pagesInScopeCount,
-                })}
-              </Text>
+              {stats ? (
+                <Text size="sm" c="dimmed">
+                  {t("{{count}} pages in scope", {
+                    count: stats.pagesInScopeCount,
+                  })}
+                </Text>
+              ) : statsQuery.isPending ? (
+                <Text component="div" size="sm" aria-busy>
+                  <Skeleton height={12} width={120} display="inline-block" />
+                </Text>
+              ) : null}
             </div>
 
             <Group gap="xs" wrap="nowrap">

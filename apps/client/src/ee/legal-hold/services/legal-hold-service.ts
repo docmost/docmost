@@ -9,6 +9,7 @@ import {
   LegalHoldListParams,
   LegalHoldSearchParams,
   LegalHoldSpaceView,
+  LegalHoldStats,
   LegalHoldUserView,
   PreservedItemDetail,
   PreservedItemIdInput,
@@ -31,6 +32,13 @@ export async function getLegalHold(
   data: LegalHoldIdInput,
 ): Promise<LegalHoldDetail> {
   const req = await api.post<LegalHoldDetail>("/legal-holds/info", data);
+  return req.data;
+}
+
+export async function getLegalHoldStats(
+  data: LegalHoldIdInput,
+): Promise<LegalHoldStats> {
+  const req = await api.post<LegalHoldStats>("/legal-holds/stats", data);
   return req.data;
 }
 

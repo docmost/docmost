@@ -158,7 +158,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .createIndex('idx_preserved_items_parent')
     .ifNotExists()
     .on('preserved_items')
-    .column('parent_id')
+    .columns(['parent_id', 'id'])
     .execute();
 
   await db.schema
@@ -167,6 +167,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .on('preserved_items')
     .using('GIN')
     .column('user_ids')
+    .where(sql.ref('parent_id'), 'is', null)
     .execute();
 
   await db.schema

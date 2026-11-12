@@ -15,6 +15,7 @@ import {
   getLegalHold,
   getLegalHoldExports,
   getLegalHolds,
+  getLegalHoldStats,
   getPreservedItem,
   getPreservedItems,
   releaseLegalHold,
@@ -31,6 +32,7 @@ import {
   LegalHoldListParams,
   LegalHoldSearchParams,
   LegalHoldSpaceView,
+  LegalHoldStats,
   LegalHoldUserView,
   PreservedItemDetail,
   PreservedItemListParams,
@@ -70,6 +72,17 @@ export function useLegalHoldQuery(
   return useQuery({
     queryKey: [...LEGAL_HOLDS_KEY, "info", legalHoldId],
     queryFn: () => getLegalHold({ legalHoldId }),
+    enabled: !!legalHoldId,
+    refetchOnMount: "always",
+  });
+}
+
+export function useLegalHoldStatsQuery(
+  legalHoldId: string | null | undefined,
+): UseQueryResult<LegalHoldStats, Error> {
+  return useQuery({
+    queryKey: [...LEGAL_HOLDS_KEY, "stats", legalHoldId],
+    queryFn: () => getLegalHoldStats({ legalHoldId }),
     enabled: !!legalHoldId,
     refetchOnMount: "always",
   });

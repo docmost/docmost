@@ -118,7 +118,7 @@ function PreviewBody({
           {getApiErrorMessage(query.error, t("Failed to load preview"))}
         </Alert>
       ) : query.data ? (
-        <PreviewContent detail={query.data} />
+        <PreviewContent legalHoldId={legalHoldId} detail={query.data} />
       ) : (
         <Paper withBorder radius="md" p="lg" aria-busy>
           <Stack gap="sm">
@@ -133,7 +133,13 @@ function PreviewBody({
   );
 }
 
-function PreviewContent({ detail }: { detail: PreservedItemDetail }) {
+function PreviewContent({
+  legalHoldId,
+  detail,
+}: {
+  legalHoldId: string;
+  detail: PreservedItemDetail;
+}) {
   const { t } = useTranslation();
 
   if (detail.type === "attachment") {
@@ -152,7 +158,7 @@ function PreviewContent({ detail }: { detail: PreservedItemDetail }) {
           </div>
           <Button
             component="a"
-            href={`/api/legal-holds/items/${detail.id}/file`}
+            href={`/api/legal-holds/${legalHoldId}/items/${detail.id}/file`}
             download
             variant="default"
             leftSection={<IconDownload size={16} />}

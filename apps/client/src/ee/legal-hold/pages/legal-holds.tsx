@@ -147,6 +147,10 @@ export default function LegalHolds() {
       <LegalHoldFormModal
         opened={formOpened}
         onClose={() => setFormOpened(false)}
+        onExitTransitionEnd={() => setEditingId(null)}
+        onCreated={(legalHold) =>
+          navigate(`/settings/legal-holds/${legalHold.id}`)
+        }
         legalHoldId={editingId}
       />
 

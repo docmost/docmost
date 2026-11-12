@@ -1,6 +1,13 @@
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { createStore, Provider as JotaiProvider } from "jotai";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -62,7 +69,6 @@ const legalHold: LegalHoldDetail = {
   updatedAt: "2026-11-12T10:00:00.000Z",
   releasedAt: null,
   preservedItemCount: 1,
-  pagesInScopeCount: 12,
 };
 
 const exportView = (
@@ -138,12 +144,16 @@ function renderPage(search = "") {
       </QueryClientProvider>
     </JotaiProvider>,
   );
+  return { queryClient };
 }
 
 beforeEach(() => {
   vi.resetAllMocks();
   localStorage.clear();
   vi.mocked(service.getLegalHold).mockResolvedValue(legalHold);
+  vi.mocked(service.getLegalHoldStats).mockResolvedValue({
+    pagesInScopeCount: 12,
+  });
   vi.mocked(service.getPreservedItems).mockResolvedValue({
     items: [preservedPage],
     meta: {
@@ -199,12 +209,53 @@ describe("LegalHoldDetails", () => {
       await screen.findByRole("heading", { name: "Contract dispute" }),
     ).toBeTruthy();
     expect(screen.getByText("Created Nov 12, 2026 by Grace Hopper")).toBeTruthy();
-    expect(screen.getByText("12 pages in scope")).toBeTruthy();
+    expect(await screen.findByText("12 pages in scope")).toBeTruthy();
+    expect(service.getLegalHoldStats).toHaveBeenCalledWith({
+      legalHoldId: "h1",
+    });
     expect(
       screen.getByRole("tab", { name: "Custodians (1)", selected: true }),
     ).toBeTruthy();
     expect(screen.getByText("Ada Lovelace")).toBeTruthy();
     expect(screen.getByText("Deactivated")).toBeTruthy();
+  });
+
+  it("shows the hold without a page count when the count fails to load", async () => {
+    vi.mocked(service.getLegalHoldStats).mockRejectedValue(
+      new Error("Network Error"),
+    );
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Contract dispute" }),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(document.querySelector('[aria-busy="true"]')).toBeNull(),
+    );
+    expect(screen.queryByText(/pages in scope/)).toBeNull();
+    expect(screen.queryByText("Failed to load legal hold")).toBeNull();
+  });
+
+  it("keeps the hold on screen when a refresh fails", async () => {
+    const { queryClient } = renderPage();
+    await screen.findByRole("heading", { name: "Contract dispute" });
+
+    vi.mocked(service.getLegalHold).mockRejectedValue(
+      new Error("Network Error"),
+    );
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["legal-holds", "info"] });
+      // the query tells its observers on the next tick
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(
+      queryClient.getQueryState(["legal-holds", "info", "h1"])?.status,
+    ).toBe("error");
+    expect(
+      screen.getByRole("heading", { name: "Contract dispute" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("Failed to load legal hold")).toBeNull();
   });
 
   it("keeps the chosen tab in the address", async () => {
@@ -249,5 +300,41 @@ describe("LegalHoldDetails", () => {
     expect(paragraph.closest(".ProseMirror")).toBeTruthy();
     expect(dialog.querySelector("img")?.getAttribute("onerror")).toBeFalsy();
     expect(screen.getByText("Page version: 3")).toBeTruthy();
+  });
+
+  it("downloads a preserved file through its hold", async () => {
+    const preservedFile: PreservedItemView = {
+      ...preservedPage,
+      id: "i2",
+      type: "attachment",
+      itemId: "a1",
+      title: "contract.pdf",
+      childCounts: {},
+    };
+    vi.mocked(service.getPreservedItems).mockResolvedValue({
+      items: [preservedFile],
+      meta: {
+        limit: 20,
+        hasNextPage: false,
+        hasPrevPage: false,
+        nextCursor: null,
+        prevCursor: null,
+      },
+    });
+    vi.mocked(service.getPreservedItem).mockResolvedValue({
+      ...preservedFile,
+      html: null,
+      fileName: "contract.pdf",
+      fileSize: 1536,
+      mimeType: "application/pdf",
+    });
+    renderPage("?tab=preserved");
+
+    fireEvent.click(await screen.findByRole("button", { name: "contract.pdf" }));
+
+    const download = await screen.findByRole("link", { name: "Download" });
+    expect(download.getAttribute("href")).toBe(
+      "/api/legal-holds/h1/items/i2/file",
+    );
   });
 });

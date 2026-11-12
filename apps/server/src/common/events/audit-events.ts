@@ -141,6 +141,7 @@ export const AuditEvent = {
   LEGAL_HOLD_RELEASED: 'legal_hold.released',
   LEGAL_HOLD_EXPORTED: 'legal_hold.exported',
   LEGAL_HOLD_EXPORT_DOWNLOADED: 'legal_hold.export_downloaded',
+  LEGAL_HOLD_FILE_DOWNLOADED: 'legal_hold.file_downloaded',
 } as const;
 
 export type AuditEventType = (typeof AuditEvent)[keyof typeof AuditEvent];

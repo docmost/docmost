@@ -151,6 +151,7 @@ export interface IBaseCellGcJob {
   pageId: string;
   propertyId: string;
   workspaceId: string;
+  actorId?: string | null;
 }
 
 export interface IBaseFormulaRecomputeJob {
