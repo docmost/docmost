@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -19,6 +20,10 @@ import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
 import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
 import { WsService } from '../../ws/ws.service';
+import {
+  ILegalHoldService,
+  LEGAL_HOLD_SERVICE,
+} from '../../integrations/legal-hold/legal-hold.service';
 
 @Injectable()
 export class CommentService {
@@ -33,6 +38,8 @@ export class CommentService {
     private generalQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
     private notificationQueue: Queue,
+    @Inject(LEGAL_HOLD_SERVICE)
+    private readonly legalHoldService: ILegalHoldService,
   ) {}
 
   async findById(commentId: string) {
@@ -173,6 +180,10 @@ export class CommentService {
 
     const editedAt = new Date();
 
+    await this.legalHoldService.preserveComments([comment.id], 'edited', {
+      workspaceId: comment.workspaceId,
+      actorId: authUser.id,
+    });
     await this.commentRepo.updateComment(
       {
         content: commentContent,

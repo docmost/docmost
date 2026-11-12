@@ -13,7 +13,7 @@ function buildService(overrides: Record<string, unknown> = {}) {
   const service = new SpaceService(
     spaceRepo as any, {} as any, shareRepo as any, {} as any,
     {} as any, {} as any, {} as any, auditService as any, wsService as any,
-    {} as any, {} as any,
+    {} as any, {} as any, {} as any,
   );
   return { service, space, spaceRepo, shareRepo, auditService, wsService };
 }

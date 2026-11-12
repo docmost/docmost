@@ -33,6 +33,10 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import { WsService } from '../../../ws/ws.service';
+import {
+  ILegalHoldService,
+  LEGAL_HOLD_SERVICE,
+} from '../../../integrations/legal-hold/legal-hold.service';
 
 @Injectable()
 export class SpaceService {
@@ -48,6 +52,8 @@ export class SpaceService {
     private readonly wsService: WsService,
     private pageRepo: PageRepo,
     private pagePermissionRepo: PagePermissionRepo,
+    @Inject(LEGAL_HOLD_SERVICE)
+    private readonly legalHoldService: ILegalHoldService,
   ) {}
 
   async createSpace(
@@ -362,12 +368,17 @@ export class SpaceService {
     return this.spaceRepo.getSpacesInWorkspace(workspaceId, pagination);
   }
 
-  async deleteSpace(spaceId: string, workspaceId: string): Promise<void> {
+  async deleteSpace(
+    spaceId: string,
+    workspaceId: string,
+    actorId?: string,
+  ): Promise<void> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId);
     if (!space) {
       throw new NotFoundException('Space not found');
     }
 
+    await this.legalHoldService.preserveSpace(spaceId, { workspaceId, actorId });
     await this.spaceRepo.deleteSpace(spaceId, workspaceId);
     await this.attachmentQueue.add(QueueJob.DELETE_SPACE_ATTACHMENTS, space);
 

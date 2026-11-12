@@ -60,6 +60,10 @@ import {
 import { IntegrationConnectionRepo } from '../../integration/repos/integration-connection.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
+import {
+  ILegalHoldService,
+  LEGAL_HOLD_SERVICE,
+} from '../../../integrations/legal-hold/legal-hold.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -88,6 +92,8 @@ export class WorkspaceService {
     private integrationConnectionRepo: IntegrationConnectionRepo,
     private wsService: WsService,
     private readonly collabAccessService: CollabAccessService,
+    @Inject(LEGAL_HOLD_SERVICE)
+    private readonly legalHoldService: ILegalHoldService,
   ) {}
 
   async findById(workspaceId: string) {
@@ -1053,6 +1059,12 @@ export class WorkspaceService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
+    // not inside the transaction: its workspace row lock blocks the preserved item's foreign key check
+    await this.legalHoldService.preserveUser(userId, {
+      workspaceId,
+      actorId: authUser.id,
+    });
+
     const user = await executeTx(this.db, async (trx) => {
       const workspace = await this.workspaceRepo.findById(workspaceId, {
         withLock: true,

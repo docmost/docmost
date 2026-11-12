@@ -8,6 +8,7 @@ import { BlockBlobClient } from '@azure/storage-blob';
 import { AttachmentController } from './attachment.controller';
 import { MAX_AVATAR_SIZE } from './attachment.constants';
 import { AttachmentService } from './services/attachment.service';
+import { NoopLegalHoldService } from '../../integrations/legal-hold/legal-hold.service';
 import { StorageService } from '../../integrations/storage/storage.service';
 import { LocalDriver } from '../../integrations/storage/drivers/local.driver';
 import { S3Driver } from '../../integrations/storage/drivers/s3.driver';
@@ -199,6 +200,7 @@ describe.each([
       {} as any,
       attachmentQueue as any,
       {} as any,
+      new NoopLegalHoldService(),
     );
     const controller = new AttachmentController(
       attachmentService,

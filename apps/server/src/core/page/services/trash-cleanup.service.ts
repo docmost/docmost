@@ -1,10 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import {
+  ILegalHoldService,
+  LEGAL_HOLD_SERVICE,
+} from '../../../integrations/legal-hold/legal-hold.service';
 
 const DEFAULT_RETENTION_DAYS = 30;
 
@@ -15,6 +19,8 @@ export class TrashCleanupService {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    @Inject(LEGAL_HOLD_SERVICE)
+    private readonly legalHoldService: ILegalHoldService,
   ) {}
 
   @Interval('trash-cleanup', 24 * 60 * 60 * 1000) // every 24 hours
@@ -46,7 +52,7 @@ export class TrashCleanupService {
 
         for (const page of oldDeletedPages) {
           try {
-            await this.cleanupPage(page.id);
+            await this.cleanupPage(page.id, workspace.id);
             totalCleaned++;
           } catch (error) {
             this.logger.error(
@@ -70,7 +76,7 @@ export class TrashCleanupService {
     }
   }
 
-  private async cleanupPage(pageId: string) {
+  private async cleanupPage(pageId: string, workspaceId: string) {
     // Get all descendants using recursive CTE (including the page itself)
     const descendants = await this.db
       .withRecursive('page_descendants', (db) =>
@@ -94,6 +100,8 @@ export class TrashCleanupService {
     this.logger.debug(
       `Cleaning up page ${pageId} with ${pageIds.length - 1} descendants`,
     );
+
+    await this.legalHoldService.preservePages(pageIds, { workspaceId });
 
     // Queue attachment deletion for all pages with unique job IDs to prevent duplicates
     for (const id of pageIds) {

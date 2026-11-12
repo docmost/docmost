@@ -34,6 +34,10 @@ import {
 } from '../../integrations/audit/audit.service';
 import { WsService } from '../../ws/ws.service';
 import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
+import {
+  ILegalHoldService,
+  LEGAL_HOLD_SERVICE,
+} from '../../integrations/legal-hold/legal-hold.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -46,6 +50,8 @@ export class CommentController {
     private readonly pageAccessService: PageAccessService,
     private readonly wsService: WsService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    @Inject(LEGAL_HOLD_SERVICE)
+    private readonly legalHoldService: ILegalHoldService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -180,9 +186,7 @@ export class CommentController {
     // Check if user is the comment owner
     const isOwner = comment.creatorId === user.id;
 
-    if (isOwner) {
-      await this.commentRepo.deleteComment(comment.id);
-    } else {
+    if (!isOwner) {
       const ability = await this.spaceAbility.createForUser(
         user,
         comment.spaceId,
@@ -194,8 +198,13 @@ export class CommentController {
           'You can only delete your own comments',
         );
       }
-      await this.commentRepo.deleteComment(comment.id);
     }
+
+    await this.legalHoldService.preserveComments([comment.id], 'deleted', {
+      workspaceId: workspace.id,
+      actorId: user.id,
+    });
+    await this.commentRepo.deleteComment(comment.id);
 
     this.wsService.emitCommentEvent(comment.spaceId, comment.pageId, {
       operation: 'commentDeleted',

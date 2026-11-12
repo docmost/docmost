@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -37,6 +38,10 @@ import {
   COVER_IMAGE_MIME_TYPES,
   COVER_MAX_BYTES,
 } from '../../page/page-cover.constants';
+import {
+  ILegalHoldService,
+  LEGAL_HOLD_SERVICE,
+} from '../../../integrations/legal-hold/legal-hold.service';
 
 @Injectable()
 export class AttachmentService {
@@ -50,6 +55,8 @@ export class AttachmentService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     private readonly pageRepo: PageRepo,
+    @Inject(LEGAL_HOLD_SERVICE)
+    private readonly legalHoldService: ILegalHoldService,
   ) {}
 
   async uploadFile(opts: {
@@ -98,6 +105,11 @@ export class AttachmentService {
       }
       attachmentId = opts.attachmentId;
       isUpdate = true;
+      await this.legalHoldService.preserveAttachments(
+        [existingAttachment],
+        'edited',
+        { workspaceId, actorId: userId },
+      );
     } else {
       attachmentId = uuid7();
     }
@@ -279,8 +291,15 @@ export class AttachmentService {
     }
   }
 
-  async deleteAttachment(attachment: Attachment) {
-    await this.storageService.delete(attachment.filePath);
+  async deleteAttachment(attachment: Attachment, actorId?: string) {
+    const preservedIds = await this.legalHoldService.preserveAttachments(
+      [attachment],
+      'deleted',
+      { workspaceId: attachment.workspaceId, actorId },
+    );
+    if (!preservedIds.includes(attachment.id)) {
+      await this.storageService.delete(attachment.filePath);
+    }
     await this.attachmentRepo.deleteAttachmentById(attachment.id);
   }
 
@@ -340,10 +359,17 @@ export class AttachmentService {
         return;
       }
 
+      const preservedIds =
+        await this.legalHoldService.findPreservedAttachmentIds(
+          attachments.map((attachment) => attachment.id),
+        );
+
       await Promise.all(
         attachments.map(async (attachment) => {
           try {
-            await this.storageService.delete(attachment.filePath);
+            if (!preservedIds.has(attachment.id)) {
+              await this.storageService.delete(attachment.filePath);
+            }
             await this.attachmentRepo.deleteAttachmentById(attachment.id);
           } catch (err) {
             this.logger.log(
@@ -365,12 +391,18 @@ export class AttachmentService {
         return;
       }
 
+      const preservedIds =
+        await this.legalHoldService.findPreservedAttachmentIds(
+          attachments.map((attachment) => attachment.id),
+        );
       const failedDeletions = [];
 
       await Promise.all(
         attachments.map(async (attachment) => {
           try {
-            await this.storageService.delete(attachment.filePath);
+            if (!preservedIds.has(attachment.id)) {
+              await this.storageService.delete(attachment.filePath);
+            }
             await this.attachmentRepo.deleteAttachmentById(attachment.id);
           } catch (err) {
             failedDeletions.push(attachment.id);
@@ -462,13 +494,19 @@ export class AttachmentService {
         return;
       }
 
+      const preservedIds =
+        await this.legalHoldService.findPreservedAttachmentIds(
+          attachments.map((attachment) => attachment.id),
+        );
       const failedDeletions = [];
 
       await Promise.all(
         attachments.map(async (attachment) => {
           try {
             // Delete from storage
-            await this.storageService.delete(attachment.filePath);
+            if (!preservedIds.has(attachment.id)) {
+              await this.storageService.delete(attachment.filePath);
+            }
             // Delete from database
             await this.attachmentRepo.deleteAttachmentById(attachment.id);
           } catch (err) {

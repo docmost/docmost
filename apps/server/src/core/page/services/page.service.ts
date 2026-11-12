@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -77,6 +78,10 @@ import { UnsplashService } from '../../../integrations/unsplash/unsplash.service
 import { AttachmentType } from '../../attachment/attachment.constants';
 import { PageVerificationInvalidationService } from '../verification/page-verification-invalidation.service';
 import { isSameTitle } from '../verification/page-verification-invalidation.utils';
+import {
+  ILegalHoldService,
+  LEGAL_HOLD_SERVICE,
+} from '../../../integrations/legal-hold/legal-hold.service';
 
 @Injectable()
 export class PageService {
@@ -101,6 +106,8 @@ export class PageService {
     private readonly shareService: ShareService,
     private readonly unsplashService: UnsplashService,
     private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
+    @Inject(LEGAL_HOLD_SERVICE)
+    private readonly legalHoldService: ILegalHoldService,
   ) {}
 
   async findById(
@@ -1326,7 +1333,11 @@ export class PageService {
     return result;
   }
 
-  async forceDelete(pageId: string, workspaceId: string): Promise<void> {
+  async forceDelete(
+    pageId: string,
+    workspaceId: string,
+    actorId?: string,
+  ): Promise<void> {
     // Get all descendant IDs (including the page itself) using recursive CTE
     const descendants = await this.db
       .withRecursive('page_descendants', (db) =>
@@ -1346,6 +1357,8 @@ export class PageService {
       .execute();
 
     const pageIds = descendants.map((d) => d.id);
+
+    await this.legalHoldService.preservePages(pageIds, { workspaceId, actorId });
 
     // Queue attachment deletion for all pages with unique job IDs to prevent duplicates
     for (const id of pageIds) {

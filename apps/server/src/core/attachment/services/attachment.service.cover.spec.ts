@@ -1,4 +1,5 @@
 import { AttachmentService } from './attachment.service';
+import { NoopLegalHoldService } from '../../../integrations/legal-hold/legal-hold.service';
 
 const WORKSPACE_ID = '019a1f00-0000-7000-8000-000000000001';
 const PAGE_ID = '019a1f00-0000-7000-8000-000000000003';
@@ -40,6 +41,7 @@ function makeService(setup: { attachment: unknown; page: unknown }) {
     {} as any,
     {} as any,
     pageRepo as any,
+    new NoopLegalHoldService(),
   );
 
   return { service, storageService, attachmentRepo, pageRepo };

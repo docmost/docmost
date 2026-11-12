@@ -56,6 +56,7 @@ describe('SpaceService home page', () => {
       {} as any,
       pageRepo as any,
       pagePermissionRepo as any,
+      {} as any,
     );
 
     return { service, spaceRepo, pageRepo, pagePermissionRepo, auditService };

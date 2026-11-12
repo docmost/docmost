@@ -41,6 +41,7 @@ describe('SpaceService updateSpace', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     await service.updateSpace(

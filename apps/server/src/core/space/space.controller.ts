@@ -199,7 +199,11 @@ export class SpaceController {
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
-    return this.spaceService.deleteSpace(spaceIdDto.spaceId, workspace.id);
+    return this.spaceService.deleteSpace(
+      spaceIdDto.spaceId,
+      workspace.id,
+      user.id,
+    );
   }
 
   @HttpCode(HttpStatus.OK)

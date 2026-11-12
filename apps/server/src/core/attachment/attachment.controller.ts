@@ -516,7 +516,7 @@ export class AttachmentController {
       throw new ForbiddenException('Only space admins can delete files');
     }
 
-    await this.attachmentService.deleteAttachment(attachment);
+    await this.attachmentService.deleteAttachment(attachment, user.id);
 
     this.auditService.log({
       event: AuditEvent.ATTACHMENT_DELETED,

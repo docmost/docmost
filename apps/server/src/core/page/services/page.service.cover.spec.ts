@@ -102,6 +102,7 @@ function makeService(attachment: unknown = null) {
     {} as any,
     unsplashService as any,
     pageVerificationInvalidationService as any,
+    {} as any,
   );
 
   const savedFields = () => (pageRepo.updatePage.mock.calls[0] as any[])[0];
