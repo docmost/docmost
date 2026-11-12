@@ -9,12 +9,15 @@ export type FormulaResultType =
   | "datetime"
   | "null";
 
+export type FormulaVolatility = "now" | "today" | null;
+
 export type FormulaTypeOptions = {
   source: string;
   ast: FormulaAST;
   resultType: FormulaResultType;
   dependencies: string[];
   astVersion: 1;
+  volatile?: FormulaVolatility;
   formatOptions?: Record<string, unknown>;
 };
 

@@ -89,12 +89,12 @@ const monthsBetween = (a: string, b: string): number => {
 };
 
 register({
-  name: "now", arity: { min: 0, max: 0 }, paramTypes: [], returnType: "datetime",
+  name: "now", arity: { min: 0, max: 0 }, paramTypes: [], returnType: "datetime", volatile: "now",
   eval: (_args, ctx) => ({ kind: "datetime", value: ctx.now.toISOString() }),
   doc: "Current timestamp.", category: "date",
 });
 register({
-  name: "today", arity: { min: 0, max: 0 }, paramTypes: [], returnType: "date",
+  name: "today", arity: { min: 0, max: 0 }, paramTypes: [], returnType: "date", volatile: "today",
   eval: (_args, ctx) => ({ kind: "date", value: todayIn(ctx.zone, ctx.now) }),
   doc: "Today's date in the base time zone.", category: "date",
 });

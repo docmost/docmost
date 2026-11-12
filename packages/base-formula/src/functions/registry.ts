@@ -10,6 +10,7 @@ export type FormulaFn = {
     | ((argTypes: FormulaResultType[], args: FormulaAST[]) => FormulaResultType);
   eval: (args: Value[], ctx: EvalContext) => Value;
   doc: string;
+  volatile?: "now" | "today";
   category: "logic" | "math" | "string" | "date" | "coercion";
 };
 
