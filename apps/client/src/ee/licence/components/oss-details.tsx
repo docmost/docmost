@@ -21,7 +21,8 @@ const enterpriseFeatures = [
   "Kanban",
   "Templates",
   "Personal Spaces",
-  "Announcements"
+  "Announcements",
+  "Legal holds"
 ];
 
 export default function OssDetails() {

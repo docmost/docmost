@@ -84,6 +84,12 @@ const VerifiedPages = lazyWithPrefetch(
 const Announcements = lazyWithPrefetch(
   () => import("@/ee/announcement/pages/announcements"),
 );
+const LegalHolds = lazyWithPrefetch(
+  () => import("@/ee/legal-hold/pages/legal-holds"),
+);
+const LegalHoldDetails = lazyWithPrefetch(
+  () => import("@/ee/legal-hold/pages/legal-hold-details"),
+);
 const TemplateList = lazyWithPrefetch(() => import("@/ee/template/pages/template-list"));
 const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
@@ -235,6 +241,11 @@ export default function App() {
             <Route path={"verifications"} element={<VerifiedPages />} />
             <Route path={"integrations"} element={<Integrations />} />
             <Route path={"announcements"} element={<Announcements />} />
+            <Route path={"legal-holds"} element={<LegalHolds />} />
+            <Route
+              path={"legal-holds/:legalHoldId"}
+              element={<LegalHoldDetails />}
+            />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>

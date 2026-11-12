@@ -31,4 +31,5 @@ export const Feature = {
   PUBLIC_SPACE_APPEARANCE: 'public-space:appearance',
   SIEM: 'siem',
   ANNOUNCEMENTS: 'announcements',
+  LEGAL_HOLDS: 'legal-holds',
 } as const;

@@ -17,6 +17,7 @@ import {
   IconHistory,
   IconShieldCheck,
   IconSpeakerphone,
+  IconGavel,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -151,6 +152,13 @@ const groupedData: DataGroup[] = [
         icon: IconHistory,
         path: "/settings/audit",
         feature: Feature.AUDIT_LOGS,
+        role: "owner",
+      },
+      // No feature gate: without a license owners can still release holds and export them
+      {
+        label: "Legal holds",
+        icon: IconGavel,
+        path: "/settings/legal-holds",
         role: "owner",
       },
     ],
