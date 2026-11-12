@@ -144,6 +144,17 @@ describe("scheduleRowsRefresh", () => {
       expect(invalidateBaseRows).toHaveBeenCalledWith("p1");
     });
 
+    it("runs a held refresh once the edited cell's row is gone and the cell is cleared", () => {
+      editCell("p1", { rowId: "r-deleted", propertyId: "prpdue0000001" });
+      scheduleRowsRefresh("p1", "calendar");
+      vi.advanceTimersByTime(10_000);
+      expect(invalidateCalendarRows).not.toHaveBeenCalled();
+      editCell("p1", null);
+      vi.advanceTimersByTime(300);
+      expect(invalidateCalendarRows).toHaveBeenCalledTimes(1);
+      expect(invalidateCalendarRows).toHaveBeenCalledWith("p1");
+    });
+
     it("keeps 2 s after the last refresh when edit mode ends soon after it", () => {
       scheduleRowsRefresh("p1", "all");
       vi.advanceTimersByTime(300);

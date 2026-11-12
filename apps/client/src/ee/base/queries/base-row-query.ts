@@ -302,12 +302,13 @@ export function useCreateRowMutation() {
 export function useBaseRowQuery(
   pageId: string | undefined,
   rowId: string | undefined,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; placeholderData?: IBaseRow },
 ) {
   return useQuery<IBaseRow, Error>({
     queryKey: ["base-row", pageId, rowId],
     queryFn: () => getRowInfo(rowId!, pageId!),
     enabled: !!pageId && !!rowId && (options?.enabled ?? true),
+    placeholderData: options?.placeholderData,
     retry: false,
   });
 }
