@@ -1,9 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const zone = vi.hoisted(() => ({ current: "America/New_York" }));
+const zone = vi.hoisted(() => ({ current: "America/New_York", reads: 0, midnight: null as string | null }));
 vi.mock("@/ee/base/utils/viewer-zone", () => ({
-  getViewerTimeZone: () => zone.current,
+  getViewerTimeZone: () => {
+    zone.reads += 1;
+    return zone.current;
+  },
 }));
+vi.mock("@docmost/base-formula/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@docmost/base-formula/client")>();
+  return {
+    ...actual,
+    startOfDay: (ymd: string, timeZone: string) => zone.midnight ?? actual.startOfDay(ymd, timeZone),
+  };
+});
 
 import { getViewerClock, subscribeViewerClock } from "./viewer-clock";
 
@@ -18,6 +28,7 @@ const start = (now: string, timeZone: string) => {
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
+  zone.midnight = null;
   stop();
   stop = () => {};
   vi.useRealTimers();
@@ -84,5 +95,15 @@ describe("viewer clock", () => {
     expect(getViewerClock()).toBe(first);
     vi.setSystemTime(new Date("2026-11-14T10:00:00.000Z"));
     expect(getViewerClock()).toEqual({ timeZone: "Europe/Berlin", today: "2026-11-14" });
+  });
+
+  it("waits at least a second when the next midnight is already past", () => {
+    zone.midnight = "2026-11-12T09:00:00.000Z";
+    start("2026-11-12T10:00:00.000Z", "Europe/Berlin");
+    const reads = zone.reads;
+    vi.advanceTimersByTime(999);
+    expect(zone.reads).toBe(reads);
+    vi.advanceTimersByTime(1);
+    expect(zone.reads).toBe(reads + 1);
   });
 });

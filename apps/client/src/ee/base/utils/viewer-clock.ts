@@ -23,7 +23,7 @@ function arm() {
   const { timeZone, today } = snapshot ?? readClock();
   const untilMidnight =
     Date.parse(startOfDay(addDays(today, 1), timeZone)) - Date.now() + 1000;
-  timer = setTimeout(check, Math.min(Math.max(untilMidnight, 0), MAX_DELAY_MS));
+  timer = setTimeout(check, Math.min(Math.max(untilMidnight, 1000), MAX_DELAY_MS));
 }
 
 function check() {

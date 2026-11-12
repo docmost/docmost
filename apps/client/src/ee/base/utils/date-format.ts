@@ -1,4 +1,4 @@
-import { diffDays, partKind, type DateCell } from "@docmost/base-formula/client";
+import { diffDays, isValidTimeZone, partKind, type DateCell } from "@docmost/base-formula/client";
 import { partDayIn } from "@/ee/base/utils/date-cell";
 import type { DateTypeOptions } from "@/ee/base/types/base.types";
 
@@ -66,8 +66,21 @@ const NUMERIC_DATE_ORDERS: Partial<
   yearMonthDay: ["year", "month", "day"],
 };
 
+const MAX_CACHED_FORMATS = 200;
+
 const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
 const relativeTimeFormats = new Map<string, Intl.RelativeTimeFormat>();
+
+function setBounded<V>(cache: Map<string, V>, key: string, value: V) {
+  if (cache.size >= MAX_CACHED_FORMATS) {
+    cache.delete(cache.keys().next().value as string);
+  }
+  cache.set(key, value);
+}
+
+function zoneOrUtc(timeZone: string): string {
+  return isValidTimeZone(timeZone) ? timeZone : "UTC";
+}
 
 function getDateTimeFormat(
   locale: string | undefined,
@@ -77,7 +90,7 @@ function getDateTimeFormat(
   let format = dateTimeFormats.get(key);
   if (!format) {
     format = new Intl.DateTimeFormat(locale, options);
-    dateTimeFormats.set(key, format);
+    setBounded(dateTimeFormats, key, format);
   }
   return format;
 }
@@ -109,7 +122,7 @@ function formatRelativeDay(
   let format = relativeTimeFormats.get(key);
   if (!format) {
     format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-    relativeTimeFormats.set(key, format);
+    setBounded(relativeTimeFormats, key, format);
   }
   const text = format.format(diff, "day");
   return text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
@@ -169,15 +182,16 @@ export function formatTimeOfDay(
     instant,
     opts.timeFormat,
     toSupportedLocale(opts.locale),
-    opts.timeZone,
+    zoneOrUtc(opts.timeZone),
   );
 }
 
 export function formatDateCell(
   cell: DateCell | null,
-  opts: DateDisplayOptions,
+  displayOpts: DateDisplayOptions,
 ): string {
   if (!cell) return "";
+  const opts = { ...displayOpts, timeZone: zoneOrUtc(displayOpts.timeZone) };
   const dateFormat: DateFormat = DATE_FORMATS.includes(opts.dateFormat as DateFormat)
     ? (opts.dateFormat as DateFormat)
     : "medium";
@@ -210,13 +224,14 @@ export function formatZoneLabel(
   timeZone: string,
   locale: string,
 ): string {
+  const zone = zoneOrUtc(timeZone);
   const name = getDateTimeFormat(toSupportedLocale(locale), {
-    timeZone,
+    timeZone: zone,
     timeZoneName: "short",
   })
     .formatToParts(new Date(instant))
     .find((p) => p.type === "timeZoneName")?.value;
-  return name ?? timeZone;
+  return name ?? zone;
 }
 
 export function resolveTimeFormat(

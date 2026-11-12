@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   dateTypeOptionsOf,
   formatDateCell,
@@ -146,4 +146,60 @@ describe("dateTypeOptionsOf", () => {
       expect(dateTypeOptionsOf(typeOptions)).toEqual({});
     },
   );
+});
+
+describe("an invalid viewer zone", () => {
+  const opts = { ...base, timeFormat: "24h" as const };
+  const cell = { start: "2026-11-12T10:00:00.000Z" };
+
+  it.each(["Bad/Zone", "", undefined as any])("reads %j as UTC", (timeZone) => {
+    expect(formatDateCell(cell, { ...opts, timeZone })).toBe(
+      formatDateCell(cell, { ...opts, timeZone: "UTC" }),
+    );
+    expect(formatTimeOfDay(cell.start, { ...opts, timeZone })).toBe(
+      formatTimeOfDay(cell.start, { ...opts, timeZone: "UTC" }),
+    );
+    expect(formatZoneLabel(cell.start, timeZone, "en-US")).toBe(
+      formatZoneLabel(cell.start, "UTC", "en-US"),
+    );
+  });
+
+  it("does not change a date-only cell", () => {
+    expect(formatDateCell({ start: "2026-11-12" }, { ...opts, timeZone: "Bad/Zone" })).toBe("Nov 12, 2026");
+  });
+});
+
+describe("the relative format reads today from the options", () => {
+  const rel = { locale: "en-US", today: "2031-06-15", dateFormat: "relative" as const, timeFormat: "24h" as const };
+
+  it.each([
+    [{ start: "2031-06-15" }, NY, "Today"],
+    [{ start: "2031-06-16" }, NY, "Tomorrow"],
+    [{ start: "2031-06-14" }, NY, "Yesterday"],
+    [{ start: "2031-06-16T02:30:00.000Z" }, NY, "Today 22:30"],
+  ])("names %j in %s", (cell, timeZone, text) => {
+    expect(formatDateCell(cell, { ...rel, timeZone })).toBe(text);
+  });
+});
+
+describe("the formatter cache", () => {
+  it("drops the oldest formatter once it holds 200", () => {
+    const zones: string[] = (Intl as any).supportedValuesOf("timeZone").slice(0, 250);
+    const opts = { timeFormat: "24h" as const, locale: "en-US" };
+    const instant = "2026-11-12T10:00:00.000Z";
+    zones.forEach((timeZone) => formatTimeOfDay(instant, { ...opts, timeZone }));
+    const Original = Intl.DateTimeFormat;
+    const spy = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (
+      locales?: string | string[],
+      options?: Intl.DateTimeFormatOptions,
+    ) {
+      return new Original(locales, options);
+    } as never);
+    const built = () => spy.mock.calls.filter(([, options]) => !options?.era).length;
+    formatTimeOfDay(instant, { ...opts, timeZone: zones[249] });
+    expect(built()).toBe(0);
+    formatTimeOfDay(instant, { ...opts, timeZone: zones[0] });
+    expect(built()).toBe(1);
+    spy.mockRestore();
+  });
 });
