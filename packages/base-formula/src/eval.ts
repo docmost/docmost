@@ -4,7 +4,12 @@ import { isCanonicalInstant, isValidTimeZone, isYmd } from "./date";
 import { asDateValue, coerceToResultType, dayOf, isDateValue } from "./date-value";
 import { dateKindOfProperty } from "./property";
 import { registry } from "./functions/index";
-import { DEFAULT_MAX_DEPTH, MAX_EVAL_DEPTH } from "./types";
+import {
+  DEFAULT_MAX_DEPTH,
+  MAX_EVAL_DEPTH,
+  MAX_EVAL_NODES,
+  MAX_TEXT_LENGTH,
+} from "./types";
 import type { FormulaAST, OpCode } from "./ast";
 import type {
   Value,
@@ -13,6 +18,11 @@ import type {
   FormulaTypeOptions,
   PropertyLookup,
 } from "./types";
+
+const NO_ARGS: FormulaAST[] = [];
+
+const isRowTimestamp = (d: unknown): boolean =>
+  d == null || (d instanceof Date && !isNaN(d.getTime()));
 
 export function createEvalContext(args: {
   properties: ReadonlyMap<string, PropertyLookup>;
@@ -27,14 +37,20 @@ export function createEvalContext(args: {
   if (!(args.now instanceof Date) || isNaN(args.now.getTime())) {
     throw new Error("Invalid clock");
   }
+  if (!isRowTimestamp(args.createdAt) || !isRowTimestamp(args.updatedAt)) {
+    throw new Error("Invalid row timestamp");
+  }
   return {
     registry,
     properties: args.properties,
     depth: 0,
     maxDepth: DEFAULT_MAX_DEPTH,
     memo: new Map(),
+    path: new Set(),
+    nodes: 0,
     zone: args.zone,
     now: args.now,
+    today: null,
     createdAt: args.createdAt ?? null,
     updatedAt: args.updatedAt ?? null,
   };
@@ -51,7 +67,11 @@ export function evaluateCell(
       options.resultType,
       ctx.zone,
     );
-    if (isDateValue(v)) return { start: v.value };
+    if (ctx.nodes > MAX_EVAL_NODES) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+    if (isDateValue(v)) {
+      const canonical = v.kind === "date" ? isYmd(v.value) : v.kind === "datetime" && isCanonicalInstant(v.value);
+      return canonical ? { start: v.value } : makeErrorCell("DATE_INVALID", "date out of range");
+    }
     return typeof v === "number" ? snapNumber(v) : v;
   } catch (e) {
     return makeErrorCell("TYPE_MISMATCH", (e as Error).message);
@@ -70,21 +90,24 @@ export function evaluate(
   if (depth > MAX_EVAL_DEPTH) {
     return makeErrorCell("DEPTH_EXCEEDED", `formula too deeply nested (max ${MAX_EVAL_DEPTH})`);
   }
+  if (astDepth === 0) ctx.nodes = 0;
+  if (++ctx.nodes > MAX_EVAL_NODES) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
 
-  switch (ast.t) {
-    case "num":  return ast.v;
-    case "str":  return ast.v;
-    case "bool": return ast.v;
+  let result: Value;
+  switch (ast?.t) {
+    case "num":  return typeof ast.v === "number" && Number.isFinite(ast.v) ? ast.v : null;
+    case "str":  result = typeof ast.v === "string" ? ast.v : null; break;
+    case "bool": return typeof ast.v === "boolean" ? ast.v : null;
     case "null": return null;
-    case "prop": return evalProp(ast.id, row, ctx, depth);
-    case "op":   return evalOp(ast.op, ast.args, row, ctx, depth);
+    case "prop": result = evalProp(ast.id, row, ctx, depth); break;
+    case "op":   result = evalOp(ast.op, Array.isArray(ast.args) ? ast.args : NO_ARGS, row, ctx, depth); break;
     case "if": {
       const c = evaluate(ast.cond, row, ctx, depth);
       if (isErrorCell(c)) return c;
       return evaluate(c === true ? ast.then : ast.else, row, ctx, depth);
     }
     case "and": {
-      const xs = ast.args;
+      const xs = Array.isArray(ast.args) ? ast.args : NO_ARGS;
       for (let i = 0; i < xs.length; i++) {
         const v = evaluate(xs[i], row, ctx, depth);
         if (isErrorCell(v)) return v;
@@ -94,7 +117,7 @@ export function evaluate(
       return true;
     }
     case "or": {
-      const xs = ast.args;
+      const xs = Array.isArray(ast.args) ? ast.args : NO_ARGS;
       for (let i = 0; i < xs.length; i++) {
         const v = evaluate(xs[i], row, ctx, depth);
         if (isErrorCell(v)) return v;
@@ -105,17 +128,23 @@ export function evaluate(
     case "call": {
       const fn = ctx.registry.get(ast.fn.toLowerCase());
       if (!fn) return makeErrorCell("MISSING_PROP", `unknown function ${ast.fn}`);
-      const xs = ast.args;
+      const xs = Array.isArray(ast.args) ? ast.args : NO_ARGS;
       const args: Value[] = new Array(xs.length);
       for (let i = 0; i < xs.length; i++) {
         const v = evaluate(xs[i], row, ctx, depth);
         if (isErrorCell(v)) return { ...v, __err: "DEPENDENCY_ERROR" };
         args[i] = v;
       }
-      try { return fn.eval(args, ctx); }
+      try { result = fn.eval(args, ctx); }
       catch (e) { return makeErrorCell("TYPE_MISMATCH", (e as Error).message); }
+      break;
     }
+    default:
+      return null;
   }
+  return typeof result === "string" && result.length > MAX_TEXT_LENGTH
+    ? makeErrorCell("TYPE_MISMATCH", "text too long")
+    : result;
 }
 
 function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, astDepth: number): Value {
@@ -134,11 +163,20 @@ function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, as
   if (prop.type === "lastEditedAt") return timestampValue(ctx.updatedAt);
   if (prop.type !== "formula") return normalize(row[id] ?? null);
   // astDepth continues (not reset) across the nested-formula boundary.
-  if (ctx.depth >= ctx.maxDepth) return makeErrorCell("DEPTH_EXCEEDED", `max depth ${ctx.maxDepth}`);
+  if (ctx.depth >= ctx.maxDepth || ctx.path.has(id)) {
+    return makeErrorCell("DEPTH_EXCEEDED", `max depth ${ctx.maxDepth}`);
+  }
   const opts: any = prop.typeOptions;
-  const nested: EvalContext = { ...ctx, depth: ctx.depth + 1, memo: ctx.memo };
-  const v = coerceToResultType(evaluate(opts.ast, row, nested, astDepth), opts.resultType, ctx.zone);
-  ctx.memo.set(id, v);
+  ctx.depth++;
+  ctx.path.add(id);
+  let v: Value;
+  try {
+    v = coerceToResultType(evaluate(opts.ast, row, ctx, astDepth), opts.resultType, ctx.zone);
+  } finally {
+    ctx.depth--;
+    ctx.path.delete(id);
+  }
+  if (ctx.nodes <= MAX_EVAL_NODES) ctx.memo.set(id, v);
   return v;
 }
 
@@ -222,5 +260,6 @@ function evalOp(
     case "<":  return a != null && b != null && (a as any) < (b as any);
     case ">=": return a != null && b != null && (a as any) >= (b as any);
     case "<=": return a != null && b != null && (a as any) <= (b as any);
+    default:   return null;
   }
 }

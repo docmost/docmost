@@ -37,7 +37,7 @@ const UNITS = new Map<string, DateUnit>([
 const unitOf = (v: Value): DateUnit | null => UNITS.get(String(v).toLowerCase()) ?? null;
 
 const unknownUnit = (unit: Value): ErrorCell =>
-  makeErrorCell("TYPE_MISMATCH", `unknown unit ${String(unit)}`);
+  makeErrorCell("TYPE_MISMATCH", `unknown unit ${String(unit).slice(0, 32)}`);
 
 const shift = (args: Value[], sign: 1 | -1, ctx: EvalContext): Value => {
   const [base, amount, unitArg] = args;
@@ -95,7 +95,7 @@ register({
 });
 register({
   name: "today", arity: { min: 0, max: 0 }, paramTypes: [], returnType: "date", volatile: "today",
-  eval: (_args, ctx) => ({ kind: "date", value: todayIn(ctx.zone, ctx.now) }),
+  eval: (_args, ctx) => ({ kind: "date", value: (ctx.today ??= todayIn(ctx.zone, ctx.now)) }),
   doc: "Today's date in the base time zone.", category: "date",
 });
 register({
@@ -166,23 +166,29 @@ for (const [name, doc, read] of PARTS) {
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
+const FORMAT_TOKENS = new Map<string, (w: WallClock) => string>([
+  ["YYYY", (w) => w.ymd.slice(0, 4)],
+  ["MM", (w) => w.ymd.slice(5, 7)],
+  ["DD", (w) => w.ymd.slice(8, 10)],
+  ["HH", (w) => pad2(w.hour)],
+  ["mm", (w) => pad2(w.minute)],
+  ["ss", (w) => pad2(w.second)],
+  ["M", (w) => String(Number(w.ymd.slice(5, 7)))],
+  ["D", (w) => String(Number(w.ymd.slice(8, 10)))],
+  ["H", (w) => String(w.hour)],
+]);
+
+const FORMAT_RUN = /([A-Za-z])\1*/g;
+
 register({
   name: "formatDate", arity: { min: 2, max: 2 }, paramTypes: ["date", "string"], returnType: "string",
   eval: ([v, pattern], ctx) => {
     const d = dateArg(v);
     if (!isDateValue(d)) return d;
     const w = wallOf(d, ctx.zone);
-    const year = w.ymd.slice(0, 4);
-    const month = Number(w.ymd.slice(5, 7));
-    const day = Number(w.ymd.slice(8, 10));
-    const tokens = new Map<string, string>([
-      ["YYYY", year], ["MM", pad2(month)], ["DD", pad2(day)],
-      ["HH", pad2(w.hour)], ["mm", pad2(w.minute)], ["ss", pad2(w.second)],
-      ["M", String(month)], ["D", String(day)], ["H", String(w.hour)],
-    ]);
     return valueToString(pattern, ctx.zone).replace(
-      /([A-Za-z])\1*/g,
-      (run) => tokens.get(run) ?? run,
+      FORMAT_RUN,
+      (run) => FORMAT_TOKENS.get(run)?.(w) ?? run,
     );
   },
   doc: "Formats a date as text. Tokens: YYYY, MM, DD, HH, mm, ss, M, D, H.", category: "date",

@@ -58,8 +58,11 @@ export type EvalContext = {
   depth: number;
   maxDepth: number;
   memo: Map<string, Value>; // keyed by propId for the current row-eval
+  path: Set<string>;
+  nodes: number;
   zone: string;
   now: Date;
+  today: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -84,3 +87,5 @@ export const DEFAULT_MAX_DEPTH = 64;
 export const MAX_FORMULA_SOURCE_LENGTH = 10_000;
 export const MAX_PARSE_DEPTH = 256;
 export const MAX_EVAL_DEPTH = 512;
+export const MAX_EVAL_NODES = 100_000;
+export const MAX_TEXT_LENGTH = 25_000;
