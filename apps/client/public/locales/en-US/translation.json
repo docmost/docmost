@@ -719,7 +719,6 @@
   "Expires": "Expires",
   "Last use": "Last Used",
   "No API keys found": "No API keys found",
-  "No expiration": "No expiration",
   "Revoked successfully": "Revoked successfully",
   "Select expiration date": "Select expiration date",
   "This action cannot be undone. Any applications using this API key will stop working.": "This action cannot be undone. Any applications using this API key will stop working.",
@@ -1835,5 +1834,6 @@
   "Highlight": "Highlight",
   "Read and write": "Read and write",
   "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
-  "View data in your workspace without making changes.": "View data in your workspace without making changes."
+  "View data in your workspace without making changes.": "View data in your workspace without making changes.",
+  "Up to 3 years from today": "Up to 3 years from today"
 }

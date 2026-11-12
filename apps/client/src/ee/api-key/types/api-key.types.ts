@@ -17,7 +17,7 @@ export interface IApiKey {
 
 export interface ICreateApiKeyRequest {
   name: string;
-  expiresAt?: string;
+  expiresAt: string;
   scopes?: ApiKeyScope[];
 }
 
