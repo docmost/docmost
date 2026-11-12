@@ -56,10 +56,18 @@ const SWITCH_CLASS_NAMES = {
   labelWrapper: classes.toggleLabelWrapper,
 };
 
-function usableCell(value: DateCell | null, timeZone: string): DateCell | null {
+function usableCell(
+  value: DateCell | null,
+  kind: DateKind,
+  timeZone: string,
+): DateCell | null {
   if (!value) return null;
   const parts = value.end ? [value.start, value.end] : [value.start];
-  return parts.every((part) => partDayIn(part, timeZone) !== null) ? value : null;
+  return parts.every(
+    (part) => partKind(part) === kind && partDayIn(part, timeZone) !== null,
+  )
+    ? value
+    : null;
 }
 
 export function DateValuePicker({
@@ -73,8 +81,10 @@ export function DateValuePicker({
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const { timeZone, today } = useViewerDateContext();
-  const [current, setCurrent] = useState(() => usableCell(value, timeZone));
+  const [current, setCurrent] = useState(() => usableCell(value, kind, timeZone));
   const [syncedValue, setSyncedValue] = useState(value);
+  const [syncedKind, setSyncedKind] = useState(kind);
+  const [syncedZone, setSyncedZone] = useState(timeZone);
   const [endOn, setEndOn] = useState(!!value?.end);
   const [active, setActive] = useState<DateEndpoint>("start");
   const [month, setMonth] = useState(
@@ -83,9 +93,15 @@ export function DateValuePicker({
   const [lastEnd, setLastEnd] = useState(current?.end ?? null);
   const startButtonRef = useRef<HTMLButtonElement>(null);
 
-  if (!dateCellsEqual(value, syncedValue)) {
+  if (
+    !dateCellsEqual(value, syncedValue) ||
+    kind !== syncedKind ||
+    timeZone !== syncedZone
+  ) {
     setSyncedValue(value);
-    setCurrent(usableCell(value, timeZone));
+    setSyncedKind(kind);
+    setSyncedZone(timeZone);
+    setCurrent(usableCell(value, kind, timeZone));
     if (value?.end) setEndOn(true);
   }
   if (current?.end && current.end !== lastEnd) {
@@ -126,16 +142,21 @@ export function DateValuePicker({
   };
 
   const selectDay = (ymd: string) => {
-    emit(
-      pickDay({
-        current,
-        kind,
-        endpoint: activeEndpoint,
-        withEnd: endOn,
-        ymd,
-        zone: timeZone,
-      }),
-    );
+    try {
+      emit(
+        pickDay({
+          current,
+          kind,
+          endpoint: activeEndpoint,
+          withEnd: endOn,
+          ymd,
+          zone: timeZone,
+        }),
+      );
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      return;
+    }
     if (endOn && activeEndpoint === "start") setActive("end");
   };
 
@@ -158,12 +179,17 @@ export function DateValuePicker({
 
   const commitTime = (endpoint: DateEndpoint, hour: number, minute: number) => {
     if (!current || !includeTime) return;
-    emit(setTimeOfDay({ current, endpoint, hour, minute, zone: timeZone }));
+    try {
+      emit(setTimeOfDay({ current, endpoint, hour, minute, zone: timeZone }));
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+    }
   };
 
   const clear = () => {
     setActive("start");
-    emit(null);
+    setCurrent(null);
+    if (value !== null) onChange(null);
     startButtonRef.current?.focus();
   };
 
@@ -305,7 +331,7 @@ export function DateValuePicker({
         </div>
       )}
 
-      {current && (
+      {(current || value) && (
         <div className={classes.section}>
           <UnstyledButton className={classes.row} onClick={clear}>
             {t("Clear")}

@@ -120,4 +120,120 @@ describe("DateValuePicker", () => {
     renderPicker({ value: { start: "9999-12-31T23:59:59.999Z" }, kind: "datetime" });
     expect(screen.getByRole("button", { name: "Start" })).toBeTruthy();
   });
+
+  describe("at the upper bound", () => {
+    const edge = { start: "9999-12-31T04:30:00.000Z" };
+    const onLastDay = { start: "9999-12-31T17:00:00.000Z" };
+
+    function collectErrors() {
+      const errors: unknown[] = [];
+      const listener = (event: ErrorEvent) => {
+        errors.push(event.error);
+        event.preventDefault();
+      };
+      window.addEventListener("error", listener);
+      return { errors, stop: () => window.removeEventListener("error", listener) };
+    }
+
+    function typeTime(hours: string, minutes: string) {
+      const hoursInput = screen.getByLabelText("Hours");
+      fireEvent.change(hoursInput, { target: { value: hours } });
+      fireEvent.change(screen.getByLabelText("Minutes"), { target: { value: minutes } });
+    }
+
+    it("does not write a day whose wall clock would pass year 9999", () => {
+      const onChange = renderPicker({ value: edge, kind: "datetime" });
+      const { errors, stop } = collectErrors();
+      fireEvent.click(day("31 December 9999"));
+      stop();
+      expect(errors).toEqual([]);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("does not write a time that would pass year 9999", () => {
+      const onChange = renderPicker({ value: onLastDay, kind: "datetime" });
+      typeTime("11", "30");
+      const { errors, stop } = collectErrors();
+      fireEvent.blur(screen.getByLabelText("Minutes"));
+      stop();
+      expect(errors).toEqual([]);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("does not throw when it unmounts with such a time pending", () => {
+      const onChange = renderPicker({ value: onLastDay, kind: "datetime" });
+      typeTime("11", "30");
+      expect(() => cleanup()).not.toThrow();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Clear", () => {
+    const clearButton = () => screen.queryByRole("button", { name: "Clear" });
+
+    it("removes a stored value that opens as empty", () => {
+      inZone("Europe/Berlin");
+      const onChange = renderPicker({ value: { start: "9999-12-31T23:30:00.000Z" }, kind: "datetime" });
+      fireEvent.click(clearButton()!);
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(null);
+    });
+
+    it("does nothing when the value is already empty", () => {
+      const onChange = renderPicker({ value: null, kind: "datetime" });
+      expect(clearButton()).toBeNull();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("clears an ordinary value once", () => {
+      const onChange = renderPicker({ value: { start: "2026-11-12T14:00:00.000Z" }, kind: "datetime" });
+      fireEvent.click(clearButton()!);
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe("a value of the other kind", () => {
+    it.each([
+      [{ start: "2026-11-12" }, "datetime"],
+      [{ start: "2026-11-12T14:00:00.000Z" }, "date"],
+    ] as const)("opens %j empty under kind %s and writes nothing", (value, kind) => {
+      const onChange = renderPicker({ value, kind });
+      expect(screen.getByRole("button", { name: "Start" })).toBeTruthy();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("follows the viewer's zone while open", () => {
+      const props = { value: { start: "9999-12-31T23:30:00.000Z" }, kind: "datetime" as const, onChange: vi.fn() };
+      inZone("Europe/Berlin");
+      const ui = () => (
+        <MantineProvider env="test">
+          <DatesProvider settings={{ firstDayOfWeek: 0 }}>
+            <DateValuePicker {...props} />
+          </DatesProvider>
+        </MantineProvider>
+      );
+      const { rerender } = render(ui());
+      expect(screen.getByRole("button", { name: "Start" })).toBeTruthy();
+      inZone("America/New_York");
+      rerender(ui());
+      expect(screen.getByRole("button", { name: /^Start: / })).toBeTruthy();
+      expect(props.onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  it("never calls onChange on mount or when a new value arrives", () => {
+    const onChange = vi.fn();
+    const ui = (value: ComponentProps<typeof DateValuePicker>["value"]) => (
+      <MantineProvider env="test">
+        <DatesProvider settings={{ firstDayOfWeek: 0 }}>
+          <DateValuePicker value={value} kind="datetime" onChange={onChange} />
+        </DatesProvider>
+      </MantineProvider>
+    );
+    const { rerender } = render(ui({ start: "2026-11-12T14:00:00.000Z" }));
+    rerender(ui({ start: "2026-11-13T14:00:00.000Z", end: "2026-11-13T15:00:00.000Z" }));
+    rerender(ui(null));
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });
