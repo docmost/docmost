@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "Ces annonces sont déjà affichées à partir de {{from}} sans date de fin :",
   "Save and replace": "Enregistrer et remplacer",
   "“{{title}}” will be archived when this one starts.": "« {{title}} » sera archivée lorsque celle-ci commencera.",
-  "This one will be archived when “{{title}}” starts.": "Celle-ci sera archivée lorsque « {{title}} » commencera."
+  "This one will be archived when “{{title}}” starts.": "Celle-ci sera archivée lorsque « {{title}} » commencera.",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
