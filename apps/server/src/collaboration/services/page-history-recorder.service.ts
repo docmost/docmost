@@ -93,9 +93,11 @@ export class PageHistoryRecorderService {
       throw err;
     }
 
-    const mentions = extractMentions(page.content);
+    const mentions = page.content ? extractMentions(page.content) : [];
     const pageMentions = extractPageMentions(mentions);
-    const internalLinkSlugIds = extractInternalLinkSlugIds(page.content);
+    const internalLinkSlugIds = page.content
+      ? extractInternalLinkSlugIds(page.content)
+      : [];
 
     await this.generalQueue
       .add(QueueJob.PAGE_BACKLINKS, {
