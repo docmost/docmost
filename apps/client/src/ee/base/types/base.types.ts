@@ -1,5 +1,5 @@
 import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
-import type { DateFormat } from "@/ee/base/utils/date-value";
+import type { DateFormat } from "@/ee/base/utils/date-format";
 
 export type UserRef = { id: string; name: string | null; avatarUrl: string | null };
 export type RowReferences = {
@@ -66,7 +66,6 @@ export type DateTypeOptions = {
   dateFormat?: DateFormat;
   timeFormat?: '12h' | '24h';
   includeTime?: boolean;
-  defaultValue?: string | null;
 };
 
 export type TextTypeOptions = {
