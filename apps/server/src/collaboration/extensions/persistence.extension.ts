@@ -124,6 +124,7 @@ export class PersistenceExtension implements Extension {
     }
 
     let page: Page = null;
+    let edited = false;
     let invalidation: PageVerificationInvalidation | null = null;
     const editingUserIds = this.consumeContributors(documentName);
 
@@ -145,6 +146,9 @@ export class PersistenceExtension implements Extension {
           return;
         }
 
+        // block ids, defaults and comments are saved too, but only visible changes count as an edit
+        edited = !isSameDocumentContent(page.content, tiptapJson);
+
         let contributorIds = undefined;
         try {
           const existingContributors = page.contributorIds || [];
@@ -164,8 +168,9 @@ export class PersistenceExtension implements Extension {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
-            lastUpdatedById: lastContext.user.id,
-            contributorIds: contributorIds,
+            ...(edited
+              ? { lastUpdatedById: lastContext.user.id, contributorIds }
+              : { updatedAt: page.updatedAt }),
           },
           pageId,
           trx,
@@ -177,8 +182,7 @@ export class PersistenceExtension implements Extension {
               pageId: page.id,
               userId: lastContext?.user?.id ?? null,
               changedAt: lastChangeAt ? new Date(lastChangeAt) : null,
-              isMeaningfulChange: () =>
-                !isSameDocumentContent(page.content, tiptapJson),
+              isMeaningfulChange: () => edited,
               loadPreviousState: async () => page,
             },
             trx,
@@ -203,7 +207,7 @@ export class PersistenceExtension implements Extension {
       );
     }
 
-    if (page) {
+    if (page && edited) {
       try {
         await this.collabHistory.addContributors(pageId, editingUserIds);
       } catch (err) {
@@ -227,7 +231,9 @@ export class PersistenceExtension implements Extension {
             : undefined,
         }),
       );
+    }
 
+    if (page) {
       await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
     }
 
@@ -259,7 +265,7 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
       });
 
-      await this.enqueuePageHistory(page);
+      if (edited) await this.enqueuePageHistory(page);
     }
   }
 
