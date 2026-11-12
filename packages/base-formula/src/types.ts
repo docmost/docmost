@@ -60,6 +60,7 @@ export type EvalContext = {
   memo: Map<string, Value>; // keyed by propId for the current row-eval
   path: Set<string>;
   nodes: number;
+  textChars: number;
   zone: string;
   now: Date;
   today: string | null;
@@ -88,4 +89,5 @@ export const MAX_FORMULA_SOURCE_LENGTH = 10_000;
 export const MAX_PARSE_DEPTH = 256;
 export const MAX_EVAL_DEPTH = 512;
 export const MAX_EVAL_NODES = 100_000;
-export const MAX_TEXT_LENGTH = 25_000;
+export const MAX_TEXT_LENGTH = 100_000;
+export const MAX_EVAL_TEXT_CHARS = 5_000_000;

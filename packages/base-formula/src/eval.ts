@@ -8,6 +8,7 @@ import {
   DEFAULT_MAX_DEPTH,
   MAX_EVAL_DEPTH,
   MAX_EVAL_NODES,
+  MAX_EVAL_TEXT_CHARS,
   MAX_TEXT_LENGTH,
 } from "./types";
 import type { FormulaAST, OpCode } from "./ast";
@@ -48,6 +49,7 @@ export function createEvalContext(args: {
     memo: new Map(),
     path: new Set(),
     nodes: 0,
+    textChars: 0,
     zone: args.zone,
     now: args.now,
     today: null,
@@ -67,7 +69,9 @@ export function evaluateCell(
       options.resultType,
       ctx.zone,
     );
-    if (ctx.nodes > MAX_EVAL_NODES) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+    if (ctx.nodes > MAX_EVAL_NODES || ctx.textChars > MAX_EVAL_TEXT_CHARS) {
+      return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+    }
     if (isDateValue(v)) {
       const canonical = v.kind === "date" ? isYmd(v.value) : v.kind === "datetime" && isCanonicalInstant(v.value);
       return canonical ? { start: v.value } : makeErrorCell("DATE_INVALID", "date out of range");
@@ -90,17 +94,21 @@ export function evaluate(
   if (depth > MAX_EVAL_DEPTH) {
     return makeErrorCell("DEPTH_EXCEEDED", `formula too deeply nested (max ${MAX_EVAL_DEPTH})`);
   }
-  if (astDepth === 0) ctx.nodes = 0;
+  if (astDepth === 0) {
+    ctx.nodes = 0;
+    ctx.textChars = 0;
+  }
   if (++ctx.nodes > MAX_EVAL_NODES) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
 
   let result: Value;
+  let produced = false;
   switch (ast?.t) {
     case "num":  return typeof ast.v === "number" && Number.isFinite(ast.v) ? ast.v : null;
     case "str":  result = typeof ast.v === "string" ? ast.v : null; break;
     case "bool": return typeof ast.v === "boolean" ? ast.v : null;
     case "null": return null;
     case "prop": result = evalProp(ast.id, row, ctx, depth); break;
-    case "op":   result = evalOp(ast.op, Array.isArray(ast.args) ? ast.args : NO_ARGS, row, ctx, depth); break;
+    case "op":   result = evalOp(ast.op, Array.isArray(ast.args) ? ast.args : NO_ARGS, row, ctx, depth); produced = true; break;
     case "if": {
       const c = evaluate(ast.cond, row, ctx, depth);
       if (isErrorCell(c)) return c;
@@ -137,14 +145,18 @@ export function evaluate(
       }
       try { result = fn.eval(args, ctx); }
       catch (e) { return makeErrorCell("TYPE_MISMATCH", (e as Error).message); }
+      produced = true;
       break;
     }
     default:
       return null;
   }
-  return typeof result === "string" && result.length > MAX_TEXT_LENGTH
-    ? makeErrorCell("TYPE_MISMATCH", "text too long")
-    : result;
+  if (typeof result !== "string") return result;
+  if (result.length > MAX_TEXT_LENGTH) return makeErrorCell("TYPE_MISMATCH", "text too long");
+  if (produced && (ctx.textChars += result.length) > MAX_EVAL_TEXT_CHARS) {
+    return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+  }
+  return result;
 }
 
 function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, astDepth: number): Value {
@@ -176,7 +188,7 @@ function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, as
     ctx.depth--;
     ctx.path.delete(id);
   }
-  if (ctx.nodes <= MAX_EVAL_NODES) ctx.memo.set(id, v);
+  if (ctx.nodes <= MAX_EVAL_NODES && ctx.textChars <= MAX_EVAL_TEXT_CHARS) ctx.memo.set(id, v);
   return v;
 }
 
