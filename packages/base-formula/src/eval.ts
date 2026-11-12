@@ -1,8 +1,52 @@
 import { makeErrorCell, isErrorCell } from "./error";
-import { valueToString } from "./number";
-import { MAX_EVAL_DEPTH } from "./types";
+import { valueToString, snapNumber } from "./number";
+import { isValidTimeZone } from "./date";
+import { registry } from "./functions/index";
+import { DEFAULT_MAX_DEPTH, MAX_EVAL_DEPTH } from "./types";
 import type { FormulaAST, OpCode } from "./ast";
-import type { Value, EvalContext } from "./types";
+import type {
+  Value,
+  EvalContext,
+  FormulaCell,
+  FormulaTypeOptions,
+  PropertyLookup,
+} from "./types";
+
+export function createEvalContext(args: {
+  properties: ReadonlyMap<string, PropertyLookup>;
+  zone: string;
+  now: Date;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}): EvalContext {
+  if (!isValidTimeZone(args.zone)) {
+    throw new Error(`Invalid time zone: ${String(args.zone)}`);
+  }
+  return {
+    registry,
+    properties: args.properties,
+    depth: 0,
+    maxDepth: DEFAULT_MAX_DEPTH,
+    memo: new Map(),
+    zone: args.zone,
+    now: args.now,
+    createdAt: args.createdAt ?? null,
+    updatedAt: args.updatedAt ?? null,
+  };
+}
+
+export function evaluateCell(
+  options: Pick<FormulaTypeOptions, "ast" | "resultType">,
+  row: Record<string, unknown>,
+  ctx: EvalContext,
+): FormulaCell {
+  try {
+    const v = evaluate(options.ast, row, ctx);
+    return typeof v === "number" ? snapNumber(v) : v;
+  } catch (e) {
+    return makeErrorCell("TYPE_MISMATCH", (e as Error).message);
+  }
+}
 
 export function evaluate(
   ast: FormulaAST,

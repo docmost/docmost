@@ -4,13 +4,12 @@ import {
   typecheck,
   evaluate,
   registry,
-  DEFAULT_MAX_DEPTH,
+  createEvalContext,
 } from "../src/index.server";
 import type {
   FormulaAST,
   EvalContext,
   PropertyLookup,
-  Value,
   FormulaResultType,
 } from "../src/index.server";
 
@@ -48,13 +47,7 @@ const baseProps = new Map<string, PropertyLookup>([
 ]);
 
 function mkCtx(properties: ReadonlyMap<string, PropertyLookup>): EvalContext {
-  return {
-    registry,
-    properties,
-    depth: 0,
-    maxDepth: DEFAULT_MAX_DEPTH,
-    memo: new Map<string, Value>(),
-  };
+  return createEvalContext({ properties, zone: "UTC", now: new Date(0) });
 }
 
 //AST shape metrics

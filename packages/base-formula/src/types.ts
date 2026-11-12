@@ -1,4 +1,5 @@
 import type { FormulaAST } from "./ast";
+import type { DateCell } from "./date";
 
 export type FormulaResultType =
   | "number"
@@ -26,6 +27,8 @@ export type FormulaTypeOptions = {
  */
 export type Value = number | string | boolean | null | ErrorCell;
 
+export type FormulaCell = number | string | boolean | null | DateCell | ErrorCell;
+
 export type ErrorCell = {
   __err: ErrorCode;
   msg: string;
@@ -51,6 +54,10 @@ export type EvalContext = {
   depth: number;
   maxDepth: number;
   memo: Map<string, Value>; // keyed by propId for the current row-eval
+  zone: string;
+  now: Date;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 };
 
 export type PropertyLookup = {
