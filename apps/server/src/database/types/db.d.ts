@@ -295,6 +295,49 @@ export interface GroupUsers {
   userId: string;
 }
 
+export interface LegalHoldCustodians {
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  legalHoldId: string;
+  userId: string;
+  workspaceId: string;
+}
+
+export interface LegalHoldExports {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  errorMessage: string | null;
+  expiresAt: Timestamp | null;
+  fileName: string;
+  filePath: string | null;
+  fileSize: Int8 | null;
+  id: Generated<string>;
+  legalHoldId: string;
+  status: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface LegalHolds {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  description: string | null;
+  id: Generated<string>;
+  name: string;
+  releasedAt: Timestamp | null;
+  releasedById: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface LegalHoldSpaces {
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  legalHoldId: string;
+  spaceId: string;
+  workspaceId: string;
+}
+
 export interface PageTransclusionReferences {
   createdAt: Generated<Timestamp>;
   transclusionId: string;
@@ -358,6 +401,25 @@ export interface Pages {
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
   ydoc: Buffer | null;
+}
+
+export interface PreservedItems {
+  actorId: string | null;
+  createdAt: Generated<Timestamp>;
+  data: Json;
+  filePath: string | null;
+  fileSize: Int8 | null;
+  id: Generated<string>;
+  itemId: string;
+  pageId: string | null;
+  parentId: string | null;
+  reason: string;
+  releasedAt: Timestamp | null;
+  spaceId: string | null;
+  title: string | null;
+  type: string;
+  userIds: Generated<string[]>;
+  workspaceId: string;
 }
 
 export interface PublicSpaces {
@@ -813,6 +875,10 @@ export interface DB {
   integrationConnections: IntegrationConnections;
   integrations: Integrations;
   labels: Labels;
+  legalHoldCustodians: LegalHoldCustodians;
+  legalHoldExports: LegalHoldExports;
+  legalHolds: LegalHolds;
+  legalHoldSpaces: LegalHoldSpaces;
   notifications: Notifications;
   pageAccess: PageAccess;
   pageTransclusionReferences: PageTransclusionReferences;
@@ -823,6 +889,7 @@ export interface DB {
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
   pages: Pages;
+  preservedItems: PreservedItems;
   publicSpaces: PublicSpaces;
   scimTokens: ScimTokens;
   shares: Shares;

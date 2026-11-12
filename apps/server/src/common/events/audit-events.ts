@@ -134,6 +134,13 @@ export const AuditEvent = {
   ANNOUNCEMENT_ARCHIVED: 'announcement.archived',
   ANNOUNCEMENT_UNARCHIVED: 'announcement.unarchived',
   ANNOUNCEMENT_DELETED: 'announcement.deleted',
+
+  // Legal hold
+  LEGAL_HOLD_CREATED: 'legal_hold.created',
+  LEGAL_HOLD_UPDATED: 'legal_hold.updated',
+  LEGAL_HOLD_RELEASED: 'legal_hold.released',
+  LEGAL_HOLD_EXPORTED: 'legal_hold.exported',
+  LEGAL_HOLD_EXPORT_DOWNLOADED: 'legal_hold.export_downloaded',
 } as const;
 
 export type AuditEventType = (typeof AuditEvent)[keyof typeof AuditEvent];
@@ -167,6 +174,7 @@ export const AuditResource = {
   SIEM_DESTINATION: 'siem_destination',
   TEMPLATE: 'template',
   ANNOUNCEMENT: 'announcement',
+  LEGAL_HOLD: 'legal_hold',
 } as const;
 
 export type AuditResourceType =

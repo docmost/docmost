@@ -49,6 +49,11 @@ import {
   OauthAuthorizationCodes,
   OauthGrants,
   OauthTokens,
+  LegalHolds,
+  LegalHoldCustodians,
+  LegalHoldSpaces,
+  PreservedItems,
+  LegalHoldExports,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -300,3 +305,25 @@ export type UpdatableSiemDestination = Updateable<Omit<SiemDestinations, 'id'>>;
 export type Announcement = Selectable<Announcements>;
 export type InsertableAnnouncement = Insertable<Announcements>;
 export type UpdatableAnnouncement = Updateable<Omit<Announcements, 'id'>>;
+
+// Legal Hold
+export type LegalHold = Selectable<LegalHolds>;
+export type InsertableLegalHold = Insertable<LegalHolds>;
+export type UpdatableLegalHold = Updateable<Omit<LegalHolds, 'id'>>;
+
+// Legal Hold Custodian
+export type LegalHoldCustodian = Selectable<LegalHoldCustodians>;
+
+// Legal Hold Space
+export type LegalHoldSpace = Selectable<LegalHoldSpaces>;
+
+// Preserved Item
+export type PreservedItem = Selectable<PreservedItems>;
+export type InsertablePreservedItem = Insertable<PreservedItems>;
+
+// Legal Hold Export
+export type LegalHoldExport = Selectable<LegalHoldExports>;
+export type InsertableLegalHoldExport = Insertable<LegalHoldExports>;
+export type UpdatableLegalHoldExport = Updateable<
+  Omit<LegalHoldExports, 'id'>
+>;

@@ -17,6 +17,7 @@ export enum QueueName {
   SLACK_NOTIFY = '{slack-notify}',
   BASE_QUEUE = '{base-queue}',
   SIEM_QUEUE = '{siem-queue}',
+  LEGAL_HOLD_QUEUE = '{legal-hold-queue}',
 }
 
 export enum QueueJob {
@@ -106,4 +107,7 @@ export enum QueueJob {
   BASE_TYPE_CONVERSION = 'base-type-conversion',
   BASE_CELL_GC = 'base-cell-gc',
   BASE_FORMULA_RECOMPUTE = 'base-formula-recompute',
+
+  LEGAL_HOLD_EXPORT = 'legal-hold-export',
+  LEGAL_HOLD_CLEANUP = 'legal-hold-cleanup',
 }

@@ -118,6 +118,14 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
         removeOnFail: { count: 100 },
       },
     }),
+    BullModule.registerQueue({
+      name: QueueName.LEGAL_HOLD_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+        attempts: 1,
+      },
+    }),
   ],
   exports: [BullModule],
   providers: [GeneralQueueProcessor],
