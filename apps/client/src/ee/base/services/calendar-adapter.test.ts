@@ -1,5 +1,5 @@
-import { getMonthRange, getWeekDays, isAllDayEvent, isMultidayEvent } from "@mantine/schedule";
-import { addDays } from "@docmost/base-formula/client";
+import { calculateDropTime, getMonthRange, getWeekDays, isAllDayEvent, isMultidayEvent } from "@mantine/schedule";
+import { addDays, type DateCell, type DateKind } from "@docmost/base-formula/client";
 import { describe, expect, it, vi } from "vitest";
 import type { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
 
@@ -8,14 +8,23 @@ vi.mock("@/main.tsx", async () => ({
 }));
 
 import {
+  createOnDays,
+  createOnSlots,
+  dropOnMonth,
+  dropOnWeek,
   eventDayRange,
   getCalendarDateProperties,
   getCalendarWindow,
   isAllDayLane,
   isCalendarDate,
   isEditableCalendarSource,
+  resizeDayRange,
+  resizeOnMonth,
+  resizeOnWeek,
   shiftCalendarDate,
+  slotTimeAt,
   toCalendarEvents,
+  type CalendarEvent,
 } from "./calendar-adapter";
 
 const NY = "America/New_York";
@@ -283,5 +292,217 @@ describe("what the library infers from an event's strings", () => {
     const event = { start: "2026-11-12 23:00:00", end: "2026-11-13 00:00:30" };
     expect(isAllDayLane(event)).toBe(false);
     expect(eventDayRange(event)).toEqual(["2026-11-12", "2026-11-13"]);
+  });
+});
+
+function eventOf(value: DateCell, kind: DateKind, timeZone: string): CalendarEvent {
+  return draw([row("r1", value)], kind === "date" ? DAY : TIME, timeZone, ALWAYS)[0];
+}
+const readOnlyEvent = (timeZone: string) =>
+  draw([row("r1", undefined)], property("createdAt"), timeZone, ALWAYS)[0];
+
+describe("dropOnMonth", () => {
+  it.each(["Pacific/Kiritimati", "Pacific/Honolulu"])(
+    "moves both days of a date value by the days the pointer moved, in %s",
+    (timeZone) => {
+      const event = eventOf({ start: "2026-11-12", end: "2026-11-14" }, "date", timeZone);
+      expect(dropOnMonth(event, "2026-11-20 00:00:00", "2026-11-13", timeZone)).toEqual({ start: "2026-11-19", end: "2026-11-21" });
+      expect(dropOnMonth(event, "2026-11-20 00:00:00", null, timeZone)).toEqual({ start: "2026-11-20", end: "2026-11-22" });
+    },
+  );
+
+  it.each([
+    [{ start: "2026-01-30", end: "2026-01-31" }, "2026-01-30", "2026-01-31 00:00:00", { start: "2026-01-31", end: "2026-02-01" }],
+    [{ start: "2024-02-28" }, "2024-02-28", "2024-02-29 00:00:00", { start: "2024-02-29" }],
+    [{ start: "2026-12-31" }, "2026-12-31", "2027-01-01 00:00:00", { start: "2027-01-01" }],
+    [{ start: "2026-03-07", end: "2026-03-09" }, "2026-03-07", "2026-03-08 00:00:00", { start: "2026-03-08", end: "2026-03-10" }],
+    [{ start: "2026-03-07", end: "2026-03-09" }, "2026-03-07", "2026-02-28 00:00:00", { start: "2026-02-28", end: "2026-03-02" }],
+  ])("moves the date value %j from %s to %s", (value, grabbed, newStart, moved) => {
+    expect(dropOnMonth(eventOf(value, "date", NY), newStart, grabbed, NY)).toEqual(moved);
+  });
+
+  it.each([
+    [{ start: "2026-03-07T15:00:00.000Z", end: "2026-03-07T16:00:00.000Z" }, NY, "2026-03-07", "2026-03-08 10:00:00", { start: "2026-03-08T14:00:00.000Z", end: "2026-03-08T15:00:00.000Z" }],
+    [{ start: "2026-03-28T09:00:00.000Z" }, BERLIN, "2026-03-28", "2026-03-29 10:00:00", { start: "2026-03-29T08:00:00.000Z" }],
+    [{ start: "2026-10-31T14:00:00.000Z", end: "2026-10-31T15:30:00.000Z" }, NY, "2026-10-31", "2026-11-01 10:00:00", { start: "2026-11-01T15:00:00.000Z", end: "2026-11-01T16:30:00.000Z" }],
+    [{ start: "2026-10-24T08:00:00.000Z", end: "2026-10-24T09:30:00.000Z" }, BERLIN, "2026-10-24", "2026-10-25 10:00:00", { start: "2026-10-25T09:00:00.000Z", end: "2026-10-25T10:30:00.000Z" }],
+    [{ start: "2026-03-07T07:30:00.000Z" }, NY, "2026-03-07", "2026-03-08 02:30:00", { start: "2026-03-08T07:30:00.000Z" }],
+    [{ start: "2026-01-31T15:00:45.250Z", end: "2026-01-31T17:00:00.000Z" }, NY, "2026-01-31", "2026-02-01 10:00:45", { start: "2026-02-01T15:00:45.250Z", end: "2026-02-01T17:00:00.000Z" }],
+    [{ start: "2026-11-12T22:30:00.000Z", end: "2026-11-12T23:30:00.000Z" }, BERLIN, "2026-11-12", "2026-11-14 23:30:00", { start: "2026-11-14T22:30:00.000Z", end: "2026-11-14T23:30:00.000Z" }],
+  ])("moves the date-time value %j in %s by calendar days, keeping the wall clock", (value, timeZone, grabbed, newStart, moved) => {
+    expect(dropOnMonth(eventOf(value, "datetime", timeZone), newStart, grabbed, timeZone)).toEqual(moved);
+  });
+
+  it("keeps the elapsed length when the moved end would not be after the moved start", () => {
+    const event = eventOf({ start: "2026-11-01T05:50:00.000Z", end: "2026-11-01T06:10:00.000Z" }, "datetime", NY);
+    expect(dropOnMonth(event, "2026-11-02 01:50:00", "2026-11-01", NY)).toEqual({
+      start: "2026-11-02T06:50:00.000Z",
+      end: "2026-11-02T07:10:00.000Z",
+    });
+  });
+
+  it("writes nothing for the same day, a read-only source or a move past year 9999", () => {
+    const event = eventOf({ start: "2026-11-12", end: "2026-11-14" }, "date", NY);
+    expect(dropOnMonth(event, "2026-11-13 00:00:00", "2026-11-13", NY)).toBeNull();
+    expect(dropOnMonth(readOnlyEvent(NY), "2026-11-20 05:15:30", "2026-11-12", NY)).toBeNull();
+    const last = eventOf({ start: "9999-12-31T04:00:00.000Z" }, "datetime", NY);
+    expect(dropOnMonth(last, "9999-12-31 23:00:00", "9999-12-30", NY)).toBeNull();
+  });
+});
+
+describe("dropOnWeek", () => {
+  const hour = { start: "2026-11-12T15:00:00.000Z", end: "2026-11-12T16:00:00.000Z" };
+  const grid = (value: DateCell, timeZone: string, grabTime: string | null, newStart: string) =>
+    dropOnWeek(eventOf(value, "datetime", timeZone), newStart, { day: null, time: grabTime }, timeZone);
+
+  it("moves a date value by days in the all-day lane", () => {
+    const event = eventOf({ start: "2026-11-12" }, "date", NY);
+    expect(dropOnWeek(event, "2026-11-14 00:00:00", { day: "2026-11-12", time: null }, NY)).toEqual({ start: "2026-11-14" });
+  });
+
+  it("moves a date-time value that the library put in the all-day lane by days, as a date-time", () => {
+    const event = eventOf({ start: "2026-11-12T22:30:00.000Z", end: "2026-11-12T23:30:00.000Z" }, "datetime", BERLIN);
+    expect(dropOnWeek(event, "2026-11-14 00:00:00", { day: "2026-11-13", time: null }, BERLIN)).toEqual({
+      start: "2026-11-13T22:30:00.000Z",
+      end: "2026-11-13T23:30:00.000Z",
+    });
+  });
+
+  it.each([
+    ["one day and 4 h 07 later snaps to 4 h", hour, NY, "2026-11-12 10:20:00", "2026-11-13 14:27:00", { start: "2026-11-13T19:00:00.000Z", end: "2026-11-13T20:00:00.000Z" }],
+    ["8 minutes snaps to 15", hour, NY, "2026-11-12 10:20:00", "2026-11-12 10:28:00", { start: "2026-11-12T15:15:00.000Z", end: "2026-11-12T16:15:00.000Z" }],
+    ["with no grab time the start lands on the drop", hour, NY, null, "2026-11-12 13:00:00", { start: "2026-11-12T18:00:00.000Z", end: "2026-11-12T19:00:00.000Z" }],
+    ["a start before the drop day is held at 00:00", hour, NY, "2026-11-12 10:50:00", "2026-11-13 00:10:00", { start: "2026-11-13T05:00:00.000Z", end: "2026-11-13T06:00:00.000Z" }],
+    ["a start past the drop day is held at 23:58", hour, NY, "2026-11-12 10:00:00", "2026-11-13 23:58:00", { start: "2026-11-14T04:58:00.000Z", end: "2026-11-14T05:58:00.000Z" }],
+    ["so is the start of a value with no end", { start: hour.start }, NY, "2026-11-12 10:00:00", "2026-11-13 23:58:00", { start: "2026-11-14T04:58:00.000Z" }],
+    ["seconds and milliseconds survive", { start: "2026-11-12T15:04:45.250Z", end: "2026-11-12T16:04:45.250Z" }, NY, "2026-11-12 10:04:00", "2026-11-12 12:04:00", { start: "2026-11-12T17:04:45.250Z", end: "2026-11-12T18:04:45.250Z" }],
+    ["the same time on a 23 hour day", { start: "2026-03-07T15:00:00.000Z", end: "2026-03-07T16:00:00.000Z" }, NY, "2026-03-07 10:20:00", "2026-03-08 10:20:00", { start: "2026-03-08T14:00:00.000Z", end: "2026-03-08T15:00:00.000Z" }],
+    ["a time in the missing hour moves forward", { start: "2026-03-07T15:00:00.000Z", end: "2026-03-07T16:00:00.000Z" }, NY, "2026-03-07 10:00:00", "2026-03-08 02:30:00", { start: "2026-03-08T07:30:00.000Z", end: "2026-03-08T08:30:00.000Z" }],
+    ["a time in the repeated hour is its first occurrence", { start: "2026-10-24T08:00:00.000Z", end: "2026-10-24T09:00:00.000Z" }, BERLIN, "2026-10-24 10:00:00", "2026-10-25 02:30:00", { start: "2026-10-25T00:30:00.000Z", end: "2026-10-25T01:30:00.000Z" }],
+    ["the same time on a 25 hour day", { start: "2026-10-24T08:00:00.000Z", end: "2026-10-24T09:00:00.000Z" }, BERLIN, "2026-10-24 10:00:00", "2026-10-25 10:00:00", { start: "2026-10-25T09:00:00.000Z", end: "2026-10-25T10:00:00.000Z" }],
+  ])("in the time grid, %s", (_name, value, timeZone, grabTime, newStart, moved) => {
+    expect(grid(value, timeZone, grabTime, newStart)).toEqual(moved);
+  });
+
+  it("writes nothing for a move of 7 minutes or less, or on a read-only source", () => {
+    expect(grid(hour, NY, "2026-11-12 10:20:00", "2026-11-12 10:27:00")).toBeNull();
+    expect(dropOnWeek(readOnlyEvent(NY), "2026-11-13 14:00:00", { day: null, time: "2026-11-12 05:15:00" }, NY)).toBeNull();
+  });
+});
+
+describe("slotTimeAt", () => {
+  it.each([
+    ["2026-11-13", "14:00:00", 24 / 64, "2026-11-13 14:23:00"],
+    ["2026-11-13", "23:00:00", 63.9 / 64, "2026-11-13 23:58:00"],
+    ["2026-11-13", "00:00:00", 0, "2026-11-13 00:00:00"],
+    ["2026-11-12", "10:00:00", 0.34, "2026-11-12 10:20:00"],
+    ["2026-11-12", "09:00:00", 0.5, "2026-11-12 09:30:00"],
+  ])("is the time Mantine Schedule would drop at: %s %s + %f", (day, slotTime, fraction, time) => {
+    expect(slotTimeAt(day, slotTime, fraction)).toBe(time);
+    const { start } = calculateDropTime({
+      draggedEvent: { id: "e", title: "e", start: `${day} ${slotTime}`, end: `${day} ${slotTime}`, color: "blue" },
+      targetDate: day,
+      targetSlotTime: slotTime,
+      intervalMinutes: 60,
+      dragIntervalMinutes: 1,
+      slotOffset: fraction * 64,
+      slotSize: 64,
+      startTime: "00:00:00",
+      endTime: "23:59:59",
+    });
+    const two = (n: number) => String(n).padStart(2, "0");
+    expect(`${two(start.getHours())}:${two(start.getMinutes())}`).toBe(time.slice(11, 16));
+  });
+});
+
+describe("resizeOnWeek", () => {
+  it.each([
+    ["the end edge", { start: "2026-11-12T15:00:30.500Z", end: "2026-11-12T16:00:00.000Z" }, NY, null, "2026-11-12 12:15:00", { start: "2026-11-12T15:00:30.500Z", end: "2026-11-12T17:15:00.000Z" }],
+    ["the start edge", { start: "2026-11-12T15:00:30.500Z", end: "2026-11-12T16:00:00.000Z" }, NY, "2026-11-12 09:30:00", null, { start: "2026-11-12T14:30:00.000Z", end: "2026-11-12T16:00:00.000Z" }],
+    ["the end edge of a value with no end", { start: "2026-11-12T15:00:00.000Z" }, NY, null, "2026-11-12 11:45:00", { start: "2026-11-12T15:00:00.000Z", end: "2026-11-12T16:45:00.000Z" }],
+    ["the start edge of a value with no end keeps the end it was drawn with", { start: "2026-11-12T15:00:00.000Z" }, NY, "2026-11-12 09:30:00", null, { start: "2026-11-12T14:30:00.000Z", end: "2026-11-12T16:00:00.000Z" }],
+    ["an end in the missing hour moves forward", { start: "2026-03-08T06:00:00.000Z", end: "2026-03-08T08:00:00.000Z" }, NY, null, "2026-03-08 02:30:00", { start: "2026-03-08T06:00:00.000Z", end: "2026-03-08T07:30:00.000Z" }],
+    ["a start in the missing hour moves forward", { start: "2026-03-08T06:00:00.000Z", end: "2026-03-08T08:00:00.000Z" }, NY, "2026-03-08 02:15:00", null, { start: "2026-03-08T07:15:00.000Z", end: "2026-03-08T08:00:00.000Z" }],
+    ["an end that is no longer after the start is dropped", { start: "2026-03-08T06:30:00.000Z", end: "2026-03-08T07:15:00.000Z" }, NY, "2026-03-08 02:45:00", null, { start: "2026-03-08T07:45:00.000Z" }],
+    ["a start in the repeated hour is its first occurrence", { start: "2026-10-25T07:00:00.000Z", end: "2026-10-25T09:00:00.000Z" }, BERLIN, "2026-10-25 02:30:00", null, { start: "2026-10-25T00:30:00.000Z", end: "2026-10-25T09:00:00.000Z" }],
+  ])("%s", (_name, value, timeZone, newStart, newEnd, resized) => {
+    const event = eventOf(value, "datetime", timeZone);
+    expect(resizeOnWeek(event, newStart ?? event.start, newEnd ?? event.end, timeZone)).toEqual(resized);
+  });
+
+  it("writes nothing when neither edge moved, for a date value, or on a read-only source", () => {
+    const event = eventOf({ start: "2026-11-12T15:00:00.000Z", end: "2026-11-12T16:00:00.000Z" }, "datetime", NY);
+    expect(resizeOnWeek(event, event.start, event.end, NY)).toBeNull();
+    const day = eventOf({ start: "2026-11-12" }, "date", NY);
+    expect(resizeOnWeek(day, "2026-11-12 09:00:00", day.end, NY)).toBeNull();
+    const system = readOnlyEvent(NY);
+    expect(resizeOnWeek(system, system.start, "2026-11-12 09:00:00", NY)).toBeNull();
+  });
+});
+
+describe("resizeOnMonth", () => {
+  it.each([
+    ["date", { start: "2026-11-12" }, NY, "end", "2026-11-14", { start: "2026-11-12", end: "2026-11-14" }],
+    ["date", { start: "2026-11-12" }, NY, "start", "2026-11-10", { start: "2026-11-10", end: "2026-11-12" }],
+    ["date", { start: "2026-11-12", end: "2026-11-14" }, NY, "start", "2026-11-14", { start: "2026-11-14" }],
+    ["date", { start: "2026-11-12", end: "2026-11-14" }, NY, "end", "2026-11-12", { start: "2026-11-12" }],
+    ["date", { start: "2026-11-12", end: "2026-11-14" }, NY, "end", "2026-11-30", { start: "2026-11-12", end: "2026-11-30" }],
+    ["datetime", { start: "2026-11-12T15:00:00.000Z" }, NY, "end", "2026-11-14", { start: "2026-11-12T15:00:00.000Z", end: "2026-11-14T16:00:00.000Z" }],
+    ["datetime", { start: "2026-11-12T15:00:00.000Z" }, NY, "start", "2026-11-11", { start: "2026-11-11T15:00:00.000Z", end: "2026-11-12T16:00:00.000Z" }],
+    ["datetime", { start: "2026-03-06T15:00:00.000Z", end: "2026-03-07T16:00:00.000Z" }, NY, "end", "2026-03-08", { start: "2026-03-06T15:00:00.000Z", end: "2026-03-08T15:00:00.000Z" }],
+    ["datetime", { start: "2026-03-06T15:00:00.000Z", end: "2026-03-07T16:00:00.000Z" }, NY, "start", "2026-03-07", { start: "2026-03-07T15:00:00.000Z", end: "2026-03-07T16:00:00.000Z" }],
+    ["datetime", { start: "2026-10-23T08:00:00.000Z", end: "2026-10-24T09:00:00.000Z" }, BERLIN, "end", "2026-10-25", { start: "2026-10-23T08:00:00.000Z", end: "2026-10-25T10:00:00.000Z" }],
+  ])("a %s value %j in %s, %s edge to %s", (kind, value, timeZone, edge, toDay, resized) => {
+    expect(resizeOnMonth(eventOf(value, kind as DateKind, timeZone), edge as "start" | "end", toDay, timeZone)).toEqual(resized);
+  });
+
+  it("writes nothing when the edge stays on its day or the source is read-only", () => {
+    const event = eventOf({ start: "2026-11-12", end: "2026-11-14" }, "date", NY);
+    expect(resizeOnMonth(event, "end", "2026-11-14", NY)).toBeNull();
+    expect(resizeOnMonth(readOnlyEvent(NY), "end", "2026-11-14", NY)).toBeNull();
+  });
+
+  it("previews a day range that never turns inside out", () => {
+    const range: [string, string] = ["2026-11-12", "2026-11-14"];
+    expect(resizeDayRange(range, "start", "2026-11-13")).toEqual(["2026-11-13", "2026-11-14"]);
+    expect(resizeDayRange(range, "start", "2026-11-20")).toEqual(["2026-11-14", "2026-11-14"]);
+    expect(resizeDayRange(range, "end", "2026-11-30")).toEqual(["2026-11-12", "2026-11-30"]);
+    expect(resizeDayRange(range, "end", "2026-11-01")).toEqual(["2026-11-12", "2026-11-12"]);
+  });
+});
+
+describe("creating from the calendar", () => {
+  it.each([
+    ["Pacific/Kiritimati", "2026-11-11T19:00:00.000Z"],
+    ["Pacific/Honolulu", "2026-11-12T19:00:00.000Z"],
+    [NY, "2026-11-12T14:00:00.000Z"],
+    [BERLIN, "2026-11-12T08:00:00.000Z"],
+  ])("a clicked day is that day for a date property and 09:00 in %s for a date-time property", (timeZone, start) => {
+    expect(createOnDays("date", "2026-11-12", "2026-11-12", timeZone)).toEqual({ start: "2026-11-12" });
+    expect(createOnDays("datetime", "2026-11-12", "2026-11-12", timeZone)).toEqual({ start });
+  });
+
+  it.each([
+    ["date", "2026-11-12 00:00:00", "2026-11-14 23:59:59", NY, { start: "2026-11-12", end: "2026-11-14" }],
+    ["date", "2026-11-14 00:00:00", "2026-11-12 23:59:59", NY, { start: "2026-11-12", end: "2026-11-14" }],
+    ["date", "2026-11-29", "2026-12-02", NY, { start: "2026-11-29", end: "2026-12-02" }],
+    ["datetime", "2026-11-12 00:00:00", "2026-11-14 23:59:59", NY, { start: "2026-11-12T14:00:00.000Z", end: "2026-11-14T14:00:00.000Z" }],
+    ["datetime", "2026-03-07", "2026-03-09", NY, { start: "2026-03-07T14:00:00.000Z", end: "2026-03-09T13:00:00.000Z" }],
+    ["datetime", "2026-10-24", "2026-10-26", BERLIN, { start: "2026-10-24T07:00:00.000Z", end: "2026-10-26T08:00:00.000Z" }],
+  ])("selected days become a %s value: %s to %s in %s", (kind, rangeStart, rangeEnd, timeZone, value) => {
+    expect(createOnDays(kind as DateKind, rangeStart, rangeEnd, timeZone)).toEqual(value);
+  });
+
+  it.each([
+    ["datetime", "2026-11-12 10:00:00", "2026-11-12 11:00:00", NY, { start: "2026-11-12T15:00:00.000Z", end: "2026-11-12T16:00:00.000Z" }],
+    ["datetime", "2026-11-12 10:00:00", "2026-11-12 11:00:00", BERLIN, { start: "2026-11-12T09:00:00.000Z", end: "2026-11-12T10:00:00.000Z" }],
+    ["datetime", "2026-11-12 09:00:00", "2026-11-12 12:00:00", NY, { start: "2026-11-12T14:00:00.000Z", end: "2026-11-12T17:00:00.000Z" }],
+    ["datetime", "2026-11-12 23:00:00", "2026-11-12 23:59:59", NY, { start: "2026-11-13T04:00:00.000Z", end: "2026-11-13T04:59:59.000Z" }],
+    ["datetime", "2026-03-08 02:00:00", "2026-03-08 03:00:00", NY, { start: "2026-03-08T07:00:00.000Z" }],
+    ["datetime", "2026-03-08 01:00:00", "2026-03-08 02:00:00", NY, { start: "2026-03-08T06:00:00.000Z", end: "2026-03-08T07:00:00.000Z" }],
+    ["datetime", "2026-10-25 02:00:00", "2026-10-25 03:00:00", BERLIN, { start: "2026-10-25T00:00:00.000Z", end: "2026-10-25T02:00:00.000Z" }],
+    ["date", "2026-11-12 10:00:00", "2026-11-12 11:00:00", NY, { start: "2026-11-12" }],
+  ])("time slots become a %s value: %s to %s in %s", (kind, rangeStart, rangeEnd, timeZone, value) => {
+    expect(createOnSlots(kind as DateKind, rangeStart, rangeEnd, timeZone)).toEqual(value);
   });
 });
