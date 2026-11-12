@@ -114,7 +114,12 @@
   bottom: var(--calendar-month-slack, 0px);
 }
 
+/* one centred line at every height; the library only lays a chip out this way under 18px */
 .monthEvents :global(.mantine-ScheduleEvent-eventInner) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 0;
   font-size: calc(0.75rem * var(--mantine-scale));
 }
 
@@ -210,7 +215,7 @@
   min-width: 0;
 }
 
-.weekEventLine {
+.eventLine {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;

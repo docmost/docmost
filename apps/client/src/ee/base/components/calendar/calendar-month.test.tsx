@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DateCell } from "@docmost/base-formula/client";
+import type { DateCell, DateKind } from "@docmost/base-formula/client";
 import type { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
 
 vi.mock("@/main.tsx", async () => ({
@@ -62,7 +62,7 @@ const display: CalendarEventDisplay = {
   rowsById: new Map(),
 };
 
-function renderMonth(height: number, cells: Record<string, DateCell>) {
+function renderMonth(height: number, cells: Record<string, DateCell>, kind: DateKind = "date") {
   const rows = Object.entries(cells).map(([title, due], index) => ({
     id: `row-${index}`,
     pageId: "base-1",
@@ -70,7 +70,7 @@ function renderMonth(height: number, cells: Record<string, DateCell>) {
     position: String(index).padStart(3, "0"),
   })) as unknown as IBaseRow[];
   const events = toCalendarEvents(rows, {
-    property,
+    property: { ...property, typeOptions: { includeTime: kind === "datetime" } },
     primaryPropertyId: "title",
     window: calendarWindow,
     timeZone: "UTC",
@@ -88,7 +88,7 @@ function renderMonth(height: number, cells: Record<string, DateCell>) {
         overlaysDisabled={false}
         labels={{ moreLabel: (count: number) => `+${count} more` }}
         display={display}
-        kind="date"
+        kind={kind}
         onEventClick={() => undefined}
       />
     </MantineProvider>,
@@ -156,5 +156,26 @@ describe("month day lines", () => {
     });
     expect(shownEvents()).toEqual(["Task A1", "Task Range"]);
     expect(moreLinks().map((more) => more.textContent)).toEqual(["+2 more"]);
+  });
+});
+
+describe("the text of a month event", () => {
+  const innerOf = (name: RegExp) =>
+    screen
+      .getByRole("button", { name })
+      .querySelector<HTMLElement>(".mantine-ScheduleEvent-eventInner")!;
+
+  it("keeps a timed event's time and title in one line element", () => {
+    renderMonth(601, { "Task Timed": { start: "2026-11-17T09:30:00.000Z" } }, "datetime");
+    const inner = innerOf(/^Task Timed/);
+    expect(inner.children).toHaveLength(1);
+    expect(inner.firstElementChild!.textContent).toBe("09:30Task Timed");
+  });
+
+  it("gives a date-only title the same line element", () => {
+    renderMonth(601, { "Task Day": { start: "2026-11-17" } });
+    const inner = innerOf(/^Task Day/);
+    expect(inner.children).toHaveLength(1);
+    expect(inner.firstElementChild!.textContent).toBe("Task Day");
   });
 });

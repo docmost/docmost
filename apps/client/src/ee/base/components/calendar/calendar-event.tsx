@@ -199,15 +199,15 @@ export function CalendarMonthEvent({
 
 export function CalendarMonthEventBody({ event, display }: CalendarEventProps) {
   const { kind, value } = getPayload(event);
-  if (kind === "date") return event.title;
+  if (kind === "date") return <span className={classes.eventLine}>{event.title}</span>;
   return (
-    <>
+    <span className={classes.eventLine}>
       <span className={classes.eventDot} aria-hidden />
       <span className={classes.eventTime}>
         {formatTimeOfDay(value.start, display)}
       </span>
       {event.title}
-    </>
+    </span>
   );
 }
 
@@ -221,8 +221,8 @@ export function CalendarWeekEventBody({ event, display }: CalendarEventProps) {
   const fields = getCardFields(event, display).slice(0, WEEK_INLINE_FIELD_LIMIT);
   return (
     <span className={classes.weekEventBody}>
-      <span className={classes.weekEventLine}>{event.title}</span>
-      <span className={clsx(classes.weekEventLine, classes.weekEventTime)}>
+      <span className={classes.eventLine}>{event.title}</span>
+      <span className={clsx(classes.eventLine, classes.weekEventTime)}>
         {formatEventWhen(getPayload(event), display, t("All day"))}
       </span>
       {fields.length > 0 && (
