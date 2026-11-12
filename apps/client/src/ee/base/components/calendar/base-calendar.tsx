@@ -375,6 +375,7 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
           />
         ) : windowLayout === "week" ? (
           <CalendarWeek
+            key={kind}
             {...viewProps}
             {...interactionProps}
             kind={kind}
