@@ -24,6 +24,9 @@ export function createEvalContext(args: {
   if (!isValidTimeZone(args.zone)) {
     throw new Error(`Invalid time zone: ${String(args.zone)}`);
   }
+  if (!(args.now instanceof Date) || isNaN(args.now.getTime())) {
+    throw new Error("Invalid clock");
+  }
   return {
     registry,
     properties: args.properties,

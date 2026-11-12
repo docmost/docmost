@@ -1,4 +1,11 @@
-import { instantToYmd, isYmd, startOfDay, toCanonicalInstant } from "./date";
+import {
+  instantToYmd,
+  isCanonicalInstant,
+  isYmd,
+  startOfDay,
+  toCanonicalInstant,
+} from "./date";
+import { makeErrorCell } from "./error";
 import type { DateValue, FormulaResultType, Value } from "./types";
 
 export function isDateValue(v: unknown): v is DateValue {
@@ -30,7 +37,13 @@ export function coerceToResultType(
   zone: string,
 ): Value {
   if (!isDateValue(v) || v.kind === resultType) return v;
-  if (resultType === "datetime") return { kind: "datetime", value: instantOf(v, zone) };
-  if (resultType === "date") return { kind: "date", value: dayOf(v, zone) };
-  return v;
+  if (resultType !== "datetime" && resultType !== "date") return v;
+  try {
+    const value = resultType === "datetime" ? instantOf(v, zone) : dayOf(v, zone);
+    const canonical = resultType === "datetime" ? isCanonicalInstant(value) : isYmd(value);
+    if (canonical) return { kind: resultType, value };
+  } catch {
+    // falls through to the same cell as a result out of range
+  }
+  return makeErrorCell("DATE_INVALID", "date out of range");
 }

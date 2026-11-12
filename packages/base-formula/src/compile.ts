@@ -68,7 +68,9 @@ export function volatilityOf(
         stack.push((dep.typeOptions as { ast?: unknown } | null)?.ast);
       }
     }
-    if (Array.isArray(node.args)) stack.push(...node.args);
+    if (Array.isArray(node.args)) {
+      for (const arg of node.args) stack.push(arg);
+    }
     if (node.t === "if") stack.push(node.cond, node.then, node.else);
   }
   return found;
