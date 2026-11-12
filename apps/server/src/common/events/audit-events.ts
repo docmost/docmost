@@ -138,6 +138,7 @@ export const AuditEvent = {
   // Base
   BASE_UPDATED: 'base.updated',
   BASE_PROPERTY_UPDATED: 'base.property.updated',
+  BASE_FORM_SHARE_UPDATED: 'base.form_share.updated',
 } as const;
 
 export type AuditEventType = (typeof AuditEvent)[keyof typeof AuditEvent];
