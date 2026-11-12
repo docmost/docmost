@@ -35,9 +35,14 @@ import classes from "@/ee/base/styles/form.module.css";
 type FormSharePopoverProps = {
   pageId: string;
   view: IBaseView;
+  isRestricted?: boolean;
 };
 
-export function FormSharePopover({ pageId, view }: FormSharePopoverProps) {
+export function FormSharePopover({
+  pageId,
+  view,
+  isRestricted,
+}: FormSharePopoverProps) {
   const { t } = useTranslation();
   const { isTrial } = useTrial();
   const { data: share, isLoading } = useFormShareQuery(pageId, view.id);
@@ -50,6 +55,23 @@ export function FormSharePopover({ pageId, view }: FormSharePopoverProps) {
   const publicBlockedByPlan = isCloud() && isTrial;
   const publicBlockedByAdmin = share ? !share.publicSharingAllowed : false;
   const link = share?.key ? `${getAppUrl()}/forms/${share.key}` : null;
+
+  let publicBlockedNotice: string | null = null;
+  if (publicBlockedByAdmin) {
+    publicBlockedNotice =
+      access === "public"
+        ? t(
+            "Public sharing is disabled for this workspace or space, so this form isn't accepting responses.",
+          )
+        : t("Public sharing is disabled for this workspace or space.");
+  } else if (isRestricted) {
+    publicBlockedNotice =
+      access === "public"
+        ? t(
+            "Restricted pages cannot be shared publicly, so this form isn't accepting responses.",
+          )
+        : t("Restricted pages cannot be shared publicly.");
+  }
 
   const handleAccessChange = (value: string) => {
     const next = value as FormAccess;
@@ -103,7 +125,7 @@ export function FormSharePopover({ pageId, view }: FormSharePopoverProps) {
                   description={t("Anyone can respond. Responses are anonymous.")}
                   disabled={
                     access !== "public" &&
-                    (publicBlockedByPlan || publicBlockedByAdmin)
+                    (publicBlockedByPlan || publicBlockedByAdmin || isRestricted)
                   }
                 />
               </Stack>
@@ -123,22 +145,14 @@ export function FormSharePopover({ pageId, view }: FormSharePopoverProps) {
             </Text>
           )}
 
-          {publicBlockedByAdmin && (
+          {publicBlockedNotice && (
             <Alert
               variant="light"
               color={access === "public" ? "orange" : "gray"}
               icon={<IconInfoCircle size={16} />}
               p="xs"
             >
-              <Text size="xs">
-                {access === "public"
-                  ? t(
-                      "Public sharing is disabled for this workspace or space, so this form isn't accepting responses.",
-                    )
-                  : t(
-                      "Public sharing is disabled for this workspace or space.",
-                    )}
-              </Text>
+              <Text size="xs">{publicBlockedNotice}</Text>
             </Alert>
           )}
 

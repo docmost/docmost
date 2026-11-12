@@ -225,7 +225,11 @@ export function BaseToolbar({
             >
               {formPreview ? t("Exit preview") : t("Preview")}
             </Button>
-            <FormSharePopover pageId={base.id} view={activeView} />
+            <FormSharePopover
+              pageId={base.id}
+              view={activeView}
+              isRestricted={base.permissions?.hasRestriction}
+            />
           </>
         )}
 
