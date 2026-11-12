@@ -170,16 +170,10 @@ export const CalendarWeek = memo(function CalendarWeek({
   );
 
   const createWith = useCallback(
-    (create: () => DateCell) => {
+    (create: () => DateCell | null) => {
       if (!onCreate) return;
-      let value: DateCell;
-      try {
-        value = create();
-      } catch (err) {
-        if (err instanceof RangeError) return;
-        throw err;
-      }
-      onCreate(value);
+      const value = create();
+      if (value) onCreate(value);
     },
     [onCreate],
   );

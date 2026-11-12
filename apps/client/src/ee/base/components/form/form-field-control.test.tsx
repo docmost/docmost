@@ -62,7 +62,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("a date question", () => {
-  it("says the respondent's zone under a time input and ties it to the input", () => {
+  it("puts the respondent's zone in the time input's description", () => {
     const { container } = renderControl(question(), null);
     const caption = screen.getByText("Time zone: America/New York (EST)");
     expect(caption.id).not.toBe("");
@@ -103,9 +103,9 @@ describe("a date question", () => {
 
 describe("a question's description and error", () => {
   it.each([
-    ["text", question({ type: "text", includeTime: undefined }), "Ada"],
-    ["date", question(), { start: "2026-11-12T15:00:00.000Z" }],
-  ])("describe the input of a %s question", (_type, field, value) => {
+    ["text", question({ type: "text", includeTime: undefined }), "Ada", []],
+    ["date", question(), { start: "2026-11-12T15:00:00.000Z" }, [/Time zone: America\/New York \(EST\)/]],
+  ])("describe the input of a %s question", (_type, field, value, captions) => {
     const { container } = render(
       <MantineProvider env="test">
         <FormFieldControl
@@ -123,6 +123,7 @@ describe("a question's description and error", () => {
     expect(input).not.toBeNull();
     expect(input).toHaveAccessibleDescription(/Use your work address/);
     expect(input).toHaveAccessibleDescription(/Enter a valid answer/);
+    for (const caption of captions) expect(input).toHaveAccessibleDescription(caption);
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText("Use your work address")).toBeVisible();
     expect(screen.getByRole("alert").textContent).toBe("Enter a valid answer");

@@ -113,6 +113,25 @@ describe("changing a property to a date", () => {
     );
   });
 
+  it("does not carry a date format chosen for Date to another type picked after Cancel", async () => {
+    chooseType("Date");
+    fireEvent.click(screen.getByRole("combobox", { name: "Date format" }));
+    fireEvent.click(screen.getByRole("option", { name: "Day/Month/Year" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByText("Text"));
+    fireEvent.click(screen.getByText("Number"));
+    apply();
+    await waitFor(() =>
+      expect(updateProperty).toHaveBeenCalledWith({
+        propertyId: "p1",
+        pageId: "base-1",
+        type: "number",
+        typeOptions: { separators: "local" },
+      }),
+    );
+    expect(vi.mocked(updateProperty).mock.calls[0][0].typeOptions).not.toHaveProperty("dateFormat");
+  });
+
   it("does not offer a date format for another type", () => {
     chooseType("Number");
     expect(screen.queryByRole("combobox", { name: "Date format" })).toBeNull();

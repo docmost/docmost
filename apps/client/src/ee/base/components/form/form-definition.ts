@@ -20,7 +20,7 @@ import {
 } from "@/ee/base/types/base.types";
 import { formDateKind } from "@/ee/base/components/form/form-date";
 import { dateTypeOptionsOf } from "@/ee/base/utils/date-format";
-import { isPropertyConverting } from "@/ee/base/property-types/property-type.registry";
+import { isPropertyConverting } from "@/ee/base/property-types/property-converting";
 
 export type FormAnswers = Record<string, unknown>;
 

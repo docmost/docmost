@@ -176,14 +176,8 @@ export const CalendarMonth = memo(function CalendarMonth({
   const createOnDayRange = useCallback(
     (rangeStart: string, rangeEnd: string) => {
       if (!onCreate) return;
-      let value: DateCell;
-      try {
-        value = createOnDays(kind, rangeStart, rangeEnd, timeZone);
-      } catch (err) {
-        if (err instanceof RangeError) return;
-        throw err;
-      }
-      onCreate(value);
+      const value = createOnDays(kind, rangeStart, rangeEnd, timeZone);
+      if (value) onCreate(value);
     },
     [onCreate, kind, timeZone],
   );

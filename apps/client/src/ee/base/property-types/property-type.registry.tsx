@@ -43,6 +43,8 @@ import { defaultStatusChoices } from "@/ee/base/components/property/choice-edito
 import { resultTypeOfProperty } from "@docmost/base-formula/client";
 import type { ClientPropertyTypeDescriptor, FilterInputKind } from "./property-type.descriptor";
 
+export { isPropertyConverting } from "./property-converting";
+
 export const PROPERTY_TYPE_REGISTRY: Record<
   BasePropertyType,
   ClientPropertyTypeDescriptor
@@ -249,12 +251,6 @@ export function getDescriptor(type: string): ClientPropertyTypeDescriptor | unde
 export const SYSTEM_PROPERTY_TYPES: ReadonlySet<string> = new Set(
   Object.values(PROPERTY_TYPE_REGISTRY).filter((d) => d.isSystem).map((d) => d.type),
 );
-
-export function isPropertyConverting(
-  property: Pick<IBaseProperty, "pendingType" | "pendingTypeOptions">,
-): boolean {
-  return property.pendingType != null || property.pendingTypeOptions != null;
-}
 
 export function isSystemPropertyType(type: string): boolean {
   return SYSTEM_PROPERTY_TYPES.has(type);

@@ -391,6 +391,26 @@ describe("dropOnWeek", () => {
   });
 });
 
+describe("the morning the clocks go forward in New York", () => {
+  const value = { start: "2026-03-08T07:30:00.000Z" };
+
+  it("draws the value on 8 March at 03:30, the wall clock Temporal gives", () => {
+    expect(span(value, TIME, NY)).toEqual([["2026-03-08 03:30:00", "2026-03-08 04:30:00"]]);
+  });
+
+  it("a week grid drop one day later writes the same wall-clock time on 9 March", () => {
+    const event = eventOf(value, "datetime", NY);
+    expect(dropOnWeek(event, "2026-03-09 03:30:00", { day: "2026-03-08", time: "2026-03-08 03:30:00" }, NY)).toEqual({
+      start: "2026-03-09T07:30:00.000Z",
+    });
+  });
+
+  it("a month drop one day later writes the same wall-clock time on 9 March", () => {
+    const event = eventOf(value, "datetime", NY);
+    expect(dropOnMonth(event, "2026-03-09 03:30:00", "2026-03-08", NY)).toEqual({ start: "2026-03-09T07:30:00.000Z" });
+  });
+});
+
 describe("slotTimeAt", () => {
   it.each([
     ["2026-11-13", "14:00:00", 24 / 64, "2026-11-13 14:23:00"],
@@ -556,5 +576,24 @@ describe("creating from the calendar", () => {
     ["date", "2026-11-12 10:00:00", "2026-11-12 11:00:00", NY, { start: "2026-11-12" }],
   ])("time slots become a %s value: %s to %s in %s", (kind, rangeStart, rangeEnd, timeZone, value) => {
     expect(createOnSlots(kind as DateKind, rangeStart, rangeEnd, timeZone)).toEqual(value);
+  });
+
+  it.each([
+    ["the last hour of 9999-12-31", () => createOnSlots("datetime", "9999-12-31 23:00:00", "9999-12-31 23:59:59", NY)],
+    ["0000-01-01 at 09:00", () => createOnDays("datetime", "0000-01-01", "0000-01-01", "Asia/Tokyo")],
+    ["the first hour of 0000-01-01", () => createOnSlots("datetime", "0000-01-01 00:00:00", "0000-01-01 00:59:59", "Asia/Tokyo")],
+  ])("writes nothing for a date-time at %s, an instant past the years the date module holds", (_name, create) => {
+    expect(create).not.toThrow();
+    expect(create()).toBeNull();
+  });
+
+  it("creates on the last and first days of the range when the instant is inside it", () => {
+    expect(createOnDays("date", "9999-12-31", "9999-12-31", "Asia/Tokyo")).toEqual({ start: "9999-12-31" });
+    expect(createOnSlots("date", "9999-12-31 23:00:00", "9999-12-31 23:59:59", "Asia/Tokyo")).toEqual({ start: "9999-12-31" });
+    expect(createOnSlots("datetime", "9999-12-31 23:00:00", "9999-12-31 23:59:59", "Asia/Tokyo")).toEqual({
+      start: "9999-12-31T14:00:00.000Z",
+      end: "9999-12-31T14:59:59.000Z",
+    });
+    expect(createOnDays("date", "0000-01-01", "0000-01-01", "Asia/Tokyo")).toEqual({ start: "0000-01-01" });
   });
 });

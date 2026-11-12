@@ -364,11 +364,16 @@ export function createOnDays(
   rangeStart: string,
   rangeEnd: string,
   timeZone: string,
-): DateCell {
+): DateCell | null {
   const [first, last] = [rangeStart.slice(0, 10), rangeEnd.slice(0, 10)].sort();
-  const start = pickDay({ current: null, kind, endpoint: "start", withEnd: false, ymd: first, zone: timeZone });
-  if (first === last) return start;
-  return pickDay({ current: start, kind, endpoint: "end", withEnd: true, ymd: last, zone: timeZone });
+  try {
+    const start = pickDay({ current: null, kind, endpoint: "start", withEnd: false, ymd: first, zone: timeZone });
+    if (first === last) return start;
+    return pickDay({ current: start, kind, endpoint: "end", withEnd: true, ymd: last, zone: timeZone });
+  } catch (err) {
+    if (err instanceof RangeError) return null;
+    throw err;
+  }
 }
 
 export function createOnSlots(
@@ -376,8 +381,13 @@ export function createOnSlots(
   rangeStart: string,
   rangeEnd: string,
   timeZone: string,
-): DateCell {
+): DateCell | null {
   const [first, last] = [rangeStart, rangeEnd].sort();
   if (kind === "date") return createOnDays(kind, first, last, timeZone);
-  return withEndAfter(fromWallString(first, timeZone), fromWallString(last, timeZone));
+  try {
+    return withEndAfter(fromWallString(first, timeZone), fromWallString(last, timeZone));
+  } catch (err) {
+    if (err instanceof RangeError) return null;
+    throw err;
+  }
 }

@@ -264,6 +264,41 @@ describe("retainBaseSubscription", () => {
     release();
   });
 
+  it("ignores a lastUpdatedById that is a number", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    seedRow(queryClient, "page-1", stored);
+    const release = retainBaseSubscription(socket, "page-1", queryClient);
+
+    receive(edit("page-1", { lastUpdatedById: 42 }));
+    expect(rowOf(queryClient, "page-1")).toEqual({ ...stored, cells: { a: 2 } });
+    release();
+  });
+
+  it("applies a remote edit to a row cached under a calendar window and leaves another base's row alone", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    const windowKey = (pageId: string) => ["base-rows", pageId, "calendar", "prop-1", "2026-11-01", "2026-11-30", undefined, undefined];
+    const seedWindow = (pageId: string) =>
+      queryClient.setQueryData(windowKey(pageId), { pages: [{ items: [stored], meta: {} }], pageParams: [null] });
+    seedWindow("page-1");
+    seedWindow("page-2");
+    const otherBefore = queryClient.getQueryData(windowKey("page-2"));
+    const release = retainBaseSubscription(socket, "page-1", queryClient);
+
+    receive(edit("page-1", { updatedAt: "2026-11-12T11:30:00.000Z", lastUpdatedById: "u2" }));
+    const windowRows = queryClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(windowKey("page-1"))!;
+    expect(windowRows.pages[0].items[0]).toEqual({
+      id: "row-1",
+      cells: { a: 2 },
+      updatedAt: "2026-11-12T11:30:00.000Z",
+      lastUpdatedById: "u2",
+    });
+    expect(queryClient.getQueryData(windowKey("page-2"))).toBe(otherBefore);
+    expect(queryClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(windowKey("page-2"))!.pages[0].items[0]).toEqual(stored);
+    release();
+  });
+
   it("asks for the rows again when the base shows Last edited by and the editor is not known yet", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");

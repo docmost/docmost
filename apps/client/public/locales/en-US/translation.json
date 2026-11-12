@@ -1992,5 +1992,9 @@
   "Date filters use {{zone}}, not your time zone": "Date filters use {{zone}}, not your time zone",
   "This calendar uses {{zone}}, not your time zone": "This calendar uses {{zone}}, not your time zone",
   "Time zone: {{zone}}": "Time zone: {{zone}}",
-  "Also used to read dates like 03/04/2026": "Also used to read dates like 03/04/2026"
+  "Also used to read dates like 03/04/2026": "Also used to read dates like 03/04/2026",
+  "Base": "Base",
+  "Updated base settings": "Updated base settings",
+  "Changed base property type": "Changed base property type",
+  "Changed base form sharing": "Changed base form sharing"
 }

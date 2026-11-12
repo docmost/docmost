@@ -31,6 +31,8 @@ describe("fromDateTimeInput", () => {
     ["2026-11-15 09:00:00", "UTC", "2026-11-15T09:00:00.000Z"],
     ["2026-03-08 02:30:00", NY, "2026-03-08T07:30:00.000Z"],
     ["2026-11-01 01:45:00", NY, "2026-11-01T05:45:00.000Z"],
+    ["2026-03-29 02:30:00", BERLIN, "2026-03-29T01:30:00.000Z"],
+    ["2026-10-25 02:30:00", BERLIN, "2026-10-25T00:30:00.000Z"],
   ])("reads %s typed in %s as %s", (input, timeZone, start) => {
     expect(fromDateTimeInput(input, null, timeZone)).toEqual({ start });
   });
