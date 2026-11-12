@@ -20,6 +20,7 @@ import {
 } from "@tabler/icons-react";
 import type {
   BasePropertyType,
+  FilterOperator,
   IBaseProperty,
   TypeOptions,
 } from "@/ee/base/types/base.types";
@@ -39,7 +40,8 @@ import { CellPage } from "@/ee/base/components/cells/cell-page";
 import { CellSystemUser } from "@/ee/base/components/cells/cell-system-user";
 import { CellFormula } from "@/ee/base/components/cells/cell-formula";
 import { defaultStatusChoices } from "@/ee/base/components/property/choice-editor";
-import type { ClientPropertyTypeDescriptor } from "./property-type.descriptor";
+import { resultTypeOfProperty } from "@docmost/base-formula/client";
+import type { ClientPropertyTypeDescriptor, FilterInputKind } from "./property-type.descriptor";
 
 export const PROPERTY_TYPE_REGISTRY: Record<
   BasePropertyType,
@@ -149,7 +151,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
     cellComponent: CellFormula,
     icon: IconMathFunction,
     labelKey: "Formula",
-    filterOperators: ["eq", "neq", "isEmpty", "isNotEmpty"],
+    filterOperators: ["isEmpty", "isNotEmpty"],
     filterInput: "text",
     isSystem: true,
     hasOptions: false,
@@ -259,6 +261,31 @@ export function isSystemPropertyType(type: string): boolean {
 }
 
 export const DEFAULT_FILTER_OPERATORS = ["eq", "neq", "isEmpty", "isNotEmpty"];
+
+const FORMULA_FILTER_TYPE: Record<string, string> = {
+  number: "number",
+  string: "text",
+  boolean: "checkbox",
+  date: "date",
+  datetime: "date",
+};
+
+export function filterSpecOf(
+  property: Pick<IBaseProperty, "type" | "typeOptions">,
+): { operators: FilterOperator[]; input: FilterInputKind } {
+  const type =
+    property.type === "formula"
+      ? (FORMULA_FILTER_TYPE[
+          resultTypeOfProperty("formula", property.typeOptions)
+        ] ?? "formula")
+      : property.type;
+  const descriptor = getDescriptor(type);
+  return {
+    operators: (descriptor?.filterOperators ??
+      DEFAULT_FILTER_OPERATORS) as FilterOperator[],
+    input: descriptor?.filterInput ?? "text",
+  };
+}
 
 export const PROPERTY_PICKER_ORDER: BasePropertyType[] = [
   "text", "longText", "number", "select", "status", "multiSelect", "date",

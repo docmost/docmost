@@ -1,5 +1,6 @@
 import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
 import type { DateFormat } from "@/ee/base/utils/date-format";
+import type { DateOperand } from "@docmost/base-formula/client";
 
 export type UserRef = { id: string; name: string | null; avatarUrl: string | null };
 export type RowReferences = {
@@ -162,31 +163,11 @@ export type FilterOperator =
   | 'all'
   | 'isWithin';
 
-export type DateFilterAnchor =
-  | 'today'
-  | 'tomorrow'
-  | 'yesterday'
-  | 'oneWeekAgo'
-  | 'oneWeekFromNow'
-  | 'oneMonthAgo'
-  | 'oneMonthFromNow';
+export type DateFilterAnchor = Extract<DateOperand, { mode: 'relative' }>['preset'];
 
-export type DateFilterRange =
-  | 'pastWeek'
-  | 'pastMonth'
-  | 'pastYear'
-  | 'thisWeek'
-  | 'thisMonth'
-  | 'thisYear'
-  | 'nextWeek'
-  | 'nextMonth'
-  | 'nextYear';
+export type DateFilterRange = Extract<DateOperand, { mode: 'range' }>['preset'];
 
-export type DateFilterValue =
-  | { mode: 'exact'; date: string }
-  | { mode: 'relative'; preset: DateFilterAnchor }
-  | { mode: 'range'; preset: DateFilterRange }
-  | { mode: 'exactRange'; from: string; to: string };
+export type DateFilterValue = DateOperand;
 
 export type FilterCondition = {
   propertyId: string;
