@@ -98,7 +98,9 @@ export function evaluate(
     ctx.nodes = 0;
     ctx.textChars = 0;
   }
-  if (++ctx.nodes > MAX_EVAL_NODES) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+  if (++ctx.nodes > MAX_EVAL_NODES || ctx.textChars > MAX_EVAL_TEXT_CHARS) {
+    return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+  }
 
   let result: Value;
   let produced = false;
@@ -143,6 +145,7 @@ export function evaluate(
         if (isErrorCell(v)) return { ...v, __err: "DEPENDENCY_ERROR" };
         args[i] = v;
       }
+      if (overTextBudget(args, ctx)) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
       try { result = fn.eval(args, ctx); }
       catch (e) { return makeErrorCell("TYPE_MISMATCH", (e as Error).message); }
       produced = true;
@@ -157,6 +160,11 @@ export function evaluate(
     return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
   }
   return result;
+}
+
+function overTextBudget(operands: Value[], ctx: EvalContext): boolean {
+  for (const v of operands) if (typeof v === "string") ctx.textChars += v.length;
+  return ctx.textChars > MAX_EVAL_TEXT_CHARS;
 }
 
 function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, astDepth: number): Value {
@@ -241,11 +249,15 @@ function evalOp(
 ): Value {
   const a = evaluate(args[0], row, ctx, astDepth);
   if (isErrorCell(a)) return { ...a, __err: "DEPENDENCY_ERROR" };
+  if ((op === "neg" || op === "not") && overTextBudget([a], ctx)) {
+    return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+  }
   if (op === "neg") return a == null ? null : -Number(a);
   if (op === "not") return a == null ? null : !Boolean(a);
 
   const b = evaluate(args[1], row, ctx, astDepth);
   if (isErrorCell(b)) return { ...b, __err: "DEPENDENCY_ERROR" };
+  if (overTextBudget([a, b], ctx)) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
 
   if (COMPARISON_OPS.has(op) && (isDateValue(a) || isDateValue(b))) {
     return compareDates(op, a, b, ctx.zone);
