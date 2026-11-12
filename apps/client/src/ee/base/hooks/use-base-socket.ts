@@ -17,12 +17,11 @@ import {
   referenceStoreAtomFamily,
 } from "@/ee/base/atoms/reference-store-atom";
 import { IPagination } from "@/lib/types";
+import { isCalendarRelevantChange } from "@/ee/base/queries/base-row-query";
 import {
-  invalidateBaseRows,
-  invalidateCalendarRows,
-  isCalendarRelevantChange,
-} from "@/ee/base/queries/base-row-query";
-import { BASE_ROW_MUTATION_KEY } from "@/ee/base/queries/row-update-chain";
+  cancelRowsRefresh,
+  scheduleRowsRefresh,
+} from "@/ee/base/queries/rows-refresh";
 import {
   formShareQueryKey,
   invalidatePublicFormForView,
@@ -152,10 +151,6 @@ type BaseInboundEvent =
 // already updated the cache. Bounded to prevent unbounded growth on long tabs.
 const outboundRequestIds = new Set<string>();
 const OUTBOUND_MAX = 256;
-const ROWS_REFRESH_DELAY_MS = 300;
-const ROWS_REFRESH_INTERVAL_MS = 2000;
-const ROWS_REFRESH_MAX_DEFERRALS = 10;
-const ROWS_REFRESH_MAX_FETCH_WAITS = 100;
 
 export function markRequestIdOutbound(requestId: string): void {
   outboundRequestIds.add(requestId);
@@ -165,15 +160,8 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
-type RowsRefreshScope = "calendar" | "all";
-
 type BaseSubscriptionState = {
   missedEvents: boolean;
-  rowsRefreshTimer?: ReturnType<typeof setTimeout>;
-  rowsRefreshScope?: RowsRefreshScope;
-  rowsRefreshDeferrals: number;
-  rowsRefreshFetchWaits: number;
-  lastRowsRefreshAt: number;
 };
 
 function createBaseEventHandler(
@@ -181,54 +169,6 @@ function createBaseEventHandler(
   queryClient: QueryClient,
   state: BaseSubscriptionState,
 ): (raw: unknown) => void {
-  const runRowsRefresh = () => {
-    state.rowsRefreshTimer = undefined;
-    const scope = state.rowsRefreshScope ?? "calendar";
-    const fetchingRows = queryClient.isFetching({
-      queryKey:
-        scope === "all" ? ["base-rows", pageId] : ["base-rows", pageId, "calendar"],
-    });
-    const mutatingRows = queryClient.isMutating({
-      mutationKey: BASE_ROW_MUTATION_KEY,
-      predicate: (mutation) =>
-        (mutation.state.variables as { pageId?: string } | undefined)
-          ?.pageId === pageId,
-    });
-    const waitForFetch =
-      fetchingRows > 0 &&
-      state.rowsRefreshFetchWaits < ROWS_REFRESH_MAX_FETCH_WAITS;
-    if (
-      waitForFetch ||
-      (mutatingRows > 0 &&
-        state.rowsRefreshDeferrals < ROWS_REFRESH_MAX_DEFERRALS)
-    ) {
-      if (waitForFetch) state.rowsRefreshFetchWaits += 1;
-      else state.rowsRefreshDeferrals += 1;
-      state.rowsRefreshTimer = setTimeout(runRowsRefresh, ROWS_REFRESH_DELAY_MS);
-      return;
-    }
-    state.rowsRefreshDeferrals = 0;
-    state.rowsRefreshFetchWaits = 0;
-    state.rowsRefreshScope = undefined;
-    state.lastRowsRefreshAt = performance.now();
-    if (scope === "all") invalidateBaseRows(pageId);
-    else invalidateCalendarRows(pageId);
-  };
-
-  const scheduleRowsRefresh = (scope: RowsRefreshScope) => {
-    if (scope === "all" || !state.rowsRefreshScope) {
-      state.rowsRefreshScope = scope;
-    }
-    if (state.rowsRefreshTimer !== undefined) return;
-    state.rowsRefreshTimer = setTimeout(
-      runRowsRefresh,
-      Math.max(
-        ROWS_REFRESH_DELAY_MS,
-        state.lastRowsRefreshAt + ROWS_REFRESH_INTERVAL_MS - performance.now(),
-      ),
-    );
-  };
-
   return (raw: unknown) => {
     if (!raw || typeof raw !== "object") return;
     const event = raw as BaseInboundEvent;
@@ -268,7 +208,7 @@ function createBaseEventHandler(
           (id) => typeof id === "string" && !knownUsers[id],
         );
         if (hasKanbanForCreate || usersUnresolved) {
-          scheduleRowsRefresh("all");
+          scheduleRowsRefresh(pageId, "all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
@@ -285,7 +225,7 @@ function createBaseEventHandler(
               };
             },
           );
-          scheduleRowsRefresh("calendar");
+          scheduleRowsRefresh(pageId, "calendar");
         }
         break;
       }
@@ -294,7 +234,7 @@ function createBaseEventHandler(
         const baseForUpdate = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForUpdate = (baseForUpdate?.views ?? []).some((v) => v.type === "kanban");
         if (hasKanbanForUpdate) {
-          scheduleRowsRefresh("all");
+          scheduleRowsRefresh(pageId, "all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
@@ -322,7 +262,7 @@ function createBaseEventHandler(
               Object.keys(e.updatedCells ?? {}),
             )
           ) {
-            scheduleRowsRefresh("calendar");
+            scheduleRowsRefresh(pageId, "calendar");
           }
         }
         break;
@@ -386,7 +326,7 @@ function createBaseEventHandler(
         const baseForReorder = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForReorder = (baseForReorder?.views ?? []).some((v) => v.type === "kanban");
         if (hasKanbanForReorder) {
-          scheduleRowsRefresh("all");
+          scheduleRowsRefresh(pageId, "all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
@@ -429,7 +369,7 @@ function createBaseEventHandler(
           }
         }
         if (touchesCache) {
-          scheduleRowsRefresh("all");
+          scheduleRowsRefresh(pageId, "all");
         }
         break;
       }
@@ -549,9 +489,6 @@ export function retainBaseSubscription(
   if (!subscription) {
     const state: BaseSubscriptionState = {
       missedEvents: false,
-      rowsRefreshDeferrals: 0,
-      rowsRefreshFetchWaits: 0,
-      lastRowsRefreshAt: -Infinity,
     };
     subscription = {
       count: 0,
@@ -577,7 +514,7 @@ export function retainBaseSubscription(
     retained.count -= 1;
     if (retained.count > 0) return;
     subscriptions.delete(pageId);
-    clearTimeout(retained.state.rowsRefreshTimer);
+    cancelRowsRefresh(pageId);
     socket.off("message", retained.handler);
     socket.off("connect", retained.subscribe);
     socket.off("disconnect", retained.markMissedEvents);

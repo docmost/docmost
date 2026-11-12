@@ -120,4 +120,38 @@ describe("retainBaseSubscription", () => {
     ]);
     releaseSecond();
   });
+
+  it("refreshes all rows once, 300 ms after batch updates that touch a loaded row", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ["base-rows", "page-9", "view-1"];
+    appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1" }], meta: {} }], pageParams: [null] });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-9", appClient);
+
+    receive({ operation: "base:rows:updated", pageId: "page-9", rowIds: ["row-1"], propertyIds: [] });
+    receive({ operation: "base:rows:updated", pageId: "page-9", rowIds: ["row-1"], propertyIds: [] });
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
+    vi.advanceTimersByTime(300);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
+
+    release();
+    vi.useRealTimers();
+  });
+
+  it("drops a pending refresh when the last view of the base leaves", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ["base-rows", "page-8", "view-1"];
+    appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1" }], meta: {} }], pageParams: [null] });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-8", appClient);
+
+    receive({ operation: "base:rows:updated", pageId: "page-8", rowIds: ["row-1"], propertyIds: [] });
+    release();
+    vi.advanceTimersByTime(5000);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
+
+    vi.useRealTimers();
+  });
 });

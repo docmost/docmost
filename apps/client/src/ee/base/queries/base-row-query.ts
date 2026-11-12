@@ -36,6 +36,7 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { useHydrateReferences } from "@/ee/base/reference/reference-store";
 import { markRequestIdOutbound } from "@/ee/base/hooks/use-base-socket";
 import { v7 as uuid7 } from "uuid";
+import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
 import {
   BASE_ROW_MUTATION_KEY,
   beginRowUpdate,
@@ -68,10 +69,6 @@ export function newRequestId(): string {
   return id;
 }
 
-const CANCELLED_REFRESH_QUIET_MS = 2000;
-
-const cancelledRowRefreshes = new Map<string, "calendar" | "all">();
-
 function isFetchingLoadedRows(pageId: string, calendar: boolean) {
   return (
     queryClient.isFetching({
@@ -90,34 +87,7 @@ function cancelLoadedBaseRows(pageId: string) {
     : isFetchingLoadedRows(pageId, true)
       ? "calendar"
       : undefined;
-  if (scope) {
-    const pending = cancelledRowRefreshes.get(pageId);
-    if (pending !== "all") cancelledRowRefreshes.set(pageId, scope);
-    if (!pending) {
-      let quietTimer: ReturnType<typeof setTimeout> | undefined;
-      const unsubscribe = queryClient.getMutationCache().subscribe(() => {
-        const mutatingRows = queryClient.isMutating({
-          mutationKey: BASE_ROW_MUTATION_KEY,
-          predicate: (mutation) =>
-            (mutation.state.variables as { pageId?: string } | undefined)
-              ?.pageId === pageId,
-        });
-        if (mutatingRows > 0) {
-          clearTimeout(quietTimer);
-          quietTimer = undefined;
-          return;
-        }
-        if (quietTimer !== undefined) return;
-        quietTimer = setTimeout(() => {
-          unsubscribe();
-          const refresh = cancelledRowRefreshes.get(pageId);
-          cancelledRowRefreshes.delete(pageId);
-          if (refresh === "all") invalidateBaseRows(pageId);
-          else invalidateCalendarRows(pageId);
-        }, CANCELLED_REFRESH_QUIET_MS);
-      });
-    }
-  }
+  if (scope) scheduleRowsRefresh(pageId, scope);
   return queryClient.cancelQueries({
     queryKey: ["base-rows", pageId],
     predicate: (query) => query.state.data !== undefined,
