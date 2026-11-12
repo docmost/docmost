@@ -150,6 +150,7 @@ export interface Backlinks {
 }
 
 export interface BaseProperties {
+  cellsConvertedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
   id: Generated<string>;
@@ -358,6 +359,7 @@ export interface Pages {
   id: Generated<string>;
   isBase: Generated<boolean>;
   baseSchemaVersion: Generated<number>;
+  baseTimeZone: string | null;
   isLocked: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;

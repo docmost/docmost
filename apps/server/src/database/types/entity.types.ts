@@ -278,7 +278,7 @@ export type InsertableTemplate = Insertable<Templates>;
 export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;
 
 // Base Property
-export type BaseProperty = Selectable<BaseProperties>;
+export type BaseProperty = Omit<Selectable<BaseProperties>, 'cellsConvertedAt'>;
 export type InsertableBaseProperty = Insertable<BaseProperties>;
 export type UpdatableBaseProperty = Updateable<Omit<BaseProperties, 'id'>>;
 
