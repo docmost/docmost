@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "Ці вже показуються з {{from}} без часу завершення:",
   "Save and replace": "Зберегти й замінити",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” буде архівовано, коли почнеться це оголошення.",
-  "This one will be archived when “{{title}}” starts.": "Це оголошення буде архівовано, коли почнеться “{{title}}”."
+  "This one will be archived when “{{title}}” starts.": "Це оголошення буде архівовано, коли почнеться “{{title}}”.",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
