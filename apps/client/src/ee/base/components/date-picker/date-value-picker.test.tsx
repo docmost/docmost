@@ -236,6 +236,50 @@ describe("DateValuePicker", () => {
     });
   });
 
+  describe("the property's Include time switch", () => {
+    const switchFor = (checked: boolean) => ({
+      checked,
+      propertyName: "Due",
+      baseTimeZone: "America/New_York",
+      onChange: vi.fn(),
+    });
+    const includeTime = () => screen.getByRole("switch", { name: "Include time" }) as HTMLInputElement;
+    const withTime = { value: { start: "2026-11-12T14:00:00.000Z" }, kind: "datetime" as const };
+
+    it("turns time on at once", () => {
+      const includeTimeSwitch = switchFor(false);
+      renderPicker({ value: { start: "2026-11-12" }, kind: "date", includeTimeSwitch });
+      expect(includeTime().checked).toBe(false);
+      fireEvent.click(includeTime());
+      expect(includeTimeSwitch.onChange).toHaveBeenCalledTimes(1);
+      expect(includeTimeSwitch.onChange).toHaveBeenCalledWith(true);
+    });
+
+    it("asks before it removes time", () => {
+      const includeTimeSwitch = switchFor(true);
+      renderPicker({ ...withTime, includeTimeSwitch });
+      fireEvent.click(includeTime());
+      expect(includeTimeSwitch.onChange).not.toHaveBeenCalled();
+      expect(screen.getByRole("group", { name: "Remove time from Due?" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Remove time" }));
+      expect(includeTimeSwitch.onChange).toHaveBeenCalledTimes(1);
+      expect(includeTimeSwitch.onChange).toHaveBeenCalledWith(false);
+      expect(screen.queryByRole("group", { name: "Remove time from Due?" })).toBeNull();
+    });
+
+    it("keeps time and the picked value when the removal is cancelled", () => {
+      const includeTimeSwitch = switchFor(true);
+      const onChange = renderPicker({ ...withTime, includeTimeSwitch });
+      fireEvent.click(includeTime());
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(includeTimeSwitch.onChange).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+      expect(includeTime().checked).toBe(true);
+      expect(document.activeElement).toBe(includeTime());
+      expect(screen.getByRole("button", { name: /^Start: / })).toBeTruthy();
+    });
+  });
+
   it("never calls onChange on mount or when a new value arrives", () => {
     const onChange = vi.fn();
     const ui = (value: ComponentProps<typeof DateValuePicker>["value"]) => (

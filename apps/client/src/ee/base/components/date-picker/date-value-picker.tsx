@@ -1,4 +1,5 @@
 import { Ref, useCallback, useEffect, useRef, useState } from "react";
+import clsx from "clsx";
 import { Collapse, Menu, Switch, UnstyledButton } from "@mantine/core";
 import { DatePicker, TimePicker } from "@mantine/dates";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
@@ -28,6 +29,7 @@ import {
   partDayIn,
 } from "@/ee/base/utils/date-cell";
 import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import { RemoveTimeConfirmation } from "@/ee/base/components/property/remove-time-confirmation";
 import {
   DateEndpoint,
   pickDay,
@@ -45,6 +47,12 @@ type DateValuePickerProps = {
     dateFormat?: DateFormat;
     timeFormat?: TimeFormat;
   }) => void;
+  includeTimeSwitch?: {
+    checked: boolean;
+    propertyName: string;
+    baseTimeZone: string;
+    onChange: (includeTime: boolean) => void;
+  };
 };
 
 const TIME_FORMATS: TimeFormat[] = ["12h", "24h"];
@@ -53,6 +61,11 @@ const COLLAPSE_MS = 150;
 
 const SWITCH_CLASS_NAMES = {
   body: classes.toggle,
+  labelWrapper: classes.toggleLabelWrapper,
+};
+
+const DESCRIBED_SWITCH_CLASS_NAMES = {
+  body: clsx(classes.toggle, classes.toggleDescribed),
   labelWrapper: classes.toggleLabelWrapper,
 };
 
@@ -77,6 +90,7 @@ export function DateValuePicker({
   dateFormat,
   timeFormat,
   onPropertyFormatChange,
+  includeTimeSwitch,
 }: DateValuePickerProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
@@ -91,7 +105,16 @@ export function DateValuePicker({
     () => (current && partDayIn(current.start, timeZone)) || today,
   );
   const [lastEnd, setLastEnd] = useState(current?.end ?? null);
+  const [confirmingTimeRemoval, setConfirmingTimeRemoval] = useState(false);
   const startButtonRef = useRef<HTMLButtonElement>(null);
+  const includeTimeRef = useRef<HTMLInputElement>(null);
+  const focusIncludeTimeRef = useRef(false);
+  useEffect(() => {
+    if (!confirmingTimeRemoval && focusIncludeTimeRef.current) {
+      focusIncludeTimeRef.current = false;
+      includeTimeRef.current?.focus();
+    }
+  }, [confirmingTimeRemoval]);
 
   if (
     !dateCellsEqual(value, syncedValue) ||
@@ -103,6 +126,7 @@ export function DateValuePicker({
     setSyncedZone(timeZone);
     setCurrent(usableCell(value, kind, timeZone));
     if (value?.end) setEndOn(true);
+    if (kind !== syncedKind) setConfirmingTimeRemoval(false);
   }
   if (current?.end && current.end !== lastEnd) {
     setLastEnd(current.end);
@@ -218,6 +242,25 @@ export function DateValuePicker({
     today,
   };
 
+  if (confirmingTimeRemoval && includeTimeSwitch) {
+    return (
+      <div className={clsx(classes.root, classes.confirmation)}>
+        <RemoveTimeConfirmation
+          propertyName={includeTimeSwitch.propertyName}
+          baseTimeZone={includeTimeSwitch.baseTimeZone}
+          onCancel={() => {
+            focusIncludeTimeRef.current = true;
+            setConfirmingTimeRemoval(false);
+          }}
+          onConfirm={() => {
+            setConfirmingTimeRemoval(false);
+            includeTimeSwitch.onChange(false);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={classes.root}>
       <div className={classes.header}>
@@ -296,38 +339,60 @@ export function DateValuePicker({
         />
       </div>
 
-      {onPropertyFormatChange && (
+      {(includeTimeSwitch || onPropertyFormatChange) && (
         <div className={classes.section}>
-          <FormatMenu
-            label={t("Date format")}
-            value={resolvedDateFormat}
-            options={DATE_FORMATS.map((format) => ({
-              value: format,
-              label: t(DATE_FORMAT_LABELS[format]),
-              example: formatDateCell(
-                { start: today },
-                { dateFormat: format, locale, timeZone, today },
-              ),
-            }))}
-            onChange={(format) => onPropertyFormatChange({ dateFormat: format })}
-          />
-          <Collapse
-            expanded={includeTime}
-            transitionDuration={COLLAPSE_MS}
-            keepMounted={false}
-          >
-            <FormatMenu
-              label={t("Time format")}
-              value={resolvedTimeFormat}
-              options={TIME_FORMATS.map((format) => ({
-                value: format,
-                label: t(TIME_FORMAT_LABELS[format]),
-              }))}
-              onChange={(format) =>
-                onPropertyFormatChange({ timeFormat: format })
-              }
+          {includeTimeSwitch && (
+            <Switch
+              ref={includeTimeRef}
+              size="xs"
+              labelPosition="left"
+              label={t("Include time")}
+              aria-label={t("Include time")}
+              description={t("Applies to every date in this property")}
+              checked={includeTimeSwitch.checked}
+              onChange={(event) => {
+                if (event.currentTarget.checked) includeTimeSwitch.onChange(true);
+                else setConfirmingTimeRemoval(true);
+              }}
+              classNames={DESCRIBED_SWITCH_CLASS_NAMES}
             />
-          </Collapse>
+          )}
+          {onPropertyFormatChange && (
+            <>
+              <FormatMenu
+                label={t("Date format")}
+                value={resolvedDateFormat}
+                options={DATE_FORMATS.map((format) => ({
+                  value: format,
+                  label: t(DATE_FORMAT_LABELS[format]),
+                  example: formatDateCell(
+                    { start: today },
+                    { dateFormat: format, locale, timeZone, today },
+                  ),
+                }))}
+                onChange={(format) =>
+                  onPropertyFormatChange({ dateFormat: format })
+                }
+              />
+              <Collapse
+                expanded={includeTime}
+                transitionDuration={COLLAPSE_MS}
+                keepMounted={false}
+              >
+                <FormatMenu
+                  label={t("Time format")}
+                  value={resolvedTimeFormat}
+                  options={TIME_FORMATS.map((format) => ({
+                    value: format,
+                    label: t(TIME_FORMAT_LABELS[format]),
+                  }))}
+                  onChange={(format) =>
+                    onPropertyFormatChange({ timeFormat: format })
+                  }
+                />
+              </Collapse>
+            </>
+          )}
         </div>
       )}
 

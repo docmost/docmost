@@ -7,6 +7,7 @@ import {
 } from "@/ee/base/types/base.types";
 import { DateValuePicker } from "@/ee/base/components/date-picker/date-value-picker";
 import { useUpdatePropertyMutation } from "@/ee/base/queries/base-property-query";
+import { useBaseQuery } from "@/ee/base/queries/base-query";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
 import type { DateCell, DateKind } from "@docmost/base-formula/client";
@@ -39,6 +40,7 @@ export function DateCellPicker({
   onChange,
 }: DateCellPickerProps) {
   const editable = useBaseEditable();
+  const { data: base } = useBaseQuery(property.pageId);
   const updatePropertyMutation = useUpdatePropertyMutation();
   const typeOptions = dateTypeOptionsOf({
     ...property.typeOptions,
@@ -47,9 +49,9 @@ export function DateCellPicker({
       : undefined),
   });
 
-  const handlePropertyFormatChange = (
-    patch: Pick<DateTypeOptions, "dateFormat" | "timeFormat">,
-  ) =>
+  const canChangeProperty = editable && !isPropertyConverting(property);
+
+  const updateTypeOptions = (patch: Partial<DateTypeOptions>) =>
     updatePropertyMutation.mutate({
       propertyId: property.id,
       pageId: property.pageId,
@@ -63,9 +65,15 @@ export function DateCellPicker({
       onChange={onChange}
       dateFormat={typeOptions.dateFormat}
       timeFormat={typeOptions.timeFormat}
-      onPropertyFormatChange={
-        editable && !isPropertyConverting(property)
-          ? handlePropertyFormatChange
+      onPropertyFormatChange={canChangeProperty ? updateTypeOptions : undefined}
+      includeTimeSwitch={
+        canChangeProperty
+          ? {
+              checked: typeOptions.includeTime === true,
+              propertyName: property.name,
+              baseTimeZone: base?.baseTimeZone ?? "UTC",
+              onChange: (includeTime) => updateTypeOptions({ includeTime }),
+            }
           : undefined
       }
     />

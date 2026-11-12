@@ -24,6 +24,7 @@ vi.mock("@/ee/base/hooks/use-viewer-date-context", () => ({
 }));
 vi.mock("@/ee/base/services/base-service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/ee/base/services/base-service")>()),
+  getBaseInfo: vi.fn(() => new Promise(() => {})),
   updateProperty: vi.fn(() => new Promise(() => {})),
 }));
 
@@ -187,5 +188,55 @@ describe("the picker's format menu", () => {
       pageId: "base-1",
       typeOptions: { dateFormat: "yearMonthDay" },
     });
+  });
+});
+
+describe("the picker's Include time switch", () => {
+  beforeEach(() => {
+    vi.mocked(updateProperty).mockClear();
+  });
+
+  const renderCellPicker = (prop: IBaseProperty, kind: "date" | "datetime") =>
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MantineProvider env="test">
+          <DateCellPicker property={prop} kind={kind} value={null} onChange={vi.fn()} />
+        </MantineProvider>
+      </QueryClientProvider>,
+    );
+  const includeTime = () => screen.getByRole("switch", { name: "Include time" }) as HTMLInputElement;
+
+  it("turns time on for the whole property", async () => {
+    renderCellPicker(property("date", { includeTime: false }), "date");
+    fireEvent.click(includeTime());
+    await waitFor(() => expect(updateProperty).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateProperty).mock.calls[0][0]).toEqual({
+      propertyId: "p1",
+      pageId: "base-1",
+      typeOptions: { includeTime: true },
+    });
+    expect(includeTime().checked).toBe(true);
+  });
+
+  it("removes time only after the confirmation", async () => {
+    renderCellPicker(property("date", { includeTime: true }), "datetime");
+    fireEvent.click(includeTime());
+    expect(screen.getByRole("group", { name: "Remove time from When?" })).toBeTruthy();
+    expect(updateProperty).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Remove time" }));
+    await waitFor(() => expect(updateProperty).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateProperty).mock.calls[0][0]).toEqual({
+      propertyId: "p1",
+      pageId: "base-1",
+      typeOptions: { includeTime: false },
+    });
+  });
+
+  it("is not offered while the property is converting", () => {
+    renderCellPicker(
+      { ...property("date", { includeTime: false }), pendingTypeOptions: { includeTime: true } } as IBaseProperty,
+      "date",
+    );
+    expect(screen.queryByRole("switch", { name: "Include time" })).toBeNull();
   });
 });

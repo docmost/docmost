@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Stack,
   NumberInput,
@@ -20,6 +20,7 @@ import {
   Choice,
 } from "@/ee/base/types/base.types";
 import { ChoiceEditor } from "./choice-editor";
+import { RemoveTimeConfirmation } from "./remove-time-confirmation";
 import { FilterPersonInput } from "@/ee/base/components/views/filter-person-input";
 import {
   CURRENCIES,
@@ -36,7 +37,6 @@ import {
 } from "@/ee/base/utils/date-format";
 import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import { useBaseQuery } from "@/ee/base/queries/base-query";
-import { timeZoneName } from "@/ee/base/utils/time-zones";
 import { IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
@@ -461,13 +461,10 @@ function DateOptions({
   useEffect(() => {
     if (!removesTime) setConfirmingTimeRemoval(false);
   }, [removesTime]);
-  const cancelRef = useRef<HTMLButtonElement>(null);
   const includeTimeRef = useRef<HTMLInputElement>(null);
   const focusIncludeTimeRef = useRef(false);
-  const confirmationTitleId = useId();
   useEffect(() => {
-    if (confirmingTimeRemoval) cancelRef.current?.focus();
-    else if (focusIncludeTimeRef.current) {
+    if (!confirmingTimeRemoval && focusIncludeTimeRef.current) {
       focusIncludeTimeRef.current = false;
       includeTimeRef.current?.focus();
     }
@@ -485,32 +482,15 @@ function DateOptions({
 
   if (confirmingTimeRemoval) {
     return (
-      <Stack gap="xs" role="group" aria-labelledby={confirmationTitleId}>
-        <Text id={confirmationTitleId} size="sm" fw={600}>
-          {t("Remove time from {{name}}?", { name: property.name })}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {t("Cells keep their day in {{zone}} and lose the time.", {
-            zone: timeZoneName(base?.baseTimeZone ?? "UTC"),
-          })}
-        </Text>
-        <Group gap="xs" justify="flex-end">
-          <Button
-            ref={cancelRef}
-            variant="default"
-            size="xs"
-            onClick={() => {
-              focusIncludeTimeRef.current = true;
-              setConfirmingTimeRemoval(false);
-            }}
-          >
-            {t("Cancel")}
-          </Button>
-          <Button color="red" size="xs" onClick={save}>
-            {t("Remove time")}
-          </Button>
-        </Group>
-      </Stack>
+      <RemoveTimeConfirmation
+        propertyName={property.name}
+        baseTimeZone={base?.baseTimeZone ?? "UTC"}
+        onCancel={() => {
+          focusIncludeTimeRef.current = true;
+          setConfirmingTimeRemoval(false);
+        }}
+        onConfirm={save}
+      />
     );
   }
 
