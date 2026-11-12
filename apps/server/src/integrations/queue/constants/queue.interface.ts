@@ -175,4 +175,5 @@ export interface IBaseFormulaRecomputeJob {
   // When set, scope recompute to these row IDs instead of the whole base.
   // Used by the bulk-write path (> FORMULA_INLINE_ROW_THRESHOLD).
   rowIds?: string[];
+  refresh?: { day: string; at: string }; // set only for reason 'refresh'
 }
