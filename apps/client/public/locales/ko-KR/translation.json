@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "다음 공지사항은 이미 {{from}}부터 종료 없이 표시됩니다:",
   "Save and replace": "저장하고 대체",
   "“{{title}}” will be archived when this one starts.": "이 항목이 시작되면 “{{title}}” 항목이 보관됩니다.",
-  "This one will be archived when “{{title}}” starts.": "“{{title}}” 항목이 시작되면 이 항목이 보관됩니다."
+  "This one will be archived when “{{title}}” starts.": "“{{title}}” 항목이 시작되면 이 항목이 보관됩니다.",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
