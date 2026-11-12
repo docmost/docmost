@@ -10,7 +10,7 @@ export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const { kind, cell, text: display } = useDateCellDisplay(property, value);
 
-  if (readOnly || !kind) {
+  if (readOnly || !kind || property.type !== "date") {
     return (
       <FieldShell>
         <span className={classes.fieldValueText}>{display}</span>

@@ -84,7 +84,7 @@ export function CellDate({
     [onCancel],
   );
 
-  if (isEditing && kind) {
+  if (isEditing && kind && property.type === "date") {
     return (
       <Popover
         opened
