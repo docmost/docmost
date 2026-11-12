@@ -39,19 +39,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .alterTable('base_properties')
     .addColumn('cells_converted_at', 'timestamptz')
     .execute();
-
-  await sql`DROP FUNCTION IF EXISTS base_cell_timestamptz(jsonb, text)`.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await sql`
-    CREATE OR REPLACE FUNCTION base_cell_timestamptz(cells jsonb, prop text)
-    RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE STRICT PARALLEL SAFE
-    AS $$
-      BEGIN RETURN (cells->>prop::text)::timestamptz;
-      EXCEPTION WHEN others THEN RETURN NULL; END;
-    $$
-  `.execute(db);
   await db.schema.alterTable('base_properties').dropColumn('cells_converted_at').execute();
   await db.schema.alterTable('pages').dropColumn('base_time_zone').execute();
   await db.schema.dropTable('base_view_shares').execute();
