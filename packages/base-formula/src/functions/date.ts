@@ -10,8 +10,8 @@ import type { FormulaAST } from "../ast";
 import type { DateValue, ErrorCell, EvalContext, FormulaResultType, Value } from "../types";
 import type { DateKind, WallClock } from "../date";
 
-const dateArg = (v: Value): DateValue | ErrorCell =>
-  asDateValue(v) ?? makeErrorCell("DATE_INVALID", "invalid date");
+const dateArg = (v: Value): DateValue | ErrorCell | null =>
+  v == null || v === "" ? null : (asDateValue(v) ?? makeErrorCell("DATE_INVALID", "invalid date"));
 
 const staticDateKind = (
   type: FormulaResultType,
