@@ -1,18 +1,35 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { EnvironmentService } from './environment.service';
 
+const environment = (env: Record<string, string> = {}) =>
+  new EnvironmentService({
+    get: (key: string, fallback?: string) => env[key] ?? fallback,
+  } as any);
+
 describe('EnvironmentService', () => {
-  let service: EnvironmentService;
+  describe('getPageHistoryInterval', () => {
+    it('defaults to five minutes', () => {
+      expect(environment().getPageHistoryInterval()).toBe(5 * 60 * 1000);
+    });
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [EnvironmentService],
-    }).compile();
+    it('reads a duration', () => {
+      expect(
+        environment({ PAGE_HISTORY_INTERVAL: '2m' }).getPageHistoryInterval(),
+      ).toBe(2 * 60 * 1000);
+    });
 
-    service = module.get<EnvironmentService>(EnvironmentService);
-  });
+    it('never goes below one minute', () => {
+      expect(
+        environment({ PAGE_HISTORY_INTERVAL: '10s' }).getPageHistoryInterval(),
+      ).toBe(60 * 1000);
+    });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+    it('falls back to five minutes for an empty or unreadable value', () => {
+      expect(
+        environment({ PAGE_HISTORY_INTERVAL: '' }).getPageHistoryInterval(),
+      ).toBe(5 * 60 * 1000);
+      expect(
+        environment({ PAGE_HISTORY_INTERVAL: 'soon' }).getPageHistoryInterval(),
+      ).toBe(5 * 60 * 1000);
+    });
   });
 });

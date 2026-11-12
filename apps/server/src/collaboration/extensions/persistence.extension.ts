@@ -33,15 +33,12 @@ import {
 } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
 import { CollabHistoryService } from '../services/collab-history.service';
-import {
-  HISTORY_FAST_INTERVAL,
-  HISTORY_FAST_THRESHOLD,
-  HISTORY_INTERVAL,
-} from '../constants';
+import { HISTORY_FAST_INTERVAL, HISTORY_FAST_THRESHOLD } from '../constants';
 import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
 import { PageVerificationInvalidationService } from '../../core/page/verification/page-verification-invalidation.service';
 import { PageVerificationInvalidation } from '../../core/page/verification/page-verification-invalidation.types';
 import { isSameDocumentContent } from '../content-comparison.util';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -58,6 +55,7 @@ export class PersistenceExtension implements Extension {
     private readonly collabHistory: CollabHistoryService,
     private readonly transclusionService: TransclusionService,
     private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -335,7 +333,7 @@ export class PersistenceExtension implements Extension {
     const delay =
       pageAge < HISTORY_FAST_THRESHOLD
         ? HISTORY_FAST_INTERVAL
-        : HISTORY_INTERVAL;
+        : this.environmentService.getPageHistoryInterval();
 
     await this.historyQueue.add(
       QueueJob.PAGE_HISTORY,
