@@ -8,14 +8,13 @@ import {
   useRef,
   useState,
 } from "react";
-import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { ErrorBoundary } from "react-error-boundary";
 import { useQueryClient } from "@tanstack/react-query";
 import * as liveRegion from "@atlaskit/pragmatic-drag-and-drop-live-region";
 import { useMediaQuery } from "@mantine/hooks";
-import { useDatesContext } from "@mantine/dates";
-import type { ScheduleEventData, ScheduleLabelsOverride } from "@mantine/schedule";
+import type { DayOfWeek, ScheduleEventData, ScheduleLabelsOverride } from "@mantine/schedule";
+import { dateKindOfProperty, startOfMonth } from "@docmost/base-formula/client";
 import {
   CalendarLayout,
   DateTypeOptions,
@@ -23,18 +22,21 @@ import {
   IBase,
   IBaseView,
 } from "@/ee/base/types/base.types";
-import { useCalendarRowsQuery } from "@/ee/base/queries/calendar-rows-query";
+import { useCalendarWindowQuery } from "@/ee/base/queries/calendar-window-query";
 import { useUpdateCalendarConfig } from "@/ee/base/queries/base-view-query";
 import {
   useCreateRowMutation,
   useUpdateRowMutation,
 } from "@/ee/base/queries/base-row-query";
-import { getCalendarWindow } from "@/ee/base/services/calendar-window";
 import {
   CalendarEventPayload,
+  getCalendarWindow,
+  isCalendarDate,
   isCalendarDateSourceType,
-  toScheduleEvents,
-} from "@/ee/base/services/calendar-events";
+  isEditableCalendarSource,
+  shiftCalendarDate,
+  toCalendarEvents,
+} from "@/ee/base/services/calendar-adapter";
 import {
   DateMove,
   DateResize,
@@ -49,6 +51,7 @@ import {
 } from "@/ee/base/utils/date-value";
 import { orderProperties } from "@/ee/base/utils/property-order";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import { useRowDetailModal } from "@/ee/base/hooks/use-row-detail-modal";
 import { RowDetailModal } from "@/ee/base/components/row-detail-modal/row-detail-modal";
 import { CalendarHeader } from "@/ee/base/components/calendar/calendar-header";
@@ -57,9 +60,8 @@ import { CalendarWeek } from "@/ee/base/components/calendar/calendar-week";
 import { CalendarEmptyState } from "@/ee/base/components/calendar/calendar-empty-state";
 import { CalendarErrorFallback } from "@/ee/base/components/calendar/calendar-error-fallback";
 import { CalendarFrame } from "@/ee/base/components/calendar/calendar-frame";
+import { CalendarSkeleton } from "@/ee/base/components/calendar/calendar-skeleton";
 import type { CalendarEventDisplay } from "@/ee/base/components/calendar/calendar-event";
-
-const STORED_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type BaseCalendarProps = {
   base: IBase;
@@ -76,7 +78,8 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
   const updateCalendarConfig = useUpdateCalendarConfig(pageId, view.id);
   const updateRow = useUpdateRowMutation().mutate;
   const createRow = useCreateRowMutation().mutate;
-  const firstDayOfWeek = useDatesContext().getFirstDayOfWeek();
+  const viewer = useViewerDateContext();
+  const firstDayOfWeek = viewer.weekStart as DayOfWeek;
   const isMobile = useMediaQuery("(max-width: 48em)", false, {
     getInitialValueInEffect: false,
   });
@@ -86,7 +89,7 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
     (p) => p.id === calendarConfig?.datePropertyId && isCalendarDateSourceType(p.type),
   );
   const editableDatePropertyId =
-    editable && dateProperty?.type === "date" && dateProperty.pendingType == null
+    editable && dateProperty && isEditableCalendarSource(dateProperty)
       ? dateProperty.id
       : undefined;
   const primaryPropertyId = base.properties.find((p) => p.isPrimary)?.id;
@@ -99,16 +102,11 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
 
   const storageKey = `base-calendar-date:${view.id}`;
   const [date, setDate] = useState(() => {
-    const today = dayjs().format("YYYY-MM-DD");
     try {
       const stored = localStorage.getItem(storageKey);
-      return stored &&
-        STORED_DATE_RE.test(stored) &&
-        dayjs(stored).format("YYYY-MM-DD") === stored
-        ? stored
-        : today;
+      return isCalendarDate(stored) ? stored : viewer.today;
     } catch {
-      return today;
+      return viewer.today;
     }
   });
   useEffect(() => {
@@ -119,36 +117,31 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
     }
   }, [storageKey, date]);
 
-  const { from, to } = getCalendarWindow(windowLayout, date, firstDayOfWeek, showWeekends);
+  const { from, to } = getCalendarWindow(windowLayout, date, viewer.weekStart, showWeekends);
   const calendarWindow = useMemo(() => ({ from, to }), [from, to]);
 
-  const {
-    rows,
-    isLoading,
-    isPlaceholderData,
-    isFetchingNextPage,
-    isError,
-    refetch,
-    isCapped,
-  } = useCalendarRowsQuery(pageId, {
-    filter: viewFilter,
-    datePropertyId: dateProperty?.id,
-    from,
-    to,
-  });
+  const { rows, total, isTruncated, isLoading, isFetching, isError, refetch } =
+    useCalendarWindowQuery(pageId, {
+      propertyId: dateProperty?.id,
+      kind: dateProperty ? dateKindOfProperty(dateProperty.type, dateProperty.typeOptions) : null,
+      from,
+      to,
+      filter: viewFilter,
+    });
 
   const untitledLabel = t("Untitled");
   const events = useMemo(
     () =>
       dateProperty
-        ? toScheduleEvents(rows, {
+        ? toCalendarEvents(rows, {
             property: dateProperty,
             primaryPropertyId,
             window: calendarWindow,
+            timeZone: viewer.timeZone,
             untitledLabel,
           })
         : [],
-    [rows, dateProperty, primaryPropertyId, calendarWindow, untitledLabel],
+    [rows, dateProperty, primaryPropertyId, calendarWindow, viewer.timeZone, untitledLabel],
   );
 
   const eventsByRowId = useMemo(
@@ -306,24 +299,18 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
 
   const handleNavigate = useCallback(
     (step: 1 | -1) =>
-      setDate((d) => {
-        const next = dayjs(d).add(step, unit);
-        return (unit === "month" ? next.startOf("month") : next).format("YYYY-MM-DD");
-      }),
+      setDate((d) => shiftCalendarDate(d, unit, step)),
     [unit],
   );
   const handleRetry = useCallback(() => {
     void refetch();
   }, [refetch]);
-  const handleToday = useCallback(() => setDate(dayjs().format("YYYY-MM-DD")), []);
+  const today = viewer.today;
+  const handleToday = useCallback(() => setDate(today), [today]);
   const handleLayoutChange = useCallback(
     (next: CalendarLayout) => {
       if (next === "week" && layout === "month") {
-        setDate((d) => {
-          const today = dayjs();
-          const weekAnchor = today.isSame(d, "month") ? today : dayjs(d).startOf("month");
-          return weekAnchor.format("YYYY-MM-DD");
-        });
+        setDate((d) => (today.slice(0, 7) === d.slice(0, 7) ? today : startOfMonth(d)));
       }
       if (!editable) {
         setLocalLayout(next);
@@ -331,7 +318,7 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
       }
       updateCalendarConfig({ layout: next });
     },
-    [layout, editable, updateCalendarConfig],
+    [layout, today, editable, updateCalendarConfig],
   );
 
   const [surfaceHeight, setSurfaceHeight] = useState(0);
@@ -358,6 +345,8 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
     content = <CalendarEmptyState base={base} view={view} pageId={pageId} />;
   } else if (isError && rows.length === 0) {
     content = <CalendarErrorFallback onRetry={handleRetry} />;
+  } else if (isLoading) {
+    content = <CalendarSkeleton layout={windowLayout} />;
   } else if (surfaceHeight > 0) {
     content = (
       <ErrorBoundary
@@ -403,6 +392,7 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
       <CalendarFrame
         embedded={embedded}
         surfaceRef={measureSurface}
+        busy={isFetching}
         header={
           dateProperty && (
             <CalendarHeader
@@ -411,8 +401,8 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
               calendarWindow={calendarWindow}
               layout={layout}
               withLayoutSwitch={!isMobile}
-              isLoading={isLoading || isPlaceholderData || isFetchingNextPage}
-              isCapped={isCapped}
+              isTruncated={isTruncated}
+              total={total}
               hasLoadError={isError && rows.length > 0}
               onRetry={handleRetry}
               onLayoutChange={handleLayoutChange}

@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import type { MonthViewProps, ScheduleEventData } from "@mantine/schedule";
 import { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
-import type { CalendarEventPayload } from "@/ee/base/services/calendar-events";
+import type { CalendarEventPayload } from "@/ee/base/services/calendar-adapter";
 import { getMonthEventDayRange } from "@/ee/base/services/calendar-date-math";
 import { systemAccessorFor } from "@/ee/base/property-types/property-type.registry";
 import { CardField } from "@/ee/base/components/kanban/card-field/card-field";

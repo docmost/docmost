@@ -1706,7 +1706,7 @@
   "Time slot": "Time slot",
   "No events": "No events",
   "Previous week": "Previous week",
-  "Showing the first {{limit}} events in this range": "Showing the first {{limit}} events in this range",
+  "Showing the first {{limit}} of {{total}} events in this range": "Showing the first {{limit}} of {{total}} events in this range",
   "Failed to load calendar": "Failed to load calendar",
   "This calendar has no date property yet.": "This calendar has no date property yet.",
   "Choose a date property to show records on the calendar.": "Choose a date property to show records on the calendar.",

@@ -30,12 +30,6 @@
   text-transform: uppercase;
 }
 
-.loaderSlot {
-  display: inline-flex;
-  justify-content: center;
-  width: 18px;
-}
-
 .notice {
   display: inline-flex;
   align-items: center;

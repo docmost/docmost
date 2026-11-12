@@ -8,6 +8,7 @@ type CalendarFrameProps = {
   embedded?: boolean;
   header?: ReactNode;
   surfaceRef?: Ref<HTMLDivElement>;
+  busy?: boolean;
   children: ReactNode;
 };
 
@@ -30,7 +31,13 @@ function containEventDrag(event: ReactDragEvent<HTMLDivElement>) {
   }
 }
 
-export function CalendarFrame({ embedded, header, surfaceRef, children }: CalendarFrameProps) {
+export function CalendarFrame({
+  embedded,
+  header,
+  surfaceRef,
+  busy,
+  children,
+}: CalendarFrameProps) {
   return (
     <div
       data-calendar-root
@@ -40,7 +47,7 @@ export function CalendarFrame({ embedded, header, surfaceRef, children }: Calend
       onDrop={containEventDrag}
     >
       <div className={classes.header}>{header}</div>
-      <div ref={surfaceRef} className={classes.surface}>
+      <div ref={surfaceRef} className={classes.surface} aria-busy={busy || undefined}>
         {children}
       </div>
     </div>

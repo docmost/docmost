@@ -10,8 +10,7 @@ import type {
   ScheduleEventData,
   ScheduleLabelsOverride,
 } from "@mantine/schedule";
-import type { CalendarEvent } from "@/ee/base/services/calendar-events";
-import type { CalendarWindow } from "@/ee/base/services/calendar-window";
+import type { CalendarEvent, CalendarWindow } from "@/ee/base/services/calendar-adapter";
 import {
   DateMove,
   DateResize,

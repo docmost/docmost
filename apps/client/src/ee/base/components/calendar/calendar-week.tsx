@@ -9,7 +9,7 @@ import type {
   ScheduleLabelsOverride,
   WeekViewProps,
 } from "@mantine/schedule";
-import type { CalendarEvent } from "@/ee/base/services/calendar-events";
+import type { CalendarEvent } from "@/ee/base/services/calendar-adapter";
 import {
   DateMove,
   DateResize,

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Button, Loader, SegmentedControl, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, SegmentedControl, Tooltip } from "@mantine/core";
 import {
   IconAlertCircle,
   IconAlertTriangle,
@@ -9,8 +9,8 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 import { CalendarLayout } from "@/ee/base/types/base.types";
-import type { CalendarWindow } from "@/ee/base/services/calendar-window";
-import { CALENDAR_ROW_CAP } from "@/ee/base/queries/calendar-rows-query";
+import type { CalendarWindow } from "@/ee/base/services/calendar-adapter";
+import { CALENDAR_WINDOW_LIMIT } from "@/ee/base/queries/calendar-window-query";
 import classes from "@/ee/base/styles/calendar.module.css";
 
 type CalendarHeaderProps = {
@@ -19,8 +19,8 @@ type CalendarHeaderProps = {
   calendarWindow: CalendarWindow;
   layout: CalendarLayout;
   withLayoutSwitch: boolean;
-  isLoading: boolean;
-  isCapped: boolean;
+  isTruncated: boolean;
+  total: number;
   hasLoadError: boolean;
   onRetry: () => void;
   onLayoutChange: (layout: CalendarLayout) => void;
@@ -36,8 +36,8 @@ export function CalendarHeader({
   calendarWindow,
   layout,
   withLayoutSwitch,
-  isLoading,
-  isCapped,
+  isTruncated,
+  total,
   hasLoadError,
   onRetry,
   onLayoutChange,
@@ -71,7 +71,6 @@ export function CalendarHeader({
         <div className={classes.title} aria-live="polite">
           {title}
         </div>
-        <span className={classes.loaderSlot}>{isLoading && <Loader size="xs" />}</span>
         {hasLoadError && (
           <span className={clsx(classes.notice, classes.loadErrorNotice)} role="status">
             <IconAlertCircle size={14} aria-hidden />
@@ -81,11 +80,12 @@ export function CalendarHeader({
             </Button>
           </span>
         )}
-        {isCapped && (
+        {isTruncated && (
           <span className={clsx(classes.notice, classes.capNotice)}>
             <IconAlertTriangle size={14} aria-hidden />
-            {t("Showing the first {{limit}} events in this range", {
-              limit: CALENDAR_ROW_CAP.toLocaleString(i18n.language),
+            {t("Showing the first {{limit}} of {{total}} events in this range", {
+              limit: CALENDAR_WINDOW_LIMIT.toLocaleString(i18n.language),
+              total: total.toLocaleString(i18n.language),
             })}
           </span>
         )}

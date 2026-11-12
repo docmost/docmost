@@ -13,7 +13,7 @@ import { IconPlus, IconSettings } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { IBase, IBaseView } from "@/ee/base/types/base.types";
 import { useUpdateCalendarConfig } from "@/ee/base/queries/base-view-query";
-import { getCalendarDateProperties } from "@/ee/base/services/calendar-events";
+import { getCalendarDateProperties } from "@/ee/base/services/calendar-adapter";
 import { useCreateCalendarDateProperty } from "@/ee/base/components/calendar/use-create-calendar-date-property";
 
 type CalendarSettingsMenuProps = {
