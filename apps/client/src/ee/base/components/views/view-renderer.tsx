@@ -1,6 +1,5 @@
 import { lazy, Suspense, useState } from "react";
 import { Table } from "@tanstack/react-table";
-import { Center, Loader } from "@mantine/core";
 import { ErrorBoundary } from "react-error-boundary";
 import {
   IBase,
@@ -13,6 +12,7 @@ import { BaseKanban } from "@/ee/base/components/kanban/base-kanban";
 import { BaseForm } from "@/ee/base/components/form/base-form";
 import { CalendarFrame } from "@/ee/base/components/calendar/calendar-frame";
 import { CalendarErrorFallback } from "@/ee/base/components/calendar/calendar-error-fallback";
+import { CalendarSkeleton } from "@/ee/base/components/calendar/calendar-skeleton";
 
 const loadBaseCalendar = () =>
   import("@/ee/base/components/calendar/base-calendar").then((m) => ({
@@ -42,10 +42,8 @@ function CalendarBoundary({ view, embedded, ...props }: CalendarBoundaryProps) {
     >
       <Suspense
         fallback={
-          <CalendarFrame embedded={embedded}>
-            <Center h="100%">
-              <Loader size="sm" />
-            </Center>
+          <CalendarFrame embedded={embedded} busy>
+            <CalendarSkeleton layout={view.config?.calendar?.layout ?? "month"} />
           </CalendarFrame>
         }
       >

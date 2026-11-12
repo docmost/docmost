@@ -4,30 +4,41 @@ import { DatePicker, TimePicker } from "@mantine/dates";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
+  INVALID_DATE,
+  instantToWall,
+  normalizeDateCell,
+  partKind,
+  type DateCell,
+  type DateKind,
+} from "@docmost/base-formula/client";
+import {
   DATE_FORMAT_LABELS,
   DATE_FORMATS,
   DateFormat,
-  DateValue,
-  dateValuesEqual,
-  formatDateValue,
-  isDateOnly,
-  localDateToYmd,
-  localPartsToInstant,
-  MAX_PICKER_DATE,
-  MIN_PICKER_DATE,
-  partToLocalYmd,
+  formatDateCell,
+  formatZoneLabel,
   resolveTimeFormat,
   TIME_FORMAT_LABELS,
-} from "@/ee/base/utils/date-value";
+  TimeFormat,
+} from "@/ee/base/utils/date-format";
+import {
+  dateCellsEqual,
+  MAX_PICKER_DATE,
+  MIN_PICKER_DATE,
+  partDayIn,
+} from "@/ee/base/utils/date-cell";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import {
+  DateEndpoint,
+  pickDay,
+  setTimeOfDay,
+} from "./date-edit";
 import classes from "./date-value-picker.module.css";
 
-type TimeFormat = "12h" | "24h";
-type Endpoint = "start" | "end";
-
 type DateValuePickerProps = {
-  value: DateValue | null;
-  onChange: (next: DateValue | null) => void;
-  defaultIncludeTime?: boolean;
+  value: DateCell | null;
+  kind: DateKind;
+  onChange: (next: DateCell | null) => void;
   dateFormat?: DateFormat;
   timeFormat?: TimeFormat;
   onPropertyFormatChange?: (patch: {
@@ -45,181 +56,140 @@ const SWITCH_CLASS_NAMES = {
   labelWrapper: classes.toggleLabelWrapper,
 };
 
-function partTime(part: string): string {
-  const date = new Date(part);
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-function moveToDay(part: string, ymd: string): string {
-  if (isDateOnly(part)) return ymd;
-  const date = new Date(part);
-  return localPartsToInstant(ymd, date.getHours(), date.getMinutes());
-}
-
-function isAfter(a: string, b: string): boolean {
-  return isDateOnly(a) ? a > b : Date.parse(a) > Date.parse(b);
-}
-
-function shiftInstant(part: string, ms: number): string {
-  return new Date(Date.parse(part) + ms).toISOString();
+function usableCell(
+  value: DateCell | null,
+  kind: DateKind,
+  timeZone: string,
+): DateCell | null {
+  if (!value) return null;
+  const parts = value.end ? [value.start, value.end] : [value.start];
+  return parts.every(
+    (part) => partKind(part) === kind && partDayIn(part, timeZone) !== null,
+  )
+    ? value
+    : null;
 }
 
 export function DateValuePicker({
   value,
+  kind,
   onChange,
-  defaultIncludeTime = false,
   dateFormat,
   timeFormat,
   onPropertyFormatChange,
 }: DateValuePickerProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
-  const [current, setCurrent] = useState(value);
+  const { timeZone, today } = useViewerDateContext();
+  const [current, setCurrent] = useState(() => usableCell(value, kind, timeZone));
   const [syncedValue, setSyncedValue] = useState(value);
-  const [pendingIncludeTime, setPendingIncludeTime] =
-    useState(defaultIncludeTime);
-  const [pendingEnd, setPendingEnd] = useState(false);
-  const [active, setActive] = useState<Endpoint>("start");
-  const [month, setMonth] = useState(() =>
-    value ? partToLocalYmd(value.start) : localDateToYmd(new Date()),
+  const [syncedKind, setSyncedKind] = useState(kind);
+  const [syncedZone, setSyncedZone] = useState(timeZone);
+  const [endOn, setEndOn] = useState(!!value?.end);
+  const [active, setActive] = useState<DateEndpoint>("start");
+  const [month, setMonth] = useState(
+    () => (current && partDayIn(current.start, timeZone)) || today,
   );
-  const [lastEnd, setLastEnd] = useState(value?.end ?? null);
+  const [lastEnd, setLastEnd] = useState(current?.end ?? null);
   const startButtonRef = useRef<HTMLButtonElement>(null);
 
-  if (!dateValuesEqual(value, syncedValue)) {
+  if (
+    !dateCellsEqual(value, syncedValue) ||
+    kind !== syncedKind ||
+    timeZone !== syncedZone
+  ) {
     setSyncedValue(value);
-    setCurrent(value);
+    setSyncedKind(kind);
+    setSyncedZone(timeZone);
+    setCurrent(usableCell(value, kind, timeZone));
+    if (value?.end) setEndOn(true);
   }
   if (current?.end && current.end !== lastEnd) {
     setLastEnd(current.end);
   }
 
-  const includeTime = current ? !isDateOnly(current.start) : pendingIncludeTime;
-  const endEnabled = current ? !!current.end : pendingEnd;
-  const activeEndpoint: Endpoint = endEnabled ? active : "start";
+  const includeTime = kind === "datetime";
+  const activeEndpoint: DateEndpoint = endOn ? active : "start";
   const resolvedDateFormat: DateFormat = DATE_FORMATS.includes(dateFormat)
     ? dateFormat
     : "medium";
   const resolvedTimeFormat = resolveTimeFormat(timeFormat, locale);
-  const todayYmd = localDateToYmd(new Date());
-  const startYmd = current ? partToLocalYmd(current.start) : null;
-  const endYmd = current?.end ? partToLocalYmd(current.end) : null;
+  const startYmd = current ? partDayIn(current.start, timeZone) : null;
+  const endYmd =
+    current && endOn
+      ? partDayIn(current.end ?? current.start, timeZone)
+      : null;
 
-  const emit = (next: DateValue | null) => {
-    if (dateValuesEqual(next, current)) return;
-    setCurrent(next);
-    onChange(next);
+  const emit = (next: DateCell | null) => {
+    if (next === null) {
+      if (current === null) return;
+      setCurrent(null);
+      onChange(null);
+      return;
+    }
+    const normalized = normalizeDateCell(next, kind);
+    if (normalized === INVALID_DATE || normalized === null) return;
+    if (dateCellsEqual(normalized, current)) return;
+    setCurrent(normalized);
+    onChange(normalized);
   };
 
-  const activate = (endpoint: Endpoint) => {
+  const activate = (endpoint: DateEndpoint) => {
     setActive(endpoint);
     const part = endpoint === "start" ? current?.start : current?.end;
-    if (part) setMonth(partToLocalYmd(part));
+    const day = part ? partDayIn(part, timeZone) : null;
+    if (day) setMonth(day);
   };
 
   const selectDay = (ymd: string) => {
-    if (!current) {
-      const start = includeTime ? localPartsToInstant(ymd, 9, 0) : ymd;
-      if (!endEnabled) {
-        emit({ start });
-        return;
-      }
-      emit({ start, end: includeTime ? shiftInstant(start, HOUR_MS) : start });
-      setActive("end");
+    try {
+      emit(
+        pickDay({
+          current,
+          kind,
+          endpoint: activeEndpoint,
+          withEnd: endOn,
+          ymd,
+          zone: timeZone,
+        }),
+      );
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
       return;
     }
-    if (!current.end) {
-      emit({ start: moveToDay(current.start, ymd) });
-      return;
-    }
-    if (activeEndpoint === "start") {
-      const start = moveToDay(current.start, ymd);
-      emit({ start, end: isAfter(start, current.end) ? start : current.end });
-      setActive("end");
-      return;
-    }
-    if (ymd < startYmd) {
-      emit({ start: moveToDay(current.start, ymd), end: current.end });
-      return;
-    }
-    const end = moveToDay(current.end, ymd);
-    emit({
-      start: current.start,
-      end: isAfter(current.start, end) ? current.start : end,
-    });
-  };
-
-  const toggleIncludeTime = (on: boolean) => {
-    if (!current) {
-      setPendingIncludeTime(on);
-      return;
-    }
-    if (on === includeTime) return;
-    const convert = (part: string, hour: number) => {
-      const ymd = partToLocalYmd(part);
-      return on ? localPartsToInstant(ymd, hour, 0) : ymd;
-    };
-    emit(
-      current.end
-        ? { start: convert(current.start, 9), end: convert(current.end, 10) }
-        : { start: convert(current.start, 9) },
-    );
+    if (endOn && activeEndpoint === "start") setActive("end");
   };
 
   const toggleEnd = (on: boolean) => {
-    if (!current) {
-      setPendingEnd(on);
-      return;
-    }
-    if (on === !!current.end) return;
+    if (on === endOn) return;
+    setEndOn(on);
     setActive(on ? "end" : "start");
+    if (!current) return;
     if (!on) {
-      emit({ start: current.start });
+      if (current.end) emit({ start: current.start });
       return;
     }
-    emit({
-      start: current.start,
-      end: isDateOnly(current.start)
-        ? current.start
-        : shiftInstant(current.start, HOUR_MS),
-    });
+    if (kind === "datetime" && !current.end) {
+      emit({
+        start: current.start,
+        end: new Date(Date.parse(current.start) + HOUR_MS).toISOString(),
+      });
+    }
   };
 
-  const commitTime = (endpoint: Endpoint, hours: number, minutes: number) => {
-    if (!current || isDateOnly(current.start)) return;
-    if (endpoint === "start") {
-      const start = localPartsToInstant(
-        partToLocalYmd(current.start),
-        hours,
-        minutes,
-      );
-      if (!current.end) {
-        emit({ start });
-        return;
-      }
-      const delta = Date.parse(start) - Date.parse(current.start);
-      emit({ start, end: shiftInstant(current.end, delta) });
-      return;
+  const commitTime = (endpoint: DateEndpoint, hour: number, minute: number) => {
+    if (!current || !includeTime) return;
+    try {
+      emit(setTimeOfDay({ current, endpoint, hour, minute, zone: timeZone }));
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
     }
-    if (!current.end) return;
-    const end = localPartsToInstant(
-      partToLocalYmd(current.end),
-      hours,
-      minutes,
-    );
-    emit({
-      start: current.start,
-      end: isAfter(current.start, end) ? current.start : end,
-    });
   };
 
   const clear = () => {
-    setPendingIncludeTime(includeTime);
-    setPendingEnd(endEnabled);
     setActive("start");
-    emit(null);
+    setCurrent(null);
+    if (value !== null) onChange(null);
     startButtonRef.current?.focus();
   };
 
@@ -227,7 +197,7 @@ export function DateValuePicker({
 
   const getDayProps = (date: string) => {
     if (!startYmd) {
-      return date === todayYmd ? { "data-autofocus": true } : {};
+      return date === today ? { "data-autofocus": true } : {};
     }
     if (!endYmd) return { selected: date === startYmd };
     return {
@@ -240,10 +210,12 @@ export function DateValuePicker({
   };
 
   const fieldProps = {
-    paired: endEnabled,
+    paired: endOn,
     dateFormat: resolvedDateFormat,
     timeFormat: resolvedTimeFormat,
     locale,
+    timeZone,
+    today,
   };
 
   return (
@@ -262,7 +234,7 @@ export function DateValuePicker({
           }
         />
         <Collapse
-          expanded={endEnabled}
+          expanded={endOn}
           transitionDuration={COLLAPSE_MS}
           keepMounted={false}
         >
@@ -271,7 +243,7 @@ export function DateValuePicker({
               {...fieldProps}
               label={t("End")}
               timeLabel={t("End time")}
-              part={current?.end ?? (endEnabled ? null : lastEnd)}
+              part={current?.end ?? (endOn ? (current?.start ?? null) : lastEnd)}
               active={activeEndpoint === "end"}
               onActivate={() => activate("end")}
               onTimeCommit={(hours, minutes) =>
@@ -318,16 +290,8 @@ export function DateValuePicker({
           size="xs"
           labelPosition="left"
           label={t("End date")}
-          checked={endEnabled}
+          checked={endOn}
           onChange={(event) => toggleEnd(event.currentTarget.checked)}
-          classNames={SWITCH_CLASS_NAMES}
-        />
-        <Switch
-          size="xs"
-          labelPosition="left"
-          label={t("Include time")}
-          checked={includeTime}
-          onChange={(event) => toggleIncludeTime(event.currentTarget.checked)}
           classNames={SWITCH_CLASS_NAMES}
         />
       </div>
@@ -340,9 +304,9 @@ export function DateValuePicker({
             options={DATE_FORMATS.map((format) => ({
               value: format,
               label: t(DATE_FORMAT_LABELS[format]),
-              example: formatDateValue(
-                { start: todayYmd },
-                { dateFormat: format, locale },
+              example: formatDateCell(
+                { start: today },
+                { dateFormat: format, locale, timeZone, today },
               ),
             }))}
             onChange={(format) => onPropertyFormatChange({ dateFormat: format })}
@@ -367,7 +331,7 @@ export function DateValuePicker({
         </div>
       )}
 
-      {current && (
+      {(current || value) && (
         <div className={classes.section}>
           <UnstyledButton className={classes.row} onClick={clear}>
             {t("Clear")}
@@ -387,6 +351,8 @@ type DateFieldProps = {
   dateFormat: DateFormat;
   timeFormat: TimeFormat;
   locale: string;
+  timeZone: string;
+  today: string;
   buttonRef?: Ref<HTMLButtonElement>;
   onActivate: () => void;
   onTimeCommit: (hours: number, minutes: number) => void;
@@ -401,17 +367,24 @@ function DateField({
   dateFormat,
   timeFormat,
   locale,
+  timeZone,
+  today,
   buttonRef,
   onActivate,
   onTimeCommit,
 }: DateFieldProps) {
   const { t } = useTranslation();
-  const text = part
-    ? formatDateValue(
-        { start: partToLocalYmd(part) },
-        { dateFormat, locale },
+  const day = part ? partDayIn(part, timeZone) : null;
+  const text = day
+    ? formatDateCell(
+        { start: day },
+        { dateFormat, locale, timeZone, today },
       )
     : "";
+  const zone =
+    part && day && partKind(part) === "datetime"
+      ? formatZoneLabel(part, timeZone, locale)
+      : null;
 
   return (
     <div className={classes.field} data-active={active || undefined}>
@@ -428,14 +401,20 @@ function DateField({
           {text || label}
         </span>
       </UnstyledButton>
-      {part && !isDateOnly(part) && (
-        <TimeField
-          part={part}
-          format={timeFormat}
-          label={timeLabel}
-          onFocus={onActivate}
-          onCommit={onTimeCommit}
-        />
+      {part && zone !== null && (
+        <>
+          <TimeField
+            part={part}
+            format={timeFormat}
+            timeZone={timeZone}
+            label={t("{{label}}, {{zone}}", { label: timeLabel, zone })}
+            onFocus={onActivate}
+            onCommit={onTimeCommit}
+          />
+          <span className={classes.zone} title={timeZone} aria-hidden>
+            {zone}
+          </span>
+        </>
       )}
     </div>
   );
@@ -444,14 +423,23 @@ function DateField({
 type TimeFieldProps = {
   part: string;
   format: TimeFormat;
+  timeZone: string;
   label: string;
   onFocus: () => void;
   onCommit: (hours: number, minutes: number) => void;
 };
 
-function TimeField({ part, format, label, onFocus, onCommit }: TimeFieldProps) {
+function TimeField({
+  part,
+  format,
+  timeZone,
+  label,
+  onFocus,
+  onCommit,
+}: TimeFieldProps) {
   const { t } = useTranslation();
-  const committed = partTime(part);
+  const wall = instantToWall(part, timeZone);
+  const committed = `${String(wall.hour).padStart(2, "0")}:${String(wall.minute).padStart(2, "0")}`;
   const [draft, setDraft] = useState(committed);
   const [syncedTime, setSyncedTime] = useState(committed);
   const [resetKey, setResetKey] = useState(0);

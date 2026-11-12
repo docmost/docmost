@@ -6,6 +6,7 @@ import {
   SegmentedControl,
 } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
+import { isYmd, resolveOperand } from "@docmost/base-formula/client";
 import { IconChevronDown } from "@tabler/icons-react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
@@ -13,11 +14,11 @@ import type {
   DateFilterValue,
   FilterOperator,
 } from "@/ee/base/types/base.types";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import { formatDateCell } from "@/ee/base/utils/date-format";
 import {
   DATE_ANCHOR_PRESETS,
   DATE_RANGE_PRESETS,
-  ANCHOR_VALUES,
-  RANGE_VALUES,
 } from "./relative-date-presets";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
@@ -36,40 +37,18 @@ const RANGE_LABEL: Record<string, string> = Object.fromEntries(
   DATE_RANGE_PRESETS.map((p) => [p.value, p.labelKey]),
 );
 
-function asDateValue(value: unknown): DateFilterValue | null {
-  if (!value || typeof value !== "object") return null;
-  return value as DateFilterValue;
-}
-
-function toISODate(d: string | null): string | null {
-  if (!d) return null;
-  // Already a date-only ISO string (Mantine v8 emits these) — pass through to
-  // avoid a UTC-parse + local-getter round-trip that shifts the day west of UTC.
-  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-  const date = new Date(d);
-  if (isNaN(date.getTime())) return null;
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 export function FilterDateInput({ op, value, onChange }: FilterDateInputProps) {
-  const { t } = useTranslation();
-  const current = asDateValue(value);
+  const { t, i18n } = useTranslation();
+  const { timeZone, weekStart, today } = useViewerDateContext();
+  const bounds = resolveOperand(value, today, weekStart);
+  const current = bounds ? (value as DateFilterValue) : null;
 
   const [opened, setOpened] = useState(false);
   const [localMode, setLocalMode] = useState<Mode>("exact");
 
-  const exactDate = current?.mode === "exact" ? toISODate(current.date) : null;
-  const anchor =
-    current?.mode === "relative" && ANCHOR_VALUES.has(current.preset)
-      ? current.preset
-      : null;
-  const range =
-    current?.mode === "range" && RANGE_VALUES.has(current.preset)
-      ? current.preset
-      : null;
+  const day = current?.mode === "exact" && bounds ? bounds.from : null;
+  const anchor = current?.mode === "relative" ? current.preset : null;
+  const range = current?.mode === "range" ? current.preset : null;
 
   const valueMode: Mode | null =
     current?.mode === "relative"
@@ -81,8 +60,12 @@ export function FilterDateInput({ op, value, onChange }: FilterDateInputProps) {
 
   let triggerLabel: string | null = null;
   if (op === "isWithin") triggerLabel = range ? t(RANGE_LABEL[range]) : null;
-  else if (exactDate) triggerLabel = exactDate;
-  else if (anchor) triggerLabel = t(ANCHOR_LABEL[anchor]);
+  else if (day) {
+    triggerLabel = formatDateCell(
+      { start: day },
+      { dateFormat: "medium", locale: i18n.language, timeZone, today },
+    );
+  } else if (anchor) triggerLabel = t(ANCHOR_LABEL[anchor]);
 
   // Consume Escape locally so the outer filter popover (bubble handler) keeps
   // the panel open and only this picker closes.
@@ -170,13 +153,23 @@ export function FilterDateInput({ op, value, onChange }: FilterDateInputProps) {
             />
             {mode === "exact" ? (
               <DatePicker
-                value={exactDate}
+                value={day}
+                defaultDate={day ?? today}
                 onChange={(d) => {
-                  const iso = toISODate(d);
-                  onChange(iso ? { mode: "exact", date: iso } : undefined);
+                  onChange(d && isYmd(d) ? { mode: "exact", date: d } : undefined);
                   setOpened(false);
                 }}
                 size="sm"
+                ariaLabels={{
+                  previousMonth: t("Previous month"),
+                  nextMonth: t("Next month"),
+                  previousYear: t("Previous year"),
+                  nextYear: t("Next year"),
+                  previousDecade: t("Previous decade"),
+                  nextDecade: t("Next decade"),
+                  monthLevelControl: t("Choose month"),
+                  yearLevelControl: t("Choose year"),
+                }}
               />
             ) : (
               <div className={cellClasses.selectDropdown}>

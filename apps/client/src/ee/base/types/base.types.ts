@@ -1,5 +1,6 @@
 import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
-import type { DateFormat } from "@/ee/base/utils/date-value";
+import type { DateFormat } from "@/ee/base/utils/date-format";
+import type { DateOperand } from "@docmost/base-formula/client";
 
 export type UserRef = { id: string; name: string | null; avatarUrl: string | null };
 export type RowReferences = {
@@ -66,7 +67,6 @@ export type DateTypeOptions = {
   dateFormat?: DateFormat;
   timeFormat?: '12h' | '24h';
   includeTime?: boolean;
-  defaultValue?: string | null;
 };
 
 export type TextTypeOptions = {
@@ -163,31 +163,11 @@ export type FilterOperator =
   | 'all'
   | 'isWithin';
 
-export type DateFilterAnchor =
-  | 'today'
-  | 'tomorrow'
-  | 'yesterday'
-  | 'oneWeekAgo'
-  | 'oneWeekFromNow'
-  | 'oneMonthAgo'
-  | 'oneMonthFromNow';
+export type DateFilterAnchor = Extract<DateOperand, { mode: 'relative' }>['preset'];
 
-export type DateFilterRange =
-  | 'pastWeek'
-  | 'pastMonth'
-  | 'pastYear'
-  | 'thisWeek'
-  | 'thisMonth'
-  | 'thisYear'
-  | 'nextWeek'
-  | 'nextMonth'
-  | 'nextYear';
+export type DateFilterRange = Extract<DateOperand, { mode: 'range' }>['preset'];
 
-export type DateFilterValue =
-  | { mode: 'exact'; date: string }
-  | { mode: 'relative'; preset: DateFilterAnchor }
-  | { mode: 'range'; preset: DateFilterRange }
-  | { mode: 'exactRange'; from: string; to: string };
+export type DateFilterValue = DateOperand;
 
 export type FilterCondition = {
   propertyId: string;
@@ -298,6 +278,8 @@ export type PublicFormField = {
   numberFormat?: PublicFormNumberFormat;
   allowMultiple?: boolean;
   includeTime?: boolean;
+  dateFormat?: DateFormat;
+  timeFormat?: '12h' | '24h';
 };
 
 export type PublicForm = {
@@ -330,12 +312,14 @@ export type PublicFormResponse =
 export type SubmitPublicFormInput = {
   key: string;
   answers: Record<string, unknown>;
+  timeZone?: string;
 };
 
 export type SubmitFormPreviewInput = {
   pageId: string;
   viewId: string;
   answers: Record<string, unknown>;
+  timeZone?: string;
 };
 
 export type ViewConfigPatch = {
@@ -374,6 +358,7 @@ export type IBase = {
     hasRestriction: boolean;
   };
   baseSchemaVersion: number;
+  baseTimeZone?: string | null;
 };
 
 export type CellCoord = {
@@ -398,6 +383,7 @@ export type UpdateBaseInput = {
   name?: string;
   description?: string;
   icon?: string;
+  timeZone?: string;
 };
 
 export type CreatePropertyInput = {

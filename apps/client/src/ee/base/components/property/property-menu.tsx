@@ -10,6 +10,7 @@ import {
   Divider,
   ScrollArea,
   Loader,
+  Select,
 } from "@mantine/core";
 import {
   IconTrash,
@@ -39,10 +40,16 @@ import {
 } from "./conversion-warning";
 import { useTranslation } from "react-i18next";
 import {
+  isPropertyConverting,
   isSystemPropertyType,
   propertyTypes,
   defaultTypeOptionsFor,
 } from "@/ee/base/property-types/property-type.registry";
+import {
+  DATE_FORMATS,
+  DATE_FORMAT_LABELS,
+  type DateFormat,
+} from "@/ee/base/utils/date-format";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import classes from "@/ee/base/styles/property.module.css";
 
@@ -107,6 +114,7 @@ export function PropertyMenuContent({
   // Portal target for nested Select dropdowns to avoid triggering closeOnClickOutside.
   const [optionsAnchor, setOptionsAnchor] = useState<HTMLDivElement | null>(null);
   const [pendingTargetType, setPendingTargetType] = useState<BasePropertyType | null>(null);
+  const [targetDateFormat, setTargetDateFormat] = useState<DateFormat | null>(null);
   const pendingActionRef = useRef<"back" | "close" | null>(null);
   const sourcePanelRef = useRef<"rename" | "options" | null>(null);
   const [closeRequest] = useAtom(propertyMenuCloseRequestAtomFamily(pageId)) as unknown as [number];
@@ -123,6 +131,7 @@ export function PropertyMenuContent({
       setRenameValue(property.name);
       setOptionsDirty(false);
       setPendingTargetType(null);
+      setTargetDateFormat(null);
     }
   }, [opened, property.name, initialPanel]);
 
@@ -207,6 +216,7 @@ export function PropertyMenuContent({
         return;
       }
       setPendingTargetType(type);
+      setTargetDateFormat(null);
       setPanel("confirmTypeChange");
     },
     [property.type, onClose],
@@ -214,14 +224,18 @@ export function PropertyMenuContent({
 
   const handleApplyTypeChange = useCallback(() => {
     if (!pendingTargetType) return;
+    const typeOptions = typeOptionsForConversion(property, pendingTargetType);
     updatePropertyMutation.mutate({
       propertyId: property.id,
       pageId: property.pageId,
       type: pendingTargetType,
-      typeOptions: typeOptionsForConversion(property, pendingTargetType),
+      typeOptions:
+        pendingTargetType === "date" && targetDateFormat
+          ? { ...typeOptions, dateFormat: targetDateFormat }
+          : typeOptions,
     });
     onClose();
-  }, [pendingTargetType, property, updatePropertyMutation, onClose]);
+  }, [pendingTargetType, targetDateFormat, property, updatePropertyMutation, onClose]);
 
   const handleDelete = useCallback(() => {
     deletePropertyMutation.mutate({
@@ -350,6 +364,22 @@ export function PropertyMenuContent({
           <Text size="xs" c="dimmed">
             {t(conversionWarning(property.type, pendingTargetType))}
           </Text>
+          {pendingTargetType === "date" && (
+            <Select
+              size="xs"
+              label={t("Date format")}
+              description={t("Also used to read dates like 03/04/2026")}
+              placeholder={t(DATE_FORMAT_LABELS.medium)}
+              clearable
+              comboboxProps={{ withinPortal: false }}
+              data={DATE_FORMATS.map((format) => ({
+                value: format,
+                label: t(DATE_FORMAT_LABELS[format]),
+              }))}
+              value={targetDateFormat}
+              onChange={(value) => setTargetDateFormat(value as DateFormat | null)}
+            />
+          )}
           <Group gap="xs" justify="flex-end">
             <Button
               variant="default"
@@ -511,7 +541,7 @@ function MainPanel({
   const { t } = useTranslation();
 
   const isSystem = isSystemPropertyType(property.type);
-  const isPending = property.pendingType != null;
+  const isPending = isPropertyConverting(property);
 
   const hasOptions =
     !isSystem &&

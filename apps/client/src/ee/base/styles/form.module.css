@@ -138,6 +138,32 @@
   color: var(--form-muted);
 }
 
+.fieldRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fieldRoot .field {
+  margin: 0;
+}
+
+.fieldRoot .questionDescription {
+  margin-top: -7px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--form-muted);
+}
+
+.fieldRoot .errorText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--mantine-color-error);
+}
+
 [data-mantine-color-scheme] .field[data-variant='default'] {
   --input-bd: var(--form-border);
   --input-bg: var(--form-surface);

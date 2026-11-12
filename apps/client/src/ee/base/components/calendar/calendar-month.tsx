@@ -1,6 +1,5 @@
 import { MouseEvent, memo, useCallback, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "@mantine/hooks";
 import { MobileMonthView, MonthView } from "@mantine/schedule";
@@ -10,17 +9,18 @@ import type {
   ScheduleEventData,
   ScheduleLabelsOverride,
 } from "@mantine/schedule";
-import type { CalendarEvent } from "@/ee/base/services/calendar-events";
-import type { CalendarWindow } from "@/ee/base/services/calendar-window";
+import { addDays, type DateCell, type DateKind } from "@docmost/base-formula/client";
 import {
-  DateMove,
-  DateResize,
-  DayRange,
-  dayToDateValue,
-  getMonthEventDayRange,
-  slotSelectionToDateValue,
-} from "@/ee/base/services/calendar-date-math";
-import type { DateValue } from "@/ee/base/utils/date-value";
+  CalendarDayRange,
+  CalendarEvent,
+  CalendarResizeEdge,
+  CalendarWindow,
+  createOnDays,
+  dropOnMonth,
+  eventDayRange,
+  isStaleCalendarEvent,
+  resizeOnMonth,
+} from "@/ee/base/services/calendar-adapter";
 import {
   CALENDAR_OVERLAY_Z_INDEX,
   CalendarEventDisplay,
@@ -83,23 +83,18 @@ function useDayProps(
   events: CalendarEvent[],
   calendarWindow: CalendarWindow,
   createProps?: Record<string, unknown>,
-  resizeRange?: DayRange | null,
+  resizeRange?: CalendarDayRange | null,
 ) {
   const { t, i18n } = useTranslation();
 
   const eventCountByDay = useMemo(() => {
     const counts = new Map<string, number>();
     for (const event of events) {
-      const [startDay, endDay] = getMonthEventDayRange(event.start, event.end);
+      const [startDay, endDay] = eventDayRange(event);
       const firstDay = startDay < calendarWindow.from ? calendarWindow.from : startDay;
       const lastDay = endDay < calendarWindow.to ? endDay : calendarWindow.to;
-      for (
-        let day = dayjs(firstDay);
-        !day.isAfter(lastDay, "day");
-        day = day.add(1, "day")
-      ) {
-        const key = day.format("YYYY-MM-DD");
-        counts.set(key, (counts.get(key) ?? 0) + 1);
+      for (let day = firstDay; day <= lastDay; day = addDays(day, 1)) {
+        counts.set(day, (counts.get(day) ?? 0) + 1);
       }
     }
     return counts;
@@ -131,9 +126,10 @@ type CalendarMonthProps = CalendarMonthSharedProps & {
   height: number;
   showWeekends: boolean;
   overlaysDisabled: boolean;
-  onEventMove?: (eventId: string, move: DateMove) => void;
-  onEventResize?: (eventId: string, resize: DateResize) => void;
-  onCreate?: (value: DateValue) => void;
+  kind: DateKind;
+  onEventMove?: (rowId: string, next: DateCell) => void;
+  onEventResize?: (rowId: string, next: DateCell) => void;
+  onCreate?: (value: DateCell) => void;
 };
 
 export const CalendarMonth = memo(function CalendarMonth({
@@ -146,6 +142,7 @@ export const CalendarMonth = memo(function CalendarMonth({
   overlaysDisabled,
   labels,
   display,
+  kind,
   onEventClick,
   onEventMove,
   onEventResize,
@@ -163,18 +160,36 @@ export const CalendarMonth = memo(function CalendarMonth({
   const grabbedDayRef = useRef<string | null>(null);
   const lastClickPointerTypeRef = useRef<string | undefined>(undefined);
   const [isDraggingEvent, setIsDraggingEvent] = useState(false);
+  const { timeZone } = display;
+  const handleResize = useCallback(
+    (event: CalendarEvent, edge: CalendarResizeEdge, toDay: string) => {
+      if (isStaleCalendarEvent(event, kind)) return;
+      const next = resizeOnMonth(event, edge, toDay, timeZone);
+      if (next) onEventResize?.(event.id, next);
+    },
+    [onEventResize, kind, timeZone],
+  );
   const { resizeRange, isResizing, resizeIntentRef, wasResizing, startResize } =
-    useCalendarMonthResize(rootRef, onEventResize);
+    useCalendarMonthResize(rootRef, handleResize);
   const canResize = !!onEventResize && finePointer;
+
+  const createOnDayRange = useCallback(
+    (rangeStart: string, rangeEnd: string) => {
+      if (!onCreate) return;
+      const value = createOnDays(kind, rangeStart, rangeEnd, timeZone);
+      if (value) onCreate(value);
+    },
+    [onCreate, kind, timeZone],
+  );
 
   const handleDayDoubleClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       const day = event.currentTarget.dataset.calendarDate;
       if (day && !isAddAffordanceHit(event, alwaysShowAdd, lastClickPointerTypeRef.current)) {
-        onCreate?.(dayToDateValue(day));
+        createOnDayRange(day, day);
       }
     },
-    [onCreate, alwaysShowAdd],
+    [createOnDayRange, alwaysShowAdd],
   );
   const createDayProps = useMemo(
     () =>
@@ -196,25 +211,19 @@ export const CalendarMonth = memo(function CalendarMonth({
         event.detail === 0 ||
         (event.detail === 1 && isAddAffordanceHit(event, alwaysShowAdd, pointerType))
       ) {
-        onCreate?.(dayToDateValue(day));
+        createOnDayRange(day, day);
       }
     },
-    [onCreate, alwaysShowAdd],
-  );
-
-  const handleSlotDragEnd = useCallback(
-    (rangeStart: string, rangeEnd: string) =>
-      onCreate?.(slotSelectionToDateValue(rangeStart, rangeEnd, false)),
-    [onCreate],
+    [createOnDayRange, alwaysShowAdd],
   );
 
   const handleEventDrop = useCallback(
-    ({ eventId, newStart, event }: MonthEventDrop) =>
-      onEventMove?.(String(eventId), {
-        fromDay: grabbedDayRef.current ?? dayjs(event.start).format("YYYY-MM-DD"),
-        toDay: newStart.slice(0, 10),
-      }),
-    [onEventMove],
+    ({ eventId, newStart, event }: MonthEventDrop) => {
+      if (isStaleCalendarEvent(event as CalendarEvent, kind)) return;
+      const next = dropOnMonth(event as CalendarEvent, newStart, grabbedDayRef.current, timeZone);
+      if (next) onEventMove?.(String(eventId), next);
+    },
+    [onEventMove, kind, timeZone],
   );
 
   const handleEventClick = useCallback(
@@ -263,7 +272,9 @@ export const CalendarMonth = memo(function CalendarMonth({
         withPreview={canHover}
         previewDisabled={isDraggingEvent || isResizing || overlaysDisabled}
         onResizeStart={
-          canResize ? (edge, pointerEvent) => startResize(event, edge, pointerEvent) : undefined
+          canResize
+            ? (edge, pointerEvent) => startResize(event as CalendarEvent, edge, pointerEvent)
+            : undefined
         }
       />
     ),
@@ -315,7 +326,7 @@ export const CalendarMonth = memo(function CalendarMonth({
       getDayProps={getDayProps}
       onDayClick={onCreate ? handleDayClick : undefined}
       withDragSlotSelect={!!onCreate && finePointer}
-      onSlotDragEnd={handleSlotDragEnd}
+      onSlotDragEnd={createOnDayRange}
       withEventsDragAndDrop={!!onEventMove}
       onEventDrop={handleEventDrop}
       onEventDragStart={handleEventDragStart}

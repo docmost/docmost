@@ -26,6 +26,7 @@ import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { SpaceTreeNode } from "@/features/page/tree/types";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom";
+import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
 
 export function useBaseQuery(
   pageId: string | undefined,
@@ -97,11 +98,21 @@ export function useUpdateBaseMutation() {
   const { t } = useTranslation();
   return useMutation<IBase, Error, UpdateBaseInput>({
     mutationFn: (data) => updateBase(data),
-    onSuccess: (data) => {
-      queryClient.setQueryData<IBase>(["bases", data.id], (old) => {
+    onSuccess: (data, variables) => {
+      const cached = queryClient.getQueryData<IBase>(["bases", variables.pageId]);
+      queryClient.setQueryData<IBase>(["bases", variables.pageId], (old) => {
         if (!old) return old;
-        return { ...old, ...data };
+        return {
+          ...old,
+          ...data,
+          properties: old.properties,
+          views: old.views,
+          permissions: old.permissions,
+        };
       });
+      if (cached && (data.baseTimeZone ?? null) !== (cached.baseTimeZone ?? null)) {
+        scheduleRowsRefresh(variables.pageId, "all");
+      }
     },
     onError: (error) => {
       notifications.show({

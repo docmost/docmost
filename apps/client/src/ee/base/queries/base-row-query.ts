@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   InfiniteData,
   QueryKey,
+  hashKey,
 } from "@tanstack/react-query";
 import {
   createRow,
@@ -36,6 +37,11 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { useHydrateReferences } from "@/ee/base/reference/reference-store";
 import { markRequestIdOutbound } from "@/ee/base/hooks/use-base-socket";
 import { v7 as uuid7 } from "uuid";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import type { ViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import { rowsDateKey } from "@/ee/base/queries/rows-date-key";
+import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
+import { notifyRowsZone } from "@/ee/base/queries/rows-zone-notice";
 import {
   BASE_ROW_MUTATION_KEY,
   beginRowUpdate,
@@ -68,10 +74,6 @@ export function newRequestId(): string {
   return id;
 }
 
-const CANCELLED_REFRESH_QUIET_MS = 2000;
-
-const cancelledRowRefreshes = new Map<string, "calendar" | "all">();
-
 function isFetchingLoadedRows(pageId: string, calendar: boolean) {
   return (
     queryClient.isFetching({
@@ -90,50 +92,78 @@ function cancelLoadedBaseRows(pageId: string) {
     : isFetchingLoadedRows(pageId, true)
       ? "calendar"
       : undefined;
-  if (scope) {
-    const pending = cancelledRowRefreshes.get(pageId);
-    if (pending !== "all") cancelledRowRefreshes.set(pageId, scope);
-    if (!pending) {
-      let quietTimer: ReturnType<typeof setTimeout> | undefined;
-      const unsubscribe = queryClient.getMutationCache().subscribe(() => {
-        const mutatingRows = queryClient.isMutating({
-          mutationKey: BASE_ROW_MUTATION_KEY,
-          predicate: (mutation) =>
-            (mutation.state.variables as { pageId?: string } | undefined)
-              ?.pageId === pageId,
-        });
-        if (mutatingRows > 0) {
-          clearTimeout(quietTimer);
-          quietTimer = undefined;
-          return;
-        }
-        if (quietTimer !== undefined) return;
-        quietTimer = setTimeout(() => {
-          unsubscribe();
-          const refresh = cancelledRowRefreshes.get(pageId);
-          cancelledRowRefreshes.delete(pageId);
-          if (refresh === "all") invalidateBaseRows(pageId);
-          else invalidateCalendarRows(pageId);
-        }, CANCELLED_REFRESH_QUIET_MS);
-      });
-    }
-  }
+  if (scope) scheduleRowsRefresh(pageId, scope);
   return queryClient.cancelQueries({
     queryKey: ["base-rows", pageId],
     predicate: (query) => query.state.data !== undefined,
   });
 }
 
+function filterPropertyIds(filter: FilterNode | undefined): string[] {
+  if (!filter) return [];
+  if ("children" in filter) return filter.children.flatMap(filterPropertyIds);
+  return [filter.propertyId];
+}
+
+const EVERY_EDIT_TYPES = new Set(["formula", "lastEditedAt", "lastEditedBy"]);
+
+export function rowsOrderDependsOn(
+  pageId: string,
+  changedPropertyIds: readonly string[] | "any",
+  base: IBase | undefined,
+): boolean {
+  const propertyTypes = new Map(
+    (base?.properties ?? []).map((property) => [property.id, property.type]),
+  );
+  let dependsOn = false;
+  for (const query of queryClient.getQueryCache().findAll({
+    queryKey: ["base-rows", pageId],
+    predicate: (query) => query.queryKey[2] !== "calendar",
+  })) {
+    const filter = query.queryKey[2] as FilterNode | undefined;
+    const sorts = query.queryKey[3] as ViewSortConfig[] | undefined;
+    const referenced = [
+      ...filterPropertyIds(filter),
+      ...(sorts ?? []).map((sort) => sort.propertyId),
+    ];
+    const affected =
+      referenced.length > 0 &&
+      (changedPropertyIds === "any" ||
+        referenced.some((id) => {
+          const type = propertyTypes.get(id);
+          return (
+            type === undefined ||
+            changedPropertyIds.includes(id) ||
+            EVERY_EDIT_TYPES.has(type)
+          );
+        }));
+    if (!affected) continue;
+    if (query.getObserversCount() > 0) {
+      dependsOn = true;
+    } else {
+      queryClient.invalidateQueries({
+        queryKey: query.queryKey,
+        exact: true,
+        refetchType: "none",
+      });
+    }
+  }
+  return dependsOn;
+}
+
 export function baseRowsQueryKey(
   pageId: string | undefined,
   filter: FilterNode | undefined,
   sorts: ViewSortConfig[] | undefined,
+  viewer: ViewerDateContext,
 ) {
+  const activeFilter = normalizeFilter(filter);
   return [
     "base-rows",
     pageId,
-    normalizeFilter(filter),
+    activeFilter,
     sorts?.length ? sorts : undefined,
+    rowsDateKey(activeFilter, viewer),
   ] as const;
 }
 
@@ -157,16 +187,26 @@ export function useBaseRowsQuery(
 ) {
   const activeFilter = normalizeFilter(filter);
   const activeSorts = sorts?.length ? sorts : undefined;
+  const viewer = useViewerDateContext();
+  const { t } = useTranslation();
+  const queryKey = baseRowsQueryKey(pageId, filter, sorts, viewer);
 
   const query = useInfiniteQuery({
-    queryKey: baseRowsQueryKey(pageId, filter, sorts),
+    queryKey,
     queryFn: ({ pageParam }) =>
       listRows(pageId!, {
         cursor: pageParam,
         limit: 100,
         filter: activeFilter,
         sorts: activeSorts,
+        ...viewer,
       }),
+    placeholderData: (previous, previousQuery) =>
+      previousQuery &&
+      hashKey(previousQuery.queryKey.slice(0, 4)) ===
+        hashKey(queryKey.slice(0, 4))
+        ? previous
+        : undefined,
     enabled: !!pageId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: IBaseRowsPage) =>
@@ -182,6 +222,14 @@ export function useBaseRowsQuery(
     [query.data],
   );
   useHydrateReferences(pageId, refPages);
+
+  const usesDates = queryKey[4] !== undefined;
+  const serverZone = query.data?.pages[0]?.meta?.timeZone;
+  const showingPlaceholder = query.isPlaceholderData;
+  useEffect(() => {
+    if (!pageId || showingPlaceholder || !usesDates) return;
+    notifyRowsZone(pageId, serverZone, viewer.timeZone, t);
+  }, [showingPlaceholder, usesDates, serverZone, viewer.timeZone, pageId, t]);
 
   return query;
 }
@@ -217,6 +265,9 @@ export function useCreateRowMutation() {
         },
       );
       const base = queryClient.getQueryData<IBase>(["bases", newRow.pageId]);
+      if (rowsOrderDependsOn(newRow.pageId, "any", base)) {
+        scheduleRowsRefresh(newRow.pageId, "all");
+      }
       if ((base?.views ?? []).some((v) => v.type === "kanban")) {
         queryClient.invalidateQueries({
           queryKey: ["base-rows", newRow.pageId],
@@ -239,12 +290,13 @@ export function useCreateRowMutation() {
 export function useBaseRowQuery(
   pageId: string | undefined,
   rowId: string | undefined,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; placeholderData?: IBaseRow },
 ) {
   return useQuery<IBaseRow, Error>({
     queryKey: ["base-row", pageId, rowId],
     queryFn: () => getRowInfo(rowId!, pageId!),
     enabled: !!pageId && !!rowId && (options?.enabled ?? true),
+    placeholderData: options?.placeholderData,
     retry: false,
   });
 }
@@ -349,6 +401,9 @@ export function useUpdateRowMutation() {
         if (isCalendarRelevantChange(base, changedPropertyIds)) {
           chain.calendarTouched = true;
         }
+        if (rowsOrderDependsOn(variables.pageId, changedPropertyIds, base)) {
+          chain.rowsOrdered = true;
+        }
       }
       if (chain && chain.seq !== context?.seq) return;
 
@@ -383,8 +438,11 @@ export function useUpdateRowMutation() {
       endRowUpdateChain(variables.rowId);
       if (chain.reconcile) reconcileRow(variables.pageId, variables.rowId);
       if (chain.regrouped) invalidateBaseRows(variables.pageId);
-      else if (chain.calendarTouched) {
-        invalidateCalendarRows(variables.pageId, "none");
+      else {
+        if (chain.rowsOrdered) scheduleRowsRefresh(variables.pageId, "all");
+        if (chain.calendarTouched) {
+          invalidateCalendarRows(variables.pageId, "none");
+        }
       }
     },
   });
@@ -541,6 +599,7 @@ type KanbanMoveCardContext = {
 
 export function useKanbanMoveCardMutation() {
   const { t } = useTranslation();
+  const viewer = useViewerDateContext();
   return useMutation<IBaseRow, Error, KanbanMoveCardInput, KanbanMoveCardContext>({
     mutationKey: BASE_ROW_MUTATION_KEY,
     mutationFn: ({ pageId, rowId, columnChanged, groupByPropertyId, destChoiceValue, position }) =>
@@ -556,8 +615,8 @@ export function useKanbanMoveCardMutation() {
 
       await cancelLoadedBaseRows(pageId);
 
-      const sourceKey = baseRowsQueryKey(pageId, sourceColumnFilter, undefined);
-      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined);
+      const sourceKey = baseRowsQueryKey(pageId, sourceColumnFilter, undefined, viewer);
+      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined, viewer);
 
       const sourceSnapshot = queryClient.getQueryData<InfiniteData<IBaseRowsPage>>(sourceKey);
       const destSnapshot = queryClient.getQueryData<InfiniteData<IBaseRowsPage>>(destKey);
@@ -640,6 +699,7 @@ type KanbanCreateCardInput = {
 
 export function useKanbanCreateCardMutation() {
   const { t } = useTranslation();
+  const viewer = useViewerDateContext();
   return useMutation<IBaseRow, Error, KanbanCreateCardInput>({
     mutationKey: BASE_ROW_MUTATION_KEY,
     mutationFn: ({ pageId, groupByPropertyId, columnKey, position }) =>
@@ -652,7 +712,7 @@ export function useKanbanCreateCardMutation() {
     onSuccess: async (newRow, variables) => {
       const { pageId, destColumnFilter } = variables;
       await cancelLoadedBaseRows(pageId);
-      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined);
+      const destKey = baseRowsQueryKey(pageId, destColumnFilter, undefined, viewer);
       queryClient.setQueryData<InfiniteData<IBaseRowsPage>>(destKey, (old) => {
         if (!old) return old;
         const lastPageIndex = old.pages.length - 1;

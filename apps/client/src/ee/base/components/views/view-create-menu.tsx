@@ -7,7 +7,7 @@ import { BaseViewType, IBase, ViewConfig } from "@/ee/base/types/base.types";
 import { useCreateViewMutation } from "@/ee/base/queries/base-view-query";
 import { activeViewIdAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { getDescriptor } from "@/ee/base/property-types/property-type.registry";
-import { getCalendarDateProperties } from "@/ee/base/services/calendar-events";
+import { getCalendarDateProperties } from "@/ee/base/services/calendar-adapter";
 import { useCreateCalendarDateProperty } from "@/ee/base/components/calendar/use-create-calendar-date-property";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { VIEW_TYPE_ICONS } from "@/ee/base/components/views/view-type-icon";

@@ -9,7 +9,6 @@ import {
 } from "react";
 import { Alert, Button, Group, Text, ThemeIcon } from "@mantine/core";
 import {
-  IconAlertCircle,
   IconAlertTriangle,
   IconCircleCheck,
   IconEye,
@@ -38,6 +37,7 @@ import { FormFieldControl } from "@/ee/base/components/form/form-field-control";
 import { FormRichText } from "@/ee/base/components/form/form-rich-text";
 import { FormRequiredMark } from "@/ee/base/components/form/form-required-mark";
 import { FormSubmitButton } from "@/ee/base/components/form/form-submit-button";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import classes from "@/ee/base/styles/form.module.css";
 
 export type FormUnavailableStatus = "closed" | "signInRequired" | "notFound";
@@ -53,7 +53,7 @@ type FormFillProps = {
   mode: "live" | "preview" | "readOnly";
   respondent?: FormRespondent | null;
   users?: Record<string, UserRef>;
-  onSubmit?: (answers: FormAnswers) => Promise<void>;
+  onSubmit?: (answers: FormAnswers, timeZone: string) => Promise<void>;
   onUnavailable?: (status: FormUnavailableStatus) => void;
   onExitPreview?: () => void;
 };
@@ -68,6 +68,7 @@ export function FormFill({
   onExitPreview,
 }: FormFillProps) {
   const { t } = useTranslation();
+  const { timeZone } = useViewerDateContext();
   const idPrefix = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const successTitleRef = useRef<HTMLHeadingElement>(null);
@@ -221,7 +222,10 @@ export function FormFill({
 
     setSubmitting(true);
     try {
-      await onSubmit(buildSubmissionAnswers(form.fields, currentAnswers));
+      await onSubmit(
+        buildSubmissionAnswers(form.fields, currentAnswers),
+        timeZone,
+      );
       finish();
     } catch (error) {
       handleSubmitError(error);
@@ -391,10 +395,6 @@ function FormQuestion({
   const { t } = useTranslation();
   const controlId = `${id}-control`;
   const labelId = `${id}-label`;
-  const descriptionId = field.description ? `${id}-description` : undefined;
-  const errorId = error ? `${id}-error` : undefined;
-  const describedBy =
-    [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
     <div id={id} className={classes.question}>
@@ -403,13 +403,6 @@ function FormQuestion({
           {field.label}
           {field.required && <FormRequiredMark />}
         </label>
-        {field.description && (
-          <FormRichText
-            id={descriptionId}
-            text={field.description}
-            className={classes.questionDescription}
-          />
-        )}
       </div>
       <FormFieldControl
         field={field}
@@ -417,16 +410,10 @@ function FormQuestion({
         onChange={onChange}
         controlId={controlId}
         ariaLabelledBy={labelId}
-        ariaDescribedBy={describedBy}
-        invalid={!!error}
+        description={field.description}
+        error={error ? formFieldErrorMessage(t, field, error) : undefined}
         users={users}
       />
-      {error && (
-        <div id={errorId} className={classes.errorText} role="alert">
-          <IconAlertCircle size={15} stroke={2} />
-          {formFieldErrorMessage(t, field, error)}
-        </div>
-      )}
     </div>
   );
 }

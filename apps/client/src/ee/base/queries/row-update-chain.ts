@@ -19,6 +19,7 @@ type RowUpdateChain = {
   reconcile: boolean;
   regrouped: boolean;
   calendarTouched: boolean;
+  rowsOrdered: boolean;
 };
 
 export const BASE_ROW_MUTATION_KEY = ["base-row"] as const;
@@ -57,6 +58,7 @@ export function beginRowUpdate(rowId: string): {
     reconcile: false,
     regrouped: false,
     calendarTouched: false,
+    rowsOrdered: false,
     ...pending,
     seq,
   });

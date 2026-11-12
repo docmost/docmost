@@ -1,25 +1,16 @@
 import { useRef, useState } from "react";
 import { Popover } from "@mantine/core";
-import { useTranslation } from "react-i18next";
-import { DateTypeOptions } from "@/ee/base/types/base.types";
 import { DateCellPicker } from "@/ee/base/components/cells/cell-date";
-import { formatDateValue, parseDateValue } from "@/ee/base/utils/date-value";
+import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
 
 export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
-  const { i18n } = useTranslation();
   const [opened, setOpened] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
-  const typeOptions = property.typeOptions as DateTypeOptions | undefined;
-  const dateValue = parseDateValue(value);
-  const display = formatDateValue(dateValue, {
-    dateFormat: typeOptions?.dateFormat,
-    timeFormat: typeOptions?.timeFormat,
-    locale: i18n.language,
-  });
+  const { kind, cell, text: display } = useDateCellDisplay(property, value);
 
-  if (readOnly) {
+  if (readOnly || !kind || property.type !== "date") {
     return (
       <FieldShell>
         <span className={classes.fieldValueText}>{display}</span>
@@ -68,7 +59,8 @@ export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
       >
         <DateCellPicker
           property={property}
-          value={dateValue}
+          kind={kind}
+          value={cell}
           onChange={onChange}
         />
       </Popover.Dropdown>

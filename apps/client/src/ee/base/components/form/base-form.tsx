@@ -49,8 +49,13 @@ export function BaseForm({
         form={definition}
         mode="preview"
         users={users}
-        onSubmit={(answers) =>
-          submitPreview.mutateAsync({ pageId, viewId: view.id, answers })
+        onSubmit={(answers, timeZone) =>
+          submitPreview.mutateAsync({
+            pageId,
+            viewId: view.id,
+            answers,
+            timeZone,
+          })
         }
         onExitPreview={() => setPreview(false)}
       />

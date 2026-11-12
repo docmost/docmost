@@ -79,8 +79,8 @@ export default function PublicFormPage() {
         respondent={data.respondent}
         users={data.users}
         mode="live"
-        onSubmit={(answers) =>
-          submitMutation.mutateAsync({ key: formKey!, answers })
+        onSubmit={(answers, timeZone) =>
+          submitMutation.mutateAsync({ key: formKey!, answers, timeZone })
         }
         onUnavailable={setUnavailable}
       />

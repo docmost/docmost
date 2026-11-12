@@ -159,3 +159,13 @@
   color: var(--mantine-color-dimmed);
   white-space: nowrap;
 }
+
+.zone {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-inline-end: 8px;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+}

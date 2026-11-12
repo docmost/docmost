@@ -1,7 +1,11 @@
 import type { TFunction } from "i18next";
 import {
+  INVALID_DATE,
+  dateKindOfProperty,
+  normalizeDateCell,
+} from "@docmost/base-formula/client";
+import {
   BasePropertyType,
-  DateTypeOptions,
   FormConfig,
   FormFieldConfig,
   FormFieldError,
@@ -14,7 +18,9 @@ import {
   PublicFormField,
   SelectTypeOptions,
 } from "@/ee/base/types/base.types";
-import { parseDateValue } from "@/ee/base/utils/date-value";
+import { formDateKind } from "@/ee/base/components/form/form-date";
+import { dateTypeOptionsOf } from "@/ee/base/utils/date-format";
+import { isPropertyConverting } from "@/ee/base/property-types/property-converting";
 
 export type FormAnswers = Record<string, unknown>;
 
@@ -57,7 +63,7 @@ const TEXT_MAX_LENGTH: Partial<Record<FormFieldType, number>> = {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function isFormFieldProperty(property: IBaseProperty): boolean {
-  return FORM_FIELD_TYPES.has(property.type) && !property.pendingType;
+  return FORM_FIELD_TYPES.has(property.type) && !isPropertyConverting(property);
 }
 
 export function isMemberOnlyField(field: PublicFormField): boolean {
@@ -91,8 +97,11 @@ export function toFormField(
       (property.typeOptions as PersonTypeOptions)?.allowMultiple === true;
   }
   if (type === "date") {
+    const { dateFormat, timeFormat } = dateTypeOptionsOf(property.typeOptions);
     field.includeTime =
-      (property.typeOptions as DateTypeOptions)?.includeTime === true;
+      dateKindOfProperty(property.type, property.typeOptions) === "datetime";
+    if (dateFormat) field.dateFormat = dateFormat;
+    if (timeFormat) field.timeFormat = timeFormat;
   }
 
   return field;
@@ -264,10 +273,14 @@ function isValidAnswer(field: PublicFormField, value: unknown): boolean {
         value.every((id) => typeof id === "string" && ids.has(id))
       );
     }
-    case "date":
+    case "date": {
+      const cell = normalizeDateCell(value, formDateKind(field));
       return (
-        parseDateValue(value) !== null && !(value as { end?: unknown }).end
+        cell !== null &&
+        cell !== INVALID_DATE &&
+        (value as { end?: unknown }).end === undefined
       );
+    }
     case "url":
       return isHttpUrl(value);
     case "email":
@@ -318,9 +331,13 @@ export function buildSubmissionAnswers(
   const submission: FormAnswers = {};
   for (const field of fields) {
     const value = normalizeAnswer(field, answers[field.propertyId]);
-    if (value !== undefined && value !== INVALID) {
-      submission[field.propertyId] = value;
+    if (value === undefined || value === INVALID) continue;
+    if (field.type === "date") {
+      const cell = normalizeDateCell(value, formDateKind(field));
+      if (cell && cell !== INVALID_DATE) submission[field.propertyId] = cell;
+      continue;
     }
+    submission[field.propertyId] = value;
   }
   return submission;
 }

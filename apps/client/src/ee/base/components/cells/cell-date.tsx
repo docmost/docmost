@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { Popover } from "@mantine/core";
-import { useTranslation } from "react-i18next";
 import {
   IBaseProperty,
   DateTypeOptions,
@@ -8,11 +7,10 @@ import {
 import { DateValuePicker } from "@/ee/base/components/date-picker/date-value-picker";
 import { useUpdatePropertyMutation } from "@/ee/base/queries/base-property-query";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
-import {
-  DateValue,
-  formatDateValue,
-  parseDateValue,
-} from "@/ee/base/utils/date-value";
+import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
+import type { DateCell, DateKind } from "@docmost/base-formula/client";
+import { isPropertyConverting } from "@/ee/base/property-types/property-type.registry";
+import { dateTypeOptionsOf } from "@/ee/base/utils/date-format";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 import gridClasses from "@/ee/base/styles/grid.module.css";
@@ -28,22 +26,25 @@ type CellDateProps = {
 
 type DateCellPickerProps = {
   property: IBaseProperty;
-  value: DateValue | null;
-  onChange: (next: DateValue | null) => void;
+  kind: DateKind;
+  value: DateCell | null;
+  onChange: (next: DateCell | null) => void;
 };
 
 export function DateCellPicker({
   property,
+  kind,
   value,
   onChange,
 }: DateCellPickerProps) {
   const editable = useBaseEditable();
   const updatePropertyMutation = useUpdatePropertyMutation();
-  const typeOptions = (
-    updatePropertyMutation.isPending
+  const typeOptions = dateTypeOptionsOf({
+    ...property.typeOptions,
+    ...(updatePropertyMutation.isPending
       ? updatePropertyMutation.variables.typeOptions
-      : property.typeOptions
-  ) as DateTypeOptions | undefined;
+      : undefined),
+  });
 
   const handlePropertyFormatChange = (
     patch: Pick<DateTypeOptions, "dateFormat" | "timeFormat">,
@@ -51,17 +52,21 @@ export function DateCellPicker({
     updatePropertyMutation.mutate({
       propertyId: property.id,
       pageId: property.pageId,
-      typeOptions: { ...typeOptions, ...patch },
+      typeOptions: patch,
     });
 
   return (
     <DateValuePicker
       value={value}
+      kind={kind}
       onChange={onChange}
-      defaultIncludeTime={typeOptions?.includeTime}
-      dateFormat={typeOptions?.dateFormat}
-      timeFormat={typeOptions?.timeFormat}
-      onPropertyFormatChange={editable ? handlePropertyFormatChange : undefined}
+      dateFormat={typeOptions.dateFormat}
+      timeFormat={typeOptions.timeFormat}
+      onPropertyFormatChange={
+        editable && !isPropertyConverting(property)
+          ? handlePropertyFormatChange
+          : undefined
+      }
     />
   );
 }
@@ -73,17 +78,7 @@ export function CellDate({
   onValueChange,
   onCancel,
 }: CellDateProps) {
-  const { i18n } = useTranslation();
-  const typeOptions =
-    property.type === "date"
-      ? (property.typeOptions as DateTypeOptions | undefined)
-      : undefined;
-  const dateValue = parseDateValue(value);
-  const display = formatDateValue(dateValue, {
-    dateFormat: typeOptions?.dateFormat,
-    timeFormat: typeOptions?.timeFormat,
-    locale: i18n.language,
-  });
+  const { kind, cell, text: display } = useDateCellDisplay(property, value);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -95,7 +90,7 @@ export function CellDate({
     [onCancel],
   );
 
-  if (isEditing) {
+  if (isEditing && kind && property.type === "date") {
     return (
       <Popover
         opened
@@ -127,7 +122,8 @@ export function CellDate({
         >
           <DateCellPicker
             property={property}
-            value={dateValue}
+            kind={kind}
+            value={cell}
             onChange={onValueChange}
           />
         </Popover.Dropdown>

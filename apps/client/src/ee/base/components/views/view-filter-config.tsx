@@ -19,10 +19,7 @@ import {
   FilterOperator,
 } from "@/ee/base/types/base.types";
 import { useTranslation } from "react-i18next";
-import {
-  getDescriptor,
-  DEFAULT_FILTER_OPERATORS,
-} from "@/ee/base/property-types/property-type.registry";
+import { filterSpecOf } from "@/ee/base/property-types/property-type.registry";
 import { FilterPersonInput } from "./filter-person-input";
 import { FilterDateInput } from "./filter-date-input";
 import { useEscapeClose } from "@/ee/base/hooks/use-escape-close";
@@ -65,15 +62,6 @@ function valueClass(op: FilterOperator, inputKind: string): string {
   return "scalar";
 }
 
-function inputKindForProperty(property: IBaseProperty | undefined): string {
-  return getDescriptor(property?.type ?? "")?.filterInput ?? "text";
-}
-
-function getOperatorsForType(type: string): FilterOperator[] {
-  return (getDescriptor(type)?.filterOperators ??
-    DEFAULT_FILTER_OPERATORS) as FilterOperator[];
-}
-
 function isMultiChoice(op: FilterCondition["op"]): boolean {
   return op === "any" || op === "none";
 }
@@ -89,19 +77,24 @@ function FilterValueInput({
   onChange: (value: unknown) => void;
   t: (key: string) => string;
 }) {
+  const textValue =
+    typeof condition.value === "string" || typeof condition.value === "number"
+      ? String(condition.value)
+      : "";
+
   if (!property) {
     return (
       <TextInput
         size="xs"
         placeholder={t("Value")}
-        value={(condition.value as string) ?? ""}
+        value={textValue}
         onChange={(e) => onChange(e.currentTarget.value)}
         w={100}
       />
     );
   }
 
-  const kind = getDescriptor(property.type)?.filterInput ?? "text";
+  const kind = filterSpecOf(property).input;
 
   if (kind === "person") {
     return (
@@ -174,7 +167,7 @@ function FilterValueInput({
         size="xs"
         type="number"
         placeholder={t("Value")}
-        value={(condition.value as string) ?? ""}
+        value={textValue}
         onChange={(e) => onChange(e.currentTarget.value)}
         w={100}
       />
@@ -201,7 +194,7 @@ function FilterValueInput({
     <TextInput
       size="xs"
       placeholder={t("Value")}
-      value={(condition.value as string) ?? ""}
+      value={textValue}
       onChange={(e) => onChange(e.currentTarget.value)}
       w={100}
     />
@@ -249,7 +242,7 @@ export function ViewFilterConfigPopover({
   const handleStartDraft = useCallback(() => {
     const firstProperty = properties[0];
     if (!firstProperty) return;
-    const validOperators = getOperatorsForType(firstProperty.type);
+    const validOperators = filterSpecOf(firstProperty).operators;
     const defaultOperator = validOperators.includes("contains")
       ? ("contains" as FilterOperator)
       : validOperators[0];
@@ -281,12 +274,12 @@ export function ViewFilterConfigPopover({
         setDraft({ ...draft, propertyId });
         return;
       }
-      const validOperators = getOperatorsForType(newProperty.type);
+      const validOperators = filterSpecOf(newProperty).operators;
       const currentOperatorValid = validOperators.includes(draft.op);
+      const oldProperty = properties.find((p) => p.id === draft.propertyId);
       const sameKind =
-        inputKindForProperty(
-          properties.find((p) => p.id === draft.propertyId),
-        ) === inputKindForProperty(newProperty);
+        (oldProperty ? filterSpecOf(oldProperty).input : "text") ===
+        filterSpecOf(newProperty).input;
       setDraft({
         ...draft,
         propertyId,
@@ -301,9 +294,8 @@ export function ViewFilterConfigPopover({
     (operator: string | null) => {
       if (!operator || !draft) return;
       const op = operator as FilterOperator;
-      const kind = inputKindForProperty(
-        properties.find((p) => p.id === draft.propertyId),
-      );
+      const draftProperty = properties.find((p) => p.id === draft.propertyId);
+      const kind = draftProperty ? filterSpecOf(draftProperty).input : "text";
       const keep = valueClass(draft.op, kind) === valueClass(op, kind);
       setDraft({ ...draft, op, value: keep ? draft.value : undefined });
     },
@@ -335,12 +327,12 @@ export function ViewFilterConfigPopover({
         current.map((f, i) => {
           if (i !== index) return f;
           if (newProperty) {
-            const validOperators = getOperatorsForType(newProperty.type);
+            const validOperators = filterSpecOf(newProperty).operators;
             const currentOperatorValid = validOperators.includes(f.op);
+            const oldProperty = properties.find((p) => p.id === f.propertyId);
             const sameKind =
-              inputKindForProperty(
-                properties.find((p) => p.id === f.propertyId),
-              ) === inputKindForProperty(newProperty);
+              (oldProperty ? filterSpecOf(oldProperty).input : "text") ===
+              filterSpecOf(newProperty).input;
             return {
               ...f,
               propertyId,
@@ -363,9 +355,8 @@ export function ViewFilterConfigPopover({
       setDraftConditions((current) =>
         current.map((f, i) => {
           if (i !== index) return f;
-          const kind = inputKindForProperty(
-            properties.find((p) => p.id === f.propertyId),
-          );
+          const conditionProperty = properties.find((p) => p.id === f.propertyId);
+          const kind = conditionProperty ? filterSpecOf(conditionProperty).input : "text";
           const keep = valueClass(f.op, kind) === valueClass(op, kind);
           return { ...f, op, value: keep ? f.value : undefined };
         }),
@@ -426,7 +417,7 @@ export function ViewFilterConfigPopover({
               (p) => p.id === condition.propertyId,
             );
             const validOperators = property
-              ? getOperatorsForType(property.type)
+              ? filterSpecOf(property).operators
               : OPERATORS.map((op) => op.value);
             const operatorOptions = OPERATORS.filter((op) =>
               validOperators.includes(op.value),
@@ -483,7 +474,7 @@ export function ViewFilterConfigPopover({
             const needsValue = !NO_VALUE_OPERATORS.includes(draft.op);
             const property = properties.find((p) => p.id === draft.propertyId);
             const validOperators = property
-              ? getOperatorsForType(property.type)
+              ? filterSpecOf(property).operators
               : OPERATORS.map((op) => op.value);
             const operatorOptions = OPERATORS.filter((op) =>
               validOperators.includes(op.value),

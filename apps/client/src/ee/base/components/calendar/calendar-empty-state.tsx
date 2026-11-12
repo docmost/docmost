@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { IBase, IBaseView } from "@/ee/base/types/base.types";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useUpdateCalendarConfig } from "@/ee/base/queries/base-view-query";
-import { getCalendarDateProperties } from "@/ee/base/services/calendar-events";
+import { getCalendarDateProperties } from "@/ee/base/services/calendar-adapter";
 import { useCreateCalendarDateProperty } from "@/ee/base/components/calendar/use-create-calendar-date-property";
 
 type CalendarEmptyStateProps = {
