@@ -25,15 +25,20 @@ import {
   ViewSortConfig,
   RowReferences,
 } from "@/ee/base/types/base.types";
-import { IPagination } from "@/lib/types";
-import { getBrowserTimeZone } from "@/ee/base/utils/date-value";
+import { IPagination, IPaginationMeta } from "@/lib/types";
+import { getViewerTimeZone } from "@/ee/base/utils/viewer-zone";
+import type { ViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 
 export type IBaseRowsPage = IPagination<IBaseRow> & {
   references?: RowReferences;
+  meta: IPaginationMeta & { timeZone?: string };
 };
 
 export async function createBase(data: CreateBaseInput): Promise<IBase> {
-  const req = await api.post<IBase>("/bases/create", data);
+  const req = await api.post<IBase>("/bases/create", {
+    ...data,
+    timeZone: getViewerTimeZone(),
+  });
   return req.data;
 }
 
@@ -55,17 +60,28 @@ export async function convertPageToBase(
   pageId: string,
   template?: BaseTemplate,
 ): Promise<IBase> {
-  const req = await api.post<IBase>("/bases/convert", { pageId, template });
+  const req = await api.post<IBase>("/bases/convert", {
+    pageId,
+    template,
+    timeZone: getViewerTimeZone(),
+  });
   return req.data;
 }
 
 export async function exportBaseToCsv(
   pageId: string,
-  filter?: FilterNode,
+  filter: FilterNode | undefined,
+  viewer: ViewerDateContext,
 ): Promise<void> {
   const req = await api.post(
     "/bases/export-csv",
-    { pageId, filter, timeZone: getBrowserTimeZone() },
+    {
+      pageId,
+      filter,
+      timeZone: viewer.timeZone,
+      weekStart: viewer.weekStart,
+      today: viewer.today,
+    },
     { responseType: "blob" },
   );
 
@@ -152,12 +168,12 @@ export async function listRows(
     limit?: number;
     filter?: FilterNode;
     sorts?: ViewSortConfig[];
-  },
+  } & Partial<ViewerDateContext>,
   signal?: AbortSignal,
 ): Promise<IBaseRowsPage> {
   const req = await api.post(
     "/bases/rows",
-    { pageId, ...params, timeZone: getBrowserTimeZone() },
+    { pageId, ...params },
     { signal },
   );
   return req.data;

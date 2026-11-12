@@ -310,7 +310,3 @@ export function resolveTimeFormat(
   }).resolvedOptions();
   return hour12 ? "12h" : "24h";
 }
-
-export function getBrowserTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-}

@@ -8,6 +8,7 @@ import {
 } from "@/ee/base/types/base.types";
 import { flattenRows, normalizeFilter } from "@/ee/base/queries/base-row-query";
 import { useHydrateReferences } from "@/ee/base/reference/reference-store";
+import { getViewerTimeZone } from "@/ee/base/utils/viewer-zone";
 import { buildCalendarFilter } from "@/ee/base/services/calendar-window";
 
 export const CALENDAR_ROW_CAP = 1000;
@@ -43,6 +44,7 @@ export function useCalendarRowsQuery(
         {
           cursor: pageParam,
           limit: CALENDAR_PAGE_SIZE,
+          timeZone: getViewerTimeZone(),
           filter: buildCalendarFilter(activeFilter, datePropertyId!, from, to),
           sorts: [{ propertyId: datePropertyId!, direction: "asc" }],
         },

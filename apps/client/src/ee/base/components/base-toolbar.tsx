@@ -21,6 +21,7 @@ import {
   FilterCondition,
   FilterGroup,
 } from "@/ee/base/types/base.types";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import { exportBaseToCsv } from "@/ee/base/services/base-service";
 import { normalizeFilter } from "@/ee/base/queries/base-row-query";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -91,12 +92,13 @@ export function BaseToolbar({
   );
 
   const viewFilter = activeView?.config?.filter;
+  const viewer = useViewerDateContext();
 
   const handleExport = useCallback(async () => {
     if (exporting) return;
     setExporting(true);
     try {
-      await exportBaseToCsv(base.id, normalizeFilter(viewFilter));
+      await exportBaseToCsv(base.id, normalizeFilter(viewFilter), viewer);
     } catch (err) {
       notifications.show({
         color: "red",
@@ -105,7 +107,7 @@ export function BaseToolbar({
     } finally {
       setExporting(false);
     }
-  }, [base.id, exporting, t, viewFilter]);
+  }, [base.id, exporting, t, viewFilter, viewer]);
 
   const openToolbar = useCallback((panel: "sort" | "filter" | "properties") => {
     setSortOpened(panel === "sort" ? (v) => !v : false);
