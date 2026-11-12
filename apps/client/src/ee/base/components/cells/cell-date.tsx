@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { Popover } from "@mantine/core";
+import clsx from "clsx";
 import {
   IBaseProperty,
   DateTypeOptions,
@@ -109,7 +110,7 @@ export function CellDate({
         <Popover.Target>
           <div className={cellClasses.popoverTargetFlex}>
             <span
-              className={`${gridClasses.cellContent} ${cellClasses.dateValue}`}
+              className={clsx(gridClasses.cellContent, cellClasses.dateValue)}
             >
               {display}
             </span>
@@ -137,7 +138,7 @@ export function CellDate({
 
   return (
     <AutoTooltipText
-      className={`${gridClasses.cellContent} ${cellClasses.dateValue}`}
+      className={clsx(gridClasses.cellContent, cellClasses.dateValue)}
       fz="sm"
       tooltipProps={{ withinPortal: true }}
     >

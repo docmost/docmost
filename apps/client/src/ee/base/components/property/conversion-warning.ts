@@ -88,6 +88,16 @@ function describeConversion(
     };
   }
 
+  if (
+    to === "date" &&
+    (from === "text" || from === "longText" || from === "url" || from === "email")
+  ) {
+    return {
+      message: "Cells that can't be read as a date will show as empty.",
+      lossy: true,
+    };
+  }
+
   if (to === "date" && from !== "date") {
     return {
       message: "Cells that can't be parsed as a date will be cleared.",

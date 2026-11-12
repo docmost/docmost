@@ -234,7 +234,7 @@ export const CalendarWeek = memo(function CalendarWeek({
       withWeekendDays={showWeekends}
       labels={labels}
       slotLabelFormat={timeLabelFormat}
-      startScrollTime={WEEK_START_SCROLL_TIME}
+      startScrollTime={kind === "datetime" ? WEEK_START_SCROLL_TIME : undefined}
       scrollAreaProps={{ mah: height - WEEK_VIEW_BORDER_HEIGHT }}
       renderEvent={renderEvent}
       renderEventBody={renderEventBody}

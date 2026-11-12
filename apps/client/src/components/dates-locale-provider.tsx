@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   DatesProvider,
@@ -10,23 +10,27 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 
 dayjs.extend(customParseFormat);
 
-type DayjsLocale = { id: string; load: () => Promise<unknown> };
+type DayjsLocale = {
+  id: string;
+  weekStart: DayOfWeek;
+  load: () => Promise<unknown>;
+};
 
 const DEFAULT_LANGUAGE = "en-US";
 
 const DAYJS_LOCALES: Record<string, DayjsLocale> = {
-  "en-US": { id: "en", load: () => Promise.resolve() },
-  "de-DE": { id: "de", load: () => import("dayjs/locale/de") },
-  "es-ES": { id: "es", load: () => import("dayjs/locale/es") },
-  "fr-FR": { id: "fr", load: () => import("dayjs/locale/fr") },
-  "it-IT": { id: "it", load: () => import("dayjs/locale/it") },
-  "ja-JP": { id: "ja", load: () => import("dayjs/locale/ja") },
-  "ko-KR": { id: "ko", load: () => import("dayjs/locale/ko") },
-  "nl-NL": { id: "nl", load: () => import("dayjs/locale/nl") },
-  "pt-BR": { id: "pt-br", load: () => import("dayjs/locale/pt-br") },
-  "ru-RU": { id: "ru", load: () => import("dayjs/locale/ru") },
-  "uk-UA": { id: "uk", load: () => import("dayjs/locale/uk") },
-  "zh-CN": { id: "zh-cn", load: () => import("dayjs/locale/zh-cn") },
+  "en-US": { id: "en", weekStart: 0, load: () => Promise.resolve() },
+  "de-DE": { id: "de", weekStart: 1, load: () => import("dayjs/locale/de") },
+  "es-ES": { id: "es", weekStart: 1, load: () => import("dayjs/locale/es") },
+  "fr-FR": { id: "fr", weekStart: 1, load: () => import("dayjs/locale/fr") },
+  "it-IT": { id: "it", weekStart: 1, load: () => import("dayjs/locale/it") },
+  "ja-JP": { id: "ja", weekStart: 0, load: () => import("dayjs/locale/ja") },
+  "ko-KR": { id: "ko", weekStart: 0, load: () => import("dayjs/locale/ko") },
+  "nl-NL": { id: "nl", weekStart: 1, load: () => import("dayjs/locale/nl") },
+  "pt-BR": { id: "pt-br", weekStart: 0, load: () => import("dayjs/locale/pt-br") },
+  "ru-RU": { id: "ru", weekStart: 1, load: () => import("dayjs/locale/ru") },
+  "uk-UA": { id: "uk", weekStart: 1, load: () => import("dayjs/locale/uk") },
+  "zh-CN": { id: "zh-cn", weekStart: 1, load: () => import("dayjs/locale/zh-cn") },
 };
 
 function resolveDayjsLocale(language: string | undefined): DayjsLocale {
@@ -40,29 +44,26 @@ function resolveDayjsLocale(language: string | undefined): DayjsLocale {
 
 export function DatesLocaleProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
-  const [settings, setSettings] = useState<DatesProviderSettings>({
-    locale: "en",
-    firstDayOfWeek: 0,
-    consistentWeeks: true,
-  });
+  const [locale, setLocale] = useState("en");
+  const { weekStart } = resolveDayjsLocale(i18n.language);
 
   useEffect(() => {
     let stale = false;
     const { id, load } = resolveDayjsLocale(i18n.language);
     load()
       .then(() => {
-        if (stale) return;
-        setSettings({
-          locale: id,
-          firstDayOfWeek: (dayjs.Ls[id]?.weekStart ?? 0) as DayOfWeek,
-          consistentWeeks: true,
-        });
+        if (!stale) setLocale(id);
       })
       .catch(() => undefined);
     return () => {
       stale = true;
     };
   }, [i18n.language]);
+
+  const settings = useMemo<DatesProviderSettings>(
+    () => ({ locale, firstDayOfWeek: weekStart, consistentWeeks: true }),
+    [locale, weekStart],
+  );
 
   return <DatesProvider settings={settings}>{children}</DatesProvider>;
 }
