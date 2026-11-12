@@ -7,17 +7,15 @@ import {
   useRef,
   useState,
 } from "react";
-import dayjs from "dayjs";
-import type { ScheduleEventData } from "@mantine/schedule";
 import {
-  DateResize,
-  DayRange,
-  getMonthEventDayRange,
+  CalendarDayRange,
+  CalendarEvent,
+  CalendarResizeEdge,
+  eventDayRange,
   resizeDayRange,
-} from "@/ee/base/services/calendar-date-math";
+} from "@/ee/base/services/calendar-adapter";
 
-export type ResizeEdge = DateResize["edge"];
-type ResizeEdges = Record<ResizeEdge, boolean>;
+type ResizeEdges = Record<CalendarResizeEdge, boolean>;
 
 type EventMod = { hanging?: "start" | "end" | "both" | "none" };
 type SegmentMod = { "clip-start"?: boolean; "clip-end"?: boolean };
@@ -54,23 +52,23 @@ export function getResizeEdges(mod: unknown): ResizeEdges | null {
 
 export function useCalendarMonthResize(
   rootRef: RefObject<HTMLElement | null>,
-  onEventResize?: (eventId: string, resize: DateResize) => void,
+  onResize?: (event: CalendarEvent, edge: CalendarResizeEdge, toDay: string) => void,
 ) {
-  const [resizeRange, setResizeRange] = useState<DayRange | null>(null);
+  const [resizeRange, setResizeRange] = useState<CalendarDayRange | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const resizeIntentRef = useRef(false);
   const justResizedRef = useRef(false);
   const endGestureRef = useRef<(() => void) | null>(null);
-  const onEventResizeRef = useRef(onEventResize);
+  const onResizeRef = useRef(onResize);
   useLayoutEffect(() => {
-    onEventResizeRef.current = onEventResize;
+    onResizeRef.current = onResize;
   });
   useEffect(() => () => endGestureRef.current?.(), []);
 
   const startResize = useCallback(
     (
-      event: ScheduleEventData,
-      edge: ResizeEdge,
+      event: CalendarEvent,
+      edge: CalendarResizeEdge,
       pointerEvent: ReactPointerEvent<HTMLElement>,
     ) => {
       if (pointerEvent.button !== 0 || pointerEvent.pointerType === "touch") return;
@@ -79,7 +77,7 @@ export function useCalendarMonthResize(
       pointerEvent.stopPropagation();
       const handle = pointerEvent.currentTarget;
       const { pointerId } = pointerEvent;
-      const span = getMonthEventDayRange(event.start, event.end);
+      const span = eventDayRange(event);
       let range = span;
       let moved = false;
       let cancelled = false;
@@ -133,12 +131,7 @@ export function useCalendarMonthResize(
         const fromDay = edge === "start" ? span[0] : span[1];
         const toDay = edge === "start" ? range[0] : range[1];
         if (!cancelled && toDay !== fromDay) {
-          onEventResizeRef.current?.(String(event.id), {
-            edge,
-            fromDay,
-            toDay,
-            displayEnd: dayjs(event.end).format("YYYY-MM-DD HH:mm:ss"),
-          });
+          onResizeRef.current?.(event, edge, toDay);
         }
       };
       const handlePointerCancel = (e: PointerEvent) => {

@@ -14,10 +14,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as liveRegion from "@atlaskit/pragmatic-drag-and-drop-live-region";
 import { useMediaQuery } from "@mantine/hooks";
 import type { DayOfWeek, ScheduleEventData, ScheduleLabelsOverride } from "@mantine/schedule";
-import { dateKindOfProperty, startOfMonth } from "@docmost/base-formula/client";
+import {
+  dateKindOfProperty,
+  startOfMonth,
+  type DateCell,
+} from "@docmost/base-formula/client";
 import {
   CalendarLayout,
-  DateTypeOptions,
   FilterGroup,
   IBase,
   IBaseView,
@@ -38,17 +41,10 @@ import {
   toCalendarEvents,
 } from "@/ee/base/services/calendar-adapter";
 import {
-  DateMove,
-  DateResize,
-  moveDateValue,
-  resizeDateValue,
-} from "@/ee/base/services/calendar-date-math";
-import {
-  DateValue,
-  dateValuesEqual,
-  formatDateValue,
+  dateTypeOptionsOf,
+  formatDateCell,
   resolveTimeFormat,
-} from "@/ee/base/utils/date-value";
+} from "@/ee/base/utils/date-format";
 import { orderProperties } from "@/ee/base/utils/property-order";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
@@ -120,10 +116,13 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
   const { from, to } = getCalendarWindow(windowLayout, date, viewer.weekStart, showWeekends);
   const calendarWindow = useMemo(() => ({ from, to }), [from, to]);
 
+  const kind = dateProperty
+    ? dateKindOfProperty(dateProperty.type, dateProperty.typeOptions)
+    : null;
   const { rows, total, isTruncated, isLoading, isFetching, isError, refetch } =
     useCalendarWindowQuery(pageId, {
       propertyId: dateProperty?.id,
-      kind: dateProperty ? dateKindOfProperty(dateProperty.type, dateProperty.typeOptions) : null,
+      kind,
       from,
       to,
       filter: viewFilter,
@@ -182,17 +181,29 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
   }, [base.properties, visiblePropertyIds, propertyOrder]);
 
   const locale = i18n.language;
-  const dateOptions = dateProperty?.typeOptions as DateTypeOptions | undefined;
+  const dateOptions =
+    dateProperty?.type === "date" ? dateTypeOptionsOf(dateProperty.typeOptions) : undefined;
   const display = useMemo<CalendarEventDisplay>(
     () => ({
       pageId: base.id,
       locale,
       dateFormat: dateOptions?.dateFormat,
       timeFormat: resolveTimeFormat(dateOptions?.timeFormat, locale),
+      timeZone: viewer.timeZone,
+      today: viewer.today,
       cardProperties,
       rowsById,
     }),
-    [base.id, locale, dateOptions?.dateFormat, dateOptions?.timeFormat, cardProperties, rowsById],
+    [
+      base.id,
+      locale,
+      dateOptions?.dateFormat,
+      dateOptions?.timeFormat,
+      viewer.timeZone,
+      viewer.today,
+      cardProperties,
+      rowsById,
+    ],
   );
 
   const labels = useMemo<ScheduleLabelsOverride>(
@@ -219,21 +230,21 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
 
   const timeFormat = display.timeFormat;
   const formatAnnouncedDate = useCallback(
-    (value: DateValue) => formatDateValue(value, { dateFormat: "full", timeFormat, locale }),
-    [timeFormat, locale],
+    (value: DateCell) =>
+      formatDateCell(value, {
+        dateFormat: "full",
+        timeFormat,
+        locale,
+        timeZone: viewer.timeZone,
+        today: viewer.today,
+      }),
+    [timeFormat, locale, viewer.timeZone, viewer.today],
   );
 
   const updateEventDate = useCallback(
-    (
-      rowId: string,
-      getNextValue: (value: DateValue) => DateValue,
-      announce: (title: string, date: string) => string,
-    ) => {
+    (rowId: string, next: DateCell, announce: (title: string, date: string) => string) => {
       const event = eventsByRowId.get(rowId);
       if (!event || !editableDatePropertyId) return;
-      const value = event.payload.value;
-      const next = getNextValue(value);
-      if (dateValuesEqual(next, value)) return;
       updateRow(
         { pageId, rowId, cells: { [editableDatePropertyId]: next } },
         {
@@ -246,28 +257,24 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
   );
 
   const handleEventMove = useCallback(
-    (rowId: string, move: DateMove) =>
-      updateEventDate(
-        rowId,
-        (value) => moveDateValue(value, move),
-        (title, date) => t("Moved {{title}} to {{date}}", { title, date }),
+    (rowId: string, next: DateCell) =>
+      updateEventDate(rowId, next, (title, date) =>
+        t("Moved {{title}} to {{date}}", { title, date }),
       ),
     [updateEventDate, t],
   );
 
   const handleEventResize = useCallback(
-    (rowId: string, resize: DateResize) =>
-      updateEventDate(
-        rowId,
-        (value) => resizeDateValue(value, resize),
-        (title, date) => t("Resized {{title}} to {{date}}", { title, date }),
+    (rowId: string, next: DateCell) =>
+      updateEventDate(rowId, next, (title, date) =>
+        t("Resized {{title}} to {{date}}", { title, date }),
       ),
     [updateEventDate, t],
   );
 
   const creatingRef = useRef(false);
   const handleCreate = useCallback(
-    (value: DateValue) => {
+    (value: DateCell) => {
       if (!editableDatePropertyId || creatingRef.current) return;
       creatingRef.current = true;
       createRow(
@@ -341,7 +348,7 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
   };
 
   let content: ReactNode = null;
-  if (!dateProperty) {
+  if (!dateProperty || !kind) {
     content = <CalendarEmptyState base={base} view={view} pageId={pageId} />;
   } else if (isError && rows.length === 0) {
     content = <CalendarErrorFallback onRetry={handleRetry} />;
@@ -370,6 +377,7 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
           <CalendarWeek
             {...viewProps}
             {...interactionProps}
+            kind={kind}
             height={surfaceHeight}
             showWeekends={showWeekends}
           />
@@ -377,6 +385,7 @@ export function BaseCalendar({ base, view, pageId, embedded, viewFilter }: BaseC
           <CalendarMonth
             {...viewProps}
             {...interactionProps}
+            kind={kind}
             calendarWindow={calendarWindow}
             height={surfaceHeight}
             showWeekends={showWeekends}

@@ -11,22 +11,22 @@ import {
 } from "@mantine/core";
 import type { MonthViewProps, ScheduleEventData } from "@mantine/schedule";
 import { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
-import type { CalendarEventPayload } from "@/ee/base/services/calendar-adapter";
-import { getMonthEventDayRange } from "@/ee/base/services/calendar-date-math";
+import {
+  CalendarEvent,
+  CalendarEventPayload,
+  CalendarResizeEdge,
+  eventDayRange,
+} from "@/ee/base/services/calendar-adapter";
 import { systemAccessorFor } from "@/ee/base/property-types/property-type.registry";
 import { CardField } from "@/ee/base/components/kanban/card-field/card-field";
-import {
-  ResizeEdge,
-  getResizeEdges,
-} from "@/ee/base/components/calendar/use-calendar-month-resize";
+import { getResizeEdges } from "@/ee/base/components/calendar/use-calendar-month-resize";
 import {
   DateFormat,
-  DateValue,
-  formatDateValue,
+  TimeFormat,
+  formatDateCell,
   formatTimeOfDay,
-  isDateOnly,
-  localDateToYmd,
-} from "@/ee/base/utils/date-value";
+} from "@/ee/base/utils/date-format";
+import { partDayIn } from "@/ee/base/utils/date-cell";
 import classes from "@/ee/base/styles/calendar.module.css";
 
 export const CALENDAR_OVERLAY_Z_INDEX = getDefaultZIndex("modal");
@@ -40,7 +40,9 @@ export type CalendarEventDisplay = {
   pageId: string;
   locale: string;
   dateFormat: DateFormat | undefined;
-  timeFormat: "12h" | "24h";
+  timeFormat: TimeFormat;
+  timeZone: string;
+  today: string;
   cardProperties: IBaseProperty[];
   rowsById: Map<string, IBaseRow>;
 };
@@ -59,35 +61,34 @@ function getPayload(event: ScheduleEventData): CalendarEventPayload {
 }
 
 function formatEventLabel(event: ScheduleEventData, display: CalendarEventDisplay) {
-  const date = formatDateValue(getPayload(event).value, {
+  const { timeFormat, locale, timeZone, today } = display;
+  const date = formatDateCell(getPayload(event).value, {
     dateFormat: "full",
-    timeFormat: display.timeFormat,
-    locale: display.locale,
+    timeFormat,
+    locale,
+    timeZone,
+    today,
   });
   return `${event.title}, ${date}`;
 }
 
 function formatEventWhen(
-  value: DateValue,
+  { kind, value }: CalendarEventPayload,
   display: CalendarEventDisplay,
   allDayLabel: string,
 ) {
-  if (isDateOnly(value.start)) {
+  const { timeFormat, locale, timeZone, today } = display;
+  if (kind === "date") {
     return value.end && value.end !== value.start
-      ? formatDateValue(value, { dateFormat: "medium", locale: display.locale })
+      ? formatDateCell(value, { dateFormat: "medium", locale, timeZone, today })
       : allDayLabel;
   }
   const start = formatTimeOfDay(value.start, display);
   if (!value.end || value.end === value.start) return start;
-  const sameDay =
-    localDateToYmd(new Date(value.start)) === localDateToYmd(new Date(value.end));
-  return sameDay
+  const startDay = partDayIn(value.start, timeZone);
+  return startDay !== null && startDay === partDayIn(value.end, timeZone)
     ? `${start} – ${formatTimeOfDay(value.end, display)}`
-    : formatDateValue(value, {
-        dateFormat: "medium",
-        timeFormat: display.timeFormat,
-        locale: display.locale,
-      });
+    : formatDateCell(value, { dateFormat: "medium", timeFormat, locale, timeZone, today });
 }
 
 function getCardFields(event: ScheduleEventData, display: CalendarEventDisplay) {
@@ -112,10 +113,12 @@ function CalendarEventPreview({ event, display }: CalendarEventProps) {
         {event.title}
       </Text>
       <Text size="xs" c="dimmed">
-        {formatDateValue(getPayload(event).value, {
+        {formatDateCell(getPayload(event).value, {
           dateFormat: display.dateFormat,
           timeFormat: display.timeFormat,
           locale: display.locale,
+          timeZone: display.timeZone,
+          today: display.today,
         })}
       </Text>
       {getCardFields(event, display).map(({ property, value }) => (
@@ -140,10 +143,10 @@ export function CalendarMonthEvent({
 }: CalendarEventButtonProps & {
   withPreview: boolean;
   previewDisabled: boolean;
-  onResizeStart?: (edge: ResizeEdge, pointerEvent: PointerEvent<HTMLElement>) => void;
+  onResizeStart?: (edge: CalendarResizeEdge, pointerEvent: PointerEvent<HTMLElement>) => void;
 }) {
-  const [firstDay, lastDay] = getMonthEventDayRange(event.start, event.end);
-  const isTimedDay = !isDateOnly(getPayload(event).value.start) && firstDay === lastDay;
+  const [firstDay, lastDay] = eventDayRange(event as CalendarEvent);
+  const isTimedDay = getPayload(event).kind === "datetime" && firstDay === lastDay;
   const resizeEdges = onResizeStart
     ? getResizeEdges("mod" in rootProps ? rootProps.mod : undefined)
     : null;
@@ -195,8 +198,8 @@ export function CalendarMonthEvent({
 }
 
 export function CalendarMonthEventBody({ event, display }: CalendarEventProps) {
-  const { value } = getPayload(event);
-  if (isDateOnly(value.start)) return event.title;
+  const { kind, value } = getPayload(event);
+  if (kind === "date") return event.title;
   return (
     <>
       <span className={classes.eventDot} aria-hidden />
@@ -220,7 +223,7 @@ export function CalendarWeekEventBody({ event, display }: CalendarEventProps) {
     <span className={classes.weekEventBody}>
       <span className={classes.weekEventLine}>{event.title}</span>
       <span className={clsx(classes.weekEventLine, classes.weekEventTime)}>
-        {formatEventWhen(getPayload(event).value, display, t("All day"))}
+        {formatEventWhen(getPayload(event), display, t("All day"))}
       </span>
       {fields.length > 0 && (
         <span className={classes.weekEventFields} inert>
@@ -251,7 +254,7 @@ export function CalendarMobileEvent({ event, rootProps, display }: CalendarEvent
         <span className={classes.mobileEventText}>
           <span className={classes.mobileEventTitle}>{event.title}</span>
           <span className={classes.mobileEventTime}>
-            {formatEventWhen(getPayload(event).value, display, t("All day"))}
+            {formatEventWhen(getPayload(event), display, t("All day"))}
           </span>
         </span>
       </span>
