@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "Эти объявления уже отображаются с {{from}} без времени окончания:",
   "Save and replace": "Сохранить и заменить",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” будет архивировано, когда начнётся это объявление.",
-  "This one will be archived when “{{title}}” starts.": "Это объявление будет архивировано, когда начнётся “{{title}}”."
+  "This one will be archived when “{{title}}” starts.": "Это объявление будет архивировано, когда начнётся “{{title}}”.",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
