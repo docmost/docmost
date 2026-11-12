@@ -2,7 +2,8 @@ import { MantineProvider } from "@mantine/core";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { IBase, IBaseView } from "@/ee/base/types/base.types";
+import type { Table } from "@tanstack/react-table";
+import type { IBase, IBaseRow, IBaseView } from "@/ee/base/types/base.types";
 
 const editable = vi.hoisted(() => ({ current: true }));
 
@@ -47,14 +48,20 @@ function stubMatchMedia() {
 const view = { id: "view-1", pageId: "base-1", name: "Table", type: "table", config: {} } as unknown as IBaseView;
 const base = { id: "base-1", spaceId: "space-1", name: "Plan", baseTimeZone: null, properties: [], views: [view] } as unknown as IBase;
 
-function renderToolbar() {
+const table = {
+  getAllLeafColumns: () => [],
+  getState: () => ({ columnVisibility: {} }),
+} as unknown as Table<IBaseRow>;
+
+function renderToolbar(activeView: IBaseView = view) {
   render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider env="test">
         <BaseToolbar
           base={base}
-          activeView={view}
-          views={[view]}
+          activeView={activeView}
+          views={[activeView]}
+          table={table}
           onViewChange={vi.fn()}
           onPersistViewConfig={vi.fn()}
           onDraftSortsChange={vi.fn()}
@@ -80,5 +87,23 @@ describe("BaseToolbar", () => {
     renderToolbar();
     expect(screen.queryByRole("button", { name: "Base settings" })).toBeNull();
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
+  });
+
+  it("names the grid toolbar's icon buttons", () => {
+    editable.current = true;
+    renderToolbar();
+    expect(screen.getByRole("button", { name: "Filter" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sort" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Hide properties" })).toBeTruthy();
+  });
+
+  it("keeps the Filter name while a filter is active", () => {
+    editable.current = true;
+    const filtered = {
+      ...view,
+      config: { filter: { op: "and", children: [{ propertyId: "title", op: "isNotEmpty" }] } },
+    } as unknown as IBaseView;
+    renderToolbar(filtered);
+    expect(screen.getByRole("button", { name: "Filter" })).toBeTruthy();
   });
 });
