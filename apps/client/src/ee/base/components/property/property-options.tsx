@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Stack,
   NumberInput,
@@ -459,8 +459,15 @@ function DateOptions({
     if (!removesTime) setConfirmingTimeRemoval(false);
   }, [removesTime]);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const includeTimeRef = useRef<HTMLInputElement>(null);
+  const focusIncludeTimeRef = useRef(false);
+  const confirmationTitleId = useId();
   useEffect(() => {
     if (confirmingTimeRemoval) cancelRef.current?.focus();
+    else if (focusIncludeTimeRef.current) {
+      focusIncludeTimeRef.current = false;
+      includeTimeRef.current?.focus();
+    }
   }, [confirmingTimeRemoval]);
   const handleSave = () => {
     if (removesTime) {
@@ -475,8 +482,8 @@ function DateOptions({
 
   if (confirmingTimeRemoval) {
     return (
-      <Stack gap="xs">
-        <Text size="sm" fw={600}>
+      <Stack gap="xs" role="group" aria-labelledby={confirmationTitleId}>
+        <Text id={confirmationTitleId} size="sm" fw={600}>
           {t("Remove time from {{name}}?", { name: property.name })}
         </Text>
         <Text size="xs" c="dimmed">
@@ -487,7 +494,10 @@ function DateOptions({
             ref={cancelRef}
             variant="default"
             size="xs"
-            onClick={() => setConfirmingTimeRemoval(false)}
+            onClick={() => {
+              focusIncludeTimeRef.current = true;
+              setConfirmingTimeRemoval(false);
+            }}
           >
             {t("Cancel")}
           </Button>
@@ -546,6 +556,7 @@ function DateOptions({
         )}
       />
       <Switch
+        ref={includeTimeRef}
         size="xs"
         label={t("Include time")}
         aria-label={t("Include time")}

@@ -1,4 +1,6 @@
+import { getDefaultStore } from "jotai";
 import { queryClient } from "@/main";
+import { editingCellAtomFamily } from "@/ee/base/atoms/base-atoms";
 import {
   invalidateBaseRows,
   invalidateCalendarRows,
@@ -18,12 +20,42 @@ type RowsRefreshState = {
   deferrals: number;
   fetchWaits: number;
   lastRefreshAt: number;
+  releaseEditHold?: () => void;
 };
 
 const refreshStates = new Map<string, RowsRefreshState>();
 
+function armRefresh(pageId: string, state: RowsRefreshState) {
+  state.timer = setTimeout(
+    () => runRefresh(pageId, state),
+    Math.max(
+      ROWS_REFRESH_DELAY_MS,
+      state.lastRefreshAt + ROWS_REFRESH_INTERVAL_MS - performance.now(),
+    ),
+  );
+}
+
+function holdWhileEditing(pageId: string, state: RowsRefreshState) {
+  const store = getDefaultStore();
+  const editingCellAtom = editingCellAtomFamily(pageId);
+  if (!store.get(editingCellAtom)) return false;
+  const unsubscribe = store.sub(editingCellAtom, () => {
+    if (store.get(editingCellAtom)) return;
+    state.releaseEditHold?.();
+    state.deferrals = 0;
+    state.fetchWaits = 0;
+    armRefresh(pageId, state);
+  });
+  state.releaseEditHold = () => {
+    unsubscribe();
+    state.releaseEditHold = undefined;
+  };
+  return true;
+}
+
 function runRefresh(pageId: string, state: RowsRefreshState) {
   state.timer = undefined;
+  if (holdWhileEditing(pageId, state)) return;
   const scope = state.scope ?? "calendar";
   const fetchingRows = queryClient.isFetching({
     queryKey:
@@ -64,18 +96,13 @@ export function scheduleRowsRefresh(pageId: string, scope: RowsRefreshScope) {
     refreshStates.set(pageId, state);
   }
   if (scope === "all" || !state.scope) state.scope = scope;
-  if (state.timer !== undefined) return;
-  const pending = state;
-  state.timer = setTimeout(
-    () => runRefresh(pageId, pending),
-    Math.max(
-      ROWS_REFRESH_DELAY_MS,
-      state.lastRefreshAt + ROWS_REFRESH_INTERVAL_MS - performance.now(),
-    ),
-  );
+  if (state.timer !== undefined || state.releaseEditHold) return;
+  armRefresh(pageId, state);
 }
 
 export function cancelRowsRefresh(pageId: string) {
-  clearTimeout(refreshStates.get(pageId)?.timer);
+  const state = refreshStates.get(pageId);
+  clearTimeout(state?.timer);
+  state?.releaseEditHold?.();
   refreshStates.delete(pageId);
 }

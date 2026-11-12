@@ -160,6 +160,16 @@ export function FilterDateInput({ op, value, onChange }: FilterDateInputProps) {
                   setOpened(false);
                 }}
                 size="sm"
+                ariaLabels={{
+                  previousMonth: t("Previous month"),
+                  nextMonth: t("Next month"),
+                  previousYear: t("Previous year"),
+                  nextYear: t("Next year"),
+                  previousDecade: t("Previous decade"),
+                  nextDecade: t("Next decade"),
+                  monthLevelControl: t("Choose month"),
+                  yearLevelControl: t("Choose year"),
+                }}
               />
             ) : (
               <div className={cellClasses.selectDropdown}>

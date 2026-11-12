@@ -115,6 +115,21 @@ describe("date property options", () => {
     expect(document.activeElement).toBe(button("Cancel"));
   });
 
+  it("names the confirmation by its question", () => {
+    renderOptions({ includeTime: true });
+    fireEvent.click(includeTime());
+    fireEvent.click(button("Save"));
+    expect(screen.getByRole("group", { name: "Remove time from Due?" })).toBeTruthy();
+  });
+
+  it("puts focus back on Include time when the confirmation is cancelled", () => {
+    renderOptions({ includeTime: true });
+    fireEvent.click(includeTime());
+    fireEvent.click(button("Save"));
+    fireEvent.click(button("Cancel"));
+    expect(document.activeElement).toBe(includeTime());
+  });
+
   it("saves a property that gains a time without asking", () => {
     const { onUpdate } = renderOptions({});
     fireEvent.click(includeTime());

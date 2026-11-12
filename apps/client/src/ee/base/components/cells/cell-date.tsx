@@ -39,11 +39,12 @@ export function DateCellPicker({
 }: DateCellPickerProps) {
   const editable = useBaseEditable();
   const updatePropertyMutation = useUpdatePropertyMutation();
-  const typeOptions = dateTypeOptionsOf(
-    updatePropertyMutation.isPending
+  const typeOptions = dateTypeOptionsOf({
+    ...property.typeOptions,
+    ...(updatePropertyMutation.isPending
       ? updatePropertyMutation.variables.typeOptions
-      : property.typeOptions,
-  );
+      : undefined),
+  });
 
   const handlePropertyFormatChange = (
     patch: Pick<DateTypeOptions, "dateFormat" | "timeFormat">,
@@ -51,7 +52,7 @@ export function DateCellPicker({
     updatePropertyMutation.mutate({
       propertyId: property.id,
       pageId: property.pageId,
-      typeOptions: { ...typeOptions, ...patch },
+      typeOptions: patch,
     });
 
   return (

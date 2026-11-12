@@ -8,7 +8,10 @@ vi.mock("@/ee/base/queries/base-row-query", () => ({
   invalidateCalendarRows: vi.fn(),
 }));
 
+import { getDefaultStore, type WritableAtom } from "jotai";
 import { queryClient } from "@/main.tsx";
+import { editingCellAtomFamily } from "@/ee/base/atoms/base-atoms";
+import type { EditingCell } from "@/ee/base/types/base.types";
 import { invalidateBaseRows, invalidateCalendarRows } from "@/ee/base/queries/base-row-query";
 import { cancelRowsRefresh, scheduleRowsRefresh } from "./rows-refresh";
 
@@ -20,12 +23,20 @@ const pendingRowMutation = (pageId: string) => {
   void mutation.execute({ pageId });
 };
 
+const editCell = (pageId: string, cell: EditingCell) =>
+  getDefaultStore().set(
+    editingCellAtomFamily(pageId) as unknown as WritableAtom<EditingCell, [EditingCell], void>,
+    cell,
+  );
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.mocked(invalidateBaseRows).mockClear();
   vi.mocked(invalidateCalendarRows).mockClear();
 });
 afterEach(() => {
+  editCell("p1", null);
+  editCell("p2", null);
   cancelRowsRefresh("p1");
   cancelRowsRefresh("p2");
   queryClient.clear();
@@ -106,5 +117,71 @@ describe("scheduleRowsRefresh", () => {
     cancelRowsRefresh("p1");
     vi.advanceTimersByTime(5000);
     expect(invalidateBaseRows).not.toHaveBeenCalled();
+  });
+
+  describe("while a cell is in edit mode", () => {
+    it("puts the refresh off for as long as the cell is edited", () => {
+      editCell("p1", { rowId: "r1", propertyId: "prpdue0000001" });
+      scheduleRowsRefresh("p1", "all");
+      vi.advanceTimersByTime(300);
+      expect(invalidateBaseRows).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(60_000);
+      expect(invalidateBaseRows).not.toHaveBeenCalled();
+    });
+
+    it("runs the refresh 300 ms after edit mode ends", () => {
+      editCell("p1", { rowId: "r1", propertyId: "prpdue0000001" });
+      scheduleRowsRefresh("p1", "all");
+      vi.advanceTimersByTime(60_000);
+      editCell("p1", { rowId: "r1", propertyId: "prptext000001" });
+      vi.advanceTimersByTime(1000);
+      expect(invalidateBaseRows).not.toHaveBeenCalled();
+      editCell("p1", null);
+      vi.advanceTimersByTime(299);
+      expect(invalidateBaseRows).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(invalidateBaseRows).toHaveBeenCalledTimes(1);
+      expect(invalidateBaseRows).toHaveBeenCalledWith("p1");
+    });
+
+    it("keeps 2 s after the last refresh when edit mode ends soon after it", () => {
+      scheduleRowsRefresh("p1", "all");
+      vi.advanceTimersByTime(300);
+      editCell("p1", { rowId: "r1", propertyId: "prpdue0000001" });
+      scheduleRowsRefresh("p1", "all");
+      vi.advanceTimersByTime(500);
+      editCell("p1", null);
+      vi.advanceTimersByTime(1499);
+      expect(invalidateBaseRows).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1);
+      expect(invalidateBaseRows).toHaveBeenCalledTimes(2);
+    });
+
+    it("still waits for a pending row mutation once edit mode ends", () => {
+      editCell("p1", { rowId: "r1", propertyId: "prpdue0000001" });
+      pendingRowMutation("p1");
+      scheduleRowsRefresh("p1", "all");
+      editCell("p1", null);
+      vi.advanceTimersByTime(3000);
+      expect(invalidateBaseRows).not.toHaveBeenCalled();
+    });
+
+    it("holds nothing in another base", () => {
+      editCell("p2", { rowId: "r1", propertyId: "prpdue0000001" });
+      scheduleRowsRefresh("p1", "all");
+      vi.advanceTimersByTime(300);
+      expect(invalidateBaseRows).toHaveBeenCalledTimes(1);
+      expect(invalidateBaseRows).toHaveBeenCalledWith("p1");
+    });
+
+    it("drops a held refresh when it is cancelled", () => {
+      editCell("p1", { rowId: "r1", propertyId: "prpdue0000001" });
+      scheduleRowsRefresh("p1", "all");
+      vi.advanceTimersByTime(300);
+      cancelRowsRefresh("p1");
+      editCell("p1", null);
+      vi.advanceTimersByTime(5000);
+      expect(invalidateBaseRows).not.toHaveBeenCalled();
+    });
   });
 });

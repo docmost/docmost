@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { InfiniteData, QueryClient } from "@tanstack/react-query";
+import { InfiniteData, QueryClient, QueryObserver } from "@tanstack/react-query";
 import type { Socket } from "socket.io-client";
 import type { IPagination } from "@/lib/types";
-import type { IBaseRow } from "@/ee/base/types/base.types";
+import type { IBase, IBaseRow } from "@/ee/base/types/base.types";
 
 vi.mock("@/main.tsx", async () => ({
   queryClient: new (await import("@tanstack/react-query")).QueryClient(),
@@ -154,5 +154,77 @@ describe("retainBaseSubscription", () => {
     release();
     vi.advanceTimersByTime(5000);
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
+  });
+
+  describe("another user's change under a sorted or filtered list", () => {
+    const pageId = "page-7";
+    const base = {
+      id: pageId,
+      properties: [
+        { id: "prpdue0000001", type: "date" },
+        { id: "prptext000001", type: "text" },
+      ],
+      views: [{ id: "view-1", type: "table" }],
+    } as unknown as IBase;
+    const unsubscribes: (() => void)[] = [];
+
+    const observeList = async (filter: unknown, sorts: unknown) => {
+      vi.useFakeTimers();
+      const { queryClient: appClient } = await import("@/main.tsx");
+      const key = ["base-rows", pageId, filter, sorts, undefined];
+      appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1", cells: {} }], meta: {} }], pageParams: [null] });
+      const observer = new QueryObserver(appClient, { queryKey: key, queryFn: () => new Promise(() => {}), staleTime: Infinity });
+      unsubscribes.push(observer.subscribe(() => {}));
+      appClient.setQueryData(["bases", pageId], base);
+      const { socket, receive } = createFakeSocket();
+      unsubscribes.push(retainBaseSubscription(socket, pageId, appClient));
+      const invalidate = vi.spyOn(appClient, "invalidateQueries");
+      const allRowsRefreshes = () => {
+        vi.advanceTimersByTime(5000);
+        return invalidate.mock.calls.filter(([filters]) => filters?.queryKey?.length === 2).length;
+      };
+      return { receive, allRowsRefreshes, appClient };
+    };
+
+    afterEach(async () => {
+      unsubscribes.splice(0).forEach((unsubscribe) => unsubscribe());
+      const { queryClient: appClient } = await import("@/main.tsx");
+      appClient.clear();
+      vi.restoreAllMocks();
+    });
+
+    const sortOnDue = [{ propertyId: "prpdue0000001", direction: "asc" }];
+    const filterOnText = { op: "and", children: [{ propertyId: "prptext000001", op: "contains", value: "a" }] };
+
+    it("refreshes all rows once when a sorted property changed", async () => {
+      const { receive, allRowsRefreshes } = await observeList(undefined, sortOnDue);
+      receive({ operation: "base:row:updated", pageId, rowId: "row-1", updatedCells: { prpdue0000001: { start: "2026-11-12" } } });
+      expect(allRowsRefreshes()).toBe(1);
+    });
+
+    it("refreshes nothing when an unrelated property changed", async () => {
+      const { receive, allRowsRefreshes } = await observeList(undefined, sortOnDue);
+      receive({ operation: "base:row:updated", pageId, rowId: "row-1", updatedCells: { prptext000001: "x" } });
+      expect(allRowsRefreshes()).toBe(0);
+    });
+
+    it("refreshes all rows once for a created row under a filtered list", async () => {
+      const { receive, allRowsRefreshes } = await observeList(filterOnText, undefined);
+      receive({ operation: "base:row:created", pageId, row: { id: "row-2", cells: {} } });
+      expect(allRowsRefreshes()).toBe(1);
+    });
+
+    it("refreshes nothing for a created row under an unsorted, unfiltered list", async () => {
+      const { receive, allRowsRefreshes } = await observeList(undefined, undefined);
+      receive({ operation: "base:row:created", pageId, row: { id: "row-2", cells: {} } });
+      expect(allRowsRefreshes()).toBe(0);
+    });
+
+    it("refreshes all rows once when the base has a board", async () => {
+      const { receive, allRowsRefreshes, appClient } = await observeList(undefined, sortOnDue);
+      appClient.setQueryData(["bases", pageId], { ...base, views: [{ id: "view-2", type: "kanban" }] });
+      receive({ operation: "base:row:updated", pageId, rowId: "row-1", updatedCells: { prpdue0000001: { start: "2026-11-12" } } });
+      expect(allRowsRefreshes()).toBe(1);
+    });
   });
 });

@@ -77,12 +77,17 @@ function FilterValueInput({
   onChange: (value: unknown) => void;
   t: (key: string) => string;
 }) {
+  const textValue =
+    typeof condition.value === "string" || typeof condition.value === "number"
+      ? String(condition.value)
+      : "";
+
   if (!property) {
     return (
       <TextInput
         size="xs"
         placeholder={t("Value")}
-        value={(condition.value as string) ?? ""}
+        value={textValue}
         onChange={(e) => onChange(e.currentTarget.value)}
         w={100}
       />
@@ -162,7 +167,7 @@ function FilterValueInput({
         size="xs"
         type="number"
         placeholder={t("Value")}
-        value={(condition.value as string) ?? ""}
+        value={textValue}
         onChange={(e) => onChange(e.currentTarget.value)}
         w={100}
       />
@@ -189,7 +194,7 @@ function FilterValueInput({
     <TextInput
       size="xs"
       placeholder={t("Value")}
-      value={(condition.value as string) ?? ""}
+      value={textValue}
       onChange={(e) => onChange(e.currentTarget.value)}
       w={100}
     />

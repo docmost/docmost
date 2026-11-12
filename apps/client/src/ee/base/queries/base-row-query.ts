@@ -115,29 +115,40 @@ export function rowsOrderDependsOn(
   const propertyTypes = new Map(
     (base?.properties ?? []).map((property) => [property.id, property.type]),
   );
-  return queryClient
-    .getQueriesData<InfiniteData<IBaseRowsPage>>({
-      queryKey: ["base-rows", pageId],
-      predicate: (query) => query.queryKey[2] !== "calendar",
-    })
-    .some(([key]) => {
-      const filter = key[2] as FilterNode | undefined;
-      const sorts = key[3] as ViewSortConfig[] | undefined;
-      const referenced = [
-        ...filterPropertyIds(filter),
-        ...(sorts ?? []).map((sort) => sort.propertyId),
-      ];
-      if (referenced.length === 0) return false;
-      if (changedPropertyIds === "any") return true;
-      return referenced.some((id) => {
-        const type = propertyTypes.get(id);
-        return (
-          type === undefined ||
-          changedPropertyIds.includes(id) ||
-          EVERY_EDIT_TYPES.has(type)
-        );
+  let dependsOn = false;
+  for (const query of queryClient.getQueryCache().findAll({
+    queryKey: ["base-rows", pageId],
+    predicate: (query) => query.queryKey[2] !== "calendar",
+  })) {
+    const filter = query.queryKey[2] as FilterNode | undefined;
+    const sorts = query.queryKey[3] as ViewSortConfig[] | undefined;
+    const referenced = [
+      ...filterPropertyIds(filter),
+      ...(sorts ?? []).map((sort) => sort.propertyId),
+    ];
+    const affected =
+      referenced.length > 0 &&
+      (changedPropertyIds === "any" ||
+        referenced.some((id) => {
+          const type = propertyTypes.get(id);
+          return (
+            type === undefined ||
+            changedPropertyIds.includes(id) ||
+            EVERY_EDIT_TYPES.has(type)
+          );
+        }));
+    if (!affected) continue;
+    if (query.getObserversCount() > 0) {
+      dependsOn = true;
+    } else {
+      queryClient.invalidateQueries({
+        queryKey: query.queryKey,
+        exact: true,
+        refetchType: "none",
       });
-    });
+    }
+  }
+  return dependsOn;
 }
 
 export function baseRowsQueryKey(
@@ -437,10 +448,12 @@ export function useUpdateRowMutation() {
       if (!chain || chain.seq !== context?.seq) return;
       endRowUpdateChain(variables.rowId);
       if (chain.reconcile) reconcileRow(variables.pageId, variables.rowId);
-      if (chain.rowsOrdered) scheduleRowsRefresh(variables.pageId, "all");
       if (chain.regrouped) invalidateBaseRows(variables.pageId);
-      else if (chain.calendarTouched) {
-        invalidateCalendarRows(variables.pageId, "none");
+      else {
+        if (chain.rowsOrdered) scheduleRowsRefresh(variables.pageId, "all");
+        if (chain.calendarTouched) {
+          invalidateCalendarRows(variables.pageId, "none");
+        }
       }
     },
   });

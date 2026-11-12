@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, QueryObserver } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -223,8 +223,17 @@ const nestedFilter: FilterNode = {
   op: "and",
   children: [{ op: "or", children: [{ propertyId: "prptext000001", op: "contains", value: "a" }] }],
 };
-const cacheList = (filter: FilterNode | string | undefined, sorts: ViewSortConfig[] | undefined) =>
-  queryClient.setQueryData(["base-rows", "p1", filter, sorts, undefined], { pages: [page(["r1"])], pageParams: [undefined] });
+const listObservers: (() => void)[] = [];
+afterEach(() => listObservers.splice(0).forEach((unsubscribe) => unsubscribe()));
+const cacheList = (filter: FilterNode | string | undefined, sorts: ViewSortConfig[] | undefined, observed = true) => {
+  const queryKey = ["base-rows", "p1", filter, sorts, undefined];
+  queryClient.setQueryData(queryKey, { pages: [page(["r1"])], pageParams: [undefined] });
+  if (observed) {
+    const observer = new QueryObserver(queryClient, { queryKey, queryFn: () => new Promise(() => {}), staleTime: Infinity });
+    listObservers.push(observer.subscribe(() => {}));
+  }
+  return queryKey;
+};
 
 describe("rowsOrderDependsOn", () => {
   it.each([
@@ -246,6 +255,18 @@ describe("rowsOrderDependsOn", () => {
     cacheList("calendar", undefined);
     queryClient.setQueryData(["base-rows", "p1", "calendar", nestedFilter], { pages: [page(["r1"])], pageParams: [undefined] });
     expect(rowsOrderDependsOn("p1", "any", base)).toBe(false);
+  });
+
+  it("does not count a list nobody is looking at, and marks it stale", () => {
+    const key = cacheList(undefined, sortOn("prpdue0000001"), false);
+    expect(rowsOrderDependsOn("p1", ["prpdue0000001"], base)).toBe(false);
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+  });
+
+  it("leaves a cached list alone when its order does not depend on the change", () => {
+    const key = cacheList(undefined, sortOn("prpdue0000001"), false);
+    expect(rowsOrderDependsOn("p1", ["prptext000001"], base)).toBe(false);
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false);
   });
 
   it("treats every property as affected when the base is not cached", () => {
@@ -316,5 +337,31 @@ describe("refreshing rows after the user's own edit", () => {
     const { result } = renderHook(() => useCreateRowMutation(), { wrapper });
     await act(() => result.current.mutateAsync({ pageId: "p1" } as never));
     expect(scheduleRowsRefresh).not.toHaveBeenCalled();
+  });
+
+  it("asks for no refresh when the update regroups a board, which reloads the rows once", async () => {
+    const boardBase = {
+      ...base,
+      views: [{ id: "v2", type: "kanban", config: { groupByPropertyId: "prpdue0000001" } }],
+    } as unknown as IBase;
+    queryClient.setQueryData(["bases", "p1"], boardBase);
+    const key = cacheList(undefined, sortOn("prpdue0000001"));
+    vi.mocked(updateRow).mockResolvedValue(row({ prpdue0000001: { start: "2026-11-12" } }) as never);
+    const { result } = renderHook(() => useUpdateRowMutation(), { wrapper });
+    await act(() => result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-12" } } }));
+    expect(scheduleRowsRefresh).not.toHaveBeenCalled();
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+  });
+});
+
+describe("a condition the released client saved", () => {
+  it("sends eq with a text value under a formula unchanged", async () => {
+    vi.mocked(listRows).mockResolvedValue(page(["r1"]) as never);
+    const filter: FilterNode = { op: "and", children: [{ propertyId: "prpformula001", op: "eq", value: "abc" }] };
+    renderHook(() => useBaseRowsQuery("p1", filter), { wrapper });
+    await waitFor(() => expect(listRows).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(listRows).mock.calls[0][1]).toMatchObject({
+      filter: { op: "and", children: [{ propertyId: "prpformula001", op: "eq", value: "abc" }] },
+    });
   });
 });

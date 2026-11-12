@@ -17,7 +17,10 @@ import {
   referenceStoreAtomFamily,
 } from "@/ee/base/atoms/reference-store-atom";
 import { IPagination } from "@/lib/types";
-import { isCalendarRelevantChange } from "@/ee/base/queries/base-row-query";
+import {
+  isCalendarRelevantChange,
+  rowsOrderDependsOn,
+} from "@/ee/base/queries/base-row-query";
 import {
   cancelRowsRefresh,
   scheduleRowsRefresh,
@@ -225,7 +228,12 @@ function createBaseEventHandler(
               };
             },
           );
-          scheduleRowsRefresh(pageId, "calendar");
+          scheduleRowsRefresh(
+            pageId,
+            rowsOrderDependsOn(pageId, "any", baseForCreate)
+              ? "all"
+              : "calendar",
+          );
         }
         break;
       }
@@ -256,12 +264,10 @@ function createBaseEventHandler(
                     })),
                   },
           );
-          if (
-            isCalendarRelevantChange(
-              baseForUpdate,
-              Object.keys(e.updatedCells ?? {}),
-            )
-          ) {
+          const changedPropertyIds = Object.keys(e.updatedCells ?? {});
+          if (rowsOrderDependsOn(pageId, changedPropertyIds, baseForUpdate)) {
+            scheduleRowsRefresh(pageId, "all");
+          } else if (isCalendarRelevantChange(baseForUpdate, changedPropertyIds)) {
             scheduleRowsRefresh(pageId, "calendar");
           }
         }

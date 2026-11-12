@@ -106,4 +106,36 @@ describe("FilterDateInput", () => {
     fireEvent.click(screen.getByText("Past month"));
     expect(onChange).toHaveBeenCalledWith({ mode: "range", preset: "pastMonth" });
   });
+
+  it("shows a period under before as no value and leaves it alone", () => {
+    const onChange = renderInput("before", { mode: "range", preset: "thisWeek" });
+    expect(trigger("Select")).toBeTruthy();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("names the calendar's controls", () => {
+    renderInput("eq", undefined);
+    fireEvent.click(trigger("Select"));
+    expect(screen.getByRole("button", { name: "Previous month" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next month" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Choose month" })).toBeTruthy();
+  });
+
+  it.each([
+    ["Europe/Berlin", "2026-03-29", "29 March 2026", "Mar 29, 2026"],
+    ["America/New_York", "2026-03-08", "8 March 2026", "Mar 8, 2026"],
+  ])("writes and shows the daylight-saving day for a viewer in %s", (timeZone, today, dayLabel, shown) => {
+    viewer.current = { ...viewer.current, timeZone, today };
+    const onChange = renderInput("eq", undefined);
+    fireEvent.click(trigger("Select"));
+    fireEvent.click(screen.getByLabelText(dayLabel));
+    expect(onChange).toHaveBeenCalledWith({ mode: "exact", date: today });
+    cleanup();
+    renderInput("eq", { mode: "exact", date: today });
+    expect(trigger(shown)).toBeTruthy();
+    cleanup();
+    renderInput("before", { mode: "relative", preset: "today" });
+    expect(trigger("Today")).toBeTruthy();
+  });
 });
+

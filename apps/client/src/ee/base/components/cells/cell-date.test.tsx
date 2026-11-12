@@ -1,6 +1,6 @@
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IBaseProperty } from "@/ee/base/types/base.types";
@@ -22,8 +22,13 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/ee/base/hooks/use-viewer-date-context", () => ({
   useViewerDateContext: () => viewer.current,
 }));
+vi.mock("@/ee/base/services/base-service", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/ee/base/services/base-service")>()),
+  updateProperty: vi.fn(() => new Promise(() => {})),
+}));
 
-import { CellDate } from "./cell-date";
+import { CellDate, DateCellPicker } from "./cell-date";
+import { updateProperty } from "@/ee/base/services/base-service";
 import { CellFormula } from "./cell-formula";
 import { CardField } from "@/ee/base/components/kanban/card-field/card-field";
 import { PROPERTY_TYPE_REGISTRY } from "@/ee/base/property-types/property-type.registry";
@@ -157,5 +162,30 @@ describe("which dates open the picker", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+});
+
+describe("the picker's format menu", () => {
+  it("sends only the date format the user picked", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MantineProvider env="test">
+          <DateCellPicker
+            property={property("date", { includeTime: true, dateFormat: "medium", timeFormat: "12h" })}
+            kind="datetime"
+            value={null}
+            onChange={vi.fn()}
+          />
+        </MantineProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Date format/ }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /Year\/Month\/Day/ }));
+    await waitFor(() => expect(updateProperty).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateProperty).mock.calls[0][0]).toEqual({
+      propertyId: "p1",
+      pageId: "base-1",
+      typeOptions: { dateFormat: "yearMonthDay" },
+    });
   });
 });

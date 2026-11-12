@@ -86,6 +86,20 @@ describe("DateValuePicker", () => {
     expect(onChange).toHaveBeenCalledWith({ start });
   });
 
+  it.each([
+    ["Europe/Berlin", "2026-03-29", "29 March 2026", "2026-03-29T07:00:00.000Z"],
+    ["America/New_York", "2026-03-08", "8 March 2026", "2026-03-08T13:00:00.000Z"],
+  ])("writes 09:00 on the daylight-saving day for a viewer in %s", (timeZone, today, dayLabel, start) => {
+    viewer.current = { ...viewer.current, timeZone, today };
+    const onDateTime = renderPicker({ value: null, kind: "datetime" });
+    fireEvent.click(day(dayLabel));
+    expect(onDateTime).toHaveBeenCalledWith({ start });
+    cleanup();
+    const onDate = renderPicker({ value: null, kind: "date" });
+    fireEvent.click(day(dayLabel));
+    expect(onDate).toHaveBeenCalledWith({ start: today });
+  });
+
   it("leaves the second 01:30 alone when its own day is clicked", () => {
     const onChange = renderPicker({ value: { start: "2026-11-01T06:30:00.000Z" }, kind: "datetime" });
     fireEvent.click(day("1 November 2026"));
