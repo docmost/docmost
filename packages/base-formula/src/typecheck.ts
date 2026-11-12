@@ -80,6 +80,13 @@ function infer(
           span: { start: 0, end: 0 },
         }]);
       }
+      if (Array.isArray(fn.paramTypes)) {
+        argTypes.forEach((t, i) => {
+          if (fn.paramTypes[i] === "date" && (t === "number" || t === "boolean")) {
+            throw typeErr(`${fn.name}() argument ${i + 1} must be a date`);
+          }
+        });
+      }
       return typeof fn.returnType === "function" ? fn.returnType(argTypes, ast.args) : fn.returnType;
     }
   }
