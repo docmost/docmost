@@ -29,11 +29,12 @@ import {
   DATE_FORMAT_LABELS,
   DATE_FORMATS,
   DateFormat,
-  formatDateValue,
-  localDateToYmd,
+  dateTypeOptionsOf,
+  formatDateCell,
   resolveTimeFormat,
   TIME_FORMAT_LABELS,
-} from "@/ee/base/utils/date-value";
+} from "@/ee/base/utils/date-format";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import { IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
@@ -436,20 +437,58 @@ function DateOptions({
   dropdownPortalTarget,
 }: OptionEditorProps) {
   const { t, i18n } = useTranslation();
+  const { timeZone, today } = useViewerDateContext();
+  const storedOptions = useMemo(
+    () => dateTypeOptionsOf(property.typeOptions),
+    [property.typeOptions],
+  );
   const { draft, update, isDirty, save, cancel } = useEditableTypeOptions(
-    property.typeOptions as Record<string, unknown> | undefined,
+    storedOptions,
     { onUpdate, onClose, onDirtyChange, hideButtons },
   );
+  const [confirmingTimeRemoval, setConfirmingTimeRemoval] = useState(false);
   const options = draft as DateTypeOptions;
+  const includeTime = options.includeTime === true;
   const locale = i18n.language;
   const dateFormat: DateFormat = DATE_FORMATS.includes(options.dateFormat)
     ? options.dateFormat
     : "medium";
   const timeFormat = resolveTimeFormat(options.timeFormat, locale);
-  const todayYmd = localDateToYmd(new Date());
+  const handleSave = () => {
+    if (storedOptions.includeTime === true && !includeTime) {
+      setConfirmingTimeRemoval(true);
+    } else {
+      save();
+    }
+  };
   const comboboxProps = {
     portalProps: { target: dropdownPortalTarget ?? undefined },
   };
+
+  if (confirmingTimeRemoval) {
+    return (
+      <Stack gap="xs">
+        <Text size="sm" fw={600}>
+          {t("Remove time from {{name}}?", { name: property.name })}
+        </Text>
+        <Text size="xs" c="dimmed">
+          {t("Cells keep their day and lose the time.")}
+        </Text>
+        <Group gap="xs" justify="flex-end">
+          <Button
+            variant="default"
+            size="xs"
+            onClick={() => setConfirmingTimeRemoval(false)}
+          >
+            {t("Cancel")}
+          </Button>
+          <Button color="red" size="xs" onClick={save}>
+            {t("Remove time")}
+          </Button>
+        </Group>
+      </Stack>
+    );
+  }
 
   return (
     <Stack gap="xs">
@@ -478,9 +517,14 @@ function DateOptions({
             </Text>
             <Group gap={6} wrap="nowrap">
               <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
-                {formatDateValue(
-                  { start: todayYmd },
-                  { dateFormat: option.value as DateFormat, locale },
+                {formatDateCell(
+                  { start: today },
+                  {
+                    dateFormat: option.value as DateFormat,
+                    locale,
+                    timeZone,
+                    today,
+                  },
                 )}
               </Text>
               <IconCheck
@@ -492,30 +536,33 @@ function DateOptions({
           </Group>
         )}
       />
-      <Select
-        size="xs"
-        label={t("Time format")}
-        allowDeselect={false}
-        checkIconPosition="right"
-        comboboxProps={comboboxProps}
-        data={(["12h", "24h"] as const).map((format) => ({
-          value: format,
-          label: t(TIME_FORMAT_LABELS[format]),
-        }))}
-        value={timeFormat}
-        onChange={(val) => {
-          if (val && val !== timeFormat) update({ timeFormat: val });
-        }}
-      />
       <Switch
         size="xs"
         label={t("Include time")}
-        description={t("New dates include a time")}
-        checked={options.includeTime ?? false}
+        aria-label={t("Include time")}
+        description={t("Applies to every date in this property")}
+        checked={includeTime}
         onChange={(e) => update({ includeTime: e.currentTarget.checked })}
       />
+      {includeTime && (
+        <Select
+          size="xs"
+          label={t("Time format")}
+          allowDeselect={false}
+          checkIconPosition="right"
+          comboboxProps={comboboxProps}
+          data={(["12h", "24h"] as const).map((format) => ({
+            value: format,
+            label: t(TIME_FORMAT_LABELS[format]),
+          }))}
+          value={timeFormat}
+          onChange={(val) => {
+            if (val && val !== timeFormat) update({ timeFormat: val });
+          }}
+        />
+      )}
       {!hideButtons && (
-        <OptionsFooter isDirty={isDirty} onCancel={cancel} onSave={save} />
+        <OptionsFooter isDirty={isDirty} onCancel={cancel} onSave={handleSave} />
       )}
     </Stack>
   );

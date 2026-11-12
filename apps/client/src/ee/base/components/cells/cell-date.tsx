@@ -9,6 +9,7 @@ import { useUpdatePropertyMutation } from "@/ee/base/queries/base-property-query
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
 import type { DateCell, DateKind } from "@docmost/base-formula/client";
+import { isPropertyConverting } from "@/ee/base/property-types/property-type.registry";
 import { dateTypeOptionsOf } from "@/ee/base/utils/date-format";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text";
 import cellClasses from "@/ee/base/styles/cells.module.css";
@@ -60,7 +61,11 @@ export function DateCellPicker({
       onChange={onChange}
       dateFormat={typeOptions.dateFormat}
       timeFormat={typeOptions.timeFormat}
-      onPropertyFormatChange={editable ? handlePropertyFormatChange : undefined}
+      onPropertyFormatChange={
+        editable && !isPropertyConverting(property)
+          ? handlePropertyFormatChange
+          : undefined
+      }
     />
   );
 }

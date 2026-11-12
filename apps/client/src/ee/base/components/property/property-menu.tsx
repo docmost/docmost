@@ -39,6 +39,7 @@ import {
 } from "./conversion-warning";
 import { useTranslation } from "react-i18next";
 import {
+  isPropertyConverting,
   isSystemPropertyType,
   propertyTypes,
   defaultTypeOptionsFor,
@@ -511,7 +512,7 @@ function MainPanel({
   const { t } = useTranslation();
 
   const isSystem = isSystemPropertyType(property.type);
-  const isPending = property.pendingType != null;
+  const isPending = isPropertyConverting(property);
 
   const hasOptions =
     !isSystem &&

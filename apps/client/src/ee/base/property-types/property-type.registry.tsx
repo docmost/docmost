@@ -20,6 +20,7 @@ import {
 } from "@tabler/icons-react";
 import type {
   BasePropertyType,
+  IBaseProperty,
   TypeOptions,
 } from "@/ee/base/types/base.types";
 import { CellText } from "@/ee/base/components/cells/cell-text";
@@ -246,6 +247,12 @@ export function getDescriptor(type: string): ClientPropertyTypeDescriptor | unde
 export const SYSTEM_PROPERTY_TYPES: ReadonlySet<string> = new Set(
   Object.values(PROPERTY_TYPE_REGISTRY).filter((d) => d.isSystem).map((d) => d.type),
 );
+
+export function isPropertyConverting(
+  property: Pick<IBaseProperty, "pendingType" | "pendingTypeOptions">,
+): boolean {
+  return property.pendingType != null || property.pendingTypeOptions != null;
+}
 
 export function isSystemPropertyType(type: string): boolean {
   return SYSTEM_PROPERTY_TYPES.has(type);

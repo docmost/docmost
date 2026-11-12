@@ -8,6 +8,7 @@ import {
   propertyMenuDirtyAtomFamily,
 } from "@/ee/base/atoms/base-atoms";
 import { IBaseProperty } from "@/ee/base/types/base.types";
+import { isPropertyConverting } from "@/ee/base/property-types/property-type.registry";
 import {
   MenuItem,
   PropertyMenuContent,
@@ -110,7 +111,7 @@ export function KanbanColumnMenu({ property, pageId, onHide }: KanbanColumnMenuP
             onClose={handleClose}
             onDirtyChange={setDirty}
             pageId={pageId}
-            initialPanel={property.pendingType ? "main" : "options"}
+            initialPanel={isPropertyConverting(property) ? "main" : "options"}
           />
         )}
       </Popover.Dropdown>

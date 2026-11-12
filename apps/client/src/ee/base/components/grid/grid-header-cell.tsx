@@ -25,7 +25,10 @@ import {
   activeFormulaEditorAtomFamily,
   FormulaEditorTarget,
 } from "@/ee/base/atoms/base-atoms";
-import { getDescriptor } from "@/ee/base/property-types/property-type.registry";
+import {
+  getDescriptor,
+  isPropertyConverting,
+} from "@/ee/base/property-types/property-type.registry";
 import { PropertyMenuContent } from "@/ee/base/components/property/property-menu";
 import { FormulaPropertyEditor } from "@/ee/base/components/formula/formula-property-editor";
 import { RowNumberHeaderCell } from "./row-number-header-cell";
@@ -249,7 +252,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
           <span className={classes.headerCellName}>
             {flexRender(header.column.columnDef.header, header.getContext())}
           </span>
-          {property?.pendingType && (
+          {property && isPropertyConverting(property) && (
             <Badge size="xs" color="gray" variant="light" ml={6}>
               {t("Converting…")}
             </Badge>

@@ -10,20 +10,6 @@ export const DATE_FORMATS = [
 ] as const;
 export type DateFormat = (typeof DATE_FORMATS)[number];
 
-export const DATE_FORMAT_LABELS: Record<DateFormat, string> = {
-  full: "Full date",
-  medium: "Month day, year",
-  monthDayYear: "Month/Day/Year",
-  dayMonthYear: "Day/Month/Year",
-  yearMonthDay: "Year/Month/Day",
-  relative: "Relative",
-};
-
-export const TIME_FORMAT_LABELS: Record<"12h" | "24h", string> = {
-  "12h": "12-hour",
-  "24h": "24-hour",
-};
-
 export const MIN_PICKER_DATE = "0100-01-01";
 export const MAX_PICKER_DATE = "9999-12-31";
 
