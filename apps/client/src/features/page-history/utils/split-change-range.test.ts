@@ -84,4 +84,18 @@ describe("splitChangeRange", () => {
   it("returns a text change as one range", () => {
     expect(summary(1, 6)).toEqual([{ from: 1, to: 6, node: undefined }]);
   });
+
+  it("marks a whole block when only its opening changed", () => {
+    expect(summary(0, 1)).toEqual([{ from: 0, to: 7, node: "paragraph" }]);
+  });
+
+  it("marks a whole special node when only its opening changed", () => {
+    expect(summary(tableFrom, tableFrom + 1)).toEqual([
+      { from: tableFrom, to: tableTo, node: "table" },
+    ]);
+  });
+
+  it("drops a change with nothing to show", () => {
+    expect(summary(6, 7)).toEqual([]);
+  });
 });

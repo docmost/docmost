@@ -23,5 +23,25 @@ export function splitChangeRange(
   });
 
   if (cursor < to) segments.push({ from: cursor, to });
-  return segments;
+
+  // a range with no inline content changed only markup, so mark the block it opens or drop it
+  return segments.flatMap((segment) => {
+    if (segment.node || hasInlineContent(doc, segment.from, segment.to)) {
+      return [segment];
+    }
+    const node = doc.nodeAt(segment.from);
+    if (node && (node.isTextblock || specialNodeTypes.has(node.type.name))) {
+      return [{ from: segment.from, to: segment.from + node.nodeSize, node }];
+    }
+    return [];
+  });
+}
+
+function hasInlineContent(doc: Node, from: number, to: number): boolean {
+  let found = false;
+  doc.nodesBetween(from, to, (node) => {
+    if (node.isInline) found = true;
+    return !found;
+  });
+  return found;
 }
