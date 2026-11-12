@@ -1828,12 +1828,12 @@
   "Save and replace": "저장하고 대체",
   "“{{title}}” will be archived when this one starts.": "이 항목이 시작되면 “{{title}}” 항목이 보관됩니다.",
   "This one will be archived when “{{title}}” starts.": "“{{title}}” 항목이 시작되면 이 항목이 보관됩니다.",
-  "{{formats}} added": "{{formats}} added",
-  "{{formats}} removed": "{{formats}} removed",
-  "{{formats}} changed": "{{formats}} changed",
-  "Formatting changed": "Formatting changed",
-  "Highlight": "Highlight",
-  "Read and write": "Read and write",
-  "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
-  "View data in your workspace without making changes.": "View data in your workspace without making changes."
+  "{{formats}} added": "{{formats}} 추가됨",
+  "{{formats}} removed": "{{formats}} 제거됨",
+  "{{formats}} changed": "{{formats}} 변경됨",
+  "Formatting changed": "서식 변경됨",
+  "Highlight": "강조 표시",
+  "Read and write": "읽기 및 쓰기",
+  "View, create and modify data in your workspace.": "워크스페이스의 데이터를 보고, 생성하고, 수정할 수 있습니다.",
+  "View data in your workspace without making changes.": "변경하지 않고 워크스페이스의 데이터를 볼 수 있습니다."
 }
