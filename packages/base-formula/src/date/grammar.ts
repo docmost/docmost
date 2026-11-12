@@ -141,3 +141,59 @@ export function partKind(s: string): DateKind | null {
   if (isCanonicalInstant(s)) return 'datetime';
   return null;
 }
+
+const MIDNIGHT_INSTANT = /^(\d{4}-\d{2}-\d{2})T00:00:00\.000Z$/;
+const NO_ZONE_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?$/;
+
+function toPart(value: unknown, kind: DateKind): string | null {
+  if (typeof value !== 'string') return null;
+  if (kind === 'date') return isYmd(value) ? value : null;
+  return toCanonicalInstant(value);
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+export function normalizeDateCell(
+  input: unknown,
+  kind: DateKind,
+): DateCell | null | typeof INVALID_DATE {
+  if (input === null) return null;
+
+  if (typeof input === 'string') {
+    const midnight = kind === 'date' ? MIDNIGHT_INSTANT.exec(input) : null;
+    const start =
+      midnight && isYmd(midnight[1]) ? midnight[1] : toPart(input, kind);
+    return start === null ? INVALID_DATE : { start };
+  }
+
+  if (!isPlainObject(input)) return INVALID_DATE;
+  if (Object.keys(input).some((key) => key !== 'start' && key !== 'end')) {
+    return INVALID_DATE;
+  }
+
+  const start = toPart(input.start, kind);
+  if (start === null) return INVALID_DATE;
+  if (input.end === undefined || input.end === null) return { start };
+
+  const end = toPart(input.end, kind);
+  if (end === null || end < start) return INVALID_DATE;
+  return end === start ? { start } : { start, end };
+}
+
+export function legacyDateCell(value: string, kind: DateKind): DateCell | null {
+  if (isYmd(value)) {
+    return {
+      start: kind === 'date' ? value : `${value}T00:00:00.000Z`,
+    };
+  }
+  let canonical = toCanonicalInstant(value);
+  if (canonical === null && NO_ZONE_INSTANT.test(value)) {
+    canonical = toCanonicalInstant(`${value}Z`);
+  }
+  if (canonical === null) return null;
+  return { start: kind === 'date' ? canonical.slice(0, 10) : canonical };
+}
