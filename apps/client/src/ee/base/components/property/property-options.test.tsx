@@ -45,12 +45,13 @@ const due = (typeOptions: Record<string, unknown>) =>
 function renderOptions(typeOptions: Record<string, unknown>, hideButtons = false) {
   const onUpdate = vi.fn();
   const onClose = vi.fn();
-  render(
+  const tree = (options: Record<string, unknown>) => (
     <MantineProvider env="test">
-      <PropertyOptions property={due(typeOptions)} onUpdate={onUpdate} onClose={onClose} hideButtons={hideButtons} />
-    </MantineProvider>,
+      <PropertyOptions property={due(options)} onUpdate={onUpdate} onClose={onClose} hideButtons={hideButtons} />
+    </MantineProvider>
   );
-  return { onUpdate, onClose };
+  const { rerender } = render(tree(typeOptions));
+  return { onUpdate, onClose, rerenderWith: (options: Record<string, unknown>) => rerender(tree(options)) };
 }
 
 const includeTime = () => screen.getByRole("switch", { name: "Include time" });
@@ -93,6 +94,25 @@ describe("date property options", () => {
     expect(includeTime()).toHaveProperty("checked", false);
     expect(onUpdate).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes the confirmation when the stored options are replaced, and sends nothing", () => {
+    const { onUpdate, onClose, rerenderWith } = renderOptions({ includeTime: true });
+    fireEvent.click(includeTime());
+    fireEvent.click(button("Save"));
+    expect(screen.getByText("Remove time from Due?")).toBeTruthy();
+    rerenderWith({ includeTime: true });
+    expect(screen.queryByText("Remove time from Due?")).toBeNull();
+    expect(includeTime()).toHaveProperty("checked", true);
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("puts focus on Cancel when the confirmation opens", () => {
+    renderOptions({ includeTime: true });
+    fireEvent.click(includeTime());
+    fireEvent.click(button("Save"));
+    expect(document.activeElement).toBe(button("Cancel"));
   });
 
   it("saves a property that gains a time without asking", () => {

@@ -9,7 +9,7 @@ export type RowsRefreshScope = "calendar" | "all";
 
 const ROWS_REFRESH_DELAY_MS = 300;
 const ROWS_REFRESH_INTERVAL_MS = 2000;
-const ROWS_REFRESH_MAX_DEFERRALS = 10;
+const ROWS_REFRESH_MAX_DEFERRALS = 100;
 const ROWS_REFRESH_MAX_FETCH_WAITS = 100;
 
 type RowsRefreshState = {

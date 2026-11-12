@@ -5,6 +5,7 @@ import api from "@/lib/api-client";
 import i18n from "@/i18n.ts";
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { BaseTemplate } from "@/ee/base/types/base.types";
+import { getViewerTimeZone } from "@/ee/base/utils/viewer-zone";
 
 function findBaseEmbedPlaceholderPos(
   editor: Editor,
@@ -39,6 +40,7 @@ export async function insertBaseEmbedBlock(
     const res = await api.post<{ id: string }>("/bases/create", {
       parentPageId,
       ...(opts.template ? { template: opts.template } : {}),
+      timeZone: getViewerTimeZone(),
     });
 
     const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);

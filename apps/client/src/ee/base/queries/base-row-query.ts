@@ -99,6 +99,47 @@ function cancelLoadedBaseRows(pageId: string) {
   });
 }
 
+function filterPropertyIds(filter: FilterNode | undefined): string[] {
+  if (!filter) return [];
+  if ("children" in filter) return filter.children.flatMap(filterPropertyIds);
+  return [filter.propertyId];
+}
+
+const EVERY_EDIT_TYPES = new Set(["formula", "lastEditedAt", "lastEditedBy"]);
+
+export function rowsOrderDependsOn(
+  pageId: string,
+  changedPropertyIds: readonly string[] | "any",
+  base: IBase | undefined,
+): boolean {
+  const propertyTypes = new Map(
+    (base?.properties ?? []).map((property) => [property.id, property.type]),
+  );
+  return queryClient
+    .getQueriesData<InfiniteData<IBaseRowsPage>>({
+      queryKey: ["base-rows", pageId],
+      predicate: (query) => query.queryKey[2] !== "calendar",
+    })
+    .some(([key]) => {
+      const filter = key[2] as FilterNode | undefined;
+      const sorts = key[3] as ViewSortConfig[] | undefined;
+      const referenced = [
+        ...filterPropertyIds(filter),
+        ...(sorts ?? []).map((sort) => sort.propertyId),
+      ];
+      if (referenced.length === 0) return false;
+      if (changedPropertyIds === "any") return true;
+      return referenced.some((id) => {
+        const type = propertyTypes.get(id);
+        return (
+          type === undefined ||
+          changedPropertyIds.includes(id) ||
+          EVERY_EDIT_TYPES.has(type)
+        );
+      });
+    });
+}
+
 export function baseRowsQueryKey(
   pageId: string | undefined,
   filter: FilterNode | undefined,
@@ -173,8 +214,10 @@ export function useBaseRowsQuery(
 
   const usesDates = queryKey[4] !== undefined;
   const serverZone = query.data?.pages[0]?.meta?.timeZone;
+  const showingPlaceholder = query.isPlaceholderData;
   useEffect(() => {
     if (
+      showingPlaceholder ||
       !usesDates ||
       typeof serverZone !== "string" ||
       isSameTimeZone(serverZone, viewer.timeZone, new Date())
@@ -187,7 +230,7 @@ export function useBaseRowsQuery(
         zone: serverZone,
       }),
     });
-  }, [usesDates, serverZone, viewer.timeZone, pageId, t]);
+  }, [showingPlaceholder, usesDates, serverZone, viewer.timeZone, pageId, t]);
 
   return query;
 }
@@ -223,6 +266,9 @@ export function useCreateRowMutation() {
         },
       );
       const base = queryClient.getQueryData<IBase>(["bases", newRow.pageId]);
+      if (rowsOrderDependsOn(newRow.pageId, "any", base)) {
+        scheduleRowsRefresh(newRow.pageId, "all");
+      }
       if ((base?.views ?? []).some((v) => v.type === "kanban")) {
         queryClient.invalidateQueries({
           queryKey: ["base-rows", newRow.pageId],
@@ -355,6 +401,9 @@ export function useUpdateRowMutation() {
         if (isCalendarRelevantChange(base, changedPropertyIds)) {
           chain.calendarTouched = true;
         }
+        if (rowsOrderDependsOn(variables.pageId, changedPropertyIds, base)) {
+          chain.rowsOrdered = true;
+        }
       }
       if (chain && chain.seq !== context?.seq) return;
 
@@ -388,6 +437,7 @@ export function useUpdateRowMutation() {
       if (!chain || chain.seq !== context?.seq) return;
       endRowUpdateChain(variables.rowId);
       if (chain.reconcile) reconcileRow(variables.pageId, variables.rowId);
+      if (chain.rowsOrdered) scheduleRowsRefresh(variables.pageId, "all");
       if (chain.regrouped) invalidateBaseRows(variables.pageId);
       else if (chain.calendarTouched) {
         invalidateCalendarRows(variables.pageId, "none");

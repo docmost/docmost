@@ -35,10 +35,16 @@ vi.mock("react-i18next", () => ({
 
 import { queryClient } from "@/main.tsx";
 import { notifications } from "@mantine/notifications";
-import { listRows, updateRow } from "@/ee/base/services/base-service";
-import type { FilterNode } from "@/ee/base/types/base.types";
+import { createRow, listRows, updateRow } from "@/ee/base/services/base-service";
+import type { FilterNode, IBase, ViewSortConfig } from "@/ee/base/types/base.types";
 import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
-import { baseRowsQueryKey, useBaseRowsQuery, useUpdateRowMutation } from "./base-row-query";
+import {
+  baseRowsQueryKey,
+  rowsOrderDependsOn,
+  useBaseRowsQuery,
+  useCreateRowMutation,
+  useUpdateRowMutation,
+} from "./base-row-query";
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -176,5 +182,139 @@ describe("useBaseRowsQuery", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     await settle();
     expect(notifications.show).not.toHaveBeenCalled();
+  });
+});
+
+describe("zone notice when the viewer's zone changes", () => {
+  it("stays quiet while the new request is pending and after it answers with the new zone", async () => {
+    vi.mocked(listRows).mockResolvedValueOnce(page(["r1"], { timeZone: "America/New_York" }) as never);
+    const { result, rerender } = renderHook(() => useBaseRowsQuery("p1", todayFilter), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    let finish!: (value: unknown) => void;
+    vi.mocked(listRows).mockReturnValueOnce(new Promise((resolve) => (finish = resolve)) as never);
+    viewer.current = { ...viewer.current, timeZone: "Europe/Berlin" };
+    rerender();
+    await waitFor(() => expect(listRows).toHaveBeenCalledTimes(2));
+    expect(result.current.isPlaceholderData).toBe(true);
+    await settle();
+    expect(notifications.show).not.toHaveBeenCalled();
+
+    await act(async () => finish(page(["r2"], { timeZone: "Europe/Berlin" })));
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false));
+    await settle();
+    expect(notifications.show).not.toHaveBeenCalled();
+  });
+});
+
+const prop = (id: string, type: string) => ({ id, type, name: id, pageId: "p1", position: id, typeOptions: {}, isPrimary: false });
+const base = {
+  id: "p1",
+  properties: [
+    prop("prptext000001", "text"),
+    prop("prpdue0000001", "date"),
+    prop("prpformula001", "formula"),
+    prop("prpedited0001", "lastEditedAt"),
+  ],
+  views: [],
+} as unknown as IBase;
+const sortOn = (propertyId: string): ViewSortConfig[] => [{ propertyId, direction: "asc" }];
+const nestedFilter: FilterNode = {
+  op: "and",
+  children: [{ op: "or", children: [{ propertyId: "prptext000001", op: "contains", value: "a" }] }],
+};
+const cacheList = (filter: FilterNode | string | undefined, sorts: ViewSortConfig[] | undefined) =>
+  queryClient.setQueryData(["base-rows", "p1", filter, sorts, undefined], { pages: [page(["r1"])], pageParams: [undefined] });
+
+describe("rowsOrderDependsOn", () => {
+  it.each([
+    ["no filter, no sorts", undefined, undefined, ["prptext000001"], false],
+    ["sorts on the changed property", undefined, sortOn("prpdue0000001"), ["prpdue0000001"], true],
+    ["sorts on another property", undefined, sortOn("prpdue0000001"), ["prptext000001"], false],
+    ["a nested filter on the changed property", nestedFilter, undefined, ["prptext000001"], true],
+    ["sorts on a formula", undefined, sortOn("prpformula001"), ["prptext000001"], true],
+    ["sorts on Last edited at", undefined, sortOn("prpedited0001"), ["prptext000001"], true],
+    ["sorts, for a created row", undefined, sortOn("prpdue0000001"), "any", true],
+    ["no filter, no sorts, for a created row", undefined, undefined, "any", false],
+    ["sorts on a property that is not in the base", undefined, sortOn("prpgone000001"), ["prptext000001"], true],
+  ] as const)("%s", (_name, filter, sorts, changed, expected) => {
+    cacheList(filter as FilterNode | undefined, sorts as ViewSortConfig[] | undefined);
+    expect(rowsOrderDependsOn("p1", changed, base)).toBe(expected);
+  });
+
+  it("ignores the calendar's lists", () => {
+    cacheList("calendar", undefined);
+    queryClient.setQueryData(["base-rows", "p1", "calendar", nestedFilter], { pages: [page(["r1"])], pageParams: [undefined] });
+    expect(rowsOrderDependsOn("p1", "any", base)).toBe(false);
+  });
+
+  it("treats every property as affected when the base is not cached", () => {
+    cacheList(undefined, sortOn("prpdue0000001"));
+    expect(rowsOrderDependsOn("p1", ["prptext000001"], undefined)).toBe(true);
+  });
+});
+
+describe("refreshing rows after the user's own edit", () => {
+  const row = (cells: object) => ({ id: "r1", pageId: "p1", cells, position: "a" });
+  const seed = (sorts: ViewSortConfig[] | undefined) => {
+    queryClient.setQueryData(["bases", "p1"], base);
+    cacheList(undefined, sorts);
+  };
+
+  it("asks once for all rows when the update touched a sorted property", async () => {
+    seed(sortOn("prpdue0000001"));
+    vi.mocked(updateRow).mockResolvedValue(row({ prpdue0000001: { start: "2026-11-12" } }) as never);
+    const { result } = renderHook(() => useUpdateRowMutation(), { wrapper });
+    await act(() => result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-12" } } }));
+    expect(scheduleRowsRefresh).toHaveBeenCalledTimes(1);
+    expect(scheduleRowsRefresh).toHaveBeenCalledWith("p1", "all");
+  });
+
+  it("asks for nothing when the update touched an unrelated property", async () => {
+    seed(sortOn("prpdue0000001"));
+    vi.mocked(updateRow).mockResolvedValue(row({ prptext000001: "x" }) as never);
+    const { result } = renderHook(() => useUpdateRowMutation(), { wrapper });
+    await act(() => result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prptext000001: "x" } }));
+    expect(scheduleRowsRefresh).not.toHaveBeenCalled();
+  });
+
+  it("asks once for two chained updates of one row", async () => {
+    seed(sortOn("prpdue0000001"));
+    vi.mocked(updateRow).mockResolvedValue(row({}) as never);
+    const { result } = renderHook(() => useUpdateRowMutation(), { wrapper });
+    await act(async () => {
+      await Promise.all([
+        result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-12" } } }),
+        result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-13" } } }),
+      ]);
+    });
+    expect(scheduleRowsRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks for nothing when the update fails", async () => {
+    seed(sortOn("prpdue0000001"));
+    vi.mocked(updateRow).mockRejectedValue(new Error("no"));
+    const { result } = renderHook(() => useUpdateRowMutation(), { wrapper });
+    await act(() =>
+      result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-12" } } }).catch(() => undefined),
+    );
+    expect(scheduleRowsRefresh).not.toHaveBeenCalled();
+  });
+
+  it("asks once after a create under a sorted list", async () => {
+    seed(sortOn("prpdue0000001"));
+    vi.mocked(createRow).mockResolvedValue(row({}) as never);
+    const { result } = renderHook(() => useCreateRowMutation(), { wrapper });
+    await act(() => result.current.mutateAsync({ pageId: "p1" } as never));
+    expect(scheduleRowsRefresh).toHaveBeenCalledTimes(1);
+    expect(scheduleRowsRefresh).toHaveBeenCalledWith("p1", "all");
+  });
+
+  it("asks for nothing after a create under an unsorted, unfiltered list", async () => {
+    seed(undefined);
+    vi.mocked(createRow).mockResolvedValue(row({}) as never);
+    const { result } = renderHook(() => useCreateRowMutation(), { wrapper });
+    await act(() => result.current.mutateAsync({ pageId: "p1" } as never));
+    expect(scheduleRowsRefresh).not.toHaveBeenCalled();
   });
 });

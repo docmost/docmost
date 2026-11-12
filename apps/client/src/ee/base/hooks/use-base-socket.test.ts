@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { InfiniteData, QueryClient } from "@tanstack/react-query";
 import type { Socket } from "socket.io-client";
 import type { IPagination } from "@/lib/types";
@@ -49,6 +49,10 @@ function seedRows(queryClient: QueryClient, pageId: string) {
 }
 
 describe("retainBaseSubscription", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("joins the base room once for several views and leaves after the last one", () => {
     const { socket, emitted, handlers } = createFakeSocket();
     const queryClient = new QueryClient();
@@ -136,7 +140,6 @@ describe("retainBaseSubscription", () => {
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
 
     release();
-    vi.useRealTimers();
   });
 
   it("drops a pending refresh when the last view of the base leaves", async () => {
@@ -151,7 +154,5 @@ describe("retainBaseSubscription", () => {
     release();
     vi.advanceTimersByTime(5000);
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
-
-    vi.useRealTimers();
   });
 });

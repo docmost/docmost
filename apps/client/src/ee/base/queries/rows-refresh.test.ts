@@ -64,12 +64,19 @@ describe("scheduleRowsRefresh", () => {
     expect(invalidateBaseRows).toHaveBeenCalledTimes(2);
   });
 
-  it("waits for a pending row mutation of the same base, ten times at most", () => {
+  it("waits for a pending row mutation of the same base", () => {
     pendingRowMutation("p1");
     scheduleRowsRefresh("p1", "all");
     vi.advanceTimersByTime(3000);
     expect(invalidateBaseRows).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(300);
+  });
+
+  it("keeps waiting for a pending row mutation as long as it waits for a fetch", () => {
+    pendingRowMutation("p1");
+    scheduleRowsRefresh("p1", "all");
+    vi.advanceTimersByTime(299 + 99 * 300);
+    expect(invalidateBaseRows).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(600);
     expect(invalidateBaseRows).toHaveBeenCalledTimes(1);
   });
 

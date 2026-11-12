@@ -454,8 +454,16 @@ function DateOptions({
     ? options.dateFormat
     : "medium";
   const timeFormat = resolveTimeFormat(options.timeFormat, locale);
+  const removesTime = storedOptions.includeTime === true && !includeTime;
+  useEffect(() => {
+    if (!removesTime) setConfirmingTimeRemoval(false);
+  }, [removesTime]);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirmingTimeRemoval) cancelRef.current?.focus();
+  }, [confirmingTimeRemoval]);
   const handleSave = () => {
-    if (storedOptions.includeTime === true && !includeTime) {
+    if (removesTime) {
       setConfirmingTimeRemoval(true);
     } else {
       save();
@@ -476,6 +484,7 @@ function DateOptions({
         </Text>
         <Group gap="xs" justify="flex-end">
           <Button
+            ref={cancelRef}
             variant="default"
             size="xs"
             onClick={() => setConfirmingTimeRemoval(false)}
