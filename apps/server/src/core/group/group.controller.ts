@@ -24,6 +24,7 @@ import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../casl/interfaces/workspace-ability.type';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
@@ -34,6 +35,7 @@ export class GroupController {
     private readonly workspaceAbility: WorkspaceAbilityFactory,
   ) {}
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/')
   getWorkspaceGroups(
@@ -49,6 +51,7 @@ export class GroupController {
     return this.groupService.getWorkspaceGroups(workspace.id, pagination);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/info')
   getGroup(
@@ -96,6 +99,7 @@ export class GroupController {
     return this.groupService.updateGroup(workspace.id, updateGroupDto);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('members')
   getGroupMembers(

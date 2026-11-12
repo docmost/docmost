@@ -38,6 +38,7 @@ import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { ListSpacesDto } from './dto/list-spaces.dto';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -231,6 +232,7 @@ export class SpaceController {
     return this.spaceService.unarchiveSpace(space);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('members')
   async getSpaceMembers(

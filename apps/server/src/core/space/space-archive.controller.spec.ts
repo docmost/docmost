@@ -150,11 +150,16 @@ describe('JwtAuthGuard on the archive handlers', () => {
   });
 
   it.each(handlers)(
-    '%s stays open to sessions and API keys',
+    '%s stays open to sessions and API keys that can write',
     (handler) => {
-      for (const authType of [JwtType.ACCESS, JwtType.API_KEY]) {
-        const caller = authenticated(authType);
-
+      const callers = [
+        authenticated(JwtType.ACCESS),
+        {
+          ...authenticated(JwtType.API_KEY),
+          apiKey: { id: 'key-1', scopes: ['read', 'write'] },
+        },
+      ];
+      for (const caller of callers) {
         expect(
           guard.handleRequest(
             null,
@@ -166,4 +171,20 @@ describe('JwtAuthGuard on the archive handlers', () => {
       }
     },
   );
+
+  it.each(handlers)('%s refuses a read-only API key', (handler) => {
+    const caller = {
+      ...authenticated(JwtType.API_KEY),
+      apiKey: { id: 'key-1', scopes: ['read'] },
+    };
+
+    expect(() =>
+      guard.handleRequest(
+        null,
+        caller,
+        null,
+        contextFor(SpaceController.prototype[handler]),
+      ),
+    ).toThrow(ForbiddenException);
+  });
 });

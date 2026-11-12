@@ -24,6 +24,7 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PageAccessService } from '../page/page-access/page-access.service';
 import { TemplateRepo } from '@docmost/db/repos/template/template.repo';
 import { FavoriteType } from '@docmost/db/repos/favorite/favorite.repo';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('favorites')
@@ -71,6 +72,7 @@ export class FavoriteController {
     });
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('ids')
   async getFavoriteIds(
@@ -86,6 +88,7 @@ export class FavoriteController {
     );
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post()
   async getUserFavorites(

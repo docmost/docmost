@@ -53,6 +53,7 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 import { getPageTitle } from '../../common/helpers';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -105,6 +106,7 @@ export class PageController {
     return { ...page, permissions };
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('labels')
   async getPageLabels(
@@ -163,6 +165,7 @@ export class PageController {
     );
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('backlinks-count')
   async getBacklinksCount(
@@ -178,6 +181,7 @@ export class PageController {
     return this.backlinkService.countByPageId(page.id, user.id);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('backlinks')
   async getBacklinks(
@@ -443,6 +447,7 @@ export class PageController {
     return this.pageService.getRecentPages(user.id, pagination);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('created-by-user')
   async getCreatedByPages(
@@ -466,6 +471,7 @@ export class PageController {
     return this.pageService.getCreatedByPages(targetUserId, user.id, pagination, dto.spaceId);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('trash')
   async getDeletedPages(
@@ -491,6 +497,7 @@ export class PageController {
     }
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/history')
   async getPageHistory(
@@ -508,6 +515,7 @@ export class PageController {
     return this.pageHistoryService.findHistoryByPageId(page.id, pagination);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/history/info')
   async getPageHistoryInfo(
@@ -759,6 +767,7 @@ export class PageController {
     return this.pageService.movePage(dto, movedPage);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/breadcrumbs')
   async getPageBreadcrumbs(@Body() dto: PageIdDto, @AuthUser() user: User) {

@@ -11,6 +11,10 @@ import {
   OAUTH_SCOPE_KEY,
   OAuthRouteScope,
 } from '../decorators/oauth-scope.decorator';
+import {
+  API_KEY_SCOPE_KEY,
+  ApiKeyRouteScope,
+} from '../decorators/api-key-scope.decorator';
 import { REQUIRE_SESSION_AUTH_KEY } from '../decorators/require-session-auth.decorator';
 import { JwtType } from '../../core/auth/dto/jwt-payload';
 import { Reflector } from '@nestjs/core';
@@ -76,6 +80,26 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
           : scopes.includes('write');
       if (!satisfied) {
         throw new ForbiddenException('insufficient_scope');
+      }
+    }
+
+    if (user.authType === JwtType.API_KEY) {
+      const scopes: string[] = user.apiKey?.scopes ?? [];
+      if (!scopes.includes('write')) {
+        const routeScope =
+          this.reflector.get<ApiKeyRouteScope | undefined>(
+            API_KEY_SCOPE_KEY,
+            ctx.getHandler(),
+          ) ??
+          this.reflector.getAllAndOverride<OAuthRouteScope | undefined>(
+            OAUTH_SCOPE_KEY,
+            [ctx.getHandler(), ctx.getClass()],
+          );
+        if (routeScope !== 'read' || !scopes.includes('read')) {
+          throw new ForbiddenException(
+            'Read-only API keys cannot access this endpoint',
+          );
+        }
       }
     }
 
