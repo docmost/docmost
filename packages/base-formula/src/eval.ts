@@ -1,7 +1,8 @@
 import { makeErrorCell, isErrorCell } from "./error";
 import { valueToString, snapNumber } from "./number";
-import { isValidTimeZone } from "./date";
+import { isCanonicalInstant, isValidTimeZone, isYmd } from "./date";
 import { asDateValue, coerceToResultType, dayOf, isDateValue } from "./date-value";
+import { dateKindOfProperty } from "./property";
 import { registry } from "./functions/index";
 import { DEFAULT_MAX_DEPTH, MAX_EVAL_DEPTH } from "./types";
 import type { FormulaAST, OpCode } from "./ast";
@@ -118,39 +119,30 @@ function evalProp(id: string, row: Record<string, unknown>, ctx: EvalContext, as
   if (ctx.memo.has(id)) return ctx.memo.get(id)!;
   const prop = ctx.properties.get(id);
   if (!prop) return makeErrorCell("MISSING_PROP", `missing property ${id}`);
-  if (prop.type === "date") return dateCellToFormulaValue(row[id] ?? null);
+  if (prop.type === "date") {
+    const kind = dateKindOfProperty(prop.type, prop.typeOptions);
+    const cell = row[id];
+    const start =
+      typeof cell === "object" && cell !== null ? (cell as { start?: unknown }).start : null;
+    const canonical = kind === "date" ? isYmd : isCanonicalInstant;
+    return kind && typeof start === "string" && canonical(start) ? { kind, value: start } : null;
+  }
+  if (prop.type === "createdAt") return timestampValue(ctx.createdAt);
+  if (prop.type === "lastEditedAt") return timestampValue(ctx.updatedAt);
   if (prop.type !== "formula") return normalize(row[id] ?? null);
   // astDepth continues (not reset) across the nested-formula boundary.
   if (ctx.depth >= ctx.maxDepth) return makeErrorCell("DEPTH_EXCEEDED", `max depth ${ctx.maxDepth}`);
   const opts: any = prop.typeOptions;
   const nested: EvalContext = { ...ctx, depth: ctx.depth + 1, memo: ctx.memo };
-  const v = evaluate(opts.ast, row, nested, astDepth);
+  const v = coerceToResultType(evaluate(opts.ast, row, nested, astDepth), opts.resultType, ctx.zone);
   ctx.memo.set(id, v);
   return v;
 }
 
-const YMD_PREFIX_RE = /^(\d{4})-(\d{2})-(\d{2})/;
-const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
-
-function isRealYmdPrefix(s: string): boolean {
-  const m = YMD_PREFIX_RE.exec(s);
-  if (!m) return false;
-  const probe = new Date(0);
-  probe.setUTCFullYear(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return (
-    probe.getUTCFullYear() === Number(m[1]) &&
-    probe.getUTCMonth() === Number(m[2]) - 1 &&
-    probe.getUTCDate() === Number(m[3])
-  );
-}
-
-function dateCellToFormulaValue(cell: unknown): Value {
-  const start =
-    typeof cell === "object" && cell !== null ? (cell as { start?: unknown }).start : cell;
-  if (typeof start !== "string" || !isRealYmdPrefix(start)) return null;
-  if (DATE_ONLY_RE.test(start)) return `${start}T00:00:00.000Z`;
-  return INSTANT_RE.test(start) && !isNaN(Date.parse(start)) ? start : null;
+function timestampValue(d: Date | null): Value {
+  if (!d || isNaN(d.getTime())) return null;
+  const iso = d.toISOString();
+  return isCanonicalInstant(iso) ? { kind: "datetime", value: iso } : null;
 }
 
 function normalize(v: unknown): Value {
@@ -180,6 +172,13 @@ function compareDates(op: OpCode, a: Value, b: Value, zone: string): boolean {
   }
 }
 
+const isTextOperand = (v: Value) => v == null || typeof v === "string" || isDateValue(v);
+
+function joinsAsText(a: Value, b: Value): boolean {
+  if (typeof a === "string" || typeof b === "string") return true;
+  return (isDateValue(a) || isDateValue(b)) && isTextOperand(a) && isTextOperand(b);
+}
+
 function evalOp(
   op: OpCode,
   args: FormulaAST[],
@@ -201,7 +200,7 @@ function evalOp(
 
   switch (op as Exclude<OpCode, "neg" | "not">) {
     case "+":
-      if (typeof a === "string" || typeof b === "string") return valueToString(a, ctx.zone) + valueToString(b, ctx.zone);
+      if (joinsAsText(a, b)) return valueToString(a, ctx.zone) + valueToString(b, ctx.zone);
       if (a == null || b == null) return null;
       return Number(a) + Number(b);
     case "-": return a == null || b == null ? null : Number(a) - Number(b);
