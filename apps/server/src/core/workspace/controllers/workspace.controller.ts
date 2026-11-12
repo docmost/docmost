@@ -37,6 +37,7 @@ import { LicenseCheckService } from '../../../integrations/environment/license-c
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { ApiKeyScope } from '../../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -64,6 +65,7 @@ export class WorkspaceController {
     return this.workspaceService.getWorkspaceInfo(workspace.id);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('entitlements')
   async getEntitlements(@AuthWorkspace() workspace: Workspace) {
@@ -199,6 +201,7 @@ export class WorkspaceController {
     );
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('invites')
   async getInvitations(

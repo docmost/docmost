@@ -6,6 +6,7 @@ import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import React from "react";
 import NoTableResults from "@/components/common/no-table-results";
 import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
+import { ScopeBadges } from "@/ee/oauth/components/scope-badges";
 
 interface ApiKeyTableProps {
   apiKeys: IApiKey[];
@@ -36,12 +37,13 @@ export function ApiKeyTable({
   };
 
   return (
-    <Table.ScrollContainer minWidth={500}>
+    <Table.ScrollContainer minWidth={600}>
       <Table highlightOnHover verticalSpacing="sm">
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t("Name")}</Table.Th>
             {showUserColumn && <Table.Th>{t("User")}</Table.Th>}
+            <Table.Th>{t("Permissions")}</Table.Th>
             <Table.Th>{t("Last used")}</Table.Th>
             <Table.Th>{t("Expires")}</Table.Th>
             <Table.Th>{t("Created")}</Table.Th>
@@ -73,6 +75,10 @@ export function ApiKeyTable({
                     </Group>
                   </Table.Td>
                 )}
+
+                <Table.Td>
+                  <ScopeBadges scopes={apiKey.scopes ?? []} />
+                </Table.Td>
 
                 <Table.Td>
                   <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
@@ -139,7 +145,7 @@ export function ApiKeyTable({
               </Table.Tr>
             ))
           ) : (
-            <NoTableResults colSpan={showUserColumn ? 6 : 5} />
+            <NoTableResults colSpan={showUserColumn ? 7 : 6} />
           )}
         </Table.Tbody>
       </Table>

@@ -28,6 +28,7 @@ import { FileTaskIdDto } from './dto/file-task-dto';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @Controller('file-tasks')
 export class FileTaskController {
@@ -38,6 +39,7 @@ export class FileTaskController {
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
+  @ApiKeyScope('read')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post()
@@ -67,6 +69,7 @@ export class FileTaskController {
     });
   }
 
+  @ApiKeyScope('read')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('info')

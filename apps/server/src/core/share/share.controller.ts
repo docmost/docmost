@@ -35,6 +35,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -49,6 +50,7 @@ export class ShareController {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/')
   async getShares(
@@ -125,6 +127,7 @@ export class ShareController {
     );
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/for-page')
   async getShareForPage(

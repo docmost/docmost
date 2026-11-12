@@ -15,6 +15,7 @@ import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WatcherPageDto } from './dto/watcher.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PageAccessService } from '../page/page-access/page-access.service';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -69,6 +70,7 @@ export class WatcherController {
     return { watching: false };
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('watch-status')
   async getWatchStatus(@Body() dto: WatcherPageDto, @AuthUser() user: User) {

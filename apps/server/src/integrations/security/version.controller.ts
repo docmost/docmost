@@ -9,6 +9,7 @@ import {
 import { VersionService } from './version.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { EnvironmentService } from '../environment/environment.service';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('version')
@@ -18,6 +19,7 @@ export class VersionController {
     private readonly environmentService: EnvironmentService,
   ) {}
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post()
   async getVersion() {
