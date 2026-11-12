@@ -9,8 +9,25 @@ const INSTANT =
 const EXACT_INSTANT =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/;
 const MAX_INSTANT_LENGTH = 40;
+const LEGACY_INSTANT =
+  /^(\d{4}-\d{2}-\d{2})[Tt ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(?: ?([Zz]|[+-]\d{2}(?::?\d{2})?))?$/;
+const MAX_LEGACY_LENGTH = 64;
 const MIN_YEAR = 0;
 const MAX_YEAR = 9999;
+
+export const DAY_MS = 86_400_000;
+
+export function requireInteger(n: number, what: string): void {
+  if (!Number.isInteger(n)) {
+    throw new RangeError(`${what} must be an integer`);
+  }
+}
+
+export function requireWeekStart(weekStart: number): void {
+  if (!Number.isInteger(weekStart) || weekStart < 0 || weekStart > 6) {
+    throw new RangeError('Week start must be an integer 0 to 6');
+  }
+}
 
 export function utcMs(
   year: number,
@@ -51,12 +68,12 @@ export function readYmd(s: string): {
       return { year, month, day };
     }
   }
-  throw new RangeError(`Invalid date: ${String(s)}`);
+  throw new RangeError('Invalid calendar day');
 }
 
 export function formatYmd(year: number, month: number, day: number): string {
   if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
-    throw new RangeError(`Year out of range: ${year}`);
+    throw new RangeError('Year out of range');
   }
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
@@ -65,7 +82,7 @@ export function formatInstant(ms: number): string {
   const d = new Date(ms);
   const year = d.getUTCFullYear();
   if (Number.isNaN(year) || year < MIN_YEAR || year > MAX_YEAR) {
-    throw new RangeError(`Instant out of range: ${ms}`);
+    throw new RangeError('Instant out of range');
   }
   return d.toISOString();
 }
@@ -85,7 +102,7 @@ export function readInstant(s: string): number {
       return utcMs(year, month, day, hour, minute, second, ms);
     }
   }
-  throw new RangeError(`Invalid instant: ${String(s)}`);
+  throw new RangeError('Invalid instant');
 }
 
 export function isYmd(s: string): boolean {
@@ -143,7 +160,6 @@ export function partKind(s: string): DateKind | null {
 }
 
 const MIDNIGHT_INSTANT = /^(\d{4}-\d{2}-\d{2})T00:00:00\.000Z$/;
-const NO_ZONE_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?$/;
 
 function toPart(value: unknown, kind: DateKind): string | null {
   if (typeof value !== 'string') return null;
@@ -157,10 +173,17 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
   return proto === Object.prototype || proto === null;
 }
 
+function requireKind(kind: unknown): void {
+  if (kind !== 'date' && kind !== 'datetime') {
+    throw new RangeError('Invalid date kind');
+  }
+}
+
 export function normalizeDateCell(
   input: unknown,
   kind: DateKind,
 ): DateCell | null | typeof INVALID_DATE {
+  requireKind(kind);
   if (input === null) return null;
 
   if (typeof input === 'string') {
@@ -185,16 +208,27 @@ export function normalizeDateCell(
 }
 
 export function legacyDateCell(value: string, kind: DateKind): DateCell | null {
+  requireKind(kind);
   if (typeof value !== 'string') return null;
   if (isYmd(value)) {
     return {
       start: kind === 'date' ? value : `${value}T00:00:00.000Z`,
     };
   }
-  let canonical = toCanonicalInstant(value);
-  if (canonical === null && NO_ZONE_INSTANT.test(value)) {
-    canonical = toCanonicalInstant(`${value}Z`);
-  }
+  const m =
+    value.length <= MAX_LEGACY_LENGTH ? LEGACY_INSTANT.exec(value) : null;
+  if (!m) return null;
+
+  const zone = m[6] === undefined ? 'Z' : m[6].toUpperCase();
+  const offset =
+    zone.length === 3
+      ? `${zone}:00`
+      : zone.length === 5
+        ? `${zone.slice(0, 3)}:${zone.slice(3)}`
+        : zone;
+  const canonical = toCanonicalInstant(
+    `${m[1]}T${m[2]}:${m[3]}:${m[4] ?? '00'}.${(m[5] ?? '').slice(0, 3).padEnd(3, '0')}${offset}`,
+  );
   if (canonical === null) return null;
   return { start: kind === 'date' ? canonical.slice(0, 10) : canonical };
 }

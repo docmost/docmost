@@ -1,4 +1,9 @@
-import { isPlainObject, isYmd, toCanonicalInstant } from './grammar';
+import {
+  isPlainObject,
+  isYmd,
+  requireWeekStart,
+  toCanonicalInstant,
+} from './grammar';
 import {
   addDays,
   addMonths,
@@ -128,11 +133,9 @@ export function resolveOperand(
   weekStart: number,
 ): DayBounds | null {
   if (!isYmd(today)) {
-    throw new RangeError(`Today must be YYYY-MM-DD: ${String(today)}`);
+    throw new RangeError('Today must be YYYY-MM-DD');
   }
-  if (!Number.isInteger(weekStart) || weekStart < 0 || weekStart > 6) {
-    throw new RangeError(`Week start must be an integer 0 to 6: ${weekStart}`);
-  }
+  requireWeekStart(weekStart);
   if (!isPlainObject(operand)) return null;
   const { mode, preset, date } = operand;
 
@@ -158,9 +161,14 @@ export function resolveOperand(
   return isYmd(bounds.from) && isYmd(bounds.toExclusive) ? bounds : null;
 }
 
+const MIN_INSTANT = '0001-01-01T00:00:00.000Z';
+
 export function toInstantBounds(days: DayBounds, zone: string): InstantBounds {
+  if (!isPlainObject(days)) throw new RangeError('Invalid day bounds');
+  const from = startOfDay(days.from, zone);
+  const toExclusive = startOfDay(days.toExclusive, zone);
   return {
-    from: startOfDay(days.from, zone),
-    toExclusive: startOfDay(days.toExclusive, zone),
+    from: from < MIN_INSTANT ? MIN_INSTANT : from,
+    toExclusive: toExclusive < MIN_INSTANT ? MIN_INSTANT : toExclusive,
   };
 }

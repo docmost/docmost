@@ -1,12 +1,12 @@
-import { formatYmd, lastDayOfMonth, readYmd, utcMs } from './grammar';
-
-const DAY_MS = 86_400_000;
-
-function requireInteger(n: number, what: string): void {
-  if (!Number.isInteger(n)) {
-    throw new RangeError(`${what} must be an integer: ${String(n)}`);
-  }
-}
+import {
+  DAY_MS,
+  formatYmd,
+  lastDayOfMonth,
+  readYmd,
+  requireInteger,
+  requireWeekStart,
+  utcMs,
+} from './grammar';
 
 export function addDays(ymd: string, n: number): string {
   const { year, month, day } = readYmd(ymd);
@@ -47,9 +47,7 @@ export function weekday(ymd: string): number {
 }
 
 export function startOfWeek(ymd: string, weekStart: number): string {
-  if (!Number.isInteger(weekStart) || weekStart < 0 || weekStart > 6) {
-    throw new RangeError(`Week start must be an integer 0 to 6: ${weekStart}`);
-  }
+  requireWeekStart(weekStart);
   return addDays(ymd, -((weekday(ymd) - weekStart + 7) % 7));
 }
 

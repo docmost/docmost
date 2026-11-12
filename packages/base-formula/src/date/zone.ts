@@ -1,9 +1,11 @@
 import { addDays, addMonths, addYears } from './calendar';
 import {
+  DAY_MS,
   formatInstant,
   formatYmd,
   readInstant,
   readYmd,
+  requireInteger,
   utcMs,
 } from './grammar';
 
@@ -18,14 +20,13 @@ export type WallClock = {
 };
 
 const FORMATTER_CACHE_LIMIT = 64;
-const DAY_MS = 86_400_000;
 const MAX_ZONE_LENGTH = 64;
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
 function formatterFor(zone: string): Intl.DateTimeFormat {
   if (typeof zone !== 'string') {
-    throw new RangeError(`Invalid time zone: ${String(zone)}`);
+    throw new RangeError('Invalid time zone');
   }
   const cached = formatters.get(zone);
   if (cached) return cached;
@@ -92,6 +93,7 @@ function fieldsAt(ms: number, zone: string): Fields {
       fields[part.type as keyof Fields] = Number(part.value);
     }
   }
+  if (fields.hour === 24) fields.hour = 0;
   if (era === 'BC') fields.year = 1 - fields.year;
   return fields;
 }
@@ -125,19 +127,13 @@ function localToInstantMs(local: number, zone: string): number {
   return early;
 }
 
-function requireInteger(n: number, what: string): void {
-  if (!Number.isInteger(n)) {
-    throw new RangeError(`${what} must be an integer: ${String(n)}`);
-  }
-}
-
 function requireClockField(
   value: number,
   max: number,
   what: string,
 ): void {
   if (!Number.isInteger(value) || value < 0 || value > max) {
-    throw new RangeError(`${what} out of range: ${String(value)}`);
+    throw new RangeError(`${what} out of range`);
   }
 }
 
@@ -208,7 +204,7 @@ export function addToInstant(
     unit !== 'months' &&
     unit !== 'years'
   ) {
-    throw new RangeError(`Unknown unit: ${String(unit)}`);
+    throw new RangeError('Unknown unit');
   }
   if (n === 0) return instant;
   const wall = instantToWall(instant, zone);
