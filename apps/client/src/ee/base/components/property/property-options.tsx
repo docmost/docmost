@@ -35,6 +35,8 @@ import {
   TIME_FORMAT_LABELS,
 } from "@/ee/base/utils/date-format";
 import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import { useBaseQuery } from "@/ee/base/queries/base-query";
+import { timeZoneName } from "@/ee/base/utils/time-zones";
 import { IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
@@ -438,6 +440,7 @@ function DateOptions({
 }: OptionEditorProps) {
   const { t, i18n } = useTranslation();
   const { timeZone, today } = useViewerDateContext();
+  const { data: base } = useBaseQuery(property.pageId);
   const storedOptions = useMemo(
     () => dateTypeOptionsOf(property.typeOptions),
     [property.typeOptions],
@@ -487,7 +490,9 @@ function DateOptions({
           {t("Remove time from {{name}}?", { name: property.name })}
         </Text>
         <Text size="xs" c="dimmed">
-          {t("Cells keep their day and lose the time.")}
+          {t("Cells keep their day in {{zone}} and lose the time.", {
+            zone: timeZoneName(base?.baseTimeZone ?? "UTC"),
+          })}
         </Text>
         <Group gap="xs" justify="flex-end">
           <Button

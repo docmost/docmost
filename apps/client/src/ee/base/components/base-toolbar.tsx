@@ -38,6 +38,7 @@ import { FormSettingsPopover } from "@/ee/base/components/form/form-settings-pop
 import { FormSharePopover } from "@/ee/base/components/form/form-share-popover";
 import { formPreviewAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
+import { BaseSettingsButton } from "@/ee/base/components/base-settings";
 import { useTranslation } from "react-i18next";
 import classes from "@/ee/base/styles/grid.module.css";
 import toolbarClasses from "@/ee/base/styles/base-toolbar.module.css";
@@ -176,6 +177,8 @@ export function BaseToolbar({
             <IconDownload size={16} />
           </ActionIcon>
         </Tooltip>
+
+        {editable && <BaseSettingsButton base={base} />}
 
         {!isForm && (
           <ViewFilterConfigPopover
