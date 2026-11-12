@@ -1828,12 +1828,12 @@
   "Save and replace": "保存して置き換える",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” はこれの開始時にアーカイブされます。",
   "This one will be archived when “{{title}}” starts.": "これは “{{title}}” の開始時にアーカイブされます。",
-  "{{formats}} added": "{{formats}} added",
-  "{{formats}} removed": "{{formats}} removed",
-  "{{formats}} changed": "{{formats}} changed",
-  "Formatting changed": "Formatting changed",
-  "Highlight": "Highlight",
-  "Read and write": "Read and write",
-  "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
-  "View data in your workspace without making changes.": "View data in your workspace without making changes."
+  "{{formats}} added": "{{formats}} を追加",
+  "{{formats}} removed": "{{formats}} を削除",
+  "{{formats}} changed": "{{formats}} を変更",
+  "Formatting changed": "書式設定が変更されました",
+  "Highlight": "ハイライト",
+  "Read and write": "読み取りと書き込み",
+  "View, create and modify data in your workspace.": "ワークスペース内のデータを表示、作成、変更できます。",
+  "View data in your workspace without making changes.": "変更を加えずにワークスペース内のデータを表示できます。"
 }
