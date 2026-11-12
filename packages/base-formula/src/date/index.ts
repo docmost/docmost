@@ -28,3 +28,11 @@ export {
   addToInstant,
 } from './zone';
 export type { CalendarUnit, ClockUnit, WallClock } from './zone';
+export { resolveOperand, toInstantBounds } from './relative';
+export type {
+  RelativeAnchor,
+  RelativeRange,
+  DateOperand,
+  DayBounds,
+  InstantBounds,
+} from './relative';
