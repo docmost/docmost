@@ -1,13 +1,14 @@
 import { register } from "./registry";
 import { makeErrorCell } from "../error";
+import { valueToString } from "../number";
 import { asDateValue, dayOf, instantOf, isDateValue, parseDateText } from "../date-value";
 import {
-  addDays, addMonths, addToInstant, addYears, diffDays, isCanonicalInstant, isYmd,
-  startOfDay, todayIn,
+  addDays, addMonths, addToInstant, addYears, diffDays, instantToWall, isCanonicalInstant, isYmd,
+  startOfDay, todayIn, weekday,
 } from "../date";
 import type { FormulaAST } from "../ast";
 import type { DateValue, ErrorCell, EvalContext, FormulaResultType, Value } from "../types";
-import type { DateKind } from "../date";
+import type { DateKind, WallClock } from "../date";
 
 const dateArg = (v: Value): DateValue | ErrorCell =>
   asDateValue(v) ?? makeErrorCell("DATE_INVALID", "invalid date");
@@ -136,4 +137,53 @@ register({
   returnType: (types, args) => staticDateKind(types[0], args[0]) ?? "datetime",
   eval: ([v]) => dateArg(v),
   doc: "Reads text such as 2026-01-31 or 2026-01-31T09:00Z as a date.", category: "date",
+});
+
+const wallOf = (d: DateValue, zone: string): WallClock =>
+  d.kind === "datetime"
+    ? instantToWall(d.value, zone)
+    : { ymd: d.value, hour: 0, minute: 0, second: 0, millisecond: 0 };
+
+const PARTS: Array<[string, string, (w: WallClock) => number]> = [
+  ["year", "Year of a date.", (w) => Number(w.ymd.slice(0, 4))],
+  ["month", "Month of a date, 1 to 12.", (w) => Number(w.ymd.slice(5, 7))],
+  ["day", "Day of the month, 1 to 31.", (w) => Number(w.ymd.slice(8, 10))],
+  ["hour", "Hour of a date, 0 to 23.", (w) => w.hour],
+  ["minute", "Minute of a date, 0 to 59.", (w) => w.minute],
+  ["weekday", "Day of the week, 0 for Sunday to 6 for Saturday.", (w) => weekday(w.ymd)],
+];
+
+for (const [name, doc, read] of PARTS) {
+  register({
+    name, arity: { min: 1, max: 1 }, paramTypes: ["date"], returnType: "number",
+    eval: ([v], ctx) => {
+      const d = dateArg(v);
+      return isDateValue(d) ? read(wallOf(d, ctx.zone)) : d;
+    },
+    doc, category: "date",
+  });
+}
+
+const pad2 = (n: number): string => String(n).padStart(2, "0");
+
+register({
+  name: "formatDate", arity: { min: 2, max: 2 }, paramTypes: ["date", "string"], returnType: "string",
+  eval: ([v, pattern], ctx) => {
+    const d = dateArg(v);
+    if (!isDateValue(d)) return d;
+    const w = wallOf(d, ctx.zone);
+    const year = w.ymd.slice(0, 4);
+    const month = Number(w.ymd.slice(5, 7));
+    const day = Number(w.ymd.slice(8, 10));
+    const tokens = new Map<string, string>([
+      ["YYYY", year], ["MM", pad2(month)], ["DD", pad2(day)],
+      ["HH", pad2(w.hour)], ["mm", pad2(w.minute)], ["ss", pad2(w.second)],
+      ["M", String(month)], ["D", String(day)], ["H", String(w.hour)],
+    ]);
+    return valueToString(pattern, ctx.zone).replace(
+      /([A-Za-z])\1*/g,
+      (run) => tokens.get(run) ?? run,
+    );
+  },
+  doc: "Formats a date as text. Tokens: YYYY, MM, DD, HH, mm, ss, M, D, H.", category: "date",
 });
