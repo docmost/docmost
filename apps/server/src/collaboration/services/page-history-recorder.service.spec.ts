@@ -64,6 +64,79 @@ describe('PageHistoryRecorderService', () => {
     expect(collabHistory.popContributors).not.toHaveBeenCalled();
   });
 
+  it('reuses the latest version when only block ids and defaults changed', async () => {
+    pageRepo.findById.mockResolvedValue(
+      page({
+        content: {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              attrs: { id: 'block-1', dir: 'auto', indent: 0 },
+              content: [{ type: 'text', text: 'hello' }],
+            },
+          ],
+        },
+      }),
+    );
+    historyRepo.findPageLastHistory.mockResolvedValue({
+      id: 'last',
+      title: 'Title',
+      content: textDoc('hello'),
+    });
+
+    await expect(service.recordPageHistory('page-1')).resolves.toBe('last');
+    expect(historyRepo.saveHistory).not.toHaveBeenCalled();
+    expect(collabHistory.popContributors).not.toHaveBeenCalled();
+  });
+
+  it('reuses the latest version when only a comment changed', async () => {
+    pageRepo.findById.mockResolvedValue(
+      page({
+        content: {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: 'hello',
+                  marks: [
+                    {
+                      type: 'comment',
+                      attrs: { commentId: 'comment-1', resolved: true },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    historyRepo.findPageLastHistory.mockResolvedValue({
+      id: 'last',
+      title: 'Title',
+      content: textDoc('hello'),
+    });
+
+    await expect(service.recordPageHistory('page-1')).resolves.toBe('last');
+    expect(historyRepo.saveHistory).not.toHaveBeenCalled();
+  });
+
+  it('reuses the latest version when the title only differs in whitespace', async () => {
+    pageRepo.findById.mockResolvedValue(page({ title: ' Title  ' }));
+    historyRepo.findPageLastHistory.mockResolvedValue({
+      id: 'last',
+      title: 'Title',
+      content: textDoc('hello'),
+    });
+
+    await expect(service.recordPageHistory('page-1')).resolves.toBe('last');
+    expect(historyRepo.saveHistory).not.toHaveBeenCalled();
+  });
+
   it('inserts a version when the content changed', async () => {
     pageRepo.findById.mockResolvedValue(page());
     historyRepo.findPageLastHistory.mockResolvedValue({
