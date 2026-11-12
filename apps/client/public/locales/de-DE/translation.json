@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "Diese werden bereits ab {{from}} ohne Endzeit angezeigt:",
   "Save and replace": "Speichern und ersetzen",
   "“{{title}}” will be archived when this one starts.": "„{{title}}“ wird archiviert, wenn diese Ankündigung beginnt.",
-  "This one will be archived when “{{title}}” starts.": "Diese Ankündigung wird archiviert, wenn „{{title}}“ beginnt."
+  "This one will be archived when “{{title}}” starts.": "Diese Ankündigung wird archiviert, wenn „{{title}}“ beginnt.",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
