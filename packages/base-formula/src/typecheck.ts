@@ -56,6 +56,7 @@ function infer(
       if (thenT === elseT) return thenT;
       if (thenT === "null") return elseT;
       if (elseT === "null") return thenT;
+      if ((thenT === "date" || thenT === "datetime") && (elseT === "date" || elseT === "datetime")) return "datetime";
       throw typeErr(`if() branches have different types: ${thenT} vs ${elseT}`);
     }
     case "and": case "or":

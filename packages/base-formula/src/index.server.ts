@@ -14,3 +14,5 @@ export * from "./graph";
 export * from "./eval";
 export * from "./number";
 export * from "./date";
+export * from "./property";
+export * from "./compile";

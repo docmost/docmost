@@ -5,6 +5,7 @@ export type FormulaResultType =
   | "string"
   | "boolean"
   | "date"
+  | "datetime"
   | "null";
 
 export type FormulaTypeOptions = {
