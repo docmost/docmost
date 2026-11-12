@@ -1828,12 +1828,12 @@
   "Save and replace": "Opslaan en vervangen",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” wordt gearchiveerd wanneer deze begint.",
   "This one will be archived when “{{title}}” starts.": "Deze wordt gearchiveerd wanneer “{{title}}” begint.",
-  "{{formats}} added": "{{formats}} added",
-  "{{formats}} removed": "{{formats}} removed",
-  "{{formats}} changed": "{{formats}} changed",
-  "Formatting changed": "Formatting changed",
-  "Highlight": "Highlight",
-  "Read and write": "Read and write",
-  "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
-  "View data in your workspace without making changes.": "View data in your workspace without making changes."
+  "{{formats}} added": "{{formats}} toegevoegd",
+  "{{formats}} removed": "{{formats}} verwijderd",
+  "{{formats}} changed": "{{formats}} gewijzigd",
+  "Formatting changed": "Opmaak gewijzigd",
+  "Highlight": "Markeren",
+  "Read and write": "Lezen en schrijven",
+  "View, create and modify data in your workspace.": "Gegevens in je werkruimte bekijken, maken en wijzigen.",
+  "View data in your workspace without making changes.": "Gegevens in je werkruimte bekijken zonder wijzigingen aan te brengen."
 }
