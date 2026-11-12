@@ -1828,12 +1828,12 @@
   "Save and replace": "Зберегти й замінити",
   "“{{title}}” will be archived when this one starts.": "“{{title}}” буде архівовано, коли почнеться це оголошення.",
   "This one will be archived when “{{title}}” starts.": "Це оголошення буде архівовано, коли почнеться “{{title}}”.",
-  "{{formats}} added": "{{formats}} added",
-  "{{formats}} removed": "{{formats}} removed",
-  "{{formats}} changed": "{{formats}} changed",
-  "Formatting changed": "Formatting changed",
-  "Highlight": "Highlight",
-  "Read and write": "Read and write",
-  "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
-  "View data in your workspace without making changes.": "View data in your workspace without making changes."
+  "{{formats}} added": "{{formats}} додано",
+  "{{formats}} removed": "{{formats}} видалено",
+  "{{formats}} changed": "{{formats}} змінено",
+  "Formatting changed": "Форматування змінено",
+  "Highlight": "Підсвічування",
+  "Read and write": "Читання та запис",
+  "View, create and modify data in your workspace.": "Переглядайте, створюйте та змінюйте дані у своєму робочому просторі.",
+  "View data in your workspace without making changes.": "Переглядайте дані у своєму робочому просторі без внесення змін."
 }
