@@ -38,6 +38,7 @@ import { notifications } from "@mantine/notifications";
 import { createRow, listRows, updateRow } from "@/ee/base/services/base-service";
 import type { FilterNode, IBase, ViewSortConfig } from "@/ee/base/types/base.types";
 import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
+import { forgetRowsZoneNotices } from "@/ee/base/queries/rows-zone-notice";
 import {
   baseRowsQueryKey,
   rowsOrderDependsOn,
@@ -60,6 +61,7 @@ beforeEach(() => {
   viewer.current = { timeZone: "America/New_York", weekStart: 0, today: "2026-11-12" };
   vi.mocked(listRows).mockReset();
   vi.mocked(notifications.show).mockClear();
+  forgetRowsZoneNotices();
 });
 afterEach(cleanup);
 
@@ -182,6 +184,30 @@ describe("useBaseRowsQuery", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     await settle();
     expect(notifications.show).not.toHaveBeenCalled();
+  });
+});
+
+describe("zone notice across refetches", () => {
+  it("says it once for the same other zone, and again after an answer in the viewer's own zone", async () => {
+    vi.mocked(listRows).mockResolvedValueOnce(page(["r1"], { timeZone: "Europe/Berlin" }) as never);
+    const { result, rerender } = renderHook(() => useBaseRowsQuery("p1", todayFilter), { wrapper });
+    await waitFor(() => expect(notifications.show).toHaveBeenCalledTimes(1));
+
+    const answerOnNextDay = async (today: string, timeZone: string, calls: number) => {
+      vi.mocked(listRows).mockResolvedValueOnce(page(["r1"], { timeZone }) as never);
+      viewer.current = { ...viewer.current, today };
+      rerender();
+      await waitFor(() => expect(listRows).toHaveBeenCalledTimes(calls));
+      await waitFor(() => expect(result.current.isPlaceholderData).toBe(false));
+      await settle();
+    };
+
+    await answerOnNextDay("2026-11-13", "Europe/Berlin", 2);
+    expect(notifications.show).toHaveBeenCalledTimes(1);
+    await answerOnNextDay("2026-11-14", "America/New_York", 3);
+    expect(notifications.show).toHaveBeenCalledTimes(1);
+    await answerOnNextDay("2026-11-15", "Europe/Berlin", 4);
+    expect(notifications.show).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -18,6 +18,7 @@ import {
   createOnDays,
   dropOnMonth,
   eventDayRange,
+  isStaleCalendarEvent,
   resizeOnMonth,
 } from "@/ee/base/services/calendar-adapter";
 import {
@@ -162,10 +163,11 @@ export const CalendarMonth = memo(function CalendarMonth({
   const { timeZone } = display;
   const handleResize = useCallback(
     (event: CalendarEvent, edge: CalendarResizeEdge, toDay: string) => {
+      if (isStaleCalendarEvent(event, kind)) return;
       const next = resizeOnMonth(event, edge, toDay, timeZone);
       if (next) onEventResize?.(event.id, next);
     },
-    [onEventResize, timeZone],
+    [onEventResize, kind, timeZone],
   );
   const { resizeRange, isResizing, resizeIntentRef, wasResizing, startResize } =
     useCalendarMonthResize(rootRef, handleResize);
@@ -223,10 +225,11 @@ export const CalendarMonth = memo(function CalendarMonth({
 
   const handleEventDrop = useCallback(
     ({ eventId, newStart, event }: MonthEventDrop) => {
+      if (isStaleCalendarEvent(event as CalendarEvent, kind)) return;
       const next = dropOnMonth(event as CalendarEvent, newStart, grabbedDayRef.current, timeZone);
       if (next) onEventMove?.(String(eventId), next);
     },
-    [onEventMove, timeZone],
+    [onEventMove, kind, timeZone],
   );
 
   const handleEventClick = useCallback(

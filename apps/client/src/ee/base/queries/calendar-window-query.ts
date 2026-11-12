@@ -114,12 +114,12 @@ export function useCalendarWindowQuery(
     kind === "datetime" || rowsDateKey(active, viewer) !== undefined;
   useEffect(() => {
     if (!pageId || showingPlaceholder || !zoneMatters) return;
-    notifyRowsZone(pageId, serverZone, viewer.timeZone, t);
+    notifyRowsZone(pageId, serverZone, viewer.timeZone, t, "calendar");
   }, [pageId, showingPlaceholder, zoneMatters, serverZone, viewer.timeZone, t]);
 
   return {
     rows,
-    total: page?.meta?.total ?? rows.length,
+    total: showingPlaceholder ? rows.length : (page?.meta?.total ?? rows.length),
     isTruncated: page?.meta?.truncated === true && !showingPlaceholder,
     isLoading: query.isLoading,
     isFetching: query.isFetching,

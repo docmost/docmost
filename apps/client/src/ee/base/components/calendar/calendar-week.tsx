@@ -17,6 +17,7 @@ import {
   createOnSlots,
   dropOnWeek,
   isAllDayLane,
+  isStaleCalendarEvent,
   resizeOnWeek,
   slotTimeAt,
 } from "@/ee/base/services/calendar-adapter";
@@ -142,6 +143,7 @@ export const CalendarWeek = memo(function CalendarWeek({
 
   const handleEventDrop = useCallback(
     ({ eventId, newStart, event }: WeekEventChange) => {
+      if (isStaleCalendarEvent(event as CalendarEvent, kind)) return;
       const next = dropOnWeek(
         event as CalendarEvent,
         newStart,
@@ -150,7 +152,7 @@ export const CalendarWeek = memo(function CalendarWeek({
       );
       if (next) onEventMove?.(String(eventId), next);
     },
-    [onEventMove, timeZone],
+    [onEventMove, kind, timeZone],
   );
 
   const handleEventDragEnd = useCallback(() => {
@@ -160,10 +162,11 @@ export const CalendarWeek = memo(function CalendarWeek({
 
   const handleEventResize = useCallback(
     ({ eventId, newStart, newEnd, event }: WeekEventChange) => {
+      if (isStaleCalendarEvent(event as CalendarEvent, kind)) return;
       const next = resizeOnWeek(event as CalendarEvent, newStart, newEnd, timeZone);
       if (next) onEventResize?.(String(eventId), next);
     },
-    [onEventResize, timeZone],
+    [onEventResize, kind, timeZone],
   );
 
   const createWith = useCallback(

@@ -37,6 +37,7 @@ import { queryClient } from "@/main.tsx";
 import type { IBaseRowsPage } from "@/ee/base/services/base-service";
 import { listCalendarRows } from "@/ee/base/services/base-service";
 import { invalidateCalendarRows } from "@/ee/base/queries/base-row-query";
+import { forgetRowsZoneNotices } from "@/ee/base/queries/rows-zone-notice";
 import { calendarWindowQueryKey, useCalendarWindowQuery } from "./calendar-window-query";
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -65,6 +66,7 @@ beforeEach(() => {
   viewer.current = { timeZone: "America/New_York", weekStart: 0, today: "2026-11-12" };
   vi.mocked(listCalendarRows).mockReset();
   vi.mocked(notifications.show).mockClear();
+  forgetRowsZoneNotices();
 });
 afterEach(cleanup);
 
@@ -152,13 +154,42 @@ describe("useCalendarWindowQuery", () => {
     expect(result.current.rows.map((r) => r.id)).toEqual(["r1"]);
   });
 
-  it("says, under the list's notification id, when the server used another zone", async () => {
+  it("reports the number of rows shown, not the previous window's total, while the next one loads", async () => {
+    vi.mocked(listCalendarRows).mockResolvedValueOnce(page(["r1", "r2"], { total: 9000, truncated: true }));
+    const { result, rerender } = renderHook(
+      ({ from, to }) => useCalendarWindowQuery("p1", { propertyId: "due", kind: "date", from, to, filter: undefined }),
+      { wrapper, initialProps: { from: "2026-11-01", to: "2026-12-12" } },
+    );
+    await waitFor(() => expect(result.current.total).toBe(9000));
+    vi.mocked(listCalendarRows).mockReturnValueOnce(new Promise(() => {}) as never);
+    rerender({ from: "2026-11-29", to: "2027-01-09" });
+    await waitFor(() => expect(listCalendarRows).toHaveBeenCalledTimes(2));
+    expect(result.current).toMatchObject({ isTruncated: false, total: 2 });
+  });
+
+  it("says, under the list's notification id and in its own words, when the server used another zone", async () => {
     vi.mocked(listCalendarRows).mockResolvedValue(page(["r1"], { timeZone: "Europe/Berlin" }));
     await load({ ...november, kind: "datetime", filter: undefined });
     expect(notifications.show).toHaveBeenCalledWith({
       id: "base-rows-zone:p1",
-      message: "Date filters use Europe/Berlin, not your time zone",
+      message: "This calendar uses Europe/Berlin, not your time zone",
     });
+  });
+
+  it("says it once while the viewer pages through windows the server places in the same other zone", async () => {
+    vi.mocked(listCalendarRows).mockResolvedValue(page(["r1"], { timeZone: "Europe/Berlin" }));
+    const { result, rerender } = renderHook(
+      ({ from, to }) => useCalendarWindowQuery("p1", { propertyId: "due", kind: "datetime", from, to, filter: undefined }),
+      { wrapper, initialProps: { from: "2026-11-01", to: "2026-12-12" } },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    for (const [from, to, calls] of [["2026-11-29", "2027-01-09", 2], ["2027-01-31", "2027-03-13", 3]] as const) {
+      rerender({ from, to });
+      await waitFor(() => expect(listCalendarRows).toHaveBeenCalledTimes(calls));
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      await act(async () => {});
+    }
+    expect(notifications.show).toHaveBeenCalledTimes(1);
   });
 
   it.each([

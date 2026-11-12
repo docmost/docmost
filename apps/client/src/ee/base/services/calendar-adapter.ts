@@ -303,6 +303,10 @@ export function dropOnWeek(
   });
 }
 
+export function isStaleCalendarEvent(event: Pick<CalendarEvent, "payload">, kind: DateKind): boolean {
+  return event.payload.kind !== kind;
+}
+
 export function resizeDayRange(
   range: CalendarDayRange,
   edge: CalendarResizeEdge,
@@ -321,7 +325,10 @@ export function resizeOnMonth(
   const { kind, value } = event.payload;
   return toWrite(event.payload, () => {
     const [first, last] = eventDayRange(event);
-    const n = diffDays(edge === "start" ? first : last, toDay);
+    const n =
+      edge === "start"
+        ? diffDays(first, toDay < last ? toDay : last)
+        : diffDays(last, toDay > first ? toDay : first);
     if (n === 0) return null;
     const move = (part: string) =>
       kind === "date" ? addDays(part, n) : addToInstant(part, n, "days", timeZone);

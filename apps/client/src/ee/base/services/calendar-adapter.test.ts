@@ -18,6 +18,7 @@ import {
   isAllDayLane,
   isCalendarDate,
   isEditableCalendarSource,
+  isStaleCalendarEvent,
   resizeDayRange,
   resizeOnMonth,
   resizeOnWeek,
@@ -468,6 +469,57 @@ describe("resizeOnMonth", () => {
     expect(resizeDayRange(range, "start", "2026-11-20")).toEqual(["2026-11-14", "2026-11-14"]);
     expect(resizeDayRange(range, "end", "2026-11-30")).toEqual(["2026-11-12", "2026-11-30"]);
     expect(resizeDayRange(range, "end", "2026-11-01")).toEqual(["2026-11-12", "2026-11-12"]);
+  });
+
+  it.each([
+    ["date", { start: "2026-11-12", end: "2026-11-14" }, "start", "2026-11-20", { start: "2026-11-14" }],
+    ["date", { start: "2026-11-12", end: "2026-11-14" }, "end", "2026-11-01", { start: "2026-11-12" }],
+    ["datetime", { start: "2026-11-12T15:00:00.000Z", end: "2026-11-14T16:00:00.000Z" }, "start", "2026-11-20", { start: "2026-11-14T15:00:00.000Z", end: "2026-11-14T16:00:00.000Z" }],
+    ["datetime", { start: "2026-11-12T15:00:00.000Z", end: "2026-11-14T16:00:00.000Z" }, "end", "2026-11-01", { start: "2026-11-12T15:00:00.000Z", end: "2026-11-12T16:00:00.000Z" }],
+  ])("holds a %s value %j at the other edge's day when the %s edge passes it to %s in New York", (kind, value, edge, toDay, resized) => {
+    expect(resizeOnMonth(eventOf(value, kind as DateKind, NY), edge as "start" | "end", toDay, NY)).toEqual(resized);
+  });
+
+  it("saves the day range it previews", () => {
+    let seed = 20261112;
+    const random = (n: number) => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed % n;
+    };
+    const two = (n: number) => String(n).padStart(2, "0");
+    for (let i = 0; i < 400; i += 1) {
+      const kind: DateKind = random(2) === 0 ? "date" : "datetime";
+      const timeZone = [NY, BERLIN, "Pacific/Kiritimati", "Pacific/Honolulu"][random(4)];
+      const firstDay = addDays("2026-02-20", random(300));
+      const value: DateCell =
+        kind === "date"
+          ? random(3) === 0
+            ? { start: firstDay }
+            : { start: firstDay, end: addDays(firstDay, 1 + random(6)) }
+          : (() => {
+              const start = `${firstDay}T${two(random(24))}:${two(random(4) * 15)}:00.000Z`;
+              return random(3) === 0
+                ? { start }
+                : { start, end: new Date(Date.parse(start) + (1 + random(6 * 96)) * 15 * 60_000).toISOString() };
+            })();
+      const event = eventOf(value, kind, timeZone);
+      const edge = random(2) === 0 ? "start" : "end";
+      const toDay = addDays(event.start.slice(0, 10), random(17) - 8);
+      const shown = resizeDayRange(eventDayRange(event), edge, toDay);
+      const saved = resizeOnMonth(event, edge, toDay, timeZone) ?? value;
+      expect([i, eventDayRange(eventOf(saved, kind, timeZone))]).toEqual([i, shown]);
+    }
+  });
+});
+
+describe("isStaleCalendarEvent", () => {
+  it("says an event drawn for another kind than the property's current one is stale", () => {
+    const day = eventOf({ start: "2026-11-12" }, "date", NY);
+    const time = eventOf({ start: "2026-11-12T15:00:00.000Z" }, "datetime", NY);
+    expect(isStaleCalendarEvent(day, "date")).toBe(false);
+    expect(isStaleCalendarEvent(day, "datetime")).toBe(true);
+    expect(isStaleCalendarEvent(time, "datetime")).toBe(false);
+    expect(isStaleCalendarEvent(time, "date")).toBe(true);
   });
 });
 
