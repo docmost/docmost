@@ -97,10 +97,16 @@ export function useUpdateBaseMutation() {
   const { t } = useTranslation();
   return useMutation<IBase, Error, UpdateBaseInput>({
     mutationFn: (data) => updateBase(data),
-    onSuccess: (data) => {
-      queryClient.setQueryData<IBase>(["bases", data.id], (old) => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData<IBase>(["bases", variables.pageId], (old) => {
         if (!old) return old;
-        return { ...old, ...data };
+        return {
+          ...old,
+          ...data,
+          properties: old.properties,
+          views: old.views,
+          permissions: old.permissions,
+        };
       });
     },
     onError: (error) => {

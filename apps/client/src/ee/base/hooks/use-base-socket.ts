@@ -133,6 +133,12 @@ type BaseSubscribed = {
   schemaVersion: number;
 };
 
+type BaseUpdated = {
+  operation: "base:updated";
+  pageId: string;
+  baseTimeZone: string | null;
+};
+
 type BaseInboundEvent =
   | BaseRowCreated
   | BaseRowUpdated
@@ -144,6 +150,7 @@ type BaseInboundEvent =
   | BaseFormulaRecomputeCompleted
   | BaseSchemaBumped
   | BaseSubscribed
+  | BaseUpdated
   | BasePropertyEvent
   | BaseViewEvent
   | BaseViewShareUpdated
@@ -403,6 +410,18 @@ function createBaseEventHandler(
             });
           }
         }
+        break;
+      }
+      case "base:updated": {
+        const e = event as BaseUpdated;
+        const cached = queryClient.getQueryData<IBase>(["bases", pageId]);
+        if (!cached) break;
+        if ((cached.baseTimeZone ?? null) === e.baseTimeZone) break;
+        queryClient.setQueryData<IBase>(["bases", pageId], {
+          ...cached,
+          baseTimeZone: e.baseTimeZone,
+        });
+        scheduleRowsRefresh(pageId, "all");
         break;
       }
       case "base:formula:recompute:started": {

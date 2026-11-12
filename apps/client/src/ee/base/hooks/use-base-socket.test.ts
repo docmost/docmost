@@ -156,6 +156,57 @@ describe("retainBaseSubscription", () => {
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
   });
 
+  it("takes a changed base time zone into the cached base and refreshes its rows", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const rowsKey = ["base-rows", "page-4", "view-1"];
+    appClient.setQueryData(["bases", "page-4"], { id: "page-4", baseTimeZone: null, properties: [{ id: "p1" }], views: [] });
+    appClient.setQueryData(rowsKey, { pages: [{ items: [], meta: {} }], pageParams: [null] });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-4", appClient);
+
+    receive({ operation: "base:updated", pageId: "page-4", baseTimeZone: "Europe/Berlin" });
+    expect(appClient.getQueryData(["bases", "page-4"])).toEqual({
+      id: "page-4",
+      baseTimeZone: "Europe/Berlin",
+      properties: [{ id: "p1" }],
+      views: [],
+    });
+    vi.advanceTimersByTime(300);
+    expect(appClient.getQueryState(rowsKey)?.isInvalidated).toBe(true);
+
+    release();
+    vi.useRealTimers();
+  });
+
+  it("does not refresh rows for a base:updated that names the zone it already has", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const rowsKey = ["base-rows", "page-6", "view-1"];
+    appClient.setQueryData(["bases", "page-6"], { id: "page-6", baseTimeZone: "Europe/Berlin", properties: [], views: [] });
+    appClient.setQueryData(rowsKey, { pages: [{ items: [], meta: {} }], pageParams: [null] });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-6", appClient);
+
+    receive({ operation: "base:updated", pageId: "page-6", baseTimeZone: "Europe/Berlin" });
+    vi.advanceTimersByTime(5000);
+    expect(appClient.getQueryState(rowsKey)?.isInvalidated).toBe(false);
+
+    release();
+    vi.useRealTimers();
+  });
+
+  it("ignores base:updated for a base that is not loaded", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    const release = retainBaseSubscription(socket, "page-5", queryClient);
+
+    receive({ operation: "base:updated", pageId: "page-5", baseTimeZone: "Europe/Berlin" });
+    expect(queryClient.getQueryData(["bases", "page-5"])).toBeUndefined();
+
+    release();
+  });
+
   describe("another user's change under a sorted or filtered list", () => {
     const pageId = "page-7";
     const base = {
