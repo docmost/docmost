@@ -22,7 +22,7 @@ const enterpriseFeatures = [
   "Templates",
   "Personal Spaces",
   "Announcements",
-  "Legal holds"
+  "Legal Holds"
 ];
 
 export default function OssDetails() {

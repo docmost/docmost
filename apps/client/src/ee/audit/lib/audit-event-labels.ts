@@ -110,11 +110,11 @@ export const auditEventLabels: Record<string, string> = {
   "announcement.unarchived": "Unarchived announcement",
   "announcement.deleted": "Deleted announcement",
 
-  "legal_hold.created": "Legal hold created",
-  "legal_hold.updated": "Legal hold updated",
-  "legal_hold.released": "Legal hold released",
-  "legal_hold.exported": "Legal hold exported",
-  "legal_hold.export_downloaded": "Legal hold export downloaded",
+  "legal_hold.created": "Created legal hold",
+  "legal_hold.updated": "Updated legal hold",
+  "legal_hold.released": "Released legal hold",
+  "legal_hold.exported": "Exported legal hold",
+  "legal_hold.export_downloaded": "Downloaded legal hold export",
 };
 
 export function getEventLabel(event: string): string {
@@ -287,15 +287,15 @@ export const eventFilterOptions: EventGroup[] = [
     ],
   },
   {
-    group: "Legal holds",
+    group: "Legal hold",
     items: [
-      { value: "legal_hold.created", label: "Legal hold created" },
-      { value: "legal_hold.updated", label: "Legal hold updated" },
-      { value: "legal_hold.released", label: "Legal hold released" },
-      { value: "legal_hold.exported", label: "Legal hold exported" },
+      { value: "legal_hold.created", label: "Created legal hold" },
+      { value: "legal_hold.updated", label: "Updated legal hold" },
+      { value: "legal_hold.released", label: "Released legal hold" },
+      { value: "legal_hold.exported", label: "Exported legal hold" },
       {
         value: "legal_hold.export_downloaded",
-        label: "Legal hold export downloaded",
+        label: "Downloaded legal hold export",
       },
     ],
   },

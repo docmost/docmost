@@ -1904,6 +1904,10 @@
   "Failed to load exports": "Failed to load exports",
   "Export started": "Export started",
   "Failed to start export": "Failed to start export",
-  "Legal hold exported": "Legal hold exported",
-  "Legal hold export downloaded": "Legal hold export downloaded"
+  "Exported legal hold": "Exported legal hold",
+  "Downloaded legal hold export": "Downloaded legal hold export",
+  "Created legal hold": "Created legal hold",
+  "Updated legal hold": "Updated legal hold",
+  "Released legal hold": "Released legal hold",
+  "Legal hold": "Legal hold"
 }
