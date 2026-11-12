@@ -147,6 +147,8 @@ export interface IBaseTypeConversionJob {
   actorId?: string;
   // The base zone when the conversion was accepted; a job of an older build has none.
   zone?: string;
+  // True when the source is a date property whose cells were never converted.
+  sourceUnconverted?: boolean;
 }
 
 export interface IBaseCellGcJob {
