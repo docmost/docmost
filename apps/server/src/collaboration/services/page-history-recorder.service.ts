@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { isDeepStrictEqual } from 'node:util';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import {
   IPageBacklinkJob,
@@ -17,6 +16,8 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CollabHistoryService } from './collab-history.service';
 import { WatcherService } from '../../core/watcher/watcher.service';
 import { isEmptyParagraphDoc } from '../collaboration.util';
+import { isSameDocumentContent } from '../content-comparison.util';
+import { isSameTitle } from '../../core/page/verification/page-verification-invalidation.utils';
 
 @Injectable()
 export class PageHistoryRecorderService {
@@ -62,10 +63,11 @@ export class PageHistoryRecorderService {
       return null;
     }
 
+    // block ids, defaults and comments change the JSON without changing what readers see
     if (
       lastHistory &&
-      isDeepStrictEqual(lastHistory.content, page.content) &&
-      lastHistory.title === page.title
+      isSameDocumentContent(lastHistory.content, page.content) &&
+      isSameTitle(lastHistory.title, page.title)
     ) {
       return lastHistory.id;
     }
