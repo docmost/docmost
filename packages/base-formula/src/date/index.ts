@@ -18,3 +18,13 @@ export {
   startOfMonth,
   startOfYear,
 } from './calendar';
+export {
+  isValidTimeZone,
+  instantToWall,
+  wallToInstant,
+  startOfDay,
+  instantToYmd,
+  todayIn,
+  addToInstant,
+} from './zone';
+export type { CalendarUnit, ClockUnit, WallClock } from './zone';
