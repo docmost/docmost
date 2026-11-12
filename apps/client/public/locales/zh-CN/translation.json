@@ -1827,5 +1827,10 @@
   "These already show from {{from}} with no end:": "以下公告已从 {{from}} 开始显示，且无结束时间：",
   "Save and replace": "保存并替换",
   "“{{title}}” will be archived when this one starts.": "当此公告开始时，“{{title}}”将被归档。",
-  "This one will be archived when “{{title}}” starts.": "当“{{title}}”开始时，此公告将被归档。"
+  "This one will be archived when “{{title}}” starts.": "当“{{title}}”开始时，此公告将被归档。",
+  "{{formats}} added": "{{formats}} added",
+  "{{formats}} removed": "{{formats}} removed",
+  "{{formats}} changed": "{{formats}} changed",
+  "Formatting changed": "Formatting changed",
+  "Highlight": "Highlight"
 }
