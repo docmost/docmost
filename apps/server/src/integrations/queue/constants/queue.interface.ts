@@ -151,6 +151,11 @@ export interface IBaseTypeConversionJob {
   sourceUnconverted?: boolean;
 }
 
+export interface IBaseLegacyConversionJob {
+  followUp?: boolean;
+  since?: string;
+}
+
 export interface IBaseCellGcJob {
   pageId: string;
   propertyId: string;
