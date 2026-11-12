@@ -5,7 +5,7 @@ vi.mock("@/main.tsx", async () => ({
   queryClient: new (await import("@tanstack/react-query")).QueryClient(),
 }));
 
-import { isFormFieldProperty, toFormField, validateFormAnswers } from "./form-definition";
+import { buildSubmissionAnswers, isFormFieldProperty, toFormField, validateFormAnswers } from "./form-definition";
 
 const question = (includeTime: boolean, required = false) =>
   ({ propertyId: "when", type: "date", label: "When", description: null, required, defaultValue: null, includeTime }) as PublicFormField;
@@ -32,6 +32,18 @@ describe("date answers", () => {
 
   it("asks for an answer to a required date question", () => {
     expect(errorFor(question(true, true), null)).toBe("required");
+  });
+});
+
+describe("submitted date answers", () => {
+  const submit = (includeTime: boolean, value: unknown) => buildSubmissionAnswers([question(includeTime)], { when: value });
+
+  it.each([
+    [false, { start: "2026-11-12", end: "2026-11-12" }, { when: { start: "2026-11-12" } }],
+    [true, { start: "2026-11-12T10:00:00+01:00" }, { when: { start: "2026-11-12T09:00:00.000Z" } }],
+    [false, { start: "12/11/2026" }, {}],
+  ])("with a time %s, the answer %j is submitted as %j", (includeTime, value, submitted) => {
+    expect(submit(includeTime, value)).toEqual(submitted);
   });
 });
 

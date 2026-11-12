@@ -580,7 +580,7 @@ describe("creating from the calendar", () => {
 
   it.each([
     ["the last hour of 9999-12-31", () => createOnSlots("datetime", "9999-12-31 23:00:00", "9999-12-31 23:59:59", NY)],
-    ["0000-01-01 at 09:00", () => createOnDays("datetime", "0000-01-01", "0000-01-01", "Asia/Tokyo")],
+    ["the day 0000-01-01 as a date-time", () => createOnDays("datetime", "0000-01-01", "0000-01-01", "Asia/Tokyo")],
     ["the first hour of 0000-01-01", () => createOnSlots("datetime", "0000-01-01 00:00:00", "0000-01-01 00:59:59", "Asia/Tokyo")],
   ])("writes nothing for a date-time at %s, an instant past the years the date module holds", (_name, create) => {
     expect(create).not.toThrow();
@@ -594,6 +594,9 @@ describe("creating from the calendar", () => {
       start: "9999-12-31T14:00:00.000Z",
       end: "9999-12-31T14:59:59.000Z",
     });
-    expect(createOnDays("date", "0000-01-01", "0000-01-01", "Asia/Tokyo")).toEqual({ start: "0000-01-01" });
+  });
+
+  it("writes nothing for a date on 0000-01-01, a day outside the storable range", () => {
+    expect(createOnDays("date", "0000-01-01", "0000-01-01", "Asia/Tokyo")).toBeNull();
   });
 });

@@ -228,6 +228,11 @@ function toWrite(payload: CalendarEventPayload, edit: () => DateCell | null): Da
   return cell;
 }
 
+function canonicalCell(value: DateCell, kind: DateKind): DateCell | null {
+  const cell = normalizeDateCell(value, kind);
+  return cell === INVALID_DATE ? null : cell;
+}
+
 function moveByDays(payload: CalendarEventPayload, n: number, timeZone: string): DateCell | null {
   if (n === 0) return null;
   const { kind, value } = payload;
@@ -368,8 +373,11 @@ export function createOnDays(
   const [first, last] = [rangeStart.slice(0, 10), rangeEnd.slice(0, 10)].sort();
   try {
     const start = pickDay({ current: null, kind, endpoint: "start", withEnd: false, ymd: first, zone: timeZone });
-    if (first === last) return start;
-    return pickDay({ current: start, kind, endpoint: "end", withEnd: true, ymd: last, zone: timeZone });
+    if (first === last) return canonicalCell(start, kind);
+    return canonicalCell(
+      pickDay({ current: start, kind, endpoint: "end", withEnd: true, ymd: last, zone: timeZone }),
+      kind,
+    );
   } catch (err) {
     if (err instanceof RangeError) return null;
     throw err;
@@ -385,7 +393,7 @@ export function createOnSlots(
   const [first, last] = [rangeStart, rangeEnd].sort();
   if (kind === "date") return createOnDays(kind, first, last, timeZone);
   try {
-    return withEndAfter(fromWallString(first, timeZone), fromWallString(last, timeZone));
+    return canonicalCell(withEndAfter(fromWallString(first, timeZone), fromWallString(last, timeZone)), kind);
   } catch (err) {
     if (err instanceof RangeError) return null;
     throw err;

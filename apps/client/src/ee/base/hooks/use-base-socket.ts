@@ -434,10 +434,12 @@ function createBaseEventHandler(
         const e = event as BaseUpdated;
         const cached = queryClient.getQueryData<IBase>(["bases", pageId]);
         if (!cached) break;
-        if ((cached.baseTimeZone ?? null) === e.baseTimeZone) break;
+        const baseTimeZone = e.baseTimeZone;
+        if (baseTimeZone !== null && typeof baseTimeZone !== "string") break;
+        if ((cached.baseTimeZone ?? null) === baseTimeZone) break;
         queryClient.setQueryData<IBase>(["bases", pageId], {
           ...cached,
-          baseTimeZone: e.baseTimeZone,
+          baseTimeZone,
         });
         scheduleRowsRefresh(pageId, "all");
         break;

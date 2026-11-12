@@ -13,10 +13,15 @@ vi.mock("@/ee/base/services/base-service", () => ({
   deleteBase: vi.fn(),
   convertPageToBase: vi.fn(),
 }));
+vi.mock("@/ee/base/queries/rows-refresh", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/ee/base/queries/rows-refresh")>();
+  return { ...actual, scheduleRowsRefresh: vi.fn(actual.scheduleRowsRefresh) };
+});
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 import { queryClient } from "@/main.tsx";
+import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
 import { updateBase } from "@/ee/base/services/base-service";
 import { useUpdateBaseMutation } from "./base-query";
 
@@ -65,10 +70,13 @@ describe("useUpdateBaseMutation", () => {
     const rowsKey = seedRows("base-2");
     vi.mocked(updateBase).mockResolvedValue({ id: "base-2", baseTimeZone: "Europe/Berlin" } as never);
 
+    vi.mocked(scheduleRowsRefresh).mockClear();
     await save("base-2", "Europe/Berlin");
     expect(queryClient.getQueryState(rowsKey)?.isInvalidated).toBe(false);
     vi.advanceTimersByTime(300);
     expect(queryClient.getQueryState(rowsKey)?.isInvalidated).toBe(true);
+    expect(scheduleRowsRefresh).toHaveBeenCalledTimes(1);
+    expect(scheduleRowsRefresh).toHaveBeenCalledWith("base-2", "all");
   });
 
   it("refreshes nothing when the response names the zone the base already had", async () => {

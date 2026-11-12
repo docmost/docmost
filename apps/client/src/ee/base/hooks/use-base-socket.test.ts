@@ -212,6 +212,28 @@ describe("retainBaseSubscription", () => {
     vi.useRealTimers();
   });
 
+  it.each([
+    ["has no baseTimeZone key", "page-20", {}],
+    ["carries a baseTimeZone that is not a string or null", "page-21", { baseTimeZone: 5 }],
+  ])("leaves the base and the rows alone for a base:updated that %s", async (_name, pageId, extra) => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const rowsKey = ["base-rows", pageId, "view-1"];
+    const base = { id: pageId, baseTimeZone: "Europe/Berlin", properties: [], views: [] };
+    appClient.setQueryData(["bases", pageId], base);
+    appClient.setQueryData(rowsKey, { pages: [{ items: [], meta: {} }], pageParams: [null] });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, pageId, appClient);
+
+    receive({ operation: "base:updated", pageId, ...extra });
+    vi.advanceTimersByTime(5000);
+    expect(appClient.getQueryData(["bases", pageId])).toEqual(base);
+    expect(appClient.getQueryState(rowsKey)?.isInvalidated).toBe(false);
+
+    release();
+    vi.useRealTimers();
+  });
+
   it("ignores base:updated for a base that is not loaded", () => {
     const { socket, receive } = createFakeSocket();
     const queryClient = new QueryClient();

@@ -336,7 +336,7 @@ export function FormFieldControl({
         leftSectionPointerEvents: "none" as const,
         popoverProps: { shadow: "md", radius: "md" },
       };
-      if (field.includeTime) {
+      if (formDateKind(field) === "datetime") {
         const zoneLabel = formatZoneLabel(
           cell?.start ?? startOfDay(today, timeZone),
           timeZone,

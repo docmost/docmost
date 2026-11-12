@@ -95,6 +95,12 @@ describe("a date question", () => {
     expect(screen.getByText(text)).toBeTruthy();
   });
 
+  it("reads an includeTime that is not a boolean as a question without a time", () => {
+    renderControl(question({ includeTime: "yes" as unknown as boolean }), { start: "2026-11-12" });
+    expect(screen.queryByText(/Time zone/)).toBeNull();
+    expect(screen.getByText("Nov 12, 2026")).toBeTruthy();
+  });
+
   it("shows an answer of the other kind as no answer", () => {
     renderControl(question({ includeTime: false }), { start: "2026-11-12T15:00:00.000Z" });
     expect(screen.getByText("Pick a date")).toBeTruthy();

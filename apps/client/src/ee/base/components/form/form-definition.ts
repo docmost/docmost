@@ -331,9 +331,13 @@ export function buildSubmissionAnswers(
   const submission: FormAnswers = {};
   for (const field of fields) {
     const value = normalizeAnswer(field, answers[field.propertyId]);
-    if (value !== undefined && value !== INVALID) {
-      submission[field.propertyId] = value;
+    if (value === undefined || value === INVALID) continue;
+    if (field.type === "date") {
+      const cell = normalizeDateCell(value, formDateKind(field));
+      if (cell && cell !== INVALID_DATE) submission[field.propertyId] = cell;
+      continue;
     }
+    submission[field.propertyId] = value;
   }
   return submission;
 }
