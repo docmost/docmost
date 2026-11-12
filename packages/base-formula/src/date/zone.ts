@@ -24,6 +24,9 @@ const MAX_ZONE_LENGTH = 64;
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
 function formatterFor(zone: string): Intl.DateTimeFormat {
+  if (typeof zone !== 'string') {
+    throw new RangeError(`Invalid time zone: ${String(zone)}`);
+  }
   const cached = formatters.get(zone);
   if (cached) return cached;
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -150,6 +153,9 @@ export function instantToWall(instant: string, zone: string): WallClock {
 }
 
 export function wallToInstant(wall: WallClock, zone: string): string {
+  if (typeof wall !== 'object' || wall === null) {
+    throw new RangeError('Invalid wall clock');
+  }
   const { year, month, day } = readYmd(wall.ymd);
   requireClockField(wall.hour, 23, 'Hour');
   requireClockField(wall.minute, 59, 'Minute');
@@ -192,6 +198,7 @@ export function addToInstant(
   zone: string,
 ): string {
   const ms = readInstant(instant);
+  formatterFor(zone);
   requireInteger(n, 'Amount');
   if (unit === 'hours') return formatInstant(ms + n * 3_600_000);
   if (unit === 'minutes') return formatInstant(ms + n * 60_000);
@@ -203,10 +210,7 @@ export function addToInstant(
   ) {
     throw new RangeError(`Unknown unit: ${String(unit)}`);
   }
-  if (n === 0) {
-    fieldsAt(ms, zone);
-    return instant;
-  }
+  if (n === 0) return instant;
   const wall = instantToWall(instant, zone);
   const ymd =
     unit === 'days'

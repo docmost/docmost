@@ -1,4 +1,4 @@
-import { isYmd, toCanonicalInstant } from './grammar';
+import { isPlainObject, isYmd, toCanonicalInstant } from './grammar';
 import {
   addDays,
   addMonths,
@@ -133,10 +133,8 @@ export function resolveOperand(
   if (!Number.isInteger(weekStart) || weekStart < 0 || weekStart > 6) {
     throw new RangeError(`Week start must be an integer 0 to 6: ${weekStart}`);
   }
-  if (typeof operand !== 'object' || operand === null || Array.isArray(operand)) {
-    return null;
-  }
-  const { mode, preset, date } = operand as Record<string, unknown>;
+  if (!isPlainObject(operand)) return null;
+  const { mode, preset, date } = operand;
 
   let bounds: DayBounds;
   try {

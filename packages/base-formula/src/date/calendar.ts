@@ -1,4 +1,4 @@
-import { formatYmd, readYmd, utcMs } from './grammar';
+import { formatYmd, lastDayOfMonth, readYmd, utcMs } from './grammar';
 
 const DAY_MS = 86_400_000;
 
@@ -21,8 +21,11 @@ export function addMonths(ymd: string, n: number): string {
   const months = year * 12 + month - 1 + n;
   const targetYear = Math.floor(months / 12);
   const targetMonth = (months % 12 + 12) % 12 + 1;
-  const monthEnd = new Date(utcMs(targetYear, targetMonth + 1, 0)).getUTCDate();
-  return formatYmd(targetYear, targetMonth, Math.min(day, monthEnd));
+  return formatYmd(
+    targetYear,
+    targetMonth,
+    Math.min(day, lastDayOfMonth(targetYear, targetMonth)),
+  );
 }
 
 export function addYears(ymd: string, n: number): string {

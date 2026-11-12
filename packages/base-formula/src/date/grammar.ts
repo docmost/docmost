@@ -27,7 +27,7 @@ export function utcMs(
   return d.getTime();
 }
 
-function lastDayOfMonth(year: number, month: number): number {
+export function lastDayOfMonth(year: number, month: number): number {
   return new Date(utcMs(year, month + 1, 0)).getUTCDate();
 }
 
@@ -151,7 +151,7 @@ function toPart(value: unknown, kind: DateKind): string | null {
   return toCanonicalInstant(value);
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null) return false;
   const proto = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
@@ -185,6 +185,7 @@ export function normalizeDateCell(
 }
 
 export function legacyDateCell(value: string, kind: DateKind): DateCell | null {
+  if (typeof value !== 'string') return null;
   if (isYmd(value)) {
     return {
       start: kind === 'date' ? value : `${value}T00:00:00.000Z`,
