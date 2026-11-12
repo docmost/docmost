@@ -56,7 +56,9 @@ export function FormRespond({ view, pageId, definition }: FormRespondProps) {
         respondent={publicForm.respondent}
         users={publicForm.users}
         mode="live"
-        onSubmit={(answers) => submitMutation.mutateAsync({ key, answers })}
+        onSubmit={(answers, timeZone) =>
+          submitMutation.mutateAsync({ key, answers, timeZone })
+        }
         onUnavailable={setUnavailable}
       />
     );

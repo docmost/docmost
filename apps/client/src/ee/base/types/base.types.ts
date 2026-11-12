@@ -278,6 +278,8 @@ export type PublicFormField = {
   numberFormat?: PublicFormNumberFormat;
   allowMultiple?: boolean;
   includeTime?: boolean;
+  dateFormat?: DateFormat;
+  timeFormat?: '12h' | '24h';
 };
 
 export type PublicForm = {
@@ -310,12 +312,14 @@ export type PublicFormResponse =
 export type SubmitPublicFormInput = {
   key: string;
   answers: Record<string, unknown>;
+  timeZone?: string;
 };
 
 export type SubmitFormPreviewInput = {
   pageId: string;
   viewId: string;
   answers: Record<string, unknown>;
+  timeZone?: string;
 };
 
 export type ViewConfigPatch = {

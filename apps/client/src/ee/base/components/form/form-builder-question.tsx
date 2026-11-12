@@ -34,7 +34,10 @@ import {
   IBaseProperty,
   UserRef,
 } from "@/ee/base/types/base.types";
-import { getDescriptor } from "@/ee/base/property-types/property-type.registry";
+import {
+  getDescriptor,
+  isPropertyConverting,
+} from "@/ee/base/property-types/property-type.registry";
 import { PropertyMenuContent } from "@/ee/base/components/property/property-menu";
 import { BaseDropEdgeIndicator } from "@/ee/base/components/grid/base-drop-edge-indicator";
 import {
@@ -218,7 +221,7 @@ export function FormBuilderQuestion({
         ) : (
           <div className={classes.questionWarning}>
             <IconAlertTriangle size={14} />
-            {property.pendingType
+            {isPropertyConverting(property)
               ? t(
                   "This property is being converted. The question will return when it's done.",
                 )
@@ -397,7 +400,7 @@ function FormPropertyChip({
           onClose={handleClose}
           onDirtyChange={setDirty}
           pageId={pageId}
-          initialPanel={isChoice && !property.pendingType ? "options" : "main"}
+          initialPanel={isChoice && !isPropertyConverting(property) ? "options" : "main"}
         />
       </Popover.Dropdown>
     </Popover>

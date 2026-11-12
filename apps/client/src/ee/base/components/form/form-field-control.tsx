@@ -9,7 +9,9 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { DatePickerInput, DateTimePicker } from "@mantine/dates";
-import { IconCalendar } from "@tabler/icons-react";
+import { IconAlertCircle, IconCalendar } from "@tabler/icons-react";
+import { startOfDay } from "@docmost/base-formula/client";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   PublicFormChoice,
@@ -22,15 +24,24 @@ import {
   CHOICE_LIST_LIMIT,
 } from "@/ee/base/components/form/form-definition";
 import { FormPersonPicker } from "@/ee/base/components/form/form-person-picker";
+import { FormRichText } from "@/ee/base/components/form/form-rich-text";
 import {
-  isDateOnly,
-  localPartsToInstant,
+  formDateKind,
+  fromDateTimeInput,
+  toDateTimeInput,
+} from "@/ee/base/components/form/form-date";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import {
   MAX_PICKER_DATE,
   MIN_PICKER_DATE,
-  parseDateValue,
-  partToLocalYmd,
+  readDateCell,
+} from "@/ee/base/utils/date-cell";
+import {
+  formatDateCell,
+  formatZoneLabel,
   resolveTimeFormat,
-} from "@/ee/base/utils/date-value";
+} from "@/ee/base/utils/date-format";
+import { timeZoneName } from "@/ee/base/utils/time-zones";
 import classes from "@/ee/base/styles/form.module.css";
 
 type FormFieldControlProps = {
@@ -39,12 +50,24 @@ type FormFieldControlProps = {
   onChange: (value: unknown) => void;
   controlId: string;
   ariaLabelledBy: string;
-  ariaDescribedBy?: string;
-  invalid?: boolean;
+  description?: string | null;
+  error?: string;
   users?: Record<string, UserRef>;
 };
 
-const fieldClassNames = { wrapper: classes.field, input: classes.input };
+const fieldClassNames = {
+  root: classes.fieldRoot,
+  wrapper: classes.field,
+  input: classes.input,
+  description: classes.questionDescription,
+  error: classes.errorText,
+};
+
+const FIELD_WRAPPER_ORDER: ("description" | "input" | "error")[] = [
+  "description",
+  "input",
+  "error",
+];
 
 function currencySymbol(format: PublicFormNumberFormat): string | undefined {
   if (format.currencySymbol) return format.currencySymbol;
@@ -73,23 +96,6 @@ function numberAffixes(format: PublicFormNumberFormat | undefined) {
 }
 
 const DEFAULT_TIME = "09:00";
-const LOCAL_DATE_TIME = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})/;
-
-function toLocalDateTime(part: string | null): string | null {
-  if (!part) return null;
-  const time = isDateOnly(part)
-    ? "00:00"
-    : new Date(part).toTimeString().slice(0, 5);
-  return `${partToLocalYmd(part)} ${time}:00`;
-}
-
-function fromLocalDateTime(local: string | null): { start: string } | null {
-  const match = local ? LOCAL_DATE_TIME.exec(local) : null;
-  if (!match) return null;
-  return {
-    start: localPartsToInstant(match[1], Number(match[2]), Number(match[3])),
-  };
-}
 
 function rovingTabIndex(
   choices: PublicFormChoice[],
@@ -106,26 +112,64 @@ export function FormFieldControl({
   onChange,
   controlId,
   ariaLabelledBy,
-  ariaDescribedBy,
-  invalid,
+  description,
+  error,
   users,
 }: FormFieldControlProps) {
   const { t, i18n } = useTranslation();
+  const { timeZone, today } = useViewerDateContext();
+  const invalid = !!error;
+  const descriptionId = description ? `${controlId}-description` : undefined;
+  const errorId = error ? `${controlId}-error` : undefined;
+  const descriptionText = description ? (
+    <FormRichText text={description} />
+  ) : undefined;
+  const errorText = error ? (
+    <>
+      <IconAlertCircle size={15} stroke={2} />
+      {error}
+    </>
+  ) : undefined;
   const labelling = {
     "aria-labelledby": ariaLabelledBy,
-    "aria-describedby": ariaDescribedBy,
+    "aria-describedby":
+      [descriptionId, errorId].filter(Boolean).join(" ") || undefined,
   };
-  const inputProps = {
-    ...labelling,
+  const wrapperProps = {
     id: controlId,
     size: "sm" as const,
     radius: "md" as const,
-    error: invalid,
+    description: descriptionText,
+    error: errorText,
+    inputWrapperOrder: FIELD_WRAPPER_ORDER,
+    descriptionProps: { component: "div" },
+    errorProps: { role: "alert" },
     classNames: fieldClassNames,
+  };
+  const inputProps = {
+    ...wrapperProps,
+    "aria-labelledby": ariaLabelledBy,
     "aria-required": field.required || undefined,
-    "aria-invalid": invalid || undefined,
   };
   const textInputProps = { ...inputProps, ...AUTOFILL_OPT_OUT };
+
+  const groupField = (control: ReactNode) => (
+    <div className={classes.fieldRoot}>
+      {description && (
+        <FormRichText
+          id={descriptionId}
+          text={description}
+          className={classes.questionDescription}
+        />
+      )}
+      {control}
+      {error && (
+        <div id={errorId} className={classes.errorText} role="alert">
+          {errorText}
+        </div>
+      )}
+    </div>
+  );
 
   switch (field.type) {
     case "longText":
@@ -180,7 +224,7 @@ export function FormFieldControl({
           />
         );
       }
-      return (
+      return groupField(
         <div className={classes.choiceGroup}>
           <div
             id={controlId}
@@ -215,7 +259,7 @@ export function FormFieldControl({
               {t("Clear selection")}
             </UnstyledButton>
           )}
-        </div>
+        </div>,
       );
     }
 
@@ -238,7 +282,7 @@ export function FormFieldControl({
           />
         );
       }
-      return (
+      return groupField(
         <div
           id={controlId}
           role="group"
@@ -269,41 +313,66 @@ export function FormFieldControl({
               </Checkbox.Card>
             );
           })}
-        </div>
+        </div>,
       );
     }
 
     case "date": {
-      const start = parseDateValue(value)?.start ?? null;
+      const cell = readDateCell(value, formDateKind(field));
+      const displayOptions = {
+        dateFormat: field.dateFormat === "relative" ? undefined : field.dateFormat,
+        timeFormat: field.timeFormat,
+        locale: i18n.language,
+        timeZone,
+        today,
+      };
       const dateInputProps = {
         ...inputProps,
         clearable: true,
         minDate: MIN_PICKER_DATE,
         maxDate: MAX_PICKER_DATE,
+        defaultDate: today,
         leftSection: <IconCalendar size={16} stroke={1.75} />,
         leftSectionPointerEvents: "none" as const,
         popoverProps: { shadow: "md", radius: "md" },
       };
       if (field.includeTime) {
-        const timeFormat = resolveTimeFormat(undefined, i18n.language);
+        const zoneLabel = formatZoneLabel(
+          cell?.start ?? startOfDay(today, timeZone),
+          timeZone,
+          i18n.language,
+        );
+        const zone =
+          zoneLabel === timeZone
+            ? timeZoneName(timeZone)
+            : `${timeZoneName(timeZone)} (${zoneLabel})`;
+        const zoneCaption = t("Time zone: {{zone}}", { zone });
         return (
           <DateTimePicker
             {...dateInputProps}
-            placeholder={t("Pick a date and time")}
-            defaultTimeValue={start ? undefined : DEFAULT_TIME}
-            valueFormat={
-              timeFormat === "12h" ? "MMM D, YYYY h:mm A" : "MMM D, YYYY HH:mm"
+            description={
+              descriptionText ? (
+                <>
+                  {descriptionText}
+                  <div>{zoneCaption}</div>
+                </>
+              ) : (
+                zoneCaption
+              )
             }
+            placeholder={t("Pick a date and time")}
+            defaultTimeValue={cell ? undefined : DEFAULT_TIME}
+            valueFormat={() => formatDateCell(cell, displayOptions)}
             timePickerProps={{
-              format: timeFormat,
+              format: resolveTimeFormat(field.timeFormat, i18n.language),
               hoursInputLabel: t("Hours"),
               minutesInputLabel: t("Minutes"),
               amPmInputLabel: t("AM/PM"),
               amPmLabels: { am: t("AM"), pm: t("PM") },
             }}
             submitButtonProps={{ "aria-label": t("Confirm") }}
-            value={toLocalDateTime(start)}
-            onChange={(next) => onChange(fromLocalDateTime(next))}
+            value={toDateTimeInput(cell, timeZone)}
+            onChange={(next) => onChange(fromDateTimeInput(next, cell, timeZone))}
           />
         );
       }
@@ -311,15 +380,15 @@ export function FormFieldControl({
         <DatePickerInput
           {...dateInputProps}
           placeholder={t("Pick a date")}
-          valueFormat="MMM D, YYYY"
-          value={start ? partToLocalYmd(start) : null}
-          onChange={(next) => onChange(next ? { start: next } : null)}
+          valueFormatter={() => formatDateCell(cell, displayOptions)}
+          value={cell?.start ?? null}
+          onChange={(next) => onChange(next ? { start: next.slice(0, 10) } : null)}
         />
       );
     }
 
     case "checkbox":
-      return (
+      return groupField(
         <div className={classes.optionList}>
           <Checkbox.Card
             id={controlId}
@@ -335,7 +404,7 @@ export function FormFieldControl({
             <Checkbox.Indicator size="sm" radius="sm" />
             <span className={classes.optionLabel}>{t("Yes")}</span>
           </Checkbox.Card>
-        </div>
+        </div>,
       );
 
     case "person":
@@ -345,10 +414,8 @@ export function FormFieldControl({
           allowMultiple={field.allowMultiple === true}
           onChange={onChange}
           knownUsers={users}
-          controlId={controlId}
+          wrapperProps={wrapperProps}
           ariaLabelledBy={ariaLabelledBy}
-          ariaDescribedBy={ariaDescribedBy}
-          invalid={invalid}
           required={field.required}
         />
       );

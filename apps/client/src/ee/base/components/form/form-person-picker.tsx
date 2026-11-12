@@ -3,6 +3,7 @@ import {
   Combobox,
   Pill,
   PillsInput,
+  PillsInputProps,
   Text,
   useCombobox,
 } from "@mantine/core";
@@ -23,10 +24,8 @@ type FormPersonPickerProps = {
   allowMultiple: boolean;
   onChange: (value: unknown) => void;
   knownUsers?: Record<string, UserRef>;
-  controlId: string;
+  wrapperProps: PillsInputProps & { id: string };
   ariaLabelledBy: string;
-  ariaDescribedBy?: string;
-  invalid?: boolean;
   required?: boolean;
 };
 
@@ -35,10 +34,8 @@ export function FormPersonPicker({
   allowMultiple,
   onChange,
   knownUsers,
-  controlId,
+  wrapperProps,
   ariaLabelledBy,
-  ariaDescribedBy,
-  invalid,
   required,
 }: FormPersonPickerProps) {
   const { t } = useTranslation();
@@ -103,10 +100,7 @@ export function FormPersonPicker({
     >
       <Combobox.DropdownTarget>
         <PillsInput
-          size="sm"
-          radius="md"
-          classNames={{ wrapper: classes.field, input: classes.input }}
-          error={invalid}
+          {...wrapperProps}
           onClick={() => combobox.openDropdown()}
         >
           <Pill.Group>
@@ -136,7 +130,6 @@ export function FormPersonPicker({
             <Combobox.EventsTarget>
               <PillsInput.Field
                 {...AUTOFILL_OPT_OUT}
-                id={controlId}
                 value={search}
                 placeholder={
                   selectedIds.length > 0
@@ -146,9 +139,7 @@ export function FormPersonPicker({
                       : t("Search for a person")
                 }
                 aria-labelledby={ariaLabelledBy}
-                aria-describedby={ariaDescribedBy}
                 aria-required={required || undefined}
-                aria-invalid={invalid || undefined}
                 onFocus={() => combobox.openDropdown()}
                 onBlur={() => combobox.closeDropdown()}
                 onChange={(event) => {

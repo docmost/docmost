@@ -1985,5 +1985,6 @@
   "View, create and modify data in your workspace.": "View, create and modify data in your workspace.",
   "View data in your workspace without making changes.": "View data in your workspace without making changes.",
   "Date filters use {{zone}}, not your time zone": "Date filters use {{zone}}, not your time zone",
-  "This calendar uses {{zone}}, not your time zone": "This calendar uses {{zone}}, not your time zone"
+  "This calendar uses {{zone}}, not your time zone": "This calendar uses {{zone}}, not your time zone",
+  "Time zone: {{zone}}": "Time zone: {{zone}}"
 }
