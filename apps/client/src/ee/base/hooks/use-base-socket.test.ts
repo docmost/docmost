@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { InfiniteData, QueryClient, QueryObserver } from "@tanstack/react-query";
+import { getDefaultStore } from "jotai";
 import type { Socket } from "socket.io-client";
 import type { IPagination } from "@/lib/types";
 import type { IBase, IBaseRow } from "@/ee/base/types/base.types";
+import { referenceStoreAtomFamily } from "@/ee/base/atoms/reference-store-atom";
 
 vi.mock("@/main.tsx", async () => ({
   queryClient: new (await import("@tanstack/react-query")).QueryClient(),
@@ -47,6 +49,20 @@ function seedRows(queryClient: QueryClient, pageId: string) {
     { pages: [{ items: [], meta: {} } as IPagination<IBaseRow>], pageParams: [null] },
   );
 }
+
+const ROWS = (pageId: string) => ["base-rows", pageId, undefined, undefined, undefined];
+const seedRow = (client: QueryClient, pageId: string, row: object) =>
+  client.setQueryData(ROWS(pageId), { pages: [{ items: [row], meta: {} }], pageParams: [null] });
+const rowOf = (client: QueryClient, pageId: string) =>
+  client.getQueryData<InfiniteData<IPagination<IBaseRow>>>(ROWS(pageId))!.pages[0].items[0];
+const stored = { id: "row-1", cells: { a: 1 }, updatedAt: "2026-11-12T10:00:00.000Z", lastUpdatedById: "u1" };
+const edit = (pageId: string, extra: object = {}) => ({
+  operation: "base:row:updated",
+  pageId,
+  rowId: "row-1",
+  updatedCells: { a: 2 },
+  ...extra,
+});
 
 describe("retainBaseSubscription", () => {
   afterEach(() => {
@@ -205,6 +221,84 @@ describe("retainBaseSubscription", () => {
     expect(queryClient.getQueryData(["bases", "page-5"])).toBeUndefined();
 
     release();
+  });
+
+  it("takes Last edited at and Last edited by from a remote edit", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    seedRow(queryClient, "page-1", stored);
+    const release = retainBaseSubscription(socket, "page-1", queryClient);
+
+    receive(edit("page-1", { updatedAt: "2026-11-12T11:30:00.000Z", lastUpdatedById: "u2" }));
+    expect(rowOf(queryClient, "page-1")).toEqual({
+      id: "row-1",
+      cells: { a: 2 },
+      updatedAt: "2026-11-12T11:30:00.000Z",
+      lastUpdatedById: "u2",
+    });
+
+    receive(edit("page-1", { updatedAt: "2026-11-12T11:45:00.000Z", lastUpdatedById: null }));
+    expect(rowOf(queryClient, "page-1")).toMatchObject({ updatedAt: "2026-11-12T11:45:00.000Z", lastUpdatedById: null });
+    release();
+  });
+
+  it("leaves both as they were when the event does not carry them", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    seedRow(queryClient, "page-1", stored);
+    const release = retainBaseSubscription(socket, "page-1", queryClient);
+
+    receive(edit("page-1"));
+    expect(rowOf(queryClient, "page-1")).toEqual({ ...stored, cells: { a: 2 } });
+    release();
+  });
+
+  it("ignores an updatedAt that is not text", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    seedRow(queryClient, "page-1", stored);
+    const release = retainBaseSubscription(socket, "page-1", queryClient);
+
+    receive(edit("page-1", { updatedAt: 1731411000000 }));
+    expect(rowOf(queryClient, "page-1").updatedAt).toBe("2026-11-12T10:00:00.000Z");
+    release();
+  });
+
+  it("asks for the rows again when the base shows Last edited by and the editor is not known yet", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    appClient.setQueryData(["bases", "page-12"], { id: "page-12", properties: [{ id: "by", type: "lastEditedBy" }], views: [] });
+    seedRow(appClient, "page-12", stored);
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-12", appClient);
+
+    receive(edit("page-12", { updatedAt: "2026-11-12T11:30:00.000Z", lastUpdatedById: "u9" }));
+    expect(rowOf(appClient, "page-12").lastUpdatedById).toBe("u9");
+    vi.advanceTimersByTime(300);
+    expect(appClient.getQueryState(ROWS("page-12"))?.isInvalidated).toBe(true);
+
+    release();
+    vi.useRealTimers();
+  });
+
+  it("does not ask again when the editor is already known", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    appClient.setQueryData(["bases", "page-13"], { id: "page-13", properties: [{ id: "by", type: "lastEditedBy" }], views: [] });
+    seedRow(appClient, "page-13", stored);
+    getDefaultStore().set(referenceStoreAtomFamily("page-13"), {
+      users: { u2: { id: "u2", name: "Ada", avatarUrl: null } },
+      pages: {},
+    });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-13", appClient);
+
+    receive(edit("page-13", { updatedAt: "2026-11-12T11:30:00.000Z", lastUpdatedById: "u2" }));
+    vi.advanceTimersByTime(5000);
+    expect(appClient.getQueryState(ROWS("page-13"))?.isInvalidated).toBe(false);
+
+    release();
+    vi.useRealTimers();
   });
 
   describe("another user's change under a sorted or filtered list", () => {

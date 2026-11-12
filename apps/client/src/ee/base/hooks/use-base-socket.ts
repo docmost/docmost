@@ -43,6 +43,8 @@ type BaseRowUpdated = {
   pageId: string;
   rowId: string;
   updatedCells: Record<string, unknown>;
+  updatedAt?: string;
+  lastUpdatedById?: string | null;
   requestId?: string | null;
 };
 
@@ -248,6 +250,14 @@ function createBaseEventHandler(
         const e = event as BaseRowUpdated;
         const baseForUpdate = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForUpdate = (baseForUpdate?.views ?? []).some((v) => v.type === "kanban");
+        const editStamp: Partial<IBaseRow> = {};
+        if (typeof e.updatedAt === "string") editStamp.updatedAt = e.updatedAt;
+        if (
+          "lastUpdatedById" in e &&
+          (typeof e.lastUpdatedById === "string" || e.lastUpdatedById === null)
+        ) {
+          editStamp.lastUpdatedById = e.lastUpdatedById;
+        }
         if (hasKanbanForUpdate) {
           scheduleRowsRefresh(pageId, "all");
         } else {
@@ -264,6 +274,7 @@ function createBaseEventHandler(
                         row.id === e.rowId
                           ? {
                               ...row,
+                              ...editStamp,
                               cells: { ...row.cells, ...e.updatedCells },
                             }
                           : row,
@@ -272,7 +283,14 @@ function createBaseEventHandler(
                   },
           );
           const changedPropertyIds = Object.keys(e.updatedCells ?? {});
-          if (rowsOrderDependsOn(pageId, changedPropertyIds, baseForUpdate)) {
+          const editorUnknown =
+            typeof e.lastUpdatedById === "string" &&
+            (baseForUpdate?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
+            !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[e.lastUpdatedById];
+          if (
+            editorUnknown ||
+            rowsOrderDependsOn(pageId, changedPropertyIds, baseForUpdate)
+          ) {
             scheduleRowsRefresh(pageId, "all");
           } else if (isCalendarRelevantChange(baseForUpdate, changedPropertyIds)) {
             scheduleRowsRefresh(pageId, "calendar");
