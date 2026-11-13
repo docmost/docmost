@@ -67,6 +67,8 @@ export default function CodeBlockView(props: NodeViewProps) {
           style={{ maxWidth: "130px" }}
           classNames={{ input: classes.selectInput }}
           disabled={!isEditable}
+          // closed dropdowns stay mounted by default: one hidden list of every language per code block
+          comboboxProps={{ keepMounted: false }}
         />
 
         <CopyButton value={node?.textContent} timeout={2000}>
