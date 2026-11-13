@@ -1,4 +1,5 @@
 import {
+  afterLoadDocumentPayload,
   afterUnloadDocumentPayload,
   beforeHandleAwarenessPayload,
   Extension,
@@ -102,6 +103,12 @@ export class PersistenceExtension implements Extension {
 
     this.logger.debug(`creating fresh ydoc: ${pageId}`);
     return new Y.Doc();
+  }
+
+  async afterLoadDocument(data: afterLoadDocumentPayload) {
+    // The loaded state is still queued for broadcast; flush it before the first
+    // connection attaches, or every client receives the whole document again.
+    data.document.flush();
   }
 
   async onStoreDocument(data: onStoreDocumentPayload) {
