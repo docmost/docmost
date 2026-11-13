@@ -77,6 +77,7 @@ import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { usePageYdoc } from "./hooks/use-page-ydoc";
+import { useDestroyEditorBeforeChildren } from "./hooks/use-destroy-editor-before-children";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
@@ -589,13 +590,4 @@ function StaticPageEditor({
   useDestroyEditorBeforeChildren(editor);
 
   return <EditorContent editor={editor} />;
-}
-
-// Unmount cleanups of EditorContent and the bubble menus each reconfigure the
-// editor and redraw the whole document; destroying first turns them into no-ops.
-function useDestroyEditorBeforeChildren(editor: Editor | null) {
-  useLayoutEffect(() => {
-    if (!editor) return;
-    return () => editor.destroy();
-  }, [editor]);
 }
