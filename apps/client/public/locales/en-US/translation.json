@@ -1917,5 +1917,8 @@
   "Drop a CSV file here": "Drop a CSV file here",
   "Up to {{limit}}. You'll check the columns before anything is imported.": "Up to {{limit}}. You'll check the columns before anything is imported.",
   "{{included}} of {{total}} included": "{{included}} of {{total}} included",
-  "Not imported": "Not imported"
+  "Not imported": "Not imported",
+  "Imported {{count}} rows from <bold>{{fileName}}</bold>_one": "Imported 1 row from <bold>{{fileName}}</bold>",
+  "Imported {{count}} rows from <bold>{{fileName}}</bold>_other": "Imported {{count, number}} rows from <bold>{{fileName}}</bold>",
+  "Couldn't import <bold>{{fileName}}</bold>": "Couldn't import <bold>{{fileName}}</bold>"
 }
