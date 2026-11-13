@@ -17,7 +17,7 @@ import type {
 export type ParsedNumber = {
   value: number;
   decimals: number;
-  digits: number;
+  wholeDigits: number;
   leadingZero: boolean;
   percent: boolean;
   currency: string | null;
@@ -155,7 +155,8 @@ export function parseNumberValue(
   return {
     value: Object.is(value, -0) ? 0 : value,
     decimals: fracPart.length,
-    digits: (intPart + fracPart).length,
+    // a long fraction is float output and reads back exactly; only whole-number digits can be lost
+    wholeDigits: intPart.length,
     leadingZero: intPart.length > 1 && intPart.startsWith("0"),
     percent,
     currency: currency.code,

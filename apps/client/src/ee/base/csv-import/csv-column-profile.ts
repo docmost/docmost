@@ -142,7 +142,7 @@ function addNumber(stats: NumberStats, raw: string, separator: CsvDecimalSeparat
   if (!parsed) return;
   stats.ok++;
   if (parsed.leadingZero) stats.leadingZero++;
-  if (parsed.digits > MAX_SAFE_DIGITS) stats.longDigits++;
+  if (parsed.wholeDigits > MAX_SAFE_DIGITS) stats.longDigits++;
   if (parsed.percent) stats.percent++;
   if (parsed.currency) {
     stats.currencies.set(parsed.currency, (stats.currencies.get(parsed.currency) ?? 0) + 1);

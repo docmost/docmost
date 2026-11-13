@@ -43,10 +43,21 @@ describe("parseNumberValue", () => {
     expect(parseNumberValue("(1,234)", ".")?.value).toBe(-1234);
   });
 
-  it("flags leading zeros and long digit runs", () => {
+  it("flags leading zeros and long whole-number runs", () => {
     expect(parseNumberValue("00123", ".")?.leadingZero).toBe(true);
     expect(parseNumberValue("0.5", ".")?.leadingZero).toBe(false);
-    expect(parseNumberValue("12345678901234567", ".")?.digits).toBe(17);
+    expect(parseNumberValue("12345678901234567", ".")?.wholeDigits).toBe(17);
+  });
+
+  it("does not count a float export's long fraction as a long run", () => {
+    expect(parseNumberValue("0.3333333333333333", ".")).toMatchObject({
+      value: 0.3333333333333333,
+      wholeDigits: 1,
+    });
+    expect(parseNumberValue("0,6666666666666666", ",")).toMatchObject({
+      value: 0.6666666666666666,
+      wholeDigits: 1,
+    });
   });
 
   it("rejects text, phone numbers and dates", () => {

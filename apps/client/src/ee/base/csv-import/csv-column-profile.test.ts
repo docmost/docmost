@@ -36,6 +36,13 @@ describe("type suggestion", () => {
   it("keeps codes with leading zeros and long ids as text", () => {
     expect(profile(["02134", "10001", "60601"]).suggestion.type).toBe("text");
     expect(profile(["12345678901234567", "12345678901234568"]).suggestion.type).toBe("text");
+    expect(profile(["1234567890123456.5", "1234567890123457.5"]).suggestion.type).toBe("text");
+  });
+
+  it("suggests number for fractions written out at full float length", () => {
+    expect(
+      profile(["0.5", "0.3333333333333333", "0.6666666666666666", "1", "0"]).suggestion.type,
+    ).toBe("number");
   });
 
   it("detects comma decimals from the data", () => {
