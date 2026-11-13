@@ -5,7 +5,8 @@ import { mergeAttributes } from "@tiptap/react";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { copyToClipboard } from "../utils";
+import { NodeWithPos } from "@tiptap/core";
+import { copyToClipboard, createFindChildren } from "../utils";
 
 const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><!-- Icon from Material Symbols Light by Google - https://github.com/google/material-design-icons/blob/master/LICENSE --><path fill="currentColor" d="M10.616 16.077H7.077q-1.692 0-2.884-1.192T3 12t1.193-2.885t2.884-1.193h3.539v1H7.077q-1.27 0-2.173.904Q4 10.731 4 12t.904 2.173t2.173.904h3.539zM8.5 12.5v-1h7v1zm4.885 3.577v-1h3.538q1.27 0 2.173-.904Q20 13.269 20 12t-.904-2.173t-2.173-.904h-3.538v-1h3.538q1.692 0 2.885 1.192T21 12t-1.193 2.885t-2.884 1.193z"/></svg>`;
 const successIcon = `<svg xmlns="http://www.w3.org/2000/svg" style="color: forestgreen;" width="18" height="18" viewBox="0 0 24 24"><!-- Icon from Material Symbols by Google - https://github.com/google/material-design-icons/blob/master/LICENSE --><path fill="currentColor" d="m10.6 16.6l7.05-7.05l-1.4-1.4l-5.65 5.65l-2.85-2.85l-1.4 1.4zM12 22q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12t.788-3.9t2.137-3.175T8.1 2.788T12 2t3.9.788t3.175 2.137T21.213 8.1T22 12t-.788 3.9t-2.137 3.175t-3.175 2.138T12 22"/></svg>`;
@@ -35,20 +36,19 @@ function renderHeadingLinkButton() {
   return icon;
 }
 
-function buildHeadingLinkDecorations(doc: ProseMirrorNode) {
-  const decorations: Decoration[] = [];
+// the button sits at the end of the heading's text
+const linkPosition = ({ node, pos }: NodeWithPos) => pos + node.nodeSize - 1;
 
-  doc.descendants((node, pos) => {
-    if (node.type.name === "heading" && node.content.size > 1) {
-      decorations.push(
-        Decoration.widget(pos + node.nodeSize - 1, renderHeadingLinkButton, {
-          side: 1,
-          key: "heading-link",
-        }),
-      );
-    }
-    return !node.isTextblock;
-  });
+function buildHeadingLinkDecorations(
+  doc: ProseMirrorNode,
+  headings: NodeWithPos[],
+) {
+  const decorations = headings.map((heading) =>
+    Decoration.widget(linkPosition(heading), renderHeadingLinkButton, {
+      side: 1,
+      key: "heading-link",
+    }),
+  );
 
   return DecorationSet.create(doc, decorations);
 }
@@ -58,13 +58,40 @@ const headingLinkPluginKey = new PluginKey<DecorationSet>("headingLink");
 export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
   // @ts-ignore
   addProseMirrorPlugins() {
+    const findLinkedHeadings = createFindChildren(
+      (node) => node.type.name === "heading" && node.content.size > 1,
+    );
+
     return [
       new Plugin<DecorationSet>({
         key: headingLinkPluginKey,
         state: {
-          init: (_, state) => buildHeadingLinkDecorations(state.doc),
-          apply: (tr, decorations) =>
-            tr.docChanged ? buildHeadingLinkDecorations(tr.doc) : decorations,
+          init: (_, state) =>
+            buildHeadingLinkDecorations(
+              state.doc,
+              findLinkedHeadings(state.doc),
+            ),
+          apply: (tr, decorations, oldState) => {
+            if (!tr.docChanged) return decorations;
+
+            const before = findLinkedHeadings(oldState.doc);
+            const after = findLinkedHeadings(tr.doc);
+            // most edits leave every heading as it is and only shift it:
+            // then the buttons move along instead of being built again
+            const onlyMoved =
+              before.length === after.length &&
+              before.every((heading, index) => {
+                if (heading.node !== after[index].node) return false;
+                const moved = tr.mapping.mapResult(linkPosition(heading), 1);
+                return (
+                  !moved.deleted && moved.pos === linkPosition(after[index])
+                );
+              });
+
+            return onlyMoved
+              ? decorations.map(tr.mapping, tr.doc)
+              : buildHeadingLinkDecorations(tr.doc, after);
+          },
         },
         props: {
           decorations: (state) => headingLinkPluginKey.getState(state),
