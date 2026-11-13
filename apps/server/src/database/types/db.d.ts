@@ -150,7 +150,6 @@ export interface Backlinks {
 }
 
 export interface BaseProperties {
-  cellsConvertedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
   id: Generated<string>;

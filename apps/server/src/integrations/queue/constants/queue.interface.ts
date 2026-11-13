@@ -147,13 +147,6 @@ export interface IBaseTypeConversionJob {
   actorId?: string;
   // The base zone when the conversion was accepted; a job of an older build has none.
   zone?: string;
-  // True when the source is a date property whose cells were never converted.
-  sourceUnconverted?: boolean;
-}
-
-export interface IBaseLegacyConversionJob {
-  followUp?: boolean;
-  since?: string;
 }
 
 export interface IBaseCellGcJob {
@@ -173,7 +166,6 @@ export interface IBaseFormulaRecomputeJob {
     | 'dep_deleted'
     | 'zone_changed'
     | 'refresh'
-    | 'legacy_conversion'
     | 'bulk_import'
     | 'manual';
   actorId?: string | null;
