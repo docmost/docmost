@@ -267,6 +267,13 @@
   color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
 }
 
+.targetLabel {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .warningText {
   display: flex;
   align-items: flex-start;

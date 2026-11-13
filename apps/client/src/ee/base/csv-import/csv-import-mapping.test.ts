@@ -7,6 +7,7 @@ import {
   columnLetter,
   defaultTypeOptions,
   findPlanConflict,
+  planNameTaken,
   reconcilePlans,
   takenPropertyNames,
   uniquePropertyName,
@@ -210,6 +211,19 @@ describe("applyPlanChange", () => {
     expect(plans[2].target).toEqual({ kind: "existing", propertyId: "prpStatus" });
   });
 
+  it("keeps a typed name even when another property holds it", () => {
+    const properties = [title, status];
+    let plans = buildInitialPlans(["Name", "Notes"], notesProfiles.slice(0, 2), properties);
+    plans = applyPlanChange(plans, 1, { name: "Status" }, properties, notesProfiles);
+
+    expect(plans[1].name).toBe("Status");
+    expect(planNameTaken(plans, properties, plans[1])).toBe(true);
+    expect(findPlanConflict(plans, new Map(properties.map((p) => [p.id, p])))).toEqual({
+      kind: "name",
+      name: "Status",
+    });
+  });
+
   it("leaves other columns and excluded columns alone", () => {
     const plans = buildInitialPlans(["Name", "Notes", "Notes"], notesProfiles, [title]);
     const next = applyPlanChange(plans, 2, { include: false }, [title], notesProfiles);
@@ -262,6 +276,28 @@ describe("columnLetter", () => {
 });
 
 describe("names", () => {
+  it("tells when a new column's name is held elsewhere", () => {
+    const properties = [title, status];
+    const profiles = [
+      profileFor({ type: "text" }),
+      profileFor({ type: "text" }),
+      profileFor({ type: "text" }),
+    ];
+    const plans = buildInitialPlans(["Name", "Notes", "Tags"], profiles, properties);
+    expect(planNameTaken(plans, properties, plans[1])).toBe(false);
+
+    plans[1].name = "status";
+    expect(planNameTaken(plans, properties, plans[1])).toBe(true);
+
+    plans[1].name = "Tags";
+    expect(planNameTaken(plans, properties, plans[1])).toBe(true);
+
+    // excluded columns hold nothing, and a mapped column has no name of its own
+    plans[2].include = false;
+    expect(planNameTaken(plans, properties, plans[1])).toBe(false);
+    expect(planNameTaken(plans, properties, plans[0])).toBe(false);
+  });
+
   it("adds a number until the name is free", () => {
     expect(uniquePropertyName("Notes", new Set(["notes", "notes 2"]))).toBe("Notes 3");
     expect(uniquePropertyName(" Due ", new Set())).toBe("Due");

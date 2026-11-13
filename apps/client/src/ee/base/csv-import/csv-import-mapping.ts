@@ -130,6 +130,15 @@ export function takenPropertyNames(
   return taken;
 }
 
+export function planNameTaken(
+  plans: CsvColumnPlan[],
+  properties: IBaseProperty[],
+  plan: CsvColumnPlan,
+): boolean {
+  if (!plan.include || plan.target.kind !== "new") return false;
+  return takenPropertyNames(plans, properties, plan.index).has(nameKey(plan.name));
+}
+
 // properties can change while the dialog is open: mapped ones may go away, new names may clash
 export function reconcilePlans(
   plans: CsvColumnPlan[],
@@ -177,6 +186,8 @@ export function applyPlanChange(
     if (!next.include) return next;
     const taken = takenPropertyNames(plans, properties, index);
     if (next.target.kind === "new") {
+      // a name the user typed stays as typed; planNameTaken flags the clash on the column
+      if (patch.name !== undefined) return next;
       return taken.has(nameKey(next.name))
         ? { ...next, name: uniquePropertyName(next.header, taken) }
         : next;

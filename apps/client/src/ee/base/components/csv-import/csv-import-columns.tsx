@@ -1,14 +1,6 @@
 import { useId, useMemo } from "react";
-import {
-  Checkbox,
-  ComboboxItem,
-  Group,
-  Select,
-  Table,
-  Text,
-  Tooltip,
-} from "@mantine/core";
-import { IconAlertTriangle, IconArrowRight, IconPlus } from "@tabler/icons-react";
+import { Checkbox, Group, Select, Table, Text } from "@mantine/core";
+import { IconAlertTriangle, IconArrowRight } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { PROPERTY_TYPE_REGISTRY } from "@/ee/base/property-types/property-type.registry";
 import { IBaseProperty, SelectTypeOptions } from "@/ee/base/types/base.types";
@@ -22,6 +14,7 @@ import {
   columnLetter,
   defaultTypeOptions,
   isImportableProperty,
+  planNameTaken,
   planTargetType,
   takenPropertyNames,
   uniquePropertyName,
@@ -31,9 +24,8 @@ import type {
   CsvColumnProfile,
   CsvImportPropertyType,
 } from "@/ee/base/csv-import/csv-import.types";
+import { CsvImportTarget, TypeIcon } from "./csv-import-target";
 import classes from "@/ee/base/styles/csv-import.module.css";
-
-const NEW_PROPERTY = "__new";
 
 type CsvImportColumnsProps = {
   plans: CsvColumnPlan[];
@@ -43,11 +35,6 @@ type CsvImportColumnsProps = {
   disabled: boolean;
   onPlanChange: (index: number, patch: Partial<CsvColumnPlan>) => void;
 };
-
-function TypeIcon({ type, size = 14 }: { type: CsvImportPropertyType; size?: number }) {
-  const Icon = PROPERTY_TYPE_REGISTRY[type].icon;
-  return <Icon size={size} />;
-}
 
 export function CsvImportColumns({
   plans,
@@ -117,38 +104,21 @@ export function CsvImportColumns({
               .filter((p) => p.index !== plan.index && p.include && p.target.kind === "existing")
               .map((p) => (p.target.kind === "existing" ? p.target.propertyId : "")),
           );
-          const targetData = [
-            {
-              group: t("New property"),
-              items: [{ value: NEW_PROPERTY, label: plan.target.kind === "new" ? plan.name : plan.header }],
-            },
-            {
-              group: t("Existing properties"),
-              items: importable.map((p) => ({
-                value: p.id,
-                label: p.name,
-                disabled: usedElsewhere.has(p.id),
-              })),
-            },
-          ];
-
-          const changeTarget = (value: string | null) => {
-            if (!value) return;
-            if (value === NEW_PROPERTY) {
-              if (plan.target.kind === "new") return;
-              const type = profile.suggestion.type;
-              onPlanChange(plan.index, {
-                target: { kind: "new", type },
-                name: uniquePropertyName(
-                  plan.header,
-                  takenPropertyNames(plans, properties, plan.index),
-                ),
-                typeOptions: defaultTypeOptions(type, profile),
-              });
-              return;
-            }
+          const selectNew = () => {
+            const type = profile.suggestion.type;
             onPlanChange(plan.index, {
-              target: { kind: "existing", propertyId: value },
+              target: { kind: "new", type },
+              name: uniquePropertyName(
+                plan.header,
+                takenPropertyNames(plans, properties, plan.index),
+              ),
+              typeOptions: defaultTypeOptions(type, profile),
+            });
+          };
+
+          const selectExisting = (propertyId: string) => {
+            onPlanChange(plan.index, {
+              target: { kind: "existing", propertyId },
               typeOptions: undefined,
             });
           };
@@ -224,27 +194,17 @@ export function CsvImportColumns({
               ) : (
                 <>
               <Table.Td>
-                <Select
-                  size="xs"
-                  data={targetData}
-                  value={plan.target.kind === "new" ? NEW_PROPERTY : plan.target.propertyId}
-                  onChange={changeTarget}
-                  allowDeselect={false}
+                <CsvImportTarget
+                  plan={plan}
+                  columnLabel={columnLabel}
+                  importable={importable}
+                  propertiesById={propertiesById}
+                  usedElsewhere={usedElsewhere}
+                  nameTaken={planNameTaken(plans, properties, plan)}
                   disabled={disabled}
-                  leftSection={
-                    plan.target.kind === "new" ? (
-                      <Tooltip label={t("New property")} withinPortal>
-                        <IconPlus size={14} aria-label={t("New property")} />
-                      </Tooltip>
-                    ) : targetType ? (
-                      <TypeIcon type={targetType} />
-                    ) : null
-                  }
-                  renderOption={({ option }) => (
-                    <TargetOption option={option} propertiesById={propertiesById} />
-                  )}
-                  comboboxProps={{ withinPortal: true }}
-                  aria-label={t("Import column {{name}} as", { name: columnLabel })}
+                  onSelectNew={selectNew}
+                  onSelectExisting={selectExisting}
+                  onRename={(name) => onPlanChange(plan.index, { name })}
                 />
               </Table.Td>
               <Table.Td>
@@ -287,28 +247,6 @@ export function CsvImportColumns({
         })}
       </Table.Tbody>
     </Table>
-  );
-}
-
-function TargetOption({
-  option,
-  propertiesById,
-}: {
-  option: ComboboxItem;
-  propertiesById: Map<string, IBaseProperty>;
-}) {
-  const property = propertiesById.get(option.value);
-  return (
-    <Group gap={8} wrap="nowrap">
-      {property ? (
-        <TypeIcon type={property.type as CsvImportPropertyType} />
-      ) : (
-        <IconPlus size={14} />
-      )}
-      <Text size="xs" truncate>
-        {option.label}
-      </Text>
-    </Group>
   );
 }
 

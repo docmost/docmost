@@ -1920,5 +1920,7 @@
   "Not imported": "Not imported",
   "Imported {{count}} rows from <bold>{{fileName}}</bold>_one": "Imported 1 row from <bold>{{fileName}}</bold>",
   "Imported {{count}} rows from <bold>{{fileName}}</bold>_other": "Imported {{count, number}} rows from <bold>{{fileName}}</bold>",
-  "Couldn't import <bold>{{fileName}}</bold>": "Couldn't import <bold>{{fileName}}</bold>"
+  "Couldn't import <bold>{{fileName}}</bold>": "Couldn't import <bold>{{fileName}}</bold>",
+  "Another property has this name": "Another property has this name",
+  "New property name for column {{name}}": "New property name for column {{name}}"
 }
