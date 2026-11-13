@@ -25,6 +25,7 @@ import {
 } from "@tiptap/react";
 import { createDocument } from "@tiptap/core";
 import { EditorState } from "@tiptap/pm/state";
+import { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import {
   collabExtensions,
   mainExtensions,
@@ -287,13 +288,14 @@ function CollabPageEditor({
     return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
   }, [provider, currentUser?.user]);
 
-  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
+  const debouncedUpdateContent = useDebouncedCallback((doc: ProseMirrorNode) => {
     const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
 
     if (pageData) {
       queryClient.setQueryData(["pages", slugId], {
         ...pageData,
-        content: newContent,
+        // serialized once typing pauses: on a long page this is too slow for every keystroke
+        content: doc.toJSON(),
       });
     }
   }, 3000);
@@ -389,9 +391,8 @@ function CollabPageEditor({
       },
       onUpdate({ editor }) {
         if (editor.isEmpty) return;
-        const editorJson = editor.getJSON();
         //update local page cache to reduce flickers
-        debouncedUpdateContent(editorJson);
+        debouncedUpdateContent(editor.state.doc);
       },
     },
     [pageId, editable, extensions],
