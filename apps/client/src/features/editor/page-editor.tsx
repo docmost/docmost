@@ -7,8 +7,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { IndexeddbPersistence } from "y-indexeddb";
-import * as Y from "yjs";
 import {
   WebSocketStatus,
   onStatelessParameters,
@@ -78,6 +76,7 @@ import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
+import { usePageYdoc } from "./hooks/use-page-ydoc";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
@@ -116,22 +115,7 @@ export default function PageEditor({
   const [socket] = useState(getCollabSocket);
   const hasCollabToken = !!collabQuery?.token;
   const [showStatic, setShowStatic] = useState(true);
-  const [localDoc, setLocalDoc] = useState<Y.Doc | null>(null);
-
-  // Load the IndexedDB copy before joining the room, so the first sync sends
-  // the server our state vector and only the missing updates come back.
-  useEffect(() => {
-    const doc = new Y.Doc();
-    const local = new IndexeddbPersistence(`page.${pageId}`, doc);
-    let active = true;
-    local.whenSynced.then(() => {
-      if (active) setLocalDoc(doc);
-    });
-    return () => {
-      active = false;
-      local.destroy();
-    };
-  }, [pageId]);
+  const localDoc = usePageYdoc(pageId);
 
   useEffect(() => {
     if (!hasCollabToken) return;
