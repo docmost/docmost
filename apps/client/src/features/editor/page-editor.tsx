@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
+import * as Y from "yjs";
 import {
   WebSocketStatus,
   onStatelessParameters,
@@ -21,7 +22,6 @@ import {
 import {
   Editor,
   EditorContent,
-  EditorProvider,
   useEditor,
   useEditorState,
 } from "@tiptap/react";
@@ -115,6 +115,23 @@ export default function PageEditor({
   const slugId = extractPageSlugId(pageSlug);
   const [socket] = useState(getCollabSocket);
   const hasCollabToken = !!collabQuery?.token;
+  const [showStatic, setShowStatic] = useState(true);
+  const [localDoc, setLocalDoc] = useState<Y.Doc | null>(null);
+
+  // Load the IndexedDB copy before joining the room, so the first sync sends
+  // the server our state vector and only the missing updates come back.
+  useEffect(() => {
+    const doc = new Y.Doc();
+    const local = new IndexeddbPersistence(`page.${pageId}`, doc);
+    let active = true;
+    local.whenSynced.then(() => {
+      if (active) setLocalDoc(doc);
+    });
+    return () => {
+      active = false;
+      local.destroy();
+    };
+  }, [pageId]);
 
   useEffect(() => {
     if (!hasCollabToken) return;
@@ -177,10 +194,14 @@ export default function PageEditor({
 
   return (
     <TransclusionLookupProvider>
-      {collabQuery?.token ? (
+      {showStatic && (
+        <StaticPageEditor content={content} ariaLabel={t("Page content")} />
+      )}
+      {collabQuery?.token && localDoc && (
         <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
           <HocuspocusRoom
             name={`page.${pageId}`}
+            document={localDoc}
             token={collabQuery.token}
             flushDelay={500}
             onStateless={handleStateless}
@@ -189,24 +210,29 @@ export default function PageEditor({
             <CollabPageEditor
               pageId={pageId}
               editable={editable}
-              content={content}
               canComment={canComment}
+              showStatic={showStatic}
+              onShown={() => setShowStatic(false)}
             />
           </HocuspocusRoom>
         </HocuspocusProviderWebsocketComponent>
-      ) : (
-        <StaticPageEditor content={content} ariaLabel={t("Page content")} />
       )}
     </TransclusionLookupProvider>
   );
 }
 
+type CollabPageEditorProps = Omit<PageEditorProps, "content"> & {
+  showStatic: boolean;
+  onShown: () => void;
+};
+
 function CollabPageEditor({
   pageId,
   editable,
-  content,
   canComment,
-}: PageEditorProps) {
+  showStatic,
+  onShown,
+}: CollabPageEditorProps) {
   const { t } = useTranslation();
   const provider = useHocuspocusProvider();
   const isComponentMounted = useRef(false);
@@ -224,7 +250,6 @@ function CollabPageEditor({
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
-  const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
@@ -242,17 +267,6 @@ function CollabPageEditor({
     [isComponentMounted],
   );
   const { handleScrollTo } = useEditorScroll({ canScroll });
-
-  useEffect(() => {
-    const local = new IndexeddbPersistence(
-      provider.configuration.name,
-      provider.document,
-    );
-    local.on("synced", () => setIsLocalSynced(true));
-    return () => {
-      local.destroy();
-    };
-  }, [provider]);
 
   useHocuspocusEvent("synced", ({ state }) => setIsRemoteSynced(state));
   useHocuspocusEvent("status", ({ status }) => setYjsConnectionStatus(status));
@@ -403,6 +417,8 @@ function CollabPageEditor({
     });
   }, []);
 
+  useDestroyEditorBeforeChildren(editor);
+
   useLayoutEffect(() => {
     if (editor && !editor.isDestroyed) {
       // @ts-ignore
@@ -455,7 +471,7 @@ function CollabPageEditor({
     setLightboxRequest(null);
   }, [pageId]);
 
-  const isSynced = isLocalSynced && isRemoteSynced;
+  const isSynced = isRemoteSynced;
 
   useEffect(() => {
     setYjsSynced(isSynced);
@@ -480,7 +496,6 @@ function CollabPageEditor({
   }, [editMode, editor, editable]);
 
   const hasConnectedOnceRef = useRef(false);
-  const [showStatic, setShowStatic] = useState(true);
 
   useSearchNavigationParams({
     editor,
@@ -497,12 +512,12 @@ function CollabPageEditor({
       isSynced
     ) {
       hasConnectedOnceRef.current = true;
-      setShowStatic(false);
+      onShown();
     }
   }, [yjsConnectionStatus, isSynced]);
 
   if (showStatic) {
-    return <StaticPageEditor content={content} ariaLabel={t("Page content")} />;
+    return null;
   }
 
   return (
@@ -574,18 +589,29 @@ function StaticPageEditor({
   content: any;
   ariaLabel: string;
 }) {
-  return (
-    <EditorProvider
-      editable={false}
-      immediatelyRender={true}
-      textDirection="auto"
-      extensions={mainExtensions}
-      content={content}
-      editorProps={{
-        attributes: {
-          "aria-label": ariaLabel,
-        },
-      }}
-    />
-  );
+  const editor = useEditor({
+    editable: false,
+    immediatelyRender: true,
+    shouldRerenderOnTransaction: false,
+    textDirection: "auto",
+    extensions: mainExtensions,
+    content,
+    editorProps: {
+      attributes: {
+        "aria-label": ariaLabel,
+      },
+    },
+  });
+  useDestroyEditorBeforeChildren(editor);
+
+  return <EditorContent editor={editor} />;
+}
+
+// Unmount cleanups of EditorContent and the bubble menus each reconfigure the
+// editor and redraw the whole document; destroying first turns them into no-ops.
+function useDestroyEditorBeforeChildren(editor: Editor | null) {
+  useLayoutEffect(() => {
+    if (!editor) return;
+    return () => editor.destroy();
+  }, [editor]);
 }
