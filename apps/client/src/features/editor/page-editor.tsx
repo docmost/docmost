@@ -411,6 +411,11 @@ function CollabPageEditor({
       // @ts-ignore
       editor.storage.pageId = pageId;
       editorRef.current = editor;
+      // a destroyed editor must not stay behind for the title and header of the next page
+      return () => {
+        // @ts-ignore
+        setEditor((current) => (current === editor ? null : current));
+      };
     }
   }, [editor, pageId, setEditor]);
 
