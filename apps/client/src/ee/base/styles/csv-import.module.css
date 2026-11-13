@@ -152,6 +152,16 @@
   white-space: nowrap;
 }
 
+/* the table takes the height left over and scrolls itself; the rest of the dialog stays put */
+.importBody {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.columnsSection {
+  min-height: 0;
+}
+
 .sectionHeader {
   display: flex;
   align-items: baseline;
@@ -338,7 +348,9 @@
 }
 
 .previewScroll {
-  overflow-x: auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
   border-radius: var(--mantine-radius-sm);
 }
@@ -385,10 +397,24 @@
   }
 }
 
+/* the header row and the row numbers stay in view while the table scrolls */
+.previewTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
 .previewTable .rowNumber {
+  position: sticky;
+  left: 0;
+  z-index: 1;
   width: rem(40px);
   min-width: rem(40px);
   text-align: center;
+}
+
+.previewTable thead th.rowNumber {
+  z-index: 3;
 }
 
 .previewTable td.rowNumber {
@@ -524,11 +550,12 @@
   }
 }
 
+/* the body scrolls and has bottom padding, so the footer sticks into it to sit flush with the edge */
 .footer {
   position: sticky;
-  bottom: 0;
+  bottom: calc(var(--mb-padding) * -1);
   z-index: 3;
-  margin: 0 calc(var(--mb-padding) * -1) calc(var(--mb-padding) * -1);
+  margin: auto calc(var(--mb-padding) * -1) calc(var(--mb-padding) * -1);
   padding: var(--mantine-spacing-sm) var(--mb-padding);
   background-color: var(--mantine-color-body);
   border-top: 1px solid var(--mantine-color-default-border);

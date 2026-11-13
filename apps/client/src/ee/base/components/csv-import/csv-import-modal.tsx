@@ -66,7 +66,20 @@ export default function CsvImportModal({ base, opened, onClose }: CsvImportModal
       fullScreen={isMobile}
       padding="lg"
       yOffset="6vh"
-      styles={{ title: { fontWeight: 600 } }}
+      styles={{
+        title: { fontWeight: 600 },
+        // only the body scrolls, so the header can't move with the scroll or its bounce
+        content: { display: "flex", flexDirection: "column", overflow: "hidden" },
+        header: { position: "static", flex: "none" },
+        body: {
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overscrollBehavior: "contain",
+        },
+      }}
     >
       {picking ? (
         <Stack gap="sm">
@@ -140,7 +153,7 @@ function CsvImportBody({
   };
 
   return (
-    <Stack gap="lg">
+    <Stack gap="lg" className={classes.importBody}>
       <section className={classes.fileCard} aria-label={t("File")}>
         <div className={classes.fileCardMain}>
           <div className={classes.fileTile} aria-hidden>
@@ -213,7 +226,7 @@ function CsvImportBody({
       {reading || !loaded ? (
         reading ? <ReadingSkeleton fraction={progress?.fraction ?? 0} /> : null
       ) : (
-        <Stack gap="xs">
+        <Stack gap="xs" className={classes.columnsSection}>
           <div className={classes.sectionHeader}>
             <div>
               <Text component="h3" className={classes.sectionTitle}>
