@@ -1,7 +1,9 @@
-import { useCallback, useId } from "react";
+import { useCallback, useId, useState } from "react";
 import {
   Alert,
   Button,
+  Checkbox,
+  Group,
   Modal,
   Progress,
   Select,
@@ -27,7 +29,6 @@ import {
 } from "@/ee/base/csv-import/csv-import.constants";
 import type { CsvDelimiter } from "@/ee/base/csv-import/csv-import.types";
 import { CsvImportDropzone } from "@/ee/base/components/csv-import/csv-import-dropzone";
-import { CsvImportColumns } from "@/ee/base/components/csv-import/csv-import-columns";
 import { CsvImportPreview } from "@/ee/base/components/csv-import/csv-import-preview";
 import { formatBytes } from "@/lib";
 import classes from "@/ee/base/styles/csv-import.module.css";
@@ -42,6 +43,8 @@ export default function CsvImportModal({ base, opened, onClose }: CsvImportModal
   const { t } = useTranslation();
   const isMobile = useMediaQuery("(max-width: 48em)");
   const session = useCsvImport(base, onClose);
+  // a column menu takes Escape and outside clicks first
+  const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const picking = !session.file;
   const importing =
     session.progress?.phase === "converting" || session.progress?.phase === "uploading";
@@ -56,8 +59,8 @@ export default function CsvImportModal({ base, opened, onClose }: CsvImportModal
     <Modal
       opened={opened}
       onClose={close}
-      closeOnEscape={!importing}
-      closeOnClickOutside={!importing}
+      closeOnEscape={!importing && !columnMenuOpen}
+      closeOnClickOutside={!importing && !columnMenuOpen}
       title={t("Import CSV")}
       size={picking ? "lg" : 1080}
       fullScreen={isMobile}
@@ -71,7 +74,12 @@ export default function CsvImportModal({ base, opened, onClose }: CsvImportModal
           {session.error && <ErrorAlert message={session.error} />}
         </Stack>
       ) : (
-        <CsvImportBody session={session} importing={importing} onCancel={close} />
+        <CsvImportBody
+          session={session}
+          importing={importing}
+          onCancel={close}
+          onMenuOpenChange={setColumnMenuOpen}
+        />
       )}
     </Modal>
   );
@@ -89,10 +97,12 @@ function CsvImportBody({
   session,
   importing,
   onCancel,
+  onMenuOpenChange,
 }: {
   session: CsvImportSession;
   importing: boolean;
   onCancel: () => void;
+  onMenuOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
   const { file, loaded, progress, loadOptions } = session;
@@ -123,6 +133,11 @@ function CsvImportBody({
       : formatBytes(file.size);
   const includedCount = session.plans.filter((plan) => plan.include).length;
   const settingsDisabled = importing || reading;
+
+  const toggleAll = () => {
+    const include = includedCount < session.plans.length;
+    for (const plan of session.plans) session.updatePlan(plan.index, { include });
+  };
 
   return (
     <Stack gap="lg">
@@ -169,6 +184,7 @@ function CsvImportBody({
               value={loadOptions.delimiter ?? loaded?.delimiter ?? null}
               onChange={changeDelimiter}
               allowDeselect={false}
+              checkIconPosition="right"
               disabled={settingsDisabled}
               w={128}
               comboboxProps={{ withinPortal: true }}
@@ -185,6 +201,7 @@ function CsvImportBody({
               value={loadOptions.encoding ?? loaded?.encoding ?? null}
               onChange={changeEncoding}
               allowDeselect={false}
+              checkIconPosition="right"
               disabled={settingsDisabled}
               w={220}
               comboboxProps={{ withinPortal: true }}
@@ -196,48 +213,50 @@ function CsvImportBody({
       {reading || !loaded ? (
         reading ? <ReadingSkeleton fraction={progress?.fraction ?? 0} /> : null
       ) : (
-        <>
-          <Stack gap="xs">
-            <div className={classes.sectionHeader}>
+        <Stack gap="xs">
+          <div className={classes.sectionHeader}>
+            <div>
               <Text component="h3" className={classes.sectionTitle}>
                 {t("Columns")}
               </Text>
+              <Text className={classes.sectionHint}>
+                {t("Click a column to rename it, change its type or skip it.")}
+              </Text>
+            </div>
+            <Group gap={8} wrap="nowrap">
               <Text className={classes.sectionMeta}>
                 {t("{{included}} of {{total}} included", {
                   included: includedCount,
                   total: session.plans.length,
                 })}
               </Text>
-            </div>
-            <CsvImportColumns
-              plans={session.plans}
-              profiles={loaded.profiles}
-              properties={Array.from(session.propertiesById.values())}
-              propertiesById={session.propertiesById}
-              disabled={importing}
-              onPlanChange={session.updatePlan}
-            />
-          </Stack>
-          {session.included.length > 0 && loaded.previewRows.length > 0 && (
-            <Stack gap="xs">
-              <div className={classes.sectionHeader}>
-                <Text component="h3" className={classes.sectionTitle}>
-                  {t("Preview")}
-                </Text>
-                <Text className={classes.sectionMeta}>
-                  {t("First {{count}} rows", {
-                    count: Math.min(PREVIEW_ROW_COUNT, loaded.previewRows.length),
-                  })}
-                </Text>
-              </div>
-              <CsvImportPreview
-                plans={session.plans}
-                rows={loaded.previewRows}
-                propertiesById={session.propertiesById}
+              <Checkbox
+                size="xs"
+                variant="outline"
+                checked={includedCount === session.plans.length}
+                indeterminate={includedCount > 0 && includedCount < session.plans.length}
+                onChange={toggleAll}
+                disabled={importing}
+                aria-label={t("Import all columns")}
               />
-            </Stack>
+            </Group>
+          </div>
+          <CsvImportPreview
+            plans={session.plans}
+            profiles={loaded.profiles}
+            rows={loaded.previewRows}
+            properties={Array.from(session.propertiesById.values())}
+            propertiesById={session.propertiesById}
+            disabled={importing}
+            onPlanChange={session.updatePlan}
+            onMenuOpenChange={onMenuOpenChange}
+          />
+          {loaded.rowCount > PREVIEW_ROW_COUNT && (
+            <Text className={classes.sectionHint}>
+              {t("First {{count}} rows", { count: PREVIEW_ROW_COUNT })}
+            </Text>
           )}
-        </>
+        </Stack>
       )}
 
       <ImportFooter
@@ -257,18 +276,21 @@ function ReadingSkeleton({ fraction }: { fraction: number }) {
       <Text size="xs" c="dimmed" mb="xs">
         {t("Reading file… {{percent}}%", { percent: Math.round(fraction * 100) })}
       </Text>
-      {Array.from({ length: 5 }, (_, i) => (
-        <div key={i} className={classes.skeletonRow}>
-          <Skeleton height={16} width={16} radius="sm" />
-          <Stack gap={6}>
-            <Skeleton height={10} width={`${50 + ((i * 17) % 35)}%`} radius="xl" />
-            <Skeleton height={8} width={`${35 + ((i * 23) % 40)}%`} radius="xl" />
-          </Stack>
-          <Skeleton height={10} width={14} radius="xl" />
-          <Skeleton height={28} radius="sm" />
-          <Skeleton height={28} radius="sm" />
-        </div>
-      ))}
+      <div className={classes.skeletonTable}>
+        {Array.from({ length: 6 }, (_, row) => (
+          <div key={row} className={classes.skeletonRow} data-head={row === 0 || undefined}>
+            <Skeleton height={8} width={12} radius="xl" />
+            {Array.from({ length: 4 }, (_, cell) => (
+              <Skeleton
+                key={cell}
+                height={row === 0 ? 10 : 8}
+                width={`${45 + ((row * 17 + cell * 29) % 45)}%`}
+                radius="xl"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </Stack>
   );
 }

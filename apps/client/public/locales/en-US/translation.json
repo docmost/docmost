@@ -1856,12 +1856,10 @@
   "Failed to import CSV": "Failed to import CSV",
   "Choose CSV file": "Choose CSV file",
   "Import all columns": "Import all columns",
-  "Column in file": "Column in file",
   "Import as": "Import as",
   "New property": "New property",
   "Existing properties": "Existing properties",
   "Import column {{name}}": "Import column {{name}}",
-  "Empty": "Empty",
   "Import column {{name}} as": "Import column {{name}} as",
   "Property type for column {{name}}": "Property type for column {{name}}",
   "{{count}} values are longer than {{max}} characters and will be shortened._one": "1 value is longer than {{max}} characters and will be shortened.",
@@ -1922,5 +1920,8 @@
   "Imported {{count}} rows from <bold>{{fileName}}</bold>_other": "Imported {{count, number}} rows from <bold>{{fileName}}</bold>",
   "Couldn't import <bold>{{fileName}}</bold>": "Couldn't import <bold>{{fileName}}</bold>",
   "Another property has this name": "Another property has this name",
-  "New property name for column {{name}}": "New property name for column {{name}}"
+  "New property name for column {{name}}": "New property name for column {{name}}",
+  "New": "New",
+  "Click a column to rename it, change its type or skip it.": "Click a column to rename it, change its type or skip it.",
+  "Settings for column {{name}}": "Settings for column {{name}}"
 }

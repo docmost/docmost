@@ -36,6 +36,8 @@ type CsvImportTargetProps = {
   usedElsewhere: Set<string>;
   nameTaken: boolean;
   disabled: boolean;
+  // false inside a popover, so picking an option isn't a click outside it
+  withinPortal?: boolean;
   onSelectNew: () => void;
   onSelectExisting: (propertyId: string) => void;
   onRename: (name: string) => void;
@@ -50,6 +52,7 @@ export function CsvImportTarget({
   usedElsewhere,
   nameTaken,
   disabled,
+  withinPortal = true,
   onSelectNew,
   onSelectExisting,
   onRename,
@@ -60,6 +63,7 @@ export function CsvImportTarget({
   const property = plan.target.kind === "existing" ? propertiesById.get(currentId) : undefined;
   // null while the name isn't being edited, so outside renames show right away
   const [draft, setDraft] = useState<string | null>(null);
+  const nameAtFocusRef = useRef(plan.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const focusNameRef = useRef(false);
 
@@ -76,11 +80,12 @@ export function CsvImportTarget({
     inputRef.current?.select();
   }, [isNew]);
 
-  // an emptied name goes back to the last one
+  // an emptied name goes back to the one it had when editing started
   const commitName = () => {
     const name = (draft ?? plan.name).trim();
     setDraft(null);
-    if (name && name !== plan.name) onRename(name);
+    const next = name || nameAtFocusRef.current;
+    if (next !== plan.name) onRename(next);
   };
 
   const submit = (value: string) => {
@@ -99,7 +104,7 @@ export function CsvImportTarget({
   const label = t("Import column {{name}} as", { name: columnLabel });
 
   return (
-    <Combobox store={combobox} onOptionSubmit={submit}>
+    <Combobox store={combobox} onOptionSubmit={submit} withinPortal={withinPortal}>
       <Combobox.Target targetType={isNew ? "input" : "button"}>
         {isNew ? (
           <TextInput
@@ -108,8 +113,17 @@ export function CsvImportTarget({
             value={draft ?? plan.name}
             maxLength={MAX_PROPERTY_NAME_LENGTH}
             disabled={disabled}
-            onFocus={() => setDraft(plan.name)}
-            onChange={(event) => setDraft(event.currentTarget.value)}
+            onFocus={() => {
+              nameAtFocusRef.current = plan.name;
+              setDraft(plan.name);
+            }}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              setDraft(value);
+              // applied as typed, so closing the menu any way keeps it
+              const name = value.trim();
+              if (name && name !== plan.name) onRename(name);
+            }}
             onBlur={() => {
               combobox.closeDropdown();
               commitName();
@@ -117,23 +131,26 @@ export function CsvImportTarget({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !combobox.dropdownOpened) {
                 event.preventDefault();
-                event.currentTarget.blur();
+                commitName();
               }
             }}
-            leftSection={<IconPlus size={14} aria-hidden />}
             rightSection={
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                disabled={disabled}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => combobox.toggleDropdown()}
-                aria-label={label}
-              >
-                <Combobox.Chevron />
-              </ActionIcon>
+              <div className={classes.targetSection}>
+                <span className={classes.newTag}>{t("New")}</span>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  disabled={disabled}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => combobox.toggleDropdown()}
+                  aria-label={label}
+                >
+                  <Combobox.Chevron />
+                </ActionIcon>
+              </div>
             }
+            rightSectionWidth={72}
             rightSectionPointerEvents="all"
             error={nameTaken ? t("Another property has this name") : undefined}
             aria-label={t("New property name for column {{name}}", { name: columnLabel })}
@@ -163,10 +180,10 @@ export function CsvImportTarget({
           <ScrollArea.Autosize mah={250} type="scroll">
             <Combobox.Group label={t("New property")}>
               <Combobox.Option value={NEW_PROPERTY} active={isNew}>
-                <TargetOption
+                <OptionLabel
                   icon={<IconPlus size={14} />}
                   label={isNew ? plan.name : plan.header}
-                  active={isNew}
+                  checked={isNew}
                 />
               </Combobox.Option>
             </Combobox.Group>
@@ -179,10 +196,10 @@ export function CsvImportTarget({
                     active={p.id === currentId}
                     disabled={usedElsewhere.has(p.id)}
                   >
-                    <TargetOption
+                    <OptionLabel
                       icon={<TypeIcon type={p.type as CsvImportPropertyType} />}
                       label={p.name}
-                      active={p.id === currentId}
+                      checked={p.id === currentId}
                     />
                   </Combobox.Option>
                 ))}
@@ -195,22 +212,23 @@ export function CsvImportTarget({
   );
 }
 
-function TargetOption({
+// an option with an icon, and the chosen one ticked on the right like the other selects
+export function OptionLabel({
   icon,
   label,
-  active,
+  checked,
 }: {
   icon: React.ReactNode;
   label: string;
-  active: boolean;
+  checked: boolean;
 }) {
   return (
-    <Group gap={8} wrap="nowrap">
+    <Group gap={8} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
       {icon}
       <Text size="xs" truncate style={{ flex: 1 }}>
         {label}
       </Text>
-      {active && <CheckIcon size={10} />}
+      {checked && <CheckIcon className={classes.optionCheck} />}
     </Group>
   );
 }

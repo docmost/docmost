@@ -1,5 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox, Tooltip } from "@mantine/core";
+import { useWindowEvent } from "@mantine/hooks";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { PROPERTY_TYPE_REGISTRY } from "@/ee/base/property-types/property-type.registry";
 import {
@@ -7,45 +9,102 @@ import {
   DateTypeOptions,
   IBaseProperty,
   NumberTypeOptions,
+  SelectTypeOptions,
 } from "@/ee/base/types/base.types";
 import { convertCsvValue } from "@/ee/base/csv-import/csv-import-convert";
 import { previewChoiceColors } from "@/ee/base/csv-import/csv-import-choices";
-import { columnLetter, planTargetType } from "@/ee/base/csv-import/csv-import-mapping";
+import { isImportableProperty, planTargetType } from "@/ee/base/csv-import/csv-import-mapping";
+import { columnWarning } from "@/ee/base/csv-import/csv-import-warnings";
 import type {
   CsvColumnPlan,
+  CsvColumnProfile,
   CsvConvertResult,
   CsvImportPropertyType,
 } from "@/ee/base/csv-import/csv-import.types";
 import { formatDateDisplay, formatNumber } from "@/ee/base/formatters/cell-formatters";
 import { ChoiceBadge } from "@/ee/base/components/cells/choice-badge";
 import { choiceColor } from "@/ee/base/components/cells/choice-color";
+import { CsvImportColumnHeader } from "./csv-import-column-header";
 import classes from "@/ee/base/styles/csv-import.module.css";
 
 type CsvImportPreviewProps = {
   plans: CsvColumnPlan[];
+  profiles: CsvColumnProfile[];
   rows: string[][];
+  properties: IBaseProperty[];
   propertiesById: Map<string, IBaseProperty>;
+  disabled: boolean;
+  onPlanChange: (index: number, patch: Partial<CsvColumnPlan>) => void;
+  onMenuOpenChange: (open: boolean) => void;
 };
+
+type SkippedColumn = { plan: CsvColumnPlan; included: false };
 
 type PreviewColumn = {
   plan: CsvColumnPlan;
+  included: true;
   type: CsvImportPropertyType;
   name: string;
   typeOptions: Record<string, unknown> | undefined;
   results: CsvConvertResult[];
   colors: Map<string, string>;
+  warning: string | null;
 };
 
 const CHOICE_TYPES = new Set<CsvImportPropertyType>(["select", "status", "multiSelect"]);
 
-export function CsvImportPreview({ plans, rows, propertiesById }: CsvImportPreviewProps) {
+// the preview is also where columns are set up: each header opens that column's settings
+export function CsvImportPreview({
+  plans,
+  profiles,
+  rows,
+  properties,
+  propertiesById,
+  disabled,
+  onPlanChange,
+  onMenuOpenChange,
+}: CsvImportPreviewProps) {
   const { t } = useTranslation();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const headerRefs = useRef(new Map<number, HTMLTableCellElement>());
+  const importable = useMemo(() => properties.filter(isImportableProperty), [properties]);
 
-  const columns = useMemo<PreviewColumn[]>(
+  useEffect(() => {
+    onMenuOpenChange(openIndex !== null);
+  }, [openIndex, onMenuOpenChange]);
+  useEffect(() => () => onMenuOpenChange(false), [onMenuOpenChange]);
+
+  // the dialog ignores Escape while a menu is open, so the first Escape only closes the menu
+  useWindowEvent(
+    "keydown",
+    (event) => {
+      if (event.key !== "Escape" || openIndex === null) return;
+      // an open type list inside the menu closes first
+      const target = event.target as HTMLElement | null;
+      if (target?.getAttribute?.("data-mantine-stop-propagation") === "true") return;
+      setOpenIndex(null);
+    },
+    { capture: true },
+  );
+
+  // screen readers need the column number to tell repeated headers apart
+  const repeatedHeaders = useMemo(() => {
+    const seen = new Set<string>();
+    const repeated = new Set<string>();
+    for (const plan of plans) {
+      const key = plan.header.toLowerCase();
+      if (seen.has(key)) repeated.add(key);
+      seen.add(key);
+    }
+    return repeated;
+  }, [plans]);
+
+  // skipped columns stay in the table, dimmed, so they can be turned back on from their header
+  const columns = useMemo(
     () =>
-      plans.flatMap((plan) => {
+      plans.map((plan): PreviewColumn | SkippedColumn => {
         const type = planTargetType(plan, propertiesById);
-        if (!plan.include || !type) return [];
+        if (!plan.include || !type) return { plan, included: false };
         const property =
           plan.target.kind === "existing" ? propertiesById.get(plan.target.propertyId) : undefined;
         const typeOptions = (property?.typeOptions ?? plan.typeOptions) as
@@ -62,56 +121,120 @@ export function CsvImportPreview({ plans, rows, propertiesById }: CsvImportPrevi
               names,
             )
           : new Map<string, string>();
-        return [{ plan, type, name: property?.name ?? plan.name, typeOptions, results, colors }];
+        const existingChoices =
+          (property?.typeOptions as SelectTypeOptions | undefined)?.choices?.length ?? 0;
+        const warning = columnWarning(t, type, profiles[plan.index], existingChoices);
+        return {
+          plan,
+          included: true,
+          type,
+          name: property?.name ?? plan.name,
+          typeOptions,
+          results,
+          colors,
+          warning,
+        };
       }),
-    [plans, propertiesById, rows],
+    [plans, profiles, propertiesById, rows, t],
   );
 
+  const warnings = columns.filter(
+    (column): column is PreviewColumn => column.included && column.warning !== null,
+  );
+
+  const openColumn = (index: number) => {
+    headerRefs.current.get(index)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    setOpenIndex(index);
+  };
+
+  const columnLabel = (plan: CsvColumnPlan) =>
+    repeatedHeaders.has(plan.header.toLowerCase())
+      ? t("{{name}} (column {{number}})", { name: plan.header, number: plan.index + 1 })
+      : plan.header;
+
   return (
-    <div className={classes.previewScroll}>
-      <table className={classes.previewTable}>
-        <thead>
-          <tr>
-            <th scope="col" className={classes.rowNumber}>
-              #
-            </th>
-            {columns.map(({ plan, type, name }) => {
-              const Icon = PROPERTY_TYPE_REGISTRY[type].icon;
-              return (
-                <th key={plan.index} scope="col">
-                  <span className={classes.previewHeader} title={name}>
-                    <Icon size={14} className={classes.previewHeaderIcon} aria-hidden />
-                    {name}
-                    <span className={classes.letter} aria-hidden>
-                      {columnLetter(plan.index)}
-                    </span>
-                  </span>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              <td className={classes.rowNumber}>{rowIndex + 1}</td>
+    <>
+      {warnings.length > 0 && (
+        <ul className={classes.notes}>
+          {warnings.map((column) => (
+            <li key={column.plan.index}>
+              <button
+                type="button"
+                className={classes.noteButton}
+                onClick={() => openColumn(column.plan.index)}
+              >
+                <IconAlertTriangle size={13} aria-hidden />
+                <span>
+                  <strong>{column.name}</strong> {column.warning}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className={classes.previewScroll}>
+        <table className={classes.previewTable}>
+          <thead>
+            <tr>
+              <th scope="col" className={classes.rowNumber}>
+                #
+              </th>
               {columns.map((column) => (
-                <td key={column.plan.index}>
-                  <PreviewValue
-                    column={column}
-                    result={column.results[rowIndex]}
-                    raw={row[column.plan.index] ?? ""}
-                    invalidLabel={t("Can't be read as {{type}}. It will be left empty.", {
-                      type: t(PROPERTY_TYPE_REGISTRY[column.type].labelKey),
-                    })}
+                <th
+                  key={column.plan.index}
+                  scope="col"
+                  className={classes.columnHead}
+                  ref={(el) => {
+                    if (el) headerRefs.current.set(column.plan.index, el);
+                    else headerRefs.current.delete(column.plan.index);
+                  }}
+                >
+                  <CsvImportColumnHeader
+                    plan={column.plan}
+                    profile={profiles[column.plan.index]}
+                    plans={plans}
+                    properties={properties}
+                    importable={importable}
+                    propertiesById={propertiesById}
+                    columnLabel={columnLabel(column.plan)}
+                    warning={column.included ? column.warning : null}
+                    opened={openIndex === column.plan.index}
+                    disabled={disabled}
+                    onOpenChange={(opened) => setOpenIndex(opened ? column.plan.index : null)}
+                    onPlanChange={onPlanChange}
                   />
-                </td>
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                <td className={classes.rowNumber}>{rowIndex + 1}</td>
+                {columns.map((column) =>
+                  !column.included ? (
+                    <td key={column.plan.index} className={classes.skippedCell}>
+                      {row[column.plan.index] ?? ""}
+                    </td>
+                  ) : (
+                    <td key={column.plan.index}>
+                      <PreviewValue
+                        column={column}
+                        result={column.results[rowIndex]}
+                        raw={row[column.plan.index] ?? ""}
+                        invalidLabel={t("Can't be read as {{type}}. It will be left empty.", {
+                          type: t(PROPERTY_TYPE_REGISTRY[column.type].labelKey),
+                        })}
+                      />
+                    </td>
+                  ),
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
