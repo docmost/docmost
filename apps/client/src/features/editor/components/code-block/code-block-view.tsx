@@ -1,7 +1,7 @@
 import { NodeViewContent, NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
 import { ActionIcon, Group, Select, Tooltip } from "@mantine/core";
 import { CopyButton } from "@/components/common/copy-button";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
 import classes from "./code-block.module.css";
 import { Suspense } from "react";
@@ -20,23 +20,37 @@ export default function CodeBlockView(props: NodeViewProps) {
     language || null,
   );
   const [isSelected, setIsSelected] = useState(false);
+  const isMermaid = language === "mermaid";
+  const wasMermaid = useRef(isMermaid);
 
-  useEffect(() => {
+  // before paint, so a block that becomes mermaid does not hide its source for a frame
+  useLayoutEffect(() => {
+    // only mermaid hides its source, and finding a block's position is slow on long pages
+    if (!isMermaid) {
+      wasMermaid.current = false;
+      return;
+    }
+
     const updateSelection = () => {
       const { state } = editor;
       const { from, to } = state.selection;
+      const pos = getPos();
       // Check if the selection intersects with the node's range
       const isNodeSelected =
-        (from >= getPos() && from < getPos() + node.nodeSize) ||
-        (to > getPos() && to <= getPos() + node.nodeSize);
+        (from >= pos && from < pos + node.nodeSize) ||
+        (to > pos && to <= pos + node.nodeSize);
       setIsSelected(isNodeSelected);
     };
+
+    // the caret can already be in a block that just became mermaid
+    if (!wasMermaid.current) updateSelection();
+    wasMermaid.current = true;
 
     editor.on("selectionUpdate", updateSelection);
     return () => {
       editor.off("selectionUpdate", updateSelection);
     };
-  }, [editor, getPos(), node.nodeSize]);
+  }, [editor, isMermaid, getPos(), node.nodeSize]);
 
   const isEditable = useEditorState({
     editor,
