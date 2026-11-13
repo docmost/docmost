@@ -9,7 +9,15 @@ import {
   IBaseRow,
   IBaseView,
 } from "@/ee/base/types/base.types";
-import { selectedRowIdsAtomFamily } from "@/ee/base/atoms/base-atoms";
+import {
+  baseImportProgressAtomFamily,
+  baseImportResultAtomFamily,
+  selectedRowIdsAtomFamily,
+} from "@/ee/base/atoms/base-atoms";
+import type {
+  BaseImportProgress,
+  BaseImportResult,
+} from "@/ee/base/csv-import/csv-import.types";
 import { formulaRecomputeAtom } from "@/ee/base/atoms/formula-recompute-atom";
 import { IPagination } from "@/lib/types";
 import { invalidateBaseRows } from "@/ee/base/queries/base-row-query";
@@ -103,6 +111,17 @@ type BaseSchemaBumped = {
   schemaVersion: number;
 };
 
+type BaseImportProgressEvent = {
+  operation: "base:import:progress";
+  pageId: string;
+} & BaseImportProgress;
+
+type BaseImportCompletedEvent = {
+  operation: "base:import:completed";
+  pageId: string;
+  totalRows: number;
+} & BaseImportResult;
+
 type BaseSubscribed = {
   operation: "base:subscribed";
   pageId: string;
@@ -119,6 +138,8 @@ type BaseInboundEvent =
   | BaseFormulaRecomputeStarted
   | BaseFormulaRecomputeCompleted
   | BaseSchemaBumped
+  | BaseImportProgressEvent
+  | BaseImportCompletedEvent
   | BaseSubscribed
   | BasePropertyEvent
   | BaseViewEvent
@@ -328,6 +349,30 @@ function createBaseEventHandler(
           queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
           queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
         }
+        // a completion sent while away never arrives; a running import's next progress event restores it
+        getDefaultStore().set(baseImportProgressAtomFamily(pageId), null);
+        break;
+      }
+      case "base:import:progress": {
+        const e = event as BaseImportProgressEvent;
+        getDefaultStore().set(baseImportProgressAtomFamily(pageId), {
+          fileTaskId: e.fileTaskId,
+          processedRows: e.processedRows,
+          totalRows: e.totalRows,
+        });
+        break;
+      }
+      case "base:import:completed": {
+        const e = event as BaseImportCompletedEvent;
+        const store = getDefaultStore();
+        store.set(baseImportProgressAtomFamily(pageId), null);
+        store.set(baseImportResultAtomFamily(pageId), {
+          fileTaskId: e.fileTaskId,
+          status: e.status,
+          importedRows: e.importedRows,
+          skippedValues: e.skippedValues,
+          error: e.error,
+        });
         break;
       }
       case "base:formula:recompute:started": {

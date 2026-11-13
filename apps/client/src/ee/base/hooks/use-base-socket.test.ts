@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { InfiniteData, QueryClient } from "@tanstack/react-query";
+import { getDefaultStore } from "jotai";
 import type { Socket } from "socket.io-client";
+import { baseImportProgressAtomFamily } from "@/ee/base/atoms/base-atoms";
 import type { IPagination } from "@/lib/types";
 import type { IBaseRow } from "@/ee/base/types/base.types";
 
@@ -96,6 +98,19 @@ describe("retainBaseSubscription", () => {
       { operation: "base:unsubscribe", pageId: "page-1" },
       { operation: "base:subscribe", pageId: "page-1" },
     ]);
+    release();
+  });
+
+  it("clears import progress missed while away when the subscription is confirmed", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    const progressAtom = baseImportProgressAtomFamily("page-1");
+    getDefaultStore().set(progressAtom, { fileTaskId: "task-1", processedRows: 5, totalRows: 10 });
+
+    const release = retainBaseSubscription(socket, "page-1", queryClient);
+    receive({ operation: "base:subscribed", pageId: "page-1", schemaVersion: 1 });
+
+    expect(getDefaultStore().get(progressAtom)).toBeNull();
     release();
   });
 
