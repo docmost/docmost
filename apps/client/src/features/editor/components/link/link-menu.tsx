@@ -58,6 +58,7 @@ export const EditorLinkMenu: FC<EditorLinkMenuProps> = ({ editor }) => {
 
     const dismiss = () => {
       setShowLinkMenu(false);
+      if (editor.isDestroyed) return;
       editor.commands.focus();
       editor.commands.setTextSelection(editor.state.selection.to);
     };

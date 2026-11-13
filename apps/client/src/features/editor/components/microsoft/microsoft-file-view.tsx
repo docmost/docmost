@@ -58,8 +58,11 @@ export default function MicrosoftFileView(props: NodeViewProps) {
   );
 
   const handleResize = useCallback(
-    (width: number, height: number) => updateAttributes({ width, height }),
-    [updateAttributes],
+    (width: number, height: number) => {
+      if (editor.isDestroyed) return;
+      updateAttributes({ width, height });
+    },
+    [editor, updateAttributes],
   );
 
   const handleMention = () => {
