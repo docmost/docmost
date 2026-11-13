@@ -23,6 +23,8 @@ import {
   useEditor,
   useEditorState,
 } from "@tiptap/react";
+import { createDocument } from "@tiptap/core";
+import { EditorState } from "@tiptap/pm/state";
 import {
   collabExtensions,
   mainExtensions,
@@ -587,7 +589,6 @@ function StaticPageEditor({
     shouldRerenderOnTransaction: false,
     textDirection: "auto",
     extensions: mainExtensions,
-    content,
     editorProps: {
       attributes: {
         "aria-label": ariaLabel,
@@ -595,6 +596,20 @@ function StaticPageEditor({
     },
   });
   useDestroyEditorBeforeChildren(editor);
+
+  // EditorContent redraws the whole document when it adds the React node views,
+  // so the content goes in after that and is drawn once.
+  useLayoutEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const doc = createDocument(
+      content,
+      editor.schema,
+      editor.options.parseOptions,
+    );
+    editor.view.updateState(
+      EditorState.create({ doc, plugins: editor.state.plugins }),
+    );
+  }, [editor]);
 
   return <EditorContent editor={editor} />;
 }
