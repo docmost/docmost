@@ -303,6 +303,8 @@ function CollabPageEditor({
       textDirection: "auto",
       immediatelyRender: true,
       shouldRerenderOnTransaction: false,
+      // nothing listens for the delete event, and tiptap maps every changed range on each update to emit it
+      enableCoreExtensions: { delete: false },
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
