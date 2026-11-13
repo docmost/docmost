@@ -364,6 +364,11 @@ function createBaseEventHandler(
       }
       case "base:import:completed": {
         const e = event as BaseImportCompletedEvent;
+        // the import's only event, so new properties and rows arrive in one refetch
+        if (e.status === "success") {
+          queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+          queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+        }
         const store = getDefaultStore();
         store.set(baseImportProgressAtomFamily(pageId), null);
         store.set(baseImportResultAtomFamily(pageId), {

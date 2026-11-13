@@ -85,13 +85,16 @@ export function trackBaseImport(input: {
       const task = await getFileTaskById(fileTaskId);
       if (task.status === "processing") return;
       const metadata = task.metadata ?? {};
-      finish({
-        fileTaskId,
-        status: task.status === "success" ? "success" : "failed",
-        importedRows: Number(metadata.importedRows ?? 0),
-        skippedValues: Number(metadata.skippedValues ?? 0),
-        error: task.errorMessage,
-      });
+      finish(
+        {
+          fileTaskId,
+          status: task.status === "success" ? "success" : "failed",
+          importedRows: Number(metadata.importedRows ?? 0),
+          skippedValues: Number(metadata.skippedValues ?? 0),
+          error: task.errorMessage,
+        },
+        true,
+      );
     } catch (err) {
       const status = isAxiosError(err) ? err.response?.status : undefined;
       if (status === 403 || status === 404) {
@@ -103,7 +106,8 @@ export function trackBaseImport(input: {
   // the completion event can also beat the upload response
   settleOnResult();
 
-  function finish(result: BaseImportResult) {
+  // the completion event refreshes the base itself; a polled result means it never came
+  function finish(result: BaseImportResult, polled = false) {
     if (finished) return;
     finished = true;
     window.clearInterval(interval);
@@ -111,8 +115,10 @@ export function trackBaseImport(input: {
     unsubscribeResult();
     if (store.get(progressAtom)?.fileTaskId === fileTaskId) store.set(progressAtom, null);
 
-    queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
-    queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+    if (polled && result.status === "success") {
+      queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+      queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+    }
 
     // a closed progress toast can't be updated, so the result comes back as a new one
     const notify = dismissed ? notifications.show : notifications.update;

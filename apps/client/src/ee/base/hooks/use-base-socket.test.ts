@@ -114,6 +114,30 @@ describe("retainBaseSubscription", () => {
     release();
   });
 
+  it("refetches the base once when an import succeeds and not when it fails", () => {
+    const { socket, receive } = createFakeSocket();
+    const queryClient = new QueryClient();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const completed = {
+      operation: "base:import:completed",
+      pageId: "page-1",
+      fileTaskId: "task-1",
+      totalRows: 10,
+      actorId: "user-1",
+    };
+
+    const release = retainBaseSubscription(socket, "page-1", queryClient);
+    receive({ ...completed, status: "failed", importedRows: 0, skippedValues: 0, error: "Nothing was imported." });
+    expect(invalidate).not.toHaveBeenCalled();
+
+    receive({ ...completed, status: "success", importedRows: 10, skippedValues: 0, error: null });
+    expect(invalidate.mock.calls.map(([filters]) => filters?.queryKey)).toEqual([
+      ["base-rows", "page-1"],
+      ["bases", "page-1"],
+    ]);
+    release();
+  });
+
   it("keeps separate subscriptions per base", () => {
     const { socket, emitted } = createFakeSocket();
     const queryClient = new QueryClient();

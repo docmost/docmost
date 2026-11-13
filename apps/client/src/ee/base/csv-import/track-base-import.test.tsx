@@ -84,6 +84,26 @@ describe("trackBaseImport", () => {
     ]);
     expect(mocks.getFileTaskById).not.toHaveBeenCalled();
     expect(store.get(progressAtom)).toBeNull();
+    // the completion event refreshes the base on its own
+    expect(mocks.invalidateQueries).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the base when polling finds the import finished", async () => {
+    const { input } = setup();
+    mocks.getFileTaskById.mockResolvedValue({
+      status: "success",
+      metadata: { importedRows: 10, skippedValues: 0 },
+      errorMessage: null,
+    });
+
+    trackBaseImport(input);
+    await vi.advanceTimersByTimeAsync(3000);
+
+    expect(settledToasts()).toEqual([expect.objectContaining({ title: "Import complete" })]);
+    expect(mocks.invalidateQueries.mock.calls.map(([filters]) => filters.queryKey)).toEqual([
+      ["base-rows", input.pageId],
+      ["bases", input.pageId],
+    ]);
   });
 
   it("settles on a completion that arrived before tracking started", async () => {
@@ -113,6 +133,7 @@ describe("trackBaseImport", () => {
     expect(settledToasts()).toEqual([
       expect.objectContaining({ title: "Import failed", message: "A property changed" }),
     ]);
+    expect(mocks.invalidateQueries).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(mocks.getFileTaskById).toHaveBeenCalledTimes(2);
   });
