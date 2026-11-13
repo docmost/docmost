@@ -20,6 +20,15 @@ export function isImportableProperty(property: IBaseProperty): boolean {
   return IMPORTABLE_TYPES.has(property.type) && !property.pendingType;
 }
 
+// spreadsheet-style column label: 0 is A, 25 is Z, 26 is AA
+export function columnLetter(index: number): string {
+  let label = "";
+  for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) {
+    label = String.fromCharCode(65 + ((n - 1) % 26)) + label;
+  }
+  return label;
+}
+
 // long headers are cut so the name and its number suffix fit the server's limit
 export function uniquePropertyName(base: string, taken: Set<string>): string {
   const name = truncateText(base.trim(), MAX_PROPERTY_NAME_LENGTH).trim();

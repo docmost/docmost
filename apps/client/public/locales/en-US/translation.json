@@ -1855,7 +1855,6 @@
   "The selected columns have no values to import.": "The selected columns have no values to import.",
   "Failed to import CSV": "Failed to import CSV",
   "Choose CSV file": "Choose CSV file",
-  "Or drop a CSV file here. Up to {{limit}}.": "Or drop a CSV file here. Up to {{limit}}.",
   "Import all columns": "Import all columns",
   "Column in file": "Column in file",
   "Import as": "Import as",
@@ -1914,5 +1913,9 @@
   "A property can have up to {{max}} options. Values beyond that will be left empty.": "A property can have up to {{max}} options. Values beyond that will be left empty.",
   "The prepared data is larger than the {{limit}} import limit. Try importing fewer columns.": "The prepared data is larger than the {{limit}} import limit. Try importing fewer columns.",
   "More than one column is set to {{name}}.": "More than one column is set to {{name}}.",
-  "More than one property would be named {{name}}.": "More than one property would be named {{name}}."
+  "More than one property would be named {{name}}.": "More than one property would be named {{name}}.",
+  "Drop a CSV file here": "Drop a CSV file here",
+  "Up to {{limit}}. You'll check the columns before anything is imported.": "Up to {{limit}}. You'll check the columns before anything is imported.",
+  "{{included}} of {{total}} included": "{{included}} of {{total}} included",
+  "Not imported": "Not imported"
 }

@@ -1,6 +1,5 @@
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { Button, FileButton, Text } from "@mantine/core";
-import { IconFileTypeCsv } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileImportSizeLimit } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
@@ -9,6 +8,35 @@ import classes from "@/ee/base/styles/csv-import.module.css";
 type CsvImportDropzoneProps = {
   onFile: (file: File | null) => void;
 };
+
+const SHEET_LETTERS = ["A", "B", "C"];
+const SHEET_BARS = [
+  ["70%", "45%", "85%"],
+  ["50%", "80%", "35%"],
+];
+
+function SheetIllustration() {
+  return (
+    <div className={classes.sheet} aria-hidden>
+      <span className={`${classes.sheetCell} ${classes.sheetGutter}`} />
+      {SHEET_LETTERS.map((letter) => (
+        <span key={letter} className={`${classes.sheetCell} ${classes.sheetHead}`}>
+          {letter}
+        </span>
+      ))}
+      {SHEET_BARS.map((row, rowIndex) => (
+        <Fragment key={rowIndex}>
+          <span className={`${classes.sheetCell} ${classes.sheetGutter}`} />
+          {row.map((width, cellIndex) => (
+            <span key={cellIndex} className={classes.sheetCell}>
+              <span className={classes.sheetBar} style={{ width }} />
+            </span>
+          ))}
+        </Fragment>
+      ))}
+    </div>
+  );
+}
 
 export function CsvImportDropzone({ onFile }: CsvImportDropzoneProps) {
   const { t } = useTranslation();
@@ -36,7 +64,13 @@ export function CsvImportDropzone({ onFile }: CsvImportDropzoneProps) {
         onFile(event.dataTransfer.files?.[0] ?? null);
       }}
     >
-      <IconFileTypeCsv size={32} stroke={1.5} className={classes.dropIcon} />
+      <SheetIllustration />
+      <Text className={classes.dropTitle}>{t("Drop a CSV file here")}</Text>
+      <Text className={classes.dropHint}>
+        {t("Up to {{limit}}. You'll check the columns before anything is imported.", {
+          limit: formatBytes(getFileImportSizeLimit()),
+        })}
+      </Text>
       <FileButton
         resetRef={resetFileInput}
         onChange={pickFile}
@@ -48,11 +82,6 @@ export function CsvImportDropzone({ onFile }: CsvImportDropzoneProps) {
           </Button>
         )}
       </FileButton>
-      <Text size="xs" c="dimmed">
-        {t("Or drop a CSV file here. Up to {{limit}}.", {
-          limit: formatBytes(getFileImportSizeLimit()),
-        })}
-      </Text>
     </div>
   );
 }

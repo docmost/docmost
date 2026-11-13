@@ -4,6 +4,7 @@ import {
   buildConvertColumns,
   buildImportSpec,
   buildInitialPlans,
+  columnLetter,
   defaultTypeOptions,
   findPlanConflict,
   reconcilePlans,
@@ -241,6 +242,22 @@ describe("findPlanConflict", () => {
     plans[1].target = { kind: "existing", propertyId: "prpTitle" };
     plans[1].include = false;
     expect(findPlanConflict(plans, byId)).toBeNull();
+  });
+});
+
+describe("columnLetter", () => {
+  it("labels columns like a spreadsheet", () => {
+    expect([0, 1, 25, 26, 27, 51, 52, 701, 702].map(columnLetter)).toEqual([
+      "A",
+      "B",
+      "Z",
+      "AA",
+      "AB",
+      "AZ",
+      "BA",
+      "ZZ",
+      "AAA",
+    ]);
   });
 });
 

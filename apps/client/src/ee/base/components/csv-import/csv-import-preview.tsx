@@ -10,7 +10,7 @@ import {
 } from "@/ee/base/types/base.types";
 import { convertCsvValue } from "@/ee/base/csv-import/csv-import-convert";
 import { previewChoiceColors } from "@/ee/base/csv-import/csv-import-choices";
-import { planTargetType } from "@/ee/base/csv-import/csv-import-mapping";
+import { columnLetter, planTargetType } from "@/ee/base/csv-import/csv-import-mapping";
 import type {
   CsvColumnPlan,
   CsvConvertResult,
@@ -72,6 +72,9 @@ export function CsvImportPreview({ plans, rows, propertiesById }: CsvImportPrevi
       <table className={classes.previewTable}>
         <thead>
           <tr>
+            <th scope="col" className={classes.rowNumber}>
+              #
+            </th>
             {columns.map(({ plan, type, name }) => {
               const Icon = PROPERTY_TYPE_REGISTRY[type].icon;
               return (
@@ -79,6 +82,9 @@ export function CsvImportPreview({ plans, rows, propertiesById }: CsvImportPrevi
                   <span className={classes.previewHeader} title={name}>
                     <Icon size={14} className={classes.previewHeaderIcon} aria-hidden />
                     {name}
+                    <span className={classes.letter} aria-hidden>
+                      {columnLetter(plan.index)}
+                    </span>
                   </span>
                 </th>
               );
@@ -88,6 +94,7 @@ export function CsvImportPreview({ plans, rows, propertiesById }: CsvImportPrevi
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr key={rowIndex}>
+              <td className={classes.rowNumber}>{rowIndex + 1}</td>
               {columns.map((column) => (
                 <td key={column.plan.index}>
                   <PreviewValue

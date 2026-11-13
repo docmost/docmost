@@ -1,8 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import {
   Alert,
   Button,
-  Group,
   Modal,
   Progress,
   Select,
@@ -12,7 +11,12 @@ import {
   Text,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconAlertCircle, IconFileTypeCsv } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconFileTypeCsv,
+  IconReplace,
+  IconTableImport,
+} from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { IBase } from "@/ee/base/types/base.types";
 import { useCsvImport, CsvImportSession } from "@/ee/base/hooks/use-csv-import";
@@ -93,6 +97,8 @@ function CsvImportBody({
   const { t } = useTranslation();
   const { file, loaded, progress, loadOptions } = session;
   const reading = progress?.phase === "reading";
+  const delimiterId = useId();
+  const encodingId = useId();
 
   const changeDelimiter = useCallback(
     (value: string | null) => {
@@ -107,68 +113,102 @@ function CsvImportBody({
     [session],
   );
 
-  return (
-    <Stack gap="md">
-      <Group justify="space-between" wrap="wrap" gap="xs">
-        <div className={classes.fileBar}>
-          <IconFileTypeCsv size={20} className={classes.fileIcon} aria-hidden />
-          <Text size="sm" fw={500} truncate>
-            {file.name}
-          </Text>
-          <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
-            {loaded && !reading
-              ? `${t("{{count}} rows", { count: loaded.rowCount })} · ${t("{{count}} columns", {
-                  count: loaded.headers.length,
-                })}`
-              : formatBytes(file.size)}
-          </Text>
-        </div>
-        <Button variant="subtle" size="xs" onClick={session.resetFile} disabled={importing}>
-          {t("Choose another file")}
-        </Button>
-      </Group>
+  const meta =
+    loaded && !reading
+      ? [
+          t("{{count}} rows", { count: loaded.rowCount }),
+          t("{{count}} columns", { count: loaded.headers.length }),
+          formatBytes(file.size),
+        ].join(" · ")
+      : formatBytes(file.size);
+  const includedCount = session.plans.filter((plan) => plan.include).length;
+  const settingsDisabled = importing || reading;
 
-      <Group gap="lg" align="flex-end" wrap="wrap">
-        <Switch
-          size="sm"
-          label={t("First row is a header")}
-          checked={loadOptions.hasHeader}
-          onChange={(event) =>
-            session.changeLoadOptions({ hasHeader: event.currentTarget.checked })
-          }
-          disabled={importing || reading}
-        />
-        <Select
-          size="xs"
-          label={t("Delimiter")}
-          data={CSV_DELIMITERS.map((d) => ({ value: d.value, label: t(d.label) }))}
-          value={loadOptions.delimiter ?? loaded?.delimiter ?? null}
-          onChange={changeDelimiter}
-          allowDeselect={false}
-          disabled={importing || reading}
-          w={140}
-        />
-        <Select
-          size="xs"
-          label={t("Encoding")}
-          data={CSV_ENCODINGS.map((e) => ({ value: e.value, label: t(e.label) }))}
-          value={loadOptions.encoding ?? loaded?.encoding ?? null}
-          onChange={changeEncoding}
-          allowDeselect={false}
-          disabled={importing || reading}
-          w={230}
-          comboboxProps={{ withinPortal: true }}
-        />
-      </Group>
+  return (
+    <Stack gap="lg">
+      <section className={classes.fileCard} aria-label={t("File")}>
+        <div className={classes.fileCardMain}>
+          <div className={classes.fileTile} aria-hidden>
+            <IconFileTypeCsv size={22} stroke={1.6} />
+          </div>
+          <div className={classes.fileText}>
+            <div className={classes.fileName} title={file.name}>
+              {file.name}
+            </div>
+            <div className={classes.fileMeta}>{meta}</div>
+          </div>
+          <Button
+            variant="default"
+            size="xs"
+            leftSection={<IconReplace size={14} />}
+            onClick={session.resetFile}
+            disabled={importing}
+          >
+            {t("Choose another file")}
+          </Button>
+        </div>
+        <div className={classes.fileSettings}>
+          <Switch
+            size="xs"
+            label={t("First row is a header")}
+            checked={loadOptions.hasHeader}
+            onChange={(event) =>
+              session.changeLoadOptions({ hasHeader: event.currentTarget.checked })
+            }
+            disabled={settingsDisabled}
+            classNames={{ label: classes.settingLabel }}
+          />
+          <div className={classes.setting}>
+            <label htmlFor={delimiterId} className={classes.settingLabel}>
+              {t("Delimiter")}
+            </label>
+            <Select
+              id={delimiterId}
+              size="xs"
+              data={CSV_DELIMITERS.map((d) => ({ value: d.value, label: t(d.label) }))}
+              value={loadOptions.delimiter ?? loaded?.delimiter ?? null}
+              onChange={changeDelimiter}
+              allowDeselect={false}
+              disabled={settingsDisabled}
+              w={128}
+              comboboxProps={{ withinPortal: true }}
+            />
+          </div>
+          <div className={classes.setting}>
+            <label htmlFor={encodingId} className={classes.settingLabel}>
+              {t("Encoding")}
+            </label>
+            <Select
+              id={encodingId}
+              size="xs"
+              data={CSV_ENCODINGS.map((e) => ({ value: e.value, label: t(e.label) }))}
+              value={loadOptions.encoding ?? loaded?.encoding ?? null}
+              onChange={changeEncoding}
+              allowDeselect={false}
+              disabled={settingsDisabled}
+              w={220}
+              comboboxProps={{ withinPortal: true }}
+            />
+          </div>
+        </div>
+      </section>
 
       {reading || !loaded ? (
         reading ? <ReadingSkeleton fraction={progress?.fraction ?? 0} /> : null
       ) : (
         <>
-          <Stack gap={6}>
-            <Text component="h3" className={classes.sectionTitle}>
-              {t("Columns")}
-            </Text>
+          <Stack gap="xs">
+            <div className={classes.sectionHeader}>
+              <Text component="h3" className={classes.sectionTitle}>
+                {t("Columns")}
+              </Text>
+              <Text className={classes.sectionMeta}>
+                {t("{{included}} of {{total}} included", {
+                  included: includedCount,
+                  total: session.plans.length,
+                })}
+              </Text>
+            </div>
             <CsvImportColumns
               plans={session.plans}
               profiles={loaded.profiles}
@@ -179,17 +219,17 @@ function CsvImportBody({
             />
           </Stack>
           {session.included.length > 0 && loaded.previewRows.length > 0 && (
-            <Stack gap={6}>
-              <Group gap={8} align="baseline">
+            <Stack gap="xs">
+              <div className={classes.sectionHeader}>
                 <Text component="h3" className={classes.sectionTitle}>
                   {t("Preview")}
                 </Text>
-                <Text size="xs" c="dimmed">
+                <Text className={classes.sectionMeta}>
                   {t("First {{count}} rows", {
                     count: Math.min(PREVIEW_ROW_COUNT, loaded.previewRows.length),
                   })}
                 </Text>
-              </Group>
+              </div>
               <CsvImportPreview
                 plans={session.plans}
                 rows={loaded.previewRows}
@@ -269,7 +309,7 @@ function ImportFooter({
         />
       )}
       <div className={classes.footerRow}>
-        <Text size="xs" c="dimmed" aria-live="polite" className={classes.footerStatus}>
+        <Text aria-live="polite" className={classes.footerStatus}>
           {disabled ? "" : status}
         </Text>
         <div className={classes.footerActions}>
@@ -280,6 +320,7 @@ function ImportFooter({
             onClick={session.startImport}
             loading={importing}
             disabled={disabled || included.length === 0 || !!session.blockingProblem}
+            leftSection={<IconTableImport size={16} />}
           >
             {rowCount > 0
               ? t("Import {{count}} rows", {

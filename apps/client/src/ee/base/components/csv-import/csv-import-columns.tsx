@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import {
   Checkbox,
   ComboboxItem,
@@ -19,6 +19,7 @@ import {
   MAX_TEXT_LENGTH,
 } from "@/ee/base/csv-import/csv-import.constants";
 import {
+  columnLetter,
   defaultTypeOptions,
   isImportableProperty,
   planTargetType,
@@ -57,6 +58,7 @@ export function CsvImportColumns({
   onPlanChange,
 }: CsvImportColumnsProps) {
   const { t } = useTranslation();
+  const idPrefix = useId();
   const importable = useMemo(() => properties.filter(isImportableProperty), [properties]);
   const includedCount = plans.filter((plan) => plan.include).length;
 
@@ -169,6 +171,7 @@ export function CsvImportColumns({
               ? columnWarning(t, targetType, profile, existingChoices)
               : null;
           const samples = profile.samples.join(", ");
+          const warningId = `${idPrefix}-warning-${plan.index}`;
           const columnLabel = repeatedHeaders.has(plan.header.toLowerCase())
             ? t("{{name}} (column {{number}})", { name: plan.header, number: plan.index + 1 })
             : plan.header;
@@ -180,27 +183,46 @@ export function CsvImportColumns({
               data-skipped={!plan.include || undefined}
             >
               <Table.Td>
-                <Checkbox
-                  size="xs"
-                  checked={plan.include}
-                  disabled={disabled}
-                  onChange={(event) =>
-                    onPlanChange(plan.index, { include: event.currentTarget.checked })
-                  }
-                  aria-label={t("Import column {{name}}", { name: columnLabel })}
-                />
-              </Table.Td>
-              <Table.Td>
-                <div className={classes.columnName} title={plan.header}>
-                  {plan.header}
-                </div>
-                <div className={classes.columnSamples} title={samples}>
-                  {samples || t("Empty")}
+                <div className={classes.cellCenter}>
+                  <Checkbox
+                    size="xs"
+                    checked={plan.include}
+                    disabled={disabled}
+                    onChange={(event) =>
+                      onPlanChange(plan.index, { include: event.currentTarget.checked })
+                    }
+                    aria-label={t("Import column {{name}}", { name: columnLabel })}
+                  />
                 </div>
               </Table.Td>
               <Table.Td>
-                <IconArrowRight size={14} className={classes.arrow} aria-hidden />
+                <div className={classes.source}>
+                  <span className={classes.letter} aria-hidden>
+                    {columnLetter(plan.index)}
+                  </span>
+                  <div className={classes.sourceText}>
+                    <div className={classes.columnName} title={plan.header}>
+                      {plan.header}
+                    </div>
+                    <div className={classes.columnSamples} title={samples}>
+                      {samples || t("Empty")}
+                    </div>
+                  </div>
+                </div>
               </Table.Td>
+              <Table.Td>
+                <div className={classes.cellCenter}>
+                  <IconArrowRight size={14} className={classes.arrow} aria-hidden />
+                </div>
+              </Table.Td>
+              {!plan.include ? (
+                <Table.Td colSpan={2}>
+                  <div className={`${classes.cellCenter} ${classes.notImported}`}>
+                    {t("Not imported")}
+                  </div>
+                </Table.Td>
+              ) : (
+                <>
               <Table.Td>
                 <Select
                   size="xs"
@@ -208,7 +230,7 @@ export function CsvImportColumns({
                   value={plan.target.kind === "new" ? NEW_PROPERTY : plan.target.propertyId}
                   onChange={changeTarget}
                   allowDeselect={false}
-                  disabled={disabled || !plan.include}
+                  disabled={disabled}
                   leftSection={
                     plan.target.kind === "new" ? (
                       <Tooltip label={t("New property")} withinPortal>
@@ -226,44 +248,40 @@ export function CsvImportColumns({
                 />
               </Table.Td>
               <Table.Td>
-                <Group gap={6} wrap="nowrap">
-                  {plan.target.kind === "new" ? (
-                    <Select
-                      size="xs"
-                      data={typeData}
-                      value={plan.target.type}
-                      onChange={changeType}
-                      allowDeselect={false}
-                      disabled={disabled || !plan.include}
-                      leftSection={<TypeIcon type={plan.target.type} />}
-                      renderOption={({ option }) => (
-                        <Group gap={8} wrap="nowrap">
-                          <TypeIcon type={option.value as CsvImportPropertyType} />
-                          <Text size="xs">{option.label}</Text>
-                        </Group>
-                      )}
-                      comboboxProps={{ withinPortal: true }}
-                      aria-label={t("Property type for column {{name}}", { name: columnLabel })}
-                      style={{ flex: 1 }}
-                    />
-                  ) : targetType ? (
-                    <div className={classes.typeLabel}>
-                      <TypeIcon type={targetType} />
-                      {t(PROPERTY_TYPE_REGISTRY[targetType].labelKey)}
-                    </div>
-                  ) : null}
-                  {warning && (
-                    <Tooltip label={warning} multiline maw={280} withinPortal>
-                      <IconAlertTriangle
-                        size={16}
-                        className={classes.warning}
-                        aria-label={warning}
-                        role="img"
-                      />
-                    </Tooltip>
-                  )}
-                </Group>
+                {plan.target.kind === "new" ? (
+                  <Select
+                    size="xs"
+                    data={typeData}
+                    value={plan.target.type}
+                    onChange={changeType}
+                    allowDeselect={false}
+                    disabled={disabled}
+                    leftSection={<TypeIcon type={plan.target.type} />}
+                    renderOption={({ option }) => (
+                      <Group gap={8} wrap="nowrap">
+                        <TypeIcon type={option.value as CsvImportPropertyType} />
+                        <Text size="xs">{option.label}</Text>
+                      </Group>
+                    )}
+                    comboboxProps={{ withinPortal: true }}
+                    aria-label={t("Property type for column {{name}}", { name: columnLabel })}
+                    aria-describedby={warning ? warningId : undefined}
+                  />
+                ) : targetType ? (
+                  <div className={`${classes.cellCenter} ${classes.typeLabel}`}>
+                    <TypeIcon type={targetType} />
+                    {t(PROPERTY_TYPE_REGISTRY[targetType].labelKey)}
+                  </div>
+                ) : null}
+                {warning && (
+                  <div id={warningId} className={classes.warningText}>
+                    <IconAlertTriangle size={13} aria-hidden />
+                    <span>{warning}</span>
+                  </div>
+                )}
               </Table.Td>
+                </>
+              )}
             </Table.Tr>
           );
         })}
