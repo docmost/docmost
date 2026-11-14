@@ -35,7 +35,7 @@ let pageCount = 0;
 function setup() {
   const pageId = `page-${++pageCount}`;
   return {
-    input: { fileTaskId: "task-1", pageId, totalRows: 10, skippedValues: 2 },
+    input: { fileTaskId: "task-1", pageId, totalRows: 10 },
     progressAtom: baseImportProgressAtomFamily(pageId),
     resultAtom: baseImportResultAtomFamily(pageId),
   };
@@ -79,7 +79,7 @@ describe("trackBaseImport", () => {
     expect(settledToasts()).toEqual([
       expect.objectContaining({
         title: "Import complete",
-        message: "10 rows imported 3 values left empty",
+        message: "10 rows imported 1 values left empty",
       }),
     ]);
     expect(mocks.getFileTaskById).not.toHaveBeenCalled();

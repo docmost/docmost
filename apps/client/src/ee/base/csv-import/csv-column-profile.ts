@@ -6,7 +6,6 @@ import {
   MAX_TEXT_LENGTH,
   MULTI_SELECT_MAX_DISTINCT,
   MULTI_SELECT_MAX_TOKEN_LENGTH,
-  SAMPLE_VALUE_COUNT,
   SELECT_MAX_DISTINCT,
   SELECT_MAX_LENGTH,
   SELECT_MIN_VALUES,
@@ -58,7 +57,6 @@ export type CsvColumnStats = {
   hasNewline: boolean;
   distinct: Set<string>;
   distinctOverflow: boolean;
-  samples: string[];
   textTooLong: number;
   longTextTooLong: number;
   choiceTooLong: number;
@@ -104,7 +102,6 @@ export function createColumnStats(): CsvColumnStats {
     hasNewline: false,
     distinct: new Set(),
     distinctOverflow: false,
-    samples: [],
     textTooLong: 0,
     longTextTooLong: 0,
     choiceTooLong: 0,
@@ -164,7 +161,6 @@ export function addColumnValue(stats: CsvColumnStats, raw: string | undefined): 
   if (!stats.distinct.has(key)) {
     if (stats.distinct.size < DISTINCT_VALUE_CAP) {
       stats.distinct.add(key);
-      if (stats.samples.length < SAMPLE_VALUE_COUNT) stats.samples.push(value);
     } else {
       stats.distinctOverflow = true;
     }
@@ -307,7 +303,6 @@ export function finalizeColumnProfile(
   const typed = stats.nonEmpty - stats.nullMarkers;
   return {
     nonEmpty: stats.nonEmpty,
-    samples: stats.samples,
     distinctCount: stats.distinct.size,
     distinctTokenCount: stats.tokens[hints.listSeparator].distinct.size,
     hasMultipleValues: stats.tokens[hints.listSeparator].multiValueRows > 0,

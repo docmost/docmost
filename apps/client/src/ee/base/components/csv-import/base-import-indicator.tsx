@@ -1,4 +1,4 @@
-import { Loader, RingProgress, Tooltip } from "@mantine/core";
+import { Loader, RingProgress, Tooltip, VisuallyHidden } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import { baseImportProgressAtomFamily } from "@/ee/base/atoms/base-atoms";
@@ -19,9 +19,10 @@ export function BaseImportIndicator({ pageId }: { pageId: string }) {
       })
     : t("Waiting to start");
 
+  // the percentage is visual only, so screen readers hear the start once instead of every step
   return (
     <Tooltip label={label} withinPortal>
-      <div className={classes.importIndicator} role="status" aria-live="polite" aria-label={label}>
+      <div className={classes.importIndicator}>
         {started ? (
           <RingProgress
             size={18}
@@ -33,7 +34,10 @@ export function BaseImportIndicator({ pageId }: { pageId: string }) {
         ) : (
           <Loader size={12} />
         )}
-        {started ? t("Importing {{percent}}%", { percent }) : t("Importing…")}
+        <span aria-hidden>
+          {started ? t("Importing {{percent}}%", { percent }) : t("Importing…")}
+        </span>
+        <VisuallyHidden role="status">{t("Importing…")}</VisuallyHidden>
       </div>
     </Tooltip>
   );

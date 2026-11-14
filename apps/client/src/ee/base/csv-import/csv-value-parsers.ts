@@ -16,7 +16,6 @@ import type {
 
 export type ParsedNumber = {
   value: number;
-  decimals: number;
   wholeDigits: number;
   leadingZero: boolean;
   percent: boolean;
@@ -146,7 +145,7 @@ export function parseNumberValue(
   const plain = body.split(groupSeparator).join("");
   const normalized = decimalSeparator === "," ? plain.replace(",", ".") : plain;
   const mantissa = normalized.split(/e/i)[0];
-  const [intPart, fracPart = ""] = mantissa.split(".");
+  const [intPart] = mantissa.split(".");
 
   const sign = outer.sign === -1 || inner.sign === -1 || negative ? -1 : 1;
   const value = Number(normalized) * sign;
@@ -154,7 +153,6 @@ export function parseNumberValue(
 
   return {
     value: Object.is(value, -0) ? 0 : value,
-    decimals: fracPart.length,
     // a long fraction is float output and reads back exactly; only whole-number digits can be lost
     wholeDigits: intPart.length,
     leadingZero: intPart.length > 1 && intPart.startsWith("0"),

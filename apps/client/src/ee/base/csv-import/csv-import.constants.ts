@@ -14,7 +14,6 @@ export const MAX_MULTI_VALUES = 100;
 
 export const PREVIEW_ROW_COUNT = 20;
 export const PREVIEW_CELL_MAX_LENGTH = 30000;
-export const SAMPLE_VALUE_COUNT = 3;
 export const DISTINCT_VALUE_CAP = 1000;
 
 export const SELECT_MAX_DISTINCT = 50;

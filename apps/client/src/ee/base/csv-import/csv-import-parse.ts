@@ -6,6 +6,7 @@ import {
   type CsvColumnStats,
 } from "@/ee/base/csv-import/csv-column-profile";
 import { convertCsvValue } from "@/ee/base/csv-import/csv-import-convert";
+import { stripFormulaApostrophe } from "@/ee/base/csv-import/csv-value-parsers";
 import {
   PREVIEW_CELL_MAX_LENGTH,
   PREVIEW_ROW_COUNT,
@@ -69,7 +70,7 @@ export function profileCsvText(
 
   const delimiter = parseCsvRows(text, options.delimiter, (row, cursor) => {
     if (options.hasHeader && state.headers === null) {
-      state.headers = row.map((value) => value.trim());
+      state.headers = row.map((value) => stripFormulaApostrophe(value.trim()));
       return;
     }
     rowCount++;

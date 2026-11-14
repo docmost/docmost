@@ -33,7 +33,6 @@ export type CsvTypeSuggestion = {
 
 export type CsvColumnProfile = {
   nonEmpty: number;
-  samples: string[];
   distinctCount: number;
   // distinct list items with the chosen list separator
   distinctTokenCount: number;
@@ -87,6 +86,8 @@ export type BaseCsvImportSpec = {
   fileName: string;
   rowCount: number;
   columns: BaseCsvImportSpecColumn[];
+  // values left empty while the file was prepared
+  skippedValues: number;
 };
 
 export type BaseImportProgress = {

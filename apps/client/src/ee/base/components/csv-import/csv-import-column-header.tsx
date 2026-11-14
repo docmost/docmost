@@ -178,7 +178,6 @@ export function CsvImportColumnHeader({
                 usedElsewhere={usedElsewhere}
                 nameTaken={nameTaken}
                 disabled={disabled}
-                withinPortal={false}
                 onSelectNew={selectNew}
                 onSelectExisting={selectExisting}
                 onRename={(next) => onPlanChange(plan.index, { name: next })}

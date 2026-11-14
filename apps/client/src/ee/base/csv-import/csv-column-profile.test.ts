@@ -123,10 +123,6 @@ describe("issues", () => {
     expect(profile(["x".repeat(1001), "ok"]).issues.text).toBe(1);
   });
 
-  it("keeps the first three distinct values as samples", () => {
-    expect(profile(["a", "A", "b", "c", "d"]).samples).toEqual(["a", "b", "c"]);
-  });
-
   it("counts distinct list items apart from distinct cells", () => {
     const result = profile(["Bug, UI", "UI, Bug", "Backend", "bug"]);
     expect(result.distinctCount).toBe(4);

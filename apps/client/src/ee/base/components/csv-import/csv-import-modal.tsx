@@ -49,7 +49,7 @@ export default function CsvImportModal({ base, opened, onClose }: CsvImportModal
   const importing =
     session.progress?.phase === "converting" || session.progress?.phase === "uploading";
 
-  // closing is the explicit way to stop an import in flight
+  // closing stops an import in flight until the server has the whole file
   const close = () => {
     session.cancelImport();
     onClose();
@@ -323,9 +323,12 @@ function ImportFooter({
   const { loaded, progress, included } = session;
   const newCount = included.filter((plan) => plan.target.kind === "new").length;
   const rowCount = loaded?.rowCount ?? 0;
+  // the server has the file at this point and runs the import even if the dialog closes
+  const uploaded = progress?.phase === "uploading" && progress.fraction >= 1;
 
   let status = "";
   if (progress?.phase === "converting") status = t("Preparing rows…");
+  else if (uploaded) status = t("Starting import…");
   else if (progress?.phase === "uploading") status = t("Uploading…");
   else if (included.length === 0) status = t("Choose at least one column to import.");
   else if (newCount > 0) status = t("{{count}} new properties will be created.", { count: newCount });
@@ -348,7 +351,7 @@ function ImportFooter({
           {disabled ? "" : status}
         </Text>
         <div className={classes.footerActions}>
-          <Button variant="default" onClick={onCancel}>
+          <Button variant="default" onClick={onCancel} disabled={uploaded}>
             {t("Cancel")}
           </Button>
           <Button

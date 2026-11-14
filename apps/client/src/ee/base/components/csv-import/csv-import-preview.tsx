@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Checkbox, Tooltip } from "@mantine/core";
+import { Checkbox, Tooltip, VisuallyHidden } from "@mantine/core";
 import { useWindowEvent } from "@mantine/hooks";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -252,8 +252,8 @@ function PreviewValue({
   if (result.status === "invalid") {
     return (
       <Tooltip label={invalidLabel} withinPortal>
-        <span className={classes.invalidValue} aria-label={`${raw}. ${invalidLabel}`}>
-          {raw}
+        <span className={classes.invalidValue}>
+          {raw} <VisuallyHidden>{invalidLabel}</VisuallyHidden>
         </span>
       </Tooltip>
     );

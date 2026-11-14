@@ -20,7 +20,6 @@ const hints = { dateOrder: "MDY", decimalSeparator: ".", listSeparator: "," } as
 function profileFor(suggestion: CsvTypeSuggestion, hasMultipleValues = false): CsvColumnProfile {
   return {
     nonEmpty: 1,
-    samples: [],
     distinctCount: 1,
     distinctTokenCount: 1,
     hasMultipleValues,
@@ -111,9 +110,10 @@ describe("spec building", () => {
     );
     plans[3].include = false;
 
-    expect(buildImportSpec(plans, byId, "tasks.csv", 10)).toEqual({
+    expect(buildImportSpec(plans, byId, "tasks.csv", { rowCount: 10, skippedValues: 2 })).toEqual({
       fileName: "tasks.csv",
       rowCount: 10,
+      skippedValues: 2,
       columns: [
         { propertyId: "prpTitle" },
         { propertyId: "prpStatus" },
@@ -160,6 +160,14 @@ describe("reconcilePlans", () => {
     const plans = buildInitialPlans(["Name", "Status"], profiles, [title, status]);
     const next = reconcilePlans(plans, [title], profiles);
     expect(next[1]).toMatchObject({ name: "Status", target: { kind: "new", type: "select" } });
+  });
+
+  it("keeps names that only an excluded column holds", () => {
+    const threeProfiles = [...profiles, profileFor({ type: "text" })];
+    const plans = buildInitialPlans(["Name", "City", "Town"], threeProfiles, [title]);
+    plans[1].include = false;
+    plans[2].name = "City";
+    expect(reconcilePlans(plans, [title], threeProfiles)).toBe(plans);
   });
 });
 

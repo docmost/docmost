@@ -34,7 +34,6 @@ export function trackBaseImport(input: {
   fileTaskId: string;
   pageId: string;
   totalRows: number;
-  skippedValues: number;
 }): void {
   const { fileTaskId, pageId, totalRows } = input;
   const store = getDefaultStore();
@@ -127,7 +126,7 @@ export function trackBaseImport(input: {
         id: notificationId,
         color: "teal",
         title: i18n.t("Import complete"),
-        message: resultMessage(result.importedRows, result.skippedValues + input.skippedValues),
+        message: resultMessage(result.importedRows, result.skippedValues),
         icon: <IconCheck size={18} />,
         loading: false,
         withCloseButton: true,

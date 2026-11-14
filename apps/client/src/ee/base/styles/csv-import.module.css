@@ -594,8 +594,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dropzone,
-  .sheet,
-  .columnRow {
+  .sheet {
     transition: none;
   }
 }

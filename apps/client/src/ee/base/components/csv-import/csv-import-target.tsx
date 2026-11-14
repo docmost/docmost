@@ -36,8 +36,6 @@ type CsvImportTargetProps = {
   usedElsewhere: Set<string>;
   nameTaken: boolean;
   disabled: boolean;
-  // false inside a popover, so picking an option isn't a click outside it
-  withinPortal?: boolean;
   onSelectNew: () => void;
   onSelectExisting: (propertyId: string) => void;
   onRename: (name: string) => void;
@@ -52,7 +50,6 @@ export function CsvImportTarget({
   usedElsewhere,
   nameTaken,
   disabled,
-  withinPortal = true,
   onSelectNew,
   onSelectExisting,
   onRename,
@@ -104,7 +101,8 @@ export function CsvImportTarget({
   const label = t("Import column {{name}} as", { name: columnLabel });
 
   return (
-    <Combobox store={combobox} onOptionSubmit={submit} withinPortal={withinPortal}>
+    // rendered inside the column menu, so picking an option isn't a click outside it
+    <Combobox store={combobox} onOptionSubmit={submit} withinPortal={false}>
       <Combobox.Target targetType={isNew ? "input" : "button"}>
         {isNew ? (
           <TextInput

@@ -40,6 +40,11 @@ describe("profileCsvText", () => {
     expect(result.headers).toEqual(["A"]);
     expect(result.profiles).toHaveLength(1);
   });
+
+  it("drops the apostrophe spreadsheets put before formula-like headers", () => {
+    const result = profileCsvText("'=Total,'tis\n1,2\n", { delimiter: ",", hasHeader: true }, "en-US");
+    expect(result.headers).toEqual(["=Total", "'tis"]);
+  });
 });
 
 describe("convertCsvText", () => {

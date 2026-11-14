@@ -231,7 +231,7 @@ export function useCsvImport(base: IBase, onImported: () => void) {
         plans,
         propertiesById,
         file.name.slice(0, MAX_FILE_NAME_LENGTH),
-        converted.rowCount,
+        converted,
       );
       const controller = new AbortController();
       abortRef.current = controller;
@@ -240,15 +240,14 @@ export function useCsvImport(base: IBase, onImported: () => void) {
         { pageId: base.id, spec, rows: converted.blob },
         {
           signal: controller.signal,
-          onUploadProgress: (fraction) => setProgress({ phase: "uploading", fraction }),
+          onUploadProgress: (fraction) => {
+            // the server has the whole file and will run it, so cancelling can't stop it now
+            if (fraction >= 1) abortRef.current = null;
+            setProgress({ phase: "uploading", fraction });
+          },
         },
       );
-      trackBaseImport({
-        fileTaskId: task.id,
-        pageId: base.id,
-        totalRows: converted.rowCount,
-        skippedValues: converted.skippedValues,
-      });
+      trackBaseImport({ fileTaskId: task.id, pageId: base.id, totalRows: converted.rowCount });
       onImported();
     } catch (err) {
       if (err instanceof CsvWorkerSupersededError || isCancel(err)) return;

@@ -8,6 +8,7 @@ import type {
   CsvColumnPlan,
   CsvColumnProfile,
   CsvConvertColumn,
+  CsvConvertOutput,
   CsvImportPropertyType,
 } from "@/ee/base/csv-import/csv-import.types";
 import type { IBaseProperty } from "@/ee/base/types/base.types";
@@ -155,7 +156,7 @@ export function reconcilePlans(
       const profile = profiles[plan.index];
       const type = profile.suggestion.type;
       const name = uniquePropertyName(plan.header, taken);
-      taken.add(nameKey(name));
+      if (plan.include) taken.add(nameKey(name));
       return {
         ...plan,
         name,
@@ -163,6 +164,8 @@ export function reconcilePlans(
         typeOptions: defaultTypeOptions(type, profile),
       };
     }
+    // excluded columns hold no name; applyPlanChange finds a free one if they come back
+    if (!plan.include) return plan;
     const name = uniquePropertyName(plan.name, taken);
     taken.add(nameKey(name));
     if (name === plan.name) return plan;
@@ -259,11 +262,12 @@ export function buildImportSpec(
   plans: CsvColumnPlan[],
   propertiesById: Map<string, IBaseProperty>,
   fileName: string,
-  rowCount: number,
+  converted: Pick<CsvConvertOutput, "rowCount" | "skippedValues">,
 ): BaseCsvImportSpec {
   return {
     fileName,
-    rowCount,
+    rowCount: converted.rowCount,
+    skippedValues: converted.skippedValues,
     columns: includedPlans(plans, propertiesById).map((plan) =>
       plan.target.kind === "existing"
         ? { propertyId: plan.target.propertyId }

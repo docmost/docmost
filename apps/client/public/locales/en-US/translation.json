@@ -1893,6 +1893,7 @@
   "Reading file… {{percent}}%": "Reading file… {{percent}}%",
   "Preparing rows…": "Preparing rows…",
   "Uploading…": "Uploading…",
+  "Starting import…": "Starting import…",
   "Choose at least one column to import.": "Choose at least one column to import.",
   "Import {{count}} rows_one": "Import 1 row",
   "Import {{count}} rows_other": "Import {{formatted}} rows",

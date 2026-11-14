@@ -57,7 +57,6 @@ const loaded: CsvLoadResult = {
   profiles: [
     {
       nonEmpty: 1,
-      samples: ["Ada"],
       distinctCount: 1,
       distinctTokenCount: 1,
       hasMultipleValues: false,
@@ -104,9 +103,10 @@ describe("useCsvImport", () => {
         fileTaskId: "task-1",
         pageId: "page-1",
         totalRows: 1,
-        skippedValues: 0,
       }),
     );
+    const [{ spec }] = mocks.importBaseCsv.mock.calls[0];
+    expect(spec.skippedValues).toBe(0);
     expect(mocks.worker.terminate).toHaveBeenCalled();
   });
 
@@ -143,6 +143,26 @@ describe("useCsvImport", () => {
     await act(async () => undefined);
     expect(mocks.trackBaseImport).not.toHaveBeenCalled();
     expect(mocks.show).not.toHaveBeenCalled();
+  });
+
+  it("keeps an import the server already has when the user cancels", async () => {
+    let finishUpload!: (task: { id: string }) => void;
+    mocks.importBaseCsv.mockImplementation(
+      (_data, options: { onUploadProgress: (fraction: number) => void }) => {
+        options.onUploadProgress(1);
+        return new Promise((resolve) => (finishUpload = resolve));
+      },
+    );
+    const { result } = await renderWithFile();
+
+    act(() => void result.current.startImport());
+    await waitFor(() => expect(mocks.importBaseCsv).toHaveBeenCalled());
+    act(() => result.current.cancelImport());
+
+    const [, options] = mocks.importBaseCsv.mock.calls[0];
+    expect(options.signal.aborted).toBe(false);
+    await act(async () => finishUpload({ id: "task-1" }));
+    expect(mocks.trackBaseImport).toHaveBeenCalled();
   });
 
   it("tells the user in a toast when an import fails after the dialog closed", async () => {
