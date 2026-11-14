@@ -67,7 +67,7 @@ export default function TemplateList() {
 
   const { data: archivedSpaces } = useGetSpacesQuery({
     limit: 100,
-    archived: true,
+    status: "archived",
   });
 
   const toOption = (s: { id: string; name: string }) => ({

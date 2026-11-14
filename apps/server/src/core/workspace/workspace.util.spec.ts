@@ -1,4 +1,8 @@
-import { normalizeInvitationMessage } from './workspace.util';
+import { ForbiddenException } from '@nestjs/common';
+import {
+  normalizeInvitationMessage,
+  resolveWorkspaceUserListStatus,
+} from './workspace.util';
 
 describe('normalizeInvitationMessage', () => {
   it.each([
@@ -20,4 +24,33 @@ describe('normalizeInvitationMessage', () => {
   ])('normalizes %j to %j', (input, expected) => {
     expect(normalizeInvitationMessage(input)).toBe(expected);
   });
+});
+
+describe('resolveWorkspaceUserListStatus', () => {
+  it.each([
+    [undefined, 'active'],
+    ['active', 'active'],
+    ['deactivated', 'deactivated'],
+    ['deleted', 'deleted'],
+    ['all', 'all'],
+  ] as const)('gives a manager %j as %j', (status, expected) => {
+    expect(resolveWorkspaceUserListStatus(status, true)).toBe(expected);
+  });
+
+  it.each([
+    [undefined, 'active'],
+    ['active', 'active'],
+    ['all', 'active'],
+  ] as const)('gives a member %j as %j', (status, expected) => {
+    expect(resolveWorkspaceUserListStatus(status, false)).toBe(expected);
+  });
+
+  it.each(['deactivated', 'deleted'] as const)(
+    'refuses a member asking for %j',
+    (status) => {
+      expect(() => resolveWorkspaceUserListStatus(status, false)).toThrow(
+        ForbiddenException,
+      );
+    },
+  );
 });

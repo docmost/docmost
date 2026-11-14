@@ -85,6 +85,7 @@ export function useDeleteWorkspaceMemberMutation() {
 
 export function useDeactivateWorkspaceMemberMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<
     void,
@@ -95,6 +96,7 @@ export function useDeactivateWorkspaceMemberMutation() {
   >({
     mutationFn: (data) => deactivateWorkspaceMember(data),
     onSuccess: () => {
+      notifications.show({ message: t("Member deactivated successfully") });
       queryClient.invalidateQueries({
         queryKey: ["workspaceMembers"],
       });
@@ -108,6 +110,7 @@ export function useDeactivateWorkspaceMemberMutation() {
 
 export function useActivateWorkspaceMemberMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<
     void,
@@ -118,6 +121,7 @@ export function useActivateWorkspaceMemberMutation() {
   >({
     mutationFn: (data) => activateWorkspaceMember(data),
     onSuccess: () => {
+      notifications.show({ message: t("Member activated successfully") });
       queryClient.invalidateQueries({
         queryKey: ["workspaceMembers"],
       });

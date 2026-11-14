@@ -21,6 +21,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { SpaceListStatus } from '../../../core/space/space.constants';
 
 @Injectable()
 export class SpaceMemberRepo {
@@ -368,14 +369,18 @@ export class SpaceMemberRepo {
   async getUserSpaces(
     userId: string,
     pagination: PaginationOptions,
-    opts?: { archived?: boolean },
+    opts?: { status?: SpaceListStatus },
   ) {
+    const status = opts?.status ?? 'active';
+
     let query = this.db
       .selectFrom('spaces')
       .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
       .where('id', 'in', this.getUserSpaceIdsQuery(userId))
-      .where('archivedAt', opts?.archived ? 'is not' : 'is', null);
+      .$if(status !== 'all', (qb) =>
+        qb.where('archivedAt', status === 'archived' ? 'is not' : 'is', null),
+      );
 
     if (pagination.query) {
       query = query.where((eb) =>

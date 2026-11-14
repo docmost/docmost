@@ -14,6 +14,7 @@ import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagin
 import { ExpressionBuilder, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { NotificationSettingKey } from '../../../core/notification/notification.constants';
+import { WorkspaceUserListStatus } from '../../../core/workspace/workspace.constants';
 
 @Injectable()
 export class UserRepo {
@@ -160,12 +161,23 @@ export class UserRepo {
     return count as number;
   }
 
-  async getUsersPaginated(workspaceId: string, pagination: PaginationOptions) {
+  async getUsersPaginated(
+    workspaceId: string,
+    pagination: PaginationOptions,
+    opts?: { status?: WorkspaceUserListStatus },
+  ) {
+    const status = opts?.status ?? 'active';
+
     let query = this.db
       .selectFrom('users')
       .select(this.baseFields)
       .where('workspaceId', '=', workspaceId)
-      .where('deletedAt', 'is', null);
+      .$if(status === 'deleted', (qb) => qb.where('deletedAt', 'is not', null))
+      .$if(status === 'active' || status === 'deactivated', (qb) =>
+        qb
+          .where('deletedAt', 'is', null)
+          .where('deactivatedAt', status === 'active' ? 'is' : 'is not', null),
+      );
 
     if (pagination.query) {
       query = query.where((eb) =>

@@ -87,6 +87,8 @@ export interface IWorkspacePublicSpacesSettings {
   directory?: boolean;
 }
 
+export type MemberListStatus = "active" | "deactivated" | "deleted" | "all";
+
 export interface ICreateInvite {
   role: string;
   emails: string[];

@@ -23,6 +23,8 @@ export interface ISpaceSettings {
   comments?: ISpaceCommentsSettings;
 }
 
+export type SpaceListStatus = "active" | "archived" | "all";
+
 export type ISpaceHomePage = {
   id: string;
   slugId: string;
