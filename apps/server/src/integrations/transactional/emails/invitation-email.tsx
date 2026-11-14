@@ -54,7 +54,9 @@ export const InvitationEmail = ({
           This link is valid for {expiresInDays} days.
         </Text>
       </Section>
-      <EmailButton href={inviteLink}>Accept Invite</EmailButton>
+      <EmailButton href={inviteLink} noTrack>
+        Accept Invite
+      </EmailButton>
     </MailBody>
   );
 };
