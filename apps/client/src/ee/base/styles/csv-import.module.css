@@ -1,0 +1,600 @@
+/* green marks what comes from the file: the file tile, the sheet header and column letters */
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: rem(6px);
+  min-height: rem(260px);
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-lg);
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+
+  &[data-dragging] {
+    border-color: var(--mantine-primary-color-filled);
+    background-color: var(--mantine-primary-color-light);
+  }
+}
+
+.sheet {
+  display: grid;
+  grid-template-columns: rem(18px) repeat(3, rem(40px));
+  margin-bottom: var(--mantine-spacing-sm);
+  overflow: hidden;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: rem(6px);
+  background-color: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-xs);
+  transition: transform 160ms ease;
+
+  .dropzone[data-dragging] & {
+    transform: translateY(rem(-3px));
+  }
+}
+
+.sheetCell {
+  display: flex;
+  align-items: center;
+  height: rem(18px);
+  padding: 0 rem(5px);
+  border-right: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-bottom: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+
+  &:nth-child(4n) {
+    border-right: none;
+  }
+
+  &:nth-last-child(-n + 4) {
+    border-bottom: none;
+  }
+}
+
+.sheetHead {
+  justify-content: center;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: rem(9px);
+  font-weight: 600;
+  color: var(--mantine-color-green-light-color);
+  background-color: var(--mantine-color-green-light);
+}
+
+.sheetGutter {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.sheetBar {
+  height: rem(4px);
+  border-radius: rem(2px);
+  background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.dropTitle {
+  font-size: var(--mantine-font-size-md);
+  font-weight: 600;
+}
+
+.dropHint {
+  max-width: rem(440px);
+  margin-bottom: var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.fileCard {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+}
+
+.fileCardMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+}
+
+.fileTile {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: rem(38px);
+  height: rem(38px);
+  border-radius: var(--mantine-radius-md);
+  color: var(--mantine-color-green-light-color);
+  background-color: var(--mantine-color-green-light);
+}
+
+.fileText {
+  flex: 1 1 rem(200px);
+  min-width: 0;
+}
+
+.fileName {
+  overflow: hidden;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileMeta {
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.fileSettings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-xs) var(--mantine-spacing-lg);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  border-top: 1px solid var(--mantine-color-default-border);
+  border-radius: 0 0 var(--mantine-radius-md) var(--mantine-radius-md);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: rem(8px);
+}
+
+.settingLabel {
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  white-space: nowrap;
+}
+
+/* the table takes the height left over and scrolls itself; the rest of the dialog stays put */
+.importBody {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.columnsSection {
+  min-height: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+}
+
+.sectionTitle {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+}
+
+.sectionMeta {
+  font-size: var(--mantine-font-size-xs);
+  white-space: nowrap;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.sectionHint {
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.letter {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: rem(22px);
+  height: rem(20px);
+  padding: 0 rem(5px);
+  border-radius: rem(4px);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: rem(10px);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--mantine-color-green-light-color);
+  background-color: var(--mantine-color-green-light);
+}
+
+/* warnings that don't fit in a header; each one opens its column */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: rem(2px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.noteButton {
+  display: flex;
+  align-items: flex-start;
+  gap: rem(6px);
+  padding: rem(2px) 0;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.4;
+  text-align: start;
+  color: var(--mantine-color-orange-light-color);
+  background: none;
+  border: 0;
+  border-radius: rem(2px);
+  cursor: pointer;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: rem(2px);
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  &:hover span {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
+}
+
+.targetSection {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: rem(2px);
+  width: 100%;
+  padding-inline-end: rem(4px);
+}
+
+/* same shape as the column letters, without the file's green */
+.newTag {
+  flex-shrink: 0;
+  padding: 0 rem(5px);
+  border-radius: rem(4px);
+  font-size: rem(10px);
+  font-weight: 600;
+  line-height: rem(16px);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.targetLabel {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* same tick as Mantine's own select options */
+.optionCheck {
+  opacity: 0.4;
+  width: 0.8em;
+  min-width: 0.8em;
+  height: 0.8em;
+}
+
+:where([data-combobox-selected]) .optionCheck {
+  opacity: 1;
+}
+
+.warningText {
+  display: flex;
+  align-items: flex-start;
+  gap: rem(4px);
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.35;
+  color: var(--mantine-color-orange-light-color);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: rem(1px);
+  }
+}
+
+.columnSettings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+}
+
+.columnSettingsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+}
+
+.columnSettingsSource {
+  display: flex;
+  align-items: center;
+  gap: rem(8px);
+  min-width: 0;
+}
+
+.columnSettingsHeader {
+  overflow: hidden;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.columnSettingsField {
+  display: flex;
+  flex-direction: column;
+  gap: rem(4px);
+}
+
+.columnSettingsLabel {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.settingsValue {
+  display: flex;
+  align-items: center;
+  gap: rem(6px);
+  min-height: rem(30px);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.previewScroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+}
+
+.previewTable {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+
+  th {
+    height: 34px;
+    padding: 0 8px;
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    border-bottom: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+    border-right: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  }
+
+  td {
+    height: 36px;
+    max-width: rem(260px);
+    padding: 0 8px;
+    overflow: hidden;
+    font-size: var(--mantine-font-size-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+    border-bottom: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+    border-right: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  }
+
+  th:last-child,
+  td:last-child {
+    border-right: none;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+/* the header row and the row numbers stay in view while the table scrolls */
+.previewTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.previewTable .rowNumber {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: rem(40px);
+  min-width: rem(40px);
+  text-align: center;
+}
+
+.previewTable thead th.rowNumber {
+  z-index: 3;
+}
+
+.previewTable td.rowNumber {
+  font-size: var(--mantine-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.previewTable th.columnHead {
+  padding: 0;
+}
+
+/* a header is a button that opens its column's settings */
+.columnHeaderButton {
+  display: flex;
+  align-items: center;
+  gap: rem(6px);
+  width: 100%;
+  min-height: rem(34px);
+  padding: 0 rem(8px);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  transition: background-color 120ms ease;
+
+  &:hover:not(:disabled),
+  &[aria-expanded="true"] {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  .letter {
+    min-width: rem(18px);
+    height: rem(16px);
+    font-size: rem(9px);
+  }
+}
+
+.columnHeaderName {
+  max-width: rem(200px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-error] {
+    color: var(--mantine-color-error);
+  }
+}
+
+.columnHeaderButton[data-skipped] .columnHeaderName {
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.skippedLabel {
+  font-weight: 400;
+  white-space: nowrap;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.columnHeaderWarning {
+  flex-shrink: 0;
+  color: var(--mantine-color-orange-light-color);
+}
+
+.columnHeaderChevron {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.previewTable td.skippedCell {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.previewHeaderIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.previewBadges {
+  display: flex;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.invalidValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--mantine-color-red-7);
+  text-decoration: line-through;
+  text-overflow: ellipsis;
+}
+
+.linkValue {
+  color: var(--mantine-color-anchor);
+}
+
+.skeletonTable {
+  overflow: hidden;
+  border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+}
+
+.skeletonRow {
+  display: grid;
+  grid-template-columns: rem(24px) repeat(4, 1fr);
+  align-items: center;
+  gap: var(--mantine-spacing-md);
+  height: rem(36px);
+  padding: 0 rem(8px);
+  border-bottom: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &[data-head] {
+    height: rem(34px);
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  }
+}
+
+/* the body scrolls and has bottom padding, so the footer sticks into it to sit flush with the edge */
+.footer {
+  position: sticky;
+  bottom: calc(var(--mb-padding) * -1);
+  z-index: 3;
+  margin: auto calc(var(--mb-padding) * -1) calc(var(--mb-padding) * -1);
+  padding: var(--mantine-spacing-sm) var(--mb-padding);
+  background-color: var(--mantine-color-body);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.footerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+}
+
+.footerStatus {
+  flex: 1 1 rem(200px);
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.footerActions {
+  display: flex;
+  gap: var(--mantine-spacing-xs);
+  margin-left: auto;
+}
+
+.importIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  font-size: var(--mantine-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropzone,
+  .sheet {
+    transition: none;
+  }
+}

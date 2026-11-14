@@ -26,6 +26,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { FileTaskIdDto } from './dto/file-task-dto';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
@@ -36,6 +37,7 @@ export class FileTaskController {
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -60,13 +62,31 @@ export class FileTaskController {
       .selectAll()
       .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(user.id));
 
-    return executeWithCursorPagination(query, {
+    const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [{ expression: 'id', direction: 'desc' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
     });
+
+    // a task tied to a page shows only to people who can open that page
+    const pageIds = [
+      ...new Set(result.items.map((task) => task.pageId).filter(Boolean)),
+    ];
+    if (pageIds.length === 0) return result;
+    const accessible = new Set(
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds,
+        userId: user.id,
+      }),
+    );
+    return {
+      ...result,
+      items: result.items.filter(
+        (task) => !task.pageId || accessible.has(task.pageId),
+      ),
+    };
   }
 
   @ApiKeyScope('read')
@@ -89,6 +109,16 @@ export class FileTaskController {
       fileTask.spaceId,
     );
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    if (
+      fileTask.pageId &&
+      !(await this.pagePermissionRepo.canUserAccessPage(
+        user.id,
+        fileTask.pageId,
+      ))
+    ) {
       throw new ForbiddenException();
     }
 
