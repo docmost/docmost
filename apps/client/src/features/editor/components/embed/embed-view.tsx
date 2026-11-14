@@ -83,9 +83,10 @@ export default function EmbedView(props: NodeViewProps) {
 
   const handleResize = useCallback(
     (newWidth: number, newHeight: number) => {
+      if (editor.isDestroyed) return;
       updateAttributes({ width: newWidth, height: newHeight });
     },
-    [updateAttributes],
+    [editor, updateAttributes],
   );
 
   function saveLink(url: string): boolean {

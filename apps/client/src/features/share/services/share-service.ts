@@ -35,9 +35,11 @@ export async function updateShare(data: IUpdateShare): Promise<any> {
   return req.data;
 }
 
-export async function getShareForPage(pageId: string): Promise<IShareForPage> {
+export async function getShareForPage(
+  pageId: string,
+): Promise<IShareForPage | null> {
   const req = await api.post<any>("/shares/for-page", { pageId });
-  return req.data;
+  return req.data ?? null;
 }
 
 export async function getSharePageInfo(

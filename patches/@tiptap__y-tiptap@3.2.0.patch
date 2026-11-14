@@ -1,0 +1,52 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index ae82dd08f2ef2e595b4a4b29228e21e1ac8e8488..12df9b682f0e8f3ea1e96b32be8fa4756bb7ee4a 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -1427,6 +1427,7 @@ const defaultColors = [{
+ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @__PURE__ */ new Map(), permanentUserData = null, onFirstRender = () => {}, mapping, onInvalidContent } = {}) => {
+ 	let initialContentChanged = false;
+ 	const binding = new ProsemirrorBinding(yXmlFragment, mapping, onInvalidContent);
++	let renderedView = null;
+ 	return new prosemirror_state.Plugin({
+ 		filterTransaction: (transaction) => binding.invalidContentError === null || !transaction.docChanged || transaction.getMeta(ySyncPluginKey) !== void 0,
+ 		props: { editable: (state) => {
+@@ -1488,8 +1489,11 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+ 			clearPositionMigrations(binding.doc);
+ 			binding.doc.on("afterTransaction", clearMigrations);
+ 			binding.initView(view);
+-			if (mapping == null) binding._forceRerender();
+-			onFirstRender();
++			if (renderedView !== view) {
++				renderedView = view;
++				if (mapping == null) binding._forceRerender();
++				onFirstRender();
++			}
+ 			return {
+ 				update: () => {
+ 					const pluginState = getSyncPluginState(view.state);
+diff --git a/dist/index.js b/dist/index.js
+index 5cd8d7940a83b3d1b906b1ec18bb83bea2482638..5daee388011354e8e440fd00b1e71226415614d3 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1394,6 +1394,7 @@ const defaultColors = [{
+ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @__PURE__ */ new Map(), permanentUserData = null, onFirstRender = () => {}, mapping, onInvalidContent } = {}) => {
+ 	let initialContentChanged = false;
+ 	const binding = new ProsemirrorBinding(yXmlFragment, mapping, onInvalidContent);
++	let renderedView = null;
+ 	return new Plugin({
+ 		filterTransaction: (transaction) => binding.invalidContentError === null || !transaction.docChanged || transaction.getMeta(ySyncPluginKey) !== void 0,
+ 		props: { editable: (state) => {
+@@ -1455,8 +1456,11 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+ 			clearPositionMigrations(binding.doc);
+ 			binding.doc.on("afterTransaction", clearMigrations);
+ 			binding.initView(view);
+-			if (mapping == null) binding._forceRerender();
+-			onFirstRender();
++			if (renderedView !== view) {
++				renderedView = view;
++				if (mapping == null) binding._forceRerender();
++				onFirstRender();
++			}
+ 			return {
+ 				update: () => {
+ 					const pluginState = getSyncPluginState(view.state);

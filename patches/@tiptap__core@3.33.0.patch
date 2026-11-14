@@ -1,0 +1,52 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index de3c487e291ef68b822eb32250bf7b18d9748f23..69af1a5774c865acb083e845f54e3f1d288d05b1 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -5767,8 +5767,9 @@ var ExtensionManager = class {
+ 	get nodeViews() {
+ 		const { editor } = this;
+ 		const { nodeExtensions } = splitExtensions(this.extensions);
++		const attributes = this.attributes;
+ 		return Object.fromEntries(nodeExtensions.filter((extension) => !!getExtensionField(extension, "addNodeView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = attributes.filter((attribute) => attribute.type === extension.name);
+ 			const addNodeView = getExtensionField(extension, "addNodeView", {
+ 				name: extension.name,
+ 				options: extension.options,
+@@ -5846,8 +5847,9 @@ var ExtensionManager = class {
+ 	get markViews() {
+ 		const { editor } = this;
+ 		const { markExtensions } = splitExtensions(this.extensions);
++		const attributes = this.attributes;
+ 		return Object.fromEntries(markExtensions.filter((extension) => !!getExtensionField(extension, "addMarkView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = attributes.filter((attribute) => attribute.type === extension.name);
+ 			const addMarkView = getExtensionField(extension, "addMarkView", {
+ 				name: extension.name,
+ 				options: extension.options,
+diff --git a/dist/index.js b/dist/index.js
+index 9eaa0c4fa15497a32dccef33203d46216235ab68..b667e79d9d2549d7763907e7d4d1d608397601cf 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -5755,8 +5755,9 @@ var ExtensionManager = class {
+ 	get nodeViews() {
+ 		const { editor } = this;
+ 		const { nodeExtensions } = splitExtensions(this.extensions);
++		const attributes = this.attributes;
+ 		return Object.fromEntries(nodeExtensions.filter((extension) => !!getExtensionField(extension, "addNodeView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = attributes.filter((attribute) => attribute.type === extension.name);
+ 			const addNodeView = getExtensionField(extension, "addNodeView", {
+ 				name: extension.name,
+ 				options: extension.options,
+@@ -5834,8 +5835,9 @@ var ExtensionManager = class {
+ 	get markViews() {
+ 		const { editor } = this;
+ 		const { markExtensions } = splitExtensions(this.extensions);
++		const attributes = this.attributes;
+ 		return Object.fromEntries(markExtensions.filter((extension) => !!getExtensionField(extension, "addMarkView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = attributes.filter((attribute) => attribute.type === extension.name);
+ 			const addMarkView = getExtensionField(extension, "addMarkView", {
+ 				name: extension.name,
+ 				options: extension.options,

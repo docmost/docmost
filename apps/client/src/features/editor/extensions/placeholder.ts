@@ -22,8 +22,13 @@ export const Placeholder = TiptapPlaceholder.extend({
             const { anchor } = selection;
             const decorations: Decoration[] = [];
             const isEmptyDoc = editor.isEmpty;
+            // only a block touching the caret can match, so the rest of the document is not walked
+            const from = options.showOnlyCurrent ? Math.max(0, anchor - 1) : 0;
+            const to = options.showOnlyCurrent
+              ? Math.min(doc.content.size, anchor + 1)
+              : doc.content.size;
 
-            doc.descendants((node, pos) => {
+            doc.nodesBetween(from, to, (node, pos) => {
               if (!node.type.isTextblock) {
                 return options.includeChildren;
               }

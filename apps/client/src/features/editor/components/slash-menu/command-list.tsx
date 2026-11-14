@@ -63,6 +63,7 @@ const CommandList = ({
   useEffect(() => {
     const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
     const onKeyDown = (e: KeyboardEvent) => {
+      if (editor.isDestroyed) return;
       if (navigationKeys.includes(e.key)) {
         e.preventDefault();
 
@@ -89,7 +90,7 @@ const CommandList = ({
     return () => {
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [flatItems, selectedIndex, setSelectedIndex, selectItem]);
+  }, [editor, flatItems, selectedIndex, setSelectedIndex, selectItem]);
 
   useEffect(() => {
     setSelectedIndex(0);
