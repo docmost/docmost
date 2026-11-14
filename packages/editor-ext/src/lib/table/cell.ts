@@ -2,6 +2,7 @@ import { TableCell as TiptapTableCell } from "@tiptap/extension-table";
 
 export const TableCell = TiptapTableCell.extend({
   name: "tableCell",
+  allowGapCursor: true,
   content:
     "(paragraph | heading | bulletList | orderedList | taskList | blockquote | callout | image | video | audio | subpages | attachment | mathBlock | details | codeBlock)+",
 
