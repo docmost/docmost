@@ -1,4 +1,5 @@
 // adapted from https://github.com/charlie-hadden/kysely-paginate/blob/main/src/cursor.ts - MIT
+import { BadRequestException } from '@nestjs/common';
 import {
   OrderByDirection,
   OrderByModifiers,
@@ -342,11 +343,11 @@ export function defaultDecodeCursor<
       ).entries(),
     ];
   } catch {
-    throw new Error('Unparsable cursor');
+    throw new BadRequestException('Invalid cursor');
   }
 
   if (parsed.length !== fields.length) {
-    throw new Error('Unexpected number of fields');
+    throw new BadRequestException('Invalid cursor');
   }
 
   for (let i = 0; i < fields.length; i++) {
@@ -354,11 +355,11 @@ export function defaultDecodeCursor<
     const expectedName = fields[i];
 
     if (!field) {
-      throw new Error('Unable to find field');
+      throw new BadRequestException('Invalid cursor');
     }
 
     if (field[0] !== expectedName) {
-      throw new Error('Unexpected field name');
+      throw new BadRequestException('Invalid cursor');
     }
   }
 
