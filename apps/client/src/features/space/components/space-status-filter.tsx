@@ -1,15 +1,16 @@
 import { Select } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { SpaceListStatus } from "@/features/space/types/space.types.ts";
 
-interface SpaceArchiveFilterProps {
-  archived: boolean;
-  onChange: (archived: boolean) => void;
+interface SpaceStatusFilterProps {
+  status: SpaceListStatus;
+  onChange: (status: SpaceListStatus) => void;
 }
 
-export default function SpaceArchiveFilter({
-  archived,
+export default function SpaceStatusFilter({
+  status,
   onChange,
-}: SpaceArchiveFilterProps) {
+}: SpaceStatusFilterProps) {
   const { t } = useTranslation();
 
   return (
@@ -20,11 +21,11 @@ export default function SpaceArchiveFilter({
       data={[
         { value: "active", label: t("Active spaces") },
         { value: "archived", label: t("Archived spaces") },
+        { value: "all", label: t("All spaces") },
       ]}
-      value={archived ? "archived" : "active"}
+      value={status}
       onChange={(value) => {
-        const next = value === "archived";
-        if (next !== archived) onChange(next);
+        if (value && value !== status) onChange(value as SpaceListStatus);
       }}
       allowDeselect={false}
       checkIconPosition="right"

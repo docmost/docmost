@@ -1,4 +1,4 @@
-import { Group, Table, Text } from "@mantine/core";
+import { Badge, Group, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
 import {
   useGetSpacesQuery,
@@ -16,17 +16,18 @@ import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
-import SpaceArchiveFilter from "@/features/space/components/space-archive-filter.tsx";
+import SpaceStatusFilter from "@/features/space/components/space-status-filter.tsx";
+import { SpaceListStatus } from "@/features/space/types/space.types.ts";
 
 export default function SpaceList() {
   const { t } = useTranslation();
   const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
     usePaginateAndSearch();
-  const [archived, setArchived] = useState(false);
+  const [status, setStatus] = useState<SpaceListStatus>("active");
   const { data, isPlaceholderData } = useGetSpacesQuery({
     cursor,
     query: search,
-    archived: archived || undefined,
+    status,
   });
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
@@ -36,13 +37,16 @@ export default function SpaceList() {
     open();
   };
 
-  const handleArchivedChange = (value: boolean) => {
-    setArchived(value);
+  const handleStatusChange = (value: SpaceListStatus) => {
+    setStatus(value);
     resetPagination();
   };
 
   const activeListEmpty =
-    !archived && !search && !isPlaceholderData && data?.items.length === 0;
+    status === "active" &&
+    !search &&
+    !isPlaceholderData &&
+    data?.items.length === 0;
   const hasArchivedSpaces = useHasArchivedSpaces(activeListEmpty);
   const noActiveSpaces = activeListEmpty && hasArchivedSpaces;
 
@@ -50,10 +54,7 @@ export default function SpaceList() {
     <>
       <Group gap="sm" align="flex-start">
         <SearchInput onSearch={handleSearch} />
-        <SpaceArchiveFilter
-          archived={archived}
-          onChange={handleArchivedChange}
-        />
+        <SpaceStatusFilter status={status} onChange={handleStatusChange} />
       </Group>
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm" layout="fixed">
@@ -91,9 +92,21 @@ export default function SpaceList() {
                       name={space.name}
                     />
                     <div style={{ minWidth: 0, overflow: "hidden" }}>
-                      <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
-                        {space.name}
-                      </AutoTooltipText>
+                      <Group gap="xs" wrap="nowrap">
+                        <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
+                          {space.name}
+                        </AutoTooltipText>
+                        {space.archivedAt && (
+                          <Badge
+                            variant="light"
+                            size="xs"
+                            color="gray"
+                            style={{ flexShrink: 0 }}
+                          >
+                            {t("Archived")}
+                          </Badge>
+                        )}
+                      </Group>
                       <Text fz="xs" c="dimmed" lineClamp={2}>
                         {space.description}
                       </Text>

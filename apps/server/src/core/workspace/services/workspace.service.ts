@@ -33,6 +33,7 @@ import {
   DEFAULT_LOCALE,
   DISALLOWED_HOSTNAMES,
   WorkspaceStatus,
+  WorkspaceUserListStatus,
 } from '../workspace.constants';
 import {
   getWorkspaceDefaultLocale,
@@ -819,8 +820,9 @@ export class WorkspaceService {
   async getWorkspaceUsers(
     workspaceId: string,
     pagination: PaginationOptions,
+    opts?: { status?: WorkspaceUserListStatus },
   ): Promise<CursorPaginationResult<User>> {
-    return this.userRepo.getUsersPaginated(workspaceId, pagination);
+    return this.userRepo.getUsersPaginated(workspaceId, pagination, opts);
   }
 
   async updateWorkspaceUserRole(

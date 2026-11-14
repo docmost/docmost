@@ -12,6 +12,8 @@ export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
 
 export type AnnouncementStatus = "scheduled" | "active" | "archived";
 
+export type AnnouncementListStatus = "active" | "archived" | "all";
+
 export type AnnouncementSurface = "app" | "public";
 
 export type IAnnouncementMark =
@@ -93,5 +95,5 @@ export type IAnnouncementListParams = {
   cursor?: string;
   limit?: number;
   query?: string;
-  archived?: boolean;
+  status?: AnnouncementListStatus;
 };

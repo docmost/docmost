@@ -82,9 +82,18 @@ describe('SpaceMemberRepo archived spaces', () => {
     await repo.getUserSpaces(
       'user-1',
       Object.assign(new PaginationOptions(), { limit: 20 }),
-      { archived: true },
+      { status: 'archived' },
     );
     expect(queries[0].sql).toContain('"archived_at" is not null');
     expect(queries[0].sql).not.toContain('"archived_at" is null');
+  });
+
+  it('lists active and archived spaces together for all', async () => {
+    await repo.getUserSpaces(
+      'user-1',
+      Object.assign(new PaginationOptions(), { limit: 20 }),
+      { status: 'all' },
+    );
+    expect(queries[0].sql).not.toContain('"archived_at" is');
   });
 });

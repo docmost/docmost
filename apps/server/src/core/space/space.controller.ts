@@ -58,7 +58,7 @@ export class SpaceController {
   @OAuthScope('read')
   async getWorkspaceSpaces(@Body() dto: ListSpacesDto, @AuthUser() user: User) {
     const result = await this.spaceMemberService.getUserSpaces(user.id, dto, {
-      archived: dto.archived,
+      status: dto.status,
     });
 
     if (result.items.length > 0) {
