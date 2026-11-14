@@ -1924,5 +1924,10 @@
   "New property name for column {{name}}": "列 {{name}} 的新属性名称",
   "New": "新建",
   "Click a column to rename it, change its type or skip it.": "点击某一列以重命名、更改其类型或跳过它。",
-  "Settings for column {{name}}": "列 {{name}} 的设置"
+  "Settings for column {{name}}": "列 {{name}} 的设置",
+  "All": "All",
+  "No announcements": "No announcements",
+  "Deleted on {{date}}": "Deleted on {{date}}",
+  "Member deactivated successfully": "Member deactivated successfully",
+  "Member activated successfully": "Member activated successfully"
 }
