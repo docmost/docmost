@@ -1924,5 +1924,10 @@
   "New property name for column {{name}}": "열 {{name}}의 새 속성 이름",
   "New": "새로 만들기",
   "Click a column to rename it, change its type or skip it.": "열을 클릭해 이름을 바꾸거나 유형을 변경하거나 건너뛸 수 있습니다.",
-  "Settings for column {{name}}": "열 {{name}} 설정"
+  "Settings for column {{name}}": "열 {{name}} 설정",
+  "All": "All",
+  "No announcements": "No announcements",
+  "Deleted on {{date}}": "Deleted on {{date}}",
+  "Member deactivated successfully": "Member deactivated successfully",
+  "Member activated successfully": "Member activated successfully"
 }
