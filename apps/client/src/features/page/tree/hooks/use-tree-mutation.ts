@@ -23,6 +23,7 @@ import {
 } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
+import { extractPageSlugId } from "@/lib";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 
 export type UseTreeMutation = {
@@ -240,8 +241,8 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         if (
           node &&
           pageSlug &&
-          (node.slugId === pageSlug.split("-")[1] ||
-            isPageInNode(node, pageSlug.split("-")[1]))
+          (node.slugId === extractPageSlugId(pageSlug) ||
+            isPageInNode(node, extractPageSlugId(pageSlug)))
         ) {
           navigate(getSpaceUrl(spaceSlug));
         }
