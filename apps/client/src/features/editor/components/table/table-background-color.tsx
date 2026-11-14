@@ -98,7 +98,10 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
             variant="subtle"
             size="lg"
             aria-label={t("Background color")}
-            onClick={() => setOpened(!opened)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setOpened(!opened);
+            }}
           >
             <IconPalette size={18} />
           </ActionIcon>
@@ -121,7 +124,10 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
             {TABLE_COLORS.map((item, index) => (
               <UnstyledButton
                 key={index}
-                onClick={() => setTableCellBackground(item.color, item.name)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setTableCellBackground(item.color, item.name);
+                }}
                 style={{
                   position: "relative",
                   width: "24px",
