@@ -25,6 +25,7 @@ import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
   encodeFilePath,
+  extractMarkdownFrontMatter,
   extractNotionPartialId,
   readDocmostMetadata,
   stripNotionID,
@@ -478,13 +479,24 @@ export class FileImportTaskService {
             const absPath = path.join(extractDir, filePath);
             let content = '';
 
+            let frontMatterTitle: string | null = null;
             // Check if file exists (placeholder pages won't have physical files)
             try {
               await fs.access(absPath);
-              content = await fs.readFile(absPath, 'utf-8');
+              const rawFileContent = await fs.readFile(absPath, 'utf-8');
 
               if (page.fileExtension.toLowerCase() === '.md') {
-                content = await markdownToHtml(content);
+                const frontMatter = extractMarkdownFrontMatter(rawFileContent);
+                if (
+                  frontMatter.title &&
+                  typeof frontMatter.title === 'string' &&
+                  frontMatter.title.trim()
+                ) {
+                  frontMatterTitle = frontMatter.title.trim();
+                }
+                content = await markdownToHtml(rawFileContent);
+              } else {
+                content = rawFileContent;
               }
             } catch (err: any) {
               if (err?.code === 'ENOENT') {
@@ -525,7 +537,7 @@ export class FileImportTaskService {
             const insertablePage: InsertablePage = {
               id: page.id,
               slugId: page.slugId,
-              title: title || page.name,
+              title: frontMatterTitle || title || page.name,
               icon: page.icon || pageIcon || null,
               content: prosemirrorJson,
               textContent: jsonToText(prosemirrorJson),
