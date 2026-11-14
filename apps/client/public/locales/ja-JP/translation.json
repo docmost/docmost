@@ -1924,5 +1924,10 @@
   "New property name for column {{name}}": "列{{name}}の新しいプロパティ名",
   "New": "新規",
   "Click a column to rename it, change its type or skip it.": "列をクリックして、名前の変更、タイプの変更、またはスキップを行ってください。",
-  "Settings for column {{name}}": "列{{name}}の設定"
+  "Settings for column {{name}}": "列{{name}}の設定",
+  "All": "All",
+  "No announcements": "No announcements",
+  "Deleted on {{date}}": "Deleted on {{date}}",
+  "Member deactivated successfully": "Member deactivated successfully",
+  "Member activated successfully": "Member activated successfully"
 }
