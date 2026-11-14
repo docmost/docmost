@@ -38,9 +38,10 @@ export function MailHeader() {
 interface EmailButtonProps {
   href: string;
   children: React.ReactNode;
+  noTrack?: boolean;
 }
 
-export function EmailButton({ href, children }: EmailButtonProps) {
+export function EmailButton({ href, children, noTrack }: EmailButtonProps) {
   return (
     <table
       role="presentation"
@@ -59,6 +60,7 @@ export function EmailButton({ href, children }: EmailButtonProps) {
           <a
             href={href}
             target="_blank"
+            data-pm-no-track={noTrack ? '' : undefined}
             style={{
               color: buttonStyle.color,
               fontFamily: buttonStyle.fontFamily,
