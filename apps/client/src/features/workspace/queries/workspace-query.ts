@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  QueryClient,
   useMutation,
   useQuery,
   useQueryClient,
@@ -59,6 +60,13 @@ export function useWorkspaceMembersQuery(
   });
 }
 
+export function refreshWorkspaceMembers(queryClient: QueryClient) {
+  const members = { queryKey: ["workspaceMembers"] };
+  // refetchOnMount is off app-wide, so inactive copies are dropped to load fresh
+  queryClient.removeQueries({ ...members, type: "inactive" });
+  queryClient.invalidateQueries(members);
+}
+
 export function useDeleteWorkspaceMemberMutation() {
   const queryClient = useQueryClient();
 
@@ -72,9 +80,7 @@ export function useDeleteWorkspaceMemberMutation() {
     mutationFn: (data) => deleteWorkspaceMember(data),
     onSuccess: (data, variables) => {
       notifications.show({ message: "Member deleted successfully" });
-      queryClient.invalidateQueries({
-        queryKey: ["workspaceMembers"],
-      });
+      refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -97,9 +103,7 @@ export function useDeactivateWorkspaceMemberMutation() {
     mutationFn: (data) => deactivateWorkspaceMember(data),
     onSuccess: () => {
       notifications.show({ message: t("Member deactivated successfully") });
-      queryClient.invalidateQueries({
-        queryKey: ["workspaceMembers"],
-      });
+      refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -122,9 +126,7 @@ export function useActivateWorkspaceMemberMutation() {
     mutationFn: (data) => activateWorkspaceMember(data),
     onSuccess: () => {
       notifications.show({ message: t("Member activated successfully") });
-      queryClient.invalidateQueries({
-        queryKey: ["workspaceMembers"],
-      });
+      refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
