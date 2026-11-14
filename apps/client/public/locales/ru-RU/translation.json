@@ -1924,5 +1924,10 @@
   "New property name for column {{name}}": "Новое имя свойства для столбца {{name}}",
   "New": "Новое",
   "Click a column to rename it, change its type or skip it.": "Нажмите на столбец, чтобы переименовать его, изменить его тип или пропустить его.",
-  "Settings for column {{name}}": "Настройки для столбца {{name}}"
+  "Settings for column {{name}}": "Настройки для столбца {{name}}",
+  "All": "All",
+  "No announcements": "No announcements",
+  "Deleted on {{date}}": "Deleted on {{date}}",
+  "Member deactivated successfully": "Member deactivated successfully",
+  "Member activated successfully": "Member activated successfully"
 }
