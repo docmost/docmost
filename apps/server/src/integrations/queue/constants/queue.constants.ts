@@ -16,6 +16,7 @@ export enum QueueName {
   // Outbound DMs, kept off the inbound event queue
   SLACK_NOTIFY = '{slack-notify}',
   BASE_QUEUE = '{base-queue}',
+  BASE_IMPORT_QUEUE = '{base-import-queue}',
   SIEM_QUEUE = '{siem-queue}',
 }
 
@@ -106,4 +107,5 @@ export enum QueueJob {
   BASE_TYPE_CONVERSION = 'base-type-conversion',
   BASE_CELL_GC = 'base-cell-gc',
   BASE_FORMULA_RECOMPUTE = 'base-formula-recompute',
+  BASE_CSV_IMPORT = 'base-csv-import',
 }
