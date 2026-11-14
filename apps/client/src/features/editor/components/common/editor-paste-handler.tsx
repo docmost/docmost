@@ -11,9 +11,18 @@ import { canPlaceIntegrationCard } from "@/features/editor/components/integratio
 import { queryClient } from "@/main.tsx";
 import { Integration } from "@/features/integration/types/integration.types";
 import {
+  copyFiles,
   getAttachmentInfo,
   uploadFile,
 } from "@/features/page/services/page-service.ts";
+import { Fragment, Slice, type Node as PMNode } from "@tiptap/pm/model";
+import { notifications } from "@mantine/notifications";
+import i18n from "@/i18n";
+import { IAttachment } from "@/features/attachments/types/attachment.types";
+
+const DIAGRAM_TYPES = new Set(["drawio", "excalidraw"]);
+
+type UploadedAttachment = Awaited<ReturnType<typeof uploadFile>>;
 
 const ATTACHMENT_NODE_TYPES = [
   "image",
@@ -50,6 +59,7 @@ export const handlePaste = (
   event: ClipboardEvent,
   pageId: string,
   creatorId?: string,
+  slice?: Slice
 ) => {
   const clipboardData = event.clipboardData.getData("text/plain");
 
@@ -175,14 +185,49 @@ export const handlePaste = (
     return true;
   }
 
-  if (htmlData && ATTACHMENT_URL_RE.test(htmlData)) {
-    const pasteFrom = editor.state.selection.from;
+  if (!htmlData || !ATTACHMENT_URL_RE.test(htmlData)) return false;
+
+  const pasteFrom = editor.state.selection.from;
+  const uploads = slice ? copyDiagrams(slice, pageId) : null;
+  if (!uploads) {
     setTimeout(() => {
       reuploadPastedAttachments(editor, pageId, pasteFrom);
     }, 0);
+    return false;
   }
+  event.preventDefault();
 
-  return false;
+  let bookmark = editor.state.selection.getBookmark();
+  const mapBookmark = ({ transaction }: { transaction: any }) => {
+    bookmark = bookmark.map(transaction.mapping);
+  };
+  editor.on("transaction", mapBookmark);
+
+  void uploads
+    .then((pastedSlice) => {
+      if (editor.isDestroyed) return;
+
+      const state = editor.state;
+      const selection = bookmark.resolve(state.doc);
+      editor.view.dispatch(
+        state.tr
+          .setSelection(bookmark.resolve(state.doc))
+          .replaceSelection(pastedSlice)
+          .scrollIntoView()
+      );
+      void reuploadPastedAttachments(editor, pageId, selection.from);
+    })
+    .catch(() => {
+      notifications.show({
+        message: i18n.t("Failed to paste"),
+        color: "red",
+      });
+    })
+    .finally(() => {
+      editor.off("transaction", mapBookmark);
+    });
+
+  return true;
 };
 
 async function reuploadPastedAttachments(
@@ -206,6 +251,7 @@ async function reuploadPastedAttachments(
   const seenAttachmentIds = new Set<string>();
 
   editor.state.doc.nodesBetween(pasteFrom, pasteEnd, (node, pos) => {
+    if (DIAGRAM_TYPES.has(node.type.name)) return;
     if (!ATTACHMENT_NODE_TYPES.includes(node.type.name)) return;
     const attachmentId = node.attrs.attachmentId;
     if (!attachmentId) return;
@@ -345,3 +391,97 @@ export const handleFileDrop = (
   }
   return false;
 };
+
+function copyDiagrams(slice: Slice, pageId: string): Promise<Slice> | null {
+  const attachmentIds: string[] = [];
+
+  const visit = (fragment: Fragment) => {
+    fragment.forEach((node) => {
+      const { attachmentId } = node.attrs;
+      const src: string = node.attrs.src || "";
+
+      if (
+        DIAGRAM_TYPES.has(node.type.name) &&
+        attachmentId &&
+        ATTACHMENT_URL_RE.exec(src)?.[1] === attachmentId
+      ) {
+        attachmentIds.push(attachmentId);
+      }
+
+      if (node.content.size > 0) visit(node.content);
+    });
+  };
+
+  visit(slice.content);
+  if (attachmentIds.length === 0) return null;
+
+  return (async () => {
+    const results: { sourceId: string; attachment: IAttachment }[] = [];
+    const batchSize = 50;
+
+    for (let offset = 0; offset < attachmentIds.length; offset += batchSize) {
+      const batch = attachmentIds.slice(offset, offset + batchSize);
+      results.push(...(await copyFiles(batch, pageId)));
+    }
+
+    return new Slice(
+      remapDiagramFragment(
+        slice.content,
+        results.map((result) => result.attachment)
+      ),
+      slice.openStart,
+      slice.openEnd
+    );
+  })();
+}
+
+function remapDiagramFragment(
+  fragment: Fragment,
+  copies: IAttachment[],
+): Fragment {
+  let copyIndex = 0;
+
+  const remap = (current: Fragment): Fragment => {
+    let changed = false;
+    const nodes: PMNode[] = [];
+
+    current.forEach((node) => {
+      const { attachmentId } = node.attrs;
+      const src: string = node.attrs.src || "";
+      const isCopyableDiagram =
+        DIAGRAM_TYPES.has(node.type.name) &&
+        attachmentId &&
+        ATTACHMENT_URL_RE.exec(src)?.[1] === attachmentId;
+      const copy = isCopyableDiagram ? copies[copyIndex++] : undefined;
+
+      const content =
+        node.content.size > 0 ? remap(node.content) : node.content;
+      const nested = content === node.content ? node : node.copy(content);
+
+      if (!copy) {
+        nodes.push(nested);
+        changed ||= nested !== node;
+        return;
+      }
+
+      nodes.push(
+        nested.type.create(
+          {
+            ...nested.attrs,
+            attachmentId: copy.id,
+            src: `/api/files/${copy.id}/${copy.fileName}?t=${new Date(copy.updatedAt).getTime()}`,
+            title: copy.fileName,
+            size: copy.fileSize,
+          },
+          nested.content,
+          nested.marks,
+        ),
+      );
+      changed = true;
+    });
+
+    return changed ? Fragment.fromArray(nodes) : current;
+  };
+
+  return remap(fragment);
+}
