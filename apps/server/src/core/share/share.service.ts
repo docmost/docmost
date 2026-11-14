@@ -27,6 +27,7 @@ import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 
 @Injectable()
 export class ShareService {
@@ -40,6 +41,20 @@ export class ShareService {
     private readonly tokenService: TokenService,
     private readonly transclusionService: TransclusionService,
   ) {}
+
+  async getShares(userId: string, pagination: PaginationOptions) {
+    const result = await this.shareRepo.getShares(userId, pagination);
+    const accessiblePageIds = new Set(
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds: result.items.map((share) => share.pageId),
+        userId,
+      }),
+    );
+    result.items = result.items.filter((share) =>
+      accessiblePageIds.has(share.pageId),
+    );
+    return result;
+  }
 
   async getShareTree(shareId: string, workspaceId: string) {
     const share = await this.shareRepo.findById(shareId);

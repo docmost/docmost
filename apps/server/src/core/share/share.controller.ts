@@ -57,7 +57,7 @@ export class ShareController {
     @AuthUser() user: User,
     @Body() pagination: PaginationOptions,
   ) {
-    return this.shareRepo.getShares(user.id, pagination);
+    return this.shareService.getShares(user.id, pagination);
   }
 
   @Public()
