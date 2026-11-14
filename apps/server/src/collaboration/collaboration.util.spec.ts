@@ -3,6 +3,9 @@ import type { JSONContent } from '@tiptap/core';
 import { generateJSON } from '../common/helpers/prosemirror/html';
 import { tiptapExtensions } from './collaboration.util';
 
+// Jest only collects specs under src/. This pulls in the code-block search cases.
+import '../../test/search/code-block-search.spec';
+
 const ID_TYPES = ['heading', 'paragraph'];
 
 function collectNodes(node: JSONContent, found: JSONContent[] = []) {

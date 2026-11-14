@@ -163,7 +163,21 @@ export function htmlToJson(html: string) {
 }
 
 export function jsonToText(tiptapJson: JSONContent) {
-  return collapseBlankLines(generateText(tiptapJson, tiptapExtensions));
+  return collapseBlankLines(
+    generateText(tiptapJson, tiptapExtensions, {
+      textSerializers: {
+        codeBlock: ({ node }) => codeBlockSearchText(node.textContent),
+      },
+    }),
+  );
+}
+
+// The english text-search parser treats `<tag>` as an XML tag and drops it,
+// so a name like P_NUM inside a code block never reaches the index. A space
+// after `<` keeps the brackets and every other character, and indexes the name.
+// Paragraphs and other nodes stay on the default serializer.
+function codeBlockSearchText(text: string): string {
+  return text.replace(/</g, '< ');
 }
 
 export function jsonToNode(tiptapJson: JSONContent) {
