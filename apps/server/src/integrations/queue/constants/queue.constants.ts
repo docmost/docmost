@@ -16,7 +16,6 @@ export enum QueueName {
   // Outbound DMs, kept off the inbound event queue
   SLACK_NOTIFY = '{slack-notify}',
   BASE_QUEUE = '{base-queue}',
-  // CSV imports run long, so they stay off the base queue's conversions and recomputes
   BASE_IMPORT_QUEUE = '{base-import-queue}',
   SIEM_QUEUE = '{siem-queue}',
 }
