@@ -50,7 +50,9 @@ export function FilterPersonInput({
 
   const store = useReferenceStore(pageId);
   const hydrateUsers = useHydrateUsers(pageId);
-  const suggestions = usePersonSearch(search, opened);
+  const suggestions = usePersonSearch(search, opened, {
+    includeDeactivatedUsers: true,
+  });
 
   useEffect(() => {
     if (opened) requestAnimationFrame(() => searchRef.current?.focus());

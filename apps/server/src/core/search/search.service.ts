@@ -254,6 +254,9 @@ export class SearchService {
         .select(['id', 'name', 'email', 'avatarUrl'])
         .where('workspaceId', '=', workspaceId)
         .where('deletedAt', 'is', null)
+        .$if(!suggestion.includeDeactivatedUsers, (qb) =>
+          qb.where('deactivatedAt', 'is', null),
+        )
         .where((eb) =>
           eb.or([
             eb(

@@ -22,6 +22,8 @@ export interface IPageSearch {
 export interface SearchSuggestionParams {
   query: string;
   includeUsers?: boolean;
+  /** Only applies when includeUsers is true; defaults to false. */
+  includeDeactivatedUsers?: boolean;
   includeGroups?: boolean;
   includePages?: boolean;
   spaceId?: string;
