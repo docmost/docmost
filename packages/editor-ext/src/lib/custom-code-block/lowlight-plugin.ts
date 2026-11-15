@@ -1,9 +1,13 @@
-import { findChildren } from '@tiptap/core';
+import type { NodeWithPos } from '@tiptap/core';
 import type { Node as ProsemirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 // @ts-ignore
 import highlight from 'highlight.js/lib/core';
+import { createFindChildren } from '../utils';
+
+// positions count from the start of the code block's text
+type Token = { from: number; to: number; class: string };
 
 function parseNodes(
   nodes: any[],
@@ -40,63 +44,85 @@ function registered(aliasOrLanguage: string) {
 // Max characters to sample for auto-detection to avoid performance issues with large code blocks
 const AUTO_DETECT_SAMPLE_SIZE = 3000;
 
+function highlightBlock(
+  block: ProsemirrorNode,
+  lowlight: any,
+  defaultLanguage: string | null | undefined,
+): Token[] {
+  const tokens: Token[] = [];
+  let from = 0;
+  const language = block.attrs.language || defaultLanguage;
+  const languages = lowlight.listLanguages();
+  const textContent = block.textContent;
+
+  let nodes;
+  if (
+    language &&
+    (languages.includes(language) ||
+      registered(language) ||
+      lowlight.registered?.(language))
+  ) {
+    nodes = getHighlightNodes(lowlight.highlight(language, textContent));
+  } else {
+    // For auto-detection, sample a limited portion to detect the language,
+    // then highlight the full content with the detected language
+    const sample =
+      textContent.length > AUTO_DETECT_SAMPLE_SIZE
+        ? textContent.slice(0, AUTO_DETECT_SAMPLE_SIZE)
+        : textContent;
+    const autoResult = lowlight.highlightAuto(sample);
+    const detectedLanguage = autoResult.data?.language;
+    if (detectedLanguage && textContent.length > AUTO_DETECT_SAMPLE_SIZE) {
+      nodes = getHighlightNodes(
+        lowlight.highlight(detectedLanguage, textContent),
+      );
+    } else {
+      nodes = getHighlightNodes(autoResult);
+    }
+  }
+
+  parseNodes(nodes).forEach((node) => {
+    const to = from + node.text.length;
+
+    if (node.classes.length) {
+      tokens.push({ from, to, class: node.classes.join(' ') });
+    }
+
+    from = to;
+  });
+
+  return tokens;
+}
+
 function getDecorations({
   doc,
-  name,
+  blocks,
+  highlighted,
   lowlight,
   defaultLanguage,
 }: {
   doc: ProsemirrorNode;
-  name: string;
+  blocks: NodeWithPos[];
+  highlighted: WeakMap<ProsemirrorNode, Token[]>;
   lowlight: any;
   defaultLanguage: string | null | undefined;
 }) {
   const decorations: Decoration[] = [];
 
-  findChildren(doc, (node) => node.type.name === name).forEach((block) => {
-    let from = block.pos + 1;
-    const language = block.node.attrs.language || defaultLanguage;
-    const languages = lowlight.listLanguages();
-    const textContent = block.node.textContent;
-
-    let nodes;
-    if (
-      language &&
-      (languages.includes(language) ||
-        registered(language) ||
-        lowlight.registered?.(language))
-    ) {
-      nodes = getHighlightNodes(lowlight.highlight(language, textContent));
-    } else {
-      // For auto-detection, sample a limited portion to detect the language,
-      // then highlight the full content with the detected language
-      const sample =
-        textContent.length > AUTO_DETECT_SAMPLE_SIZE
-          ? textContent.slice(0, AUTO_DETECT_SAMPLE_SIZE)
-          : textContent;
-      const autoResult = lowlight.highlightAuto(sample);
-      const detectedLanguage = autoResult.data?.language;
-      if (detectedLanguage && textContent.length > AUTO_DETECT_SAMPLE_SIZE) {
-        nodes = getHighlightNodes(
-          lowlight.highlight(detectedLanguage, textContent),
-        );
-      } else {
-        nodes = getHighlightNodes(autoResult);
-      }
+  blocks.forEach((block) => {
+    let tokens = highlighted.get(block.node);
+    if (!tokens) {
+      tokens = highlightBlock(block.node, lowlight, defaultLanguage);
+      highlighted.set(block.node, tokens);
     }
 
-    parseNodes(nodes).forEach((node) => {
-      const to = from + node.text.length;
-
-      if (node.classes.length) {
-        const decoration = Decoration.inline(from, to, {
-          class: node.classes.join(' '),
-        });
-
-        decorations.push(decoration);
-      }
-
-      from = to;
+    const start = block.pos + 1;
+    tokens.forEach((token) => {
+      decorations.push(
+        Decoration.inline(start + token.from, start + token.to, {
+          class: token.class,
+        }),
+      );
     });
   });
 
@@ -127,28 +153,30 @@ export function LowlightPlugin({
     );
   }
 
+  const findCodeBlocks = createFindChildren((node) => node.type.name === name);
+  // highlighting is the slow part, and a code block node never changes
+  const highlighted = new WeakMap<ProsemirrorNode, Token[]>();
+  const decorate = (doc: ProsemirrorNode) =>
+    getDecorations({
+      doc,
+      blocks: findCodeBlocks(doc),
+      highlighted,
+      lowlight,
+      defaultLanguage,
+    });
+
   const lowlightPlugin: Plugin<any> = new Plugin({
     key: new PluginKey('lowlight'),
 
     state: {
-      init: (_, { doc }) =>
-        getDecorations({
-          doc,
-          name,
-          lowlight,
-          defaultLanguage,
-        }),
+      init: (_, { doc }) => decorate(doc),
       apply: (transaction, decorationSet, oldState, newState) => {
+        if (!transaction.docChanged) return decorationSet;
+
         const oldNodeName = oldState.selection.$head.parent.type.name;
         const newNodeName = newState.selection.$head.parent.type.name;
-        const oldNodes = findChildren(
-          oldState.doc,
-          (node) => node.type.name === name,
-        );
-        const newNodes = findChildren(
-          newState.doc,
-          (node) => node.type.name === name,
-        );
+        const oldNodes = findCodeBlocks(oldState.doc);
+        const newNodes = findCodeBlocks(newState.doc);
 
         if (
           transaction.docChanged &&
@@ -179,12 +207,7 @@ export function LowlightPlugin({
               );
             }))
         ) {
-          return getDecorations({
-            doc: transaction.doc,
-            name,
-            lowlight,
-            defaultLanguage,
-          });
+          return decorate(transaction.doc);
         }
 
         return decorationSet.map(transaction.mapping, transaction.doc);

@@ -6,7 +6,7 @@ import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import {
   HeadingLink,
   recalculateLinks,
-} from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
+} from "@/features/editor/components/table-of-contents/table-of-contents.utils.ts";
 import styles from "./docs.module.css";
 
 type DocsTocProps = {
@@ -30,7 +30,7 @@ export default function DocsToc({ bannersHeight }: DocsTocProps) {
 
   const handleUpdate = useCallback(() => {
     if (!editor || editor.isDestroyed) return;
-    const result = recalculateLinks(editor.$nodes("heading"));
+    const result = recalculateLinks(editor);
     setLinks(result.links);
     setHeadingDOMNodes(result.nodes);
   }, [editor]);

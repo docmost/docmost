@@ -206,7 +206,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   };
 
   const handleCopyAsMarkdown = () => {
-    if (!pageEditor) return;
+    if (!pageEditor || pageEditor.isDestroyed) return;
     const html = pageEditor.getHTML();
     const markdown = htmlToMarkdown(html);
     const title = page?.title ? `# ${page.title}\n\n` : "";

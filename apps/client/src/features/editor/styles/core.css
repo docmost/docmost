@@ -32,7 +32,8 @@
     padding: 0;
   }
 
-  > * + * {
+  /* "> * + *" without the universal sibling selector, which restyles the whole page whenever a block is added or removed */
+  > :where(:not(:first-child)) {
     margin-top: 0.75em;
   }
 

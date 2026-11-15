@@ -3,6 +3,8 @@ packages:
   - 'packages/*'
 patchedDependencies:
   '@joplin/turndown-plugin-gfm@1.0.68': patches/@joplin__turndown-plugin-gfm@1.0.68.patch
+  '@tiptap/core@3.33.0': patches/@tiptap__core@3.33.0.patch
+  '@tiptap/y-tiptap@3.2.0': patches/@tiptap__y-tiptap@3.2.0.patch
   scimmy@1.3.5: patches/scimmy@1.3.5.patch
 overrides:
   prosemirror-changeset: 2.4.6
