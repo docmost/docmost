@@ -1925,9 +1925,9 @@
   "New": "Nieuw",
   "Click a column to rename it, change its type or skip it.": "Klik op een kolom om deze te hernoemen, het type te wijzigen of over te slaan.",
   "Settings for column {{name}}": "Instellingen voor kolom {{name}}",
-  "All": "All",
-  "No announcements": "No announcements",
-  "Deleted on {{date}}": "Deleted on {{date}}",
-  "Member deactivated successfully": "Member deactivated successfully",
-  "Member activated successfully": "Member activated successfully"
+  "All": "Alle",
+  "No announcements": "Geen aankondigingen",
+  "Deleted on {{date}}": "Verwijderd op {{date}}",
+  "Member deactivated successfully": "Lid succesvol gedeactiveerd",
+  "Member activated successfully": "Lid succesvol geactiveerd"
 }
