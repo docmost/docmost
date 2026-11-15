@@ -112,6 +112,45 @@ function setUserMentionLabels(node: any, names: Map<string, string>): any {
   };
 }
 
+// only the page links the client can open in place, so not one with a query
+export function isRelativePageLink(href: unknown): boolean {
+  if (typeof href !== 'string' || !href.startsWith('/s/')) return false;
+  const [path] = href.split('#', 1);
+  return INTERNAL_LINK_REGEX.test(path);
+}
+
+/**
+ * Flags relative page links (`/s/<space>/p/<slug>`) as internal, which is how
+ * the editor stores a link picked from page search. Markdown and HTML sent
+ * through the API have no `data-internal` attribute, so without this their
+ * page links are stored as external and never show up in backlinks.
+ */
+export function markInternalPageLinks(prosemirrorJson: any): any {
+  const visit = (node: any) => {
+    if (!node || typeof node !== 'object') return;
+
+    if (Array.isArray(node.marks)) {
+      for (const mark of node.marks) {
+        if (
+          mark?.type === 'link' &&
+          mark.attrs &&
+          !mark.attrs.internal &&
+          isRelativePageLink(mark.attrs.href)
+        ) {
+          mark.attrs.internal = true;
+        }
+      }
+    }
+
+    if (Array.isArray(node.content)) {
+      node.content.forEach(visit);
+    }
+  };
+
+  visit(prosemirrorJson);
+  return prosemirrorJson;
+}
+
 export function extractInternalLinkSlugIds(prosemirrorJson: any): string[] {
   const slugIds = new Set<string>();
   const doc = jsonToNode(prosemirrorJson);
