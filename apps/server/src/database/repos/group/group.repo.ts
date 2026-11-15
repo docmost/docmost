@@ -188,11 +188,16 @@ export class GroupRepo {
   ) {
     return eb
       .selectFrom('groupUsers')
-      .innerJoin('users as groupMember', 'groupMember.id', 'groupUsers.userId')
       .select((eb) => eb.fn.countAll().as('count'))
       .whereRef('groupUsers.groupId', '=', 'groups.id')
       .$if(!opts?.adminView, (qb) =>
-        qb.where('groupMember.deactivatedAt', 'is', null),
+        qb
+          .innerJoin(
+            'users as groupMember',
+            'groupMember.id',
+            'groupUsers.userId',
+          )
+          .where('groupMember.deactivatedAt', 'is', null),
       )
       .as('memberCount');
   }
