@@ -69,6 +69,50 @@ export function extractPageMentions(mentionList: MentionNode[]): MentionNode[] {
   return pageMentionList as MentionNode[];
 }
 
+function matchInternalPageLink(href: string): RegExpMatchArray | null {
+  // a heading anchor or query string still points at the same page
+  const path = href.split(/[?#]/, 1)[0];
+  return path.match(INTERNAL_LINK_REGEX);
+}
+
+export function isRelativePageLink(href: unknown): boolean {
+  if (typeof href !== 'string') return false;
+  if (!href.startsWith('/') || href.startsWith('//')) return false;
+  return matchInternalPageLink(href) !== null;
+}
+
+/**
+ * Flags relative page links (`/s/<space>/p/<slug>`) as internal, which is how
+ * the editor stores a link picked from page search. Markdown and HTML sent
+ * through the API have no `data-internal` attribute, so without this their
+ * page links are stored as external and never show up in backlinks.
+ */
+export function markInternalPageLinks(prosemirrorJson: any): any {
+  const visit = (node: any) => {
+    if (!node || typeof node !== 'object') return;
+
+    if (Array.isArray(node.marks)) {
+      for (const mark of node.marks) {
+        if (
+          mark?.type === 'link' &&
+          mark.attrs &&
+          !mark.attrs.internal &&
+          isRelativePageLink(mark.attrs.href)
+        ) {
+          mark.attrs.internal = true;
+        }
+      }
+    }
+
+    if (Array.isArray(node.content)) {
+      node.content.forEach(visit);
+    }
+  };
+
+  visit(prosemirrorJson);
+  return prosemirrorJson;
+}
+
 export function extractInternalLinkSlugIds(prosemirrorJson: any): string[] {
   const slugIds: string[] = [];
   const doc = jsonToNode(prosemirrorJson);
@@ -76,7 +120,7 @@ export function extractInternalLinkSlugIds(prosemirrorJson: any): string[] {
   doc.descendants((node: Node) => {
     for (const mark of node.marks) {
       if (mark.type.name === 'link' && mark.attrs.internal && mark.attrs.href) {
-        const match = mark.attrs.href.match(INTERNAL_LINK_REGEX);
+        const match = matchInternalPageLink(mark.attrs.href);
         if (match) {
           const slugId = extractPageSlugId(match[5]);
           if (slugId && !slugIds.includes(slugId)) {

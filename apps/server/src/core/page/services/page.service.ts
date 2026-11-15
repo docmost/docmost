@@ -32,11 +32,16 @@ import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { v7 as uuid7 } from 'uuid';
 import {
   createYdocFromJson,
+  extractInternalLinkSlugIds,
+  extractMentions,
+  extractPageMentions,
   getAttachmentIds,
   getProsemirrorContent,
+  markInternalPageLinks,
   replaceAttachmentIds,
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
+import { IPageBacklinkJob } from '../../../integrations/queue/constants/queue.interface';
 import {
   htmlToJson,
   jsonToNode,
@@ -197,9 +202,39 @@ export class PageService {
         .catch((err) =>
           this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
         );
+
+      // Backlinks are otherwise only queued once page history is recorded,
+      // which needs a later edit. Skipped inside a caller's transaction for
+      // the same reason as the watcher job above.
+      if (content) {
+        this.queuePageBacklinks(page.id, workspaceId, content);
+      }
     }
 
     return page;
+  }
+
+  private queuePageBacklinks(
+    pageId: string,
+    workspaceId: string,
+    prosemirrorJson: any,
+  ): void {
+    const mentions = extractPageMentions(extractMentions(prosemirrorJson));
+    const internalLinkSlugIds = extractInternalLinkSlugIds(prosemirrorJson);
+    if (mentions.length === 0 && internalLinkSlugIds.length === 0) return;
+
+    this.generalQueue
+      .add(QueueJob.PAGE_BACKLINKS, {
+        pageId,
+        workspaceId,
+        mentions,
+        internalLinkSlugIds,
+      } as IPageBacklinkJob)
+      .catch((err) =>
+        this.logger.warn(
+          `Failed to queue backlinks for ${pageId}: ${err.message}`,
+        ),
+      );
   }
 
   async nextPagePosition(
@@ -1389,11 +1424,11 @@ export class PageService {
     switch (format) {
       case 'markdown': {
         const html = await markdownToHtml(content as string);
-        prosemirrorJson = htmlToJson(html as string);
+        prosemirrorJson = markInternalPageLinks(htmlToJson(html as string));
         break;
       }
       case 'html': {
-        prosemirrorJson = htmlToJson(content as string);
+        prosemirrorJson = markInternalPageLinks(htmlToJson(content as string));
         break;
       }
       case 'json':
