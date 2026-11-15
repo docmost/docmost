@@ -1,5 +1,5 @@
 diff --git a/dist/index.cjs b/dist/index.cjs
-index ae82dd08f2ef2e595b4a4b29228e21e1ac8e8488..12df9b682f0e8f3ea1e96b32be8fa4756bb7ee4a 100644
+index ae82dd08f2ef2e595b4a4b29228e21e1ac8e8488..aecf8f9254a4d8fb6324c87b5b56e228d3d0bdf9 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
 @@ -1427,6 +1427,7 @@ const defaultColors = [{
@@ -10,7 +10,16 @@ index ae82dd08f2ef2e595b4a4b29228e21e1ac8e8488..12df9b682f0e8f3ea1e96b32be8fa475
  	return new prosemirror_state.Plugin({
  		filterTransaction: (transaction) => binding.invalidContentError === null || !transaction.docChanged || transaction.getMeta(ySyncPluginKey) !== void 0,
  		props: { editable: (state) => {
-@@ -1488,8 +1489,11 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+@@ -1436,6 +1437,8 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+ 		key: ySyncPluginKey,
+ 		state: {
+ 			init: (_initargs, _state) => {
++				// Fresh sync state must reload shared content, even on the same editor view.
++				renderedView = null;
+ 				return {
+ 					type: yXmlFragment,
+ 					doc: binding.doc,
+@@ -1488,8 +1491,11 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
  			clearPositionMigrations(binding.doc);
  			binding.doc.on("afterTransaction", clearMigrations);
  			binding.initView(view);
@@ -24,8 +33,17 @@ index ae82dd08f2ef2e595b4a4b29228e21e1ac8e8488..12df9b682f0e8f3ea1e96b32be8fa475
  			return {
  				update: () => {
  					const pluginState = getSyncPluginState(view.state);
+@@ -1513,6 +1519,8 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+ 					}
+ 				},
+ 				destroy: () => {
++					// A saved state can reattach this binding without calling state.init.
++					if (ySyncPluginKey.getState(view.state)?.binding !== binding) renderedView = null;
+ 					binding.doc.off("afterTransaction", clearMigrations);
+ 					binding.destroy();
+ 				}
 diff --git a/dist/index.js b/dist/index.js
-index 5cd8d7940a83b3d1b906b1ec18bb83bea2482638..5daee388011354e8e440fd00b1e71226415614d3 100644
+index 5cd8d7940a83b3d1b906b1ec18bb83bea2482638..edd4be9f401d54845b921198483eaef2e1c65dc1 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -1394,6 +1394,7 @@ const defaultColors = [{
@@ -36,7 +54,16 @@ index 5cd8d7940a83b3d1b906b1ec18bb83bea2482638..5daee388011354e8e440fd00b1e71226
  	return new Plugin({
  		filterTransaction: (transaction) => binding.invalidContentError === null || !transaction.docChanged || transaction.getMeta(ySyncPluginKey) !== void 0,
  		props: { editable: (state) => {
-@@ -1455,8 +1456,11 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+@@ -1403,6 +1404,8 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+ 		key: ySyncPluginKey,
+ 		state: {
+ 			init: (_initargs, _state) => {
++				// Fresh sync state must reload shared content, even on the same editor view.
++				renderedView = null;
+ 				return {
+ 					type: yXmlFragment,
+ 					doc: binding.doc,
+@@ -1455,8 +1458,11 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
  			clearPositionMigrations(binding.doc);
  			binding.doc.on("afterTransaction", clearMigrations);
  			binding.initView(view);
@@ -50,3 +77,12 @@ index 5cd8d7940a83b3d1b906b1ec18bb83bea2482638..5daee388011354e8e440fd00b1e71226
  			return {
  				update: () => {
  					const pluginState = getSyncPluginState(view.state);
+@@ -1480,6 +1486,8 @@ const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping = /* @
+ 					}
+ 				},
+ 				destroy: () => {
++					// A saved state can reattach this binding without calling state.init.
++					if (ySyncPluginKey.getState(view.state)?.binding !== binding) renderedView = null;
+ 					binding.doc.off("afterTransaction", clearMigrations);
+ 					binding.destroy();
+ 				}
