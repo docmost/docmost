@@ -1925,9 +1925,9 @@
   "New": "Nuovo",
   "Click a column to rename it, change its type or skip it.": "Fai clic su una colonna per rinominarla, cambiarne il tipo o saltarla.",
   "Settings for column {{name}}": "Impostazioni per la colonna {{name}}",
-  "All": "All",
-  "No announcements": "No announcements",
-  "Deleted on {{date}}": "Deleted on {{date}}",
-  "Member deactivated successfully": "Member deactivated successfully",
-  "Member activated successfully": "Member activated successfully"
+  "All": "Tutti",
+  "No announcements": "Nessun annuncio",
+  "Deleted on {{date}}": "Eliminato il {{date}}",
+  "Member deactivated successfully": "Membro disattivato con successo",
+  "Member activated successfully": "Membro attivato con successo"
 }
