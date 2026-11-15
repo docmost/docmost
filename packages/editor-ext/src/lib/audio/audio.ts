@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { getFileNameFromUrl, normalizeFileUrl } from "../media-utils";
-import { sanitizeUrl, isInternalFileUrl } from "../utils";
+import { sanitizeUrl, isInternalFileUrl, renderableFileUrl } from "../utils";
 
 export interface AudioOptions {
   view: any;
@@ -62,11 +62,7 @@ export const TiptapAudio = Node.create<AudioOptions>({
         },
         // an export with attachments points src into its own files folder
         renderHTML: (attributes) => ({
-          src:
-            isInternalFileUrl(attributes.src) ||
-            attributes.src?.startsWith("files/")
-              ? sanitizeUrl(attributes.src)
-              : "",
+          src: renderableFileUrl(attributes.src),
         }),
       },
       name: {

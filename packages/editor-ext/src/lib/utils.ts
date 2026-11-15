@@ -410,6 +410,26 @@ export function isInternalFileUrl(url: string | undefined): boolean {
   return normalized.startsWith("/api/files/") || normalized.startsWith("/files/");
 }
 
+// Page exports rewrite "/api/files/<id>/<name>" to "files/<id>/<name>", the
+// attachment's path next to the exported page inside the zip.
+const EXPORTED_FILE_URL =
+  /^files\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[^/?#]+(\?[^#]*)?$/i;
+
+export function isExportedFileUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return EXPORTED_FILE_URL.test(url.trim());
+}
+
+/**
+ * The src a pdf or audio node writes to HTML: a Docmost file URL, either
+ * served by the app or relative to an exported page, and "" for anything else.
+ */
+export function renderableFileUrl(url: string | undefined): string {
+  return isInternalFileUrl(url) || isExportedFileUrl(url)
+    ? sanitizeUrl(url)
+    : "";
+}
+
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 export const generateNodeId = customAlphabet(alphabet, 12);
 
