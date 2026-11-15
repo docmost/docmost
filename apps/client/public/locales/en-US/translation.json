@@ -1937,5 +1937,7 @@
   "Unmute": "Unmute",
   "Seek": "Seek",
   "Playback speed": "Playback speed",
-  "Couldn't load this audio file": "Couldn't load this audio file"
+  "Couldn't load this audio file": "Couldn't load this audio file",
+  "Pages in trash are permanently deleted after {{count}} days._one": "Pages in trash are permanently deleted after {{count}} day.",
+  "Pages in trash are permanently deleted after {{count}} days._other": "Pages in trash are permanently deleted after {{count}} days."
 }
