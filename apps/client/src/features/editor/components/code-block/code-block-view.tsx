@@ -16,9 +16,6 @@ export default function CodeBlockView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, updateAttributes, extension, editor, getPos } = props;
   const { language } = node.attrs;
-  const [languageValue, setLanguageValue] = useState<string | null>(
-    language || null,
-  );
   const [isSelected, setIsSelected] = useState(false);
 
   useEffect(() => {
@@ -43,8 +40,7 @@ export default function CodeBlockView(props: NodeViewProps) {
     selector: ({ editor }) => editor?.isEditable ?? false,
   });
 
-  function changeLanguage(language: string) {
-    setLanguageValue(language);
+  function changeLanguage(language: string | null) {
     updateAttributes({
       language: language,
     });
@@ -61,9 +57,14 @@ export default function CodeBlockView(props: NodeViewProps) {
           placeholder="auto"
           checkIconPosition="right"
           data={extension.options.lowlight.listLanguages().sort()}
-          value={languageValue}
+          value={language || null}
           onChange={changeLanguage}
+          onBlur={(event) => {
+            // Leaving the field empty resets the language to auto.
+            if (!event.currentTarget.value && language) changeLanguage(null);
+          }}
           searchable
+          clearable
           style={{ maxWidth: "130px" }}
           classNames={{ input: classes.selectInput }}
           disabled={!isEditable}
