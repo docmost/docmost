@@ -117,6 +117,12 @@ export class GroupController {
       groupIdDto.groupId,
       workspace.id,
       pagination,
+      {
+        adminView: ability.can(
+          WorkspaceCaslAction.Manage,
+          WorkspaceCaslSubject.Member,
+        ),
+      },
     );
   }
 

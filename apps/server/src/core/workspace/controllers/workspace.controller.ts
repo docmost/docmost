@@ -131,11 +131,14 @@ export class WorkspaceController {
       throw new ForbiddenException();
     }
 
+    const canManageMembers = ability.can(
+      WorkspaceCaslAction.Manage,
+      WorkspaceCaslSubject.Member,
+    );
+
     return this.workspaceService.getWorkspaceUsers(workspace.id, dto, {
-      status: resolveWorkspaceUserListStatus(
-        dto.status,
-        ability.can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member),
-      ),
+      status: resolveWorkspaceUserListStatus(dto.status, canManageMembers),
+      adminView: canManageMembers,
     });
   }
 
