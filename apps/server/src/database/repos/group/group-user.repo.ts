@@ -63,6 +63,9 @@ export class GroupUserRepo {
           this.userRepo.adminFields.map((field) => `users.${field}` as const),
         ),
       )
+      .$if(!opts?.adminView, (qb) =>
+        qb.where('users.deactivatedAt', 'is', null),
+      )
       .where('groupId', '=', groupId);
 
     if (pagination.query) {
