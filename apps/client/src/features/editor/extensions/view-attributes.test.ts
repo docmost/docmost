@@ -45,6 +45,17 @@ function createEditor() {
 }
 
 describe("extension manager views", () => {
+  it.each(["nodeViews", "markViews"] as const)(
+    "does not collect extension attributes when %s is empty",
+    (viewType) => {
+      editor = new Editor({ extensions: [StarterKit] });
+      const attributes = vi.spyOn(editor.extensionManager, "attributes", "get");
+
+      expect(editor.extensionManager[viewType]).toEqual({});
+      expect(attributes).not.toHaveBeenCalled();
+    },
+  );
+
   it("computes the extension attributes once for all node views", () => {
     const attributes = createEditor();
 
