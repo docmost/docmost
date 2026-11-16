@@ -1,4 +1,4 @@
-import { Group, Table, Text, Badge } from "@mantine/core";
+import { Anchor, Group, Table, Text, Badge } from "@mantine/core";
 import {
   useChangeMemberRoleMutation,
   useWorkspaceMembersQuery,
@@ -20,7 +20,10 @@ import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import MemberActionMenu from "@/features/workspace/components/members/components/members-action-menu.tsx";
 import MemberStatusFilter from "@/features/workspace/components/members/components/member-status-filter.tsx";
 import { MemberListStatus } from "@/features/workspace/types/workspace.types.ts";
+import { Link } from "react-router-dom";
+import { getUserProfileUrl } from "@/lib/config.ts";
 import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 export default function WorkspaceMembersTable() {
   const { t } = useTranslation();
@@ -85,7 +88,7 @@ export default function WorkspaceMembersTable() {
           <Table.Tbody>
             {data?.items.length > 0 ? (
               data?.items.map((user, index) => (
-                <Table.Tr key={index}>
+                <Table.Tr key={index} className={rowClasses.row}>
                   <Table.Td>
                     <Group gap="sm" wrap="nowrap">
                       <CustomAvatar
@@ -93,9 +96,24 @@ export default function WorkspaceMembersTable() {
                         name={user.name}
                       />
                       <div>
-                        <Text fz="sm" fw={500} lineClamp={1}>
-                          {user.name}
-                        </Text>
+                        {user.deletedAt ? (
+                          <Text fz="sm" fw={500} lineClamp={1}>
+                            {user.name}
+                          </Text>
+                        ) : (
+                          <Anchor
+                            component={Link}
+                            to={getUserProfileUrl(user.id)}
+                            size="sm"
+                            fw={500}
+                            underline="never"
+                            lineClamp={1}
+                            className={rowClasses.link}
+                            style={{ color: "var(--mantine-color-text)" }}
+                          >
+                            {user.name}
+                          </Anchor>
+                        )}
                         <Text fz="xs" c="dimmed">
                           {user.deletedAt
                             ? t("Deleted on {{date}}", {

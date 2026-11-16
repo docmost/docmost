@@ -65,6 +65,7 @@ export function refreshWorkspaceMembers(queryClient: QueryClient) {
   // refetchOnMount is off app-wide, so inactive copies are dropped to load fresh
   queryClient.removeQueries({ ...members, type: "inactive" });
   queryClient.invalidateQueries(members);
+  queryClient.invalidateQueries({ queryKey: ["user-profile"] });
 }
 
 export function useDeleteWorkspaceMemberMutation() {
@@ -145,6 +146,7 @@ export function useChangeMemberRoleMutation() {
       queryClient.refetchQueries({
         queryKey: ["workspaceMembers"],
       });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;

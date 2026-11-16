@@ -11,6 +11,7 @@ interface MultiGroupSelectProps {
   label?: string;
   description?: string;
   mt?: string;
+  excludeIds?: string[];
 }
 
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
@@ -29,6 +30,7 @@ export function MultiGroupSelect({
   label,
   description,
   mt,
+  excludeIds,
 }: MultiGroupSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
@@ -63,7 +65,11 @@ export function MultiGroupSelect({
 
   return (
     <MultiSelect
-      data={data}
+      data={
+        excludeIds
+          ? data.filter((option) => !excludeIds.includes(option.value))
+          : data
+      }
       renderOption={renderMultiSelectOption}
       hidePickedOptions
       maxDropdownHeight={300}

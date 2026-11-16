@@ -53,3 +53,49 @@ export enum PageEditMode {
   Read = "read",
   Edit = "edit",
 }
+
+export interface IUserProfile {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  email: string | null;
+  role: string;
+  timezone: string | null;
+  createdAt: Date;
+  deactivatedAt: Date | null;
+  deletedAt: Date | null;
+}
+
+export interface IUserProfileSpace {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+}
+
+export interface IUserProfileGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  isDefault: boolean;
+  isExternal: boolean;
+  memberCount: number;
+  addedAt: Date;
+}
+
+export interface IUserRecentPage {
+  id: string;
+  slugId: string;
+  title: string | null;
+  icon: string | null;
+  isBase: boolean;
+  spaceId: string;
+  space: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+  };
+  activity: "created" | "edited";
+  activityAt: Date;
+}

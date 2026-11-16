@@ -1,0 +1,94 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-lg);
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--mantine-spacing-md);
+  }
+}
+
+.headerBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    align-self: stretch;
+  }
+}
+
+.name {
+  word-break: break-word;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--mantine-spacing-md);
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--mantine-color-dimmed);
+  word-break: break-word;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.actions {
+  flex-shrink: 0;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-md);
+  margin-bottom: var(--mantine-spacing-xs);
+}
+
+.cardHeading {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardAction {
+  flex-shrink: 0;
+}
+
+.tabsSkeleton {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--mantine-spacing-md) * 2);
+  height: 36px;
+  padding-inline: var(--mantine-spacing-md);
+  border-bottom: 2px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.pageIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.spaceRowMain {
+  align-items: center;
+}
+
+.groupName {
+  min-width: 0;
+}
+
+.nowrap {
+  white-space: nowrap;
+}

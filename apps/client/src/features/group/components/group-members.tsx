@@ -1,9 +1,18 @@
-import { Group, Table, Text, Badge, Menu, ActionIcon } from "@mantine/core";
+import {
+  Anchor,
+  Group,
+  Table,
+  Text,
+  Badge,
+  Menu,
+  ActionIcon,
+} from "@mantine/core";
 import {
   useGroupMembersQuery,
   useRemoveGroupMemberMutation,
 } from "@/features/group/queries/group-query";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { getUserProfileUrl } from "@/lib/config.ts";
 import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
@@ -15,6 +24,7 @@ import Paginate from "@/components/common/paginate.tsx";
 import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 export default function GroupMembersList() {
   const { t } = useTranslation();
@@ -68,7 +78,7 @@ export default function GroupMembersList() {
           <Table.Tbody>
             {data?.items.length > 0 ? (
               data?.items.map((user: IUser, index: number) => (
-                <Table.Tr key={index}>
+                <Table.Tr key={index} className={rowClasses.row}>
                   <Table.Td>
                     <Group gap="sm" wrap="nowrap">
                       <CustomAvatar
@@ -76,9 +86,24 @@ export default function GroupMembersList() {
                         name={user.name}
                       />
                       <div>
-                        <Text fz="sm" fw={500} lineClamp={1}>
-                          {user.name}
-                        </Text>
+                        {user.deactivatedAt && !isAdmin ? (
+                          <Text fz="sm" fw={500} lineClamp={1}>
+                            {user.name}
+                          </Text>
+                        ) : (
+                          <Anchor
+                            component={Link}
+                            to={getUserProfileUrl(user.id)}
+                            size="sm"
+                            fw={500}
+                            underline="never"
+                            lineClamp={1}
+                            className={rowClasses.link}
+                            style={{ color: "var(--mantine-color-text)" }}
+                          >
+                            {user.name}
+                          </Anchor>
+                        )}
                         <Text fz="xs" c="dimmed">
                           {user.email}
                         </Text>
