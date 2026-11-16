@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const post = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api-client", () => ({ default: { post } }));
 vi.mock("file-saver", () => ({ saveAs: vi.fn() }));
-vi.mock("@/ee/base/utils/viewer-zone", () => ({ getViewerTimeZone: () => "Europe/Berlin" }));
 
 import { convertPageToBase, createBase, exportBaseToCsv, listCalendarRows, listRows } from "./base-service";
 import type { FilterNode } from "@/ee/base/types/base.types";
@@ -53,9 +52,9 @@ describe("base requests", () => {
   });
 
   it.each([
-    ["a new base", () => createBase({ name: "Plan", spaceId: "s1" }), "/bases/create", { name: "Plan", spaceId: "s1", timeZone: "Europe/Berlin" }],
-    ["a page turned into a base", () => convertPageToBase("p1", "kanban"), "/bases/convert", { pageId: "p1", template: "kanban", timeZone: "Europe/Berlin" }],
-  ])("sends the creator's zone with %s", async (_name, call, url, body) => {
+    ["a new base", () => createBase({ name: "Plan", spaceId: "s1" }), "/bases/create", { name: "Plan", spaceId: "s1" }],
+    ["a page turned into a base", () => convertPageToBase("p1", "kanban"), "/bases/convert", { pageId: "p1", template: "kanban" }],
+  ])("creates %s without a timezone input", async (_name, call, url, body) => {
     await call();
     expect(post).toHaveBeenCalledWith(url, body);
   });

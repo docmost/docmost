@@ -190,4 +190,9 @@ async function bootstrap() {
   });
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  new Logger('Bootstrap').error('Application failed to start', error);
+  // Redis and worker handles can keep a failed bootstrap alive without HTTP.
+  // Exit so the process supervisor can restart and resume pending upgrade work.
+  process.exit(1);
+});

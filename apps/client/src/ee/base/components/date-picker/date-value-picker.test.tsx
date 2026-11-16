@@ -240,7 +240,6 @@ describe("DateValuePicker", () => {
     const switchFor = (checked: boolean) => ({
       checked,
       propertyName: "Due",
-      baseTimeZone: "America/New_York",
       onChange: vi.fn(),
     });
     const includeTime = () => screen.getByRole("switch", { name: "Include time" }) as HTMLInputElement;

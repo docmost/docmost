@@ -20,7 +20,6 @@ export enum EventName {
   NOTIFICATION_CREATED = 'notification.created',
 
   BASE_CREATED = 'base.created',
-  BASE_UPDATED = 'base.updated',
   BASE_DELETED = 'base.deleted',
 
   BASE_ROW_CREATED = 'base.row.created',

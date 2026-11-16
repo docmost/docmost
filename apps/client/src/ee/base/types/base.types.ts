@@ -358,7 +358,6 @@ export type IBase = {
     hasRestriction: boolean;
   };
   baseSchemaVersion: number;
-  baseTimeZone?: string | null;
 };
 
 export type CellCoord = {
@@ -383,7 +382,6 @@ export type UpdateBaseInput = {
   name?: string;
   description?: string;
   icon?: string;
-  timeZone?: string;
 };
 
 export type CreatePropertyInput = {

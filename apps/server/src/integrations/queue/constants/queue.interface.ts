@@ -145,8 +145,6 @@ export interface IBaseTypeConversionJob {
   // same-type re-stage made after this job was enqueued.
   pendingToken: string;
   actorId?: string;
-  // The base zone when the conversion was accepted; a job of an older build has none.
-  zone?: string;
 }
 
 export interface IBaseCellGcJob {
@@ -164,7 +162,6 @@ export interface IBaseFormulaRecomputeJob {
     | 'formula_edited'
     | 'dep_type_changed'
     | 'dep_deleted'
-    | 'zone_changed'
     | 'refresh'
     | 'legacy_conversion'
     | 'bulk_import'

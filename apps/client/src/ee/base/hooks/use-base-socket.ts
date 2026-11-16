@@ -135,12 +135,6 @@ type BaseSubscribed = {
   schemaVersion: number;
 };
 
-type BaseUpdated = {
-  operation: "base:updated";
-  pageId: string;
-  baseTimeZone: string | null;
-};
-
 type BaseInboundEvent =
   | BaseRowCreated
   | BaseRowUpdated
@@ -152,7 +146,6 @@ type BaseInboundEvent =
   | BaseFormulaRecomputeCompleted
   | BaseSchemaBumped
   | BaseSubscribed
-  | BaseUpdated
   | BasePropertyEvent
   | BaseViewEvent
   | BaseViewShareUpdated
@@ -428,20 +421,6 @@ function createBaseEventHandler(
             });
           }
         }
-        break;
-      }
-      case "base:updated": {
-        const e = event as BaseUpdated;
-        const cached = queryClient.getQueryData<IBase>(["bases", pageId]);
-        if (!cached) break;
-        const baseTimeZone = e.baseTimeZone;
-        if (baseTimeZone !== null && typeof baseTimeZone !== "string") break;
-        if ((cached.baseTimeZone ?? null) === baseTimeZone) break;
-        queryClient.setQueryData<IBase>(["bases", pageId], {
-          ...cached,
-          baseTimeZone,
-        });
-        scheduleRowsRefresh(pageId, "all");
         break;
       }
       case "base:formula:recompute:started": {

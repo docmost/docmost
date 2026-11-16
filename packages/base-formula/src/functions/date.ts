@@ -96,7 +96,7 @@ register({
 register({
   name: "today", arity: { min: 0, max: 0 }, paramTypes: [], returnType: "date", volatile: "today",
   eval: (_args, ctx) => ({ kind: "date", value: (ctx.today ??= todayIn(ctx.zone, ctx.now)) }),
-  doc: "Today's date in the base time zone.", category: "date",
+  doc: "Today's date in UTC.", category: "date",
 });
 register({
   name: "dateAdd", arity: { min: 3, max: 3 }, paramTypes: ["date", "number", "string"],

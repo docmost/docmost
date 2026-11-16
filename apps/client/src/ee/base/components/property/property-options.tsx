@@ -36,7 +36,6 @@ import {
   TIME_FORMAT_LABELS,
 } from "@/ee/base/utils/date-format";
 import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
-import { useBaseQuery } from "@/ee/base/queries/base-query";
 import { IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
@@ -440,7 +439,6 @@ function DateOptions({
 }: OptionEditorProps) {
   const { t, i18n } = useTranslation();
   const { timeZone, today } = useViewerDateContext();
-  const { data: base } = useBaseQuery(property.pageId);
   const storedOptions = useMemo(
     () => dateTypeOptionsOf(property.typeOptions),
     [property.typeOptions],
@@ -484,7 +482,6 @@ function DateOptions({
     return (
       <RemoveTimeConfirmation
         propertyName={property.name}
-        baseTimeZone={base?.baseTimeZone ?? "UTC"}
         onCancel={() => {
           focusIncludeTimeRef.current = true;
           setConfirmingTimeRemoval(false);

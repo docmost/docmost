@@ -150,7 +150,6 @@ export interface Backlinks {
 }
 
 export interface BaseLegacyConversions {
-  convertedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
   pageId: string;
   workspaceId: string;
@@ -365,7 +364,6 @@ export interface Pages {
   id: Generated<string>;
   isBase: Generated<boolean>;
   baseSchemaVersion: Generated<number>;
-  baseTimeZone: string | null;
   isLocked: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;

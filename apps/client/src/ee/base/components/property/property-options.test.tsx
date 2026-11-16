@@ -58,15 +58,11 @@ function renderOptions(typeOptions: Record<string, unknown>, hideButtons = false
   return { onUpdate, onClose, rerenderWith: (options: Record<string, unknown>) => rerender(tree(options)) };
 }
 
-const cacheBase = (baseTimeZone: string | null) =>
-  queryClient.setQueryData(["bases", "base-1"], { id: "base-1", baseTimeZone, properties: [], views: [] });
-
 const includeTime = () => screen.getByRole("switch", { name: "Include time" });
 const button = (name: string) => screen.getByRole("button", { name });
 
 beforeEach(() => {
   stubMatchMedia();
-  cacheBase("Europe/Berlin");
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -89,21 +85,10 @@ describe("date property options", () => {
     fireEvent.click(button("Save"));
     expect(onUpdate).not.toHaveBeenCalled();
     expect(screen.getByText("Remove time from Due?")).toBeTruthy();
-    expect(screen.getByText("Cells keep their day in Europe/Berlin and lose the time.")).toBeTruthy();
+    expect(screen.getByText("Cells keep their day in UTC and lose the time.")).toBeTruthy();
     fireEvent.click(button("Remove time"));
     expect(onUpdate).toHaveBeenCalledWith({ includeTime: false, timeFormat: "24h" });
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it.each([
-    ["America/New_York", "Cells keep their day in America/New York and lose the time."],
-    [null, "Cells keep their day in UTC and lose the time."],
-  ])("names the base's zone %s when a property loses its time", (baseTimeZone, sentence) => {
-    cacheBase(baseTimeZone);
-    renderOptions({ includeTime: true });
-    fireEvent.click(includeTime());
-    fireEvent.click(button("Save"));
-    expect(screen.getByText(sentence)).toBeTruthy();
   });
 
   it("goes back to the options when the confirmation is cancelled", () => {

@@ -26,7 +26,6 @@ import {
   RowReferences,
 } from "@/ee/base/types/base.types";
 import { IPagination, IPaginationMeta } from "@/lib/types";
-import { getViewerTimeZone } from "@/ee/base/utils/viewer-zone";
 import type { ViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 
 export type IBaseRowsPage = IPagination<IBaseRow> & {
@@ -35,10 +34,7 @@ export type IBaseRowsPage = IPagination<IBaseRow> & {
 };
 
 export async function createBase(data: CreateBaseInput): Promise<IBase> {
-  const req = await api.post<IBase>("/bases/create", {
-    ...data,
-    timeZone: getViewerTimeZone(),
-  });
+  const req = await api.post<IBase>("/bases/create", data);
   return req.data;
 }
 
@@ -63,7 +59,6 @@ export async function convertPageToBase(
   const req = await api.post<IBase>("/bases/convert", {
     pageId,
     template,
-    timeZone: getViewerTimeZone(),
   });
   return req.data;
 }

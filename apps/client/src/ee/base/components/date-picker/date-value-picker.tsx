@@ -50,7 +50,6 @@ type DateValuePickerProps = {
   includeTimeSwitch?: {
     checked: boolean;
     propertyName: string;
-    baseTimeZone: string;
     onChange: (includeTime: boolean) => void;
   };
 };
@@ -247,7 +246,6 @@ export function DateValuePicker({
       <div className={clsx(classes.root, classes.confirmation)}>
         <RemoveTimeConfirmation
           propertyName={includeTimeSwitch.propertyName}
-          baseTimeZone={includeTimeSwitch.baseTimeZone}
           onCancel={() => {
             focusIncludeTimeRef.current = true;
             setConfirmingTimeRemoval(false);

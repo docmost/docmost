@@ -46,7 +46,7 @@ function stubMatchMedia() {
 }
 
 const view = { id: "view-1", pageId: "base-1", name: "Table", type: "table", config: {} } as unknown as IBaseView;
-const base = { id: "base-1", spaceId: "space-1", name: "Plan", baseTimeZone: null, properties: [], views: [view] } as unknown as IBase;
+const base = { id: "base-1", spaceId: "space-1", name: "Plan", properties: [], views: [view] } as unknown as IBase;
 
 const table = {
   getAllLeafColumns: () => [],
@@ -76,16 +76,9 @@ beforeEach(stubMatchMedia);
 afterEach(cleanup);
 
 describe("BaseToolbar", () => {
-  it("offers Base settings to someone who can edit the base", () => {
-    editable.current = true;
-    renderToolbar();
-    expect(screen.getByRole("button", { name: "Base settings" })).toBeTruthy();
-  });
-
-  it("offers no Base settings to a viewer", () => {
+  it("allows a viewer to export the base", () => {
     editable.current = false;
     renderToolbar();
-    expect(screen.queryByRole("button", { name: "Base settings" })).toBeNull();
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
   });
 

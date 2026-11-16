@@ -34,8 +34,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .column('page_id')
     .execute();
 
-  await db.schema.alterTable('pages').addColumn('base_time_zone', 'text').execute();
-
   await db.schema
     .createTable('base_legacy_conversions')
     .addColumn('page_id', 'uuid', (col) =>
@@ -44,13 +42,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('converted_at', 'timestamptz')
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
     .execute();
 
-  // The bases whose released date and formula cells a job converts after start-up.
+  // Snapshot bases that may contain legacy date/formula cells. Application
+  // startup converts the list before this version serves requests or base jobs.
+  // Old instances can still write legacy values after conversion.
   await sql`
     INSERT INTO base_legacy_conversions (page_id, workspace_id)
     SELECT DISTINCT ON (page_id) page_id, workspace_id
@@ -62,7 +61,6 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('base_legacy_conversions').execute();
-  await db.schema.alterTable('pages').dropColumn('base_time_zone').execute();
   await db.schema.dropTable('base_view_shares').execute();
 
   // Lossy: the end of a range is dropped, and formula cells keep the values the newer engine computed.
