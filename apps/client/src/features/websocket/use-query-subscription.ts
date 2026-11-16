@@ -12,6 +12,7 @@ import {
   invalidateOnUpdatePage,
 } from "../page/queries/page-query";
 import { RQ_KEY } from "../comment/queries/comment-query";
+import { applySpaceArchiveChange } from "../space/queries/space-query";
 import { IComment } from "@/features/comment/types/comment.types";
 
 export const useQuerySubscription = () => {
@@ -150,6 +151,14 @@ export const useQuerySubscription = () => {
           queryClient.invalidateQueries({
             queryKey: ["page-verification-info", data.pageId],
           });
+          break;
+        case "spaceArchiveUpdated":
+          applySpaceArchiveChange(
+            queryClient,
+            data.spaceId,
+            data.archivedAt,
+            data.archivedBy ?? null,
+          );
           break;
       }
     });

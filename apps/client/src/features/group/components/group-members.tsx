@@ -86,7 +86,13 @@ export default function GroupMembersList() {
                     </Group>
                   </Table.Td>
                   <Table.Td>
-                    <Badge variant="light">{t("Active")}</Badge>
+                    {user.deactivatedAt ? (
+                      <Badge variant="light" color="orange">
+                        {t("Deactivated")}
+                      </Badge>
+                    ) : (
+                      <Badge variant="light">{t("Active")}</Badge>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     {isAdmin && (

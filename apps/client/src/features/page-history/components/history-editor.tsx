@@ -5,10 +5,20 @@ import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Title } from "@mantine/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import historyClasses from "./css/history.module.css";
+import { normalizeHistoryTitle } from "@/features/page-history/utils/normalize-history-title";
+import { splitChangeRange } from "@/features/page-history/utils/split-change-range";
+import { createHistoryTokenEncoder } from "@/features/page-history/utils/history-token-encoder";
+import { inlineFragment } from "@/features/page-history/utils/inline-fragment";
+import {
+  formatChange,
+  markChangeLabel,
+  nodeChangeLabel,
+} from "@/features/page-history/utils/format-change";
 import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "@tiptap/pm/changeset";
 import { useAtom } from "jotai";
+import { useTranslation } from "react-i18next";
 import {
   diffCountsAtom,
   highlightChangesAtom,
@@ -18,15 +28,24 @@ export interface HistoryEditorProps {
   title: string;
   content: any;
   previousContent?: any;
+  previousTitle?: string | null;
 }
 
 export function HistoryEditor({
   title,
   content,
   previousContent,
+  previousTitle,
 }: HistoryEditorProps) {
+  const { t } = useTranslation();
   const [highlightChanges] = useAtom(highlightChangesAtom);
   const [, setDiffCounts] = useAtom(diffCountsAtom);
+
+  // The title is change 1 when it differs from the previous version
+  const titleChanged =
+    !!previousContent &&
+    previousTitle !== undefined &&
+    normalizeHistoryTitle(previousTitle) !== normalizeHistoryTitle(title);
 
   const editor = useEditor({
     extensions: mainExtensions,
@@ -38,8 +57,9 @@ export function HistoryEditor({
     if (!editor || editor.isDestroyed || !content) return;
 
     let decorationSet = DecorationSet.empty;
-    let addedCount = 0;
+    let addedCount = titleChanged ? 1 : 0;
     let deletedCount = 0;
+    let formattedCount = 0;
 
     if (previousContent) {
       try {
@@ -53,11 +73,11 @@ export function HistoryEditor({
           simplifyDiff: true,
         });
 
-        const changeSet = ChangeSet.create(oldContent).addSteps(
-          tr.doc,
-          tr.mapping.maps,
-          [],
-        );
+        const changeSet = ChangeSet.create(
+          oldContent,
+          undefined,
+          createHistoryTokenEncoder(),
+        ).addSteps(tr.doc, tr.mapping.maps, []);
         const changes = simplifyChanges(changeSet.changes, newContent);
 
         editor.commands.setContent(content);
@@ -77,86 +97,141 @@ export function HistoryEditor({
         ]);
 
         const decorations: Decoration[] = [];
-        let changeIndex = 0;
+        let changeIndex = titleChanged ? 1 : 0;
 
         for (const change of changes) {
-          if (change.toB > change.fromB) {
+          // text that only changed formatting shows once, on the new side
+          const format = formatChange(oldContent, newContent, change);
+          if (format) {
+            if (format.ranges.length || format.nodes.length) {
+              changeIndex++;
+              const currentIndex = changeIndex;
+              const label = markChangeLabel(format, t);
+
+              for (const range of format.ranges) {
+                decorations.push(
+                  Decoration.inline(range.from, range.to, {
+                    class: "history-diff-formatted",
+                    title: label,
+                    "data-diff-index": String(currentIndex),
+                  }),
+                );
+              }
+              for (const { pos, node, oldNode } of format.nodes) {
+                const nodeLabel = nodeChangeLabel(oldNode, node, t);
+                decorations.push(
+                  Decoration.node(pos, pos + node.nodeSize, {
+                    class: "history-diff-node-formatted",
+                    "data-diff-label": nodeLabel,
+                    "data-diff-index": String(currentIndex),
+                  }),
+                );
+              }
+              formattedCount += 1;
+            }
+            continue;
+          }
+
+          const added = splitChangeRange(
+            newContent,
+            change.fromB,
+            change.toB,
+            specialNodeTypes,
+          );
+          if (added.length) {
             changeIndex++;
             const currentIndex = changeIndex;
-            let foundSpecialNode: { node: Node; pos: number } | null = null;
-            newContent.nodesBetween(change.fromB, change.toB, (node, pos) => {
-              if (specialNodeTypes.has(node.type.name)) {
-                const nodeEnd = pos + node.nodeSize;
-                if (change.fromB <= pos && change.toB >= nodeEnd) {
-                  foundSpecialNode = { node, pos };
-                  return false;
-                }
-              }
-            });
 
-            if (foundSpecialNode) {
-              const nodeEnd =
-                foundSpecialNode.pos + foundSpecialNode.node.nodeSize;
+            for (const segment of added) {
               decorations.push(
-                Decoration.node(foundSpecialNode.pos, nodeEnd, {
-                  class: "history-diff-node-added",
-                  "data-diff-index": String(currentIndex),
-                }),
-              );
-            } else {
-              decorations.push(
-                Decoration.inline(change.fromB, change.toB, {
-                  class: "history-diff-added",
-                  "data-diff-index": String(currentIndex),
-                }),
+                segment.node
+                  ? Decoration.node(segment.from, segment.to, {
+                      class: "history-diff-node-added",
+                      "data-diff-index": String(currentIndex),
+                    })
+                  : Decoration.inline(segment.from, segment.to, {
+                      class: "history-diff-added",
+                      "data-diff-index": String(currentIndex),
+                    }),
               );
             }
             addedCount += 1;
           }
-          if (change.toA > change.fromA) {
+          const deleted = splitChangeRange(
+            oldContent,
+            change.fromA,
+            change.toA,
+            specialNodeTypes,
+          );
+          if (deleted.length) {
             changeIndex++;
             const currentIndex = changeIndex;
-            let foundDeletedNode: { node: Node; pos: number } | null = null;
-            oldContent.nodesBetween(change.fromA, change.toA, (node, pos) => {
-              if (specialNodeTypes.has(node.type.name)) {
-                const nodeEnd = pos + node.nodeSize;
-                if (change.fromA <= pos && change.toA >= nodeEnd) {
-                  foundDeletedNode = { node, pos };
-                  return false;
-                }
-              }
-            });
 
-            if (foundDeletedNode) {
-              decorations.push(
-                Decoration.widget(change.fromB, () => {
-                  const wrapper = document.createElement("div");
-                  wrapper.className = "history-diff-node-deleted";
-                  wrapper.setAttribute("data-diff-index", String(currentIndex));
-                  const serializer = DOMSerializer.fromSchema(schema);
-                  const dom = serializer.serializeNode(foundDeletedNode!.node);
-                  wrapper.appendChild(dom);
-                  return wrapper;
-                }),
+            // side keeps the deleted pieces in document order at the same position
+            deleted.forEach((segment, side) => {
+              // empty marks keep it out of the formatting of the text after it
+              const spec = { side, marks: [] };
+              const deletedNode = segment.node;
+              if (deletedNode) {
+                decorations.push(
+                  Decoration.widget(
+                    change.fromB,
+                    () => {
+                      const wrapper = document.createElement("div");
+                      wrapper.className = "history-diff-node-deleted";
+                      wrapper.setAttribute(
+                        "data-diff-index",
+                        String(currentIndex),
+                      );
+                      const serializer = DOMSerializer.fromSchema(schema);
+                      const dom = serializer.serializeNode(deletedNode);
+                      wrapper.appendChild(dom);
+                      return wrapper;
+                    },
+                    spec,
+                  ),
+                );
+                return;
+              }
+
+              // keep the old marks so removed formatting still shows
+              const fragment = inlineFragment(
+                oldContent,
+                segment.from,
+                segment.to,
               );
-            } else {
               const deletedText = oldContent.textBetween(
-                change.fromA,
-                change.toA,
+                segment.from,
+                segment.to,
                 "",
               );
-              if (deletedText) {
+              if (fragment || deletedText) {
                 decorations.push(
-                  Decoration.widget(change.fromB, () => {
-                    const span = document.createElement("span");
-                    span.className = "history-diff-deleted";
-                    span.setAttribute("data-diff-index", String(currentIndex));
-                    span.textContent = deletedText;
-                    return span;
-                  }),
+                  Decoration.widget(
+                    change.fromB,
+                    () => {
+                      const span = document.createElement("span");
+                      span.className = "history-diff-deleted";
+                      span.setAttribute(
+                        "data-diff-index",
+                        String(currentIndex),
+                      );
+                      if (fragment) {
+                        span.appendChild(
+                          DOMSerializer.fromSchema(schema).serializeFragment(
+                            fragment,
+                          ),
+                        );
+                      } else {
+                        span.textContent = deletedText;
+                      }
+                      return span;
+                    },
+                    spec,
+                  ),
                 );
               }
-            }
+            });
             deletedCount += 1;
           }
         }
@@ -170,7 +245,7 @@ export function HistoryEditor({
       editor.commands.setContent(content);
     }
 
-    const total = addedCount + deletedCount;
+    const total = addedCount + deletedCount + formattedCount;
     setDiffCounts({ added: addedCount, deleted: deletedCount, total });
 
     editor.setOptions({
@@ -185,18 +260,33 @@ export function HistoryEditor({
     content,
     editor,
     previousContent,
+    titleChanged,
     highlightChanges,
     setDiffCounts,
+    t,
   ]);
 
   return (
-    <div>
-      <Title order={1}>{title}</Title>
+    <div className={historyClasses.historyEditor}>
+      <Title order={1}>
+        {titleChanged && highlightChanges ? (
+          <>
+            {previousTitle && (
+              <span className="history-diff-deleted" data-diff-index="1">
+                {previousTitle}
+              </span>
+            )}
+            {previousTitle && " "}
+            <span className="history-diff-added" data-diff-index="1">
+              {title}
+            </span>
+          </>
+        ) : (
+          title
+        )}
+      </Title>
       {editor && (
-        <EditorContent
-          editor={editor}
-          className={historyClasses.historyEditor}
-        />
+        <EditorContent editor={editor} />
       )}
     </div>
   );

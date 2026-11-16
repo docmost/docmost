@@ -44,6 +44,8 @@ export const AuditEvent = {
   SPACE_CREATED: 'space.created',
   SPACE_UPDATED: 'space.updated',
   SPACE_DELETED: 'space.deleted',
+  SPACE_ARCHIVED: 'space.archived',
+  SPACE_UNARCHIVED: 'space.unarchived',
   SPACE_MEMBER_ADDED: 'space.member_added',
   SPACE_MEMBER_REMOVED: 'space.member_removed',
   SPACE_MEMBER_ROLE_CHANGED: 'space.member_role_changed',
@@ -81,10 +83,13 @@ export const AuditEvent = {
   PAGE_VERIFICATION_CREATED: 'page.verification_created',
   PAGE_VERIFICATION_UPDATED: 'page.verification_updated',
   PAGE_VERIFICATION_REMOVED: 'page.verification_removed',
+  PAGE_VERIFIER_ADDED: 'page.verifier_added',
+  PAGE_VERIFIER_REMOVED: 'page.verifier_removed',
   PAGE_VERIFIED: 'page.verified',
   PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
   PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
   PAGE_MARKED_OBSOLETE: 'page.marked_obsolete',
+  PAGE_VERIFICATION_INVALIDATED: 'page.verification_invalidated',
 
   // Share
   SHARE_CREATED: 'share.created',
@@ -122,6 +127,13 @@ export const AuditEvent = {
   // Template
   TEMPLATE_CREATED: 'template.created',
   TEMPLATE_DELETED: 'template.deleted',
+
+  // Announcement
+  ANNOUNCEMENT_CREATED: 'announcement.created',
+  ANNOUNCEMENT_UPDATED: 'announcement.updated',
+  ANNOUNCEMENT_ARCHIVED: 'announcement.archived',
+  ANNOUNCEMENT_UNARCHIVED: 'announcement.unarchived',
+  ANNOUNCEMENT_DELETED: 'announcement.deleted',
 } as const;
 
 export type AuditEventType = (typeof AuditEvent)[keyof typeof AuditEvent];
@@ -154,6 +166,7 @@ export const AuditResource = {
   LICENSE: 'license',
   SIEM_DESTINATION: 'siem_destination',
   TEMPLATE: 'template',
+  ANNOUNCEMENT: 'announcement',
 } as const;
 
 export type AuditResourceType =

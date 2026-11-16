@@ -118,6 +118,7 @@ export class LabelRepo {
   ) {
     // Label visibility is scoped to space membership: a label surfaces if it
     // is attached to any non-deleted page in a space the user belongs to.
+    // Archived spaces are left out.
     // Per-page permission restrictions intentionally do not narrow this
     // further — labels are a space-level concept, not a page-level one.
     let query = this.db
@@ -136,7 +137,9 @@ export class LabelRepo {
           .where(
             'pages.spaceId',
             'in',
-            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+              excludeArchived: true,
+            }),
           ),
       );
 
@@ -320,7 +323,9 @@ export class LabelRepo {
       query = query.where(
         'pages.spaceId',
         'in',
-        this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+          excludeArchived: true,
+        }),
       );
     }
 
@@ -361,7 +366,9 @@ export class LabelRepo {
       query = query.where(
         'pages.spaceId',
         'in',
-        this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+          excludeArchived: true,
+        }),
       );
     }
 

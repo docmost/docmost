@@ -13,6 +13,22 @@ export const MAX_PROVIDER_RESPONSE_BYTES = 2 * 1024 * 1024;
 // Enough of the body to log why a provider refused ("insufficient scope", ...).
 const MAX_ERROR_BODY_CHARS = 300;
 
+const MIN_RETRY_AFTER_SECONDS = 1;
+const MAX_RETRY_AFTER_SECONDS = 120;
+
+function parseRetryAfter(headerValue: string | null): number | undefined {
+  if (!headerValue) return undefined;
+  const value = headerValue.trim();
+  const seconds = /^\d+$/.test(value)
+    ? Number(value)
+    : (Date.parse(value) - Date.now()) / 1000;
+  if (!Number.isFinite(seconds)) return undefined;
+  return Math.min(
+    MAX_RETRY_AFTER_SECONDS,
+    Math.max(MIN_RETRY_AFTER_SECONDS, Math.round(seconds)),
+  );
+}
+
 // Buffers the body into a new Response, giving up as soon as it passes the cap.
 export async function readCappedResponse(
   providerName: string,
@@ -112,6 +128,9 @@ export async function providerApiFetch(
       providerName,
       response.status,
       `${response.statusText} ${body}`.trim(),
+      response.status === 429
+        ? parseRetryAfter(response.headers.get('retry-after'))
+        : undefined,
     );
   }
   return readCappedResponse(providerName, response);

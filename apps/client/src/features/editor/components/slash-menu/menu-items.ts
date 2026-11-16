@@ -54,14 +54,18 @@ import {
   FigmaIcon,
   FramerIcon,
   GoogleDriveIcon,
-  GoogleSheetsIcon,
   LoomIcon,
+  Microsoft365Icon,
   MiroIcon,
   TypeformIcon,
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
 import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/insert-base-embed";
+import { notifications } from "@mantine/notifications";
+import { isIntegrationInstalled } from "@/features/integration/utils/installed-integrations";
+import { requestMicrosoftPicker } from "@/features/microsoft/atoms/microsoft-atoms";
+import { isCloud } from "@/lib/config";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -779,8 +783,17 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Google Drive",
-      description: "Embed Google Drive content",
-      searchTerms: ["google drive", "gdrive"],
+      description: "Embed Google Docs, Sheets, Slides or Drive files",
+      searchTerms: [
+        "google drive",
+        "gdrive",
+        "google docs",
+        "gdocs",
+        "google sheets",
+        "gsheets",
+        "google slides",
+        "gslides",
+      ],
       icon: GoogleDriveIcon,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -792,16 +805,26 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
-      title: "Google Sheets",
-      description: "Embed Google Sheets content",
-      searchTerms: ["google sheets", "gsheets"],
-      icon: GoogleSheetsIcon,
+      title: "SharePoint file",
+      description: "Embed a SharePoint file",
+      searchTerms: ["sharepoint", "onedrive", "microsoft", "office", "word", "excel", "powerpoint", "m365"],
+      icon: Microsoft365Icon,
+      disable: () => isCloud(),
       command: ({ editor, range }: CommandProps) => {
+        if (!isIntegrationInstalled("microsoft_365")) {
+          notifications.show({
+            message: i18n.t("Ask a workspace admin to install the Microsoft 365 integration first"),
+            color: "red",
+          });
+          return;
+        }
+        const pendingKey = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+        requestMicrosoftPicker(pendingKey);
         editor
           .chain()
           .focus()
           .deleteRange(range)
-          .setEmbed({ provider: "gsheets" })
+          .setMicrosoftFile({ items: [], pendingKey })
           .run();
       },
     },

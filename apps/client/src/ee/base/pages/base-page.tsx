@@ -22,7 +22,11 @@ export default function BasePage() {
     <Container
       fluid
       p="md"
-      style={{ height: "calc(100vh - 60px)", display: "flex", flexDirection: "column" }}
+      style={{
+        height: "calc(100vh - 60px - var(--announcement-banners-height, 0px))",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       {base && (
         <Title order={3} mb="xs">

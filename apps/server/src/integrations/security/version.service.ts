@@ -1,20 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import {
+  CacheKey,
+  LATEST_VERSION_CACHE_TTL_MS,
+} from '../../common/helpers/cache-keys';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const packageJson = require('./../../../package.json');
 
 @Injectable()
 export class VersionService {
-  constructor() {}
+  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
   async getVersion() {
     const url = `https://api.github.com/repos/docmost/docmost/releases/latest`;
 
-    let latestVersion = 0;
+    let latestVersion: string | number = 0;
     try {
-      const response = await fetch(url);
-      if (!response.ok) return;
-      const data = await response.json();
-      latestVersion = data?.tag_name?.replace('v', '');
+      const cached = await this.cacheManager.get<string>(
+        CacheKey.LATEST_VERSION,
+      );
+      if (cached) {
+        latestVersion = cached;
+      } else {
+        const response = await fetch(url);
+        if (!response.ok) return;
+        const data = await response.json();
+        latestVersion = data?.tag_name?.replace('v', '');
+        await this.cacheManager.set(
+          CacheKey.LATEST_VERSION,
+          latestVersion,
+          LATEST_VERSION_CACHE_TTL_MS,
+        );
+      }
     } catch (err) {
       /* empty */
     }

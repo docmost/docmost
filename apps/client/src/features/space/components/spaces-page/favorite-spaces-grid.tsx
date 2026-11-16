@@ -1,4 +1,4 @@
-import { Text, SimpleGrid, Card, rem, Group, Box, Button, Title } from "@mantine/core";
+import { Text, SimpleGrid, Card, rem, Group, Box, Button, Title, Badge } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -67,9 +67,21 @@ export default function FavoriteSpacesGrid() {
               size="md"
               mt={rem(-20)}
             />
-            <Text fz="md" fw={500} mt="xs" className={spaceClasses.title}>
-              {fav.space!.name}
-            </Text>
+            <Group gap="xs" wrap="nowrap" mt="xs">
+              <Text fz="md" fw={500} className={spaceClasses.title}>
+                {fav.space!.name}
+              </Text>
+              {fav.space!.archivedAt && (
+                <Badge
+                  size="xs"
+                  variant="light"
+                  color="gray"
+                  style={{ flexShrink: 0 }}
+                >
+                  {t("Archived")}
+                </Badge>
+              )}
+            </Group>
           </Card>
         ))}
       </SimpleGrid>

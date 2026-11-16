@@ -27,6 +27,7 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('labels')
@@ -37,6 +38,7 @@ export class LabelController {
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/')
   async getLabels(
@@ -53,6 +55,7 @@ export class LabelController {
     );
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('pages')
   async findPagesByLabel(

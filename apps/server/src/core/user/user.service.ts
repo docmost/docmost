@@ -33,12 +33,7 @@ export class UserService {
     userId: string,
     workspace: Workspace,
   ) {
-    const includePassword =
-      updateUserDto.email != null && updateUserDto.confirmPassword != null;
-
-    const user = await this.userRepo.findById(userId, workspace.id, {
-      includePassword,
-    });
+    const user = await this.userRepo.findById(userId, workspace.id);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -102,9 +97,13 @@ export class UserService {
         );
       }
 
+      const { password } = await this.userRepo.findById(userId, workspace.id, {
+        includePassword: true,
+      });
+
       const isPasswordMatch = await comparePasswordHash(
         updateUserDto.confirmPassword,
-        user.password,
+        password,
       );
 
       if (!isPasswordMatch) {

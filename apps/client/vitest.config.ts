@@ -15,6 +15,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // node's own localStorage hides jsdom's
+    execArgv: ['--no-webstorage'],
     globals: true,
     setupFiles: [],
   },

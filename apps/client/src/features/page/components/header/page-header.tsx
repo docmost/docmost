@@ -1,7 +1,7 @@
 import classes from "./page-header.module.css";
 import PageHeaderMenu from "@/features/page/components/header/page-header-menu.tsx";
 import { Badge, Group, Tooltip } from "@mantine/core";
-import { IconExternalLink, IconWorld } from "@tabler/icons-react";
+import { IconExternalLink, IconHome, IconWorld } from "@tabler/icons-react";
 import Breadcrumb from "@/features/page/components/breadcrumbs/breadcrumb.tsx";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -30,11 +30,30 @@ export default function PageHeader({ readOnly }: Props) {
     page &&
     page.permissions?.hasRestriction !== true;
 
+  const isSpaceHome = !!page && space?.homePageId === page.id;
+
   return (
     <div className={classes.header} data-page-header="true">
       <Group justify="space-between" h="100%" px="md" wrap="nowrap" className={classes.group}>
         <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
           <Breadcrumb />
+
+          {isSpaceHome && (
+            <Tooltip
+              label={t("The page people see when they open this space.")}
+              openDelay={250}
+              withArrow
+            >
+              <Badge
+                size="sm"
+                variant="light"
+                leftSection={<IconHome size={12} />}
+                style={{ flexShrink: 0 }}
+              >
+                {t("Home page")}
+              </Badge>
+            </Tooltip>
+          )}
 
           {showPublicBadge && (
             <Tooltip label={t("Open public page")} openDelay={250} withArrow>

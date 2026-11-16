@@ -24,6 +24,7 @@ export interface IWorkspace {
   aiSearch?: boolean;
   generativeAi?: boolean;
   disablePublicSharing?: boolean;
+  disableExport?: boolean;
   allowPublicSpaces?: boolean;
   publicSpacesDirectory?: boolean;
   mcpEnabled?: boolean;
@@ -42,6 +43,7 @@ export interface IWorkspace {
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
   sharing?: IWorkspaceSharingSettings;
+  export?: IWorkspaceExportSettings;
   api?: IWorkspaceApiSettings;
   templates?: IWorkspaceTemplateSettings;
   spaces?: IWorkspaceSpaceSettings;
@@ -68,6 +70,10 @@ export interface IWorkspaceSharingSettings {
   disabled?: boolean;
 }
 
+export interface IWorkspaceExportSettings {
+  disabled?: boolean;
+}
+
 export interface IWorkspaceTemplateSettings {
   allowMemberTemplates?: boolean;
 }
@@ -81,10 +87,13 @@ export interface IWorkspacePublicSpacesSettings {
   directory?: boolean;
 }
 
+export type MemberListStatus = "active" | "deactivated" | "deleted" | "all";
+
 export interface ICreateInvite {
   role: string;
   emails: string[];
   groupIds: string[];
+  message?: string;
 }
 
 export interface IInvitation {

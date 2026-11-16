@@ -76,15 +76,22 @@ export default function FavoritesPages({ spaceId }: Props) {
                   {!spaceId && (
                     <Table.Td>
                       {fav.space && (
-                        <Badge
-                          color={getInitialsColor(fav.space.name)}
-                          variant="light"
-                          component={Link}
-                          to={getSpaceUrl(fav.space.slug)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {fav.space.name}
-                        </Badge>
+                        <Group gap="xs" wrap="nowrap">
+                          <Badge
+                            color={getInitialsColor(fav.space.name)}
+                            variant="light"
+                            component={Link}
+                            to={getSpaceUrl(fav.space.slug)}
+                            style={{ cursor: "pointer" }}
+                          >
+                            {fav.space.name}
+                          </Badge>
+                          {fav.space.archivedAt && (
+                            <Badge size="xs" variant="light" color="gray">
+                              {t("Archived")}
+                            </Badge>
+                          )}
+                        </Group>
                       )}
                     </Table.Td>
                   )}

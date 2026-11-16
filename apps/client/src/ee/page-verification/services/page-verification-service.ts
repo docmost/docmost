@@ -3,6 +3,7 @@ import {
   IPageVerificationInfo,
   ISetupVerification,
   IUpdateVerification,
+  IVerificationChanges,
   IVerificationListItem,
   IVerificationListParams,
 } from "@/ee/page-verification/types/page-verification.types";
@@ -13,6 +14,16 @@ export async function getVerificationInfo(
 ): Promise<IPageVerificationInfo> {
   const req = await api.post<IPageVerificationInfo>(
     "/pages/verification-info",
+    { pageId },
+  );
+  return req.data;
+}
+
+export async function getVerificationChanges(
+  pageId: string,
+): Promise<IVerificationChanges> {
+  const req = await api.post<IVerificationChanges>(
+    "/pages/verification-changes",
     { pageId },
   );
   return req.data;

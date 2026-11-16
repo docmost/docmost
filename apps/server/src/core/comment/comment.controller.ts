@@ -33,6 +33,7 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 import { WsService } from '../../ws/ws.service';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -104,6 +105,7 @@ export class CommentController {
     return this.commentService.findByPageId(page.id, pagination);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('info')
   async findOne(

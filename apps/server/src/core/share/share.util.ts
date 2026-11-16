@@ -15,7 +15,7 @@ export function updateAttachmentAttr(
   }
 }
 
-function updateAttachmentUrl(src: string, jwtToken: string) {
+export function updateAttachmentUrl(src: string, jwtToken: string) {
   const updatedSrc = src.replace('/files/', '/files/public/');
   const separator = updatedSrc.includes('?') ? '&' : '?';
   return `${updatedSrc}${separator}jwt=${jwtToken}`;

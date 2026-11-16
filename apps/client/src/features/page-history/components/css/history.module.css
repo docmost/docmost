@@ -68,6 +68,43 @@
     outline-offset: rem(4px);
     border-radius: rem(4px);
   }
+
+  & :global(.history-diff-formatted) {
+    border-bottom: rem(2px) dotted
+      light-dark(var(--mantine-color-blue-5), var(--mantine-color-blue-7));
+    cursor: help;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  & :global(.history-diff-node-formatted) {
+    position: relative;
+    outline: rem(1px) solid
+      light-dark(var(--mantine-color-blue-2), var(--mantine-color-blue-9));
+    outline-offset: rem(2px);
+    border-radius: rem(4px);
+  }
+
+  & :global(.history-diff-node-formatted)::after {
+    content: attr(data-diff-label);
+    position: absolute;
+    top: rem(-3px);
+    right: rem(8px);
+    transform: translateY(-50%);
+    padding: 0 rem(6px);
+    border-radius: rem(4px);
+    font-size: var(--mantine-font-size-xs);
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.5;
+    white-space: nowrap;
+    color: light-dark(var(--mantine-color-blue-9), var(--mantine-color-blue-0));
+    background: light-dark(
+      var(--mantine-color-blue-0),
+      var(--mantine-color-blue-9)
+    );
+    pointer-events: none;
+  }
 }
 
 .active {

@@ -161,6 +161,7 @@ export class PublicSpaceService {
 
     if (includeContent) {
       page.content = await this.shareService.updatePublicAttachments(page);
+      page.coverPhoto = await this.shareService.updatePublicCoverPhoto(page);
     }
 
     return {

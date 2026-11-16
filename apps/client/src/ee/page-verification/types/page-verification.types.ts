@@ -1,3 +1,5 @@
+import type { JSONContent } from "@tiptap/react";
+
 export type VerificationType = "expiring" | "qms";
 
 export type ExpirationMode = "period" | "fixed" | "indefinite";
@@ -12,6 +14,7 @@ export type VerificationStatus =
   | "in_approval"
   | "approved"
   | "obsolete"
+  | "invalidated"
   | "none";
 
 export type IUserRef = {
@@ -43,9 +46,57 @@ export type IPageVerificationInfo = {
   rejectedAt?: string | null;
   rejectedBy?: IUserRef | null;
   rejectionComment?: string | null;
+  invalidatedAt?: string | null;
+  invalidatedBy?: IUserRef | null;
+  verifiedHistoryId?: string | null;
+  rejectedHistoryId?: string | null;
   verifiers?: IVerifier[];
   permissions?: IPageVerificationPermissions;
 };
+
+export type VerificationChangesBaselineKind = "verified" | "rejected";
+
+export type IVerificationChangesBaseline = {
+  historyId: string;
+  title: string | null;
+  content: JSONContent;
+  hasChanges: boolean;
+};
+
+export type IVerificationChanges = {
+  type: VerificationType;
+  verified:
+    | (IVerificationChangesBaseline & {
+        verifiedAt: string | null;
+        verifiedBy: IUserRef | null;
+      })
+    | null;
+  rejected:
+    | (IVerificationChangesBaseline & {
+        rejectedAt: string | null;
+        rejectedBy: IUserRef | null;
+      })
+    | null;
+  current: {
+    title: string | null;
+    content: JSONContent;
+    updatedAt: string;
+    lastUpdatedBy: IUserRef | null;
+  };
+};
+
+export type ReviewChangesRequest = {
+  pageId: string;
+  source: "modal" | "link";
+};
+
+export type BaselineCopy = {
+  title: string;
+  byLine: (values: { name: string; time: string }) => string;
+  matches: string;
+};
+
+export type ReviewLinkTarget = "review" | "verification" | "none";
 
 export type IPageVerificationPermissions = {
   canVerify: boolean;
@@ -83,6 +134,7 @@ export type IVerificationListItem = {
   periodAmount: number | null;
   periodUnit: PeriodUnit | null;
   verifiedAt: string | null;
+  verifiedBy: IUserRef | null;
   expiresAt: string | null;
   createdAt: string;
   pageTitle: string | null;

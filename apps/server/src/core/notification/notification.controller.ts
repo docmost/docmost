@@ -11,12 +11,14 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User } from '@docmost/db/types/entity.types';
 import { ListNotificationsDto, MarkNotificationsReadDto } from './dto/notification.dto';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/')
   async getNotifications(
@@ -26,6 +28,7 @@ export class NotificationController {
     return this.notificationService.findByUserId(user.id, dto, dto.type);
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('unread-count')
   async getUnreadCount(@AuthUser() user: User) {

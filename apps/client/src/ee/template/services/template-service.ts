@@ -5,6 +5,7 @@ import { IPagination } from "@/lib/types.ts";
 
 export async function getTemplates(params?: {
   spaceId?: string;
+  currentSpaceId?: string;
   cursor?: string;
   limit?: number;
 }): Promise<IPagination<ITemplate>> {

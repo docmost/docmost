@@ -114,6 +114,18 @@ export interface IApprovalRejectedNotificationJob {
   comment?: string;
 }
 
+export interface IVerificationInvalidatedJob {
+  verificationId: string;
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string | null;
+  verificationType: string;
+  previousStatus: string;
+  newStatus: string;
+  source: 'content' | 'title';
+}
+
 export interface IBaseTypeConversionJob {
   pageId: string;
   propertyId: string;
@@ -156,4 +168,8 @@ export interface IBaseFormulaRecomputeJob {
   // When set, scope recompute to these row IDs instead of the whole base.
   // Used by the bulk-write path (> FORMULA_INLINE_ROW_THRESHOLD).
   rowIds?: string[];
+}
+
+export interface IBaseCsvImportJob {
+  fileTaskId: string;
 }

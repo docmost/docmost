@@ -15,6 +15,10 @@ import {
   VerificationStatus,
 } from "@/ee/page-verification/types/page-verification.types";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
+import {
+  getStatusBadgeColor,
+  getStatusLabel,
+} from "@/ee/page-verification/components/verification-status";
 import { buildPageUrl } from "@/features/page/page.utils";
 import NoTableResults from "@/components/common/no-table-results";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
@@ -29,24 +33,12 @@ type VerificationListTableProps = {
 };
 
 function statusBadge(status: VerificationStatus | null, t: (s: string) => string) {
-  switch (status) {
-    case "verified":
-      return <Badge color="green" variant="light" size="sm">{t("Verified")}</Badge>;
-    case "expiring":
-      return <Badge color="orange" variant="light" size="sm">{t("Expiring")}</Badge>;
-    case "expired":
-      return <Badge color="red" variant="light" size="sm">{t("Expired")}</Badge>;
-    case "approved":
-      return <Badge color="green" variant="light" size="sm">{t("Approved")}</Badge>;
-    case "draft":
-      return <Badge color="gray" variant="light" size="sm">{t("Draft")}</Badge>;
-    case "in_approval":
-      return <Badge color="blue" variant="light" size="sm">{t("In approval")}</Badge>;
-    case "obsolete":
-      return <Badge color="red" variant="light" size="sm">{t("Obsolete")}</Badge>;
-    default:
-      return null;
-  }
+  if (!status || status === "none") return null;
+  return (
+    <Badge color={getStatusBadgeColor(status)} variant="light" size="sm">
+      {getStatusLabel(status, t)}
+    </Badge>
+  );
 }
 
 function verifiedUntilText(
@@ -59,6 +51,7 @@ function verifiedUntilText(
     return "—";
   }
 
+  if (item.status === "invalidated") return "—";
   if (!item.expiresAt) return t("Indefinitely");
 
   const expires = new Date(item.expiresAt);

@@ -1,11 +1,30 @@
+import { ForbiddenException } from '@nestjs/common';
 import { UserRole } from '../../common/helpers/types/permission';
-import { SUPPORTED_LOCALES } from './workspace.constants';
+import {
+  SUPPORTED_LOCALES,
+  WorkspaceUserListStatus,
+} from './workspace.constants';
+import { collapseBlankLines, stripLinks } from '../../common/helpers';
 
 export function isAdminActingOnOwner(
   authUserRole: string,
   targetRole: string,
 ): boolean {
   return authUserRole === UserRole.ADMIN && targetRole === UserRole.OWNER;
+}
+
+// without manage rights only active users are listed
+export function resolveWorkspaceUserListStatus(
+  status: WorkspaceUserListStatus | undefined,
+  canManageMembers: boolean,
+): WorkspaceUserListStatus {
+  if (canManageMembers) {
+    return status ?? 'active';
+  }
+  if (status === 'deactivated' || status === 'deleted') {
+    throw new ForbiddenException();
+  }
+  return 'active';
 }
 
 export type PageEditMode = 'read' | 'edit';
@@ -34,4 +53,16 @@ export function getWorkspaceDefaultLocale(
     return locale;
   }
   return undefined;
+}
+
+export function normalizeInvitationMessage(
+  message?: string | null,
+): string | null {
+  if (!message) return null;
+  const normalized = collapseBlankLines(
+    stripLinks(message.replace(/\r\n?/g, '\n'))
+      .replace(/[ \t]+/g, ' ')
+      .replace(/ ?\n ?/g, '\n'),
+  ).trim();
+  return normalized || null;
 }

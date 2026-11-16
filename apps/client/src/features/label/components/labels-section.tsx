@@ -15,9 +15,10 @@ import classes from "@/features/label/label.module.css";
 type LabelsSectionProps = {
   pageId: string;
   canEdit: boolean;
+  spaceId?: string;
 };
 
-export function LabelsSection({ pageId, canEdit }: LabelsSectionProps) {
+export function LabelsSection({ pageId, canEdit, spaceId }: LabelsSectionProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -52,6 +53,7 @@ export function LabelsSection({ pageId, canEdit }: LabelsSectionProps) {
               key={label.id}
               label={label}
               asLink
+              spaceId={spaceId}
               onRemove={canEdit ? () => handleRemove(label.id) : undefined}
             />
           ))}

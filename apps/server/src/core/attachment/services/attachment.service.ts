@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
@@ -27,6 +28,15 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { streamMultipartFile } from '../../../common/helpers';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import {
+  getCoverAttachmentId,
+  queueCoverCleanup,
+} from '../../page/page-cover.utils';
+import {
+  COVER_IMAGE_MIME_TYPES,
+  COVER_MAX_BYTES,
+} from '../../page/page-cover.constants';
 
 @Injectable()
 export class AttachmentService {
@@ -39,6 +49,7 @@ export class AttachmentService {
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    private readonly pageRepo: PageRepo,
   ) {}
 
   async uploadFile(opts: {
@@ -48,11 +59,20 @@ export class AttachmentService {
     spaceId: string;
     workspaceId: string;
     attachmentId?: string;
+    type?: AttachmentType.File | AttachmentType.PageCover;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
+    const type = opts.type ?? AttachmentType.File;
     const preparedFile: PreparedFile = await prepareFile(filePromise, {
       skipBuffer: true,
     });
+
+    if (
+      type === AttachmentType.PageCover &&
+      !COVER_IMAGE_MIME_TYPES.includes(preparedFile.mimeType)
+    ) {
+      throw new BadRequestException('Cover must be a JPG, PNG or WebP image');
+    }
 
     let isUpdate = false;
     let attachmentId = null;
@@ -85,10 +105,24 @@ export class AttachmentService {
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
     // Update fileSize from the consumed stream
-    preparedFile.fileSize = await streamMultipartFile(
-      preparedFile.multiPartFile,
-      (stream) => this.uploadToDrive(filePath, stream),
-    );
+    const isCover = type === AttachmentType.PageCover;
+    try {
+      preparedFile.fileSize = await streamMultipartFile(
+        preparedFile.multiPartFile,
+        (stream) => this.uploadToDrive(filePath, stream),
+        isCover ? COVER_MAX_BYTES : undefined,
+      );
+    } catch (err: any) {
+      // past the general upload limit, the controller reports that limit instead
+      if (
+        isCover &&
+        err?.statusCode === 413 &&
+        !preparedFile.multiPartFile.file.truncated
+      ) {
+        throw new PayloadTooLargeException('Cover image must be 5 MB or smaller');
+      }
+      throw err;
+    }
 
     let attachment: Attachment = null;
     try {
@@ -105,11 +139,19 @@ export class AttachmentService {
           attachmentId,
           preparedFile,
           filePath,
-          type: AttachmentType.File,
+          type,
           userId,
           spaceId,
           workspaceId,
           pageId,
+        });
+      }
+
+      // a cover upload that never becomes the cover is deleted too
+      if (type === AttachmentType.PageCover) {
+        await queueCoverCleanup(this.attachmentQueue, {
+          pageId,
+          attachmentId: attachment.id,
         });
       }
 
@@ -379,6 +421,32 @@ export class AttachmentService {
     } catch (err) {
       throw err;
     }
+  }
+
+  async handleDeleteUnusedCover(opts: {
+    pageId: string;
+    attachmentId: string;
+  }): Promise<void> {
+    const { pageId, attachmentId } = opts;
+    const attachment = await this.attachmentRepo.findById(attachmentId);
+    if (
+      !attachment ||
+      attachment.type !== AttachmentType.PageCover ||
+      attachment.pageId !== pageId
+    ) {
+      return;
+    }
+
+    // deleting a page deletes its attachments too
+    const page = await this.pageRepo.findById(pageId, { includeContent: true });
+    if (!page) return;
+
+    const stillUsed =
+      getCoverAttachmentId(page.coverPhoto) === attachmentId ||
+      JSON.stringify(page.content ?? null).includes(attachmentId);
+    if (stillUsed) return;
+
+    await this.deleteAttachment(attachment);
   }
 
   async handleDeletePageAttachments(pageId: string) {

@@ -28,7 +28,11 @@ import {
   useUpdateTemplateMutation,
   useGetTemplateByIdQuery,
 } from "../queries/template-query";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
 import useUserRole from "@/hooks/use-user-role";
 import { useAtomValue } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
@@ -43,6 +47,8 @@ import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 import classes from "./template-editor.module.css";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
 
 export default function TemplateEditor() {
   const { t } = useTranslation();
@@ -53,6 +59,8 @@ export default function TemplateEditor() {
     user?.settings?.preferences?.editorToolbar ?? false;
 
   const { data: existingTemplate } = useGetTemplateByIdQuery(templateId || "");
+  const { exportDisabledLabel } = useExportDisabled(existingTemplate?.spaceId);
+  useDisablePrint(exportDisabledLabel);
   const { data: spaces } = useGetSpacesQuery({ limit: 100 });
   const updateMutation = useUpdateTemplateMutation();
   const updateMutationRef = useRef(updateMutation.mutateAsync);
@@ -62,6 +70,10 @@ export default function TemplateEditor() {
   const [icon, setIcon] = useState<string | null>(null);
   const [spaceId, setSpaceId] = useState<string | null>(null);
   const [draftSpaceId, setDraftSpaceId] = useState<string | null>(null);
+  const { data: templateSpace } = useUnlistedSpaceQuery(
+    spaceId,
+    spaces?.items,
+  );
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
 
@@ -128,17 +140,19 @@ export default function TemplateEditor() {
     }
   }, [existingTemplate, editor]);
 
+  const scopeSpaces = includeSpace(spaces?.items ?? [], templateSpace);
+
   const spaceOptions = [
     ...(isWorkspaceAdmin
       ? [
           { group: t("Workspace"), items: [{ value: "", label: t("Global") }] },
         ]
       : []),
-    ...(spaces?.items?.length
+    ...(scopeSpaces.length
       ? [
           {
             group: t("Spaces"),
-            items: spaces.items.map((s) => ({ value: s.id, label: s.name })),
+            items: scopeSpaces.map((s) => ({ value: s.id, label: s.name })),
           },
         ]
       : []),

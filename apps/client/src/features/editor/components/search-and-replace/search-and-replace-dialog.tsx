@@ -4,6 +4,7 @@ import {
   Dialog,
   Flex,
   Input,
+  rem,
   Stack,
   Text,
   Tooltip,
@@ -195,7 +196,10 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
       size="lg"
       radius="md"
       w={"auto"}
-      position={{ top: 90, right: 50 }}
+      position={{
+        top: `calc(${rem(90)} + var(--announcement-banners-height, 0px))`,
+        right: 50,
+      }}
       withBorder
       transitionProps={{ transition: "slide-down" }}
       aria-label={t("Find and replace")}

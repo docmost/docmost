@@ -1,4 +1,12 @@
-import { Global, Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  DynamicModule,
+  Global,
+  Inject,
+  Logger,
+  Module,
+  OnApplicationBootstrap,
+  Optional,
+} from '@nestjs/common';
 import { InjectKysely, KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
 import { CamelCasePlugin, LogEvent, sql } from 'kysely';
@@ -32,6 +40,8 @@ import { PageListener } from '@docmost/db/listeners/page.listener';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import * as postgres from 'postgres';
 import { normalizePostgresUrl } from '../common/helpers';
+import { DATABASE_MODULE_OPTIONS } from './database.constants';
+import { DatabaseModuleOptions } from './database.types';
 
 @Global()
 @Module({
@@ -129,12 +139,24 @@ export class DatabaseModule implements OnApplicationBootstrap {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly migrationService: MigrationService,
     private readonly environmentService: EnvironmentService,
+    @Optional() @Inject(DATABASE_MODULE_OPTIONS)
+    private readonly options?: DatabaseModuleOptions,
   ) {}
+
+  static forRoot(options: DatabaseModuleOptions): DynamicModule {
+    return {
+      module: DatabaseModule,
+      providers: [{ provide: DATABASE_MODULE_OPTIONS, useValue: options }],
+    };
+  }
 
   async onApplicationBootstrap() {
     await this.establishConnection();
 
-    if (this.environmentService.getNodeEnv() === 'production') {
+    if (
+      this.environmentService.getNodeEnv() === 'production' &&
+      this.options?.runMigrations !== false
+    ) {
       await this.migrationService.migrateToLatest();
     }
   }

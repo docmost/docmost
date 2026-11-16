@@ -1,11 +1,13 @@
 import { useState, useCallback, useMemo } from "react";
 import { ActionIcon, Tooltip, Badge } from "@mantine/core";
+import { useSetAtom } from "jotai";
 import { Table } from "@tanstack/react-table";
 import {
   IconSortAscending,
   IconFilter,
   IconEye,
   IconDownload,
+  IconUpload,
   IconArrowsDiagonal,
   IconLayoutColumns,
   IconAdjustments,
@@ -22,12 +24,17 @@ import {
 import { exportBaseToCsv } from "@/ee/base/services/base-service";
 import { normalizeFilter } from "@/ee/base/queries/base-row-query";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
 import { ViewTabs } from "@/ee/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/ee/base/components/views/view-sort-config";
 import { ViewFilterConfigPopover } from "@/ee/base/components/views/view-filter-config";
 import { ViewPropertyVisibility } from "@/ee/base/components/views/view-property-visibility";
 import { KanbanGroupByPicker } from "@/ee/base/components/kanban/kanban-group-by-picker";
 import { KanbanCardProperties } from "@/ee/base/components/kanban/kanban-card-properties";
+import { BaseImportIndicator } from "@/ee/base/components/csv-import/base-import-indicator";
+import { useBaseEditable } from "@/ee/base/context/base-editable";
+import { baseImportOpenedAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { useTranslation } from "react-i18next";
 import classes from "@/ee/base/styles/grid.module.css";
 import toolbarClasses from "@/ee/base/styles/base-toolbar.module.css";
@@ -62,11 +69,17 @@ export function BaseToolbar({
   getViewShareUrl,
 }: BaseToolbarProps) {
   const { t } = useTranslation();
+  const { exportDisabled, exportDisabledLabel } = useExportDisabled(
+    base.spaceId,
+  );
+  useDisablePrint(exportDisabledLabel);
   const [sortOpened, setSortOpened] = useState(false);
   const [filterOpened, setFilterOpened] = useState(false);
   const [propertiesOpened, setPropertiesOpened] = useState(false);
   const [cardPropertiesOpened, setCardPropertiesOpened] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const setImportOpened = useSetAtom(baseImportOpenedAtomFamily(base.id));
+  const editable = useBaseEditable();
 
   const isKanban = activeView?.type === "kanban";
 
@@ -140,13 +153,32 @@ export function BaseToolbar({
       />
 
       <div className={classes.toolbarRight}>
-        <Tooltip label={t("Export CSV")}>
+        <BaseImportIndicator pageId={base.id} />
+
+        {editable && (
+          <Tooltip label={t("Import CSV")}>
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              color="gray"
+              onClick={() => setImportOpened(true)}
+              aria-label={t("Import CSV")}
+            >
+              <IconUpload size={16} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+
+        <Tooltip label={exportDisabledLabel ?? t("Export CSV")}>
           <ActionIcon
             variant="subtle"
             size="sm"
             color="gray"
             loading={exporting}
-            onClick={handleExport}
+            onClick={exportDisabled ? undefined : handleExport}
+            data-disabled={exportDisabled || undefined}
+            aria-disabled={exportDisabled || undefined}
+            aria-label={t("Export CSV")}
           >
             <IconDownload size={16} />
           </ActionIcon>

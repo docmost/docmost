@@ -38,6 +38,7 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 import { Feature, FeatureKey } from '../../common/features';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 const PUBLIC_SPACE_FEATURES: FeatureKey[] = [Feature.PUBLIC_SPACE_APPEARANCE];
 
@@ -62,6 +63,7 @@ export class PublicSpaceController {
     }
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/')
   async getPublishedSpaces(
@@ -166,6 +168,7 @@ export class PublicSpaceController {
     );
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('/for-space')
   async getForSpace(

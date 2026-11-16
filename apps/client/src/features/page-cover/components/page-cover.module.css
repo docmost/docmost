@@ -1,0 +1,265 @@
+.cover {
+  position: relative;
+  height: clamp(160px, 26vh, 240px);
+  margin-top: calc(var(--page-header-height) - var(--app-shell-padding, 0px));
+  /* collapses with the editor's 48px top margin into a 28px gap */
+  margin-bottom: -20px;
+  margin-inline: calc(var(--app-shell-padding, 0px) * -1);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  user-select: none;
+
+  &[data-below-toolbar] {
+    margin-top: calc(
+      var(--page-header-height) * 2 - var(--app-shell-padding, 0px)
+    );
+  }
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    height: clamp(120px, 18vh, 150px);
+  }
+
+  @media print {
+    display: none;
+  }
+}
+
+.inlineCover {
+  position: relative;
+  aspect-ratio: 4 / 1;
+  margin-top: rem(10px);
+  margin-bottom: rem(28px);
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    aspect-ratio: 5 / 2;
+  }
+
+  @media print {
+    display: none;
+  }
+}
+
+/* .cover for read-only views that lay out their own header */
+.band {
+  position: relative;
+  height: clamp(160px, 26vh, 240px);
+  margin-bottom: rem(36px);
+  margin-inline: calc(var(--app-shell-padding, 0px) * -1);
+  overflow: hidden;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    height: clamp(120px, 18vh, 150px);
+  }
+
+  @media print {
+    display: none;
+  }
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 180ms ease;
+
+  &[data-loaded] {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.cover:focus {
+  outline: none;
+}
+
+.controls {
+  position: absolute;
+  bottom: rem(12px);
+  inset-inline: var(--app-shell-padding, 0px);
+  pointer-events: none;
+}
+
+.controlsInner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: rem(12px);
+  padding-inline: 3rem;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    padding-inline: 1rem;
+  }
+
+  & > * {
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+}
+
+.cover:hover .controlsInner > *,
+.cover:focus-within .controlsInner > *,
+.cover[data-active] .controlsInner > * {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.credit {
+  min-width: 0;
+  max-width: 100%;
+  padding: rem(3px) rem(8px);
+  border-radius: var(--mantine-radius-sm);
+  background-color: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: rem(11px);
+  line-height: rem(16px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  & a {
+    color: var(--mantine-color-white);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  & a:hover {
+    text-decoration: underline;
+  }
+
+  & a:focus-visible {
+    outline: 2px solid var(--mantine-color-white);
+    outline-offset: 1px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.85);
+  }
+}
+
+.bandCredit {
+  margin-inline-end: auto;
+}
+
+.inlineCredit {
+  position: absolute;
+  left: rem(10px);
+  bottom: rem(10px);
+  max-width: calc(100% - rem(20px));
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.inlineCover:hover .inlineCredit,
+.inlineCover:focus-within .inlineCredit {
+  opacity: 1;
+}
+
+/* phones have no room for both in one row, so the controls sit above the credit */
+@media (max-width: $mantine-breakpoint-sm) {
+  .controlsInner {
+    position: relative;
+  }
+
+  .controlsInner > .pill,
+  .controlsInner > .pillRow {
+    position: absolute;
+    right: 1rem;
+    bottom: 0;
+  }
+
+  .controlsInner:has(.bandCredit) > .pill,
+  .controlsInner:has(.bandCredit) > .pillRow {
+    bottom: calc(100% + rem(8px));
+  }
+}
+
+@media (hover: none) {
+  .controlsInner > .bandCredit {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .inlineCredit {
+    opacity: 1;
+  }
+}
+
+.pill {
+  border-radius: var(--mantine-radius-sm);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.pillRow {
+  display: flex;
+  gap: rem(6px);
+}
+
+/* two-tone ring so focus stays visible on any cover */
+.controls button:focus-visible {
+  outline: 2px solid var(--mantine-color-white);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.85);
+}
+
+.unavailable {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.dragSurface {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+
+  &[data-dragging] {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-color-white);
+    outline-offset: -4px;
+    box-shadow: inset 0 0 0 6px rgba(0, 0, 0, 0.55);
+  }
+}
+
+.hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: rem(4px) rem(10px);
+  border-radius: var(--mantine-radius-sm);
+  background-color: rgba(0, 0, 0, 0.6);
+  color: var(--mantine-color-white);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}

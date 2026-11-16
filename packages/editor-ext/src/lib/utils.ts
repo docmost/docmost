@@ -1,4 +1,9 @@
-import { Editor, findParentNode, isTextSelection } from "@tiptap/core";
+import {
+  Editor,
+  findParentNode,
+  isTextSelection,
+  NodeWithPos,
+} from "@tiptap/core";
 import { EditorState, Selection, Transaction } from "@tiptap/pm/state";
 import { EditorView } from "@tiptap/pm/view";
 import { CellSelection, TableMap } from "@tiptap/pm/tables";
@@ -430,4 +435,30 @@ export function execCommandCopy(text: string): void {
   textarea.select();
   document.execCommand("copy");
   document.body.removeChild(textarea);
+}
+
+// findChildren that walks a top-level block once: nodes never change, so what
+// was found inside a block holds for as long as the document keeps that block.
+export function createFindChildren(predicate: (node: Node) => boolean) {
+  const foundInBlock = new WeakMap<Node, NodeWithPos[]>();
+
+  return (doc: Node): NodeWithPos[] => {
+    const found: NodeWithPos[] = [];
+
+    doc.forEach((block, offset) => {
+      let inBlock = foundInBlock.get(block);
+      if (!inBlock) {
+        inBlock = predicate(block) ? [{ node: block, pos: 0 }] : [];
+        block.descendants((node, pos) => {
+          if (predicate(node)) inBlock.push({ node, pos: pos + 1 });
+        });
+        foundInBlock.set(block, inBlock);
+      }
+      for (const { node, pos } of inBlock) {
+        found.push({ node, pos: offset + pos });
+      }
+    });
+
+    return found;
+  };
 }

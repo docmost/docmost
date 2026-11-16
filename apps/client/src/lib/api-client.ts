@@ -25,7 +25,16 @@ api.interceptors.response.use(
 
     return response.data;
   },
-  (error) => {
+  async (error) => {
+    const data = error.response?.data;
+    if (data instanceof Blob && data.type.includes("json")) {
+      try {
+        error.response.data = JSON.parse(await data.text());
+      } catch {
+        // not json, keep the blob
+      }
+    }
+
     if (error.response) {
       switch (error.response.status) {
         case 401: {
@@ -39,6 +48,8 @@ api.interceptors.response.use(
           ) {
             break;
           }
+          // the banner poll runs in the background; an idle reader stays on the page
+          if (url === "/api/announcements/visible") break;
 
           // Handle unauthorized error
           redirectToLogin();

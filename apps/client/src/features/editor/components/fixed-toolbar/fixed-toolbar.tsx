@@ -19,11 +19,13 @@ import classes from "./fixed-toolbar.module.css";
 type FixedToolbarProps = {
   editor?: Editor | null;
   templateMode?: boolean;
+  withSpacer?: boolean;
 };
 
 export const FixedToolbar: FC<FixedToolbarProps> = ({
   editor: editorProp,
   templateMode = false,
+  withSpacer = true,
 }) => {
   const editorFromAtom = useAtomValue(pageEditorAtom);
   const editor = editorProp ?? editorFromAtom;
@@ -69,7 +71,7 @@ export const FixedToolbar: FC<FixedToolbarProps> = ({
           )}
         </div>
       </div>
-      <div className={classes.spacer} aria-hidden />
+      {withSpacer && <div className={classes.spacer} aria-hidden />}
     </>
   );
 };
