@@ -47,11 +47,25 @@ export class GroupUserRepo {
       .executeTakeFirst();
   }
 
-  async getGroupUsersPaginated(groupId: string, pagination: PaginationOptions) {
+  async getGroupUsersPaginated(
+    groupId: string,
+    pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
+  ) {
     let query = this.db
       .selectFrom('groupUsers')
       .innerJoin('users', 'users.id', 'groupUsers.userId')
-      .selectAll('users')
+      .select(
+        this.userRepo.memberFields.map((field) => `users.${field}` as const),
+      )
+      .$if(opts?.adminView, (qb) =>
+        qb.select(
+          this.userRepo.adminFields.map((field) => `users.${field}` as const),
+        ),
+      )
+      .$if(!opts?.adminView, (qb) =>
+        qb.where('users.deactivatedAt', 'is', null),
+      )
       .where('groupId', '=', groupId);
 
     if (pagination.query) {
@@ -74,10 +88,6 @@ export class GroupUserRepo {
       beforeCursor: pagination.beforeCursor,
       fields: [{ expression: 'users.id', direction: 'asc', key: 'id' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
-    });
-
-    result.items.map((user) => {
-      delete user.password;
     });
 
     return result;

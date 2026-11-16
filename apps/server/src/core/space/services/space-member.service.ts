@@ -87,6 +87,7 @@ export class SpaceMemberService {
     spaceId: string,
     workspaceId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ): Promise<CursorPaginationResult<any>> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId);
     if (!space) {
@@ -96,6 +97,7 @@ export class SpaceMemberService {
     return await this.spaceMemberRepo.getSpaceMembersPaginated(
       spaceId,
       pagination,
+      opts,
     );
   }
 

@@ -1,10 +1,10 @@
 import {
   keepPreviousData,
-  QueryClient,
   useMutation,
   useQuery,
   useQueryClient,
   UseQueryResult,
+  type QueryClient,
 } from "@tanstack/react-query";
 import {
   changeMemberRole,
@@ -60,11 +60,26 @@ export function useWorkspaceMembersQuery(
   });
 }
 
+const MEMBER_QUERY_KEYS = [
+  "workspaceMembers",
+  "groupMembers",
+  "groups",
+  "group",
+  "spaceMembers",
+  "page-permissions",
+  "search-suggestion",
+];
+
 export function refreshWorkspaceMembers(queryClient: QueryClient) {
-  const members = { queryKey: ["workspaceMembers"] };
-  // refetchOnMount is off app-wide, so inactive copies are dropped to load fresh
-  queryClient.removeQueries({ ...members, type: "inactive" });
-  queryClient.invalidateQueries(members);
+  const related = ({ queryKey }: { queryKey: readonly unknown[] }) =>
+    MEMBER_QUERY_KEYS.includes(queryKey[0] as string) ||
+    (queryKey[0] === "bases" &&
+      queryKey[1] === "persons" &&
+      queryKey[2] === "search");
+
+  // refetchOnMount is disabled, so inactive cached results must be removed.
+  queryClient.removeQueries({ predicate: related, type: "inactive" });
+  return queryClient.invalidateQueries({ predicate: related });
 }
 
 export function useDeleteWorkspaceMemberMutation() {
@@ -78,9 +93,9 @@ export function useDeleteWorkspaceMemberMutation() {
     }
   >({
     mutationFn: (data) => deleteWorkspaceMember(data),
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       notifications.show({ message: "Member deleted successfully" });
-      refreshWorkspaceMembers(queryClient);
+      return refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -103,7 +118,7 @@ export function useDeactivateWorkspaceMemberMutation() {
     mutationFn: (data) => deactivateWorkspaceMember(data),
     onSuccess: () => {
       notifications.show({ message: t("Member deactivated successfully") });
-      refreshWorkspaceMembers(queryClient);
+      return refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -126,7 +141,7 @@ export function useActivateWorkspaceMemberMutation() {
     mutationFn: (data) => activateWorkspaceMember(data),
     onSuccess: () => {
       notifications.show({ message: t("Member activated successfully") });
-      refreshWorkspaceMembers(queryClient);
+      return refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;

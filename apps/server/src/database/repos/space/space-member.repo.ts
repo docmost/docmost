@@ -115,6 +115,7 @@ export class SpaceMemberRepo {
   async getSpaceMembersPaginated(
     spaceId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ) {
     let baseQuery = this.db
       .selectFrom('spaceMembers')
@@ -132,7 +133,7 @@ export class SpaceMemberRepo {
         'spaceMembers.role',
         'spaceMembers.createdAt',
       ])
-      .select((eb) => this.groupRepo.withMemberCount(eb))
+      .select((eb) => this.groupRepo.withMemberCount(eb, opts))
       .select(
         sql<number>`case when groups.id is not null then 1 else 0 end`.as(
           'isGroup',

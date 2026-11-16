@@ -337,6 +337,7 @@ export class PagePermissionRepo {
   async getPagePermissionsPaginated(
     pageAccessId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ): Promise<CursorPaginationResult<PagePermissionMember>> {
     let baseQuery = this.db
       .selectFrom('pagePermissions')
@@ -354,7 +355,7 @@ export class PagePermissionRepo {
         'groups.name as groupName',
         'groups.isDefault as groupIsDefault',
       ])
-      .select((eb) => this.groupRepo.withMemberCount(eb))
+      .select((eb) => this.groupRepo.withMemberCount(eb, opts))
       .select((eb) =>
         eb
           .case()
