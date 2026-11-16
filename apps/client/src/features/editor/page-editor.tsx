@@ -79,6 +79,8 @@ import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
+import { useBlockEntrance } from "./hooks/use-block-entrance";
+import { ActiveBlockSettle } from "@/features/editor/extensions/active-block-settle";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
@@ -111,6 +113,8 @@ export default function PageEditor({
   const slugId = extractPageSlugId(pageSlug);
   const [socket] = useState(getCollabSocket);
   const hasCollabToken = !!collabQuery?.token;
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useBlockEntrance(entranceRef, pageId);
 
   useEffect(() => {
     if (!hasCollabToken) return;
@@ -173,26 +177,28 @@ export default function PageEditor({
 
   return (
     <TransclusionLookupProvider>
-      {collabQuery?.token ? (
-        <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
-          <HocuspocusRoom
-            name={`page.${pageId}`}
-            token={collabQuery.token}
-            flushDelay={500}
-            onStateless={handleStateless}
-            onAuthenticationFailed={handleAuthenticationFailed}
-          >
-            <CollabPageEditor
-              pageId={pageId}
-              editable={editable}
-              content={content}
-              canComment={canComment}
-            />
-          </HocuspocusRoom>
-        </HocuspocusProviderWebsocketComponent>
-      ) : (
-        <StaticPageEditor content={content} ariaLabel={t("Page content")} />
-      )}
+      <div ref={entranceRef}>
+        {collabQuery?.token ? (
+          <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
+            <HocuspocusRoom
+              name={`page.${pageId}`}
+              token={collabQuery.token}
+              flushDelay={500}
+              onStateless={handleStateless}
+              onAuthenticationFailed={handleAuthenticationFailed}
+            >
+              <CollabPageEditor
+                pageId={pageId}
+                editable={editable}
+                content={content}
+                canComment={canComment}
+              />
+            </HocuspocusRoom>
+          </HocuspocusProviderWebsocketComponent>
+        ) : (
+          <StaticPageEditor content={content} ariaLabel={t("Page content")} />
+        )}
+      </div>
     </TransclusionLookupProvider>
   );
 }
@@ -276,10 +282,14 @@ function CollabPageEditor({
 
   const extensions = useMemo(() => {
     if (!currentUser?.user) {
-      return mainExtensions;
+      return [...mainExtensions, ActiveBlockSettle];
     }
 
-    return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
+    return [
+      ...mainExtensions,
+      ActiveBlockSettle,
+      ...collabExtensions(provider, currentUser.user),
+    ];
   }, [provider, currentUser?.user]);
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
