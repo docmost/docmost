@@ -55,13 +55,16 @@ export function splitBlockRange(
   doc.nodesBetween(from, to, (node, pos) => {
     const end = pos + node.nodeSize;
     if (pos < from || end > to) return true;
-    if (
+    // a cell cannot be drawn without its column, so what it held stands in for it
+    const role = node.type.spec.tableRole;
+    if (role === "cell" || role === "header_cell") return true;
+
+    const whole =
       specialNodeTypes.has(node.type.name) ||
-      hasInlineContent(doc, pos, end)
-    ) {
-      segments.push({ from: pos, to: end, node });
-    }
-    return false;
+      hasInlineContent(node, 0, node.content.size);
+    if (whole) segments.push({ from: pos, to: end, node });
+    // a block with no text of its own can still hold a special node
+    return !whole;
   });
   return segments;
 }

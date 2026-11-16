@@ -11,6 +11,7 @@ import {
   splitChangeRange,
 } from "@/features/page-history/utils/split-change-range";
 import { deletedBlockDOM } from "@/features/page-history/utils/deleted-block";
+import { blockAnchor } from "@/features/page-history/utils/block-anchor";
 import { createHistoryTokenEncoder } from "@/features/page-history/utils/history-token-encoder";
 import { inlineFragment } from "@/features/page-history/utils/inline-fragment";
 import {
@@ -162,8 +163,8 @@ export function HistoryEditor({
             addedCount += 1;
           }
           // a deletion that sits between blocks is drawn as those blocks
-          const deletedBlocks = newContent.resolve(change.fromB).parent
-            .inlineContent
+          const anchor = blockAnchor(newContent, change.fromB);
+          const deletedBlocks = newContent.resolve(anchor).parent.inlineContent
             ? []
             : splitBlockRange(
                 oldContent,
@@ -195,9 +196,12 @@ export function HistoryEditor({
               ) {
                 decorations.push(
                   Decoration.widget(
-                    change.fromB,
+                    anchor,
                     () => {
-                      const dom = deletedBlockDOM(deletedNode);
+                      const dom = deletedBlockDOM(
+                        deletedNode,
+                        specialNodeTypes,
+                      );
                       dom.setAttribute("data-diff-index", String(currentIndex));
                       return dom;
                     },
@@ -209,7 +213,7 @@ export function HistoryEditor({
               if (deletedNode) {
                 decorations.push(
                   Decoration.widget(
-                    change.fromB,
+                    anchor,
                     () => {
                       const wrapper = document.createElement("div");
                       wrapper.className = "history-diff-node-deleted";
@@ -242,7 +246,7 @@ export function HistoryEditor({
               if (fragment || deletedText) {
                 decorations.push(
                   Decoration.widget(
-                    change.fromB,
+                    anchor,
                     () => {
                       const span = document.createElement("span");
                       span.className = "history-diff-deleted";

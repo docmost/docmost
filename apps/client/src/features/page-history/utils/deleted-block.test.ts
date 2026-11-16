@@ -1,11 +1,26 @@
-import { getSchema } from "@tiptap/core";
+import { getSchema, Node as TiptapNode } from "@tiptap/core";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { Node } from "@tiptap/pm/model";
 import { StarterKit } from "@tiptap/starter-kit";
 import { describe, expect, it } from "vitest";
 import { deletedBlockDOM } from "./deleted-block";
 
-const schema = getSchema([StarterKit, TaskList, TaskItem]);
+const Image = TiptapNode.create({
+  name: "image",
+  group: "block",
+  atom: true,
+  renderHTML: () => ["img"],
+});
+
+const Callout = TiptapNode.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  renderHTML: () => ["div", { "data-type": "callout" }, 0],
+});
+
+const schema = getSchema([StarterKit, TaskList, TaskItem, Image, Callout]);
+const special = new Set(["image", "callout"]);
 
 const text = (value: string, marks?: object[]) =>
   marks ? { type: "text", text: value, marks } : { type: "text", text: value };
@@ -16,7 +31,7 @@ describe("deletedBlockDOM", () => {
   it("keeps a list item a list item and strikes its text", () => {
     const item = node({ type: "listItem", content: [p(text("Bravo"))] });
 
-    expect(deletedBlockDOM(item).outerHTML).toBe(
+    expect(deletedBlockDOM(item, special).outerHTML).toBe(
       '<li class="history-diff-block-deleted"><p><span class="history-diff-deleted">Bravo</span></p></li>',
     );
   });
@@ -24,7 +39,7 @@ describe("deletedBlockDOM", () => {
   it("strikes every run of formatted text", () => {
     const paragraph = node(p(text("a "), text("b", [{ type: "bold" }])));
 
-    expect(deletedBlockDOM(paragraph).innerHTML).toBe(
+    expect(deletedBlockDOM(paragraph, special).innerHTML).toBe(
       '<span class="history-diff-deleted">a </span><strong><span class="history-diff-deleted">b</span></strong>',
     );
   });
@@ -41,7 +56,7 @@ describe("deletedBlockDOM", () => {
       ],
     });
 
-    const dom = deletedBlockDOM(item);
+    const dom = deletedBlockDOM(item, special);
 
     expect(
       [...dom.querySelectorAll(".history-diff-deleted")].map(
@@ -51,6 +66,31 @@ describe("deletedBlockDOM", () => {
     expect(dom.querySelector("li > ul > li > p")?.textContent).toBe("Nested");
   });
 
+  it("draws a special node inside the block as a deleted node", () => {
+    const item = node({
+      type: "listItem",
+      content: [p(text("Step")), { type: "image" }],
+    });
+
+    expect(deletedBlockDOM(item, special).innerHTML).toBe(
+      '<p><span class="history-diff-deleted">Step</span></p><div class="history-diff-node-deleted"><img></div>',
+    );
+  });
+
+  it("strikes no text inside a special node, which is dimmed as a whole", () => {
+    const item = node({
+      type: "listItem",
+      content: [
+        p(text("Step")),
+        { type: "callout", content: [p(text("Careful"))] },
+      ],
+    });
+
+    expect(deletedBlockDOM(item, special).innerHTML).toBe(
+      '<p><span class="history-diff-deleted">Step</span></p><div class="history-diff-node-deleted"><div data-type="callout"><p>Careful</p></div></div>',
+    );
+  });
+
   it("disables the checkbox of a task", () => {
     const task = node({
       type: "taskItem",
@@ -58,6 +98,6 @@ describe("deletedBlockDOM", () => {
       content: [p(text("Call"))],
     });
 
-    expect(deletedBlockDOM(task).querySelector("input")?.disabled).toBe(true);
+    expect(deletedBlockDOM(task, special).querySelector("input")?.disabled).toBe(true);
   });
 });

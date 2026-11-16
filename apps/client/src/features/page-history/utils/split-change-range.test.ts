@@ -1,4 +1,10 @@
 import { getSchema, Node as TiptapNode } from "@tiptap/core";
+import {
+  Table as TiptapTable,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "@tiptap/extension-table";
 import { Node } from "@tiptap/pm/model";
 import { StarterKit } from "@tiptap/starter-kit";
 import { describe, expect, it } from "vitest";
@@ -154,5 +160,63 @@ describe("splitBlockRange", () => {
 
   it("keeps a special node that has no text", () => {
     expect(blocks(38, 44)).toEqual([{ from: 43, to: 44, node: "image" }]);
+  });
+
+  it("finds a special node inside a block that holds no text", () => {
+    const quoted = Node.fromJSON(schema, {
+      type: "doc",
+      content: [
+        p("Caption"),
+        { type: "blockquote", content: [{ type: "image" }] },
+        p("End"),
+      ],
+    });
+
+    expect(
+      splitBlockRange(quoted, 0, 12, special).map((segment) => [
+        segment.from,
+        segment.to,
+        segment.node?.type.name,
+      ]),
+    ).toEqual([
+      [0, 9, "paragraph"],
+      [10, 11, "image"],
+    ]);
+  });
+});
+
+describe("splitBlockRange in a table", () => {
+  const tableSchema = getSchema([
+    StarterKit,
+    TiptapTable,
+    TableRow,
+    TableCell,
+    TableHeader,
+  ]);
+  const cell = (text: string) => ({ type: "tableCell", content: [p(text)] });
+  const grid = Node.fromJSON(tableSchema, {
+    type: "doc",
+    content: [
+      {
+        type: "table",
+        content: [
+          { type: "tableRow", content: [cell("A"), cell("B"), cell("C")] },
+        ],
+      },
+    ],
+  });
+  const segments = (from: number, to: number) =>
+    splitBlockRange(grid, from, to, new Set()).map((segment) => [
+      segment.from,
+      segment.to,
+      segment.node?.type.name,
+    ]);
+
+  it("returns what a removed cell held, never the cell", () => {
+    expect(segments(7, 12)).toEqual([[8, 11, "paragraph"]]);
+  });
+
+  it("returns a removed row whole", () => {
+    expect(segments(1, 18)).toEqual([[1, 18, "tableRow"]]);
   });
 });
