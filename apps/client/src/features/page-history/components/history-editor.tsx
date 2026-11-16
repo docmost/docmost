@@ -6,7 +6,11 @@ import { Title } from "@mantine/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import historyClasses from "./css/history.module.css";
 import { normalizeHistoryTitle } from "@/features/page-history/utils/normalize-history-title";
-import { splitChangeRange } from "@/features/page-history/utils/split-change-range";
+import {
+  splitBlockRange,
+  splitChangeRange,
+} from "@/features/page-history/utils/split-change-range";
+import { deletedBlockDOM } from "@/features/page-history/utils/deleted-block";
 import { createHistoryTokenEncoder } from "@/features/page-history/utils/history-token-encoder";
 import { inlineFragment } from "@/features/page-history/utils/inline-fragment";
 import {
@@ -157,12 +161,24 @@ export function HistoryEditor({
             }
             addedCount += 1;
           }
-          const deleted = splitChangeRange(
-            oldContent,
-            change.fromA,
-            change.toA,
-            specialNodeTypes,
-          );
+          // a deletion that sits between blocks is drawn as those blocks
+          const deletedBlocks = newContent.resolve(change.fromB).parent
+            .inlineContent
+            ? []
+            : splitBlockRange(
+                oldContent,
+                change.fromA,
+                change.toA,
+                specialNodeTypes,
+              );
+          const deleted = deletedBlocks.length
+            ? deletedBlocks
+            : splitChangeRange(
+                oldContent,
+                change.fromA,
+                change.toA,
+                specialNodeTypes,
+              );
           if (deleted.length) {
             changeIndex++;
             const currentIndex = changeIndex;
@@ -172,6 +188,24 @@ export function HistoryEditor({
               // empty marks keep it out of the formatting of the text after it
               const spec = { side, marks: [] };
               const deletedNode = segment.node;
+              if (
+                deletedNode &&
+                deletedBlocks.length &&
+                !specialNodeTypes.has(deletedNode.type.name)
+              ) {
+                decorations.push(
+                  Decoration.widget(
+                    change.fromB,
+                    () => {
+                      const dom = deletedBlockDOM(deletedNode);
+                      dom.setAttribute("data-diff-index", String(currentIndex));
+                      return dom;
+                    },
+                    spec,
+                  ),
+                );
+                return;
+              }
               if (deletedNode) {
                 decorations.push(
                   Decoration.widget(

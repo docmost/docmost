@@ -37,6 +37,35 @@ export function splitChangeRange(
   });
 }
 
+// Splits a range that starts and ends between blocks into its whole blocks, leaving out the ones with nothing to show.
+export function splitBlockRange(
+  doc: Node,
+  from: number,
+  to: number,
+  specialNodeTypes: ReadonlySet<string>,
+): ChangeSegment[] {
+  if (
+    doc.resolve(from).parent.inlineContent ||
+    doc.resolve(to).parent.inlineContent
+  ) {
+    return [];
+  }
+
+  const segments: ChangeSegment[] = [];
+  doc.nodesBetween(from, to, (node, pos) => {
+    const end = pos + node.nodeSize;
+    if (pos < from || end > to) return true;
+    if (
+      specialNodeTypes.has(node.type.name) ||
+      hasInlineContent(doc, pos, end)
+    ) {
+      segments.push({ from: pos, to: end, node });
+    }
+    return false;
+  });
+  return segments;
+}
+
 function hasInlineContent(doc: Node, from: number, to: number): boolean {
   let found = false;
   doc.nodesBetween(from, to, (node) => {

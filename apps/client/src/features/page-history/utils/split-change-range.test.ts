@@ -2,7 +2,7 @@ import { getSchema, Node as TiptapNode } from "@tiptap/core";
 import { Node } from "@tiptap/pm/model";
 import { StarterKit } from "@tiptap/starter-kit";
 import { describe, expect, it } from "vitest";
-import { splitChangeRange } from "./split-change-range";
+import { splitBlockRange, splitChangeRange } from "./split-change-range";
 
 const Image = TiptapNode.create({
   name: "image",
@@ -97,5 +97,62 @@ describe("splitChangeRange", () => {
 
   it("drops a change with nothing to show", () => {
     expect(summary(6, 7)).toEqual([]);
+  });
+});
+
+const item = (...content: object[]) => ({ type: "listItem", content });
+const bullets = (...content: object[]) => ({ type: "bulletList", content });
+
+// Alpha holds a nested list, the last item is empty
+const list = Node.fromJSON(schema, {
+  type: "doc",
+  content: [
+    p("Intro"),
+    bullets(
+      item(p("Alpha"), bullets(item(p("Nested")))),
+      item(p("Bravo")),
+      item({ type: "paragraph" }),
+    ),
+    { type: "image" },
+  ],
+});
+
+const blocks = (from: number, to: number) =>
+  splitBlockRange(list, from, to, special).map((segment) => ({
+    from: segment.from,
+    to: segment.to,
+    node: segment.node?.type.name,
+  }));
+
+describe("splitBlockRange", () => {
+  it("returns a list item as one whole block", () => {
+    expect(blocks(29, 38)).toEqual([{ from: 29, to: 38, node: "listItem" }]);
+  });
+
+  it("returns each block of a range over several", () => {
+    expect(blocks(8, 38)).toEqual([
+      { from: 8, to: 29, node: "listItem" },
+      { from: 29, to: 38, node: "listItem" },
+    ]);
+  });
+
+  it("takes a nested list out of a range that also closes its item", () => {
+    expect(blocks(16, 29)).toEqual([{ from: 16, to: 28, node: "bulletList" }]);
+  });
+
+  it("returns nothing for a range that starts inside text", () => {
+    expect(blocks(11, 38)).toEqual([]);
+  });
+
+  it("returns nothing for a range that ends inside text", () => {
+    expect(blocks(8, 32)).toEqual([]);
+  });
+
+  it("skips a block with nothing to show", () => {
+    expect(blocks(29, 42)).toEqual([{ from: 29, to: 38, node: "listItem" }]);
+  });
+
+  it("keeps a special node that has no text", () => {
+    expect(blocks(38, 44)).toEqual([{ from: 43, to: 44, node: "image" }]);
   });
 });
