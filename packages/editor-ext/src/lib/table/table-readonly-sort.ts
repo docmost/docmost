@@ -59,7 +59,14 @@ function getOrSaveOriginalOrder(
   table: HTMLTableElement,
   dataRows: HTMLTableRowElement[],
 ): HTMLTableRowElement[] {
-  if (!originalOrders.has(table)) {
+  const saved = originalOrders.get(table);
+  const current = new Set(dataRows);
+  // rows came or went since the order was saved, so it no longer describes this table
+  const stale =
+    !saved ||
+    saved.length !== dataRows.length ||
+    saved.some((row) => !current.has(row));
+  if (stale) {
     originalOrders.set(table, [...dataRows]);
   }
   return originalOrders.get(table)!;
