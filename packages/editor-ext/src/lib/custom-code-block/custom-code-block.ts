@@ -2,6 +2,7 @@ import type { CodeBlockOptions } from '@tiptap/extension-code-block';
 import CodeBlock from '@tiptap/extension-code-block';
 import { Plugin, Selection, TextSelection } from '@tiptap/pm/state';
 import { GapCursor } from '@tiptap/pm/gapcursor';
+import type { ResolvedPos } from '@tiptap/pm/model';
 
 import { LowlightPlugin } from './lowlight-plugin.js';
 import { ReactNodeViewRenderer } from '@tiptap/react';
@@ -15,6 +16,12 @@ export interface CodeBlockLowlightOptions extends CodeBlockOptions {
 }
 
 const TAB_CHAR = '\u00A0\u00A0';
+
+function gapCursorAt($pos: ResolvedPos): GapCursor | null {
+  // Bookmark resolution validates the gap without relying on GapCursor's internal API.
+  const selection = new GapCursor($pos).getBookmark().resolve($pos.doc);
+  return selection instanceof GapCursor ? selection : null;
+}
 
 /**
  * This extension allows you to highlight code blocks with lowlight.
@@ -46,9 +53,7 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
 
     return {
       ...this.parent?.(),
-      // Stop at the gap (or enter mermaid source) instead of jumping
-      // straight into the next block, so the user can place a cursor
-      // between two adjacent isolating blocks.
+      // Stop at valid gaps, including container boundaries, or enter Mermaid source.
       ArrowDown: ({ editor }) => {
         const { state } = editor;
         const { selection, doc } = state;
@@ -72,12 +77,10 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
           });
         }
 
-        if (
-          nodeAfter?.type.spec.isolating &&
-          !nodeAfter.type.spec.atom
-        ) {
+        const gap = gapCursorAt($after);
+        if (gap) {
           return editor.commands.command(({ tr }) => {
-            tr.setSelection(new GapCursor(tr.doc.resolve(after)));
+            tr.setSelection(gap);
             return true;
           });
         }
@@ -97,8 +100,6 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
         if ($from.parentOffset !== 0) return false;
 
         const before = $from.before();
-        if (before <= 0) return false;
-
         const $before = doc.resolve(before);
         const nodeBefore = $before.nodeBefore;
 
@@ -109,12 +110,10 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
           });
         }
 
-        if (
-          nodeBefore?.type.spec.isolating &&
-          !nodeBefore.type.spec.atom
-        ) {
+        const gap = gapCursorAt($before);
+        if (gap) {
           return editor.commands.command(({ tr }) => {
-            tr.setSelection(new GapCursor(tr.doc.resolve(before)));
+            tr.setSelection(gap);
             return true;
           });
         }

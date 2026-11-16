@@ -40,6 +40,18 @@
     outline: none;
   }
 
+  .ProseMirror-gapcursor {
+    z-index: 1;
+
+    &::after {
+      border-top-color: currentColor;
+    }
+
+    &:first-child::after {
+      top: 0;
+    }
+  }
+
   p {
     margin-top: 0.5em;
     margin-bottom: 0.5em;
