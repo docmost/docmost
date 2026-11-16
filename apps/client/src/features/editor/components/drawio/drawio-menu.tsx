@@ -43,6 +43,11 @@ import { modals } from "@mantine/modals";
 import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
+import {
+  DiagramSize,
+  rescaleDiagram,
+  svgSize,
+} from "@/features/editor/components/common/diagram-size";
 import classes from "../common/toolbar-menu.module.css";
 
 export function DrawioMenu({ editor }: EditorMenuProps) {
@@ -54,6 +59,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const drawingSizeRef = useRef<DiagramSize | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -179,12 +185,19 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
         attachment = await uploadFile(drawioSVGFile, pageId);
       }
 
+      const drawingSize = svgSize(svgString);
       editor.commands.updateAttributes("drawio", {
         src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
         title: attachment.fileName,
         size: attachment.fileSize,
         attachmentId: attachment.id,
+        ...rescaleDiagram(
+          editor.getAttributes("drawio").width,
+          drawingSizeRef.current,
+          drawingSize,
+        ),
       });
+      drawingSizeRef.current = drawingSize;
 
       isDirtyRef.current = false;
     } finally {
@@ -220,6 +233,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     if (!editorState?.src) return;
 
     setIsLoading(true);
+    drawingSizeRef.current = null;
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -227,6 +241,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
         cache: "no-store",
       });
       const blob = await request.blob();
+      drawingSizeRef.current = svgSize(await blob.text());
 
       const reader = new FileReader();
       reader.readAsDataURL(blob);

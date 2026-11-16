@@ -41,6 +41,11 @@ import { localStorageLibraryAdapter } from "@/features/editor/components/excalid
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
+import {
+  DiagramSize,
+  rescaleDiagram,
+  svgSize,
+} from "@/features/editor/components/common/diagram-size";
 import classes from "../common/toolbar-menu.module.css";
 
 const ExcalidrawComponent = lazy(() =>
@@ -63,6 +68,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const drawingSizeRef = useRef<DiagramSize | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const isInitialLoadRef = useRef(true);
@@ -174,6 +180,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     if (!editorState?.src) return;
 
     setIsLoading(true);
+    drawingSizeRef.current = null;
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -181,8 +188,11 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         cache: "no-store",
       });
 
+      const blob = await request.blob();
+      drawingSizeRef.current = svgSize(await blob.text());
+
       const { loadFromBlob } = await import("@excalidraw/excalidraw");
-      const data = await loadFromBlob(await request.blob(), null, null);
+      const data = await loadFromBlob(blob, null, null);
       setExcalidrawData(data);
     } catch (err) {
       console.error(err);
@@ -239,12 +249,19 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         attachment = await uploadFile(excalidrawSvgFile, pageId);
       }
 
+      const drawingSize = svgSize(svgString);
       editor.commands.updateAttributes("excalidraw", {
         src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
         title: attachment.fileName,
         size: attachment.fileSize,
         attachmentId: attachment.id,
+        ...rescaleDiagram(
+          editor.getAttributes("excalidraw").width,
+          drawingSizeRef.current,
+          drawingSize,
+        ),
       });
+      drawingSizeRef.current = drawingSize;
 
       isDirtyRef.current = false;
     } finally {
