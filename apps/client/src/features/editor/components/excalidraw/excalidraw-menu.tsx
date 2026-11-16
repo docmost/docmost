@@ -42,9 +42,9 @@ import { useAltTextControl } from "@/features/editor/components/common/use-alt-t
 import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
 import {
-  DiagramSize,
-  rescaleDiagram,
-  svgSize,
+  diagramSizeAt,
+  diagramZoom,
+  drawingSize,
 } from "@/features/editor/components/common/diagram-size";
 import classes from "../common/toolbar-menu.module.css";
 
@@ -68,7 +68,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
-  const drawingSizeRef = useRef<DiagramSize | null>(null);
+  const zoomRef = useRef<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const isInitialLoadRef = useRef(true);
@@ -180,7 +180,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     if (!editorState?.src) return;
 
     setIsLoading(true);
-    drawingSizeRef.current = null;
+    zoomRef.current = null;
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -189,7 +189,10 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
       });
 
       const blob = await request.blob();
-      drawingSizeRef.current = svgSize(await blob.text());
+      zoomRef.current = diagramZoom(
+        editor.getAttributes("excalidraw").width,
+        drawingSize(await blob.text()),
+      );
 
       const { loadFromBlob } = await import("@excalidraw/excalidraw");
       const data = await loadFromBlob(blob, null, null);
@@ -202,7 +205,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
       isInitialLoadRef.current = true;
       open();
     }
-  }, [editorState?.src, open]);
+  }, [editor, editorState?.src, open]);
 
   const saveData = useCallback(async () => {
     if (!excalidrawAPI || isSavingRef.current) {
@@ -249,19 +252,13 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         attachment = await uploadFile(excalidrawSvgFile, pageId);
       }
 
-      const drawingSize = svgSize(svgString);
       editor.commands.updateAttributes("excalidraw", {
         src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
         title: attachment.fileName,
         size: attachment.fileSize,
         attachmentId: attachment.id,
-        ...rescaleDiagram(
-          editor.getAttributes("excalidraw").width,
-          drawingSizeRef.current,
-          drawingSize,
-        ),
+        ...diagramSizeAt(zoomRef.current, drawingSize(svgString)),
       });
-      drawingSizeRef.current = drawingSize;
 
       isDirtyRef.current = false;
     } finally {

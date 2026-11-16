@@ -1,9 +1,19 @@
 export type DiagramSize = { width: number; height: number };
 
-// The size an SVG asks to be drawn at, from its width and height or else its viewBox.
-export function svgSize(svg: string): DiagramSize | null {
+// the resize handles do not let a diagram get narrower than this
+const MIN_WIDTH = 24;
+
+// The size of the drawing a saved diagram holds, from the width and height its SVG states or else its viewBox.
+export function drawingSize(svg: string): DiagramSize | null {
   const root = new DOMParser().parseFromString(svg, "image/svg+xml")
     .documentElement;
+
+  // an imported diagram is a placeholder around a picture until the editor first saves it
+  const drawn = Array.from(root.children).some(
+    (child) => child.localName !== "image",
+  );
+  if (!drawn) return null;
+
   const length = (name: string) => {
     const value = root.getAttribute(name) ?? "";
     return value.trim().endsWith("%") ? NaN : parseFloat(value);
@@ -17,20 +27,29 @@ export function svgSize(svg: string): DiagramSize | null {
     height = parseFloat(viewBox[3]);
   }
 
-  return width > 0 && height > 0 ? { width, height } : null;
+  // an empty drawing is saved one pixel wide, which no zoom can be read from
+  return width > 1 && height > 0 ? { width, height } : null;
 }
 
-// The node size that keeps a resized diagram at its zoom once its drawing has a new size.
-export function rescaleDiagram(
+// How far a resized diagram is zoomed: its node width over the width of its drawing.
+export function diagramZoom(
   width: unknown,
-  before: DiagramSize | null,
-  after: DiagramSize | null,
-): DiagramSize | null {
-  if (typeof width !== "number" || !before || !after) return null;
+  drawing: DiagramSize | null,
+): number | null {
+  if (typeof width !== "number" || width <= 0 || !drawing) return null;
+  return width / drawing.width;
+}
 
-  const scaled = Math.round((width * after.width) / before.width);
+// The node size that shows a drawing at the given zoom.
+export function diagramSizeAt(
+  zoom: number | null,
+  drawing: DiagramSize | null,
+): DiagramSize | null {
+  if (zoom === null || !drawing) return null;
+
+  const width = Math.max(MIN_WIDTH, Math.round(zoom * drawing.width));
   return {
-    width: scaled,
-    height: Math.round((scaled * after.height) / after.width),
+    width,
+    height: Math.round((width * drawing.height) / drawing.width),
   };
 }
