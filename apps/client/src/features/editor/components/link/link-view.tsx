@@ -36,7 +36,7 @@ import {
 import { extractPageSlugId } from "@/lib";
 import {
   matchIntegrationLink,
-  sanitizeUrl,
+  sanitizeHref,
   copyToClipboard,
   isEditorReady,
 } from "@docmost/editor-ext";
@@ -379,7 +379,7 @@ export default function LinkView(props: MarkViewProps) {
       }
     } else {
       window.open(
-        sanitizeUrl(normalizeUrl(href)),
+        sanitizeHref(normalizeUrl(href)),
         "_blank",
         "noopener,noreferrer",
       );
@@ -417,7 +417,7 @@ export default function LinkView(props: MarkViewProps) {
       e.preventDefault();
       e.stopPropagation();
 
-      const fullUrl = sanitizeUrl(
+      const fullUrl = sanitizeHref(
         isInternal ? `${window.location.origin}${href}` : href,
       );
       copyToClipboard(fullUrl);
@@ -462,7 +462,7 @@ export default function LinkView(props: MarkViewProps) {
     return href;
   };
 
-  const displayHref = sanitizeUrl(
+  const displayHref = sanitizeHref(
     isInternal ? internalHref() : normalizeUrl(href),
   );
 

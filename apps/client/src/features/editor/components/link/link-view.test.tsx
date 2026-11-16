@@ -222,4 +222,28 @@ describe("LinkView", () => {
 
     expect(target?.getAttribute("aria-expanded")).toBe("false");
   });
+
+  it("keeps percent-encoded characters in a mailto href", () => {
+    const href =
+      "mailto:help@example.com?subject=Q%26A&body=Line%201%0ALine%202";
+    const { container } = renderDetachedLinkView({ href, internal: false });
+
+    expect(container.querySelector("a")?.getAttribute("href")).toBe(href);
+  });
+
+  it("keeps percent-encoded characters in a web href", () => {
+    const href = "https://example.com/search?q=a%26b%2Fc";
+    const { container } = renderDetachedLinkView({ href, internal: false });
+
+    expect(container.querySelector("a")?.getAttribute("href")).toBe(href);
+  });
+
+  it("still blanks a javascript href", () => {
+    const { container } = renderDetachedLinkView({
+      href: "javascript:alert(1)",
+      internal: false,
+    });
+
+    expect(container.querySelector("a")?.getAttribute("href") ?? "").toBe("");
+  });
 });

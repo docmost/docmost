@@ -396,6 +396,14 @@ export function sanitizeUrl(url: string | undefined): string {
   return sanitized === "about:blank" ? "" : sanitized;
 }
 
+// sanitizeUrl decodes percent-escapes, which turns %0A or %26 in a link into a
+// stripped newline or a raw "&". Check the decoded form, keep the href as given.
+export function sanitizeHref(url: string | undefined): string {
+  const trimmed = url?.trim();
+  if (!trimmed) return "";
+  return sanitizeUrl(trimmed) ? trimmed : "";
+}
+
 export function isHttpUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   try {
