@@ -218,7 +218,7 @@ describe("code-block gap navigation", () => {
       };
       const editor = createEditor(
         "tableCell",
-        direction === "up" ? [paragraph] : [code(), paragraph]
+        direction === "up" ? [paragraph, code()] : [code(), paragraph]
       );
       const [pos] = codePositions(editor);
       const end = pos + editor.state.doc.nodeAt(pos)!.nodeSize;
