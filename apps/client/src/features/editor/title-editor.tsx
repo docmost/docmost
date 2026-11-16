@@ -28,6 +28,7 @@ import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { platformModifierKey } from "@/lib";
 import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
+import { splitTitleIntoPage } from "@/features/editor/title-editor.utils";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -213,36 +214,7 @@ export function TitleEditor({
 
     if (key === "Enter") {
       event.preventDefault();
-
-      const { $from } = titleEditor.state.selection;
-      const titleText = titleEditor.getText();
-
-      // Get the text offset within the heading node (not document position)
-      const textOffset = $from.parentOffset;
-
-      const textAfterCursor = titleText.slice(textOffset);
-
-      // Delete text after cursor from title (this will be in undo history)
-      const endPos = titleEditor.state.doc.content.size;
-      if (textAfterCursor) {
-        titleEditor.commands.deleteRange({ from: $from.pos, to: endPos });
-      }
-
-      // Don't add to history so undo in page editor won't remove this split
-      pageEditor
-        .chain()
-        .command(({ tr }) => {
-          tr.setMeta("addToHistory", false);
-          return true;
-        })
-        .insertContentAt(0, {
-          type: "paragraph",
-          content: textAfterCursor
-            ? [{ type: "text", text: textAfterCursor }]
-            : undefined,
-        })
-        .focus("start")
-        .run();
+      splitTitleIntoPage(titleEditor, pageEditor);
       return;
     }
 

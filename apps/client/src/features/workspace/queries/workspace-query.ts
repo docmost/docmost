@@ -70,7 +70,7 @@ const MEMBER_QUERY_KEYS = [
   "search-suggestion",
 ];
 
-function refreshWorkspaceMemberQueries(queryClient: QueryClient) {
+export function refreshWorkspaceMembers(queryClient: QueryClient) {
   const related = ({ queryKey }: { queryKey: readonly unknown[] }) =>
     MEMBER_QUERY_KEYS.includes(queryKey[0] as string) ||
     (queryKey[0] === "bases" &&
@@ -95,7 +95,7 @@ export function useDeleteWorkspaceMemberMutation() {
     mutationFn: (data) => deleteWorkspaceMember(data),
     onSuccess: () => {
       notifications.show({ message: "Member deleted successfully" });
-      return refreshWorkspaceMemberQueries(queryClient);
+      return refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -118,7 +118,7 @@ export function useDeactivateWorkspaceMemberMutation() {
     mutationFn: (data) => deactivateWorkspaceMember(data),
     onSuccess: () => {
       notifications.show({ message: t("Member deactivated successfully") });
-      return refreshWorkspaceMemberQueries(queryClient);
+      return refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -141,7 +141,7 @@ export function useActivateWorkspaceMemberMutation() {
     mutationFn: (data) => activateWorkspaceMember(data),
     onSuccess: () => {
       notifications.show({ message: t("Member activated successfully") });
-      return refreshWorkspaceMemberQueries(queryClient);
+      return refreshWorkspaceMembers(queryClient);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;

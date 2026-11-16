@@ -205,7 +205,7 @@ export function IntegrationPasteMenu({ editor }: EditorMenuProps) {
       Boolean(promptRef.current?.contains(document.activeElement));
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!ownsFocus()) return;
+      if (editor.isDestroyed || !ownsFocus()) return;
 
       if (event.key === "Escape") {
         event.preventDefault();
