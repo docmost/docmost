@@ -11,7 +11,7 @@ import {
   PagePermission,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { ExpressionBuilder, sql, SqlBool } from 'kysely';
+import { ExpressionBuilder, RawBuilder, sql, SqlBool } from 'kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { DB } from '@docmost/db/types/db';
 import {
@@ -875,6 +875,26 @@ export class PagePermissionRepo {
       .execute();
 
     return results.map((r) => r.id);
+  }
+
+  // filterAccessiblePageIds for the outer unaliased `pages` row; inner aliases must not shadow it
+  canUserAccessPageExpression(userId: string): RawBuilder<SqlBool> {
+    return sql<SqlBool>`not exists (
+      with recursive ancestors as (
+        select p.id, p.parent_page_id from pages p where p.id = pages.id
+        union
+        select p.id, p.parent_page_id from pages p
+        join ancestors a on p.id = a.parent_page_id
+      )
+      select 1 from ancestors a
+      join page_access pa on pa.page_id = a.id
+      where not exists (
+        select 1 from page_permissions pp
+        where pp.page_access_id = pa.id
+          and (pp.user_id = ${userId}
+            or pp.group_id in (select gu.group_id from group_users gu where gu.user_id = ${userId}))
+      )
+    )`;
   }
 
   async filterAccessiblePageIdsWithPermissions(

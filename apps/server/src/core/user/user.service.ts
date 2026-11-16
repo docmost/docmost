@@ -93,6 +93,10 @@ export class UserService {
       user.name = updateUserDto.name;
     }
 
+    if (updateUserDto.timezone) {
+      user.timezone = updateUserDto.timezone;
+    }
+
     if (updateUserDto.email && user.email != updateUserDto.email) {
       validateSsoEnforcement(workspace);
 

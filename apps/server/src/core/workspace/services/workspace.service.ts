@@ -1088,6 +1088,7 @@ export class WorkspaceService {
           name: 'Deleted user',
           email: v4() + '@deleted.docmost.com',
           avatarUrl: null,
+          timezone: null,
           settings: null,
           deletedAt: new Date(),
         },
