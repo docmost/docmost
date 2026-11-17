@@ -60,10 +60,13 @@ export const TiptapAudio = Node.create<AudioOptions>({
           const sanitized = sanitizeUrl(src);
           return isInternalFileUrl(sanitized) ? sanitized : "";
         },
+        // an export with attachments points src into its own files folder
         renderHTML: (attributes) => ({
-          src: isInternalFileUrl(attributes.src)
-            ? sanitizeUrl(attributes.src)
-            : "",
+          src:
+            isInternalFileUrl(attributes.src) ||
+            attributes.src?.startsWith("files/")
+              ? sanitizeUrl(attributes.src)
+              : "",
         }),
       },
       name: {

@@ -10,8 +10,10 @@ import {
 } from 'docx';
 import { Node } from 'prosemirror-model';
 import { sanitizeIntegrationUrl } from '../integration-link/integration-link';
+import { getFileNameFromUrl } from '../media-utils';
 import { sanitizeMicrosoftFileItems } from '../microsoft/microsoft-file';
 import { sanitizeMicrosoftFolderUrl } from '../microsoft/microsoft-folder';
+import { isInternalFileUrl } from '../utils';
 import {
   DocxSerializerAsync,
   MarkSerializer,
@@ -63,8 +65,11 @@ const renderImage: NodeSerializerAsync[string] = async (state, node) => {
 
 // Non-embeddable media render as a labelled line.
 const renderFileLine: NodeSerializerAsync[string] = (state, node) => {
+  const src = node.attrs?.src || node.attrs?.url;
   const label =
-    node.attrs?.name || node.attrs?.src || node.attrs?.url || 'attachment';
+    node.attrs?.name ||
+    (isInternalFileUrl(src) ? getFileNameFromUrl(src) : src) ||
+    'attachment';
   state.text(label);
   state.closeBlock(node);
 };

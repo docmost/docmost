@@ -11,6 +11,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { ExportFormat } from './dto/export-dto';
 import { ExportService } from './export.service';
+import { updateAttachmentUrlsToLocalPaths } from './utils';
 
 jest.mock('@sindresorhus/slugify', () => ({
   __esModule: true,
@@ -22,6 +23,7 @@ const USER_ID = '019a4f3e-0000-7000-8000-000000000002';
 const SPACE_ID = '019a4f3e-0000-7000-8000-000000000003';
 const SOURCE_PAGE_ID = '019a4f3e-0000-7000-8000-000000000004';
 const MENTIONED_PAGE_ID = '019a4f3e-0000-7000-8000-000000000005';
+const AUDIO_FILE_ID = '019a4f3e-0000-7000-8000-000000000006';
 const BASE_URL = 'https://docs.example.com';
 
 function pageMention(entityId: string, label: string) {
@@ -192,4 +194,37 @@ describe('ExportService page mentions', () => {
     }
     expect(JSON.stringify(json)).toContain('Live title');
   });
+});
+
+describe('ExportService audio blocks', () => {
+  const audioDoc = {
+    type: 'doc',
+    content: [
+      {
+        type: 'audio',
+        attrs: {
+          src: `/api/files/${AUDIO_FILE_ID}/standup.mp3`,
+          name: 'standup.mp3',
+          attachmentId: AUDIO_FILE_ID,
+        },
+      },
+    ],
+  };
+
+  it.each([
+    [ExportFormat.Markdown, `[standup.mp3](files/${AUDIO_FILE_ID}/standup.mp3)`],
+    [ExportFormat.HTML, `src="files/${AUDIO_FILE_ID}/standup.mp3"`],
+  ])(
+    'keeps the audio file link in a %s export that includes attachments',
+    async (format, expected) => {
+      const { service } = buildService({ accessiblePageIds: [] });
+
+      const exported = await service.exportPage(format, {
+        title: '',
+        content: updateAttachmentUrlsToLocalPaths(audioDoc),
+      } as any);
+
+      expect(exported).toContain(expected);
+    },
+  );
 });
