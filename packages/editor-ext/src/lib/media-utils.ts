@@ -7,6 +7,16 @@ export function normalizeFileUrl(src: string): string {
   return src || "";
 }
 
+export function getFileNameFromUrl(url: string | undefined): string {
+  const path = (url || "").split("?")[0];
+  const fileName = path.substring(path.lastIndexOf("/") + 1);
+  try {
+    return decodeURIComponent(fileName);
+  } catch {
+    return fileName;
+  }
+}
+
 export function syncAltBadge(wrapper: HTMLElement, alt: unknown): void {
   const existing = wrapper.querySelector<HTMLElement>(
     ":scope > .media-alt-badge",

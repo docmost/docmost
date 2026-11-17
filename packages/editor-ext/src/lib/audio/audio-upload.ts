@@ -76,6 +76,7 @@ const handleAudioUpload =
 
         tr.setNodeMarkup(currentPos, undefined, {
           src: `/api/files/${attachment.id}/${attachment.fileName}`,
+          name: attachment.fileName,
           attachmentId: attachment.id,
           size: attachment.fileSize,
         });

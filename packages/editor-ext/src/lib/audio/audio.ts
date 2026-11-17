@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { normalizeFileUrl } from "../media-utils";
+import { getFileNameFromUrl, normalizeFileUrl } from "../media-utils";
 import { sanitizeUrl, isInternalFileUrl } from "../utils";
 
 export interface AudioOptions {
@@ -10,12 +10,21 @@ export interface AudioOptions {
 
 export interface AudioAttributes {
   src?: string;
+  name?: string;
   attachmentId?: string;
   size?: number;
   placeholder?: {
     id: string;
     name: string;
   };
+}
+
+// audio added before the name attribute falls back to the file name in src
+export function getAudioFileName(attrs: {
+  name?: string | null;
+  src?: string | null;
+}): string | null {
+  return attrs?.name || getFileNameFromUrl(attrs?.src) || null;
 }
 
 declare module "@tiptap/core" {
@@ -51,10 +60,20 @@ export const TiptapAudio = Node.create<AudioOptions>({
           const sanitized = sanitizeUrl(src);
           return isInternalFileUrl(sanitized) ? sanitized : "";
         },
+        // an export with attachments points src into its own files folder
         renderHTML: (attributes) => ({
-          src: isInternalFileUrl(attributes.src)
-            ? sanitizeUrl(attributes.src)
-            : "",
+          src:
+            isInternalFileUrl(attributes.src) ||
+            attributes.src?.startsWith("files/")
+              ? sanitizeUrl(attributes.src)
+              : "",
+        }),
+      },
+      name: {
+        default: undefined,
+        parseHTML: (element) => element.getAttribute("data-name"),
+        renderHTML: (attributes: AudioAttributes) => ({
+          "data-name": attributes.name,
         }),
       },
       attachmentId: {
@@ -114,7 +133,16 @@ export const TiptapAudio = Node.create<AudioOptions>({
   addNodeView() {
     if (this.options.view) {
       this.editor.isInitialized = true;
-      return ReactNodeViewRenderer(this.options.view);
+      return ReactNodeViewRenderer(this.options.view, {
+        // the player's controls take their own clicks and keys, drags stay with ProseMirror
+        stopEvent: ({ event }) => {
+          if (event.type.startsWith("drag") || event.type === "drop") {
+            return false;
+          }
+          const target = event.target as HTMLElement | null;
+          return !!target?.closest?.("[data-audio-controls]");
+        },
+      });
     }
 
     return ({ node, HTMLAttributes }) => {
@@ -127,6 +155,19 @@ export const TiptapAudio = Node.create<AudioOptions>({
       audio.controls = true;
       audio.preload = "metadata";
       audio.style.width = "100%";
+
+      const fileName = getAudioFileName(node.attrs);
+      if (fileName) {
+        const label = document.createElement("div");
+        label.textContent = fileName;
+        label.title = fileName;
+        label.style.cssText =
+          "font-size:14px;font-weight:600;margin-bottom:6px;" +
+          "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+        audio.setAttribute("aria-label", fileName);
+        dom.append(label);
+      }
+
       dom.append(audio);
       return { dom };
     };
