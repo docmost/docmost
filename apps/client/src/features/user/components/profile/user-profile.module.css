@@ -1,25 +1,17 @@
+/* wraps by the card's own width, which the sidebar narrows */
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--mantine-spacing-lg);
-
-  @media (max-width: $mantine-breakpoint-sm) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--mantine-spacing-md);
-  }
+  gap: var(--mantine-spacing-md) var(--mantine-spacing-lg);
 }
 
 .headerBody {
-  flex: 1;
+  flex: 1 1 240px;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-
-  @media (max-width: $mantine-breakpoint-sm) {
-    align-self: stretch;
-  }
 }
 
 .name {
@@ -44,10 +36,6 @@
   svg {
     flex-shrink: 0;
   }
-}
-
-.actions {
-  flex-shrink: 0;
 }
 
 .cardHeader {

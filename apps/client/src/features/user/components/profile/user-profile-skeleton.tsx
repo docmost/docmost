@@ -34,12 +34,7 @@ export function UserProfileSkeleton({ withTabs }: UserProfileSkeletonProps) {
               <Skeleton height={14} width={110} radius="xs" my={4} />
             </div>
           </div>
-          <Skeleton
-            height={36}
-            width={112}
-            radius="sm"
-            className={classes.actions}
-          />
+          <Skeleton height={36} width={112} radius="sm" />
         </div>
       </Paper>
 

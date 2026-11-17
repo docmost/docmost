@@ -99,7 +99,7 @@ export function UserProfileHeader({ profile, actions }: UserProfileHeaderProps) 
           </div>
         </div>
 
-        <Group gap="xs" className={classes.actions}>
+        <Group gap="xs">
           <Button
             variant="default"
             leftSection={<IconLink size={16} />}
