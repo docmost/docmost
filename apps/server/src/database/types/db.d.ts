@@ -149,7 +149,8 @@ export interface Backlinks {
   workspaceId: string;
 }
 
-export interface BaseLegacyConversions {
+export interface BasePendingConversions {
+  conversionKey: string;
   createdAt: Generated<Timestamp>;
   pageId: string;
   workspaceId: string;
@@ -819,7 +820,7 @@ export interface DB {
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;
-  baseLegacyConversions: BaseLegacyConversions;
+  basePendingConversions: BasePendingConversions;
   baseProperties: BaseProperties;
   baseRows: BaseRows;
   baseViewShares: BaseViewShares;
