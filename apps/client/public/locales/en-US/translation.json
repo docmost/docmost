@@ -447,6 +447,7 @@
   "Embed PDF": "Embed PDF",
   "Upload and embed a PDF file.": "Upload and embed a PDF file.",
   "Embed as PDF": "Embed as PDF",
+  "Embed as audio": "Embed as audio",
   "Failed to load PDF": "Failed to load PDF",
   "Convert to attachment": "Convert to attachment",
   "File attachment": "File attachment",
@@ -1929,5 +1930,12 @@
   "No announcements": "No announcements",
   "Deleted on {{date}}": "Deleted on {{date}}",
   "Member deactivated successfully": "Member deactivated successfully",
-  "Member activated successfully": "Member activated successfully"
+  "Member activated successfully": "Member activated successfully",
+  "Play": "Play",
+  "Pause": "Pause",
+  "Mute": "Mute",
+  "Unmute": "Unmute",
+  "Seek": "Seek",
+  "Playback speed": "Playback speed",
+  "Couldn't load this audio file": "Couldn't load this audio file"
 }
