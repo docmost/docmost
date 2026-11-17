@@ -25,11 +25,13 @@ import { IconEdit } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { modals } from "@mantine/modals";
 import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
+import { canEditDiagram } from "@/features/editor/components/common/diagram-editable";
 
 export default function DrawioView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, updateAttributes, editor, selected } = props;
-  const { attachmentId } = node.attrs;
+  // react-drawio keeps the callbacks of its first render, so a later save reads the id from here
+  const attachmentIdRef = useRef<string>(node.attrs.attachmentId);
   const drawioRef = useRef<DrawIoEmbedRef>(null);
   const [initialXML, setInitialXML] = useState<string>("");
   const [opened, { open, close }] = useDisclosure(false);
@@ -39,7 +41,7 @@ export default function DrawioView(props: NodeViewProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleOpen = async () => {
-    if (!editor.isEditable) {
+    if (!canEditDiagram(editor)) {
       return;
     }
     isDirtyRef.current = false;
@@ -60,12 +62,12 @@ export default function DrawioView(props: NodeViewProps) {
       //@ts-ignore
       const pageId = editor.storage?.pageId;
 
-      let attachment: IAttachment = null;
-      if (attachmentId) {
-        attachment = await uploadFile(drawioSVGFile, pageId, attachmentId);
-      } else {
-        attachment = await uploadFile(drawioSVGFile, pageId);
-      }
+      const attachment: IAttachment = await uploadFile(
+        drawioSVGFile,
+        pageId,
+        attachmentIdRef.current,
+      );
+      attachmentIdRef.current = attachment.id;
 
       if (updateSrc) {
         updateAttributes({
