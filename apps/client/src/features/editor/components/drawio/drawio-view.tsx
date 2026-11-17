@@ -25,21 +25,23 @@ import { IconEdit } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { modals } from "@mantine/modals";
 import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
+import { canEditDiagram } from "@/features/editor/components/common/diagram-editable";
+import { useDiagramSave } from "@/features/editor/components/common/use-diagram-save";
 
 export default function DrawioView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, updateAttributes, editor, selected } = props;
-  const { attachmentId } = node.attrs;
+  // react-drawio keeps the callbacks of its first render, so a later save reads the id from here
+  const attachmentIdRef = useRef<string>(node.attrs.attachmentId);
   const drawioRef = useRef<DrawIoEmbedRef>(null);
   const [initialXML, setInitialXML] = useState<string>("");
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
-  const isSavingRef = useRef(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { isSaving, isSavingRef, save, autosave } = useDiagramSave();
 
   const handleOpen = async () => {
-    if (!editor.isEditable) {
+    if (!canEditDiagram(editor)) {
       return;
     }
     isDirtyRef.current = false;
@@ -47,44 +49,34 @@ export default function DrawioView(props: NodeViewProps) {
   };
 
   const saveData = async (svgXml: string, updateSrc = true) => {
-    if (isSavingRef.current) return;
+    const svgString = decodeBase64ToSvgString(svgXml);
+    const fileName = "diagram.drawio.svg";
+    const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
-    isSavingRef.current = true;
-    setIsSaving(true);
+    //@ts-ignore
+    const pageId = editor.storage?.pageId;
 
-    try {
-      const svgString = decodeBase64ToSvgString(svgXml);
-      const fileName = "diagram.drawio.svg";
-      const drawioSVGFile = await svgStringToFile(svgString, fileName);
+    const attachment: IAttachment = await uploadFile(
+      drawioSVGFile,
+      pageId,
+      attachmentIdRef.current,
+    );
+    attachmentIdRef.current = attachment.id;
 
-      //@ts-ignore
-      const pageId = editor.storage?.pageId;
-
-      let attachment: IAttachment = null;
-      if (attachmentId) {
-        attachment = await uploadFile(drawioSVGFile, pageId, attachmentId);
-      } else {
-        attachment = await uploadFile(drawioSVGFile, pageId);
-      }
-
-      if (updateSrc) {
-        updateAttributes({
-          src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-          title: attachment.fileName,
-          size: attachment.fileSize,
-          attachmentId: attachment.id,
-        });
-      } else {
-        updateAttributes({
-          attachmentId: attachment.id,
-        });
-      }
-
-      isDirtyRef.current = false;
-    } finally {
-      isSavingRef.current = false;
-      setIsSaving(false);
+    if (updateSrc) {
+      updateAttributes({
+        src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+        title: attachment.fileName,
+        size: attachment.fileSize,
+        attachmentId: attachment.id,
+      });
+    } else {
+      updateAttributes({
+        attachmentId: attachment.id,
+      });
     }
+
+    isDirtyRef.current = false;
   };
 
   const handleClose = useCallback(() => {
@@ -166,7 +158,7 @@ export default function DrawioView(props: NodeViewProps) {
                   if (data.parentEvent !== "save") {
                     return;
                   }
-                  saveData(data.xml, true).then(() => close()).catch(notifyDiagramSaveError);
+                  save(() => saveData(data.xml, true)).then(() => close()).catch(notifyDiagramSaveError);
                 }}
                 onClose={(data: EventExit) => {
                   if (data.parentEvent) {
@@ -178,7 +170,7 @@ export default function DrawioView(props: NodeViewProps) {
                   isDirtyRef.current = true;
                 }}
                 onExport={(data: EventExport) => {
-                  saveData(data.data, false).catch(() => {});
+                  autosave(() => saveData(data.data, false)).catch(() => {});
                 }}
               />
             </div>

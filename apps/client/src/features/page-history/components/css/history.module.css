@@ -69,6 +69,12 @@
     border-radius: rem(4px);
   }
 
+  /* a removed item must not renumber the items that are still there */
+  & :global(ol > li.history-diff-block-deleted) {
+    counter-increment: list-item 0;
+    list-style-type: none;
+  }
+
   & :global(.history-diff-formatted) {
     border-bottom: rem(2px) dotted
       light-dark(var(--mantine-color-blue-5), var(--mantine-color-blue-7));
