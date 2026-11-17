@@ -60,7 +60,6 @@ export interface IUserProfile {
   avatarUrl: string | null;
   email: string | null;
   role: string;
-  timezone: string | null;
   createdAt: Date;
   deactivatedAt: Date | null;
   deletedAt: Date | null;

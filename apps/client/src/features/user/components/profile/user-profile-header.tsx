@@ -3,7 +3,6 @@ import { Badge, Button, Group, Paper, Text, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
   IconCalendar,
-  IconClock,
   IconLink,
   IconMail,
   IconPencil,
@@ -13,7 +12,6 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
-import { UserLocalTime } from "@/features/user/components/user-local-time";
 import { IUserProfile } from "@/features/user/types/user.types";
 import { getUserRoleLabel } from "@/features/workspace/types/user-role-data";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -75,12 +73,6 @@ export function UserProfileHeader({ profile, actions }: UserProfileHeaderProps) 
                 <Text span fz="sm" c="dimmed">
                   {profile.email}
                 </Text>
-              </span>
-            )}
-            {profile.timezone && (
-              <span className={classes.metaItem}>
-                <IconClock size={16} aria-hidden />
-                <UserLocalTime timezone={profile.timezone} />
               </span>
             )}
             <span className={classes.metaItem}>

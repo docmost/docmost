@@ -1,10 +1,9 @@
 import { ReactElement, useState } from "react";
 import { Badge, Button, Group, HoverCard, Skeleton, Text } from "@mantine/core";
-import { IconClock, IconMail } from "@tabler/icons-react";
+import { IconMail } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
-import { UserLocalTime } from "@/features/user/components/user-local-time";
 import { useUserProfileQuery } from "@/features/user/queries/user-query";
 import { getUserProfileUrl } from "@/lib/config";
 import classes from "./user-hover-card.module.css";
@@ -75,22 +74,14 @@ export function UserHoverCard({ userId, children }: UserHoverCardProps) {
           </div>
         </div>
 
-        {(profile.email || profile.timezone) && (
+        {profile.email && (
           <div className={classes.meta}>
-            {profile.email && (
-              <div className={classes.metaItem}>
-                <IconMail size={16} aria-hidden style={{ flex: "none" }} />
-                <Text span fz="sm" c="dimmed" className={classes.metaText}>
-                  {profile.email}
-                </Text>
-              </div>
-            )}
-            {profile.timezone && (
-              <div className={classes.metaItem}>
-                <IconClock size={16} aria-hidden style={{ flex: "none" }} />
-                <UserLocalTime timezone={profile.timezone} />
-              </div>
-            )}
+            <div className={classes.metaItem}>
+              <IconMail size={16} aria-hidden style={{ flex: "none" }} />
+              <Text span fz="sm" c="dimmed" className={classes.metaText}>
+                {profile.email}
+              </Text>
+            </div>
           </div>
         )}
 

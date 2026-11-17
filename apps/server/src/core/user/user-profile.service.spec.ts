@@ -78,7 +78,6 @@ describe('UserProfileService', () => {
       avatarUrl: null,
       email: 'ada@example.com',
       role: 'member',
-      timezone: 'Europe/London',
       createdAt,
       deactivatedAt: null,
       deletedAt: null,

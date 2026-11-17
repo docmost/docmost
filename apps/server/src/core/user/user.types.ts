@@ -13,7 +13,6 @@ export type UserProfile = Pick<
   | 'avatarUrl'
   | 'email'
   | 'role'
-  | 'timezone'
   | 'createdAt'
   | 'deactivatedAt'
   | 'deletedAt'

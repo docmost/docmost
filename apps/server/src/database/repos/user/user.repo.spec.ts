@@ -70,6 +70,29 @@ describe('UserRepo getUsersPaginated status', () => {
   });
 });
 
+describe('UserRepo timezone', () => {
+  it('leaves timezone out of user lookups unless asked', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo.findById('u-1', 'ws-1');
+    await repo.findById('u-1', 'ws-1', { includeTimezone: true });
+
+    expect(queries[0].sql).not.toContain('"timezone"');
+    expect(queries[1].sql).toContain('"timezone"');
+  });
+
+  it('leaves timezone out of the member list', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo.getUsersPaginated(
+      'ws-1',
+      Object.assign(new PaginationOptions(), { limit: 20 }),
+    );
+
+    expect(queries[0].sql).not.toContain('"timezone"');
+  });
+});
+
 describe('UserRepo findActiveNamesByIds', () => {
   it('reads names of active users in the workspace', async () => {
     const { repo, queries } = buildRepo();

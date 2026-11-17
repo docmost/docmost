@@ -78,6 +78,7 @@ export class GroupUserRepo {
 
     result.items.map((user) => {
       delete user.password;
+      delete user.timezone;
     });
 
     return result;

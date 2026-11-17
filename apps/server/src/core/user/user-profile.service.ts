@@ -36,7 +36,6 @@ export class UserProfileService {
       avatarUrl: user.avatarUrl,
       email: user.deletedAt ? null : user.email,
       role: user.role,
-      timezone: user.timezone,
       createdAt: user.createdAt,
       deactivatedAt: user.deactivatedAt,
       deletedAt: user.deletedAt,
