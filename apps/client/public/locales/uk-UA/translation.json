@@ -447,6 +447,7 @@
   "Embed PDF": "Вбудувати PDF",
   "Upload and embed a PDF file.": "Завантажте та вбудуйте файл PDF.",
   "Embed as PDF": "Вбудувати як PDF",
+  "Embed as audio": "Embed as audio",
   "Failed to load PDF": "Не вдалося завантажити PDF",
   "Convert to attachment": "Перетворити на вкладення",
   "File attachment": "Вкладення файлу",
@@ -1929,5 +1930,12 @@
   "No announcements": "Немає оголошень",
   "Deleted on {{date}}": "Видалено {{date}}",
   "Member deactivated successfully": "Учасника успішно деактивовано",
-  "Member activated successfully": "Учасника успішно активовано"
+  "Member activated successfully": "Учасника успішно активовано",
+  "Play": "Play",
+  "Pause": "Pause",
+  "Mute": "Mute",
+  "Unmute": "Unmute",
+  "Seek": "Seek",
+  "Playback speed": "Playback speed",
+  "Couldn't load this audio file": "Couldn't load this audio file"
 }
