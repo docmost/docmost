@@ -28,6 +28,21 @@ const svg =
   '<svg xmlns="http://www.w3.org/2000/svg" width="10px" height="10px"><g/></svg>';
 const exported = `data:image/svg+xml;base64,${btoa(svg)}`;
 
+// the two exports the draw.io frame reports: one the autosave timer asked for, one for Save & Exit
+const autosaveExport = { event: "export", data: exported, message: {} };
+const saveAndExitExport = {
+  event: "export",
+  data: exported,
+  message: { parentEvent: "save", exit: true },
+};
+
+const attachment = {
+  id: "att-1",
+  fileName: "diagram.drawio.svg",
+  fileSize: 10,
+  updatedAt: "2026-01-01T00:00:00.000Z",
+} as Awaited<ReturnType<typeof uploadFile>>;
+
 const onPage = { isEditable: true, storage: { pageId: "page-1" } };
 const updateAttributes = vi.fn();
 
@@ -105,25 +120,60 @@ describe("a draw.io diagram that has not been saved yet", () => {
   });
 
   it("saves over its own first save instead of making another attachment", async () => {
-    vi.mocked(uploadFile).mockResolvedValue({
-      id: "att-1",
-      fileName: "diagram.drawio.svg",
-      fileSize: 10,
-      updatedAt: "2026-01-01T00:00:00.000Z",
-    } as Awaited<ReturnType<typeof uploadFile>>);
+    vi.mocked(uploadFile).mockResolvedValue(attachment);
     render(<Host editor={onPage} />);
     openEditor();
 
-    // two autosaves, the way react-drawio reports an export
-    await fromDrawio({ event: "export", data: exported, message: {} });
+    await fromDrawio(autosaveExport);
     await waitFor(() =>
       expect(updateAttributes).toHaveBeenCalledWith({ attachmentId: "att-1" }),
     );
-    await fromDrawio({ event: "export", data: exported, message: {} });
+    await fromDrawio(autosaveExport);
     await waitFor(() => expect(uploadFile).toHaveBeenCalledTimes(2));
 
     const [first, second] = vi.mocked(uploadFile).mock.calls;
     expect(first[2]).toBeUndefined();
     expect(second[2]).toBe("att-1");
+  });
+
+  it("uploads once for one Save & Exit", async () => {
+    vi.mocked(uploadFile).mockResolvedValue(attachment);
+    render(<Host editor={onPage} />);
+    openEditor();
+
+    await fromDrawio(saveAndExitExport);
+    await waitFor(() => expect(diagramEditor()).toBeNull());
+
+    expect(uploadFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves a Save & Exit that arrives while an autosave is still uploading", async () => {
+    const uploads: Array<(saved: typeof attachment) => void> = [];
+    vi.mocked(uploadFile).mockImplementation(
+      () => new Promise((resolve) => uploads.push(resolve)),
+    );
+    render(<Host editor={onPage} />);
+    openEditor();
+
+    await fromDrawio(autosaveExport);
+    await waitFor(() => expect(uploads).toHaveLength(1));
+    await fromDrawio(saveAndExitExport);
+
+    // the editor waits for its turn instead of closing unsaved
+    expect(diagramEditor()).not.toBeNull();
+
+    await act(async () => uploads[0](attachment));
+    await waitFor(() => expect(uploads).toHaveLength(2));
+    expect(diagramEditor()).not.toBeNull();
+
+    await act(async () => uploads[1](attachment));
+    await waitFor(() => expect(diagramEditor()).toBeNull());
+
+    expect(vi.mocked(uploadFile).mock.calls[1][2]).toBe("att-1");
+    expect(updateAttributes).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        src: expect.stringContaining("/api/files/att-1/"),
+      }),
+    );
   });
 });

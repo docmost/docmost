@@ -26,6 +26,7 @@ import { useTranslation } from "react-i18next";
 import { modals } from "@mantine/modals";
 import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { canEditDiagram } from "@/features/editor/components/common/diagram-editable";
+import { useDiagramSave } from "@/features/editor/components/common/use-diagram-save";
 
 export default function DrawioView(props: NodeViewProps) {
   const { t } = useTranslation();
@@ -37,8 +38,7 @@ export default function DrawioView(props: NodeViewProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
-  const isSavingRef = useRef(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { isSaving, isSavingRef, save, autosave } = useDiagramSave();
 
   const handleOpen = async () => {
     if (!canEditDiagram(editor)) {
@@ -49,44 +49,34 @@ export default function DrawioView(props: NodeViewProps) {
   };
 
   const saveData = async (svgXml: string, updateSrc = true) => {
-    if (isSavingRef.current) return;
+    const svgString = decodeBase64ToSvgString(svgXml);
+    const fileName = "diagram.drawio.svg";
+    const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
-    isSavingRef.current = true;
-    setIsSaving(true);
+    //@ts-ignore
+    const pageId = editor.storage?.pageId;
 
-    try {
-      const svgString = decodeBase64ToSvgString(svgXml);
-      const fileName = "diagram.drawio.svg";
-      const drawioSVGFile = await svgStringToFile(svgString, fileName);
+    const attachment: IAttachment = await uploadFile(
+      drawioSVGFile,
+      pageId,
+      attachmentIdRef.current,
+    );
+    attachmentIdRef.current = attachment.id;
 
-      //@ts-ignore
-      const pageId = editor.storage?.pageId;
-
-      const attachment: IAttachment = await uploadFile(
-        drawioSVGFile,
-        pageId,
-        attachmentIdRef.current,
-      );
-      attachmentIdRef.current = attachment.id;
-
-      if (updateSrc) {
-        updateAttributes({
-          src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-          title: attachment.fileName,
-          size: attachment.fileSize,
-          attachmentId: attachment.id,
-        });
-      } else {
-        updateAttributes({
-          attachmentId: attachment.id,
-        });
-      }
-
-      isDirtyRef.current = false;
-    } finally {
-      isSavingRef.current = false;
-      setIsSaving(false);
+    if (updateSrc) {
+      updateAttributes({
+        src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+        title: attachment.fileName,
+        size: attachment.fileSize,
+        attachmentId: attachment.id,
+      });
+    } else {
+      updateAttributes({
+        attachmentId: attachment.id,
+      });
     }
+
+    isDirtyRef.current = false;
   };
 
   const handleClose = useCallback(() => {
@@ -168,7 +158,7 @@ export default function DrawioView(props: NodeViewProps) {
                   if (data.parentEvent !== "save") {
                     return;
                   }
-                  saveData(data.xml, true).then(() => close()).catch(notifyDiagramSaveError);
+                  save(() => saveData(data.xml, true)).then(() => close()).catch(notifyDiagramSaveError);
                 }}
                 onClose={(data: EventExit) => {
                   if (data.parentEvent) {
@@ -180,7 +170,7 @@ export default function DrawioView(props: NodeViewProps) {
                   isDirtyRef.current = true;
                 }}
                 onExport={(data: EventExport) => {
-                  saveData(data.data, false).catch(() => {});
+                  autosave(() => saveData(data.data, false)).catch(() => {});
                 }}
               />
             </div>
