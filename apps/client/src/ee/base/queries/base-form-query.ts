@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -72,15 +72,35 @@ export function useUpdateFormShareMutation(viewId: string) {
 }
 
 export function usePublicFormQuery(key: string | undefined) {
-  return useQuery<PublicFormResponse, Error>({
+  const query = useQuery<PublicFormResponse, Error>({
     queryKey: publicFormQueryKey(key),
-    queryFn: () => getPublicForm(key!),
+    queryFn: ({ signal }) => getPublicForm(key!, signal),
     enabled: !!key,
     retry: false,
-    staleTime: Infinity,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
+    // Respondents do not receive the author's socket updates. Revalidate when
+    // they return so cached questions and sharing permissions are not reused.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
   });
+
+  const [validated, setValidated] = useState({ key, succeeded: false });
+  const succeeded = query.isSuccess && query.isFetchedAfterMount;
+  if (validated.key !== key) {
+    setValidated({ key, succeeded });
+  } else if (succeeded && !validated.succeeded) {
+    setValidated({ key, succeeded: true });
+  }
+
+  // A failed refetch also sets isFetchedAfterMount. Only a successful check
+  // during this visit may initialize a form; later transient errors can keep
+  // that already-initialized draft mounted, hidden until a retry succeeds.
+  return {
+    ...query,
+    hasValidatedData:
+      succeeded || (validated.key === key && validated.succeeded),
+  };
 }
 
 export function useSubmitPublicFormMutation() {

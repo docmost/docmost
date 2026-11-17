@@ -59,6 +59,7 @@ const CALENDAR_DATE_SOURCE_TYPES: ReadonlySet<string> = new Set<BasePropertyType
 ]);
 
 const LAST_CALENDAR_DATE = "9998-12-31";
+const SPAN_MARGIN_DAYS = 7;
 
 export const WEEK_SLOT_MINUTES = 60;
 export const TIME_SNAP_MINUTES = 15;
@@ -178,7 +179,25 @@ export function toCalendarEvents(
       payload: { rowId: row.id, kind, value, readOnly },
     });
   }
-  return events.sort(compareEvents);
+  events.sort(compareEvents);
+  // The library walks every day of a span, so cut it a week outside the window; starts stay a second apart because the week view sorts by start.
+  let cut = 0;
+  for (const event of events) {
+    if (diffDays(event.start.slice(0, 10), window.from) >= SPAN_MARGIN_DAYS) {
+      const second = Math.min(cut, MINUTES_PER_DAY * 60 - 1);
+      const clock = `${pad(Math.floor(second / 3600))}:${pad(Math.floor(second / 60) % 60)}:${pad(second % 60)}`;
+      event.start = `${addDays(window.from, -SPAN_MARGIN_DAYS)} ${clock}`;
+      cut += 1;
+    }
+    if (diffDays(window.to, event.end.slice(0, 10)) > SPAN_MARGIN_DAYS) {
+      event.end = `${addDays(window.to, SPAN_MARGIN_DAYS)} 23:59:59`;
+    }
+  }
+  return events;
+}
+
+function storedFirstDay(payload: CalendarEventPayload, timeZone: string): string {
+  return toDisplaySpan(payload.value, payload.kind, timeZone)[0].slice(0, 10);
 }
 
 export function eventDayRange(event: Pick<CalendarEvent, "start" | "end">): CalendarDayRange {
@@ -266,7 +285,7 @@ export function dropOnMonth(
   return toWrite(event.payload, () =>
     moveByDays(
       event.payload,
-      diffDays(grabbedDay ?? event.start.slice(0, 10), newStart.slice(0, 10)),
+      diffDays(grabbedDay ?? storedFirstDay(event.payload, timeZone), newStart.slice(0, 10)),
       timeZone,
     ),
   );
@@ -282,7 +301,7 @@ export function dropOnWeek(
   return toWrite(payload, () => {
     const dropDay = newStart.slice(0, 10);
     if (payload.kind === "date" || isAllDayLane(event)) {
-      return moveByDays(payload, diffDays(grab.day ?? event.start.slice(0, 10), dropDay), timeZone);
+      return moveByDays(payload, diffDays(grab.day ?? storedFirstDay(payload, timeZone), dropDay), timeZone);
     }
 
     const from = grab.time ?? event.start;

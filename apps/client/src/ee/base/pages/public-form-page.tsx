@@ -1,12 +1,10 @@
 import "@fontsource-variable/inter";
 import "@/styles/public-typography.css";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ActionIcon,
-  Skeleton,
-  Stack,
   Text,
   Tooltip,
   useComputedColorScheme,
@@ -25,17 +23,36 @@ import {
   FormFill,
   FormUnavailableStatus,
 } from "@/ee/base/components/form/form-fill";
+import { FormSkeleton } from "@/ee/base/components/form/form-skeleton";
 import { FormStatus } from "@/ee/base/components/form/form-status";
 import classes from "@/ee/base/styles/public-form.module.css";
 
 export default function PublicFormPage() {
   const { t } = useTranslation();
   const { formKey } = useParams();
-  const { data, isLoading, isFetching, isError, error, refetch } =
-    usePublicFormQuery(formKey);
+  const {
+    data,
+    dataUpdatedAt,
+    isFetching,
+    isPaused,
+    hasValidatedData,
+    isError,
+    error,
+    refetch,
+  } = usePublicFormQuery(formKey);
   const submitMutation = useSubmitPublicFormMutation();
-  const [unavailable, setUnavailable] =
-    useState<FormUnavailableStatus | null>(null);
+  const [submissionError, setSubmissionError] = useState<{
+    key: string | undefined;
+    status: FormUnavailableStatus;
+  } | null>(null);
+  const unavailable =
+    submissionError && submissionError.key === formKey
+      ? submissionError.status
+      : null;
+
+  useEffect(() => {
+    setSubmissionError(null);
+  }, [formKey, dataUpdatedAt, isFetching]);
 
   const signIn = () => {
     const params = new URLSearchParams({ redirect: `/forms/${formKey}` });
@@ -43,10 +60,17 @@ export default function PublicFormPage() {
   };
 
   const errorStatus = isAxiosError(error) ? error.response?.status : undefined;
+  const validating =
+    isFetching || isPaused || (!!formKey && !hasValidatedData && !isError);
+  const accessError = errorStatus && [400, 401, 403, 404].includes(errorStatus);
+  const form =
+    hasValidatedData && !accessError && !unavailable && data?.status === "open"
+      ? data
+      : null;
 
   let content: ReactNode;
-  if (isLoading) {
-    content = <PublicFormSkeleton />;
+  if (validating) {
+    content = <FormSkeleton />;
   } else if (unavailable) {
     content = <FormStatus variant={unavailable} onSignIn={signIn} />;
   } else if (isError || !data) {
@@ -55,6 +79,8 @@ export default function PublicFormPage() {
         <FormStatus variant="notFound" />
       ) : errorStatus === 403 ? (
         <FormStatus variant="closed" />
+      ) : errorStatus === 401 ? (
+        <FormStatus variant="signInRequired" onSignIn={signIn} />
       ) : (
         <FormStatus
           variant="error"
@@ -73,22 +99,13 @@ export default function PublicFormPage() {
       />
     );
   } else {
-    content = (
-      <FormFill
-        form={data.form}
-        respondent={data.respondent}
-        users={data.users}
-        mode="live"
-        onSubmit={(answers, timeZone) =>
-          submitMutation.mutateAsync({ key: formKey!, answers, timeZone })
-        }
-        onUnavailable={setUnavailable}
-      />
-    );
+    content = null;
   }
 
   const title =
-    data?.status === "open" ? data.form.title || t("Untitled form") : t("Form");
+    form && !validating && !isError
+      ? form.form.title || t("Untitled form")
+      : t("Form");
 
   return (
     <div className={clsx(classes.page, "public-typography")}>
@@ -100,11 +117,33 @@ export default function PublicFormPage() {
         <ColorSchemeToggle />
       </header>
 
-      <main className={classes.main}>{content}</main>
+      <main className={classes.main} aria-busy={validating}>
+        {content}
+        {form && (
+          // Keep an existing draft mounted while its schema is checked again.
+          <div hidden={validating || isError}>
+            <FormFill
+              key={formKey}
+              form={form.form}
+              respondent={form.respondent}
+              users={form.users}
+              mode="live"
+              onSubmit={(answers, timeZone) =>
+                submitMutation.mutateAsync({ key: formKey!, answers, timeZone })
+              }
+              onUnavailable={(status) =>
+                setSubmissionError({ key: formKey, status })
+              }
+            />
+          </div>
+        )}
+      </main>
 
       <footer className={classes.footer}>
         <Text size="xs" c="dimmed">
-          {t("Never submit passwords or other sensitive information through this form.")}
+          {t(
+            "Never submit passwords or other sensitive information through this form.",
+          )}
         </Text>
         <a
           className={classes.branding}
@@ -143,19 +182,5 @@ function ColorSchemeToggle() {
         )}
       </ActionIcon>
     </Tooltip>
-  );
-}
-
-function PublicFormSkeleton() {
-  return (
-    <Stack gap="md" aria-hidden>
-      <Skeleton height={40} width="60%" radius="sm" />
-      <Skeleton height={14} width="90%" radius="sm" mt={8} />
-      <Skeleton height={14} width="70%" radius="sm" />
-      <Skeleton height={22} width="45%" radius="sm" mt={32} />
-      <Skeleton height={42} radius="md" />
-      <Skeleton height={22} width="35%" radius="sm" mt={24} />
-      <Skeleton height={42} radius="md" />
-    </Stack>
   );
 }

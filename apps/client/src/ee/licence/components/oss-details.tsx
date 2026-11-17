@@ -1,5 +1,6 @@
 import { Group, List, Stack, Table, Text, ThemeIcon } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
+import { isBetaBaseForms } from "@/lib/config";
 
 const enterpriseFeatures = [
   "AI Integration (Chat, Search & Assistant)",
@@ -20,7 +21,7 @@ const enterpriseFeatures = [
   "Bases",
   "Kanban",
   "Calendar",
-  "Forms",
+  ...(isBetaBaseForms() ? ["Forms"] : []),
   "Templates",
   "Personal Spaces",
   "Announcements"

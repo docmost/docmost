@@ -19,6 +19,7 @@ type RowUpdateChain = {
   reconcile: boolean;
   regrouped: boolean;
   calendarTouched: boolean;
+  calendarFiltered: boolean;
   rowsOrdered: boolean;
 };
 
@@ -58,6 +59,7 @@ export function beginRowUpdate(rowId: string): {
     reconcile: false,
     regrouped: false,
     calendarTouched: false,
+    calendarFiltered: false,
     rowsOrdered: false,
     ...pending,
     seq,

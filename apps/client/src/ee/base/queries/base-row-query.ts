@@ -1,4 +1,6 @@
 import { useEffect, useMemo } from "react";
+import { isAxiosError } from "axios";
+import { getDefaultStore } from "jotai";
 import {
   useInfiniteQuery,
   useMutation,
@@ -42,6 +44,7 @@ import type { ViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context"
 import { rowsDateKey } from "@/ee/base/queries/rows-date-key";
 import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
 import { notifyRowsZone } from "@/ee/base/queries/rows-zone-notice";
+import { editingCellAtomFamily } from "@/ee/base/atoms/base-atoms";
 import {
   BASE_ROW_MUTATION_KEY,
   beginRowUpdate,
@@ -107,14 +110,47 @@ function filterPropertyIds(filter: FilterNode | undefined): string[] {
 
 const EVERY_EDIT_TYPES = new Set(["formula", "lastEditedAt", "lastEditedBy"]);
 
+function dependsOnChange(
+  referenced: string[],
+  changedPropertyIds: readonly string[] | "any",
+  base: IBase | undefined,
+): boolean {
+  if (referenced.length === 0) return false;
+  if (changedPropertyIds === "any") return true;
+  return referenced.some((id) => {
+    const type = base?.properties?.find((property) => property.id === id)?.type;
+    return (
+      type === undefined ||
+      changedPropertyIds.includes(id) ||
+      EVERY_EDIT_TYPES.has(type)
+    );
+  });
+}
+
+export function calendarFilterDependsOn(
+  pageId: string,
+  changedPropertyIds: readonly string[],
+  base: IBase | undefined,
+): boolean {
+  return queryClient
+    .getQueryCache()
+    .findAll({ queryKey: ["base-rows", pageId, "calendar"] })
+    .some(
+      (query) =>
+        query.getObserversCount() > 0 &&
+        dependsOnChange(
+          filterPropertyIds(query.queryKey[6] as FilterNode | undefined),
+          changedPropertyIds,
+          base,
+        ),
+    );
+}
+
 export function rowsOrderDependsOn(
   pageId: string,
   changedPropertyIds: readonly string[] | "any",
   base: IBase | undefined,
 ): boolean {
-  const propertyTypes = new Map(
-    (base?.properties ?? []).map((property) => [property.id, property.type]),
-  );
   let dependsOn = false;
   for (const query of queryClient.getQueryCache().findAll({
     queryKey: ["base-rows", pageId],
@@ -126,18 +162,7 @@ export function rowsOrderDependsOn(
       ...filterPropertyIds(filter),
       ...(sorts ?? []).map((sort) => sort.propertyId),
     ];
-    const affected =
-      referenced.length > 0 &&
-      (changedPropertyIds === "any" ||
-        referenced.some((id) => {
-          const type = propertyTypes.get(id);
-          return (
-            type === undefined ||
-            changedPropertyIds.includes(id) ||
-            EVERY_EDIT_TYPES.has(type)
-          );
-        }));
-    if (!affected) continue;
+    if (!dependsOnChange(referenced, changedPropertyIds, base)) continue;
     if (query.getObserversCount() > 0) {
       dependsOn = true;
     } else {
@@ -213,6 +238,47 @@ export function useBaseRowsQuery(
       lastPage.meta?.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000,
   });
+
+  useEffect(() => {
+    const error = query.error;
+    if (
+      !pageId ||
+      !query.data ||
+      !isAxiosError(error) ||
+      error.response?.status !== 400 ||
+      error.response?.data?.code !== "BASE_CURSOR_STALE"
+    ) {
+      return;
+    }
+
+    // Oversized sort cursors refer to a row. If it changed or disappeared,
+    // restart this list after any active edit has finished, keeping its draft.
+    const store = getDefaultStore();
+    const editing = editingCellAtomFamily(pageId);
+    const recover = () => {
+      const current = queryClient.getQueryState(queryKey);
+      if (current?.error !== error || current.fetchStatus !== "idle") return;
+      if (
+        store.get(editing) ||
+        queryClient.isMutating({
+          mutationKey: BASE_ROW_MUTATION_KEY,
+          predicate: (mutation) =>
+            (mutation.state.variables as { pageId?: string } | undefined)
+              ?.pageId === pageId,
+        })
+      ) {
+        return;
+      }
+      void queryClient.resetQueries({ queryKey, exact: true });
+    };
+    const unsubscribeEdit = store.sub(editing, recover);
+    const unsubscribeMutation = queryClient.getMutationCache().subscribe(recover);
+    recover();
+    return () => {
+      unsubscribeEdit();
+      unsubscribeMutation();
+    };
+  }, [pageId, query.data, query.error, queryKey]);
 
   const refPages = useMemo(
     () =>
@@ -401,6 +467,9 @@ export function useUpdateRowMutation() {
         if (isCalendarRelevantChange(base, changedPropertyIds)) {
           chain.calendarTouched = true;
         }
+        if (calendarFilterDependsOn(variables.pageId, changedPropertyIds, base)) {
+          chain.calendarFiltered = true;
+        }
         if (rowsOrderDependsOn(variables.pageId, changedPropertyIds, base)) {
           chain.rowsOrdered = true;
         }
@@ -440,6 +509,9 @@ export function useUpdateRowMutation() {
       if (chain.regrouped) invalidateBaseRows(variables.pageId);
       else {
         if (chain.rowsOrdered) scheduleRowsRefresh(variables.pageId, "all");
+        else if (chain.calendarFiltered) {
+          scheduleRowsRefresh(variables.pageId, "calendar");
+        }
         if (chain.calendarTouched) {
           invalidateCalendarRows(variables.pageId, "none");
         }

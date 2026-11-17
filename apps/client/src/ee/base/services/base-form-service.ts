@@ -25,10 +25,15 @@ export async function updateFormShare(
   return req.data;
 }
 
-export async function getPublicForm(key: string): Promise<PublicFormResponse> {
-  const req = await api.post<PublicFormResponse>("/bases/forms/public/info", {
-    key,
-  });
+export async function getPublicForm(
+  key: string,
+  signal?: AbortSignal,
+): Promise<PublicFormResponse> {
+  const req = await api.post<PublicFormResponse>(
+    "/bases/forms/public/info",
+    { key },
+    { signal },
+  );
   return req.data;
 }
 

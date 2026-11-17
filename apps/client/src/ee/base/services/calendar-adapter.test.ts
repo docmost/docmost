@@ -1,5 +1,5 @@
 import { calculateDropTime, getMonthRange, getWeekDays, isAllDayEvent, isMultidayEvent } from "@mantine/schedule";
-import { addDays, type DateCell, type DateKind } from "@docmost/base-formula/client";
+import { addDays, diffDays, type DateCell, type DateKind } from "@docmost/base-formula/client";
 import { describe, expect, it, vi } from "vitest";
 import type { IBaseProperty, IBaseRow } from "@/ee/base/types/base.types";
 
@@ -253,6 +253,40 @@ describe("toCalendarEvents", () => {
     expect(draw(rows, DAY, NY).map((event) => event.id)).toEqual(["r3", "r2", "r1"]);
   });
 
+  it("cuts a span to a week either side of the window and keeps the stored value in the payload", () => {
+    const days = { start: "2020-01-01", end: "9999-12-31" };
+    const [event] = draw([row("r1", days)], DAY, NY);
+    expect([event.start, event.end]).toEqual(["2026-10-25 00:00:00", "2026-12-19 23:59:59"]);
+    expect(event.payload.value).toEqual(days);
+
+    const instants = { start: "2020-01-01T15:00:00.000Z", end: "2099-06-01T15:00:00.000Z" };
+    const [timed] = draw([row("r1", instants)], TIME, NY);
+    expect([timed.start, timed.end]).toEqual(["2026-10-25 00:00:00", "2026-12-19 23:59:59"]);
+    expect(timed.payload.value).toEqual(instants);
+  });
+
+  it("leaves a span that stays within a week of the window as it is", () => {
+    const [event] = draw([row("r1", { start: "2026-10-26", end: "2026-12-19" })], DAY, NY);
+    expect([event.start, event.end]).toEqual(["2026-10-26 00:00:00", "2026-12-19 23:59:59"]);
+    const [timed] = draw([row("r1", { start: "2026-10-26T09:30:00.000Z", end: "2026-12-19T22:15:00.000Z" })], TIME, BERLIN);
+    expect([timed.start, timed.end]).toEqual(["2026-10-26 10:30:00", "2026-12-19 23:15:00"]);
+  });
+
+  it("keeps cut spans in the order of their stored starts, a second apart for the week view's sort", () => {
+    const rows = [
+      row("r1", { start: "2021-01-01", end: "2026-11-10" }),
+      row("r2", { start: "2020-01-01", end: "2030-01-01" }),
+      row("r3", { start: "2020-01-01", end: "2031-01-01" }),
+      row("r4", { start: "2026-10-26", end: "2031-01-01" }),
+    ];
+    expect(draw(rows, DAY, NY).map((event) => [event.id, event.start])).toEqual([
+      ["r3", "2026-10-25 00:00:00"],
+      ["r2", "2026-10-25 00:00:01"],
+      ["r1", "2026-10-25 00:00:02"],
+      ["r4", "2026-10-26 00:00:00"],
+    ]);
+  });
+
   it("uses the untitled label when the title is empty", () => {
     const [event] = draw([{ ...row("r1", { start: "2026-11-12" }), cells: { due: { start: "2026-11-12" }, title: "  " } }], DAY, NY);
     expect(event.title).toBe("Untitled");
@@ -342,6 +376,19 @@ describe("dropOnMonth", () => {
     });
   });
 
+  it("moves a span cut at the window as it moved the whole span", () => {
+    const value = { start: "2020-01-01", end: "2099-12-31" };
+    const [cut] = draw([row("r1", value)], DAY, NY);
+    const whole = eventOf(value, "date", NY);
+    expect(cut.start).not.toBe(whole.start);
+    expect(dropOnMonth(cut, "2026-11-12 00:00:00", "2026-11-10", NY)).toEqual({ start: "2020-01-03", end: "2100-01-02" });
+    expect(dropOnMonth(cut, "2026-11-12 00:00:00", null, NY)).toEqual(dropOnMonth(whole, "2026-11-12 00:00:00", null, NY));
+    expect(dropOnMonth(cut, "2026-11-12 00:00:00", null, NY)).toEqual({
+      start: "2026-11-12",
+      end: addDays("2099-12-31", diffDays("2020-01-01", "2026-11-12")),
+    });
+  });
+
   it("writes nothing for the same day, a read-only source or a move past year 9999", () => {
     const event = eventOf({ start: "2026-11-12", end: "2026-11-14" }, "date", NY);
     expect(dropOnMonth(event, "2026-11-13 00:00:00", "2026-11-13", NY)).toBeNull();
@@ -359,6 +406,20 @@ describe("dropOnWeek", () => {
   it("moves a date value by days in the all-day lane", () => {
     const event = eventOf({ start: "2026-11-12" }, "date", NY);
     expect(dropOnWeek(event, "2026-11-14 00:00:00", { day: "2026-11-12", time: null }, NY)).toEqual({ start: "2026-11-14" });
+  });
+
+  it("moves a span cut at the window in the all-day lane as it moved the whole span", () => {
+    const value = { start: "2020-01-01T15:00:00.000Z", end: "2099-06-01T15:00:00.000Z" };
+    const [cut] = draw([row("r1", value)], TIME, NY);
+    const whole = eventOf(value, "datetime", NY);
+    expect(cut.start).not.toBe(whole.start);
+    expect(dropOnWeek(cut, "2026-11-14 00:00:00", { day: "2026-11-12", time: null }, NY)).toEqual({
+      start: "2020-01-03T15:00:00.000Z",
+      end: "2099-06-03T15:00:00.000Z",
+    });
+    expect(dropOnWeek(cut, "2026-11-14 00:00:00", { day: null, time: null }, NY)).toEqual(
+      dropOnWeek(whole, "2026-11-14 00:00:00", { day: null, time: null }, NY),
+    );
   });
 
   it("moves a date-time value that the library put in the all-day lane by days, as a date-time", () => {
@@ -481,6 +542,18 @@ describe("resizeOnMonth", () => {
     const event = eventOf({ start: "2026-11-12", end: "2026-11-14" }, "date", NY);
     expect(resizeOnMonth(event, "end", "2026-11-14", NY)).toBeNull();
     expect(resizeOnMonth(readOnlyEvent(NY), "end", "2026-11-14", NY)).toBeNull();
+  });
+
+  it("resizes the edge in view of a span cut at the window from its stored value", () => {
+    const [openStart] = draw([row("r1", { start: "2020-01-01", end: "2026-11-10" })], DAY, NY);
+    expect(resizeOnMonth(openStart, "end", "2026-11-15", NY)).toEqual({ start: "2020-01-01", end: "2026-11-15" });
+    const [openEnd] = draw([row("r1", { start: "2026-11-10", end: "2099-12-31" })], DAY, NY);
+    expect(resizeOnMonth(openEnd, "start", "2026-11-05", NY)).toEqual({ start: "2026-11-05", end: "2099-12-31" });
+    const [timed] = draw([row("r1", { start: "2020-01-01T15:00:00.000Z", end: "2026-11-10T16:00:00.000Z" })], TIME, NY);
+    expect(resizeOnMonth(timed, "end", "2026-11-12", NY)).toEqual({
+      start: "2020-01-01T15:00:00.000Z",
+      end: "2026-11-12T16:00:00.000Z",
+    });
   });
 
   it("previews a day range that never turns inside out", () => {

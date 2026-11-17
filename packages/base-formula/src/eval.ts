@@ -76,7 +76,8 @@ export function evaluateCell(
       const canonical = v.kind === "date" ? isYmd(v.value) : v.kind === "datetime" && isCanonicalInstant(v.value);
       return canonical ? { start: v.value } : makeErrorCell("DATE_INVALID", "date out of range");
     }
-    return typeof v === "number" ? snapNumber(v) : v;
+    if (typeof v !== "number") return v;
+    return Number.isFinite(v) ? snapNumber(v) : null;
   } catch (e) {
     return makeErrorCell("TYPE_MISMATCH", (e as Error).message);
   }

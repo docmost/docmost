@@ -36,8 +36,13 @@ const UNITS = new Map<string, DateUnit>([
 
 const unitOf = (v: Value): DateUnit | null => UNITS.get(String(v).toLowerCase()) ?? null;
 
+const LONE_SURROGATE = /\p{Cs}/gu;
+
 const unknownUnit = (unit: Value): ErrorCell =>
-  makeErrorCell("TYPE_MISMATCH", `unknown unit ${String(unit).slice(0, 32)}`);
+  makeErrorCell(
+    "TYPE_MISMATCH",
+    `unknown unit ${String(unit).slice(0, 32).replace(LONE_SURROGATE, "")}`,
+  );
 
 const shift = (args: Value[], sign: 1 | -1, ctx: EvalContext): Value => {
   const [base, amount, unitArg] = args;
@@ -179,17 +184,17 @@ const FORMAT_TOKENS = new Map<string, (w: WallClock) => string>([
 ]);
 
 const FORMAT_RUN = /([A-Za-z])\1*/g;
+const MAX_FORMAT_LENGTH = 100;
 
 register({
   name: "formatDate", arity: { min: 2, max: 2 }, paramTypes: ["date", "string"], returnType: "string",
   eval: ([v, pattern], ctx) => {
     const d = dateArg(v);
     if (!isDateValue(d)) return d;
+    const format = valueToString(pattern, ctx.zone);
+    if (format.length > MAX_FORMAT_LENGTH) return makeErrorCell("TYPE_MISMATCH", "format too long");
     const w = wallOf(d, ctx.zone);
-    return valueToString(pattern, ctx.zone).replace(
-      FORMAT_RUN,
-      (run) => FORMAT_TOKENS.get(run)?.(w) ?? run,
-    );
+    return format.replace(FORMAT_RUN, (run) => FORMAT_TOKENS.get(run)?.(w) ?? run);
   },
   doc: "Formats a date as text. Tokens: YYYY, MM, DD, HH, mm, ss, M, D, H.", category: "date",
 });

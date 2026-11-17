@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Alert, Loader, Stack } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { Alert } from "@mantine/core";
 import { IconLock } from "@tabler/icons-react";
+import { isAxiosError } from "axios";
 import { useTranslation } from "react-i18next";
 import { IBaseView, PublicForm } from "@/ee/base/types/base.types";
 import {
@@ -13,6 +14,7 @@ import {
   FormFill,
   FormUnavailableStatus,
 } from "@/ee/base/components/form/form-fill";
+import { FormSkeleton } from "@/ee/base/components/form/form-skeleton";
 import { FormStatus } from "@/ee/base/components/form/form-status";
 import classes from "@/ee/base/styles/form.module.css";
 
@@ -29,37 +31,89 @@ export function FormRespond({ view, pageId, definition }: FormRespondProps) {
     view.id,
   );
   const key = share && share.access !== "none" ? share.key : null;
-  const { data: publicForm, isLoading: formLoading } = usePublicFormQuery(
-    key ?? undefined,
-  );
+  const {
+    data: publicForm,
+    dataUpdatedAt,
+    isFetching,
+    isPaused,
+    hasValidatedData,
+    isError,
+    error,
+    refetch,
+  } = usePublicFormQuery(key ?? undefined);
   const submitMutation = useSubmitPublicFormMutation();
   const { users } = useReferenceStore(pageId);
-  const [unavailable, setUnavailable] =
-    useState<FormUnavailableStatus | null>(null);
+  const [submissionError, setSubmissionError] = useState<{
+    key: string | null;
+    status: FormUnavailableStatus;
+  } | null>(null);
+  const unavailable =
+    submissionError?.key === key ? submissionError.status : null;
 
-  if (shareLoading || (key && formLoading)) {
-    return (
-      <Stack align="center" py="xl">
-        <Loader size="sm" />
-      </Stack>
-    );
+  useEffect(() => {
+    setSubmissionError(null);
+  }, [key, dataUpdatedAt, isFetching]);
+
+  const validating =
+    shareLoading ||
+    (!!key && (isFetching || isPaused || (!hasValidatedData && !isError)));
+  const errorStatus = isAxiosError(error) ? error.response?.status : undefined;
+  const accessError = errorStatus && [400, 401, 403, 404].includes(errorStatus);
+  const form =
+    key &&
+    hasValidatedData &&
+    !accessError &&
+    !unavailable &&
+    publicForm?.status === "open"
+      ? publicForm
+      : null;
+
+  if (validating && !form) {
+    return <FormSkeleton />;
   }
 
   if (unavailable) {
     return <FormStatus variant={unavailable} />;
   }
 
-  if (key && publicForm?.status === "open") {
+  if (form) {
     return (
-      <FormFill
-        form={publicForm.form}
-        respondent={publicForm.respondent}
-        users={publicForm.users}
-        mode="live"
-        onSubmit={(answers, timeZone) =>
-          submitMutation.mutateAsync({ key, answers, timeZone })
+      <>
+        {validating ? (
+          <FormSkeleton />
+        ) : isError ? (
+          <FormStatus variant="error" onRetry={() => refetch()} />
+        ) : null}
+        <div hidden={validating || isError} aria-busy={validating}>
+          <FormFill
+            key={key}
+            form={form.form}
+            respondent={form.respondent}
+            users={form.users}
+            mode="live"
+            onSubmit={(answers, timeZone) =>
+              submitMutation.mutateAsync({ key: key!, answers, timeZone })
+            }
+            onUnavailable={(status) => setSubmissionError({ key, status })}
+          />
+        </div>
+      </>
+    );
+  }
+
+  if (key && isError) {
+    return (
+      <FormStatus
+        variant={
+          errorStatus === 400 || errorStatus === 404
+            ? "notFound"
+            : errorStatus === 403
+              ? "closed"
+              : errorStatus === 401
+                ? "signInRequired"
+                : "error"
         }
-        onUnavailable={setUnavailable}
+        onRetry={() => refetch()}
       />
     );
   }

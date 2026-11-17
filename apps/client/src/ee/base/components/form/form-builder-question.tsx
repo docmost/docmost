@@ -275,7 +275,9 @@ export function FormBuilderQuestion({
                 variant="subtle"
                 color="gray"
                 size="sm"
-                aria-label={t("Question actions")}
+                aria-label={t("Question actions for {{name}}", {
+                  name: field.label?.trim() || property.name,
+                })}
               >
                 <IconDots size={16} />
               </ActionIcon>

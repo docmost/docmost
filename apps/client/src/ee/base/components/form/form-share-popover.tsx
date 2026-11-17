@@ -4,9 +4,9 @@ import {
   Anchor,
   Button,
   Group,
-  Loader,
   Popover,
   Radio,
+  Skeleton,
   Stack,
   Text,
   TextInput,
@@ -97,40 +97,37 @@ export function FormSharePopover({
             </Text>
           </div>
 
-          {isLoading ? (
-            <Group justify="center" py="md">
-              <Loader size="sm" />
-            </Group>
-          ) : (
-            <Radio.Group value={access} onChange={handleAccessChange}>
-              <Stack gap={6}>
-                <AccessOption
-                  value="none"
-                  icon={<IconLock size={16} />}
-                  title={t("Closed")}
-                  description={t("Nobody can submit responses.")}
-                />
-                <AccessOption
-                  value="workspace"
-                  icon={<IconUsers size={16} />}
-                  title={t("Workspace members")}
-                  description={t(
-                    "Members sign in to respond. Their name is recorded with each response.",
-                  )}
-                />
-                <AccessOption
-                  value="public"
-                  icon={<IconWorld size={16} />}
-                  title={t("Anyone with the link")}
-                  description={t("Anyone can respond. Responses are anonymous.")}
-                  disabled={
-                    access !== "public" &&
-                    (publicBlockedByPlan || publicBlockedByAdmin || isRestricted)
-                  }
-                />
-              </Stack>
-            </Radio.Group>
-          )}
+          <Radio.Group value={access} onChange={handleAccessChange}>
+            <Stack gap={6}>
+              <AccessOption
+                value="none"
+                icon={<IconLock size={16} />}
+                title={t("Closed")}
+                description={t("Nobody can submit responses.")}
+                loading={isLoading}
+              />
+              <AccessOption
+                value="workspace"
+                icon={<IconUsers size={16} />}
+                title={t("Workspace members")}
+                description={t(
+                  "Members sign in to respond. Their name is recorded with each response.",
+                )}
+                loading={isLoading}
+              />
+              <AccessOption
+                value="public"
+                icon={<IconWorld size={16} />}
+                title={t("Anyone with the link")}
+                description={t("Anyone can respond. Responses are anonymous.")}
+                disabled={
+                  access !== "public" &&
+                  (publicBlockedByPlan || publicBlockedByAdmin || isRestricted)
+                }
+                loading={isLoading}
+              />
+            </Stack>
+          </Radio.Group>
 
           {publicBlockedByPlan && access !== "public" && (
             <Text size="xs" c="dimmed">
@@ -193,6 +190,7 @@ type AccessOptionProps = {
   title: string;
   description: string;
   disabled?: boolean;
+  loading: boolean;
 };
 
 function AccessOption({
@@ -201,28 +199,31 @@ function AccessOption({
   title,
   description,
   disabled,
+  loading,
 }: AccessOptionProps) {
   return (
-    <Radio.Card
-      value={value}
-      radius="md"
-      className={classes.accessCard}
-      disabled={disabled}
-    >
-      <Group wrap="nowrap" align="flex-start" gap="sm">
-        <Radio.Indicator size="xs" mt={2} disabled={disabled} />
-        <Stack gap={2} style={{ flex: 1 }}>
-          <Group gap={6} wrap="nowrap">
-            {icon}
-            <Text size="sm" fw={500}>
-              {title}
+    <Skeleton visible={loading} radius="md">
+      <Radio.Card
+        value={value}
+        radius="md"
+        className={classes.accessCard}
+        disabled={disabled || loading}
+      >
+        <Group wrap="nowrap" align="flex-start" gap="sm">
+          <Radio.Indicator size="xs" mt={2} disabled={disabled || loading} />
+          <Stack gap={2} style={{ flex: 1 }}>
+            <Group gap={6} wrap="nowrap">
+              {icon}
+              <Text size="sm" fw={500}>
+                {title}
+              </Text>
+            </Group>
+            <Text size="xs" c="dimmed">
+              {description}
             </Text>
-          </Group>
-          <Text size="xs" c="dimmed">
-            {description}
-          </Text>
-        </Stack>
-      </Group>
-    </Radio.Card>
+          </Stack>
+        </Group>
+      </Radio.Card>
+    </Skeleton>
   );
 }

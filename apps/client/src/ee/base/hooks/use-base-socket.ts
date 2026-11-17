@@ -18,6 +18,7 @@ import {
 } from "@/ee/base/atoms/reference-store-atom";
 import { IPagination } from "@/lib/types";
 import {
+  calendarFilterDependsOn,
   isCalendarRelevantChange,
   rowsOrderDependsOn,
 } from "@/ee/base/queries/base-row-query";
@@ -285,7 +286,10 @@ function createBaseEventHandler(
             rowsOrderDependsOn(pageId, changedPropertyIds, baseForUpdate)
           ) {
             scheduleRowsRefresh(pageId, "all");
-          } else if (isCalendarRelevantChange(baseForUpdate, changedPropertyIds)) {
+          } else if (
+            isCalendarRelevantChange(baseForUpdate, changedPropertyIds) ||
+            calendarFilterDependsOn(pageId, changedPropertyIds, baseForUpdate)
+          ) {
             scheduleRowsRefresh(pageId, "calendar");
           }
         }
