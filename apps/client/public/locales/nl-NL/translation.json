@@ -447,6 +447,7 @@
   "Embed PDF": "PDF insluiten",
   "Upload and embed a PDF file.": "Upload en sluit een PDF-bestand in.",
   "Embed as PDF": "Insluiten als PDF",
+  "Embed as audio": "Embed as audio",
   "Failed to load PDF": "Laden van PDF mislukt",
   "Convert to attachment": "Converteren naar bijlage",
   "File attachment": "Bestandsbijlage",
@@ -1929,5 +1930,12 @@
   "No announcements": "Geen aankondigingen",
   "Deleted on {{date}}": "Verwijderd op {{date}}",
   "Member deactivated successfully": "Lid succesvol gedeactiveerd",
-  "Member activated successfully": "Lid succesvol geactiveerd"
+  "Member activated successfully": "Lid succesvol geactiveerd",
+  "Play": "Play",
+  "Pause": "Pause",
+  "Mute": "Mute",
+  "Unmute": "Unmute",
+  "Seek": "Seek",
+  "Playback speed": "Playback speed",
+  "Couldn't load this audio file": "Couldn't load this audio file"
 }
