@@ -236,9 +236,13 @@ const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             )
           ) {
             const emojiCommand = document.querySelector("#emoji-command");
-            const mentionPopup = document.querySelector("#mention");
-            if (emojiCommand || mentionPopup) {
+            if (emojiCommand) {
               return true;
+            }
+            // ProseMirror forwards these keys to the mention list
+            const mentionPopup = document.querySelector("#mention");
+            if (mentionPopup) {
+              return false;
             }
           }
 
