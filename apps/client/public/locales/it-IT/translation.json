@@ -447,6 +447,7 @@
   "Embed PDF": "Incorpora PDF",
   "Upload and embed a PDF file.": "Carica e incorpora un file PDF.",
   "Embed as PDF": "Incorpora come PDF",
+  "Embed as audio": "Embed as audio",
   "Failed to load PDF": "Caricamento del PDF non riuscito",
   "Convert to attachment": "Converti in allegato",
   "File attachment": "Allegato file",
@@ -1929,5 +1930,12 @@
   "No announcements": "Nessun annuncio",
   "Deleted on {{date}}": "Eliminato il {{date}}",
   "Member deactivated successfully": "Membro disattivato con successo",
-  "Member activated successfully": "Membro attivato con successo"
+  "Member activated successfully": "Membro attivato con successo",
+  "Play": "Play",
+  "Pause": "Pause",
+  "Mute": "Mute",
+  "Unmute": "Unmute",
+  "Seek": "Seek",
+  "Playback speed": "Playback speed",
+  "Couldn't load this audio file": "Couldn't load this audio file"
 }
