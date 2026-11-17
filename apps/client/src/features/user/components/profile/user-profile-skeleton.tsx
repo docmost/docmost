@@ -1,9 +1,7 @@
 import { Grid, Group, Paper, Skeleton, Stack } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import clsx from "clsx";
 import { LabelPageRowSkeleton } from "@/features/label/components/label-page-row-skeleton";
 import { UserProfileCard } from "@/features/user/components/profile/user-profile-card";
-import labelClasses from "@/features/label/label.module.css";
 import classes from "@/features/user/components/profile/user-profile.module.css";
 
 type UserProfileSkeletonProps = {
@@ -74,7 +72,7 @@ export function UserProfileRecentPagesSkeleton() {
 
 export function UserProfileSpacesSkeleton() {
   return (
-    <div>
+    <div className={classes.spaceList}>
       <UserProfileSpaceRowSkeleton nameWidth={110} />
       <UserProfileSpaceRowSkeleton nameWidth={80} />
       <UserProfileSpaceRowSkeleton nameWidth={100} />
@@ -85,13 +83,9 @@ export function UserProfileSpacesSkeleton() {
 
 function UserProfileSpaceRowSkeleton({ nameWidth }: { nameWidth: number }) {
   return (
-    <div className={labelClasses.row} aria-hidden="true">
-      <div className={clsx(labelClasses.rowMain, classes.spaceRowMain)}>
-        <Skeleton circle height={32} flex="none" />
-        <div className={labelClasses.rowBody}>
-          <Skeleton height={15} width={nameWidth} radius="xs" my={2} />
-        </div>
-      </div>
+    <div className={classes.spaceRow} aria-hidden="true">
+      <Skeleton circle height={24} flex="none" />
+      <Skeleton height={14} width={nameWidth} radius="xs" />
     </div>
   );
 }

@@ -42,7 +42,7 @@
   display: flex;
   align-items: center;
   gap: var(--mantine-spacing-md);
-  margin-bottom: var(--mantine-spacing-xs);
+  margin-bottom: 4px;
 }
 
 .cardHeading {
@@ -69,8 +69,43 @@
   line-height: 1;
 }
 
-.spaceRowMain {
+/* same 8px hover inset as the space rows */
+a.recentRow {
+  margin: 0 -8px;
+  padding-inline: 8px;
+}
+
+/* rows reach into the card padding so icons line up with the heading */
+.spaceList {
+  margin: 0 -8px;
+}
+
+.spaceRow {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 4px;
+  color: var(--mantine-color-bright);
+  text-decoration: none;
+}
+
+a.spaceRow:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+}
+
+.spaceName {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .groupName {

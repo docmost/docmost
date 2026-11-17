@@ -23,11 +23,11 @@ export function UserProfileCard({
       aria-labelledby={titleId}
       withBorder
       radius="md"
-      p="lg"
+      p="md"
     >
       <div className={classes.cardHeader}>
         <div className={classes.cardHeading}>
-          <Title order={2} size="h5" id={titleId}>
+          <Title order={2} size="h5" fw={600} id={titleId}>
             {title}
           </Title>
           {description && (

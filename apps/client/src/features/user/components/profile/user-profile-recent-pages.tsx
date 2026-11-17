@@ -104,7 +104,7 @@ function RecentPageRow({ page }: { page: IUserRecentPage }) {
   return (
     <Link
       to={buildPageUrl(page.space.slug, page.slugId, page.title)}
-      className={labelClasses.row}
+      className={clsx(labelClasses.row, classes.recentRow)}
     >
       <div className={labelClasses.rowMain}>
         <div className={clsx(labelClasses.rowIcon, classes.pageIcon)}>

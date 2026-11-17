@@ -2,7 +2,6 @@ import { Button } from "@mantine/core";
 import { IconAlertTriangle, IconLayoutGrid } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import clsx from "clsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types";
@@ -12,7 +11,6 @@ import { UserProfileSpacesSkeleton } from "@/features/user/components/profile/us
 import { useUserSpacesQuery } from "@/features/user/queries/user-query";
 import { IUserProfileSpace } from "@/features/user/types/user.types";
 import { getSpaceUrl } from "@/lib/config";
-import labelClasses from "@/features/label/label.module.css";
 import classes from "@/features/user/components/profile/user-profile.module.css";
 
 type UserProfileSpacesProps = {
@@ -41,7 +39,7 @@ export function UserProfileSpaces({ userId, isSelf }: UserProfileSpacesProps) {
         </div>
       ) : spaces.length > 0 ? (
         <>
-          <div>
+          <div className={classes.spaceList}>
             {spaces.map((space) => (
               <SpaceRow key={space.id} space={space} />
             ))}
@@ -92,22 +90,18 @@ function SpaceRow({ space }: { space: IUserProfileSpace }) {
   return (
     <Link
       to={getSpaceUrl(space.slug)}
-      className={labelClasses.row}
+      className={classes.spaceRow}
       onMouseEnter={() => prefetchSpace(space.slug, space.id)}
     >
-      <div className={clsx(labelClasses.rowMain, classes.spaceRowMain)}>
-        <CustomAvatar
-          name={space.name}
-          avatarUrl={space.logo}
-          type={AvatarIconType.SPACE_ICON}
-          color="initials"
-          variant="filled"
-          size={32}
-        />
-        <div className={labelClasses.rowBody}>
-          <div className={labelClasses.rowTitle}>{space.name}</div>
-        </div>
-      </div>
+      <CustomAvatar
+        name={space.name}
+        avatarUrl={space.logo}
+        type={AvatarIconType.SPACE_ICON}
+        color="initials"
+        variant="filled"
+        size={24}
+      />
+      <span className={classes.spaceName}>{space.name}</span>
     </Link>
   );
 }
