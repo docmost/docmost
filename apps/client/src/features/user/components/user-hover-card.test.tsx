@@ -114,7 +114,7 @@ describe("UserHoverCard", () => {
 
     expect(await screen.findByText("Ada Lovelace")).toBeTruthy();
     const link = (await screen.findByText("View profile")).closest("a");
-    expect(link?.getAttribute("href")).toBe(`/members/${USER_ID}`);
+    expect(link?.getAttribute("href")).toBe(`/people/${USER_ID}`);
     expect(getUserProfile).toHaveBeenCalledWith(USER_ID);
   });
 

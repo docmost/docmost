@@ -28,7 +28,9 @@ export default function UserProfilePage() {
 
   return (
     <>
-      <DocumentTitle title={notFound ? t("Member not found") : profile?.name} />
+      <DocumentTitle
+        title={notFound ? t("Profile not found") : profile?.name}
+      />
 
       <Container size={900} py="xl">
         <Stack gap="lg">
@@ -54,7 +56,7 @@ export default function UserProfilePage() {
           {notFound ? (
             <EmptyState
               icon={IconUserQuestion}
-              title={t("Member not found")}
+              title={t("Profile not found")}
               description={t(
                 "This profile doesn't exist or isn't available to you.",
               )}

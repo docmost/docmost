@@ -70,7 +70,7 @@ export function getSpaceUrl(spaceSlug: string) {
 }
 
 export function getUserProfileUrl(userId: string) {
-  return "/members/" + userId;
+  return "/people/" + userId;
 }
 
 export function getFileUrl(src: string) {
