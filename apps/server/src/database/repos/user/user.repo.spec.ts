@@ -69,3 +69,26 @@ describe('UserRepo getUsersPaginated status', () => {
     expect(sql).not.toContain('"deactivated_at" is');
   });
 });
+
+describe('UserRepo findActiveNamesByIds', () => {
+  it('reads names of active users in the workspace', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo.findActiveNamesByIds(['u-1', 'u-2'], 'ws-1');
+
+    const { sql, parameters } = queries[0];
+    expect(sql).toContain('select "id", "name" from "users"');
+    expect(sql).toContain('"id" in ($1, $2)');
+    expect(sql).toContain('"workspace_id" = $3');
+    expect(sql).toContain('"deleted_at" is null');
+    expect(sql).toContain('"deactivated_at" is null');
+    expect(parameters).toEqual(['u-1', 'u-2', 'ws-1']);
+  });
+
+  it('skips the query for an empty list', async () => {
+    const { repo, queries } = buildRepo();
+
+    expect(await repo.findActiveNamesByIds([], 'ws-1')).toEqual([]);
+    expect(queries).toHaveLength(0);
+  });
+});

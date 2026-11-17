@@ -168,6 +168,40 @@ describe("UserMention", () => {
     await waitFor(() => expect(getUserProfile).toHaveBeenCalledWith(USER_ID));
   });
 
+  it("shows the current name of an active member", async () => {
+    renderWithProviders(<UserMention label="Ada" entityId={USER_ID} />);
+
+    expect(screen.getByText("@Ada")).toBeTruthy();
+    expect(await screen.findByText("@Ada Lovelace")).toBeTruthy();
+  });
+
+  it.each([
+    ["a deactivated member", { deactivatedAt: "2026-02-01T00:00:00.000Z" }],
+    ["a deleted member", { deletedAt: "2026-02-01T00:00:00.000Z" }],
+  ])("keeps the saved name for %s", async (_name, status) => {
+    vi.mocked(getUserProfile).mockResolvedValue({
+      ...profile,
+      ...status,
+    } as any);
+
+    renderWithProviders(<UserMention label="Ada" entityId={USER_ID} />);
+
+    await waitFor(() => expect(getUserProfile).toHaveBeenCalledWith(USER_ID));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByText("@Ada")).toBeTruthy();
+    expect(screen.queryByText("@Ada Lovelace")).toBeNull();
+  });
+
+  it("keeps the saved name when the profile can't be loaded", async () => {
+    vi.mocked(getUserProfile).mockRejectedValue({ response: { status: 404 } });
+
+    renderWithProviders(<UserMention label="Ada" entityId={USER_ID} />);
+
+    await waitFor(() => expect(getUserProfile).toHaveBeenCalledWith(USER_ID));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByText("@Ada")).toBeTruthy();
+  });
+
   it.each([
     ["share routes", "/share/abc/p/x", USER_ID],
     ["public space routes", "/docs/space/p/x", USER_ID],

@@ -69,6 +69,49 @@ export function extractPageMentions(mentionList: MentionNode[]): MentionNode[] {
   return pageMentionList as MentionNode[];
 }
 
+// swaps saved user mention labels for current names; the input stays unchanged
+export async function updateUserMentionLabels(
+  prosemirrorJson: any,
+  findNames: (userIds: string[]) => Promise<{ id: string; name: string }[]>,
+): Promise<any> {
+  const userIds = new Set<string>();
+  collectUserMentionIds(prosemirrorJson, userIds);
+  if (userIds.size === 0) return prosemirrorJson;
+
+  const users = await findNames([...userIds]);
+  if (users.length === 0) return prosemirrorJson;
+
+  const names = new Map(users.map((user) => [user.id, user.name]));
+  return setUserMentionLabels(prosemirrorJson, names);
+}
+
+function isUserMention(node: any): boolean {
+  return node?.type === 'mention' && node.attrs?.entityType === 'user';
+}
+
+function collectUserMentionIds(node: any, userIds: Set<string>): void {
+  if (isUserMention(node)) {
+    if (isValidUUID(node.attrs.entityId)) userIds.add(node.attrs.entityId);
+    return;
+  }
+  if (!Array.isArray(node?.content)) return;
+  for (const child of node.content) collectUserMentionIds(child, userIds);
+}
+
+function setUserMentionLabels(node: any, names: Map<string, string>): any {
+  if (isUserMention(node)) {
+    const name = names.get(node.attrs.entityId);
+    return name ? { ...node, attrs: { ...node.attrs, label: name } } : node;
+  }
+  if (!Array.isArray(node?.content)) return node;
+  return {
+    ...node,
+    content: node.content.map((child: any) =>
+      setUserMentionLabels(child, names),
+    ),
+  };
+}
+
 export function extractInternalLinkSlugIds(prosemirrorJson: any): string[] {
   const slugIds: string[] = [];
   const doc = jsonToNode(prosemirrorJson);

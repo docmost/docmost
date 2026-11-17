@@ -83,6 +83,21 @@ export class UserRepo {
       .executeTakeFirst();
   }
 
+  async findActiveNamesByIds(
+    userIds: string[],
+    workspaceId: string,
+  ): Promise<{ id: string; name: string }[]> {
+    if (userIds.length === 0) return [];
+    return this.db
+      .selectFrom('users')
+      .select(['id', 'name'])
+      .where('id', 'in', userIds)
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .where('deactivatedAt', 'is', null)
+      .execute();
+  }
+
   async updateUser(
     updatableUser: UpdatableUser,
     userId: string,
