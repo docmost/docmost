@@ -7,7 +7,7 @@ export const SIEM_TEST_THROTTLER = 'siem-test';
 export const UNFURL_THROTTLER = 'integration-unfurl';
 export const CLOUD_EMAIL_THROTTLER = 'cloud-email';
 export const BASE_FORM_SUBMIT_THROTTLER = 'base-form-submit';
-export const BASE_FORM_KEY_THROTTLER = 'base-form-key';
+export const BASE_FORM_INFO_THROTTLER = 'base-form-info';
 export const MICROSOFT_GRAPH_THROTTLER = 'microsoft-graph';
 export const UNSPLASH_THROTTLER = 'unsplash';
 
@@ -22,7 +22,7 @@ export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
   [UNFURL_THROTTLER]: true,
   [CLOUD_EMAIL_THROTTLER]: true,
   [BASE_FORM_SUBMIT_THROTTLER]: true,
-  [BASE_FORM_KEY_THROTTLER]: true,
+  [BASE_FORM_INFO_THROTTLER]: true,
   [MICROSOFT_GRAPH_THROTTLER]: true,
   [UNSPLASH_THROTTLER]: true,
 };
