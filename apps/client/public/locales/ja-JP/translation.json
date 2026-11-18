@@ -447,7 +447,7 @@
   "Embed PDF": "PDFを埋め込む",
   "Upload and embed a PDF file.": "PDFファイルをアップロードして埋め込みます。",
   "Embed as PDF": "PDFとして埋め込む",
-  "Embed as audio": "Embed as audio",
+  "Embed as audio": "音声として埋め込む",
   "Failed to load PDF": "PDFの読み込みに失敗しました",
   "Convert to attachment": "添付ファイルに変換",
   "File attachment": "ファイル添付",
@@ -1931,11 +1931,11 @@
   "Deleted on {{date}}": "{{date}}に削除",
   "Member deactivated successfully": "メンバーが正常に無効化されました",
   "Member activated successfully": "メンバーが正常に有効化されました",
-  "Play": "Play",
-  "Pause": "Pause",
-  "Mute": "Mute",
-  "Unmute": "Unmute",
-  "Seek": "Seek",
-  "Playback speed": "Playback speed",
-  "Couldn't load this audio file": "Couldn't load this audio file"
+  "Play": "再生",
+  "Pause": "一時停止",
+  "Mute": "ミュート",
+  "Unmute": "ミュート解除",
+  "Seek": "シーク",
+  "Playback speed": "再生速度",
+  "Couldn't load this audio file": "この音声ファイルを読み込めませんでした"
 }
