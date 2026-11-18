@@ -62,6 +62,7 @@ import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
 import ExcalidrawMenu from "@/features/editor/components/excalidraw/excalidraw-menu-lazy";
 import DrawioMenu from "@/features/editor/components/drawio/drawio-menu";
+import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
 import LightboxView, {
   getLightboxClickRequest,
 } from "@/features/editor/components/common/lightbox-view";
@@ -493,6 +494,7 @@ export default function TemplateEditor() {
             <PdfMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
+            <IntegrationPasteMenu editor={editor} />
             <LightboxView
               editor={editor}
               open={!!lightboxRequest}
