@@ -1,0 +1,7 @@
+.titleArea {
+    padding: 0 3rem;
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        padding: 0 1rem;
+    }
+}

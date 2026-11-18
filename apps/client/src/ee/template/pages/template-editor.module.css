@@ -24,6 +24,10 @@
 .titleArea {
     padding: 0 3rem;
     margin-bottom: 1.5em;
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        padding: 0 1rem;
+    }
 }
 
 .emojiButton {
