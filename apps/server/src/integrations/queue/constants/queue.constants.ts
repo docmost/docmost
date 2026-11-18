@@ -28,6 +28,7 @@ export enum QueueJob {
   DELETE_PAGE_ATTACHMENTS = 'delete-page-attachments',
   DELETE_UNUSED_COVER = 'delete-unused-cover',
   DELETE_AI_CHAT_ATTACHMENTS = 'delete-ai-chat-attachments',
+  DELETE_TEMPLATE_ATTACHMENTS = 'delete-template-attachments',
 
   DELETE_USER_AVATARS = 'delete-user-avatars',
 

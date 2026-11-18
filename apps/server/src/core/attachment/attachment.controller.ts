@@ -50,6 +50,8 @@ import {
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { TemplateRepo } from '@docmost/db/repos/template/template.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { validate as isValidUUID } from 'uuid';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
@@ -88,6 +90,8 @@ export class AttachmentController {
     private readonly pageAccessService: PageAccessService,
     private readonly domainService: DomainService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly templateRepo: TemplateRepo,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -217,6 +221,8 @@ export class AttachmentController {
       if (attachment.creatorId !== user.id) {
         throw new NotFoundException();
       }
+    } else if (attachment.templateId) {
+      await this.validateCanViewTemplateFile(attachment, user, workspace);
     } else {
       if (!attachment.pageId || !attachment.spaceId) {
         throw new NotFoundException();
@@ -433,11 +439,16 @@ export class AttachmentController {
     const attachment = await this.attachmentRepo.findById(dto.attachmentId);
     if (
       !attachment ||
-      !attachment.pageId ||
+      (!attachment.pageId && !attachment.templateId) ||
       attachment.workspaceId !== workspace.id ||
       attachment.type !== AttachmentType.File
     ) {
       throw new NotFoundException('File not found');
+    }
+
+    if (attachment.templateId) {
+      await this.validateCanViewTemplateFile(attachment, user, workspace);
+      return { ...attachment, url: this.buildFileUrl(workspace, attachment) };
     }
 
     const page = await this.pageRepo.findById(attachment.pageId);
@@ -586,6 +597,27 @@ export class AttachmentController {
 
   private buildFileUrl(workspace: Workspace, attachment: Attachment): string {
     return `${this.domainService.getUrl(workspace.hostname)}/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`;
+  }
+
+  private async validateCanViewTemplateFile(
+    attachment: Attachment,
+    user: User,
+    workspace: Workspace,
+  ) {
+    const template = await this.templateRepo.findById(
+      attachment.templateId,
+      workspace.id,
+    );
+    if (!template) {
+      throw new NotFoundException();
+    }
+
+    if (template.spaceId) {
+      const spaceIds = await this.spaceMemberRepo.getUserSpaceIds(user.id);
+      if (!spaceIds.includes(template.spaceId)) {
+        throw new NotFoundException();
+      }
+    }
   }
 
   private async sendFileResponse(
