@@ -62,7 +62,7 @@ async function pasteLink({
     },
     preventDefault: vi.fn(),
   };
-  handlePaste(editor, event as unknown as ClipboardEvent, "page-id");
+  handlePaste(editor, event as unknown as ClipboardEvent, { pageId: "page-id" });
   await vi.waitFor(() => expect(mentionPos()).not.toBeNull());
 }
 

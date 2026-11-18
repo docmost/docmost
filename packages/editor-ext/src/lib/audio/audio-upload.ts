@@ -29,7 +29,7 @@ const findAudioNodeByPlaceholderId = (
 
 const handleAudioUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, editor, pos, pageId) => {
+  async (file, editor, pos, uploadTarget) => {
     const validated = validateFn?.(file);
     // @ts-ignore
     if (!validated) return;
@@ -112,7 +112,7 @@ const handleAudioUpload =
     };
 
     try {
-      const attachment: IAttachment = await onUpload(file, pageId);
+      const attachment: IAttachment = await onUpload(file, uploadTarget);
 
       clearTimeout(insertPlaceholderTimeout);
 

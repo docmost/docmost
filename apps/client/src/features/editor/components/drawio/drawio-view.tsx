@@ -9,6 +9,7 @@ import {
 } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import { useDisclosure } from "@mantine/hooks";
 import { getDrawioUrl } from "@/lib/config.ts";
 import {
@@ -53,12 +54,12 @@ export default function DrawioView(props: NodeViewProps) {
     const fileName = "diagram.drawio.svg";
     const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
-    //@ts-ignore
-    const pageId = editor.storage?.pageId;
+    const uploadTarget = getEditorUploadTarget(editor);
+    if (!uploadTarget) return;
 
     const attachment: IAttachment = await uploadFile(
       drawioSVGFile,
-      pageId,
+      uploadTarget,
       attachmentIdRef.current,
     );
     attachmentIdRef.current = attachment.id;

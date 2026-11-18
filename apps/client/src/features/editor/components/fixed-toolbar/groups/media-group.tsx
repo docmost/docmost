@@ -15,6 +15,9 @@ import { uploadAudioAction } from "@/features/editor/components/audio/upload-aud
 import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action";
 import { uploadPdfAction } from "@/features/editor/components/pdf/upload-pdf-action";
 
+import type { UploadTarget } from "@docmost/editor-ext";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
+
 interface Props {
   editor: Editor;
   templateMode?: boolean;
@@ -24,7 +27,7 @@ type UploadFn = (
   file: File,
   editor: Editor,
   pos: number,
-  pageId: string,
+  uploadTarget: UploadTarget,
   ...rest: any[]
 ) => void;
 
@@ -35,9 +38,8 @@ function pickFile(
   upload: UploadFn,
   extra?: boolean,
 ) {
-  // @ts-ignore — editor.storage.pageId is set by PageEditor.onCreate
-  const pageId = editor.storage?.pageId as string | undefined;
-  if (!pageId) return;
+  const uploadTarget = getEditorUploadTarget(editor);
+  if (!uploadTarget) return;
 
   const input = document.createElement("input");
   input.type = "file";
@@ -50,9 +52,9 @@ function pickFile(
       for (const file of input.files) {
         const pos = editor.view.state.selection.from;
         if (extra !== undefined) {
-          upload(file, editor, pos, pageId, extra);
+          upload(file, editor, pos, uploadTarget, extra);
         } else {
-          upload(file, editor, pos, pageId);
+          upload(file, editor, pos, uploadTarget);
         }
       }
     }

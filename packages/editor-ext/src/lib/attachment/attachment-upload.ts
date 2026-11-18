@@ -26,7 +26,7 @@ const findAttachmentNodeByPlaceholderId = (
 };
 const handleAttachmentUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, editor, pos, pageId, allowMedia) => {
+  async (file, editor, pos, uploadTarget, allowMedia) => {
     const validated = validateFn?.(file, allowMedia);
     // @ts-ignore
     if (!validated) return;
@@ -100,7 +100,7 @@ const handleAttachmentUpload =
     }, 250);
 
     try {
-      const attachment: IAttachment = await onUpload(file, pageId);
+      const attachment: IAttachment = await onUpload(file, uploadTarget);
 
       clearTimeout(insertPlaceholderTimeout);
 

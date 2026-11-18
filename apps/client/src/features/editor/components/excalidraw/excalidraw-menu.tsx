@@ -31,6 +31,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
 import { uploadFile } from "@/features/page/services/page-service.ts";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import { svgStringToFile } from "@/lib";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
@@ -241,15 +242,15 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
       const fileName = "diagram.excalidraw.svg";
       const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
-      // @ts-ignore
-      const pageId = editor.storage?.pageId;
+      const uploadTarget = getEditorUploadTarget(editor);
+      if (!uploadTarget) return;
       const attachmentId = editorState?.attachmentId;
 
       let attachment: IAttachment = null;
       if (attachmentId) {
-        attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
+        attachment = await uploadFile(excalidrawSvgFile, uploadTarget, attachmentId);
       } else {
-        attachment = await uploadFile(excalidrawSvgFile, pageId);
+        attachment = await uploadFile(excalidrawSvgFile, uploadTarget);
       }
 
       editor.commands.updateAttributes("excalidraw", {

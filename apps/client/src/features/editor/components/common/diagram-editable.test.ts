@@ -10,6 +10,10 @@ describe("canEditDiagram", () => {
     expect(canEditDiagram(editor(true, { pageId: "page-1" }))).toBe(true);
   });
 
+  it("allows editing in a template editor", () => {
+    expect(canEditDiagram(editor(true, { templateId: "tpl-1" }))).toBe(true);
+  });
+
   it("refuses where the editor has no page to save the diagram to", () => {
     expect(canEditDiagram(editor(true, {}))).toBe(false);
   });

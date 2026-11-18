@@ -52,7 +52,7 @@ const getVideoDimensions = (
 };
 const handleVideoUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, editor, pos, pageId) => {
+  async (file, editor, pos, uploadTarget) => {
     // check if the file is valid
     const validated = validateFn?.(file);
     // @ts-ignore
@@ -147,7 +147,7 @@ const handleVideoUpload =
     };
 
     try {
-      const attachment: IAttachment = await onUpload(file, pageId);
+      const attachment: IAttachment = await onUpload(file, uploadTarget);
 
       clearTimeout(insertPlaceholderTimeout);
 

@@ -353,14 +353,14 @@ function CollabPageEditor({
           return handlePaste(
             editorRef.current,
             event,
-            pageId,
+            { pageId },
             currentUser?.user.id,
           );
         },
         handleDrop: (_view, event, _slice, moved) => {
           if (!editorRef.current) return false;
 
-          return handleFileDrop(editorRef.current, event, moved, pageId);
+          return handleFileDrop(editorRef.current, event, moved, { pageId });
         },
         handleClickOn: (view, _pos, node) => {
           if (view.editable) return false;
