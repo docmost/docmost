@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { prepareFile } from './attachment.utils';
+import { normalizeLegacyFileMeta, prepareFile } from './attachment.utils';
 import {
   createMultipartApp,
   MULTIPART_HEADERS,
@@ -47,5 +47,41 @@ describe('prepareFile', () => {
     ]);
 
     expect(response.statusCode).toBe(413);
+  });
+});
+
+describe('normalizeLegacyFileMeta', () => {
+  it('strips a leaked cache-buster from the name, extension and mime type', () => {
+    expect(
+      normalizeLegacyFileMeta({
+        fileName: 'diagram.drawio.svgt=1700000000000',
+        fileExt: '.svg?t=1700000000000',
+        mimeType: 'application/octet-stream',
+      }),
+    ).toEqual({
+      fileName: 'diagram.drawio.svg',
+      fileExt: '.svg',
+      mimeType: 'image/svg+xml',
+    });
+  });
+
+  it('leaves valid metadata untouched', () => {
+    const meta = {
+      fileName: 'diagram.drawio.svg',
+      fileExt: '.svg',
+      mimeType: 'image/svg+xml',
+    };
+
+    expect(normalizeLegacyFileMeta(meta)).toBe(meta);
+  });
+
+  it('keeps a name that does not carry the leaked query', () => {
+    expect(
+      normalizeLegacyFileMeta({
+        fileName: 'diagram.drawio.svg',
+        fileExt: '.svg?t=1',
+        mimeType: 'application/octet-stream',
+      }).fileName,
+    ).toBe('diagram.drawio.svg');
   });
 });

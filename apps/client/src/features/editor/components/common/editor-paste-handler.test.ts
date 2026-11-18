@@ -4,6 +4,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryClient } from "@/main.tsx";
 import { TiptapDocument } from "@/features/editor/extensions/document";
+import { Fragment, Slice, type Node as PMNode } from "@tiptap/pm/model";
 import {
   IntegrationPasteMenuExtension,
   integrationPasteMenuKey,
@@ -13,6 +14,20 @@ import {
   type IntegrationDisplay,
 } from "@/features/editor/components/integration-link/integration-display";
 import { handlePaste } from "./editor-paste-handler";
+
+const { copyFilesMock, getAttachmentInfoMock, uploadFileMock } = vi.hoisted(
+  () => ({
+    copyFilesMock: vi.fn(),
+    getAttachmentInfoMock: vi.fn(),
+    uploadFileMock: vi.fn(),
+  }),
+);
+
+vi.mock("@/features/page/services/page-service.ts", () => ({
+  copyFiles: copyFilesMock,
+  getAttachmentInfo: getAttachmentInfoMock,
+  uploadFile: uploadFileMock,
+}));
 
 vi.mock("@/main.tsx", async () => {
   const { QueryClient } = await import("@tanstack/react-query");
@@ -58,6 +73,35 @@ const Footnote = Node.create({
   },
 });
 
+const Attachment = Node.create({
+  name: "attachment",
+  group: "inline",
+  inline: true,
+  atom: true,
+  addAttributes: () => ({
+    attachmentId: { default: null },
+    url: { default: null },
+    name: { default: null },
+    mime: { default: null },
+    size: { default: null },
+  }),
+  renderHTML: ({ HTMLAttributes }) => ["span", HTMLAttributes],
+});
+
+const Drawio = Node.create({
+  name: "drawio",
+  group: "inline",
+  inline: true,
+  atom: true,
+  addAttributes: () => ({
+    attachmentId: { default: null },
+    src: { default: null },
+    title: { default: null },
+    size: { default: null },
+  }),
+  renderHTML: ({ HTMLAttributes }) => ["span", HTMLAttributes],
+});
+
 let editor: Editor;
 
 function createEditor(content: object[], cursor: number) {
@@ -70,6 +114,8 @@ function createEditor(content: object[], cursor: number) {
       IntegrationCard,
       IntegrationMention,
       IntegrationPasteMenuExtension,
+      Attachment,
+      Drawio,
     ],
     content: { type: "doc", content },
   });
@@ -338,5 +384,104 @@ describe("handlePaste integration links", () => {
 
     expect(editor.isActive("code")).toBe(true);
     expectPassThrough();
+  });
+});
+
+describe("cross-page attachment paste", () => {
+  const SOURCE_FILE = "11111111-1111-4111-8111-111111111111";
+  const SOURCE_DIAGRAM = "22222222-2222-4222-8222-222222222222";
+  const COPY_A = "33333333-3333-4333-8333-333333333333";
+  const COPY_B = "44444444-4444-4444-8444-444444444444";
+
+  const fileNode = (id: string) =>
+    editor.schema.nodes.attachment.create({
+      attachmentId: id,
+      url: `/api/files/${id}/file.png`,
+      name: "file.png",
+    });
+  const diagramNode = (id: string) =>
+    editor.schema.nodes.drawio.create({
+      attachmentId: id,
+      src: `/api/files/${id}/diagram.drawio`,
+    });
+  const copyResult = (sourceId: string, id: string) => ({
+    sourceId,
+    attachment: {
+      id,
+      fileName: "diagram.drawio",
+      fileSize: 12,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    },
+  });
+
+  function pasteNodes(nodes: PMNode[]) {
+    const event = {
+      clipboardData: {
+        getData: (type: string) =>
+          type === "text/html" ? `<span src="/api/files/${SOURCE_FILE}/"></span>` : "",
+        files: [],
+      },
+      preventDefault: vi.fn(),
+    } as unknown as ClipboardEvent;
+    const slice = new Slice(Fragment.fromArray(nodes), 0, 0);
+    return handlePaste(editor, event, "target-page", undefined, slice);
+  }
+
+  function attachmentIds(type: string) {
+    const ids: string[] = [];
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === type) ids.push(node.attrs.attachmentId);
+    });
+    return ids;
+  }
+
+  beforeEach(() => createEditor([paragraph()], 1));
+
+  afterEach(() => {
+    editor?.destroy();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it("reuploads regular attachments after async diagram insertion", async () => {
+    let finishDiagramCopy!: (results: unknown) => void;
+    copyFilesMock.mockReturnValue(
+      new Promise((resolve) => (finishDiagramCopy = resolve)),
+    );
+    getAttachmentInfoMock.mockResolvedValue({ pageId: "source-page" });
+    uploadFileMock.mockResolvedValue({
+      id: COPY_A,
+      fileName: "file.png",
+      fileSize: 4,
+      mimeType: "image/png",
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(["data"]) }),
+    );
+
+    expect(pasteNodes([fileNode(SOURCE_FILE), diagramNode(SOURCE_DIAGRAM)])).toBe(true);
+    // Let a zero-delay scan run first, as it did before the race fix.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    finishDiagramCopy([copyResult(SOURCE_DIAGRAM, COPY_B)]);
+
+    await vi.waitFor(() => expect(attachmentIds("attachment")).toEqual([COPY_A]));
+    expect(getAttachmentInfoMock).toHaveBeenCalledWith(SOURCE_FILE);
+    expect(uploadFileMock).toHaveBeenCalledOnce();
+  });
+
+  it("creates a distinct copy for each diagram occurrence sharing a source attachment", async () => {
+    copyFilesMock.mockResolvedValue([
+      copyResult(SOURCE_DIAGRAM, COPY_A),
+      copyResult(SOURCE_DIAGRAM, COPY_B),
+    ]);
+
+    expect(pasteNodes([diagramNode(SOURCE_DIAGRAM), diagramNode(SOURCE_DIAGRAM)])).toBe(true);
+
+    await vi.waitFor(() => expect(attachmentIds("drawio")).toEqual([COPY_A, COPY_B]));
+    expect(copyFilesMock).toHaveBeenCalledWith(
+      [SOURCE_DIAGRAM, SOURCE_DIAGRAM],
+      "target-page",
+    );
   });
 });

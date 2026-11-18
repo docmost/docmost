@@ -193,6 +193,18 @@ export async function getAttachmentInfo(
   return req.data;
 }
 
+export async function copyFiles(
+  attachmentIds: string[],
+  pageId: string,
+): Promise<{ sourceId: string; attachment: IAttachment }[]> {
+  const req = await api.post<{ sourceId: string; attachment: IAttachment }[]>(
+    "/files/copy",
+    { attachmentIds, pageId },
+  );
+
+  return req.data;
+}
+
 export async function uploadFile(
   file: File,
   pageId: string,
