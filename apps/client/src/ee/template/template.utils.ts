@@ -1,4 +1,4 @@
-import { Editor } from "@tiptap/core";
+import { Editor, type JSONContent } from "@tiptap/core";
 import { ITemplate } from "@/ee/template/types/template.types";
 
 export function applyTemplateToPage(
@@ -13,4 +13,16 @@ export function applyTemplateToPage(
   }
   editor.commands.setContent(template.content);
   return true;
+}
+
+export function withoutUploadPlaceholders(content: JSONContent): JSONContent {
+  if (!content.content) return content;
+  return {
+    ...content,
+    content: content.content.map((node) =>
+      node.attrs?.placeholder
+        ? { type: "paragraph" }
+        : withoutUploadPlaceholders(node),
+    ),
+  };
 }

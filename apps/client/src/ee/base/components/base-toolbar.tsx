@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { ActionIcon, Button, Tooltip, Badge } from "@mantine/core";
 import { Table } from "@tanstack/react-table";
 import {
@@ -8,6 +8,7 @@ import {
   IconEye,
   IconEyeOff,
   IconDownload,
+  IconUpload,
   IconArrowsDiagonal,
   IconLayoutColumns,
   IconAdjustments,
@@ -36,7 +37,11 @@ import { KanbanCardProperties } from "@/ee/base/components/kanban/kanban-card-pr
 import { CalendarSettingsMenu } from "@/ee/base/components/calendar/calendar-settings-menu";
 import { FormSettingsPopover } from "@/ee/base/components/form/form-settings-popover";
 import { FormSharePopover } from "@/ee/base/components/form/form-share-popover";
-import { formPreviewAtomFamily } from "@/ee/base/atoms/base-atoms";
+import { BaseImportIndicator } from "@/ee/base/components/csv-import/base-import-indicator";
+import {
+  baseImportOpenedAtomFamily,
+  formPreviewAtomFamily,
+} from "@/ee/base/atoms/base-atoms";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
 import { useTranslation } from "react-i18next";
 import classes from "@/ee/base/styles/grid.module.css";
@@ -81,6 +86,7 @@ export function BaseToolbar({
   const [propertiesOpened, setPropertiesOpened] = useState(false);
   const [cardPropertiesOpened, setCardPropertiesOpened] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const setImportOpened = useSetAtom(baseImportOpenedAtomFamily(base.id));
 
   const isKanban = activeView?.type === "kanban";
   const isForm = activeView?.type === "form";
@@ -162,6 +168,22 @@ export function BaseToolbar({
       />
 
       <div className={classes.toolbarRight}>
+        <BaseImportIndicator pageId={base.id} />
+
+        {editable && (
+          <Tooltip label={t("Import CSV")}>
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              color="gray"
+              onClick={() => setImportOpened(true)}
+              aria-label={t("Import CSV")}
+            >
+              <IconUpload size={16} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+
         <Tooltip label={exportDisabledLabel ?? t("Export CSV")}>
           <ActionIcon
             variant="subtle"

@@ -481,12 +481,6 @@ export const mainExtensions = [
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
 
 const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
-  "Image",
-  "Video",
-  "File attachment",
-  "Draw.io (diagrams.net)",
-  "Excalidraw (Whiteboard)",
-  "Audio",
   "Synced block",
   "Base (Inline)",
   "Kanban",

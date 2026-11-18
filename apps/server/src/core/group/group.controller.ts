@@ -48,7 +48,12 @@ export class GroupController {
       throw new ForbiddenException();
     }
 
-    return this.groupService.getWorkspaceGroups(workspace.id, pagination);
+    return this.groupService.getWorkspaceGroups(workspace.id, pagination, {
+      adminView: ability.can(
+        WorkspaceCaslAction.Manage,
+        WorkspaceCaslSubject.Member,
+      ),
+    });
   }
 
   @ApiKeyScope('read')
@@ -63,7 +68,12 @@ export class GroupController {
     if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Group)) {
       throw new ForbiddenException();
     }
-    return this.groupService.getGroupInfo(groupIdDto.groupId, workspace.id);
+    return this.groupService.getGroupInfo(groupIdDto.groupId, workspace.id, {
+      adminView: ability.can(
+        WorkspaceCaslAction.Manage,
+        WorkspaceCaslSubject.Member,
+      ),
+    });
   }
 
   @HttpCode(HttpStatus.OK)
@@ -96,7 +106,12 @@ export class GroupController {
       throw new ForbiddenException();
     }
 
-    return this.groupService.updateGroup(workspace.id, updateGroupDto);
+    return this.groupService.updateGroup(workspace.id, updateGroupDto, {
+      adminView: ability.can(
+        WorkspaceCaslAction.Manage,
+        WorkspaceCaslSubject.Member,
+      ),
+    });
   }
 
   @ApiKeyScope('read')
@@ -117,6 +132,12 @@ export class GroupController {
       groupIdDto.groupId,
       workspace.id,
       pagination,
+      {
+        adminView: ability.can(
+          WorkspaceCaslAction.Manage,
+          WorkspaceCaslSubject.Member,
+        ),
+      },
     );
   }
 

@@ -15,6 +15,7 @@ import { z } from "zod/v4";
 import { useTranslation } from "react-i18next";
 import { useCreateApiKeyMutation } from "@/ee/api-key/queries/api-key-query";
 import { IconCalendar, IconCheck } from "@tabler/icons-react";
+import { addYears, subDays } from "date-fns";
 import { ApiKeyScope, IApiKey } from "@/ee/api-key";
 
 const DateInput = lazy(() =>
@@ -33,6 +34,8 @@ const scopesByAccess: Record<string, ApiKeyScope[]> = {
   "read-write": ["read", "write"],
   "read-only": ["read"],
 };
+
+const MAX_EXPIRY_YEARS = 3;
 
 const renderAccessOption: SelectProps["renderOption"] = ({
   option,
@@ -80,10 +83,7 @@ export function CreateApiKeyModal({
     },
   });
 
-  const getExpirationDate = (): string | undefined => {
-    if (expirationOption === "never") {
-      return undefined;
-    }
+  const getExpirationDate = (): string => {
     if (expirationOption === "custom") {
       return form.values.expiresAt;
     }
@@ -110,7 +110,6 @@ export function CreateApiKeyModal({
     { value: "90", label: getExpirationLabel(90) },
     { value: "365", label: getExpirationLabel(365) },
     { value: "custom", label: t("Custom") },
-    { value: "never", label: t("No expiration") },
   ];
 
   const accessOptions = [
@@ -192,8 +191,11 @@ export function CreateApiKeyModal({
             <Suspense fallback={null}>
               <DateInput
                 label={t("Custom expiration date")}
+                description={t("Up to 3 years from today")}
                 placeholder={t("Select expiration date")}
                 minDate={new Date()}
+                // a day short: the server reads a picked date as UTC midnight
+                maxDate={subDays(addYears(new Date(), MAX_EXPIRY_YEARS), 1)}
                 {...form.getInputProps("expiresAt")}
               />
             </Suspense>

@@ -3,6 +3,7 @@ import {
   Text,
   Group,
   ActionIcon,
+  Badge,
   Box,
   Space,
   Menu,
@@ -28,7 +29,8 @@ import { SearchInput } from "@/components/common/search-input";
 import Paginate from "@/components/common/paginate";
 import NoTableResults from "@/components/common/no-table-results";
 import SpaceSettingsModal from "@/features/space/components/settings-modal";
-import SpaceArchiveFilter from "@/features/space/components/space-archive-filter";
+import SpaceStatusFilter from "@/features/space/components/space-status-filter";
+import { SpaceListStatus } from "@/features/space/types/space.types";
 import classes from "./all-spaces-list.module.css";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
 import clsx from "clsx";
@@ -77,8 +79,8 @@ function WatchButton({ spaceId, watchedIds, size = 16 }: { spaceId: string; watc
 
 interface AllSpacesListProps {
   spaces: any[];
-  archived: boolean;
-  onArchivedChange: (archived: boolean) => void;
+  status: SpaceListStatus;
+  onStatusChange: (status: SpaceListStatus) => void;
   emptyText?: string;
   onSearch: (query: string) => void;
   hasPrevPage?: boolean;
@@ -89,8 +91,8 @@ interface AllSpacesListProps {
 
 export default function AllSpacesList({
   spaces,
-  archived,
-  onArchivedChange,
+  status,
+  onStatusChange,
   emptyText,
   onSearch,
   hasPrevPage,
@@ -113,7 +115,7 @@ export default function AllSpacesList({
     <Box>
       <Group gap="sm" align="flex-start">
         <SearchInput onSearch={onSearch} />
-        <SpaceArchiveFilter archived={archived} onChange={onArchivedChange} />
+        <SpaceStatusFilter status={status} onChange={onStatusChange} />
       </Group>
 
       <Space h="md" />
@@ -166,9 +168,21 @@ export default function AllSpacesList({
                           size="md"
                         />
                         <div style={{ minWidth: 0, overflow: "hidden", maxWidth: 350 }}>
-                          <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
-                            {space.name}
-                          </AutoTooltipText>
+                          <Group gap="xs" wrap="nowrap">
+                            <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
+                              {space.name}
+                            </AutoTooltipText>
+                            {space.archivedAt && (
+                              <Badge
+                                variant="light"
+                                size="xs"
+                                color="gray"
+                                style={{ flexShrink: 0 }}
+                              >
+                                {t("Archived")}
+                              </Badge>
+                            )}
+                          </Group>
                           {space.description && (
                             <Text fz="xs" c="dimmed" lineClamp={2}>
                               {space.description}

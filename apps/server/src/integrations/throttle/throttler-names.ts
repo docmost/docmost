@@ -10,6 +10,7 @@ export const BASE_FORM_SUBMIT_THROTTLER = 'base-form-submit';
 export const BASE_FORM_INFO_THROTTLER = 'base-form-info';
 export const MICROSOFT_GRAPH_THROTTLER = 'microsoft-graph';
 export const UNSPLASH_THROTTLER = 'unsplash';
+export const TEMPLATE_USE_THROTTLER = 'template-use';
 
 // Every named throttler must appear here; spread it in @SkipThrottle and re-enable per name with false.
 export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
@@ -25,4 +26,5 @@ export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
   [BASE_FORM_INFO_THROTTLER]: true,
   [MICROSOFT_GRAPH_THROTTLER]: true,
   [UNSPLASH_THROTTLER]: true,
+  [TEMPLATE_USE_THROTTLER]: true,
 };

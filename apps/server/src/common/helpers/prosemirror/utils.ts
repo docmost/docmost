@@ -142,6 +142,44 @@ export function getAttachmentIds(prosemirrorJson: any) {
   return attachmentIds;
 }
 
+export function replaceAttachmentIds(
+  prosemirrorJson: any,
+  idMap: Map<string, string>,
+): any {
+  if (Array.isArray(prosemirrorJson)) {
+    return prosemirrorJson.map((item) => replaceAttachmentIds(item, idMap));
+  }
+
+  if (!prosemirrorJson || typeof prosemirrorJson !== 'object') {
+    return prosemirrorJson;
+  }
+
+  const node = { ...prosemirrorJson };
+
+  if (node.content) {
+    node.content = replaceAttachmentIds(node.content, idMap);
+  }
+
+  const oldId = node.attrs?.attachmentId;
+  if (
+    typeof node.type === 'string' &&
+    isAttachmentNode(node.type) &&
+    typeof oldId === 'string' &&
+    idMap.has(oldId)
+  ) {
+    const newId = idMap.get(oldId);
+    const attrs = { ...node.attrs, attachmentId: newId };
+    for (const key of ['src', 'url']) {
+      if (typeof attrs[key] === 'string') {
+        attrs[key] = attrs[key].split(oldId).join(newId);
+      }
+    }
+    node.attrs = attrs;
+  }
+
+  return node;
+}
+
 export function removeMarkTypeFromDoc(doc: Node, markName: string): Node {
   const { schema } = doc.type;
   const markType = schema.marks[markName];

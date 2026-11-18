@@ -16,6 +16,7 @@ export enum QueueName {
   // Outbound DMs, kept off the inbound event queue
   SLACK_NOTIFY = '{slack-notify}',
   BASE_QUEUE = '{base-queue}',
+  BASE_IMPORT_QUEUE = '{base-import-queue}',
   SIEM_QUEUE = '{siem-queue}',
 }
 
@@ -27,6 +28,7 @@ export enum QueueJob {
   DELETE_PAGE_ATTACHMENTS = 'delete-page-attachments',
   DELETE_UNUSED_COVER = 'delete-unused-cover',
   DELETE_AI_CHAT_ATTACHMENTS = 'delete-ai-chat-attachments',
+  DELETE_TEMPLATE_ATTACHMENTS = 'delete-template-attachments',
 
   DELETE_USER_AVATARS = 'delete-user-avatars',
 
@@ -107,4 +109,5 @@ export enum QueueJob {
   BASE_CELL_GC = 'base-cell-gc',
   BASE_FORMULA_RECOMPUTE = 'base-formula-recompute',
   BASE_FORMULA_REFRESH = 'base-formula-refresh',
+  BASE_CSV_IMPORT = 'base-csv-import',
 }

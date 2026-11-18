@@ -36,6 +36,8 @@ import { EnvironmentService } from '../../../integrations/environment/environmen
 import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
+import { ListWorkspaceUsersDto } from '../dto/list-workspace-users.dto';
+import { resolveWorkspaceUserListStatus } from '../workspace.util';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { ApiKeyScope } from '../../../common/decorators/api-key-scope.decorator';
 
@@ -120,7 +122,7 @@ export class WorkspaceController {
   @OAuthScope('read')
   async getWorkspaceMembers(
     @Body()
-    pagination: PaginationOptions,
+    dto: ListWorkspaceUsersDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
@@ -129,7 +131,15 @@ export class WorkspaceController {
       throw new ForbiddenException();
     }
 
-    return this.workspaceService.getWorkspaceUsers(workspace.id, pagination);
+    const canManageMembers = ability.can(
+      WorkspaceCaslAction.Manage,
+      WorkspaceCaslSubject.Member,
+    );
+
+    return this.workspaceService.getWorkspaceUsers(workspace.id, dto, {
+      status: resolveWorkspaceUserListStatus(dto.status, canManageMembers),
+      adminView: canManageMembers,
+    });
   }
 
   @HttpCode(HttpStatus.OK)

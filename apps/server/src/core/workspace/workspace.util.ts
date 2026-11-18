@@ -1,5 +1,9 @@
+import { ForbiddenException } from '@nestjs/common';
 import { UserRole } from '../../common/helpers/types/permission';
-import { SUPPORTED_LOCALES } from './workspace.constants';
+import {
+  SUPPORTED_LOCALES,
+  WorkspaceUserListStatus,
+} from './workspace.constants';
 import { collapseBlankLines, stripLinks } from '../../common/helpers';
 
 export function isAdminActingOnOwner(
@@ -7,6 +11,20 @@ export function isAdminActingOnOwner(
   targetRole: string,
 ): boolean {
   return authUserRole === UserRole.ADMIN && targetRole === UserRole.OWNER;
+}
+
+// without manage rights only active users are listed
+export function resolveWorkspaceUserListStatus(
+  status: WorkspaceUserListStatus | undefined,
+  canManageMembers: boolean,
+): WorkspaceUserListStatus {
+  if (canManageMembers) {
+    return status ?? 'active';
+  }
+  if (status === 'deactivated' || status === 'deleted') {
+    throw new ForbiddenException();
+  }
+  return 'active';
 }
 
 export type PageEditMode = 'read' | 'edit';

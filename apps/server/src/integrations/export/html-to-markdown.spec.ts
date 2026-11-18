@@ -233,4 +233,56 @@ describe('htmlToMarkdown', () => {
       expect(htmlToMarkdown(html).trim()).toBe(expected);
     },
   );
+
+  it('exports an audio block as a link named after its file', () => {
+    const markdown = htmlToMarkdown(
+      '<p>Before</p>' +
+        '<audio controls="true" preload="metadata" src="/api/files/0193a1b2/standup.mp3" data-attachment-id="0193a1b2">' +
+        '<source src="/api/files/0193a1b2/standup.mp3"></audio>' +
+        '<p>After</p>',
+    );
+
+    expect(markdown).toBe(
+      'Before\n\n[standup.mp3](/api/files/0193a1b2/standup.mp3)\n\nAfter',
+    );
+  });
+
+  it('prefers the stored audio name and escapes brackets in it', () => {
+    const markdown = htmlToMarkdown(
+      '<audio src="/api/files/0193a1b2/take_1.mp3" data-name="take [1].mp3"></audio>',
+    );
+
+    expect(markdown).toBe('[take \\[1\\].mp3](/api/files/0193a1b2/take_1.mp3)');
+  });
+
+  it('keeps consecutive audio blocks on separate lines', () => {
+    const markdown = htmlToMarkdown(
+      '<audio src="/api/files/0193a1b2/one.mp3"></audio>' +
+        '<audio src="/api/files/0193c3d4/two.mp3"></audio>',
+    );
+
+    expect(markdown).toBe(
+      '[one.mp3](/api/files/0193a1b2/one.mp3)\n\n[two.mp3](/api/files/0193c3d4/two.mp3)',
+    );
+  });
+
+  it.each([
+    ['/api/files/public/0193a1b2/standup.mp3?jwt=abc.def', 'standup.mp3'],
+    ['/api/files/0193a1b2/team%20sync.mp3', 'team sync.mp3'],
+    ['/api/files/0193a1b2/100%.mp3', '100%.mp3'],
+  ])('names the audio link for %s after its file', (src, name) => {
+    expect(htmlToMarkdown(`<audio src="${src}"></audio>`)).toBe(
+      `[${name}](${src})`,
+    );
+  });
+
+  it('leaves out an audio block that has no file', () => {
+    const markdown = htmlToMarkdown(
+      '<p>Before</p>' +
+        '<audio controls="true" preload="metadata" src=""><source src=""></audio>' +
+        '<p>After</p>',
+    );
+
+    expect(markdown).toBe('Before\n\nAfter');
+  });
 });

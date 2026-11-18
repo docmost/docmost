@@ -35,6 +35,7 @@ export class GroupRepo {
     workspaceId: string,
     opts?: {
       includeMemberCount?: boolean;
+      adminView?: boolean;
       includeScimExternalId?: boolean;
       trx?: KyselyTransaction;
     },
@@ -43,7 +44,9 @@ export class GroupRepo {
     return db
       .selectFrom('groups')
       .select(this.baseFields)
-      .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
+      .$if(opts?.includeMemberCount, (qb) =>
+        qb.select((eb) => this.withMemberCount(eb, opts)),
+      )
       .$if(opts?.includeScimExternalId, (qb) => qb.select('scimExternalId'))
       .where('id', '=', groupId)
       .where('workspaceId', '=', workspaceId)
@@ -55,6 +58,7 @@ export class GroupRepo {
     workspaceId: string,
     opts?: {
       includeMemberCount?: boolean;
+      adminView?: boolean;
       includeScimExternalId?: boolean;
       trx?: KyselyTransaction;
     },
@@ -63,7 +67,9 @@ export class GroupRepo {
     return db
       .selectFrom('groups')
       .select(this.baseFields)
-      .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
+      .$if(opts?.includeMemberCount, (qb) =>
+        qb.select((eb) => this.withMemberCount(eb, opts)),
+      )
       .$if(opts?.includeScimExternalId, (qb) => qb.select('scimExternalId'))
       .where(sql`LOWER(name)`, '=', sql`LOWER(${groupName})`)
       .where('workspaceId', '=', workspaceId)
@@ -129,11 +135,15 @@ export class GroupRepo {
     return this.insertGroup(insertableGroup, trx);
   }
 
-  async getGroupsPaginated(workspaceId: string, pagination: PaginationOptions) {
+  async getGroupsPaginated(
+    workspaceId: string,
+    pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
+  ) {
     let baseQuery = this.db
       .selectFrom('groups')
       .select(this.baseFields)
-      .select((eb) => this.withMemberCount(eb))
+      .select((eb) => this.withMemberCount(eb, opts))
       .where('workspaceId', '=', workspaceId);
 
     if (pagination.query) {
@@ -172,11 +182,23 @@ export class GroupRepo {
     });
   }
 
-  withMemberCount(eb: ExpressionBuilder<DB, 'groups'>) {
+  withMemberCount(
+    eb: ExpressionBuilder<DB, 'groups'>,
+    opts?: { adminView?: boolean },
+  ) {
     return eb
       .selectFrom('groupUsers')
       .select((eb) => eb.fn.countAll().as('count'))
       .whereRef('groupUsers.groupId', '=', 'groups.id')
+      .$if(!opts?.adminView, (qb) =>
+        qb
+          .innerJoin(
+            'users as groupMember',
+            'groupMember.id',
+            'groupUsers.userId',
+          )
+          .where('groupMember.deactivatedAt', 'is', null),
+      )
       .as('memberCount');
   }
 

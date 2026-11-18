@@ -94,11 +94,11 @@ function renderPage(features?: string[]) {
 const newAnnouncementButton = () =>
   screen.getByRole("button", { name: "New announcement" }) as HTMLButtonElement;
 
-const chooseArchived = () => {
+const chooseStatus = (name: string) => {
   // jsdom has no scrollIntoView, which Mantine's combobox calls
   Element.prototype.scrollIntoView = () => {};
   fireEvent.click(screen.getByRole("combobox", { name: "Status" }));
-  fireEvent.click(screen.getByRole("option", { name: "Archived" }));
+  fireEvent.click(screen.getByRole("option", { name }));
 };
 
 beforeEach(() => {
@@ -161,7 +161,11 @@ describe("Announcements page", () => {
     expect(screen.getByText(LICENSE_ALERT)).toBeTruthy();
     expect(newAnnouncementButton().disabled).toBe(true);
     expect(await screen.findByText("No active announcements")).toBeTruthy();
-    expect(service.getAnnouncements).toHaveBeenCalledWith({ limit: 20, query: "" });
+    expect(service.getAnnouncements).toHaveBeenCalledWith({
+      limit: 20,
+      query: "",
+      status: "active",
+    });
   });
 
   it("lets an admin without the feature archive an announcement but not edit it", async () => {
@@ -203,7 +207,11 @@ describe("Announcements page", () => {
     renderPage([Feature.ANNOUNCEMENTS]);
     expect(await screen.findByText("Maintenance window")).toBeTruthy();
     expect(service.getAnnouncements).toHaveBeenCalledTimes(1);
-    expect(service.getAnnouncements).toHaveBeenCalledWith({ limit: 20, query: "" });
+    expect(service.getAnnouncements).toHaveBeenCalledWith({
+      limit: 20,
+      query: "",
+      status: "active",
+    });
     expect(screen.queryByText(LICENSE_ALERT)).toBeNull();
     expect(newAnnouncementButton().disabled).toBe(false);
   });
@@ -223,6 +231,7 @@ describe("Announcements page", () => {
     expect(service.getAnnouncements).toHaveBeenCalledWith({
       limit: 20,
       query: "holiday",
+      status: "active",
     });
     expect(screen.queryByText("Maintenance window")).toBeNull();
   });
@@ -254,7 +263,7 @@ describe("Announcements page", () => {
     renderPage([Feature.ANNOUNCEMENTS]);
     await screen.findByText("No active announcements");
 
-    chooseArchived();
+    chooseStatus("Archived");
 
     expect(await screen.findByText("No archived announcements")).toBeTruthy();
     expect(screen.queryByText("No active announcements")).toBeNull();
@@ -269,20 +278,46 @@ describe("Announcements page", () => {
       status: "archived",
     };
     vi.mocked(service.getAnnouncements).mockImplementation(async (params) =>
-      page(params.archived ? [archivedAnnouncement] : [announcement]),
+      page(params.status === "archived" ? [archivedAnnouncement] : [announcement]),
     );
     renderPage([Feature.ANNOUNCEMENTS]);
     await screen.findByText("Maintenance window");
 
-    chooseArchived();
+    chooseStatus("Archived");
 
     expect(await screen.findByText("Old notice")).toBeTruthy();
     expect(service.getAnnouncements).toHaveBeenCalledWith({
-      archived: true,
       limit: 20,
       query: "",
+      status: "archived",
     });
     expect(screen.queryByText("Maintenance window")).toBeNull();
+  });
+
+  it("lists every announcement when All is chosen", async () => {
+    vi.mocked(service.getAnnouncements).mockResolvedValue(page([announcement]));
+    renderPage([Feature.ANNOUNCEMENTS]);
+    await screen.findByText("Maintenance window");
+
+    chooseStatus("All");
+
+    await waitFor(() =>
+      expect(service.getAnnouncements).toHaveBeenLastCalledWith({
+        limit: 20,
+        query: "",
+        status: "all",
+      }),
+    );
+  });
+
+  it("says there are no announcements for an empty All list", async () => {
+    vi.mocked(service.getAnnouncements).mockResolvedValue(page([]));
+    renderPage([Feature.ANNOUNCEMENTS]);
+    await screen.findByText("No active announcements");
+
+    chooseStatus("All");
+
+    expect(await screen.findByText("No announcements")).toBeTruthy();
   });
 
   it("keeps the search text when the filter changes", async () => {
@@ -297,24 +332,25 @@ describe("Announcements page", () => {
         expect(service.getAnnouncements).toHaveBeenCalledWith({
           limit: 20,
           query: "holiday",
+          status: "active",
         }),
       { timeout: 3000 },
     );
 
-    chooseArchived();
+    chooseStatus("Archived");
 
     await waitFor(() =>
       expect(service.getAnnouncements).toHaveBeenCalledWith({
-        archived: true,
         limit: 20,
         query: "holiday",
+        status: "archived",
       }),
     );
   });
 
   it("goes back to the first page when the filter changes after paging", async () => {
     vi.mocked(service.getAnnouncements).mockImplementation(async (params) =>
-      params.cursor || params.archived
+      params.cursor || params.status === "archived"
         ? page([announcement])
         : {
             items: [announcement],
@@ -336,27 +372,28 @@ describe("Announcements page", () => {
         cursor: "c2",
         limit: 20,
         query: "",
+        status: "active",
       }),
     );
 
-    chooseArchived();
+    chooseStatus("Archived");
 
     await waitFor(() =>
       expect(service.getAnnouncements).toHaveBeenLastCalledWith({
-        archived: true,
         limit: 20,
         query: "",
+        status: "archived",
       }),
     );
   });
 
   it("says nothing matched when an archived search finds nothing", async () => {
     vi.mocked(service.getAnnouncements).mockImplementation(async (params) =>
-      page(params.archived && params.query ? [] : [announcement]),
+      page(params.status === "archived" && params.query ? [] : [announcement]),
     );
     renderPage([Feature.ANNOUNCEMENTS]);
     await screen.findByText("Maintenance window");
-    chooseArchived();
+    chooseStatus("Archived");
     fireEvent.change(screen.getByRole("textbox", { name: "Search" }), {
       target: { value: "nothing" },
     });
@@ -380,7 +417,7 @@ describe("Announcements page", () => {
     });
 
     expect(
-      queryClient.getQueryState([...ANNOUNCEMENTS_KEY, "list", { limit: 20, query: "" }])
+      queryClient.getQueryState([...ANNOUNCEMENTS_KEY, "list", { limit: 20, query: "", status: "active" }])
         ?.status,
     ).toBe("error");
     expect(screen.getByText("Maintenance window")).toBeTruthy();

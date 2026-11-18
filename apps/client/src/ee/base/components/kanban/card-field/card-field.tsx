@@ -1,5 +1,5 @@
-import { Text, Badge, Tooltip, Group } from "@mantine/core";
-import { IconCheck, IconFileDescription } from "@tabler/icons-react";
+import { Text, Badge, Tooltip, Group, Checkbox } from "@mantine/core";
+import { IconFileDescription } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { sanitizeUrl } from "@docmost/editor-ext";
@@ -31,6 +31,9 @@ type CardFieldProps = {
 };
 
 export function CardField({ property, value, pageId }: CardFieldProps) {
+  if (property.type === "checkbox") {
+    return <CheckboxField checked={value === true} name={property.name} />;
+  }
   if (value === null || value === undefined || value === "") return null;
   if (Array.isArray(value) && value.length === 0) return null;
 
@@ -59,8 +62,6 @@ export function CardField({ property, value, pageId }: CardFieldProps) {
       return <FileField value={value} />;
     case "page":
       return <PageField value={value} basePageId={pageId} propertyPageId={property.pageId} />;
-    case "checkbox":
-      return <CheckboxField value={value} />;
     case "url":
       return <UrlField value={value} />;
     case "email":
@@ -243,9 +244,15 @@ function PageField({
   );
 }
 
-function CheckboxField({ value }: { value: unknown }) {
-  if (value !== true) return null;
-  return <IconCheck size={14} />;
+function CheckboxField({ checked, name }: { checked: boolean; name: string }) {
+  return (
+    <Group gap={8} wrap="nowrap">
+      <Checkbox.Indicator checked={checked} size="xs" />
+      <Text size="xs" truncate>
+        {name}
+      </Text>
+    </Group>
+  );
 }
 
 function UrlField({ value }: { value: unknown }) {
@@ -310,7 +317,7 @@ function FormulaField({ value, property }: { value: unknown; property: IBaseProp
     return <NumberField value={value} property={property} />;
   }
   if (resultType === "boolean") {
-    return <CheckboxField value={value} />;
+    return <CheckboxField checked={value === true} name={property.name} />;
   }
   if (resultType === "date" || resultType === "datetime") {
     return <DateField value={value} property={property} />;

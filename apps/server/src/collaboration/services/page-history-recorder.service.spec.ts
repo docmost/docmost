@@ -196,6 +196,16 @@ describe('PageHistoryRecorderService', () => {
     expect(historyRepo.saveHistory).toHaveBeenCalledTimes(1);
   });
 
+  it('records a first version for a never-edited page with allowEmpty', async () => {
+    pageRepo.findById.mockResolvedValue(page({ content: null }));
+    historyRepo.findPageLastHistory.mockResolvedValue(undefined);
+
+    await expect(
+      service.recordPageHistory('page-1', { allowEmpty: true }),
+    ).resolves.toBe('new-history');
+    expect(historyRepo.saveHistory).toHaveBeenCalledTimes(1);
+  });
+
   it('puts contributors back when the insert fails', async () => {
     pageRepo.findById.mockResolvedValue(page());
     historyRepo.findPageLastHistory.mockResolvedValue(undefined);

@@ -4,6 +4,7 @@ import { DOMOutputSpec } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
 import { cellAround } from "@tiptap/pm/tables";
 import { closestListItem } from "../list-item";
+import { handleCellEdgeArrow } from "./utils/cell-edge-arrow";
 
 function handleListIndent(editor: Editor): boolean {
   const listItem = closestListItem(editor.state);
@@ -76,6 +77,10 @@ export const CustomTable = Table.extend({
         // Otherwise, use default table navigation
         return this.editor.commands.goToPreviousCell();
       },
+      ArrowUp: () => handleCellEdgeArrow(this.editor, "vert", -1),
+      ArrowDown: () => handleCellEdgeArrow(this.editor, "vert", 1),
+      ArrowLeft: () => handleCellEdgeArrow(this.editor, "horiz", -1),
+      ArrowRight: () => handleCellEdgeArrow(this.editor, "horiz", 1),
     };
   },
 

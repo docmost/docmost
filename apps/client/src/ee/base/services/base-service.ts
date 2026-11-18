@@ -27,6 +27,9 @@ import {
 } from "@/ee/base/types/base.types";
 import { IPagination, IPaginationMeta } from "@/lib/types";
 import type { ViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
+import { IFileTask } from "@/features/file-task/types/file-task.types";
+import { BaseCsvImportSpec } from "@/ee/base/csv-import/csv-import.types";
+import { IMPORT_FILE_NAME } from "@/ee/base/csv-import/csv-import.constants";
 
 export type IBaseRowsPage = IPagination<IBaseRow> & {
   references?: RowReferences;
@@ -91,6 +94,25 @@ export async function exportBaseToCsv(
   }
 
   saveAs(req.data, fileName);
+}
+
+export async function importBaseCsv(
+  data: { pageId: string; spec: BaseCsvImportSpec; rows: Blob },
+  options: { onUploadProgress?: (fraction: number) => void; signal?: AbortSignal } = {},
+): Promise<IFileTask> {
+  const formData = new FormData();
+  formData.append("pageId", data.pageId);
+  formData.append("spec", JSON.stringify(data.spec));
+  formData.append("file", data.rows, IMPORT_FILE_NAME);
+
+  const req = await api.post<IFileTask>("/bases/import-csv", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    signal: options.signal,
+    onUploadProgress: (event) => {
+      if (event.total) options.onUploadProgress?.(event.loaded / event.total);
+    },
+  });
+  return req.data;
 }
 
 export async function listBases(

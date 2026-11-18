@@ -171,3 +171,7 @@ export interface IBaseFormulaRecomputeJob {
   rowIds?: string[];
   refresh?: { day: string; at: string }; // set only for reason 'refresh'
 }
+
+export interface IBaseCsvImportJob {
+  fileTaskId: string;
+}

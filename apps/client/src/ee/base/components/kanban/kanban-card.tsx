@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useRef } from "react";
 import clsx from "clsx";
+import { Tooltip } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { IBase, IBaseRow, IBaseView } from "@/ee/base/types/base.types";
 import { CardField } from "@/ee/base/components/kanban/card-field/card-field";
@@ -67,12 +68,23 @@ export const KanbanCard = forwardRef<HTMLDivElement, KanbanCardProps>(
           {title || t("Untitled")}
         </div>
         {cardProps.map((property) => (
-          <CardField
+          <Tooltip
             key={property.id}
-            property={property}
-            value={systemAccessorFor(property.type)?.(row) ?? row.cells[property.id]}
-            pageId={base.id}
-          />
+            label={property.name}
+            position="left"
+            multiline
+            maw={240}
+            withinPortal
+            openDelay={400}
+          >
+            <div className={classes.cardField}>
+              <CardField
+                property={property}
+                value={systemAccessorFor(property.type)?.(row) ?? row.cells[property.id]}
+                pageId={base.id}
+              />
+            </div>
+          </Tooltip>
         ))}
         {closestEdge === "bottom" && <BaseDropEdgeIndicator edge="bottom" />}
       </div>
