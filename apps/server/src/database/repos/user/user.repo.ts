@@ -31,6 +31,7 @@ export class UserRepo {
     'locale',
     'timezone',
     'settings',
+    'lastLoginAt',
     'deactivatedAt',
     'createdAt',
     'updatedAt',
@@ -52,7 +53,6 @@ export class UserRepo {
     'createdAt',
     'updatedAt',
     'deletedAt',
-    'hasGeneratedPassword',
   ];
 
   // added for admins and owners
