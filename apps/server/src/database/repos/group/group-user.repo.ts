@@ -153,6 +153,8 @@ export class GroupUserRepo {
           workspaceId,
           trx,
         );
+        if (!defaultGroup) return;
+
         await this.insertGroupUser(
           {
             userId,
