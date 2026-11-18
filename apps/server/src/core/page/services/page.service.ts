@@ -970,7 +970,6 @@ export class PageService {
           spaceId,
           workspaceId: rootPage.workspaceId,
           writerId: authUser.id,
-          onlySpaceMembers: !isDuplicateInSameSpace,
         },
         trx,
       );
