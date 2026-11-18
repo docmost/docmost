@@ -20,7 +20,6 @@ import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 
 interface Props {
   editor: Editor;
-  templateMode?: boolean;
 }
 
 type UploadFn = (
@@ -63,7 +62,7 @@ function pickFile(
   input.click();
 }
 
-export const MediaGroup: FC<Props> = ({ editor, templateMode }) => {
+export const MediaGroup: FC<Props> = ({ editor }) => {
   const { t } = useTranslation();
 
   return (
@@ -81,30 +80,24 @@ export const MediaGroup: FC<Props> = ({ editor, templateMode }) => {
         </Tooltip>
       </Menu.Target>
       <Menu.Dropdown>
-        {!templateMode && (
-          <Menu.Item
-            leftSection={<IconPhoto size={16} />}
-            onClick={() => pickFile(editor, "image/*", true, uploadImageAction)}
-          >
-            {t("Image")}
-          </Menu.Item>
-        )}
-        {!templateMode && (
-          <Menu.Item
-            leftSection={<IconMovie size={16} />}
-            onClick={() => pickFile(editor, "video/*", true, uploadVideoAction)}
-          >
-            {t("Video")}
-          </Menu.Item>
-        )}
-        {!templateMode && (
-          <Menu.Item
-            leftSection={<IconMusic size={16} />}
-            onClick={() => pickFile(editor, "audio/*", true, uploadAudioAction)}
-          >
-            {t("Audio")}
-          </Menu.Item>
-        )}
+        <Menu.Item
+          leftSection={<IconPhoto size={16} />}
+          onClick={() => pickFile(editor, "image/*", true, uploadImageAction)}
+        >
+          {t("Image")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconMovie size={16} />}
+          onClick={() => pickFile(editor, "video/*", true, uploadVideoAction)}
+        >
+          {t("Video")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconMusic size={16} />}
+          onClick={() => pickFile(editor, "audio/*", true, uploadAudioAction)}
+        >
+          {t("Audio")}
+        </Menu.Item>
         <Menu.Item
           leftSection={<IconFileTypePdf size={16} />}
           onClick={() =>
@@ -113,16 +106,14 @@ export const MediaGroup: FC<Props> = ({ editor, templateMode }) => {
         >
           PDF
         </Menu.Item>
-        {!templateMode && (
-          <Menu.Item
-            leftSection={<IconPaperclip size={16} />}
-            onClick={() =>
-              pickFile(editor, "", true, uploadAttachmentAction, true)
-            }
-          >
-            {t("File attachment")}
-          </Menu.Item>
-        )}
+        <Menu.Item
+          leftSection={<IconPaperclip size={16} />}
+          onClick={() =>
+            pickFile(editor, "", true, uploadAttachmentAction, true)
+          }
+        >
+          {t("File attachment")}
+        </Menu.Item>
       </Menu.Dropdown>
     </Menu>
   );

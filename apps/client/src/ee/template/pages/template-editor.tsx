@@ -1,5 +1,11 @@
 import "@/features/editor/styles/index.css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Container,
@@ -22,7 +28,7 @@ import { useTranslation } from "react-i18next";
 import { useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import { templateExtensions } from "@/features/editor/extensions/extensions";
 import {
   useUpdateTemplateMutation,
@@ -44,6 +50,11 @@ import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import { TableHandlesLayer } from "@/features/editor/components/table/handle/table-handles-layer";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
+
+import {
+  handleFileDrop,
+  handlePaste,
+} from "@/features/editor/components/common/editor-paste-handler.tsx";
 
 import classes from "./template-editor.module.css";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
@@ -96,6 +107,8 @@ export default function TemplateEditor() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const editorRef = useRef<Editor | null>(null);
+
   const editor = useEditor({
     extensions: templateExtensions,
     content: "",
@@ -113,6 +126,26 @@ export default function TemplateEditor() {
           }
         },
       },
+      handlePaste: (_view, event) => {
+        if (!editorRef.current || !templateId) return false;
+
+        return handlePaste(
+          editorRef.current,
+          event,
+          { templateId },
+          user?.id,
+        );
+      },
+      handleDrop: (_view, event, _slice, moved) => {
+        if (!editorRef.current || !templateId) return false;
+
+        return handleFileDrop(editorRef.current, event, moved, { templateId });
+      },
+    },
+    onCreate({ editor }) {
+      // @ts-ignore
+      editor.storage.templateId = templateId;
+      editorRef.current = editor;
     },
     onUpdate() {
       if (loadedRef.current) {
@@ -120,6 +153,14 @@ export default function TemplateEditor() {
       }
     },
   });
+
+  useLayoutEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      // @ts-ignore
+      editor.storage.templateId = templateId;
+      editorRef.current = editor;
+    }
+  }, [editor, templateId]);
 
   // Load template data into editor
   useEffect(() => {
