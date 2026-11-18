@@ -71,6 +71,7 @@ import classes from "./template-editor.module.css";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
 import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
+import { withoutUploadPlaceholders } from "@/ee/template/template.utils";
 
 export default function TemplateEditor() {
   const { t } = useTranslation();
@@ -240,7 +241,7 @@ export default function TemplateEditor() {
         templateId,
         title: titleRef.current,
         icon: iconRef.current || undefined,
-        content: editor.getJSON(),
+        content: withoutUploadPlaceholders(editor.getJSON()),
         spaceId: spaceIdRef.current,
       });
       isDirtyRef.current = false;
