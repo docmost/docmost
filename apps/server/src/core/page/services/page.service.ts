@@ -825,6 +825,29 @@ export class PageService {
 
     const copiedAttachmentIds = new Map<string, string>();
 
+    const referencedAttachmentIds = new Set<string>();
+    for (const page of pages) {
+      getAttachmentIds(getProsemirrorContent(page.content)).forEach((id) =>
+        referencedAttachmentIds.add(id),
+      );
+      const coverId = getCoverAttachmentId(page.coverPhoto);
+      if (coverId) referencedAttachmentIds.add(coverId);
+    }
+    const referencedAttachments =
+      referencedAttachmentIds.size > 0
+        ? await this.db
+            .selectFrom('attachments')
+            .selectAll()
+            .where('id', 'in', Array.from(referencedAttachmentIds))
+            .where('workspaceId', '=', rootPage.workspaceId)
+            .execute()
+        : [];
+    const ownedAttachmentIds = new Set(
+      referencedAttachments
+        .filter((attachment) => pageMap.has(attachment.pageId))
+        .map((attachment) => attachment.id),
+    );
+
     const insertablePages: InsertablePage[] = await Promise.all(
       pages.map(async (page) => {
         const pageContent = getProsemirrorContent(page.content);
@@ -835,13 +858,17 @@ export class PageService {
 
         const attachmentIds = getAttachmentIds(prosemirrorDoc.toJSON());
 
-        attachmentIds.forEach((attachmentId: string) => {
-          // pages that show the same file share one copy of it
-          copiedAttachmentIds.set(
-            attachmentId,
-            copiedAttachmentIds.get(attachmentId) ?? uuid7(),
-          );
-        });
+        attachmentIds
+          .filter((attachmentId: string) =>
+            ownedAttachmentIds.has(attachmentId),
+          )
+          .forEach((attachmentId: string) => {
+            // pages that show the same file share one copy of it
+            copiedAttachmentIds.set(
+              attachmentId,
+              copiedAttachmentIds.get(attachmentId) ?? uuid7(),
+            );
+          });
 
         const coverPhoto = remapCopiedCover(page.coverPhoto, copiedAttachmentIds, uuid7);
 
@@ -999,16 +1026,8 @@ export class PageService {
     });
 
     //TODO: best to handle this in a queue
-    const attachmentsIds = Array.from(copiedAttachmentIds.keys());
-    if (attachmentsIds.length > 0) {
-      const attachments = await this.db
-        .selectFrom('attachments')
-        .selectAll()
-        .where('id', 'in', attachmentsIds)
-        .where('workspaceId', '=', rootPage.workspaceId)
-        .execute();
-
-      for (const attachment of attachments) {
+    if (copiedAttachmentIds.size > 0) {
+      for (const attachment of referencedAttachments) {
         try {
           // only files owned by a copied page are copied, and they go to that page's copy
           const owner = pageMap.get(attachment.pageId);

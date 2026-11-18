@@ -6,6 +6,8 @@ const PAGE_ID = '019a1f00-0000-7000-8000-000000000003';
 const USER_ID = '019a1f00-0000-7000-8000-000000000005';
 const FILE_ID = '019a1f00-0000-7000-8000-0000000000aa';
 const IMAGE_ID = '019a1f00-0000-7000-8000-0000000000bb';
+const OUTSIDE_PAGE_ID = '019a1f00-0000-7000-8000-000000000004';
+const OUTSIDE_ID = '019a1f00-0000-7000-8000-0000000000cc';
 
 const user = { id: USER_ID, workspaceId: WORKSPACE_ID } as any;
 
@@ -30,7 +32,11 @@ const content = {
   ],
 };
 
-function makeAttachmentRow(id: string, fileName: string) {
+function makeAttachmentRow(
+  id: string,
+  fileName: string,
+  pageId: string = PAGE_ID,
+) {
   return {
     id,
     type: 'file',
@@ -41,17 +47,17 @@ function makeAttachmentRow(id: string, fileName: string) {
     fileExt: '.bin',
     creatorId: USER_ID,
     workspaceId: WORKSPACE_ID,
-    pageId: PAGE_ID,
+    pageId,
     spaceId: SPACE_ID,
   };
 }
 
-function makeService() {
+function makeService(pageContent: any = content, extraRows: any[] = []) {
   const page = {
     id: PAGE_ID,
     slugId: 'pageSlug01',
     title: 'Report',
-    content,
+    content: pageContent,
     coverPhoto: null,
     position: 'a0',
     parentPageId: null,
@@ -75,6 +81,7 @@ function makeService() {
     execute: async () => [
       makeAttachmentRow(FILE_ID, 'report.pdf'),
       makeAttachmentRow(IMAGE_ID, 'photo.png'),
+      ...extraRows,
     ],
   };
   const db = {
@@ -125,7 +132,7 @@ function makeService() {
     .spyOn(service as any, 'filterAccessibleTreePages')
     .mockResolvedValue([page]);
 
-  return { service, page, inserted };
+  return { service, page, inserted, storageService };
 }
 
 describe('PageService.duplicatePage attachments', () => {
@@ -145,5 +152,51 @@ describe('PageService.duplicatePage attachments', () => {
     expect(image.attrs.src).toBe(
       `/api/files/${image.attrs.attachmentId}/photo.png`,
     );
+  });
+
+  it('leaves links to files owned outside the copied pages untouched', async () => {
+    const outsideContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'attachment',
+          attrs: {
+            url: `/api/files/${OUTSIDE_ID}/shared.pdf`,
+            name: 'shared.pdf',
+            attachmentId: OUTSIDE_ID,
+          },
+        },
+        {
+          type: 'image',
+          attrs: {
+            src: `/api/files/${OUTSIDE_ID}/shared.png`,
+            attachmentId: OUTSIDE_ID,
+          },
+        },
+      ],
+    };
+    const { service, page, inserted, storageService } = makeService(
+      outsideContent,
+      [makeAttachmentRow(OUTSIDE_ID, 'shared.pdf', OUTSIDE_PAGE_ID)],
+    );
+    const attachmentInserts: any[] = [];
+    (service as any).db.insertInto = () => ({
+      values: (values: any) => ({
+        execute: async () => {
+          attachmentInserts.push(values);
+        },
+      }),
+    });
+
+    await service.duplicatePage(page, undefined, user);
+
+    const [copy] = inserted[0];
+    const [file, image] = copy.content.content;
+    expect(file.attrs.attachmentId).toBe(OUTSIDE_ID);
+    expect(file.attrs.url).toBe(`/api/files/${OUTSIDE_ID}/shared.pdf`);
+    expect(image.attrs.attachmentId).toBe(OUTSIDE_ID);
+    expect(image.attrs.src).toBe(`/api/files/${OUTSIDE_ID}/shared.png`);
+    expect(storageService.copy).not.toHaveBeenCalled();
+    expect(attachmentInserts).toHaveLength(0);
   });
 });
