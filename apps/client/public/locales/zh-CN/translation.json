@@ -447,7 +447,7 @@
   "Embed PDF": "嵌入 PDF",
   "Upload and embed a PDF file.": "上传并嵌入 PDF 文件。",
   "Embed as PDF": "作为 PDF 嵌入",
-  "Embed as audio": "Embed as audio",
+  "Embed as audio": "嵌入为音频",
   "Failed to load PDF": "加载 PDF 失败",
   "Convert to attachment": "转换为附件",
   "File attachment": "文件附件",
@@ -1931,11 +1931,11 @@
   "Deleted on {{date}}": "已于 {{date}} 删除",
   "Member deactivated successfully": "成员已成功停用",
   "Member activated successfully": "成员已成功激活",
-  "Play": "Play",
-  "Pause": "Pause",
-  "Mute": "Mute",
-  "Unmute": "Unmute",
-  "Seek": "Seek",
-  "Playback speed": "Playback speed",
-  "Couldn't load this audio file": "Couldn't load this audio file"
+  "Play": "播放",
+  "Pause": "暂停",
+  "Mute": "静音",
+  "Unmute": "取消静音",
+  "Seek": "定位",
+  "Playback speed": "播放速度",
+  "Couldn't load this audio file": "无法加载此音频文件"
 }
