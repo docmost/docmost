@@ -410,6 +410,13 @@ export function isInternalFileUrl(url: string | undefined): boolean {
   return normalized.startsWith("/api/files/") || normalized.startsWith("/files/");
 }
 
+// app file urls, plus the files/ path an export with attachments points to
+export function renderableFileUrl(url: string | undefined): string {
+  return isInternalFileUrl(url) || url?.trim().startsWith("files/")
+    ? sanitizeUrl(url)
+    : "";
+}
+
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 export const generateNodeId = customAlphabet(alphabet, 12);
 

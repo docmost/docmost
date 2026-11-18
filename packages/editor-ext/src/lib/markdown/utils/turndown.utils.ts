@@ -37,6 +37,7 @@ export function htmlToMarkdown(html: string): string {
     mathInline,
     mathBlock,
     iframeEmbed,
+    pdf,
     image,
     video,
     audio,
@@ -338,6 +339,25 @@ function footnotesList(turndownService: _TurndownService) {
         return `[^${number}]: ${body}`;
       });
       return `\n\n${definitions.join('\n')}\n\n`;
+    },
+  });
+}
+
+// a link to the file, named after it, instead of the generic iframe rule
+function pdf(turndownService: _TurndownService) {
+  turndownService.addRule('pdf', {
+    filter: function (node: HTMLElement) {
+      return (
+        node.nodeName === 'DIV' && node.getAttribute('data-type') === 'pdf'
+      );
+    },
+    replacement: function (_content: string, node: HTMLElement) {
+      const src = node.getAttribute('src') || '';
+      if (!src) return '';
+      const name = sanitizeMdLinkText(
+        node.getAttribute('data-name') || getFileNameFromUrl(src) || src,
+      );
+      return '\n\n[' + name + '](' + src + ')\n\n';
     },
   });
 }
