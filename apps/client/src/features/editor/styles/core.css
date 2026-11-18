@@ -41,6 +41,11 @@
     outline: none;
   }
 
+  /* tiptap draws the gap cursor black; follow the text color so it shows in dark mode */
+  .ProseMirror-gapcursor::after {
+    border-top-color: currentColor;
+  }
+
   p {
     margin-top: 0.5em;
     margin-bottom: 0.5em;
