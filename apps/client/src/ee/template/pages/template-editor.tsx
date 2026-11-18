@@ -40,7 +40,7 @@ import {
 } from "@/features/space/queries/space-query";
 import { includeSpace } from "@/features/space/space.utils";
 import useUserRole from "@/hooks/use-user-role";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
@@ -55,6 +55,16 @@ import {
   handleFileDrop,
   handlePaste,
 } from "@/features/editor/components/common/editor-paste-handler.tsx";
+
+import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
+import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
+import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
+import ExcalidrawMenu from "@/features/editor/components/excalidraw/excalidraw-menu-lazy";
+import DrawioMenu from "@/features/editor/components/drawio/drawio-menu";
+import LightboxView, {
+  getLightboxClickRequest,
+} from "@/features/editor/components/common/lightbox-view";
 
 import classes from "./template-editor.module.css";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
@@ -108,6 +118,11 @@ export default function TemplateEditor() {
   const savedFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editorRef = useRef<Editor | null>(null);
+  const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
+
+  useEffect(() => {
+    return () => setLightboxRequest(null);
+  }, [setLightboxRequest]);
 
   const editor = useEditor({
     extensions: templateExtensions,
@@ -125,6 +140,13 @@ export default function TemplateEditor() {
             }
           }
         },
+      },
+      handleDoubleClickOn: (_view, _pos, node) => {
+        const request = getLightboxClickRequest(node);
+        if (!request) return false;
+
+        setLightboxRequest(request);
+        return true;
       },
       handlePaste: (_view, event) => {
         if (!editorRef.current || !templateId) return false;
@@ -459,6 +481,18 @@ export default function TemplateEditor() {
             <TableHandlesLayer editor={editor} />
             <CalloutMenu editor={editor} />
             <ColumnsMenu editor={editor} />
+            <ImageMenu editor={editor} />
+            <VideoMenu editor={editor} />
+            <PdfMenu editor={editor} />
+            <ExcalidrawMenu editor={editor} />
+            <DrawioMenu editor={editor} />
+            <LightboxView
+              editor={editor}
+              open={!!lightboxRequest}
+              src={lightboxRequest?.src ?? ""}
+              type={lightboxRequest?.type ?? "image"}
+              onClose={() => setLightboxRequest(null)}
+            />
           </>
         )}
         <div
