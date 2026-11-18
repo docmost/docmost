@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
 import "@excalidraw/excalidraw/index.css";
@@ -101,14 +102,14 @@ export default function ExcalidrawView(props: NodeViewProps) {
       const fileName = "diagram.excalidraw.svg";
       const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
-      // @ts-ignore
-      const pageId = editor.storage?.pageId;
+      const uploadTarget = getEditorUploadTarget(editor);
+      if (!uploadTarget) return;
 
       let attachment: IAttachment = null;
       if (attachmentId) {
-        attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
+        attachment = await uploadFile(excalidrawSvgFile, uploadTarget, attachmentId);
       } else {
-        attachment = await uploadFile(excalidrawSvgFile, pageId);
+        attachment = await uploadFile(excalidrawSvgFile, uploadTarget);
       }
 
       if (updateSrc) {

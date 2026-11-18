@@ -30,6 +30,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { getDrawioUrl, getFileUrl } from "@/lib/config.ts";
 import { uploadFile } from "@/features/page/services/page-service.ts";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import {
   DrawIoEmbed,
   DrawIoEmbedRef,
@@ -168,15 +169,15 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     const fileName = "diagram.drawio.svg";
     const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
-    // @ts-ignore
-    const pageId = editor.storage?.pageId;
+    const uploadTarget = getEditorUploadTarget(editor);
+    if (!uploadTarget) return;
     const attachmentId = editorState?.attachmentId;
 
     let attachment: IAttachment = null;
     if (attachmentId) {
-      attachment = await uploadFile(drawioSVGFile, pageId, attachmentId);
+      attachment = await uploadFile(drawioSVGFile, uploadTarget, attachmentId);
     } else {
-      attachment = await uploadFile(drawioSVGFile, pageId);
+      attachment = await uploadFile(drawioSVGFile, uploadTarget);
     }
 
     editor.commands.updateAttributes("drawio", {

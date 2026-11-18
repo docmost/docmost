@@ -1,3 +1,4 @@
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import {
   IconBlockquote,
   IconCaretRightFilled,
@@ -202,9 +203,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload image
         const input = document.createElement("input");
@@ -218,7 +218,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadImageAction(file, editor, pos, pageId);
+              uploadImageAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -235,9 +235,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload video
         const input = document.createElement("input");
@@ -251,7 +250,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadVideoAction(file, editor, pos, pageId);
+              uploadVideoAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -276,9 +275,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload audio
         const input = document.createElement("input");
@@ -292,7 +290,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadAudioAction(file, editor, pos, pageId);
+              uploadAudioAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -309,9 +307,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         const input = document.createElement("input");
         input.type = "file";
@@ -323,7 +320,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadPdfAction(file, editor, pos, pageId);
+              uploadPdfAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -340,9 +337,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload file
         const input = document.createElement("input");
@@ -356,7 +352,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadAttachmentAction(file, editor, pos, pageId, true);
+              uploadAttachmentAction(file, editor, pos, uploadTarget, true);
             }
           }
 

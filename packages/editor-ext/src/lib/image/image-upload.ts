@@ -27,7 +27,7 @@ const findImageNodeByPlaceholderId = (
 };
 const handleImageUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, editor, pos, pageId) => {
+  async (file, editor, pos, uploadTarget) => {
     // check if the file is an image
     const validated = validateFn?.(file);
     // @ts-ignore
@@ -127,7 +127,7 @@ const handleImageUpload =
     };
 
     try {
-      const attachment: IAttachment = await onUpload(file, pageId);
+      const attachment: IAttachment = await onUpload(file, uploadTarget);
 
       clearTimeout(insertPlaceholderTimeout);
 
