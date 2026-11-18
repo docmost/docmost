@@ -113,6 +113,7 @@ export default function TemplateEditor() {
   const iconRef = useRef(icon);
   const spaceIdRef = useRef(spaceId);
   const loadedRef = useRef(false);
+  const loadedTemplateIdRef = useRef<string | null>(null);
   const isDirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -186,7 +187,13 @@ export default function TemplateEditor() {
 
   // Load template data into editor
   useEffect(() => {
-    if (existingTemplate && editor && !editor.isDestroyed) {
+    if (
+      existingTemplate &&
+      editor &&
+      !editor.isDestroyed &&
+      loadedTemplateIdRef.current !== existingTemplate.id
+    ) {
+      loadedTemplateIdRef.current = existingTemplate.id;
       loadedRef.current = false;
       setTitle(existingTemplate.title || "");
       setIcon(existingTemplate.icon || null);
