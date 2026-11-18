@@ -210,9 +210,7 @@ export async function uploadFile(
   }
   formData.append("file", file);
 
-  const url =
-    "pageId" in uploadTarget ? "/files/upload" : "/templates/files/upload";
-  const req = await api.post<IAttachment>(url, formData, {
+  const req = await api.post<IAttachment>("/files/upload", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

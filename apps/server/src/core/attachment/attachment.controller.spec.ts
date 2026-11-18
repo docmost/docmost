@@ -4,7 +4,7 @@ import { join } from 'path';
 import * as bytes from 'bytes';
 import * as fs from 'fs-extra';
 import { FastifyInstance } from 'fastify';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { BlockBlobClient } from '@azure/storage-blob';
 import { AttachmentController } from './attachment.controller';
 import { MAX_AVATAR_SIZE } from './attachment.constants';
@@ -153,6 +153,8 @@ describe.each([
   const auditService = { log: jest.fn() };
   const templateRepo = { findById: jest.fn() };
   const spaceMemberRepo = { getUserSpaceIds: jest.fn() };
+  const templateAccessService = { findEditableTemplate: jest.fn() };
+  const moduleRef = { get: jest.fn(() => templateAccessService) };
   let controllerRef: AttachmentController;
 
   const postFile = (
@@ -223,6 +225,7 @@ describe.each([
       auditService as any,
       templateRepo as any,
       spaceMemberRepo as any,
+      moduleRef as any,
     );
     controllerRef = controller;
 
@@ -369,6 +372,98 @@ describe.each([
         expect.objectContaining({ type: 'file' }),
         undefined,
       );
+    });
+  });
+
+  describe('template uploads', () => {
+    const TEMPLATE_ID = '0195f9d2-7d3e-7b1a-9c3f-aaaaaaaaaaaa';
+    const postTemplateFile = (fields: Record<string, string>) =>
+      app.inject({
+        method: 'POST',
+        url: '/files/upload',
+        headers: MULTIPART_HEADERS,
+        payload: multipartBody('diagram.pdf', randomBytes(1024), fields),
+      });
+
+    beforeEach(() => {
+      templateAccessService.findEditableTemplate.mockReset();
+    });
+
+    it('stores an upload for a template the user can edit', async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: 'space-1',
+      });
+
+      const response = await postTemplateFile({ templateId: TEMPLATE_ID });
+
+      expect(response.statusCode).toBe(200);
+      expect(templateAccessService.findEditableTemplate).toHaveBeenCalledWith(
+        TEMPLATE_ID,
+        USER,
+        WORKSPACE,
+      );
+      const row = attachmentRepo.insertAttachment.mock.calls[0][0];
+      expect(row).toEqual(
+        expect.objectContaining({ templateId: TEMPLATE_ID, spaceId: 'space-1' }),
+      );
+      expect(row.pageId).toBeUndefined();
+    });
+
+    it('refuses a template the user cannot edit before storing anything', async () => {
+      templateAccessService.findEditableTemplate.mockRejectedValue(
+        new ForbiddenException(),
+      );
+
+      const response = await postTemplateFile({ templateId: TEMPLATE_ID });
+
+      expect(response.statusCode).toBe(403);
+      expect(await storage.leftovers()).toEqual([]);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown template', async () => {
+      templateAccessService.findEditableTemplate.mockRejectedValue(
+        new NotFoundException('Template not found'),
+      );
+
+      const response = await postTemplateFile({ templateId: TEMPLATE_ID });
+
+      expect(response.statusCode).toBe(404);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid template id', async () => {
+      const response = await postTemplateFile({ templateId: 'not-a-uuid' });
+
+      expect(response.statusCode).toBe(400);
+      expect(templateAccessService.findEditableTemplate).not.toHaveBeenCalled();
+    });
+
+    it('rejects a page and a template in the same upload', async () => {
+      const response = await postTemplateFile({
+        pageId: PAGE_ID,
+        templateId: TEMPLATE_ID,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(templateAccessService.findEditableTemplate).not.toHaveBeenCalled();
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects a cover upload for a template', async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+
+      const response = await postTemplateFile({
+        templateId: TEMPLATE_ID,
+        type: 'page-cover',
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
     });
   });
 

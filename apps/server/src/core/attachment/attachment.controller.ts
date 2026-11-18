@@ -21,13 +21,19 @@ import {
 } from '@nestjs/common';
 import { AttachmentService } from './services/attachment.service';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { ModuleRef } from '@nestjs/core';
 import { FileInterceptor } from '../../common/interceptors/file.interceptor';
 import * as bytes from 'bytes';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
-import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
+import {
+  Attachment,
+  Template,
+  User,
+  Workspace,
+} from '@docmost/db/types/entity.types';
 import { StorageService } from '../../integrations/storage/storage.service';
 import {
   getAttachmentFolderPath,
@@ -92,6 +98,7 @@ export class AttachmentController {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     private readonly templateRepo: TemplateRepo,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -125,20 +132,35 @@ export class AttachmentController {
     }
 
     const pageId = file.fields?.pageId?.value;
+    const templateId = file.fields?.templateId?.value;
 
-    if (!pageId) {
+    if (!pageId && !templateId) {
       throw new BadRequestException('PageId is required');
     }
 
-    const page = await this.pageRepo.findById(pageId);
-
-    if (!page) {
-      throw new NotFoundException('Page not found');
+    if (templateId && (pageId || !isValidUUID(templateId))) {
+      throw new BadRequestException('Invalid template id');
     }
 
-    await this.pageAccessService.validateCanEdit(page, user);
+    let spaceId: string | null;
+    if (templateId) {
+      const template = await this.findEditableTemplate(
+        templateId,
+        user,
+        workspace,
+      );
+      spaceId = template.spaceId;
+    } else {
+      const page = await this.pageRepo.findById(pageId);
 
-    const spaceId = page.spaceId;
+      if (!page) {
+        throw new NotFoundException('Page not found');
+      }
+
+      await this.pageAccessService.validateCanEdit(page, user);
+
+      spaceId = page.spaceId;
+    }
 
     const attachmentId = file.fields?.attachmentId?.value;
     if (attachmentId && !isValidUUID(attachmentId)) {
@@ -148,7 +170,7 @@ export class AttachmentController {
     const type = file.fields?.type?.value;
     const isCover = type === AttachmentType.PageCover;
     const isFile = type === undefined || type === AttachmentType.File;
-    if ((!isFile && !isCover) || (isCover && attachmentId)) {
+    if ((!isFile && !isCover) || (isCover && (attachmentId || templateId))) {
       throw new BadRequestException('Invalid attachment type');
     }
 
@@ -156,6 +178,7 @@ export class AttachmentController {
       const fileResponse = await this.attachmentService.uploadFile({
         filePromise: file,
         pageId: pageId,
+        templateId: templateId,
         spaceId: spaceId,
         userId: user.id,
         workspaceId: workspace.id,
@@ -167,10 +190,11 @@ export class AttachmentController {
         event: AuditEvent.ATTACHMENT_UPLOADED,
         resourceType: AuditResource.ATTACHMENT,
         resourceId: fileResponse?.id ?? attachmentId,
-        spaceId,
+        spaceId: spaceId ?? undefined,
         metadata: {
           fileName: fileResponse?.fileName,
           pageId,
+          templateId,
           spaceId,
         },
       });
@@ -601,6 +625,33 @@ export class AttachmentController {
 
   private buildFileUrl(workspace: Workspace, attachment: Attachment): string {
     return `${this.domainService.getUrl(workspace.hostname)}/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`;
+  }
+
+  private async findEditableTemplate(
+    templateId: string,
+    user: User,
+    workspace: Workspace,
+  ): Promise<Template> {
+    let TemplateAccessModule: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      TemplateAccessModule = require('./../../ee/template/services/template-access.service');
+    } catch (err) {
+      this.logger.debug(
+        'Template module requested but EE module not bundled in this build',
+      );
+      throw new NotFoundException('Template not found');
+    }
+
+    const templateAccessService = this.moduleRef.get(
+      TemplateAccessModule.TemplateAccessService,
+      { strict: false },
+    );
+    return templateAccessService.findEditableTemplate(
+      templateId,
+      user,
+      workspace,
+    );
   }
 
   private async canViewTemplateFile(
