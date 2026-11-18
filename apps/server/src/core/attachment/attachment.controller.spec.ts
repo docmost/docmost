@@ -326,7 +326,7 @@ describe.each([
     it('refuses to overwrite a template file from a page upload', async () => {
       attachmentRepo.findById.mockResolvedValue({
         id: ATTACHMENT_ID,
-        pageId: null,
+        pageId: PAGE_ID,
         templateId: 'template-id',
         fileExt: '.pdf',
         workspaceId: WORKSPACE.id,
@@ -337,6 +337,7 @@ describe.each([
       });
 
       expect(response.statusCode).toBe(400);
+      expect(await storage.leftovers()).toEqual([]);
       expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
     });
 
@@ -429,6 +430,45 @@ describe.each([
       templateRepo.findById.mockResolvedValue(undefined);
 
       await expect(read()).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    describe('files/info', () => {
+      const info = () =>
+        controllerRef.getAttachmentInfo(
+          { attachmentId: ATTACHMENT_ID } as any,
+          WORKSPACE as any,
+          USER as any,
+        );
+      const unknownIdError = async () => {
+        attachmentRepo.findById.mockResolvedValueOnce(undefined);
+        return info().catch((err) => err);
+      };
+
+      it('answers a non-member exactly like an unknown id', async () => {
+        const expected = await unknownIdError();
+        attachmentRepo.findById.mockResolvedValue({ ...FILE, type: 'file' });
+        templateRepo.findById.mockResolvedValue({
+          id: 'template-id',
+          spaceId: 'space-1',
+        });
+        spaceMemberRepo.getUserSpaceIds.mockResolvedValue(['space-2']);
+
+        const err = await info().catch((e) => e);
+
+        expect(err).toBeInstanceOf(NotFoundException);
+        expect(err.getResponse()).toEqual(expected.getResponse());
+      });
+
+      it('answers a deleted template exactly like an unknown id', async () => {
+        const expected = await unknownIdError();
+        attachmentRepo.findById.mockResolvedValue({ ...FILE, type: 'file' });
+        templateRepo.findById.mockResolvedValue(undefined);
+
+        const err = await info().catch((e) => e);
+
+        expect(err).toBeInstanceOf(NotFoundException);
+        expect(err.getResponse()).toEqual(expected.getResponse());
+      });
     });
   });
 

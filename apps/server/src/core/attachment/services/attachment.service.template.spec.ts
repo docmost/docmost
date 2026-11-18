@@ -1,19 +1,23 @@
 import { BadRequestException } from '@nestjs/common';
 import { AttachmentService } from './attachment.service';
 
+let preparedExt = '.png';
 jest.mock('../attachment.utils', () => ({
   ...jest.requireActual('../attachment.utils'),
   prepareFile: async () => ({
-    fileName: 'a.png',
-    fileExtension: '.png',
-    mimeType: 'image/png',
+    fileName: `a${preparedExt}`,
+    fileExtension: preparedExt,
+    mimeType: 'x/y',
     fileSize: 0,
     multiPartFile: {},
   }),
 }));
 jest.mock('../../../common/helpers', () => ({
   ...jest.requireActual('../../../common/helpers'),
-  streamMultipartFile: async () => 42,
+  streamMultipartFile: jest.fn(async (_file, upload) => {
+    await upload('stream');
+    return 42;
+  }),
 }));
 
 const WORKSPACE_ID = 'ws';
@@ -48,7 +52,11 @@ describe('AttachmentService template files', () => {
   let service: AttachmentService;
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+    preparedExt = '.png';
+    for (const fn of [storage.copy, storage.delete, storage.upload, queue.add])
+      fn.mockReset();
+    for (const fn of Object.values(repo)) fn.mockReset();
     storage.copy.mockResolvedValue(undefined);
     storage.delete.mockResolvedValue(undefined);
     storage.upload.mockResolvedValue(undefined);
@@ -56,7 +64,7 @@ describe('AttachmentService template files', () => {
     repo.updateAttachment.mockImplementation(async (row, id) => ({
       ...row,
       id,
-      fileExt: '.png',
+      fileExt: preparedExt,
     }));
     service = new AttachmentService(
       storage as any,
@@ -202,6 +210,7 @@ describe('AttachmentService template files', () => {
 
       await upload({ templateId: 'tpl-1' });
 
+      expect(storage.upload).toHaveBeenCalledTimes(1);
       expect(repo.updateAttachment).toHaveBeenCalledWith(
         expect.objectContaining({ fileSize: 42 }),
         OLD_ID,
@@ -210,6 +219,7 @@ describe('AttachmentService template files', () => {
     });
 
     it('stores new rows with the template and does not queue indexing', async () => {
+      preparedExt = '.pdf';
       repo.findById.mockResolvedValue(null);
       const result = await service.uploadFile({
         filePromise: Promise.resolve({} as any),
@@ -223,7 +233,7 @@ describe('AttachmentService template files', () => {
         expect.objectContaining({ templateId: 'tpl-1' }),
         undefined,
       );
-      expect(result.fileExt).toBe('.png');
+      expect(result.fileExt).toBe('.pdf');
       expect(queue.add).not.toHaveBeenCalled();
     });
   });

@@ -222,7 +222,9 @@ export class AttachmentController {
         throw new NotFoundException();
       }
     } else if (attachment.templateId) {
-      await this.validateCanViewTemplateFile(attachment, user, workspace);
+      if (!(await this.canViewTemplateFile(attachment, user, workspace))) {
+        throw new NotFoundException();
+      }
     } else {
       if (!attachment.pageId || !attachment.spaceId) {
         throw new NotFoundException();
@@ -447,7 +449,9 @@ export class AttachmentController {
     }
 
     if (attachment.templateId) {
-      await this.validateCanViewTemplateFile(attachment, user, workspace);
+      if (!(await this.canViewTemplateFile(attachment, user, workspace))) {
+        throw new NotFoundException('File not found');
+      }
       return { ...attachment, url: this.buildFileUrl(workspace, attachment) };
     }
 
@@ -599,25 +603,25 @@ export class AttachmentController {
     return `${this.domainService.getUrl(workspace.hostname)}/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`;
   }
 
-  private async validateCanViewTemplateFile(
+  private async canViewTemplateFile(
     attachment: Attachment,
     user: User,
     workspace: Workspace,
-  ) {
+  ): Promise<boolean> {
     const template = await this.templateRepo.findById(
       attachment.templateId,
       workspace.id,
     );
     if (!template) {
-      throw new NotFoundException();
+      return false;
     }
 
-    if (template.spaceId) {
-      const spaceIds = await this.spaceMemberRepo.getUserSpaceIds(user.id);
-      if (!spaceIds.includes(template.spaceId)) {
-        throw new NotFoundException();
-      }
+    if (!template.spaceId) {
+      return true;
     }
+
+    const spaceIds = await this.spaceMemberRepo.getUserSpaceIds(user.id);
+    return spaceIds.includes(template.spaceId);
   }
 
   private async sendFileResponse(
