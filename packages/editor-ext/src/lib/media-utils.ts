@@ -38,16 +38,18 @@ export function syncAltBadge(wrapper: HTMLElement, alt: unknown): void {
   }
 }
 
+export type UploadTarget = { pageId: string } | { templateId: string };
+
 export type UploadFn = (
   file: File,
   editor: Editor,
   pos: number,
-  pageId: string,
+  uploadTarget: UploadTarget,
   // only applicable to file attachments
   allowMedia?: boolean,
 ) => void;
 
 export interface MediaUploadOptions {
   validateFn?: (file: File, allowMedia?: boolean) => void;
-  onUpload: (file: File, pageId: string) => Promise<any>;
+  onUpload: (file: File, uploadTarget: UploadTarget) => Promise<any>;
 }

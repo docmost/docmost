@@ -61,7 +61,7 @@ export const FixedToolbar: FC<FixedToolbarProps> = ({
               <div className={classes.divider} />
               <AlignmentGroup editor={editor} />
               <div className={classes.divider} />
-              <MediaGroup editor={editor} templateMode={templateMode} />
+              <MediaGroup editor={editor} />
               <div className={classes.divider} />
               <QuickInsertsGroup editor={editor} />
               <MoreInsertsGroup editor={editor} templateMode={templateMode} />

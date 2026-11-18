@@ -4,6 +4,7 @@ import React, { useCallback, useRef } from "react";
 import { useSetAtom } from "jotai";
 import { Node as PMNode } from "@tiptap/pm/model";
 import { isEditorReady } from "@docmost/editor-ext";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -126,11 +127,10 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // @ts-ignore
-      const pageId = editor.storage?.pageId;
-      if (pageId) {
+      const uploadTarget = getEditorUploadTarget(editor);
+      if (uploadTarget) {
         const pos = editor.state.selection.from;
-        uploadImageAction(file, editor, pos, pageId);
+        uploadImageAction(file, editor, pos, uploadTarget);
       }
       // Reset so the same file can be selected again
       e.target.value = "";
