@@ -34,7 +34,7 @@ import {
   createYdocFromJson,
   getAttachmentIds,
   getProsemirrorContent,
-  isAttachmentNode,
+  replaceAttachmentIds,
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
 import {
@@ -835,37 +835,13 @@ export class PageService {
 
         const attachmentIds = getAttachmentIds(prosemirrorDoc.toJSON());
 
-        if (attachmentIds.length > 0) {
-          attachmentIds.forEach((attachmentId: string) => {
-            // pages that show the same file share one copy of it
-            const newAttachmentId = copiedAttachmentIds.get(attachmentId) ?? uuid7();
-            copiedAttachmentIds.set(attachmentId, newAttachmentId);
-
-            prosemirrorDoc.descendants((node: PMNode) => {
-              if (isAttachmentNode(node.type.name)) {
-                if (node.attrs.attachmentId === attachmentId) {
-                  //@ts-ignore
-                  node.attrs.attachmentId = newAttachmentId;
-
-                  if (node.attrs.src) {
-                    //@ts-ignore
-                    node.attrs.src = node.attrs.src.replace(
-                      attachmentId,
-                      newAttachmentId,
-                    );
-                  }
-                  if (node.attrs.src) {
-                    //@ts-ignore
-                    node.attrs.src = node.attrs.src.replace(
-                      attachmentId,
-                      newAttachmentId,
-                    );
-                  }
-                }
-              }
-            });
-          });
-        }
+        attachmentIds.forEach((attachmentId: string) => {
+          // pages that show the same file share one copy of it
+          copiedAttachmentIds.set(
+            attachmentId,
+            copiedAttachmentIds.get(attachmentId) ?? uuid7(),
+          );
+        });
 
         const coverPhoto = remapCopiedCover(page.coverPhoto, copiedAttachmentIds, uuid7);
 
@@ -921,7 +897,10 @@ export class PageService {
           }
         });
 
-        const prosemirrorJson = prosemirrorDoc.toJSON();
+        const prosemirrorJson = replaceAttachmentIds(
+          prosemirrorDoc.toJSON(),
+          copiedAttachmentIds,
+        );
 
         // Add "Copy of " prefix to the root page title only for duplicates in same space
         let title = page.title;
