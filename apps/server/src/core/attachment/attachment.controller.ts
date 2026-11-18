@@ -30,6 +30,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OAuthScope } from '../../common/decorators/oauth-scope.decorator';
 import {
   Attachment,
+  Page,
   Template,
   User,
   Workspace,
@@ -131,17 +132,22 @@ export class AttachmentController {
       throw new BadRequestException('Failed to upload file');
     }
 
-    const pageId = file.fields?.pageId?.value;
-    const templateId = file.fields?.templateId?.value;
+    const pageId = file.fields?.pageId?.value || undefined;
+    const templateId = file.fields?.templateId?.value || undefined;
 
     if (!pageId && !templateId) {
       throw new BadRequestException('PageId is required');
     }
 
-    if (templateId && (pageId || !isValidUUID(templateId))) {
+    if (pageId && templateId) {
+      throw new BadRequestException('Use either pageId or templateId');
+    }
+
+    if (templateId && !isValidUUID(templateId)) {
       throw new BadRequestException('Invalid template id');
     }
 
+    let page: Page;
     let spaceId: string | null;
     if (templateId) {
       const template = await this.findEditableTemplate(
@@ -151,7 +157,7 @@ export class AttachmentController {
       );
       spaceId = template.spaceId;
     } else {
-      const page = await this.pageRepo.findById(pageId);
+      page = await this.pageRepo.findById(pageId);
 
       if (!page) {
         throw new NotFoundException('Page not found');
@@ -177,7 +183,7 @@ export class AttachmentController {
     try {
       const fileResponse = await this.attachmentService.uploadFile({
         filePromise: file,
-        pageId: pageId,
+        pageId: page?.id,
         templateId: templateId,
         spaceId: spaceId,
         userId: user.id,
@@ -193,7 +199,7 @@ export class AttachmentController {
         spaceId: spaceId ?? undefined,
         metadata: {
           fileName: fileResponse?.fileName,
-          pageId,
+          pageId: page?.id,
           templateId,
           spaceId,
         },

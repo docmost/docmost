@@ -25,6 +25,12 @@ import {
   postInChunks,
 } from '../../../test/multipart.helper';
 
+jest.mock(
+  '../../ee/template/services/template-access.service',
+  () => ({ TemplateAccessService: class TemplateAccessService {} }),
+  { virtual: true },
+);
+
 const USER = { id: 'user-id' };
 const WORKSPACE = { id: 'workspace-id', hostname: 'docs' };
 const PAGE_ID = 'page-id';
@@ -403,6 +409,11 @@ describe.each([
         USER,
         WORKSPACE,
       );
+      expect(moduleRef.get).toHaveBeenCalledWith(
+        jest.requireMock('../../ee/template/services/template-access.service')
+          .TemplateAccessService,
+        { strict: false },
+      );
       const row = attachmentRepo.insertAttachment.mock.calls[0][0];
       expect(row).toEqual(
         expect.objectContaining({ templateId: TEMPLATE_ID, spaceId: 'space-1' }),
@@ -449,6 +460,75 @@ describe.each([
       expect(response.statusCode).toBe(400);
       expect(templateAccessService.findEditableTemplate).not.toHaveBeenCalled();
       expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('treats an empty templateId as a page upload', async () => {
+      const response = await postTemplateFile({
+        pageId: PAGE_ID,
+        templateId: '',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(templateAccessService.findEditableTemplate).not.toHaveBeenCalled();
+      const row = attachmentRepo.insertAttachment.mock.calls[0][0];
+      expect(row.pageId).toBe(PAGE_ID);
+      expect(row.templateId).toBeUndefined();
+    });
+
+    it('treats an empty pageId as a template upload', async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+
+      const response = await postTemplateFile({
+        pageId: '',
+        templateId: TEMPLATE_ID,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const row = attachmentRepo.insertAttachment.mock.calls[0][0];
+      expect(row.templateId).toBe(TEMPLATE_ID);
+      expect(row.pageId).toBeUndefined();
+    });
+
+    it("overwrites the template's own file", async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+      attachmentRepo.findById.mockResolvedValue({
+        id: ATTACHMENT_ID,
+        pageId: null,
+        templateId: TEMPLATE_ID,
+        fileExt: '.pdf',
+        workspaceId: WORKSPACE.id,
+      });
+
+      const response = await postTemplateFile({
+        templateId: TEMPLATE_ID,
+        attachmentId: ATTACHMENT_ID,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(attachmentRepo.updateAttachment).toHaveBeenCalled();
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it("refuses to overwrite a page's file from a template upload", async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+
+      const response = await postTemplateFile({
+        templateId: TEMPLATE_ID,
+        attachmentId: ATTACHMENT_ID,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(await storage.leftovers()).toEqual([]);
+      expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
     });
 
     it('rejects a cover upload for a template', async () => {
