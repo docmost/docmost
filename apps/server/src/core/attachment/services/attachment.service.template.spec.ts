@@ -89,7 +89,12 @@ describe('AttachmentService template files', () => {
         ['old-2', 'new-2'],
       ]);
 
-      await service.copyAttachmentsToPage([png, pdf] as any, idMap, page);
+      await service.copyAttachmentsToPage(
+        [png, pdf] as any,
+        idMap,
+        page,
+        'user-9',
+      );
 
       expect(storage.copy).toHaveBeenCalledWith(
         `ws/files/${OLD_ID}/a.png`,
@@ -103,7 +108,7 @@ describe('AttachmentService template files', () => {
         fileSize: 10,
         mimeType: 'x/y',
         fileExt: '.png',
-        creatorId: 'creator-1',
+        creatorId: 'user-9',
         workspaceId: WORKSPACE_ID,
         pageId: 'page-1',
         spaceId: 'space-1',
@@ -127,6 +132,7 @@ describe('AttachmentService template files', () => {
         [source(OLD_ID, '.png'), source('old-2', '.png')] as any,
         idMap,
         page,
+        'user-9',
       );
 
       expect(storage.copy).toHaveBeenCalledTimes(2);
@@ -141,6 +147,7 @@ describe('AttachmentService template files', () => {
         [source(OLD_ID, '.png')] as any,
         new Map(),
         page,
+        'user-9',
       );
 
       expect(storage.copy).not.toHaveBeenCalled();

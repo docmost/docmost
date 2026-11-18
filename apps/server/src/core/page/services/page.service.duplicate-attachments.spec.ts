@@ -154,6 +154,37 @@ describe('PageService.duplicatePage attachments', () => {
     );
   });
 
+  it('records the duplicating user as creator of the copied files', async () => {
+    const { service, page } = makeService();
+    const otherUser = '019a1f00-0000-7000-8000-000000000006';
+    const rows = [
+      makeAttachmentRow(FILE_ID, 'report.pdf'),
+      makeAttachmentRow(IMAGE_ID, 'photo.png'),
+    ].map((row) => ({ ...row, creatorId: otherUser }));
+    const selectQuery: any = {
+      selectAll: () => selectQuery,
+      where: () => selectQuery,
+      execute: async () => rows,
+    };
+    (service as any).db.selectFrom = () => selectQuery;
+    const attachmentInserts: any[] = [];
+    (service as any).db.insertInto = () => ({
+      values: (values: any) => ({
+        execute: async () => {
+          attachmentInserts.push(values);
+        },
+      }),
+    });
+
+    await service.duplicatePage(page, undefined, user);
+
+    expect(attachmentInserts).toHaveLength(2);
+    expect(attachmentInserts.map((row) => row.creatorId)).toEqual([
+      USER_ID,
+      USER_ID,
+    ]);
+  });
+
   it('leaves links to files owned outside the copied pages untouched', async () => {
     const outsideContent = {
       type: 'doc',

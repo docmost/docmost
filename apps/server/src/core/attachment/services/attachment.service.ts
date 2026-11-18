@@ -381,6 +381,7 @@ export class AttachmentService {
     attachments: Attachment[],
     idMap: Map<string, string>,
     page: { id: string; spaceId: string },
+    creatorId: string,
   ): Promise<void> {
     for (const source of attachments) {
       const newId = idMap.get(source.id);
@@ -400,7 +401,7 @@ export class AttachmentService {
           fileSize: source.fileSize,
           mimeType: source.mimeType,
           fileExt: source.fileExt,
-          creatorId: source.creatorId,
+          creatorId,
           workspaceId: source.workspaceId,
           pageId: page.id,
           spaceId: page.spaceId,

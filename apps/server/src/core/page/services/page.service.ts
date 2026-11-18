@@ -825,11 +825,12 @@ export class PageService {
 
     const copiedAttachmentIds = new Map<string, string>();
 
+    const pageAttachmentIds = new Map<string, string[]>();
     const referencedAttachmentIds = new Set<string>();
     for (const page of pages) {
-      getAttachmentIds(getProsemirrorContent(page.content)).forEach((id) =>
-        referencedAttachmentIds.add(id),
-      );
+      const ids = getAttachmentIds(getProsemirrorContent(page.content));
+      pageAttachmentIds.set(page.id, ids);
+      ids.forEach((id) => referencedAttachmentIds.add(id));
       const coverId = getCoverAttachmentId(page.coverPhoto);
       if (coverId) referencedAttachmentIds.add(coverId);
     }
@@ -856,7 +857,7 @@ export class PageService {
         const doc = jsonToNode(pageContent);
         const prosemirrorDoc = removeMarkTypeFromDoc(doc, 'comment');
 
-        const attachmentIds = getAttachmentIds(prosemirrorDoc.toJSON());
+        const attachmentIds = pageAttachmentIds.get(page.id);
 
         attachmentIds
           .filter((attachmentId: string) =>
@@ -1057,7 +1058,7 @@ export class PageService {
                 fileSize: attachment.fileSize,
                 mimeType: attachment.mimeType,
                 fileExt: attachment.fileExt,
-                creatorId: attachment.creatorId,
+                creatorId: authUser.id,
                 workspaceId: attachment.workspaceId,
                 pageId: newPageId,
                 spaceId: spaceId,
