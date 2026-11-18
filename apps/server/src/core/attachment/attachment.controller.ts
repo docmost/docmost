@@ -677,8 +677,11 @@ export class AttachmentController {
       return true;
     }
 
-    const spaceIds = await this.spaceMemberRepo.getUserSpaceIds(user.id);
-    return spaceIds.includes(template.spaceId);
+    const roles = await this.spaceMemberRepo.getUserSpaceRoles(
+      user.id,
+      template.spaceId,
+    );
+    return Boolean(roles?.length);
   }
 
   private async sendFileResponse(

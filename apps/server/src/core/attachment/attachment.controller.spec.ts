@@ -158,7 +158,7 @@ describe.each([
   const attachmentQueue = { add: jest.fn(), remove: jest.fn() };
   const auditService = { log: jest.fn() };
   const templateRepo = { findById: jest.fn() };
-  const spaceMemberRepo = { getUserSpaceIds: jest.fn() };
+  const spaceMemberRepo = { getUserSpaceRoles: jest.fn() };
   const templateAccessService = { findEditableTemplate: jest.fn() };
   const moduleRef = { get: jest.fn(() => templateAccessService) };
   let controllerRef: AttachmentController;
@@ -594,9 +594,15 @@ describe.each([
         id: 'template-id',
         spaceId: 'space-1',
       });
-      spaceMemberRepo.getUserSpaceIds.mockResolvedValue(['space-1']);
+      spaceMemberRepo.getUserSpaceRoles.mockResolvedValue([
+        { userId: USER.id, role: 'reader' },
+      ]);
 
       await expect(read()).resolves.toBe('sent');
+      expect(spaceMemberRepo.getUserSpaceRoles).toHaveBeenCalledWith(
+        USER.id,
+        'space-1',
+      );
     });
 
     it('hides a space template file from a non-member', async () => {
@@ -604,7 +610,7 @@ describe.each([
         id: 'template-id',
         spaceId: 'space-1',
       });
-      spaceMemberRepo.getUserSpaceIds.mockResolvedValue(['space-2']);
+      spaceMemberRepo.getUserSpaceRoles.mockResolvedValue(undefined);
 
       await expect(read()).rejects.toBeInstanceOf(NotFoundException);
       expect(sendFileResponse).not.toHaveBeenCalled();
@@ -635,7 +641,7 @@ describe.each([
           id: 'template-id',
           spaceId: 'space-1',
         });
-        spaceMemberRepo.getUserSpaceIds.mockResolvedValue(['space-2']);
+        spaceMemberRepo.getUserSpaceRoles.mockResolvedValue(undefined);
 
         const err = await info().catch((e) => e);
 
