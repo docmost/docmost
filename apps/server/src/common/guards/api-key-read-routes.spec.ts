@@ -45,7 +45,6 @@ const READ_ROUTES = [
   'POST /spaces/members',
   'POST /spaces/watch-status',
   'POST /spaces/watched-ids',
-  'POST /users/groups',
   'POST /users/info',
   'POST /users/me',
   'POST /users/recent-pages',

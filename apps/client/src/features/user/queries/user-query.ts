@@ -1,6 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
-  getUserGroups,
   getUserProfile,
   getUserRecentPages,
   getUserSpaces,
@@ -45,18 +44,3 @@ export function useUserRecentPagesQuery(userId: string | undefined) {
   });
 }
 
-export function useUserGroupsQuery(
-  userId: string | undefined,
-  enabled: boolean,
-) {
-  return useInfiniteQuery({
-    queryKey: ["user-groups", userId],
-    queryFn: ({ pageParam }) =>
-      getUserGroups({ userId, cursor: pageParam, limit: 50 }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) =>
-      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
-    enabled: !!userId && enabled,
-    refetchOnMount: true,
-  });
-}

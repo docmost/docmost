@@ -3,7 +3,6 @@ import {
   ICurrentUser,
   IUser,
   IUserProfile,
-  IUserProfileGroup,
   IUserProfileSpace,
   IUserRecentPage,
 } from "@/features/user/types/user.types";
@@ -38,9 +37,3 @@ export async function getUserRecentPages(
   return req.data;
 }
 
-export async function getUserGroups(
-  params: { userId: string } & QueryParams,
-): Promise<IPagination<IUserProfileGroup>> {
-  const req = await api.post("/users/groups", params);
-  return req.data;
-}

@@ -75,7 +75,7 @@ export class UserController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const { viewer } = this.resolveProfileViewer(user, workspace);
+    const viewer = this.resolveProfileViewer(user, workspace);
     return this.userProfileService.getProfile(dto.userId, viewer);
   }
 
@@ -88,7 +88,7 @@ export class UserController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const { viewer } = this.resolveProfileViewer(user, workspace);
+    const viewer = this.resolveProfileViewer(user, workspace);
     return this.userProfileService.getSpaces(dto.userId, viewer, pagination);
   }
 
@@ -101,31 +101,12 @@ export class UserController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const { viewer } = this.resolveProfileViewer(user, workspace);
+    const viewer = this.resolveProfileViewer(user, workspace);
     return this.userProfileService.getRecentPages(
       dto.userId,
       viewer,
       pagination,
     );
-  }
-
-  @ApiKeyScope('read')
-  @HttpCode(HttpStatus.OK)
-  @Post('groups')
-  async getUserGroups(
-    @Body() dto: UserIdDto,
-    @Body() pagination: PaginationOptions,
-    @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
-  ) {
-    const { ability, viewer } = this.resolveProfileViewer(user, workspace);
-    if (
-      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Group)
-    ) {
-      throw new ForbiddenException();
-    }
-
-    return this.userProfileService.getGroups(dto.userId, viewer, pagination);
   }
 
   private resolveProfileViewer(user: User, workspace: Workspace) {
@@ -143,6 +124,6 @@ export class UserController {
       ),
     };
 
-    return { ability, viewer };
+    return viewer;
   }
 }

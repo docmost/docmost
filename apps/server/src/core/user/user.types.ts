@@ -25,16 +25,6 @@ export type UserProfileSpace = {
   logo: string | null;
 };
 
-export type UserProfileGroup = {
-  id: string;
-  name: string;
-  description: string | null;
-  isDefault: boolean;
-  isExternal: boolean;
-  memberCount: number;
-  addedAt: Date;
-};
-
 export type UserRecentPageActivity = 'created' | 'edited';
 
 export type UserRecentPage = {

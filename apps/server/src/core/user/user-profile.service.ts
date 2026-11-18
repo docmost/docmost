@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
@@ -10,7 +9,6 @@ import { isUserDisabled } from '../../common/helpers/utils';
 import {
   ProfileViewer,
   UserProfile,
-  UserProfileGroup,
   UserProfileSpace,
   UserRecentPage,
 } from './user.types';
@@ -20,7 +18,6 @@ export class UserProfileService {
   constructor(
     private readonly userRepo: UserRepo,
     private readonly spaceMemberRepo: SpaceMemberRepo,
-    private readonly groupRepo: GroupRepo,
     private readonly pageRepo: PageRepo,
   ) {}
 
@@ -80,33 +77,6 @@ export class UserProfileService {
       viewer.workspaceId,
       pagination,
     );
-  }
-
-  async getGroups(
-    targetUserId: string,
-    viewer: ProfileViewer,
-    pagination: PaginationOptions,
-  ): Promise<CursorPaginationResult<UserProfileGroup>> {
-    await this.findVisibleUser(targetUserId, viewer);
-
-    const result = await this.groupRepo.getUserGroupsPaginated(
-      targetUserId,
-      viewer.workspaceId,
-      pagination,
-    );
-
-    return {
-      items: result.items.map((group) => ({
-        id: group.id,
-        name: group.name,
-        description: group.description,
-        isDefault: group.isDefault,
-        isExternal: group.isExternal,
-        memberCount: Number(group.memberCount),
-        addedAt: group.addedAt,
-      })),
-      meta: result.meta,
-    };
   }
 
   private async findVisibleUser(

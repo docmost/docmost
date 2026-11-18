@@ -38,32 +38,6 @@
   }
 }
 
-.cardHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--mantine-spacing-md);
-  margin-bottom: 4px;
-}
-
-.cardHeading {
-  flex: 1;
-  min-width: 0;
-}
-
-.cardAction {
-  flex-shrink: 0;
-}
-
-.tabsSkeleton {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--mantine-spacing-md) * 2);
-  height: 36px;
-  padding-inline: var(--mantine-spacing-md);
-  border-bottom: 2px solid
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-}
-
 .pageIcon {
   font-size: 16px;
   line-height: 1;
@@ -106,12 +80,4 @@ a.spaceRow:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.groupName {
-  min-width: 0;
-}
-
-.nowrap {
-  white-space: nowrap;
 }

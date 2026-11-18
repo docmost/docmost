@@ -1,5 +1,5 @@
-import { Anchor, Container, Stack, Tabs, Text } from "@mantine/core";
-import { IconLock, IconUserQuestion } from "@tabler/icons-react";
+import { Anchor, Container, Stack, Text } from "@mantine/core";
+import { IconUserQuestion } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -7,7 +7,6 @@ import { validate as isValidUuid } from "uuid";
 import { DocumentTitle } from "@/components/ui/document-title";
 import { EmptyState } from "@/components/ui/empty-state";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
-import { UserProfileGroups } from "@/features/user/components/profile/user-profile-groups";
 import { UserProfileHeader } from "@/features/user/components/profile/user-profile-header";
 import { UserProfileManageMenu } from "@/features/user/components/profile/user-profile-manage-menu";
 import { UserProfileOverview } from "@/features/user/components/profile/user-profile-overview";
@@ -73,34 +72,10 @@ export default function UserProfilePage() {
                   )
                 }
               />
-              {isAdmin ? (
-                <Tabs color="dark" defaultValue="overview">
-                  <Tabs.List>
-                    <Tabs.Tab value="overview" fw={500}>
-                      {t("Overview")}
-                    </Tabs.Tab>
-                    <Tabs.Tab
-                      value="groups"
-                      fw={500}
-                      leftSection={<IconLock size={14} aria-hidden />}
-                    >
-                      {t("Groups")}
-                    </Tabs.Tab>
-                  </Tabs.List>
-
-                  <Tabs.Panel value="overview" pt="lg">
-                    <UserProfileOverview userId={profile.id} isSelf={isSelf} />
-                  </Tabs.Panel>
-                  <Tabs.Panel value="groups" pt="lg">
-                    <UserProfileGroups profile={profile} />
-                  </Tabs.Panel>
-                </Tabs>
-              ) : (
-                <UserProfileOverview userId={profile.id} isSelf={isSelf} />
-              )}
+              <UserProfileOverview userId={profile.id} isSelf={isSelf} />
             </>
           ) : (
-            <UserProfileSkeleton withTabs={isAdmin} />
+            <UserProfileSkeleton />
           )}
         </Stack>
       </Container>

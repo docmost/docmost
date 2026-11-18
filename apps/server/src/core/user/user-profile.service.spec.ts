@@ -36,7 +36,6 @@ describe('UserProfileService', () => {
     getSharedSpacesPaginated: jest.Mock;
     getUserRolesForSpaces: jest.Mock;
   };
-  let groupRepo: { getUserGroupsPaginated: jest.Mock };
   let pageRepo: { getRecentPagesByUser: jest.Mock };
   let service: UserProfileService;
 
@@ -61,12 +60,10 @@ describe('UserProfileService', () => {
       getSharedSpacesPaginated: jest.fn(async () => paginated([])),
       getUserRolesForSpaces: jest.fn(),
     };
-    groupRepo = { getUserGroupsPaginated: jest.fn(async () => paginated([])) };
     pageRepo = { getRecentPagesByUser: jest.fn(async () => paginated([])) };
     service = new UserProfileService(
       userRepo as any,
       spaceMemberRepo as any,
-      groupRepo as any,
       pageRepo as any,
     );
   });
@@ -115,16 +112,14 @@ describe('UserProfileService', () => {
     );
   });
 
-  it('checks visibility before listing spaces, pages and groups', async () => {
+  it('checks visibility before listing spaces and pages', async () => {
     target.deactivatedAt = disabledAt;
 
     await expectUserNotFound(service.getSpaces('u2', member, pagination));
     await expectUserNotFound(service.getRecentPages('u2', member, pagination));
-    await expectUserNotFound(service.getGroups('u2', member, pagination));
 
     expect(spaceMemberRepo.getSharedSpacesPaginated).not.toHaveBeenCalled();
     expect(pageRepo.getRecentPagesByUser).not.toHaveBeenCalled();
-    expect(groupRepo.getUserGroupsPaginated).not.toHaveBeenCalled();
   });
 
   it('returns only basic space details', async () => {

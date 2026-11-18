@@ -1,6 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
 import { User, Workspace } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { API_KEY_SCOPE_KEY } from '../../common/decorators/api-key-scope.decorator';
 import { OAUTH_SCOPE_KEY } from '../../common/decorators/oauth-scope.decorator';
@@ -9,7 +7,6 @@ import { UserController } from './user.controller';
 const workspace = { id: 'ws1' } as Workspace;
 const viewerWithRole = (role: string) => ({ id: 'me', role }) as User;
 const dto = { userId: 'u2' };
-const pagination = { limit: 20 } as PaginationOptions;
 
 describe('UserController profile routes', () => {
   let profileService: Record<string, jest.Mock>;
@@ -20,7 +17,6 @@ describe('UserController profile routes', () => {
       getProfile: jest.fn(),
       getSpaces: jest.fn(),
       getRecentPages: jest.fn(),
-      getGroups: jest.fn(),
     };
     controller = new UserController(
       {} as any,
@@ -30,33 +26,16 @@ describe('UserController profile routes', () => {
     );
   });
 
-  it('refuses group lists for members', async () => {
-    await expect(
-      controller.getUserGroups(
-        dto,
-        pagination,
-        viewerWithRole('member'),
-        workspace,
-      ),
-    ).rejects.toThrow(ForbiddenException);
-    expect(profileService.getGroups).not.toHaveBeenCalled();
-  });
-
   it.each(['admin', 'owner'])(
-    'lists groups for admins and owners (%s)',
+    'passes admin and owner viewers with manage rights (%s)',
     async (role) => {
-      await controller.getUserGroups(
-        dto,
-        pagination,
-        viewerWithRole(role),
-        workspace,
-      );
+      await controller.getUserProfile(dto, viewerWithRole(role), workspace);
 
-      expect(profileService.getGroups).toHaveBeenCalledWith(
-        'u2',
-        { userId: 'me', workspaceId: 'ws1', canManageMembers: true },
-        pagination,
-      );
+      expect(profileService.getProfile).toHaveBeenCalledWith('u2', {
+        userId: 'me',
+        workspaceId: 'ws1',
+        canManageMembers: true,
+      });
     },
   );
 
@@ -75,7 +54,6 @@ describe('UserController profile routes', () => {
       'getUserProfile',
       'getUserSpaces',
       'getUserRecentPages',
-      'getUserGroups',
     ] as const;
 
     for (const name of handlers) {

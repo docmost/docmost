@@ -172,55 +172,6 @@ export class GroupRepo {
     });
   }
 
-  async getUserGroupsPaginated(
-    userId: string,
-    workspaceId: string,
-    pagination: PaginationOptions,
-  ) {
-    const baseQuery = this.db
-      .selectFrom('groupUsers')
-      .innerJoin('groups', 'groups.id', 'groupUsers.groupId')
-      .select([
-        'groups.id',
-        'groups.name',
-        'groups.description',
-        'groups.isDefault',
-        'groups.isExternal',
-        'groupUsers.createdAt as addedAt',
-      ])
-      .select((eb) => this.withMemberCount(eb))
-      .select(
-        sql<number>`case when groups.is_default then 1 else 0 end`.as(
-          'defaultOrder',
-        ),
-      )
-      .where('groupUsers.userId', '=', userId)
-      .where('groups.workspaceId', '=', workspaceId)
-      .where('groups.deletedAt', 'is', null);
-
-    const query = this.db.selectFrom(baseQuery.as('sub')).selectAll('sub');
-
-    return executeWithCursorPagination(query, {
-      perPage: pagination.limit,
-      cursor: pagination.cursor,
-      beforeCursor: pagination.beforeCursor,
-      fields: [
-        {
-          expression: 'sub.defaultOrder',
-          direction: 'asc',
-          key: 'defaultOrder',
-        },
-        { expression: 'sub.name', direction: 'asc', key: 'name' },
-        { expression: 'sub.id', direction: 'asc', key: 'id' },
-      ],
-      parseCursor: (cursor) => ({
-        defaultOrder: parseInt(cursor.defaultOrder, 10),
-        name: cursor.name,
-        id: cursor.id,
-      }),
-    });
-  }
-
   withMemberCount(eb: ExpressionBuilder<DB, 'groups'>) {
     return eb
       .selectFrom('groupUsers')

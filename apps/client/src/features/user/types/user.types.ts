@@ -72,16 +72,6 @@ export interface IUserProfileSpace {
   logo: string | null;
 }
 
-export interface IUserProfileGroup {
-  id: string;
-  name: string;
-  description: string | null;
-  isDefault: boolean;
-  isExternal: boolean;
-  memberCount: number;
-  addedAt: Date;
-}
-
 export interface IUserRecentPage {
   id: string;
   slugId: string;

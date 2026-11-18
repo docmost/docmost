@@ -4,11 +4,7 @@ import { LabelPageRowSkeleton } from "@/features/label/components/label-page-row
 import { UserProfileCard } from "@/features/user/components/profile/user-profile-card";
 import classes from "@/features/user/components/profile/user-profile.module.css";
 
-type UserProfileSkeletonProps = {
-  withTabs?: boolean;
-};
-
-export function UserProfileSkeleton({ withTabs }: UserProfileSkeletonProps) {
+export function UserProfileSkeleton() {
   const { t } = useTranslation();
 
   return (
@@ -28,20 +24,12 @@ export function UserProfileSkeleton({ withTabs }: UserProfileSkeletonProps) {
             </Group>
             <div className={classes.meta}>
               <Skeleton height={14} width={170} radius="xs" my={4} />
-              <Skeleton height={14} width={130} radius="xs" my={4} />
               <Skeleton height={14} width={110} radius="xs" my={4} />
             </div>
           </div>
           <Skeleton height={36} width={112} radius="sm" />
         </div>
       </Paper>
-
-      {withTabs && (
-        <div className={classes.tabsSkeleton} aria-hidden="true">
-          <Skeleton height={14} width={62} radius="xs" />
-          <Skeleton height={14} width={70} radius="xs" />
-        </div>
-      )}
 
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, md: 7 }}>

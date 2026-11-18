@@ -1,20 +1,12 @@
 import { ReactNode, useId } from "react";
-import { Paper, Text, Title } from "@mantine/core";
-import classes from "@/features/user/components/profile/user-profile.module.css";
+import { Paper, Title } from "@mantine/core";
 
 type UserProfileCardProps = {
   title: string;
-  description?: ReactNode;
-  action?: ReactNode;
   children: ReactNode;
 };
 
-export function UserProfileCard({
-  title,
-  description,
-  action,
-  children,
-}: UserProfileCardProps) {
+export function UserProfileCard({ title, children }: UserProfileCardProps) {
   const titleId = useId();
 
   return (
@@ -25,19 +17,9 @@ export function UserProfileCard({
       radius="md"
       p="md"
     >
-      <div className={classes.cardHeader}>
-        <div className={classes.cardHeading}>
-          <Title order={2} size="h5" fw={600} id={titleId}>
-            {title}
-          </Title>
-          {description && (
-            <Text size="sm" c="dimmed">
-              {description}
-            </Text>
-          )}
-        </div>
-        {action && <div className={classes.cardAction}>{action}</div>}
-      </div>
+      <Title order={2} size="h5" fw={600} mb={4} id={titleId}>
+        {title}
+      </Title>
       {children}
     </Paper>
   );
