@@ -402,7 +402,16 @@ describe.each([
       templateRepo.findById.mockResolvedValue({ id: 'template-id' });
 
       await expect(read()).resolves.toBe('sent');
-      expect(sendFileResponse).toHaveBeenCalled();
+      expect(templateRepo.findById).toHaveBeenCalledWith(
+        'template-id',
+        WORKSPACE.id,
+      );
+      expect(sendFileResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        FILE,
+        'private',
+      );
     });
 
     it('streams a space template file to a space member', async () => {
