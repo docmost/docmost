@@ -7,6 +7,7 @@ import {
 import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
+import { BodyDepthValidationPipe } from './common/pipes/body-depth-validation.pipe';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
@@ -159,6 +160,7 @@ async function bootstrap() {
     });
 
   app.useGlobalPipes(
+    new BodyDepthValidationPipe(),
     new ValidationPipe({
       whitelist: true,
       stopAtFirstError: true,
