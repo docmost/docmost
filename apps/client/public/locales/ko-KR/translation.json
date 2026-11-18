@@ -447,7 +447,7 @@
   "Embed PDF": "PDF 임베드",
   "Upload and embed a PDF file.": "PDF 파일을 업로드하고 임베드하세요.",
   "Embed as PDF": "PDF로 임베드",
-  "Embed as audio": "Embed as audio",
+  "Embed as audio": "오디오로 삽입",
   "Failed to load PDF": "PDF 로드 실패",
   "Convert to attachment": "첨부 파일로 변환",
   "File attachment": "파일 첨부",
@@ -1931,11 +1931,11 @@
   "Deleted on {{date}}": "{{date}}에 삭제됨",
   "Member deactivated successfully": "멤버가 성공적으로 비활성화되었습니다",
   "Member activated successfully": "멤버가 성공적으로 활성화되었습니다",
-  "Play": "Play",
-  "Pause": "Pause",
-  "Mute": "Mute",
-  "Unmute": "Unmute",
-  "Seek": "Seek",
-  "Playback speed": "Playback speed",
-  "Couldn't load this audio file": "Couldn't load this audio file"
+  "Play": "재생",
+  "Pause": "일시중지",
+  "Mute": "음소거",
+  "Unmute": "음소거 해제",
+  "Seek": "탐색",
+  "Playback speed": "재생 속도",
+  "Couldn't load this audio file": "이 오디오 파일을 불러올 수 없습니다"
 }
