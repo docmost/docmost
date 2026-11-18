@@ -5,6 +5,7 @@ import { uploadPdfAction } from "../pdf/upload-pdf-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { matchIntegrationLink, type UploadTarget } from "@docmost/editor-ext";
 import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
 import { canPlaceIntegrationCard } from "@/features/editor/components/integration-link/integration-display";
@@ -176,9 +177,9 @@ export const handlePaste = (
   }
 
   if (htmlData && ATTACHMENT_URL_RE.test(htmlData)) {
-    const pasteFrom = editor.state.selection.from;
+    const docBeforePaste = editor.state.doc;
     setTimeout(() => {
-      reuploadPastedAttachments(editor, uploadTarget, pasteFrom);
+      reuploadPastedAttachments(editor, uploadTarget, docBeforePaste);
     }, 0);
   }
 
@@ -188,9 +189,16 @@ export const handlePaste = (
 async function reuploadPastedAttachments(
   editor: Editor,
   uploadTarget: UploadTarget,
-  pasteFrom: number,
+  docBeforePaste: ProseMirrorNode,
 ) {
-  const pasteEnd = editor.state.selection.from;
+  const doc = editor.state.doc;
+  const pasteFrom = docBeforePaste.content.findDiffStart(doc.content);
+  if (pasteFrom === null) return;
+  const diffEnd = docBeforePaste.content.findDiffEnd(doc.content);
+  const pasteEnd = Math.max(
+    diffEnd?.b ?? pasteFrom,
+    pasteFrom + doc.content.size - docBeforePaste.content.size,
+  );
   if (pasteEnd <= pasteFrom) return;
 
   type PastedNode = {
