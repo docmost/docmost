@@ -9,18 +9,29 @@ import {
   MAX_EVAL_DEPTH,
   MAX_EVAL_NODES,
   MAX_EVAL_TEXT_CHARS,
+  MAX_TEXT_CELL_LENGTH,
   MAX_TEXT_LENGTH,
 } from "./types";
 import type { FormulaAST, OpCode } from "./ast";
 import type {
   Value,
   EvalContext,
+  ErrorCell,
   FormulaCell,
   FormulaTypeOptions,
   PropertyLookup,
 } from "./types";
 
 const NO_ARGS: FormulaAST[] = [];
+const CALCULATION_TEXT_LIMIT_MESSAGE =
+  `Formula text exceeds the ${MAX_TEXT_LENGTH.toLocaleString("en-US")}-character calculation limit. ` +
+  `Saved text results are limited to ${MAX_TEXT_CELL_LENGTH.toLocaleString("en-US")} characters`;
+
+function dependencyError(error: ErrorCell): ErrorCell {
+  // Preserve size failures through nested formulas so an upgrade can keep
+  // the last successful value at any point in the dependency chain.
+  return error.__err === "SIZE_LIMIT_EXCEEDED" ? error : { ...error, __err: "DEPENDENCY_ERROR" };
+}
 
 const isRowTimestamp = (d: unknown): boolean =>
   d == null || (d instanceof Date && !isNaN(d.getTime()));
@@ -70,7 +81,7 @@ export function evaluateCell(
       ctx.zone,
     );
     if (ctx.nodes > MAX_EVAL_NODES || ctx.textChars > MAX_EVAL_TEXT_CHARS) {
-      return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+      return makeErrorCell("SIZE_LIMIT_EXCEEDED", "formula too large");
     }
     if (isDateValue(v)) {
       const canonical = v.kind === "date" ? isYmd(v.value) : v.kind === "datetime" && isCanonicalInstant(v.value);
@@ -100,7 +111,7 @@ export function evaluate(
     ctx.textChars = 0;
   }
   if (++ctx.nodes > MAX_EVAL_NODES || ctx.textChars > MAX_EVAL_TEXT_CHARS) {
-    return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+    return makeErrorCell("SIZE_LIMIT_EXCEEDED", "formula too large");
   }
 
   let result: Value;
@@ -143,10 +154,10 @@ export function evaluate(
       const args: Value[] = new Array(xs.length);
       for (let i = 0; i < xs.length; i++) {
         const v = evaluate(xs[i], row, ctx, depth);
-        if (isErrorCell(v)) return { ...v, __err: "DEPENDENCY_ERROR" };
+        if (isErrorCell(v)) return dependencyError(v);
         args[i] = v;
       }
-      if (overTextBudget(args, ctx)) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+      if (overTextBudget(args, ctx)) return makeErrorCell("SIZE_LIMIT_EXCEEDED", "formula too large");
       try { result = fn.eval(args, ctx); }
       catch (e) { return makeErrorCell("TYPE_MISMATCH", (e as Error).message); }
       produced = true;
@@ -156,9 +167,11 @@ export function evaluate(
       return null;
   }
   if (typeof result !== "string") return result;
-  if (result.length > MAX_TEXT_LENGTH) return makeErrorCell("TYPE_MISMATCH", "text too long");
+  if (result.length > MAX_TEXT_LENGTH) {
+    return makeErrorCell("SIZE_LIMIT_EXCEEDED", CALCULATION_TEXT_LIMIT_MESSAGE);
+  }
   if (produced && (ctx.textChars += result.length) > MAX_EVAL_TEXT_CHARS) {
-    return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+    return makeErrorCell("SIZE_LIMIT_EXCEEDED", "formula too large");
   }
   return result;
 }
@@ -249,16 +262,16 @@ function evalOp(
   astDepth: number,
 ): Value {
   const a = evaluate(args[0], row, ctx, astDepth);
-  if (isErrorCell(a)) return { ...a, __err: "DEPENDENCY_ERROR" };
+  if (isErrorCell(a)) return dependencyError(a);
   if ((op === "neg" || op === "not") && overTextBudget([a], ctx)) {
-    return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+    return makeErrorCell("SIZE_LIMIT_EXCEEDED", "formula too large");
   }
   if (op === "neg") return a == null ? null : -Number(a);
   if (op === "not") return a == null ? null : !Boolean(a);
 
   const b = evaluate(args[1], row, ctx, astDepth);
-  if (isErrorCell(b)) return { ...b, __err: "DEPENDENCY_ERROR" };
-  if (overTextBudget([a, b], ctx)) return makeErrorCell("DEPTH_EXCEEDED", "formula too large");
+  if (isErrorCell(b)) return dependencyError(b);
+  if (overTextBudget([a, b], ctx)) return makeErrorCell("SIZE_LIMIT_EXCEEDED", "formula too large");
 
   if (COMPARISON_OPS.has(op) && (isDateValue(a) || isDateValue(b))) {
     return compareDates(op, a, b, ctx.zone);

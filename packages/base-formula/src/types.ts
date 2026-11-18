@@ -44,6 +44,7 @@ export type ErrorCode =
   | "TYPE_MISMATCH"
   | "DIV_BY_ZERO"
   | "DATE_INVALID"
+  | "SIZE_LIMIT_EXCEEDED"
   | "DEPTH_EXCEEDED"
   | "DEPENDENCY_ERROR";
 
@@ -89,5 +90,7 @@ export const MAX_FORMULA_SOURCE_LENGTH = 10_000;
 export const MAX_PARSE_DEPTH = 256;
 export const MAX_EVAL_DEPTH = 512;
 export const MAX_EVAL_NODES = 100_000;
+// Long Text cells and materialized formula results share the same limit.
+export const MAX_TEXT_CELL_LENGTH = 25_000;
 export const MAX_TEXT_LENGTH = 100_000;
 export const MAX_EVAL_TEXT_CHARS = 5_000_000;

@@ -163,7 +163,6 @@ export interface IBaseFormulaRecomputeJob {
     | 'dep_type_changed'
     | 'dep_deleted'
     | 'refresh'
-    | 'legacy_conversion'
     | 'bulk_import'
     | 'manual';
   actorId?: string | null;

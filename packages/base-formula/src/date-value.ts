@@ -6,7 +6,10 @@ import {
   toCanonicalInstant,
 } from "./date";
 import { makeErrorCell } from "./error";
+import { MAX_TEXT_CELL_LENGTH } from "./types";
 import type { DateValue, FormulaResultType, Value } from "./types";
+
+const TEXT_RESULT_LIMIT_MESSAGE = `Formula text results are limited to ${MAX_TEXT_CELL_LENGTH.toLocaleString("en-US")} characters`;
 
 export function isDateValue(v: unknown): v is DateValue {
   return typeof v === "object" && v !== null && "kind" in v;
@@ -36,6 +39,9 @@ export function coerceToResultType(
   resultType: FormulaResultType,
   zone: string,
 ): Value {
+  if (typeof v === "string" && v.length > MAX_TEXT_CELL_LENGTH) {
+    return makeErrorCell("SIZE_LIMIT_EXCEEDED", TEXT_RESULT_LIMIT_MESSAGE);
+  }
   if (!isDateValue(v) || v.kind === resultType) return v;
   if (resultType !== "datetime" && resultType !== "date") return v;
   try {
