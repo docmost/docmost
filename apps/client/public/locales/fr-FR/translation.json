@@ -447,7 +447,7 @@
   "Embed PDF": "Intégrer un PDF",
   "Upload and embed a PDF file.": "Téléchargez et intégrez un fichier PDF.",
   "Embed as PDF": "Intégrer comme PDF",
-  "Embed as audio": "Embed as audio",
+  "Embed as audio": "Intégrer comme audio",
   "Failed to load PDF": "Échec du chargement du PDF",
   "Convert to attachment": "Convertir en pièce jointe",
   "File attachment": "Fichier joint",
@@ -1931,11 +1931,11 @@
   "Deleted on {{date}}": "Supprimé le {{date}}",
   "Member deactivated successfully": "Membre désactivé avec succès",
   "Member activated successfully": "Membre activé avec succès",
-  "Play": "Play",
+  "Play": "Lire",
   "Pause": "Pause",
-  "Mute": "Mute",
-  "Unmute": "Unmute",
-  "Seek": "Seek",
-  "Playback speed": "Playback speed",
-  "Couldn't load this audio file": "Couldn't load this audio file"
+  "Mute": "Couper le son",
+  "Unmute": "Activer le son",
+  "Seek": "Rechercher",
+  "Playback speed": "Vitesse de lecture",
+  "Couldn't load this audio file": "Impossible de charger ce fichier audio"
 }
