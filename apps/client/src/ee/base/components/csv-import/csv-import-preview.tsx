@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { PROPERTY_TYPE_REGISTRY } from "@/ee/base/property-types/property-type.registry";
 import {
   Choice,
-  DateTypeOptions,
   IBaseProperty,
   NumberTypeOptions,
   SelectTypeOptions,
@@ -21,7 +20,8 @@ import type {
   CsvConvertResult,
   CsvImportPropertyType,
 } from "@/ee/base/csv-import/csv-import.types";
-import { formatDateDisplay, formatNumber } from "@/ee/base/formatters/cell-formatters";
+import { formatNumber } from "@/ee/base/formatters/cell-formatters";
+import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
 import { ChoiceBadge } from "@/ee/base/components/cells/choice-badge";
 import { choiceColor } from "@/ee/base/components/cells/choice-color";
 import { CsvImportColumnHeader } from "./csv-import-column-header";
@@ -265,7 +265,7 @@ function PreviewValue({
     case "number":
       return <>{formatNumber(value as number, column.typeOptions as NumberTypeOptions)}</>;
     case "date":
-      return <>{formatDateDisplay(value as string, column.typeOptions as DateTypeOptions)}</>;
+      return <PreviewDate value={value} typeOptions={column.typeOptions} />;
     case "checkbox":
       return (
         <Checkbox
@@ -302,4 +302,9 @@ function PreviewValue({
     default:
       return <>{value as string}</>;
   }
+}
+
+function PreviewDate({ value, typeOptions }: { value: unknown; typeOptions: unknown }) {
+  const { text } = useDateCellDisplay({ type: "date", typeOptions }, value);
+  return <>{text}</>;
 }

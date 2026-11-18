@@ -10,7 +10,7 @@ import { readDateCell } from "@/ee/base/utils/date-cell";
 import { dateTypeOptionsOf, formatDateCell } from "@/ee/base/utils/date-format";
 
 export function useDateCellDisplay(
-  property: IBaseProperty,
+  property: Pick<IBaseProperty, "type"> & { typeOptions?: unknown },
   value: unknown,
 ): { kind: DateKind | null; cell: DateCell | null; text: string } {
   const { i18n } = useTranslation();
