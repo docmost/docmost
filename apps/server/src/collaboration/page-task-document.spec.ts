@@ -45,6 +45,27 @@ describe('page task identities', () => {
     expect(creators.get(raw.getAttribute('id'))).toBe(userA);
   });
 
+  it('remembers the authenticated checkbox editor for each line when several people edit between saves', () => {
+    const doc = new Y.Doc();
+    const list = new Y.XmlElement('taskList');
+    const first = item('first'),
+      second = item('second');
+    list.push([first, second]);
+    doc.getXmlFragment('default').push([list]);
+    const tracker = new PageTaskDocument(doc);
+    doc.transact(() => first.setAttribute('checked', 'true'), origin(userA));
+    doc.transact(() => second.setAttribute('checked', 'true'), origin(userB));
+    doc.transact(() => first.setAttribute('other', 'edit'), origin(userB));
+    expect(tracker.checkActors()).toEqual(
+      new Map([
+        ['first', userA],
+        ['second', userB],
+      ]),
+    );
+    doc.transact(() => first.setAttribute('checked', 'false'), origin(userB));
+    expect(tracker.checkActors().get('first')).toBe(userB);
+  });
+
   it('credits each authenticated insertion within the same debounced save, including nested and moved tasks', () => {
     const doc = new Y.Doc();
     const tracker = new PageTaskDocument(doc);

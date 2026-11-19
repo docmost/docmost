@@ -10,7 +10,7 @@ import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagin
 import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { PageTaskRepo } from '../page-task/page-task.repo';
+import { TaskActivityRepo } from '../page-task/task-activity.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import {
   NotificationTab,
@@ -22,22 +22,23 @@ export class NotificationRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly spaceMemberRepo: SpaceMemberRepo,
-    private readonly tasks: PageTaskRepo,
+    private readonly activity: TaskActivityRepo,
   ) {}
 
-  private visibleAssignment(userId: string, includeTasks: boolean) {
+  private visibleTasks(userId: string, includeTasks: boolean) {
     return (eb: ExpressionBuilder<DB, 'notifications'>) => {
       const otherType = eb(
         'notifications.type',
-        '!=',
-        NotificationType.TASK_ASSIGNED,
+        'not in',
+        [NotificationType.TASK_ASSIGNED, NotificationType.TASK_ACTIVITY],
       );
       if (!includeTasks) return otherType;
-      const assignments = this.tasks
-        .visibleTo(userId)
-        .where('pageTasks.assigneeId', '=', userId)
-        .select('pageTasks.assignmentId');
-      return eb.or([otherType, eb('notifications.id', 'in', assignments)]);
+      const batch = this.activity
+        .visibleItems(userId)
+        .clearSelect()
+        .select('batch.id')
+        .where(sql<boolean>`batch.id = notifications.id`);
+      return eb.or([otherType, eb.exists(batch)]);
     };
   }
 
@@ -62,15 +63,17 @@ export class NotificationRepo {
       .select((eb) => this.withPage(eb))
       .select((eb) => this.withSpace(eb))
       .select(
-        sql<
-          string | null
-        >`case when notifications.type = ${NotificationType.TASK_ASSIGNED} then (
-        select t.title from page_tasks t where t.id = (notifications.data->>'taskId')::uuid
-          and t.assignment_id = notifications.id
-      ) end`.as('taskTitle'),
+        jsonObjectFrom(
+          this.activity
+            .previewQuery(userId)
+            .where(
+              sql<boolean>`notifications.type in (${NotificationType.TASK_ASSIGNED}, ${NotificationType.TASK_ACTIVITY}) and batch.id = notifications.id`,
+            )
+            .limit(1),
+        ).as('taskActivity'),
       )
       .where('userId', '=', userId)
-      .where(this.visibleAssignment(userId, includeTasks))
+      .where(this.visibleTasks(userId, includeTasks))
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
@@ -118,7 +121,7 @@ export class NotificationRepo {
       .select((eb) => eb.fn.count('id').as('count'))
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
-      .where(this.visibleAssignment(userId, includeTasks))
+      .where(this.visibleTasks(userId, includeTasks))
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
@@ -148,7 +151,7 @@ export class NotificationRepo {
       .set({ readAt: new Date() })
       .where('id', '=', notificationId)
       .where('userId', '=', userId)
-      .where(this.visibleAssignment(userId, includeTasks))
+      .where(this.visibleTasks(userId, includeTasks))
       .where('readAt', 'is', null)
       .execute();
   }
@@ -166,7 +169,7 @@ export class NotificationRepo {
       .set({ readAt: new Date() })
       .where('id', 'in', notificationIds)
       .where('userId', '=', userId)
-      .where(this.visibleAssignment(userId, includeTasks))
+      .where(this.visibleTasks(userId, includeTasks))
       .where('readAt', 'is', null)
       .execute();
   }
@@ -176,7 +179,7 @@ export class NotificationRepo {
       .updateTable('notifications')
       .set({ readAt: new Date() })
       .where('userId', '=', userId)
-      .where(this.visibleAssignment(userId, includeTasks))
+      .where(this.visibleTasks(userId, includeTasks))
       .where('readAt', 'is', null)
       .execute();
   }

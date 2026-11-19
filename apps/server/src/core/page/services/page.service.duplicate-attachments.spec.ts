@@ -127,7 +127,7 @@ function makeService(pageContent: any = content, extraRows: any[] = []) {
     {} as any,
     {} as any,
     {} as any,
-    { indexNewPage: jest.fn() } as any,
+    { indexNewPage: jest.fn().mockResolvedValue([]) } as any,
   );
   jest
     .spyOn(service as any, 'filterAccessibleTreePages')

@@ -13,6 +13,7 @@ const paidFeatures: { name: string; enterpriseOnly?: boolean }[] = [
   { name: "Full-text Search in Attachments (PDF, DOCX)" },
   { name: "Confluence, PDF & DOCX Import" },
   { name: "Bases & Kanban" },
+  { name: "My tasks" },
   { name: "Templates" },
   { name: "Personal Spaces" },
   { name: "Announcements" },

@@ -124,7 +124,9 @@ export class PersistenceExtension implements Extension {
     const pageId = getPageId(documentName);
     const lastChangeAt = this.lastChangeAt.get(documentName);
 
-    const taskCreators = this.taskDocuments.get(document)?.prepareItems();
+    const tracker = this.taskDocuments.get(document);
+    const taskCreators = tracker?.prepareItems();
+    const checkActors = tracker?.checkActors();
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
 
@@ -201,6 +203,7 @@ export class PersistenceExtension implements Extension {
           lastContext?.user?.id,
           taskCreators,
           tasks,
+          checkActors,
         );
 
         invalidation =

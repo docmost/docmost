@@ -41,6 +41,13 @@ const notificationItems: {
     description: "Email me when a task is assigned to me.",
   },
   {
+    key: "task.updates",
+    dtoField: "notificationTaskUpdates",
+    label: "Task status changes",
+    description:
+      "Email me when someone completes or reopens a task I created or am assigned to.",
+  },
+  {
     key: "comment.userMention",
     dtoField: "notificationCommentUserMention",
     label: "Comment mentions",
@@ -117,7 +124,7 @@ function NotificationToggle({
 export default function NotificationPref() {
   const hasTasks = useHasFeature(Feature.TASKS);
   const visible = notificationItems.filter(
-    (item) => hasTasks || item.key !== "task.assigned",
+    (item) => hasTasks || !item.key.startsWith("task."),
   );
   const { t } = useTranslation();
 

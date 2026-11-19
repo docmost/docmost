@@ -3,6 +3,7 @@ export const NotificationType = {
   COMMENT_CREATED: 'comment.created',
   COMMENT_RESOLVED: 'comment.resolved',
   TASK_ASSIGNED: 'task.assigned',
+  TASK_ACTIVITY: 'task.activity',
   PAGE_USER_MENTION: 'page.user_mention',
   PAGE_PERMISSION_GRANTED: 'page.permission_granted',
   PAGE_UPDATED: 'page.updated',
@@ -25,6 +26,7 @@ export type NotificationType =
 export type NotificationSettingKey =
   | 'page.updated'
   | 'task.assigned'
+  | 'task.updates'
   | 'page.userMention'
   | 'comment.userMention'
   | 'comment.created'
@@ -49,6 +51,7 @@ export const DIRECT_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.COMMENT_RESOLVED,
   NotificationType.PAGE_USER_MENTION,
   NotificationType.TASK_ASSIGNED,
+  NotificationType.TASK_ACTIVITY,
   NotificationType.PAGE_PERMISSION_GRANTED,
   NotificationType.SIEM_DESTINATION_FAILING,
   NotificationType.SIEM_DESTINATION_DISABLED,

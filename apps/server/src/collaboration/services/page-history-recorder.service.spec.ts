@@ -15,6 +15,7 @@ describe('PageHistoryRecorderService', () => {
   let notificationQueue: any;
   let generalQueue: any;
   let service: PageHistoryRecorderService;
+  const pageTasks = { notificationsEnabled: jest.fn() };
 
   const page = (over: any = {}) => ({
     id: 'page-1',
@@ -48,6 +49,7 @@ describe('PageHistoryRecorderService', () => {
       watcherService,
       notificationQueue,
       generalQueue,
+      pageTasks as any,
     );
   });
 
@@ -224,6 +226,42 @@ describe('PageHistoryRecorderService', () => {
     expect(collabHistory.clearContributors).toHaveBeenCalledWith('page-1');
     expect(historyRepo.saveHistory).not.toHaveBeenCalled();
   });
+
+  it.each([true, false])(
+    'keeps checkbox history and uses one notification path when task alerts are enabled: %s',
+    async (enabled) => {
+      const checklist = (checked: boolean) => ({
+        type: 'doc',
+        content: [
+          {
+            type: 'taskList',
+            content: [
+              {
+                type: 'taskItem',
+                attrs: { checked },
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Review' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      pageTasks.notificationsEnabled.mockResolvedValue(enabled);
+      pageRepo.findById.mockResolvedValue(page({ content: checklist(true) }));
+      historyRepo.findPageLastHistory.mockResolvedValue({
+        id: 'last',
+        title: 'Title',
+        content: checklist(false),
+      });
+      await service.recordPageHistory('page-1');
+      expect(historyRepo.saveHistory).toHaveBeenCalledTimes(1);
+      expect(notificationQueue.add).toHaveBeenCalledTimes(enabled ? 0 : 1);
+    },
+  );
 
   it('queues the page updated notification only with contributors and a previous version', async () => {
     pageRepo.findById.mockResolvedValue(page());

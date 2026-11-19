@@ -20,6 +20,7 @@ export class SmtpDriver implements MailDriver {
         from: message.from,
         to: message.to,
         subject: message.subject,
+        messageId: message.messageId,
         text: message.text,
         html: message.html,
       });

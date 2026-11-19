@@ -52,3 +52,38 @@ export function useSetTaskChecked() {
     onSettled: () => client.invalidateQueries({ queryKey: ["tasks"] }),
   });
 }
+
+export type TaskActivityItem = Pick<
+  PageTask,
+  | "title"
+  | "checked"
+  | "blockId"
+  | "spaceSlug"
+  | "spaceName"
+  | "pageSlugId"
+  | "pageTitle"
+  | "dueDate"
+> & {
+  taskId: string;
+  kind: "assigned" | "completed" | "reopened";
+};
+
+export function useTaskActivity(batchId: string) {
+  return useInfiniteQuery({
+    queryKey: ["tasks", "activity", batchId],
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.post<IPagination<TaskActivityItem>>(
+        "/tasks/activity",
+        { batchId, cursor: pageParam },
+      );
+      return data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) =>
+      page.meta.hasNextPage ? page.meta.nextCursor : undefined,
+    retry: false,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchInterval: 60000,
+  });
+}

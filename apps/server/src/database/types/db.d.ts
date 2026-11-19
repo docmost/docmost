@@ -308,7 +308,6 @@ export interface PageTransclusionReferences {
 export interface PageTasks {
   assigneeId: string | null;
   assignmentId: string | null;
-  assignmentPending: Generated<boolean>;
   blockId: string;
   checked: boolean;
   creatorId: string | null;
@@ -689,6 +688,22 @@ export interface PageVerifiers {
   createdAt: Generated<Timestamp>;
 }
 
+export interface TaskNotificationBatches {
+  deliverAt: Generated<Timestamp>;
+  id: Generated<string>;
+  queued: Generated<boolean>;
+  sealedAt: Timestamp | null;
+  userId: string;
+}
+
+export interface TaskNotificationItems {
+  assignmentId: string | null;
+  batchId: string;
+  checkedAfter: boolean | null;
+  checkedBefore: boolean | null;
+  taskId: string;
+}
+
 export interface Templates {
   id: Generated<string>;
   title: string | null;
@@ -844,6 +859,8 @@ export interface DB {
   siemDestinations: SiemDestinations;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  taskNotificationBatches: TaskNotificationBatches;
+  taskNotificationItems: TaskNotificationItems;
   templates: Templates;
   userMfa: UserMfa;
   users: Users;

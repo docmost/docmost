@@ -2153,5 +2153,15 @@
   "You were assigned a task": "You were assigned a task",
   "My tasks is included with Docmost Business.": "My tasks is included with Docmost Business.",
   "Task assignments": "Task assignments",
-  "Email me when a task is assigned to me.": "Email me when a task is assigned to me."
+  "Email me when a task is assigned to me.": "Email me when a task is assigned to me.",
+  "Task status changes": "Task status changes",
+  "Email me when someone completes or reopens a task I created or am assigned to.": "Email me when someone completes or reopens a task I created or am assigned to.",
+  "A task was completed": "A task was completed",
+  "A task was reopened": "A task was reopened",
+  "Task updates": "Task updates",
+  "These task updates are no longer available.": "These task updates are no longer available.",
+  "Could not load task updates": "Could not load task updates",
+  "Reopened": "Reopened",
+  "{{count}} task updates_one": "{{count}} task update",
+  "{{count}} task updates_other": "{{count}} task updates"
 }

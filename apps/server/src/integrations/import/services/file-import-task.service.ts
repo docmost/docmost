@@ -464,6 +464,7 @@ export class FileImportTaskService {
     // Process pages level by level sequentially to respect foreign key constraints
     const allBacklinks: any[] = [];
     const validPageIds = new Set<string>();
+    const taskUserIds = new Set<string>();
     const pageTitles = new Map<string, string>();
     let totalPagesProcessed = 0;
 
@@ -541,7 +542,11 @@ export class FileImportTaskService {
             } satisfies InsertablePage;
 
             await trx.insertInto('pages').values(insertablePage).execute();
-            await this.pageTasks.indexNewPage(trx, insertablePage);
+            const owners = await this.pageTasks.indexNewPage(
+              trx,
+              insertablePage,
+            );
+            owners.forEach((id) => taskUserIds.add(id));
 
             // Track valid page IDs, titles, and collect backlinks
             validPageIds.add(insertablePage.id);
@@ -577,19 +582,17 @@ export class FileImportTaskService {
           }
         }
 
-        if (validPageIds.size > 0) {
-          this.eventEmitter.emit(EventName.PAGE_CREATED, {
-            pageIds: Array.from(validPageIds),
-            workspaceId: fileTask.workspaceId,
-          });
-        }
-
         this.logger.log(
           `Successfully imported ${totalPagesProcessed} pages with ${filteredBacklinks.length} backlinks`,
         );
       });
 
       if (validPageIds.size > 0) {
+        this.eventEmitter.emit(EventName.PAGE_CREATED, {
+          pageIds: [...validPageIds],
+          workspaceId: fileTask.workspaceId,
+          taskUserIds: [...taskUserIds],
+        });
         const auditPayloads = Array.from(validPageIds).map((pageId) => ({
           event: AuditEvent.PAGE_CREATED,
           resourceType: AuditResource.PAGE,

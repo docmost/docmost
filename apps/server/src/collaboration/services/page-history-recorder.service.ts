@@ -16,7 +16,8 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CollabHistoryService } from './collab-history.service';
 import { WatcherService } from '../../core/watcher/watcher.service';
 import { isEmptyParagraphDoc } from '../collaboration.util';
-import { isSameDocumentContent } from '../content-comparison.util';
+import { PageTaskRepo } from '@docmost/db/repos/page-task/page-task.repo';
+import { compareDocumentContent } from '../content-comparison.util';
 import { isSameTitle } from '../../core/page/verification/page-verification-invalidation.utils';
 
 @Injectable()
@@ -30,6 +31,7 @@ export class PageHistoryRecorderService {
     private readonly watcherService: WatcherService,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
+    private readonly pageTasks: PageTaskRepo,
   ) {}
 
   // Returns the id of the version holding the page's current title and content.
@@ -64,13 +66,11 @@ export class PageHistoryRecorderService {
     }
 
     // block ids, defaults and comments change the JSON without changing what readers see
-    if (
-      lastHistory &&
-      isSameDocumentContent(lastHistory.content, page.content) &&
-      isSameTitle(lastHistory.title, page.title)
-    ) {
-      return lastHistory.id;
-    }
+    const change =
+      lastHistory && isSameTitle(lastHistory.title, page.title)
+        ? compareDocumentContent(lastHistory.content, page.content, true)
+        : 'changed';
+    if (change === 'same') return lastHistory.id;
 
     const contributorIds = await this.collabHistory.popContributors(pageId);
 
@@ -112,7 +112,12 @@ export class PageHistoryRecorderService {
         );
       });
 
-    if (contributorIds.length > 0 && lastHistory?.content) {
+    if (
+      contributorIds.length > 0 &&
+      lastHistory?.content &&
+      (change !== 'taskChecks' ||
+        !(await this.pageTasks.notificationsEnabled(page.workspaceId)))
+    ) {
       await this.notificationQueue
         .add(QueueJob.PAGE_UPDATED, {
           pageId,

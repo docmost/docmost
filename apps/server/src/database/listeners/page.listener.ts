@@ -9,6 +9,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 export class PageEvent {
   pageIds: string[];
   workspaceId: string;
+  taskUserIds?: string[];
 }
 
 @Injectable()
@@ -19,11 +20,19 @@ export class PageListener {
     private readonly environmentService: EnvironmentService,
     @InjectQueue(QueueName.SEARCH_QUEUE) private searchQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
   ) {}
 
   @OnEvent(EventName.PAGE_CREATED)
   async handlePageCreated(event: PageEvent) {
-    const { pageIds, workspaceId } = event;
+    const { pageIds, workspaceId, taskUserIds } = event;
+    if (taskUserIds?.length) {
+      await this.notificationQueue
+        .add(QueueJob.PAGE_TASKS_UPDATED, { userIds: taskUserIds })
+        .catch((err) =>
+          this.logger.error({ err }, 'Failed to refresh task lists'),
+        );
+    }
     if (this.isTypesense()) {
       await this.searchQueue.add(QueueJob.PAGE_CREATED, {
         pageIds,

@@ -8,6 +8,7 @@ import { taskBlockId } from '../core/task/task-content';
 export class PageTaskDocument {
   private readonly elements = new Map<string, Y.XmlElement>();
   private readonly insertedBy = new WeakMap<Y.XmlElement, string>();
+  private readonly checkedBy = new WeakMap<Y.XmlElement, string>();
   private readonly creators = new Map<string, string>();
 
   constructor(private readonly doc: Y.Doc) {
@@ -23,6 +24,13 @@ export class PageTaskDocument {
       if (!userId) return;
       for (const event of events) {
         if (!(event instanceof Y.YXmlEvent)) continue;
+        if (
+          event.target instanceof Y.XmlElement &&
+          event.target.nodeName === 'taskItem' &&
+          event.attributesChanged.has('checked')
+        ) {
+          this.checkedBy.set(event.target, userId);
+        }
         for (const change of event.changes.delta) {
           if (!Array.isArray(change.insert)) continue;
           for (const node of change.insert) this.trackInsertion(node, userId);
@@ -35,11 +43,21 @@ export class PageTaskDocument {
     if (!(node instanceof Y.XmlElement)) return;
     if (node.nodeName === 'taskItem') {
       this.insertedBy.set(node, userId);
+      this.checkedBy.set(node, userId);
       const id = node.getAttribute('id');
       if (id && !this.elements.has(id) && !this.creators.has(id))
         this.creators.set(id, userId);
     }
     for (const child of node.toArray()) this.trackInsertion(child, userId);
+  }
+
+  checkActors(): Map<string, string> {
+    const result = new Map<string, string>();
+    for (const [id, element] of this.elements) {
+      const actor = this.checkedBy.get(element);
+      if (actor) result.set(id, actor);
+    }
+    return result;
   }
 
   prepareItems(loading = false): Map<string, string> {

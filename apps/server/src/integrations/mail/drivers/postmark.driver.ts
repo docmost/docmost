@@ -19,6 +19,9 @@ export class PostmarkDriver implements MailDriver {
         From: message.from,
         To: message.to,
         Subject: message.subject,
+        ...(message.messageId && {
+          Headers: [{ Name: 'Message-ID', Value: message.messageId }],
+        }),
         TextBody: message.text,
         HtmlBody: message.html,
       });

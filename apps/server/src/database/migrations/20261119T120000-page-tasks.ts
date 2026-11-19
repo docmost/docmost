@@ -19,9 +19,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       c.references('users.id').onDelete('set null'),
     )
     .addColumn('assignment_id', 'uuid')
-    .addColumn('assignment_pending', 'boolean', (c) =>
-      c.notNull().defaultTo(false),
-    )
     .addColumn('title', 'text', (c) => c.notNull())
     .addColumn('checked', 'boolean', (c) => c.notNull())
     .addColumn('due_date', 'date')
@@ -38,13 +35,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .where(column, 'is not', null)
       .execute();
   }
-
-  await db.schema
-    .createIndex('page_tasks_pending_assignment_idx')
-    .on('page_tasks')
-    .column('assignment_id')
-    .where(sql.ref('assignment_pending'), '=', true)
-    .execute();
 
   // Historical task items recorded no author. Index their assignees without
   // attributing their creation to whoever last edited or first opens the page.

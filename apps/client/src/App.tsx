@@ -88,6 +88,9 @@ const TemplateList = lazyWithPrefetch(() => import("@/ee/template/pages/template
 const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
 );
+const TaskActivityPage = lazyWithPrefetch(
+  () => import("@/pages/tasks/task-activity-page"),
+);
 const TasksPage = lazyWithPrefetch(() => import("@/pages/tasks/tasks-page"));
 const FavoritesPage = lazyWithPrefetch(() => import("@/pages/favorites/favorites-page"));
 const UserProfilePage = lazyWithPrefetch(() => import("@/pages/user/user-profile-page"));
@@ -190,6 +193,10 @@ export default function App() {
           <Route path={"/ai"} element={<AiChat />} />
           <Route path={"/ai/chat/:chatId"} element={<AiChat />} />
           <Route path={"/spaces"} element={<SpacesPage />} />
+          <Route
+            path="/tasks/activity/:batchId"
+            element={<TaskActivityPage />}
+          />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path={"/favorites"} element={<FavoritesPage />} />
           <Route path={"/people/:userId"} element={<UserProfilePage />} />

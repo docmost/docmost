@@ -197,12 +197,13 @@ export class PageRepo {
         .values(insertablePage)
         .returning(this.baseFields)
         .executeTakeFirstOrThrow();
+    let taskUserIds: string[] = [];
     const result = tasks.length
       ? await executeTx(
           this.db,
           async (tx) => {
             const page = await insert(tx);
-            await this.pageTasks.indexNewPage(tx, page, tasks);
+            taskUserIds = await this.pageTasks.indexNewPage(tx, page, tasks);
             return page;
           },
           trx,
@@ -212,6 +213,7 @@ export class PageRepo {
     this.eventEmitter.emit(EventName.PAGE_CREATED, {
       pageIds: [result.id],
       workspaceId: result.workspaceId,
+      taskUserIds,
     });
 
     return result;

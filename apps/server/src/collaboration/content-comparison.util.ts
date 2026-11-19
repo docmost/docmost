@@ -118,16 +118,39 @@ function parseDocument(value: unknown): Comparable | null {
   }
 }
 
+// These trees are private, normalized copies. Checkbox-only edits still
+// produce a page-history version, but use the personal task notification.
+function stripTaskChecks(node: Comparable) {
+  if (node.type === 'taskItem' && node.attrs) {
+    delete node.attrs.checked;
+    if (!Object.keys(node.attrs).length) delete node.attrs;
+  }
+  node.content?.forEach(stripTaskChecks);
+}
+
+export function compareDocumentContent(
+  previous: unknown,
+  next: unknown,
+  distinguishTaskChecks = false,
+): 'same' | 'taskChecks' | 'changed' {
+  const before = parseDocument(previous ?? EMPTY_DOCUMENT);
+  const after = parseDocument(next ?? EMPTY_DOCUMENT);
+  if (!before || !after)
+    return isDeepStrictEqual(previous, next) ? 'same' : 'changed';
+  if (isDeepStrictEqual(before, after)) return 'same';
+  if (distinguishTaskChecks) {
+    stripTaskChecks(before);
+    stripTaskChecks(after);
+    if (isDeepStrictEqual(before, after)) return 'taskChecks';
+  }
+  return 'changed';
+}
+
 export function isSameDocumentContent(
   previous: unknown,
   next: unknown,
 ): boolean {
-  const previousComparable = parseDocument(previous ?? EMPTY_DOCUMENT);
-  const nextComparable = parseDocument(next ?? EMPTY_DOCUMENT);
-  if (!previousComparable || !nextComparable) {
-    return isDeepStrictEqual(previous, next);
-  }
-  return isDeepStrictEqual(previousComparable, nextComparable);
+  return compareDocumentContent(previous, next) === 'same';
 }
 
 function toReviewNode(node: JSONContent): JSONContent {

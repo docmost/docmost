@@ -12,7 +12,7 @@ export function useNotificationSocket() {
     if (!socket) return;
 
     const handler = (event?: { type?: string }) => {
-      if (event?.type === "task.assigned")
+      if (event?.type === "task.assigned" || event?.type === "task.activity")
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEY });
     };

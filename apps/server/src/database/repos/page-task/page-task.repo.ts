@@ -9,6 +9,11 @@ import {
   extractPageTasks,
   PageTaskItem,
 } from '../../../core/task/task-content';
+import {
+  clearOwnTaskChecks,
+  recordTaskActivity,
+  TaskActivityChange,
+} from './record-task-activity';
 import { upsertPageTasks } from './upsert-page-tasks';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { SpaceMemberRepo } from '../space/space-member.repo';
@@ -95,7 +100,7 @@ export class PageTaskRepo {
     return new Set(pages.filter((p) => p.canEdit).map((p) => p.id));
   }
 
-  private async canNotify(db: KyselyDB, workspaceId: string) {
+  async notificationsEnabled(workspaceId: string, db: KyselyDB = this.db) {
     const workspace = await db
       .selectFrom('workspaces')
       .select(['licenseKey', 'plan'])
@@ -112,7 +117,7 @@ export class PageTaskRepo {
   }
 
   async indexNewPage(
-    db: KyselyDB,
+    db: KyselyTransaction,
     page: {
       id: string;
       workspaceId: string;
@@ -121,13 +126,26 @@ export class PageTaskRepo {
     },
     tasks = extractPageTasks(page.content),
   ) {
-    if (!tasks.length) return;
+    if (!tasks.length) return [];
     const notifyAssignments =
       tasks.some((t) => t.assigneeId) &&
-      (await this.canNotify(db, page.workspaceId));
-    await upsertPageTasks(db, page, tasks, page.creatorId, {
+      (await this.notificationsEnabled(page.workspaceId, db));
+    const indexed = await upsertPageTasks(db, page, tasks, page.creatorId, {
       notifyAssignments,
     });
+    if (notifyAssignments) {
+      await recordTaskActivity(
+        db,
+        indexed
+          .filter((t) => t.assignmentId)
+          .map((t) => ({
+            taskId: t.id,
+            userId: t.assigneeId,
+            assignmentId: t.assignmentId,
+          })),
+      );
+    }
+    return taskOwnerIds(indexed);
   }
 
   async sync(
@@ -136,6 +154,7 @@ export class PageTaskRepo {
     userId: string,
     creators: Map<string, string>,
     tasks: PageTaskItem[],
+    checkActors?: Map<string, string>,
   ): Promise<string[]> {
     const previous = new Map(
       extractPageTasks(page.content).map((task) => [task.blockId, task]),
@@ -154,7 +173,7 @@ export class PageTaskRepo {
     const affected = removed.concat(changed.map((task) => task.blockId));
     const oldOwners = await trx
       .selectFrom('pageTasks')
-      .select(['creatorId', 'assigneeId'])
+      .select(['id', 'blockId', 'checked', 'creatorId', 'assigneeId'])
       .where('pageId', '=', page.id)
       .where(sql<boolean>`block_id = any(${affected}::text[])`)
       .execute();
@@ -165,18 +184,62 @@ export class PageTaskRepo {
         .where(sql<boolean>`block_id = any(${removed}::text[])`)
         .execute();
     }
-    const notifyAssignments =
-      hasNewAssignment && (await this.canNotify(trx, page.workspaceId));
+    const oldByBlock = new Map(oldOwners.map((t) => [t.blockId, t]));
+    const hasChecks = changed.some(
+      (t) =>
+        oldByBlock.has(t.blockId) &&
+        oldByBlock.get(t.blockId).checked !== t.checked,
+    );
+    const enabled =
+      (hasNewAssignment || hasChecks) &&
+      (await this.notificationsEnabled(page.workspaceId, trx));
+    const notifyAssignments = hasNewAssignment && enabled;
     const newOwners = await upsertPageTasks(trx, page, changed, userId, {
       creators,
       notifyAssignments,
     });
-    return [
-      ...new Set(
-        [...oldOwners, ...newOwners]
-          .flatMap((task) => [task.creatorId, task.assigneeId])
-          .filter(Boolean),
-      ),
-    ];
+    if (enabled) {
+      const changes: TaskActivityChange[] = [];
+      const actors: { userId: string; taskId: string }[] = [];
+      for (const task of newOwners) {
+        const old = oldByBlock.get(task.blockId);
+        const actor = checkActors?.get(task.blockId) ?? userId;
+        const checked = old && old.checked !== task.checked && !!actor;
+        const assigned =
+          task.assignmentId && old?.assigneeId !== task.assigneeId;
+        if (checked) actors.push({ taskId: task.id, userId: actor });
+        for (const recipient of new Set([task.creatorId, task.assigneeId])) {
+          if (!recipient) continue;
+          const assignmentId =
+            assigned && recipient === task.assigneeId
+              ? task.assignmentId
+              : undefined;
+          const notifyCheck = checked && recipient !== actor;
+          if (assignmentId || notifyCheck)
+            changes.push({
+              userId: recipient,
+              taskId: task.id,
+              assignmentId,
+              checkedBefore: notifyCheck ? old.checked : undefined,
+              checkedAfter: notifyCheck ? task.checked : undefined,
+            });
+        }
+      }
+      await recordTaskActivity(trx, changes);
+      await clearOwnTaskChecks(trx, actors);
+    }
+    return taskOwnerIds([...oldOwners, ...newOwners]);
   }
+}
+
+function taskOwnerIds(
+  tasks: { creatorId: string | null; assigneeId: string | null }[],
+) {
+  return [
+    ...new Set(
+      tasks
+        .flatMap((task) => [task.creatorId, task.assigneeId])
+        .filter(Boolean),
+    ),
+  ];
 }

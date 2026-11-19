@@ -17,7 +17,7 @@ export enum QueueName {
   SLACK_NOTIFY = '{slack-notify}',
   BASE_QUEUE = '{base-queue}',
   BASE_IMPORT_QUEUE = '{base-import-queue}',
-  TASK_ASSIGNMENT_QUEUE = '{task-assignment-queue}',
+  TASK_ACTIVITY_QUEUE = '{task-activity-queue}',
   SIEM_QUEUE = '{siem-queue}',
 }
 
@@ -81,8 +81,8 @@ export enum QueueJob {
 
   COMMENT_NOTIFICATION = 'comment-notification',
   COMMENT_RESOLVED_NOTIFICATION = 'comment-resolved-notification',
-  DISPATCH_TASK_ASSIGNMENTS = 'dispatch-task-assignments',
-  NOTIFY_TASK_ASSIGNEE = 'notify-task-assignee',
+  DISPATCH_TASK_ACTIVITY = 'dispatch-task-activity',
+  NOTIFY_TASK_ACTIVITY = 'notify-task-activity',
   PAGE_TASKS_UPDATED = 'page-tasks-updated',
   PAGE_MENTION_NOTIFICATION = 'page-mention-notification',
   PAGE_PERMISSION_GRANTED = 'page-permission-granted',

@@ -967,10 +967,13 @@ export class PageService {
       }),
     );
 
+    const taskUserIds = new Set<string>();
     const copiedRestrictions = await executeTx(this.db, async (trx) => {
       await trx.insertInto('pages').values(insertablePages).execute();
-      for (const page of insertablePages)
-        await this.pageTasks.indexNewPage(trx, page);
+      for (const page of insertablePages) {
+        const owners = await this.pageTasks.indexNewPage(trx, page);
+        owners.forEach((id) => taskUserIds.add(id));
+      }
       await this.labelRepo.copyLabelsToPages(
         new Map([...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId])),
         trx,
@@ -1027,6 +1030,7 @@ export class PageService {
     this.eventEmitter.emit(EventName.PAGE_CREATED, {
       pageIds: insertedPageIds,
       workspaceId: authUser.workspaceId,
+      taskUserIds: [...taskUserIds],
     });
 
     //TODO: best to handle this in a queue

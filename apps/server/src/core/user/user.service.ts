@@ -69,6 +69,7 @@ export class UserService {
     const notificationSettings: Record<string, NotificationSettingKey> = {
       notificationPageUpdates: 'page.updated',
       notificationTaskAssigned: 'task.assigned',
+      notificationTaskUpdates: 'task.updates',
       notificationPageUserMention: 'page.userMention',
       notificationCommentUserMention: 'comment.userMention',
       notificationCommentCreated: 'comment.created',

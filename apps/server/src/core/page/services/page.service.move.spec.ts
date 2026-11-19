@@ -81,7 +81,7 @@ describe('PageService movePage', () => {
       {} as any,
       {} as any,
       {} as any,
-      { indexNewPage: jest.fn() } as any,
+      { indexNewPage: jest.fn().mockResolvedValue([]) } as any,
     );
 
     return { service, pageRepo, wsService, collabAccessService };
@@ -234,7 +234,7 @@ describe('PageService movePageToSpace', () => {
       shareService as any,
       {} as any,
       {} as any,
-      { indexNewPage: jest.fn() } as any,
+      { indexNewPage: jest.fn().mockResolvedValue([]) } as any,
     );
 
     const sharesQueries = () =>

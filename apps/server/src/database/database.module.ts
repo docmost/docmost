@@ -17,6 +17,7 @@ import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PageRepo } from './repos/page/page.repo';
+import { TaskActivityRepo } from './repos/page-task/task-activity.repo';
 import { PageTaskRepo } from './repos/page-task/page-task.repo';
 import { PagePermissionRepo } from './repos/page/page-permission.repo';
 import { CommentRepo } from './repos/comment/comment.repo';
@@ -91,6 +92,7 @@ import { DatabaseModuleOptions } from './database.types';
     PageRepo,
     PagePermissionRepo,
     PageTaskRepo,
+    TaskActivityRepo,
     PageTransclusionsRepo,
     PageTransclusionReferencesRepo,
     PageHistoryRepo,
@@ -118,6 +120,7 @@ import { DatabaseModuleOptions } from './database.types';
     PageRepo,
     PagePermissionRepo,
     PageTaskRepo,
+    TaskActivityRepo,
     PageTransclusionsRepo,
     PageTransclusionReferencesRepo,
     PageHistoryRepo,

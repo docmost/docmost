@@ -8,6 +8,7 @@ import {
 import {
   IconBell,
   IconCheck,
+  IconChecklist,
   IconFileDescription,
   IconPointFilled,
 } from "@tabler/icons-react";
@@ -35,6 +36,7 @@ export function NotificationItem({
   const markRead = useMarkReadMutation();
   const [hovered, setHovered] = useState(false);
 
+  const activity = notification.taskActivity;
   const isUnread = !notification.readAt;
 
   const getNotificationMessageKey = (): string => {
@@ -46,6 +48,10 @@ export function NotificationItem({
       case "comment.resolved":
         return "<bold>{{name}}</bold> resolved a comment";
       case "task.assigned":
+      case "task.activity":
+        if (activity?.count > 1) return "{{count}} task updates";
+        if (activity?.kind === "completed") return "A task was completed";
+        if (activity?.kind === "reopened") return "A task was reopened";
         return "You were assigned a task";
       case "page.user_mention":
         return "<bold>{{name}}</bold> mentioned you on a page";
@@ -101,10 +107,6 @@ export function NotificationItem({
           notification.space.slug,
           notification.page.slugId,
           notification.page.title,
-          notification.type === "task.assigned" &&
-            typeof notification.data?.blockId === "string"
-            ? notification.data.blockId
-            : undefined,
         ) + queryParam
       : undefined;
 
@@ -119,7 +121,18 @@ export function NotificationItem({
     typeof notification.data?.lastError === "string"
       ? notification.data.lastError
       : null;
-  const linkUrl = isSiemDestination ? "/settings/audit/siem" : pageUrl;
+  const activityUrl =
+    activity &&
+    (activity.count > 1
+      ? `/tasks/activity/${notification.id}`
+      : buildPageUrl(
+          activity.spaceSlug,
+          activity.pageSlugId,
+          activity.pageTitle,
+          activity.blockId,
+        ));
+  const linkUrl =
+    activityUrl || (isSiemDestination ? "/settings/audit/siem" : pageUrl);
 
   const fileName =
     typeof notification.data?.fileName === "string"
@@ -148,7 +161,10 @@ export function NotificationItem({
     }
     return null;
   };
-  const detail = notification.taskTitle ?? lastError ?? getImportDetail();
+  const detail =
+    (activity && (activity.title || t("Untitled task"))) ??
+    lastError ??
+    getImportDetail();
 
   const markReadIfNeeded = () => {
     if (isUnread) {
@@ -189,7 +205,7 @@ export function NotificationItem({
           />
         ) : (
           <Avatar size="sm" color="gray" radius="xl">
-            <IconBell size={14} />
+            {activity ? <IconChecklist size={16} /> : <IconBell size={14} />}
           </Avatar>
         )}
 
@@ -197,7 +213,7 @@ export function NotificationItem({
           <Text size="sm" lineClamp={2}>
             <Trans
               i18nKey={getNotificationMessageKey()}
-              count={importedRows}
+              count={activity?.count ?? importedRows}
               values={{
                 name: isSiemDestination
                   ? destinationName
@@ -214,9 +230,9 @@ export function NotificationItem({
             </Text>
           )}
 
-          {notification.page && (
+          {(notification.page || activity?.count === 1) && (
             <Group gap={4} mt={2} wrap="nowrap">
-              {notification.page.icon ? (
+              {notification.page?.icon ? (
                 <Text size="xs" style={{ flexShrink: 0 }}>
                   {notification.page.icon}
                 </Text>
@@ -228,7 +244,11 @@ export function NotificationItem({
                 />
               )}
               <Text size="xs" c="dimmed" lineClamp={1}>
-                {getPageTitle(notification.page.title, undefined, t)}
+                {getPageTitle(
+                  notification.page?.title ?? activity?.pageTitle,
+                  undefined,
+                  t,
+                )}
               </Text>
             </Group>
           )}
