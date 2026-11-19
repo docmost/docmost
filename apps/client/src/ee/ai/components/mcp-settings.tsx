@@ -145,7 +145,7 @@ export default function McpSettings() {
               </List.Item>
               <List.Item>
                 <Text size="sm" c="dimmed" span>
-                  list_templates, get_template, create_template, update_template
+                  list_templates, get_template
                 </Text>
               </List.Item>
               <List.Item>
