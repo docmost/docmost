@@ -33,6 +33,7 @@ export * from "./lib/integration-link";
 export * from "./lib/microsoft";
 export * from "./lib/columns";
 export * from "./lib/status";
+export * from "./lib/date";
 export * from "./lib/tabs";
 export * from "./lib/pdf";
 export * from "./lib/page-break";

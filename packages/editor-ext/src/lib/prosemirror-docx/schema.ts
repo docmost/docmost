@@ -266,6 +266,9 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   status(state, node) {
     state.text(`[${node.attrs?.text ?? ''}]`);
   },
+  date(state, node) {
+    state.text(node.textContent);
+  },
   pageBreak(state, node) {
     state.closeBlock(node, { pageBreakBefore: true });
   },
