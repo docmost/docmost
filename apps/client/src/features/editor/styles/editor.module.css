@@ -52,3 +52,20 @@
     }
 }
 
+/* each person in the byline popover opens their profile card */
+.bylinePerson {
+    display: block;
+    width: calc(100% + 12px);
+    margin-inline: -6px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.bylinePerson:hover {
+    background-color: light-dark(
+        var(--mantine-color-gray-0),
+        var(--mantine-color-dark-6)
+    );
+}
+

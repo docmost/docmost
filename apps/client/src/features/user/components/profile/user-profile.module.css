@@ -1,0 +1,83 @@
+/* wraps by the card's own width, which the sidebar narrows */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+}
+
+.headerBody {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.name {
+  word-break: break-word;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--mantine-spacing-md);
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--mantine-color-dimmed);
+  word-break: break-word;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.pageIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* same 8px hover inset as the space rows */
+a.recentRow {
+  margin: 0 -8px;
+  padding-inline: 8px;
+}
+
+/* rows reach into the card padding so icons line up with the heading */
+.spaceList {
+  margin: 0 -8px;
+}
+
+.spaceRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 4px;
+  color: var(--mantine-color-bright);
+  text-decoration: none;
+}
+
+a.spaceRow:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+}
+
+.spaceName {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

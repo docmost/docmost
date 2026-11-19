@@ -1380,7 +1380,7 @@ export class PageService {
     await this.pageRepo.removePage(pageId, userId, workspaceId);
   }
 
-  private async parseProsemirrorContent(
+  async parseProsemirrorContent(
     content: string | object,
     format: ContentFormat,
   ): Promise<any> {

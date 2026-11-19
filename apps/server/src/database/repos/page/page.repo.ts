@@ -17,6 +17,7 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
 import { PagePermissionRepo } from './page-permission.repo';
+import { UserRecentPageActivity } from '../../../core/user/user.types';
 
 @Injectable()
 export class PageRepo {
@@ -424,6 +425,70 @@ export class PageRepo {
       ],
       parseCursor: (cursor) => ({
         updatedAt: new Date(cursor.updatedAt),
+        id: cursor.id,
+      }),
+    });
+  }
+
+  async getRecentPagesByUser(
+    userId: string,
+    viewerId: string,
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    const editedByUser = sql`pages.last_updated_by_id = ${userId} and (pages.creator_id is distinct from ${userId} or pages.updated_at > pages.created_at)`;
+
+    const baseQuery = this.db
+      .selectFrom('pages')
+      .select(['id', 'slugId', 'title', 'icon', 'isBase', 'spaceId'])
+      .select((eb) =>
+        jsonObjectFrom(
+          eb
+            .selectFrom('spaces')
+            .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+            .whereRef('spaces.id', '=', 'pages.spaceId'),
+        ).as('space'),
+      )
+      .select(
+        sql<UserRecentPageActivity>`case when ${editedByUser} then 'edited' else 'created' end`.as(
+          'activity',
+        ),
+      )
+      // truncated to the millisecond precision cursors carry
+      .select(
+        sql<Date>`date_trunc('milliseconds', case when ${editedByUser} then pages.updated_at else pages.created_at end)`.as(
+          'activityAt',
+        ),
+      )
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('creatorId', '=', userId),
+          eb('lastUpdatedById', '=', userId),
+        ]),
+      )
+      .where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(viewerId, {
+          excludeArchived: true,
+        }),
+      )
+      .where(this.pagePermissionRepo.canUserAccessPageExpression(viewerId));
+
+    const query = this.db.selectFrom(baseQuery.as('sub')).selectAll('sub');
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'sub.activityAt', direction: 'desc', key: 'activityAt' },
+        { expression: 'sub.id', direction: 'desc', key: 'id' },
+      ],
+      parseCursor: (cursor) => ({
+        activityAt: new Date(cursor.activityAt),
         id: cursor.id,
       }),
     });

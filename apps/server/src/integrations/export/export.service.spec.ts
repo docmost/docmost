@@ -116,6 +116,7 @@ function buildService(opts: { accessiblePageIds: string[] }) {
     {} as any,
     domainService as any,
     spaceMemberRepo,
+    { findActiveNamesByIds: async () => [] } as any,
   );
   return { service, queries, pagePermissionRepo };
 }

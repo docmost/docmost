@@ -46,7 +46,7 @@ function makeService() {
   };
   const auditService = { log: jest.fn() };
   const service = new UserService(userRepo as any, auditService as any);
-  return { service, userRepo };
+  return { service, userRepo, auditService };
 }
 
 describe('UserService update', () => {
@@ -147,5 +147,41 @@ describe('UserService update', () => {
     );
 
     expect(result).toBe(row);
+  });
+
+  it('stores the time zone without auditing', async () => {
+    const { service, userRepo, auditService } = makeService();
+
+    const result = await service.update(
+      { timezone: 'Europe/Berlin' } as UpdateUserDto,
+      'user-1',
+      workspace,
+    );
+
+    expect(userRepo.updateUser).toHaveBeenCalledWith(
+      expect.objectContaining({ timezone: 'Europe/Berlin' }),
+      'user-1',
+      'workspace-1',
+    );
+    expect(result).toEqual(
+      expect.objectContaining({ timezone: 'Europe/Berlin' }),
+    );
+    expect(auditService.log).not.toHaveBeenCalled();
+  });
+
+  it("loads the caller's own time zone so the response keeps it", async () => {
+    const { service, userRepo } = makeService();
+
+    await service.update(
+      { name: 'Jane Smith' } as UpdateUserDto,
+      'user-1',
+      workspace,
+    );
+
+    expect(userRepo.findById).toHaveBeenCalledWith(
+      'user-1',
+      'workspace-1',
+      expect.objectContaining({ includeTimezone: true }),
+    );
   });
 });

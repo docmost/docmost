@@ -28,6 +28,7 @@ import {
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
 import slugify from '@sindresorhus/slugify';
@@ -38,6 +39,7 @@ import { DomainService } from '../environment/domain.service';
 import {
   getAttachmentIds,
   getProsemirrorContent,
+  updateUserMentionLabels,
 } from '../../common/helpers/prosemirror/utils';
 import { htmlToMarkdown } from '@docmost/editor-ext';
 import { validate as isValidUUID } from 'uuid';
@@ -56,6 +58,7 @@ export class ExportService {
     private readonly environmentService: EnvironmentService,
     private readonly domainService: DomainService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly userRepo: UserRepo,
   ) {}
 
   async exportPage(format: string, page: Page) {
@@ -148,13 +151,14 @@ export class ExportService {
     const isSinglePage = pages.length === 1 && !includeAttachments;
 
     if (isSinglePage) {
-      const content = await this.turnPageMentionsToLinks(
+      let content = await this.turnPageMentionsToLinks(
         getProsemirrorContent(pages[0].content),
         pages[0].workspaceId,
         baseUrl,
         userId,
         ignorePermissions,
       );
+      content = await this.applyCurrentUserNames(content, pages[0].workspaceId);
       const pageContent = await this.exportPage(format, {
         ...pages[0],
         content,
@@ -293,12 +297,16 @@ export class ExportService {
       for (const page of children) {
         const childPages = tree[page.id] || [];
 
-        const prosemirrorJson = await this.turnPageMentionsToLinks(
+        let prosemirrorJson = await this.turnPageMentionsToLinks(
           getProsemirrorContent(page.content),
           page.workspaceId,
           baseUrl,
           userId,
           ignorePermissions,
+        );
+        prosemirrorJson = await this.applyCurrentUserNames(
+          prosemirrorJson,
+          page.workspaceId,
         );
 
         const currentPagePath = slugIdToPath[page.slugId];
@@ -431,6 +439,12 @@ export class ExportService {
     }
 
     return new Map(visible.map((a) => [a.id, a]));
+  }
+
+  private applyCurrentUserNames(prosemirrorJson: any, workspaceId: string) {
+    return updateUserMentionLabels(prosemirrorJson, (userIds) =>
+      this.userRepo.findActiveNamesByIds(userIds, workspaceId),
+    );
   }
 
   async turnPageMentionsToLinks(
