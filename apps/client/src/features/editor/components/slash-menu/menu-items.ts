@@ -501,23 +501,11 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Date",
-      description: "Insert current date",
-      searchTerms: ["date", "today"],
+      description: "Pick a date",
+      searchTerms: ["date", "today", "calendar"],
       icon: IconCalendar,
-      command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString(i18n.language, {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .insertContent(currentDate)
-          .run();
-      },
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).insertDate().run(),
     },
     {
       title: "Time",

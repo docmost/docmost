@@ -66,6 +66,7 @@ import {
   Columns,
   Column,
   Status,
+  DateNode,
   TransclusionSource,
   TransclusionReference,
   TableView,
@@ -96,6 +97,7 @@ import MathBlockView from "@/features/editor/components/math/math-block.tsx";
 import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import StatusView from "@/features/editor/components/status/status-view.tsx";
+import DateView from "@/features/editor/components/date/date-view";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
@@ -426,6 +428,11 @@ export const mainExtensions = [
   }),
   Status.configure({
     view: StatusView,
+  }),
+  DateNode.configure({ locale: () => i18n.resolvedLanguage || "en-US" }).extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(DateView);
+    },
   }),
   TransclusionSource.configure({
     view: TransclusionView,
