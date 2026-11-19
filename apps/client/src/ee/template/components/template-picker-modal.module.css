@@ -53,9 +53,9 @@
 
 .useButton {
     position: absolute;
-    top: 50%;
+    inset-block: 0;
+    margin-block: auto;
     right: var(--mantine-spacing-sm);
-    transform: translateY(-50%);
     opacity: 0;
     transition: opacity 100ms ease;
 

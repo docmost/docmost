@@ -1,0 +1,23 @@
+.tiptap .template-variable-chip,
+.tiptap [data-template-variable] {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25em;
+  padding: 0 0.38em;
+  border: 1px solid var(--mantine-primary-color-light-hover);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
+  font: inherit;
+  font-size: 0.88em;
+  line-height: 1.35;
+  vertical-align: baseline;
+}
+
+.tiptap button.template-variable-chip {
+  cursor: pointer;
+}
+
+.tiptap button.template-variable-chip:hover {
+  background: var(--mantine-primary-color-light-hover);
+}

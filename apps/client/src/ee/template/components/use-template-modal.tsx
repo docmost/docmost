@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { ITemplate } from "@/ee/template/types/template.types";
+import { ITemplate, type TemplateVariableValues } from "@/ee/template/types/template.types";
 import { useUseTemplateMutation } from "@/ee/template/queries/template-query";
 import { buildPageUrl } from "@/features/page/page.utils";
 import { DestinationPickerModal } from "@/components/ui/destination-picker/destination-picker-modal";
@@ -11,6 +11,7 @@ type UseTemplateModalProps = {
   opened: boolean;
   onClose: () => void;
   initialSpaceId?: string;
+  variableValues?: TemplateVariableValues;
 };
 
 export default function UseTemplateModal({
@@ -18,6 +19,7 @@ export default function UseTemplateModal({
   opened,
   onClose,
   initialSpaceId,
+  variableValues,
 }: UseTemplateModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export default function UseTemplateModal({
         templateId: template.id,
         spaceId,
         parentPageId,
+        variableValues,
       });
 
       onClose();

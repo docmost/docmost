@@ -1,5 +1,5 @@
 import api from "@/lib/api-client";
-import { ITemplate } from "@/ee/template/types/template.types";
+import { ITemplate, type TemplateVariableValues } from "@/ee/template/types/template.types";
 import { IPage } from "@/features/page/types/page.types";
 import { IPagination } from "@/lib/types.ts";
 
@@ -23,6 +23,7 @@ export async function getTemplateById(
 export async function applyTemplate(data: {
   templateId: string;
   pageId: string;
+  variableValues?: TemplateVariableValues;
 }): Promise<ITemplate> {
   const req = await api.post<ITemplate>("/templates/apply", data);
   return req.data;
@@ -50,6 +51,7 @@ export async function useTemplate(data: {
   templateId: string;
   spaceId: string;
   parentPageId?: string;
+  variableValues?: TemplateVariableValues;
 }): Promise<IPage> {
   const req = await api.post<IPage>("/templates/use", data);
   return req.data;

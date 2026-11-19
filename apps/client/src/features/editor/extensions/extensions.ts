@@ -1,4 +1,5 @@
 import { markInputRule, type Editor } from "@tiptap/core";
+import { EditableTemplateVariable } from "@/ee/template/components/template-variable-node";
 import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
@@ -510,6 +511,7 @@ const TemplateSlashCommand = Command.configure({
 
 export const templateExtensions = [
   ...mainExtensions.filter((ext: any) => ext !== SlashCommand),
+  EditableTemplateVariable,
   TemplateSlashCommand,
   UndoRedo,
 ] as any;

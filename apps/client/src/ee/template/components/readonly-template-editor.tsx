@@ -3,7 +3,8 @@ import { useMemo } from "react";
 import { Title } from "@mantine/core";
 import { EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
-import { UniqueID } from "@docmost/editor-ext";
+import { TemplateVariableNode, UniqueID } from "@docmost/editor-ext";
+import "./template-variable.css";
 import { ITemplate } from "@/ee/template/types/template.types";
 import TemplateMeta from "@/ee/template/components/template-meta";
 import classes from "./readonly-template-editor.module.css";
@@ -22,6 +23,7 @@ export default function ReadonlyTemplateEditor({
 
     return [
       ...filteredExtensions,
+      TemplateVariableNode,
       UniqueID.configure({
         types: ["heading", "paragraph"],
         updateDocument: false,
