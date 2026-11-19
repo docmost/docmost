@@ -132,10 +132,15 @@
 
 .sidebarFlex {
   display: flex;
+  /* the window height minus the modal's offsets, header and bottom padding */
+  max-height: calc(100dvh - var(--modal-y-offset) * 2 - rem(76px));
 }
 
 .sidebarMain {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebarRightSection {
