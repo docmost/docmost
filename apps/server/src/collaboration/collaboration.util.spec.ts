@@ -2,9 +2,11 @@ import { addUniqueIdsToDoc } from '@docmost/editor-ext';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import type { JSONContent } from '@tiptap/core';
 import { generateJSON } from '../common/helpers/prosemirror/html';
+import { getHTMLFromFragment } from '../common/helpers/prosemirror/html/getHTMLFromFragment';
 import {
   jsonToHtml,
   jsonToMarkdown,
+  jsonToNode,
   jsonToText,
   tiptapExtensions,
 } from './collaboration.util';
@@ -51,7 +53,7 @@ it('preserves template hints in collaboration and omits them from page text and 
   }
 });
 
-it('exports real links and filled answers without emitting links attached only to an instruction', () => {
+it('uses the HTML schema for linked prompts and preserves the link when a prompt is filled', () => {
   const source = 'https://example.com/instructions';
   const handbook = 'https://example.com/handbook';
   const link = (href: string) => [{ type: 'link', attrs: { href } }];
@@ -73,13 +75,11 @@ it('exports real links and filled answers without emitting links attached only t
       },
     ],
   };
-  for (const exported of [
-    jsonToHtml(doc),
-    jsonToMarkdown(doc),
-    jsonToText(doc),
-  ]) {
+  const node = jsonToNode(doc);
+  const html = jsonToHtml(doc);
+  expect(html).toBe(getHTMLFromFragment(node, node.type.schema));
+  for (const exported of [html, jsonToMarkdown(doc), jsonToText(doc)]) {
     expect(exported).not.toContain('Enter an owner');
-    expect(exported).not.toContain(source);
     expect(exported).toContain('Handbook');
   }
   expect(jsonToMarkdown(doc)).toContain(`[Handbook](${handbook})`);

@@ -10,6 +10,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { nanoIdGen } from '../../common/helpers';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { TokenService } from '../auth/services/token.service';
+import { withoutTemplatePlaceholders } from '@docmost/editor-ext';
 import { jsonToNode } from '../../collaboration/collaboration.util';
 import {
   getAttachmentIds,
@@ -489,9 +490,8 @@ export class ShareService {
    *    content, the source page for transcluded source-block content
    *    (attachments in a sync block were uploaded onto the source page).
    *
-   * 2. Strip `comment` marks. Comments are internal-team metadata and must
-   *    not leak structure (existence, location, count, resolved state, or
-   *    comment ids) to public viewers.
+   * 2. Remove template instructions and strip `comment` marks from the
+   *    surrounding page content.
    *
    * Both share-content paths — the host page (`updatePublicAttachments`) and
    * the share-scoped transclusion lookup (`lookupTransclusionForShare`) —
@@ -519,7 +519,8 @@ export class ShareService {
     );
 
     const doc = jsonToNode(pmJson);
-    doc?.descendants((node: Node) => {
+    if (!doc) return null;
+    doc.descendants((node: Node) => {
       if (!isAttachmentNode(node.type.name)) return;
       const token = tokenMap.get(node.attrs.attachmentId);
       if (!token) return;
@@ -527,6 +528,7 @@ export class ShareService {
       updateAttachmentAttr(node, 'url', token);
     });
 
-    return doc ? removeMarkTypeFromDoc(doc, 'comment') : null;
+    const publicDoc = doc.copy(withoutTemplatePlaceholders(doc.content));
+    return removeMarkTypeFromDoc(publicDoc, 'comment');
   }
 }
