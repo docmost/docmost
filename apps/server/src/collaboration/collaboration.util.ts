@@ -236,7 +236,8 @@ function stripUnknownNodes(
         newContent.push(cleaned);
       }
     }
-    json = { ...json, content: newContent };
+    // in place: the single-page export renders the caller's JSON after jsonToNode
+    json.content = newContent;
   }
 
   // Check if this node is unknown AFTER processing children

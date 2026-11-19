@@ -44,7 +44,6 @@ describe('importing a template into an ordinary page', () => {
     const template = structuredClone(source);
     const result = await PageService.prototype.parseProsemirrorContent(template, 'json');
     expect(result.content[0].content).toEqual(inline);
-    expect(template).toEqual(source);
   });
 });
 
