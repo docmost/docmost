@@ -196,6 +196,7 @@ describe('PageService movePageToSpace', () => {
       lockPageHierarchySpaces: jest.fn(async () => undefined),
       findById: jest.fn(async () => rootPage),
       getPageAndDescendants: jest.fn(async () => [rootPage, childPage]),
+      nextPagePosition: jest.fn(async () => POSITION),
       updatePage: jest.fn(async () => undefined),
       updatePages: jest.fn(async () => undefined),
     };
