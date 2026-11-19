@@ -1,27 +1,30 @@
 import { Group, List, Stack, Table, Text, ThemeIcon } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 
-const enterpriseFeatures = [
-  "AI Integration (Chat, Search & Assistant)",
-  "MCP Support",
-  "SSO (SAML, OIDC, LDAP)",
-  "SCIM Provisioning",
-  "Multi-factor Authentication (2FA)",
-  "Page-level Permissions",
-  "Page Verification & Approval Workflow",
-  "Audit Logs",
-  "Enterprise Controls",
-  "API Keys",
-  "Advanced Search Engine Support",
-  "Full-text Search in Attachments (PDF, DOCX)",
-  "Resolve Comments",
-  "Confluence Import",
-  "PDF & DOCX Import",
-  "Bases",
-  "Kanban",
-  "Templates",
-  "Personal Spaces",
-  "Announcements"
+const paidFeatures: { name: string; enterpriseOnly?: boolean }[] = [
+  { name: "AI Integration (Chat, Search & Assistant)" },
+  { name: "MCP Support" },
+  { name: "SSO (SAML, OIDC, LDAP)" },
+  { name: "Multi-factor Authentication (2FA)" },
+  { name: "Page-level Permissions" },
+  { name: "API Keys" },
+  { name: "Advanced Search Engine Support" },
+  { name: "Full-text Search in Attachments (PDF, DOCX)" },
+  { name: "Confluence, PDF & DOCX Import" },
+  { name: "Bases & Kanban" },
+  { name: "Templates" },
+  { name: "Personal Spaces" },
+  { name: "Announcements" },
+  { name: "Disable Public Sharing" },
+  { name: "Jira & GitLab Integrations" },
+  { name: "SCIM Provisioning", enterpriseOnly: true },
+  { name: "Page Verification & Approval Workflow", enterpriseOnly: true },
+  { name: "Audit Logs & SIEM", enterpriseOnly: true },
+  { name: "Security, Export & Retention Controls", enterpriseOnly: true },
+  { name: "SharePoint & Azure DevOps Integrations", enterpriseOnly: true },
+  { name: "Read Confirmation*", enterpriseOnly: true },
+  { name: "Advanced Confluence Migration (Contact Sales)", enterpriseOnly: true },
 ];
 
 export default function OssDetails() {
@@ -58,24 +61,30 @@ export default function OssDetails() {
       </Table.ScrollContainer>
 
       <Stack gap="md">
-        <Text fw={500}>Upgrade to the Enterprise Edition to unlock:</Text>
+        <Text fw={500}>Upgrade to Business or Enterprise to unlock:</Text>
 
         <List
-          spacing={4}
           size="sm"
           icon={
             <ThemeIcon size={20} color={"gray"} radius="xl">
               <IconCheck size={14} />
             </ThemeIcon>
           }
+          style={{ columns: "2 16rem", columnGap: "var(--mantine-spacing-xl)" }}
+          styles={{ item: { breakInside: "avoid", paddingBlock: 2 } }}
         >
-          {enterpriseFeatures.map((feature) => (
-            <List.Item key={feature}>{feature}</List.Item>
+          {paidFeatures.map((feature) => (
+            <List.Item key={feature.name}>
+              {feature.name}
+              {feature.enterpriseOnly && (
+                <UpgradeBadge label="Enterprise" ml="xs" />
+              )}
+            </List.Item>
           ))}
         </List>
 
         <Text size="sm" c="dimmed">
-          Get an enterprise trial key at{" "}
+          Start a free Business or Enterprise trial at{" "}
           <a
             href="https://customers.docmost.com/"
             target="_blank"
@@ -87,19 +96,15 @@ export default function OssDetails() {
         </Text>
 
         <Text size="sm" c="dimmed">
-          Visit{" "}
+          Compare editions at{" "}
           <a
             href="https://docmost.com/pricing"
             target="_blank"
             rel="noopener noreferrer"
           >
             docmost.com/pricing
-          </a>{" "}
-          to purchase an enterprise license.
-        </Text>
-        <Text size="sm" c="dimmed">
-          For inquiries, contact{" "}
-          <a href="mailto:sales@docmost.com">sales@docmost.com</a>
+          </a>
+          , or contact <a href="mailto:sales@docmost.com">sales@docmost.com</a>.
         </Text>
       </Stack>
     </Stack>

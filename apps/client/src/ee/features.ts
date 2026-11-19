@@ -3,7 +3,6 @@ export const Feature = {
   SSO_GOOGLE: 'sso:google',
   MFA: 'mfa',
   API_KEYS: 'api:keys',
-  COMMENT_RESOLUTION: 'comment:resolution',
   PAGE_PERMISSIONS: 'page:permissions',
   AI: 'ai',
   CONFLUENCE_IMPORT: 'import:confluence',
