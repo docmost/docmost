@@ -871,7 +871,6 @@
   "Months": "个月",
   "Years": "年",
   "Pick a date": "选择日期",
-  "Calendar": "日历",
   "Maximum is {{max}} {{unit}} for this unit": "此单位的最大值为 {{max}} {{unit}}",
   "Never expires. Verifiers can re-verify at any time.": "永不过期。验证者可随时重新验证。",
   "Verified": "已验证",

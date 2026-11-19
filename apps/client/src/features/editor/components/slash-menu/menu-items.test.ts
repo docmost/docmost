@@ -9,10 +9,15 @@ vi.mock("@/main.tsx", async () => {
 
 vi.mock("@/i18n.ts", async () => {
   const { createInstance } = await import("i18next");
-  const { default: translation } =
-    await import("../../../../../public/locales/fr-FR/translation.json");
   const i18n = createInstance();
-  await i18n.init({ lng: "fr-FR", resources: { "fr-FR": { translation } } });
+  await i18n.init({
+    lng: "fr-FR",
+    resources: {
+      "fr-FR": {
+        translation: { Today: "Aujourd'hui", Calendar: "Calendrier" },
+      },
+    },
+  });
   return { default: i18n };
 });
 
