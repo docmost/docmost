@@ -81,15 +81,38 @@ describe('UserRepo timezone', () => {
     expect(queries[1].sql).toContain('"timezone"');
   });
 
-  it('leaves timezone out of the member list', async () => {
+  it("returns the owner's timezone from their own settings updates", async () => {
     const { repo, queries } = buildRepo();
 
-    await repo.getUsersPaginated(
-      'ws-1',
-      Object.assign(new PaginationOptions(), { limit: 20 }),
-    );
+    await repo.updatePreference('u-1', 'fullPageWidth', true);
+    await repo.updateNotificationSetting('u-1', 'page.updated', false);
 
-    expect(queries[0].sql).not.toContain('"timezone"');
+    expect(queries[0].sql).toMatch(/returning .*"timezone"/);
+    expect(queries[1].sql).toMatch(/returning .*"timezone"/);
+  });
+
+  it('shows join dates in the member list to admins only', async () => {
+    const { repo, queries } = buildRepo();
+    const pagination = Object.assign(new PaginationOptions(), { limit: 20 });
+
+    await repo.getUsersPaginated('ws-1', pagination);
+    await repo.getUsersPaginated('ws-1', pagination, { adminView: true });
+
+    expect(queries[0].sql).not.toContain('"created_at"');
+    expect(queries[1].sql).toContain('"created_at"');
+  });
+
+  it('leaves timezone and locale out of the member list', async () => {
+    const { repo, queries } = buildRepo();
+    const pagination = Object.assign(new PaginationOptions(), { limit: 20 });
+
+    await repo.getUsersPaginated('ws-1', pagination);
+    await repo.getUsersPaginated('ws-1', pagination, { adminView: true });
+
+    for (const { sql } of queries) {
+      expect(sql).not.toContain('"timezone"');
+      expect(sql).not.toContain('"locale"');
+    }
   });
 });
 

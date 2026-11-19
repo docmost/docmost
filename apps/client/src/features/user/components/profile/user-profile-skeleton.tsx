@@ -24,7 +24,6 @@ export function UserProfileSkeleton() {
             </Group>
             <div className={classes.meta}>
               <Skeleton height={14} width={170} radius="xs" my={4} />
-              <Skeleton height={14} width={110} radius="xs" my={4} />
             </div>
           </div>
           <Skeleton height={36} width={112} radius="sm" />

@@ -75,7 +75,6 @@ describe('UserProfileService', () => {
       avatarUrl: null,
       email: 'ada@example.com',
       role: 'member',
-      createdAt,
       deactivatedAt: null,
       deletedAt: null,
     });

@@ -31,7 +31,7 @@ export default function UserProfilePage() {
         title={notFound ? t("Profile not found") : profile?.name}
       />
 
-      <Container size={900} py="xl">
+      <Container size={900} pt="lg" pb="xl">
         <Stack gap="lg">
           <Text size="sm" c="dimmed">
             <Anchor

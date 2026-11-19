@@ -33,7 +33,6 @@ export class UserProfileService {
       avatarUrl: user.avatarUrl,
       email: user.deletedAt ? null : user.email,
       role: user.role,
-      createdAt: user.createdAt,
       deactivatedAt: user.deactivatedAt,
       deletedAt: user.deletedAt,
     };

@@ -168,4 +168,20 @@ describe('UserService update', () => {
     );
     expect(auditService.log).not.toHaveBeenCalled();
   });
+
+  it("loads the caller's own time zone so the response keeps it", async () => {
+    const { service, userRepo } = makeService();
+
+    await service.update(
+      { name: 'Jane Smith' } as UpdateUserDto,
+      'user-1',
+      workspace,
+    );
+
+    expect(userRepo.findById).toHaveBeenCalledWith(
+      'user-1',
+      'workspace-1',
+      expect.objectContaining({ includeTimezone: true }),
+    );
+  });
 });

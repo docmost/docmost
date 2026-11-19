@@ -47,15 +47,20 @@ export class UserRepo {
     'avatarUrl',
     'role',
     'workspaceId',
-    'locale',
     'deactivatedAt',
-    'createdAt',
     'updatedAt',
     'deletedAt',
   ];
 
   // added for admins and owners
-  public adminFields: Array<keyof Users> = ['lastLoginAt', 'emailVerifiedAt'];
+  public adminFields: Array<keyof Users> = [
+    'lastLoginAt',
+    'emailVerifiedAt',
+    'createdAt',
+  ];
+
+  // a user's own record also carries their timezone
+  private ownFields: Array<keyof Users> = [...this.baseFields, 'timezone'];
 
   async findById(
     userId: string,
@@ -255,7 +260,7 @@ export class UserRepo {
         updatedAt: new Date(),
       })
       .where('id', '=', userId)
-      .returning(this.baseFields)
+      .returning(this.ownFields)
       .executeTakeFirst();
   }
 
@@ -273,7 +278,7 @@ export class UserRepo {
         updatedAt: new Date(),
       })
       .where('id', '=', userId)
-      .returning(this.baseFields)
+      .returning(this.ownFields)
       .executeTakeFirst();
   }
 

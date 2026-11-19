@@ -33,7 +33,9 @@ export class UserService {
     userId: string,
     workspace: Workspace,
   ) {
-    const user = await this.userRepo.findById(userId, workspace.id);
+    const user = await this.userRepo.findById(userId, workspace.id, {
+      includeTimezone: true,
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');

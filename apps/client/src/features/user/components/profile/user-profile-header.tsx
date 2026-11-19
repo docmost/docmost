@@ -1,12 +1,7 @@
 import { ReactNode } from "react";
 import { Badge, Button, Group, Paper, Text, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import {
-  IconCalendar,
-  IconLink,
-  IconMail,
-  IconPencil,
-} from "@tabler/icons-react";
+import { IconLink, IconMail, IconPencil } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -17,7 +12,6 @@ import { getUserRoleLabel } from "@/features/workspace/types/user-role-data";
 import { useClipboard } from "@/hooks/use-clipboard";
 import APP_ROUTE from "@/lib/app-route";
 import { getAppUrl, getUserProfileUrl } from "@/lib/config";
-import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale";
 import classes from "@/features/user/components/profile/user-profile.module.css";
 
 type UserProfileHeaderProps = {
@@ -27,7 +21,6 @@ type UserProfileHeaderProps = {
 
 export function UserProfileHeader({ profile, actions }: UserProfileHeaderProps) {
   const { t } = useTranslation();
-  const locale = useDateFnsLocale();
   const clipboard = useClipboard({ timeout: 500 });
   const currentUser = useAtomValue(userAtom);
   const isSelf = profile.id === currentUser?.id;
@@ -66,29 +59,16 @@ export function UserProfileHeader({ profile, actions }: UserProfileHeaderProps) 
             ) : null}
           </Group>
 
-          <div className={classes.meta}>
-            {profile.email && (
+          {profile.email && (
+            <div className={classes.meta}>
               <span className={classes.metaItem}>
                 <IconMail size={16} aria-hidden />
                 <Text span fz="sm" c="dimmed">
                   {profile.email}
                 </Text>
               </span>
-            )}
-            <span className={classes.metaItem}>
-              <IconCalendar size={16} aria-hidden />
-              <Text span fz="sm" c="dimmed">
-                {t("Joined {{date}}", {
-                  date: formatLocalized(
-                    profile.createdAt,
-                    "MMMM yyyy",
-                    "LLLL yyyy",
-                    locale,
-                  ),
-                })}
-              </Text>
-            </span>
-          </div>
+            </div>
+          )}
         </div>
 
         <Group gap="xs">
