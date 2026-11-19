@@ -14,6 +14,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { getUserProfile } from "@/features/user/services/user-service";
 import { UserMention } from "@/features/editor/components/mention/user-mention";
 import { UserHoverCard } from "./user-hover-card";
+import { UserProfilePopover } from "./user-profile-popover";
 
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -40,7 +41,6 @@ const profile = {
   avatarUrl: "",
   email: "ada@example.com",
   role: "member",
-  createdAt: "2026-01-01T00:00:00.000Z",
   deactivatedAt: null,
   deletedAt: null,
 };
@@ -236,5 +236,35 @@ describe("UserMention", () => {
     await new Promise((resolve) => setTimeout(resolve, 450));
 
     expect(getUserProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe("UserProfilePopover", () => {
+  beforeEach(() => {
+    setMediaMatch();
+    vi.mocked(getUserProfile).mockReset();
+    vi.mocked(getUserProfile).mockResolvedValue(profile as any);
+  });
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("opens the profile card on click, not on hover", async () => {
+    renderWithProviders(
+      <UserProfilePopover userId={USER_ID}>
+        <button type="button">Ada</button>
+      </UserProfilePopover>,
+    );
+
+    fireEvent.mouseEnter(screen.getByText("Ada"));
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    expect(getUserProfile).not.toHaveBeenCalled();
+    expect(screen.queryByText("View profile")).toBeNull();
+
+    fireEvent.click(screen.getByText("Ada"));
+
+    expect(await screen.findByText("Ada Lovelace")).toBeTruthy();
+    const link = (await screen.findByText("View profile")).closest("a");
+    expect(link?.getAttribute("href")).toBe(`/people/${USER_ID}`);
   });
 });
