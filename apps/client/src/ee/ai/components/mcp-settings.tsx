@@ -145,6 +145,11 @@ export default function McpSettings() {
               </List.Item>
               <List.Item>
                 <Text size="sm" c="dimmed" span>
+                  list_templates, get_template
+                </Text>
+              </List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
                   search_attachments, list_workspace_members, get_current_user
                 </Text>
               </List.Item>
