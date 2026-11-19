@@ -1,7 +1,8 @@
 import { addUniqueIdsToDoc } from '@docmost/editor-ext';
 import type { JSONContent } from '@tiptap/core';
 import { generateJSON } from '../common/helpers/prosemirror/html';
-import { tiptapExtensions } from './collaboration.util';
+import { htmlToJson, jsonToHtml, tiptapExtensions } from './collaboration.util';
+import { PageService } from '../core/page/services/page.service';
 
 const ID_TYPES = ['heading', 'paragraph'];
 
@@ -18,6 +19,34 @@ const withoutIds = (doc: JSONContent) =>
   JSON.parse(
     JSON.stringify(doc, (key, value) => (key === 'id' ? null : value)),
   );
+
+describe('importing a template into an ordinary page', () => {
+  const source = { type: 'doc', content: [{ type: 'paragraph', content: [
+    { type: 'text', text: 'Prepared for ' },
+    { type: 'templateVariable', attrs: {
+      id: '11111111-1111-4111-8111-111111111111', name: 'Client', fieldType: 'text', options: [],
+    }, marks: [{ type: 'bold' }] },
+    { type: 'text', text: '.' },
+  ] }] };
+  const inline = [
+    { type: 'text', text: 'Prepared for ' },
+    { type: 'text', text: 'Client', marks: [{ type: 'bold' }] },
+    { type: 'text', text: '.' },
+  ];
+
+  it('imports the visible HTML label and keeps its formatting', () => {
+    const html = jsonToHtml(source);
+    expect(html).toContain('data-template-variable');
+    expect(htmlToJson(html).content[0].content).toEqual(inline);
+  });
+
+  it('converts a variable in page JSON before it is saved for collaboration', async () => {
+    const template = structuredClone(source);
+    const result = await PageService.prototype.parseProsemirrorContent(template, 'json');
+    expect(result.content[0].content).toEqual(inline);
+    expect(template).toEqual(source);
+  });
+});
 
 describe('addUniqueIdsToDoc', () => {
   const html = [

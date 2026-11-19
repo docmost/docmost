@@ -106,7 +106,7 @@ export default function TemplatePickerModal({
     }
     try {
       const page = await useTemplateMutation.mutateAsync({
-        templateId: tpl.id,
+        template: tpl,
         spaceId: initialSpaceId,
         variableValues,
       });

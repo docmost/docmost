@@ -65,6 +65,7 @@ import {
   generateText,
   getSchema,
   JSONContent,
+  type Extensions,
 } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 import { collapseBlankLines } from '../common/helpers';
@@ -138,7 +139,6 @@ export const tiptapExtensions = [
   Column,
   Status,
   DateNode,
-  TemplateVariableNode,
   TransclusionSource,
   TransclusionReference,
   BaseEmbed,
@@ -151,15 +151,24 @@ export const tiptapExtensions = [
   MicrosoftFolder,
 ] as any;
 
+export const templateExtensions: Extensions = [
+  ...tiptapExtensions,
+  TemplateVariableNode,
+];
+
+// Pages and templates share serializers. Only template imports retain editable fields.
 export function jsonToHtml(tiptapJson: any) {
-  return generateHTML(tiptapJson, tiptapExtensions);
+  return generateHTML(tiptapJson, templateExtensions);
 }
 
-export function htmlToJson(html: string) {
-  const pmJson = generateJSON(html, tiptapExtensions);
+export function htmlToJson(
+  html: string,
+  extensions: Extensions = tiptapExtensions,
+) {
+  const pmJson = generateJSON(html, extensions);
 
   try {
-    return addUniqueIdsToDoc(pmJson, tiptapExtensions);
+    return addUniqueIdsToDoc(pmJson, extensions);
   } catch (error) {
     console.warn('failed to add unique ids to doc', error);
     return pmJson;
@@ -167,24 +176,31 @@ export function htmlToJson(html: string) {
 }
 
 export function jsonToText(tiptapJson: JSONContent) {
-  return collapseBlankLines(generateText(tiptapJson, tiptapExtensions));
+  return collapseBlankLines(generateText(tiptapJson, templateExtensions));
 }
 
-export function jsonToNode(tiptapJson: JSONContent) {
-  const schema = getSchema(tiptapExtensions);
+export function parseDocumentJson(
+  content: JSONContent,
+  extensions: Extensions = tiptapExtensions,
+) {
+  const schema = getSchema(extensions);
   try {
-    return Node.fromJSON(schema, tiptapJson);
+    return { content, node: Node.fromJSON(schema, content) };
   } catch (error) {
     if (
       error instanceof RangeError &&
       error.message.includes('Unknown node type')
     ) {
       Logger.warn('Stripping unknown node types from document:', error.message);
-      const cleanedJson = stripUnknownNodes(tiptapJson, schema);
-      return Node.fromJSON(schema, cleanedJson);
+      const cleaned = stripUnknownNodes(content, schema);
+      return { content: cleaned, node: Node.fromJSON(schema, cleaned) };
     }
     throw error;
   }
+}
+
+export function jsonToNode(content: JSONContent) {
+  return parseDocumentJson(content).node;
 }
 
 export function getPageId(documentName: string) {
@@ -206,7 +222,7 @@ export function isEmptyParagraphDoc(tiptapJson: JSONContent): boolean {
 function stripUnknownNodes(
   json: JSONContent,
   schema: Schema,
-): JSONContent | null {
+): JSONContent | JSONContent[] | null {
   if (!json || typeof json !== 'object') return json;
 
   // Recursively clean children first, flattening any unwrapped content
@@ -220,15 +236,17 @@ function stripUnknownNodes(
         newContent.push(cleaned);
       }
     }
-    json.content = newContent;
+    json = { ...json, content: newContent };
   }
 
   // Check if this node is unknown AFTER processing children
   if (json.type && !schema.nodes[json.type]) {
+    const label = json.attrs?.name;
+    if (json.type === 'templateVariable' && typeof label === 'string' && label) {
+      return { type: 'text', text: label, ...(json.marks && { marks: json.marks }) };
+    }
     // Unwrap: return cleaned children directly instead of wrapping
-    return (
-      json.content && json.content.length > 0 ? json.content : null
-    ) as any;
+    return json.content?.length ? json.content : null;
   }
 
   return json;

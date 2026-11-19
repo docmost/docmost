@@ -32,7 +32,7 @@ export default function UseTemplateModal({
 
     try {
       const page = await useTemplateMutation.mutateAsync({
-        templateId: template.id,
+        template,
         spaceId,
         parentPageId,
         variableValues,

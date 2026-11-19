@@ -83,7 +83,7 @@ export function EmptyPageGetStarted({
 
     let template: ITemplate;
     try {
-      template = await applyTemplate({ templateId: selected.id, pageId, variableValues });
+      template = await applyTemplate({ template: selected, pageId, variableValues });
     } catch (error) {
       notifications.show({
         message: t(error.response?.data?.message || "Failed to load template"),

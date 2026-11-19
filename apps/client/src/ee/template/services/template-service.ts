@@ -20,12 +20,19 @@ export async function getTemplateById(
   return req.data;
 }
 
-export async function applyTemplate(data: {
-  templateId: string;
-  pageId: string;
+type TemplateApplication = {
+  template: Pick<ITemplate, "id" | "updatedAt">;
   variableValues?: TemplateVariableValues;
+};
+
+export async function applyTemplate({ template, ...data }: TemplateApplication & {
+  pageId: string;
 }): Promise<ITemplate> {
-  const req = await api.post<ITemplate>("/templates/apply", data);
+  const req = await api.post<ITemplate>("/templates/apply", {
+    ...data,
+    templateId: template.id,
+    templateUpdatedAt: template.updatedAt,
+  });
   return req.data;
 }
 
@@ -47,12 +54,14 @@ export async function deleteTemplate(templateId: string): Promise<void> {
   await api.post<void>("/templates/delete", { templateId });
 }
 
-export async function useTemplate(data: {
-  templateId: string;
+export async function useTemplate({ template, ...data }: TemplateApplication & {
   spaceId: string;
   parentPageId?: string;
-  variableValues?: TemplateVariableValues;
 }): Promise<IPage> {
-  const req = await api.post<IPage>("/templates/use", data);
+  const req = await api.post<IPage>("/templates/use", {
+    ...data,
+    templateId: template.id,
+    templateUpdatedAt: template.updatedAt,
+  });
   return req.data;
 }

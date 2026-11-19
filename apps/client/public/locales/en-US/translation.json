@@ -2309,5 +2309,6 @@
   "Invalid template variable": "Invalid template variable",
   "Conflicting template variable names": "Conflicting template variable names",
   "These values become editable text on the page.": "These values become editable text on the page.",
-  "The filled template is too large. Shorten the variable values and try again.": "The filled template is too large. Shorten the variable values and try again."
+  "The filled template is too large. Shorten the variable values and try again.": "The filled template is too large. Shorten the variable values and try again.",
+  "The template has too many repeated choices.": "The template has too many repeated choices."
 }
