@@ -126,6 +126,7 @@ export const AuditEvent = {
 
   // Template
   TEMPLATE_CREATED: 'template.created',
+  TEMPLATE_UPDATED: 'template.updated',
   TEMPLATE_DELETED: 'template.deleted',
 
   // Announcement

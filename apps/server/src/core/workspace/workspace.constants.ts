@@ -77,6 +77,7 @@ export const DISALLOWED_HOSTNAMES = [
   'upload',
   'uploads',
   'version',
+  'versions',
   'translate',
   'translation',
   'translations',

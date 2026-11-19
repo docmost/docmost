@@ -15,6 +15,7 @@ import {
   Stack,
   ActionIcon,
   Text,
+  Textarea,
 } from "@mantine/core";
 import {
   IconArrowLeft,
@@ -460,13 +461,15 @@ export default function TemplateEditor() {
               actionIconProps={icon ? { size: "3rem", variant: "transparent" } : undefined}
             />
           </div>
-          <input
-            className={classes.titleInput}
+          <Textarea
+            autosize
+            variant="unstyled"
+            classNames={{ input: classes.titleInput }}
             placeholder={t("Untitled")}
             autoFocus
             value={title}
             onChange={(e) =>
-              handleTitleChange(e.currentTarget.value)
+              handleTitleChange(e.currentTarget.value.replace(/[\r\n]+/g, " "))
             }
             onKeyDown={(e) => {
               if (e.key === "Enter") {
