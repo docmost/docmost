@@ -28,6 +28,7 @@ vi.mock("react-i18next", () => ({
       key.replace(/{{(\w+)}}/g, (_match, name) => String(values?.[name] ?? "")),
     i18n: { language: "en-US" },
   }),
+  Trans: () => null,
 }));
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
 vi.mock("../services/announcement-service");

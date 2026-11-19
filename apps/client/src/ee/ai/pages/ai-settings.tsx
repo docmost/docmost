@@ -8,11 +8,10 @@ import EnableAiChat from "@/ee/ai-chat/components/enable-ai-chat.tsx";
 import AiChatReadOnly from "@/ee/ai-chat/components/ai-chat-read-only.tsx";
 import AiChatWorkspaceKnowledgeOnly from "@/ee/ai-chat/components/ai-chat-workspace-knowledge-only.tsx";
 import McpSettings from "@/ee/ai/components/mcp-settings.tsx";
-import { Alert, Collapse, Stack, Tabs } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { Collapse, Stack, Tabs } from "@mantine/core";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
-import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { UpgradeAlert } from "@/ee/components/upgrade-alert";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useAtomValue } from "jotai";
@@ -22,7 +21,6 @@ export default function AiSettings() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
   const hasAccess = useHasFeature(Feature.AI);
-  const upgradeLabel = useUpgradeLabel();
   const workspace = useAtomValue(workspaceAtom);
   const aiChatEnabled = workspace?.settings?.ai?.chat === true;
   const location = useLocation();
@@ -59,16 +57,10 @@ export default function AiSettings() {
 
         <Tabs.Panel value="ai" pt="md">
           {!hasAccess && (
-            <Alert
-              icon={<IconInfoCircle />}
-              title={upgradeLabel}
-              color="blue"
+            <UpgradeAlert
+              message={t("AI is available in the Docmost paid editions.")}
               mb="lg"
-            >
-              {t(
-                "AI is available in the Docmost paid editions. Contact sales@docmost.com.",
-              )}
-            </Alert>
+            />
           )}
 
           <Stack gap="md">

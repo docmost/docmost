@@ -1,7 +1,6 @@
 import {
   Group,
   Text,
-  Badge,
   Button,
   Box,
   Stack,
@@ -16,6 +15,7 @@ import { getIntegrationIcon } from "./integration-icons";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 import { isCloud } from "@/lib/config.ts";
 
 // Keep in sync with apps/server/src/ee/licence/feature-registry.ts.
@@ -61,11 +61,12 @@ export default function IntegrationRow({
                 {definition.name}
               </Text>
               {locked && (
-                <Badge size="xs" variant="light" color="violet">
-                  {minimumPlan
-                    ? t(isCloud() ? minimumPlan.cloud : minimumPlan.selfHosted)
-                    : t("Paid")}
-                </Badge>
+                <UpgradeBadge
+                  label={
+                    minimumPlan &&
+                    t(isCloud() ? minimumPlan.cloud : minimumPlan.selfHosted)
+                  }
+                />
               )}
             </Group>
             <Text size="xs" c="dimmed" truncate>

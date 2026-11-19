@@ -1,6 +1,6 @@
 import { FC } from "react";
 import type { Editor } from "@tiptap/react";
-import { ActionIcon, Badge, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconAppWindow,
   IconCalendar,
@@ -36,6 +36,7 @@ import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/in
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 
 interface Props {
   editor: Editor;
@@ -125,13 +126,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               aria-disabled={!hasBases}
               closeMenuOnClick={hasBases}
               style={{ opacity: hasBases ? undefined : 0.7 }}
-              rightSection={
-                !hasBases && (
-                  <Badge size="xs" variant="light" color="gray">
-                    {t("Upgrade")}
-                  </Badge>
-                )
-              }
+              rightSection={!hasBases && <UpgradeBadge />}
               onClick={() => {
                 if (hasBases) insertBaseEmbedBlock(editor);
               }}
@@ -147,13 +142,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               aria-disabled={!hasBases}
               closeMenuOnClick={hasBases}
               style={{ opacity: hasBases ? undefined : 0.7 }}
-              rightSection={
-                !hasBases && (
-                  <Badge size="xs" variant="light" color="gray">
-                    {t("Upgrade")}
-                  </Badge>
-                )
-              }
+              rightSection={!hasBases && <UpgradeBadge />}
               onClick={() => {
                 if (hasBases) insertBaseEmbedBlock(editor, { template: "kanban" });
               }}

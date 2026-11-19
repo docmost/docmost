@@ -1,4 +1,4 @@
-import { Badge, Group, Text, Switch, Tooltip } from "@mantine/core";
+import { Group, Text, Switch, Tooltip } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { notifications } from "@mantine/notifications";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 
 export default function AiChatWorkspaceKnowledgeOnly() {
   const { t } = useTranslation();
@@ -18,11 +19,7 @@ export default function AiChatWorkspaceKnowledgeOnly() {
       <div>
         <Group gap="xs" align="center">
           <Text size="md">{t("Workspace knowledge only")}</Text>
-          {!hasAccess && (
-            <Badge variant="light" size="sm" radius="sm">
-              {t("Enterprise")}
-            </Badge>
-          )}
+          {!hasAccess && <UpgradeBadge />}
         </Group>
         <Text size="sm" c="dimmed">
           {t(

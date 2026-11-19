@@ -4,7 +4,6 @@ import {
   Button,
   Menu,
   Text,
-  Badge,
   Group,
   ScrollArea,
   Switch,
@@ -34,6 +33,7 @@ import { RadioMenuItem } from "@/components/ui/radio-menu-item";
 import { CheckboxMenuItem } from "@/components/ui/checkbox-menu-item";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 import classes from "./search-spotlight-filters.module.css";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
@@ -273,11 +273,7 @@ export function SearchSpotlightFilters({
               <Group flex="1" gap="xs">
                 <div>
                   <Text size="sm">{option.label}</Text>
-                  {option.disabled && (
-                    <Badge size="xs" mt={4}>
-                      {t("Enterprise")}
-                    </Badge>
-                  )}
+                  {option.disabled && <UpgradeBadge mt={4} />}
                   {!option.disabled && isAiMode && option.value === "attachment" && (
                     <Text size="xs" mt={4}>
                       {t("AI Answers not available for attachments")}
