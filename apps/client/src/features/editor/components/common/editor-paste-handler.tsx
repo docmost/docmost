@@ -5,7 +5,8 @@ import { uploadPdfAction } from "../pdf/upload-pdf-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
-import { matchIntegrationLink } from "@docmost/editor-ext";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import { matchIntegrationLink, type UploadTarget } from "@docmost/editor-ext";
 import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
 import { canPlaceIntegrationCard } from "@/features/editor/components/integration-link/integration-display";
 import { queryClient } from "@/main.tsx";
@@ -48,7 +49,7 @@ function matchInstalledIntegrationLink(url: string) {
 export const handlePaste = (
   editor: Editor,
   event: ClipboardEvent,
-  pageId: string,
+  uploadTarget: UploadTarget,
   creatorId?: string,
 ) => {
   const clipboardData = event.clipboardData.getData("text/plain");
@@ -167,18 +168,18 @@ export const handlePaste = (
     event.preventDefault();
     for (const file of event.clipboardData.files) {
       const pos = editor.state.selection.from;
-      uploadImageAction(file, editor, pos, pageId);
-      uploadVideoAction(file, editor, pos, pageId);
-      uploadPdfAction(file, editor, pos, pageId);
-      uploadAttachmentAction(file, editor, pos, pageId);
+      uploadImageAction(file, editor, pos, uploadTarget);
+      uploadVideoAction(file, editor, pos, uploadTarget);
+      uploadPdfAction(file, editor, pos, uploadTarget);
+      uploadAttachmentAction(file, editor, pos, uploadTarget);
     }
     return true;
   }
 
   if (htmlData && ATTACHMENT_URL_RE.test(htmlData)) {
-    const pasteFrom = editor.state.selection.from;
+    const docBeforePaste = editor.state.doc;
     setTimeout(() => {
-      reuploadPastedAttachments(editor, pageId, pasteFrom);
+      reuploadPastedAttachments(editor, uploadTarget, docBeforePaste);
     }, 0);
   }
 
@@ -187,10 +188,17 @@ export const handlePaste = (
 
 async function reuploadPastedAttachments(
   editor: Editor,
-  pageId: string,
-  pasteFrom: number,
+  uploadTarget: UploadTarget,
+  docBeforePaste: ProseMirrorNode,
 ) {
-  const pasteEnd = editor.state.selection.from;
+  const doc = editor.state.doc;
+  const pasteFrom = docBeforePaste.content.findDiffStart(doc.content);
+  if (pasteFrom === null) return;
+  const diffEnd = docBeforePaste.content.findDiffEnd(doc.content);
+  const pasteEnd = Math.max(
+    diffEnd?.b ?? pasteFrom,
+    pasteFrom + doc.content.size - docBeforePaste.content.size,
+  );
   if (pasteEnd <= pasteFrom) return;
 
   type PastedNode = {
@@ -231,21 +239,30 @@ async function reuploadPastedAttachments(
 
   if (pastedNodes.length === 0) return;
 
-  const attachmentPageMap = new Map<string, string | null>();
+  const attachmentOwnerMap = new Map<
+    string,
+    { pageId: string | null; templateId: string | null } | null
+  >();
   await Promise.all(
     [...seenAttachmentIds].map(async (id) => {
       try {
         const info = await getAttachmentInfo(id);
-        attachmentPageMap.set(id, info.pageId);
+        attachmentOwnerMap.set(id, {
+          pageId: info.pageId,
+          templateId: info.templateId ?? null,
+        });
       } catch {
-        attachmentPageMap.set(id, null);
+        attachmentOwnerMap.set(id, null);
       }
     }),
   );
 
   const nodesToReupload = pastedNodes.filter((n) => {
-    const ownerPageId = attachmentPageMap.get(n.attachmentId);
-    return ownerPageId !== null && ownerPageId !== pageId;
+    const owner = attachmentOwnerMap.get(n.attachmentId);
+    if (!owner) return false;
+    return "pageId" in uploadTarget
+      ? owner.pageId !== uploadTarget.pageId
+      : owner.templateId !== uploadTarget.templateId;
   });
 
   if (nodesToReupload.length === 0) return;
@@ -272,7 +289,7 @@ async function reuploadPastedAttachments(
         if (!response.ok) return;
         const blob = await response.blob();
         const file = new File([blob], node.fileName, { type: blob.type });
-        const newAttachment = await uploadFile(file, pageId);
+        const newAttachment = await uploadFile(file, uploadTarget);
         reuploadResults.set(node.attachmentId, {
           id: newAttachment.id,
           fileName: newAttachment.fileName,
@@ -325,7 +342,7 @@ export const handleFileDrop = (
   editor: Editor,
   event: DragEvent,
   moved: boolean,
-  pageId: string,
+  uploadTarget: UploadTarget,
 ) => {
   if (!moved && event.dataTransfer?.files.length) {
     event.preventDefault();
@@ -336,10 +353,10 @@ export const handleFileDrop = (
         top: event.clientY,
       });
 
-      uploadImageAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
-      uploadVideoAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
-      uploadPdfAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
-      uploadAttachmentAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
+      uploadImageAction(file, editor, coordinates?.pos ?? 0 - 1, uploadTarget);
+      uploadVideoAction(file, editor, coordinates?.pos ?? 0 - 1, uploadTarget);
+      uploadPdfAction(file, editor, coordinates?.pos ?? 0 - 1, uploadTarget);
+      uploadAttachmentAction(file, editor, coordinates?.pos ?? 0 - 1, uploadTarget);
     }
     return true;
   }

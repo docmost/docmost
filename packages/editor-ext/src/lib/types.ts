@@ -9,6 +9,7 @@ export interface IAttachment {
   type: string;
   creatorId: string;
   pageId: string | null;
+  templateId?: string | null;
   spaceId: string | null;
   workspaceId: string;
   createdAt: string;

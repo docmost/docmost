@@ -447,6 +447,7 @@
   "Embed PDF": "Embed PDF",
   "Upload and embed a PDF file.": "Upload and embed a PDF file.",
   "Embed as PDF": "Embed as PDF",
+  "Embed as audio": "Embed as audio",
   "Failed to load PDF": "Failed to load PDF",
   "Convert to attachment": "Convert to attachment",
   "File attachment": "File attachment",
@@ -1948,5 +1949,12 @@
   "Manage user": "Manage user",
   "Added successfully": "Added successfully",
   "View profile": "View profile",
-  "Profile unavailable": "Profile unavailable"
+  "Profile unavailable": "Profile unavailable",
+  "Play": "Play",
+  "Pause": "Pause",
+  "Mute": "Mute",
+  "Unmute": "Unmute",
+  "Seek": "Seek",
+  "Playback speed": "Playback speed",
+  "Couldn't load this audio file": "Couldn't load this audio file"
 }

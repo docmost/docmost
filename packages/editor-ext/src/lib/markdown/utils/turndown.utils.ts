@@ -1,6 +1,7 @@
 import * as _TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
 import { getBasename } from './basename';
+import { getFileNameFromUrl } from '../../media-utils';
 
 // CJS/ESM interop: .default exists in Vite, not in NestJS
 const TurndownService = (_TurndownService as any).default || _TurndownService;
@@ -38,6 +39,7 @@ export function htmlToMarkdown(html: string): string {
     iframeEmbed,
     image,
     video,
+    audio,
     footnoteRef,
     footnotesList,
   ]);
@@ -350,6 +352,22 @@ function video(turndownService: _TurndownService) {
       const ariaLabel = node.getAttribute('aria-label');
       const name = sanitizeMdLinkText(ariaLabel || getBasename(src) || src);
       return '[' + name + '](' + src + ')';
+    },
+  });
+}
+
+function audio(turndownService: _TurndownService) {
+  turndownService.addRule('audio', {
+    filter: function (node: HTMLInputElement) {
+      return node.tagName === 'AUDIO';
+    },
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const src = node.getAttribute('src') || '';
+      if (!src) return '';
+      const name = sanitizeMdLinkText(
+        node.getAttribute('data-name') || getFileNameFromUrl(src) || src,
+      );
+      return '\n\n[' + name + '](' + src + ')\n\n';
     },
   });
 }

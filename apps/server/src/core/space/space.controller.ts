@@ -251,10 +251,20 @@ export class SpaceController {
       throw new ForbiddenException();
     }
 
+    const workspaceAbility = this.workspaceAbility.createForUser(
+      user,
+      workspace,
+    );
     return this.spaceMemberService.getSpaceMembers(
       spaceIdDto.spaceId,
       workspace.id,
       pagination,
+      {
+        adminView: workspaceAbility.can(
+          WorkspaceCaslAction.Manage,
+          WorkspaceCaslSubject.Member,
+        ),
+      },
     );
   }
 

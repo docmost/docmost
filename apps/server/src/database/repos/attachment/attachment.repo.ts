@@ -30,6 +30,7 @@ export class AttachmentRepo {
     'pageId',
     'spaceId',
     'aiChatId',
+    'templateId',
     'workspaceId',
     'createdAt',
     'updatedAt',
@@ -157,6 +158,33 @@ export class AttachmentRepo {
       .selectFrom('attachments')
       .select(this.baseFields)
       .where('aiChatId', '=', aiChatId)
+      .execute();
+  }
+
+  async findByTemplateId(
+    templateId: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment[]> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('attachments')
+      .select(this.baseFields)
+      .where('templateId', '=', templateId)
+      .execute();
+  }
+
+  async updateAttachmentsByTemplateId(
+    updatable: UpdatableAttachment,
+    templateId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    await dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set(updatable)
+      .where('templateId', '=', templateId)
       .execute();
   }
 

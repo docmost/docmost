@@ -101,6 +101,33 @@ describe("table sort in read-only pages", () => {
     expect(chevrons(e)).toBe(2);
   });
 
+  it("leaves out a row that left the table after a sort", () => {
+    const e = createEditor(false);
+    const sortByName = () =>
+      e.view.dom
+        .querySelector(".tableReadonlySortChevron")
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const rows = () =>
+      [...e.view.dom.querySelectorAll("tbody > tr")].map(
+        (row) => row.textContent,
+      );
+    sortByName();
+    expect(rows()).toEqual(["NameSize", "a1", "b2"]);
+
+    let rowPos = -1;
+    e.state.doc.descendants((node, pos) => {
+      if (node.type.name === "tableRow" && node.textContent === "b2") {
+        rowPos = pos;
+      }
+    });
+    e.view.dispatch(
+      e.state.tr.delete(rowPos, rowPos + e.state.doc.nodeAt(rowPos).nodeSize),
+    );
+    sortByName();
+
+    expect(rows()).toEqual(["NameSize", "a1"]);
+  });
+
   it("does not search the page for sort controls on every update while editing", () => {
     const e = createEditor(true);
     const querySelectorAll = vi.spyOn(e.view.dom, "querySelectorAll");

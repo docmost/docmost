@@ -9,7 +9,7 @@ export interface IUser {
   timezone: string;
   settings: IUserSettings;
   invitedById: string;
-  lastLoginAt: string;
+  lastLoginAt?: string;
   lastActiveAt: Date;
   locale: string;
   createdAt: Date;

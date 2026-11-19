@@ -39,6 +39,24 @@ export class UserRepo {
     'hasGeneratedPassword',
   ];
 
+  // what member lists return about other users
+  public memberFields: Array<keyof Users> = [
+    'id',
+    'email',
+    'name',
+    'avatarUrl',
+    'role',
+    'workspaceId',
+    'locale',
+    'deactivatedAt',
+    'createdAt',
+    'updatedAt',
+    'deletedAt',
+  ];
+
+  // added for admins and owners
+  public adminFields: Array<keyof Users> = ['lastLoginAt', 'emailVerifiedAt'];
+
   async findById(
     userId: string,
     workspaceId: string,
@@ -181,13 +199,14 @@ export class UserRepo {
   async getUsersPaginated(
     workspaceId: string,
     pagination: PaginationOptions,
-    opts?: { status?: WorkspaceUserListStatus },
+    opts?: { status?: WorkspaceUserListStatus; adminView?: boolean },
   ) {
     const status = opts?.status ?? 'active';
 
     let query = this.db
       .selectFrom('users')
-      .select(this.baseFields)
+      .select(this.memberFields)
+      .$if(opts?.adminView, (qb) => qb.select(this.adminFields))
       .where('workspaceId', '=', workspaceId)
       .$if(status === 'deleted', (qb) => qb.where('deletedAt', 'is not', null))
       .$if(status === 'active' || status === 'deactivated', (qb) =>
