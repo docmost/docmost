@@ -24,7 +24,7 @@ const paidFeatures: { name: string; enterpriseOnly?: boolean }[] = [
   { name: "Security, Export & Retention Controls", enterpriseOnly: true },
   { name: "SharePoint & Azure DevOps Integrations", enterpriseOnly: true },
   { name: "Read Confirmation*", enterpriseOnly: true },
-  { name: "Advanced Confluence Migration (Contact Sales)", enterpriseOnly: true },
+  { name: "Advanced Confluence Migration", enterpriseOnly: true },
 ];
 
 export default function OssDetails() {
