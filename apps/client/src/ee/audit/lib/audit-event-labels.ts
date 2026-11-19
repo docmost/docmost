@@ -105,6 +105,7 @@ export const auditEventLabels: Record<string, string> = {
   "siem_destination.deleted": "Deleted SIEM destination",
 
   "template.created": "Created template",
+  "template.updated": "Updated template",
   "template.deleted": "Deleted template",
 
   "announcement.created": "Created announcement",
@@ -277,6 +278,7 @@ export const eventFilterOptions: EventGroup[] = [
     group: "Template",
     items: [
       { value: "template.created", label: "Created template" },
+      { value: "template.updated", label: "Updated template" },
       { value: "template.deleted", label: "Deleted template" },
     ],
   },

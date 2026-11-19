@@ -5,7 +5,6 @@ import {
 } from "@/features/editor/components/slash-menu/types";
 import {
   ActionIcon,
-  Badge,
   Group,
   Paper,
   ScrollArea,
@@ -20,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 
 const CommandList = ({
   items,
@@ -189,11 +189,7 @@ const CommandList = ({
                     </Text>
                   </div>
 
-                  {disabled && (
-                    <Badge size="xs" variant="light" color="gray">
-                      {t("Upgrade")}
-                    </Badge>
-                  )}
+                  {disabled && <UpgradeBadge />}
                 </Group>
               </UnstyledButton>
               </Tooltip>

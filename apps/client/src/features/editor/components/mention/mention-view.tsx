@@ -1,5 +1,5 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { ActionIcon, Anchor, Text } from "@mantine/core";
+import { ActionIcon, Anchor } from "@mantine/core";
 import { IconFileDescription } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
@@ -11,6 +11,7 @@ import {
   buildSharedPageUrl,
 } from "@/features/page/page.utils.ts";
 import { extractPageSlugId } from "@/lib";
+import { UserMention } from "./user-mention";
 import classes from "./mention.module.css";
 
 export default function MentionView(props: NodeViewProps) {
@@ -73,9 +74,7 @@ export default function MentionView(props: NodeViewProps) {
   return (
     <NodeViewWrapper style={{ display: "inline" }} data-drag-handle>
       {entityType === "user" && (
-        <Text className={classes.userMention} component="span">
-          @{label}
-        </Text>
+        <UserMention label={label} entityId={entityId} />
       )}
 
       {isPageMention && isShareRoute && (

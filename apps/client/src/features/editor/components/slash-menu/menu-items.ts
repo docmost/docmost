@@ -525,23 +525,11 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Date",
-      description: "Insert current date",
-      searchTerms: ["date", "today"],
+      description: "Pick a date",
+      searchTerms: ["Today", "Calendar"],
       icon: IconCalendar,
-      command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString(i18n.language, {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .insertContent(currentDate)
-          .run();
-      },
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).insertDate().run(),
     },
     {
       title: "Time",
@@ -851,6 +839,10 @@ const CommandGroups: SlashMenuGroupedItemsType = {
   ],
 };
 
+// The editor can turn a typed apostrophe into a smart quote while searching.
+const normalizeSearchText = (value: string) =>
+  value.toLowerCase().replace(/[‘’]/g, "'");
+
 export const getSuggestionItems = ({
   query,
   editor,
@@ -860,13 +852,14 @@ export const getSuggestionItems = ({
   editor?: Editor;
   excludeItems?: Set<string>;
 }): SlashMenuGroupedItemsType => {
-  const search = query.toLowerCase();
+  const search = normalizeSearchText(query);
+  const containsSearch = (value: string) =>
+    normalizeSearchText(value).includes(search);
   const filteredGroups: SlashMenuGroupedItemsType = {};
 
   const fuzzyMatch = (query: string, target: string) => {
     let queryIndex = 0;
-    target = target.toLowerCase();
-    for (const char of target) {
+    for (const char of normalizeSearchText(target)) {
       if (query[queryIndex] === char) queryIndex++;
       if (queryIndex === query.length) return true;
     }
@@ -882,13 +875,12 @@ export const getSuggestionItems = ({
       return (
         fuzzyMatch(search, item.title) ||
         fuzzyMatch(search, translatedTitle) ||
-        item.description.toLowerCase().includes(search) ||
-        translatedDescription.toLowerCase().includes(search) ||
+        containsSearch(item.description) ||
+        containsSearch(translatedDescription) ||
         (item.searchTerms &&
           item.searchTerms.some(
             (term: string) =>
-              term.includes(search) ||
-              i18n.t(term).toLowerCase().includes(search),
+              containsSearch(term) || containsSearch(i18n.t(term)),
           ))
       );
     });
@@ -896,15 +888,9 @@ export const getSuggestionItems = ({
     if (filteredItems.length) {
       filteredGroups[group] = filteredItems.sort((a, b) => {
         const aTitle =
-          a.title.toLowerCase().includes(search) ||
-          i18n.t(a.title).toLowerCase().includes(search)
-            ? 0
-            : 1;
+          containsSearch(a.title) || containsSearch(i18n.t(a.title)) ? 0 : 1;
         const bTitle =
-          b.title.toLowerCase().includes(search) ||
-          i18n.t(b.title).toLowerCase().includes(search)
-            ? 0
-            : 1;
+          containsSearch(b.title) || containsSearch(i18n.t(b.title)) ? 0 : 1;
         return aTitle - bTitle;
       });
     }

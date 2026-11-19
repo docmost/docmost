@@ -1,6 +1,6 @@
 import { FC } from "react";
 import type { Editor } from "@tiptap/react";
-import { ActionIcon, Badge, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconAppWindow,
   IconCalendar,
@@ -38,6 +38,7 @@ import { insertBaseEmbedBlock } from "@/features/editor/components/base-embed/in
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 import { isBetaBaseForms } from "@/lib/config.ts";
 
 interface Props {
@@ -46,21 +47,12 @@ interface Props {
 }
 
 export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const hasBases = useHasFeature(Feature.BASES);
   const upgradeLabel = useUpgradeLabel();
 
   const setEmbed = (provider: string) =>
     editor.chain().focus().setEmbed({ provider }).run();
-
-  const insertDate = () => {
-    const currentDate = new Date().toLocaleDateString(i18n.language, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    editor.chain().focus().insertContent(currentDate).run();
-  };
 
   return (
     <Menu shadow="md" position="bottom-start" withArrow={false} width={240}>
@@ -128,13 +120,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               aria-disabled={!hasBases}
               closeMenuOnClick={hasBases}
               style={{ opacity: hasBases ? undefined : 0.7 }}
-              rightSection={
-                !hasBases && (
-                  <Badge size="xs" variant="light" color="gray">
-                    {t("Upgrade")}
-                  </Badge>
-                )
-              }
+              rightSection={!hasBases && <UpgradeBadge />}
               onClick={() => {
                 if (hasBases) insertBaseEmbedBlock(editor);
               }}
@@ -150,13 +136,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               aria-disabled={!hasBases}
               closeMenuOnClick={hasBases}
               style={{ opacity: hasBases ? undefined : 0.7 }}
-              rightSection={
-                !hasBases && (
-                  <Badge size="xs" variant="light" color="gray">
-                    {t("Upgrade")}
-                  </Badge>
-                )
-              }
+              rightSection={!hasBases && <UpgradeBadge />}
               onClick={() => {
                 if (hasBases) insertBaseEmbedBlock(editor, { template: "kanban" });
               }}
@@ -172,13 +152,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               aria-disabled={!hasBases}
               closeMenuOnClick={hasBases}
               style={{ opacity: hasBases ? undefined : 0.7 }}
-              rightSection={
-                !hasBases && (
-                  <Badge size="xs" variant="light" color="gray">
-                    {t("Upgrade")}
-                  </Badge>
-                )
-              }
+              rightSection={!hasBases && <UpgradeBadge />}
               onClick={() => {
                 if (hasBases) insertBaseEmbedBlock(editor, { template: "calendar" });
               }}
@@ -194,13 +168,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               aria-disabled={!hasBases}
               closeMenuOnClick={hasBases}
               style={{ opacity: hasBases ? undefined : 0.7 }}
-              rightSection={
-                !hasBases && (
-                  <Badge size="xs" variant="light" color="gray">
-                    {t("Upgrade")}
-                  </Badge>
-                )
-              }
+              rightSection={!hasBases && <UpgradeBadge />}
               onClick={() => {
                 if (hasBases) insertBaseEmbedBlock(editor, { template: "form" });
               }}
@@ -299,7 +267,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
         <Menu.Label>{t("Utility")}</Menu.Label>
         <Menu.Item
           leftSection={<IconCalendar size={16} />}
-          onClick={insertDate}
+          onClick={() => editor.chain().focus().insertDate().run()}
         >
           {t("Date")}
         </Menu.Item>

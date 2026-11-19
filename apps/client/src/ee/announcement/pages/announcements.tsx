@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, Button, Group, Space, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import { IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
@@ -14,6 +14,7 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
+import { UpgradeAlert } from "@/ee/components/upgrade-alert";
 import { AnnouncementStatusFilter } from "@/ee/announcement/components/announcement-status-filter";
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
@@ -106,9 +107,12 @@ export default function Announcements() {
       <SettingsTitle title={t("Announcements")} />
 
       {isUnlicensed && (
-        <Alert icon={<IconInfoCircle size={16} />} color="yellow" mb="md">
-          {t("Announcements are available in the Docmost paid editions.")}
-        </Alert>
+        <UpgradeAlert
+          message={t(
+            "Announcements are available in the Docmost paid editions.",
+          )}
+          mb="md"
+        />
       )}
 
       <Group justify="space-between" align="center" wrap="nowrap" mb="md">

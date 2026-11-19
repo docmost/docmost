@@ -24,6 +24,7 @@ const SPACE_ID = '019a4f3e-0000-7000-8000-000000000003';
 const SOURCE_PAGE_ID = '019a4f3e-0000-7000-8000-000000000004';
 const MENTIONED_PAGE_ID = '019a4f3e-0000-7000-8000-000000000005';
 const AUDIO_FILE_ID = '019a4f3e-0000-7000-8000-000000000006';
+const PDF_FILE_ID = '019a4f3e-0000-7000-8000-000000000007';
 const BASE_URL = 'https://docs.example.com';
 
 function pageMention(entityId: string, label: string) {
@@ -115,6 +116,7 @@ function buildService(opts: { accessiblePageIds: string[] }) {
     {} as any,
     domainService as any,
     spaceMemberRepo,
+    { findActiveNamesByIds: async () => [] } as any,
   );
   return { service, queries, pagePermissionRepo };
 }
@@ -227,4 +229,77 @@ describe('ExportService audio blocks', () => {
       expect(exported).toContain(expected);
     },
   );
+});
+
+describe('ExportService pdf blocks', () => {
+  const pdfDoc = {
+    type: 'doc',
+    content: [
+      {
+        type: 'pdf',
+        attrs: {
+          src: `/api/files/${PDF_FILE_ID}/Q3_report.pdf`,
+          name: 'Q3_report.pdf',
+          attachmentId: PDF_FILE_ID,
+        },
+      },
+    ],
+  };
+
+  it.each([
+    [ExportFormat.Markdown, `[Q3_report.pdf](files/${PDF_FILE_ID}/Q3_report.pdf)`],
+    [ExportFormat.HTML, `<iframe src="files/${PDF_FILE_ID}/Q3_report.pdf"`],
+  ])(
+    'keeps the pdf file link in a %s export that includes attachments',
+    async (format, expected) => {
+      const { service } = buildService({ accessiblePageIds: [] });
+
+      const exported = await service.exportPage(format, {
+        title: '',
+        content: updateAttachmentUrlsToLocalPaths(pdfDoc),
+      } as any);
+
+      expect(exported).toContain(expected);
+    },
+  );
+
+  it('names an unnamed pdf link after its file, without the query string', async () => {
+    const { service } = buildService({ accessiblePageIds: [] });
+    const src = `/api/files/${PDF_FILE_ID}/Q3_report.pdf?jwt=abc.def`;
+
+    const markdown = await service.exportPage(ExportFormat.Markdown, {
+      title: '',
+      content: {
+        type: 'doc',
+        content: [{ type: 'pdf', attrs: { src, attachmentId: PDF_FILE_ID } }],
+      },
+    } as any);
+
+    expect(markdown).toContain(`[Q3_report.pdf](${src})`);
+  });
+
+  it('leaves out a pdf that is not a Docmost file', async () => {
+    const { service } = buildService({ accessiblePageIds: [] });
+    const page = {
+      title: '',
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'pdf',
+            attrs: {
+              src: 'https://example.com/files/report.pdf',
+              attachmentId: PDF_FILE_ID,
+            },
+          },
+        ],
+      },
+    } as any;
+
+    const html = await service.exportPage(ExportFormat.HTML, page);
+    const markdown = await service.exportPage(ExportFormat.Markdown, page);
+
+    expect(html).not.toContain('example.com');
+    expect(markdown.trim()).toBe('');
+  });
 });

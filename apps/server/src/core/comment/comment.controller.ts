@@ -12,6 +12,7 @@ import {
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { ResolveCommentDto } from './dto/resolve-comment.dto';
 import { PageIdDto, CommentIdDto } from './dto/comments.input';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
@@ -160,6 +161,57 @@ export class CommentController {
     });
 
     return updatedComment;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('resolve')
+  async resolve(
+    @Body() resolveCommentDto: ResolveCommentDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const comment = await this.commentRepo.findById(
+      resolveCommentDto.commentId,
+    );
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    const page = await this.pageRepo.findById(comment.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    await this.pageAccessService.validateCanComment(page, user, workspace.id);
+
+    let canEdit = true;
+    try {
+      await this.pageAccessService.validateCanEdit(page, user);
+    } catch {
+      canEdit = false;
+    }
+
+    const resolvedComment = await this.commentService.resolve(
+      comment,
+      resolveCommentDto.resolved,
+      user,
+      // Viewers cannot modify the Ydoc directly; the server must apply the mark for them
+      { updateYjsMark: !canEdit },
+    );
+
+    this.auditService.log({
+      event: resolveCommentDto.resolved
+        ? AuditEvent.COMMENT_RESOLVED
+        : AuditEvent.COMMENT_REOPENED,
+      resourceType: AuditResource.COMMENT,
+      resourceId: comment.id,
+      spaceId: comment.spaceId,
+      metadata: {
+        pageId: comment.pageId,
+      },
+    });
+
+    return resolvedComment;
   }
 
   @HttpCode(HttpStatus.OK)

@@ -68,6 +68,7 @@ const MEMBER_QUERY_KEYS = [
   "spaceMembers",
   "page-permissions",
   "search-suggestion",
+  "user-profile",
 ];
 
 export function refreshWorkspaceMembers(queryClient: QueryClient) {
@@ -160,6 +161,7 @@ export function useChangeMemberRoleMutation() {
       queryClient.refetchQueries({
         queryKey: ["workspaceMembers"],
       });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;

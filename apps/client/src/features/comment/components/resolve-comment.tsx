@@ -1,6 +1,6 @@
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconCircleCheck, IconCircleCheckFilled } from "@tabler/icons-react";
-import { useResolveCommentMutation } from "@/ee/comment/queries/comment-query";
+import { useResolveCommentMutation } from "@/features/comment/queries/comment-query";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tiptap/react";
 import { isEditorReady } from "@docmost/editor-ext";

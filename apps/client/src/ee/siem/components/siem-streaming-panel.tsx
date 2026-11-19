@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Alert, Button, Group, Tooltip } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import useUserRole from "@/hooks/use-user-role";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
+import { UpgradeAlert } from "@/ee/components/upgrade-alert";
 import {
   ISiemDestination,
   SIEM_MAX_DESTINATIONS_PER_WORKSPACE,
@@ -60,9 +61,12 @@ export default function SiemStreamingPanel() {
   return (
     <>
       {!hasFeature && (
-        <Alert icon={<IconInfoCircle size={16} />} color="yellow" mb="md">
-          {t("SIEM streaming requires an Enterprise license.")}
-        </Alert>
+        <UpgradeAlert
+          message={t(
+            "SIEM streaming is available in the Docmost Enterprise edition.",
+          )}
+          mb="md"
+        />
       )}
 
       <Group justify="flex-end" mb="md">

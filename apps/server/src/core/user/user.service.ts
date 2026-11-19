@@ -33,7 +33,9 @@ export class UserService {
     userId: string,
     workspace: Workspace,
   ) {
-    const user = await this.userRepo.findById(userId, workspace.id);
+    const user = await this.userRepo.findById(userId, workspace.id, {
+      includeTimezone: true,
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -86,6 +88,10 @@ export class UserService {
 
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
+    }
+
+    if (updateUserDto.timezone) {
+      user.timezone = updateUserDto.timezone;
     }
 
     if (updateUserDto.email && user.email != updateUserDto.email) {
