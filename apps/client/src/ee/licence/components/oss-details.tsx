@@ -23,6 +23,7 @@ const paidFeatures: { name: string; enterpriseOnly?: boolean }[] = [
   { name: "Audit Logs & SIEM", enterpriseOnly: true },
   { name: "Security, Export & Retention Controls", enterpriseOnly: true },
   { name: "SharePoint & Azure DevOps Integrations", enterpriseOnly: true },
+  { name: "Advanced Confluence Migration (Contact Sales)", enterpriseOnly: true },
   { name: "Read Confirmation*", enterpriseOnly: true },
 ];
 
