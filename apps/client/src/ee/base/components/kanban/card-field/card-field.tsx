@@ -7,7 +7,6 @@ import {
   IBaseProperty,
   SelectTypeOptions,
   NumberTypeOptions,
-  DateTypeOptions,
   isFormulaErrorCell,
 } from "@/ee/base/types/base.types";
 import { choiceColor } from "@/ee/base/components/cells/choice-color";
@@ -18,10 +17,9 @@ import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { useReferenceStore, useResolvePage } from "@/ee/base/reference/reference-store";
 import {
   formatNumber,
-  formatDateDisplay,
-  formatTimestamp,
   formatLongTextPreview,
 } from "@/ee/base/formatters/cell-formatters";
+import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { FileValue } from "@/ee/base/components/cells/cell-file";
 import cellClasses from "@/ee/base/styles/cells.module.css";
@@ -52,14 +50,14 @@ export function CardField({ property, value, pageId }: CardFieldProps) {
     case "multiSelect":
       return <MultiSelectField value={value} property={property} />;
     case "date":
-      return <DateField value={value} property={property} />;
     case "createdAt":
     case "lastEditedAt":
-      return <TimestampField value={value} />;
+      return <DateField value={value} property={property} />;
     case "person":
       return <PersonField value={value} pageId={pageId} />;
+    case "createdBy":
     case "lastEditedBy":
-      return <LastEditedByField value={value} pageId={pageId} />;
+      return <SystemUserField value={value} pageId={pageId} />;
     case "file":
       return <FileField value={value} />;
     case "page":
@@ -140,18 +138,7 @@ function MultiSelectField({ value, property }: { value: unknown; property: IBase
 }
 
 function DateField({ value, property }: { value: unknown; property: IBaseProperty }) {
-  const dateStr = typeof value === "string" ? value : null;
-  const formatted = formatDateDisplay(dateStr, property.typeOptions as DateTypeOptions | undefined);
-  if (!formatted) return null;
-  return (
-    <Text size="xs" c="dimmed">
-      {formatted}
-    </Text>
-  );
-}
-
-function TimestampField({ value }: { value: unknown }) {
-  const formatted = formatTimestamp(typeof value === "string" ? value : null);
+  const { text: formatted } = useDateCellDisplay(property, value);
   if (!formatted) return null;
   return (
     <Text size="xs" c="dimmed">
@@ -171,7 +158,7 @@ function PersonField({ value, pageId }: { value: unknown; pageId: string }) {
   return <PersonReadList personIds={personIds} users={store.users} />;
 }
 
-function LastEditedByField({ value, pageId }: { value: unknown; pageId: string }) {
+function SystemUserField({ value, pageId }: { value: unknown; pageId: string }) {
   const userId = typeof value === "string" ? value : null;
   const store = useReferenceStore(pageId);
   if (!userId) return null;
@@ -332,7 +319,7 @@ function FormulaField({ value, property }: { value: unknown; property: IBaseProp
   if (resultType === "boolean") {
     return <CheckboxField checked={value === true} name={property.name} />;
   }
-  if (resultType === "date") {
+  if (resultType === "date" || resultType === "datetime") {
     return <DateField value={value} property={property} />;
   }
 

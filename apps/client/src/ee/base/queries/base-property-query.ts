@@ -1,4 +1,4 @@
-import { InfiniteData, useMutation } from "@tanstack/react-query";
+import { InfiniteData, MutationKey, useMutation } from "@tanstack/react-query";
 import {
   createProperty,
   updateProperty,
@@ -15,15 +15,17 @@ import {
   ReorderPropertyInput,
   UpdatePropertyResult,
 } from "@/ee/base/types/base.types";
+import { dateKindOfProperty } from "@docmost/base-formula/client";
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { IPagination } from "@/lib/types";
 
-export function useCreatePropertyMutation() {
+export function useCreatePropertyMutation(mutationKey?: MutationKey) {
   const { t } = useTranslation();
   return useMutation<IBaseProperty, Error, CreatePropertyInput>({
+    mutationKey,
     mutationFn: (data) => createProperty(data),
     onSuccess: (newProperty) => {
       queryClient.setQueryData<IBase>(
@@ -51,6 +53,14 @@ export function useUpdatePropertyMutation() {
   return useMutation<UpdatePropertyResult, Error, UpdatePropertyInput>({
     mutationFn: (data) => updateProperty(data),
     onSuccess: (result, variables) => {
+      const stored = queryClient
+        .getQueryData<IBase>(["bases", variables.pageId])
+        ?.properties.find((p) => p.id === result.property.id);
+      const kindChanged =
+        stored !== undefined &&
+        dateKindOfProperty(stored.type, stored.typeOptions) !==
+          dateKindOfProperty(result.property.type, result.property.typeOptions);
+
       queryClient.setQueryData<IBase>(
         ["bases", variables.pageId],
         (old) => {
@@ -64,7 +74,7 @@ export function useUpdatePropertyMutation() {
         },
       );
 
-      if (variables.type && !result.jobId) {
+      if ((variables.type || kindChanged) && !result.jobId) {
         queryClient.invalidateQueries({
           queryKey: ["base-rows", variables.pageId],
         });

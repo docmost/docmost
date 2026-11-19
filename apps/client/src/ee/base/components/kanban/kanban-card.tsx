@@ -4,6 +4,7 @@ import { Tooltip } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { IBase, IBaseRow, IBaseView } from "@/ee/base/types/base.types";
 import { CardField } from "@/ee/base/components/kanban/card-field/card-field";
+import { orderProperties } from "@/ee/base/utils/property-order";
 import { systemAccessorFor } from "@/ee/base/property-types/property-type.registry";
 import { useKanbanCardDnd } from "@/ee/base/hooks/use-kanban-card-dnd";
 import { BaseDropEdgeIndicator } from "@/ee/base/components/grid/base-drop-edge-indicator";
@@ -24,17 +25,11 @@ export const KanbanCard = forwardRef<HTMLDivElement, KanbanCardProps>(
     const title = primary ? (row.cells[primary.id] as string | undefined) : undefined;
 
     const visibleIds = view.config?.visiblePropertyIds ?? [];
-    const propertyOrder = view.config?.propertyOrder;
 
-    const cardProps = base.properties.filter(
-      (p) => visibleIds.includes(p.id) && !p.isPrimary,
+    const cardProps = orderProperties(
+      base.properties.filter((p) => visibleIds.includes(p.id) && !p.isPrimary),
+      view.config?.propertyOrder,
     );
-
-    if (propertyOrder) {
-      cardProps.sort(
-        (a, b) => propertyOrder.indexOf(a.id) - propertyOrder.indexOf(b.id),
-      );
-    }
 
     const cardRef = useRef<HTMLDivElement>(null);
 

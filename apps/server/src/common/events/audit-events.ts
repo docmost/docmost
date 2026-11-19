@@ -135,6 +135,10 @@ export const AuditEvent = {
   ANNOUNCEMENT_ARCHIVED: 'announcement.archived',
   ANNOUNCEMENT_UNARCHIVED: 'announcement.unarchived',
   ANNOUNCEMENT_DELETED: 'announcement.deleted',
+
+  // Base
+  BASE_PROPERTY_UPDATED: 'base.property.updated',
+  BASE_FORM_SHARE_UPDATED: 'base.form_share.updated',
 } as const;
 
 export type AuditEventType = (typeof AuditEvent)[keyof typeof AuditEvent];

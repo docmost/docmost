@@ -87,6 +87,9 @@ export const auditEventLabels: Record<string, string> = {
   "page.approval_rejected": "Rejected page approval",
   "page.marked_obsolete": "Marked page as obsolete",
 
+  "base.property.updated": "Changed base property type",
+  "base.form_share.updated": "Changed base form sharing",
+
   "share.created": "Created share link",
   "share.deleted": "Deleted share link",
 
@@ -208,6 +211,13 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "page.approval_requested", label: "Requested page approval" },
       { value: "page.approval_rejected", label: "Rejected page approval" },
       { value: "page.marked_obsolete", label: "Marked page as obsolete" },
+    ],
+  },
+  {
+    group: "Base",
+    items: [
+      { value: "base.property.updated", label: "Changed base property type" },
+      { value: "base.form_share.updated", label: "Changed base form sharing" },
     ],
   },
   {

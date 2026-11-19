@@ -255,6 +255,10 @@ export class PageRepo {
           .execute();
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+        await trx
+          .deleteFrom('baseViewShares')
+          .where('pageId', 'in', pageIds)
+          .execute();
 
         await trx
           .updateTable('spaces')

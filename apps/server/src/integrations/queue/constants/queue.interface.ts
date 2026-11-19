@@ -162,12 +162,14 @@ export interface IBaseFormulaRecomputeJob {
     | 'formula_edited'
     | 'dep_type_changed'
     | 'dep_deleted'
+    | 'refresh'
     | 'bulk_import'
     | 'manual';
   actorId?: string | null;
   // When set, scope recompute to these row IDs instead of the whole base.
   // Used by the bulk-write path (> FORMULA_INLINE_ROW_THRESHOLD).
   rowIds?: string[];
+  refresh?: { day: string; at: string }; // set only for reason 'refresh'
 }
 
 export interface IBaseCsvImportJob {

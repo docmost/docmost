@@ -8,6 +8,7 @@ import {
   IconH2,
   IconH3,
   IconInfoCircle,
+  IconForms,
   IconLayoutKanban,
   IconLayoutNavbar,
   IconList,
@@ -24,6 +25,7 @@ import {
   IconMenu4,
   IconPageBreak,
   IconCalendar,
+  IconCalendarMonth,
   IconClock,
   IconAppWindow,
   IconSitemap,
@@ -50,6 +52,7 @@ import IconDrawio from "@/components/icons/icon-drawio";
 import { IconColumns4 } from "@/components/icons/icon-columns-4";
 import { IconColumns5 } from "@/components/icons/icon-columns-5";
 import i18n from "@/i18n.ts";
+import { isBetaBaseForms } from "@/lib/config.ts";
 import {
   AirtableIcon,
   FigmaIcon,
@@ -392,6 +395,27 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       requiresBases: true,
       command: ({ editor, range }: CommandProps) => {
         insertBaseEmbedBlock(editor, { range, template: "kanban" });
+      },
+    },
+    {
+      title: "Calendar",
+      description: "Insert a calendar on this page",
+      searchTerms: ["calendar", "schedule", "events", "planner", "database"],
+      icon: IconCalendarMonth,
+      requiresBases: true,
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range, template: "calendar" });
+      },
+    },
+    {
+      title: "Form",
+      description: "Insert a form that collects responses into a base",
+      searchTerms: ["form", "survey", "questionnaire", "responses", "database"],
+      icon: IconForms,
+      requiresBases: true,
+      disable: () => !isBetaBaseForms(),
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range, template: "form" });
       },
     },
     {

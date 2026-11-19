@@ -16,7 +16,9 @@ import {
   splitListValue,
   stripFormulaApostrophe,
   truncateText,
+  type ParsedDatePart,
 } from "@/ee/base/csv-import/csv-value-parsers";
+import type { DateKind } from "@docmost/base-formula/client";
 import type {
   CsvConvertResult,
   CsvImportPropertyType,
@@ -51,6 +53,7 @@ export function convertCsvValue(
   raw: string | undefined,
   type: CsvImportPropertyType,
   hints: CsvParseHints,
+  dateKind: DateKind = "datetime",
 ): CsvConvertResult {
   if (raw === undefined || isBlank(raw)) return EMPTY;
   const value = raw.trim();
@@ -82,7 +85,13 @@ export function convertCsvValue(
     }
     case "date": {
       const parsed = parseDateValue(value, hints.dateOrder);
-      return parsed ? ok(parsed.iso) : INVALID;
+      if (!parsed) return INVALID;
+      // a date-only property takes the day as written, so a time cannot shift it
+      const part = (p: ParsedDatePart) => (dateKind === "date" ? p.day : p.iso);
+      const start = part(parsed);
+      const end = parsed.end ? part(parsed.end) : start;
+      if (end < start) return INVALID;
+      return ok(end === start ? start : { start, end });
     }
     case "checkbox": {
       const parsed = parseBooleanValue(value, true);

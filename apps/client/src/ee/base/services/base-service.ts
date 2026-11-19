@@ -19,18 +19,21 @@ import {
   CreateViewInput,
   UpdateViewInput,
   DeleteViewInput,
+  BaseTemplate,
   UpdatePropertyResult,
   FilterNode,
   ViewSortConfig,
   RowReferences,
 } from "@/ee/base/types/base.types";
-import { IPagination } from "@/lib/types";
+import { IPagination, IPaginationMeta } from "@/lib/types";
+import type { ViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import { IFileTask } from "@/features/file-task/types/file-task.types";
 import { BaseCsvImportSpec } from "@/ee/base/csv-import/csv-import.types";
 import { IMPORT_FILE_NAME } from "@/ee/base/csv-import/csv-import.constants";
 
 export type IBaseRowsPage = IPagination<IBaseRow> & {
   references?: RowReferences;
+  meta: IPaginationMeta & { timeZone?: string };
 };
 
 export async function createBase(data: CreateBaseInput): Promise<IBase> {
@@ -54,19 +57,29 @@ export async function deleteBase(pageId: string): Promise<void> {
 
 export async function convertPageToBase(
   pageId: string,
-  template?: "kanban",
+  template?: BaseTemplate,
 ): Promise<IBase> {
-  const req = await api.post<IBase>("/bases/convert", { pageId, template });
+  const req = await api.post<IBase>("/bases/convert", {
+    pageId,
+    template,
+  });
   return req.data;
 }
 
 export async function exportBaseToCsv(
   pageId: string,
-  filter?: FilterNode,
+  filter: FilterNode | undefined,
+  viewer: ViewerDateContext,
 ): Promise<void> {
   const req = await api.post(
     "/bases/export-csv",
-    { pageId, filter },
+    {
+      pageId,
+      filter,
+      timeZone: viewer.timeZone,
+      weekStart: viewer.weekStart,
+      today: viewer.today,
+    },
     { responseType: "blob" },
   );
 
@@ -151,7 +164,9 @@ export async function getRowInfo(
 }
 
 export async function updateRow(data: UpdateRowInput): Promise<IBaseRow> {
-  const req = await api.post<IBaseRow>("/bases/rows/update", data);
+  const req = await api.post<IBaseRow>("/bases/rows/update", data, {
+    timeout: 30_000,
+  });
   return req.data;
 }
 
@@ -170,9 +185,35 @@ export async function listRows(
     limit?: number;
     filter?: FilterNode;
     sorts?: ViewSortConfig[];
-  },
+  } & Partial<ViewerDateContext>,
+  signal?: AbortSignal,
 ): Promise<IBaseRowsPage> {
-  const req = await api.post("/bases/rows", { pageId, ...params });
+  const req = await api.post(
+    "/bases/rows",
+    { pageId, ...params },
+    { signal },
+  );
+  return req.data;
+}
+
+export type ICalendarRowsPage = {
+  items: IBaseRow[];
+  references?: RowReferences;
+  meta: { total: number; truncated: boolean; timeZone: string };
+};
+
+export async function listCalendarRows(
+  params: {
+    pageId: string;
+    propertyId: string;
+    from: string;
+    to: string;
+    filter?: FilterNode;
+    limit?: number;
+  } & Partial<ViewerDateContext>,
+  signal?: AbortSignal,
+): Promise<ICalendarRowsPage> {
+  const req = await api.post("/bases/rows/calendar", params, { signal });
   return req.data;
 }
 

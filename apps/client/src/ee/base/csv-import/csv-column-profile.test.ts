@@ -87,6 +87,13 @@ describe("type suggestion", () => {
     ).toEqual({ includeTime: true, timeFormat: "24h" });
   });
 
+  it("reads exported date ranges as dates", () => {
+    expect(profile(["2026-11-18/2026-11-22", "2026-12-01/2026-12-03"]).suggestion).toEqual({
+      type: "date",
+      typeOptions: undefined,
+    });
+  });
+
   it("suggests email and url", () => {
     expect(profile(["ada@example.com", "bob@example.org"]).suggestion.type).toBe("email");
     expect(profile(["https://docmost.com", "www.example.com"]).suggestion.type).toBe("url");

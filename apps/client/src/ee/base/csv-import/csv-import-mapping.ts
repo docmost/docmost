@@ -3,6 +3,7 @@ import {
   MAX_PROPERTY_NAME_LENGTH,
 } from "@/ee/base/csv-import/csv-import.constants";
 import { truncateText } from "@/ee/base/csv-import/csv-value-parsers";
+import { dateKindOfProperty, type DateKind } from "@docmost/base-formula/client";
 import type {
   BaseCsvImportSpec,
   CsvColumnPlan,
@@ -115,6 +116,17 @@ export function planTargetType(
   return property && isImportableProperty(property)
     ? (property.type as CsvImportPropertyType)
     : null;
+}
+
+export function planDateKind(
+  plan: CsvColumnPlan,
+  propertiesById: Map<string, IBaseProperty>,
+): DateKind {
+  const typeOptions =
+    plan.target.kind === "existing"
+      ? propertiesById.get(plan.target.propertyId)?.typeOptions
+      : plan.typeOptions;
+  return dateKindOfProperty("date", typeOptions) ?? "date";
 }
 
 // names other plans or existing properties already hold, for renaming one plan
@@ -255,6 +267,7 @@ export function buildConvertColumns(
     index: plan.index,
     type: planTargetType(plan, propertiesById)!,
     hints: plan.hints,
+    dateKind: planDateKind(plan, propertiesById),
   }));
 }
 

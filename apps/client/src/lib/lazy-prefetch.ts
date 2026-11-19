@@ -34,8 +34,8 @@ export function lazyWithPrefetch<T extends ComponentType<any>>(
 }
 
 export async function prefetchLazyComponents() {
-  // anonymous share/docs viewers, OAuth consent and the PDF renderer only need the page they opened
-  const isStandalonePage = /^\/(share|docs|pdf-render|oauth)(\/|$)/.test(
+  // anonymous share/docs viewers, form respondents, OAuth consent and the PDF renderer only need the page they opened
+  const isStandalonePage = /^\/(share|docs|forms|pdf-render|oauth)(\/|$)/.test(
     window.location.pathname,
   );
   const saveData = (navigator as NavigatorWithConnection).connection?.saveData;

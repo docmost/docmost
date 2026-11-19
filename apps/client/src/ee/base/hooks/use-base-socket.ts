@@ -8,6 +8,7 @@ import {
   IBaseProperty,
   IBaseRow,
   IBaseView,
+  RowReferences,
 } from "@/ee/base/types/base.types";
 import {
   baseImportProgressAtomFamily,
@@ -19,13 +20,29 @@ import type {
   BaseImportResult,
 } from "@/ee/base/csv-import/csv-import.types";
 import { formulaRecomputeAtom } from "@/ee/base/atoms/formula-recompute-atom";
+import {
+  mergeReferences,
+  referenceStoreAtomFamily,
+} from "@/ee/base/atoms/reference-store-atom";
 import { IPagination } from "@/lib/types";
-import { invalidateBaseRows } from "@/ee/base/queries/base-row-query";
+import {
+  invalidateAffectedCalendarWindows,
+  rowsOrderDependsOn,
+} from "@/ee/base/queries/base-row-query";
+import {
+  cancelRowsRefresh,
+  scheduleRowsRefresh,
+} from "@/ee/base/queries/rows-refresh";
+import {
+  formShareQueryKey,
+  invalidatePublicFormForView,
+} from "@/ee/base/queries/base-form-query";
 
 type BaseRowCreated = {
   operation: "base:row:created";
   pageId: string;
   row: IBaseRow;
+  references?: RowReferences;
   requestId?: string | null;
 };
 
@@ -34,6 +51,8 @@ type BaseRowUpdated = {
   pageId: string;
   rowId: string;
   updatedCells: Record<string, unknown>;
+  updatedAt?: string;
+  lastUpdatedById?: string | null;
   requestId?: string | null;
 };
 
@@ -79,6 +98,13 @@ type BaseViewEvent = {
   pageId: string;
   view?: IBaseView;
   viewId?: string;
+};
+
+type BaseViewShareUpdated = {
+  operation: "base:view:share:updated";
+  pageId: string;
+  viewId: string;
+  requestId?: string | null;
 };
 
 type BaseRowsUpdated = {
@@ -143,6 +169,7 @@ type BaseInboundEvent =
   | BaseSubscribed
   | BasePropertyEvent
   | BaseViewEvent
+  | BaseViewShareUpdated
   | { operation: string; pageId: string };
 
 // Module-level set of requestIds we've just sent. When the socket echoes back
@@ -159,9 +186,14 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
+type BaseSubscriptionState = {
+  missedEvents: boolean;
+};
+
 function createBaseEventHandler(
   pageId: string,
   queryClient: QueryClient,
+  state: BaseSubscriptionState,
 ): (raw: unknown) => void {
   return (raw: unknown) => {
     if (!raw || typeof raw !== "object") return;
@@ -177,13 +209,39 @@ function createBaseEventHandler(
     switch (event.operation) {
       case "base:row:created": {
         const e = event as BaseRowCreated;
+        const store = getDefaultStore();
+        const referencesAtom = referenceStoreAtomFamily(pageId);
+        if (e.references && Object.keys(e.references.users).length > 0) {
+          store.set(
+            referencesAtom,
+            mergeReferences(store.get(referencesAtom), e.references),
+          );
+        }
         const baseForCreate = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForCreate = (baseForCreate?.views ?? []).some((v) => v.type === "kanban");
-        if (hasKanbanForCreate) {
-          invalidateBaseRows(pageId);
+        const createProperties = baseForCreate?.properties ?? [];
+        const showsRowUsers = createProperties.some(
+          (p) => p.type === "createdBy" || p.type === "lastEditedBy",
+        );
+        const knownUsers = store.get(referencesAtom).users;
+        const referencedUserIds = [
+          ...(showsRowUsers ? [e.row.creatorId, e.row.lastUpdatedById] : []),
+          ...createProperties
+            .filter((p) => p.type === "person")
+            .flatMap((p) => e.row.cells?.[p.id] ?? []),
+        ];
+        const usersUnresolved = referencedUserIds.some(
+          (id) => typeof id === "string" && !knownUsers[id],
+        );
+        const refreshCalendar = invalidateAffectedCalendarWindows(queryClient, pageId, "any");
+        if (hasKanbanForCreate || usersUnresolved) {
+          scheduleRowsRefresh(pageId, "all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", pageId] },
+            {
+              queryKey: ["base-rows", pageId],
+              predicate: (query) => query.queryKey[2] !== "calendar",
+            },
             (old) => {
               if (!old) return old;
               const lastPageIndex = old.pages.length - 1;
@@ -197,6 +255,11 @@ function createBaseEventHandler(
               };
             },
           );
+          if (rowsOrderDependsOn(pageId, "any", baseForCreate)) {
+            scheduleRowsRefresh(pageId, "all");
+          } else if (refreshCalendar) {
+            scheduleRowsRefresh(pageId, "calendar");
+          }
         }
         break;
       }
@@ -204,9 +267,15 @@ function createBaseEventHandler(
         const e = event as BaseRowUpdated;
         const baseForUpdate = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForUpdate = (baseForUpdate?.views ?? []).some((v) => v.type === "kanban");
-        if (hasKanbanForUpdate) {
-          invalidateBaseRows(pageId);
-        } else {
+        const editStamp: Partial<IBaseRow> = {};
+        if (typeof e.updatedAt === "string") editStamp.updatedAt = e.updatedAt;
+        if (
+          "lastUpdatedById" in e &&
+          (typeof e.lastUpdatedById === "string" || e.lastUpdatedById === null)
+        ) {
+          editStamp.lastUpdatedById = e.lastUpdatedById;
+        }
+        if (!hasKanbanForUpdate) {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
             (old) =>
@@ -220,6 +289,7 @@ function createBaseEventHandler(
                         row.id === e.rowId
                           ? {
                               ...row,
+                              ...editStamp,
                               cells: { ...row.cells, ...e.updatedCells },
                             }
                           : row,
@@ -227,6 +297,23 @@ function createBaseEventHandler(
                     })),
                   },
           );
+        }
+        const changedPropertyIds = Object.keys(e.updatedCells ?? {});
+        const refreshCalendar = invalidateAffectedCalendarWindows(
+          queryClient, pageId, changedPropertyIds, baseForUpdate,
+        );
+        const editorUnknown =
+          typeof e.lastUpdatedById === "string" &&
+          (baseForUpdate?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
+          !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[e.lastUpdatedById];
+        if (
+          hasKanbanForUpdate ||
+          editorUnknown ||
+          rowsOrderDependsOn(pageId, changedPropertyIds, baseForUpdate)
+        ) {
+          scheduleRowsRefresh(pageId, "all");
+        } else if (refreshCalendar) {
+          scheduleRowsRefresh(pageId, "calendar");
         }
         break;
       }
@@ -289,7 +376,7 @@ function createBaseEventHandler(
         const baseForReorder = queryClient.getQueryData<IBase>(["bases", pageId]);
         const hasKanbanForReorder = (baseForReorder?.views ?? []).some((v) => v.type === "kanban");
         if (hasKanbanForReorder) {
-          invalidateBaseRows(pageId);
+          scheduleRowsRefresh(pageId, "all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
@@ -332,7 +419,7 @@ function createBaseEventHandler(
           }
         }
         if (touchesCache) {
-          queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
+          scheduleRowsRefresh(pageId, "all");
         }
         break;
       }
@@ -345,9 +432,20 @@ function createBaseEventHandler(
       case "base:subscribed": {
         const e = event as BaseSubscribed;
         const cached = queryClient.getQueryData<IBase>(["bases", pageId]);
-        if (cached && cached.baseSchemaVersion !== e.schemaVersion) {
+        if (
+          state.missedEvents ||
+          (cached && cached.baseSchemaVersion !== e.schemaVersion)
+        ) {
+          state.missedEvents = false;
           queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
           queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+          for (const view of cached?.views ?? []) {
+            if (view.type !== "form") continue;
+            invalidatePublicFormForView(pageId, view.id);
+            queryClient.invalidateQueries({
+              queryKey: formShareQueryKey(pageId, view.id),
+            });
+          }
         }
         // a completion sent while away never arrives; a running import's next progress event restores it
         getDefaultStore().set(baseImportProgressAtomFamily(pageId), null);
@@ -408,7 +506,35 @@ function createBaseEventHandler(
       case "base:view:updated":
       case "base:view:deleted": {
         // Schema/metadata events only affect properties/views, not cell data.
+        const e = event as BasePropertyEvent | BaseViewEvent;
+        const cachedBase = queryClient.getQueryData<IBase>(["bases", pageId]);
         queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
+        if (e.operation === "base:property:updated" && e.property) {
+          const propertyId = e.property.id;
+          for (const view of cachedBase?.views ?? []) {
+            if (
+              view.config?.form?.fields?.some(
+                (field) => field.propertyId === propertyId,
+              )
+            ) {
+              invalidatePublicFormForView(pageId, view.id);
+            }
+          }
+        } else if (e.operation === "base:view:updated" && e.view?.type === "form") {
+          invalidatePublicFormForView(pageId, e.view.id);
+        } else if (e.operation === "base:view:deleted" && e.viewId) {
+          queryClient.invalidateQueries({
+            queryKey: formShareQueryKey(pageId, e.viewId),
+          });
+        }
+        break;
+      }
+      case "base:view:share:updated": {
+        const e = event as BaseViewShareUpdated;
+        invalidatePublicFormForView(pageId, e.viewId);
+        queryClient.invalidateQueries({
+          queryKey: formShareQueryKey(pageId, e.viewId),
+        });
         break;
       }
       default:
@@ -419,12 +545,16 @@ function createBaseEventHandler(
 
 type BaseSubscription = {
   count: number;
+  state: BaseSubscriptionState;
   handler: (raw: unknown) => void;
+  subscribe: () => void;
+  markMissedEvents: () => void;
 };
 
 const baseSubscriptions = new WeakMap<Socket, Map<string, BaseSubscription>>();
 
-// One room subscription and cache handler per base, shared by every mounted view.
+// One room subscription and cache handler per base, shared by every mounted
+// view and rejoined on every reconnect.
 export function retainBaseSubscription(
   socket: Socket,
   pageId: string,
@@ -436,13 +566,25 @@ export function retainBaseSubscription(
 
   let subscription = subscriptions.get(pageId);
   if (!subscription) {
+    const state: BaseSubscriptionState = {
+      missedEvents: false,
+    };
     subscription = {
       count: 0,
-      handler: createBaseEventHandler(pageId, queryClient),
+      state,
+      handler: createBaseEventHandler(pageId, queryClient, state),
+      subscribe: () => {
+        socket.emit("message", { operation: "base:subscribe", pageId });
+      },
+      markMissedEvents: () => {
+        state.missedEvents = true;
+      },
     };
     subscriptions.set(pageId, subscription);
     socket.on("message", subscription.handler);
-    socket.emit("message", { operation: "base:subscribe", pageId });
+    socket.on("connect", subscription.subscribe);
+    socket.on("disconnect", subscription.markMissedEvents);
+    if (socket.connected) subscription.subscribe();
   }
   subscription.count += 1;
 
@@ -451,7 +593,10 @@ export function retainBaseSubscription(
     retained.count -= 1;
     if (retained.count > 0) return;
     subscriptions.delete(pageId);
+    cancelRowsRefresh(pageId);
     socket.off("message", retained.handler);
+    socket.off("connect", retained.subscribe);
+    socket.off("disconnect", retained.markMissedEvents);
     socket.emit("message", { operation: "base:unsubscribe", pageId });
   };
 }

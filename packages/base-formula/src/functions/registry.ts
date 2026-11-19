@@ -1,12 +1,16 @@
+import type { FormulaAST } from "../ast";
 import type { FormulaResultType, Value, EvalContext } from "../types";
 
 export type FormulaFn = {
   name: string;
   arity: { min: number; max: number | null };
   paramTypes: FormulaResultType[] | "any" | "variadic-any";
-  returnType: FormulaResultType | ((argTypes: FormulaResultType[]) => FormulaResultType);
+  returnType:
+    | FormulaResultType
+    | ((argTypes: FormulaResultType[], args: FormulaAST[]) => FormulaResultType);
   eval: (args: Value[], ctx: EvalContext) => Value;
   doc: string;
+  volatile?: "now" | "today";
   category: "logic" | "math" | "string" | "date" | "coercion";
 };
 

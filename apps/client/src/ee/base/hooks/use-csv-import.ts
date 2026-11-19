@@ -23,6 +23,7 @@ import {
   MAX_IMPORT_ROWS,
   SPREADSHEET_EXTENSIONS,
 } from "@/ee/base/csv-import/csv-import.constants";
+import { MAX_BASE_PROPERTIES } from "@/ee/base/constants/properties";
 import type {
   CsvColumnPlan,
   CsvLoadOptions,
@@ -183,6 +184,10 @@ export function useCsvImport(base: IBase, onImported: () => void) {
     if (included.length > MAX_IMPORT_COLUMNS) {
       return t("You can import up to {{max}} columns at a time.", { max: MAX_IMPORT_COLUMNS });
     }
+    const newColumns = included.filter((plan) => plan.target.kind === "new").length;
+    if (base.properties.length + newColumns > MAX_BASE_PROPERTIES) {
+      return t("A base can have up to {{max}} properties.", { max: MAX_BASE_PROPERTIES });
+    }
     const conflict = findPlanConflict(plans, propertiesById);
     if (conflict?.kind === "property") {
       return t("More than one column is set to {{name}}.", { name: conflict.name });
@@ -191,7 +196,7 @@ export function useCsvImport(base: IBase, onImported: () => void) {
       return t("More than one property would be named {{name}}.", { name: conflict.name });
     }
     return null;
-  }, [i18n.language, included.length, loaded, plans, propertiesById, t]);
+  }, [base.properties.length, i18n.language, included, loaded, plans, propertiesById, t]);
 
   const startImport = useCallback(async () => {
     const worker = workerRef.current;

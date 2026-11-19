@@ -6,6 +6,7 @@ import {
   Attachments,
   BaseProperties,
   BaseRows,
+  BaseViewShares,
   BaseViews,
   Comments,
   Groups,
@@ -290,6 +291,11 @@ export type UpdatableBaseRow = Updateable<Omit<BaseRows, 'id'>>;
 export type BaseView = Selectable<BaseViews>;
 export type InsertableBaseView = Insertable<BaseViews>;
 export type UpdatableBaseView = Updateable<Omit<BaseViews, 'id'>>;
+
+// Base View Share
+export type BaseViewShare = Selectable<BaseViewShares>;
+export type InsertableBaseViewShare = Insertable<BaseViewShares>;
+export type UpdatableBaseViewShare = Updateable<Omit<BaseViewShares, 'id'>>;
 
 // SIEM destinations
 export type SiemDestination = Selectable<SiemDestinations>;

@@ -354,22 +354,29 @@ export function GridContainer({
     const prev = prevEditingRef.current;
     prevEditingRef.current = editingCell;
     if (prev && !editingCell) {
-      if (!focusedCellRef.current) setFocusedCell(prev);
+      const prevShown =
+        rowIdsRef.current.includes(prev.rowId) &&
+        table.getVisibleLeafColumns().some((c) => c.id === prev.propertyId);
+      if (!focusedCellRef.current && prevShown) setFocusedCell(prev);
       const grid = bodyRef.current;
       const active = document.activeElement;
       if (grid && active && !grid.contains(active)) {
         grid.focus({ preventScroll: true });
       }
     }
-  }, [editingCell, setFocusedCell]);
+  }, [editingCell, setFocusedCell, table]);
 
   useEffect(() => {
+    const isShown = (cell: { rowId: string; propertyId: string }) =>
+      rowIds.includes(cell.rowId) &&
+      table.getVisibleLeafColumns().some((c) => c.id === cell.propertyId);
     const fc = focusedCellRef.current;
-    if (!fc) return;
-    const rowOk = rowIds.includes(fc.rowId);
-    const colOk = table.getVisibleLeafColumns().some((c) => c.id === fc.propertyId);
-    if (!rowOk || !colOk) setFocusedCell(null);
-  }, [rowIds, table.getState().columnVisibility, table.getState().columnOrder, setFocusedCell]);
+    if (fc && !isShown(fc)) setFocusedCell(null);
+    const ec = editingCellRef.current;
+    if (ec && !isShown(ec)) setEditingCell(null);
+  }, [rowIds, table.getState().columnVisibility, table.getState().columnOrder, setFocusedCell, setEditingCell]);
+
+  useEffect(() => () => setEditingCell(null), [setEditingCell]);
 
   const handleGridFocus = useCallback(
     (e: React.FocusEvent<HTMLDivElement>) => {

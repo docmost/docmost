@@ -49,8 +49,8 @@ describe("profileCsvText", () => {
 
 describe("convertCsvText", () => {
   const columns: CsvConvertColumn[] = [
-    { index: 0, type: "text", hints },
-    { index: 2, type: "number", hints },
+    { index: 0, type: "text", hints, dateKind: "date" },
+    { index: 2, type: "number", hints, dateKind: "date" },
   ];
 
   it("writes one JSON array per row in column order", () => {
@@ -74,17 +74,27 @@ describe("convertCsvText", () => {
 
   it("escapes line and paragraph separators so each row stays on one line", () => {
     const result = convertCsvText("Name\na\u2028b\u2029c\n", { delimiter: ",", hasHeader: true }, [
-      { index: 0, type: "text", hints },
+      { index: 0, type: "text", hints, dateKind: "date" },
     ]);
     const output = result.parts.join("");
     expect(output).toBe('["a\\u2028b\\u2029c"]\n');
     expect(JSON.parse(output)).toEqual(["a\u2028b\u2029c"]);
   });
 
+  it("writes dates in the column's kind, ranges as start and end", () => {
+    const text = "Due\n2026-11-18 14:30\n2026-11-18/2026-11-22\n";
+    const result = convertCsvText(text, { delimiter: ",", hasHeader: true }, [
+      { index: 0, type: "date", hints, dateKind: "date" },
+    ]);
+    expect(result.parts.join("")).toBe(
+      '["2026-11-18"]\n[{"start":"2026-11-18","end":"2026-11-22"}]\n',
+    );
+  });
+
   it("counts multi-select items left out of a cell", () => {
     const text = `Tags\n"ok, ${"x".repeat(256)}"\n`;
     const result = convertCsvText(text, { delimiter: ",", hasHeader: true }, [
-      { index: 0, type: "multiSelect", hints },
+      { index: 0, type: "multiSelect", hints, dateKind: "date" },
     ]);
     expect(result.parts.join("")).toBe('[["ok"]]\n');
     expect(result.skippedValues).toBe(1);

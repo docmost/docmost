@@ -119,7 +119,12 @@ export function convertCsvText(
     let hasValue = false;
     let rowSkipped = 0;
     const values = columns.map((column) => {
-      const result = convertCsvValue(row[column.index], column.type, column.hints);
+      const result = convertCsvValue(
+        row[column.index],
+        column.type,
+        column.hints,
+        column.dateKind,
+      );
       rowSkipped += result.skipped ?? (result.status === "invalid" ? 1 : 0);
       if (result.value !== null) hasValue = true;
       return result.value;

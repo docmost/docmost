@@ -1,0 +1,72 @@
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+}
+
+.calendarFullPage {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: var(--mantine-spacing-md);
+}
+
+.calendarEmbed {
+  padding-bottom: var(--mantine-spacing-xs);
+}
+
+.surface {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+}
+
+.calendarFullPage .surface {
+  flex: 1;
+}
+
+.calendarEmbed .surface {
+  height: 640px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  min-height: 32px;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 320px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
+  overflow: hidden;
+}
+
+.skeletonWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: var(--mantine-spacing-xs);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.skeletonGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.skeletonDay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border-inline-end: 1px solid var(--mantine-color-default-border);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}

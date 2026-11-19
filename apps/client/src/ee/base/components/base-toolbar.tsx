@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo } from "react";
-import { ActionIcon, Tooltip, Badge } from "@mantine/core";
-import { useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
+import { ActionIcon, Button, Tooltip, Badge } from "@mantine/core";
 import { Table } from "@tanstack/react-table";
 import {
   IconSortAscending,
   IconFilter,
   IconEye,
+  IconEyeOff,
   IconDownload,
   IconUpload,
   IconArrowsDiagonal,
@@ -21,6 +22,7 @@ import {
   FilterCondition,
   FilterGroup,
 } from "@/ee/base/types/base.types";
+import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import { exportBaseToCsv } from "@/ee/base/services/base-service";
 import { normalizeFilter } from "@/ee/base/queries/base-row-query";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -32,9 +34,15 @@ import { ViewFilterConfigPopover } from "@/ee/base/components/views/view-filter-
 import { ViewPropertyVisibility } from "@/ee/base/components/views/view-property-visibility";
 import { KanbanGroupByPicker } from "@/ee/base/components/kanban/kanban-group-by-picker";
 import { KanbanCardProperties } from "@/ee/base/components/kanban/kanban-card-properties";
+import { CalendarSettingsMenu } from "@/ee/base/components/calendar/calendar-settings-menu";
+import { FormSettingsPopover } from "@/ee/base/components/form/form-settings-popover";
+import { FormSharePopover } from "@/ee/base/components/form/form-share-popover";
 import { BaseImportIndicator } from "@/ee/base/components/csv-import/base-import-indicator";
+import {
+  baseImportOpenedAtomFamily,
+  formPreviewAtomFamily,
+} from "@/ee/base/atoms/base-atoms";
 import { useBaseEditable } from "@/ee/base/context/base-editable";
-import { baseImportOpenedAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { useTranslation } from "react-i18next";
 import classes from "@/ee/base/styles/grid.module.css";
 import toolbarClasses from "@/ee/base/styles/base-toolbar.module.css";
@@ -79,17 +87,24 @@ export function BaseToolbar({
   const [cardPropertiesOpened, setCardPropertiesOpened] = useState(false);
   const [exporting, setExporting] = useState(false);
   const setImportOpened = useSetAtom(baseImportOpenedAtomFamily(base.id));
-  const editable = useBaseEditable();
 
   const isKanban = activeView?.type === "kanban";
+  const isForm = activeView?.type === "form";
+  const isCalendar = activeView?.type === "calendar";
+  const editable = useBaseEditable();
+  const showCardProperties = isKanban || (isCalendar && editable);
+  const [formPreview, setFormPreview] = useAtom(
+    formPreviewAtomFamily(activeView?.id ?? ""),
+  );
 
   const viewFilter = activeView?.config?.filter;
+  const viewer = useViewerDateContext();
 
   const handleExport = useCallback(async () => {
     if (exporting) return;
     setExporting(true);
     try {
-      await exportBaseToCsv(base.id, normalizeFilter(viewFilter));
+      await exportBaseToCsv(base.id, normalizeFilter(viewFilter), viewer);
     } catch (err) {
       notifications.show({
         color: "red",
@@ -98,7 +113,7 @@ export function BaseToolbar({
     } finally {
       setExporting(false);
     }
-  }, [base.id, exporting, t, viewFilter]);
+  }, [base.id, exporting, t, viewFilter, viewer]);
 
   const openToolbar = useCallback((panel: "sort" | "filter" | "properties") => {
     setSortOpened(panel === "sort" ? (v) => !v : false);
@@ -184,71 +199,107 @@ export function BaseToolbar({
           </ActionIcon>
         </Tooltip>
 
-        <ViewFilterConfigPopover
-          opened={filterOpened}
-          onClose={() => setFilterOpened(false)}
-          conditions={conditions}
-          properties={base.properties}
-          onChange={handleFiltersChange}
-        >
-          <Tooltip label={t("Filter")}>
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              color={conditions.length > 0 ? "blue" : "gray"}
-              onClick={() => openToolbar("filter")}
-            >
-              <IconFilter size={16} />
-              {conditions.length > 0 && (
-                <Badge
-                  size="xs"
-                  circle
-                  color="blue"
-                  className={toolbarClasses.badgeDot}
-                >
-                  {conditions.length}
-                </Badge>
-              )}
-            </ActionIcon>
-          </Tooltip>
-        </ViewFilterConfigPopover>
+        {!isForm && (
+          <ViewFilterConfigPopover
+            opened={filterOpened}
+            onClose={() => setFilterOpened(false)}
+            conditions={conditions}
+            properties={base.properties}
+            onChange={handleFiltersChange}
+          >
+            <Tooltip label={t("Filter")}>
+              <ActionIcon
+                aria-label={t("Filter")}
+                variant="subtle"
+                size="sm"
+                color={conditions.length > 0 ? "blue" : "gray"}
+                onClick={() => openToolbar("filter")}
+              >
+                <IconFilter size={16} />
+                {conditions.length > 0 && (
+                  <Badge
+                    size="xs"
+                    circle
+                    color="blue"
+                    className={toolbarClasses.badgeDot}
+                  >
+                    {conditions.length}
+                  </Badge>
+                )}
+              </ActionIcon>
+            </Tooltip>
+          </ViewFilterConfigPopover>
+        )}
 
-        {isKanban && activeView && (
+        {isForm && activeView && editable && (
           <>
-            <KanbanGroupByPicker base={base} view={activeView} pageId={base.id}>
-              <Tooltip label={t("Group by")}>
-                <ActionIcon
-                  variant="subtle"
-                  size="sm"
-                  color="gray"
-                >
-                  <IconLayoutColumns size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </KanbanGroupByPicker>
-
-            <KanbanCardProperties
-              opened={cardPropertiesOpened}
-              onClose={() => setCardPropertiesOpened(false)}
-              base={base}
-              view={activeView}
-              pageId={base.id}
+            <FormSettingsPopover pageId={base.id} view={activeView} />
+            <Button
+              size="compact-sm"
+              variant="default"
+              fw={500}
+              leftSection={
+                formPreview ? (
+                  <IconEyeOff size={16} stroke={1.75} />
+                ) : (
+                  <IconEye size={16} stroke={1.75} />
+                )
+              }
+              aria-pressed={formPreview}
+              onClick={() => setFormPreview(!formPreview)}
             >
-              <Tooltip label={t("Card properties")}>
-                <ActionIcon
-                  variant="subtle"
-                  size="sm"
-                  color="gray"
-                  onClick={() => setCardPropertiesOpened((v) => !v)}
-                >
-                  <IconAdjustments size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </KanbanCardProperties>
+              {formPreview ? t("Exit preview") : t("Preview")}
+            </Button>
+            <FormSharePopover
+              pageId={base.id}
+              view={activeView}
+              isRestricted={base.permissions?.hasRestriction}
+            />
           </>
         )}
 
-        {!isKanban && (
+        {isKanban && activeView && (
+          <KanbanGroupByPicker base={base} view={activeView} pageId={base.id}>
+            <Tooltip label={t("Group by")}>
+              <ActionIcon
+                aria-label={t("Group by")}
+                variant="subtle"
+                size="sm"
+                color="gray"
+              >
+                <IconLayoutColumns size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </KanbanGroupByPicker>
+        )}
+
+        {isCalendar && activeView && editable && (
+          <CalendarSettingsMenu base={base} view={activeView} pageId={base.id} />
+        )}
+
+        {showCardProperties && activeView && (
+          <KanbanCardProperties
+            opened={cardPropertiesOpened}
+            onClose={() => setCardPropertiesOpened(false)}
+            base={base}
+            view={activeView}
+            pageId={base.id}
+          >
+            <Tooltip label={t("Card properties")}>
+              <ActionIcon
+                aria-label={t("Card properties")}
+                variant="subtle"
+                size="sm"
+                color="gray"
+                onClick={() => setCardPropertiesOpened((v) => !v)}
+              >
+                <IconAdjustments size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </KanbanCardProperties>
+        )}
+
+        {!isKanban && !isForm && !isCalendar && (
           <>
             <ViewSortConfigPopover
               opened={sortOpened}
@@ -259,6 +310,7 @@ export function BaseToolbar({
             >
               <Tooltip label={t("Sort")}>
                 <ActionIcon
+                  aria-label={t("Sort")}
                   variant="subtle"
                   size="sm"
                   color={sorts.length > 0 ? "blue" : "gray"}
@@ -289,6 +341,7 @@ export function BaseToolbar({
               >
                 <Tooltip label={t("Hide properties")}>
                   <ActionIcon
+                    aria-label={t("Hide properties")}
                     variant="subtle"
                     size="sm"
                     color={hiddenPropertyCount > 0 ? "blue" : "gray"}
@@ -315,6 +368,7 @@ export function BaseToolbar({
         {onExpand && (
           <Tooltip label={t("Open as page")}>
             <ActionIcon
+              aria-label={t("Open as page")}
               variant="subtle"
               size="sm"
               color="gray"

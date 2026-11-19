@@ -2,6 +2,7 @@ import type { BasePropertyType } from "@/ee/base/types/base.types";
 
 export const NON_USER_TARGET_TYPES = new Set<BasePropertyType>([
   "createdAt",
+  "createdBy",
   "lastEditedAt",
   "lastEditedBy",
   "formula",
@@ -54,6 +55,10 @@ function describeConversion(
     }
   }
 
+  if (from === "date" && to !== "date" && to !== "text" && to !== "longText") {
+    return { message: "All data in this column will be lost.", lossy: true };
+  }
+
   if (to === "select" && from === "multiSelect") {
     return {
       message:
@@ -79,6 +84,16 @@ function describeConversion(
   if (to === "number" && from !== "number") {
     return {
       message: "Cells that can't be parsed as a number will be cleared.",
+      lossy: true,
+    };
+  }
+
+  if (
+    to === "date" &&
+    (from === "text" || from === "longText" || from === "url" || from === "email")
+  ) {
+    return {
+      message: "Cells that can't be read as a date will show as empty.",
       lossy: true,
     };
   }

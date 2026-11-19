@@ -4,8 +4,10 @@ import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconAppWindow,
   IconCalendar,
+  IconCalendarMonth,
   IconCaretRightFilled,
   IconChevronDown,
+  IconForms,
   IconInfoCircle,
   IconLayoutKanban,
   IconLayoutNavbar,
@@ -37,6 +39,7 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { UpgradeBadge } from "@/ee/components/upgrade-badge";
+import { isBetaBaseForms } from "@/lib/config.ts";
 
 interface Props {
   editor: Editor;
@@ -139,6 +142,38 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
               }}
             >
               {t("Kanban")}
+            </Menu.Item>
+          </Tooltip>
+        )}
+        {!templateMode && (
+          <Tooltip label={upgradeLabel} disabled={hasBases} position="right">
+            <Menu.Item
+              leftSection={<IconCalendarMonth size={16} />}
+              aria-disabled={!hasBases}
+              closeMenuOnClick={hasBases}
+              style={{ opacity: hasBases ? undefined : 0.7 }}
+              rightSection={!hasBases && <UpgradeBadge />}
+              onClick={() => {
+                if (hasBases) insertBaseEmbedBlock(editor, { template: "calendar" });
+              }}
+            >
+              {t("Calendar")}
+            </Menu.Item>
+          </Tooltip>
+        )}
+        {!templateMode && isBetaBaseForms() && (
+          <Tooltip label={upgradeLabel} disabled={hasBases} position="right">
+            <Menu.Item
+              leftSection={<IconForms size={16} />}
+              aria-disabled={!hasBases}
+              closeMenuOnClick={hasBases}
+              style={{ opacity: hasBases ? undefined : 0.7 }}
+              rightSection={!hasBases && <UpgradeBadge />}
+              onClick={() => {
+                if (hasBases) insertBaseEmbedBlock(editor, { template: "form" });
+              }}
+            >
+              {t("Form")}
             </Menu.Item>
           </Tooltip>
         )}

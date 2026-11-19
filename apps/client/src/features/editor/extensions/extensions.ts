@@ -115,6 +115,7 @@ import TabsView from "@/features/editor/components/tabs/tabs-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
+import { isCalendarEventDrag } from "@/ee/base/components/calendar/calendar-frame";
 import MicrosoftFileView from "@/features/editor/components/microsoft/microsoft-file-view.tsx";
 import MicrosoftFolderView from "@/features/editor/components/microsoft/microsoft-folder-view.tsx";
 import { common, createLowlight } from "lowlight";
@@ -442,7 +443,13 @@ export const mainExtensions = [
   }),
   BaseEmbedNode.extend({
     addNodeView() {
-      return ReactNodeViewRenderer(BaseEmbedView);
+      return (props) => {
+        const nodeView = ReactNodeViewRenderer(BaseEmbedView)(props);
+        const defaultStopEvent = nodeView.stopEvent?.bind(nodeView);
+        nodeView.stopEvent = (event) =>
+          isCalendarEventDrag(event) || !!defaultStopEvent?.(event);
+        return nodeView;
+      };
     },
   }),
   MarkdownClipboard.configure({
@@ -484,6 +491,8 @@ const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
   "Synced block",
   "Base (Inline)",
   "Kanban",
+  "Calendar",
+  "Form",
   "SharePoint file"
 ]);
 

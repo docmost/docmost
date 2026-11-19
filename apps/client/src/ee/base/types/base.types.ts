@@ -1,4 +1,6 @@
 import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
+import type { DateFormat } from "@/ee/base/utils/date-format";
+import type { DateOperand } from "@docmost/base-formula/client";
 
 export type UserRef = { id: string; name: string | null; avatarUrl: string | null };
 export type RowReferences = {
@@ -20,12 +22,15 @@ export type BasePropertyType =
   | 'url'
   | 'email'
   | 'createdAt'
+  | 'createdBy'
   | 'lastEditedAt'
   | 'lastEditedBy'
   | 'formula'
   | 'longText';
 
-export type BaseViewType = 'table' | 'kanban' | 'calendar';
+export type BaseViewType = 'table' | 'kanban' | 'calendar' | 'form';
+
+export type BaseTemplate = 'kanban' | 'calendar' | 'form';
 
 export type Choice = {
   id: string;
@@ -59,10 +64,9 @@ export type NumberTypeOptions = {
 };
 
 export type DateTypeOptions = {
-  dateFormat?: string;
+  dateFormat?: DateFormat;
   timeFormat?: '12h' | '24h';
   includeTime?: boolean;
-  defaultValue?: string | null;
 };
 
 export type TextTypeOptions = {
@@ -124,7 +128,7 @@ export type IBaseRow = {
   pageId: string;
   cells: Record<string, unknown>;
   position: string;
-  creatorId: string;
+  creatorId: string | null;
   lastUpdatedById: string | null;
   workspaceId: string;
   createdAt: string;
@@ -159,30 +163,11 @@ export type FilterOperator =
   | 'all'
   | 'isWithin';
 
-export type DateFilterAnchor =
-  | 'today'
-  | 'tomorrow'
-  | 'yesterday'
-  | 'oneWeekAgo'
-  | 'oneWeekFromNow'
-  | 'oneMonthAgo'
-  | 'oneMonthFromNow';
+export type DateFilterAnchor = Extract<DateOperand, { mode: 'relative' }>['preset'];
 
-export type DateFilterRange =
-  | 'pastWeek'
-  | 'pastMonth'
-  | 'pastYear'
-  | 'thisWeek'
-  | 'thisMonth'
-  | 'thisYear'
-  | 'nextWeek'
-  | 'nextMonth'
-  | 'nextYear';
+export type DateFilterRange = Extract<DateOperand, { mode: 'range' }>['preset'];
 
-export type DateFilterValue =
-  | { mode: 'exact'; date: string }
-  | { mode: 'relative'; preset: DateFilterAnchor }
-  | { mode: 'range'; preset: DateFilterRange };
+export type DateFilterValue = DateOperand;
 
 export type FilterCondition = {
   propertyId: string;
@@ -203,6 +188,14 @@ export const KANBAN_CARD_DRAG_TYPE = "base-kanban-card";
 export const KANBAN_COLUMN_DRAG_TYPE = "base-kanban-column";
 export type KanbanColumn = { key: string; name: string; color?: string; isNoValue: boolean };
 
+export type CalendarLayout = 'month' | 'week';
+
+export type CalendarViewConfig = {
+  datePropertyId?: string;
+  layout?: CalendarLayout;
+  showWeekends?: boolean;
+};
+
 export type ViewConfig = {
   sorts?: ViewSortConfig[];
   filter?: FilterGroup;
@@ -214,6 +207,119 @@ export type ViewConfig = {
   groupByPropertyId?: string;
   hiddenChoiceIds?: string[];
   choiceOrder?: string[];
+  form?: FormConfig;
+  calendar?: CalendarViewConfig;
+};
+
+export type FormFieldConfig = {
+  propertyId: string;
+  label?: string;
+  description?: string;
+  required?: boolean;
+};
+
+export type FormConfig = {
+  title?: string;
+  description?: string;
+  fields?: FormFieldConfig[];
+  submitLabel?: string;
+  successTitle?: string;
+  successMessage?: string;
+  allowResubmit?: boolean;
+};
+
+export type FormAccess = 'none' | 'workspace' | 'public';
+
+export type FormShareInfo = {
+  viewId: string;
+  access: FormAccess;
+  key: string | null;
+  publicSharingAllowed: boolean;
+};
+
+export type UpdateFormShareInput = {
+  pageId: string;
+  viewId: string;
+  access: FormAccess;
+  requestId?: string;
+};
+
+export type FormFieldType =
+  | 'text'
+  | 'longText'
+  | 'number'
+  | 'select'
+  | 'multiSelect'
+  | 'date'
+  | 'checkbox'
+  | 'url'
+  | 'email'
+  | 'person';
+
+export type FormFieldError = 'required' | 'invalid';
+
+export type PublicFormChoice = { id: string; name: string; color: string };
+
+export type PublicFormNumberFormat = {
+  format?: NumberTypeOptions['format'];
+  precision?: number;
+  currencyCode?: string;
+  currencySymbol?: string;
+};
+
+export type PublicFormField = {
+  propertyId: string;
+  type: FormFieldType;
+  label: string;
+  description: string | null;
+  required: boolean;
+  defaultValue: unknown;
+  choices?: PublicFormChoice[];
+  numberFormat?: PublicFormNumberFormat;
+  allowMultiple?: boolean;
+  includeTime?: boolean;
+  dateFormat?: DateFormat;
+  timeFormat?: '12h' | '24h';
+};
+
+export type PublicForm = {
+  title: string | null;
+  description: string | null;
+  submitLabel: string | null;
+  successTitle: string | null;
+  successMessage: string | null;
+  allowResubmit: boolean;
+  access: Exclude<FormAccess, 'none'>;
+  fields: PublicFormField[];
+};
+
+export type FormRespondent = {
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+};
+
+export type PublicFormResponse =
+  | {
+      status: 'open';
+      form: PublicForm;
+      respondent: FormRespondent | null;
+      users: Record<string, UserRef>;
+    }
+  | { status: 'closed' }
+  | { status: 'signInRequired'; workspaceName: string };
+
+export type SubmitPublicFormInput = {
+  key: string;
+  answers: Record<string, unknown>;
+  timeZone?: string;
+};
+
+export type SubmitFormPreviewInput = {
+  pageId: string;
+  viewId: string;
+  answers: Record<string, unknown>;
+  timeZone?: string;
 };
 
 export type ViewConfigPatch = {
@@ -356,7 +462,9 @@ export type UpdateViewInput = {
   name?: string;
   type?: BaseViewType;
   config?: ViewConfigPatch;
+  expectedForm?: FormConfig;
   position?: string;
+  requestId?: string;
 };
 
 export type DeleteViewInput = {

@@ -1,6 +1,7 @@
 import { Group, List, Stack, Table, Text, ThemeIcon } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 import { UpgradeBadge } from "@/ee/components/upgrade-badge";
+import { isBetaBaseForms } from "@/lib/config";
 
 const paidFeatures: { name: string; enterpriseOnly?: boolean }[] = [
   { name: "AI Integration (Chat, Search & Assistant)" },
@@ -12,7 +13,8 @@ const paidFeatures: { name: string; enterpriseOnly?: boolean }[] = [
   { name: "Advanced Search Engine Support" },
   { name: "Full-text Search in Attachments (PDF, DOCX)" },
   { name: "Confluence, PDF & DOCX Import" },
-  { name: "Bases & Kanban" },
+  { name: "Bases, Kanban & Calendar" },
+  ...(isBetaBaseForms() ? [{ name: "Forms" }] : []),
   { name: "Templates" },
   { name: "Personal Spaces" },
   { name: "Announcements" },
