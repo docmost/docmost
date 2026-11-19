@@ -61,6 +61,35 @@ describe("convertCsvValue", () => {
     expect(convertCsvValue("not an email", "email", hints).status).toBe("invalid");
   });
 
+  it("imports into a date-only property as the day written in the file", () => {
+    expect(convertCsvValue("2026-11-18 14:30", "date", hints, "date").value).toBe("2026-11-18");
+    expect(convertCsvValue("2026-11-18 00:30 +02:00", "date", hints, "date").value).toBe(
+      "2026-11-18",
+    );
+    expect(convertCsvValue("2026-11-18", "date", hints, "date").value).toBe("2026-11-18");
+  });
+
+  it("imports date ranges in the property's kind", () => {
+    expect(convertCsvValue("2026-11-18/2026-11-22", "date", hints, "date").value).toEqual({
+      start: "2026-11-18",
+      end: "2026-11-22",
+    });
+    expect(
+      convertCsvValue(
+        "2026-11-18T09:00:00.000Z/2026-11-18T10:30:00.000Z",
+        "date",
+        hints,
+        "datetime",
+      ).value,
+    ).toEqual({ start: "2026-11-18T09:00:00.000Z", end: "2026-11-18T10:30:00.000Z" });
+    expect(convertCsvValue("2026-11-18/2026-11-18", "date", hints, "date").value).toBe(
+      "2026-11-18",
+    );
+    expect(convertCsvValue("2026-11-22/2026-11-18", "date", hints, "date").status).toBe(
+      "invalid",
+    );
+  });
+
   it("splits multi-select and person values", () => {
     expect(convertCsvValue("Bug, UI, bug", "multiSelect", hints)).toEqual({
       value: ["Bug", "UI"],

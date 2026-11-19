@@ -126,6 +126,34 @@ describe("spec building", () => {
       [2, "date"],
     ]);
   });
+
+  it("tells the conversion whether each date column keeps a time", () => {
+    const due = property({ id: "prpDue", name: "Due", type: "date" });
+    const starts = property({
+      id: "prpStarts",
+      name: "Starts",
+      type: "date",
+      typeOptions: { includeTime: true },
+    });
+    const properties = [title, due, starts];
+    const byId = new Map(properties.map((p) => [p.id, p]));
+    const plans = buildInitialPlans(
+      ["Title", "Due", "Starts", "Logged"],
+      [
+        profileFor({ type: "text" }),
+        profileFor({ type: "date", typeOptions: { includeTime: true } }),
+        profileFor({ type: "date" }),
+        profileFor({ type: "date", typeOptions: { includeTime: true } }),
+      ],
+      properties,
+    );
+
+    expect(
+      buildConvertColumns(plans, byId)
+        .filter((c) => c.type === "date")
+        .map((c) => c.dateKind),
+    ).toEqual(["date", "datetime", "datetime"]);
+  });
 });
 
 describe("defaultTypeOptions", () => {

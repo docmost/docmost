@@ -72,10 +72,39 @@ describe("parseDateValue", () => {
   it("reads ISO dates as UTC midnight", () => {
     expect(parseDateValue("2026-11-13", "MDY")).toEqual({
       iso: "2026-11-13T00:00:00.000Z",
+      day: "2026-11-13",
       hasTime: false,
       hour12: false,
+      end: null,
     });
     expect(parseDateValue("2026/1/5", "DMY")?.iso).toBe("2026-01-05T00:00:00.000Z");
+  });
+
+  it("keeps the calendar day as written", () => {
+    expect(parseDateValue("2026-11-18 00:30 +02:00", "MDY")).toMatchObject({
+      iso: "2026-11-17T22:30:00.000Z",
+      day: "2026-11-18",
+    });
+    expect(parseDateValue("11/18/2026 11:45 pm", "MDY")?.day).toBe("2026-11-18");
+  });
+
+  it("reads ranges written by the export and by Notion", () => {
+    expect(parseDateValue("2026-11-18/2026-11-22", "DMY")).toMatchObject({
+      day: "2026-11-18",
+      end: { day: "2026-11-22", hasTime: false },
+    });
+    expect(
+      parseDateValue("2026-11-18T09:00:00.000Z/2026-11-18T10:30:00.000Z", "MDY")?.end?.iso,
+    ).toBe("2026-11-18T10:30:00.000Z");
+    expect(parseDateValue("November 13, 2026 → November 15, 2026", "MDY")?.end?.day).toBe(
+      "2026-11-15",
+    );
+  });
+
+  it("keeps dates written with slashes as single dates", () => {
+    expect(parseDateValue("2026/11/18", "MDY")).toMatchObject({ day: "2026-11-18", end: null });
+    expect(parseDateValue("03/04/2026", "DMY")).toMatchObject({ day: "2026-04-03", end: null });
+    expect(parseDateValue("2026-11-18/soon", "MDY")).toBeNull();
   });
 
   it("keeps explicit offsets and reads local date-times", () => {

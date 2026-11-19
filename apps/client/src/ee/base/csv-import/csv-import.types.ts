@@ -1,3 +1,4 @@
+import type { DateKind } from "@docmost/base-formula/client";
 import type { BasePropertyType } from "@/ee/base/types/base.types";
 
 export type CsvImportPropertyType = Extract<
@@ -43,7 +44,9 @@ export type CsvColumnProfile = {
   issues: Partial<Record<CsvImportPropertyType, number>>;
 };
 
-export type CsvImportValue = string | number | boolean | string[] | null;
+export type CsvDateRange = { start: string; end: string };
+
+export type CsvImportValue = string | number | boolean | string[] | CsvDateRange | null;
 
 export type CsvConvertStatus = "ok" | "empty" | "invalid" | "truncated";
 
@@ -58,6 +61,7 @@ export type CsvConvertColumn = {
   index: number;
   type: CsvImportPropertyType;
   hints: CsvParseHints;
+  dateKind: DateKind;
 };
 
 export type CsvColumnTarget =

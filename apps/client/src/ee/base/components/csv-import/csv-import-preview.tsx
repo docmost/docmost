@@ -12,7 +12,11 @@ import {
 } from "@/ee/base/types/base.types";
 import { convertCsvValue } from "@/ee/base/csv-import/csv-import-convert";
 import { previewChoiceColors } from "@/ee/base/csv-import/csv-import-choices";
-import { isImportableProperty, planTargetType } from "@/ee/base/csv-import/csv-import-mapping";
+import {
+  isImportableProperty,
+  planDateKind,
+  planTargetType,
+} from "@/ee/base/csv-import/csv-import-mapping";
 import { columnWarning } from "@/ee/base/csv-import/csv-import-warnings";
 import type {
   CsvColumnPlan,
@@ -110,7 +114,10 @@ export function CsvImportPreview({
         const typeOptions = (property?.typeOptions ?? plan.typeOptions) as
           | Record<string, unknown>
           | undefined;
-        const results = rows.map((row) => convertCsvValue(row[plan.index], type, plan.hints));
+        const dateKind = planDateKind(plan, propertiesById);
+        const results = rows.map((row) =>
+          convertCsvValue(row[plan.index], type, plan.hints, dateKind),
+        );
         const names = results.flatMap((r) =>
           Array.isArray(r.value) ? r.value : typeof r.value === "string" ? [r.value] : [],
         );

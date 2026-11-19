@@ -7,8 +7,8 @@ const hints = { dateOrder: "MDY", decimalSeparator: ".", listSeparator: "," } as
 const loadOptions = { encoding: null, delimiter: null, hasHeader: true, locale: "en-US" };
 
 const columns: CsvConvertColumn[] = [
-  { index: 0, type: "text", hints },
-  { index: 1, type: "number", hints },
+  { index: 0, type: "text", hints, dateKind: "date" },
+  { index: 1, type: "number", hints, dateKind: "date" },
 ];
 
 // a file whose bytes arrive only when the test says so

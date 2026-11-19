@@ -22,11 +22,15 @@ export type ParsedNumber = {
   currency: string | null;
 };
 
-export type ParsedDate = {
+export type ParsedDatePart = {
   iso: string;
+  // the calendar day as written, before any time zone moves the instant
+  day: string;
   hasTime: boolean;
   hour12: boolean;
 };
+
+export type ParsedDate = ParsedDatePart & { end: ParsedDatePart | null };
 
 type TimeParts = {
   hour: number;
@@ -61,6 +65,7 @@ const DAY_FIRST_DATE = new RegExp(
 );
 const WEEKDAY_PREFIX = /^(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+/i;
 const DATE_RANGE_SEPARATOR = /\s+(?:→|->)\s+/;
+const ISO_RANGE_PART = /^\d{4}-\d{2}-\d{2}(?:t\S*)?$/i;
 const BARE_DOMAIN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+(?:[/?#]\S*)?$/i;
 const NAME_WITH_EMAIL = /<([^<>\s]+@[^<>\s]+)>/;
 const FORMULA_APOSTROPHE = /^'(?=[=+\-@])/;
@@ -205,17 +210,14 @@ function buildDate(
   day: number,
   time: TimeParts | null,
   zone: string | undefined,
-): ParsedDate | null {
+): ParsedDatePart | null {
   if (year < 1 || year > 9999) return null;
   if (month < 1 || month > 12) return null;
   if (day < 1 || day > daysInMonth(year, month)) return null;
 
+  const ymd = `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
   if (!time) {
-    return {
-      iso: `${pad(year, 4)}-${pad(month)}-${pad(day)}T00:00:00.000Z`,
-      hasTime: false,
-      hour12: false,
-    };
+    return { iso: `${ymd}T00:00:00.000Z`, day: ymd, hasTime: false, hour12: false };
   }
 
   let hour = time.hour;
@@ -235,18 +237,29 @@ function buildDate(
   }
   if (Number.isNaN(date.getTime())) return null;
 
-  return { iso: date.toISOString(), hasTime: true, hour12: time.meridiem !== null };
+  return { iso: date.toISOString(), day: ymd, hasTime: true, hour12: time.meridiem !== null };
 }
 
-function cleanDateText(raw: string): string {
-  const start = raw.trim().split(DATE_RANGE_SEPARATOR)[0];
-  return start.replace(WEEKDAY_PREFIX, "").trim();
+// Notion writes "A → B", the export writes ISO "A/B"; other slash dates stay whole
+function splitDateRange(raw: string): [string, string | undefined] {
+  const text = raw.trim();
+  const arrow = text.split(DATE_RANGE_SEPARATOR);
+  if (arrow.length > 1) return [arrow[0], arrow.length === 2 ? arrow[1] : undefined];
+  const slash = text.split("/");
+  if (slash.length === 2 && slash.every((part) => ISO_RANGE_PART.test(part))) {
+    return [slash[0], slash[1]];
+  }
+  return [text, undefined];
+}
+
+function cleanDateText(text: string): string {
+  return text.replace(WEEKDAY_PREFIX, "").trim();
 }
 
 export function matchNumericDateParts(
   raw: string,
 ): { first: number; second: number; dotted: boolean } | null {
-  const text = cleanDateText(raw);
+  const text = cleanDateText(splitDateRange(raw)[0]);
   const match = text.match(NUMERIC_DATE);
   if (!match) return null;
   return {
@@ -257,7 +270,15 @@ export function matchNumericDateParts(
 }
 
 export function parseDateValue(raw: string, order: CsvDateOrder): ParsedDate | null {
-  const s = cleanDateText(raw);
+  const [startText, endText] = splitDateRange(raw);
+  const start = parseDatePart(cleanDateText(startText), order);
+  if (!start) return null;
+  // an unreadable end leaves the start alone, as before ranges were read
+  const end = endText === undefined ? null : parseDatePart(cleanDateText(endText), order);
+  return { ...start, end };
+}
+
+function parseDatePart(s: string, order: CsvDateOrder): ParsedDatePart | null {
   if (!s || !/\d/.test(s)) return null;
 
   let match = s.match(YEAR_FIRST_DATE);
