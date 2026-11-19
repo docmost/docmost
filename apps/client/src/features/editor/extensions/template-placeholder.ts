@@ -1,6 +1,7 @@
 import {
   activeTemplatePlaceholder as activeHint,
   type HintSide,
+  hintMarks,
   TemplatePlaceholder as PlaceholderNode,
   withoutTemplatePlaceholders,
 } from "@docmost/editor-ext";
@@ -236,7 +237,7 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
             tr.replaceWith(
               start,
               start + text.length + hint.nodeSize,
-              type.schema.text(text, hint.marks),
+              type.schema.text(text, hintMarks(view.state.doc, start)),
             );
             tr.setSelection(TextSelection.create(tr.doc, start + text.length));
             view.dispatch(tr);
@@ -262,7 +263,7 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
             }
             const tr = view.state.tr
               .setSelection(TextSelection.create(view.state.doc, nodePos))
-              .setStoredMarks(node.marks)
+              .setStoredMarks(hintMarks(view.state.doc, nodePos))
               .setMeta(activeHint, "nodeAfter")
               .setMeta("pointer", true);
             view.dispatch(tr);
@@ -298,9 +299,12 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
                 ? crossed
                 : lineHintSide(next.$from, type);
             if (!side) return null;
-            const hint = next.$from[side];
+            const hintPos =
+              side === "nodeAfter"
+                ? next.from
+                : next.from - next.$from.nodeBefore.nodeSize;
             return newState.tr
-              .setStoredMarks(hint.marks)
+              .setStoredMarks(hintMarks(newState.doc, hintPos))
               .setMeta(activeHint, side);
           }
 
@@ -330,7 +334,7 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
             pos < 0 ||
             newState.doc.nodeAt(pos) !== hint ||
             !newState.doc.textBetween(from, to, "", (node) =>
-              node.type === type ? "" : " ",
+              node.type === type || node.type.name === "hardBreak" ? "" : " ",
             )
           ) {
             return null;

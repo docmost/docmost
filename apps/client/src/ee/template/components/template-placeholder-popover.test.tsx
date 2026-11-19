@@ -72,6 +72,47 @@ async function openField() {
 }
 
 describe("template placeholder popover", () => {
+  it("keeps a cleared field open when the window loses focus", async () => {
+    const onClose = vi.fn();
+    editor.commands.setNodeSelection(8);
+    render(
+      <MantineProvider env="test">
+        <TemplatePlaceholderPopover editor={editor} onClose={onClose} />
+      </MantineProvider>,
+    );
+    const field = await screen.findByRole<HTMLInputElement>("textbox", {
+      name: "Placeholder text",
+    });
+    fireEvent.change(field, { target: { value: "" } });
+    vi.spyOn(document, "hasFocus").mockReturnValue(false);
+    fireEvent.blur(field);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(editor.state.doc.firstChild.child(1).attrs.hint).toBe("First name");
+  });
+
+  it("saves typed text through saveRef after the popover unmounts", async () => {
+    const saveRef = { current: null as (() => void) | null };
+    editor.commands.setNodeSelection(8);
+    render(
+      <MantineProvider env="test">
+        <TemplatePlaceholderPopover
+          editor={editor}
+          onClose={vi.fn()}
+          saveRef={saveRef}
+        />
+      </MantineProvider>,
+    );
+    const field = await screen.findByRole<HTMLInputElement>("textbox", {
+      name: "Placeholder text",
+    });
+    fireEvent.change(field, { target: { value: "Owner's full name" } });
+    cleanup();
+    saveRef.current?.();
+    expect(editor.state.doc.firstChild.child(1).attrs.hint).toBe(
+      "Owner's full name",
+    );
+  });
+
   it("edits an existing hint in place and opens with the caret at its end", async () => {
     const original = editor.getJSON();
     editor.commands.setNodeSelection(8);

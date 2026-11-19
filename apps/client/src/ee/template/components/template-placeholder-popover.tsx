@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import {
   autoUpdate,
   flip,
@@ -16,17 +16,25 @@ import { useTranslation } from "react-i18next";
 interface Props {
   editor: Editor;
   onClose: () => void;
+  // Lets the page save typed text when it unloads or unmounts first.
+  saveRef?: RefObject<(() => void) | null>;
 }
 
-export function TemplatePlaceholderPopover({ editor, onClose }: Props) {
+export function TemplatePlaceholderPopover({ editor, onClose, saveRef }: Props) {
   const { t } = useTranslation();
   const type = editor.schema.nodes.templatePlaceholder;
   const [selection] = useState(() => editor.state.selection);
   const existing =
     selection instanceof NodeSelection && selection.node.type === type;
+  const initialHint = existing ? selection.node.attrs.hint : "";
   const target = useRef(selection);
   const input = useRef<HTMLInputElement>(null);
+  const value = useRef<string>(initialHint);
   const finished = useRef(false);
+
+  useLayoutEffect(() => {
+    if (saveRef) saveRef.current = () => close("save");
+  });
 
   const {
     refs: { setFloating, setPositionReference },
@@ -90,7 +98,7 @@ export function TemplatePlaceholderPopover({ editor, onClose }: Props) {
     if (finished.current) return;
     finished.current = true;
     if (action === "save" && !editor.isDestroyed && editor.isEditable) {
-      const hint = input.current?.value.trim();
+      const hint = value.current.trim();
       const { from, to } = target.current;
       const tr = editor.state.tr;
       if (existing) {
@@ -148,9 +156,15 @@ export function TemplatePlaceholderPopover({ editor, onClose }: Props) {
           attributes={{ input: { dir: "auto" } }}
           aria-label={t("Placeholder text")}
           placeholder={t("Write an instruction")}
-          defaultValue={existing ? selection.node.attrs.hint : ""}
+          defaultValue={initialHint}
           enterKeyHint="done"
-          onBlur={() => close("save")}
+          onChange={(event) => {
+            value.current = event.currentTarget.value;
+          }}
+          onBlur={() => {
+            // The field gets focus back when the window does.
+            if (document.hasFocus()) close("save");
+          }}
           onKeyDown={(event) => {
             if (
               event.nativeEvent.isComposing ||

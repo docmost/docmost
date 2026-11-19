@@ -370,6 +370,33 @@ describe("template placeholder", () => {
     },
   );
 
+  it.each(["clicking it", "moving the caret after it"])(
+    "fills a hint without marks with the formatting around it after %s",
+    (how) => {
+      const bold = [{ type: "bold" }];
+      const editor = createEditor([
+        paragraph({ ...text("Owner: "), marks: bold }, hint),
+      ]);
+      if (how === "clicking it") clickHint(editor, 8);
+      else editor.commands.setTextSelection(9);
+      editor.view.dispatch(editor.state.tr.insertText("Sam"));
+      expect(editor.getJSON().content).toEqual([
+        paragraph({ ...text("Owner: Sam"), marks: bold }),
+      ]);
+    },
+  );
+
+  it.each([
+    ["at the end of its line", [text("Owner: "), hint], 9, [text("Owner: "), hint, { type: "hardBreak" }]],
+    ["after clicking it mid-line", [text("By "), hint, text(" today")], 4, [text("By "), { type: "hardBreak" }, hint, text(" today")]],
+  ])("keeps a hint when Shift+Enter breaks the line %s", (_where, content, pos, expected) => {
+    const editor = createEditor([paragraph(...content)]);
+    if (pos === 4) clickHint(editor, pos);
+    else editor.commands.setTextSelection(pos);
+    editor.commands.setHardBreak();
+    expect(editor.getJSON().content).toEqual([paragraph(...expected)]);
+  });
+
   it("keeps the prompt when the user leaves it and edits neighboring text", () => {
     const editor = createEditor([
       paragraph(text("By "), hint, text(" tomorrow")),

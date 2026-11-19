@@ -1,11 +1,18 @@
 import { getHTMLFromFragment, Node, type Editor } from '@tiptap/core';
-import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
+import { Fragment, type Mark, type Node as PMNode } from '@tiptap/pm/model';
 import { PluginKey } from '@tiptap/pm/state';
 
 export type HintSide = 'nodeBefore' | 'nodeAfter';
 export const activeTemplatePlaceholder = new PluginKey<HintSide | null>(
   'activeTemplatePlaceholder',
 );
+
+// Yjs stores no marks on inline nodes, so a page's hint takes the formatting
+// of the text before it.
+export function hintMarks(doc: PMNode, pos: number): readonly Mark[] {
+  const hint = doc.nodeAt(pos);
+  return hint?.marks.length ? hint.marks : doc.resolve(pos).marks();
+}
 
 // Remove the entire inline node before the serializer opens its marks. An
 // empty span inside a link would otherwise export the instruction's URL.

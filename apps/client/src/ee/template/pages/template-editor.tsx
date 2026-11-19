@@ -108,6 +108,7 @@ export default function TemplateEditor() {
     () => getTemplateExtensions(openPlaceholder),
     [openPlaceholder],
   );
+  const savePlaceholderRef = useRef<(() => void) | null>(null);
 
   useWindowEvent("keydown", (event) => {
     if (settingsOpened && event.key === "Escape") {
@@ -313,6 +314,7 @@ export default function TemplateEditor() {
   // If user leaves, the save is fire-and-forget.
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      savePlaceholderRef.current?.();
       if (isDirtyRef.current) {
         e.preventDefault();
         e.returnValue = "";
@@ -328,6 +330,7 @@ export default function TemplateEditor() {
   // Save on unmount if dirty
   useEffect(() => {
     return () => {
+      savePlaceholderRef.current?.();
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (savedFadeTimerRef.current) clearTimeout(savedFadeTimerRef.current);
       if (isDirtyRef.current) {
@@ -502,6 +505,7 @@ export default function TemplateEditor() {
               <TemplatePlaceholderPopover
                 editor={editor}
                 onClose={closePlaceholder}
+                saveRef={savePlaceholderRef}
               />
             ) : (
               <EditorBubbleMenu editor={editor} templateMode />

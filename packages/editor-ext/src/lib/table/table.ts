@@ -5,7 +5,7 @@ import { TextSelection } from "@tiptap/pm/state";
 import { cellAround, goToNextCell } from "@tiptap/pm/tables";
 import { closestListItem } from "../list-item";
 import { handleCellEdgeArrow } from "./utils/cell-edge-arrow";
-import { activeTemplatePlaceholder } from "../template-placeholder";
+import { activeTemplatePlaceholder, hintMarks } from "../template-placeholder";
 
 function handleListIndent(editor: Editor): boolean {
   const listItem = closestListItem(editor.state);
@@ -35,7 +35,7 @@ function navigateToCell(direction: 1 | -1): Command {
     if (firstHint !== undefined) {
       const $hint = tr.doc.resolve(firstHint);
       tr.setSelection(new TextSelection($hint))
-        .setStoredMarks($hint.nodeAfter.marks)
+        .setStoredMarks(hintMarks(tr.doc, firstHint))
         .setMeta(activeTemplatePlaceholder, "nodeAfter");
     }
     return true;
