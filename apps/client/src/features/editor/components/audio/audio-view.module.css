@@ -1,37 +1,121 @@
-.audioWrapper {
+.audioCard {
+  container-type: inline-size;
   display: flex;
-  justify-content: center;
   align-items: center;
+  gap: 14px;
   max-width: 100%;
-  border-radius: 8px;
+  padding: 12px 10px 12px 12px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-body);
+}
+
+.playIcon {
+  /* optical centring of the triangle */
+  margin-left: 2px;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.stem {
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.skeleton {
-  animation: pulse 1.2s ease-in-out infinite;
+.extension {
+  flex: none;
+  white-space: nowrap;
+}
 
-  @mixin light {
-    background: linear-gradient(-90deg, var(--mantine-color-gray-3) 0%, var(--mantine-color-gray-1) 50%, var(--mantine-color-gray-3) 100%);
-    background-size: 400% 400%;
+.meta {
+  flex: none;
+  white-space: nowrap;
+}
+
+.seekRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seek {
+  flex: 1;
+}
+
+.time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* the editor underlines and recolors every link */
+.audioCard .actions .download {
+  border-bottom: none;
+  color: var(--ai-color);
+}
+
+.speedButton {
+  height: 36px;
+  min-width: 36px;
+  padding: 0 8px;
+  border-radius: var(--mantine-radius-sm);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  text-align: center;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+
+  &:hover:not(:disabled) {
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
   }
 
-  @mixin dark {
-    background: linear-gradient(-90deg, var(--mantine-color-dark-6) 0%, var(--mantine-color-dark-5) 50%, var(--mantine-color-dark-6) 100%);
-    background-size: 400% 400%;
-  }
-
-  @keyframes pulse {
-    0% {
-      background-position: 0% 0%;
-    }
-    100% {
-      background-position: -135% 0%;
-    }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
-.audio {
-  display: block;
-  width: 100%;
-  border-radius: 8px;
+/* narrower blocks drop the mute button, then the size, then the times and speed */
+@container (max-width: 420px) {
+  .volume {
+    display: none;
+  }
+}
+
+@container (max-width: 340px) {
+  .meta {
+    display: none;
+  }
+}
+
+@container (max-width: 280px) {
+  .time,
+  .speedButton {
+    display: none;
+  }
 }

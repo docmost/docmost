@@ -1,10 +1,10 @@
-import { Group, Table, Text, Badge } from "@mantine/core";
+import { Anchor, Group, Table, Text, Badge } from "@mantine/core";
 import {
   useChangeMemberRoleMutation,
   useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import React from "react";
+import React, { useState } from "react";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
   getUserRoleLabel,
@@ -18,17 +18,32 @@ import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import MemberActionMenu from "@/features/workspace/components/members/components/members-action-menu.tsx";
+import MemberStatusFilter from "@/features/workspace/components/members/components/member-status-filter.tsx";
+import { MemberListStatus } from "@/features/workspace/types/workspace.types.ts";
+import { Link } from "react-router-dom";
+import { getUserProfileUrl } from "@/lib/config.ts";
+import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
+import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 export default function WorkspaceMembersTable() {
   const { t } = useTranslation();
-  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
+  const locale = useDateFnsLocale();
+  const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
+    usePaginateAndSearch();
+  const [status, setStatus] = useState<MemberListStatus>("active");
   const { data, isLoading } = useWorkspaceMembersQuery({
     cursor,
     limit: 100,
     query: search,
+    status,
   });
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
   const { isAdmin, isOwner } = useUserRole();
+
+  const handleStatusChange = (value: MemberListStatus) => {
+    setStatus(value);
+    resetPagination();
+  };
 
   const assignableUserRoles = isOwner
     ? userRoleData
@@ -53,7 +68,12 @@ export default function WorkspaceMembersTable() {
 
   return (
     <>
-      <SearchInput onSearch={handleSearch} />
+      <Group gap="sm" align="flex-start">
+        <SearchInput onSearch={handleSearch} />
+        {isAdmin && (
+          <MemberStatusFilter status={status} onChange={handleStatusChange} />
+        )}
+      </Group>
       <Table.ScrollContainer minWidth={600}>
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
@@ -68,7 +88,7 @@ export default function WorkspaceMembersTable() {
           <Table.Tbody>
             {data?.items.length > 0 ? (
               data?.items.map((user, index) => (
-                <Table.Tr key={index}>
+                <Table.Tr key={index} className={rowClasses.row}>
                   <Table.Td>
                     <Group gap="sm" wrap="nowrap">
                       <CustomAvatar
@@ -76,17 +96,45 @@ export default function WorkspaceMembersTable() {
                         name={user.name}
                       />
                       <div>
-                        <Text fz="sm" fw={500} lineClamp={1}>
-                          {user.name}
-                        </Text>
+                        {user.deletedAt ? (
+                          <Text fz="sm" fw={500} lineClamp={1}>
+                            {user.name}
+                          </Text>
+                        ) : (
+                          <Anchor
+                            component={Link}
+                            to={getUserProfileUrl(user.id)}
+                            size="sm"
+                            fw={500}
+                            underline="never"
+                            lineClamp={1}
+                            className={rowClasses.link}
+                            style={{ color: "var(--mantine-color-text)" }}
+                          >
+                            {user.name}
+                          </Anchor>
+                        )}
                         <Text fz="xs" c="dimmed">
-                          {user.email}
+                          {user.deletedAt
+                            ? t("Deleted on {{date}}", {
+                                date: formatLocalized(
+                                  user.deletedAt,
+                                  "MMM d, yyyy",
+                                  "PP",
+                                  locale,
+                                ),
+                              })
+                            : user.email}
                         </Text>
                       </div>
                     </Group>
                   </Table.Td>
                   <Table.Td>
-                    {user.deactivatedAt ? (
+                    {user.deletedAt ? (
+                      <Badge variant="light" color="red">
+                        {t("Deleted")}
+                      </Badge>
+                    ) : user.deactivatedAt ? (
                       <Badge variant="light" color="orange">
                         {t("Deactivated")}
                       </Badge>
@@ -95,7 +143,7 @@ export default function WorkspaceMembersTable() {
                     )}
                   </Table.Td>
                   <Table.Td>
-                    {isAdmin ? (
+                    {isAdmin && !user.deletedAt ? (
                       <RoleSelectMenu
                         roles={assignableUserRoles}
                         roleName={getUserRoleLabel(user.role)}
@@ -108,7 +156,7 @@ export default function WorkspaceMembersTable() {
                     )}
                   </Table.Td>
                   <Table.Td>
-                    {isAdmin && (
+                    {isAdmin && !user.deletedAt && (
                       <MemberActionMenu
                         userId={user.id}
                         name={user.name}

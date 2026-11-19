@@ -87,12 +87,34 @@ describe("recreateTransform", () => {
       '0-7 <heading("Title")>',
       '18-23 <"red">',
       '26-31 <"jumped">',
-      "63-70 <>",
+      "60-67 <>",
       '69-69 <listItem(paragraph("four"))>',
       '121-122 <"2">',
       '125-135 <bold("Last line.")>',
       '136-136 <paragraph("Added at the end.")>',
     ]);
+  });
+
+  it("removes a list item as a whole node", () => {
+    const list = (...values: string[]) =>
+      doc([{ type: "bulletList", content: values.map(item) }]);
+
+    const [step] = diff(list("one", "two", "three"), list("one", "three"))
+      .steps as ReplaceStep[];
+
+    expect(`${step.from}-${step.to} ${step.slice.content}`).toBe("8-15 <>");
+  });
+
+  it("adds a list item as a whole node", () => {
+    const list = (...values: string[]) =>
+      doc([{ type: "bulletList", content: values.map(item) }]);
+
+    const [step] = diff(list("one", "three"), list("one", "two", "three"))
+      .steps as ReplaceStep[];
+
+    expect(`${step.from}-${step.to} ${step.slice.content}`).toBe(
+      '8-8 <listItem(paragraph("two"))>',
+    );
   });
 
   it("leaves the docs it compares unchanged", () => {

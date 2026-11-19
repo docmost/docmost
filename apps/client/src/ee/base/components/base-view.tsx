@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { Text, Stack } from "@mantine/core";
 import { useAtom } from "jotai";
 import { IconTable } from "@tabler/icons-react";
@@ -25,6 +25,7 @@ import {
 import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
 import {
   activeViewIdAtomFamily,
+  baseImportOpenedAtomFamily,
   editingCellAtomFamily,
   focusedCellAtomFamily,
 } from "@/ee/base/atoms/base-atoms";
@@ -60,7 +61,36 @@ type BaseViewProps = {
   titleSlot?: React.ReactNode;
 };
 
-export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseViewProps) {
+const CsvImportModal = lazy(
+  () => import("@/ee/base/components/csv-import/csv-import-modal"),
+);
+
+export function BaseView(props: BaseViewProps) {
+  return (
+    <>
+      <BaseViewContent {...props} />
+      <BaseCsvImport pageId={props.pageId} />
+    </>
+  );
+}
+
+// a sibling of the view, so its loading and error states can't unmount the dialog
+function BaseCsvImport({ pageId }: { pageId: string }) {
+  const [opened, setOpened] = useAtom(baseImportOpenedAtomFamily(pageId));
+  const { data: base } = useBaseQuery(pageId);
+
+  // otherwise the dialog would reopen on the next visit
+  useEffect(() => () => setOpened(false), [setOpened]);
+
+  if (!opened || !base) return null;
+  return (
+    <Suspense fallback={null}>
+      <CsvImportModal base={base} opened onClose={() => setOpened(false)} />
+    </Suspense>
+  );
+}
+
+function BaseViewContent({ pageId, embedded, editable = true, titleSlot }: BaseViewProps) {
   const { t } = useTranslation();
   // Subscribe so other clients' edits, schema changes, and async-job completions reconcile into cache.
   useBaseSocket(pageId);

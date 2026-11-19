@@ -55,13 +55,15 @@ export class AttachmentService {
   async uploadFile(opts: {
     filePromise: Promise<MultipartFile>;
     pageId?: string;
+    templateId?: string;
     userId: string;
     spaceId: string;
     workspaceId: string;
     attachmentId?: string;
     type?: AttachmentType.File | AttachmentType.PageCover;
   }) {
-    const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
+    const { filePromise, pageId, templateId, spaceId, userId, workspaceId } =
+      opts;
     const type = opts.type ?? AttachmentType.File;
     const preparedFile: PreparedFile = await prepareFile(filePromise, {
       skipBuffer: true,
@@ -90,7 +92,8 @@ export class AttachmentService {
       }
 
       if (
-        existingAttachment.pageId !== pageId ||
+        (existingAttachment.pageId ?? null) !== (pageId ?? null) ||
+        (existingAttachment.templateId ?? null) !== (templateId ?? null) ||
         existingAttachment.fileExt !== preparedFile.fileExtension ||
         existingAttachment.workspaceId !== workspaceId
       ) {
@@ -144,6 +147,7 @@ export class AttachmentService {
           spaceId,
           workspaceId,
           pageId,
+          templateId,
         });
       }
 
@@ -156,20 +160,11 @@ export class AttachmentService {
       }
 
       // Only index PDF, DOCX and TXT files
-      if (['.pdf', '.docx', '.txt'].includes(attachment.fileExt.toLowerCase())) {
-        await this.attachmentQueue.add(
-          QueueJob.ATTACHMENT_INDEX_CONTENT,
-          {
-            attachmentId: attachmentId,
-          },
-          {
-            attempts: 2,
-            backoff: {
-              type: 'exponential',
-              delay: 10000,
-            },
-          },
-        );
+      if (
+        !templateId &&
+        ['.pdf', '.docx', '.txt'].includes(attachment.fileExt.toLowerCase())
+      ) {
+        await this.queueIndexContent(attachmentId);
       }
     } catch (err) {
       // delete uploaded file on error
@@ -301,6 +296,7 @@ export class AttachmentService {
     userId: string;
     workspaceId: string;
     pageId?: string;
+    templateId?: string;
     spaceId?: string;
     trx?: KyselyTransaction;
   }): Promise<Attachment> {
@@ -312,6 +308,7 @@ export class AttachmentService {
       userId,
       workspaceId,
       pageId,
+      templateId,
       spaceId,
       trx,
     } = opts;
@@ -327,6 +324,7 @@ export class AttachmentService {
         creatorId: userId,
         workspaceId: workspaceId,
         pageId: pageId,
+        templateId: templateId,
         spaceId: spaceId,
       },
       trx,
@@ -356,6 +354,83 @@ export class AttachmentService {
     } catch (err) {
       throw err;
     }
+  }
+
+  async handleDeleteTemplateAttachments(templateId: string) {
+    const attachments = await this.attachmentRepo.findByTemplateId(templateId);
+    if (!attachments || attachments.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      attachments.map(async (attachment) => {
+        try {
+          await this.storageService.delete(attachment.filePath);
+          await this.attachmentRepo.deleteAttachmentById(attachment.id);
+        } catch (err) {
+          this.logger.error(
+            `DeleteTemplateAttachments: failed to delete attachment ${attachment.id}:`,
+            err,
+          );
+        }
+      }),
+    );
+  }
+
+  async copyAttachmentsToPage(
+    attachments: Attachment[],
+    idMap: Map<string, string>,
+    page: { id: string; spaceId: string },
+    creatorId: string,
+  ): Promise<void> {
+    for (const source of attachments) {
+      const newId = idMap.get(source.id);
+      if (!newId) {
+        continue;
+      }
+
+      try {
+        const newPath = source.filePath.replace(source.id, newId);
+        await this.storageService.copy(source.filePath, newPath);
+
+        await this.attachmentRepo.insertAttachment({
+          id: newId,
+          type: source.type,
+          filePath: newPath,
+          fileName: source.fileName,
+          fileSize: source.fileSize,
+          mimeType: source.mimeType,
+          fileExt: source.fileExt,
+          creatorId,
+          workspaceId: source.workspaceId,
+          pageId: page.id,
+          spaceId: page.spaceId,
+        });
+
+        if (['.pdf', '.docx', '.txt'].includes(source.fileExt.toLowerCase())) {
+          await this.queueIndexContent(newId);
+        }
+      } catch (err) {
+        this.logger.error(
+          `Failed to copy template attachment ${source.id} to page ${page.id}`,
+          err,
+        );
+      }
+    }
+  }
+
+  private async queueIndexContent(attachmentId: string) {
+    await this.attachmentQueue.add(
+      QueueJob.ATTACHMENT_INDEX_CONTENT,
+      { attachmentId },
+      {
+        attempts: 2,
+        backoff: {
+          type: 'exponential',
+          delay: 10000,
+        },
+      },
+    );
   }
 
   async handleDeleteSpaceAttachments(spaceId: string) {

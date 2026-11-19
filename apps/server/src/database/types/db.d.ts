@@ -57,6 +57,7 @@ export interface ApiKeys {
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
+  scopes: Generated<Json>;
   updatedAt: Generated<Timestamp>;
   creatorId: string;
   workspaceId: string;
@@ -76,6 +77,7 @@ export interface Attachments {
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
+  templateId: string | null;
   textContent: string | null;
   tsv: string | null;
   type: string | null;

@@ -1,5 +1,11 @@
 import "@/features/editor/styles/index.css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Container,
@@ -9,6 +15,7 @@ import {
   Stack,
   ActionIcon,
   Text,
+  Textarea,
 } from "@mantine/core";
 import {
   IconArrowLeft,
@@ -22,7 +29,7 @@ import { useTranslation } from "react-i18next";
 import { useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import { templateExtensions } from "@/features/editor/extensions/extensions";
 import {
   useUpdateTemplateMutation,
@@ -34,7 +41,7 @@ import {
 } from "@/features/space/queries/space-query";
 import { includeSpace } from "@/features/space/space.utils";
 import useUserRole from "@/hooks/use-user-role";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
@@ -45,10 +52,27 @@ import { TableHandlesLayer } from "@/features/editor/components/table/handle/tab
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
+import {
+  handleFileDrop,
+  handlePaste,
+} from "@/features/editor/components/common/editor-paste-handler.tsx";
+
+import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
+import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
+import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
+import ExcalidrawMenu from "@/features/editor/components/excalidraw/excalidraw-menu-lazy";
+import DrawioMenu from "@/features/editor/components/drawio/drawio-menu";
+import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
+import LightboxView, {
+  getLightboxClickRequest,
+} from "@/features/editor/components/common/lightbox-view";
+
 import classes from "./template-editor.module.css";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
 import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
+import { withoutUploadPlaceholders } from "@/ee/template/template.utils";
 
 export default function TemplateEditor() {
   const { t } = useTranslation();
@@ -92,9 +116,17 @@ export default function TemplateEditor() {
   const iconRef = useRef(icon);
   const spaceIdRef = useRef(spaceId);
   const loadedRef = useRef(false);
+  const loadedTemplateIdRef = useRef<string | null>(null);
   const isDirtyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const editorRef = useRef<Editor | null>(null);
+  const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
+
+  useEffect(() => {
+    return () => setLightboxRequest(null);
+  }, [setLightboxRequest]);
 
   const editor = useEditor({
     extensions: templateExtensions,
@@ -113,6 +145,33 @@ export default function TemplateEditor() {
           }
         },
       },
+      handleDoubleClickOn: (_view, _pos, node) => {
+        const request = getLightboxClickRequest(node);
+        if (!request) return false;
+
+        setLightboxRequest(request);
+        return true;
+      },
+      handlePaste: (_view, event) => {
+        if (!editorRef.current || !templateId) return false;
+
+        return handlePaste(
+          editorRef.current,
+          event,
+          { templateId },
+          user?.id,
+        );
+      },
+      handleDrop: (_view, event, _slice, moved) => {
+        if (!editorRef.current || !templateId) return false;
+
+        return handleFileDrop(editorRef.current, event, moved, { templateId });
+      },
+    },
+    onCreate({ editor }) {
+      // @ts-ignore
+      editor.storage.templateId = templateId;
+      editorRef.current = editor;
     },
     onUpdate() {
       if (loadedRef.current) {
@@ -121,9 +180,23 @@ export default function TemplateEditor() {
     },
   });
 
+  useLayoutEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      // @ts-ignore
+      editor.storage.templateId = templateId;
+      editorRef.current = editor;
+    }
+  }, [editor, templateId]);
+
   // Load template data into editor
   useEffect(() => {
-    if (existingTemplate && editor && !editor.isDestroyed) {
+    if (
+      existingTemplate &&
+      editor &&
+      !editor.isDestroyed &&
+      loadedTemplateIdRef.current !== existingTemplate.id
+    ) {
+      loadedTemplateIdRef.current = existingTemplate.id;
       loadedRef.current = false;
       setTitle(existingTemplate.title || "");
       setIcon(existingTemplate.icon || null);
@@ -169,7 +242,7 @@ export default function TemplateEditor() {
         templateId,
         title: titleRef.current,
         icon: iconRef.current || undefined,
-        content: editor.getJSON(),
+        content: withoutUploadPlaceholders(editor.getJSON()),
         spaceId: spaceIdRef.current,
       });
       isDirtyRef.current = false;
@@ -388,13 +461,15 @@ export default function TemplateEditor() {
               actionIconProps={icon ? { size: "3rem", variant: "transparent" } : undefined}
             />
           </div>
-          <input
-            className={classes.titleInput}
+          <Textarea
+            autosize
+            variant="unstyled"
+            classNames={{ input: classes.titleInput }}
             placeholder={t("Untitled")}
             autoFocus
             value={title}
             onChange={(e) =>
-              handleTitleChange(e.currentTarget.value)
+              handleTitleChange(e.currentTarget.value.replace(/[\r\n]+/g, " "))
             }
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -418,6 +493,19 @@ export default function TemplateEditor() {
             <TableHandlesLayer editor={editor} />
             <CalloutMenu editor={editor} />
             <ColumnsMenu editor={editor} />
+            <ImageMenu editor={editor} />
+            <VideoMenu editor={editor} />
+            <PdfMenu editor={editor} />
+            <ExcalidrawMenu editor={editor} />
+            <DrawioMenu editor={editor} />
+            <IntegrationPasteMenu editor={editor} />
+            <LightboxView
+              editor={editor}
+              open={!!lightboxRequest}
+              src={lightboxRequest?.src ?? ""}
+              type={lightboxRequest?.type ?? "image"}
+              onClose={() => setLightboxRequest(null)}
+            />
           </>
         )}
         <div

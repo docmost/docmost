@@ -20,6 +20,14 @@ export async function getTemplateById(
   return req.data;
 }
 
+export async function applyTemplate(data: {
+  templateId: string;
+  pageId: string;
+}): Promise<ITemplate> {
+  const req = await api.post<ITemplate>("/templates/apply", data);
+  return req.data;
+}
+
 export async function createTemplate(
   data: Partial<ITemplate>,
 ): Promise<ITemplate> {

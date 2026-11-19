@@ -1,6 +1,10 @@
 import { atom } from "jotai";
 import { atomFamily } from "jotai/utils";
 import { EditingCell, FocusedCell } from "@/ee/base/types/base.types";
+import {
+  BaseImportProgress,
+  BaseImportResult,
+} from "@/ee/base/csv-import/csv-import.types";
 
 // Atoms are scoped per-base via `pageId` so that two BaseTable instances on
 // the same page don't share UI state.
@@ -44,6 +48,18 @@ export const lastToggledRowIndexAtomFamily = atomFamily((_pageId: string) =>
 
 export const focusedCellAtomFamily = atomFamily((_pageId: string) =>
   atom<FocusedCell>(null),
+);
+
+export const baseImportOpenedAtomFamily = atomFamily((_pageId: string) =>
+  atom<boolean>(false),
+);
+
+export const baseImportProgressAtomFamily = atomFamily((_pageId: string) =>
+  atom<BaseImportProgress | null>(null as BaseImportProgress | null),
+);
+
+export const baseImportResultAtomFamily = atomFamily((_pageId: string) =>
+  atom<BaseImportResult | null>(null as BaseImportResult | null),
 );
 
 export type PendingTypeInsert = {

@@ -76,6 +76,10 @@ export function NotificationItem({
         return "SIEM destination <bold>{{name}}</bold> was disabled after 24 hours of failures";
       case "siem_destination.recovered":
         return "SIEM destination <bold>{{name}}</bold> recovered";
+      case "base.import_completed":
+        return "Imported {{count}} rows from <bold>{{fileName}}</bold>";
+      case "base.import_failed":
+        return "Couldn't import <bold>{{fileName}}</bold>";
       default:
         return "";
     }
@@ -110,6 +114,35 @@ export function NotificationItem({
       ? notification.data.lastError
       : null;
   const linkUrl = isSiemDestination ? "/settings/audit/siem" : pageUrl;
+
+  const fileName =
+    typeof notification.data?.fileName === "string"
+      ? notification.data.fileName
+      : "";
+  const importedRows =
+    notification.type === "base.import_completed" &&
+    typeof notification.data?.importedRows === "number"
+      ? notification.data.importedRows
+      : undefined;
+
+  const getImportDetail = (): string | null => {
+    if (notification.type === "base.import_failed") {
+      const error = notification.data?.error;
+      return typeof error === "string" && error
+        ? error
+        : t("Nothing was imported. Please try again.");
+    }
+    const skippedValues = notification.data?.skippedValues;
+    if (
+      notification.type === "base.import_completed" &&
+      typeof skippedValues === "number" &&
+      skippedValues > 0
+    ) {
+      return t("{{count}} values left empty", { count: skippedValues });
+    }
+    return null;
+  };
+  const detail = lastError ?? getImportDetail();
 
   const markReadIfNeeded = () => {
     if (isUnread) {
@@ -158,18 +191,20 @@ export function NotificationItem({
           <Text size="sm" lineClamp={2}>
             <Trans
               i18nKey={getNotificationMessageKey()}
+              count={importedRows}
               values={{
                 name: isSiemDestination
                   ? destinationName
                   : notification.actor?.name,
+                fileName,
               }}
               components={{ bold: <Text span fw={600} /> }}
             />
           </Text>
 
-          {lastError && (
+          {detail && (
             <Text size="xs" c="dimmed" lineClamp={1} mt={2}>
-              {lastError}
+              {detail}
             </Text>
           )}
 

@@ -21,6 +21,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { SpaceListStatus } from '../../../core/space/space.constants';
 
 @Injectable()
 export class SpaceMemberRepo {
@@ -114,6 +115,7 @@ export class SpaceMemberRepo {
   async getSpaceMembersPaginated(
     spaceId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ) {
     let baseQuery = this.db
       .selectFrom('spaceMembers')
@@ -131,7 +133,7 @@ export class SpaceMemberRepo {
         'spaceMembers.role',
         'spaceMembers.createdAt',
       ])
-      .select((eb) => this.groupRepo.withMemberCount(eb))
+      .select((eb) => this.groupRepo.withMemberCount(eb, opts))
       .select(
         sql<number>`case when groups.id is not null then 1 else 0 end`.as(
           'isGroup',
@@ -368,14 +370,18 @@ export class SpaceMemberRepo {
   async getUserSpaces(
     userId: string,
     pagination: PaginationOptions,
-    opts?: { archived?: boolean },
+    opts?: { status?: SpaceListStatus },
   ) {
+    const status = opts?.status ?? 'active';
+
     let query = this.db
       .selectFrom('spaces')
       .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
       .where('id', 'in', this.getUserSpaceIdsQuery(userId))
-      .where('archivedAt', opts?.archived ? 'is not' : 'is', null);
+      .$if(status !== 'all', (qb) =>
+        qb.where('archivedAt', status === 'archived' ? 'is not' : 'is', null),
+      );
 
     if (pagination.query) {
       query = query.where((eb) =>
@@ -390,6 +396,41 @@ export class SpaceMemberRepo {
         ),
       );
     }
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'name', direction: 'asc' },
+        { expression: 'id', direction: 'asc' },
+      ],
+      parseCursor: (cursor) => ({ name: cursor.name, id: cursor.id }),
+    });
+  }
+
+  async getSharedSpacesPaginated(
+    userId: string,
+    viewerId: string,
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    const query = this.db
+      .selectFrom('spaces')
+      .select(['id', 'name', 'slug', 'logo'])
+      .where('workspaceId', '=', workspaceId)
+      .where(
+        'id',
+        'in',
+        this.getUserSpaceIdsQuery(userId, { excludeArchived: true }),
+      )
+      .$if(viewerId !== userId, (qb) =>
+        qb.where(
+          'id',
+          'in',
+          this.getUserSpaceIdsQuery(viewerId, { excludeArchived: true }),
+        ),
+      );
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,

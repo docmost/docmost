@@ -465,15 +465,10 @@ export function DragHandlePlugin(
       dragHandleElement.dataset.dragHandle = "";
       dragHandleElement.classList.add("drag-handle");
 
-      function onDragHandleDragStart(e: DragEvent) {
-        handleDragStart(e, view);
-      }
-
-      dragHandleElement.addEventListener("dragstart", onDragHandleDragStart);
-
       function onDragHandleDrag(e: DragEvent) {
         hideDragHandle();
-        let scrollY = window.scrollY;
+        if (!e.clientY) return;
+        const scrollY = window.scrollY;
         if (e.clientY < options.scrollThreshold) {
           window.scrollTo({ top: scrollY - 30, behavior: "smooth" });
         } else if (window.innerHeight - e.clientY < options.scrollThreshold) {
@@ -481,7 +476,17 @@ export function DragHandlePlugin(
         }
       }
 
-      dragHandleElement.addEventListener("drag", onDragHandleDrag);
+      function onDragHandleDragStart(e: DragEvent) {
+        handleDragStart(e, view);
+        document.addEventListener("dragover", onDragHandleDrag, true);
+      }
+
+      function onDragHandleDragEnd() {
+        document.removeEventListener("dragover", onDragHandleDrag, true);
+      }
+
+      dragHandleElement.addEventListener("dragstart", onDragHandleDragStart);
+      dragHandleElement.addEventListener("dragend", onDragHandleDragEnd);
 
       hideDragHandle();
 
@@ -498,7 +503,11 @@ export function DragHandlePlugin(
           if (!handleBySelector) {
             dragHandleElement?.remove?.();
           }
-          dragHandleElement?.removeEventListener("drag", onDragHandleDrag);
+          onDragHandleDragEnd()
+          dragHandleElement?.removeEventListener(
+            "dragend",
+            onDragHandleDragEnd,
+          );
           dragHandleElement?.removeEventListener(
             "dragstart",
             onDragHandleDragStart,

@@ -69,6 +69,10 @@ export function getSpaceUrl(spaceSlug: string) {
   return "/s/" + spaceSlug;
 }
 
+export function getUserProfileUrl(userId: string) {
+  return "/people/" + userId;
+}
+
 export function getFileUrl(src: string) {
   if (!src) return src;
   if (src.startsWith("http")) return src;
@@ -116,5 +120,5 @@ function getConfigValue(key: string, defaultValue: string = undefined): string {
   const rawValue = import.meta.env.DEV
     ? process?.env?.[key]
     : window?.CONFIG?.[key];
-  return rawValue ?? defaultValue;
+  return rawValue || defaultValue;
 }

@@ -11,7 +11,7 @@ import {
   PagePermission,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { ExpressionBuilder, sql, SqlBool } from 'kysely';
+import { ExpressionBuilder, RawBuilder, sql, SqlBool } from 'kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { DB } from '@docmost/db/types/db';
 import {
@@ -127,7 +127,6 @@ export class PagePermissionRepo {
 
   /**
    * Restrict each page like its source page, with writerId as a writer.
-   * With onlySpaceMembers, users and groups outside the space are left out.
    * Returns how many pages were restricted.
    */
   async copyRestrictions(
@@ -136,32 +135,10 @@ export class PagePermissionRepo {
       spaceId: string;
       workspaceId: string;
       writerId: string;
-      onlySpaceMembers: boolean;
     },
     trx?: KyselyTransaction,
   ): Promise<number> {
     if (copies.length === 0) return 0;
-
-    const memberFilter = opts.onlySpaceMembers
-      ? sql`AND (
-          EXISTS (
-            SELECT 1 FROM space_members
-            WHERE space_members.space_id = ${opts.spaceId}::uuid
-              AND space_members.user_id = page_permissions.user_id
-          )
-          OR EXISTS (
-            SELECT 1 FROM space_members
-            JOIN group_users ON group_users.group_id = space_members.group_id
-            WHERE space_members.space_id = ${opts.spaceId}::uuid
-              AND group_users.user_id = page_permissions.user_id
-          )
-          OR EXISTS (
-            SELECT 1 FROM space_members
-            WHERE space_members.space_id = ${opts.spaceId}::uuid
-              AND space_members.group_id = page_permissions.group_id
-          )
-        )`
-      : sql``;
 
     // one statement, so the copy sees a single snapshot and no row passes through the app
     const { rows } = await sql<{ restricted: number }>`
@@ -193,7 +170,6 @@ export class PagePermissionRepo {
         JOIN sources ON sources.page_id = copied.page_id
         JOIN page_permissions ON page_permissions.page_access_id = sources.page_access_id
         WHERE (page_permissions.user_id IS NULL OR page_permissions.user_id <> ${opts.writerId}::uuid)
-        ${memberFilter}
       )
       SELECT count(*)::int AS restricted FROM copied
     `.execute(dbOrTx(this.db, trx));
@@ -337,6 +313,7 @@ export class PagePermissionRepo {
   async getPagePermissionsPaginated(
     pageAccessId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ): Promise<CursorPaginationResult<PagePermissionMember>> {
     let baseQuery = this.db
       .selectFrom('pagePermissions')
@@ -354,7 +331,7 @@ export class PagePermissionRepo {
         'groups.name as groupName',
         'groups.isDefault as groupIsDefault',
       ])
-      .select((eb) => this.groupRepo.withMemberCount(eb))
+      .select((eb) => this.groupRepo.withMemberCount(eb, opts))
       .select((eb) =>
         eb
           .case()
@@ -875,6 +852,26 @@ export class PagePermissionRepo {
       .execute();
 
     return results.map((r) => r.id);
+  }
+
+  // filterAccessiblePageIds for the outer unaliased `pages` row; inner aliases must not shadow it
+  canUserAccessPageExpression(userId: string): RawBuilder<SqlBool> {
+    return sql<SqlBool>`not exists (
+      with recursive ancestors as (
+        select p.id, p.parent_page_id from pages p where p.id = pages.id
+        union
+        select p.id, p.parent_page_id from pages p
+        join ancestors a on p.id = a.parent_page_id
+      )
+      select 1 from ancestors a
+      join page_access pa on pa.page_id = a.id
+      where not exists (
+        select 1 from page_permissions pp
+        where pp.page_access_id = pa.id
+          and (pp.user_id = ${userId}
+            or pp.group_id in (select gu.group_id from group_users gu where gu.user_id = ${userId}))
+      )
+    )`;
   }
 
   async filterAccessiblePageIdsWithPermissions(

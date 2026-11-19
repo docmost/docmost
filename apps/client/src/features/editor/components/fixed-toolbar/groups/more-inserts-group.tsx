@@ -178,22 +178,18 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
         >
           {t("Mermaid diagram")}
         </Menu.Item>
-        {!templateMode && (
-          <Menu.Item
-            leftSection={<IconDrawio size={16} />}
-            onClick={() => editor.chain().focus().setDrawio().run()}
-          >
-            Draw.io
-          </Menu.Item>
-        )}
-        {!templateMode && (
-          <Menu.Item
-            leftSection={<IconExcalidraw size={16} />}
-            onClick={() => editor.chain().focus().setExcalidraw().run()}
-          >
-            Excalidraw
-          </Menu.Item>
-        )}
+        <Menu.Item
+          leftSection={<IconDrawio size={16} />}
+          onClick={() => editor.chain().focus().setDrawio().run()}
+        >
+          Draw.io
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconExcalidraw size={16} />}
+          onClick={() => editor.chain().focus().setExcalidraw().run()}
+        >
+          Excalidraw
+        </Menu.Item>
 
         <Menu.Divider />
         <Menu.Label>{t("Embeds")}</Menu.Label>

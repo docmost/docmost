@@ -37,6 +37,38 @@ export function splitChangeRange(
   });
 }
 
+// Splits a range that starts and ends between blocks into its whole blocks, leaving out the ones with nothing to show.
+export function splitBlockRange(
+  doc: Node,
+  from: number,
+  to: number,
+  specialNodeTypes: ReadonlySet<string>,
+): ChangeSegment[] {
+  if (
+    doc.resolve(from).parent.inlineContent ||
+    doc.resolve(to).parent.inlineContent
+  ) {
+    return [];
+  }
+
+  const segments: ChangeSegment[] = [];
+  doc.nodesBetween(from, to, (node, pos) => {
+    const end = pos + node.nodeSize;
+    if (pos < from || end > to) return true;
+    // a cell cannot be drawn without its column, so what it held stands in for it
+    const role = node.type.spec.tableRole;
+    if (role === "cell" || role === "header_cell") return true;
+
+    const whole =
+      specialNodeTypes.has(node.type.name) ||
+      hasInlineContent(node, 0, node.content.size);
+    if (whole) segments.push({ from: pos, to: end, node });
+    // a block with no text of its own can still hold a special node
+    return !whole;
+  });
+  return segments;
+}
+
 function hasInlineContent(doc: Node, from: number, to: number): boolean {
   let found = false;
   doc.nodesBetween(from, to, (node) => {

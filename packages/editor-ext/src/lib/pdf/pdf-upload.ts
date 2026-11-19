@@ -29,7 +29,7 @@ const findPdfNodeByPlaceholderId = (
 
 const handlePdfUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, editor, pos, pageId) => {
+  async (file, editor, pos, uploadTarget) => {
     const validated = validateFn?.(file);
     // @ts-ignore
     if (!validated) return;
@@ -99,7 +99,7 @@ const handlePdfUpload =
     }, 250);
 
     try {
-      const attachment: IAttachment = await onUpload(file, pageId);
+      const attachment: IAttachment = await onUpload(file, uploadTarget);
 
       clearTimeout(insertPlaceholderTimeout);
 

@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Group, Skeleton, Table, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Skeleton, Table, Text, Tooltip } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import NoTableResults from "@/components/common/no-table-results";
 import { formatLocalized, useDateFnsLocale } from "@/lib/date-locale.ts";
 import { IOAuthGrant } from "@/ee/oauth/types/oauth.types";
 import { useRevokeOAuthGrantMutation } from "@/ee/oauth/queries/oauth-query";
+import { ScopeBadges } from "@/ee/oauth/components/scope-badges";
 
 // Callback hosts identify the app; the full URL belongs on the consent screen.
 function callbackHosts(redirectUris: string[] = []): string[] {
@@ -60,11 +61,6 @@ export function OAuthGrantsTable({ grants, isLoading }: OAuthGrantsTableProps) {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
   const revokeMutation = useRevokeOAuthGrantMutation();
-
-  const scopeMeta: Record<string, { color: string; label: string }> = {
-    read: { color: "blue", label: t("Read") },
-    write: { color: "orange", label: t("Write") },
-  };
 
   const formatDate = (date: string | null) => {
     if (!date) return t("Never");
@@ -122,22 +118,7 @@ export function OAuthGrantsTable({ grants, isLoading }: OAuthGrantsTableProps) {
                 </Table.Td>
 
                 <Table.Td>
-                  <Group gap={4}>
-                    {grant.scopes.map((scope) => {
-                      const meta = scopeMeta[scope];
-                      if (!meta) return null;
-                      return (
-                        <Badge
-                          key={scope}
-                          variant="light"
-                          color={meta.color}
-                          size="sm"
-                        >
-                          {meta.label}
-                        </Badge>
-                      );
-                    })}
-                  </Group>
+                  <ScopeBadges scopes={grant.scopes} />
                 </Table.Td>
 
                 <Table.Td>

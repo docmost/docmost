@@ -4,6 +4,11 @@
   color: var(--mantine-color-placeholder);
   pointer-events: none;
   height: 0;
+  /* one line: a wrapped placeholder spills onto the block below */
+  max-width: 100%;
+  white-space: nowrap;
+  overflow-x: clip;
+  text-overflow: ellipsis;
 
   @media print {
     display: none;
@@ -16,6 +21,10 @@
   color: var(--mantine-color-placeholder);
   pointer-events: none;
   height: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow-x: clip;
+  text-overflow: ellipsis;
 
   @media print {
     display: none;

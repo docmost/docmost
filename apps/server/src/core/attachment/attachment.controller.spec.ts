@@ -4,6 +4,7 @@ import { join } from 'path';
 import * as bytes from 'bytes';
 import * as fs from 'fs-extra';
 import { FastifyInstance } from 'fastify';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { BlockBlobClient } from '@azure/storage-blob';
 import { AttachmentController } from './attachment.controller';
 import { MAX_AVATAR_SIZE } from './attachment.constants';
@@ -23,6 +24,12 @@ import {
   postAndDisconnect,
   postInChunks,
 } from '../../../test/multipart.helper';
+
+jest.mock(
+  '../../ee/template/services/template-access.service',
+  () => ({ TemplateAccessService: class TemplateAccessService {} }),
+  { virtual: true },
+);
 
 const USER = { id: 'user-id' };
 const WORKSPACE = { id: 'workspace-id', hostname: 'docs' };
@@ -150,6 +157,11 @@ describe.each([
   };
   const attachmentQueue = { add: jest.fn(), remove: jest.fn() };
   const auditService = { log: jest.fn() };
+  const templateRepo = { findById: jest.fn() };
+  const spaceMemberRepo = { getUserSpaceRoles: jest.fn() };
+  const templateAccessService = { findEditableTemplate: jest.fn() };
+  const moduleRef = { get: jest.fn(() => templateAccessService) };
+  let controllerRef: AttachmentController;
 
   const postFile = (
     fileName: string,
@@ -217,7 +229,11 @@ describe.each([
       { validateCanEdit: async () => undefined } as any,
       { getUrl: () => 'https://docs.example.com' } as any,
       auditService as any,
+      templateRepo as any,
+      spaceMemberRepo as any,
+      moduleRef as any,
     );
+    controllerRef = controller;
 
     app = await createMultipartApp({
       '/files/upload': (req, res) => {
@@ -316,6 +332,24 @@ describe.each([
       expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
     });
 
+    it('refuses to overwrite a template file from a page upload', async () => {
+      attachmentRepo.findById.mockResolvedValue({
+        id: ATTACHMENT_ID,
+        pageId: PAGE_ID,
+        templateId: 'template-id',
+        fileExt: '.pdf',
+        workspaceId: WORKSPACE.id,
+      });
+
+      const response = await post(randomBytes(1024), {
+        attachmentId: ATTACHMENT_ID,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(await storage.leftovers()).toEqual([]);
+      expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
+    });
+
     it('never overwrites an existing attachment with a cover', async () => {
       const response = await postFile('cover.jpg', randomBytes(1024), {
         type: 'page-cover',
@@ -344,6 +378,287 @@ describe.each([
         expect.objectContaining({ type: 'file' }),
         undefined,
       );
+    });
+  });
+
+  describe('template uploads', () => {
+    const TEMPLATE_ID = '0195f9d2-7d3e-7b1a-9c3f-aaaaaaaaaaaa';
+    const postTemplateFile = (fields: Record<string, string>) =>
+      app.inject({
+        method: 'POST',
+        url: '/files/upload',
+        headers: MULTIPART_HEADERS,
+        payload: multipartBody('diagram.pdf', randomBytes(1024), fields),
+      });
+
+    beforeEach(() => {
+      templateAccessService.findEditableTemplate.mockReset();
+    });
+
+    it('stores an upload for a template the user can edit', async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: 'space-1',
+      });
+
+      const response = await postTemplateFile({ templateId: TEMPLATE_ID });
+
+      expect(response.statusCode).toBe(200);
+      expect(templateAccessService.findEditableTemplate).toHaveBeenCalledWith(
+        TEMPLATE_ID,
+        USER,
+        WORKSPACE,
+      );
+      expect(moduleRef.get).toHaveBeenCalledWith(
+        jest.requireMock('../../ee/template/services/template-access.service')
+          .TemplateAccessService,
+        { strict: false },
+      );
+      const row = attachmentRepo.insertAttachment.mock.calls[0][0];
+      expect(row).toEqual(
+        expect.objectContaining({ templateId: TEMPLATE_ID, spaceId: 'space-1' }),
+      );
+      expect(row.pageId).toBeUndefined();
+    });
+
+    it('refuses a template the user cannot edit before storing anything', async () => {
+      templateAccessService.findEditableTemplate.mockRejectedValue(
+        new ForbiddenException(),
+      );
+
+      const response = await postTemplateFile({ templateId: TEMPLATE_ID });
+
+      expect(response.statusCode).toBe(403);
+      expect(await storage.leftovers()).toEqual([]);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown template', async () => {
+      templateAccessService.findEditableTemplate.mockRejectedValue(
+        new NotFoundException('Template not found'),
+      );
+
+      const response = await postTemplateFile({ templateId: TEMPLATE_ID });
+
+      expect(response.statusCode).toBe(404);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid template id', async () => {
+      const response = await postTemplateFile({ templateId: 'not-a-uuid' });
+
+      expect(response.statusCode).toBe(400);
+      expect(templateAccessService.findEditableTemplate).not.toHaveBeenCalled();
+    });
+
+    it('rejects a page and a template in the same upload', async () => {
+      const response = await postTemplateFile({
+        pageId: PAGE_ID,
+        templateId: TEMPLATE_ID,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(templateAccessService.findEditableTemplate).not.toHaveBeenCalled();
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it('treats an empty templateId as a page upload', async () => {
+      const response = await postTemplateFile({
+        pageId: PAGE_ID,
+        templateId: '',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(templateAccessService.findEditableTemplate).not.toHaveBeenCalled();
+      const row = attachmentRepo.insertAttachment.mock.calls[0][0];
+      expect(row.pageId).toBe(PAGE_ID);
+      expect(row.templateId).toBeUndefined();
+    });
+
+    it('treats an empty pageId as a template upload', async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+
+      const response = await postTemplateFile({
+        pageId: '',
+        templateId: TEMPLATE_ID,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const row = attachmentRepo.insertAttachment.mock.calls[0][0];
+      expect(row.templateId).toBe(TEMPLATE_ID);
+      expect(row.pageId).toBeUndefined();
+    });
+
+    it("overwrites the template's own file", async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+      attachmentRepo.findById.mockResolvedValue({
+        id: ATTACHMENT_ID,
+        pageId: null,
+        templateId: TEMPLATE_ID,
+        fileExt: '.pdf',
+        workspaceId: WORKSPACE.id,
+      });
+
+      const response = await postTemplateFile({
+        templateId: TEMPLATE_ID,
+        attachmentId: ATTACHMENT_ID,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(attachmentRepo.updateAttachment).toHaveBeenCalled();
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+
+    it("refuses to overwrite a page's file from a template upload", async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+
+      const response = await postTemplateFile({
+        templateId: TEMPLATE_ID,
+        attachmentId: ATTACHMENT_ID,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(await storage.leftovers()).toEqual([]);
+      expect(attachmentRepo.updateAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects a cover upload for a template', async () => {
+      templateAccessService.findEditableTemplate.mockResolvedValue({
+        id: TEMPLATE_ID,
+        spaceId: null,
+      });
+
+      const response = await postTemplateFile({
+        templateId: TEMPLATE_ID,
+        type: 'page-cover',
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(attachmentRepo.insertAttachment).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('template files', () => {
+    const FILE = {
+      id: ATTACHMENT_ID,
+      templateId: 'template-id',
+      pageId: null,
+      workspaceId: WORKSPACE.id,
+    };
+    let sendFileResponse: jest.SpyInstance;
+
+    const read = () =>
+      controllerRef.getFile(
+        {} as any,
+        {} as any,
+        USER as any,
+        WORKSPACE as any,
+        ATTACHMENT_ID,
+        'a.png',
+      );
+
+    beforeEach(() => {
+      attachmentRepo.findById.mockResolvedValue(FILE);
+      sendFileResponse = jest
+        .spyOn(controllerRef as any, 'sendFileResponse')
+        .mockResolvedValue('sent');
+    });
+
+    it('streams a global template file', async () => {
+      templateRepo.findById.mockResolvedValue({ id: 'template-id' });
+
+      await expect(read()).resolves.toBe('sent');
+      expect(templateRepo.findById).toHaveBeenCalledWith(
+        'template-id',
+        WORKSPACE.id,
+      );
+      expect(sendFileResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        FILE,
+        'private',
+      );
+    });
+
+    it('streams a space template file to a space member', async () => {
+      templateRepo.findById.mockResolvedValue({
+        id: 'template-id',
+        spaceId: 'space-1',
+      });
+      spaceMemberRepo.getUserSpaceRoles.mockResolvedValue([
+        { userId: USER.id, role: 'reader' },
+      ]);
+
+      await expect(read()).resolves.toBe('sent');
+      expect(spaceMemberRepo.getUserSpaceRoles).toHaveBeenCalledWith(
+        USER.id,
+        'space-1',
+      );
+    });
+
+    it('hides a space template file from a non-member', async () => {
+      templateRepo.findById.mockResolvedValue({
+        id: 'template-id',
+        spaceId: 'space-1',
+      });
+      spaceMemberRepo.getUserSpaceRoles.mockResolvedValue(undefined);
+
+      await expect(read()).rejects.toBeInstanceOf(NotFoundException);
+      expect(sendFileResponse).not.toHaveBeenCalled();
+    });
+
+    it('answers not found for an unknown template', async () => {
+      templateRepo.findById.mockResolvedValue(undefined);
+
+      await expect(read()).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    describe('files/info', () => {
+      const info = () =>
+        controllerRef.getAttachmentInfo(
+          { attachmentId: ATTACHMENT_ID } as any,
+          WORKSPACE as any,
+          USER as any,
+        );
+      const unknownIdError = async () => {
+        attachmentRepo.findById.mockResolvedValueOnce(undefined);
+        return info().catch((err) => err);
+      };
+
+      it('answers a non-member exactly like an unknown id', async () => {
+        const expected = await unknownIdError();
+        attachmentRepo.findById.mockResolvedValue({ ...FILE, type: 'file' });
+        templateRepo.findById.mockResolvedValue({
+          id: 'template-id',
+          spaceId: 'space-1',
+        });
+        spaceMemberRepo.getUserSpaceRoles.mockResolvedValue(undefined);
+
+        const err = await info().catch((e) => e);
+
+        expect(err).toBeInstanceOf(NotFoundException);
+        expect(err.getResponse()).toEqual(expected.getResponse());
+      });
+
+      it('answers a deleted template exactly like an unknown id', async () => {
+        const expected = await unknownIdError();
+        attachmentRepo.findById.mockResolvedValue({ ...FILE, type: 'file' });
+        templateRepo.findById.mockResolvedValue(undefined);
+
+        const err = await info().catch((e) => e);
+
+        expect(err).toBeInstanceOf(NotFoundException);
+        expect(err.getResponse()).toEqual(expected.getResponse());
+      });
     });
   });
 

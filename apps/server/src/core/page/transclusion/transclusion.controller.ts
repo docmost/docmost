@@ -13,12 +13,14 @@ import { TransclusionService } from './transclusion.service';
 import { LookupDto } from './dto/lookup.dto';
 import { ReferencesDto } from './dto/references.dto';
 import { UnsyncReferenceDto } from './dto/unsync-reference.dto';
+import { ApiKeyScope } from '../../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages/transclusion')
 export class TransclusionController {
   constructor(private readonly transclusionService: TransclusionService) {}
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('lookup')
   async lookup(@Body() dto: LookupDto, @AuthUser() user: User) {
@@ -29,6 +31,7 @@ export class TransclusionController {
     );
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('references')
   async references(

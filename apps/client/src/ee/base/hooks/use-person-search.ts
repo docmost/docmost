@@ -12,15 +12,24 @@ export type PersonSuggestion = {
 export function usePersonSearch(
   search: string,
   enabled: boolean,
+  options?: { includeDeactivatedUsers?: boolean },
 ): PersonSuggestion[] {
   const [debounced] = useDebouncedValue(search, 250);
   const trimmed = debounced.trim();
+  const includeDeactivatedUsers = options?.includeDeactivatedUsers ?? false;
   const { data = [] } = useQuery({
-    queryKey: ["bases", "persons", "search", trimmed],
+    queryKey: [
+      "bases",
+      "persons",
+      "search",
+      trimmed,
+      { includeDeactivatedUsers },
+    ],
     queryFn: async () => {
       const res = await searchSuggestions({
         query: trimmed,
         includeUsers: true,
+        includeDeactivatedUsers,
         limit: trimmed ? 25 : 10,
       });
       return (res.users ?? []) as PersonSuggestion[];

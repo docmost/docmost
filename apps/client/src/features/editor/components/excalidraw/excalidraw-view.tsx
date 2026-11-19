@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
 import "@excalidraw/excalidraw/index.css";
@@ -29,6 +30,7 @@ import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 import { modals } from "@mantine/modals";
 import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
+import { canEditDiagram } from "@/features/editor/components/common/diagram-editable";
 
 const ExcalidrawComponent = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
@@ -58,7 +60,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
   const lastFingerprintRef = useRef("");
 
   const handleOpen = async () => {
-    if (!editor.isEditable) {
+    if (!canEditDiagram(editor)) {
       return;
     }
     isDirtyRef.current = false;
@@ -100,14 +102,14 @@ export default function ExcalidrawView(props: NodeViewProps) {
       const fileName = "diagram.excalidraw.svg";
       const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
-      // @ts-ignore
-      const pageId = editor.storage?.pageId;
+      const uploadTarget = getEditorUploadTarget(editor);
+      if (!uploadTarget) return;
 
       let attachment: IAttachment = null;
       if (attachmentId) {
-        attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
+        attachment = await uploadFile(excalidrawSvgFile, uploadTarget, attachmentId);
       } else {
-        attachment = await uploadFile(excalidrawSvgFile, pageId);
+        attachment = await uploadFile(excalidrawSvgFile, uploadTarget);
       }
 
       if (updateSrc) {
