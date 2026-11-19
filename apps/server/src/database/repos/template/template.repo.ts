@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
@@ -13,6 +13,13 @@ import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagin
 import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { ClsService } from 'nestjs-cls';
+import type { JSONContent } from '@tiptap/core';
+import {
+  LEGACY_TEMPLATE_EDITOR,
+  legacyTemplateContent,
+  templateReloadRequired,
+} from '../../../common/middlewares/template-editor.middleware';
 
 @Injectable()
 export class TemplateRepo {
@@ -29,7 +36,10 @@ export class TemplateRepo {
     'updatedAt',
   ];
 
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    @Optional() private readonly cls?: ClsService,
+  ) {}
 
   async findById(
     templateId: string,
@@ -46,7 +56,15 @@ export class TemplateRepo {
       .where('id', '=', templateId)
       .where('workspaceId', '=', workspaceId);
 
-    return query.executeTakeFirst() as Promise<Template>;
+    const template = (await query.executeTakeFirst()) as Template;
+    const legacy = this.cls?.get(LEGACY_TEMPLATE_EDITOR);
+    if (legacy && template?.content) {
+      return {
+        ...template,
+        content: legacyTemplateContent(template.content as JSONContent, legacy),
+      };
+    }
+    return template;
   }
 
   async findTemplates(
@@ -128,12 +146,24 @@ export class TemplateRepo {
     trx?: KyselyTransaction,
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
-    await db
+    const guardContent =
+      updatableTemplate.content !== undefined &&
+      !!this.cls?.get(LEGACY_TEMPLATE_EDITOR);
+    const result = await db
       .updateTable('templates')
       .set({ ...updatableTemplate, updatedAt: new Date() })
       .where('id', '=', templateId)
       .where('workspaceId', '=', workspaceId)
-      .execute();
+      // Check on the row being written, including after a concurrent author's
+      // update. A preview fetched before the first hint was added is stale too.
+      .$if(guardContent, (qb) =>
+        qb.where(
+          sql<boolean>`not coalesce(content @? '$.** ? (@.type == "templatePlaceholder")', false)`,
+        ),
+      )
+      .executeTakeFirst();
+    if (guardContent && result.numUpdatedRows === 0n)
+      throw templateReloadRequired();
   }
 
   async deleteTemplate(

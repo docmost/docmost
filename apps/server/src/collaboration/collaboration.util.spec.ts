@@ -51,6 +51,47 @@ it('preserves template hints in collaboration and omits them from page text and 
   }
 });
 
+it('exports real links and filled answers without emitting links attached only to an instruction', () => {
+  const source = 'https://example.com/instructions';
+  const handbook = 'https://example.com/handbook';
+  const link = (href: string) => [{ type: 'link', attrs: { href } }];
+  const doc = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Owner: ' },
+          {
+            type: 'templatePlaceholder',
+            attrs: { hint: 'Enter an owner' },
+            marks: link(source),
+          },
+          { type: 'text', text: ' ' },
+          { type: 'text', text: 'Handbook', marks: link(handbook) },
+        ],
+      },
+    ],
+  };
+  for (const exported of [
+    jsonToHtml(doc),
+    jsonToMarkdown(doc),
+    jsonToText(doc),
+  ]) {
+    expect(exported).not.toContain('Enter an owner');
+    expect(exported).not.toContain(source);
+    expect(exported).toContain('Handbook');
+  }
+  expect(jsonToMarkdown(doc)).toContain(`[Handbook](${handbook})`);
+  expect(doc.content[0].content[1].marks).toEqual(link(source));
+  doc.content[0].content[1] = {
+    type: 'text',
+    text: 'Sam',
+    marks: link(source),
+  };
+  expect(jsonToMarkdown(doc)).toContain(`[Sam](${source})`);
+});
+
 describe('addUniqueIdsToDoc', () => {
   const html = [
     '<h2>Title</h2>',

@@ -1,12 +1,16 @@
-import { TemplatePlaceholder as PlaceholderNode } from "@docmost/editor-ext";
+import {
+  activeTemplatePlaceholder as activeHint,
+  type HintSide,
+  TemplatePlaceholder as PlaceholderNode,
+  withoutTemplatePlaceholders,
+} from "@docmost/editor-ext";
 import { isChangeOrigin } from "@tiptap/extension-collaboration";
 import { closeHistory, isHistoryTransaction } from "@tiptap/pm/history";
-import type { NodeType } from "@tiptap/pm/model";
+import { type NodeType, type ResolvedPos, Slice } from "@tiptap/pm/model";
 import {
   AllSelection,
   NodeSelection,
   Plugin,
-  PluginKey,
   type Selection,
   TextSelection,
 } from "@tiptap/pm/state";
@@ -20,7 +24,21 @@ declare module "@tiptap/core" {
 }
 
 type PlaceholderRange = { from: number; to: number; hint: string };
-type HintSide = "nodeBefore" | "nodeAfter";
+
+function lineHintSide($pos: ResolvedPos, type: NodeType): HintSide | null {
+  const { nodeBefore, nodeAfter } = $pos;
+  if (
+    nodeAfter?.type === type &&
+    (!nodeBefore || nodeBefore.type.name === "hardBreak")
+  )
+    return "nodeAfter";
+  if (
+    nodeBefore?.type === type &&
+    (!nodeAfter || nodeAfter.type.name === "hardBreak")
+  )
+    return "nodeBefore";
+  return null;
+}
 
 function getPlaceholderTextRanges(selection: Selection, type: NodeType) {
   const runs: PlaceholderRange[] = [];
@@ -28,6 +46,7 @@ function getPlaceholderTextRanges(selection: Selection, type: NodeType) {
   $from.doc.nodesBetween(from, to, (node, pos) => {
     if (!node.isText) {
       return (
+        node.type.name !== "tabLabel" &&
         !node.isAtom &&
         (!node.inlineContent || !!node.type.contentMatch.matchType(type))
       );
@@ -73,6 +92,26 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
 
   selectable() {
     return Boolean(this.options.onEdit);
+  },
+
+  parseHTML() {
+    if (!this.options.onEdit) return [];
+    return [
+      {
+        tag: "span[data-template-placeholder]",
+        getAttrs: (el) => {
+          const hint = el.getAttribute("data-template-placeholder");
+          return hint?.trim() ? { hint } : false;
+        },
+      },
+    ];
+  },
+
+  renderHTML({ node }) {
+    if (this.options.onEdit) {
+      return ["span", { "data-template-placeholder": node.attrs.hint }];
+    }
+    return ["span"];
   },
 
   addNodeView() {
@@ -129,6 +168,7 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
           if (
             (selection instanceof NodeSelection &&
               selection.node.type !== this.type) ||
+            $from.parent.type.name === "tabLabel" ||
             !$from.parent.canReplaceWith(
               $from.index(),
               $from.index(),
@@ -160,9 +200,6 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
   addProseMirrorPlugins() {
     if (this.options.onEdit) return [];
     const { editor, type } = this;
-    const activeHint = new PluginKey<HintSide | null>(
-      "activeTemplatePlaceholder",
-    );
     return [
       new Plugin<HintSide | null>({
         key: activeHint,
@@ -179,6 +216,38 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
           },
         },
         props: {
+          handleTextInput(view, from, to, text, insert) {
+            // Chrome can type on the next visual line before its native
+            // selectionchange reaches ProseMirror. The input range is current.
+            const { selection } = view.state;
+            if (
+              !editor.isEditable ||
+              !text ||
+              from !== to ||
+              (selection.empty && from === selection.from)
+            )
+              return false;
+            const $pos = view.state.doc.resolve(from);
+            const side = lineHintSide($pos, type);
+            if (!side) return false;
+            const hint = $pos[side];
+            const tr = insert();
+            const start = side === "nodeAfter" ? from : from - hint.nodeSize;
+            tr.replaceWith(
+              start,
+              start + text.length + hint.nodeSize,
+              type.schema.text(text, hint.marks),
+            );
+            tr.setSelection(TextSelection.create(tr.doc, start + text.length));
+            view.dispatch(tr);
+            return true;
+          },
+          transformCopied(slice) {
+            const content = withoutTemplatePlaceholders(slice.content);
+            return content === slice.content
+              ? slice
+              : new Slice(content, slice.openStart, slice.openEnd);
+          },
           handleClickOn(view, _pos, node, nodePos, event, direct) {
             if (
               !direct ||
@@ -218,26 +287,27 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
             const distance = next.from - $cursor.pos;
             if (
               !next.empty ||
-              Math.abs(distance) !== 1 ||
+              !distance ||
               transactions.some((tr) => tr.getMeta("pointer"))
             ) {
               return null;
             }
-            const side: HintSide = distance > 0 ? "nodeBefore" : "nodeAfter";
+            const crossed: HintSide = distance > 0 ? "nodeBefore" : "nodeAfter";
+            const side =
+              Math.abs(distance) === 1 && next.$from[crossed]?.type === type
+                ? crossed
+                : lineHintSide(next.$from, type);
+            if (!side) return null;
             const hint = next.$from[side];
-            if (hint?.type !== type) return null;
             return newState.tr
               .setStoredMarks(hint.marks)
               .setMeta(activeHint, side);
           }
 
-          const side = activeHint.getState(oldState);
-          const beforeHint = side === "nodeAfter" || $cursor.parentOffset === 0;
-          const afterHint =
-            side === "nodeBefore" ||
-            $cursor.parentOffset === $cursor.parent.content.size;
-          if (!beforeHint && !afterHint) return null;
-          const hint = beforeHint ? $cursor.nodeAfter : $cursor.nodeBefore;
+          const side =
+            activeHint.getState(oldState) ?? lineHintSide($cursor, type);
+          if (!side) return null;
+          const hint = $cursor[side];
           if (hint?.type !== type) return null;
           if (
             transactions.some(
@@ -254,7 +324,7 @@ export const TemplatePlaceholder = PlaceholderNode.extend<{
             from = tr.mapping.map(from, -1);
             to = tr.mapping.map(to, 1);
           }
-          const pos = beforeHint ? to : from - hint.nodeSize;
+          const pos = side === "nodeAfter" ? to : from - hint.nodeSize;
           if (
             from >= to ||
             pos < 0 ||

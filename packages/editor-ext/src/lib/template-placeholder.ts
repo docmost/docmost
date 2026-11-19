@@ -1,4 +1,42 @@
-import { Node } from '@tiptap/core';
+import { getHTMLFromFragment, Node, type Editor } from '@tiptap/core';
+import { Fragment, type Node as PMNode } from '@tiptap/pm/model';
+import { PluginKey } from '@tiptap/pm/state';
+
+export type HintSide = 'nodeBefore' | 'nodeAfter';
+export const activeTemplatePlaceholder = new PluginKey<HintSide | null>(
+  'activeTemplatePlaceholder',
+);
+
+export const EDITOR_SCHEMA_VERSION = 1;
+export const EDITOR_SCHEMA_HEADER = 'x-docmost-editor-schema';
+export function supportsTemplatePlaceholders(version: unknown): boolean {
+  return (
+    typeof version === 'string' && /^\d+$/.test(version) && Number(version) >= 1
+  );
+}
+
+// Remove the entire inline node before the serializer opens its marks. An
+// empty span inside a link would otherwise export the instruction's URL.
+export function withoutTemplatePlaceholders(fragment: Fragment): Fragment {
+  let children: PMNode[] | undefined;
+  fragment.forEach((node, _offset, index) => {
+    let child: PMNode | null = node;
+    if (node.type.name === 'templatePlaceholder') child = null;
+    else if (!node.isLeaf)
+      child = node.copy(withoutTemplatePlaceholders(node.content));
+    if (child !== node && !children)
+      children = fragment.content.slice(0, index);
+    if (children && child) children.push(child);
+  });
+  return children ? Fragment.from(children) : fragment;
+}
+
+export function getPageHTML(editor: Editor): string {
+  return getHTMLFromFragment(
+    withoutTemplatePlaceholders(editor.state.doc.content),
+    editor.schema,
+  );
+}
 
 export const TemplatePlaceholder = Node.create({
   name: 'templatePlaceholder',

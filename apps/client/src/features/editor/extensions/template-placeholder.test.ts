@@ -1,4 +1,12 @@
-import { CustomTable } from "@docmost/editor-ext";
+import {
+  CustomTable,
+  getPageHTML,
+  htmlToMarkdown,
+  Tab,
+  TabLabel,
+  TabPanel,
+  Tabs,
+} from "@docmost/editor-ext";
 import { Editor, type Extensions, type JSONContent } from "@tiptap/core";
 import { TableKit } from "@tiptap/extension-table";
 import { NodeSelection } from "@tiptap/pm/state";
@@ -13,6 +21,7 @@ import {
 } from "@/ee/template/template.utils";
 import type { ITemplate } from "@/ee/template/types/template.types";
 import { TemplatePlaceholder } from "./template-placeholder";
+import { MarkdownClipboard } from "./markdown-clipboard";
 
 const hint = { type: "templatePlaceholder", attrs: { hint: "Enter a name" } };
 const text = (value: string) => ({ type: "text", text: value });
@@ -102,6 +111,60 @@ describe("template placeholder", () => {
     ]);
     editor.commands.undo();
     expect(editor.getJSON()).toEqual(original);
+  });
+
+  it("round-trips inline and standalone instructions when cut and pasted between templates", () => {
+    const source = createEditor(
+      [
+        paragraph(text("Owner: "), { ...hint, marks: [{ type: "bold" }] }),
+        paragraph({ ...hint, attrs: { hint: 'Include <details> & "dates"' } }),
+      ],
+      vi.fn(),
+      [MarkdownClipboard],
+    );
+    const original = source.getJSON();
+    source.commands.selectAll();
+    const { dom, text: plain } = source.view.serializeForClipboard(
+      source.state.selection.content(),
+    );
+    source.commands.deleteSelection();
+    expect(source.getText()).toBe("");
+    expect(plain.trimEnd()).toBe("Owner:");
+    const author = createEditor([paragraph()], vi.fn(), [MarkdownClipboard]);
+    author.view.pasteHTML(dom.innerHTML, new Event("paste") as ClipboardEvent);
+    expect(author.getJSON()).toEqual(original);
+    const page = createEditor([paragraph()], undefined, [MarkdownClipboard]);
+    page.view.pasteHTML(dom.innerHTML, new Event("paste") as ClipboardEvent);
+    expect(page.getText().trimEnd()).toBe("Owner:");
+    expect(JSON.stringify(page.getJSON())).not.toContain("templatePlaceholder");
+  });
+
+  it("omits an instruction's hyperlink from page copy and Markdown while keeping real links", () => {
+    const instructionUrl = "https://example.com/instructions";
+    const realUrl = "https://example.com/handbook";
+    const link = (href: string) => [{ type: "link", attrs: { href } }];
+    const editor = createEditor([
+      paragraph(
+        text("Owner: "),
+        { ...hint, marks: link(instructionUrl) },
+        text(" "),
+        { ...text("Handbook"), marks: link(realUrl) },
+      ),
+    ]);
+    editor.commands.selectAll();
+    const { dom } = editor.view.serializeForClipboard(
+      editor.state.selection.content(),
+    );
+    for (const html of [dom.innerHTML, getPageHTML(editor)]) {
+      expect(html).not.toContain(instructionUrl);
+      expect(html).not.toContain(hint.attrs.hint);
+      expect(htmlToMarkdown(html)).toContain(`[Handbook](${realUrl})`);
+    }
+    clickHint(editor, 8);
+    editor.view.dispatch(editor.state.tr.insertText("Sam"));
+    expect(htmlToMarkdown(getPageHTML(editor))).toContain(
+      `[Sam](${instructionUrl})`,
+    );
   });
 
   it.each([
@@ -215,6 +278,98 @@ describe("template placeholder", () => {
     expect(editor.getJSON()).toEqual(original);
   });
 
+  it.each(["forward", "backward"])(
+    "fills only the first prompt when tabbing %s into a multi-line cell",
+    (direction) => {
+      const bold = [{ type: "bold" }];
+      const second = { ...hint, attrs: { hint: "Second answer" } };
+      const label = direction === "backward" ? [text("Owner: ")] : [];
+      const paragraphs = [
+        paragraph(),
+        paragraph(...label, { ...hint, marks: bold }),
+        paragraph(second),
+      ];
+      const editor = createEditor(
+        [
+          {
+            type: "table",
+            content: [
+              {
+                type: "tableRow",
+                content: [
+                  [paragraph(text("Left"))],
+                  paragraphs,
+                  [paragraph(text("Right"))],
+                ].map((content) => ({ type: "tableCell", content })),
+              },
+            ],
+          },
+        ],
+        undefined,
+        [
+          CustomTable.configure({ resizable: false }),
+          TableKit.configure({ table: false }),
+        ],
+      );
+      const cells = editor.state.doc.firstChild.firstChild;
+      const lastCellPos = 4 + cells.child(0).nodeSize + cells.child(1).nodeSize;
+      editor.commands.setTextSelection(
+        direction === "forward" ? 4 : lastCellPos,
+      );
+      const key = new KeyboardEvent("keydown", {
+        key: "Tab",
+        keyCode: 9,
+        shiftKey: direction === "backward",
+        bubbles: true,
+        cancelable: true,
+      });
+      editor.view.dom.dispatchEvent(key);
+      expect(editor.state.selection.empty).toBe(true);
+      expect(editor.state.selection.$from.nodeAfter?.attrs.hint).toBe(
+        hint.attrs.hint,
+      );
+      editor.view.dispatch(editor.state.tr.insertText("Sam"));
+      expect(
+        editor.state.doc.firstChild.firstChild.child(1).toJSON().content,
+      ).toEqual([
+        { type: "paragraph" },
+        paragraph(...label, { ...text("Sam"), marks: bold }),
+        paragraph(second),
+      ]);
+    },
+  );
+
+  it.each([8, 9])(
+    "fills a soft-broken line from caret position %i after vertical navigation",
+    (pos) => {
+      const br = { type: "hardBreak" };
+      const bold = [{ type: "bold" }];
+      const content = [
+        paragraph(
+          text("Header"),
+          br,
+          { ...hint, marks: bold },
+          br,
+          text("Footer"),
+        ),
+      ];
+      const editor = createEditor(content);
+      editor.commands.setTextSelection(pos);
+      editor.view.dispatch(editor.state.tr.insertText("Sam"));
+      expect(editor.getJSON().content).toEqual([
+        paragraph(
+          text("Header"),
+          br,
+          { ...text("Sam"), marks: bold },
+          br,
+          text("Footer"),
+        ),
+      ]);
+      editor.commands.undo();
+      expect(editor.getJSON().content).toEqual(content);
+    },
+  );
+
   it("keeps the prompt when the user leaves it and edits neighboring text", () => {
     const editor = createEditor([
       paragraph(text("By "), hint, text(" tomorrow")),
@@ -239,6 +394,44 @@ describe("template placeholder", () => {
       expect(editor.getJSON().content).toEqual([paragraph(hint)]);
       editor.commands.redo();
       expect(editor.getJSON().content).toEqual([paragraph(text("Sam"))]);
+    },
+  );
+
+  it.each([8, 9])(
+    "uses the native insertion at %i when Chrome's last reported selection is still on the previous line",
+    (pos) => {
+      const br = { type: "hardBreak" };
+      const bold = [{ type: "bold" }];
+      const content = [
+        paragraph(
+          text("Header"),
+          br,
+          { ...hint, marks: bold },
+          br,
+          text("Footer"),
+        ),
+      ];
+      const editor = createEditor(content);
+      expect(editor.state.selection.from).toBe(1);
+      const { view } = editor;
+      const handled = view.someProp("handleTextInput", (handle) =>
+        handle(view, pos, pos, "S", () =>
+          view.state.tr.insertText("S", pos, pos),
+        ),
+      );
+      expect(handled).toBe(true);
+      expect(editor.getJSON().content).toEqual([
+        paragraph(
+          text("Header"),
+          br,
+          { ...text("S"), marks: bold },
+          br,
+          text("Footer"),
+        ),
+      ]);
+      expect(editor.state.selection.from).toBe(9);
+      editor.commands.undo();
+      expect(editor.getJSON().content).toEqual(content);
     },
   );
 
@@ -368,6 +561,41 @@ describe("template placeholder", () => {
     expect(editor.state.doc.firstChild.type.name).toBe("heading");
     expect(editor.state.doc.firstChild.firstChild.attrs.hint).toBe("Outcome");
     expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it("converts each tab's panel text while preserving the tab names", () => {
+    const names = ["Budget", "Timeline"];
+    const editor = createEditor(
+      [
+        paragraph(text("Section")),
+        {
+          type: "tabs",
+          content: names.map((name) => ({
+            type: "tab",
+            attrs: { id: name },
+            content: [
+              { type: "tabLabel", content: [text(name)] },
+              { type: "tabPanel", content: [paragraph(text(`Enter ${name}`))] },
+            ],
+          })),
+        },
+        paragraph(),
+      ],
+      vi.fn(),
+      [Tabs, Tab, TabLabel, TabPanel],
+    );
+    const original = editor.getJSON();
+    editor.commands.selectAll();
+    expect(editor.commands.editTemplatePlaceholder()).toBe(true);
+    names.forEach((name, index) => {
+      const tab = editor.state.doc.child(1).child(index);
+      expect(tab.firstChild.textContent).toBe(name);
+      expect(tab.lastChild.firstChild.firstChild.attrs.hint).toBe(
+        `Enter ${name}`,
+      );
+    });
+    editor.commands.undo();
+    expect(editor.getJSON()).toEqual(original);
   });
 
   it("preserves hard breaks, blank paragraphs, partial lines and the marks on converted text", () => {

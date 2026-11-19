@@ -1,7 +1,7 @@
 import bytes from "bytes";
 import { castToBoolean } from "@/lib/utils.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
-import { sanitizeUrl } from "@docmost/editor-ext";
+import { EDITOR_SCHEMA_VERSION, sanitizeUrl } from "@docmost/editor-ext";
 
 declare global {
   interface Window {
@@ -31,6 +31,7 @@ export function getCollaborationUrl(): string {
     (import.meta.env.DEV ? process.env.APP_URL : getAppUrl());
 
   const collabUrl = new URL("/collab", baseUrl);
+  collabUrl.searchParams.set("editorSchema", String(EDITOR_SCHEMA_VERSION));
   collabUrl.protocol = collabUrl.protocol === "https:" ? "wss:" : "ws:";
   return collabUrl.toString();
 }
