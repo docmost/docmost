@@ -11,13 +11,21 @@ import { CreateCommentDto, yjsSelectionSchema } from './dto/create-comment.dto';
 import { CollaborationGateway } from '../../collaboration/collaboration.gateway';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
-import { Comment, Page, User } from '@docmost/db/types/entity.types';
+import {
+  Comment,
+  Page,
+  UpdatableComment,
+  User,
+} from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
-import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
+import {
+  ICommentNotificationJob,
+  ICommentResolvedNotificationJob,
+} from '../../integrations/queue/constants/queue.interface';
 import { WsService } from '../../ws/ws.service';
 
 @Injectable()
@@ -204,6 +212,80 @@ export class CommentService {
     });
 
     return comment;
+  }
+
+  async resolve(
+    comment: Comment,
+    resolved: boolean,
+    authUser: User,
+    opts?: { updateYjsMark?: boolean },
+  ): Promise<Comment> {
+    if (comment.parentCommentId) {
+      throw new BadRequestException('Cannot resolve reply comments');
+    }
+
+    const updateData: UpdatableComment = {};
+
+    if (resolved) {
+      updateData.resolvedAt = new Date();
+      updateData.resolvedById = authUser.id;
+    } else {
+      updateData.resolvedAt = null;
+      updateData.resolvedById = null;
+    }
+
+    updateData.updatedAt = new Date();
+
+    await this.commentRepo.updateComment(updateData, comment.id);
+
+    if (resolved) {
+      const jobData: ICommentResolvedNotificationJob = {
+        commentId: comment.id,
+        commentCreatorId: comment.creatorId,
+        pageId: comment.pageId,
+        spaceId: comment.spaceId,
+        workspaceId: comment.workspaceId,
+        actorId: authUser.id,
+      };
+
+      await this.notificationQueue.add(
+        QueueJob.COMMENT_RESOLVED_NOTIFICATION,
+        jobData,
+      );
+    }
+
+    if (opts?.updateYjsMark) {
+      const documentName = `page.${comment.pageId}`;
+      try {
+        await this.collaborationGateway.handleYjsEvent(
+          'resolveCommentMark',
+          documentName,
+          {
+            commentId: comment.id,
+            resolved,
+            user: authUser,
+          },
+        );
+      } catch (error) {
+        this.logger.error(
+          { err: error },
+          `Failed to update comment mark for comment ${comment.id}`,
+        );
+      }
+    }
+
+    const updatedComment = await this.commentRepo.findById(comment.id, {
+      includeCreator: true,
+      includeResolvedBy: true,
+    });
+
+    this.wsService.emitCommentEvent(comment.spaceId, comment.pageId, {
+      operation: 'commentResolved',
+      pageId: comment.pageId,
+      comment: updatedComment,
+    });
+
+    return updatedComment;
   }
 
   private async queueCommentNotification(
