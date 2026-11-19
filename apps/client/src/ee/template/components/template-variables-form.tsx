@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, Group, Modal, Select, Stack, Text, Textarea, TextInput } from "@mantine/core";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Button, Group, Modal, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { getTemplateVariables, type TemplateVariable } from "@docmost/editor-ext";
+import { getTemplateVariables, templateVariableNameKey, type TemplateVariable } from "@docmost/editor-ext";
 import { getTemplateById } from "../services/template-service";
 import type { ITemplate, TemplateVariableValues } from "../types/template.types";
+import ReadonlyTemplateEditor from "./readonly-template-editor";
+import { FillableTemplateVariable, TemplateVariableInputContext } from "./template-variable-input";
+import classes from "./template-variables-form.module.css";
 
 type Fields = { template: ITemplate; variables: TemplateVariable[] };
 type UseTemplate = (
@@ -85,6 +88,10 @@ type FormProps = Fields & {
 
 function TemplateVariablesForm({ template, variables, busy, actionLabel, onClose, onSubmit }: FormProps) {
   const { t } = useTranslation();
+  const fieldsByName = useMemo(
+    () => new Map(variables.map((field) => [templateVariableNameKey(field.name), field])),
+    [variables],
+  );
   const [values, setValues] = useState<TemplateVariableValues>(() =>
     Object.fromEntries(variables.map(({ id }) => [id, ""])),
   );
@@ -92,61 +99,37 @@ function TemplateVariablesForm({ template, variables, busy, actionLabel, onClose
     setValues((prev) => ({ ...prev, [id]: value }));
 
   return (
-    <Modal
-      opened centered
-      title={template.title || t("Untitled")}
+    <Modal.Root
+      opened
+      centered
+      size={900}
+      classNames={{ content: classes.dialog }}
       onClose={onClose}
       closeOnClickOutside={!busy}
       closeOnEscape={!busy}
-      withCloseButton={!busy}
     >
-      <form onSubmit={(event) => {
-        event.preventDefault();
-        if (!busy) onSubmit(values);
-      }}>
-        <Stack gap="md">
-          <Text size="sm" c="dimmed">{t("These values become editable text on the page.")}</Text>
-          {variables.map((field, index) => {
-            const input = {
-              label: field.name,
-              value: values[field.id],
-              "data-autofocus": index === 0 || undefined,
-            };
-            switch (field.fieldType) {
-              case "select":
-                return (
-                  <Select
-                    key={field.id} {...input}
-                    value={values[field.id] || null}
-                    data={field.options}
-                    placeholder={t("Select an option")}
-                    clearable
-                    onChange={(value) => change(field.id, value ?? "")}
-                  />
-                );
-              case "multiline":
-                return (
-                  <Textarea
-                    key={field.id} {...input}
-                    autosize minRows={3} maxRows={8}
-                    onChange={(event) => change(field.id, event.currentTarget.value)}
-                  />
-                );
-              case "text":
-                return (
-                  <TextInput
-                    key={field.id} {...input}
-                    onChange={(event) => change(field.id, event.currentTarget.value)}
-                  />
-                );
-            }
-          })}
-          <Group justify="flex-end" mt="xs">
+      <Modal.Overlay />
+      <Modal.Content>
+        <Modal.Header className={classes.header}>
+          <Modal.Title data-autofocus tabIndex={-1}>
+            {template.icon && <span aria-hidden="true">{template.icon} </span>}
+            {t("Use template")}
+          </Modal.Title>
+          <Modal.CloseButton aria-label={t("Close")} disabled={busy} />
+        </Modal.Header>
+        <div className={classes.document}>
+          <TemplateVariableInputContext.Provider value={{ fieldsByName, values, change, busy }}>
+            <ReadonlyTemplateEditor template={template} variableNode={FillableTemplateVariable} />
+          </TemplateVariableInputContext.Provider>
+        </div>
+        <div className={classes.footer}>
+          <Text size="xs" c="dimmed">{t("These values become editable text on the page.")}</Text>
+          <Group gap="xs" wrap="nowrap" ms="auto">
             <Button variant="default" onClick={onClose} disabled={busy}>{t("Cancel")}</Button>
-            <Button type="submit" loading={busy}>{actionLabel}</Button>
+            <Button loading={busy} onClick={() => onSubmit(values)}>{actionLabel}</Button>
           </Group>
-        </Stack>
-      </form>
-    </Modal>
+        </div>
+      </Modal.Content>
+    </Modal.Root>
   );
 }

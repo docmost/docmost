@@ -1,0 +1,104 @@
+.dialog {
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
+}
+
+.header {
+  position: static;
+  flex: none;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.document {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.document > :first-child {
+  padding-top: var(--mantine-spacing-xl);
+  margin-bottom: var(--mantine-spacing-lg);
+}
+
+.document :global(.tiptap) {
+  padding-bottom: var(--mantine-spacing-xl);
+}
+
+.footer {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.field {
+  display: inline-block;
+  inline-size: 13rem;
+  max-inline-size: 100%;
+  margin-block: 0.2rem;
+  vertical-align: baseline;
+  text-align: start;
+
+  &[data-field-type="multiline"] {
+    inline-size: 28rem;
+  }
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: normal;
+  color: var(--mantine-color-dimmed);
+  overflow-wrap: anywhere;
+
+  svg { flex: none; }
+}
+
+.control {
+  display: block;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  height: 2.125rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background-color: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+
+  &:focus {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -1px;
+  }
+
+  &:disabled { opacity: 0.65; }
+}
+
+select.control {
+  cursor: pointer;
+
+  &[data-empty] { color: var(--mantine-color-dimmed); }
+  option { color: var(--mantine-color-text); }
+}
+
+textarea.control {
+  height: auto;
+  min-height: 4.5rem;
+  max-height: 14rem;
+  field-sizing: content;
+  resize: vertical;
+}
