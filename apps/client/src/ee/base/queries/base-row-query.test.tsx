@@ -41,7 +41,7 @@ import { scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
 import { forgetRowsZoneNotices } from "@/ee/base/queries/rows-zone-notice";
 import {
   baseRowsQueryKey,
-  calendarFilterDependsOn,
+  invalidateAffectedCalendarWindows,
   rowsOrderDependsOn,
   useBaseRowsQuery,
   useCreateRowMutation,
@@ -275,27 +275,30 @@ const cacheCalendar = (filter: FilterNode | undefined, observed = true) => {
   return queryKey;
 };
 
-describe("calendarFilterDependsOn", () => {
+describe("invalidateAffectedCalendarWindows", () => {
   it.each([
-    ["no filter", undefined, ["prpdue0000001"], false],
+    ["the window date changed", undefined, ["prpdue0000001"], true],
+    ["an unrelated property changed", undefined, ["prptext000001"], false],
     ["a nested filter on the changed property", nestedFilter, ["prptext000001"], true],
-    ["a filter on another property", nestedFilter, ["prpdue0000001"], false],
+    ["a date move under an unrelated filter", nestedFilter, ["prpdue0000001"], true],
     ["a filter on a formula", filterOn("prpformula001"), ["prptext000001"], true],
     ["a filter on Last edited at", filterOn("prpedited0001"), ["prptext000001"], true],
     ["a filter on a property that is not in the base", filterOn("prpgone000001"), ["prptext000001"], true],
   ] as const)("%s", (_name, filter, changed, expected) => {
-    cacheCalendar(filter as FilterNode | undefined);
-    expect(calendarFilterDependsOn("p1", changed, base)).toBe(expected);
+    const key = cacheCalendar(filter as FilterNode | undefined);
+    expect(invalidateAffectedCalendarWindows(queryClient, "p1", changed, base)).toBe(expected);
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(expected);
   });
 
-  it("does not count a calendar nobody is looking at", () => {
-    cacheCalendar(nestedFilter, false);
-    expect(calendarFilterDependsOn("p1", ["prptext000001"], base)).toBe(false);
+  it("discards an affected inactive window so reopening it loads current rows", () => {
+    const key = cacheCalendar(nestedFilter, false);
+    expect(invalidateAffectedCalendarWindows(queryClient, "p1", ["prptext000001"], base)).toBe(false);
+    expect(queryClient.getQueryState(key)).toBeUndefined();
   });
 
   it("ignores the row lists", () => {
     cacheList(nestedFilter, undefined);
-    expect(calendarFilterDependsOn("p1", ["prptext000001"], base)).toBe(false);
+    expect(invalidateAffectedCalendarWindows(queryClient, "p1", ["prptext000001"], base)).toBe(false);
   });
 });
 
@@ -383,7 +386,7 @@ describe("refreshing rows after the user's own edit", () => {
     expect(scheduleRowsRefresh).toHaveBeenCalledWith("p1", "all");
   });
 
-  it("asks for nothing when the update moved an event on a calendar whose filter does not depend on it", async () => {
+  it("refreshes window membership after a date move under an unrelated filter", async () => {
     const calendarBase = {
       ...base,
       views: [{ id: "v3", type: "calendar", config: { calendar: { datePropertyId: "prpdue0000001" } } }],
@@ -393,21 +396,25 @@ describe("refreshing rows after the user's own edit", () => {
     vi.mocked(updateRow).mockResolvedValue(row({ prpdue0000001: { start: "2026-11-12" } }) as never);
     const { result } = renderHook(() => useUpdateRowMutation(), { wrapper });
     await act(() => result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-12" } } }));
-    expect(scheduleRowsRefresh).not.toHaveBeenCalled();
+    expect(scheduleRowsRefresh).toHaveBeenCalledTimes(1);
+    expect(scheduleRowsRefresh).toHaveBeenCalledWith("p1", "calendar");
     expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
   });
 
-  it("asks once for two chained updates of one row", async () => {
+  it("refreshes once for a date move followed immediately by an unrelated edit", async () => {
     seed(sortOn("prpdue0000001"));
+    const windowKey = cacheCalendar(undefined);
     vi.mocked(updateRow).mockResolvedValue(row({}) as never);
     const { result } = renderHook(() => useUpdateRowMutation(), { wrapper });
     await act(async () => {
       await Promise.all([
         result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-12" } } }),
-        result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prpdue0000001: { start: "2026-11-13" } } }),
+        result.current.mutateAsync({ rowId: "r1", pageId: "p1", cells: { prptext000001: "updated" } }),
       ]);
     });
     expect(scheduleRowsRefresh).toHaveBeenCalledTimes(1);
+    expect(scheduleRowsRefresh).toHaveBeenCalledWith("p1", "all");
+    expect(queryClient.getQueryState(windowKey)?.isInvalidated).toBe(true);
   });
 
   it("asks for nothing when the update fails", async () => {

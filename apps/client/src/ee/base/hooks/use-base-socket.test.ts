@@ -265,6 +265,9 @@ describe("retainBaseSubscription", () => {
   it("applies a remote edit to a row cached under a calendar window and leaves another base's row alone", () => {
     const { socket, receive } = createFakeSocket();
     const queryClient = new QueryClient();
+    queryClient.setQueryData(["bases", "page-1"], {
+      properties: [{ id: "prop-1", type: "date" }], views: [],
+    });
     const windowKey = (pageId: string) => ["base-rows", pageId, "calendar", "prop-1", "2026-11-01", "2026-11-30", undefined, undefined];
     const seedWindow = (pageId: string) =>
       queryClient.setQueryData(windowKey(pageId), { pages: [{ items: [stored], meta: {} }], pageParams: [null] });
@@ -284,6 +287,43 @@ describe("retainBaseSubscription", () => {
     expect(queryClient.getQueryData(windowKey("page-2"))).toBe(otherBefore);
     expect(queryClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(windowKey("page-2"))!.pages[0].items[0]).toEqual(stored);
     release();
+  });
+
+  it("refreshes a filtered calendar after another user creates and then moves an event", async () => {
+    vi.useFakeTimers();
+    const { queryClient } = await import("@/main.tsx");
+    const { socket, receive } = createFakeSocket();
+    const pageId = "shared-calendar";
+    const filter = { propertyId: "name", op: "eq", value: "Launch" };
+    const queryKey = ["base-rows", pageId, "calendar", "due", "2026-11-01", "2026-11-30", filter];
+    queryClient.setQueryData(["bases", pageId], {
+      properties: [{ id: "due", type: "date" }, { id: "name", type: "text" }], views: [],
+    });
+    const row = { id: "r1", cells: { due: { start: "2026-12-01" }, name: "Launch" } };
+    const moved = { ...row, cells: { ...row.cells, due: { start: "2026-11-19" } } };
+    const rows = (items: (typeof row)[]) => ({
+      pages: [{ items, meta: { total: items.length } }], pageParams: [null],
+    });
+    const read = vi.fn().mockResolvedValueOnce(rows([])).mockResolvedValue(rows([moved]));
+    queryClient.setQueryData(queryKey, rows([]));
+    const observer = new QueryObserver(queryClient, { queryKey, queryFn: read, staleTime: Infinity });
+    const unsubscribe = observer.subscribe(() => {});
+    const release = retainBaseSubscription(socket, pageId, queryClient);
+    try {
+      receive({ operation: "base:row:created", pageId, row });
+      expect(queryClient.getQueryData(queryKey)).toEqual(rows([]));
+      await vi.advanceTimersByTimeAsync(300);
+      expect(read).toHaveBeenCalledTimes(1);
+
+      receive({ operation: "base:row:updated", pageId, rowId: row.id, updatedCells: { due: moved.cells.due } });
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(read).toHaveBeenCalledTimes(2);
+      expect(queryClient.getQueryData(queryKey)).toEqual(rows([moved]));
+    } finally {
+      release();
+      unsubscribe();
+      queryClient.clear();
+    }
   });
 
   it("asks for the rows again when the base shows Last edited by and the editor is not known yet", async () => {

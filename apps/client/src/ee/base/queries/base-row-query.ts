@@ -6,6 +6,7 @@ import {
   useMutation,
   useQuery,
   InfiniteData,
+  type QueryClient,
   QueryKey,
   hashKey,
 } from "@tanstack/react-query";
@@ -127,23 +128,32 @@ function dependsOnChange(
   });
 }
 
-export function calendarFilterDependsOn(
+// Calendar membership, ordering and totals come from the window endpoint.
+// Return whether a visible window needs a refresh once row writes settle.
+export function invalidateAffectedCalendarWindows(
+  client: QueryClient,
   pageId: string,
-  changedPropertyIds: readonly string[],
-  base: IBase | undefined,
+  changedPropertyIds: readonly string[] | "any",
+  base?: IBase,
 ): boolean {
-  return queryClient
-    .getQueryCache()
-    .findAll({ queryKey: ["base-rows", pageId, "calendar"] })
-    .some(
-      (query) =>
-        query.getObserversCount() > 0 &&
-        dependsOnChange(
-          filterPropertyIds(query.queryKey[6] as FilterNode | undefined),
-          changedPropertyIds,
-          base,
-        ),
-    );
+  const cache = client.getQueryCache();
+  let needsRefresh = false;
+  for (const query of cache.findAll({ queryKey: ["base-rows", pageId, "calendar"] })) {
+    const datePropertyId = query.queryKey[3];
+    if (typeof datePropertyId !== "string") continue;
+    const filter = query.queryKey[6] as FilterNode | undefined;
+    const referenced = [datePropertyId, ...filterPropertyIds(filter)];
+    if (!dependsOnChange(referenced, changedPropertyIds, base)) continue;
+    if (!query.isActive()) {
+      cache.remove(query);
+      continue;
+    }
+    // An initial read has no cached data and can still return a pre-write row.
+    if (query.state.fetchStatus !== "idle") void query.cancel({ revert: true });
+    query.invalidate();
+    needsRefresh = true;
+  }
+  return needsRefresh;
 }
 
 export function rowsOrderDependsOn(
@@ -315,7 +325,10 @@ export function useCreateRowMutation() {
     onSuccess: async (newRow) => {
       await cancelLoadedBaseRows(newRow.pageId);
       queryClient.setQueriesData<InfiniteData<IBaseRowsPage>>(
-        { queryKey: ["base-rows", newRow.pageId] },
+        {
+          queryKey: ["base-rows", newRow.pageId],
+          predicate: (query) => query.queryKey[2] !== "calendar",
+        },
         (old) => {
           if (!old) return old;
           const lastPageIndex = old.pages.length - 1;
@@ -331,8 +344,11 @@ export function useCreateRowMutation() {
         },
       );
       const base = queryClient.getQueryData<IBase>(["bases", newRow.pageId]);
+      const refreshCalendar = invalidateAffectedCalendarWindows(queryClient, newRow.pageId, "any");
       if (rowsOrderDependsOn(newRow.pageId, "any", base)) {
         scheduleRowsRefresh(newRow.pageId, "all");
+      } else if (refreshCalendar) {
+        scheduleRowsRefresh(newRow.pageId, "calendar");
       }
       if ((base?.views ?? []).some((v) => v.type === "kanban")) {
         queryClient.invalidateQueries({
@@ -450,31 +466,14 @@ export function useUpdateRowMutation() {
       });
     },
     onSuccess: (updatedRow, variables, context) => {
-      const base = queryClient.getQueryData<IBase>(["bases", variables.pageId]);
-      const kanbanGroupByIds = new Set(
-        (base?.views ?? [])
-          .filter((v) => v.type === "kanban")
-          .map((v) => v.config?.groupByPropertyId)
-          .filter(Boolean) as string[],
-      );
-      const changedPropertyIds = Object.keys(variables.cells ?? {});
-
       const chain = getRowUpdateChain(variables.rowId);
       if (chain) {
-        if (changedPropertyIds.some((id) => kanbanGroupByIds.has(id))) {
-          chain.regrouped = true;
+        chain.changedPropertyIds ??= new Set();
+        for (const id of Object.keys(variables.cells ?? {})) {
+          chain.changedPropertyIds.add(id);
         }
-        if (isCalendarRelevantChange(base, changedPropertyIds)) {
-          chain.calendarTouched = true;
-        }
-        if (calendarFilterDependsOn(variables.pageId, changedPropertyIds, base)) {
-          chain.calendarFiltered = true;
-        }
-        if (rowsOrderDependsOn(variables.pageId, changedPropertyIds, base)) {
-          chain.rowsOrdered = true;
-        }
+        if (chain.seq !== context?.seq) return;
       }
-      if (chain && chain.seq !== context?.seq) return;
 
       queryClient.setQueriesData<InfiniteData<IBaseRowsPage>>(
         { queryKey: ["base-rows", updatedRow.pageId] },
@@ -506,15 +505,20 @@ export function useUpdateRowMutation() {
       if (!chain || chain.seq !== context?.seq) return;
       endRowUpdateChain(variables.rowId);
       if (chain.reconcile) reconcileRow(variables.pageId, variables.rowId);
-      if (chain.regrouped) invalidateBaseRows(variables.pageId);
-      else {
-        if (chain.rowsOrdered) scheduleRowsRefresh(variables.pageId, "all");
-        else if (chain.calendarFiltered) {
-          scheduleRowsRefresh(variables.pageId, "calendar");
-        }
-        if (chain.calendarTouched) {
-          invalidateCalendarRows(variables.pageId, "none");
-        }
+      if (!chain.changedPropertyIds) return;
+      const { pageId } = variables;
+      const base = queryClient.getQueryData<IBase>(["bases", pageId]);
+      const changed = [...chain.changedPropertyIds];
+      const refreshCalendar = invalidateAffectedCalendarWindows(queryClient, pageId, changed, base);
+      const regrouped = base?.views?.some((view) =>
+        view.type === "kanban" && changed.includes(view.config?.groupByPropertyId),
+      );
+      if (regrouped) {
+        invalidateBaseRows(pageId);
+      } else if (rowsOrderDependsOn(pageId, changed, base)) {
+        scheduleRowsRefresh(pageId, "all");
+      } else if (refreshCalendar) {
+        scheduleRowsRefresh(pageId, "calendar");
       }
     },
   });
@@ -669,6 +673,13 @@ type KanbanMoveCardContext = {
   snapshots: [readonly unknown[], unknown][];
 };
 
+function refreshCalendarAfterCardWrite({ pageId }: IBaseRow) {
+  // Card position breaks ties between events with the same date in a capped window.
+  if (invalidateAffectedCalendarWindows(queryClient, pageId, "any")) {
+    scheduleRowsRefresh(pageId, "calendar");
+  }
+}
+
 export function useKanbanMoveCardMutation() {
   const { t } = useTranslation();
   const viewer = useViewerDateContext();
@@ -747,6 +758,7 @@ export function useKanbanMoveCardMutation() {
 
       return { snapshots };
     },
+    onSuccess: refreshCalendarAfterCardWrite,
     onError: (error, __, context) => {
       if (context?.snapshots) {
         for (const [key, data] of context.snapshots) {
@@ -801,6 +813,7 @@ export function useKanbanCreateCardMutation() {
         ["base-row", newRow.pageId, newRow.id],
         newRow,
       );
+      refreshCalendarAfterCardWrite(newRow);
     },
     onError: (error) => {
       notifications.show({
@@ -823,42 +836,9 @@ export function invalidateBaseRows(pageId: string) {
   queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
 }
 
-export function invalidateCalendarRows(
-  pageId: string,
-  refetchType: "active" | "none" = "active",
-) {
+export function invalidateCalendarRows(pageId: string) {
   removeInactiveCalendarRows(pageId);
   queryClient.invalidateQueries({
     queryKey: ["base-rows", pageId, "calendar"],
-    refetchType,
   });
-}
-
-export function isCalendarRelevantChange(
-  base: IBase | undefined,
-  changedPropertyIds: string[],
-): boolean {
-  if (!base) return false;
-  const relevantIds = new Set<string>();
-  const addFilterPropertyIds = (node: FilterNode | undefined) => {
-    if (!node) return;
-    if ("children" in node) node.children.forEach(addFilterPropertyIds);
-    else relevantIds.add(node.propertyId);
-  };
-  for (const view of base.views) {
-    if (view.type !== "calendar") continue;
-    const datePropertyId = view.config?.calendar?.datePropertyId;
-    if (!datePropertyId) continue;
-    const dateProperty = base.properties.find((p) => p.id === datePropertyId);
-    if (dateProperty?.type === "lastEditedAt") return true;
-    relevantIds.add(datePropertyId);
-    addFilterPropertyIds(view.config?.filter);
-  }
-  const calendarQueries = queryClient
-    .getQueryCache()
-    .findAll({ queryKey: ["base-rows", base.id, "calendar"] });
-  for (const query of calendarQueries) {
-    addFilterPropertyIds(query.queryKey[6] as FilterNode | undefined);
-  }
-  return changedPropertyIds.some((id) => relevantIds.has(id));
 }

@@ -17,10 +17,7 @@ export type RowUpdateContext = {
 type RowUpdateChain = {
   seq: number;
   reconcile: boolean;
-  regrouped: boolean;
-  calendarTouched: boolean;
-  calendarFiltered: boolean;
-  rowsOrdered: boolean;
+  changedPropertyIds?: Set<string>;
 };
 
 export const BASE_ROW_MUTATION_KEY = ["base-row"] as const;
@@ -57,10 +54,6 @@ export function beginRowUpdate(rowId: string): {
   const pending = rowUpdateChains.get(rowId);
   rowUpdateChains.set(rowId, {
     reconcile: false,
-    regrouped: false,
-    calendarTouched: false,
-    calendarFiltered: false,
-    rowsOrdered: false,
     ...pending,
     seq,
   });

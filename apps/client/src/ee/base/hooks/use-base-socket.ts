@@ -26,8 +26,7 @@ import {
 } from "@/ee/base/atoms/reference-store-atom";
 import { IPagination } from "@/lib/types";
 import {
-  calendarFilterDependsOn,
-  isCalendarRelevantChange,
+  invalidateAffectedCalendarWindows,
   rowsOrderDependsOn,
 } from "@/ee/base/queries/base-row-query";
 import {
@@ -234,11 +233,15 @@ function createBaseEventHandler(
         const usersUnresolved = referencedUserIds.some(
           (id) => typeof id === "string" && !knownUsers[id],
         );
+        const refreshCalendar = invalidateAffectedCalendarWindows(queryClient, pageId, "any");
         if (hasKanbanForCreate || usersUnresolved) {
           scheduleRowsRefresh(pageId, "all");
         } else {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", pageId] },
+            {
+              queryKey: ["base-rows", pageId],
+              predicate: (query) => query.queryKey[2] !== "calendar",
+            },
             (old) => {
               if (!old) return old;
               const lastPageIndex = old.pages.length - 1;
@@ -252,12 +255,11 @@ function createBaseEventHandler(
               };
             },
           );
-          scheduleRowsRefresh(
-            pageId,
-            rowsOrderDependsOn(pageId, "any", baseForCreate)
-              ? "all"
-              : "calendar",
-          );
+          if (rowsOrderDependsOn(pageId, "any", baseForCreate)) {
+            scheduleRowsRefresh(pageId, "all");
+          } else if (refreshCalendar) {
+            scheduleRowsRefresh(pageId, "calendar");
+          }
         }
         break;
       }
@@ -273,9 +275,7 @@ function createBaseEventHandler(
         ) {
           editStamp.lastUpdatedById = e.lastUpdatedById;
         }
-        if (hasKanbanForUpdate) {
-          scheduleRowsRefresh(pageId, "all");
-        } else {
+        if (!hasKanbanForUpdate) {
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
             { queryKey: ["base-rows", pageId] },
             (old) =>
@@ -297,22 +297,23 @@ function createBaseEventHandler(
                     })),
                   },
           );
-          const changedPropertyIds = Object.keys(e.updatedCells ?? {});
-          const editorUnknown =
-            typeof e.lastUpdatedById === "string" &&
-            (baseForUpdate?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
-            !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[e.lastUpdatedById];
-          if (
-            editorUnknown ||
-            rowsOrderDependsOn(pageId, changedPropertyIds, baseForUpdate)
-          ) {
-            scheduleRowsRefresh(pageId, "all");
-          } else if (
-            isCalendarRelevantChange(baseForUpdate, changedPropertyIds) ||
-            calendarFilterDependsOn(pageId, changedPropertyIds, baseForUpdate)
-          ) {
-            scheduleRowsRefresh(pageId, "calendar");
-          }
+        }
+        const changedPropertyIds = Object.keys(e.updatedCells ?? {});
+        const refreshCalendar = invalidateAffectedCalendarWindows(
+          queryClient, pageId, changedPropertyIds, baseForUpdate,
+        );
+        const editorUnknown =
+          typeof e.lastUpdatedById === "string" &&
+          (baseForUpdate?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
+          !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[e.lastUpdatedById];
+        if (
+          hasKanbanForUpdate ||
+          editorUnknown ||
+          rowsOrderDependsOn(pageId, changedPropertyIds, baseForUpdate)
+        ) {
+          scheduleRowsRefresh(pageId, "all");
+        } else if (refreshCalendar) {
+          scheduleRowsRefresh(pageId, "calendar");
         }
         break;
       }
