@@ -51,16 +51,16 @@
   }
 }
 
-[data-editing-placeholder] .ProseMirror {
-  .selection,
-  .template-placeholder.ProseMirror-selectednode {
-    background-color: transparent;
-    outline: 1px solid var(--mantine-primary-color-filled);
-    outline-offset: 1px;
-    border-radius: var(--mantine-radius-sm);
-  }
+.ProseMirror[contenteditable="true"]
+  .template-placeholder.ProseMirror-selectednode,
+[data-editing-placeholder] .ProseMirror .selection {
+  background-color: transparent;
+  outline: 1px solid
+    light-dark(var(--mantine-color-placeholder), var(--mantine-color-dimmed));
+  outline-offset: 1px;
+  border-radius: var(--mantine-radius-sm);
+}
 
-  *::selection {
-    background-color: transparent;
-  }
+[data-editing-placeholder] .ProseMirror *::selection {
+  background-color: transparent;
 }
