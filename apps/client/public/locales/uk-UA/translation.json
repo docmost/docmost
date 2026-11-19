@@ -871,6 +871,7 @@
   "Months": "Місяці",
   "Years": "Роки",
   "Pick a date": "Виберіть дату",
+  "Calendar": "Календар",
   "Maximum is {{max}} {{unit}} for this unit": "Максимум для цієї одиниці — {{max}} {{unit}}",
   "Never expires. Verifiers can re-verify at any time.": "Термін дії не спливає. Верифікатори можуть повторно перевірити будь-коли.",
   "Verified": "Перевірено",

@@ -871,6 +871,7 @@
   "Months": "개월",
   "Years": "년",
   "Pick a date": "날짜 선택",
+  "Calendar": "달력",
   "Maximum is {{max}} {{unit}} for this unit": "이 단위의 최대값은 {{max}} {{unit}}입니다",
   "Never expires. Verifiers can re-verify at any time.": "만료되지 않습니다. 검증자는 언제든지 다시 검증할 수 있습니다.",
   "Verified": "검증됨",

@@ -871,6 +871,7 @@
   "Months": "Месяцы",
   "Years": "Годы",
   "Pick a date": "Выберите дату",
+  "Calendar": "Календарь",
   "Maximum is {{max}} {{unit}} for this unit": "Максимум для этой единицы измерения — {{max}} {{unit}}",
   "Never expires. Verifiers can re-verify at any time.": "Срок действия не истекает. Проверяющие могут повторно подтверждать в любое время.",
   "Verified": "Проверено",

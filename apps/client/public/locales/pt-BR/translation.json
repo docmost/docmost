@@ -871,6 +871,7 @@
   "Months": "Meses",
   "Years": "Anos",
   "Pick a date": "Escolha uma data",
+  "Calendar": "Calendário",
   "Maximum is {{max}} {{unit}} for this unit": "O máximo é {{max}} {{unit}} para esta unidade",
   "Never expires. Verifiers can re-verify at any time.": "Nunca expira. Os verificadores podem verificar novamente a qualquer momento.",
   "Verified": "Verificado",

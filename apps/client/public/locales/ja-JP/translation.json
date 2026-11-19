@@ -871,6 +871,7 @@
   "Months": "か月",
   "Years": "年",
   "Pick a date": "日付を選択",
+  "Calendar": "カレンダー",
   "Maximum is {{max}} {{unit}} for this unit": "この単位の最大値は{{max}}{{unit}}です",
   "Never expires. Verifiers can re-verify at any time.": "有効期限はありません。検証者はいつでも再検証できます。",
   "Verified": "検証済み",
