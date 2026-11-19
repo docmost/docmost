@@ -462,6 +462,7 @@ export type UpdateViewInput = {
   name?: string;
   type?: BaseViewType;
   config?: ViewConfigPatch;
+  expectedForm?: FormConfig;
   position?: string;
   requestId?: string;
 };

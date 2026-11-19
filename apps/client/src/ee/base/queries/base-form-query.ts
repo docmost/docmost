@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { isAxiosError } from "axios";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -116,19 +117,21 @@ export function useSubmitFormPreviewMutation() {
 }
 
 const pendingForms = new Map<string, FormConfig>();
+type FormEdit = { expectedForm: FormConfig; form: FormConfig };
 
 export function useUpdateFormConfig(pageId: string, viewId: string) {
   const { t } = useTranslation();
-  const { mutate } = useMutation<IBaseView, Error, FormConfig>({
+  const { mutate } = useMutation<IBaseView, Error, FormEdit>({
     scope: { id: `base-form-config:${viewId}` },
-    mutationFn: (form) =>
+    mutationFn: ({ form, expectedForm }) =>
       updateView({
         viewId,
         pageId,
         config: { form },
+        expectedForm,
         requestId: newRequestId(),
       }),
-    onMutate: async (form) => {
+    onMutate: async ({ form }) => {
       await queryClient.cancelQueries({ queryKey: ["bases", pageId] });
       queryClient.setQueryData<IBase>(["bases", pageId], (old) =>
         old
@@ -141,7 +144,7 @@ export function useUpdateFormConfig(pageId: string, viewId: string) {
           : old,
       );
     },
-    onSuccess: (view, form) => {
+    onSuccess: (view, { form }) => {
       if (pendingForms.get(viewId) !== form) return;
       pendingForms.delete(viewId);
       queryClient.setQueryData<IBase>(["bases", pageId], (old) =>
@@ -153,11 +156,13 @@ export function useUpdateFormConfig(pageId: string, viewId: string) {
           : old,
       );
     },
-    onError: (error, form) => {
+    onError: (error, { form }) => {
       if (pendingForms.get(viewId) === form) pendingForms.delete(viewId);
       queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
       notifications.show({
-        message: getApiErrorMessage(error, t("Failed to update form")),
+        message: isAxiosError(error) && error.response?.status === 409
+          ? t("The form changed. Reload it and try again.")
+          : getApiErrorMessage(error, t("Failed to update form")),
         color: "red",
       });
     },
@@ -172,7 +177,7 @@ export function useUpdateFormConfig(pageId: string, viewId: string) {
       const next = recipe(current);
       if (next === current) return;
       pendingForms.set(viewId, next);
-      mutate(next);
+      mutate({ form: next, expectedForm: current });
     },
     [pageId, viewId, mutate],
   );
