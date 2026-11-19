@@ -11,6 +11,21 @@
   }
 }
 
+.navbarOverlay {
+  position: fixed;
+  inset: var(--app-shell-header-offset, 0rem) 0 0;
+  z-index: var(--mantine-z-index-app);
+  background-color: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--app-shell-transition-duration) var(--app-shell-transition-timing-function);
+
+  &[data-opened] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .main {
   transition-property: padding-left, padding-right;
 }
