@@ -259,6 +259,14 @@ export class EnvironmentService {
     return disable === 'true';
   }
 
+  isDisableVersionCheck(): boolean {
+    const disable = this.getConfigValue(
+      'DISABLE_VERSION_CHECK',
+      'false',
+    ).toLowerCase();
+    return disable === 'true';
+  }
+
   isBetaPublicSpaces(): boolean {
     const enabled = this.getConfigValue(
       'BETA_PUBLIC_SPACES',

@@ -5,36 +5,50 @@ import {
   CacheKey,
   LATEST_VERSION_CACHE_TTL_MS,
 } from '../../common/helpers/cache-keys';
+import { EnvironmentService } from '../environment/environment.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const packageJson = require('./../../../package.json');
 
 @Injectable()
 export class VersionService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly environmentService: EnvironmentService,
+  ) {}
 
   async getVersion() {
-    const url = `https://api.github.com/repos/docmost/docmost/releases/latest`;
+    const url = 'https://version.docmost.com/api/version';
 
     let latestVersion: string | number = 0;
-    try {
-      const cached = await this.cacheManager.get<string>(
-        CacheKey.LATEST_VERSION,
-      );
-      if (cached) {
-        latestVersion = cached;
-      } else {
-        const response = await fetch(url);
-        if (!response.ok) return;
-        const data = await response.json();
-        latestVersion = data?.tag_name?.replace('v', '');
-        await this.cacheManager.set(
+    if (!this.environmentService.isDisableVersionCheck()) {
+      try {
+        const cached = await this.cacheManager.get<string>(
           CacheKey.LATEST_VERSION,
-          latestVersion,
-          LATEST_VERSION_CACHE_TTL_MS,
         );
+        if (cached) {
+          latestVersion = cached;
+        } else {
+          const response = await fetch(url, {
+            signal: AbortSignal.timeout(5_000),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (
+              typeof data?.latestVersion === 'string' &&
+              data.latestVersion
+            ) {
+              latestVersion = data.latestVersion;
+              await this.cacheManager.set(
+                CacheKey.LATEST_VERSION,
+                latestVersion,
+                LATEST_VERSION_CACHE_TTL_MS,
+              );
+            }
+          }
+        }
+      } catch (err) {
+        /* empty */
       }
-    } catch (err) {
-      /* empty */
     }
 
     return {
