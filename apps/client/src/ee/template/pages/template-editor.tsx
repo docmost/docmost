@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -30,7 +31,8 @@ import { useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
-import { templateExtensions } from "@/features/editor/extensions/extensions";
+import { getTemplateExtensions } from "@/features/editor/extensions/extensions";
+import { TemplatePlaceholderPopover } from "@/ee/template/components/template-placeholder-popover";
 import {
   useUpdateTemplateMutation,
   useGetTemplateByIdQuery,
@@ -100,6 +102,12 @@ export default function TemplateEditor() {
   );
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
+  const [placeholderOpened, { open: openPlaceholder, close: closePlaceholder }] =
+    useDisclosure(false);
+  const extensions = useMemo(
+    () => getTemplateExtensions(openPlaceholder),
+    [openPlaceholder],
+  );
 
   useWindowEvent("keydown", (event) => {
     if (settingsOpened && event.key === "Escape") {
@@ -129,7 +137,7 @@ export default function TemplateEditor() {
   }, [setLightboxRequest]);
 
   const editor = useEditor({
-    extensions: templateExtensions,
+    extensions,
     content: "",
     textDirection: "auto",
     editorProps: {
@@ -198,6 +206,7 @@ export default function TemplateEditor() {
     ) {
       loadedTemplateIdRef.current = existingTemplate.id;
       loadedRef.current = false;
+      closePlaceholder();
       setTitle(existingTemplate.title || "");
       setIcon(existingTemplate.icon || null);
       setSpaceId(existingTemplate.spaceId || null);
@@ -211,7 +220,7 @@ export default function TemplateEditor() {
         loadedRef.current = true;
       });
     }
-  }, [existingTemplate, editor]);
+  }, [existingTemplate, editor, closePlaceholder]);
 
   const scopeSpaces = includeSpace(spaces?.items ?? [], templateSpace);
 
@@ -483,11 +492,21 @@ export default function TemplateEditor() {
             <TemplateMeta template={existingTemplate} />
           )}
         </div>
-        <EditorContent editor={editor} />
+        <EditorContent
+          editor={editor}
+          data-editing-placeholder={placeholderOpened || undefined}
+        />
         {editor && (
           <>
+            {placeholderOpened ? (
+              <TemplatePlaceholderPopover
+                editor={editor}
+                onClose={closePlaceholder}
+              />
+            ) : (
+              <EditorBubbleMenu editor={editor} templateMode />
+            )}
             <EditorAiMenu editor={editor} />
-            <EditorBubbleMenu editor={editor} templateMode />
             <EditorLinkMenu editor={editor} />
             <TableMenu editor={editor} />
             <TableHandlesLayer editor={editor} />

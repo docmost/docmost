@@ -1,7 +1,13 @@
 import { addUniqueIdsToDoc } from '@docmost/editor-ext';
+import { TiptapTransformer } from '@hocuspocus/transformer';
 import type { JSONContent } from '@tiptap/core';
 import { generateJSON } from '../common/helpers/prosemirror/html';
-import { tiptapExtensions } from './collaboration.util';
+import {
+  jsonToHtml,
+  jsonToMarkdown,
+  jsonToText,
+  tiptapExtensions,
+} from './collaboration.util';
 
 const ID_TYPES = ['heading', 'paragraph'];
 
@@ -18,6 +24,32 @@ const withoutIds = (doc: JSONContent) =>
   JSON.parse(
     JSON.stringify(doc, (key, value) => (key === 'id' ? null : value)),
   );
+
+it('preserves template hints in collaboration and omits them from page text and exports', () => {
+  const placeholder = {
+    type: 'templatePlaceholder',
+    attrs: { hint: 'Enter a name' },
+  };
+  const doc = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Owner: ' }, placeholder],
+      },
+    ],
+  };
+  const ydoc = TiptapTransformer.toYdoc(doc, 'default', tiptapExtensions);
+  try {
+    const content = TiptapTransformer.fromYdoc(ydoc, 'default');
+    expect(content.content[0].content[1]).toMatchObject(placeholder);
+    expect(jsonToText(content).trim()).toBe('Owner:');
+    expect(jsonToMarkdown(content).trim()).toBe('Owner:');
+    expect(jsonToHtml(content)).not.toContain(placeholder.attrs.hint);
+  } finally {
+    ydoc.destroy();
+  }
+});
 
 describe('addUniqueIdsToDoc', () => {
   const html = [

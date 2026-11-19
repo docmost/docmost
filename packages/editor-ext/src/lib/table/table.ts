@@ -1,8 +1,8 @@
 import { Table } from "@tiptap/extension-table";
-import { Editor } from "@tiptap/core";
+import type { Command, Editor } from "@tiptap/core";
 import { DOMOutputSpec } from "@tiptap/pm/model";
-import { TextSelection } from "@tiptap/pm/state";
-import { cellAround } from "@tiptap/pm/tables";
+import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+import { cellAround, goToNextCell } from "@tiptap/pm/tables";
 import { closestListItem } from "../list-item";
 import { handleCellEdgeArrow } from "./utils/cell-edge-arrow";
 
@@ -16,7 +16,36 @@ function handleListOutdent(editor: Editor): boolean {
   return Boolean(listItem) && editor.commands.liftListItem(listItem);
 }
 
+function navigateToCell(direction: 1 | -1): Command {
+  return ({ state, dispatch, tr }) => {
+    if (!goToNextCell(direction)(state, dispatch)) return false;
+    const { $from, from, to } = tr.selection;
+    const hint = $from.nodeAfter;
+    // Table navigation selects the destination's contents. A cell containing
+    // just a page prompt should open with a caret ready for the answer.
+    if (
+      dispatch &&
+      hint?.type.name === "templatePlaceholder" &&
+      !NodeSelection.isSelectable(hint) &&
+      to === from + hint.nodeSize
+    ) {
+      tr.setSelection(TextSelection.create(tr.doc, from)).setStoredMarks(
+        hint.marks,
+      );
+    }
+    return true;
+  };
+}
+
 export const CustomTable = Table.extend({
+
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      goToNextCell: () => navigateToCell(1),
+      goToPreviousCell: () => navigateToCell(-1),
+    };
+  },
 
   addKeyboardShortcuts() {
     return {
