@@ -10,8 +10,10 @@ import {
   Text,
   ScrollArea,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { IconPlus, IconChevronRight } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { MAX_BASE_PROPERTIES } from "@/ee/base/constants/properties";
 import {
   BasePropertyType,
   IBaseProperty,
@@ -94,8 +96,17 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
     setTypeOptions({});
   }, []);
 
+  const atLimit = (properties?.length ?? 0) >= MAX_BASE_PROPERTIES;
+
   const handleOpen = useCallback(
     (trigger?: React.SyntheticEvent | HTMLElement) => {
+      if (atLimit) {
+        notifications.show({
+          message: t("A base can have up to {{max}} properties.", { max: MAX_BASE_PROPERTIES }),
+          color: "red",
+        });
+        return;
+      }
       resetState();
       const anchor =
         trigger instanceof HTMLElement
@@ -109,7 +120,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
       }
       setOpened(true);
     },
-    [resetState],
+    [atLimit, resetState, t],
   );
 
   const handleClose = useCallback(() => {

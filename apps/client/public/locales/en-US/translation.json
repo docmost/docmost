@@ -2095,5 +2095,6 @@
   "Unmute": "Unmute",
   "Seek": "Seek",
   "Playback speed": "Playback speed",
-  "Couldn't load this audio file": "Couldn't load this audio file"
+  "Couldn't load this audio file": "Couldn't load this audio file",
+  "A base can have up to {{max}} properties.": "A base can have up to {{max}} properties."
 }
