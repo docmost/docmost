@@ -89,6 +89,7 @@ const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
 );
 const FavoritesPage = lazyWithPrefetch(() => import("@/pages/favorites/favorites-page"));
+const UserProfilePage = lazyWithPrefetch(() => import("@/pages/user/user-profile-page"));
 const AiChat = lazyWithPrefetch(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
 const VerifyEmail = lazyWithPrefetch(() => import("@/ee/pages/verify-email.tsx"));
 const LabelPage = lazyWithPrefetch(() => import("@/pages/label/label-page"));
@@ -189,6 +190,7 @@ export default function App() {
           <Route path={"/ai/chat/:chatId"} element={<AiChat />} />
           <Route path={"/spaces"} element={<SpacesPage />} />
           <Route path={"/favorites"} element={<FavoritesPage />} />
+          <Route path={"/people/:userId"} element={<UserProfilePage />} />
           <Route path={"/labels/:labelName"} element={<LabelPage />} />
           <Route path={"/templates"} element={<TemplateList />} />
           <Route
