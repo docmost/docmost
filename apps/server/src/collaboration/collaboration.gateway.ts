@@ -2,7 +2,6 @@ import { Hocuspocus } from '@hocuspocus/server';
 import { IncomingMessage } from 'http';
 import WebSocket from 'ws';
 import { AuthenticationExtension } from './extensions/authentication.extension';
-import { EditorSchemaExtension } from './extensions/editor-schema.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
 import { Injectable } from '@nestjs/common';
 import { EnvironmentService } from '../integrations/environment/environment.service';
@@ -54,7 +53,6 @@ export class CollaborationGateway {
       unloadImmediately: false,
       extensions: [
         this.authenticationExtension,
-        new EditorSchemaExtension(),
         this.persistenceExtension,
         this.loggerExtension,
       ],

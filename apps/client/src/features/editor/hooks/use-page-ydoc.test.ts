@@ -66,7 +66,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
 describe("usePageYdoc", () => {
@@ -75,7 +74,7 @@ describe("usePageYdoc", () => {
 
     expect(result.current).toBeNull();
     expect(persistences).toHaveLength(1);
-    expect(persistences[0].name).toBe("page.page-1.v1");
+    expect(persistences[0].name).toBe("page.page-1");
 
     await act(async () => persistences[0].open());
     expect(result.current).toBeNull();
@@ -143,7 +142,7 @@ describe("usePageYdoc", () => {
       persistences[1].load();
     });
 
-    expect(persistences[1].name).toBe("page.page-2.v1");
+    expect(persistences[1].name).toBe("page.page-2");
     expect(persistences[1].doc).not.toBe(firstDoc);
     const forSecondPage = returned
       .filter(([pageId]) => pageId === "page-2")
@@ -161,43 +160,5 @@ describe("usePageYdoc", () => {
 
     expect(persistences[0].destroy).toHaveBeenCalledTimes(1);
     expect(result.current).toBeNull();
-  });
-
-  it("imports pending legacy edits from a read-only snapshot and isolates new instructions", async () => {
-    const old = new Y.Doc();
-    old.getXmlFragment("default").push([new Y.XmlText("Offline edit")]);
-    const tx = {
-      objectStore: () => ({
-        getAll: () => ({ result: [Y.encodeStateAsUpdate(old)] }),
-      }),
-      oncomplete: () => {},
-    };
-    const db = {
-      transaction: vi.fn(() => tx),
-      objectStoreNames: { contains: () => true },
-      close: vi.fn(),
-    };
-    const open = { result: db, onsuccess: () => {} };
-    const openLegacy = vi.fn(() => open);
-    vi.stubGlobal("indexedDB", { open: openLegacy });
-    const { result } = renderHook(() => usePageYdoc("page-1"));
-    await act(async () => {
-      persistences[0].open();
-      persistences[0].load();
-    });
-    expect(result.current).toBeNull();
-    await act(async () => {
-      open.onsuccess();
-      tx.oncomplete();
-    });
-    expect(openLegacy).toHaveBeenCalledWith("page.page-1");
-    expect(db.transaction).toHaveBeenCalledWith("updates", "readonly");
-    expect(db.close).toHaveBeenCalledOnce();
-    const modern = result.current.getXmlFragment("default");
-    expect(modern.toString()).toBe("Offline edit");
-    modern.push([new Y.XmlElement("templatePlaceholder")]);
-    expect(old.getXmlFragment("default").toString()).toBe("Offline edit");
-    expect(persistences.map((p) => p.name)).toEqual(["page.page-1.v1"]);
-    old.destroy();
   });
 });

@@ -28,7 +28,7 @@ import { FigmaModule } from './integration/providers/figma/figma.module';
 import { LinearModule } from './integration/providers/linear/linear.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { SessionModule } from './session/session.module';
-import { TemplateEditorMiddleware } from '../common/middlewares/template-editor.middleware';
+import { ClsMiddleware } from 'nestjs-cls';
 
 @Module({
   imports: [
@@ -75,12 +75,5 @@ export class CoreModule implements NestModule {
       .apply(AuditContextMiddleware)
       .exclude(...excludedRoutes)
       .forRoutes('*');
-
-    consumer.apply(TemplateEditorMiddleware).forRoutes(
-      ...['info', 'apply', 'use', 'update'].map((action) => ({
-        path: `templates/${action}`,
-        method: RequestMethod.POST,
-      })),
-    );
   }
 }

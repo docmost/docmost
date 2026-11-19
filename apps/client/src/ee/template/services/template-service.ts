@@ -2,14 +2,6 @@ import api from "@/lib/api-client";
 import { ITemplate } from "@/ee/template/types/template.types";
 import { IPage } from "@/features/page/types/page.types";
 import { IPagination } from "@/lib/types.ts";
-import {
-  EDITOR_SCHEMA_HEADER,
-  EDITOR_SCHEMA_VERSION,
-} from "@docmost/editor-ext";
-
-const editorRequest = {
-  headers: { [EDITOR_SCHEMA_HEADER]: String(EDITOR_SCHEMA_VERSION) },
-};
 
 export async function getTemplates(params?: {
   spaceId?: string;
@@ -21,12 +13,10 @@ export async function getTemplates(params?: {
   return req.data;
 }
 
-export async function getTemplateById(templateId: string): Promise<ITemplate> {
-  const req = await api.post<ITemplate>(
-    "/templates/info",
-    { templateId },
-    editorRequest,
-  );
+export async function getTemplateById(
+  templateId: string,
+): Promise<ITemplate> {
+  const req = await api.post<ITemplate>("/templates/info", { templateId });
   return req.data;
 }
 
@@ -34,11 +24,7 @@ export async function applyTemplate(data: {
   templateId: string;
   pageId: string;
 }): Promise<ITemplate> {
-  const req = await api.post<ITemplate>(
-    "/templates/apply",
-    data,
-    editorRequest,
-  );
+  const req = await api.post<ITemplate>("/templates/apply", data);
   return req.data;
 }
 
@@ -52,11 +38,7 @@ export async function createTemplate(
 export async function updateTemplate(
   data: Partial<ITemplate> & { templateId: string },
 ): Promise<ITemplate> {
-  const req = await api.post<ITemplate>(
-    "/templates/update",
-    data,
-    editorRequest,
-  );
+  const req = await api.post<ITemplate>("/templates/update", data);
   return req.data;
 }
 
@@ -69,6 +51,6 @@ export async function useTemplate(data: {
   spaceId: string;
   parentPageId?: string;
 }): Promise<IPage> {
-  const req = await api.post<IPage>("/templates/use", data, editorRequest);
+  const req = await api.post<IPage>("/templates/use", data);
   return req.data;
 }
