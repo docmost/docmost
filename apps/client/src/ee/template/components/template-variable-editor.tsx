@@ -10,6 +10,7 @@ import {
   type TemplateVariable,
 } from "@docmost/editor-ext";
 import i18n from "@/i18n";
+import { templateVariableTypes } from "./template-variable-types";
 
 export function openTemplateVariableEditor(editor: Editor, selected?: TemplateVariable) {
   const fields = getTemplateVariables(editor.getJSON());
@@ -94,11 +95,10 @@ function VariableForm({ field, fields, onClose, onSave }: FormProps) {
         />
         <Select
           label={t("Field type")}
-          data={[
-            { value: "text", label: t("Single-line text") },
-            { value: "multiline", label: t("Multi-line text") },
-            { value: "select", label: t("Select") },
-          ]}
+          data={Object.entries(templateVariableTypes).map(([value, { label }]) => ({
+            value,
+            label: t(label),
+          }))}
           value={existing?.fieldType ?? type}
           onChange={(value) => setType(value as TemplateVariable["fieldType"])}
           allowDeselect={false}

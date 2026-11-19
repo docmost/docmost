@@ -1,5 +1,5 @@
+import { useId } from "react";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
-import { IconVariable } from "@tabler/icons-react";
 import { Plugin } from "@tiptap/pm/state";
 import { useTranslation } from "react-i18next";
 import {
@@ -9,6 +9,7 @@ import {
   TemplateVariableNode,
 } from "@docmost/editor-ext";
 import { openTemplateVariableEditor } from "./template-variable-editor";
+import { templateVariableTypes } from "./template-variable-types";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -20,23 +21,37 @@ declare module "@tiptap/core" {
 
 function VariableView({ node, editor }: NodeViewProps) {
   const { t } = useTranslation();
+  const typeId = useId();
   const field = node.attrs as TemplateVariable;
+  const { icon: Icon, label } = templateVariableTypes[field.fieldType];
+  const editProps = editor.isEditable ? {
+    type: "button",
+    "aria-label": t("Edit variable {{name}}", { name: field.name }),
+    "aria-describedby": typeId,
+    onClick: () => openTemplateVariableEditor(editor, field),
+  } : {};
+
   return (
-    <NodeViewWrapper as="span" contentEditable={false}>
-      <button
-        type="button"
-        className="template-variable-chip"
-        aria-label={t("Edit variable {{name}}", { name: field.name })}
-        onClick={() => openTemplateVariableEditor(editor, field)}
-      >
-        <IconVariable size="1em" aria-hidden />
-        {field.name}
-      </button>
+    <NodeViewWrapper
+      as={editor.isEditable ? "button" : "span"}
+      className="template-variable-chip"
+      contentEditable={false}
+      {...editProps}
+    >
+      <Icon size="1em" aria-hidden="true" />
+      <span>{field.name}</span>{" "}
+      <span className="template-variable-type" id={typeId}>{t(label)}</span>
     </NodeViewWrapper>
   );
 }
 
-export const EditableTemplateVariable = TemplateVariableNode.extend({
+export const TemplateVariableWithChip = TemplateVariableNode.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(VariableView, { as: "span" });
+  },
+});
+
+export const EditableTemplateVariable = TemplateVariableWithChip.extend({
   addCommands() {
     return {
       insertTemplateVariable: () => ({ editor, tr, dispatch }) => {
@@ -45,10 +60,6 @@ export const EditableTemplateVariable = TemplateVariableNode.extend({
         return true;
       },
     };
-  },
-
-  addNodeView() {
-    return ReactNodeViewRenderer(VariableView, { as: "span" });
   },
 
   addProseMirrorPlugins() {
