@@ -41,10 +41,15 @@ import { PageVerificationInvalidation } from '../../core/page/verification/page-
 import { isSameDocumentContent } from '../content-comparison.util';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 
+import { extractPageTasks } from '../../core/task/task-content';
+import { PageTaskDocument } from '../page-task-document';
+import { PageTaskRepo } from '@docmost/db/repos/page-task/page-task.repo';
+
 @Injectable()
 export class PersistenceExtension implements Extension {
   private readonly logger = new Logger(PersistenceExtension.name);
   private contributors: Map<string, Set<string>> = new Map();
+  private taskDocuments = new WeakMap<Y.Doc, PageTaskDocument>();
   private lastChangeAt = new Map<string, number>();
 
   constructor(
@@ -57,6 +62,7 @@ export class PersistenceExtension implements Extension {
     private readonly transclusionService: TransclusionService,
     private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
     private readonly environmentService: EnvironmentService,
+    private readonly pageTasks: PageTaskRepo,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -108,6 +114,7 @@ export class PersistenceExtension implements Extension {
   async afterLoadDocument(data: afterLoadDocumentPayload) {
     // The loaded state is still queued for broadcast; flush it before the first
     // connection attaches, or every client receives the whole document again.
+    this.taskDocuments.set(data.document, new PageTaskDocument(data.document));
     data.document.flush();
   }
 
@@ -117,6 +124,7 @@ export class PersistenceExtension implements Extension {
     const pageId = getPageId(documentName);
     const lastChangeAt = this.lastChangeAt.get(documentName);
 
+    const taskCreators = this.taskDocuments.get(document)?.prepareItems();
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
 
@@ -130,6 +138,8 @@ export class PersistenceExtension implements Extension {
 
     let page: Page = null;
     let edited = false;
+    let taskUserIds: string[] = [];
+    let assignmentMentionIds: string[] = [];
     let invalidation: PageVerificationInvalidation | null = null;
     const editingUserIds = this.consumeContributors(documentName);
 
@@ -181,6 +191,18 @@ export class PersistenceExtension implements Extension {
           trx,
         );
 
+        const tasks = extractPageTasks(tiptapJson);
+        assignmentMentionIds = tasks
+          .map((t) => t.assigneeMentionId)
+          .filter(Boolean);
+        taskUserIds = await this.pageTasks.sync(
+          trx,
+          page,
+          lastContext?.user?.id,
+          taskCreators,
+          tasks,
+        );
+
         invalidation =
           await this.pageVerificationInvalidationService.invalidateForEdit(
             {
@@ -202,6 +224,14 @@ export class PersistenceExtension implements Extension {
       editingUserIds.forEach((userId) =>
         this.trackContributor(documentName, userId),
       );
+    }
+
+    if (page && taskUserIds.length) {
+      await this.notificationQueue
+        .add(QueueJob.PAGE_TASKS_UPDATED, { userIds: taskUserIds })
+        .catch((err) =>
+          this.logger.error({ err, pageId }, 'Failed to notify task lists'),
+        );
     }
 
     if (invalidation) {
@@ -259,6 +289,7 @@ export class PersistenceExtension implements Extension {
             creatorId: m.creatorId,
           })),
           oldMentionedUserIds,
+          assignmentMentionIds,
           pageId,
           spaceId: page.spaceId,
           workspaceId: page.workspaceId,

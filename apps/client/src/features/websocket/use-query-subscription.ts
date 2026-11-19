@@ -23,6 +23,15 @@ export const useQuerySubscription = () => {
     socket?.on("message", (event) => {
       const data: WebSocketEvent = event;
 
+      if (
+        data.operation === "deleteTreeNode" ||
+        data.operation === "moveTreeNode" ||
+        data.operation === "spaceArchiveUpdated"
+      ) {
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      }
+
       let entity = null;
 
       switch (data.operation) {

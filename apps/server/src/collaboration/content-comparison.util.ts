@@ -15,7 +15,12 @@ type BlockLike = { type?: string; content?: unknown[] };
 
 const EMPTY_DOCUMENT = { type: 'doc', content: [] };
 
-const REVIEW_ID_STRIPPED_TYPES = ['heading', 'paragraph', 'transclusionSource'];
+const REVIEW_ID_STRIPPED_TYPES = [
+  'heading',
+  'paragraph',
+  'transclusionSource',
+  'taskItem',
+];
 
 let cachedSchema: Schema | null = null;
 

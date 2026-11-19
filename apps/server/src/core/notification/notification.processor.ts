@@ -3,6 +3,8 @@ import { ModuleRef } from '@nestjs/core';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { InjectKysely } from 'nestjs-kysely';
+import { PageTaskRepo } from '@docmost/db/repos/page-task/page-task.repo';
+import type { CollabAccessRecheck } from '../../collaboration/services/collab-access.service';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import {
@@ -44,6 +46,7 @@ export class NotificationProcessor
     private readonly domainService: DomainService,
     private readonly moduleRef: ModuleRef,
     private readonly wsService: WsService,
+    private readonly tasks: PageTaskRepo,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {
@@ -52,6 +55,7 @@ export class NotificationProcessor
 
   async process(
     job: Job<
+      | CollabAccessRecheck
       | ICommentNotificationJob
       | ICommentResolvedNotificationJob
       | IPageMentionNotificationJob
@@ -68,6 +72,24 @@ export class NotificationProcessor
     >,
   ): Promise<void> {
     try {
+      if (job.name === QueueJob.PAGE_TASKS_UPDATED) {
+        const change = job.data as CollabAccessRecheck;
+        const affected = change.pageIds?.length
+          ? await this.tasks.ownersInSubtrees(change.pageIds)
+          : [];
+        const userIds = [...new Set([...(change.userIds ?? []), ...affected])];
+        await Promise.all([
+          this.wsService.emitToUsers(userIds, {
+            operation: 'invalidate',
+            entity: ['tasks'],
+          }),
+          this.wsService.emitToUsers(userIds, {
+            operation: 'invalidate',
+            entity: ['notifications'],
+          }),
+        ]);
+        return;
+      }
       if (job.name === QueueJob.VERIFICATION_RECONCILE) {
         await this.runVerificationReconcile();
         return;

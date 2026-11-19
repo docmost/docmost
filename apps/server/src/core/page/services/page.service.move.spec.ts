@@ -81,6 +81,7 @@ describe('PageService movePage', () => {
       {} as any,
       {} as any,
       {} as any,
+      { indexNewPage: jest.fn() } as any,
     );
 
     return { service, pageRepo, wsService, collabAccessService };
@@ -233,6 +234,7 @@ describe('PageService movePageToSpace', () => {
       shareService as any,
       {} as any,
       {} as any,
+      { indexNewPage: jest.fn() } as any,
     );
 
     const sharesQueries = () =>

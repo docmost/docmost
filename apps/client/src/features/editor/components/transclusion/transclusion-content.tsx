@@ -15,7 +15,7 @@ export default function TransclusionContent({ content }: Props) {
     return [
       ...filtered,
       UniqueID.configure({
-        types: ["heading", "paragraph", "transclusionSource"],
+        types: ["heading", "paragraph", "transclusionSource", "taskItem"],
         updateDocument: false,
       }),
     ];

@@ -11,7 +11,9 @@ export function useNotificationSocket() {
   useEffect(() => {
     if (!socket) return;
 
-    const handler = () => {
+    const handler = (event?: { type?: string }) => {
+      if (event?.type === "task.assigned")
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEY });
     };
 

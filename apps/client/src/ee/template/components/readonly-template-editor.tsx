@@ -23,7 +23,7 @@ export default function ReadonlyTemplateEditor({
     return [
       ...filteredExtensions,
       UniqueID.configure({
-        types: ["heading", "paragraph"],
+        types: ["heading", "paragraph", "taskItem"],
         updateDocument: false,
       }),
     ];

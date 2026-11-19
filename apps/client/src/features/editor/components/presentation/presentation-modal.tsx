@@ -93,7 +93,7 @@ const excludedExtensionNames = new Set([
 const presentationExtensions = [
   ...mainExtensions.filter((ext) => !excludedExtensionNames.has(ext.name)),
   UniqueID.configure({
-    types: ["heading", "paragraph"],
+    types: ["heading", "paragraph", "taskItem"],
     updateDocument: false,
   }),
 ];

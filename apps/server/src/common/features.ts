@@ -31,6 +31,7 @@ export const Feature = {
   PUBLIC_SPACE_APPEARANCE: 'public-space:appearance',
   SIEM: 'siem',
   ANNOUNCEMENTS: 'announcements',
+  TASKS: 'tasks',
 } as const;
 
 export type FeatureKey = (typeof Feature)[keyof typeof Feature];

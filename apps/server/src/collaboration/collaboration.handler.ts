@@ -7,6 +7,10 @@ import {
 } from './collaboration.util';
 import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
 import * as Y from 'yjs';
+import { findTaskItem } from './page-task-document';
+import { yXmlFragmentToProsemirrorJSON } from '@tiptap/y-tiptap';
+import { readTaskItem } from '../core/task/task-content';
+import { PageTaskRepo } from '@docmost/db/repos/page-task/page-task.repo';
 import { User } from '@docmost/db/types/entity.types';
 
 export type CollabEventHandlers = ReturnType<
@@ -17,7 +21,7 @@ export type CollabEventHandlers = ReturnType<
 export class CollaborationHandler {
   private readonly logger = new Logger(CollaborationHandler.name);
 
-  constructor() {}
+  constructor(private readonly pageTasks: PageTaskRepo) {}
 
   getHandlers(hocuspocus: Hocuspocus) {
     return {
@@ -41,6 +45,50 @@ export class CollaborationHandler {
         // await this.withYdocConnection(hocuspocus, documentName, {}, (doc) => {
         //   const fragment = doc.getXmlFragment('default');
         //});
+      },
+      setTaskChecked: async (
+        documentName: string,
+        payload: {
+          taskId: string;
+          workspaceId: string;
+          checked: boolean;
+          user: User;
+        },
+      ): Promise<'updated' | 'missing' | 'read-only'> => {
+        const { taskId, workspaceId, user, checked } = payload;
+        // Permissions and ownership may change while a request travels to the
+        // server holding the document or while pending editor changes flush.
+        await this.flushPendingStore(hocuspocus, documentName);
+        const task = await this.pageTasks.findPersonal(
+          taskId,
+          user.id,
+          workspaceId,
+        );
+        if (!task || documentName !== `page.${task.pageId}`) return 'missing';
+        const editable = await this.pageTasks.editablePages([task], user.id);
+        if (!editable.has(task.pageId)) return 'read-only';
+
+        let found = false;
+        await this.transactWithYdoc(
+          hocuspocus,
+          documentName,
+          { user },
+          (doc) => {
+            const item = findTaskItem(doc, task.blockId);
+            if (!item) return;
+            if (task.creatorId !== user.id) {
+              const current = readTaskItem(
+                yXmlFragmentToProsemirrorJSON(item),
+                task.blockId,
+              );
+              if (current.assigneeId !== user.id) return;
+            }
+            found = true;
+            if ((item.getAttribute('checked') === true) !== checked)
+              item.setAttribute('checked', checked);
+          },
+        );
+        return found ? 'updated' : 'missing';
       },
       setCommentMark: async (
         documentName: string,
@@ -137,6 +185,15 @@ export class CollaborationHandler {
   ): Promise<void> {
     // store pending edits first so they are not saved under this connection's user
     await this.flushPendingStore(hocuspocus, documentName);
+    return this.transactWithYdoc(hocuspocus, documentName, context, fn);
+  }
+
+  private async transactWithYdoc(
+    hocuspocus: Hocuspocus,
+    documentName: string,
+    context: object,
+    fn: (doc: Document) => void,
+  ): Promise<void> {
     const connection = await hocuspocus.openDirectConnection(
       documentName,
       context,

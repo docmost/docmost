@@ -69,6 +69,7 @@ describe('PageRepo restorePage', () => {
       {} as any,
       { emit: jest.fn() } as any,
       pagePermissionRepo as any,
+      {} as any,
     );
 
     const detachQueries = () =>

@@ -7,9 +7,10 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { ExpressionBuilder } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { PageTaskRepo } from '../page-task/page-task.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import {
   NotificationTab,
@@ -21,7 +22,24 @@ export class NotificationRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly tasks: PageTaskRepo,
   ) {}
+
+  private visibleAssignment(userId: string, includeTasks: boolean) {
+    return (eb: ExpressionBuilder<DB, 'notifications'>) => {
+      const otherType = eb(
+        'notifications.type',
+        '!=',
+        NotificationType.TASK_ASSIGNED,
+      );
+      if (!includeTasks) return otherType;
+      const assignments = this.tasks
+        .visibleTo(userId)
+        .where('pageTasks.assigneeId', '=', userId)
+        .select('pageTasks.assignmentId');
+      return eb.or([otherType, eb('notifications.id', 'in', assignments)]);
+    };
+  }
 
   async findById(notificationId: string): Promise<Notification | undefined> {
     return this.db
@@ -35,6 +53,7 @@ export class NotificationRepo {
     userId: string,
     pagination: PaginationOptions,
     type: NotificationTab = 'all',
+    includeTasks = false,
   ) {
     let query = this.db
       .selectFrom('notifications')
@@ -42,7 +61,16 @@ export class NotificationRepo {
       .select((eb) => this.withActor(eb))
       .select((eb) => this.withPage(eb))
       .select((eb) => this.withSpace(eb))
+      .select(
+        sql<
+          string | null
+        >`case when notifications.type = ${NotificationType.TASK_ASSIGNED} then (
+        select t.title from page_tasks t where t.id = (notifications.data->>'taskId')::uuid
+          and t.assignment_id = notifications.id
+      ) end`.as('taskTitle'),
+      )
       .where('userId', '=', userId)
+      .where(this.visibleAssignment(userId, includeTasks))
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
@@ -69,16 +97,20 @@ export class NotificationRepo {
     });
   }
 
-  async insert(notification: InsertableNotification): Promise<Notification> {
+  async insert(
+    notification: InsertableNotification,
+  ): Promise<Notification | undefined> {
     return this.db
       .insertInto('notifications')
       .values(notification)
+      .onConflict((oc) => oc.column('id').doNothing())
       .returningAll()
       .executeTakeFirst();
   }
 
   async getUnreadCountsByPageId(
     userId: string,
+    includeTasks = false,
   ): Promise<{ pageId: string | null; count: number }[]> {
     const rows = await this.db
       .selectFrom('notifications')
@@ -86,6 +118,7 @@ export class NotificationRepo {
       .select((eb) => eb.fn.count('id').as('count'))
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
+      .where(this.visibleAssignment(userId, includeTasks))
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
@@ -105,12 +138,17 @@ export class NotificationRepo {
     }));
   }
 
-  async markAsRead(notificationId: string, userId: string): Promise<void> {
+  async markAsRead(
+    notificationId: string,
+    userId: string,
+    includeTasks = false,
+  ): Promise<void> {
     await this.db
       .updateTable('notifications')
       .set({ readAt: new Date() })
       .where('id', '=', notificationId)
       .where('userId', '=', userId)
+      .where(this.visibleAssignment(userId, includeTasks))
       .where('readAt', 'is', null)
       .execute();
   }
@@ -118,6 +156,7 @@ export class NotificationRepo {
   async markMultipleAsRead(
     notificationIds: string[],
     userId: string,
+    includeTasks = false,
   ): Promise<void> {
     if (notificationIds.length === 0) {
       return;
@@ -127,15 +166,17 @@ export class NotificationRepo {
       .set({ readAt: new Date() })
       .where('id', 'in', notificationIds)
       .where('userId', '=', userId)
+      .where(this.visibleAssignment(userId, includeTasks))
       .where('readAt', 'is', null)
       .execute();
   }
 
-  async markAllAsRead(userId: string): Promise<void> {
+  async markAllAsRead(userId: string, includeTasks = false): Promise<void> {
     await this.db
       .updateTable('notifications')
       .set({ readAt: new Date() })
       .where('userId', '=', userId)
+      .where(this.visibleAssignment(userId, includeTasks))
       .where('readAt', 'is', null)
       .execute();
   }

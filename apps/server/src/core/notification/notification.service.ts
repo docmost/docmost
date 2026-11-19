@@ -37,6 +37,8 @@ export class NotificationService {
 
     const notification = await this.notificationRepo.insert(data);
 
+    if (!notification) return null;
+
     this.eventEmitter.emit(EventName.NOTIFICATION_CREATED, notification);
 
     this.wsGateway.server
@@ -50,11 +52,13 @@ export class NotificationService {
     userId: string,
     pagination: PaginationOptions,
     type: NotificationTab = 'all',
+    includeTasks = false,
   ) {
     const result = await this.notificationRepo.findByUserId(
       userId,
       pagination,
       type,
+      includeTasks,
     );
 
     const pageIds = result.items
@@ -77,9 +81,11 @@ export class NotificationService {
     return result;
   }
 
-  async getUnreadCount(userId: string) {
-    const unreadCounts =
-      await this.notificationRepo.getUnreadCountsByPageId(userId);
+  async getUnreadCount(userId: string, includeTasks = false) {
+    const unreadCounts = await this.notificationRepo.getUnreadCountsByPageId(
+      userId,
+      includeTasks,
+    );
 
     const pageIds = unreadCounts.map((c) => c.pageId).filter(Boolean);
     const accessiblePageIds =
@@ -94,16 +100,32 @@ export class NotificationService {
       .reduce((total, c) => total + c.count, 0);
   }
 
-  async markAsRead(notificationId: string, userId: string) {
-    return this.notificationRepo.markAsRead(notificationId, userId);
+  async markAsRead(
+    notificationId: string,
+    userId: string,
+    includeTasks = false,
+  ) {
+    return this.notificationRepo.markAsRead(
+      notificationId,
+      userId,
+      includeTasks,
+    );
   }
 
-  async markMultipleAsRead(notificationIds: string[], userId: string) {
-    return this.notificationRepo.markMultipleAsRead(notificationIds, userId);
+  async markMultipleAsRead(
+    notificationIds: string[],
+    userId: string,
+    includeTasks = false,
+  ) {
+    return this.notificationRepo.markMultipleAsRead(
+      notificationIds,
+      userId,
+      includeTasks,
+    );
   }
 
-  async markAllAsRead(userId: string) {
-    return this.notificationRepo.markAllAsRead(userId);
+  async markAllAsRead(userId: string, includeTasks = false) {
+    return this.notificationRepo.markAllAsRead(userId, includeTasks);
   }
 
   async queueEmail(

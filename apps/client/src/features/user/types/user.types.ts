@@ -22,6 +22,7 @@ export interface IUser {
   pageEditMode: string; // used for update
   editorToolbar: boolean; // used for update
   notificationPageUpdates: boolean; // used for update
+  notificationTaskAssigned: boolean;
   notificationPageUserMention: boolean; // used for update
   notificationCommentUserMention: boolean; // used for update
   notificationCommentCreated: boolean; // used for update
@@ -43,6 +44,7 @@ export interface IUserSettings {
   notifications?: {
     "page.updated"?: boolean;
     "page.userMention"?: boolean;
+    "task.assigned"?: boolean;
     "comment.userMention"?: boolean;
     "comment.created"?: boolean;
     "comment.resolved"?: boolean;

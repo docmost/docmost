@@ -45,6 +45,8 @@ export function NotificationItem({
         return "<bold>{{name}}</bold> commented on a page";
       case "comment.resolved":
         return "<bold>{{name}}</bold> resolved a comment";
+      case "task.assigned":
+        return "You were assigned a task";
       case "page.user_mention":
         return "<bold>{{name}}</bold> mentioned you on a page";
       case "page.permission_granted":
@@ -99,6 +101,10 @@ export function NotificationItem({
           notification.space.slug,
           notification.page.slugId,
           notification.page.title,
+          notification.type === "task.assigned" &&
+            typeof notification.data?.blockId === "string"
+            ? notification.data.blockId
+            : undefined,
         ) + queryParam
       : undefined;
 
@@ -142,7 +148,7 @@ export function NotificationItem({
     }
     return null;
   };
-  const detail = lastError ?? getImportDetail();
+  const detail = notification.taskTitle ?? lastError ?? getImportDetail();
 
   const markReadIfNeeded = () => {
     if (isUnread) {

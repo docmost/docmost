@@ -98,7 +98,7 @@ export default function ReadonlyPageEditor({
     return [
       ...filteredExtensions,
       UniqueID.configure({
-        types: ["heading", "paragraph"],
+        types: ["heading", "paragraph", "taskItem"],
         updateDocument: false,
       }),
     ];

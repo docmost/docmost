@@ -11,6 +11,9 @@ import {
   ResponsiveSettingsControl,
 } from "@/components/ui/responsive-settings-row";
 
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+
 type NotificationKey = keyof NonNullable<IUserSettings["notifications"]>;
 
 const notificationItems: {
@@ -30,6 +33,12 @@ const notificationItems: {
     dtoField: "notificationPageUserMention",
     label: "Page mentions",
     description: "Get notified when someone mentions you on a page.",
+  },
+  {
+    key: "task.assigned",
+    dtoField: "notificationTaskAssigned",
+    label: "Task assignments",
+    description: "Email me when a task is assigned to me.",
   },
   {
     key: "comment.userMention",
@@ -106,13 +115,17 @@ function NotificationToggle({
 }
 
 export default function NotificationPref() {
+  const hasTasks = useHasFeature(Feature.TASKS);
+  const visible = notificationItems.filter(
+    (item) => hasTasks || item.key !== "task.assigned",
+  );
   const { t } = useTranslation();
 
   return (
     <Stack gap="xs">
       <Title order={2} size="h5">{t("Email notifications")}</Title>
 
-      {notificationItems.map((item) => (
+      {visible.map((item) => (
         <NotificationToggle
           key={item.key}
           settingKey={item.key}

@@ -59,6 +59,7 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
 import { TransclusionService } from '../transclusion/transclusion.service';
+import { PageTaskRepo } from '@docmost/db/repos/page-task/page-task.repo';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { WsService } from '../../../ws/ws.service';
 import { CollabAccessService } from '../../../collaboration/services/collab-access.service';
@@ -101,6 +102,7 @@ export class PageService {
     private readonly shareService: ShareService,
     private readonly unsplashService: UnsplashService,
     private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
+    private readonly pageTasks: PageTaskRepo,
   ) {}
 
   async findById(
@@ -849,7 +851,7 @@ export class PageService {
         .map((attachment) => attachment.id),
     );
 
-    const insertablePages: InsertablePage[] = await Promise.all(
+    const insertablePages = await Promise.all(
       pages.map(async (page) => {
         const pageContent = getProsemirrorContent(page.content);
         const pageFromMap = pageMap.get(page.id);
@@ -961,12 +963,14 @@ export class PageService {
               : page.parentPageId
                 ? pageMap.get(page.parentPageId)?.newPageId
                 : null,
-        };
+        } satisfies InsertablePage;
       }),
     );
 
     const copiedRestrictions = await executeTx(this.db, async (trx) => {
       await trx.insertInto('pages').values(insertablePages).execute();
+      for (const page of insertablePages)
+        await this.pageTasks.indexNewPage(trx, page);
       await this.labelRepo.copyLabelsToPages(
         new Map([...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId])),
         trx,

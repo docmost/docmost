@@ -38,6 +38,7 @@ function buildRepo() {
     spaceMemberRepo,
     { emit: jest.fn() } as any,
     new PagePermissionRepo(db as any, {} as any, {} as any),
+    {} as any,
   );
   return { repo, queries };
 }

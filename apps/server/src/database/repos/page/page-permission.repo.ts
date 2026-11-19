@@ -877,6 +877,7 @@ export class PagePermissionRepo {
   async filterAccessiblePageIdsWithPermissions(
     pageIds: string[],
     userId: string,
+    writableSpaceIds?: string[],
   ): Promise<Array<{ id: string; canEdit: boolean }>> {
     if (pageIds.length === 0) return [];
 
@@ -928,7 +929,11 @@ export class PagePermissionRepo {
               ),
             ),
           )
-          .then(true)
+          .then(
+            writableSpaceIds
+              ? sql<boolean>`pages.space_id = ANY(${writableSpaceIds}::uuid[])`
+              : true,
+          )
           // nearest restricted ancestor has writer for this user
           .when(
             eb.exists(

@@ -51,6 +51,10 @@ export class UpdateUserDto extends PartialType(
 
   @IsOptional()
   @IsBoolean()
+  notificationTaskAssigned: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   notificationCommentUserMention: boolean;
 
   @IsOptional()

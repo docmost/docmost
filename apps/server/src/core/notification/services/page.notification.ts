@@ -23,6 +23,9 @@ import { getPageTitle } from '../../../common/helpers';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
 
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { Feature } from '../../../common/features';
+
 const PAGE_UPDATE_COOLDOWN_HOURS = 7;
 const DIGEST_DELAY_MS = 12 * 60 * 60 * 1000; // 12 hours
 
@@ -34,6 +37,7 @@ export class PageNotificationService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly notificationService: NotificationService,
     private readonly notificationRepo: NotificationRepo,
+    private readonly licenses: LicenseCheckService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly watcherRepo: WatcherRepo,
@@ -47,8 +51,31 @@ export class PageNotificationService {
       data;
 
     const oldIds = new Set(oldMentionedUserIds);
+    // The assignee gets the task line in their assignment notification. Other
+    // mentions on the same line keep their normal page mention notification.
+    const assigned = new Set<string>();
+    if (data.assignmentMentionIds?.length) {
+      const workspace = await this.db
+        .selectFrom('workspaces')
+        .select(['licenseKey', 'plan'])
+        .where('id', '=', workspaceId)
+        .executeTakeFirst();
+      if (
+        workspace &&
+        this.licenses.hasFeature(
+          workspace.licenseKey,
+          Feature.TASKS,
+          workspace.plan,
+        )
+      ) {
+        data.assignmentMentionIds.forEach((id) => assigned.add(id));
+      }
+    }
     const newMentions = userMentions.filter(
-      (m) => !oldIds.has(m.userId) && m.creatorId !== m.userId,
+      (m) =>
+        !oldIds.has(m.userId) &&
+        m.creatorId !== m.userId &&
+        !assigned.has(m.mentionId),
     );
 
     if (newMentions.length === 0) return;

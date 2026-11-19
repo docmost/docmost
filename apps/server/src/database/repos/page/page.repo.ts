@@ -17,6 +17,8 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
 import { PagePermissionRepo } from './page-permission.repo';
+import { extractPageTasks } from '../../../core/task/task-content';
+import { PageTaskRepo } from '../page-task/page-task.repo';
 import { UserRecentPageActivity } from '../../../core/user/user.types';
 
 @Injectable()
@@ -26,6 +28,7 @@ export class PageRepo {
     private spaceMemberRepo: SpaceMemberRepo,
     private eventEmitter: EventEmitter2,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly pageTasks: PageTaskRepo,
   ) {}
 
   private baseFields: Array<keyof Page> = [
@@ -187,12 +190,24 @@ export class PageRepo {
     insertablePage: InsertablePage,
     trx?: KyselyTransaction,
   ): Promise<Page> {
-    const db = dbOrTx(this.db, trx);
-    const result = await db
-      .insertInto('pages')
-      .values(insertablePage)
-      .returning(this.baseFields)
-      .executeTakeFirst();
+    const tasks = extractPageTasks(insertablePage.content);
+    const insert = (db: KyselyDB) =>
+      db
+        .insertInto('pages')
+        .values(insertablePage)
+        .returning(this.baseFields)
+        .executeTakeFirstOrThrow();
+    const result = tasks.length
+      ? await executeTx(
+          this.db,
+          async (tx) => {
+            const page = await insert(tx);
+            await this.pageTasks.indexNewPage(tx, page, tasks);
+            return page;
+          },
+          trx,
+        )
+      : await insert(dbOrTx(this.db, trx));
 
     this.eventEmitter.emit(EventName.PAGE_CREATED, {
       pageIds: [result.id],

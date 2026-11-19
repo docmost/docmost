@@ -149,7 +149,17 @@ export class CollaborationGateway {
     payload: Parameters<CollabEventHandlers[TName]>[1],
     onlyIfOpen = false,
   ) {
-    return this.redisSync?.handleEvent(
+    if (!this.redisSync) {
+      if (onlyIfOpen && !this.hocuspocus.documents.has(documentName)) return;
+      const handler = this.collabEventsService.getHandlers(this.hocuspocus)[
+        eventName
+      ] as (
+        name: string,
+        data: typeof payload,
+      ) => ReturnType<CollabEventHandlers[TName]>;
+      return handler(documentName, payload);
+    }
+    return this.redisSync.handleEvent(
       eventName,
       documentName,
       payload,

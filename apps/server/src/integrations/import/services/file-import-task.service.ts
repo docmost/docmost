@@ -29,6 +29,7 @@ import {
   readDocmostMetadata,
   stripNotionID,
 } from '../utils/import.utils';
+import { PageTaskRepo } from '@docmost/db/repos/page-task/page-task.repo';
 import { executeTx } from '@docmost/db/utils';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ImportAttachmentService } from './import-attachment.service';
@@ -57,6 +58,7 @@ export class FileImportTaskService {
     private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly pageTasks: PageTaskRepo,
   ) {}
 
   async processZIpImport(fileTaskId: string): Promise<void> {
@@ -522,7 +524,7 @@ export class FileImportTaskService {
             const { title, prosemirrorJson } =
               this.importService.extractTitleAndRemoveHeading(pmState);
 
-            const insertablePage: InsertablePage = {
+            const insertablePage = {
               id: page.id,
               slugId: page.slugId,
               title: title || page.name,
@@ -536,9 +538,10 @@ export class FileImportTaskService {
               creatorId: fileTask.creatorId,
               lastUpdatedById: fileTask.creatorId,
               parentPageId: page.parentPageId,
-            };
+            } satisfies InsertablePage;
 
             await trx.insertInto('pages').values(insertablePage).execute();
+            await this.pageTasks.indexNewPage(trx, insertablePage);
 
             // Track valid page IDs, titles, and collect backlinks
             validPageIds.add(insertablePage.id);

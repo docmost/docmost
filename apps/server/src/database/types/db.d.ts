@@ -305,6 +305,19 @@ export interface PageTransclusionReferences {
   workspaceId: string;
 }
 
+export interface PageTasks {
+  assigneeId: string | null;
+  assignmentId: string | null;
+  assignmentPending: Generated<boolean>;
+  blockId: string;
+  checked: boolean;
+  creatorId: string | null;
+  dueDate: Timestamp | null;
+  id: Generated<string>;
+  pageId: string;
+  title: string;
+}
+
 export interface PageTransclusions {
   content: Json;
   createdAt: Generated<Timestamp>;
@@ -817,6 +830,7 @@ export interface DB {
   notifications: Notifications;
   pageAccess: PageAccess;
   pageTransclusionReferences: PageTransclusionReferences;
+  pageTasks: PageTasks;
   pageTransclusions: PageTransclusions;
   pagePermissions: PagePermissions;
   pageHistory: PageHistory;

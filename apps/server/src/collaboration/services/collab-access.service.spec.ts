@@ -1,15 +1,25 @@
 import { CollabAccessService } from './collab-access.service';
 import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
 
-function makeService(publish: (...args: any[]) => Promise<number>) {
-  return new CollabAccessService({ getOrThrow: () => ({ publish }) } as any);
+function makeService(
+  publish: (...args: any[]) => Promise<number>,
+  add = jest.fn().mockResolvedValue(undefined),
+) {
+  return new CollabAccessService(
+    { getOrThrow: () => ({ publish }) } as any,
+    { add } as any,
+  );
 }
 
 describe('CollabAccessService', () => {
   it('publishes the users or pages to recheck', async () => {
     const publish = jest.fn(async () => 1);
 
-    await makeService(publish).recheckAccess({ userIds: ['user_1'] });
+    const add = jest.fn().mockResolvedValue(undefined);
+    await makeService(publish, add).recheckAccess({ userIds: ['user_1'] });
+    expect(add).toHaveBeenCalledWith('page-tasks-updated', {
+      userIds: ['user_1'],
+    });
     await makeService(publish).recheckAccess({ userIds: [], pageIds: [] });
 
     expect(publish.mock.calls).toEqual([

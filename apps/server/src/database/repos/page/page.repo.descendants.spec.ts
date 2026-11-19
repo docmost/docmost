@@ -33,6 +33,7 @@ describe('PageRepo page trees', () => {
       {} as any,
       { emit: jest.fn() } as any,
       {} as any,
+      {} as any,
     );
 
     return { repo, queries };

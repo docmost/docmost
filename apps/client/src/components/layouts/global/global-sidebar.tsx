@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ScrollArea, Text, Divider, Modal, UnstyledButton, Tooltip, Badge } from "@mantine/core";
 import {
   IconHome,
-  IconClock,
+  IconChecklist,
   IconStar,
   IconLayoutGrid,
   IconSettings,
@@ -31,10 +31,17 @@ export default function GlobalSidebar() {
   const [active, setActive] = useState(location.pathname);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
+  const hasTasks = useHasFeature(Feature.TASKS);
   const hasTemplates = useHasFeature(Feature.TEMPLATES);
   const upgradeLabel = useUpgradeLabel();
   const mainNavItems = [
     { label: "Home", icon: IconHome, path: "/home" },
+    {
+      label: "My tasks",
+      icon: IconChecklist,
+      path: "/tasks",
+      disabled: !hasTasks,
+    },
     { label: "Favorites", icon: IconStar, path: "/favorites" },
     { label: "Spaces", icon: IconLayoutGrid, path: "/spaces" },
     {
