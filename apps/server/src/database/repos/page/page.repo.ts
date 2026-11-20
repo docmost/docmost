@@ -143,6 +143,15 @@ export class PageRepo {
     return this.updatePages(updatablePage, [pageId], trx);
   }
 
+  async saveYdocState(pageId: string, ydoc: Buffer, trx?: KyselyTransaction) {
+    await dbOrTx(this.db, trx)
+      .updateTable('pages')
+      .set({ ydoc })
+      .where(isValidUUID(pageId) ? 'id' : 'slugId', '=', pageId)
+      .where('ydoc', 'is distinct from', ydoc)
+      .executeTakeFirst();
+  }
+
   async updatePages(
     updatePageData: UpdatablePage,
     pageIds: string[],
@@ -351,7 +360,7 @@ export class PageRepo {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
-      .select((eb) => this.withSpace(eb))
+      .select((eb) => [this.withSpace(eb), this.withLastUpdatedBy(eb)])
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is', null);
 
@@ -374,7 +383,7 @@ export class PageRepo {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
-      .select((eb) => this.withSpace(eb))
+      .select((eb) => [this.withSpace(eb), this.withLastUpdatedBy(eb)])
       .where(
         'spaceId',
         'in',

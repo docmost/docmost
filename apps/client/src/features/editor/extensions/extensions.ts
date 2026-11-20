@@ -210,7 +210,7 @@ export const mainExtensions = [
     },
   }),
   SharedStorage,
-  Heading,
+  Heading.configure({ translate: (label) => i18n.t(label) }),
   UniqueID.configure({
     types: ["heading", "paragraph", "transclusionSource"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),

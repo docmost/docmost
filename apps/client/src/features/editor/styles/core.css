@@ -240,12 +240,7 @@
 
 }
 
-.ProseMirror > h1,
-.ProseMirror > h2,
-.ProseMirror > h3,
-.ProseMirror > h4,
-.ProseMirror > h5,
-.ProseMirror > h6 {
+.ProseMirror :is(h1, h2, h3, h4, h5, h6) {
 
   > .link-btn {
     cursor: pointer;
@@ -254,6 +249,11 @@
   }
 
   > .link-btn > .link-btn-content {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
     opacity: 0;
     position: absolute;
     left: 5px;
@@ -265,10 +265,29 @@
     flex-direction: column;
   }
 
-  &:hover > .link-btn > .link-btn-content {
+  &:hover > .link-btn > .link-btn-content,
+  > .link-btn > .link-btn-content:focus-visible {
     opacity: 1;
   }
 
+  .link-btn-content:is(:hover, :focus-visible)::after {
+    content: attr(aria-label);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    padding: 4px 8px;
+    border-radius: var(--mantine-radius-sm);
+    background: light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-2));
+    color: light-dark(var(--mantine-color-white), var(--mantine-color-black));
+    font: 400 var(--mantine-font-size-xs)/1.4 var(--mantine-font-family);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+}
+
+.ProseMirror > :is(h1, h2, h3, h4, h5, h6) {
   scroll-margin-top: calc(80px + var(--announcement-banners-height, 0px)); /* match your header height */
 }
 

@@ -3,7 +3,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Fragment, Node, Slice } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
 import { DecorationSet } from "@tiptap/pm/view";
-import { Heading } from "@docmost/editor-ext";
+import { Heading, UniqueID } from "@docmost/editor-ext";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 let editor: Editor | null = null;
@@ -13,7 +13,11 @@ function createEditor(content: object[]) {
   document.body.appendChild(element);
   editor = new Editor({
     element,
-    extensions: [StarterKit.configure({ heading: false }), Heading],
+    extensions: [
+      StarterKit.configure({ heading: false }),
+      Heading,
+      UniqueID.configure({ types: ["heading"] }),
+    ],
     content: { type: "doc", content },
   });
   return editor;
@@ -21,7 +25,7 @@ function createEditor(content: object[]) {
 
 const heading = (text: string) => ({
   type: "heading",
-  attrs: { level: 2 },
+  attrs: { level: 2, id: crypto.randomUUID() },
   content: [{ type: "text", text }],
 });
 const paragraph = (text: string) => ({
@@ -68,6 +72,21 @@ describe("heading link button", () => {
     e.view.dispatch(e.state.tr.setSelection(TextSelection.create(e.state.doc, 10)));
 
     expect(linkButtons(e)).toEqual(before);
+  });
+
+  it("preserves the editor selection when Backspace is pressed on the copy button", () => {
+    const e = createEditor([heading("Budget")]);
+    e.commands.setTextSelection({ from: 2, to: 5 });
+    const button = e.view.dom.querySelector("button")!;
+    button.focus();
+    expect(document.activeElement).toBe(button);
+
+    button.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Backspace", bubbles: true, cancelable: true,
+    }));
+
+    expect(e.state.doc.firstChild?.textContent).toBe("Budget");
+    expect(e.state.selection).toMatchObject({ from: 2, to: 5 });
   });
 
   it("adds a button when a heading is inserted", () => {

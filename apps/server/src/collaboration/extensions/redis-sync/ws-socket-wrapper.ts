@@ -1,4 +1,4 @@
-import type WebSocket from 'ws';
+import { WebSocket } from 'ws';
 import type { WebSocketLike } from '@hocuspocus/server';
 
 /**
@@ -7,29 +7,34 @@ import type { WebSocketLike } from '@hocuspocus/server';
  * which prevents double-handling with RedisSyncExtension.
  */
 export class WsSocketWrapper implements WebSocketLike {
-  private ws: WebSocket;
-  readyState = 1;
+  constructor(
+    private readonly ws: WebSocket,
+    private readonly onFailure: (err: unknown) => void,
+  ) {}
 
-  constructor(ws: WebSocket) {
-    this.ws = ws;
+  get readyState() {
+    return this.ws.readyState;
   }
 
   close(code?: number, reason?: string) {
-    if (this.readyState !== 1) return;
-    this.readyState = 3;
+    if (this.readyState !== WebSocket.OPEN) return;
     try {
       this.ws.close(code, reason);
-    } catch (e) {
-      // Socket already closed
+    } catch (err) {
+      this.onFailure(err);
     }
   }
 
+  private readonly onWrite = (err?: Error) => {
+    if (err) this.onFailure(err);
+  };
+
   send(message: Uint8Array) {
-    if (this.readyState !== 1) return;
+    if (this.readyState !== WebSocket.OPEN) return;
     try {
-      this.ws.send(message);
-    } catch (e) {
-      // Socket already closed
+      this.ws.send(message, this.onWrite);
+    } catch (err) {
+      this.onFailure(err);
     }
   }
 }

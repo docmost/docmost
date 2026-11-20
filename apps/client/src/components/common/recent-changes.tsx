@@ -5,8 +5,11 @@ import {
   Badge,
   Table,
   Button,
+  Box,
 } from "@mantine/core";
+import { useAtomValue } from "jotai";
 import { Link } from "react-router-dom";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import PageListSkeleton from "@/components/ui/page-list-skeleton.tsx";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils.ts";
 import { formattedDate } from "@/lib/time.ts";
@@ -17,6 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color.ts";
+import { userAtom } from "@/features/user/atoms/current-user-atom";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
 
 interface Props {
@@ -25,6 +29,7 @@ interface Props {
 
 export default function RecentChanges({ spaceId }: Props) {
   const { t } = useTranslation();
+  const currentUser = useAtomValue(userAtom);
   const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } = useRecentChangesQuery(spaceId);
   const pages = data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -72,14 +77,29 @@ export default function RecentChanges({ spaceId }: Props) {
                   </Table.Td>
                 )}
                 <Table.Td>
-                  <Text
-                    c="dimmed"
-                    style={{ whiteSpace: "nowrap" }}
-                    size="xs"
-                    fw={500}
-                  >
-                    {formattedDate(page.updatedAt)}
-                  </Text>
+                  <Group gap="xs" wrap="nowrap">
+                    {page.lastUpdatedBy && (
+                      <CustomAvatar
+                        name={page.lastUpdatedBy.name}
+                        avatarUrl={page.lastUpdatedBy.avatarUrl}
+                        size={30}
+                        radius="xl"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <Box miw={0}>
+                      {page.lastUpdatedBy && (
+                        <Text size="sm" lineClamp={1}>
+                          {page.lastUpdatedBy.id === currentUser?.id
+                            ? t("You")
+                            : page.lastUpdatedBy.name}
+                        </Text>
+                      )}
+                      <Text c="dimmed" size="xs" fw={500} style={{ whiteSpace: "nowrap" }}>
+                        {formattedDate(page.updatedAt)}
+                      </Text>
+                    </Box>
+                  </Group>
                 </Table.Td>
               </Table.Tr>
             ))}
