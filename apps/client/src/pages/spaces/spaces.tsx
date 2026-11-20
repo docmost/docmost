@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Container, Title, Text, Group, Box } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
+  SPACES_PAGE_SIZE,
   useGetSpacesQuery,
   useHasArchivedSpaces,
 } from "@/features/space/queries/space-query";
@@ -22,7 +23,7 @@ export default function Spaces() {
 
   const { data, isPlaceholderData } = useGetSpacesQuery({
     cursor,
-    limit: 30,
+    limit: SPACES_PAGE_SIZE,
     query: search,
     status,
   });

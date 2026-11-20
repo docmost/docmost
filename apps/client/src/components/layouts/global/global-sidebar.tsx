@@ -15,7 +15,15 @@ import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar";
-import { useFavoritesQuery } from "@/features/favorite/queries/favorite-query";
+import {
+  prefetchFavorites,
+  useFavoritesQuery,
+} from "@/features/favorite/queries/favorite-query";
+import {
+  prefetchSpace,
+  prefetchSpacesPage,
+} from "@/features/space/queries/space-query";
+import { prefetchTemplates } from "@/ee/template/queries/template-query";
 import { getSpaceUrl } from "@/lib/config";
 import { useDisclosure } from "@mantine/hooks";
 import { WorkspaceInviteForm } from "@/features/workspace/components/members/components/workspace-invite-form";
@@ -35,13 +43,24 @@ export default function GlobalSidebar() {
   const upgradeLabel = useUpgradeLabel();
   const mainNavItems = [
     { label: "Home", icon: IconHome, path: "/home" },
-    { label: "Favorites", icon: IconStar, path: "/favorites" },
-    { label: "Spaces", icon: IconLayoutGrid, path: "/spaces" },
+    {
+      label: "Favorites",
+      icon: IconStar,
+      path: "/favorites",
+      prefetch: () => prefetchFavorites("page"),
+    },
+    {
+      label: "Spaces",
+      icon: IconLayoutGrid,
+      path: "/spaces",
+      prefetch: () => prefetchSpacesPage(),
+    },
     {
       label: "Templates",
       icon: IconTemplate,
       path: "/templates",
       disabled: !hasTemplates,
+      prefetch: () => prefetchTemplates(),
     },
   ];
   const { data: favoriteSpacesData, isPending: isFavoritesPending } = useFavoritesQuery("space");
@@ -95,6 +114,7 @@ export default function GlobalSidebar() {
                 aria-current={active === item.path ? "page" : undefined}
                 to={item.path}
                 onClick={handleNavClick}
+                onMouseEnter={item.prefetch}
               >
                 <item.icon className={classes.linkIcon} stroke={2} />
                 <span>{t(item.label)}</span>
@@ -118,6 +138,9 @@ export default function GlobalSidebar() {
                   className={classes.spaceItem}
                   to={getSpaceUrl(fav.space!.slug)}
                   onClick={handleNavClick}
+                  onMouseEnter={() =>
+                    prefetchSpace(fav.space!.slug, fav.space!.id)
+                  }
                 >
                   <CustomAvatar
                     name={fav.space!.name}
@@ -147,6 +170,7 @@ export default function GlobalSidebar() {
                   className={classes.spaceItem}
                   to="/spaces"
                   onClick={handleNavClick}
+                  onMouseEnter={() => prefetchSpacesPage()}
                 >
                   <Text size="xs" c="dimmed">
                     {t("View all")}

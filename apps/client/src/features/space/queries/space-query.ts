@@ -1,6 +1,7 @@
 import {
   keepPreviousData,
   QueryClient,
+  queryOptions,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -30,22 +31,34 @@ import { notifications } from "@mantine/notifications";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { useTranslation } from "react-i18next";
 import { queryClient } from "@/main.tsx";
-import { getRecentChanges } from "@/features/page/services/page-service.ts";
+import { prefetchRecentChanges } from "@/features/page/queries/page-query.ts";
 import { useEffect } from "react";
 import { getApiErrorMessage } from "@/lib/api-error.ts";
 import { validate as isValidUuid } from "uuid";
 
 const ARCHIVED_PROBE_PARAMS: QueryParams = { status: "archived", limit: 1 };
 
-export function useGetSpacesQuery(
-  params?: QueryParams,
-): UseQueryResult<IPagination<ISpace>, Error> {
-  return useQuery({
+const spacesQuery = (params?: QueryParams) =>
+  queryOptions({
     queryKey: ["spaces", params],
     queryFn: () => getSpaces(params),
     placeholderData: keepPreviousData,
     refetchOnMount: true,
   });
+
+export function useGetSpacesQuery(
+  params?: QueryParams,
+): UseQueryResult<IPagination<ISpace>, Error> {
+  return useQuery(spacesQuery(params));
+}
+
+export const SPACES_PAGE_SIZE = 30;
+
+// The spaces page opens on the first page of active spaces, unfiltered.
+export function prefetchSpacesPage() {
+  void queryClient.prefetchQuery(
+    spacesQuery({ limit: SPACES_PAGE_SIZE, query: "", status: "active" }),
+  );
 }
 
 export function useHasArchivedSpaces(enabled: boolean): boolean {
@@ -93,11 +106,7 @@ export const prefetchSpace = (spaceSlug: string, spaceId?: string) => {
 
   if (spaceId) {
     // this endpoint only accepts uuid for now
-    queryClient.prefetchInfiniteQuery({
-      queryKey: ["recent-changes", spaceId],
-      queryFn: () => getRecentChanges({ spaceId }),
-      initialPageParam: undefined,
-    });
+    prefetchRecentChanges(spaceId);
   }
 };
 

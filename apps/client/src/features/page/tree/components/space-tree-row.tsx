@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
@@ -12,10 +11,9 @@ import {
 } from "@tabler/icons-react";
 
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
-import { queryClient } from "@/main.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getPageTitle } from "@/features/page/page.utils";
-import { getPageById } from "@/features/page/services/page-service.ts";
+import { usePagePrefetch } from "@/features/page/hooks/use-page-prefetch";
 import {
   useUpdatePageMutation,
   fetchAllAncestorChildren,
@@ -67,32 +65,13 @@ export function SpaceTreeRow({
   const updatePageMutation = useUpdatePageMutation();
   const [, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { prefetch: prefetchPage, cancel: cancelPagePrefetch } =
+    usePagePrefetch();
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   const canEdit = !readOnly && node.canEdit !== false;
   const pageUrl = buildPageUrl(spaceSlug, node.slugId, node.name);
-
-  const prefetchPage = () => {
-    timerRef.current = setTimeout(async () => {
-      const page = await queryClient.fetchQuery({
-        queryKey: ["pages", node.id],
-        queryFn: () => getPageById({ pageId: node.id }),
-        staleTime: 5 * 60 * 1000,
-      });
-      if (page?.slugId) {
-        queryClient.setQueryData(["pages", page.slugId], page);
-      }
-    }, 150);
-  };
-
-  const cancelPagePrefetch = () => {
-    if (timerRef.current) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
 
   const handleUpdateNodeIcon = (nodeId: string, newIcon: string | null) => {
     setTreeData((prev) =>
@@ -172,7 +151,7 @@ export function SpaceTreeRow({
           toggleMobileSidebar();
         }
       }}
-      onMouseEnter={prefetchPage}
+      onMouseEnter={() => prefetchPage(node.id)}
       onMouseLeave={cancelPagePrefetch}
     >
       <PageArrow
