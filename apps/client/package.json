@@ -55,7 +55,7 @@
     "mantine-form-zod-resolver": "1.3.0",
     "mitt": "3.0.1",
     "nanoid": "3.3.18",
-    "papaparse": "5.7.0",
+    "papaparse": "5.7.1",
     "pele": "1.12.0",
     "posthog-js": "1.391.2",
     "react": "19.2.7",

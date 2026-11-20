@@ -35,6 +35,7 @@ minimumReleaseAgeExclude:
   - '@hocuspocus/*'
   - '@tiptap/*'
   - react-email@6.11.16
+  - nodemailer@10.6.1
 allowBuilds:
   '@swc/core': true
   bcrypt: true
