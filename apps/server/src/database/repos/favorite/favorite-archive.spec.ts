@@ -38,12 +38,42 @@ function buildRepo() {
 const pagination = Object.assign(new PaginationOptions(), { limit: 20 });
 const archivedFilter = '"spaces"."archived_at" is null';
 
-describe('FavoriteRepo archived spaces', () => {
+describe('FavoriteRepo visibility', () => {
   it('keeps archived favorites in the list', async () => {
     const { repo, queries } = buildRepo();
 
     await repo.findUserFavorites('user-1', 'ws-1', pagination);
 
     expect(queries[0].sql).not.toContain(archivedFilter);
+  });
+  it.each([
+    { list: 'mixed', type: undefined, spaceId: undefined },
+    { list: 'space page', type: 'page' as const, spaceId: 'space-1' },
+  ])(
+    'filters trashed pages before paginating the $list favorites list',
+    async ({ type, spaceId }) => {
+      const { repo, queries } = buildRepo();
+
+      await repo.findUserFavorites('user-1', 'ws-1', pagination, type, spaceId);
+
+      expect(queries[0].sql).toContain('"pages"."deleted_at" is null');
+    },
+  );
+
+  it('also filters trashed pages and bases from favorite IDs', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo.getFavoriteIds('user-1', 'ws-1', 'page');
+
+    expect(queries[0].sql).toContain('"pages"."deleted_at" is null');
+  });
+
+  it('excludes deleted spaces and templates from mixed favorites', async () => {
+    const { repo, queries } = buildRepo();
+
+    await repo.findUserFavorites('user-1', 'ws-1', pagination);
+
+    expect(queries[0].sql).toContain('"spaces"."deleted_at" is null');
+    expect(queries[0].sql).toContain('"templates"."deleted_at" is null');
   });
 });

@@ -45,6 +45,8 @@ import { useRowDetailModal } from "@/ee/base/hooks/use-row-detail-modal";
 import { BaseEditableProvider } from "@/ee/base/context/base-editable";
 import { RowExpandProvider } from "@/ee/base/context/row-expand";
 import { usePageQuery } from "@/features/page/queries/page-query";
+import type { IPage } from "@/features/page/types/page.types";
+import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner";
 import { buildPageUrl } from "@/features/page/page.utils";
 import { getAppUrl, isBetaBaseForms } from "@/lib/config.ts";
 import { useNavigate } from "react-router-dom";
@@ -65,6 +67,23 @@ type BaseViewProps = {
 const CsvImportModal = lazy(
   () => import("@/ee/base/components/csv-import/csv-import-modal"),
 );
+
+export function BasePageView({
+  page,
+  editable,
+  titleSlot,
+}: Pick<BaseViewProps, "editable" | "titleSlot"> & { page: IPage }) {
+  if (page.deletedAt) {
+    return (
+      <>
+        <DeletedPageBanner slugId={page.slugId} />
+        {titleSlot}
+      </>
+    );
+  }
+
+  return <BaseView pageId={page.id} editable={editable} titleSlot={titleSlot} />;
+}
 
 export function BaseView(props: BaseViewProps) {
   return (

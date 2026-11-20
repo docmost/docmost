@@ -21,6 +21,7 @@ import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { invalidateOnDeletePage } from "@/features/page/queries/page-query";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { treeModel } from "@/features/page/tree/model/tree-model";
@@ -128,6 +129,7 @@ export function useDeleteBaseMutation() {
         queryKey: ["bases", "list", spaceId],
       });
       notifications.show({ message: t("Base deleted") });
+      return invalidateOnDeletePage(pageId, spaceId);
     },
     onError: (error) => {
       notifications.show({
