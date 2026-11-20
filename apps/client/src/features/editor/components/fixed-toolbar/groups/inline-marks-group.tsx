@@ -21,8 +21,8 @@ import { decreaseIndent, increaseIndent } from "../fixed-toolbar.utils";
 import classes from "../fixed-toolbar.module.css";
 
 interface Props {
-  editor: Editor;
-  state: ToolbarState;
+  editor: Editor | null;
+  state: ToolbarState | null;
 }
 
 export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
@@ -36,9 +36,9 @@ export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("Bold")}
-          aria-pressed={state.isBold}
-          className={clsx({ [classes.active]: state.isBold })}
-          onClick={() => editor.chain().focus().toggleBold().run()}
+          aria-pressed={state?.isBold}
+          className={clsx({ [classes.active]: state?.isBold })}
+          onClick={() => editor?.chain().focus().toggleBold().run()}
         >
           <IconBold size={16} />
         </ActionIcon>
@@ -49,9 +49,9 @@ export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("Underline")}
-          aria-pressed={state.isUnderline}
-          className={clsx({ [classes.active]: state.isUnderline })}
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          aria-pressed={state?.isUnderline}
+          className={clsx({ [classes.active]: state?.isUnderline })}
+          onClick={() => editor?.chain().focus().toggleUnderline().run()}
         >
           <IconUnderline size={16} />
         </ActionIcon>
@@ -62,9 +62,9 @@ export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("Italic")}
-          aria-pressed={state.isItalic}
-          className={clsx({ [classes.active]: state.isItalic })}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
+          aria-pressed={state?.isItalic}
+          className={clsx({ [classes.active]: state?.isItalic })}
+          onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
           <IconItalic size={16} />
         </ActionIcon>
@@ -83,45 +83,45 @@ export const InlineMarksGroup: FC<Props> = ({ editor, state }) => {
         <Menu.Dropdown>
           <Menu.Item
             leftSection={<IconStrikethrough size={16} />}
-            onClick={() => editor.chain().focus().toggleStrike().run()}
+            onClick={() => editor?.chain().focus().toggleStrike().run()}
           >
             {t("Strikethrough")}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconCode size={16} />}
-            onClick={() => editor.chain().focus().toggleCode().run()}
+            onClick={() => editor?.chain().focus().toggleCode().run()}
           >
             {t("Inline code")}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconSubscript size={16} />}
-            onClick={() => editor.chain().focus().toggleSubscript().run()}
+            onClick={() => editor?.chain().focus().toggleSubscript().run()}
           >
             {t("Subscript")}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconSuperscript size={16} />}
-            onClick={() => editor.chain().focus().toggleSuperscript().run()}
+            onClick={() => editor?.chain().focus().toggleSuperscript().run()}
           >
             {t("Superscript")}
           </Menu.Item>
           <Menu.Divider />
           <Menu.Item
             leftSection={<IconIndentIncrease size={16} />}
-            onClick={() => increaseIndent(editor)}
+            onClick={() => editor && increaseIndent(editor)}
           >
             {t("Increase indent")}
           </Menu.Item>
           <Menu.Item
             leftSection={<IconIndentDecrease size={16} />}
-            onClick={() => decreaseIndent(editor)}
+            onClick={() => editor && decreaseIndent(editor)}
           >
             {t("Decrease indent")}
           </Menu.Item>
           <Menu.Divider />
           <Menu.Item
             leftSection={<IconClearFormatting size={16} />}
-            onClick={() => editor.chain().focus().unsetAllMarks().run()}
+            onClick={() => editor?.chain().focus().unsetAllMarks().run()}
           >
             {t("Clear formatting")}
           </Menu.Item>

@@ -6,8 +6,8 @@ import { useTranslation } from "react-i18next";
 import type { ToolbarState } from "../use-toolbar-state";
 
 interface Props {
-  editor: Editor;
-  state: ToolbarState;
+  editor: Editor | null;
+  state: ToolbarState | null;
 }
 
 export const HistoryGroup: FC<Props> = ({ editor, state }) => {
@@ -21,8 +21,8 @@ export const HistoryGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("Undo")}
-          disabled={!state.canUndo}
-          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!state?.canUndo}
+          onClick={() => editor?.chain().focus().undo().run()}
         >
           <IconArrowBackUp size={16} />
         </ActionIcon>
@@ -33,8 +33,8 @@ export const HistoryGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("Redo")}
-          disabled={!state.canRedo}
-          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!state?.canRedo}
+          onClick={() => editor?.chain().focus().redo().run()}
         >
           <IconArrowForwardUp size={16} />
         </ActionIcon>

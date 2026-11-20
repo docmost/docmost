@@ -1,12 +1,11 @@
 import { Button, Container, Skeleton } from "@mantine/core";
 import { IconFileOff } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
-import toolbarClasses from "@/features/editor/components/fixed-toolbar/fixed-toolbar.module.css";
 import classes from "@/features/editor/styles/editor.module.css";
 import coverClasses from "@/features/page-cover/components/page-cover.module.css";
 import { resolveCover } from "@/features/page-cover/page-cover.utils";
@@ -74,8 +73,7 @@ export function PageLoadError({
   );
 }
 
-export function PageLoading({ page }: { page?: IPage }) {
-  const { t } = useTranslation();
+export function usePageLayout(page?: IPage) {
   const { pageSlug } = useParams();
   const tree = useAtomValue(treeDataAtom);
   const user = useAtomValue(userAtom);
@@ -86,7 +84,7 @@ export function PageLoading({ page }: { page?: IPage }) {
         id: page.id,
         title: page.title,
         isBase: page.isBase,
-        editable: page.permissions?.canEdit && !page.deletedAt,
+        editable: !!page.permissions?.canEdit && !page.deletedAt,
         coverPhoto: page.coverPhoto,
       };
     }
@@ -104,12 +102,34 @@ export function PageLoading({ page }: { page?: IPage }) {
   const fullWidth = user?.settings?.preferences?.fullPageWidth;
   const toolbarEnabled = user?.settings?.preferences?.editorToolbar;
   const { editMode } = usePageEditMode(toolbarEnabled ? preview?.id : undefined);
-  const showToolbar =
+  // An unknown destination can retain the previous toolbar's space and controls
+  // while its metadata loads. Only the live editor can enable those controls.
+  const previousToolbar = useRef(false);
+  const showToolbar = Boolean(
     toolbarEnabled &&
-    preview?.editable &&
-    !preview.isBase &&
-    editMode === PageEditMode.Edit;
+    editMode === PageEditMode.Edit &&
+    !preview?.isBase &&
+    (preview?.editable ?? previousToolbar.current),
+  );
+  useLayoutEffect(() => {
+    previousToolbar.current = showToolbar;
+  }, [showToolbar]);
   const hasCover = !preview?.isBase && Boolean(resolveCover(preview?.coverPhoto));
+  return { preview, fullWidth, showToolbar, hasCover };
+}
+
+export function PageLoading({ page }: { page?: IPage }) {
+  const layout = usePageLayout(page);
+  return <PageLoadingContent {...layout} />;
+}
+
+export function PageLoadingContent({
+  preview,
+  fullWidth,
+  showToolbar,
+  hasCover,
+}: ReturnType<typeof usePageLayout>) {
+  const { t } = useTranslation();
 
   return (
     <div>
@@ -122,7 +142,6 @@ export function PageLoading({ page }: { page?: IPage }) {
         className={classes.editor}
         aria-busy="true"
       >
-        {showToolbar && <div className={toolbarClasses.fixedToolbar} aria-hidden />}
         {showToolbar && !hasCover && (
           <div className={classes.toolbarSpacer} aria-hidden />
         )}

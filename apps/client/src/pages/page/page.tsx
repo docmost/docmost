@@ -24,8 +24,8 @@ import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
 import { useDisablePrint } from "@/ee/security/hooks/use-disable-print.ts";
 import { PageCover } from "@/features/page-cover/components/page-cover.tsx";
-import { resolveCover } from "@/features/page-cover/page-cover.utils.ts";
-import { PageLoading, PageLoadError } from "./page-loading";
+import { PageFormattingToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
+import { PageLoadingContent, PageLoadError, usePageLayout } from "./page-loading";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -84,21 +84,30 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     canEdit ||
     (space?.settings?.comments?.allowViewerComments === true);
 
-  if (isPending && pageId) {
-    return <PageLoading />;
+  const layout = usePageLayout(page);
+  const loading =
+    (isPending && !!pageId) ||
+    (!!page && !pageError && !space && spaceQuery.isPending);
+  const toolbar = layout.showToolbar && (
+    <PageFormattingToolbar pageId={loading ? undefined : page?.id} />
+  );
+
+  if (loading) {
+    return (
+      <div>
+        {toolbar}
+        <PageLoadingContent {...layout} />
+      </div>
+    );
   }
 
-  if (pageError || !page || (!space && !spaceQuery.isPending)) {
+  if (pageError || !page || !space) {
     return (
       <PageLoadError
         error={pageError ?? spaceQuery.error}
         onRetry={pageError || !page ? refetchPage : spaceQuery.refetch}
       />
     );
-  }
-
-  if (!space) {
-    return <PageLoading page={page} />;
   }
 
   if (page?.isBase) {
@@ -167,6 +176,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   return (
     page && (
       <div>
+        {toolbar}
         <DocumentTitle
           title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
           withAppName={false}
@@ -174,7 +184,12 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
         <MemoizedPageHeader readOnly={!canEdit} />
 
-        <PageCover key={`cover-${page.id}`} page={page} editable={canEdit} />
+        <PageCover
+          key={`cover-${page.id}`}
+          page={page}
+          editable={canEdit}
+          belowToolbar={layout.showToolbar}
+        />
 
         <MemoizedFullEditor
           key={page.id}
@@ -188,7 +203,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           creator={page.creator}
           contributors={page.contributors}
           canComment={canComment}
-          hasCover={Boolean(resolveCover(page.coverPhoto))}
+          hasCover={layout.hasCover}
+          showToolbar={layout.showToolbar}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

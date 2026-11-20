@@ -4,7 +4,17 @@ import type { Editor } from "@tiptap/core";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 
-export const pageEditorAtom = atom<Editor | null>(null);
+type PageEditorBinding = {
+  pageId: string;
+  editor: Editor;
+  editable: boolean;
+};
+
+export const pageEditorBindingAtom = atom(null as PageEditorBinding | null);
+
+export const pageEditorAtom = atom(
+  (get) => get(pageEditorBindingAtom)?.editor ?? null,
+);
 
 export const titleEditorAtom = atom<Editor | null>(null);
 

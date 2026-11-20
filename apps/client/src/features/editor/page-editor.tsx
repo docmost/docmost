@@ -37,7 +37,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import {
   lightboxRequestAtom,
-  pageEditorAtom,
+  pageEditorBindingAtom,
   yjsConnectionStatusAtom,
   yjsSyncedAtom,
 } from "@/features/editor/atoms/editor-atoms";
@@ -297,7 +297,7 @@ function CollabPageEditor({
     isComponentMounted.current = true;
   }, []);
 
-  const [, setEditor] = useAtom(pageEditorAtom);
+  const setPageEditor = useSetAtom(pageEditorBindingAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
@@ -478,19 +478,18 @@ function CollabPageEditor({
   useDestroyEditorBeforeChildren(editor);
 
   useLayoutEffect(() => {
-    if (!showStatic && editor && !editor.isDestroyed) {
-      // @ts-ignore
-      setEditor(editor);
-      // @ts-ignore
-      editor.storage.pageId = pageId;
-      editorRef.current = editor;
-      // a destroyed editor must not stay behind for the title and header of the next page
-      return () => {
-        // @ts-ignore
-        setEditor((current) => (current === editor ? null : current));
-      };
-    }
-  }, [editor, pageId, setEditor, showStatic]);
+    if (!editor || editor.isDestroyed) return;
+    if (editor.isEditable !== canType) editor.setEditable(canType, false);
+    if (showStatic) return;
+
+    Object.assign(editor.storage, { pageId });
+    editorRef.current = editor;
+    const binding = { pageId, editor, editable: canType };
+    setPageEditor(binding);
+    return () => {
+      setPageEditor((current) => (current === binding ? null : current));
+    };
+  }, [editor, pageId, setPageEditor, showStatic, canType]);
 
   const editorIsEditable = useEditorState({
     editor,
@@ -553,11 +552,6 @@ function CollabPageEditor({
 
     return () => clearTimeout(timeout);
   }, [yjsConnectionStatus, isSynced]);
-  useLayoutEffect(() => {
-    if (editor && !editor.isDestroyed && editor.isEditable !== canType) {
-      editor.setEditable(canType, false);
-    }
-  }, [editor, canType]);
 
   useSearchNavigationParams({
     editor,

@@ -42,6 +42,20 @@
   flex-shrink: 0;
 }
 
+/* Size the selector to its widest translation so a selection change keeps the
+   other controls in place. */
+.blockTypeLabel {
+  display: inline-grid;
+}
+
+.blockTypeLabel > span {
+  grid-area: 1 / 1;
+}
+
+.blockTypeLabel > [aria-hidden="true"] {
+  visibility: hidden;
+}
+
 .divider {
   flex-shrink: 0;
   width: 1px;

@@ -27,7 +27,6 @@ import {
 } from "@/ee/page-verification";
 import { useTranslation } from "react-i18next";
 import { IContributor } from "@/features/page/types/page.types.ts";
-import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
@@ -40,7 +39,6 @@ import { AddCoverButton } from "@/features/page-cover/components/add-cover-butto
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
-const MemoizedFixedToolbar = React.memo(FixedToolbar);
 const MemoizedDeletedPageBanner = React.memo(DeletedPageBanner);
 
 type PageUser = {
@@ -65,6 +63,7 @@ export interface FullEditorProps {
   contributors?: IContributor[];
   canComment?: boolean;
   hasCover?: boolean;
+  showToolbar: boolean;
 }
 
 export function FullEditor({
@@ -79,13 +78,12 @@ export function FullEditor({
   contributors,
   canComment,
   hasCover,
+  showToolbar,
 }: FullEditorProps) {
   const { t } = useTranslation();
   const [user] = useAtom(userAtom);
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
   const fullPageWidth = user?.settings?.preferences?.fullPageWidth;
-  const editorToolbarEnabled =
-    user?.settings?.preferences?.editorToolbar ?? false;
   const setCurrentPageEditMode = useSetAtom(currentPageEditModeAtom);
   const userPageEditMode =
     user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
@@ -115,8 +113,8 @@ export function FullEditor({
       size={!fullPageWidth && 900}
       className={classes.editor}
     >
-      {editorToolbarEnabled && editable && isEditMode && (
-        <MemoizedFixedToolbar withSpacer={!hasCover} disabled={isCheckingLock} />
+      {showToolbar && !hasCover && (
+        <div className={classes.toolbarSpacer} aria-hidden />
       )}
       {space && <SpaceArchivedNotice space={space} />}
       <MemoizedDeletedPageBanner slugId={slugId} />
