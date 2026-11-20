@@ -157,8 +157,13 @@ export function usePageEditMode(pageId?: string) {
   return { editMode, isLocked, ...verification, changeEditMode };
 }
 
+// Checks the lock as soon as a page is opened, by slug until its id is known.
+export function usePageEditLockCheck(pageKey: string | undefined): void {
+  usePageVerificationStatus(pageKey, true);
+}
+
 export function usePageEditLockSync(pageId: string): void {
-  const { status } = usePageVerificationStatus(pageId, true);
+  const { status } = usePageVerificationStatus(pageId);
   const setUnlockedPageId = useSetAtom(unlockedVerifiedPageIdAtom);
   const previousStatusRef = useRef(status);
 

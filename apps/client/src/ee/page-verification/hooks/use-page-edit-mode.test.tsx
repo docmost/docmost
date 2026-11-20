@@ -7,7 +7,12 @@ import {
 import { Provider } from "jotai";
 import type { PropsWithChildren } from "react";
 import { expect, it, vi } from "vitest";
-import { usePageEditMode, usePageSyncPermission } from "./use-page-edit-mode";
+import {
+  usePageEditLockCheck,
+  usePageEditLockSync,
+  usePageEditMode,
+  usePageSyncPermission,
+} from "./use-page-edit-mode";
 import { useEntitlements } from "@/ee/entitlement/use-entitlements";
 import { PageEditMode } from "@/features/user/types/user.types";
 
@@ -28,23 +33,34 @@ vi.mock("@/main.tsx", () => ({}));
 
 const lockKey = ["page-verification-info", "scratchpad"];
 
+// Same query defaults as the app's client in main.tsx.
 function createClient() {
   return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    defaultOptions: {
+      queries: {
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        retry: false,
+        staleTime: 5 * 60 * 1000,
+        gcTime: Infinity,
+      },
+    },
   });
+}
+
+function wrapperFor(client: QueryClient) {
+  return ({ children }: PropsWithChildren) => (
+    <QueryClientProvider client={client}>
+      <Provider>{children}</Provider>
+    </QueryClientProvider>
+  );
 }
 
 function mount<T = ReturnType<typeof usePageEditMode>>(
   hook: () => T = () => usePageEditMode("scratchpad") as T,
   client = createClient(),
 ) {
-  const view = renderHook(hook, {
-    wrapper: ({ children }: PropsWithChildren) => (
-      <QueryClientProvider client={client}>
-        <Provider>{children}</Provider>
-      </QueryClientProvider>
-    ),
-  });
+  const view = renderHook(hook, { wrapper: wrapperFor(client) });
   return { client, ...view };
 }
 
@@ -366,3 +382,109 @@ it.each([
     unmount();
   },
 );
+
+const slugKey = ["page-verification-info", "slug-1"];
+const badRequest = Object.assign(new Error("Bad Request"), {
+  isAxiosError: true,
+  response: { status: 400, data: { message: ["pageId must be a UUID"] } },
+});
+
+it("reuses a slug answer for the page's lock without asking again", async () => {
+  workspaceFeatures
+    .mockReset()
+    .mockResolvedValue({ features: ["page:verification"] });
+  request
+    .mockReset()
+    .mockResolvedValue({ pageId: "scratchpad", status: "verified" });
+  const { client } = mount(() => usePageEditLockCheck("slug-1"));
+  await waitFor(() =>
+    expect(client.getQueryState(slugKey)?.status).toBe("success"),
+  );
+  const { result } = mount(undefined, client);
+  expect(result.current.isCheckingLock).toBe(false);
+  expect(result.current.editMode).toBe(PageEditMode.Read);
+  expect(request).toHaveBeenCalledOnce();
+});
+
+it("checks the lock again each time the page is opened", async () => {
+  workspaceFeatures
+    .mockReset()
+    .mockResolvedValue({ features: ["page:verification"] });
+  request
+    .mockReset()
+    .mockResolvedValue({ pageId: "scratchpad", status: "none" });
+  const client = createClient();
+  const first = mount(() => usePageEditLockCheck("slug-1"), client);
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+  first.unmount();
+  mount(() => usePageEditLockCheck("slug-1"), client);
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+});
+
+it("checks a page again when it is opened later in the same view", async () => {
+  workspaceFeatures
+    .mockReset()
+    .mockResolvedValue({ features: ["page:verification"] });
+  request
+    .mockReset()
+    .mockResolvedValue({ pageId: "scratchpad", status: "none" });
+  const client = createClient();
+  const { rerender } = renderHook(
+    ({ pageKey }) => usePageEditLockCheck(pageKey),
+    { initialProps: { pageKey: "slug-1" }, wrapper: wrapperFor(client) },
+  );
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+  rerender({ pageKey: "slug-2" });
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+  client.setQueryData(
+    slugKey,
+    { pageId: "scratchpad", status: "none" },
+    { updatedAt: Date.now() - 60_000 },
+  );
+  rerender({ pageKey: "slug-1" });
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
+});
+
+it("lets the editor reuse the entry check instead of asking again", async () => {
+  workspaceFeatures
+    .mockReset()
+    .mockResolvedValue({ features: ["page:verification"] });
+  request
+    .mockReset()
+    .mockResolvedValue({ pageId: "scratchpad", status: "none" });
+  const client = createClient();
+  mount(() => usePageEditLockCheck("slug-1"), client);
+  await waitFor(() =>
+    expect(client.getQueryState(slugKey)?.status).toBe("success"),
+  );
+  mount(() => {
+    usePageEditLockSync("scratchpad");
+    return usePageEditMode("scratchpad");
+  }, client);
+  await act(async () => {});
+  expect(request).toHaveBeenCalledOnce();
+});
+
+it("skips the entry check when the workspace has no verification", async () => {
+  request.mockReset();
+  mount(() => usePageEditLockCheck("slug-1"), withEntitlements([]));
+  await act(async () => {});
+  expect(request).not.toHaveBeenCalled();
+});
+
+it("still finds the lock by page id when the server refuses a slug", async () => {
+  workspaceFeatures
+    .mockReset()
+    .mockResolvedValue({ features: ["page:verification"] });
+  request
+    .mockReset()
+    .mockRejectedValueOnce(badRequest)
+    .mockResolvedValueOnce({ pageId: "scratchpad", status: "verified" });
+  const { client } = mount(() => usePageEditLockCheck("slug-1"));
+  await waitFor(() =>
+    expect(client.getQueryState(slugKey)?.status).toBe("error"),
+  );
+  const { result } = mount(undefined, client);
+  await waitFor(() => expect(result.current.editMode).toBe(PageEditMode.Read));
+  expect(result.current.verificationUnavailable).toBe(false);
+});
