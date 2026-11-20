@@ -5,6 +5,7 @@ import { FC, useEffect, useRef, useState } from "react";
 import {
   IconBold,
   IconCode,
+  IconCursorText,
   IconItalic,
   IconStrikethrough,
   IconUnderline,
@@ -92,7 +93,10 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         isUnderline: ctx.editor.isActive("underline"),
         isStrike: ctx.editor.isActive("strike"),
         isCode: ctx.editor.isActive("code"),
-        isComment: ctx.editor.isActive("comment"),
+        canEditPlaceholder:
+          templateMode &&
+          !ctx.editor.state.selection.empty &&
+          ctx.editor.can().editTemplatePlaceholder(),
       };
     },
   });
@@ -130,17 +134,17 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     },
   ];
 
-  const commentItem: BubbleMenuItem = {
-    name: "Comment",
-    isActive: () => editorState?.isComment,
-    command: () => {
-      const commentId = uuid7();
-
-      props.editor.chain().focus().setCommentDecoration().run();
-      setDraftCommentId(commentId);
-      setShowCommentPopup(true);
-    },
-    icon: IconMessage,
+  const selectionAction = templateMode ? "Turn into placeholder" : "Comment";
+  const SelectionIcon = templateMode ? IconCursorText : IconMessage;
+  const onSelectionAction = () => {
+    if (!isEditorReady(props.editor)) return;
+    if (templateMode) {
+      props.editor.commands.editTemplatePlaceholder();
+      return;
+    }
+    props.editor.chain().focus().setCommentDecoration().run();
+    setDraftCommentId(uuid7());
+    setShowCommentPopup(true);
   };
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
@@ -265,22 +269,22 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
         <LinkSelector />
 
-        {!templateMode && (
-          <Tooltip label={t(commentItem.name)} withArrow withinPortal={false}>
-            <ActionIcon
-              variant="default"
-              size="lg"
-              radius="6px"
-              aria-label={t(commentItem.name)}
-              style={{ border: "none" }}
-              onClick={() =>
-                isEditorReady(props.editor) && commentItem.command()
-              }
-            >
-              <IconMessage size={16} stroke={2} />
-            </ActionIcon>
-          </Tooltip>
-        )}
+        <Tooltip label={t(selectionAction)} withArrow withinPortal={false}>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            radius="6px"
+            aria-label={t(selectionAction)}
+            style={{ border: "none" }}
+            disabled={templateMode && !editorState?.canEditPlaceholder}
+            onMouseDown={
+              templateMode ? (event) => event.preventDefault() : undefined
+            }
+            onClick={onSelectionAction}
+          >
+            <SelectionIcon size={16} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
       </div>
     </BubbleMenu>
   );

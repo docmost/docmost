@@ -1,13 +1,13 @@
 import type { Editor } from "@tiptap/core";
-import { DOMSerializer, type Node as PMNode } from "@tiptap/pm/model";
+import { Fragment, Slice, type Node as PMNode } from "@tiptap/pm/model";
 
 export function copyNodeToClipboard(
   editor: Editor,
   node: PMNode,
 ): Promise<void> {
-  const serializer = DOMSerializer.fromSchema(editor.state.schema);
-  const wrapper = document.createElement("div");
-  wrapper.appendChild(serializer.serializeNode(node));
+  const { dom: wrapper } = editor.view.serializeForClipboard(
+    new Slice(Fragment.from(node), 0, 0),
+  );
 
   const copyWithExecCommand = () => {
     wrapper.style.position = "fixed";

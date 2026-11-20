@@ -21,8 +21,13 @@ vi.mock("@/i18n.ts", async () => {
   return { default: i18n };
 });
 
-const editorWhere = (canInsertTabs: boolean) =>
-  ({ can: () => ({ insertTabs: () => canInsertTabs }) }) as unknown as Editor;
+const editorWhere = (canInsertTabs: boolean, canEditPlaceholder = false) =>
+  ({
+    can: () => ({
+      insertTabs: () => canInsertTabs,
+      editTemplatePlaceholder: () => canEditPlaceholder,
+    }),
+  }) as unknown as Editor;
 
 const titles = (query: string, editor?: Editor) =>
   Object.values(getSuggestionItems({ query, editor }))
@@ -33,6 +38,15 @@ describe("slash menu", () => {
   it("hides Tabs where tabs can't be inserted, such as inside a tab", () => {
     expect(titles("tabs", editorWhere(true))).toContain("Tabs");
     expect(titles("tabs", editorWhere(false))).not.toContain("Tabs");
+  });
+
+  it("offers the placeholder command only where an author can insert one", () => {
+    expect(titles("placeholder", editorWhere(true, true))).toContain(
+      "Placeholder text",
+    );
+    expect(titles("placeholder", editorWhere(true))).not.toContain(
+      "Placeholder text",
+    );
   });
 
   it.each(["calendrier", "aujourd'hui", "aujourd’hui", "calendar", "today"])(

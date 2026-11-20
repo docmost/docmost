@@ -44,6 +44,7 @@ export default function ReadonlyTemplateEditor({
         immediatelyRender={true}
         textDirection="auto"
         extensions={extensions}
+        editorProps={{ attributes: { class: "template-preview" } }}
         content={template.content}
       />
     </>
