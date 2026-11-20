@@ -19,6 +19,7 @@ import {
   IconSuperscript,
   IconTable,
   IconTag,
+  IconVariable,
 } from "@tabler/icons-react";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
@@ -275,6 +276,15 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
 
         <Menu.Divider />
         <Menu.Label>{t("Utility")}</Menu.Label>
+        {templateMode && (
+          <Menu.Item
+            leftSection={<IconVariable size={16} />}
+            disabled={!editor.can().insertTemplateVariable?.()}
+            onClick={() => editor.commands.insertTemplateVariable()}
+          >
+            {t("Variable")}
+          </Menu.Item>
+        )}
         <Menu.Item
           leftSection={<IconCalendar size={16} />}
           onClick={() => editor.chain().focus().insertDate().run()}

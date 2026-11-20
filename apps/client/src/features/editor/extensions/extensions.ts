@@ -1,4 +1,5 @@
 import { markInputRule, type Editor } from "@tiptap/core";
+import { EditableTemplateVariable } from "@/ee/template/components/template-variable-node";
 import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
@@ -515,6 +516,7 @@ export const getTemplateExtensions = (onEditPlaceholder: () => void) => [
     (ext: any) => ext !== SlashCommand && ext !== TemplatePlaceholder,
   ),
   TemplatePlaceholder.configure({ onEdit: onEditPlaceholder }),
+  EditableTemplateVariable,
   TemplateSlashCommand,
   UndoRedo,
 ] as any;

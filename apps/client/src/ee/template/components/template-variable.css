@@ -1,0 +1,39 @@
+.tiptap .template-variable-chip,
+.tiptap [data-template-variable] {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.32em;
+  max-inline-size: 100%;
+  padding: 0 0.38em;
+  border: 1px solid var(--mantine-primary-color-light-hover);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
+  font: inherit;
+  font-size: 0.88em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: start;
+  vertical-align: baseline;
+}
+
+.tiptap .template-variable-chip > svg {
+  align-self: center;
+  flex: none;
+}
+
+.tiptap .template-variable-type {
+  border-inline-start: 1px solid var(--mantine-primary-color-light-hover);
+  padding-inline-start: 0.45em;
+  font-size: 0.86em;
+  font-weight: 400;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.tiptap button.template-variable-chip {
+  cursor: pointer;
+}
+
+.tiptap button.template-variable-chip:hover {
+  background: var(--mantine-primary-color-light-hover);
+}

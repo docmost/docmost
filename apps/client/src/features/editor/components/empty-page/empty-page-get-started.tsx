@@ -20,7 +20,7 @@ import {
 } from "@/features/editor/atoms/editor-atoms";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
-import { ITemplate } from "@/ee/template/types/template.types";
+import { ITemplate, type TemplateVariableValues } from "@/ee/template/types/template.types";
 import { applyTemplate } from "@/ee/template/services/template-service.ts";
 import { applyTemplateToPage } from "@/ee/template/template.utils";
 import { isBetaBaseForms } from "@/lib/config.ts";
@@ -66,33 +66,34 @@ export function EmptyPageGetStarted({
     };
   }, [editor]);
 
-  const handleUseTemplate = async (selected: ITemplate) => {
-    if (editor && !editor.isDestroyed && !editor.isEmpty) {
+  const handleUseTemplate = async (
+    selected: ITemplate,
+    variableValues?: TemplateVariableValues,
+  ) => {
+    if (!editor || editor.isDestroyed || !titleEditor || titleEditor.isDestroyed) {
+      return false;
+    }
+    if (!editor.isEmpty) {
       notifications.show({
         message: t("This page is no longer empty"),
         color: "red",
       });
-      return;
+      return false;
     }
 
     let template: ITemplate;
     try {
-      template = await applyTemplate({ templateId: selected.id, pageId });
-    } catch {
+      template = await applyTemplate({ template: selected, pageId, variableValues });
+    } catch (error) {
       notifications.show({
-        message: t("Failed to load template"),
+        message: t(error.response?.data?.message || "Failed to load template"),
         color: "red",
       });
-      return;
+      return false;
     }
 
-    if (
-      !editor ||
-      editor.isDestroyed ||
-      !titleEditor ||
-      titleEditor.isDestroyed
-    ) {
-      return;
+    if (editor.isDestroyed || titleEditor.isDestroyed) {
+      return false;
     }
 
     if (!applyTemplateToPage(editor, titleEditor, template)) {
@@ -100,7 +101,9 @@ export function EmptyPageGetStarted({
         message: t("This page is no longer empty"),
         color: "red",
       });
+      return false;
     }
+    return true;
   };
 
   const chips = [

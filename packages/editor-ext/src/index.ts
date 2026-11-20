@@ -34,6 +34,7 @@ export * from "./lib/microsoft";
 export * from "./lib/columns";
 export * from "./lib/status";
 export * from "./lib/date";
+export * from "./lib/template-variable";
 export * from "./lib/template-placeholder";
 export * from "./lib/tabs";
 export * from "./lib/pdf";

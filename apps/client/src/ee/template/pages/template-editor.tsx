@@ -1,4 +1,5 @@
 import "@/features/editor/styles/index.css";
+import "../components/template-variable.css";
 import {
   useCallback,
   useEffect,

@@ -21,7 +21,8 @@ import {
   useDeleteTemplateMutation,
 } from "@/ee/template/queries/template-query";
 import TemplateCard from "@/ee/template/components/template-card";
-import { ITemplate } from "@/ee/template/types/template.types";
+import { ITemplate, type TemplateVariableValues } from "@/ee/template/types/template.types";
+import { useTemplateVariables } from "../components/template-variables-form";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import UseTemplateModal from "@/ee/template/components/use-template-modal";
 import TemplatePreviewModal from "@/ee/template/components/template-preview-modal";
@@ -40,6 +41,7 @@ export default function TemplateList() {
     isWorkspaceAdmin ||
     workspace?.settings?.templates?.allowMemberTemplates === true;
   const [spaceFilter, setSpaceFilter] = useState<string | null>(null);
+  const [variableValues, setVariableValues] = useState<TemplateVariableValues>();
   const [selectedTemplate, setSelectedTemplate] = useState<ITemplate | null>(
     null,
   );
@@ -90,15 +92,17 @@ export default function TemplateList() {
   );
 
   const handlePreview = (template: ITemplate) => {
+    variables.cancel();
     setSelectedTemplate(template);
     openPreview();
   };
 
-  const handleUse = (template: ITemplate) => {
+  const variables = useTemplateVariables((template, values) => {
     setSelectedTemplate(template);
+    setVariableValues(values);
     closePreview();
     openUseModal();
-  };
+  }, t("Continue"));
 
   const handleEdit = (template: ITemplate) => {
     navigate(`/templates/${template.id}`);
@@ -177,7 +181,8 @@ export default function TemplateList() {
                       : undefined
                   }
                   onPreview={handlePreview}
-                  onUse={handleUse}
+                  onUse={variables.choose}
+                  useLoading={variables.loadingId === template.id}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   canManage={isWorkspaceAdmin}
@@ -208,18 +213,21 @@ export default function TemplateList() {
         opened={createModalOpened}
         onClose={closeCreateModal}
       />
+      {variables.form}
 
       {selectedTemplate && (
         <>
           <TemplatePreviewModal
             templateId={selectedTemplate.id}
-            opened={previewOpened}
-            onClose={closePreview}
-            onUse={() => handleUse(selectedTemplate)}
+            opened={previewOpened && !variables.form}
+            onClose={() => { variables.cancel(); closePreview(); }}
+            onUse={() => variables.choose(selectedTemplate)}
+            useLoading={!!variables.loadingId}
             onEdit={isWorkspaceAdmin ? () => handleEdit(selectedTemplate) : undefined}
           />
           <UseTemplateModal
             template={selectedTemplate}
+            variableValues={variableValues}
             opened={useModalOpened}
             onClose={closeUseModal}
           />

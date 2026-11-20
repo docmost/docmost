@@ -41,6 +41,9 @@ import {
   htmlToJson,
   jsonToNode,
   jsonToText,
+  parseDocumentJson,
+  templateExtensions,
+  tiptapExtensions,
 } from 'src/collaboration/collaboration.util';
 import { CopyPageMapEntry } from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
@@ -1383,17 +1386,19 @@ export class PageService {
   async parseProsemirrorContent(
     content: string | object,
     format: ContentFormat,
+    context: 'page' | 'template' = 'page',
   ): Promise<any> {
+    const extensions = context === 'template' ? templateExtensions : tiptapExtensions;
     let prosemirrorJson: any;
 
     switch (format) {
       case 'markdown': {
         const html = await markdownToHtml(content as string);
-        prosemirrorJson = htmlToJson(html as string);
+        prosemirrorJson = htmlToJson(html as string, extensions);
         break;
       }
       case 'html': {
-        prosemirrorJson = htmlToJson(content as string);
+        prosemirrorJson = htmlToJson(content as string, extensions);
         break;
       }
       case 'json':
@@ -1404,12 +1409,10 @@ export class PageService {
     }
 
     try {
-      jsonToNode(prosemirrorJson);
+      return parseDocumentJson(prosemirrorJson, extensions).content;
     } catch (err) {
       throw new BadRequestException('Invalid content format');
     }
-
-    return prosemirrorJson;
   }
 
   /**
