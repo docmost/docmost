@@ -9,6 +9,8 @@ vi.mock("./page-draft-cache", () => ({
     ydoc = new Y.Doc();
     opened = false;
     close = vi.fn();
+    useBackupStorage = vi.fn();
+    resumeDrafts = vi.fn(async () => {});
     resolve!: (cached: boolean) => void;
     reject!: (error: Error) => void;
     restore = vi.fn(
@@ -96,7 +98,8 @@ describe("usePageYdoc", () => {
     expect(result.current).toBeNull();
     await act(async () => caches[0].reject(new Error("storage failed")));
     expect(result.current?.hasCachedDocument).toBe(false);
-    expect(result.current?.cache).toBeUndefined();
+    expect(result.current?.cache).toBe(caches[1]);
+    expect(caches[1].useBackupStorage).toHaveBeenCalledOnce();
     expect(report).toHaveBeenCalledOnce();
   });
 
@@ -107,6 +110,18 @@ describe("usePageYdoc", () => {
     expect(server.ydoc).not.toBe(caches[0].ydoc);
     await act(async () => caches[0].resolve(true));
     expect(result.current).toBe(server);
+  });
+
+  it("uses the server when a transaction stalls after the database opens", async () => {
+    const { result } = mount();
+    caches[0].opened = true;
+    act(() => vi.advanceTimersByTime(10_000));
+    const live = result.current!;
+    live.ydoc.getText("text").insert(0, "live changes");
+    await act(async () => caches[0].resolve(true));
+    expect(result.current).toBe(live);
+    expect(live.ydoc.getText("text").toString()).toBe("live changes");
+    expect(report).toHaveBeenCalledOnce();
   });
 
   it("never exposes a previous page or account's editor", async () => {

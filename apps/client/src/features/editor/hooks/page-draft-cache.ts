@@ -2,15 +2,11 @@ import {
   HocuspocusProvider,
   MessageType,
   type onMessageParameters,
-  type onOutgoingMessageParameters,
 } from "@hocuspocus/provider";
-import { createDecoder, readVarString, readVarUint } from "lib0/decoding";
-import {
-  messageYjsSyncStep1,
-  messageYjsSyncStep2,
-  messageYjsUpdate,
-} from "y-protocols/sync";
+import { messageYjsSyncStep2, messageYjsUpdate } from "y-protocols/sync";
 import * as Y from "yjs";
+import { fromBase64, toBase64 } from "lib0/buffer";
+import { failedPageWrites } from "@/lib/local-page-data";
 
 // Keep the y-indexeddb store layout. Only server-confirmed updates go in
 // "updates". Individual drafts stay in "custom" until their packet is acknowledged.
@@ -18,10 +14,10 @@ const COMPACT_AFTER = 500;
 const DRAFT = "draft";
 const WAIT_FOR_WRITE = "draft-requires-write";
 const EMPTY = "empty-page-synced";
-const LEGACY_CURSOR = "legacy-update-cursor";
+const RECOVERY = "refused-copy";
 const RESTORE = Symbol("restore page");
 type DraftKey = [string, string, number];
-type Draft = { key: DraftKey; update: Uint8Array };
+type Draft = { key: DraftKey; update: Uint8Array; backedUp?: boolean };
 
 // If a tab closes during a refused write's rollback (or IndexedDB aborts),
 // the next opener must finish that rollback before it can replay the draft.
@@ -92,36 +88,18 @@ function compact(db: IDBDatabase) {
     const store = tx.objectStore("updates");
     const updates = await result<Uint8Array[]>(store.getAll());
     if (updates.length >= COMPACT_AFTER) {
-      const merged = Y.mergeUpdates(updates);
+      const confirmed = new Y.Doc();
+      let merged: Uint8Array;
+      try {
+        Y.applyUpdate(confirmed, Y.mergeUpdates(updates));
+        merged = Y.encodeStateAsUpdate(confirmed);
+      } finally {
+        confirmed.destroy();
+      }
       store.clear();
       store.add(merged);
     }
   });
-}
-
-// Read the old per-page cache without taking ownership of it. An older tab can
-// continue using its connection while this version imports an existing draft.
-async function readLegacy(name: string, cursor: number) {
-  if (
-    !cursor &&
-    indexedDB.databases &&
-    !(await indexedDB.databases()).some((db) => db.name === name)
-  )
-    return;
-  const db = await openDatabase(name);
-  try {
-    const tx = db.transaction(["updates", "custom"]);
-    const range = IDBKeyRange.lowerBound(cursor, true);
-    const store = tx.objectStore("updates");
-    const [keys, updates, empty] = await Promise.all([
-      result(store.getAllKeys(range)),
-      result<Uint8Array[]>(store.getAll(range)),
-      result(tx.objectStore("custom").get(EMPTY)),
-    ]);
-    return { keys, updates, empty };
-  } finally {
-    db.close();
-  }
 }
 
 export class PageDraftCache {
@@ -130,7 +108,8 @@ export class PageDraftCache {
   private db: IDBDatabase | null = null;
   private readonly pending = new Map<string, Draft>();
   private readonly owned = new Set<string>();
-  private deferred = false;
+  private writable = false;
+  private readonly failed = new Set<Draft>();
   private connection = 0;
   private unsent: Draft[] = [];
   private packets: Draft[][] = [];
@@ -143,18 +122,34 @@ export class PageDraftCache {
   private readonly lifetime = new Promise<void>((resolve) => {
     this.releaseLocks = resolve;
   });
-  private lockManager: LockManager | undefined = navigator.locks;
+  private writerLock?: Promise<boolean>;
+  private lockManager: LockManager | undefined;
 
   constructor(
-    private pageId: string,
+    pageId: string,
     userId: string,
     private onWriteError: () => void,
+    private canReplayDrafts: () => boolean = () => true,
   ) {
     this.name = `page.${pageId}.user.${userId}`;
+    try {
+      this.lockManager = navigator.locks;
+    } catch {
+      /* Storage may be blocked. */
+    }
   }
 
   get opened() {
     return this.db !== null;
+  }
+
+  get hasPending() {
+    return this.pending.size > 0;
+  }
+
+  useBackupStorage() {
+    this.writerLock = this.claim(this.ydoc.guid);
+    this.ydoc.on("update", this.onUpdate);
   }
 
   // A suspended tab still owns its draft. Browser locks are released by the
@@ -178,34 +173,6 @@ export class PageDraftCache {
     });
   }
 
-  private async migrate() {
-    const cursor =
-      Number(
-        await result(
-          this.db!.transaction("custom")
-            .objectStore("custom")
-            .get(LEGACY_CURSOR),
-        ),
-      ) || 0;
-    const legacy = await readLegacy(`page.${this.pageId}`, cursor);
-    if (this.closed || !legacy?.keys.length) return;
-    await write(this.db!, "custom", async (tx) => {
-      const store = tx.objectStore("custom");
-      // Another importer may have advanced the cursor since our first read.
-      const current = Number(await result(store.get(LEGACY_CURSOR))) || 0;
-      const unseen = legacy.updates.filter(
-        (_, i) => Number(legacy.keys[i]) > current,
-      );
-      if (unseen.length) {
-        const last = Number(legacy.keys[legacy.keys.length - 1]);
-        const update = Y.mergeUpdates(unseen);
-        if (update.length > 2) store.put(update, [DRAFT, "legacy", last]);
-        if (legacy.empty === 1) store.put(1, EMPTY);
-        store.put(last, LEGACY_CURSOR);
-      }
-    });
-  }
-
   async restore(serverOnly = false) {
     const db = await openDatabase(this.name);
     if (this.closed) {
@@ -216,7 +183,9 @@ export class PageDraftCache {
     db.onversionchange = () => {
       db.close();
     };
-    await Promise.all([this.claim(this.ydoc.guid), this.migrate()]);
+    // Previous versions stored page.<id> without a writer identity. Leave that
+    // database intact. Only account-scoped records can join this room.
+    await this.claim(this.ydoc.guid);
     if (this.closed) return false;
     const syncedEmpty = !serverOnly && (await this.restoreDrafts(false, true));
     if (this.closed) return false;
@@ -235,32 +204,45 @@ export class PageDraftCache {
     const connection = this.connection;
     // Browsers without Web Locks adopt another writer's draft only after the
     // collaboration server has granted this connection write access.
-    const range = IDBKeyRange.bound([DRAFT], [DRAFT, []]);
-    const keys =
-      this.lockManager || writeAuthorized
+    const backupKeys = failedPageWrites.read(this.name);
+    const diskKeys =
+      this.db && (this.lockManager || writeAuthorized) && this.canReplayDrafts()
         ? await result(
             this.db!.transaction("custom")
               .objectStore("custom")
-              .getAllKeys(range),
+              .getAllKeys(IDBKeyRange.bound([DRAFT], [DRAFT, []])),
           )
         : [];
-    const owners = new Set(keys.map((key) => (key as DraftKey)[1]));
+    const keys = new Map<string, DraftKey>();
+    if ((this.lockManager || writeAuthorized) && this.canReplayDrafts()) {
+      for (const value of diskKeys)
+        keys.set(JSON.stringify(value), value as DraftKey);
+      for (const key of backupKeys.keys())
+        keys.set(key, JSON.parse(key) as DraftKey);
+    }
+    const owners = new Set(Array.from(keys.values(), (key) => key[1]));
     const claimed = new Set<string>();
     await Promise.all(
       Array.from(owners, async (owner) => {
         if (
+          owner === "legacy" ||
           owner === this.ydoc.guid ||
           (this.lockManager && !(await this.claim(owner))) ||
           this.closed
         )
           return;
         if (refusalMarker(this.name, owner, "get")) {
-          await write(this.db!, "custom", (tx) => {
-            tx.objectStore("custom").delete(
-              IDBKeyRange.bound([DRAFT, owner], [DRAFT, owner, []]),
-            );
-          });
-          refusalMarker(this.name, owner, "remove");
+          if (this.db)
+            await write(this.db, "custom", (tx) => {
+              tx.objectStore("custom").delete(
+                IDBKeyRange.bound([DRAFT, owner], [DRAFT, owner, []]),
+              );
+            });
+          for (const [id, key] of keys) {
+            if (key[1] === owner && backupKeys.has(id))
+              failedPageWrites.remove(this.name, id);
+          }
+          if (this.db) refusalMarker(this.name, owner, "remove");
         } else {
           claimed.add(owner);
         }
@@ -274,28 +256,30 @@ export class PageDraftCache {
       return;
     // Re-read after claiming. The previous owner may have saved or discarded a
     // draft between the first read and our lock acquisition.
-    const snapshot = this.db!.transaction(
+    const snapshot = this.db?.transaction(
       includeConfirmed ? ["custom", "updates"] : ["custom"],
     );
-    const fresh = snapshot.objectStore("custom");
+    const fresh = snapshot?.objectStore("custom");
+    const backups = backupKeys.size
+      ? failedPageWrites.read(this.name)
+      : backupKeys;
     const [confirmed, empty, drafts] = await Promise.all([
-      includeConfirmed
+      includeConfirmed && snapshot
         ? result<Uint8Array[]>(snapshot.objectStore("updates").getAll())
         : [],
-      includeConfirmed ? result(fresh.get(EMPTY)) : undefined,
+      includeConfirmed && fresh ? result(fresh.get(EMPTY)) : undefined,
       Promise.all(
-        keys.map(async (value) => {
-          const key = value as DraftKey;
+        Array.from(keys, async ([id, key]) => {
           if (!claimed.has(key[1])) return;
-          const [update, needsGrant] = await Promise.all([
-            result<Uint8Array | undefined>(fresh.get(key)),
-            result(fresh.get([WAIT_FOR_WRITE, key[1], key[2]])),
+          const [stored, needsGrant] = await Promise.all([
+            fresh && result<Uint8Array | undefined>(fresh.get(key)),
+            fresh && result(fresh.get([WAIT_FOR_WRITE, key[1], key[2]])),
           ]);
-          if (update && needsGrant && !writeAuthorized) {
-            this.deferred = true;
-            return;
-          }
-          if (update) return { key, update };
+          if (needsGrant && !writeAuthorized) return;
+          const backup = backups.get(id);
+          const update = stored ?? (backup && fromBase64(backup));
+          if (update)
+            return { key, update, backedUp: Boolean(backup) } as Draft;
         }),
       ),
     ]);
@@ -307,7 +291,9 @@ export class PageDraftCache {
       return;
     const restored = drafts.filter(
       (draft): draft is Draft =>
-        !!draft && !this.pending.has(JSON.stringify(draft.key)),
+        !!draft &&
+        this.canReplayDrafts() &&
+        !this.pending.has(JSON.stringify(draft.key)),
     );
     if (includeConfirmed) this.writes = confirmed.length;
     for (const draft of restored)
@@ -325,8 +311,50 @@ export class PageDraftCache {
 
   async authenticated(writable: boolean) {
     this.connection++;
-    if (writable && (!this.lockManager || this.deferred))
-      await this.restoreDrafts(true);
+    this.writable = writable;
+    await this.resumeDrafts();
+  }
+
+  async resumeDrafts() {
+    await this.writerLock;
+    if (this.writable && this.canReplayDrafts()) await this.restoreDrafts(true);
+  }
+
+  private appendDraft(draft: Draft) {
+    const keepBackup = () => {
+      draft.backedUp = true;
+      failedPageWrites.keep(
+        this.name,
+        JSON.stringify(draft.key),
+        toBase64(draft.update),
+      );
+    };
+    if (!this.db) {
+      keepBackup();
+      return;
+    }
+    const retry = [...this.failed];
+    void write(this.db!, "custom", (tx) => {
+      const store = tx.objectStore("custom");
+      for (const previous of retry) store.put(previous.update, previous.key);
+      store.put(draft.update, draft.key);
+    })
+      .then(() => {
+        for (const previous of retry) this.clearBackup(previous);
+      })
+      .catch(() => {
+        if (this.refused) return;
+        this.failed.add(draft);
+        keepBackup();
+        this.onWriteError();
+      });
+  }
+
+  private clearBackup(draft: Draft) {
+    if (!draft.backedUp) return;
+    failedPageWrites.remove(this.name, JSON.stringify(draft.key));
+    this.failed.delete(draft);
+    draft.backedUp = false;
   }
 
   private onUpdate = (update: Uint8Array, origin: unknown) => {
@@ -338,17 +366,20 @@ export class PageDraftCache {
     const draft = { key, update };
     this.pending.set(JSON.stringify(key), draft);
     this.unsent.push(draft);
-    void write(this.db!, "custom", (tx) => {
-      tx.objectStore("custom").put(update, key);
-    }).catch(this.onWriteError);
+    this.appendDraft(draft);
   };
 
-  outgoing({ message }: onOutgoingMessageParameters) {
-    if (message.type !== MessageType.Sync) return;
-    const decoder = createDecoder(message.toUint8Array());
-    readVarString(decoder);
-    readVarUint(decoder);
-    if (readVarUint(decoder) === messageYjsUpdate)
+  withholdBatch() {
+    // Acknowledgements track transmitted packets. The journal still owns
+    // these edits until a later state-vector handshake includes them.
+    this.unsent = [];
+  }
+
+  sent(subtype: number, included: boolean) {
+    if (!included) this.packets.push([]);
+    else if (subtype === messageYjsSyncStep2)
+      this.packets.push([...this.pending.values()]);
+    else if (subtype === messageYjsUpdate)
       this.packets.push(this.unsent.splice(0));
   }
 
@@ -359,14 +390,7 @@ export class PageDraftCache {
         this.acknowledge();
       } else if (type === MessageType.Sync) {
         const subtype = message.readVarUint();
-        if (subtype === messageYjsSyncStep1) {
-          // The provider immediately answers a state-vector request with Step2.
-          // Its acknowledgement covers exactly the drafts seen at this point.
-          this.packets.push([...this.pending.values()]);
-        } else if (
-          subtype === messageYjsSyncStep2 ||
-          subtype === messageYjsUpdate
-        ) {
+        if (subtype === messageYjsSyncStep2 || subtype === messageYjsUpdate) {
           this.saveConfirmed(message.readVarUint8Array(), []);
         }
       }
@@ -377,6 +401,7 @@ export class PageDraftCache {
 
   disconnected() {
     this.connection++;
+    this.writable = false;
     this.packets = [];
     this.unsent = [];
   }
@@ -392,6 +417,13 @@ export class PageDraftCache {
   }
 
   private saveConfirmed(update: Uint8Array, drafts: Draft[]) {
+    if (!this.db) {
+      for (const draft of drafts) {
+        this.clearBackup(draft);
+        this.pending.delete(JSON.stringify(draft.key));
+      }
+      return;
+    }
     if (
       !drafts.length &&
       update.length === 2 &&
@@ -409,7 +441,10 @@ export class PageDraftCache {
       }
     })
       .then(() => {
-        for (const { key } of drafts) this.pending.delete(JSON.stringify(key));
+        for (const draft of drafts) {
+          this.clearBackup(draft);
+          this.pending.delete(JSON.stringify(draft.key));
+        }
         if (
           !this.closed &&
           !this.compacting &&
@@ -426,7 +461,7 @@ export class PageDraftCache {
   }
 
   markSynced() {
-    if (!this.ydoc.getXmlFragment("default").length) {
+    if (this.db && !this.ydoc.getXmlFragment("default").length) {
       void write(this.db!, "custom", (tx) => {
         tx.objectStore("custom").put(1, EMPTY);
       }).catch(this.onWriteError);
@@ -434,23 +469,54 @@ export class PageDraftCache {
   }
 
   async discard(forgetPage = false): Promise<void> {
+    // Keep the rejected writer's local copy outside the updates that can sync.
+    const copy =
+      !forgetPage && this.hasPending
+        ? {
+            id: this.ydoc.guid,
+            createdAt: Date.now(),
+            update: Y.encodeStateAsUpdate(this.ydoc),
+          }
+        : undefined;
     this.refused = true;
     this.ydoc.off("update", this.onUpdate);
     refusalMarker(this.name, this.ydoc.guid, "set");
-    await write(this.db!, ["updates", "custom"], (tx) => {
-      for (const { key } of this.pending.values()) {
-        // Even a closed tab may have unsent work. This room may discard only
-        // its own edits. An inherited draft can be retried by an authorized writer.
-        if (key[1] === this.ydoc.guid) tx.objectStore("custom").delete(key);
-        else
-          tx.objectStore("custom").put(true, [WAIT_FOR_WRITE, key[1], key[2]]);
-      }
-      if (forgetPage) {
-        tx.objectStore("updates").clear();
-        tx.objectStore("custom").delete(EMPTY);
-      }
-    });
-    refusalMarker(this.name, this.ydoc.guid, "remove");
+    const recovery = this.name + ".recovery";
+    const copyKey = copy && `${copy.id}:${copy.createdAt}`;
+    if (forgetPage) {
+      for (const key of failedPageWrites.read(recovery).keys())
+        failedPageWrites.remove(recovery, key);
+    } else if (copy) {
+      failedPageWrites.keep(recovery, copyKey, toBase64(copy.update));
+    }
+    if (this.db)
+      await write(this.db, ["updates", "custom"], (tx) => {
+        const custom = tx.objectStore("custom");
+        if (copy) custom.put(copy, [RECOVERY, copy.id]);
+        for (const { key } of this.pending.values()) {
+          // Even a closed tab may have unsent work. This room may discard only
+          // its own edits. An inherited draft can be retried by an authorized writer.
+          if (key[1] === this.ydoc.guid) tx.objectStore("custom").delete(key);
+          else
+            tx.objectStore("custom").put(true, [
+              WAIT_FOR_WRITE,
+              key[1],
+              key[2],
+            ]);
+        }
+        if (forgetPage) {
+          tx.objectStore("updates").clear();
+          custom.delete(EMPTY);
+          custom.delete(IDBKeyRange.bound([RECOVERY], [RECOVERY, []]));
+        }
+      });
+    for (const draft of this.pending.values()) {
+      if (draft.key[1] === this.ydoc.guid) this.clearBackup(draft);
+    }
+    if (this.db) {
+      if (copyKey) failedPageWrites.remove(recovery, copyKey);
+      refusalMarker(this.name, this.ydoc.guid, "remove");
+    }
   }
 
   close() {

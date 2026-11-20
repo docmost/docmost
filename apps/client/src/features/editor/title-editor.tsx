@@ -1,6 +1,6 @@
 import "@/features/editor/styles/index.css";
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import React, { useEffect, useLayoutEffect } from "react";
+import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
 import { Text } from "@tiptap/extension-text";
@@ -15,6 +15,7 @@ import {
   useUpdateTitlePageMutation,
 } from "@/features/page/queries/page-query";
 import { useDebouncedCallback, getHotkeyHandler } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { useAtom } from "jotai";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
@@ -49,16 +50,38 @@ export function TitleEditor({
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const { mutateAsync: updateTitlePageMutationAsync } =
-    useUpdateTitlePageMutation();
+    useUpdateTitlePageMutation(pageId);
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const emit = useQueryEmit();
   const navigate = useNavigate();
-  const [activePageId, setActivePageId] = useState(pageId);
-  const hasTitleEditRef = useRef(false);
   // bases have no edit mode toggle, so a verification must not lock their title
   const { editMode, isCheckingLock } = usePageEditMode(isBase ? undefined : pageId);
   const canEditTitle = editable && !isCheckingLock && editMode === PageEditMode.Edit;
+
+  const saveTitle = useDebouncedCallback(async (editor: Editor, value: string) => {
+    try {
+      const page = await updateTitlePageMutationAsync({ pageId, title: value });
+      if (!editor.isDestroyed && page.title !== editor.getText()) return;
+      updatePageData(page);
+      const event: UpdateEvent = {
+        operation: "updateOne",
+        spaceId: page.spaceId,
+        entity: ["pages"],
+        id: page.id,
+        payload: {
+          title: page.title,
+          slugId: page.slugId,
+          parentPageId: page.parentPageId,
+          icon: page.icon,
+        },
+      };
+      localEmitter.emit("message", event);
+      emit(event);
+    } catch {
+      notifications.show({ color: "red", message: t("Failed to save page title") });
+    }
+  }, { delay: 500, flushOnUnmount: true });
 
   const titleEditor = useEditor({
     extensions: [
@@ -82,12 +105,10 @@ export function TitleEditor({
       if (editor) {
         // @ts-ignore
         setTitleEditor(editor);
-        setActivePageId(pageId);
       }
     },
     onUpdate({ editor }) {
-      hasTitleEditRef.current = true;
-      debounceUpdate();
+      saveTitle(editor, editor.getText());
     },
     editable: canEditTitle,
     content: title,
@@ -127,45 +148,6 @@ export function TitleEditor({
     );
   }, [title]);
 
-  const saveTitle = useCallback(() => {
-    if (!titleEditor || activePageId !== pageId) return;
-
-    if (
-      titleEditor.getText() === title ||
-      (titleEditor.getText() === "" && title === null)
-    ) {
-      return;
-    }
-
-    updateTitlePageMutationAsync({
-      pageId: pageId,
-      title: titleEditor.getText(),
-    }).then((page) => {
-      const event: UpdateEvent = {
-        operation: "updateOne",
-        spaceId: page.spaceId,
-        entity: ["pages"],
-        id: page.id,
-        payload: {
-          title: page.title,
-          slugId: page.slugId,
-          parentPageId: page.parentPageId,
-          icon: page.icon,
-        },
-      };
-
-      if (!titleEditor.isDestroyed && page.title !== titleEditor.getText())
-        return;
-
-      updatePageData(page);
-
-      localEmitter.emit("message", event);
-      emit(event);
-    });
-  }, [pageId, title, titleEditor]);
-
-  const debounceUpdate = useDebouncedCallback(saveTitle, 500);
-
   useEffect(() => {
     if (
       titleEditor &&
@@ -190,14 +172,6 @@ export function TitleEditor({
     }, 300);
     return () => clearTimeout(timer);
   }, [titleEditor]);
-
-  useEffect(() => {
-    return () => {
-      // force-save title on navigation, only after a real edit
-      if (hasTitleEditRef.current) saveTitle();
-      hasTitleEditRef.current = false;
-    };
-  }, [pageId]);
 
   useLayoutEffect(() => {
     if (titleEditor && !titleEditor.isDestroyed && titleEditor.isEditable !== canEditTitle) {

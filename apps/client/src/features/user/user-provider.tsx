@@ -21,14 +21,35 @@ import { useSyncUserTimezone } from "@/features/user/hooks/use-sync-user-timezon
 export function UserProvider({
   children, pending,
 }: React.PropsWithChildren<{ pending: React.ReactNode }>) {
-  const [, setCurrentUser] = useAtom(currentUserAtom);
+  const [lastSession, setCurrentUser] = useAtom(currentUserAtom);
   const setEntitlements = useSetAtom(entitlementAtom);
   const { data, isPending, error, isError, refetch } = useCurrentUser();
   const { data: entitlements } = useEntitlements();
   const { i18n, t } = useTranslation();
   const [, setSocket] = useAtom(socketAtom);
   // fetch collab token on load
-  const { data: collab } = useCollabToken();
+  useCollabToken(data?.user ?? lastSession?.user);
+
+  useEffect(() => {
+    if (!data?.user) return;
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== "currentUser" || event.storageArea !== localStorage) return;
+      if (!event.newValue) {
+        window.location.replace("/login");
+        return;
+      }
+      try {
+        const next = JSON.parse(event.newValue)?.user;
+        if (next?.id !== data.user.id || next?.workspaceId !== data.user.workspaceId) {
+          window.location.reload();
+        }
+      } catch {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [data?.user?.id, data?.user?.workspaceId]);
 
   useEffect(() => {
     if (isPending || isError) {

@@ -111,9 +111,10 @@ export function updatePageData(data: IPage) {
   );
 }
 
-export function useUpdateTitlePageMutation() {
+export function useUpdateTitlePageMutation(pageId: string) {
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
+    scope: { id: `page-title-${pageId}` },
   });
 }
 

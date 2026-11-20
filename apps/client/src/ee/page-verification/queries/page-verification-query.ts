@@ -31,12 +31,13 @@ import { IPagination } from "@/lib/types";
 
 export function usePageVerificationInfoQuery(
   pageId: string | undefined,
+  checkOnEntry = false,
 ): UseQueryResult<IPageVerificationInfo, Error> {
   return useQuery({
     queryKey: ["page-verification-info", pageId],
     queryFn: () => getVerificationInfo(pageId!),
     enabled: !!pageId,
-    refetchOnMount: true,
+    refetchOnMount: checkOnEntry ? "always" : true,
     retryOnMount: false,
   });
 }

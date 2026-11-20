@@ -157,6 +157,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
                   style={{ paddingTop: 2, paddingBottom: 6 }}
                 >
                   <MemoizedTitleEditor
+                    key={page.id}
                     pageId={page.id}
                     slugId={page.slugId}
                     title={page.title}
