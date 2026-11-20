@@ -101,7 +101,8 @@ export function usePageLayout(page?: IPage) {
   }, [page, tree, pageId]);
   const fullWidth = user?.settings?.preferences?.fullPageWidth;
   const toolbarEnabled = user?.settings?.preferences?.editorToolbar;
-  const { editMode } = usePageEditMode(toolbarEnabled ? preview?.id : undefined);
+  // Same key as the page's entry check, so loading asks once.
+  const { editMode } = usePageEditMode(toolbarEnabled ? (page?.id ?? pageId) : undefined);
   // An unknown destination can retain the previous toolbar's space and controls
   // while its metadata loads. Only the live editor can enable those controls.
   const previousToolbar = useRef(false);
