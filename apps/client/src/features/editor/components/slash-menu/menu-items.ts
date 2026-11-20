@@ -22,6 +22,7 @@ import {
   IconPhoto,
   IconTable,
   IconTypography,
+  IconCursorText,
   IconMenu4,
   IconPageBreak,
   IconCalendar,
@@ -86,6 +87,16 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .toggleNode("paragraph", "paragraph")
           .run();
+      },
+    },
+    {
+      title: "Placeholder text",
+      description: "Show an instruction until someone types here.",
+      searchTerms: ["placeholder", "instruction", "hint"],
+      icon: IconCursorText,
+      disable: (editor) => !editor.can().editTemplatePlaceholder?.(),
+      command: ({ editor, range }) => {
+        editor.chain().deleteRange(range).editTemplatePlaceholder().run();
       },
     },
     {

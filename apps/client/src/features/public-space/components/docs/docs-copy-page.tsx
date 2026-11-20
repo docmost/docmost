@@ -2,7 +2,7 @@ import { Button } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
-import { htmlToMarkdown } from "@docmost/editor-ext";
+import { getPageHTML, htmlToMarkdown } from "@docmost/editor-ext";
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { useDocsCurrentPage } from "@/features/public-space/hooks/use-docs-current-page.ts";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -20,7 +20,7 @@ export default function DocsCopyPage() {
 
   const handleCopy = () => {
     if (editor.isDestroyed) return;
-    const markdown = htmlToMarkdown(editor.getHTML());
+    const markdown = htmlToMarkdown(getPageHTML(editor));
     const title = page?.name ? `# ${page.name}\n\n` : "";
     clipboard.copy(`${title}${markdown}`);
   };

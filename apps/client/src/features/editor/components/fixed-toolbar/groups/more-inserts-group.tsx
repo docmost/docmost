@@ -7,6 +7,7 @@ import {
   IconCalendarMonth,
   IconCaretRightFilled,
   IconChevronDown,
+  IconCursorText,
   IconForms,
   IconInfoCircle,
   IconLayoutKanban,
@@ -71,6 +72,15 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
       </Menu.Target>
       <Menu.Dropdown mah={400} style={{ overflowY: "auto" }}>
         <Menu.Label>{t("Advanced")}</Menu.Label>
+        {templateMode && (
+          <Menu.Item
+            leftSection={<IconCursorText size={16} />}
+            disabled={!editor.can().editTemplatePlaceholder()}
+            onClick={() => editor.commands.editTemplatePlaceholder()}
+          >
+            {t("Placeholder text")}
+          </Menu.Item>
+        )}
         <Menu.Item
           leftSection={<IconInfoCircle size={16} />}
           onClick={() => editor.chain().focus().toggleCallout().run()}

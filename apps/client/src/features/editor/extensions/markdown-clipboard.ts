@@ -3,7 +3,11 @@ import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { DOMParser, DOMSerializer, Fragment, Slice } from "@tiptap/pm/model";
 import { find } from "linkifyjs";
-import { markdownToHtml, htmlToMarkdown } from "@docmost/editor-ext";
+import {
+  markdownToHtml,
+  htmlToMarkdown,
+  withoutTemplatePlaceholders,
+} from "@docmost/editor-ext";
 
 export const MarkdownClipboard = Extension.create({
   name: "markdownClipboard",
@@ -36,7 +40,9 @@ export const MarkdownClipboard = Extension.create({
 
             const div = document.createElement("div");
             const serializer = DOMSerializer.fromSchema(this.editor.schema);
-            const fragment = serializer.serializeFragment(slice.content);
+            const fragment = serializer.serializeFragment(
+              withoutTemplatePlaceholders(slice.content),
+            );
             div.appendChild(fragment);
             return htmlToMarkdown(div.innerHTML);
           },
@@ -106,7 +112,9 @@ export const MarkdownClipboard = Extension.create({
               const lastChild = content.lastChild;
               if (
                 lastChild?.type.name === "paragraph" &&
-                lastChild.textContent.trim() === ""
+                lastChild.content.content.every(
+                  (node) => node.type.name === "hardBreak" || (node.isText && !node.text.trim()),
+                )
               ) {
                 const children = [];
                 for (let i = 0; i < content.childCount - 1; i++) {

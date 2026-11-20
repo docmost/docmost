@@ -13,7 +13,9 @@ import { ITemplate } from "@/ee/template/types/template.types";
 import TemplateMeta from "@/ee/template/components/template-meta";
 import classes from "./readonly-template-editor.module.css";
 
-const editorProps = { attributes: { role: "document" } };
+const editorProps = {
+  attributes: { role: "document", class: "template-preview" },
+};
 
 type ReadonlyTemplateEditorProps = {
   template: ITemplate;

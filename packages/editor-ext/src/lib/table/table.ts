@@ -1,10 +1,11 @@
 import { Table } from "@tiptap/extension-table";
-import { Editor } from "@tiptap/core";
+import type { Command, Editor } from "@tiptap/core";
 import { DOMOutputSpec } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
-import { cellAround } from "@tiptap/pm/tables";
+import { cellAround, goToNextCell } from "@tiptap/pm/tables";
 import { closestListItem } from "../list-item";
 import { handleCellEdgeArrow } from "./utils/cell-edge-arrow";
+import { activeTemplatePlaceholder, hintMarks } from "../template-placeholder";
 
 function handleListIndent(editor: Editor): boolean {
   const listItem = closestListItem(editor.state);
@@ -16,7 +17,40 @@ function handleListOutdent(editor: Editor): boolean {
   return Boolean(listItem) && editor.commands.liftListItem(listItem);
 }
 
+function navigateToCell(direction: 1 | -1): Command {
+  return ({ state, dispatch, tr }) => {
+    const moved = goToNextCell(direction)(state, dispatch);
+    const type = state.schema.nodes.templatePlaceholder;
+    if (!moved || !dispatch || type?.spec.selectable !== false) return moved;
+
+    // Tab targets the first remaining instruction. A cell can also contain
+    // labels, answers, or other paragraphs that must survive the first keystroke.
+    const { from, to } = tr.selection;
+    let firstHint: number | undefined;
+    tr.doc.nodesBetween(from, to, (node, pos) => {
+      if (firstHint !== undefined) return false;
+      if (node.type === type) firstHint = pos;
+      return !node.isAtom;
+    });
+    if (firstHint !== undefined) {
+      const $hint = tr.doc.resolve(firstHint);
+      tr.setSelection(new TextSelection($hint))
+        .setStoredMarks(hintMarks(tr.doc, firstHint))
+        .setMeta(activeTemplatePlaceholder, "nodeAfter");
+    }
+    return true;
+  };
+}
+
 export const CustomTable = Table.extend({
+
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      goToNextCell: () => navigateToCell(1),
+      goToPreviousCell: () => navigateToCell(-1),
+    };
+  },
 
   addKeyboardShortcuts() {
     return {
