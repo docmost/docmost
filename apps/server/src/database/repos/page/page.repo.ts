@@ -328,7 +328,7 @@ export class PageRepo {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
-      .select((eb) => this.withSpace(eb))
+      .select((eb) => [this.withSpace(eb), this.withLastUpdatedBy(eb)])
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is', null);
 
@@ -351,7 +351,7 @@ export class PageRepo {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
-      .select((eb) => this.withSpace(eb))
+      .select((eb) => [this.withSpace(eb), this.withLastUpdatedBy(eb)])
       .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
       .where('deletedAt', 'is', null);
 
