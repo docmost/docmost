@@ -3,7 +3,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Fragment, Node, Slice } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
 import { DecorationSet } from "@tiptap/pm/view";
-import { Heading } from "@docmost/editor-ext";
+import { Heading, UniqueID } from "@docmost/editor-ext";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 let editor: Editor | null = null;
@@ -13,7 +13,11 @@ function createEditor(content: object[]) {
   document.body.appendChild(element);
   editor = new Editor({
     element,
-    extensions: [StarterKit.configure({ heading: false }), Heading],
+    extensions: [
+      StarterKit.configure({ heading: false }),
+      Heading,
+      UniqueID.configure({ types: ["heading"] }),
+    ],
     content: { type: "doc", content },
   });
   return editor;
@@ -21,7 +25,7 @@ function createEditor(content: object[]) {
 
 const heading = (text: string) => ({
   type: "heading",
-  attrs: { level: 2 },
+  attrs: { level: 2, id: crypto.randomUUID() },
   content: [{ type: "text", text }],
 });
 const paragraph = (text: string) => ({
