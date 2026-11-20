@@ -1,8 +1,8 @@
 diff --git a/dist/index.cjs b/dist/index.cjs
-index de3c487e291ef68b822eb32250bf7b18d9748f23..c6fa2bc352e9986564cfaae45e06cc83a476bee2 100644
+index fe286de11f15a02a110ff12dbe19b2371b833192..91c77067715754be05338ef77363227d86f8e52a 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
-@@ -5767,8 +5767,9 @@ var ExtensionManager = class {
+@@ -5776,8 +5776,9 @@ var ExtensionManager = class {
  	get nodeViews() {
  		const { editor } = this;
  		const { nodeExtensions } = splitExtensions(this.extensions);
@@ -13,7 +13,7 @@ index de3c487e291ef68b822eb32250bf7b18d9748f23..c6fa2bc352e9986564cfaae45e06cc83
  			const addNodeView = getExtensionField(extension, "addNodeView", {
  				name: extension.name,
  				options: extension.options,
-@@ -5846,8 +5847,9 @@ var ExtensionManager = class {
+@@ -5855,8 +5856,9 @@ var ExtensionManager = class {
  	get markViews() {
  		const { editor } = this;
  		const { markExtensions } = splitExtensions(this.extensions);
@@ -25,10 +25,10 @@ index de3c487e291ef68b822eb32250bf7b18d9748f23..c6fa2bc352e9986564cfaae45e06cc83
  				name: extension.name,
  				options: extension.options,
 diff --git a/dist/index.js b/dist/index.js
-index 9eaa0c4fa15497a32dccef33203d46216235ab68..cedc36e2168ce7ea5aff8813bd3af03af21d4d1f 100644
+index aff6848c6db9f0ef838d0e3ce6dca0ac047a1e86..dfc46ddd496fde81f8743dd631fe7d786bac1be2 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -5755,8 +5755,9 @@ var ExtensionManager = class {
+@@ -5764,8 +5764,9 @@ var ExtensionManager = class {
  	get nodeViews() {
  		const { editor } = this;
  		const { nodeExtensions } = splitExtensions(this.extensions);
@@ -39,7 +39,7 @@ index 9eaa0c4fa15497a32dccef33203d46216235ab68..cedc36e2168ce7ea5aff8813bd3af03a
  			const addNodeView = getExtensionField(extension, "addNodeView", {
  				name: extension.name,
  				options: extension.options,
-@@ -5834,8 +5835,9 @@ var ExtensionManager = class {
+@@ -5843,8 +5844,9 @@ var ExtensionManager = class {
  	get markViews() {
  		const { editor } = this;
  		const { markExtensions } = splitExtensions(this.extensions);
