@@ -209,20 +209,20 @@ importers:
         specifier: 1.7.3
         version: 1.7.3
       '@hocuspocus/common':
-        specifier: 4.8.0
-        version: 4.8.0
+        specifier: 4.9.0
+        version: 4.9.0
       '@hocuspocus/provider':
-        specifier: 4.8.0
-        version: 4.8.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)
+        specifier: 4.9.0
+        version: 4.9.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)
       '@hocuspocus/provider-react':
-        specifier: 4.8.0
-        version: 4.8.0(@hocuspocus/provider@4.8.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(react@19.2.7)(yjs@13.6.30)
+        specifier: 4.9.0
+        version: 4.9.0(@hocuspocus/provider@4.9.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(react@19.2.7)(yjs@13.6.30)
       '@hocuspocus/server':
-        specifier: 4.8.0
-        version: 4.8.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)
+        specifier: 4.9.0
+        version: 4.9.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)
       '@hocuspocus/transformer':
-        specifier: 4.8.0
-        version: 4.8.0(@tiptap/core@3.33.0(patch_hash=46a51c926cae369e32a3679dbfb4041e0f5eabbbc64181a1a4837e454a426cf2)(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0)(y-prosemirror@1.3.7(prosemirror-model@1.25.13)(prosemirror-state@1.4.4)(prosemirror-view@1.42.9)(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(yjs@13.6.30)
+        specifier: 4.9.0
+        version: 4.9.0(@tiptap/core@3.33.0(patch_hash=46a51c926cae369e32a3679dbfb4041e0f5eabbbc64181a1a4837e454a426cf2)(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0)(y-prosemirror@1.3.7(prosemirror-model@1.25.13)(prosemirror-state@1.4.4)(prosemirror-view@1.42.9)(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(yjs@13.6.30)
       '@joplin/turndown':
         specifier: 4.0.86
         version: 4.0.86
@@ -2374,31 +2374,31 @@ packages:
   '@fontsource-variable/inter@5.3.0':
     resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
 
-  '@hocuspocus/common@4.8.0':
-    resolution: {integrity: sha512-UI8Vye3mds2aMUHaWfwkDq0+257JUpvKa0nyAOjXWLfyhYHsAq8eku+ynZc/PaShyOci/VD54cW/rLQJGHHPKg==}
+  '@hocuspocus/common@4.9.0':
+    resolution: {integrity: sha512-lrp5gtT8kvLt9/MuRRQPKaveihv5emSsP9+sMCq2rx8xVGn33PZIv0haSGyb37CbAIlVaHb/yG22VKKMx+clYg==}
 
-  '@hocuspocus/provider-react@4.8.0':
-    resolution: {integrity: sha512-l2QTv9r1qu94xMw5jY2N3NCc7/CFaRZ5LhRdAZzE+SDNWPMX5xUwQTDyLbE6IycgR64TFPat3HeHw9FucaKXwg==}
+  '@hocuspocus/provider-react@4.9.0':
+    resolution: {integrity: sha512-7aHAouvDbfPH8xSfvgIACO/aEbjc9K4J4rGmtyrBQSHwr1XhOtVgTujb3vDqbIEB76AzshNSPaa4pJ4PuD9Sbw==}
     peerDependencies:
-      '@hocuspocus/provider': ^4.8.0
+      '@hocuspocus/provider': ^4.9.0
       react: ^18.0.0 || ^19.0.0
       yjs: ^13.6.8
 
-  '@hocuspocus/provider@4.8.0':
-    resolution: {integrity: sha512-WUwwu3W55n0fkMF1uYhx4WXlRjJ/t7OjsxiuzTMMQGDvvZrZA37CAysdqc7JXLVmN6A5IIWadE921pxN9/JotA==}
+  '@hocuspocus/provider@4.9.0':
+    resolution: {integrity: sha512-I+B/bJs8SRCBZRRevdNkMGtCAE6S13hsTFX2SZ33iSSJC/4IZcsl5+St9/OYYxxkETfvelJKsmhtwdyIwXnsEg==}
     peerDependencies:
       y-protocols: ^1.0.6
       yjs: ^13.6.8
 
-  '@hocuspocus/server@4.8.0':
-    resolution: {integrity: sha512-P8U4I4R4Ft+B37d4CFs4tG8oPJ3rnJJiFx3CXBJpKSIrXTz5YDldRmv7eGqmUq4QRSoWR6FjN4DUIX1QO0PccA==}
+  '@hocuspocus/server@4.9.0':
+    resolution: {integrity: sha512-8qRkIcFpcz4cw2WHLgUdwZGAqiUUdueh9iCdhujYfExHsnGnJ3iTiowGOs25HsNfUhxQRj6HJBGi4M2lP3rEpg==}
     engines: {node: '>=22'}
     peerDependencies:
       y-protocols: ^1.0.6
       yjs: ^13.6.8
 
-  '@hocuspocus/transformer@4.8.0':
-    resolution: {integrity: sha512-X5iRzYZH19HeUaekA/7/JJ0Z5wIRqocsVTwfk0IRYvQWbEjT8Jd+HjJZwBEictd2T9rNIwr1GFuFfc6eCDi7GA==}
+  '@hocuspocus/transformer@4.9.0':
+    resolution: {integrity: sha512-mPfKznaCzgnpL4AcnbWJqUfTgpMEH4WXzvBvIW9+BG88vDlBMIeDwoaUg5YaieVZMpXgy5YM/fsHpD6jkQfQ/A==}
     peerDependencies:
       '@tiptap/core': ^3.0.1
       '@tiptap/pm': ^3.0.1
@@ -11408,27 +11408,27 @@ snapshots:
 
   '@fontsource-variable/inter@5.3.0': {}
 
-  '@hocuspocus/common@4.8.0':
+  '@hocuspocus/common@4.9.0':
     dependencies:
       lib0: 0.2.119
 
-  '@hocuspocus/provider-react@4.8.0(@hocuspocus/provider@4.8.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(react@19.2.7)(yjs@13.6.30)':
+  '@hocuspocus/provider-react@4.9.0(@hocuspocus/provider@4.9.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(react@19.2.7)(yjs@13.6.30)':
     dependencies:
-      '@hocuspocus/provider': 4.8.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)
+      '@hocuspocus/provider': 4.9.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)
       react: 19.2.7
       yjs: 13.6.30
 
-  '@hocuspocus/provider@4.8.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)':
+  '@hocuspocus/provider@4.9.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)':
     dependencies:
-      '@hocuspocus/common': 4.8.0
+      '@hocuspocus/common': 4.9.0
       '@lifeomic/attempt': 3.1.0
       lib0: 0.2.119
       y-protocols: 1.0.6(yjs@13.6.30)
       yjs: 13.6.30
 
-  '@hocuspocus/server@4.8.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)':
+  '@hocuspocus/server@4.9.0(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30)':
     dependencies:
-      '@hocuspocus/common': 4.8.0
+      '@hocuspocus/common': 4.9.0
       async-mutex: 0.5.0
       crossws: 0.4.17
       kleur: 4.1.5
@@ -11438,7 +11438,7 @@ snapshots:
     transitivePeerDependencies:
       - srvx
 
-  '@hocuspocus/transformer@4.8.0(@tiptap/core@3.33.0(patch_hash=46a51c926cae369e32a3679dbfb4041e0f5eabbbc64181a1a4837e454a426cf2)(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0)(y-prosemirror@1.3.7(prosemirror-model@1.25.13)(prosemirror-state@1.4.4)(prosemirror-view@1.42.9)(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(yjs@13.6.30)':
+  '@hocuspocus/transformer@4.9.0(@tiptap/core@3.33.0(patch_hash=46a51c926cae369e32a3679dbfb4041e0f5eabbbc64181a1a4837e454a426cf2)(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0)(y-prosemirror@1.3.7(prosemirror-model@1.25.13)(prosemirror-state@1.4.4)(prosemirror-view@1.42.9)(y-protocols@1.0.6(yjs@13.6.30))(yjs@13.6.30))(yjs@13.6.30)':
     dependencies:
       '@tiptap/core': 3.33.0(patch_hash=46a51c926cae369e32a3679dbfb4041e0f5eabbbc64181a1a4837e454a426cf2)(@tiptap/pm@3.33.0)
       '@tiptap/pm': 3.33.0

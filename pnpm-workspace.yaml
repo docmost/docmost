@@ -32,6 +32,11 @@ overrides:
 shamefullyHoist: true
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
+  - '@hocuspocus/common@4.9.0'
+  - '@hocuspocus/provider@4.9.0'
+  - '@hocuspocus/provider-react@4.9.0'
+  - '@hocuspocus/server@4.9.0'
+  - '@hocuspocus/transformer@4.9.0'
   - react-email@6.11.6
 allowBuilds:
   '@swc/core': true
