@@ -1,4 +1,6 @@
 import classes from "./page-header.module.css";
+import editorClasses from "@/features/editor/styles/editor.module.css";
+import clsx from "clsx";
 import PageHeaderMenu from "@/features/page/components/header/page-header-menu.tsx";
 import { Badge, Group, Tooltip } from "@mantine/core";
 import { IconExternalLink, IconHome, IconWorld } from "@tabler/icons-react";
@@ -34,7 +36,7 @@ export default function PageHeader({ readOnly }: Props) {
 
   return (
     <div className={classes.header} data-page-header="true">
-      <Group justify="space-between" h="100%" px="md" wrap="nowrap" className={classes.group}>
+      <Group justify="space-between" h="100%" px="md" wrap="nowrap" className={clsx(classes.group, editorClasses.documentReveal)}>
         <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
           <Breadcrumb />
 

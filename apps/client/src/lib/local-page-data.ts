@@ -1,4 +1,4 @@
-// y-indexeddb names each database after the collab document, page.<pageId>
+// Includes both the legacy page.<pageId> cache and per-account draft caches.
 const PAGE_DATABASE_PREFIX = "page.";
 
 export async function deleteLocalPageData(): Promise<void> {

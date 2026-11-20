@@ -37,6 +37,7 @@ export function usePageVerificationInfoQuery(
     queryFn: () => getVerificationInfo(pageId!),
     enabled: !!pageId,
     refetchOnMount: true,
+    retryOnMount: false,
   });
 }
 

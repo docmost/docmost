@@ -14,10 +14,38 @@
     <meta name="apple-mobile-web-app-title" content="Docmost" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <style>
+      /* Paint the document's header and sidebar surfaces until React mounts. */
+      #root[data-document-entry]:empty {
+        box-sizing: border-box;
+        min-height: 100dvh;
+        background: light-dark(white, #242424);
+        border-block-start: 45px solid light-dark(#f6f7f9, #1f1f1f);
+      }
+      @media (min-width: 48em) {
+        #root[data-document-entry]:empty {
+          border-inline-start: var(--entry-sidebar-width, 300px) solid light-dark(#f6f7f9, #1f1f1f);
+        }
+      }
+    </style>
     <!--meta-tags-->
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if (/^\/s\/[^/]+\/p\//.test(location.pathname)) {
+        const root = document.getElementById("root");
+        root.dataset.documentEntry = "";
+        try {
+          const width = Number(localStorage.getItem("sidebarWidth")) || 300;
+          const open = localStorage.getItem("showSidebar") !== "false";
+          root.style.setProperty("--entry-sidebar-width", open ? Math.min(600, Math.max(220, width)) + "px" : "0px");
+          const theme = localStorage.getItem("mantine-color-scheme-value");
+          document.documentElement.dataset.mantineColorScheme =
+            theme === "dark" || (theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+        } catch { /* Storage can be unavailable in a private browser. */ }
+      }
+    </script>
 
     <!--window-config-->
 

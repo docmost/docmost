@@ -13,9 +13,8 @@ import React, { useEffect } from "react";
 import { useSetAtom } from "jotai";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
-import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
-import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 import { BaseView } from "@/ee/base/components/base-view";
 import { useHasFeature } from "@/ee/hooks/use-feature";
@@ -26,6 +25,7 @@ import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
 import { useDisablePrint } from "@/ee/security/hooks/use-disable-print.ts";
 import { PageCover } from "@/features/page-cover/components/page-cover.tsx";
 import { resolveCover } from "@/features/page-cover/page-cover.utils.ts";
+import { PageLoading, PageLoadError } from "./page-loading";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -57,14 +57,16 @@ export default function Page() {
 
 function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   const { t } = useTranslation();
-
+  const { spaceSlug } = useParams();
+  const pageId = extractPageSlugId(pageSlug);
   const {
     data: page,
-    isLoading,
-    isError,
-    error,
-  } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
-  const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+    isPending,
+    error: pageError,
+    refetch: refetchPage,
+  } = usePageQuery({ pageId });
+  const spaceQuery = useGetSpaceBySlugQuery(page?.space?.slug ?? spaceSlug);
+  const { data: space } = spaceQuery;
   const { exportDisabledLabel } = useExportDisabled(page?.space?.slug);
   useDisablePrint(exportDisabledLabel);
   const setAsideState = useSetAtom(asideStateAtom);
@@ -82,37 +84,21 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     canEdit ||
     (space?.settings?.comments?.allowViewerComments === true);
 
-  if (isLoading) {
-    return <></>;
+  if (isPending && pageId) {
+    return <PageLoading />;
   }
 
-  if (isError || !page) {
-    if ([401, 403, 404].includes(error?.["status"])) {
-      return (
-        <EmptyState
-          icon={IconFileOff}
-          title={t("Page not found")}
-          description={t(
-            "This page may have been deleted, moved, or you may not have access.",
-          )}
-          action={
-            <Button component={Link} to="/home" variant="default" size="sm" mt="xs">
-              {t("Go to homepage")}
-            </Button>
-          }
-        />
-      );
-    }
+  if (pageError || !page || (!space && !spaceQuery.isPending)) {
     return (
-      <EmptyState
-        icon={IconFileOff}
-        title={t("Error fetching page data.")}
+      <PageLoadError
+        error={pageError ?? spaceQuery.error}
+        onRetry={pageError || !page ? refetchPage : spaceQuery.refetch}
       />
     );
   }
 
   if (!space) {
-    return <></>;
+    return <PageLoading page={page} />;
   }
 
   if (page?.isBase) {

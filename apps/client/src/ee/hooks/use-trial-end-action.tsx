@@ -6,14 +6,14 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { notifications } from "@mantine/notifications";
 import useTrial from "@/ee/hooks/use-trial.tsx";
 
-export const useTrialEndAction = () => {
+export const useTrialEndAction = (enabled: boolean) => {
   const navigate = useNavigate();
   const pathname = useLocation().pathname;
   const { isAdmin } = useUserRole();
   const { trialDaysLeft } = useTrial();
 
   useEffect(() => {
-    if (isCloud() && trialDaysLeft === 0) {
+    if (enabled && isCloud() && trialDaysLeft === 0) {
       if (!pathname.startsWith("/settings")) {
         notifications.show({
           position: "top-right",
@@ -32,5 +32,5 @@ export const useTrialEndAction = () => {
         }
       }
     }
-  }, [navigate]);
+  }, [enabled, navigate]);
 };

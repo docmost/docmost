@@ -20,11 +20,11 @@ describe("deleteLocalPageData", () => {
   });
 
   it("deletes only the page databases", async () => {
-    const deleteDatabase = stubIndexedDB(["page.a", "page.b", "other-db"]);
+    const deleteDatabase = stubIndexedDB(["page.a", "page.b.user.account", "other-db"]);
 
     await deleteLocalPageData();
 
-    expect(deleteDatabase.mock.calls).toEqual([["page.a"], ["page.b"]]);
+    expect(deleteDatabase.mock.calls).toEqual([["page.a"], ["page.b.user.account"]]);
   });
 
   it("does nothing when the browser cannot list databases", async () => {

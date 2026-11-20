@@ -1,5 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
@@ -57,7 +57,8 @@ export function TitleEditor({
   const [activePageId, setActivePageId] = useState(pageId);
   const hasTitleEditRef = useRef(false);
   // bases have no edit mode toggle, so a verification must not lock their title
-  const { editMode } = usePageEditMode(isBase ? undefined : pageId);
+  const { editMode, isCheckingLock } = usePageEditMode(isBase ? undefined : pageId);
+  const canEditTitle = editable && !isCheckingLock && editMode === PageEditMode.Edit;
 
   const titleEditor = useEditor({
     extensions: [
@@ -88,7 +89,7 @@ export function TitleEditor({
       hasTitleEditRef.current = true;
       debounceUpdate();
     },
-    editable: editable,
+    editable: canEditTitle,
     content: title,
     textDirection: "auto",
     immediatelyRender: true,
@@ -176,11 +177,18 @@ export function TitleEditor({
   }, [pageId, title, titleEditor]);
 
   useEffect(() => {
-    setTimeout(() => {
-      // guard against Cannot access view['hasFocus'] error
-      if (!titleEditor?.isInitialized) return;
-      titleEditor?.commands?.focus("end");
+    const timer = setTimeout(() => {
+      if (!titleEditor?.isInitialized || !titleEditor.isEditable || location.hash)
+        return;
+      // Someone can already be typing in the body or using a toolbar control.
+      const active = document.activeElement;
+      if (
+        active !== document.body &&
+        !active?.matches('[role="treeitem"][aria-current="page"]')
+      ) return;
+      titleEditor.commands.focus("end", { scrollIntoView: false });
     }, 300);
+    return () => clearTimeout(timer);
   }, [titleEditor]);
 
   useEffect(() => {
@@ -191,10 +199,11 @@ export function TitleEditor({
     };
   }, [pageId]);
 
-  useEffect(() => {
-    if (!titleEditor) return;
-    titleEditor.setEditable(editable && editMode === PageEditMode.Edit, false);
-  }, [editMode, titleEditor, editable]);
+  useLayoutEffect(() => {
+    if (titleEditor && !titleEditor.isDestroyed && titleEditor.isEditable !== canEditTitle) {
+      titleEditor.setEditable(canEditTitle, false);
+    }
+  }, [titleEditor, canEditTitle]);
 
   const openSearchDialog = () => {
     const event = new CustomEvent("openFindDialogFromEditor", {});
@@ -214,6 +223,7 @@ export function TitleEditor({
 
     if (key === "Enter") {
       event.preventDefault();
+      if (!titleEditor.isEditable || !pageEditor.isEditable) return;
       splitTitleIntoPage(titleEditor, pageEditor);
       return;
     }

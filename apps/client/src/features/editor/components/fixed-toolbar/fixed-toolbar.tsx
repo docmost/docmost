@@ -15,20 +15,24 @@ import { HistoryGroup } from "./groups/history-group";
 import { AskAiGroup } from "./groups/ask-ai-group";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 import classes from "./fixed-toolbar.module.css";
+import editorClasses from "@/features/editor/styles/editor.module.css";
+import clsx from "clsx";
 
 type FixedToolbarProps = {
   editor?: Editor | null;
   templateMode?: boolean;
   withSpacer?: boolean;
+  disabled?: boolean;
 };
 
 export const FixedToolbar: FC<FixedToolbarProps> = ({
   editor: editorProp,
   templateMode = false,
   withSpacer = true,
+  disabled = false,
 }) => {
   const editorFromAtom = useAtomValue(pageEditorAtom);
-  const editor = editorProp ?? editorFromAtom;
+  const editor = disabled ? null : (editorProp ?? editorFromAtom);
   const state = useToolbarState(editor);
   const workspace = useAtomValue(workspaceAtom);
   const isGenerativeAiEnabled = workspace?.settings?.ai?.generative === true;
@@ -42,7 +46,7 @@ export const FixedToolbar: FC<FixedToolbarProps> = ({
         aria-label="Editor toolbar"
         onMouseDown={(e) => e.preventDefault()}
       >
-        <div className={classes.inner}>
+        <div className={clsx(classes.inner, editor && state && editorClasses.documentReveal)}>
           {/* {isGenerativeAiEnabled && (
             <>
               <AskAiGroup />
@@ -71,7 +75,7 @@ export const FixedToolbar: FC<FixedToolbarProps> = ({
           )}
         </div>
       </div>
-      {withSpacer && <div className={classes.spacer} aria-hidden />}
+      {withSpacer && <div className={editorClasses.toolbarSpacer} aria-hidden />}
     </>
   );
 };

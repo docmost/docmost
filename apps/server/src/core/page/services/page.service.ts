@@ -462,6 +462,7 @@ export class PageService {
         'slugId',
         'title',
         'icon',
+        'coverPhoto',
         'position',
         'parentPageId',
         'spaceId',

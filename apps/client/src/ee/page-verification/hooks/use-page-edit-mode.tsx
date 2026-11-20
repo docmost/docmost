@@ -16,14 +16,24 @@ function isLockedStatus(status: VerificationStatus | undefined): boolean {
   return LOCKED_VERIFICATION_STATUSES.includes(status);
 }
 
-function usePageVerificationStatus(
-  pageId: string | undefined,
-): VerificationStatus | undefined {
+function usePageVerificationStatus(pageId: string | undefined) {
   const hasVerificationFeature = useHasFeature(Feature.PAGE_VERIFICATION);
-  const { data: verificationInfo } = usePageVerificationInfoQuery(
+  const query = usePageVerificationInfoQuery(
     hasVerificationFeature ? pageId : undefined,
   );
-  return verificationInfo?.status;
+  const enabled = Boolean(hasVerificationFeature && pageId);
+  const verificationUnavailable =
+    enabled &&
+    (query.isError ||
+      query.isPaused ||
+      (query.isFetching && query.errorUpdatedAt > query.dataUpdatedAt));
+  return {
+    status: query.data?.status,
+    isCheckingLock: enabled && (!query.data || verificationUnavailable),
+    verificationUnavailable,
+    retryVerification: query.refetch,
+    retryingVerification: query.isFetching,
+  };
 }
 
 function getEditConfirmation(
@@ -57,7 +67,7 @@ function getEditConfirmation(
 
 export function usePageEditMode(pageId?: string) {
   const { t } = useTranslation();
-  const status = usePageVerificationStatus(pageId);
+  const { status, ...verification } = usePageVerificationStatus(pageId);
   const isLocked = isLockedStatus(status);
   const [sessionMode, setSessionMode] = useAtom(currentPageEditModeAtom);
   const [unlockedPageId, setUnlockedPageId] = useAtom(
@@ -93,11 +103,11 @@ export function usePageEditMode(pageId?: string) {
     });
   };
 
-  return { editMode, isLocked, changeEditMode };
+  return { editMode, isLocked, ...verification, changeEditMode };
 }
 
 export function usePageEditLockSync(pageId: string): void {
-  const status = usePageVerificationStatus(pageId);
+  const { status } = usePageVerificationStatus(pageId);
   const setUnlockedPageId = useSetAtom(unlockedVerifiedPageIdAtom);
   const previousStatusRef = useRef(status);
 
