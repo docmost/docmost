@@ -2314,5 +2314,17 @@
   "Conflicting template variable names": "Noms de variables de modèle en conflit",
   "These values become editable text on the page.": "Ces valeurs deviennent du texte modifiable sur la page.",
   "The filled template is too large. Shorten the variable values and try again.": "Le modèle rempli est trop volumineux. Raccourcissez les valeurs des variables et réessayez.",
-  "The template has too many repeated choices.": "Le modèle contient trop de choix répétés."
+  "The template has too many repeated choices.": "Le modèle contient trop de choix répétés.",
+  "We couldn't sign you in": "We couldn't sign you in",
+  "Error code: {{code}}": "Error code: {{code}}",
+  "Back to sign in": "Back to sign in",
+  "Your sign-in attempt expired. Please try again.": "Your sign-in attempt expired. Please try again.",
+  "This sign-in method is turned off for this workspace. Contact your workspace admin.": "This sign-in method is turned off for this workspace. Contact your workspace admin.",
+  "You don't have an account in this workspace yet. Ask an admin to invite you.": "You don't have an account in this workspace yet. Ask an admin to invite you.",
+  "Your email domain isn't allowed in this workspace. Contact your workspace admin.": "Your email domain isn't allowed in this workspace. Contact your workspace admin.",
+  "Your account has been deactivated. Contact your workspace admin.": "Your account has been deactivated. Contact your workspace admin.",
+  "This email is linked to a different account at your identity provider. Contact your workspace admin.": "This email is linked to a different account at your identity provider. Contact your workspace admin.",
+  "Your identity provider didn't share an email address. Contact your workspace admin.": "Your identity provider didn't share an email address. Contact your workspace admin.",
+  "Single sign-on isn't available on this workspace's plan. Contact your workspace admin.": "Single sign-on isn't available on this workspace's plan. Contact your workspace admin.",
+  "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening.": "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening."
 }
