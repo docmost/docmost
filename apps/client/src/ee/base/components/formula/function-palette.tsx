@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Accordion,
   Group,
@@ -7,6 +8,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import type { FormulaFn } from "@docmost/base-formula/client";
+import { formulaSignature, RESULT_TYPE_LABELS } from "./formula-labels";
 import classes from "@/ee/base/styles/formula.module.css";
 
 const CATEGORIES = ["logic", "math", "string", "date", "coercion"] as const;
@@ -18,6 +20,7 @@ export function FunctionPalette({
   registry: ReadonlyMap<string, FormulaFn>;
   onInsert: (name: string) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState<string | null>("logic");
 
   const byCat = new Map<string, FormulaFn[]>();
@@ -61,7 +64,23 @@ export function FunctionPalette({
             <Accordion.Panel>
               <Group gap={6}>
                 {fns.map((fn) => (
-                  <Tooltip key={fn.name} label={fn.doc} withArrow>
+                  <Tooltip
+                    key={fn.name}
+                    multiline
+                    withArrow
+                    label={
+                      <>
+                        <Text size="xs" ff="monospace" inherit>
+                          {formulaSignature(fn, (type) =>
+                            t(type === "any" ? "Value" : RESULT_TYPE_LABELS[type]),
+                          )}
+                        </Text>
+                        <Text size="xs" inherit>
+                          {fn.doc}
+                        </Text>
+                      </>
+                    }
+                  >
                     <UnstyledButton
                       onClick={() => onInsert(fn.name)}
                       className={classes.fnChip}

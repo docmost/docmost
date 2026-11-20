@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Container, Title, Text, Group, Box } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
+  SPACES_PAGE_SIZE,
   useGetSpacesQuery,
   useHasArchivedSpaces,
 } from "@/features/space/queries/space-query";
@@ -11,28 +12,32 @@ import FavoriteSpacesGrid from "@/features/space/components/spaces-page/favorite
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
 import useUserRole from "@/hooks/use-user-role";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { SpaceListStatus } from "@/features/space/types/space.types";
 
 export default function Spaces() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
   const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
     usePaginateAndSearch();
-  const [archived, setArchived] = useState(false);
+  const [status, setStatus] = useState<SpaceListStatus>("active");
 
   const { data, isPlaceholderData } = useGetSpacesQuery({
     cursor,
-    limit: 30,
+    limit: SPACES_PAGE_SIZE,
     query: search,
-    archived: archived || undefined,
+    status,
   });
 
-  const handleArchivedChange = (value: boolean) => {
-    setArchived(value);
+  const handleStatusChange = (value: SpaceListStatus) => {
+    setStatus(value);
     resetPagination();
   };
 
   const activeListEmpty =
-    !archived && !search && !isPlaceholderData && data?.items.length === 0;
+    status === "active" &&
+    !search &&
+    !isPlaceholderData &&
+    data?.items.length === 0;
   const hasArchivedSpaces = useHasArchivedSpaces(activeListEmpty);
   const noActiveSpaces = activeListEmpty && hasArchivedSpaces;
 
@@ -55,8 +60,8 @@ export default function Spaces() {
 
           <AllSpacesList
             spaces={data?.items || []}
-            archived={archived}
-            onArchivedChange={handleArchivedChange}
+            status={status}
+            onStatusChange={handleStatusChange}
             emptyText={
               noActiveSpaces
                 ? t("No active spaces. Archived spaces are under Archived.")

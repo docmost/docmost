@@ -49,10 +49,6 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
     },
   });
 
-  if (!editor || !editorState) {
-    return null;
-  }
-
   const items: BubbleMenuItem[] = [
     {
       name: "Align left",
@@ -82,6 +78,31 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
 
   const activeItem = items.filter((item) => item.isActive()).pop() ?? items[0];
 
+  const trigger = (
+    <Tooltip
+      label={t("Text align")}
+      withArrow
+      disabled={isOpen}
+      withinPortal={false}
+    >
+      <Button
+        variant="default"
+        style={{ border: "none", height: "34px" }}
+        px="5"
+        radius="0"
+        rightSection={<IconChevronDown size={16} />}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => editor && setIsOpen(!isOpen)}
+        aria-label={t("Text align")}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
+        <activeItem.icon style={{ width: rem(16) }} stroke={2} />
+      </Button>
+    </Tooltip>
+  );
+  if (!editor || !editorState) return trigger;
+
   return (
     <Menu
       shadow="md"
@@ -90,29 +111,7 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
       opened={isOpen}
       onChange={setIsOpen}
     >
-      <Menu.Target>
-        <Tooltip
-          label={t("Text align")}
-          withArrow
-          disabled={isOpen}
-          withinPortal={false}
-        >
-          <Button
-            variant="default"
-            style={{ border: "none", height: "34px" }}
-            px="5"
-            radius="0"
-            rightSection={<IconChevronDown size={16} />}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label={t("Text align")}
-            aria-haspopup="menu"
-            aria-expanded={isOpen}
-          >
-            <activeItem.icon style={{ width: rem(16) }} stroke={2} />
-          </Button>
-        </Tooltip>
-      </Menu.Target>
+      <Menu.Target>{trigger}</Menu.Target>
 
       <Menu.Dropdown>
         {items.map((item, index) => (

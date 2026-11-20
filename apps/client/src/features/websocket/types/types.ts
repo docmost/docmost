@@ -57,6 +57,7 @@ export type AddTreeNodeEvent = {
     parentId: string;
     index: number;
     data: SpaceTreeNode;
+    restored?: boolean;
   };
 };
 

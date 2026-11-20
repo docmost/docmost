@@ -3,7 +3,7 @@ import type { Editor } from "@tiptap/react";
 import { TextAlignmentSelector } from "@/features/editor/components/bubble-menu/text-alignment-selector";
 
 interface Props {
-  editor: Editor;
+  editor: Editor | null;
 }
 
 export const AlignmentGroup: FC<Props> = ({ editor }) => {

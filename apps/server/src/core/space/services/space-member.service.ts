@@ -15,6 +15,7 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
 import { SpaceRole } from '../../../common/helpers/types/permission';
+import { SpaceListStatus } from '../space.constants';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
@@ -86,6 +87,7 @@ export class SpaceMemberService {
     spaceId: string,
     workspaceId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ): Promise<CursorPaginationResult<any>> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId);
     if (!space) {
@@ -95,6 +97,7 @@ export class SpaceMemberService {
     return await this.spaceMemberRepo.getSpaceMembersPaginated(
       spaceId,
       pagination,
+      opts,
     );
   }
 
@@ -418,7 +421,7 @@ export class SpaceMemberService {
   async getUserSpaces(
     userId: string,
     pagination: PaginationOptions,
-    opts?: { archived?: boolean },
+    opts?: { status?: SpaceListStatus },
   ): Promise<CursorPaginationResult<Space>> {
     return this.spaceMemberRepo.getUserSpaces(userId, pagination, opts);
   }

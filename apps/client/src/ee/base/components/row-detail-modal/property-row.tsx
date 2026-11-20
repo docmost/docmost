@@ -78,6 +78,7 @@ export function PropertyRow({
           closeOnClickOutside={false}
           closeOnEscape={false}
           hideDetached={false}
+          preventPositionChangeWhenVisible={false}
         >
           <Popover.Target>
             <button

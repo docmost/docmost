@@ -87,6 +87,9 @@ export const auditEventLabels: Record<string, string> = {
   "page.approval_rejected": "Rejected page approval",
   "page.marked_obsolete": "Marked page as obsolete",
 
+  "base.property.updated": "Changed base property type",
+  "base.form_share.updated": "Changed base form sharing",
+
   "share.created": "Created share link",
   "share.deleted": "Deleted share link",
 
@@ -102,6 +105,7 @@ export const auditEventLabels: Record<string, string> = {
   "siem_destination.deleted": "Deleted SIEM destination",
 
   "template.created": "Created template",
+  "template.updated": "Updated template",
   "template.deleted": "Deleted template",
 
   "announcement.created": "Created announcement",
@@ -210,6 +214,13 @@ export const eventFilterOptions: EventGroup[] = [
     ],
   },
   {
+    group: "Base",
+    items: [
+      { value: "base.property.updated", label: "Changed base property type" },
+      { value: "base.form_share.updated", label: "Changed base form sharing" },
+    ],
+  },
+  {
     group: "Share",
     items: [
       { value: "share.created", label: "Created share link" },
@@ -267,6 +278,7 @@ export const eventFilterOptions: EventGroup[] = [
     group: "Template",
     items: [
       { value: "template.created", label: "Created template" },
+      { value: "template.updated", label: "Updated template" },
       { value: "template.deleted", label: "Deleted template" },
     ],
   },

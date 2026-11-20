@@ -4,12 +4,12 @@ import { usePageQuery } from "@/features/page/queries/page-query";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import { PageLoading } from "./page-loading";
 
 export default function PageRedirect() {
   const { pageSlug } = useParams();
   const {
     data: page,
-    isLoading: pageIsLoading,
     isError,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const navigate = useNavigate();
@@ -25,9 +25,5 @@ export default function PageRedirect() {
     return <Error404 />;
   }
 
-  if (pageIsLoading) {
-    return <></>;
-  }
-
-  return null;
+  return <PageLoading page={page} />;
 }

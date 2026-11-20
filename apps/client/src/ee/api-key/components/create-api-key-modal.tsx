@@ -1,12 +1,22 @@
 import { lazy, Suspense, useState } from "react";
-import { Modal, TextInput, Button, Group, Stack, Select } from "@mantine/core";
+import {
+  Modal,
+  TextInput,
+  Button,
+  Group,
+  Stack,
+  Select,
+  SelectProps,
+  Text,
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { z } from "zod/v4";
 import { useTranslation } from "react-i18next";
 import { useCreateApiKeyMutation } from "@/ee/api-key/queries/api-key-query";
-import { IconCalendar } from "@tabler/icons-react";
-import { IApiKey } from "@/ee/api-key";
+import { IconCalendar, IconCheck } from "@tabler/icons-react";
+import { addYears, subDays } from "date-fns";
+import { ApiKeyScope, IApiKey } from "@/ee/api-key";
 
 const DateInput = lazy(() =>
   import("@mantine/dates").then((module) => ({
@@ -19,6 +29,35 @@ interface CreateApiKeyModalProps {
   onClose: () => void;
   onSuccess: (response: IApiKey) => void;
 }
+
+const scopesByAccess: Record<string, ApiKeyScope[]> = {
+  "read-write": ["read", "write"],
+  "read-only": ["read"],
+};
+
+const MAX_EXPIRY_YEARS = 3;
+
+const renderAccessOption: SelectProps["renderOption"] = ({
+  option,
+  checked,
+}) => (
+  <Group flex="1" gap="xs" wrap="nowrap">
+    <div>
+      <Text size="sm">{option.label}</Text>
+      <Text size="xs" opacity={0.65}>
+        {option["description"]}
+      </Text>
+    </div>
+    {checked && (
+      <IconCheck
+        style={{ marginInlineStart: "auto", flexShrink: 0 }}
+        stroke={1.5}
+        opacity={0.6}
+        size={18}
+      />
+    )}
+  </Group>
+);
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -33,6 +72,7 @@ export function CreateApiKeyModal({
 }: CreateApiKeyModalProps) {
   const { t, i18n } = useTranslation();
   const [expirationOption, setExpirationOption] = useState<string>("30");
+  const [access, setAccess] = useState<string>("read-write");
   const createApiKeyMutation = useCreateApiKeyMutation();
 
   const form = useForm<FormValues>({
@@ -43,10 +83,7 @@ export function CreateApiKeyModal({
     },
   });
 
-  const getExpirationDate = (): string | undefined => {
-    if (expirationOption === "never") {
-      return undefined;
-    }
+  const getExpirationDate = (): string => {
     if (expirationOption === "custom") {
       return form.values.expiresAt;
     }
@@ -73,7 +110,19 @@ export function CreateApiKeyModal({
     { value: "90", label: getExpirationLabel(90) },
     { value: "365", label: getExpirationLabel(365) },
     { value: "custom", label: t("Custom") },
-    { value: "never", label: t("No expiration") },
+  ];
+
+  const accessOptions = [
+    {
+      value: "read-write",
+      label: t("Read and write"),
+      description: t("View, create and modify data in your workspace."),
+    },
+    {
+      value: "read-only",
+      label: t("Read-only"),
+      description: t("View data in your workspace without making changes."),
+    },
   ];
 
   const handleSubmit = async (data: {
@@ -83,13 +132,13 @@ export function CreateApiKeyModal({
     const groupData = {
       name: data.name,
       expiresAt: getExpirationDate(),
+      scopes: scopesByAccess[access],
     };
 
     try {
       const createdKey = await createApiKeyMutation.mutateAsync(groupData);
       onSuccess(createdKey);
-      form.reset();
-      onClose();
+      handleClose();
     } catch (err) {
       //
     }
@@ -98,6 +147,7 @@ export function CreateApiKeyModal({
   const handleClose = () => {
     form.reset();
     setExpirationOption("30");
+    setAccess("read-write");
     onClose();
   };
 
@@ -120,6 +170,15 @@ export function CreateApiKeyModal({
           />
 
           <Select
+            label={t("Permissions")}
+            data={accessOptions}
+            value={access}
+            onChange={(value) => setAccess(value || "read-write")}
+            renderOption={renderAccessOption}
+            allowDeselect={false}
+          />
+
+          <Select
             label={t("Expiration")}
             data={expirationOptions}
             value={expirationOption}
@@ -132,8 +191,11 @@ export function CreateApiKeyModal({
             <Suspense fallback={null}>
               <DateInput
                 label={t("Custom expiration date")}
+                description={t("Up to 3 years from today")}
                 placeholder={t("Select expiration date")}
                 minDate={new Date()}
+                // a day short: the server reads a picked date as UTC midnight
+                maxDate={subDays(addYears(new Date(), MAX_EXPIRY_YEARS), 1)}
                 {...form.getInputProps("expiresAt")}
               />
             </Suspense>

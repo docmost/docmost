@@ -1,11 +1,15 @@
 import type { FormulaAST } from "./ast";
+import type { DateCell, DateKind } from "./date";
 
 export type FormulaResultType =
   | "number"
   | "string"
   | "boolean"
   | "date"
+  | "datetime"
   | "null";
+
+export type FormulaVolatility = "now" | "today" | null;
 
 export type FormulaTypeOptions = {
   source: string;
@@ -13,17 +17,21 @@ export type FormulaTypeOptions = {
   resultType: FormulaResultType;
   dependencies: string[];
   astVersion: 1;
+  volatile?: FormulaVolatility;
   formatOptions?: Record<string, unknown>;
 };
 
 /*
  * The runtime value produced by evaluating a node. Strings and numbers are
- * their JS equivalents; dates are ISO 8601 UTC strings (matches how the date
- * property type already stores cells); booleans are booleans; missing or
+ * their JS equivalents; dates are DateValue objects; booleans are booleans; missing or
  * filtered-out values are null. Errors are distinguishable from all valid
  * values because they are objects with a `__err` key.
  */
-export type Value = number | string | boolean | null | ErrorCell;
+export type DateValue = { kind: DateKind; value: string };
+
+export type Value = number | string | boolean | null | DateValue | ErrorCell;
+
+export type FormulaCell = number | string | boolean | null | DateCell | ErrorCell;
 
 export type ErrorCell = {
   __err: ErrorCode;
@@ -36,6 +44,7 @@ export type ErrorCode =
   | "TYPE_MISMATCH"
   | "DIV_BY_ZERO"
   | "DATE_INVALID"
+  | "SIZE_LIMIT_EXCEEDED"
   | "DEPTH_EXCEEDED"
   | "DEPENDENCY_ERROR";
 
@@ -50,6 +59,14 @@ export type EvalContext = {
   depth: number;
   maxDepth: number;
   memo: Map<string, Value>; // keyed by propId for the current row-eval
+  path: Set<string>;
+  nodes: number;
+  textChars: number;
+  zone: string;
+  now: Date;
+  today: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 };
 
 export type PropertyLookup = {
@@ -72,3 +89,8 @@ export const DEFAULT_MAX_DEPTH = 64;
 export const MAX_FORMULA_SOURCE_LENGTH = 10_000;
 export const MAX_PARSE_DEPTH = 256;
 export const MAX_EVAL_DEPTH = 512;
+export const MAX_EVAL_NODES = 100_000;
+// Long Text cells and materialized formula results share the same limit.
+export const MAX_TEXT_CELL_LENGTH = 25_000;
+export const MAX_TEXT_LENGTH = 100_000;
+export const MAX_EVAL_TEXT_CHARS = 5_000_000;

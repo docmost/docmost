@@ -33,11 +33,8 @@ export class UserService {
     userId: string,
     workspace: Workspace,
   ) {
-    const includePassword =
-      updateUserDto.email != null && updateUserDto.confirmPassword != null;
-
     const user = await this.userRepo.findById(userId, workspace.id, {
-      includePassword,
+      includeTimezone: true,
     });
 
     if (!user) {
@@ -93,6 +90,10 @@ export class UserService {
       user.name = updateUserDto.name;
     }
 
+    if (updateUserDto.timezone) {
+      user.timezone = updateUserDto.timezone;
+    }
+
     if (updateUserDto.email && user.email != updateUserDto.email) {
       validateSsoEnforcement(workspace);
 
@@ -102,9 +103,13 @@ export class UserService {
         );
       }
 
+      const { password } = await this.userRepo.findById(userId, workspace.id, {
+        includePassword: true,
+      });
+
       const isPasswordMatch = await comparePasswordHash(
         updateUserDto.confirmPassword,
-        user.password,
+        password,
       );
 
       if (!isPasswordMatch) {

@@ -13,12 +13,15 @@ import {
   IconLink,
   IconMail,
   IconClockPlus,
+  IconUserPlus,
   IconClockEdit,
   IconUserEdit,
   IconMathFunction,
 } from "@tabler/icons-react";
 import type {
   BasePropertyType,
+  FilterOperator,
+  IBaseProperty,
   TypeOptions,
 } from "@/ee/base/types/base.types";
 import { CellText } from "@/ee/base/components/cells/cell-text";
@@ -34,12 +37,13 @@ import { CellEmail } from "@/ee/base/components/cells/cell-email";
 import { CellPerson } from "@/ee/base/components/cells/cell-person";
 import { CellFile } from "@/ee/base/components/cells/cell-file";
 import { CellPage } from "@/ee/base/components/cells/cell-page";
-import { CellCreatedAt } from "@/ee/base/components/cells/cell-created-at";
-import { CellLastEditedAt } from "@/ee/base/components/cells/cell-last-edited-at";
-import { CellLastEditedBy } from "@/ee/base/components/cells/cell-last-edited-by";
+import { CellSystemUser } from "@/ee/base/components/cells/cell-system-user";
 import { CellFormula } from "@/ee/base/components/cells/cell-formula";
 import { defaultStatusChoices } from "@/ee/base/components/property/choice-editor";
-import type { ClientPropertyTypeDescriptor } from "./property-type.descriptor";
+import { resultTypeOfProperty } from "@docmost/base-formula/client";
+import type { ClientPropertyTypeDescriptor, FilterInputKind } from "./property-type.descriptor";
+
+export { isPropertyConverting } from "./property-converting";
 
 export const PROPERTY_TYPE_REGISTRY: Record<
   BasePropertyType,
@@ -149,7 +153,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
     cellComponent: CellFormula,
     icon: IconMathFunction,
     labelKey: "Formula",
-    filterOperators: ["eq", "neq", "isEmpty", "isNotEmpty"],
+    filterOperators: ["isEmpty", "isNotEmpty"],
     filterInput: "text",
     isSystem: true,
     hasOptions: false,
@@ -196,7 +200,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
   },
   createdAt: {
     type: "createdAt",
-    cellComponent: CellCreatedAt,
+    cellComponent: CellDate,
     icon: IconClockPlus,
     labelKey: "Created at",
     filterOperators: ["eq", "before", "after", "onOrBefore", "onOrAfter", "isWithin", "isEmpty", "isNotEmpty"],
@@ -205,9 +209,20 @@ export const PROPERTY_TYPE_REGISTRY: Record<
     hasOptions: false,
     systemAccessor: (row) => row.createdAt,
   },
+  createdBy: {
+    type: "createdBy",
+    cellComponent: CellSystemUser,
+    icon: IconUserPlus,
+    labelKey: "Created by",
+    filterOperators: ["eq", "neq", "any", "none", "isEmpty", "isNotEmpty"],
+    filterInput: "person",
+    isSystem: true,
+    hasOptions: false,
+    systemAccessor: (row) => row.creatorId,
+  },
   lastEditedAt: {
     type: "lastEditedAt",
-    cellComponent: CellLastEditedAt,
+    cellComponent: CellDate,
     icon: IconClockEdit,
     labelKey: "Last edited at",
     filterOperators: ["eq", "before", "after", "onOrBefore", "onOrAfter", "isWithin", "isEmpty", "isNotEmpty"],
@@ -218,7 +233,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
   },
   lastEditedBy: {
     type: "lastEditedBy",
-    cellComponent: CellLastEditedBy,
+    cellComponent: CellSystemUser,
     icon: IconUserEdit,
     labelKey: "Last edited by",
     filterOperators: ["eq", "neq", "any", "none", "isEmpty", "isNotEmpty"],
@@ -243,10 +258,35 @@ export function isSystemPropertyType(type: string): boolean {
 
 export const DEFAULT_FILTER_OPERATORS = ["eq", "neq", "isEmpty", "isNotEmpty"];
 
+const FORMULA_FILTER_TYPE: Record<string, string> = {
+  number: "number",
+  string: "text",
+  boolean: "checkbox",
+  date: "date",
+  datetime: "date",
+};
+
+export function filterSpecOf(
+  property: Pick<IBaseProperty, "type" | "typeOptions">,
+): { operators: FilterOperator[]; input: FilterInputKind } {
+  const type =
+    property.type === "formula"
+      ? (FORMULA_FILTER_TYPE[
+          resultTypeOfProperty("formula", property.typeOptions)
+        ] ?? "formula")
+      : property.type;
+  const descriptor = getDescriptor(type);
+  return {
+    operators: (descriptor?.filterOperators ??
+      DEFAULT_FILTER_OPERATORS) as FilterOperator[],
+    input: descriptor?.filterInput ?? "text",
+  };
+}
+
 export const PROPERTY_PICKER_ORDER: BasePropertyType[] = [
   "text", "longText", "number", "select", "status", "multiSelect", "date",
   "person", "file", "formula", "page", "checkbox", "url", "email",
-  "createdAt", "lastEditedAt", "lastEditedBy",
+  "createdAt", "createdBy", "lastEditedAt", "lastEditedBy",
 ];
 
 export const propertyTypes = PROPERTY_PICKER_ORDER.map((type) => {

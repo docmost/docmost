@@ -1,29 +1,90 @@
 import { useEffect, useRef } from "react";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
+import { useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
-import { useHasFeature } from "@/ee/hooks/use-feature";
+import { useEntitlements } from "@/ee/entitlement/use-entitlements";
+import type { Entitlements } from "@/ee/entitlement/entitlement.types";
 import { Feature } from "@/ee/features";
 import { usePageVerificationInfoQuery } from "@/ee/page-verification/queries/page-verification-query";
 import { unlockedVerifiedPageIdAtom } from "@/ee/page-verification/atoms/page-edit-lock-atom";
 import { LOCKED_VERIFICATION_STATUSES } from "@/ee/page-verification/page-verification.constants";
-import { VerificationStatus } from "@/ee/page-verification/types/page-verification.types";
+import {
+  IPageVerificationInfo,
+  VerificationStatus,
+} from "@/ee/page-verification/types/page-verification.types";
 
 function isLockedStatus(status: VerificationStatus | undefined): boolean {
   return LOCKED_VERIFICATION_STATUSES.includes(status);
 }
 
+// Builds without the enterprise server have no verification endpoint, so the page has no lock.
+function isNotFound(error: unknown) {
+  return isAxiosError(error) && error.response?.status === 404;
+}
+
+// A buffered update or handshake may be sent before React renders an
+// invalidation. Check the current permission at the point of transmission.
+export function usePageSyncPermission(pageId: string) {
+  const client = useQueryClient();
+  const store = useStore();
+  return () => {
+    // Workspace features can only rule verification out. Otherwise the page's own status decides.
+    const workspace = client.getQueryData<Entitlements>(["entitlements"]);
+    if (workspace && !workspace.features.includes(Feature.PAGE_VERIFICATION))
+      return true;
+    // Edits wait while the lock status loads, then follow the last answer, even if a refresh failed.
+    const lock = client.getQueryState<IPageVerificationInfo>([
+      "page-verification-info",
+      pageId,
+    ]);
+    if (!lock?.data) return isNotFound(lock?.error);
+    if (lock.fetchStatus !== "idle") return false;
+    return (
+      !isLockedStatus(lock.data.status) ||
+      store.get(unlockedVerifiedPageIdAtom) === pageId
+    );
+  };
+}
+
 function usePageVerificationStatus(
   pageId: string | undefined,
-): VerificationStatus | undefined {
-  const hasVerificationFeature = useHasFeature(Feature.PAGE_VERIFICATION);
-  const { data: verificationInfo } = usePageVerificationInfoQuery(
-    hasVerificationFeature ? pageId : undefined,
+  checkOnEntry = false,
+) {
+  // Workspace features can only rule verification out. Otherwise the page's own status decides.
+  const workspace = useEntitlements(Boolean(pageId));
+  const verificationRuledOut = Boolean(
+    workspace.data &&
+      !workspace.data.features.includes(Feature.PAGE_VERIFICATION),
   );
-  return verificationInfo?.status;
+  const verification = usePageVerificationInfoQuery(
+    verificationRuledOut ? undefined : pageId,
+    checkOnEntry,
+  );
+  // Only the first lock answer can pause editing. A refresh, running or failed, keeps the last one.
+  const awaitingLockStatus = Boolean(
+    pageId &&
+      !verificationRuledOut &&
+      !verification.data &&
+      !isNotFound(verification.error),
+  );
+  const verificationUnavailable =
+    awaitingLockStatus &&
+    (verification.isError ||
+      verification.isPaused ||
+      (verification.isFetching &&
+        verification.errorUpdatedAt > verification.dataUpdatedAt));
+  return {
+    status: verification.data?.status,
+    isCheckingLock: awaitingLockStatus,
+    verificationUnavailable,
+    retryVerification: verification.refetch,
+    retryingVerification: verification.isFetching,
+  };
 }
 
 function getEditConfirmation(
@@ -57,7 +118,7 @@ function getEditConfirmation(
 
 export function usePageEditMode(pageId?: string) {
   const { t } = useTranslation();
-  const status = usePageVerificationStatus(pageId);
+  const { status, ...verification } = usePageVerificationStatus(pageId);
   const isLocked = isLockedStatus(status);
   const [sessionMode, setSessionMode] = useAtom(currentPageEditModeAtom);
   const [unlockedPageId, setUnlockedPageId] = useAtom(
@@ -93,11 +154,16 @@ export function usePageEditMode(pageId?: string) {
     });
   };
 
-  return { editMode, isLocked, changeEditMode };
+  return { editMode, isLocked, ...verification, changeEditMode };
+}
+
+// Checks the lock as soon as a page is opened, by slug until its id is known.
+export function usePageEditLockCheck(pageKey: string | undefined): void {
+  usePageVerificationStatus(pageKey, true);
 }
 
 export function usePageEditLockSync(pageId: string): void {
-  const status = usePageVerificationStatus(pageId);
+  const { status } = usePageVerificationStatus(pageId);
   const setUnlockedPageId = useSetAtom(unlockedVerifiedPageIdAtom);
   const previousStatusRef = useRef(status);
 

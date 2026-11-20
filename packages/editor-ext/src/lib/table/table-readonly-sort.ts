@@ -59,7 +59,14 @@ function getOrSaveOriginalOrder(
   table: HTMLTableElement,
   dataRows: HTMLTableRowElement[],
 ): HTMLTableRowElement[] {
-  if (!originalOrders.has(table)) {
+  const saved = originalOrders.get(table);
+  const current = new Set(dataRows);
+  // rows came or went since the order was saved, so it no longer describes this table
+  const stale =
+    !saved ||
+    saved.length !== dataRows.length ||
+    saved.some((row) => !current.has(row));
+  if (stale) {
     originalOrders.set(table, [...dataRows]);
   }
   return originalOrders.get(table)!;
@@ -180,6 +187,8 @@ export const TableReadonlySort = Extension.create({
   addProseMirrorPlugins() {
     const editor = this.editor;
     let editorRoot: HTMLElement | null = null;
+    // chevrons only come from this plugin, so an editable page is searched for them once
+    let hasChevrons = false;
 
     const onClick = (event: MouseEvent) => {
       if (editor.isEditable) return;
@@ -208,6 +217,7 @@ export const TableReadonlySort = Extension.create({
 
           if (!editor.isEditable) {
             addChevronsToAllTables(editorRoot);
+            hasChevrons = true;
           }
 
           return {
@@ -215,14 +225,17 @@ export const TableReadonlySort = Extension.create({
               const root = view.dom as HTMLElement;
               if (!editor.isEditable) {
                 addChevronsToAllTables(root);
-              } else {
+                hasChevrons = true;
+              } else if (hasChevrons) {
                 removeAllChevrons(root);
+                hasChevrons = false;
               }
             },
             destroy() {
               if (editorRoot) {
                 editorRoot.removeEventListener('click', onClick);
                 removeAllChevrons(editorRoot);
+                hasChevrons = false;
               }
             },
           };

@@ -11,3 +11,5 @@ const baseIdSuffix = customAlphabet(alphabet, 9);
 
 export const generateBasePropertyId = (): string => `prp${baseIdSuffix()}`;
 export const generateBaseChoiceId = (): string => `opt${baseIdSuffix()}`;
+
+export const generateBaseViewShareKey = customAlphabet(alphabet, 16);

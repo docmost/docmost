@@ -57,6 +57,7 @@ export interface ApiKeys {
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
+  scopes: Generated<Json>;
   updatedAt: Generated<Timestamp>;
   creatorId: string;
   workspaceId: string;
@@ -76,6 +77,7 @@ export interface Attachments {
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
+  templateId: string | null;
   textContent: string | null;
   tsv: string | null;
   type: string | null;
@@ -148,6 +150,13 @@ export interface Backlinks {
   workspaceId: string;
 }
 
+export interface BasePendingConversions {
+  conversionKey: string;
+  createdAt: Generated<Timestamp>;
+  pageId: string;
+  workspaceId: string;
+}
+
 export interface BaseProperties {
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
@@ -176,6 +185,18 @@ export interface BaseRows {
   pageId: string;
   position: string;
   updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface BaseViewShares {
+  access: Generated<string>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  id: Generated<string>;
+  key: string;
+  pageId: string;
+  updatedAt: Generated<Timestamp>;
+  viewId: string;
   workspaceId: string;
 }
 
@@ -800,8 +821,10 @@ export interface DB {
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;
+  basePendingConversions: BasePendingConversions;
   baseProperties: BaseProperties;
   baseRows: BaseRows;
+  baseViewShares: BaseViewShares;
   baseViews: BaseViews;
   billing: Billing;
   comments: Comments;

@@ -1,3 +1,4 @@
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import {
   IconBlockquote,
   IconCaretRightFilled,
@@ -7,6 +8,7 @@ import {
   IconH2,
   IconH3,
   IconInfoCircle,
+  IconForms,
   IconLayoutKanban,
   IconLayoutNavbar,
   IconList,
@@ -20,15 +22,18 @@ import {
   IconPhoto,
   IconTable,
   IconTypography,
+  IconCursorText,
   IconMenu4,
   IconPageBreak,
   IconCalendar,
+  IconCalendarMonth,
   IconClock,
   IconAppWindow,
   IconSitemap,
   IconColumns3,
   IconColumns2,
   IconTag,
+  IconVariable,
   IconMoodSmile,
   IconRotate2,
   IconSuperscript,
@@ -49,6 +54,7 @@ import IconDrawio from "@/components/icons/icon-drawio";
 import { IconColumns4 } from "@/components/icons/icon-columns-4";
 import { IconColumns5 } from "@/components/icons/icon-columns-5";
 import i18n from "@/i18n.ts";
+import { isBetaBaseForms } from "@/lib/config.ts";
 import {
   AirtableIcon,
   FigmaIcon,
@@ -81,6 +87,26 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .toggleNode("paragraph", "paragraph")
           .run();
+      },
+    },
+    {
+      title: "Placeholder text",
+      description: "Show an instruction until someone types here.",
+      searchTerms: ["placeholder", "instruction", "hint"],
+      icon: IconCursorText,
+      disable: (editor) => !editor.can().editTemplatePlaceholder?.(),
+      command: ({ editor, range }) => {
+        editor.chain().deleteRange(range).editTemplatePlaceholder().run();
+      },
+    },
+    {
+      title: "Variable",
+      description: "Fill in a named field when using this template.",
+      searchTerms: ["variable", "field", "prefill"],
+      icon: IconVariable,
+      disable: (editor) => !editor.can().insertTemplateVariable?.(),
+      command: ({ editor, range }) => {
+        editor.chain().deleteRange(range).insertTemplateVariable().run();
       },
     },
     {
@@ -202,9 +228,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload image
         const input = document.createElement("input");
@@ -218,7 +243,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadImageAction(file, editor, pos, pageId);
+              uploadImageAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -235,9 +260,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload video
         const input = document.createElement("input");
@@ -251,7 +275,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadVideoAction(file, editor, pos, pageId);
+              uploadVideoAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -276,9 +300,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload audio
         const input = document.createElement("input");
@@ -292,7 +315,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadAudioAction(file, editor, pos, pageId);
+              uploadAudioAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -309,9 +332,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         const input = document.createElement("input");
         input.type = "file";
@@ -323,7 +345,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadPdfAction(file, editor, pos, pageId);
+              uploadPdfAction(file, editor, pos, uploadTarget);
             }
           }
 
@@ -340,9 +362,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
-        // @ts-ignore
-        const pageId = editor.storage?.pageId;
-        if (!pageId) return;
+        const uploadTarget = getEditorUploadTarget(editor);
+        if (!uploadTarget) return;
 
         // upload file
         const input = document.createElement("input");
@@ -356,7 +377,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadAttachmentAction(file, editor, pos, pageId, true);
+              uploadAttachmentAction(file, editor, pos, uploadTarget, true);
             }
           }
 
@@ -396,6 +417,27 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       requiresBases: true,
       command: ({ editor, range }: CommandProps) => {
         insertBaseEmbedBlock(editor, { range, template: "kanban" });
+      },
+    },
+    {
+      title: "Calendar",
+      description: "Insert a calendar on this page",
+      searchTerms: ["calendar", "schedule", "events", "planner", "database"],
+      icon: IconCalendarMonth,
+      requiresBases: true,
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range, template: "calendar" });
+      },
+    },
+    {
+      title: "Form",
+      description: "Insert a form that collects responses into a base",
+      searchTerms: ["form", "survey", "questionnaire", "responses", "database"],
+      icon: IconForms,
+      requiresBases: true,
+      disable: () => !isBetaBaseForms(),
+      command: ({ editor, range }: CommandProps) => {
+        insertBaseEmbedBlock(editor, { range, template: "form" });
       },
     },
     {
@@ -505,23 +547,11 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Date",
-      description: "Insert current date",
-      searchTerms: ["date", "today"],
+      description: "Pick a date",
+      searchTerms: ["Today", "Calendar"],
       icon: IconCalendar,
-      command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString(i18n.language, {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .insertContent(currentDate)
-          .run();
-      },
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).insertDate().run(),
     },
     {
       title: "Time",
@@ -831,6 +861,10 @@ const CommandGroups: SlashMenuGroupedItemsType = {
   ],
 };
 
+// The editor can turn a typed apostrophe into a smart quote while searching.
+const normalizeSearchText = (value: string) =>
+  value.toLowerCase().replace(/[‘’]/g, "'");
+
 export const getSuggestionItems = ({
   query,
   editor,
@@ -840,13 +874,14 @@ export const getSuggestionItems = ({
   editor?: Editor;
   excludeItems?: Set<string>;
 }): SlashMenuGroupedItemsType => {
-  const search = query.toLowerCase();
+  const search = normalizeSearchText(query);
+  const containsSearch = (value: string) =>
+    normalizeSearchText(value).includes(search);
   const filteredGroups: SlashMenuGroupedItemsType = {};
 
   const fuzzyMatch = (query: string, target: string) => {
     let queryIndex = 0;
-    target = target.toLowerCase();
-    for (const char of target) {
+    for (const char of normalizeSearchText(target)) {
       if (query[queryIndex] === char) queryIndex++;
       if (queryIndex === query.length) return true;
     }
@@ -862,13 +897,12 @@ export const getSuggestionItems = ({
       return (
         fuzzyMatch(search, item.title) ||
         fuzzyMatch(search, translatedTitle) ||
-        item.description.toLowerCase().includes(search) ||
-        translatedDescription.toLowerCase().includes(search) ||
+        containsSearch(item.description) ||
+        containsSearch(translatedDescription) ||
         (item.searchTerms &&
           item.searchTerms.some(
             (term: string) =>
-              term.includes(search) ||
-              i18n.t(term).toLowerCase().includes(search),
+              containsSearch(term) || containsSearch(i18n.t(term)),
           ))
       );
     });
@@ -876,15 +910,9 @@ export const getSuggestionItems = ({
     if (filteredItems.length) {
       filteredGroups[group] = filteredItems.sort((a, b) => {
         const aTitle =
-          a.title.toLowerCase().includes(search) ||
-          i18n.t(a.title).toLowerCase().includes(search)
-            ? 0
-            : 1;
+          containsSearch(a.title) || containsSearch(i18n.t(a.title)) ? 0 : 1;
         const bTitle =
-          b.title.toLowerCase().includes(search) ||
-          i18n.t(b.title).toLowerCase().includes(search)
-            ? 0
-            : 1;
+          containsSearch(b.title) || containsSearch(i18n.t(b.title)) ? 0 : 1;
         return aTitle - bTitle;
       });
     }

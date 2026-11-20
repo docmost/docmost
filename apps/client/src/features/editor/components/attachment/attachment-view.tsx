@@ -1,7 +1,12 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { Group, Text, Paper, ActionIcon, Loader, Tooltip } from "@mantine/core";
 import { getFileUrl } from "@/lib/config.ts";
-import { IconDownload, IconFileTypePdf, IconPaperclip } from "@tabler/icons-react";
+import {
+  IconDownload,
+  IconFileTypePdf,
+  IconMusic,
+  IconPaperclip,
+} from "@tabler/icons-react";
 import { useHover } from "@mantine/hooks";
 import { formatBytes } from "@/lib";
 import { useTranslation } from "react-i18next";
@@ -14,29 +19,33 @@ export default function AttachmentView(props: NodeViewProps) {
   const { hovered, ref } = useHover();
 
   const isPdf = mime === "application/pdf" || name?.toLowerCase().endsWith(".pdf");
+  const isAudio = mime?.startsWith("audio/") || name?.toLowerCase().endsWith(".mp3");
 
-  const handleEmbedAsPdf = useCallback(() => {
-    const pos = getPos();
-    if (pos === undefined || !url) return;
+  const handleEmbedAs = useCallback(
+    (type: "pdf" | "audio") => {
+      const pos = getPos();
+      if (pos === undefined || !url) return;
 
-    const nodeSize = node.nodeSize;
+      const nodeSize = node.nodeSize;
 
-    editor
-      .chain()
-      .insertContentAt(
-        { from: pos, to: pos + nodeSize },
-        {
-          type: "pdf",
-          attrs: {
-            src: url,
-            name,
-            attachmentId,
-            size,
+      editor
+        .chain()
+        .insertContentAt(
+          { from: pos, to: pos + nodeSize },
+          {
+            type,
+            attrs: {
+              src: url,
+              name,
+              attachmentId,
+              size,
+            },
           },
-        },
-      )
-      .run();
-  }, [editor, getPos, node, url, name, attachmentId]);
+        )
+        .run();
+    },
+    [editor, getPos, node, url, name, attachmentId, size],
+  );
 
   return (
     <NodeViewWrapper>
@@ -68,8 +77,15 @@ export default function AttachmentView(props: NodeViewProps) {
             <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
               {isPdf && editor.isEditable && (
                 <Tooltip label={t("Embed as PDF")} position="top" withinPortal={false}>
-                  <ActionIcon variant="default" aria-label={t("Embed as PDF")} onClick={handleEmbedAsPdf}>
+                  <ActionIcon variant="default" aria-label={t("Embed as PDF")} onClick={() => handleEmbedAs("pdf")}>
                     <IconFileTypePdf size={18} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              {isAudio && editor.isEditable && (
+                <Tooltip label={t("Embed as audio")} position="top" withinPortal={false}>
+                  <ActionIcon variant="default" aria-label={t("Embed as audio")} onClick={() => handleEmbedAs("audio")}>
+                    <IconMusic size={18} />
                   </ActionIcon>
                 </Tooltip>
               )}

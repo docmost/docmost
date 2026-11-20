@@ -4,6 +4,7 @@ import { notifications } from "@mantine/notifications";
 import api from "@/lib/api-client";
 import i18n from "@/i18n.ts";
 import { getApiErrorMessage } from "@/lib/api-error";
+import type { BaseTemplate } from "@/ee/base/types/base.types";
 
 function findBaseEmbedPlaceholderPos(
   editor: Editor,
@@ -22,7 +23,7 @@ function findBaseEmbedPlaceholderPos(
 
 export async function insertBaseEmbedBlock(
   editor: Editor,
-  opts: { template?: "kanban"; range?: Range } = {},
+  opts: { template?: BaseTemplate; range?: Range } = {},
 ): Promise<void> {
   // @ts-ignore
   const parentPageId = editor.storage?.pageId as string | undefined;

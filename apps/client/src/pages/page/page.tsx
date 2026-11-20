@@ -13,11 +13,10 @@ import React, { useEffect } from "react";
 import { useSetAtom } from "jotai";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
-import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
-import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
-import { BaseView } from "@/ee/base/components/base-view";
+import { BasePageView } from "@/ee/base/components/base-view";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
@@ -25,7 +24,9 @@ import { DocumentTitle } from "@/components/ui/document-title.tsx";
 import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled.ts";
 import { useDisablePrint } from "@/ee/security/hooks/use-disable-print.ts";
 import { PageCover } from "@/features/page-cover/components/page-cover.tsx";
-import { resolveCover } from "@/features/page-cover/page-cover.utils.ts";
+import { PageFormattingToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
+import { usePageEditLockCheck } from "@/ee/page-verification/hooks/use-page-edit-mode";
+import { PageLoadingContent, PageLoadError, usePageLayout } from "./page-loading";
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -57,14 +58,17 @@ export default function Page() {
 
 function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   const { t } = useTranslation();
-
+  const { spaceSlug } = useParams();
+  const pageId = extractPageSlugId(pageSlug);
   const {
     data: page,
-    isLoading,
-    isError,
-    error,
-  } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
-  const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+    isPending,
+    error: pageError,
+    refetch: refetchPage,
+  } = usePageQuery({ pageId });
+  usePageEditLockCheck(page?.id ?? pageId);
+  const spaceQuery = useGetSpaceBySlugQuery(page?.space?.slug ?? spaceSlug);
+  const { data: space } = spaceQuery;
   const { exportDisabledLabel } = useExportDisabled(page?.space?.slug);
   useDisablePrint(exportDisabledLabel);
   const setAsideState = useSetAtom(asideStateAtom);
@@ -82,37 +86,30 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     canEdit ||
     (space?.settings?.comments?.allowViewerComments === true);
 
-  if (isLoading) {
-    return <></>;
-  }
+  const layout = usePageLayout(page);
+  const loading =
+    (isPending && !!pageId) ||
+    (!!page && !pageError && !space && spaceQuery.isPending);
+  const toolbar = layout.showToolbar && (
+    <PageFormattingToolbar pageId={loading ? undefined : page?.id} />
+  );
 
-  if (isError || !page) {
-    if ([401, 403, 404].includes(error?.["status"])) {
-      return (
-        <EmptyState
-          icon={IconFileOff}
-          title={t("Page not found")}
-          description={t(
-            "This page may have been deleted, moved, or you may not have access.",
-          )}
-          action={
-            <Button component={Link} to="/home" variant="default" size="sm" mt="xs">
-              {t("Go to homepage")}
-            </Button>
-          }
-        />
-      );
-    }
+  if (loading) {
     return (
-      <EmptyState
-        icon={IconFileOff}
-        title={t("Error fetching page data.")}
-      />
+      <div>
+        {toolbar}
+        <PageLoadingContent {...layout} />
+      </div>
     );
   }
 
-  if (!space) {
-    return <></>;
+  if (pageError || !page || !space) {
+    return (
+      <PageLoadError
+        error={pageError ?? spaceQuery.error}
+        onRetry={pageError || !page ? refetchPage : spaceQuery.refetch}
+      />
+    );
   }
 
   if (page?.isBase) {
@@ -153,8 +150,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
               flexDirection: "column",
             }}
           >
-            <BaseView
-              pageId={page.id}
+            <BasePageView
+              page={page}
               editable={hasBases && canEdit}
               titleSlot={
                 <div
@@ -162,6 +159,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
                   style={{ paddingTop: 2, paddingBottom: 6 }}
                 >
                   <MemoizedTitleEditor
+                    key={page.id}
                     pageId={page.id}
                     slugId={page.slugId}
                     title={page.title}
@@ -181,6 +179,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   return (
     page && (
       <div>
+        {toolbar}
         <DocumentTitle
           title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
           withAppName={false}
@@ -188,7 +187,12 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
         <MemoizedPageHeader readOnly={!canEdit} />
 
-        <PageCover key={`cover-${page.id}`} page={page} editable={canEdit} />
+        <PageCover
+          key={`cover-${page.id}`}
+          page={page}
+          editable={canEdit}
+          belowToolbar={layout.showToolbar}
+        />
 
         <MemoizedFullEditor
           key={page.id}
@@ -202,7 +206,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           creator={page.creator}
           contributors={page.contributors}
           canComment={canComment}
-          hasCover={Boolean(resolveCover(page.coverPhoto))}
+          hasCover={layout.hasCover}
+          showToolbar={layout.showToolbar}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

@@ -1,0 +1,158 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index fe286de11f15a02a110ff12dbe19b2371b833192..dea42c3b415585c5b12e74a1e3f1546c5d6eb82e 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -5776,8 +5776,9 @@ var ExtensionManager = class {
+ 	get nodeViews() {
+ 		const { editor } = this;
+ 		const { nodeExtensions } = splitExtensions(this.extensions);
++		let attributes;
+ 		return Object.fromEntries(nodeExtensions.filter((extension) => !!getExtensionField(extension, "addNodeView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = (attributes ??= this.attributes).filter((attribute) => attribute.type === extension.name);
+ 			const addNodeView = getExtensionField(extension, "addNodeView", {
+ 				name: extension.name,
+ 				options: extension.options,
+@@ -5855,8 +5856,9 @@ var ExtensionManager = class {
+ 	get markViews() {
+ 		const { editor } = this;
+ 		const { markExtensions } = splitExtensions(this.extensions);
++		let attributes;
+ 		return Object.fromEntries(markExtensions.filter((extension) => !!getExtensionField(extension, "addMarkView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = (attributes ??= this.attributes).filter((attribute) => attribute.type === extension.name);
+ 			const addMarkView = getExtensionField(extension, "addMarkView", {
+ 				name: extension.name,
+ 				options: extension.options,
+@@ -6604,6 +6606,7 @@ img.ProseMirror-separator {
+ }`;
+ //#endregion
+ //#region src/Editor.ts
++var styleUsers = Symbol.for("tiptap.styleUsers");
+ var Editor = class extends EventEmitter {
+ 	constructor(options = {}) {
+ 		super();
+@@ -6715,7 +6718,8 @@ var Editor = class extends EventEmitter {
+ 		}
+ 		this.editorView = null;
+ 		this.isInitialized = false;
+-		if (this.css && !document.querySelectorAll(`.${this.className}`).length) try {
++		if (this.css) this.css[styleUsers] = (this.css[styleUsers] ?? 1) - 1;
++		if (this.css && this.css[styleUsers] === 0) try {
+ 			if (typeof this.css.remove === "function") this.css.remove();
+ 			else if (this.css.parentNode) this.css.parentNode.removeChild(this.css);
+ 		} catch (error) {
+@@ -6754,7 +6758,10 @@ var Editor = class extends EventEmitter {
+ 	* Inject CSS styles.
+ 	*/
+ 	injectCSS() {
+-		if (this.options.injectCSS && typeof document !== "undefined") this.css = createStyleTag(style, this.options.injectNonce);
++		if (this.options.injectCSS && typeof document !== "undefined" && !this.css) {
++			this.css = createStyleTag(style, this.options.injectNonce);
++			this.css[styleUsers] = (this.css[styleUsers] ?? 0) + 1;
++		}
+ 	}
+ 	/**
+ 	* Update editor options.
+diff --git a/dist/index.js b/dist/index.js
+index aff6848c6db9f0ef838d0e3ce6dca0ac047a1e86..0464bb377b684a928132467438bf6d98a5de1168 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -5764,8 +5764,9 @@ var ExtensionManager = class {
+ 	get nodeViews() {
+ 		const { editor } = this;
+ 		const { nodeExtensions } = splitExtensions(this.extensions);
++		let attributes;
+ 		return Object.fromEntries(nodeExtensions.filter((extension) => !!getExtensionField(extension, "addNodeView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = (attributes ??= this.attributes).filter((attribute) => attribute.type === extension.name);
+ 			const addNodeView = getExtensionField(extension, "addNodeView", {
+ 				name: extension.name,
+ 				options: extension.options,
+@@ -5843,8 +5844,9 @@ var ExtensionManager = class {
+ 	get markViews() {
+ 		const { editor } = this;
+ 		const { markExtensions } = splitExtensions(this.extensions);
++		let attributes;
+ 		return Object.fromEntries(markExtensions.filter((extension) => !!getExtensionField(extension, "addMarkView")).map((extension) => {
+-			const extensionAttributes = this.attributes.filter((attribute) => attribute.type === extension.name);
++			const extensionAttributes = (attributes ??= this.attributes).filter((attribute) => attribute.type === extension.name);
+ 			const addMarkView = getExtensionField(extension, "addMarkView", {
+ 				name: extension.name,
+ 				options: extension.options,
+@@ -6592,6 +6594,7 @@ img.ProseMirror-separator {
+ }`;
+ //#endregion
+ //#region src/Editor.ts
++var styleUsers = Symbol.for("tiptap.styleUsers");
+ var Editor = class extends EventEmitter {
+ 	constructor(options = {}) {
+ 		super();
+@@ -6703,7 +6706,8 @@ var Editor = class extends EventEmitter {
+ 		}
+ 		this.editorView = null;
+ 		this.isInitialized = false;
+-		if (this.css && !document.querySelectorAll(`.${this.className}`).length) try {
++		if (this.css) this.css[styleUsers] = (this.css[styleUsers] ?? 1) - 1;
++		if (this.css && this.css[styleUsers] === 0) try {
+ 			if (typeof this.css.remove === "function") this.css.remove();
+ 			else if (this.css.parentNode) this.css.parentNode.removeChild(this.css);
+ 		} catch (error) {
+@@ -6742,7 +6746,10 @@ var Editor = class extends EventEmitter {
+ 	* Inject CSS styles.
+ 	*/
+ 	injectCSS() {
+-		if (this.options.injectCSS && typeof document !== "undefined") this.css = createStyleTag(style, this.options.injectNonce);
++		if (this.options.injectCSS && typeof document !== "undefined" && !this.css) {
++			this.css = createStyleTag(style, this.options.injectNonce);
++			this.css[styleUsers] = (this.css[styleUsers] ?? 0) + 1;
++		}
+ 	}
+ 	/**
+ 	* Update editor options.
+diff --git a/src/Editor.ts b/src/Editor.ts
+index 156e8b21afbf0d2e972bff70d8ca9a20967b25ff..fdbcf87a6d3406641fc569b018014f3f40b0e310 100644
+--- a/src/Editor.ts
++++ b/src/Editor.ts
+@@ -56,12 +56,14 @@ export interface TiptapEditorHTMLElement extends HTMLElement {
+   editor?: Editor
+ }
+ 
++const styleUsers = Symbol.for('tiptap.styleUsers')
++
+ export class Editor extends EventEmitter<EditorEvents> {
+   private commandManager!: CommandManager
+ 
+   public extensionManager!: ExtensionManager
+ 
+-  private css: HTMLStyleElement | null = null
++  private css: (HTMLStyleElement & { [styleUsers]?: number }) | null = null
+ 
+   private className = 'tiptap'
+ 
+@@ -216,9 +218,11 @@ export class Editor extends EventEmitter<EditorEvents> {
+     this.editorView = null
+     this.isInitialized = false
+ 
+-    // Safely remove CSS element with fallback for test environments
+-    // Only remove CSS if no other editors exist in the document after unmount
+-    if (this.css && !document.querySelectorAll(`.${this.className}`).length) {
++    // Another mounted view can still be in a detached container during navigation.
++    if (this.css) {
++      this.css[styleUsers] = (this.css[styleUsers] ?? 1) - 1
++    }
++    if (this.css?.[styleUsers] === 0) {
+       try {
+         if (typeof this.css.remove === 'function') {
+           this.css.remove()
+@@ -274,8 +278,9 @@ export class Editor extends EventEmitter<EditorEvents> {
+    * Inject CSS styles.
+    */
+   private injectCSS(): void {
+-    if (this.options.injectCSS && typeof document !== 'undefined') {
++    if (this.options.injectCSS && typeof document !== 'undefined' && !this.css) {
+       this.css = createStyleTag(style, this.options.injectNonce)
++      this.css[styleUsers] = (this.css[styleUsers] ?? 0) + 1
+     }
+   }
+ 

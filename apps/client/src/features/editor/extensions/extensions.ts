@@ -1,4 +1,5 @@
 import { markInputRule, type Editor } from "@tiptap/core";
+import { EditableTemplateVariable } from "@/ee/template/components/template-variable-node";
 import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
@@ -6,6 +7,7 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList } from "@tiptap/extension-list";
 import { CharacterCount, UndoRedo } from "@tiptap/extensions";
 import { Placeholder } from "@/features/editor/extensions/placeholder";
+import { TemplatePlaceholder } from "@/features/editor/extensions/template-placeholder";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -66,6 +68,7 @@ import {
   Columns,
   Column,
   Status,
+  DateNode,
   TransclusionSource,
   TransclusionReference,
   TableView,
@@ -96,6 +99,7 @@ import MathBlockView from "@/features/editor/components/math/math-block.tsx";
 import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import StatusView from "@/features/editor/components/status/status-view.tsx";
+import DateView from "@/features/editor/components/date/date-view";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
@@ -113,6 +117,7 @@ import TabsView from "@/features/editor/components/tabs/tabs-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
 import TransclusionReferenceView from "@/features/editor/components/transclusion/transclusion-reference-view.tsx";
 import { BaseEmbedView } from "@/features/editor/components/base-embed/base-embed-view.tsx";
+import { isCalendarEventDrag } from "@/ee/base/components/calendar/calendar-frame";
 import MicrosoftFileView from "@/features/editor/components/microsoft/microsoft-file-view.tsx";
 import MicrosoftFolderView from "@/features/editor/components/microsoft/microsoft-folder-view.tsx";
 import { common, createLowlight } from "lowlight";
@@ -205,7 +210,7 @@ export const mainExtensions = [
     },
   }),
   SharedStorage,
-  Heading,
+  Heading.configure({ translate: (label) => i18n.t(label) }),
   UniqueID.configure({
     types: ["heading", "paragraph", "transclusionSource"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
@@ -427,6 +432,12 @@ export const mainExtensions = [
   Status.configure({
     view: StatusView,
   }),
+  TemplatePlaceholder,
+  DateNode.configure({ locale: () => i18n.resolvedLanguage || "en-US" }).extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(DateView);
+    },
+  }),
   TransclusionSource.configure({
     view: TransclusionView,
   }),
@@ -435,7 +446,13 @@ export const mainExtensions = [
   }),
   BaseEmbedNode.extend({
     addNodeView() {
-      return ReactNodeViewRenderer(BaseEmbedView);
+      return (props) => {
+        const nodeView = ReactNodeViewRenderer(BaseEmbedView)(props);
+        const defaultStopEvent = nodeView.stopEvent?.bind(nodeView);
+        nodeView.stopEvent = (event) =>
+          isCalendarEventDrag(event) || !!defaultStopEvent?.(event);
+        return nodeView;
+      };
     },
   }),
   MarkdownClipboard.configure({
@@ -474,15 +491,11 @@ export const mainExtensions = [
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
 
 const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
-  "Image",
-  "Video",
-  "File attachment",
-  "Draw.io (diagrams.net)",
-  "Excalidraw (Whiteboard)",
-  "Audio",
   "Synced block",
   "Base (Inline)",
   "Kanban",
+  "Calendar",
+  "Form",
   "SharePoint file"
 ]);
 
@@ -498,8 +511,12 @@ const TemplateSlashCommand = Command.configure({
   },
 });
 
-export const templateExtensions = [
-  ...mainExtensions.filter((ext: any) => ext !== SlashCommand),
+export const getTemplateExtensions = (onEditPlaceholder: () => void) => [
+  ...mainExtensions.filter(
+    (ext: any) => ext !== SlashCommand && ext !== TemplatePlaceholder,
+  ),
+  TemplatePlaceholder.configure({ onEdit: onEditPlaceholder }),
+  EditableTemplateVariable,
   TemplateSlashCommand,
   UndoRedo,
 ] as any;

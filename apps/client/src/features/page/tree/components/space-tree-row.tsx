@@ -1,11 +1,9 @@
-import { useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { ActionIcon, rem } from "@mantine/core";
 import {
   IconChevronDown,
-  IconChevronRight,
   IconFileDescription,
   IconPlus,
   IconPointFilled,
@@ -13,10 +11,9 @@ import {
 } from "@tabler/icons-react";
 
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
-import { queryClient } from "@/main.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getPageTitle } from "@/features/page/page.utils";
-import { getPageById } from "@/features/page/services/page-service.ts";
+import { usePagePrefetch } from "@/features/page/hooks/use-page-prefetch";
 import {
   useUpdatePageMutation,
   fetchAllAncestorChildren,
@@ -36,7 +33,20 @@ import { updateTreeNodeIcon } from "@/features/page/tree/utils/utils.ts";
 
 type SpaceTreeRowProps = RenderRowProps<SpaceTreeNode> & {
   readOnly: boolean;
+  onPagePress: (id: string) => void;
+  onPageClick: (id: string, pathname: string) => void;
 };
+
+function isPageActivation(event: React.MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.button === 0 &&
+    !event.defaultPrevented &&
+    !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey &&
+    event.target instanceof Element &&
+    event.currentTarget.contains(event.target) &&
+    !event.target.closest("button, [data-page-action]")
+  );
+}
 
 export function SpaceTreeRow({
   node,
@@ -47,38 +57,21 @@ export function SpaceTreeRow({
   tabIndex,
   treeItemProps,
   readOnly,
+  onPagePress,
+  onPageClick,
 }: SpaceTreeRowProps) {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const updatePageMutation = useUpdatePageMutation();
   const [, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { prefetch: prefetchPage, cancel: cancelPagePrefetch } =
+    usePagePrefetch();
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   const canEdit = !readOnly && node.canEdit !== false;
   const pageUrl = buildPageUrl(spaceSlug, node.slugId, node.name);
-
-  const prefetchPage = () => {
-    timerRef.current = setTimeout(async () => {
-      const page = await queryClient.fetchQuery({
-        queryKey: ["pages", node.id],
-        queryFn: () => getPageById({ pageId: node.id }),
-        staleTime: 5 * 60 * 1000,
-      });
-      if (page?.slugId) {
-        queryClient.setQueryData(["pages", page.slugId], page);
-      }
-    }, 150);
-  };
-
-  const cancelPagePrefetch = () => {
-    if (timerRef.current) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
 
   const handleUpdateNodeIcon = (nodeId: string, newIcon: string | null) => {
     setTreeData((prev) =>
@@ -145,12 +138,20 @@ export function SpaceTreeRow({
       className={classes.node}
       tabIndex={tabIndex}
       {...treeItemProps}
-      onClick={() => {
+      onPointerDown={(event) => {
+        if (event.pointerType === "mouse" && isPageActivation(event)) {
+          onPagePress(node.id);
+        }
+      }}
+      onClick={(event) => {
+        if (isPageActivation(event)) {
+          onPageClick(node.id, event.currentTarget.pathname);
+        }
         if (mobileSidebarOpened) {
           toggleMobileSidebar();
         }
       }}
-      onMouseEnter={prefetchPage}
+      onMouseEnter={() => prefetchPage(node.id)}
       onMouseLeave={cancelPagePrefetch}
     >
       <PageArrow
@@ -159,7 +160,7 @@ export function SpaceTreeRow({
         onToggle={toggleOpen}
       />
 
-      <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
+      <div data-page-action onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
         <EmojiPicker
           onEmojiSelect={handleEmojiSelect}
           icon={
@@ -179,7 +180,7 @@ export function SpaceTreeRow({
 
       <span className={classes.text}>{getPageTitle(node.name, node.isBase, t)}</span>
 
-      <div className={classes.actions}>
+      <div data-page-action className={classes.actions}>
         <NodeMenu node={node} canEdit={canEdit} />
 
         {canEdit && (
@@ -239,11 +240,7 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
         onToggle();
       }}
     >
-      {isOpen ? (
-        <IconChevronDown stroke={2} size={18} />
-      ) : (
-        <IconChevronRight stroke={2} size={18} />
-      )}
+      <IconChevronDown className={classes.chevron} stroke={2} size={18} />
     </ActionIcon>
   );
 }

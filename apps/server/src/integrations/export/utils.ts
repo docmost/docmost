@@ -136,27 +136,42 @@ export function extractPageSlugId(input: string): string {
   return parts.length > 1 ? parts[parts.length - 1] : input;
 }
 
+// the file name a page gets, compared the way case-insensitive file systems do
+function fileNameKey(title: string): string {
+  return getSafePageTitle(title).normalize('NFC').toLowerCase();
+}
+
+function truncateUtf8Bytes(text: string, maxBytes: number): string {
+  let out = '';
+  for (const char of text) {
+    if (Buffer.byteLength(out + char) > maxBytes) break;
+    out += char;
+  }
+  return out;
+}
+
 export function buildTree(pages: Page[]): PageExportTree {
   const tree: PageExportTree = {};
-  const titleCount: Record<string, Record<string, number>> = {};
+  const usedFileNames: Record<string, Set<string>> = {};
 
   for (const page of pages) {
     const parentPageId = page.parentPageId;
 
-    if (!titleCount[parentPageId]) {
-      titleCount[parentPageId] = {};
+    if (!usedFileNames[parentPageId]) {
+      usedFileNames[parentPageId] = new Set();
     }
+    const used = usedFileNames[parentPageId];
 
-    let title = getPageTitle(page.title);
-
-    if (titleCount[parentPageId][title]) {
-      title = `${title} (${titleCount[parentPageId][title]})`;
-      titleCount[parentPageId][getPageTitle(page.title)] += 1;
-    } else {
-      titleCount[parentPageId][title] = 1;
+    const title = getPageTitle(page.title);
+    let uniqueTitle = title;
+    // shortened first, so the number survives the 255-byte cap on file names
+    for (let n = 1; used.has(fileNameKey(uniqueTitle)); n++) {
+      const suffix = ` (${n})`;
+      uniqueTitle = truncateUtf8Bytes(title, 255 - suffix.length) + suffix;
     }
+    used.add(fileNameKey(uniqueTitle));
 
-    page.title = title;
+    page.title = uniqueTitle;
     if (!tree[parentPageId]) {
       tree[parentPageId] = [];
     }

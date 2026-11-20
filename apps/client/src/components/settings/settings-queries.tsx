@@ -16,7 +16,7 @@ import { getVerificationList } from "@/ee/page-verification/services/page-verifi
 import { getScimTokens } from "@/ee/scim/services/scim-token-service";
 
 export const prefetchWorkspaceMembers = () => {
-  const params: QueryParams = { limit: 100, query: "" };
+  const params: QueryParams = { limit: 100, query: "", status: "active" };
   queryClient.prefetchQuery({
     queryKey: ["workspaceMembers", params],
     queryFn: () => getWorkspaceMembers(params),

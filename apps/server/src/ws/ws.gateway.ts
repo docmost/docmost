@@ -47,6 +47,8 @@ export class WsGateway
   }
 
   async handleConnection(client: Socket, ...args: any[]): Promise<void> {
+    let settle: () => void = () => undefined;
+    client.data.ready = new Promise<void>((resolve) => (settle = resolve));
     try {
       const cookies = cookie.parse(client.handshake.headers.cookie ?? '');
       const token: JwtPayload = await this.tokenService.verifyJwt(
@@ -81,6 +83,8 @@ export class WsGateway
       }
       // not an auth failure, closing the transport lets the client reconnect
       client.conn.close();
+    } finally {
+      settle();
     }
   }
 
@@ -90,6 +94,7 @@ export class WsGateway
 
   @SubscribeMessage('message')
   async handleMessage(client: Socket, data: any): Promise<void> {
+    await client.data.ready;
     if (this.wsService.isTreeEvent(data)) {
       await this.wsService.handleTreeEvent(client, data);
       return;

@@ -77,6 +77,11 @@ export class SearchSuggestionDTO {
   @IsBoolean()
   includeUsers?: boolean;
 
+  // Only applies when includeUsers is true; defaults to false.
+  @IsOptional()
+  @IsBoolean()
+  includeDeactivatedUsers?: boolean;
+
   @IsOptional()
   @IsBoolean()
   includeGroups?: boolean;

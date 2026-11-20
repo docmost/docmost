@@ -506,7 +506,6 @@ describe("TabsView tab reorder", () => {
       panelStart,
     );
     expect(dropCursor()).not.toBeNull();
-    dropCursor()!.remove();
   });
 });
 

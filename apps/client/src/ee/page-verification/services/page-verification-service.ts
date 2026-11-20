@@ -15,6 +15,7 @@ export async function getVerificationInfo(
   const req = await api.post<IPageVerificationInfo>(
     "/pages/verification-info",
     { pageId },
+    { timeout: 10_000 },
   );
   return req.data;
 }

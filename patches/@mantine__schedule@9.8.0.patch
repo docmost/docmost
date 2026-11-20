@@ -1,0 +1,102 @@
+diff --git a/cjs/components/MonthView/MonthView.cjs b/cjs/components/MonthView/MonthView.cjs
+index 022e641391b25cfa91560bf16c36003e7c13e1b6..3117a5a7532d51ca968e10bf8ed404bad27eca66 100644
+--- a/cjs/components/MonthView/MonthView.cjs
++++ b/cjs/components/MonthView/MonthView.cjs
+@@ -306,7 +306,7 @@ const MonthView = (0, _mantine_core.factory)((_props) => {
+ 		const moreEventsNodes = week.map((day, dayIndex) => {
+ 			if (hiddenColumnSet.has(dayIndex)) return null;
+ 			const dayEvents = monthEvents.groupedByDay[day] || [];
+-			const hiddenEventsCount = Math.max(0, dayEvents.length - maxEventsPerDay);
++			const hiddenEventsCount = dayEvents.length > maxEventsPerDay ? dayEvents.length - maxEventsPerDay + 1 : 0;
+ 			if (hiddenEventsCount <= 0) return null;
+ 			const dayStartOffset = visibleColumnMap[dayIndex] / columnsCount * 100;
+ 			const dayWidth = 1 / columnsCount * 100;
+@@ -320,10 +320,10 @@ const MonthView = (0, _mantine_core.factory)((_props) => {
+ 				onEventClick,
+ 				style: {
+ 					position: "absolute",
+-					top: `calc(100% - 2px)`,
++					top: `calc(${(maxEventsPerDay - 1) * rowHeightPercent}% + 1px)`,
+ 					left: `calc(${dayStartOffset}% + 1px)`,
+ 					width: `calc(${dayWidth}% - 1px)`,
+-					height: "22px",
++					height: `calc(${rowHeightPercent}% - 2px)`,
+ 					paddingInline: 4
+ 				},
+ 				...moreEventsProps
+diff --git a/cjs/components/MonthView/get-renderable-month-event-segments.cjs b/cjs/components/MonthView/get-renderable-month-event-segments.cjs
+index 9a7887b9719b929fe0943e7792dfb7ec5e951133..78e39d17d7820a0304b3ca8cee8331b4e07602fb 100644
+--- a/cjs/components/MonthView/get-renderable-month-event-segments.cjs
++++ b/cjs/components/MonthView/get-renderable-month-event-segments.cjs
+@@ -62,15 +62,15 @@ function getRenderableMonthEventSegments({ events, groupedByDay, maxEventsPerDay
+ 			const range = eventRanges.get(event);
+ 			return dayEventIds.has(getEventKey(event)) && dayIndex >= range.startDayIndex && dayIndex <= range.endDayIndex;
+ 		});
+-		const candidates = dayEvents.length > maxEventsPerDay ? dayWeekEvents.filter((event) => event.position.row < maxEventsPerDay) : dayWeekEvents;
++		const dayRows = dayEvents.length > maxEventsPerDay ? maxEventsPerDay - 1 : maxEventsPerDay;
+ 		const usedRows = /* @__PURE__ */ new Set();
+-		[...candidates].sort((a, b) => {
++		[...dayWeekEvents].sort((a, b) => {
+ 			const rowDiff = a.position.row - b.position.row;
+ 			return rowDiff !== 0 ? rowDiff : eventIndexes.get(a) - eventIndexes.get(b);
+-		}).forEach((event) => {
++		}).slice(0, dayRows).forEach((event) => {
+ 			let row = lastRow.get(event) ?? event.position.row;
+-			if (row >= maxEventsPerDay || usedRows.has(row)) {
+-				const availableRow = getFirstAvailableRow(usedRows, maxEventsPerDay);
++			if (row >= dayRows || usedRows.has(row)) {
++				const availableRow = getFirstAvailableRow(usedRows, dayRows);
+ 				if (availableRow === null) return;
+ 				row = availableRow;
+ 			}
+diff --git a/esm/components/MonthView/MonthView.mjs b/esm/components/MonthView/MonthView.mjs
+index 7a61f4d43af6484fcb1f6b6053a7fca33163bf4f..09dc87ffae6d102dd9c6b22db8d1457bd1b0023d 100644
+--- a/esm/components/MonthView/MonthView.mjs
++++ b/esm/components/MonthView/MonthView.mjs
+@@ -304,7 +304,7 @@ const MonthView = factory((_props) => {
+ 		const moreEventsNodes = week.map((day, dayIndex) => {
+ 			if (hiddenColumnSet.has(dayIndex)) return null;
+ 			const dayEvents = monthEvents.groupedByDay[day] || [];
+-			const hiddenEventsCount = Math.max(0, dayEvents.length - maxEventsPerDay);
++			const hiddenEventsCount = dayEvents.length > maxEventsPerDay ? dayEvents.length - maxEventsPerDay + 1 : 0;
+ 			if (hiddenEventsCount <= 0) return null;
+ 			const dayStartOffset = visibleColumnMap[dayIndex] / columnsCount * 100;
+ 			const dayWidth = 1 / columnsCount * 100;
+@@ -318,10 +318,10 @@ const MonthView = factory((_props) => {
+ 				onEventClick,
+ 				style: {
+ 					position: "absolute",
+-					top: `calc(100% - 2px)`,
++					top: `calc(${(maxEventsPerDay - 1) * rowHeightPercent}% + 1px)`,
+ 					left: `calc(${dayStartOffset}% + 1px)`,
+ 					width: `calc(${dayWidth}% - 1px)`,
+-					height: "22px",
++					height: `calc(${rowHeightPercent}% - 2px)`,
+ 					paddingInline: 4
+ 				},
+ 				...moreEventsProps
+diff --git a/esm/components/MonthView/get-renderable-month-event-segments.mjs b/esm/components/MonthView/get-renderable-month-event-segments.mjs
+index 16ae5bc106580cdd4a17a7dc7fed384337a7151d..d2228c780fa863066be7c64012aa0edaa552fecf 100644
+--- a/esm/components/MonthView/get-renderable-month-event-segments.mjs
++++ b/esm/components/MonthView/get-renderable-month-event-segments.mjs
+@@ -62,15 +62,15 @@ function getRenderableMonthEventSegments({ events, groupedByDay, maxEventsPerDay
+ 			const range = eventRanges.get(event);
+ 			return dayEventIds.has(getEventKey(event)) && dayIndex >= range.startDayIndex && dayIndex <= range.endDayIndex;
+ 		});
+-		const candidates = dayEvents.length > maxEventsPerDay ? dayWeekEvents.filter((event) => event.position.row < maxEventsPerDay) : dayWeekEvents;
++		const dayRows = dayEvents.length > maxEventsPerDay ? maxEventsPerDay - 1 : maxEventsPerDay;
+ 		const usedRows = /* @__PURE__ */ new Set();
+-		[...candidates].sort((a, b) => {
++		[...dayWeekEvents].sort((a, b) => {
+ 			const rowDiff = a.position.row - b.position.row;
+ 			return rowDiff !== 0 ? rowDiff : eventIndexes.get(a) - eventIndexes.get(b);
+-		}).forEach((event) => {
++		}).slice(0, dayRows).forEach((event) => {
+ 			let row = lastRow.get(event) ?? event.position.row;
+-			if (row >= maxEventsPerDay || usedRows.has(row)) {
+-				const availableRow = getFirstAvailableRow(usedRows, maxEventsPerDay);
++			if (row >= dayRows || usedRows.has(row)) {
++				const availableRow = getFirstAvailableRow(usedRows, dayRows);
+ 				if (availableRow === null) return;
+ 				row = availableRow;
+ 			}

@@ -2,6 +2,7 @@ import { Text, SimpleGrid, Card, rem, Group, Button, Title } from "@mantine/core
 import React from "react";
 import {
   prefetchSpace,
+  prefetchSpacesPage,
   useGetSpacesQuery,
 } from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
@@ -74,6 +75,7 @@ export default function SpaceGrid() {
             variant="subtle"
             rightSection={<IconArrowRight size={16} />}
             size="sm"
+            onMouseEnter={prefetchSpacesPage}
           >
             {t("View all spaces")}
           </Button>

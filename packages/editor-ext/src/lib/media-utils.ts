@@ -7,6 +7,16 @@ export function normalizeFileUrl(src: string): string {
   return src || "";
 }
 
+export function getFileNameFromUrl(url: string | undefined): string {
+  const path = (url || "").split("?")[0];
+  const fileName = path.substring(path.lastIndexOf("/") + 1);
+  try {
+    return decodeURIComponent(fileName);
+  } catch {
+    return fileName;
+  }
+}
+
 export function syncAltBadge(wrapper: HTMLElement, alt: unknown): void {
   const existing = wrapper.querySelector<HTMLElement>(
     ":scope > .media-alt-badge",
@@ -28,16 +38,18 @@ export function syncAltBadge(wrapper: HTMLElement, alt: unknown): void {
   }
 }
 
+export type UploadTarget = { pageId: string } | { templateId: string };
+
 export type UploadFn = (
   file: File,
   editor: Editor,
   pos: number,
-  pageId: string,
+  uploadTarget: UploadTarget,
   // only applicable to file attachments
   allowMedia?: boolean,
 ) => void;
 
 export interface MediaUploadOptions {
   validateFn?: (file: File, allowMedia?: boolean) => void;
-  onUpload: (file: File, pageId: string) => Promise<any>;
+  onUpload: (file: File, uploadTarget: UploadTarget) => Promise<any>;
 }

@@ -1,6 +1,7 @@
 import { Text, Card, rem, Group, Button, Skeleton, Title } from "@mantine/core";
 import {
   prefetchSpace,
+  prefetchSpacesPage,
   useGetSpacesQuery,
 } from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
@@ -95,6 +96,7 @@ export default function SpaceCarousel() {
             variant="subtle"
             rightSection={<IconArrowRight size={16} />}
             size="sm"
+            onMouseEnter={prefetchSpacesPage}
           >
             {t("View all spaces")}
           </Button>

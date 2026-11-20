@@ -33,6 +33,7 @@ import {
   DEFAULT_LOCALE,
   DISALLOWED_HOSTNAMES,
   WorkspaceStatus,
+  WorkspaceUserListStatus,
 } from '../workspace.constants';
 import {
   getWorkspaceDefaultLocale,
@@ -819,8 +820,9 @@ export class WorkspaceService {
   async getWorkspaceUsers(
     workspaceId: string,
     pagination: PaginationOptions,
+    opts?: { status?: WorkspaceUserListStatus; adminView?: boolean },
   ): Promise<CursorPaginationResult<User>> {
-    return this.userRepo.getUsersPaginated(workspaceId, pagination);
+    return this.userRepo.getUsersPaginated(workspaceId, pagination, opts);
   }
 
   async updateWorkspaceUserRole(
@@ -1086,6 +1088,7 @@ export class WorkspaceService {
           name: 'Deleted user',
           email: v4() + '@deleted.docmost.com',
           avatarUrl: null,
+          timezone: null,
           settings: null,
           deletedAt: new Date(),
         },

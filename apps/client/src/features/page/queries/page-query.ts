@@ -1,5 +1,7 @@
 import {
   InfiniteData,
+  infiniteQueryOptions,
+  type Query,
   QueryKey,
   useInfiniteQuery,
   UseInfiniteQueryResult,
@@ -74,6 +76,23 @@ export function usePageQuery(
   return query;
 }
 
+// Fills both keys the page route reads, so a hovered link opens from cache.
+export async function prefetchPage(pageId: string) {
+  await queryClient.prefetchQuery({
+    queryKey: ["pages", pageId],
+    queryFn: () => getPageById({ pageId }),
+    staleTime: 5 * 60 * 1000,
+  });
+  const cached = queryClient.getQueryState<IPage>(["pages", pageId]);
+  const slugId = cached?.data?.slugId;
+  if (!slugId || slugId === pageId) return;
+  const mirrored = queryClient.getQueryState(["pages", slugId]);
+  if (mirrored?.data && mirrored.dataUpdatedAt >= cached.dataUpdatedAt) return;
+  queryClient.setQueryData(["pages", slugId], cached.data, {
+    updatedAt: cached.dataUpdatedAt,
+  });
+}
+
 export function useCreatePageMutation() {
   const { t } = useTranslation();
   return useMutation<IPage, Error, Partial<IPageInput>>({
@@ -111,9 +130,10 @@ export function updatePageData(data: IPage) {
   );
 }
 
-export function useUpdateTitlePageMutation() {
+export function useUpdateTitlePageMutation(pageId: string) {
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
+    scope: { id: `page-title-${pageId}` },
   });
 }
 
@@ -126,7 +146,7 @@ export function useUpdatePageMutation() {
   });
 }
 
-export function useRemovePageMutation() {
+export function useRemovePageMutation(spaceId?: string) {
   const { t } = useTranslation();
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId, false),
@@ -141,12 +161,12 @@ export function useRemovePageMutation() {
         queryClient.setQueryData(["pages", cached.slugId], stamped);
       }
 
-      invalidateOnDeletePage(pageId);
       queryClient.invalidateQueries({ queryKey: ["space"] });
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["trash-list"].includes(item.queryKey[0] as string),
       });
+      return invalidateOnDeletePage(pageId, spaceId ?? cached?.spaceId);
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to delete page"), color: "red" });
@@ -154,19 +174,19 @@ export function useRemovePageMutation() {
   });
 }
 
-export function useDeletePageMutation() {
+export function useDeletePageMutation(spaceId?: string) {
   const { t } = useTranslation();
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId, true),
-    onSuccess: (data, pageId) => {
+    onSuccess: (_, pageId) => {
       notifications.show({ message: t("Page deleted successfully") });
-      invalidateOnDeletePage(pageId);
 
       // Invalidate to refresh trash lists
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["trash-list"].includes(item.queryKey[0] as string),
       });
+      return invalidateOnDeletePage(pageId, spaceId);
     },
     onError: (error) => {
       const message =
@@ -234,17 +254,11 @@ export function useRestorePageMutation() {
               parentId,
               index,
               data: nodeData,
+              restored: true,
             },
           });
         }, 50);
       }
-
-      //  await queryClient.invalidateQueries({ queryKey: ["sidebar-pages", restoredPage.spaceId] });
-
-      // Also invalidate deleted pages query to refresh the trash list
-      await queryClient.invalidateQueries({
-        queryKey: ["trash-list", restoredPage.spaceId],
-      });
 
       // Merge — restore endpoint returns a skinny page;
       // Replace would strip space/permissions/content and break the editor.
@@ -252,6 +266,13 @@ export function useRestorePageMutation() {
         cached ? { ...cached, ...restoredPage } : cached;
       queryClient.setQueryData<IPage>(["pages", restoredPage.id], merge);
       queryClient.setQueryData<IPage>(["pages", restoredPage.slugId], merge);
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["trash-list", restoredPage.spaceId],
+        }),
+        refreshPageTrashQueries(restoredPage.spaceId),
+      ]);
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to restore page"), color: "red" });
@@ -306,8 +327,8 @@ export async function fetchAllAncestorChildren(params: SidebarPagesParams) {
   return buildTree(allItems);
 }
 
-export function useRecentChangesQuery(spaceId?: string) {
-  return useInfiniteQuery({
+const recentChangesQuery = (spaceId?: string) =>
+  infiniteQueryOptions({
     queryKey: ["recent-changes", spaceId],
     queryFn: ({ pageParam }) =>
       getRecentChanges({ spaceId, cursor: pageParam, limit: 15 }),
@@ -316,11 +337,19 @@ export function useRecentChangesQuery(spaceId?: string) {
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     refetchOnMount: true,
   });
+
+export function useRecentChangesQuery(spaceId?: string) {
+  return useInfiniteQuery(recentChangesQuery(spaceId));
 }
 
-export function useCreatedByQuery(params?: { userId?: string; spaceId?: string }) {
-  const { userId, spaceId } = params ?? {};
-  return useInfiniteQuery({
+export function prefetchRecentChanges(spaceId?: string) {
+  void queryClient.prefetchInfiniteQuery(recentChangesQuery(spaceId));
+}
+
+type CreatedByParams = { userId?: string; spaceId?: string };
+
+const createdByQuery = ({ userId, spaceId }: CreatedByParams = {}) =>
+  infiniteQueryOptions({
     queryKey: ["pages-created-by-user", { userId, spaceId }],
     queryFn: ({ pageParam }) => getCreatedByPages({ userId, spaceId, cursor: pageParam, limit: 15 }),
     initialPageParam: undefined as string | undefined,
@@ -328,6 +357,13 @@ export function useCreatedByQuery(params?: { userId?: string; spaceId?: string }
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     refetchOnMount: true,
   });
+
+export function useCreatedByQuery(params?: CreatedByParams) {
+  return useInfiniteQuery(createdByQuery(params));
+}
+
+export function prefetchCreatedBy(params?: CreatedByParams) {
+  void queryClient.prefetchInfiniteQuery(createdByQuery(params));
 }
 
 export function useDeletedPagesQuery(
@@ -605,7 +641,25 @@ export function updateCacheOnMovePage(
   }
 }
 
-export function invalidateOnDeletePage(pageId: string) {
+export function refreshPageTrashQueries(spaceId?: string) {
+  // A parent can be trashed or restored while its descendants are outside the loaded tree.
+  const affected = ({ queryKey: [key, type, favoriteSpaceId], state }: Query) => {
+    if (key === "pages") {
+      const page = state.data as IPage | undefined;
+      return !spaceId || !page || page.spaceId === spaceId;
+    }
+    if (spaceId && favoriteSpaceId && favoriteSpaceId !== spaceId) return false;
+    return (
+      (key === "favorites" && (type === undefined || type === "page")) ||
+      (key === "favorite-ids" && type === "page")
+    );
+  };
+
+  queryClient.removeQueries({ predicate: affected, type: "inactive" });
+  return queryClient.invalidateQueries({ predicate: affected });
+}
+
+export function invalidateOnDeletePage(pageId: string, spaceId?: string) {
   //update all sidebar pages
   const allSideBarMatches = queryClient.getQueriesData({
     predicate: (query) =>
@@ -632,4 +686,5 @@ export function invalidateOnDeletePage(pageId: string) {
   queryClient.invalidateQueries({
     queryKey: ["recent-changes"],
   });
+  return refreshPageTrashQueries(spaceId);
 }

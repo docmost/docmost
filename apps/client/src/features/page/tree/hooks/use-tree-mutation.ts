@@ -41,7 +41,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
   const store = useStore();
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
-  const removePageMutation = useRemovePageMutation();
+  const removePageMutation = useRemovePageMutation(spaceId);
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
   const { spaceSlug, pageSlug } = useParams();

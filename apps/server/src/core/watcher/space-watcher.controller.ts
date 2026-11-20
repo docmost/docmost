@@ -20,6 +20,7 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -48,6 +49,7 @@ export class SpaceWatcherController {
     return space;
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('watched-ids')
   async getWatchedSpaceIds(
@@ -85,6 +87,7 @@ export class SpaceWatcherController {
     return { watching: false };
   }
 
+  @ApiKeyScope('read')
   @HttpCode(HttpStatus.OK)
   @Post('watch-status')
   async getWatchStatus(

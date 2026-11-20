@@ -12,3 +12,6 @@ export { registry, register } from "./functions/registry";
 export type { FormulaFn } from "./functions/registry";
 export * from "./graph";
 export * from "./number";
+export * from "./date";
+export * from "./property";
+export * from "./compile";

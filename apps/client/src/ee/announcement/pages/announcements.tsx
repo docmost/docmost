@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, Button, Group, Space, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import { IconAlertCircle, IconInfoCircle } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
@@ -14,7 +14,8 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
-import { AnnouncementArchiveFilter } from "@/ee/announcement/components/announcement-archive-filter";
+import { UpgradeAlert } from "@/ee/components/upgrade-alert";
+import { AnnouncementStatusFilter } from "@/ee/announcement/components/announcement-status-filter";
 import { AnnouncementFormModal } from "@/ee/announcement/components/announcement-form-modal";
 import { AnnouncementTable } from "@/ee/announcement/components/announcement-table";
 import {
@@ -24,7 +25,10 @@ import {
   useDeleteAnnouncementMutation,
   useUnarchiveAnnouncementMutation,
 } from "@/ee/announcement/queries/announcement-query";
-import type { IAnnouncement } from "@/ee/announcement/types/announcement.types";
+import type {
+  AnnouncementListStatus,
+  IAnnouncement,
+} from "@/ee/announcement/types/announcement.types";
 
 export default function Announcements() {
   const { t } = useTranslation();
@@ -35,7 +39,7 @@ export default function Announcements() {
   const isUnlicensed = entitlements !== null && !hasFeature;
   const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
     usePaginateAndSearch();
-  const [archived, setArchived] = useState(false);
+  const [status, setStatus] = useState<AnnouncementListStatus>("active");
   const [formOpened, setFormOpened] = useState(false);
   const [selected, setSelected] = useState<IAnnouncement | null>(null);
   // Without the feature the list stays readable, so a lapsed license can still archive and delete
@@ -45,7 +49,7 @@ export default function Announcements() {
       cursor,
       limit: 20,
       query: search,
-      ...(archived ? { archived: true } : {}),
+      status,
     },
     canLoad,
   );
@@ -56,6 +60,12 @@ export default function Announcements() {
   if (!isAdmin) {
     return null;
   }
+
+  const emptyMessages: Record<AnnouncementListStatus, string> = {
+    active: t("No active announcements"),
+    archived: t("No archived announcements"),
+    all: t("No announcements"),
+  };
 
   const openForm = (announcement: IAnnouncement | null) => {
     setSelected(announcement);
@@ -97,9 +107,12 @@ export default function Announcements() {
       <SettingsTitle title={t("Announcements")} />
 
       {isUnlicensed && (
-        <Alert icon={<IconInfoCircle size={16} />} color="yellow" mb="md">
-          {t("Announcements are available in the Docmost paid editions.")}
-        </Alert>
+        <UpgradeAlert
+          message={t(
+            "Announcements are available in the Docmost paid editions.",
+          )}
+          mb="md"
+        />
       )}
 
       <Group justify="space-between" align="center" wrap="nowrap" mb="md">
@@ -119,10 +132,10 @@ export default function Announcements() {
 
       <Group gap="sm" align="flex-start">
         <SearchInput onSearch={handleSearch} />
-        <AnnouncementArchiveFilter
-          archived={archived}
+        <AnnouncementStatusFilter
+          status={status}
           onChange={(next) => {
-            setArchived(next);
+            setStatus(next);
             resetPagination();
           }}
         />
@@ -138,11 +151,7 @@ export default function Announcements() {
             announcements={query.data?.items ?? []}
             isLoading={query.isLoading || entitlements === null}
             emptyMessage={
-              search
-                ? t("No results found...")
-                : archived
-                  ? t("No archived announcements")
-                  : t("No active announcements")
+              search ? t("No results found...") : emptyMessages[status]
             }
             {...tableActions}
           />

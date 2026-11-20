@@ -112,4 +112,12 @@ export const createQueueRegistrations = () => [
       removeOnFail: { count: 100 },
     },
   }),
+  BullModule.registerQueue({
+    name: QueueName.BASE_IMPORT_QUEUE,
+    defaultJobOptions: {
+      attempts: 1,
+      removeOnComplete: { count: 200 },
+      removeOnFail: { count: 100 },
+    },
+  }),
 ];

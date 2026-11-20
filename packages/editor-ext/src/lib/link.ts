@@ -2,6 +2,25 @@ import TiptapLink from '@tiptap/extension-link';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { EditorView } from '@tiptap/pm/view';
 
+// UniqueID gives each block its id in a separate step. None of them moves a
+// position, and autolink maps every range through every step it is given.
+function ignoreIdTransactions(plugin: Plugin): Plugin {
+  const { appendTransaction } = plugin.spec;
+  if (!appendTransaction) return plugin;
+
+  return new Plugin({
+    ...plugin.spec,
+    appendTransaction(transactions, oldState, newState) {
+      return appendTransaction.call(
+        this,
+        transactions.filter((tr) => !tr.getMeta('__uniqueIDTransaction')),
+        oldState,
+        newState,
+      );
+    },
+  });
+}
+
 export const LinkExtension = TiptapLink.extend({
   inclusive: false,
 
@@ -31,7 +50,7 @@ export const LinkExtension = TiptapLink.extend({
     const { editor } = this;
 
     return [
-      ...(this.parent?.() || []),
+      ...(this.parent?.() || []).map(ignoreIdTransactions),
       new Plugin({
         props: {
           handleKeyDown: (view: EditorView, event: KeyboardEvent) => {

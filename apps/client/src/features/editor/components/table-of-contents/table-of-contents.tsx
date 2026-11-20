@@ -1,47 +1,18 @@
-import { NodePos, useEditor } from "@tiptap/react";
+import { useEditor } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import React, { FC, useEffect, useRef, useState } from "react";
 import classes from "./table-of-contents.module.css";
 import clsx from "clsx";
 import { Box, Text, Title } from "@mantine/core";
+import { useDebouncedCallback } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
 import { announcementBannersHeightAtom } from "@/ee/announcement/atoms/announcement-atoms";
+import { HeadingLink, recalculateLinks } from "./table-of-contents.utils";
 
 type TableOfContentsProps = {
   editor: ReturnType<typeof useEditor>;
   isShare?: boolean;
-};
-
-export type HeadingLink = {
-  label: string;
-  level: number;
-  element: HTMLElement;
-  position: number;
-};
-
-export const recalculateLinks = (nodePos: NodePos[]) => {
-  const nodes: HTMLElement[] = [];
-
-  const links: HeadingLink[] = Array.from(nodePos).reduce<HeadingLink[]>(
-    (acc, item) => {
-      const label = item.node.textContent;
-      const level = Number(item.node.attrs.level);
-      if (label.length && level <= 6) {
-        acc.push({
-          label,
-          level,
-          element: item.element,
-          //@ts-ignore
-          position: item.resolvedPos.pos,
-        });
-        nodes.push(item.element);
-      }
-      return acc;
-    },
-    [],
-  );
-  return { links, nodes };
 };
 
 export const TableOfContents: FC<TableOfContentsProps> = (props) => {
@@ -80,20 +51,22 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   const handleUpdate = () => {
     if (!props.editor || props.editor.isDestroyed) return;
 
-    const result = recalculateLinks(props.editor.$nodes("heading"));
+    const result = recalculateLinks(props.editor);
 
     setLinks(result.links);
     setHeadingDOMNodes(result.nodes);
   };
 
+  const handleDocumentUpdate = useDebouncedCallback(handleUpdate, 250);
+
   useEffect(() => {
     // "create" repopulates once the editor view mounts after this component
     props.editor?.on("create", handleUpdate);
-    props.editor?.on("update", handleUpdate);
+    props.editor?.on("update", handleDocumentUpdate);
 
     return () => {
       props.editor?.off("create", handleUpdate);
-      props.editor?.off("update", handleUpdate);
+      props.editor?.off("update", handleDocumentUpdate);
     };
   }, [props.editor]);
 

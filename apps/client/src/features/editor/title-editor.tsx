@@ -1,6 +1,6 @@
 import "@/features/editor/styles/index.css";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import React, { useEffect, useLayoutEffect } from "react";
+import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
 import { Text } from "@tiptap/extension-text";
@@ -15,6 +15,7 @@ import {
   useUpdateTitlePageMutation,
 } from "@/features/page/queries/page-query";
 import { useDebouncedCallback, getHotkeyHandler } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { useAtom } from "jotai";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
@@ -28,6 +29,7 @@ import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { platformModifierKey } from "@/lib";
 import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
+import { splitTitleIntoPage } from "@/features/editor/title-editor.utils";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -48,15 +50,38 @@ export function TitleEditor({
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const { mutateAsync: updateTitlePageMutationAsync } =
-    useUpdateTitlePageMutation();
+    useUpdateTitlePageMutation(pageId);
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const emit = useQueryEmit();
   const navigate = useNavigate();
-  const [activePageId, setActivePageId] = useState(pageId);
-  const hasTitleEditRef = useRef(false);
   // bases have no edit mode toggle, so a verification must not lock their title
-  const { editMode } = usePageEditMode(isBase ? undefined : pageId);
+  const { editMode, isCheckingLock } = usePageEditMode(isBase ? undefined : pageId);
+  const canEditTitle = editable && !isCheckingLock && editMode === PageEditMode.Edit;
+
+  const saveTitle = useDebouncedCallback(async (editor: Editor, value: string) => {
+    try {
+      const page = await updateTitlePageMutationAsync({ pageId, title: value });
+      if (!editor.isDestroyed && page.title !== editor.getText()) return;
+      updatePageData(page);
+      const event: UpdateEvent = {
+        operation: "updateOne",
+        spaceId: page.spaceId,
+        entity: ["pages"],
+        id: page.id,
+        payload: {
+          title: page.title,
+          slugId: page.slugId,
+          parentPageId: page.parentPageId,
+          icon: page.icon,
+        },
+      };
+      localEmitter.emit("message", event);
+      emit(event);
+    } catch {
+      notifications.show({ color: "red", message: t("Failed to save page title") });
+    }
+  }, { delay: 500, flushOnUnmount: true });
 
   const titleEditor = useEditor({
     extensions: [
@@ -80,14 +105,12 @@ export function TitleEditor({
       if (editor) {
         // @ts-ignore
         setTitleEditor(editor);
-        setActivePageId(pageId);
       }
     },
     onUpdate({ editor }) {
-      hasTitleEditRef.current = true;
-      debounceUpdate();
+      saveTitle(editor, editor.getText());
     },
-    editable: editable,
+    editable: canEditTitle,
     content: title,
     textDirection: "auto",
     immediatelyRender: true,
@@ -125,45 +148,6 @@ export function TitleEditor({
     );
   }, [title]);
 
-  const saveTitle = useCallback(() => {
-    if (!titleEditor || activePageId !== pageId) return;
-
-    if (
-      titleEditor.getText() === title ||
-      (titleEditor.getText() === "" && title === null)
-    ) {
-      return;
-    }
-
-    updateTitlePageMutationAsync({
-      pageId: pageId,
-      title: titleEditor.getText(),
-    }).then((page) => {
-      const event: UpdateEvent = {
-        operation: "updateOne",
-        spaceId: page.spaceId,
-        entity: ["pages"],
-        id: page.id,
-        payload: {
-          title: page.title,
-          slugId: page.slugId,
-          parentPageId: page.parentPageId,
-          icon: page.icon,
-        },
-      };
-
-      if (!titleEditor.isDestroyed && page.title !== titleEditor.getText())
-        return;
-
-      updatePageData(page);
-
-      localEmitter.emit("message", event);
-      emit(event);
-    });
-  }, [pageId, title, titleEditor]);
-
-  const debounceUpdate = useDebouncedCallback(saveTitle, 500);
-
   useEffect(() => {
     if (
       titleEditor &&
@@ -175,25 +159,25 @@ export function TitleEditor({
   }, [pageId, title, titleEditor]);
 
   useEffect(() => {
-    setTimeout(() => {
-      // guard against Cannot access view['hasFocus'] error
-      if (!titleEditor?.isInitialized) return;
-      titleEditor?.commands?.focus("end");
+    const timer = setTimeout(() => {
+      if (!titleEditor?.isInitialized || !titleEditor.isEditable || location.hash)
+        return;
+      // Someone can already be typing in the body or using a toolbar control.
+      const active = document.activeElement;
+      if (
+        active !== document.body &&
+        !active?.matches('[role="treeitem"][aria-current="page"]')
+      ) return;
+      titleEditor.commands.focus("end", { scrollIntoView: false });
     }, 300);
+    return () => clearTimeout(timer);
   }, [titleEditor]);
 
-  useEffect(() => {
-    return () => {
-      // force-save title on navigation, only after a real edit
-      if (hasTitleEditRef.current) saveTitle();
-      hasTitleEditRef.current = false;
-    };
-  }, [pageId]);
-
-  useEffect(() => {
-    if (!titleEditor) return;
-    titleEditor.setEditable(editable && editMode === PageEditMode.Edit, false);
-  }, [editMode, titleEditor, editable]);
+  useLayoutEffect(() => {
+    if (titleEditor && !titleEditor.isDestroyed && titleEditor.isEditable !== canEditTitle) {
+      titleEditor.setEditable(canEditTitle, false);
+    }
+  }, [titleEditor, canEditTitle]);
 
   const openSearchDialog = () => {
     const event = new CustomEvent("openFindDialogFromEditor", {});
@@ -213,36 +197,8 @@ export function TitleEditor({
 
     if (key === "Enter") {
       event.preventDefault();
-
-      const { $from } = titleEditor.state.selection;
-      const titleText = titleEditor.getText();
-
-      // Get the text offset within the heading node (not document position)
-      const textOffset = $from.parentOffset;
-
-      const textAfterCursor = titleText.slice(textOffset);
-
-      // Delete text after cursor from title (this will be in undo history)
-      const endPos = titleEditor.state.doc.content.size;
-      if (textAfterCursor) {
-        titleEditor.commands.deleteRange({ from: $from.pos, to: endPos });
-      }
-
-      // Don't add to history so undo in page editor won't remove this split
-      pageEditor
-        .chain()
-        .command(({ tr }) => {
-          tr.setMeta("addToHistory", false);
-          return true;
-        })
-        .insertContentAt(0, {
-          type: "paragraph",
-          content: textAfterCursor
-            ? [{ type: "text", text: textAfterCursor }]
-            : undefined,
-        })
-        .focus("start")
-        .run();
+      if (!titleEditor.isEditable || !pageEditor.isEditable) return;
+      splitTitleIntoPage(titleEditor, pageEditor);
       return;
     }
 

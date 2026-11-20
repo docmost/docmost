@@ -10,6 +10,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { nanoIdGen } from '../../common/helpers';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { TokenService } from '../auth/services/token.service';
+import { withoutTemplatePlaceholders } from '@docmost/editor-ext';
 import { jsonToNode } from '../../collaboration/collaboration.util';
 import {
   getAttachmentIds,
@@ -27,6 +28,7 @@ import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 
 @Injectable()
 export class ShareService {
@@ -40,6 +42,20 @@ export class ShareService {
     private readonly tokenService: TokenService,
     private readonly transclusionService: TransclusionService,
   ) {}
+
+  async getShares(userId: string, pagination: PaginationOptions) {
+    const result = await this.shareRepo.getShares(userId, pagination);
+    const accessiblePageIds = new Set(
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds: result.items.map((share) => share.pageId),
+        userId,
+      }),
+    );
+    result.items = result.items.filter((share) =>
+      accessiblePageIds.has(share.pageId),
+    );
+    return result;
+  }
 
   async getShareTree(shareId: string, workspaceId: string) {
     const share = await this.shareRepo.findById(shareId);
@@ -474,9 +490,8 @@ export class ShareService {
    *    content, the source page for transcluded source-block content
    *    (attachments in a sync block were uploaded onto the source page).
    *
-   * 2. Strip `comment` marks. Comments are internal-team metadata and must
-   *    not leak structure (existence, location, count, resolved state, or
-   *    comment ids) to public viewers.
+   * 2. Remove template instructions and strip `comment` marks from the
+   *    surrounding page content.
    *
    * Both share-content paths — the host page (`updatePublicAttachments`) and
    * the share-scoped transclusion lookup (`lookupTransclusionForShare`) —
@@ -504,7 +519,8 @@ export class ShareService {
     );
 
     const doc = jsonToNode(pmJson);
-    doc?.descendants((node: Node) => {
+    if (!doc) return null;
+    doc.descendants((node: Node) => {
       if (!isAttachmentNode(node.type.name)) return;
       const token = tokenMap.get(node.attrs.attachmentId);
       if (!token) return;
@@ -512,6 +528,7 @@ export class ShareService {
       updateAttachmentAttr(node, 'url', token);
     });
 
-    return doc ? removeMarkTypeFromDoc(doc, 'comment') : null;
+    const publicDoc = doc.copy(withoutTemplatePlaceholders(doc.content));
+    return removeMarkTypeFromDoc(publicDoc, 'comment');
   }
 }

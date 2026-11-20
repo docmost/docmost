@@ -16,7 +16,7 @@ export interface IPage {
   workspaceId: string;
   isLocked: boolean;
   isBase: boolean;
-  lastUpdatedById: string;
+  lastUpdatedById: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date;
@@ -24,7 +24,7 @@ export interface IPage {
   hasChildren: boolean;
   canEdit?: boolean;
   creator: ICreator;
-  lastUpdatedBy: ILastUpdatedBy;
+  lastUpdatedBy: ILastUpdatedBy | null;
   deletedBy: IDeletedBy;
   contributors?: IContributor[];
   space: Partial<ISpace>;
