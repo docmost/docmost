@@ -1,27 +1,16 @@
-import type RedisClient from 'ioredis';
 import type { WebSocketLike } from '@hocuspocus/server';
-import type { Pack, RSAMessageClose, RSAMessageSend } from './redis-sync.types';
+import type { RSAMessageSend } from './redis-sync.types';
 
 // Stands in for the client WebSocket on the server that owns the document.
 // Outgoing traffic is relayed over redis to the origin server, which holds the real socket.
 export class CollabProxySocket implements WebSocketLike {
-  private readonly replyTo: string;
-  private readonly socketId: string;
-  private pub: RedisClient;
-  private readonly pack: Pack;
   readyState = 1;
   onClose?: (code?: number, reason?: string) => void;
 
-  constructor(pub: RedisClient, pack: Pack, replyTo: string, socketId: string) {
-    this.replyTo = replyTo;
-    this.socketId = socketId;
-    this.pub = pub;
-    this.pack = pack;
-  }
-
-  private publish(msg: RSAMessageClose | RSAMessageSend) {
-    this.pub.publish(this.replyTo, this.pack(msg));
-  }
+  constructor(
+    private readonly socketId: string,
+    private readonly publish: (message: RSAMessageSend) => void,
+  ) {}
 
   // The origin server already closed the real socket; stop relaying without echoing a close back
   markClosed() {
