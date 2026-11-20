@@ -34,6 +34,7 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - '@hocuspocus/*'
   - '@tiptap/*'
+  - react-email@6.11.16
 allowBuilds:
   '@swc/core': true
   bcrypt: true
