@@ -74,6 +74,21 @@ describe("heading link button", () => {
     expect(linkButtons(e)).toEqual(before);
   });
 
+  it("preserves the editor selection when Backspace is pressed on the copy button", () => {
+    const e = createEditor([heading("Budget")]);
+    e.commands.setTextSelection({ from: 2, to: 5 });
+    const button = e.view.dom.querySelector("button")!;
+    button.focus();
+    expect(document.activeElement).toBe(button);
+
+    button.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Backspace", bubbles: true, cancelable: true,
+    }));
+
+    expect(e.state.doc.firstChild?.textContent).toBe("Budget");
+    expect(e.state.selection).toMatchObject({ from: 2, to: 5 });
+  });
+
   it("adds a button when a heading is inserted", () => {
     const e = createEditor([heading("Intro"), paragraph("text")]);
 

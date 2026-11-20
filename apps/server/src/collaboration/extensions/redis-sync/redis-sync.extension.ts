@@ -79,7 +79,7 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
       deriveContext,
     } = configuration;
     this.pub = redis.duplicate();
-    this.sub = redis.duplicate();
+    this.sub = redis.duplicate({ lazyConnect: false, autoResubscribe: false });
     this.pack = pack;
     this.unpack = unpack;
     this.serverId = serverId;
@@ -104,9 +104,14 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
         ),
       ),
     );
-    this.sub
-      .subscribe(this.msgChannel, `${this.msgChannel}:${this.serverId}`)
-      .catch((err) => this.logger.error({ err }, 'Failed to subscribe to collaboration channels'));
+    // A subscription that failed during startup must also be restored on reconnect.
+    this.sub.on('ready', () => {
+      this.sub
+        .subscribe(this.msgChannel, `${this.msgChannel}:${this.serverId}`)
+        .catch((err) =>
+          this.logger.error({ err }, 'Failed to subscribe to collaboration channels'),
+        );
+    });
   }
 
   private getKey(documentName: string) {

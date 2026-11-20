@@ -68,9 +68,7 @@ function buildHeadingLinkDecorations(
       {
         side: 1,
         key: "heading-link",
-        stopEvent: (event) =>
-          event instanceof KeyboardEvent &&
-          (event.key === "Enter" || event.key === " "),
+        stopEvent: () => true,
       },
     ),
   );

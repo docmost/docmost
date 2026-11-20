@@ -46,7 +46,10 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 export class PersistenceExtension implements Extension {
   private readonly logger = new Logger(PersistenceExtension.name);
   private contributors: Map<string, Set<string>> = new Map();
-  private lastChangeAt = new Map<string, number>();
+  private readonly lastChanges = new Map<
+    string,
+    { at: Date; context: onChangePayload['context'] }
+  >();
 
   constructor(
     private readonly pageRepo: PageRepo,
@@ -113,38 +116,40 @@ export class PersistenceExtension implements Extension {
   }
 
   async onStoreDocument(data: onStoreDocumentPayload) {
-    const { documentName, document, lastContext } = data;
+    const { documentName, document, instance } = data;
 
     const pageId = getPageId(documentName);
-    const lastChangeAt = this.lastChangeAt.get(documentName);
+    const lastChange = this.lastChanges.get(documentName);
+    // A queued retry can have an older context than the document it now snapshots.
+    const lastContext = lastChange?.context ?? data.lastContext;
 
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
     let tiptapJson: JSONContent;
-    try {
-      tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
-    } catch (err) {
-      this.logger.error(
-        { err, pageId },
-        'Failed to convert Yjs state to Tiptap JSON',
-      );
-      await this.pageRepo.saveYdocState(pageId, ydocState);
-      return;
-    }
-
-    let textContent = null;
-
-    try {
-      textContent = jsonToText(tiptapJson);
-    } catch (err) {
-      this.logger.warn('jsonToText' + err?.['message']);
-    }
-
+    let editingUserIds: string[] = [];
     let page: Page = null;
     let edited = false;
     let invalidation: PageVerificationInvalidation | null = null;
-    const editingUserIds = this.consumeContributors(documentName);
 
     try {
+      try {
+        tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
+      } catch (err) {
+        this.logger.error(
+          { err, pageId },
+          'Failed to convert Yjs state to Tiptap JSON',
+        );
+        await this.pageRepo.saveYdocState(pageId, ydocState);
+        return;
+      }
+
+      let textContent = null;
+      try {
+        textContent = jsonToText(tiptapJson);
+      } catch (err) {
+        this.logger.warn('jsonToText' + err?.['message']);
+      }
+
+      editingUserIds = this.consumeContributors(documentName);
       await executeTx(this.db, async (trx) => {
         page = await this.pageRepo.findById(pageId, {
           withLock: true,
@@ -187,7 +192,7 @@ export class PersistenceExtension implements Extension {
             textContent: textContent,
             ydoc: ydocState,
             ...(edited
-              ? { lastUpdatedById: lastContext.user.id, contributorIds }
+              ? { lastUpdatedById: lastContext?.user?.id ?? null, contributorIds }
               : { updatedAt: page.updatedAt }),
           },
           pageId,
@@ -199,7 +204,7 @@ export class PersistenceExtension implements Extension {
             {
               pageId: page.id,
               userId: lastContext?.user?.id ?? null,
-              changedAt: lastChangeAt ? new Date(lastChangeAt) : null,
+              changedAt: lastChange?.at ?? null,
               isMeaningfulChange: () => edited,
               loadPreviousState: async () => page,
             },
@@ -213,6 +218,14 @@ export class PersistenceExtension implements Extension {
       editingUserIds.forEach((userId) =>
         this.trackContributor(documentName, userId),
       );
+      // A rejected store has no timer left. Keep the live document pending so
+      // disconnect and shutdown can flush it, preserving any newer editor's save.
+      if (
+        instance.documents.get(documentName) === document &&
+        !instance.debouncer.isDebounced(`onStoreDocument-${documentName}`)
+      ) {
+        void instance.storeDocumentHooks(document, data);
+      }
       throw err;
     }
 
@@ -319,7 +332,10 @@ export class PersistenceExtension implements Extension {
   }
 
   async onChange(data: onChangePayload) {
-    this.lastChangeAt.set(data.documentName, Date.now());
+    this.lastChanges.set(data.documentName, {
+      at: new Date(),
+      context: data.context,
+    });
     const userId = data.context?.user?.id;
     if (!userId) return;
     this.trackContributor(data.documentName, userId);
@@ -336,7 +352,7 @@ export class PersistenceExtension implements Extension {
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
     this.contributors.delete(documentName);
-    this.lastChangeAt.delete(documentName);
+    this.lastChanges.delete(documentName);
   }
 
   private consumeContributors(documentName: string): string[] {

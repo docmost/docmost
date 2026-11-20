@@ -1,5 +1,6 @@
 import {
   Document,
+  Hocuspocus,
   type onChangePayload,
   type onLoadDocumentPayload,
   type onStoreDocumentPayload,
@@ -198,6 +199,7 @@ describe('PersistenceExtension document storage', () => {
     payload = {
       document: doc,
       documentName,
+      instance: new Hocuspocus(),
       lastContext: { user: { id: 'editor' } },
     } as onStoreDocumentPayload;
   });
@@ -266,6 +268,92 @@ describe('PersistenceExtension document storage', () => {
     expect(page.ydoc).toBeNull();
     await extension.onStoreDocument(payload);
     expect(page.ydoc).toEqual(Buffer.from(Y.encodeStateAsUpdate(doc)));
+  });
+
+  it.each([
+    { kind: 'page', unloadImmediately: true },
+    { kind: 'snapshot', unloadImmediately: false },
+  ])(
+    'keeps the last edit and retries a failed $kind write after the last connection closes',
+    async ({ kind, unloadImmediately }) => {
+      jest.useFakeTimers();
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      const { extension, repo, page } = setup();
+      const server = new Hocuspocus({ debounce: 1000, extensions: [extension] });
+      try {
+        const connection = await server.openDirectConnection(documentName, {
+          user: { id: 'editor' },
+        });
+        await connection.transact((document) => {
+          const paragraph = document.getXmlFragment('default').get(0) as Y.XmlElement;
+          (paragraph.get(0) as Y.XmlText).insert(0, 'Last edit: ');
+        });
+        const expected = Buffer.from(Y.encodeStateAsUpdate(connection.document!));
+        const error = new Error('Temporary database outage');
+        if (kind === 'snapshot') {
+          failConversion();
+          repo.saveYdocState.mockRejectedValueOnce(error);
+        } else {
+          repo.updatePage.mockRejectedValueOnce(error);
+        }
+
+        await connection.disconnect({ unloadImmediately });
+        if (!unloadImmediately) await jest.advanceTimersByTimeAsync(1000);
+        expect(page.ydoc).toBeNull();
+        expect(server.getDocumentsCount()).toBe(1);
+
+        if (unloadImmediately) {
+          await jest.advanceTimersByTimeAsync(1001);
+        } else {
+          server.flushPendingStores();
+          await jest.advanceTimersByTimeAsync(1);
+        }
+        expect(page.ydoc).toEqual(expected);
+        expect(server.getDocumentsCount()).toBe(0);
+      } finally {
+        for (const document of server.documents.values()) document.destroy();
+        jest.useRealTimers();
+      }
+    },
+  );
+
+  it('credits the latest editor when a newer save waits behind a failed write', async () => {
+    jest.useFakeTimers();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { extension, repo } = setup();
+    const server = new Hocuspocus({ debounce: 1000, extensions: [extension] });
+    const outage = new Error('Temporary database outage');
+    let failFirstWrite: (error: Error) => void;
+    repo.updatePage
+      .mockImplementationOnce(() => new Promise<void>((_resolve, reject) => {
+        failFirstWrite = reject;
+      }))
+      .mockRejectedValueOnce(outage);
+    try {
+      for (const id of ['alice', 'bob']) {
+        const connection = await server.openDirectConnection(documentName, { user: { id } });
+        await connection.transact((document) => {
+          const paragraph = document.getXmlFragment('default').get(0) as Y.XmlElement;
+          const text = paragraph.get(0) as Y.XmlText;
+          text.insert(text.length, ' ' + id);
+        });
+        await jest.advanceTimersByTimeAsync(1000);
+      }
+      expect(repo.updatePage).toHaveBeenCalledTimes(1);
+
+      failFirstWrite(outage);
+      await jest.advanceTimersByTimeAsync(1001);
+
+      expect(repo.updatePage).toHaveBeenCalledTimes(3);
+      expect(repo.updatePage.mock.lastCall[0]).toMatchObject({
+        textContent: 'Published alice bob',
+        lastUpdatedById: 'bob',
+        contributorIds: expect.arrayContaining(['alice', 'bob']),
+      });
+    } finally {
+      for (const document of server.documents.values()) document.destroy();
+      jest.useRealTimers();
+    }
   });
 
   it('reports a database failure when saving a repaired document', async () => {

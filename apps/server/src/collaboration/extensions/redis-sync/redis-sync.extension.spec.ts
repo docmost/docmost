@@ -44,6 +44,21 @@ describe('Redis collaboration relay', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
+  it('subscribes to both channels again after a failed subscription and Redis reconnect', async () => {
+    const { subscriber } = makeRelay('owner');
+    const error = new Error('Redis connection closed');
+    subscriber.subscribe.mockRejectedValueOnce(error);
+    subscriber.emit('ready');
+    await Promise.resolve();
+    expect(logError).toHaveBeenCalledWith({ err: error }, expect.any(String));
+
+    subscriber.emit('ready');
+    expect(subscriber.subscribe.mock.calls).toEqual([
+      ['collabMsg', 'collabMsg:owner'],
+      ['collabMsg', 'collabMsg:owner'],
+    ]);
+  });
+
   it('returns owner errors and successful results to the requesting node', async () => {
     const conflict = new ConflictException('Page was archived');
     const owner = makeRelay('owner', {
