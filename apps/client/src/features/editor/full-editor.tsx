@@ -4,6 +4,8 @@ import { TitleEditor } from "@/features/editor/title-editor";
 import PageEditor from "@/features/editor/page-editor";
 import {
   ActionIcon,
+  Alert,
+  Button,
   Container,
   Divider,
   Group,
@@ -25,7 +27,6 @@ import {
 } from "@/ee/page-verification";
 import { useTranslation } from "react-i18next";
 import { IContributor } from "@/features/page/types/page.types.ts";
-import { FixedToolbar } from "@/features/editor/components/fixed-toolbar/fixed-toolbar";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner.tsx";
@@ -38,7 +39,6 @@ import { AddCoverButton } from "@/features/page-cover/components/add-cover-butto
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
-const MemoizedFixedToolbar = React.memo(FixedToolbar);
 const MemoizedDeletedPageBanner = React.memo(DeletedPageBanner);
 
 type PageUser = {
@@ -63,6 +63,7 @@ export interface FullEditorProps {
   contributors?: IContributor[];
   canComment?: boolean;
   hasCover?: boolean;
+  showToolbar: boolean;
 }
 
 export function FullEditor({
@@ -77,16 +78,22 @@ export function FullEditor({
   contributors,
   canComment,
   hasCover,
+  showToolbar,
 }: FullEditorProps) {
+  const { t } = useTranslation();
   const [user] = useAtom(userAtom);
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
   const fullPageWidth = user?.settings?.preferences?.fullPageWidth;
-  const editorToolbarEnabled =
-    user?.settings?.preferences?.editorToolbar ?? false;
   const setCurrentPageEditMode = useSetAtom(currentPageEditModeAtom);
   const userPageEditMode =
     user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-  const { editMode } = usePageEditMode(pageId);
+  const {
+    editMode,
+    isCheckingLock,
+    verificationUnavailable,
+    retryVerification,
+    retryingVerification,
+  } = usePageEditMode(pageId);
   const isEditMode = editMode === PageEditMode.Edit;
 
   usePageEditLockSync(pageId);
@@ -105,17 +112,33 @@ export function FullEditor({
       fluid={fullPageWidth}
       size={!fullPageWidth && 900}
       className={classes.editor}
-      style={{ display: "flex", flexDirection: "column" }}
     >
-      {editorToolbarEnabled && editable && isEditMode && (
-        <MemoizedFixedToolbar withSpacer={!hasCover} />
+      {showToolbar && !hasCover && (
+        <div className={classes.toolbarSpacer} aria-hidden />
       )}
       {space && <SpaceArchivedNotice space={space} />}
       <MemoizedDeletedPageBanner slugId={slugId} />
+      {editable && verificationUnavailable && (
+        <Alert color="yellow" mx="md" mb="sm">
+          <Group justify="space-between">
+            <Text size="sm">
+              {t("Editing is paused because the page verification status could not be checked.")}
+            </Text>
+            <Button
+              variant="light"
+              size="xs"
+              loading={retryingVerification}
+              onClick={() => retryVerification()}
+            >
+              {t("Try again")}
+            </Button>
+          </Group>
+        </Alert>
+      )}
       <div className={classes.titleArea}>
         {editable && !hasCover && (
           <div className={clsx("print-hide", classes.coverRow)}>
-            {isEditMode && (
+            {isEditMode && !isCheckingLock && (
               <AddCoverButton slugId={slugId} className={classes.addCover} />
             )}
           </div>
@@ -133,16 +156,18 @@ export function FullEditor({
         contributors={contributors}
         readOnly={!editable}
       />
-      <MemoizedPageEditor
-        pageId={pageId}
-        editable={editable}
-        content={content}
-        canComment={canComment}
-      />
+      <div className={clsx(classes.documentBody, classes.documentReveal)}>
+        <MemoizedPageEditor
+          pageId={pageId}
+          editable={editable}
+          content={content}
+          canComment={canComment}
+        />
+      </div>
       <EmptyPageGetStarted
         pageId={pageId}
         spaceId={spaceId}
-        editable={editable}
+        editable={editable && isEditMode && !isCheckingLock}
       />
     </Container>
   );
@@ -165,9 +190,7 @@ function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
   return (
     <Group
       gap="sm"
-      mb="md"
-      className={clsx("print-hide", classes.byline)}
-      style={{ marginTop: "-0.5em" }}
+      className={clsx("print-hide", classes.byline, classes.documentReveal)}
     >
       {creator && (
         <Popover position="bottom-start" shadow="md" width={280} withArrow>

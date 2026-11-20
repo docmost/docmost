@@ -1,7 +1,7 @@
 .cover {
   position: relative;
   height: clamp(160px, 26vh, 240px);
-  margin-top: calc(var(--page-header-height) - var(--app-shell-padding, 0px));
+  margin-top: calc(var(--page-header-height, 45px) - var(--app-shell-padding, 0px));
   /* collapses with the editor's 48px top margin into a 28px gap */
   margin-bottom: -20px;
   margin-inline: calc(var(--app-shell-padding, 0px) * -1);
@@ -14,7 +14,7 @@
 
   &[data-below-toolbar] {
     margin-top: calc(
-      var(--page-header-height) * 2 - var(--app-shell-padding, 0px)
+      var(--page-header-height, 45px) * 2 - var(--app-shell-padding, 0px)
     );
   }
 

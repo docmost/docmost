@@ -19,7 +19,7 @@ import type { UploadTarget } from "@docmost/editor-ext";
 import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 
 interface Props {
-  editor: Editor;
+  editor: Editor | null;
 }
 
 type UploadFn = (
@@ -47,7 +47,7 @@ function pickFile(
   input.style.display = "none";
   document.body.appendChild(input);
   input.onchange = () => {
-    if (input.files?.length) {
+    if (input.files?.length && !editor.isDestroyed && editor.isEditable) {
       for (const file of input.files) {
         const pos = editor.view.state.selection.from;
         if (extra !== undefined) {
@@ -65,20 +65,23 @@ function pickFile(
 export const MediaGroup: FC<Props> = ({ editor }) => {
   const { t } = useTranslation();
 
+  const trigger = (
+    <Tooltip label={t("Insert media")} withArrow>
+      <ActionIcon
+        variant="subtle"
+        color="dark"
+        size="md"
+        aria-label={t("Insert media")}
+      >
+        <IconPhoto size={16} />
+      </ActionIcon>
+    </Tooltip>
+  );
+  if (!editor) return trigger;
+
   return (
     <Menu shadow="md" position="bottom-start" withArrow={false}>
-      <Menu.Target>
-        <Tooltip label={t("Insert media")} withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="dark"
-            size="md"
-            aria-label={t("Insert media")}
-          >
-            <IconPhoto size={16} />
-          </ActionIcon>
-        </Tooltip>
-      </Menu.Target>
+      <Menu.Target>{trigger}</Menu.Target>
       <Menu.Dropdown>
         <Menu.Item
           leftSection={<IconPhoto size={16} />}

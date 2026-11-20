@@ -27,7 +27,7 @@
        second tap, requiring a double-tap to navigate. */
     @media (hover: hover) {
         &:hover {
-            background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+            background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
         }
 
         &:hover .actions {
@@ -77,6 +77,22 @@
     display: flex;
 }
 
+.chevron {
+    transition: transform 100ms ease;
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+    }
+}
+
+button[aria-expanded="false"] .chevron {
+    transform: rotate(-90deg);
+
+    [dir="rtl"] & {
+        transform: rotate(90deg);
+    }
+}
+
 [role="treeitem"] {
     padding-bottom: 2px;
 }
@@ -119,6 +135,10 @@
         var(--mantine-color-gray-3),
         var(--mantine-color-dark-6)
     );
+
+    > .node {
+        background-color: transparent;
+    }
 }
 
 .node[data-selected="true"] .actions {

@@ -44,7 +44,7 @@ import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 import { isBetaBaseForms } from "@/lib/config.ts";
 
 interface Props {
-  editor: Editor;
+  editor: Editor | null;
   templateMode?: boolean;
 }
 
@@ -56,20 +56,23 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
   const setEmbed = (provider: string) =>
     editor.chain().focus().setEmbed({ provider }).run();
 
+  const trigger = (
+    <Tooltip label={t("More inserts")} withArrow>
+      <ActionIcon
+        variant="subtle"
+        color="dark"
+        size="md"
+        aria-label={t("More inserts")}
+      >
+        <IconChevronDown size={16} />
+      </ActionIcon>
+    </Tooltip>
+  );
+  if (!editor) return trigger;
+
   return (
     <Menu shadow="md" position="bottom-start" withArrow={false} width={240}>
-      <Menu.Target>
-        <Tooltip label={t("More inserts")} withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="dark"
-            size="md"
-            aria-label={t("More inserts")}
-          >
-            <IconChevronDown size={16} />
-          </ActionIcon>
-        </Tooltip>
-      </Menu.Target>
+      <Menu.Target>{trigger}</Menu.Target>
       <Menu.Dropdown mah={400} style={{ overflowY: "auto" }}>
         <Menu.Label>{t("Advanced")}</Menu.Label>
         {templateMode && (

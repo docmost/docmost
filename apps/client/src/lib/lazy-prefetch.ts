@@ -22,15 +22,22 @@ export function lazyWithPrefetch<T extends ComponentType<any>>(
   load: () => Promise<{ default: T }>,
   options: LazyWithPrefetchOptions = {},
 ) {
+  return lazy(importWithPrefetch(load, options));
+}
+
+export function importWithPrefetch<T>(
+  load: () => Promise<T>,
+  options: LazyWithPrefetchOptions = {},
+) {
   if (options.prefetchFirst) {
     prefetchQueue.unshift(load);
   } else {
     prefetchQueue.push(load);
   }
-  return lazy(async () => {
+  return async () => {
     await retryFailedStylesheets();
     return load();
-  });
+  };
 }
 
 export async function prefetchLazyComponents() {

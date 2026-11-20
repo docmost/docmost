@@ -132,7 +132,7 @@ export function PageVerificationBadge({
       </Tooltip>
     );
   }
-  if (isLoading) return null;
+  if (isLoading || !verificationInfo) return null;
 
   const status = verificationInfo?.status ?? "none";
 

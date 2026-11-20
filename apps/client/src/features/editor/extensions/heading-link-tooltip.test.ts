@@ -41,7 +41,7 @@ it.each([true, false])("confirms and resets the heading link tooltip (editable=%
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
   const heading = renderHeading(editable);
-  const button = heading.getByRole("button", { name: "Copy link to this heading" });
+  const button = heading.getByRole("button", { name: "Copy link to heading" });
 
   button.click();
   await vi.advanceTimersByTimeAsync(0);
@@ -49,7 +49,7 @@ it.each([true, false])("confirms and resets the heading link tooltip (editable=%
   expect(heading.getByRole("button", { name: "Link copied" })).toBe(button);
 
   await vi.advanceTimersByTimeAsync(2000);
-  expect(heading.getByRole("button", { name: "Copy link to this heading" })).toBe(button);
+  expect(heading.getByRole("button", { name: "Copy link to heading" })).toBe(button);
 });
 
 it("does not offer an anchor link for a heading without an ID", () => {
@@ -60,9 +60,9 @@ it("keeps the copy prompt when the browser refuses the clipboard write", async (
   vi.useFakeTimers();
   Object.defineProperty(document, "execCommand", { configurable: true, value: () => false });
   const heading = renderHeading(false);
-  const button = heading.getByRole("button", { name: "Copy link to this heading" });
+  const button = heading.getByRole("button", { name: "Copy link to heading" });
 
   button.click();
   await vi.advanceTimersByTimeAsync(0);
-  expect(heading.getByRole("button", { name: "Copy link to this heading" })).toBe(button);
+  expect(heading.getByRole("button", { name: "Copy link to heading" })).toBe(button);
 });

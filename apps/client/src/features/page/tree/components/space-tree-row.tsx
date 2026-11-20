@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { ActionIcon, rem } from "@mantine/core";
 import {
   IconChevronDown,
-  IconChevronRight,
   IconFileDescription,
   IconPlus,
   IconPointFilled,
@@ -36,7 +35,20 @@ import { updateTreeNodeIcon } from "@/features/page/tree/utils/utils.ts";
 
 type SpaceTreeRowProps = RenderRowProps<SpaceTreeNode> & {
   readOnly: boolean;
+  onPagePress: (id: string) => void;
+  onPageClick: (id: string, pathname: string) => void;
 };
+
+function isPageActivation(event: React.MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.button === 0 &&
+    !event.defaultPrevented &&
+    !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey &&
+    event.target instanceof Element &&
+    event.currentTarget.contains(event.target) &&
+    !event.target.closest("button, [data-page-action]")
+  );
+}
 
 export function SpaceTreeRow({
   node,
@@ -47,6 +59,8 @@ export function SpaceTreeRow({
   tabIndex,
   treeItemProps,
   readOnly,
+  onPagePress,
+  onPageClick,
 }: SpaceTreeRowProps) {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
@@ -145,7 +159,15 @@ export function SpaceTreeRow({
       className={classes.node}
       tabIndex={tabIndex}
       {...treeItemProps}
-      onClick={() => {
+      onPointerDown={(event) => {
+        if (event.pointerType === "mouse" && isPageActivation(event)) {
+          onPagePress(node.id);
+        }
+      }}
+      onClick={(event) => {
+        if (isPageActivation(event)) {
+          onPageClick(node.id, event.currentTarget.pathname);
+        }
         if (mobileSidebarOpened) {
           toggleMobileSidebar();
         }
@@ -159,7 +181,7 @@ export function SpaceTreeRow({
         onToggle={toggleOpen}
       />
 
-      <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
+      <div data-page-action onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
         <EmojiPicker
           onEmojiSelect={handleEmojiSelect}
           icon={
@@ -179,7 +201,7 @@ export function SpaceTreeRow({
 
       <span className={classes.text}>{getPageTitle(node.name, node.isBase, t)}</span>
 
-      <div className={classes.actions}>
+      <div data-page-action className={classes.actions}>
         <NodeMenu node={node} canEdit={canEdit} />
 
         {canEdit && (
@@ -239,11 +261,7 @@ function PageArrow({ isOpen, hasChildren, onToggle }: PageArrowProps) {
         onToggle();
       }}
     >
-      {isOpen ? (
-        <IconChevronDown stroke={2} size={18} />
-      ) : (
-        <IconChevronRight stroke={2} size={18} />
-      )}
+      <IconChevronDown className={classes.chevron} stroke={2} size={18} />
     </ActionIcon>
   );
 }

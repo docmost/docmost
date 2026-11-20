@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
 import WorkspaceLocaleLayout from "@/features/workspace/components/workspace-locale-layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import { PageRoute } from "@/pages/page/page-route";
 import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
 import { isBetaBaseForms, isCloud } from "@/lib/config.ts";
 import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
@@ -15,9 +16,6 @@ import AnnouncementBanners from "@/ee/announcement/components/announcement-banne
 const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
 const LoginPage = lazyWithPrefetch(() => import("@/pages/auth/login"));
 const Home = lazyWithPrefetch(() => import("@/pages/dashboard/home"));
-const Page = lazyWithPrefetch(() => import("@/pages/page/page"), {
-  prefetchFirst: true,
-});
 const AccountSettings = lazyWithPrefetch(
   () => import("@/pages/settings/account/account-settings"),
 );
@@ -210,7 +208,7 @@ export default function App() {
           <Route path={"/s/:spaceSlug/trash"} element={<SpaceTrash />} />
           <Route
             path={"/s/:spaceSlug/p/:pageSlug"}
-            element={<Page />}
+            element={<PageRoute />}
           />
 
           <Route path={"/base/:pageId"} element={<BasePage />} />

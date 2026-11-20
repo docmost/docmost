@@ -17,7 +17,7 @@ import classes from "@/ee/base/styles/grid.module.css";
 export function BaseEmbedTitle({ pageId }: { pageId: string }) {
   const { t } = useTranslation();
   const { data: page } = usePageQuery({ pageId });
-  const { mutateAsync: updateTitleAsync } = useUpdateTitlePageMutation();
+  const { mutateAsync: updateTitleAsync } = useUpdateTitlePageMutation(pageId);
   const emit = useQueryEmit();
   const [value, setValue] = useState("");
   const focusedRef = useRef(false);

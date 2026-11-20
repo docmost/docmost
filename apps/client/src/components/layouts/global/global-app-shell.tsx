@@ -28,11 +28,13 @@ import { MAIN_CONTENT_ID, SkipToMain } from "@/components/ui/skip-to-main.tsx";
 
 export default function GlobalAppShell({
   children,
+  sessionPending = false,
 }: {
   children: React.ReactNode;
+  sessionPending?: boolean;
 }) {
   const { t } = useTranslation();
-  useTrialEndAction();
+  useTrialEndAction(!sessionPending);
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);
@@ -112,13 +114,14 @@ export default function GlobalAppShell({
       padding="md"
     >
       <AppShell.Header className={classes.header}>
-        <AnnouncementBanners
-          surface="app"
-          onHeightChange={setAnnouncementsHeight}
-        />
-        <Box px="md" h={45}>
-          <AppHeader />
-        </Box>
+        {!sessionPending && (
+          <>
+            <AnnouncementBanners surface="app" onHeightChange={setAnnouncementsHeight} />
+            <Box px="md" h={45}>
+              <AppHeader />
+            </Box>
+          </>
+        )}
       </AppShell.Header>
       <AppShell.Navbar
         className={classes.navbar}
@@ -134,17 +137,23 @@ export default function GlobalAppShell({
                 : t("Main navigation")
         }
       >
-        {isSpaceRoute && (
-          <div className={classes.resizeHandle} onMouseDown={startResizing} />
+        {!sessionPending && (
+          <>
+            {isSpaceRoute && (
+              <>
+                <div className={classes.resizeHandle} onMouseDown={startResizing} />
+                <SpaceSidebar />
+              </>
+            )}
+            {isSettingsRoute && <SettingsSidebar />}
+            {isAiRoute && (
+              <React.Suspense fallback={null}>
+                <AiChatSidebar />
+              </React.Suspense>
+            )}
+            {showGlobalSidebar && <GlobalSidebar />}
+          </>
         )}
-        {isSpaceRoute && <SpaceSidebar />}
-        {isSettingsRoute && <SettingsSidebar />}
-        {isAiRoute && (
-          <React.Suspense fallback={null}>
-            <AiChatSidebar />
-          </React.Suspense>
-        )}
-        {showGlobalSidebar && <GlobalSidebar />}
       </AppShell.Navbar>
       <Box
         hiddenFrom="sm"
@@ -185,7 +194,7 @@ export default function GlobalAppShell({
                     : undefined
           }
         >
-          <Aside />
+          {!sessionPending && <Aside />}
         </AppShell.Aside>
       )}
     </AppShell>

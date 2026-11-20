@@ -29,7 +29,7 @@ function renderHeadingLinkButton(t: Translate) {
   const setCopied = (copied: boolean) => {
     button.setAttribute(
       "aria-label",
-      copied ? t("Link copied") : t("Copy link to this heading"),
+      copied ? t("Link copied") : t("Copy link to heading"),
     );
     button.innerHTML = copied ? successIcon : copyIcon;
   };

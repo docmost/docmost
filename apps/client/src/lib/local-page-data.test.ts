@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteLocalPageData } from "./local-page-data";
+import { deleteLocalPageData, failedPageWrites } from "./local-page-data";
 
 function stubIndexedDB(names: string[]) {
   const deleteDatabase = vi.fn(() => {
@@ -20,16 +20,36 @@ describe("deleteLocalPageData", () => {
   });
 
   it("deletes only the page databases", async () => {
-    const deleteDatabase = stubIndexedDB(["page.a", "page.b", "other-db"]);
+    const deleteDatabase = stubIndexedDB([
+      "page.a",
+      "page.b.user.account",
+      "other-db",
+    ]);
 
     await deleteLocalPageData();
 
-    expect(deleteDatabase.mock.calls).toEqual([["page.a"], ["page.b"]]);
+    expect(deleteDatabase.mock.calls).toEqual([
+      ["page.a"],
+      ["page.b.user.account"],
+    ]);
   });
 
   it("does nothing when the browser cannot list databases", async () => {
     vi.stubGlobal("indexedDB", { deleteDatabase: vi.fn() });
 
     await expect(deleteLocalPageData()).resolves.toBeUndefined();
+  });
+
+  it("clears fallback drafts and recovery copies on explicit sign-out", async () => {
+    stubIndexedDB([]);
+    const database = "page.scratch.user.writer";
+    failedPageWrites.keep(database, "draft", "backup");
+    failedPageWrites.keep(database + ".recovery", "writer:1", "copy");
+    localStorage.setItem("sidebarWidth", "300");
+    await deleteLocalPageData();
+    expect(failedPageWrites.read(database).size).toBe(0);
+    expect(failedPageWrites.read(database + ".recovery").size).toBe(0);
+    expect(localStorage.getItem("sidebarWidth")).toBe("300");
+    localStorage.removeItem("sidebarWidth");
   });
 });
