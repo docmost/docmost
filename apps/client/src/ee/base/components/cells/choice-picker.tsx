@@ -121,23 +121,28 @@ export function ChoicePicker({
   const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
     useListKeyboardNav(navItems.length, [search, showAddOption]);
 
-  const handleAddOption = useCallback(() => {
-    if (!trimmedSearch) return;
+  const handleAddOption = useCallback(async () => {
+    if (!trimmedSearch || updatePropertyMutation.isPending) return;
     const newChoice: Choice = {
       id: generateBaseChoiceId(),
       name: trimmedSearch,
       color: addOptionColor,
     };
     const newChoices = [...choices, newChoice];
-    updatePropertyMutation.mutate({
-      propertyId: property.id,
-      pageId: property.pageId,
-      typeOptions: {
-        ...typeOptions,
-        choices: newChoices,
-        choiceOrder: newChoices.map((c) => c.id),
-      },
-    });
+    // The server rejects a cell that names a choice it hasn't saved yet.
+    try {
+      await updatePropertyMutation.mutateAsync({
+        propertyId: property.id,
+        pageId: property.pageId,
+        typeOptions: {
+          ...typeOptions,
+          choices: newChoices,
+          choiceOrder: newChoices.map((c) => c.id),
+        },
+      });
+    } catch {
+      return; // the mutation shows the error toast
+    }
     onToggle(newChoice);
     setSearch("");
   }, [trimmedSearch, addOptionColor, choices, typeOptions, property, updatePropertyMutation, onToggle]);

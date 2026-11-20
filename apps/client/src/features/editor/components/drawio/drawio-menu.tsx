@@ -30,6 +30,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { getDrawioUrl, getFileUrl } from "@/lib/config.ts";
 import { uploadFile } from "@/features/page/services/page-service.ts";
+import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import {
   DrawIoEmbed,
   DrawIoEmbedRef,
@@ -40,8 +41,15 @@ import {
 import { decodeBase64ToSvgString, svgStringToFile } from "@/lib/utils";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
 import { modals } from "@mantine/modals";
+import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
+import {
+  diagramSizeAt,
+  diagramZoom,
+  drawingSize,
+} from "@/features/editor/components/common/diagram-size";
+import { useDiagramSave } from "@/features/editor/components/common/use-diagram-save";
 import classes from "../common/toolbar-menu.module.css";
 
 export function DrawioMenu({ editor }: EditorMenuProps) {
@@ -52,8 +60,8 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
   const drawioRef = useRef<DrawIoEmbedRef>(null);
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
-  const isSavingRef = useRef(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const zoomRef = useRef<number | null>(null);
+  const { isSaving, isSavingRef, save, autosave } = useDiagramSave();
   const [isLoading, setIsLoading] = useState(false);
 
   const editorState = useEditorState({
@@ -157,39 +165,30 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
   });
 
   const saveData = useCallback(async (svgXml: string) => {
-    if (isSavingRef.current) return;
+    const svgString = decodeBase64ToSvgString(svgXml);
+    const fileName = "diagram.drawio.svg";
+    const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
-    isSavingRef.current = true;
-    setIsSaving(true);
+    const uploadTarget = getEditorUploadTarget(editor);
+    if (!uploadTarget) return;
+    const attachmentId = editorState?.attachmentId;
 
-    try {
-      const svgString = decodeBase64ToSvgString(svgXml);
-      const fileName = "diagram.drawio.svg";
-      const drawioSVGFile = await svgStringToFile(svgString, fileName);
-
-      // @ts-ignore
-      const pageId = editor.storage?.pageId;
-      const attachmentId = editorState?.attachmentId;
-
-      let attachment: IAttachment = null;
-      if (attachmentId) {
-        attachment = await uploadFile(drawioSVGFile, pageId, attachmentId);
-      } else {
-        attachment = await uploadFile(drawioSVGFile, pageId);
-      }
-
-      editor.commands.updateAttributes("drawio", {
-        src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-        title: attachment.fileName,
-        size: attachment.fileSize,
-        attachmentId: attachment.id,
-      });
-
-      isDirtyRef.current = false;
-    } finally {
-      isSavingRef.current = false;
-      setIsSaving(false);
+    let attachment: IAttachment = null;
+    if (attachmentId) {
+      attachment = await uploadFile(drawioSVGFile, uploadTarget, attachmentId);
+    } else {
+      attachment = await uploadFile(drawioSVGFile, uploadTarget);
     }
+
+    editor.commands.updateAttributes("drawio", {
+      src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+      title: attachment.fileName,
+      size: attachment.fileSize,
+      attachmentId: attachment.id,
+      ...diagramSizeAt(zoomRef.current, drawingSize(svgString)),
+    });
+
+    isDirtyRef.current = false;
   }, [editor, editorState?.attachmentId]);
 
   const handleClose = useCallback(() => {
@@ -219,6 +218,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     if (!editorState?.src) return;
 
     setIsLoading(true);
+    zoomRef.current = null;
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -226,6 +226,10 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
         cache: "no-store",
       });
       const blob = await request.blob();
+      zoomRef.current = diagramZoom(
+        editor.getAttributes("drawio").width,
+        drawingSize(await blob.text()),
+      );
 
       const reader = new FileReader();
       reader.readAsDataURL(blob);
@@ -240,7 +244,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
       isDirtyRef.current = false;
       open();
     }
-  }, [editorState?.src, open]);
+  }, [editor, editorState?.src, open]);
 
   useEffect(() => {
     if (!opened) return;
@@ -411,7 +415,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
                   if (data.parentEvent !== "save") {
                     return;
                   }
-                  saveData(data.xml).then(() => close()).catch(() => {});
+                  save(() => saveData(data.xml)).then(() => close()).catch(notifyDiagramSaveError);
                 }}
                 onClose={(data: EventExit) => {
                   if (data.parentEvent) {
@@ -423,7 +427,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
                   isDirtyRef.current = true;
                 }}
                 onExport={(data: EventExport) => {
-                  saveData(data.data).catch(() => {});
+                  autosave(() => saveData(data.data)).catch(() => {});
                 }}
               />
             </div>

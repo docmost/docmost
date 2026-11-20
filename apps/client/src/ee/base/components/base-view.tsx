@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { Text, Stack } from "@mantine/core";
 import { useAtom } from "jotai";
 import { IconTable } from "@tabler/icons-react";
@@ -25,6 +25,7 @@ import {
 import { useUpdateViewMutation } from "@/ee/base/queries/base-view-query";
 import {
   activeViewIdAtomFamily,
+  baseImportOpenedAtomFamily,
   editingCellAtomFamily,
   focusedCellAtomFamily,
 } from "@/ee/base/atoms/base-atoms";
@@ -45,11 +46,12 @@ import { BaseEditableProvider } from "@/ee/base/context/base-editable";
 import { RowExpandProvider } from "@/ee/base/context/row-expand";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { buildPageUrl } from "@/features/page/page.utils";
-import { getAppUrl } from "@/lib/config.ts";
+import { getAppUrl, isBetaBaseForms } from "@/lib/config.ts";
 import { useNavigate } from "react-router-dom";
 import classes from "@/ee/base/styles/grid.module.css";
 import viewClasses from "@/ee/base/styles/base-view.module.css";
 import kanbanClasses from "@/ee/base/styles/kanban.module.css";
+import formClasses from "@/ee/base/styles/form.module.css";
 
 type BaseViewProps = {
   pageId: string;
@@ -60,7 +62,36 @@ type BaseViewProps = {
   titleSlot?: React.ReactNode;
 };
 
-export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseViewProps) {
+const CsvImportModal = lazy(
+  () => import("@/ee/base/components/csv-import/csv-import-modal"),
+);
+
+export function BaseView(props: BaseViewProps) {
+  return (
+    <>
+      <BaseViewContent {...props} />
+      <BaseCsvImport pageId={props.pageId} />
+    </>
+  );
+}
+
+// a sibling of the view, so its loading and error states can't unmount the dialog
+function BaseCsvImport({ pageId }: { pageId: string }) {
+  const [opened, setOpened] = useAtom(baseImportOpenedAtomFamily(pageId));
+  const { data: base } = useBaseQuery(pageId);
+
+  // otherwise the dialog would reopen on the next visit
+  useEffect(() => () => setOpened(false), [setOpened]);
+
+  if (!opened || !base) return null;
+  return (
+    <Suspense fallback={null}>
+      <CsvImportModal base={base} opened onClose={() => setOpened(false)} />
+    </Suspense>
+  );
+}
+
+function BaseViewContent({ pageId, embedded, editable = true, titleSlot }: BaseViewProps) {
   const { t } = useTranslation();
   // Subscribe so other clients' edits, schema changes, and async-job completions reconcile into cache.
   useBaseSocket(pageId);
@@ -97,9 +128,11 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
 
   const views = useMemo(
     () =>
-      [...(base?.views ?? [])].sort((a, b) =>
-        a.position < b.position ? -1 : a.position > b.position ? 1 : 0,
-      ),
+      (base?.views ?? [])
+        .filter((view) => view.type !== "form" || isBetaBaseForms())
+        .sort((a, b) =>
+          a.position < b.position ? -1 : a.position > b.position ? 1 : 0,
+        ),
     [base?.views],
   );
   const activeView = useMemo(() => {
@@ -150,6 +183,9 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
   // Gate on base to avoid a "bland" list request before the active view's
   // config resolves, which would double network traffic for sorted/filtered views.
   const isKanban = activeView?.type === "kanban";
+  const isForm = activeView?.type === "form";
+  const isCalendar = activeView?.type === "calendar";
+  const loadsRows = !isKanban && !isForm && !isCalendar;
 
   const {
     data: rowsData,
@@ -157,7 +193,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useBaseRowsQuery(base && !isKanban ? pageId : undefined, activeFilter, activeSorts);
+  } = useBaseRowsQuery(base && loadsRows ? pageId : undefined, activeFilter, activeSorts);
 
   const updateRowMutation = useUpdateRowMutation();
   const createRowMutation = useCreateRowMutation();
@@ -373,7 +409,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     [editable, pageId, reorderRow],
   );
 
-  if (baseLoading || (!isKanban && rowsLoading)) {
+  if (baseLoading || (loadsRows && rowsLoading)) {
     return <BaseTableSkeleton />;
   }
   if (baseError) {
@@ -415,7 +451,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
     />
   );
 
-  const kanbanBand = (
+  const band = (
     <div className={kanbanClasses.bandWrap}>
       {embedded ? null : titleSlot}
       {banner}
@@ -444,17 +480,62 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
       onRowReorder={editable ? handleRowReorder : undefined}
       persistViewConfig={guardedPersistViewConfig}
       scrollportRef={scrollportRef}
-      kanbanFilter={activeFilter}
+      activeFilter={activeFilter}
       aboveBand={folded}
     />
   );
+
+  if (isForm) {
+    return (
+      <BaseEditableProvider editable={editable}>
+        {embedded ? (
+          <>
+            {band}
+            {viewRenderer(null)}
+          </>
+        ) : (
+          <div className={viewClasses.fullHeight}>
+            <div className={formClasses.scroll}>
+              {band}
+              {viewRenderer(null)}
+            </div>
+          </div>
+        )}
+        <RowDetailModal
+          base={base}
+          rows={rows}
+          openRowId={openRowId}
+          onClose={closeRow}
+          onNavigate={handleRowNavigate}
+        />
+      </BaseEditableProvider>
+    );
+  }
+
+  if (isCalendar) {
+    return (
+      <BaseEditableProvider editable={editable}>
+        {embedded ? (
+          <>
+            {band}
+            {viewRenderer(null)}
+          </>
+        ) : (
+          <div className={kanbanClasses.standalone}>
+            {band}
+            {viewRenderer(null)}
+          </div>
+        )}
+      </BaseEditableProvider>
+    );
+  }
 
   if (embedded) {
     if (isKanban) {
       return (
         <BaseEditableProvider editable={editable}>
           <RowExpandProvider value={handleExpandRow}>
-            {kanbanBand}
+            {band}
             {viewRenderer(null)}
           </RowExpandProvider>
           <RowDetailModal
@@ -497,7 +578,7 @@ export function BaseView({ pageId, embedded, editable = true, titleSlot }: BaseV
       <BaseEditableProvider editable={editable}>
         <div className={kanbanClasses.standalone}>
           <RowExpandProvider value={handleExpandRow}>
-            {kanbanBand}
+            {band}
             {viewRenderer(null)}
           </RowExpandProvider>
         </div>

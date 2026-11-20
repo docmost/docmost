@@ -56,11 +56,18 @@ export function RowDetailModal({
     [openRowId, rows],
   );
   const rowFromList = rowIndex >= 0 ? rows[rowIndex] : undefined;
+  const lastRowFromListRef = useRef(rowFromList);
+  if (rowFromList) lastRowFromListRef.current = rowFromList;
+  const lastRowFromList =
+    lastRowFromListRef.current?.id === openRowId
+      ? lastRowFromListRef.current
+      : undefined;
   // Deep links (?row=) can target rows outside the loaded pages or filtered
   // out of the active view — fetch by id instead of closing. Close only
   // when the server confirms the row is gone.
   const rowQuery = useBaseRowQuery(base.id, openRowId ?? undefined, {
     enabled: !!openRowId && !rowFromList,
+    placeholderData: lastRowFromList,
   });
   const row = rowFromList ?? rowQuery.data;
   const primaryProperty = useMemo(

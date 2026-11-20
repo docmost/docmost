@@ -48,12 +48,14 @@ export class GroupUserService {
     groupId: string,
     workspaceId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ) {
     await this.groupService.findAndValidateGroup(groupId, workspaceId);
 
     const groupUsers = await this.groupUserRepo.getGroupUsersPaginated(
       groupId,
       pagination,
+      opts,
     );
 
     return groupUsers;

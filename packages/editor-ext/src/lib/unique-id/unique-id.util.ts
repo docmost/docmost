@@ -1,7 +1,4 @@
 import type { Extensions, JSONContent } from "@tiptap/core";
-import { findChildren, getSchema } from "@tiptap/core";
-import { Node } from "@tiptap/pm/model";
-import { EditorState } from "@tiptap/pm/state";
 import type { UniqueID } from "./unique-id";
 
 /**
@@ -50,29 +47,24 @@ export function addUniqueIdsToDoc(
   if (!uniqueIDExtension) {
     throw new Error("UniqueID extension not found in the extensions array");
   }
-  const { types, attributeName, generateID } = uniqueIDExtension.options;
+  const { types, attributeName } = uniqueIDExtension.options;
+  // Our generateID takes no context, and a JSON node has no document position
+  const generateID = uniqueIDExtension.options.generateID as () => string;
 
-  // Convert the JSON content to a ProseMirror node
-  const schema = getSchema([
-    ...extensions.filter((ext) => ext.name !== "uniqueID"),
-    uniqueIDExtension,
-  ]);
-  const contentNode = Node.fromJSON(schema, doc);
+  // A single walk over the JSON: a transaction step per node keeps a copy of the document for every step
+  const addIds = (node: JSONContent): JSONContent => {
+    const result = { ...node };
 
-  // Find nodes that don't have a unique ID
-  const nodesWithoutId = findChildren(contentNode, (node) => {
-    return !node.attrs[attributeName] && types.includes(node.type.name);
-  });
+    if (types.includes(node.type) && !node.attrs?.[attributeName]) {
+      result.attrs = { ...node.attrs, [attributeName]: generateID() };
+    }
 
-  // Edit the document to add unique IDs to the nodes that don't have a unique ID
-  let tr = EditorState.create({
-    doc: contentNode,
-  }).tr;
-  // eslint-disable-next-line no-restricted-syntax
-  for (const { node, pos } of nodesWithoutId) {
-    tr = tr.setNodeAttribute(pos, attributeName, generateID({ node, pos }));
-  }
+    if (node.content) {
+      result.content = node.content.map(addIds);
+    }
 
-  // Return the updated document
-  return tr.doc.toJSON();
+    return result;
+  };
+
+  return addIds(doc);
 }

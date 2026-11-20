@@ -1,12 +1,15 @@
 import { Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "@/components/layouts/global/layout.tsx";
+import WorkspaceLocaleLayout from "@/features/workspace/components/workspace-locale-layout.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
-import { isCloud } from "@/lib/config.ts";
+import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
+import { isBetaBaseForms, isCloud } from "@/lib/config.ts";
 import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
 import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
+import AnnouncementBanners from "@/ee/announcement/components/announcement-banners.tsx";
 
 
 const SetupWorkspace = lazyWithPrefetch(() => import("@/pages/auth/setup-workspace.tsx"));
@@ -57,6 +60,9 @@ const PublicSpaceDirectoryPage = lazyWithPrefetch(
   () => import("@/pages/public-space/public-space-directory-page.tsx"),
 );
 const SpacesPage = lazyWithPrefetch(() => import("@/pages/spaces/spaces.tsx"));
+const PublicFormPage = lazyWithPrefetch(
+  () => import("@/ee/base/pages/public-form-page.tsx"),
+);
 const MfaChallengePage = lazyWithPrefetch(() =>
   import("@/ee/mfa/pages/mfa-challenge-page").then((m) => ({
     default: m.MfaChallengePage,
@@ -78,11 +84,15 @@ const AuditLogs = lazyWithPrefetch(() => import("@/ee/audit/pages/audit-logs.tsx
 const VerifiedPages = lazyWithPrefetch(
   () => import("@/ee/page-verification/pages/verified-pages.tsx"),
 );
+const Announcements = lazyWithPrefetch(
+  () => import("@/ee/announcement/pages/announcements"),
+);
 const TemplateList = lazyWithPrefetch(() => import("@/ee/template/pages/template-list"));
 const TemplateEditor = lazyWithPrefetch(
   () => import("@/ee/template/pages/template-editor"),
 );
 const FavoritesPage = lazyWithPrefetch(() => import("@/pages/favorites/favorites-page"));
+const UserProfilePage = lazyWithPrefetch(() => import("@/pages/user/user-profile-page"));
 const AiChat = lazyWithPrefetch(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
 const VerifyEmail = lazyWithPrefetch(() => import("@/ee/pages/verify-email.tsx"));
 const LabelPage = lazyWithPrefetch(() => import("@/pages/label/label-page"));
@@ -112,13 +122,53 @@ export default function App() {
     <Suspense fallback={null}>
       <Routes>
         <Route index element={<Navigate to="/home" />} />
-        <Route path={"/login"} element={<LoginPage />} />
-        <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
-        <Route path={"/forgot-password"} element={<ForgotPassword />} />
-        <Route path={"/password-reset"} element={<PasswordReset />} />
-        <Route path={"/login/mfa"} element={<MfaChallengePage />} />
-        <Route path={"/login/mfa/setup"} element={<MfaSetupRequiredPage />} />
-        <Route path={"/oauth/consent"} element={<OAuthConsent />} />
+
+        <Route element={<WorkspaceLocaleLayout />}>
+          <Route path={"/login"} element={<LoginPage />} />
+          <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
+          <Route path={"/forgot-password"} element={<ForgotPassword />} />
+          <Route path={"/password-reset"} element={<PasswordReset />} />
+          <Route path={"/login/mfa"} element={<MfaChallengePage />} />
+          <Route
+            path={"/login/mfa/setup"}
+            element={<MfaSetupRequiredPage />}
+          />
+          <Route path={"/oauth/consent"} element={<OAuthConsent />} />
+
+          <Route element={<ShareLayout />}>
+            <Route
+              path={"/share/:shareId/p/:pageSlug"}
+              element={<SharedPage />}
+            />
+            <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
+          </Route>
+          <Route path={"/share/:shareId"} element={<ShareRedirect />} />
+
+          <Route path={"/docs"} element={<PublicSpaceDirectoryPage />} />
+          <Route element={<PublicSpaceLayout />}>
+            <Route path={"/docs/:spaceSlug"} element={<PublicSpacePage />} />
+            <Route
+              path={"/docs/:spaceSlug/:pageSlug"}
+              element={<PublicSpacePage />}
+            />
+          </Route>
+
+          {isBetaBaseForms() && (
+            <Route path={"/forms/:formKey"} element={<PublicFormPage />} />
+          )}
+
+          <Route
+            path="*"
+            element={
+              <>
+                <AnnouncementBanners surface="public" />
+                <main id={MAIN_CONTENT_ID} tabIndex={-1}>
+                  <Error404 />
+                </main>
+              </>
+            }
+          />
+        </Route>
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
@@ -132,25 +182,7 @@ export default function App() {
           </>
         )}
 
-        <Route element={<ShareLayout />}>
-          <Route
-            path={"/share/:shareId/p/:pageSlug"}
-            element={<SharedPage />}
-          />
-          <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
-        </Route>
-
-        <Route path={"/docs"} element={<PublicSpaceDirectoryPage />} />
-        <Route element={<PublicSpaceLayout />}>
-          <Route path={"/docs/:spaceSlug"} element={<PublicSpacePage />} />
-          <Route
-            path={"/docs/:spaceSlug/:pageSlug"}
-            element={<PublicSpacePage />}
-          />
-        </Route>
-
         <Route path={"/pdf-render/:pageId"} element={<PdfRenderPage />} />
-        <Route path={"/share/:shareId"} element={<ShareRedirect />} />
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
         <Route
           path={"/integrations/slack/link"}
@@ -165,6 +197,7 @@ export default function App() {
           <Route path={"/ai/chat/:chatId"} element={<AiChat />} />
           <Route path={"/spaces"} element={<SpacesPage />} />
           <Route path={"/favorites"} element={<FavoritesPage />} />
+          <Route path={"/people/:userId"} element={<UserProfilePage />} />
           <Route path={"/labels/:labelName"} element={<LabelPage />} />
           <Route path={"/templates"} element={<TemplateList />} />
           <Route
@@ -210,12 +243,11 @@ export default function App() {
             />
             <Route path={"verifications"} element={<VerifiedPages />} />
             <Route path={"integrations"} element={<Integrations />} />
+            <Route path={"announcements"} element={<Announcements />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>
         </Route>
-
-        <Route path="*" element={<Error404 />} />
       </Routes>
     </Suspense>
   );

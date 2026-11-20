@@ -35,6 +35,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @Controller()
 export class ExportController {
@@ -46,6 +47,7 @@ export class ExportController {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
+  @ApiKeyScope('read')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('pages/export')
@@ -63,6 +65,10 @@ export class ExportController {
     }
 
     await this.pageAccessService.validateCanView(page, user);
+    await this.pageAccessService.validateCanExport(
+      page.spaceId,
+      page.workspaceId,
+    );
 
     const result = await this.exportService.exportPages(
       dto.pageId,
@@ -115,6 +121,7 @@ export class ExportController {
     }
   }
 
+  @ApiKeyScope('read')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('spaces/export')
@@ -127,6 +134,11 @@ export class ExportController {
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
+
+    await this.pageAccessService.validateCanExport(
+      dto.spaceId,
+      user.workspaceId,
+    );
 
     const exportFile = await this.exportService.exportSpace(
       dto.spaceId,

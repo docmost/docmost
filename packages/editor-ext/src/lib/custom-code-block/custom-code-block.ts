@@ -72,6 +72,9 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
           });
         }
 
+        // Last block of its container: the table and gap cursor plugins handle its end.
+        if (!nodeAfter) return false;
+
         if (
           nodeAfter?.type.spec.isolating &&
           !nodeAfter.type.spec.atom

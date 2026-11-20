@@ -12,6 +12,7 @@ import {
 } from "@/ee/base/services/base-service";
 import {
   IBase,
+  BaseTemplate,
   CreateBaseInput,
   UpdateBaseInput,
 } from "@/ee/base/types/base.types";
@@ -60,7 +61,7 @@ export function useConvertPageToBaseMutation() {
   const [, setTreeData] = useAtom(treeDataAtom);
   const [socket] = useAtom(socketAtom);
 
-  return useMutation<IBase, Error, { pageId: string; template?: "kanban" }>({
+  return useMutation<IBase, Error, { pageId: string; template?: BaseTemplate }>({
     mutationFn: ({ pageId, template }) => convertPageToBase(pageId, template),
     onSuccess: (base) => {
       const markAsBase = (old?: IPage) => (old ? { ...old, isBase: true } : old);
@@ -96,10 +97,16 @@ export function useUpdateBaseMutation() {
   const { t } = useTranslation();
   return useMutation<IBase, Error, UpdateBaseInput>({
     mutationFn: (data) => updateBase(data),
-    onSuccess: (data) => {
-      queryClient.setQueryData<IBase>(["bases", data.id], (old) => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData<IBase>(["bases", variables.pageId], (old) => {
         if (!old) return old;
-        return { ...old, ...data };
+        return {
+          ...old,
+          ...data,
+          properties: old.properties,
+          views: old.views,
+          permissions: old.permissions,
+        };
       });
     },
     onError: (error) => {

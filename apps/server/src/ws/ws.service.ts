@@ -211,6 +211,10 @@ export class WsService {
     }
   }
 
+  emitToSpace(spaceId: string, data: any): void {
+    this.server.to(getSpaceRoomName(spaceId)).emit('message', data);
+  }
+
   async emitToSpaceExceptUsers(
     spaceId: string,
     excludeUserIds: string[],

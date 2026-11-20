@@ -22,8 +22,13 @@ import {
   useGetTemplatesQuery,
   useUseTemplateMutation,
 } from "@/ee/template/queries/template-query";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
-import { ITemplate } from "@/ee/template/types/template.types";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
+import { ITemplate, type TemplateVariableValues } from "@/ee/template/types/template.types";
+import { useTemplateVariables } from "./template-variables-form";
 import UseTemplateModal from "@/ee/template/components/use-template-modal";
 import TemplatePreviewModal from "@/ee/template/components/template-preview-modal";
 import { buildPageUrl } from "@/features/page/page.utils";
@@ -35,7 +40,7 @@ type TemplatePickerModalProps = {
   /** Pre-select this space in the destination picker after a template is chosen. */
   initialSpaceId?: string;
   /** Receives the chosen template instead of creating a page from it. */
-  onUse?: (template: ITemplate) => void;
+  onUse?: (template: ITemplate, values?: TemplateVariableValues) => Promise<boolean>;
 };
 
 type ScopeFilter = "current" | "all";
@@ -54,25 +59,32 @@ export default function TemplatePickerModal({
   const [scope, setScope] = useState<ScopeFilter>(
     initialSpaceId ? "current" : "all",
   );
-  // Two-stage selection: previewing first, then destination-picker.
-  // `previewTemplate` is set when the user clicks a row in the picker.
-  // `destinationTemplate` is set when they click "Use template" in the preview.
   const [previewTemplate, setPreviewTemplate] = useState<ITemplate | null>(
     null,
   );
   const [destinationTemplate, setDestinationTemplate] =
-    useState<ITemplate | null>(null);
+    useState<{ template: ITemplate; values?: TemplateVariableValues } | null>(null);
 
   const { data, isPending } = useGetTemplatesQuery({
     spaceId: scope === "current" ? initialSpaceId : undefined,
+    currentSpaceId: scope === "all" ? initialSpaceId : undefined,
   });
   const { data: spacesData } = useGetSpacesQuery({ limit: 100 });
+  const { data: initialSpace } = useUnlistedSpaceQuery(
+    initialSpaceId,
+    spacesData?.items,
+  );
+
+  const spaces = useMemo(
+    () => includeSpace(spacesData?.items ?? [], initialSpace),
+    [spacesData, initialSpace],
+  );
 
   const spaceNamesById = useMemo(() => {
     const map = new Map<string, string>();
-    spacesData?.items?.forEach((s) => map.set(s.id, s.name));
+    spaces.forEach((s) => map.set(s.id, s.name));
     return map;
-  }, [spacesData]);
+  }, [spaces]);
 
   const filtered = useMemo(() => {
     const all = data?.pages.flatMap((p) => p.items) ?? [];
@@ -81,58 +93,41 @@ export default function TemplatePickerModal({
     return all.filter((tpl) => tpl.title.toLowerCase().includes(term));
   }, [data, debouncedQuery]);
 
-  const createInInitialSpace = async (tpl: ITemplate) => {
-    if (!initialSpaceId) return;
+  const variables = useTemplateVariables(async (tpl, variableValues) => {
+    if (onUse) {
+      const applied = await onUse(tpl, variableValues);
+      if (applied) handleClose();
+      return applied;
+    }
+    if (!initialSpaceId) {
+      setDestinationTemplate({ template: tpl, values: variableValues });
+      setPreviewTemplate(null);
+      return;
+    }
     try {
       const page = await useTemplateMutation.mutateAsync({
-        templateId: tpl.id,
+        template: tpl,
         spaceId: initialSpaceId,
+        variableValues,
       });
       setPreviewTemplate(null);
       onClose();
-      const space = spacesData?.items?.find((s) => s.id === initialSpaceId);
+      const space = spaces.find((s) => s.id === initialSpaceId);
       if (page?.slugId && space?.slug) {
         navigate(buildPageUrl(space.slug, page.slugId, page.title));
       }
     } catch {
-      // error notification handled by mutation's onError
+      return false;
     }
-  };
+  }, onUse ? t("Apply template") : initialSpaceId ? t("Create page") : t("Continue"));
 
   const handlePick = (tpl: ITemplate) => {
+    variables.cancel();
     setPreviewTemplate(tpl);
   };
 
-  const handleQuickUse = (tpl: ITemplate) => {
-    if (onUse) {
-      onUse(tpl);
-      handleClose();
-      return;
-    }
-    if (initialSpaceId) {
-      createInInitialSpace(tpl);
-      return;
-    }
-    setDestinationTemplate(tpl);
-  };
-
   const handlePreviewClose = () => {
-    // Closing preview returns to the picker list (no full unmount).
-    setPreviewTemplate(null);
-  };
-
-  const handlePreviewUse = () => {
-    if (onUse && previewTemplate) {
-      onUse(previewTemplate);
-      handleClose();
-      return;
-    }
-    if (initialSpaceId && previewTemplate) {
-      createInInitialSpace(previewTemplate);
-      return;
-    }
-    // Move from preview into destination-picker stage.
-    setDestinationTemplate(previewTemplate);
+    variables.cancel();
     setPreviewTemplate(null);
   };
 
@@ -142,6 +137,7 @@ export default function TemplatePickerModal({
   };
 
   const handleClose = () => {
+    variables.cancel();
     setQuery("");
     setScope(initialSpaceId ? "current" : "all");
     setPreviewTemplate(null);
@@ -152,7 +148,7 @@ export default function TemplatePickerModal({
   return (
     <>
       <Modal
-        opened={opened && !previewTemplate && !destinationTemplate}
+        opened={opened && !previewTemplate && !destinationTemplate && !variables.form}
         onClose={handleClose}
         size={550}
         padding="lg"
@@ -222,9 +218,9 @@ export default function TemplatePickerModal({
                   size="compact-xs"
                   variant="filled"
                   className={classes.useButton}
-                  loading={useTemplateMutation.isPending}
-                  disabled={useTemplateMutation.isPending}
-                  onClick={() => handleQuickUse(tpl)}
+                  disabled={!!variables.loadingId}
+                  loading={variables.loadingId === tpl.id}
+                  onClick={() => variables.choose(tpl)}
                 >
                   {t("Use")}
                 </Button>
@@ -247,19 +243,21 @@ export default function TemplatePickerModal({
         </Group>
       </Modal>
 
+      {variables.form}
       {previewTemplate && (
         <TemplatePreviewModal
           templateId={previewTemplate.id}
-          opened={true}
+          opened={!variables.form}
           onClose={handlePreviewClose}
-          onUse={handlePreviewUse}
-          useLoading={useTemplateMutation.isPending}
+          onUse={() => variables.choose(previewTemplate)}
+          useLoading={!!variables.loadingId}
         />
       )}
 
       {destinationTemplate && (
         <UseTemplateModal
-          template={destinationTemplate}
+          template={destinationTemplate.template}
+          variableValues={destinationTemplate.values}
           opened={true}
           onClose={handleDestinationClose}
           initialSpaceId={initialSpaceId}

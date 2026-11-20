@@ -1,6 +1,9 @@
-import { Group, Table, Text } from "@mantine/core";
+import { Badge, Group, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
+import {
+  useGetSpacesQuery,
+  useHasArchivedSpaces,
+} from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { formatMemberCount } from "@/lib";
@@ -13,11 +16,19 @@ import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import rowClasses from "@/components/ui/clickable-table-row.module.css";
+import SpaceStatusFilter from "@/features/space/components/space-status-filter.tsx";
+import { SpaceListStatus } from "@/features/space/types/space.types.ts";
 
 export default function SpaceList() {
   const { t } = useTranslation();
-  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
-  const { data, isLoading } = useGetSpacesQuery({ cursor, query: search });
+  const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
+    usePaginateAndSearch();
+  const [status, setStatus] = useState<SpaceListStatus>("active");
+  const { data, isPlaceholderData } = useGetSpacesQuery({
+    cursor,
+    query: search,
+    status,
+  });
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
 
@@ -26,9 +37,25 @@ export default function SpaceList() {
     open();
   };
 
+  const handleStatusChange = (value: SpaceListStatus) => {
+    setStatus(value);
+    resetPagination();
+  };
+
+  const activeListEmpty =
+    status === "active" &&
+    !search &&
+    !isPlaceholderData &&
+    data?.items.length === 0;
+  const hasArchivedSpaces = useHasArchivedSpaces(activeListEmpty);
+  const noActiveSpaces = activeListEmpty && hasArchivedSpaces;
+
   return (
     <>
-      <SearchInput onSearch={handleSearch} />
+      <Group gap="sm" align="flex-start">
+        <SearchInput onSearch={handleSearch} />
+        <SpaceStatusFilter status={status} onChange={handleStatusChange} />
+      </Group>
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Thead>
@@ -65,9 +92,21 @@ export default function SpaceList() {
                       name={space.name}
                     />
                     <div style={{ minWidth: 0, overflow: "hidden" }}>
-                      <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
-                        {space.name}
-                      </AutoTooltipText>
+                      <Group gap="xs" wrap="nowrap">
+                        <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
+                          {space.name}
+                        </AutoTooltipText>
+                        {space.archivedAt && (
+                          <Badge
+                            variant="light"
+                            size="xs"
+                            color="gray"
+                            style={{ flexShrink: 0 }}
+                          >
+                            {t("Archived")}
+                          </Badge>
+                        )}
+                      </Group>
                       <Text fz="xs" c="dimmed" lineClamp={2}>
                         {space.description}
                       </Text>
@@ -82,7 +121,14 @@ export default function SpaceList() {
               </Table.Tr>
             ))
             ) : (
-              <NoTableResults colSpan={2} />
+              <NoTableResults
+                colSpan={2}
+                text={
+                  noActiveSpaces
+                    ? t("No active spaces. Archived spaces are under Archived.")
+                    : undefined
+                }
+              />
             )}
           </Table.Tbody>
         </Table>
@@ -102,6 +148,7 @@ export default function SpaceList() {
           opened={opened}
           onClose={close}
           spaceId={selectedSpaceId}
+          showOpenSpace
         />
       )}
     </>

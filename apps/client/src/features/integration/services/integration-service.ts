@@ -10,14 +10,12 @@ import {
 export async function getAvailableIntegrations(): Promise<
   IntegrationDefinition[]
 > {
-  const req = await api.post<IntegrationDefinition[]>(
-    "/integrations/available",
-  );
+  const req = await api.post<IntegrationDefinition[]>("/integrations");
   return req.data;
 }
 
 export async function getInstalledIntegrations(): Promise<Integration[]> {
-  const req = await api.post<Integration[]>("/integrations");
+  const req = await api.post<Integration[]>("/integrations/installed");
   return req.data;
 }
 

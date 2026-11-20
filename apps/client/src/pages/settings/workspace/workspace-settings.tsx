@@ -7,12 +7,16 @@ import ManageHostname from "@/ee/components/manage-hostname.tsx";
 import { Divider } from "@mantine/core";
 import AllowMemberTemplates from "@/ee/security/components/allow-member-templates.tsx";
 import WorkspaceDefaultPageEditMode from "@/features/workspace/components/settings/components/workspace-default-page-edit-mode.tsx";
+import WorkspaceDefaultLanguage from "@/features/workspace/components/settings/components/workspace-default-language.tsx";
 import PersonalSpacesSetting from "@/ee/personal-space/components/personal-spaces-setting.tsx";
 import AllowPublicSpaces from "@/features/workspace/components/settings/components/allow-public-spaces.tsx";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function WorkspaceSettings() {
   const { t } = useTranslation();
+  const { isAdmin } = useUserRole();
+
   return (
     <>
       <DocumentTitle title="Workspace Settings" />
@@ -20,28 +24,35 @@ export default function WorkspaceSettings() {
       <WorkspaceIcon />
       <WorkspaceNameForm />
 
-      <Divider my="md" />
-      <AllowMemberTemplates />
-
-      <Divider my="md" />
-      <PersonalSpacesSetting />
-
-      {isBetaPublicSpaces() && (
+      {isAdmin && (
         <>
           <Divider my="md" />
-          <AllowPublicSpaces />
-        </>
-      )}
+          <AllowMemberTemplates />
 
-      {isCloud() && (
-        <>
           <Divider my="md" />
-          <ManageHostname />
+          <PersonalSpacesSetting />
+
+          {isBetaPublicSpaces() && (
+            <>
+              <Divider my="md" />
+              <AllowPublicSpaces />
+            </>
+          )}
+
+          {isCloud() && (
+            <>
+              <Divider my="md" />
+              <ManageHostname />
+            </>
+          )}
+
+          <Divider my="md" />
+          <WorkspaceDefaultLanguage />
+
+          <Divider my="md" />
+          <WorkspaceDefaultPageEditMode />
         </>
       )}
-
-      <Divider my="md" />
-      <WorkspaceDefaultPageEditMode />
     </>
   );
 }

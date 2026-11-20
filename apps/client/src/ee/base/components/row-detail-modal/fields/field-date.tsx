@@ -1,28 +1,16 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Popover } from "@mantine/core";
-import { DatePicker } from "@mantine/dates";
-import { DateTypeOptions } from "@/ee/base/types/base.types";
-import { formatDateDisplay } from "@/ee/base/components/cells/cell-date";
+import { DateCellPicker } from "@/ee/base/components/cells/cell-date";
+import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
 import { FieldProps, FieldShell } from "./detail-field";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
 
-function toISODateString(dateStr: string | null): string | null {
-  if (!dateStr) return null;
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return null;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
   const [opened, setOpened] = useState(false);
-  const typeOptions = property.typeOptions as DateTypeOptions | undefined;
-  const dateStr = typeof value === "string" ? value : null;
-  const display = formatDateDisplay(dateStr, typeOptions);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const { kind, cell, text: display } = useDateCellDisplay(property, value);
 
-  if (readOnly) {
+  if (readOnly || !kind || property.type !== "date") {
     return (
       <FieldShell>
         <span className={classes.fieldValueText}>{display}</span>
@@ -36,6 +24,7 @@ export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
       onChange={setOpened}
       position="bottom-start"
       width="auto"
+      middlewares={{ flip: true, shift: { crossAxis: true, padding: 8 } }}
       shadow="md"
       withinPortal
       trapFocus
@@ -45,6 +34,7 @@ export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
     >
       <Popover.Target>
         <FieldShell
+          ref={shellRef}
           cursor="pointer"
           active={opened}
           role="button"
@@ -61,14 +51,17 @@ export function FieldDate({ property, value, readOnly, onChange }: FieldProps) {
           <span className={classes.fieldValueText}>{display}</span>
         </FieldShell>
       </Popover.Target>
-      <Popover.Dropdown p="xs">
-        <DatePicker
-          value={toISODateString(dateStr)}
-          onChange={(selected) => {
-            onChange(selected ? new Date(selected).toISOString() : null);
-            setOpened(false);
-          }}
-          size="sm"
+      <Popover.Dropdown
+        p={0}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") shellRef.current?.focus();
+        }}
+      >
+        <DateCellPicker
+          property={property}
+          kind={kind}
+          value={cell}
+          onChange={onChange}
         />
       </Popover.Dropdown>
     </Popover>

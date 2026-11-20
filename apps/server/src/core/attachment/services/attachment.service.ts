@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
@@ -26,7 +27,16 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
-import { createByteCountingStream } from '../../../common/helpers/utils';
+import { streamMultipartFile } from '../../../common/helpers';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import {
+  getCoverAttachmentId,
+  queueCoverCleanup,
+} from '../../page/page-cover.utils';
+import {
+  COVER_IMAGE_MIME_TYPES,
+  COVER_MAX_BYTES,
+} from '../../page/page-cover.constants';
 
 @Injectable()
 export class AttachmentService {
@@ -39,20 +49,32 @@ export class AttachmentService {
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    private readonly pageRepo: PageRepo,
   ) {}
 
   async uploadFile(opts: {
     filePromise: Promise<MultipartFile>;
     pageId?: string;
+    templateId?: string;
     userId: string;
     spaceId: string;
     workspaceId: string;
     attachmentId?: string;
+    type?: AttachmentType.File | AttachmentType.PageCover;
   }) {
-    const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
+    const { filePromise, pageId, templateId, spaceId, userId, workspaceId } =
+      opts;
+    const type = opts.type ?? AttachmentType.File;
     const preparedFile: PreparedFile = await prepareFile(filePromise, {
       skipBuffer: true,
     });
+
+    if (
+      type === AttachmentType.PageCover &&
+      !COVER_IMAGE_MIME_TYPES.includes(preparedFile.mimeType)
+    ) {
+      throw new BadRequestException('Cover must be a JPG, PNG or WebP image');
+    }
 
     let isUpdate = false;
     let attachmentId = null;
@@ -70,7 +92,8 @@ export class AttachmentService {
       }
 
       if (
-        existingAttachment.pageId !== pageId ||
+        (existingAttachment.pageId ?? null) !== (pageId ?? null) ||
+        (existingAttachment.templateId ?? null) !== (templateId ?? null) ||
         existingAttachment.fileExt !== preparedFile.fileExtension ||
         existingAttachment.workspaceId !== workspaceId
       ) {
@@ -84,14 +107,25 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
-    const { stream, getBytesRead } = createByteCountingStream(
-      preparedFile.multiPartFile.file,
-    );
-
-    await this.uploadToDrive(filePath, stream);
-
     // Update fileSize from the consumed stream
-    preparedFile.fileSize = getBytesRead();
+    const isCover = type === AttachmentType.PageCover;
+    try {
+      preparedFile.fileSize = await streamMultipartFile(
+        preparedFile.multiPartFile,
+        (stream) => this.uploadToDrive(filePath, stream),
+        isCover ? COVER_MAX_BYTES : undefined,
+      );
+    } catch (err: any) {
+      // past the general upload limit, the controller reports that limit instead
+      if (
+        isCover &&
+        err?.statusCode === 413 &&
+        !preparedFile.multiPartFile.file.truncated
+      ) {
+        throw new PayloadTooLargeException('Cover image must be 5 MB or smaller');
+      }
+      throw err;
+    }
 
     let attachment: Attachment = null;
     try {
@@ -108,29 +142,29 @@ export class AttachmentService {
           attachmentId,
           preparedFile,
           filePath,
-          type: AttachmentType.File,
+          type,
           userId,
           spaceId,
           workspaceId,
           pageId,
+          templateId,
+        });
+      }
+
+      // a cover upload that never becomes the cover is deleted too
+      if (type === AttachmentType.PageCover) {
+        await queueCoverCleanup(this.attachmentQueue, {
+          pageId,
+          attachmentId: attachment.id,
         });
       }
 
       // Only index PDF, DOCX and TXT files
-      if (['.pdf', '.docx', '.txt'].includes(attachment.fileExt.toLowerCase())) {
-        await this.attachmentQueue.add(
-          QueueJob.ATTACHMENT_INDEX_CONTENT,
-          {
-            attachmentId: attachmentId,
-          },
-          {
-            attempts: 2,
-            backoff: {
-              type: 'exponential',
-              delay: 10000,
-            },
-          },
-        );
+      if (
+        !templateId &&
+        ['.pdf', '.docx', '.txt'].includes(attachment.fileExt.toLowerCase())
+      ) {
+        await this.queueIndexContent(attachmentId);
       }
     } catch (err) {
       // delete uploaded file on error
@@ -262,6 +296,7 @@ export class AttachmentService {
     userId: string;
     workspaceId: string;
     pageId?: string;
+    templateId?: string;
     spaceId?: string;
     trx?: KyselyTransaction;
   }): Promise<Attachment> {
@@ -273,6 +308,7 @@ export class AttachmentService {
       userId,
       workspaceId,
       pageId,
+      templateId,
       spaceId,
       trx,
     } = opts;
@@ -288,6 +324,7 @@ export class AttachmentService {
         creatorId: userId,
         workspaceId: workspaceId,
         pageId: pageId,
+        templateId: templateId,
         spaceId: spaceId,
       },
       trx,
@@ -317,6 +354,83 @@ export class AttachmentService {
     } catch (err) {
       throw err;
     }
+  }
+
+  async handleDeleteTemplateAttachments(templateId: string) {
+    const attachments = await this.attachmentRepo.findByTemplateId(templateId);
+    if (!attachments || attachments.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      attachments.map(async (attachment) => {
+        try {
+          await this.storageService.delete(attachment.filePath);
+          await this.attachmentRepo.deleteAttachmentById(attachment.id);
+        } catch (err) {
+          this.logger.error(
+            `DeleteTemplateAttachments: failed to delete attachment ${attachment.id}:`,
+            err,
+          );
+        }
+      }),
+    );
+  }
+
+  async copyAttachmentsToPage(
+    attachments: Attachment[],
+    idMap: Map<string, string>,
+    page: { id: string; spaceId: string },
+    creatorId: string,
+  ): Promise<void> {
+    for (const source of attachments) {
+      const newId = idMap.get(source.id);
+      if (!newId) {
+        continue;
+      }
+
+      try {
+        const newPath = source.filePath.replace(source.id, newId);
+        await this.storageService.copy(source.filePath, newPath);
+
+        await this.attachmentRepo.insertAttachment({
+          id: newId,
+          type: source.type,
+          filePath: newPath,
+          fileName: source.fileName,
+          fileSize: source.fileSize,
+          mimeType: source.mimeType,
+          fileExt: source.fileExt,
+          creatorId,
+          workspaceId: source.workspaceId,
+          pageId: page.id,
+          spaceId: page.spaceId,
+        });
+
+        if (['.pdf', '.docx', '.txt'].includes(source.fileExt.toLowerCase())) {
+          await this.queueIndexContent(newId);
+        }
+      } catch (err) {
+        this.logger.error(
+          `Failed to copy template attachment ${source.id} to page ${page.id}`,
+          err,
+        );
+      }
+    }
+  }
+
+  private async queueIndexContent(attachmentId: string) {
+    await this.attachmentQueue.add(
+      QueueJob.ATTACHMENT_INDEX_CONTENT,
+      { attachmentId },
+      {
+        attempts: 2,
+        backoff: {
+          type: 'exponential',
+          delay: 10000,
+        },
+      },
+    );
   }
 
   async handleDeleteSpaceAttachments(spaceId: string) {
@@ -382,6 +496,32 @@ export class AttachmentService {
     } catch (err) {
       throw err;
     }
+  }
+
+  async handleDeleteUnusedCover(opts: {
+    pageId: string;
+    attachmentId: string;
+  }): Promise<void> {
+    const { pageId, attachmentId } = opts;
+    const attachment = await this.attachmentRepo.findById(attachmentId);
+    if (
+      !attachment ||
+      attachment.type !== AttachmentType.PageCover ||
+      attachment.pageId !== pageId
+    ) {
+      return;
+    }
+
+    // deleting a page deletes its attachments too
+    const page = await this.pageRepo.findById(pageId, { includeContent: true });
+    if (!page) return;
+
+    const stillUsed =
+      getCoverAttachmentId(page.coverPhoto) === attachmentId ||
+      JSON.stringify(page.content ?? null).includes(attachmentId);
+    if (stillUsed) return;
+
+    await this.deleteAttachment(attachment);
   }
 
   async handleDeletePageAttachments(pageId: string) {

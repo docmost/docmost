@@ -9,7 +9,7 @@ export interface IUser {
   timezone: string;
   settings: IUserSettings;
   invitedById: string;
-  lastLoginAt: string;
+  lastLoginAt?: string;
   lastActiveAt: Date;
   locale: string;
   createdAt: Date;
@@ -52,4 +52,38 @@ export interface IUserSettings {
 export enum PageEditMode {
   Read = "read",
   Edit = "edit",
+}
+
+export interface IUserProfile {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  email: string | null;
+  role: string;
+  deactivatedAt: Date | null;
+  deletedAt: Date | null;
+}
+
+export interface IUserProfileSpace {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+}
+
+export interface IUserRecentPage {
+  id: string;
+  slugId: string;
+  title: string | null;
+  icon: string | null;
+  isBase: boolean;
+  spaceId: string;
+  space: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+  };
+  activity: "created" | "edited";
+  activityAt: Date;
 }

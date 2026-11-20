@@ -56,6 +56,7 @@ function infer(
       if (thenT === elseT) return thenT;
       if (thenT === "null") return elseT;
       if (elseT === "null") return thenT;
+      if ((thenT === "date" || thenT === "datetime") && (elseT === "date" || elseT === "datetime")) return "datetime";
       throw typeErr(`if() branches have different types: ${thenT} vs ${elseT}`);
     }
     case "and": case "or":
@@ -79,7 +80,14 @@ function infer(
           span: { start: 0, end: 0 },
         }]);
       }
-      return typeof fn.returnType === "function" ? fn.returnType(argTypes) : fn.returnType;
+      if (Array.isArray(fn.paramTypes)) {
+        argTypes.forEach((t, i) => {
+          if (fn.paramTypes[i] === "date" && (t === "number" || t === "boolean")) {
+            throw typeErr(`${fn.name}() argument ${i + 1} must be a date`);
+          }
+        });
+      }
+      return typeof fn.returnType === "function" ? fn.returnType(argTypes, ast.args) : fn.returnType;
     }
   }
 }

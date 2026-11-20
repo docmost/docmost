@@ -39,6 +39,7 @@ export default function MovePageModal({
             item.queryKey[0] as string,
           ),
       });
+      queryClient.invalidateQueries({ queryKey: ["space"] });
 
       const pageUrl = buildPageUrl(targetSpace.slug, slugId, undefined);
       navigate(pageUrl);

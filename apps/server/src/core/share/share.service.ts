@@ -10,6 +10,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { nanoIdGen } from '../../common/helpers';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { TokenService } from '../auth/services/token.service';
+import { withoutTemplatePlaceholders } from '@docmost/editor-ext';
 import { jsonToNode } from '../../collaboration/collaboration.util';
 import {
   getAttachmentIds,
@@ -20,12 +21,14 @@ import {
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
-import { updateAttachmentAttr } from './share.util';
+import { updateAttachmentAttr, updateAttachmentUrl } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
+import { getCoverAttachmentId } from '../page/page-cover.utils';
 import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 
 @Injectable()
 export class ShareService {
@@ -39,6 +42,20 @@ export class ShareService {
     private readonly tokenService: TokenService,
     private readonly transclusionService: TransclusionService,
   ) {}
+
+  async getShares(userId: string, pagination: PaginationOptions) {
+    const result = await this.shareRepo.getShares(userId, pagination);
+    const accessiblePageIds = new Set(
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds: result.items.map((share) => share.pageId),
+        userId,
+      }),
+    );
+    result.items = result.items.filter((share) =>
+      accessiblePageIds.has(share.pageId),
+    );
+    return result;
+  }
 
   async getShareTree(shareId: string, workspaceId: string) {
     const share = await this.shareRepo.findById(shareId);
@@ -146,6 +163,7 @@ export class ShareService {
 
     if (includeContent) {
       page.content = await this.updatePublicAttachments(page);
+      page.coverPhoto = await this.updatePublicCoverPhoto(page);
     }
 
     return { page, share };
@@ -164,6 +182,7 @@ export class ShareService {
             'pages.title',
             'pages.icon',
             'pages.parentPageId',
+            'pages.spaceId as pageSpaceId',
             sql`0`.as('level'),
             'shares.id as shareId',
             'shares.key as shareKey',
@@ -188,6 +207,7 @@ export class ShareService {
                   'p.title',
                   'p.icon',
                   'p.parentPageId',
+                  'p.spaceId as pageSpaceId',
                   sql`ph.level + 1`.as('level'),
                   's.id as shareId',
                   's.key as shareKey',
@@ -199,6 +219,7 @@ export class ShareService {
                   's.createdAt',
                 ])
                 .where('p.deletedAt', 'is', null)
+                .whereRef('p.spaceId', '=', 'ph.pageSpaceId')
                 .where(sql`ph.share_id`, 'is', null) // stop if share found
                 .where(sql`ph.level`, '<', sql`25`), // prevent loop
           ),
@@ -413,6 +434,18 @@ export class ShareService {
     return doc?.toJSON() ?? page.content;
   }
 
+  async updatePublicCoverPhoto(page: Page): Promise<string | null> {
+    const attachmentId = getCoverAttachmentId(page.coverPhoto);
+    if (!attachmentId) return page.coverPhoto;
+
+    const token = await this.tokenService.generateAttachmentToken({
+      attachmentId,
+      pageId: page.id,
+      workspaceId: page.workspaceId,
+    });
+    return updateAttachmentUrl(page.coverPhoto, token);
+  }
+
   /**
    * Sanitization tail shared by every public transclusion surface: tokenize
    * each content item against its source page, then hide lookup misses.
@@ -457,9 +490,8 @@ export class ShareService {
    *    content, the source page for transcluded source-block content
    *    (attachments in a sync block were uploaded onto the source page).
    *
-   * 2. Strip `comment` marks. Comments are internal-team metadata and must
-   *    not leak structure (existence, location, count, resolved state, or
-   *    comment ids) to public viewers.
+   * 2. Remove template instructions and strip `comment` marks from the
+   *    surrounding page content.
    *
    * Both share-content paths — the host page (`updatePublicAttachments`) and
    * the share-scoped transclusion lookup (`lookupTransclusionForShare`) —
@@ -487,7 +519,8 @@ export class ShareService {
     );
 
     const doc = jsonToNode(pmJson);
-    doc?.descendants((node: Node) => {
+    if (!doc) return null;
+    doc.descendants((node: Node) => {
       if (!isAttachmentNode(node.type.name)) return;
       const token = tokenMap.get(node.attrs.attachmentId);
       if (!token) return;
@@ -495,6 +528,7 @@ export class ShareService {
       updateAttachmentAttr(node, 'url', token);
     });
 
-    return doc ? removeMarkTypeFromDoc(doc, 'comment') : null;
+    const publicDoc = doc.copy(withoutTemplatePlaceholders(doc.content));
+    return removeMarkTypeFromDoc(publicDoc, 'comment');
   }
 }

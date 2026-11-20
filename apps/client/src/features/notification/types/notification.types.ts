@@ -8,11 +8,14 @@ export type NotificationType =
   | "page.verification_expiring"
   | "page.verification_expired"
   | "page.verified"
+  | "page.verification_invalidated"
   | "page.approval_requested"
   | "page.approval_rejected"
   | "siem_destination.failing"
   | "siem_destination.disabled"
-  | "siem_destination.recovered";
+  | "siem_destination.recovered"
+  | "base.import_completed"
+  | "base.import_failed";
 
 export type INotification = {
   id: string;

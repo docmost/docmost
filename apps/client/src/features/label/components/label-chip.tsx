@@ -10,16 +10,18 @@ type LabelChipProps = {
   label: Pick<ILabel, "id" | "name">;
   onRemove?: () => void;
   asLink?: boolean;
+  spaceId?: string;
 };
 
-export function LabelChip({ label, onRemove, asLink }: LabelChipProps) {
+export function LabelChip({ label, onRemove, asLink, spaceId }: LabelChipProps) {
   const { t } = useTranslation();
   const scheme = useComputedColorScheme("light");
   const c = getLabelColor(label.name, scheme);
+  const labelUrl = `/labels/${encodeURIComponent(label.name)}`;
 
   const nameNode = asLink ? (
     <Link
-      to={`/labels/${encodeURIComponent(label.name)}`}
+      to={spaceId ? `${labelUrl}?spaceId=${spaceId}` : labelUrl}
       className={classes.chipLink}
       onClick={(e) => e.stopPropagation()}
     >

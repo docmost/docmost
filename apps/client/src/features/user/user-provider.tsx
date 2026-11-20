@@ -13,6 +13,7 @@ import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import { useEntitlements } from "@/ee/entitlement/use-entitlements";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
+import { useSyncUserTimezone } from "@/features/user/hooks/use-sync-user-timezone";
 
 export function UserProvider({ children }: React.PropsWithChildren) {
   const [, setCurrentUser] = useAtom(currentUserAtom);
@@ -47,6 +48,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
     };
   }, [isError, isLoading]);
 
+  useSyncUserTimezone(data?.user);
   useQuerySubscription();
   useTreeSocket();
   useNotificationSocket();
@@ -59,10 +61,6 @@ export function UserProvider({ children }: React.PropsWithChildren) {
       );
     }
   }, [data, isLoading]);
-
-  useEffect(() => {
-    document.documentElement.lang = i18n.resolvedLanguage || i18n.language || "en-US";
-  }, [i18n.language, i18n.resolvedLanguage]);
 
   useEffect(() => {
     if (entitlements) {

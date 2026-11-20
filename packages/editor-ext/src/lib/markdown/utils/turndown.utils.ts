@@ -1,9 +1,13 @@
 import * as _TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
 import { getBasename } from './basename';
+import { getFileNameFromUrl } from '../../media-utils';
 
 // CJS/ESM interop: .default exists in Vite, not in NestJS
 const TurndownService = (_TurndownService as any).default || _TurndownService;
+
+// queried one at a time, as domino sorts all matches of a selector list
+const NESTING_BLOCKS = ['details', 'ol.footnotes'];
 
 function sanitizeMdLinkText(value: string): string {
   return value
@@ -33,8 +37,10 @@ export function htmlToMarkdown(html: string): string {
     mathInline,
     mathBlock,
     iframeEmbed,
+    pdf,
     image,
     video,
+    audio,
     footnoteRef,
     footnotesList,
   ]);
@@ -45,23 +51,63 @@ export function htmlToMarkdown(html: string): string {
   return turndownService.turndown(htmlWithoutColgroups).replaceAll('<br>', ' ');
 }
 
+// domino, the server's DOM, silently matches nothing for :scope selectors
+function getChildDivs(node: Element, dataType: string): Element[] {
+  return Array.from(node.children).filter(
+    (child) =>
+      child.nodeName === 'DIV' && child.getAttribute('data-type') === dataType,
+  );
+}
+
+// Turndown converts children before their parent's rule runs, so parents read
+// the result here: converting again doubles the work per nesting level.
+// Blank divs skip this rule, so parents still convert those themselves.
+function collectDivMarkdown(
+  turndownService: _TurndownService,
+  dataType: string,
+): WeakMap<Node, string> {
+  const markdownByDiv = new WeakMap<Node, string>();
+
+  turndownService.addRule(dataType, {
+    filter: (node: HTMLInputElement) =>
+      node.nodeName === 'DIV' && node.getAttribute('data-type') === dataType,
+    replacement: (content: string, node: HTMLInputElement) => {
+      markdownByDiv.set(node, content.replace(/^[\t\r\n]+/, '').trimEnd());
+      return `\n\n${content}\n\n`;
+    },
+  });
+
+  return markdownByDiv;
+}
+
+// Summaries and footnotes hold inline content, so any of these blocks inside
+// one keeps only its text rather than being converted at every level.
+function convertAgain(
+  turndownService: _TurndownService,
+  node: Element,
+  html: string,
+): string {
+  const nested = NESTING_BLOCKS.some((block) => node.querySelector(block));
+  return turndownService.turndown(
+    nested ? html.replace(/<[^>]*>/g, ' ') : html,
+  );
+}
+
 function tabs(turndownService: _TurndownService) {
+  const panels = collectDivMarkdown(turndownService, 'tabPanel');
+
   turndownService.addRule('tabs', {
     filter: (node: HTMLInputElement) =>
       node.nodeName === 'DIV' && node.getAttribute('data-type') === 'tabs',
     replacement: (_content: string, node: HTMLInputElement) => {
-      const sections = Array.from(
-        node.querySelectorAll(':scope > div[data-type="tab"]'),
-      ).map((tabNode) => {
-        const label =
-          tabNode.querySelector(':scope > div[data-type="tabLabel"]')
-            ?.textContent ?? '';
-        const panel = tabNode.querySelector(
-          ':scope > div[data-type="tabPanel"]',
-        );
+      const sections = getChildDivs(node, 'tab').map((tabNode) => {
+        const label = getChildDivs(tabNode, 'tabLabel')[0]?.textContent ?? '';
+        const panel = getChildDivs(tabNode, 'tabPanel')[0];
         const heading = `#### ${turndownService.escape(label.replace(/\s+/g, ' ').trim())}`;
         const body = panel
-          ? turndownService.turndown(panel.innerHTML).trim()
+          ? (
+              panels.get(panel) ?? turndownService.turndown(panel.innerHTML)
+            ).trim()
           : '';
         return body ? `${heading}\n\n${body}` : heading;
       });
@@ -156,23 +202,32 @@ function taskList(turndownService: _TurndownService) {
 }
 
 function preserveDetail(turndownService: _TurndownService) {
+  const contents = collectDivMarkdown(turndownService, 'detailsContent');
+
   turndownService.addRule('preserveDetail', {
     filter: function (node: HTMLInputElement) {
       return node.nodeName === 'DETAILS';
     },
     replacement: function (_content: string, node: HTMLInputElement) {
-      const summary = node.querySelector(':scope > summary');
+      const summary = Array.from(node.children).find(
+        (child) => child.nodeName === 'SUMMARY',
+      );
       let detailSummary = '';
 
       if (summary) {
-        detailSummary = `<summary>${turndownService.turndown(summary.innerHTML)}</summary>`;
+        detailSummary = `<summary>${convertAgain(turndownService, summary, summary.innerHTML)}</summary>`;
       }
 
       const detailsContent = Array.from(node.childNodes)
         .filter((child) => child.nodeName !== 'SUMMARY')
         .map((child) =>
           child.nodeType === 1
-            ? turndownService.turndown((child as HTMLElement).outerHTML)
+            ? (contents.get(child) ??
+              convertAgain(
+                turndownService,
+                child as HTMLElement,
+                (child as HTMLElement).outerHTML,
+              ))
             : child.textContent,
         )
         .join('');
@@ -270,9 +325,11 @@ function footnotesList(turndownService: _TurndownService) {
         const number =
           (li.getAttribute('id') || '').replace('fn:', '') ||
           String(index + 1);
-        const markdown = turndownService
-          .turndown((li as HTMLElement).innerHTML)
-          .trim();
+        const markdown = convertAgain(
+          turndownService,
+          li,
+          (li as HTMLElement).innerHTML,
+        ).trim();
         // continuation lines need a 4-space indent to stay in the footnote
         const [first, ...rest] = markdown.split('\n');
         const body = [
@@ -282,6 +339,25 @@ function footnotesList(turndownService: _TurndownService) {
         return `[^${number}]: ${body}`;
       });
       return `\n\n${definitions.join('\n')}\n\n`;
+    },
+  });
+}
+
+// a link to the file, named after it, instead of the generic iframe rule
+function pdf(turndownService: _TurndownService) {
+  turndownService.addRule('pdf', {
+    filter: function (node: HTMLElement) {
+      return (
+        node.nodeName === 'DIV' && node.getAttribute('data-type') === 'pdf'
+      );
+    },
+    replacement: function (_content: string, node: HTMLElement) {
+      const src = node.getAttribute('src') || '';
+      if (!src) return '';
+      const name = sanitizeMdLinkText(
+        node.getAttribute('data-name') || getFileNameFromUrl(src) || src,
+      );
+      return '\n\n[' + name + '](' + src + ')\n\n';
     },
   });
 }
@@ -296,6 +372,22 @@ function video(turndownService: _TurndownService) {
       const ariaLabel = node.getAttribute('aria-label');
       const name = sanitizeMdLinkText(ariaLabel || getBasename(src) || src);
       return '[' + name + '](' + src + ')';
+    },
+  });
+}
+
+function audio(turndownService: _TurndownService) {
+  turndownService.addRule('audio', {
+    filter: function (node: HTMLInputElement) {
+      return node.tagName === 'AUDIO';
+    },
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const src = node.getAttribute('src') || '';
+      if (!src) return '';
+      const name = sanitizeMdLinkText(
+        node.getAttribute('data-name') || getFileNameFromUrl(src) || src,
+      );
+      return '\n\n[' + name + '](' + src + ')\n\n';
     },
   });
 }

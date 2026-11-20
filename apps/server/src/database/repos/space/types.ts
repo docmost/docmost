@@ -1,3 +1,7 @@
+import { User } from '@docmost/db/types/entity.types';
+
+export type SpaceArchivedBy = Pick<User, 'id' | 'name' | 'avatarUrl'>;
+
 export interface UserSpaceRole {
   userId: string;
   role: string;
@@ -20,3 +24,8 @@ interface SpaceGroupInfo {
 }
 
 export type MemberInfo = SpaceUserInfo | SpaceGroupInfo;
+
+export type UserSpaceIdsOptions = {
+  excludeArchived?: boolean;
+  keepArchivedSpaceId?: string; // with excludeArchived: still keep this space
+};

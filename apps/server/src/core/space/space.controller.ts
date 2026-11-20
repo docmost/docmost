@@ -29,12 +29,16 @@ import {
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { CreateSpaceDto } from './dto/create-space.dto';
+import { ListSpacesDto } from './dto/list-spaces.dto';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -45,20 +49,17 @@ export class SpaceController {
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
+    private readonly spaceRepo: SpaceRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('/')
   @OAuthScope('read')
-  async getWorkspaceSpaces(
-    @Body()
-    pagination: PaginationOptions,
-    @AuthUser() user: User,
-  ) {
-    const result = await this.spaceMemberService.getUserSpaces(
-      user.id,
-      pagination,
-    );
+  async getWorkspaceSpaces(@Body() dto: ListSpacesDto, @AuthUser() user: User) {
+    const result = await this.spaceMemberService.getUserSpaces(user.id, dto, {
+      status: dto.status,
+    });
 
     if (result.items.length > 0) {
       const spaceIds = result.items.map((s) => s.id);
@@ -127,7 +128,9 @@ export class SpaceController {
       permissions: ability.rules,
     };
 
-    return { ...space, membership };
+    const homePage = await this.spaceService.getHomePage(space, user.id);
+
+    return { ...space, membership, homePage };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -162,7 +165,24 @@ export class SpaceController {
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
-    return this.spaceService.updateSpace(updateSpaceDto, workspace.id);
+
+    if (updateSpaceDto.homePageId) {
+      const canAccessHomePage = await this.pagePermissionRepo.canUserAccessPage(
+        user.id,
+        updateSpaceDto.homePageId,
+      );
+      if (!canAccessHomePage) {
+        throw new ForbiddenException();
+      }
+    }
+
+    const updatedSpace = await this.spaceService.updateSpace(
+      updateSpaceDto,
+      workspace.id,
+    );
+    const homePage = await this.spaceService.getHomePage(updatedSpace, user.id);
+
+    return { ...updatedSpace, homePage };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -183,6 +203,37 @@ export class SpaceController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('archive')
+  async archiveSpace(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const space = await this.findManageableSpace(
+      spaceIdDto.spaceId,
+      user,
+      workspace.id,
+    );
+    return this.spaceService.archiveSpace(space, user);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('unarchive')
+  async unarchiveSpace(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const space = await this.findManageableSpace(
+      spaceIdDto.spaceId,
+      user,
+      workspace.id,
+    );
+    return this.spaceService.unarchiveSpace(space);
+  }
+
+  @ApiKeyScope('read')
+  @HttpCode(HttpStatus.OK)
   @Post('members')
   async getSpaceMembers(
     @Body() spaceIdDto: SpaceIdDto,
@@ -200,10 +251,20 @@ export class SpaceController {
       throw new ForbiddenException();
     }
 
+    const workspaceAbility = this.workspaceAbility.createForUser(
+      user,
+      workspace,
+    );
     return this.spaceMemberService.getSpaceMembers(
       spaceIdDto.spaceId,
       workspace.id,
       pagination,
+      {
+        adminView: workspaceAbility.can(
+          WorkspaceCaslAction.Manage,
+          WorkspaceCaslSubject.Member,
+        ),
+      },
     );
   }
 
@@ -265,6 +326,25 @@ export class SpaceController {
     }
 
     return this.spaceMemberService.updateSpaceMemberRole(dto, workspace.id);
+  }
+
+  private async findManageableSpace(
+    spaceId: string,
+    user: User,
+    workspaceId: string,
+  ) {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId, {
+      includeArchivedBy: true,
+    });
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, space.id);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+    return space;
   }
 
   validateIds(dto: RemoveSpaceMemberDto | UpdateSpaceMemberRoleDto) {

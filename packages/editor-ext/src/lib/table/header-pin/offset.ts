@@ -1,6 +1,6 @@
 // Pin-offset measurement and watcher used by the table header-pin controller.
 
-// Fallback app-bar height (px) when no fixed surface is mounted; matches global-app-shell.tsx.
+// Fallback app-bar height (px) when no fixed surface is mounted; the app header height without announcement banners.
 const APP_BAR_FALLBACK_HEIGHT = 45;
 
 export const EDITOR_PIN_OFFSET_VAR = '--editor-pin-offset';

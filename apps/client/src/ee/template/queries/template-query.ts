@@ -31,12 +31,15 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 
-export function useGetTemplatesQuery(params?: { spaceId?: string }) {
-  const { spaceId } = params ?? {};
+export function useGetTemplatesQuery(params?: {
+  spaceId?: string;
+  currentSpaceId?: string;
+}) {
+  const { spaceId, currentSpaceId } = params ?? {};
   return useInfiniteQuery({
-    queryKey: ["templates", { spaceId }],
+    queryKey: ["templates", { spaceId, currentSpaceId }],
     queryFn: ({ pageParam }) =>
-      getTemplates({ spaceId, cursor: pageParam, limit: 30 }),
+      getTemplates({ spaceId, currentSpaceId, cursor: pageParam, limit: 30 }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
@@ -169,7 +172,7 @@ export function useUseTemplateMutation() {
   return useMutation<
     IPage,
     Error,
-    { templateId: string; spaceId: string; parentPageId?: string }
+    Parameters<typeof useTemplate>[0]
   >({
     mutationFn: (data) => useTemplate(data),
     onSuccess: (page) => {
@@ -224,7 +227,7 @@ export function useUseTemplateMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to create page from template"),
+        message: t(errorMessage || "Failed to create page from template"),
         color: "red",
       });
     },

@@ -8,6 +8,8 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { Workspace } from '@docmost/db/types/entity.types';
 import { htmlEscape } from '../../common/helpers/html-escaper';
 import { PublicSpaceService } from './public-space.service';
+import { getWorkspaceDefaultLocale } from '../workspace/workspace.util';
+import { DEFAULT_LOCALE } from '../workspace/workspace.constants';
 
 @Controller('docs')
 export class PublicSpaceSeoController {
@@ -57,8 +59,11 @@ export class PublicSpaceSeoController {
     const metaTagVar = '<!--meta-tags-->';
     const metaTags = `<meta property="og:title" content="${metaTitle}" />`;
 
+    const lang = getWorkspaceDefaultLocale(workspace) ?? DEFAULT_LOCALE;
+
     const html = fs.readFileSync(indexFilePath, 'utf8');
     const transformedHtml = html
+      .replace(/<html lang="[^"]*"/i, () => `<html lang="${lang}"`)
       .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${metaTitle}</title>`)
       .replace(metaTagVar, () => metaTags);
 
@@ -136,8 +141,11 @@ export class PublicSpaceSeoController {
       .filter(Boolean)
       .join('\n    ');
 
+    const lang = getWorkspaceDefaultLocale(workspace) ?? DEFAULT_LOCALE;
+
     const html = fs.readFileSync(indexFilePath, 'utf8');
     const transformedHtml = html
+      .replace(/<html lang="[^"]*"/i, () => `<html lang="${lang}"`)
       .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${metaTitle}</title>`)
       .replace(metaTagVar, () => metaTags);
 

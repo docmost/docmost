@@ -204,14 +204,14 @@
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  border: 1px solid transparent;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
   border-radius: 7px;
   /* Single type-scale declaration; field content inherits. Matches the
      grid's .cell base so cell components render identically here. */
   font-size: var(--mantine-font-size-sm);
   line-height: 22px;
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
-  transition: background-color 100ms ease, border-color 100ms ease, box-shadow 100ms ease;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  transition: border-color 100ms ease, box-shadow 100ms ease;
 }
 
 .fieldShellTop {
@@ -228,13 +228,12 @@
 
 .fieldShellText:hover,
 .fieldShellPointer:hover {
-  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  border-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
 }
 
 .fieldShell:focus-within,
 .fieldShellActive,
 .fieldShellActive:hover {
-  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
   border-color: light-dark(var(--mantine-color-blue-5), var(--mantine-color-blue-5));
   box-shadow: 0 0 0 3px light-dark(
     rgba(34, 139, 230, 0.12),

@@ -12,18 +12,26 @@ import {
   IconRosetteDiscountCheckFilled,
   IconShieldCheck,
 } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { usePageVerificationInfoQuery } from "@/ee/page-verification/queries/page-verification-query";
+import { reviewChangesAtom } from "@/ee/page-verification/atoms/review-changes-atom";
+import { useReviewChangesDeepLink } from "@/ee/page-verification/hooks/use-review-changes-deep-link";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { SetupVerificationForm } from "./setup-verification-form";
 import { ManageVerificationForm } from "./manage-verification-form";
-import { getStatusColor, getStatusLabel } from "./verification-status";
+import { ReviewChangesModal } from "./review-changes-modal";
+import {
+  getStatusColor,
+  getStatusCssColor,
+  getStatusLabel,
+} from "./verification-status";
 
 type PageVerificationModalProps = {
   pageId: string;
@@ -37,9 +45,12 @@ export function PageVerificationModal({
   onClose,
 }: PageVerificationModalProps) {
   const { t } = useTranslation();
+  const hasVerificationFeature = useHasFeature(Feature.PAGE_VERIFICATION);
   const { data: verificationInfo } = usePageVerificationInfoQuery(
-    opened ? pageId : undefined,
+    hasVerificationFeature ? pageId : undefined,
   );
+  // Mantine closes every open modal on Escape; leave it to the review dialog on top
+  const isReviewOpen = useAtomValue(reviewChangesAtom)?.pageId === pageId;
 
   const status = verificationInfo?.status ?? "none";
 
@@ -47,19 +58,14 @@ export function PageVerificationModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      closeOnEscape={!isReviewOpen}
       aria-label={status === "none" ? t("Set up verification") : t("Verify page")}
       title={
         <Group gap="xs">
           <IconShieldCheck
             size={20}
             stroke={1.5}
-            color={
-              status === "verified" || status === "approved"
-                ? "var(--mantine-color-blue-6)"
-                : status === "expired"
-                  ? "var(--mantine-color-red-6)"
-                  : undefined
-            }
+            color={status === "none" ? undefined : getStatusCssColor(status)}
           />
           <Text fw={600}>
             {status === "none" ? t("Set up verification") : t("Verify page")}
@@ -93,10 +99,18 @@ export function PageVerificationBadge({
   const { data: page } = usePageQuery({ pageId: pageSlugId });
   const pageId = page?.id;
 
-  const { data: verificationInfo, isLoading } = usePageVerificationInfoQuery(
-    hasVerificationFeature ? pageId : undefined,
-  );
+  const {
+    data: verificationInfo,
+    isLoading,
+    refetch: refetchVerificationInfo,
+  } = usePageVerificationInfoQuery(hasVerificationFeature ? pageId : undefined);
   const upgradeLabel = useUpgradeLabel();
+
+  useReviewChangesDeepLink({
+    pageId: hasVerificationFeature ? pageId : undefined,
+    refetchInfo: refetchVerificationInfo,
+    onOpenVerification: open,
+  });
 
   if (!pageId) return null;
   if (!hasVerificationFeature) {
@@ -150,7 +164,7 @@ export function PageVerificationBadge({
           >
             <IconRosetteDiscountCheckFilled
               size={18}
-              color={`var(--mantine-color-${getStatusColor(status).replace(".", "-")})`}
+              color={getStatusCssColor(status)}
               aria-hidden="true"
             />
             <Text size="sm" c={getStatusColor(status)}>
@@ -172,6 +186,7 @@ export function PageVerificationBadge({
       ) : null}
 
       <PageVerificationModal pageId={pageId} opened={opened} onClose={close} />
+      <ReviewChangesModal pageId={pageId} onOpenVerification={open} />
     </>
   );
 }

@@ -2,10 +2,32 @@
   background-color: light-dark(#f6f7f9, var(--mantine-color-dark-8));
 }
 
+/* Mantine also slides top, height and the top padding; they must jump with the header when banners change */
 .navbar, .aside {
+  transition-property: transform;
+
   @media (max-width: $mantine-breakpoint-sm) {
     width: 350px;
   }
+}
+
+.navbarOverlay {
+  position: fixed;
+  inset: var(--app-shell-header-offset, 0rem) 0 0;
+  z-index: var(--mantine-z-index-app);
+  background-color: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--app-shell-transition-duration) var(--app-shell-transition-timing-function);
+
+  &[data-opened] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.main {
+  transition-property: padding-left, padding-right;
 }
 
 .aside {

@@ -441,7 +441,7 @@
   border: 2px solid var(--mantine-color-blue-3);
 }
 
-/* Inline name span inside CellLastEditedBy. */
+/* Inline name span inside CellSystemUser. */
 .lastEditedByName {
   font-size: var(--mantine-font-size-sm);
   overflow: hidden;

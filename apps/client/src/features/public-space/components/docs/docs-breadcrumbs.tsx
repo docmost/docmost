@@ -47,7 +47,7 @@ export default function DocsBreadcrumbs() {
     return list.length ? list : null;
   }, [treeData, siteName, homeUrl, getNodeUrl, pageSlug, t]);
 
-  if (!crumbs) return null;
+  if (!crumbs) return <div className={styles.breadcrumbsSpacer} aria-hidden />;
 
   // Mobile keeps a single line (menu + last crumb, like the app header's
   // breadcrumb); desktop collapses the middle beyond 4 crumbs.

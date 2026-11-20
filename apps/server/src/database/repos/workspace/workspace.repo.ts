@@ -249,6 +249,26 @@ export class WorkspaceRepo {
       .executeTakeFirst();
   }
 
+  async updateExportSettings(
+    workspaceId: string,
+    prefKey: string,
+    prefValue: string | boolean,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('workspaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('export', COALESCE(settings->'export', '{}'::jsonb)
+                || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', workspaceId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
+  }
+
   async updatePublicSpacesSettings(
     workspaceId: string,
     prefKey: string,
@@ -320,6 +340,24 @@ export class WorkspaceRepo {
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
                 || jsonb_build_object('defaultPageEditMode', ${sql.lit(pageEditMode)})`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', workspaceId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
+  }
+
+  async updateDefaultLocale(
+    workspaceId: string,
+    locale: string,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('workspaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('defaultLocale', ${locale}::text)`,
         updatedAt: new Date(),
       })
       .where('id', '=', workspaceId)

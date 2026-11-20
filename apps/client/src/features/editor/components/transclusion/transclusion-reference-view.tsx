@@ -23,6 +23,8 @@ import {
   useUnsyncReferenceMutation,
 } from "@/features/transclusion/queries/transclusion-query";
 import { buildPageUrl } from "@/features/page/page.utils";
+import { useExportDisabled } from "@/ee/security/hooks/use-export-disabled";
+import { useDisablePrint } from "@/ee/security/hooks/use-disable-print";
 
 export default function TransclusionReferenceView(props: NodeViewProps) {
   const isEditable = props.editor.isEditable;
@@ -62,7 +64,7 @@ function TransclusionReferenceBody({
   const transclusionId: string | null = node.attrs.transclusionId ?? null;
   const isEditable = editor.isEditable;
 
-  const { result, refresh } = useTransclusionLookup(
+  const { result, refresh, isPublic } = useTransclusionLookup(
     sourcePageId,
     transclusionId,
   );
@@ -78,14 +80,20 @@ function TransclusionReferenceBody({
   // @ts-ignore - editor.storage.pageId is set by the host editor
   const hostPageId: string | undefined = editor.storage?.pageId;
   const unsyncMutation = useUnsyncReferenceMutation();
+  const showsSource = !!result && !("status" in result);
   // Cached against the dropdown's identical query so the source link target
   // is ready as soon as the controls fade in on hover, without a second
-  // fetch.
+  // fetch. Viewers need it too while the source shows: its space can block
+  // printing.
   const referencesQuery = useReferencesQuery(
     sourcePageId,
     transclusionId,
-    isEditable,
+    isEditable || (!isPublic && showsSource),
   );
+  const { exportDisabledLabel } = useExportDisabled(
+    referencesQuery.data?.source?.spaceId,
+  );
+  useDisablePrint(showsSource ? exportDisabledLabel : null);
   const sourcePageHref = (() => {
     const source = referencesQuery.data?.source;
     const base = source?.spaceSlug

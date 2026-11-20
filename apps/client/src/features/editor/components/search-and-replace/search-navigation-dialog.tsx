@@ -1,4 +1,4 @@
-import { ActionIcon, Dialog, Flex, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Dialog, Flex, rem, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowNarrowDown,
   IconArrowNarrowUp,
@@ -156,7 +156,10 @@ function SearchNavigationDialog({ editor }: SearchNavigationDialogProps) {
       size="xs"
       radius="md"
       w="auto"
-      position={{ top: 90, right: 50 }}
+      position={{
+        top: `calc(${rem(90)} + var(--announcement-banners-height, 0px))`,
+        right: 50,
+      }}
       withBorder
       aria-label="Search navigation"
     >

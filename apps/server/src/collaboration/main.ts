@@ -1,0 +1,61 @@
+import { NestFactory, Reflector } from '@nestjs/core';
+import { CollabAppModule } from './server/collab-app.module';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
+import { TransformHttpResponseInterceptor } from '../common/interceptors/http-response.interceptor';
+import { Logger } from '@nestjs/common';
+import { Logger as PinoLogger } from 'nestjs-pino';
+import { InternalLogFilter } from '../common/logger/internal-log-filter';
+import { overrideRequestIp } from '../common/helpers';
+
+async function bootstrap() {
+  const adapter = new FastifyAdapter({
+    routerOptions: {
+      maxParamLength: 1000,
+      ignoreTrailingSlash: true,
+      ignoreDuplicateSlashes: true,
+    },
+  });
+  // Added before NestFactory.create so it runs ahead of middie copying request.ip for Nest middleware.
+  adapter.getInstance().addHook('onRequest', overrideRequestIp);
+
+  const app = await NestFactory.create<NestFastifyApplication>(
+    CollabAppModule,
+    adapter,
+    {
+      logger: new InternalLogFilter(),
+      bufferLogs: false,
+    },
+  );
+
+  app.useLogger(app.get(PinoLogger));
+
+  app.setGlobalPrefix('api', { exclude: ['/'] });
+
+  app.enableCors();
+
+  const reflector = app.get(Reflector);
+  app.useGlobalInterceptors(new TransformHttpResponseInterceptor(reflector));
+  // the signal Nest re-raises by default is ignored when node runs as PID 1
+  app.enableShutdownHooks([], { useProcessExit: true });
+
+  const logger = new Logger('CollabServer');
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error(`UnhandledRejection, reason: ${reason}`, promise);
+  });
+
+  process.on('uncaughtException', (error) => {
+    logger.error('UncaughtException:', error);
+  });
+
+  const port = process.env.COLLAB_PORT || 3001;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host, () => {
+    logger.log(`Listening on http://127.0.0.1:${port}`);
+  });
+}
+
+bootstrap();

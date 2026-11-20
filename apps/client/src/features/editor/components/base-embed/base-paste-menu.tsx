@@ -90,7 +90,7 @@ export function BasePasteMenu({ editor }: EditorMenuProps) {
       Boolean(promptRef.current?.contains(document.activeElement));
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!ownsFocus()) return;
+      if (editor.isDestroyed || !ownsFocus()) return;
 
       if (event.key === "Escape") {
         event.preventDefault();
@@ -134,6 +134,9 @@ export function BasePasteMenu({ editor }: EditorMenuProps) {
     <BaseBubbleMenu
       editor={editor}
       pluginKey="base-paste-menu"
+      ref={(element) => {
+        if (element) element.style.zIndex = "99";
+      }}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{

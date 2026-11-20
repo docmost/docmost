@@ -78,6 +78,10 @@ export function useEditableTextCell({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+
+      // Safari can report isComposing=false on the IME confirmation key.
+      if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
+
       if (e.key === "Enter") {
         e.preventDefault();
         commitOnce(parse(draft));

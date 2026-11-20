@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 
 export enum ExportFormat {
@@ -32,6 +33,7 @@ export class ExportPageDto {
 export class ExportSpaceDto {
   @IsString()
   @IsNotEmpty()
+  @IsUUID()
   spaceId: string;
 
   @IsString()

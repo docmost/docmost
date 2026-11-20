@@ -12,9 +12,39 @@
 }
 
 .mermaid {
+    --pele-bg: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+    --pele-fg: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-1));
+    --pele-line: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-1));
+    --pele-muted: var(--mantine-color-dimmed);
+    --pele-surface: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+    --pele-surface-alt: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+    --pele-border: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-3));
+    --pele-accent: light-dark(var(--mantine-primary-color-6), var(--mantine-primary-color-4));
+    --pele-critical: light-dark(var(--mantine-color-red-6), var(--mantine-color-red-4));
+    --pele-error: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-7));
+}
+
+.mermaid > svg {
+    display: block;
+    margin-inline: auto;
+}
+
+.mermaid:has(> :global(.pele-zoom):not([hidden])) {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
+    /* fits Pele's three stacked zoom buttons and their 8px inset */
+    min-height: 98px;
+
+    @media print {
+        min-height: 0;
+    }
+}
+
+.mermaid :global(.pele-zoom) {
+    @media print {
+        display: none !important;
+    }
 }
 
 .menuGroup {

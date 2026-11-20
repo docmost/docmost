@@ -24,6 +24,7 @@ export interface IWorkspace {
   aiSearch?: boolean;
   generativeAi?: boolean;
   disablePublicSharing?: boolean;
+  disableExport?: boolean;
   allowPublicSpaces?: boolean;
   publicSpacesDirectory?: boolean;
   mcpEnabled?: boolean;
@@ -35,17 +36,20 @@ export interface IWorkspace {
   allowMemberTemplates?: boolean;
   allowPersonalSpaces?: boolean;
   defaultPageEditMode?: string;
+  defaultLocale?: string;
   isScimEnabled?: boolean;
 }
 
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
   sharing?: IWorkspaceSharingSettings;
+  export?: IWorkspaceExportSettings;
   api?: IWorkspaceApiSettings;
   templates?: IWorkspaceTemplateSettings;
   spaces?: IWorkspaceSpaceSettings;
   publicSpaces?: IWorkspacePublicSpacesSettings;
   defaultPageEditMode?: string;
+  defaultLocale?: string;
 }
 
 export interface IWorkspaceApiSettings {
@@ -66,6 +70,10 @@ export interface IWorkspaceSharingSettings {
   disabled?: boolean;
 }
 
+export interface IWorkspaceExportSettings {
+  disabled?: boolean;
+}
+
 export interface IWorkspaceTemplateSettings {
   allowMemberTemplates?: boolean;
 }
@@ -79,10 +87,13 @@ export interface IWorkspacePublicSpacesSettings {
   directory?: boolean;
 }
 
+export type MemberListStatus = "active" | "deactivated" | "deleted" | "all";
+
 export interface ICreateInvite {
   role: string;
   emails: string[];
   groupIds: string[];
+  message?: string;
 }
 
 export interface IInvitation {
@@ -92,6 +103,7 @@ export interface IInvitation {
   workspaceId: string;
   invitedById: string;
   createdAt: Date;
+  expiresAt: Date;
   enforceSso: boolean;
 }
 
@@ -113,6 +125,7 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
+  defaultLocale: string;
 }
 
 export interface IVersion {

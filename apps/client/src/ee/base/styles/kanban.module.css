@@ -139,6 +139,17 @@
   color: var(--mantine-color-dimmed);
 }
 
+.cardField {
+  display: flex;
+  flex-direction: column;
+  margin-inline: -12px;
+  padding-inline: 12px;
+}
+
+.cardField:empty {
+  display: none;
+}
+
 .count {
   color: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-sm);

@@ -53,7 +53,7 @@ export class TemplateRepo {
     workspaceId: string,
     accessibleSpaceIds: string[],
     pagination: PaginationOptions,
-    opts?: { spaceId?: string },
+    opts?: { spaceId?: string | null },
   ) {
     let query = this.db
       .selectFrom('templates')
@@ -61,7 +61,9 @@ export class TemplateRepo {
       .select((eb) => [this.withCreator(eb)])
       .where('workspaceId', '=', workspaceId);
 
-    if (opts?.spaceId) {
+    if (opts?.spaceId === null) {
+      query = query.where('spaceId', 'is', null);
+    } else if (opts?.spaceId) {
       if (!accessibleSpaceIds.includes(opts.spaceId)) {
         query = query.where(sql<boolean>`false`);
       } else {
@@ -128,7 +130,11 @@ export class TemplateRepo {
     const db = dbOrTx(this.db, trx);
     await db
       .updateTable('templates')
-      .set({ ...updatableTemplate, updatedAt: new Date() })
+      .set({
+        ...updatableTemplate,
+        // Each save needs a distinct revision at the API's millisecond precision.
+        updatedAt: sql<Date>`greatest(clock_timestamp(), updated_at + interval '1 millisecond')`,
+      })
       .where('id', '=', templateId)
       .where('workspaceId', '=', workspaceId)
       .execute();

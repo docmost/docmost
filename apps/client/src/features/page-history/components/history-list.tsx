@@ -182,7 +182,7 @@ function HistoryList({ pageId }: Props) {
   }
 
   return (
-    <div>
+    <>
       <ScrollArea h={620} w="100%" type="scroll" scrollbarSize={5}>
         {historyItems.map((historyItem, index) => (
           <HistoryItem
@@ -252,7 +252,7 @@ function HistoryList({ pageId }: Props) {
           </>
         )
       )}
-    </div>
+    </>
   );
 }
 

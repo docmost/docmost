@@ -30,6 +30,26 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface Announcements {
+  archivedAt: Timestamp | null;
+  audience: Generated<string>;
+  color: string;
+  content: Json;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  endsAt: Timestamp | null;
+  id: Generated<string>;
+  isDismissible: Generated<boolean>;
+  lastUpdatedById: string | null;
+  startsAt: Generated<Timestamp>;
+  textContent: string;
+  title: string;
+  tsv: string | null;
+  type: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface ApiKeys {
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
@@ -37,6 +57,7 @@ export interface ApiKeys {
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
+  scopes: Generated<Json>;
   updatedAt: Generated<Timestamp>;
   creatorId: string;
   workspaceId: string;
@@ -52,9 +73,11 @@ export interface Attachments {
   filePath: string;
   fileSize: Int8 | null;
   id: Generated<string>;
+  indexedAt: Timestamp | null;
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
+  templateId: string | null;
   textContent: string | null;
   tsv: string | null;
   type: string | null;
@@ -127,6 +150,13 @@ export interface Backlinks {
   workspaceId: string;
 }
 
+export interface BasePendingConversions {
+  conversionKey: string;
+  createdAt: Generated<Timestamp>;
+  pageId: string;
+  workspaceId: string;
+}
+
 export interface BaseProperties {
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
@@ -155,6 +185,18 @@ export interface BaseRows {
   pageId: string;
   position: string;
   updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface BaseViewShares {
+  access: Generated<string>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  id: Generated<string>;
+  key: string;
+  pageId: string;
+  updatedAt: Generated<Timestamp>;
+  viewId: string;
   workspaceId: string;
 }
 
@@ -313,7 +355,9 @@ export interface PageHistory {
 export interface Pages {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
+  coverAttribution: Json | null;
   coverPhoto: string | null;
+  coverPosition: number | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
@@ -399,11 +443,14 @@ export interface SiemDestinations {
 }
 
 export interface Spaces {
+  archivedAt: Timestamp | null;
+  archivedById: string | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   defaultRole: Generated<string>;
   deletedAt: Timestamp | null;
   description: string | null;
+  homePageId: string | null;
   id: Generated<string>;
   isPersonal: Generated<boolean>;
   logo: string | null;
@@ -464,9 +511,11 @@ export interface UserTokens {
 export interface WorkspaceInvitations {
   createdAt: Generated<Timestamp>;
   email: string | null;
+  expiresAt: Timestamp;
   groupIds: string[] | null;
   id: Generated<string>;
   invitedById: string | null;
+  message: string | null;
   role: string;
   token: string;
   updatedAt: Generated<Timestamp>;
@@ -627,6 +676,10 @@ export interface PageVerifications {
   rejectedAt: Timestamp | null;
   rejectedById: string | null;
   rejectionComment: string | null;
+  invalidatedAt: Timestamp | null;
+  invalidatedById: string | null;
+  verifiedHistoryId: string | null;
+  rejectedHistoryId: string | null;
   data: Json | null;
   creatorId: string | null;
   createdAt: Generated<Timestamp>;
@@ -761,14 +814,17 @@ export interface OauthTokens {
 export interface DB {
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
+  announcements: Announcements;
   apiKeys: ApiKeys;
   attachments: Attachments;
   audit: Audit;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;
+  basePendingConversions: BasePendingConversions;
   baseProperties: BaseProperties;
   baseRows: BaseRows;
+  baseViewShares: BaseViewShares;
   baseViews: BaseViews;
   billing: Billing;
   comments: Comments;

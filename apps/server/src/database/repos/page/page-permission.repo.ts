@@ -11,7 +11,7 @@ import {
   PagePermission,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { ExpressionBuilder, sql, SqlBool } from 'kysely';
+import { ExpressionBuilder, RawBuilder, sql, SqlBool } from 'kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { DB } from '@docmost/db/types/db';
 import {
@@ -24,6 +24,7 @@ import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
 } from '../../../common/helpers/cache-keys';
+import { PagePermissionRole } from '../../../common/helpers/types/permission';
 
 export { PagePermissionMember } from './types/page-permission.types';
 
@@ -74,6 +75,106 @@ export class PagePermissionRepo {
     if (permissions.length === 0) return;
     const db = dbOrTx(this.db, trx);
     await db.insertInto('pagePermissions').values(permissions).execute();
+  }
+
+  /**
+   * Give each page without its own restriction a copy of its nearest restricted
+   * ancestor's, so it keeps its audience when detached from its parent.
+   */
+  async copyInheritedRestriction(
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (pageIds.length === 0) return;
+    await sql`
+      WITH RECURSIVE ancestors AS (
+        SELECT pages.id AS page_id, pages.parent_page_id AS ancestor_id, 1 AS depth
+        FROM pages
+        WHERE pages.id = ANY(${pageIds}::uuid[])
+          AND NOT EXISTS (
+            SELECT 1 FROM page_access WHERE page_access.page_id = pages.id
+          )
+        UNION ALL
+        SELECT ancestors.page_id, parent.parent_page_id, ancestors.depth + 1
+        FROM ancestors
+        JOIN pages AS parent ON parent.id = ancestors.ancestor_id
+      ),
+      nearest AS (
+        SELECT DISTINCT ON (ancestors.page_id)
+          ancestors.page_id,
+          page_access.id AS page_access_id,
+          page_access.access_level,
+          page_access.creator_id
+        FROM ancestors
+        JOIN page_access ON page_access.page_id = ancestors.ancestor_id
+        ORDER BY ancestors.page_id, ancestors.depth
+      ),
+      copied AS (
+        INSERT INTO page_access (page_id, workspace_id, space_id, access_level, creator_id)
+        SELECT nearest.page_id, pages.workspace_id, pages.space_id, nearest.access_level, nearest.creator_id
+        FROM nearest
+        JOIN pages ON pages.id = nearest.page_id
+        RETURNING id, page_id
+      )
+      INSERT INTO page_permissions (page_access_id, user_id, group_id, role, added_by_id)
+      SELECT copied.id, page_permissions.user_id, page_permissions.group_id,
+        page_permissions.role, page_permissions.added_by_id
+      FROM copied
+      JOIN nearest ON nearest.page_id = copied.page_id
+      JOIN page_permissions ON page_permissions.page_access_id = nearest.page_access_id
+    `.execute(dbOrTx(this.db, trx));
+  }
+
+  /**
+   * Restrict each page like its source page, with writerId as a writer.
+   * Returns how many pages were restricted.
+   */
+  async copyRestrictions(
+    copies: { sourcePageId: string; pageId: string }[],
+    opts: {
+      spaceId: string;
+      workspaceId: string;
+      writerId: string;
+    },
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    if (copies.length === 0) return 0;
+
+    // one statement, so the copy sees a single snapshot and no row passes through the app
+    const { rows } = await sql<{ restricted: number }>`
+      WITH sources AS (
+        SELECT copies.page_id, page_access.id AS page_access_id, page_access.access_level
+        FROM unnest(
+          ${copies.map((copy) => copy.sourcePageId)}::uuid[],
+          ${copies.map((copy) => copy.pageId)}::uuid[]
+        ) AS copies(source_page_id, page_id)
+        JOIN page_access ON page_access.page_id = copies.source_page_id
+      ),
+      copied AS (
+        INSERT INTO page_access (page_id, workspace_id, space_id, access_level, creator_id)
+        SELECT sources.page_id, ${opts.workspaceId}::uuid, ${opts.spaceId}::uuid,
+          sources.access_level, ${opts.writerId}::uuid
+        FROM sources
+        RETURNING id, page_id
+      ),
+      writers AS (
+        INSERT INTO page_permissions (page_access_id, user_id, role, added_by_id)
+        SELECT copied.id, ${opts.writerId}::uuid, ${PagePermissionRole.WRITER}, ${opts.writerId}::uuid
+        FROM copied
+      ),
+      entries AS (
+        INSERT INTO page_permissions (page_access_id, user_id, group_id, role, added_by_id)
+        SELECT copied.id, page_permissions.user_id, page_permissions.group_id,
+          page_permissions.role, ${opts.writerId}::uuid
+        FROM copied
+        JOIN sources ON sources.page_id = copied.page_id
+        JOIN page_permissions ON page_permissions.page_access_id = sources.page_access_id
+        WHERE (page_permissions.user_id IS NULL OR page_permissions.user_id <> ${opts.writerId}::uuid)
+      )
+      SELECT count(*)::int AS restricted FROM copied
+    `.execute(dbOrTx(this.db, trx));
+
+    return rows[0].restricted;
   }
 
   async findPagePermissionByUserId(
@@ -212,6 +313,7 @@ export class PagePermissionRepo {
   async getPagePermissionsPaginated(
     pageAccessId: string,
     pagination: PaginationOptions,
+    opts?: { adminView?: boolean },
   ): Promise<CursorPaginationResult<PagePermissionMember>> {
     let baseQuery = this.db
       .selectFrom('pagePermissions')
@@ -229,7 +331,7 @@ export class PagePermissionRepo {
         'groups.name as groupName',
         'groups.isDefault as groupIsDefault',
       ])
-      .select((eb) => this.groupRepo.withMemberCount(eb))
+      .select((eb) => this.groupRepo.withMemberCount(eb, opts))
       .select((eb) =>
         eb
           .case()
@@ -750,6 +852,26 @@ export class PagePermissionRepo {
       .execute();
 
     return results.map((r) => r.id);
+  }
+
+  // filterAccessiblePageIds for the outer unaliased `pages` row; inner aliases must not shadow it
+  canUserAccessPageExpression(userId: string): RawBuilder<SqlBool> {
+    return sql<SqlBool>`not exists (
+      with recursive ancestors as (
+        select p.id, p.parent_page_id from pages p where p.id = pages.id
+        union
+        select p.id, p.parent_page_id from pages p
+        join ancestors a on p.id = a.parent_page_id
+      )
+      select 1 from ancestors a
+      join page_access pa on pa.page_id = a.id
+      where not exists (
+        select 1 from page_permissions pp
+        where pp.page_access_id = pa.id
+          and (pp.user_id = ${userId}
+            or pp.group_id in (select gu.group_id from group_users gu where gu.user_id = ${userId}))
+      )
+    )`;
   }
 
   async filterAccessiblePageIdsWithPermissions(

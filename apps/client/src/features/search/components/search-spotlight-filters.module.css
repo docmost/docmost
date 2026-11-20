@@ -1,9 +1,10 @@
 .filtersContainer {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
   padding: 8px 0;
-  scrollbar-width: thin;
+  /* grow with the filters so the ScrollArea sees the overflow */
+  width: max-content;
+  min-width: 100%;
 }
 
 .filterButton {

@@ -34,9 +34,14 @@ export class GroupService {
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
-  async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
+  async getGroupInfo(
+    groupId: string,
+    workspaceId: string,
+    opts?: { adminView?: boolean },
+  ): Promise<Group> {
     const group = await this.groupRepo.findById(groupId, workspaceId, {
       includeMemberCount: true,
+      adminView: opts?.adminView,
     });
 
     if (!group) {
@@ -95,11 +100,12 @@ export class GroupService {
   async updateGroup(
     workspaceId: string,
     updateGroupDto: UpdateGroupDto,
+    opts?: { adminView?: boolean },
   ): Promise<Group> {
     const group = await this.groupRepo.findById(
       updateGroupDto.groupId,
       workspaceId,
-      { includeMemberCount: true },
+      { includeMemberCount: true, adminView: opts?.adminView },
     );
 
     if (!group) {
@@ -160,8 +166,13 @@ export class GroupService {
   async getWorkspaceGroups(
     workspaceId: string,
     paginationOptions: PaginationOptions,
+    opts?: { adminView?: boolean },
   ): Promise<CursorPaginationResult<Group>> {
-    return this.groupRepo.getGroupsPaginated(workspaceId, paginationOptions);
+    return this.groupRepo.getGroupsPaginated(
+      workspaceId,
+      paginationOptions,
+      opts,
+    );
   }
 
   async deleteGroup(groupId: string, workspaceId: string): Promise<void> {

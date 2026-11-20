@@ -1,0 +1,30 @@
+diff --git a/lib/turndown-plugin-gfm.cjs.js b/lib/turndown-plugin-gfm.cjs.js
+index 5ba00817f3236043ff6aea155c67b1572eed29a3..3f9f26e99f40a4ad370f9c954e5f4d89f269fec1 100644
+--- a/lib/turndown-plugin-gfm.cjs.js
++++ b/lib/turndown-plugin-gfm.cjs.js
+@@ -68,8 +68,11 @@ function getColumnAlignment(table, columnIndex) {
+ 
+   var align = '';
+ 
+-  for (var i = 0; i < table.rows.length; ++i) {
+-    var row = table.rows[i];
++  // Read `rows` once: under domino each access re-walks the whole table, which made converting large tables
++  // quadratic: https://github.com/laurent22/joplin/issues/16894
++  var rows = table.rows;
++  for (var i = 0; i < rows.length; ++i) {
++    var row = rows[i];
+     if (columnIndex < row.childNodes.length) {
+       var cellAlignment = getAlignment(row.childNodes[columnIndex]);
+       ++votes[cellAlignment];
+@@ -410,8 +413,9 @@ function handleColSpan(content, node, emptyChar) {
+ 
+ function tableColCount(node) {
+   let maxColCount = 0;
+-  for (let i = 0; i < node.rows.length; i++) {
+-    const row = node.rows[i];
++  const rows = node.rows;
++  for (let i = 0; i < rows.length; i++) {
++    const row = rows[i];
+     const colCount = row.childNodes.length;
+     if (colCount > maxColCount) maxColCount = colCount;
+   }

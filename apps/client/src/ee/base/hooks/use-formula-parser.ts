@@ -4,6 +4,7 @@ import {
   resolve,
   typecheck,
   BaseFormulaGraph,
+  resultTypeOfProperty,
   type FormulaResultType,
   type FormulaFn,
 } from "@docmost/base-formula/client";
@@ -48,7 +49,7 @@ export function useFormulaParser(
         const raw = parseRaw(source);
         const resolved = resolve(raw, nameToId);
         const typeMap = new Map<string, FormulaResultType>(
-          properties.map((p) => [p.id, clientResultTypeOf(p.type)]),
+          properties.map((p) => [p.id, resultTypeOfProperty(p.type, p.typeOptions)]),
         );
         const tc = typecheck(resolved.ast, typeMap, registryForTypecheck);
         const candidate = {
@@ -89,19 +90,4 @@ export function useFormulaParser(
   }, [deps]);
 
   return state;
-}
-
-function clientResultTypeOf(type: string): FormulaResultType {
-  if (type === "number") return "number";
-  if (
-    type === "text" ||
-    type === "url" ||
-    type === "email" ||
-    type === "longText"
-  )
-    return "string";
-  if (type === "checkbox") return "boolean";
-  if (type === "date" || type === "createdAt" || type === "lastEditedAt")
-    return "date";
-  return "null";
 }

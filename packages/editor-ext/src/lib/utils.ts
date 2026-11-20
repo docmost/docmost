@@ -1,4 +1,9 @@
-import { Editor, findParentNode, isTextSelection } from "@tiptap/core";
+import {
+  Editor,
+  findParentNode,
+  isTextSelection,
+  NodeWithPos,
+} from "@tiptap/core";
 import { EditorState, Selection, Transaction } from "@tiptap/pm/state";
 import { EditorView } from "@tiptap/pm/view";
 import { CellSelection, TableMap } from "@tiptap/pm/tables";
@@ -385,10 +390,8 @@ export function icon(name: string) {
 export function sanitizeUrl(url: string | undefined): string {
   if (!url) return "";
 
-  const sanitized = braintreeSanitizeUrl(url);
-
-  // Return empty string instead of "about:blank"
-  return sanitized === "about:blank" ? "" : sanitized;
+  // Checked and kept as given, since the sanitizer's output decodes percent-escapes.
+  return braintreeSanitizeUrl(url) === "about:blank" ? "" : url.trim();
 }
 
 export function isHttpUrl(url: string | null | undefined): boolean {
@@ -405,6 +408,13 @@ export function isInternalFileUrl(url: string | undefined): boolean {
   if (!url) return false;
   const normalized = url.trim();
   return normalized.startsWith("/api/files/") || normalized.startsWith("/files/");
+}
+
+// app file urls, plus the files/ path an export with attachments points to
+export function renderableFileUrl(url: string | undefined): string {
+  return isInternalFileUrl(url) || url?.trim().startsWith("files/")
+    ? sanitizeUrl(url)
+    : "";
 }
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
@@ -439,4 +449,30 @@ export function execCommandCopy(text: string): boolean {
   } finally {
     textarea.remove();
   }
+}
+
+// findChildren that walks a top-level block once: nodes never change, so what
+// was found inside a block holds for as long as the document keeps that block.
+export function createFindChildren(predicate: (node: Node) => boolean) {
+  const foundInBlock = new WeakMap<Node, NodeWithPos[]>();
+
+  return (doc: Node): NodeWithPos[] => {
+    const found: NodeWithPos[] = [];
+
+    doc.forEach((block, offset) => {
+      let inBlock = foundInBlock.get(block);
+      if (!inBlock) {
+        inBlock = predicate(block) ? [{ node: block, pos: 0 }] : [];
+        block.descendants((node, pos) => {
+          if (predicate(node)) inBlock.push({ node, pos: pos + 1 });
+        });
+        foundInBlock.set(block, inBlock);
+      }
+      for (const { node, pos } of inBlock) {
+        found.push({ node, pos: offset + pos });
+      }
+    });
+
+    return found;
+  };
 }

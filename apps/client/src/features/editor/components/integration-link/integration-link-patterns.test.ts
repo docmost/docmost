@@ -15,6 +15,16 @@ describe("integration link matching", () => {
     ["https://gitlab.com/docmost/docmost", "gitlab", "gitlab-project"],
     ["https://code.example.com/o/r/pull/1", "github", "github-pr"],
     ["https://code.example.com/o/r/-/merge_requests/1", "gitlab", "gitlab-mr"],
+    [
+      "https://contoso.sharepoint.com/browse/AB-1.docx",
+      "microsoft_365",
+      "sharepoint-file",
+    ],
+    [
+      "https://contoso.sharepoint.com/secure/RapidBoard.jspa?selectedIssue=AB-1",
+      "microsoft_365",
+      "sharepoint-file",
+    ],
   ])("identifies %s as %s", (url, provider, type) => {
     expect(matchIntegrationLink(url)).toMatchObject({ provider, type });
   });
@@ -341,5 +351,148 @@ describe("Jira Data Center context paths", () => {
     "https://jira.acme.com/jira\\..\\browse/AB-1",
   ])("rejects context paths the browser resolves elsewhere: %s", (url) => {
     expect(matchIntegrationLink(url, JIRA_HOSTS)).toBeNull();
+  });
+});
+
+describe("SharePoint library links", () => {
+  const LIBRARY = "https://contoso.sharepoint.com/Shared%20Documents/Forms/AllItems.aspx";
+
+  it.each([
+    [`${LIBRARY}?id=%2FShared%20Documents%2Ffolder%20101&viewid=4aebf1bc`, "sharepoint-library-item"],
+    [`${LIBRARY}?viewid=4aebf1bc&id=%2FShared%20Documents%2Freport.pdf&parent=%2FShared%20Documents`, "sharepoint-library-item"],
+    [LIBRARY, "sharepoint-library"],
+    [`${LIBRARY}?viewid=4aebf1bc`, "sharepoint-library"],
+  ])("identifies %s as %s", (url, type) => {
+    expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type });
+  });
+
+  it("labels a library view link with the folder it opens", () => {
+    expect(
+      describeIntegrationLink(`${LIBRARY}?id=%2FShared%20Documents%2Ffolder%20101&viewid=4aebf1bc`),
+    ).toMatchObject({
+      provider: "microsoft_365",
+      title: "folder 101",
+      description: "contoso.sharepoint.com",
+    });
+  });
+});
+
+describe("OneDrive folder view links", () => {
+  const ONEDRIVE = "https://contoso-my.sharepoint.com";
+  const PERSONAL = `${ONEDRIVE}/personal/adele_contoso_com`;
+  const FOLDER_ID = "/personal/adele_contoso_com/Documents/Projects";
+
+  it.each([
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=${FOLDER_ID}`, "sharepoint-library-item"],
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FPlan.docx`, "sharepoint-library-item"],
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=Q3`, "sharepoint-library"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2fpersonal%2fadele_contoso_com%2fDocuments%2fProjects`, "sharepoint-library-item"],
+    [`${PERSONAL}/_layouts/15/onedrive.aspx?view=0&id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FPlan.docx`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/my?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FAttachments&viewid=4f8f5950%2D9826`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/my?id=${FOLDER_ID}`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fsites%2FMarketing%2FShared%20Documents%2FQ3`, "sharepoint-library-item"],
+    [`${ONEDRIVE}/my?id=%2Fteams%2FEng%2FShared%20Documents%2FSpec.pdf`, "sharepoint-library-item"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library", "sharepoint-shared-library"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso.sharepoint.com%2Fsites%2FMarketing%2FShared%20Documents&viewid=4f8f5950%2D9826", "sharepoint-shared-library"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library&id=%2FMedia%20library%2FPhotos", "sharepoint-library-item"],
+  ])("identifies %s as %s", (url, type) => {
+    expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type });
+  });
+
+  it.each([
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=${FOLDER_ID}`, "Projects"],
+    [`${ONEDRIVE}/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FQ3%20Plan.docx`, "Q3 Plan.docx"],
+    [`${PERSONAL}/Documents/Forms/All.aspx?id=Q3`, "Documents"],
+    [`${ONEDRIVE}/my?id=%2Fpersonal%2Fadele_contoso_com%2FDocuments%2FAttachments&viewid=4f8f5950%2D9826`, "Attachments"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library", "Media library"],
+    ["https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library&id=%2FMedia%20library%2FPhotos", "Photos"],
+  ])("labels %s as %s", (url, title) => {
+    expect(describeIntegrationLink(url)).toEqual({
+      provider: "microsoft_365",
+      title,
+      description: "contoso-my.sharepoint.com",
+    });
+  });
+
+  it.each([
+    `${ONEDRIVE}/_layouts/15/onedrive.aspx?id=Q3`,
+    `${ONEDRIVE}/my?id=Q3`,
+    `${ONEDRIVE}/my?id=%2FDocuments%2FQ3`,
+    `${ONEDRIVE}/myfiles?id=${FOLDER_ID}`,
+    `https://contoso-my.sharepoint.com.evil.example/my?id=${FOLDER_ID}`,
+    "https://contoso-my.sharepoint.com/shared",
+    "https://contoso-my.sharepoint.com/shared?listurl=https%3A%2F%2Fevil%2Eexample%2FMedia%20library",
+    "https://contoso-my.sharepoint.com/shared?listurl=http%3A%2F%2Fcontoso%2Esharepoint%2Ecom%2FMedia%20library",
+    "https://contoso-my.sharepoint.com/shared?id=%2F%2Fevil.example%2Fx",
+    `http://contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
+    `https://contoso-my.sharepoint.com.evil.example/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
+    `https://user:pass@contoso-my.sharepoint.com/_layouts/15/onedrive.aspx?id=${FOLDER_ID}`,
+  ])("does not read %s as a OneDrive link", (url) => {
+    expect(matchIntegrationLink(url)).toBeNull();
+  });
+});
+
+describe("SharePoint Office document links", () => {
+  const SOURCEDOC = "sourcedoc=%7B1D3F2A44-9C1B-4E2A-8F0A-1234567890AB%7D";
+  const WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/doc.aspx?${SOURCEDOC}&action=edit`;
+  const NAMED_WORD_LINK = `https://contoso.sharepoint.com/:w:/r/_layouts/15/Doc.aspx?${SOURCEDOC}&file=Plan.docx&action=edit`;
+
+  it.each([WORD_LINK, NAMED_WORD_LINK])("identifies %s as a document, not a sharing link", (url) => {
+    expect(matchIntegrationLink(url)).toMatchObject({ provider: "microsoft_365", type: "sharepoint-doc" });
+  });
+
+  it.each([
+    [WORD_LINK, "SharePoint document"],
+    [NAMED_WORD_LINK, "Plan.docx"],
+  ])("labels %s as %s", (url, title) => {
+    expect(describeIntegrationLink(url)).toMatchObject({
+      provider: "microsoft_365",
+      title,
+      description: "contoso.sharepoint.com",
+    });
+  });
+
+  it.each([
+    ["%E2%80%AEgpj.exe", "%E2%80%AEgpj.exe"],
+    ["x%0Ay.docx", "x%0Ay.docx"],
+    ["https%3A%2F%2Flogin.microsoftonline.com", "https:%2F%2Flogin.microsoftonline.com"],
+    ["Q3%20Caf%C3%A9.docx", "Q3 Café.docx"],
+  ])("keeps the file name in the label safe: %s", (file, title) => {
+    expect(
+      describeIntegrationLink(`https://contoso.sharepoint.com/:w:/r/_layouts/15/Doc.aspx?${SOURCEDOC}&file=${file}`)?.title,
+    ).toBe(title);
+  });
+});
+
+describe("SharePoint path sharing links", () => {
+  const SHARED = "https://contoso.sharepoint.com/:w:/r/sites/M/Shared%20Documents";
+
+  it.each([
+    [`${SHARED}/Q3%20Plan.docx?d=w1`, "Q3 Plan.docx"],
+    ["https://contoso-my.sharepoint.com/:x:/r/personal/jane_contoso_com/Documents/Budget.xlsx?d=w1&csf=1", "Budget.xlsx"],
+    [`${SHARED}/Plan.docx/`, "Plan.docx"],
+  ])("titles %s by its file name", (url, title) => {
+    expect(describeIntegrationLink(url)).toEqual({
+      provider: "microsoft_365",
+      title,
+      description: new URL(url).host,
+    });
+  });
+
+  it.each([
+    ["an encoded right-to-left override", "Plan%E2%80%AEfdp.docx", "Plan%E2%80%AEfdp.docx"],
+    ["a raw right-to-left override", "Plan\u202Efdp.docx", "Plan%E2%80%AEfdp.docx"],
+    ["an encoded slash", "a%2Fb.docx", "a%2Fb.docx"],
+  ])("keeps a path sharing link safe to display with %s in the file name", (_case, file, title) => {
+    expect(describeIntegrationLink(`${SHARED}/${file}`)?.title).toBe(title);
+  });
+
+  it.each([
+    "https://contoso.sharepoint.com/:w:/s/M/E1?e=2",
+    "https://contoso.sharepoint.com/:w:/s/Team.A/EZabc123?e=xyz",
+    "https://contoso.sharepoint.com/:u:/r/sites/M/Shared%20Documents/README?d=w1",
+  ])("keeps the generic title for a sharing link without a file name: %s", (url) => {
+    expect(describeIntegrationLink(url)?.title).toBe("SharePoint file");
   });
 });
