@@ -95,6 +95,7 @@ const FavoritesPage = lazyWithPrefetch(() => import("@/pages/favorites/favorites
 const UserProfilePage = lazyWithPrefetch(() => import("@/pages/user/user-profile-page"));
 const AiChat = lazyWithPrefetch(() => import("@/ee/ai-chat/pages/ai-chat.tsx"));
 const VerifyEmail = lazyWithPrefetch(() => import("@/ee/pages/verify-email.tsx"));
+const SsoError = lazyWithPrefetch(() => import("@/ee/pages/sso-error.tsx"));
 const LabelPage = lazyWithPrefetch(() => import("@/pages/label/label-page"));
 const OAuthConsent = lazyWithPrefetch(() => import("@/ee/oauth/pages/oauth-consent.tsx"));
 const Integrations = lazyWithPrefetch(
@@ -125,6 +126,7 @@ export default function App() {
 
         <Route element={<WorkspaceLocaleLayout />}>
           <Route path={"/login"} element={<LoginPage />} />
+          <Route path={"/sso/error"} element={<SsoError />} />
           <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
           <Route path={"/forgot-password"} element={<ForgotPassword />} />
           <Route path={"/password-reset"} element={<PasswordReset />} />
