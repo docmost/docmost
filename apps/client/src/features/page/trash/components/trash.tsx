@@ -43,7 +43,7 @@ export default function Trash() {
     cursor, limit: 50
   });
   const restorePageMutation = useRestorePageMutation();
-  const deletePageMutation = useDeletePageMutation();
+  const deletePageMutation = useDeletePageMutation(space?.id);
   const { openRestoreModal } = useRestorePageModal();
 
   const [selectedPage, setSelectedPage] = useState<{

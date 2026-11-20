@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { ErrorBoundary } from "react-error-boundary";
-import { BaseView } from "@/ee/base/components/base-view";
+import { BasePageView } from "@/ee/base/components/base-view";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
@@ -150,8 +150,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
               flexDirection: "column",
             }}
           >
-            <BaseView
-              pageId={page.id}
+            <BasePageView
+              page={page}
               editable={hasBases && canEdit}
               titleSlot={
                 <div

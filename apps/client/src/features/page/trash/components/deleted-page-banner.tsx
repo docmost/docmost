@@ -30,7 +30,7 @@ export function DeletedPageBanner({ slugId }: DeletedPageBannerProps) {
   const spaceAbility = useSpaceAbility(space?.membership?.permissions);
   const deletedTimeAgo = useTimeAgo(page?.deletedAt);
   const restorePageMutation = useRestorePageMutation();
-  const deletePageMutation = useDeletePageMutation();
+  const deletePageMutation = useDeletePageMutation(page?.spaceId);
   const { openRestoreModal } = useRestorePageModal();
   const { openDeleteModal } = useDeletePageModal();
 
