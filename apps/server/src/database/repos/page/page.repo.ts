@@ -138,6 +138,15 @@ export class PageRepo {
     return this.updatePages(updatablePage, [pageId], trx);
   }
 
+  async saveYdocState(pageId: string, ydoc: Buffer, trx?: KyselyTransaction) {
+    await dbOrTx(this.db, trx)
+      .updateTable('pages')
+      .set({ ydoc })
+      .where(isValidUUID(pageId) ? 'id' : 'slugId', '=', pageId)
+      .where('ydoc', 'is distinct from', ydoc)
+      .executeTakeFirst();
+  }
+
   async updatePages(
     updatePageData: UpdatablePage,
     pageIds: string[],

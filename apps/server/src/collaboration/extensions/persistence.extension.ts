@@ -9,6 +9,7 @@ import {
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
+import type { JSONContent } from '@tiptap/core';
 import {
   getPageId,
   isRenderableObject,
@@ -106,8 +107,18 @@ export class PersistenceExtension implements Extension {
 
     const pageId = getPageId(documentName);
 
-    const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
+    let tiptapJson: JSONContent;
+    try {
+      tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
+    } catch (err) {
+      this.logger.error(
+        { err, pageId },
+        'Failed to convert Yjs state to Tiptap JSON',
+      );
+      await this.pageRepo.saveYdocState(pageId, ydocState);
+      return;
+    }
 
     let textContent = null;
 
@@ -134,6 +145,8 @@ export class PersistenceExtension implements Extension {
         }
 
         if (isDeepStrictEqual(tiptapJson, page.content)) {
+          // Edits can return to the same visible content with a newer Yjs state.
+          await this.pageRepo.saveYdocState(page.id, ydocState, trx);
           page = null;
           return;
         }
@@ -168,10 +181,10 @@ export class PersistenceExtension implements Extension {
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
-      page = null;
       editingUserIds.forEach((userId) =>
         this.trackContributor(documentName, userId),
       );
+      throw err;
     }
 
     if (page) {
