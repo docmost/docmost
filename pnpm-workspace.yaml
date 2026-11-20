@@ -16,8 +16,9 @@ overrides:
   tmp: 0.2.7
   nanoid@^3: 3.3.18
   flatted: 3.4.2
-  find-my-way: 9.7.0
-  fastify: 5.12.7
+  find-my-way: 9.10.1
+  fastify: 5.12.8
+  '@fastify/middie': 9.3.8
   yaml@>=2.0.0 <2.8.3: 2.8.3
   brace-expansion@^5: 5.0.12
   axios: 1.20.0
@@ -35,6 +36,14 @@ minimumReleaseAgeExclude:
   - '@hocuspocus/*'
   - '@tiptap/*'
   - react-email@6.11.16
+  - nodemailer@10.6.1
+  - '@nestjs/common@11.2.11'
+  - '@nestjs/core@11.2.11'
+  - '@nestjs/platform-fastify@11.2.11'
+  - '@nestjs/platform-socket.io@11.2.11'
+  - '@nestjs/websockets@11.2.11'
+  - '@nestjs/testing@11.2.11'
+  - '@fastify/middie@9.3.8'
 allowBuilds:
   '@swc/core': true
   bcrypt: true
