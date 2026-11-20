@@ -420,26 +420,35 @@ export function renderableFileUrl(url: string | undefined): string {
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 export const generateNodeId = customAlphabet(alphabet, 12);
 
-export function copyToClipboard(text: string): void {
-  if ("clipboard" in navigator) {
-    navigator.clipboard.writeText(text).catch(() => {
-      execCommandCopy(text);
-    });
-  } else {
-    execCommandCopy(text);
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Some browsers expose the Clipboard API but disallow writes.
+    }
+  }
+  try {
+    return execCommandCopy(text);
+  } catch {
+    return false;
   }
 }
 
-export function execCommandCopy(text: string): void {
+export function execCommandCopy(text: string): boolean {
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.style.position = "fixed";
   textarea.style.left = "-9999px";
   textarea.style.top = "-9999px";
   document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
+  try {
+    textarea.select();
+    return document.execCommand("copy");
+  } finally {
+    textarea.remove();
+  }
 }
 
 // findChildren that walks a top-level block once: nodes never change, so what

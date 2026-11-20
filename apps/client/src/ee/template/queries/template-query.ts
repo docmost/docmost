@@ -172,7 +172,7 @@ export function useUseTemplateMutation() {
   return useMutation<
     IPage,
     Error,
-    { templateId: string; spaceId: string; parentPageId?: string }
+    Parameters<typeof useTemplate>[0]
   >({
     mutationFn: (data) => useTemplate(data),
     onSuccess: (page) => {
@@ -227,7 +227,7 @@ export function useUseTemplateMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to create page from template"),
+        message: t(errorMessage || "Failed to create page from template"),
         color: "red",
       });
     },

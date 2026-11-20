@@ -64,6 +64,14 @@ export type RSAMessageCustomEventComplete = {
   payload: any;
 };
 
+// Older nodes ignore unknown message types. They would treat an error sent
+// as customEventComplete as a successful operation during a rolling upgrade.
+export type RSAMessageCustomEventError = {
+  type: 'customEventError';
+  replyId: number;
+  error: { message: string } | { status: number; response: string | object };
+};
+
 export type RSAMessage =
   | RSAMessageProxy
   | RSAMessageCloseProxy
@@ -71,7 +79,8 @@ export type RSAMessage =
   | RSAMessageClose
   | RSAMessageSend
   | RSAMessageCustomEventStart
-  | RSAMessageCustomEventComplete;
+  | RSAMessageCustomEventComplete
+  | RSAMessageCustomEventError;
 
 // @ts-ignore
 export type Pack = (msg: RSAMessage) => string | Buffer<ArrayBufferLike>;

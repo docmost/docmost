@@ -45,7 +45,7 @@ function docWith(...mentions: object[]) {
 }
 
 // answers every pages select with the mentioned page, everything else with no rows
-function buildService(opts: { accessiblePageIds: string[] }) {
+function buildService(opts: { accessiblePageIds: string[]; content?: object }) {
   const queries: CompiledQuery[] = [];
   const driver = new DummyDriver();
   driver.acquireConnection = async () =>
@@ -87,7 +87,8 @@ function buildService(opts: { accessiblePageIds: string[] }) {
     spaceId: SPACE_ID,
     workspaceId: WORKSPACE_ID,
     parentPageId: null,
-    content: docWith(pageMention(MENTIONED_PAGE_ID, 'Stored label')),
+    content:
+      opts.content ?? docWith(pageMention(MENTIONED_PAGE_ID, 'Stored label')),
   };
   const pageRepo = {
     findById: jest.fn().mockResolvedValue(sourcePage),
@@ -195,6 +196,26 @@ describe('ExportService page mentions', () => {
       expect(args.pageIds).not.toContain('not-a-page-id');
     }
     expect(JSON.stringify(json)).toContain('Live title');
+  });
+});
+
+describe('ExportService unknown nodes', () => {
+  it('leaves out a node type the schema does not know in a single-page export', async () => {
+    const { service } = buildService({
+      accessiblePageIds: [],
+      content: {
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'Before' }] },
+          { type: 'legacyWidget', attrs: { src: 'widget' } },
+          { type: 'paragraph', content: [{ type: 'text', text: 'After' }] },
+        ],
+      },
+    });
+
+    const html = await exportSinglePage(service);
+
+    expect(html).toMatch(/>Before<\/p><p[^>]*>After<\/p>/);
   });
 });
 

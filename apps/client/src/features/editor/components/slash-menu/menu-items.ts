@@ -22,6 +22,7 @@ import {
   IconPhoto,
   IconTable,
   IconTypography,
+  IconCursorText,
   IconMenu4,
   IconPageBreak,
   IconCalendar,
@@ -32,6 +33,7 @@ import {
   IconColumns3,
   IconColumns2,
   IconTag,
+  IconVariable,
   IconMoodSmile,
   IconRotate2,
   IconSuperscript,
@@ -85,6 +87,26 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .toggleNode("paragraph", "paragraph")
           .run();
+      },
+    },
+    {
+      title: "Placeholder text",
+      description: "Show an instruction until someone types here.",
+      searchTerms: ["placeholder", "instruction", "hint"],
+      icon: IconCursorText,
+      disable: (editor) => !editor.can().editTemplatePlaceholder?.(),
+      command: ({ editor, range }) => {
+        editor.chain().deleteRange(range).editTemplatePlaceholder().run();
+      },
+    },
+    {
+      title: "Variable",
+      description: "Fill in a named field when using this template.",
+      searchTerms: ["variable", "field", "prefill"],
+      icon: IconVariable,
+      disable: (editor) => !editor.can().insertTemplateVariable?.(),
+      command: ({ editor, range }) => {
+        editor.chain().deleteRange(range).insertTemplateVariable().run();
       },
     },
     {

@@ -1,4 +1,5 @@
 import { markInputRule, type Editor } from "@tiptap/core";
+import { EditableTemplateVariable } from "@/ee/template/components/template-variable-node";
 import { StarterKit } from "@tiptap/starter-kit";
 import { TiptapDocument } from "@/features/editor/extensions/document";
 import { Code } from "@tiptap/extension-code";
@@ -6,6 +7,7 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList } from "@tiptap/extension-list";
 import { CharacterCount, UndoRedo } from "@tiptap/extensions";
 import { Placeholder } from "@/features/editor/extensions/placeholder";
+import { TemplatePlaceholder } from "@/features/editor/extensions/template-placeholder";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -208,7 +210,7 @@ export const mainExtensions = [
     },
   }),
   SharedStorage,
-  Heading,
+  Heading.configure({ translate: (label) => i18n.t(label) }),
   UniqueID.configure({
     types: ["heading", "paragraph", "transclusionSource"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
@@ -430,6 +432,7 @@ export const mainExtensions = [
   Status.configure({
     view: StatusView,
   }),
+  TemplatePlaceholder,
   DateNode.configure({ locale: () => i18n.resolvedLanguage || "en-US" }).extend({
     addNodeView() {
       return ReactNodeViewRenderer(DateView);
@@ -508,8 +511,12 @@ const TemplateSlashCommand = Command.configure({
   },
 });
 
-export const templateExtensions = [
-  ...mainExtensions.filter((ext: any) => ext !== SlashCommand),
+export const getTemplateExtensions = (onEditPlaceholder: () => void) => [
+  ...mainExtensions.filter(
+    (ext: any) => ext !== SlashCommand && ext !== TemplatePlaceholder,
+  ),
+  TemplatePlaceholder.configure({ onEdit: onEditPlaceholder }),
+  EditableTemplateVariable,
   TemplateSlashCommand,
   UndoRedo,
 ] as any;

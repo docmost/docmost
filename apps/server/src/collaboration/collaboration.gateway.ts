@@ -1,9 +1,9 @@
 import { Hocuspocus } from '@hocuspocus/server';
 import { IncomingMessage } from 'http';
-import WebSocket from 'ws';
+import { WebSocket } from 'ws';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EnvironmentService } from '../integrations/environment/environment.service';
 import {
   createRetryStrategy,
@@ -30,6 +30,7 @@ import {
 
 @Injectable()
 export class CollaborationGateway {
+  private readonly logger = new Logger(CollaborationGateway.name);
   private readonly hocuspocus: Hocuspocus;
   private redisConfig: RedisConfig;
   // @ts-ignore
@@ -62,6 +63,8 @@ export class CollaborationGateway {
       // @ts-ignore
       this.redisSync = new RedisSyncExtension({
         redis: new RedisClient({
+          // The extension connects its publisher and subscriber duplicates.
+          lazyConnect: true,
           host: this.redisConfig.host,
           port: this.redisConfig.port,
           username: this.redisConfig.username,
@@ -97,41 +100,52 @@ export class CollaborationGateway {
     };
   }
 
-  handleConnection(client: WebSocket, request: IncomingMessage): any {
-    if (this.redisSync) {
-      const serializedHTTPRequest = this.serializeRequest(request);
-      const socketId = serializedHTTPRequest.headers['sec-websocket-key'];
+  private openSocket(socket: WsSocketWrapper, request: SerializedHTTPRequest) {
+    const relay = this.redisSync;
+    if (relay) {
+      const socketId = request.headers['sec-websocket-key'];
+      relay.onSocketOpen(socket, request);
+      return {
+        onMessage: (data: Buffer) => relay.onSocketMessage(request, data),
+        onClose: (code: number, reason: Buffer) =>
+          relay.onSocketClose(socketId, code, new Uint8Array(reason).buffer),
+      };
+    }
 
-      const wrappedSocket = new WsSocketWrapper(client);
+    const connection = this.hocuspocus.handleConnection(socket, toWebRequest(request));
+    return {
+      onMessage: (data: Buffer) => connection.handleMessage(new Uint8Array(data)),
+      onClose: (code: number, reason: Buffer) =>
+        connection.handleClose({ code, reason: reason.toString() }),
+    };
+  }
 
-      // Route through RedisSync extension (this calls handleConnection internally)
-      this.redisSync.onSocketOpen(wrappedSocket, serializedHTTPRequest);
-
-      client.on('message', (data: ArrayBuffer) => {
-        this.redisSync!.onSocketMessage(serializedHTTPRequest, data);
-      });
-
-      client.on('close', (code: number, reason: Buffer) => {
-        this.redisSync!.onSocketClose(
-          socketId,
-          code,
-          new Uint8Array(reason).buffer,
-        );
-      });
-    } else {
-      // Fallback to direct Hocuspocus connection
-      const clientConnection = this.hocuspocus.handleConnection(
-        client,
-        toWebRequest(this.serializeRequest(request)),
+  handleConnection(client: WebSocket, request: IncomingMessage): void {
+    const onFailure = (err: unknown) => {
+      this.logger.error({ err }, 'Failed to handle collaboration WebSocket');
+      if (client.readyState === WebSocket.OPEN) client.close(1011);
+    };
+    try {
+      const connection = this.openSocket(
+        new WsSocketWrapper(client, onFailure),
+        this.serializeRequest(request),
       );
-
-      client.on('message', (data: Buffer) => {
-        clientConnection.handleMessage(new Uint8Array(data));
+      client.on('message', async (data: Buffer) => {
+        try {
+          await connection.onMessage(data);
+        } catch (err) {
+          onFailure(err);
+        }
       });
-
       client.on('close', (code: number, reason: Buffer) => {
-        clientConnection.handleClose({ code, reason: reason.toString() });
+        try {
+          connection.onClose(code, reason);
+        } catch (err) {
+          onFailure(err);
+        }
       });
+    } catch (err) {
+      onFailure(err);
     }
   }
 

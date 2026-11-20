@@ -1,24 +1,14 @@
-.ProseMirror .is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
+.ProseMirror .is-editor-empty:first-child::before,
+.ProseMirror .is-empty::before,
+.ProseMirror span.template-placeholder {
   color: var(--mantine-color-placeholder);
-  pointer-events: none;
-  height: 0;
-  /* one line: a wrapped placeholder spills onto the block below */
-  max-width: 100%;
-  white-space: nowrap;
-  overflow-x: clip;
-  text-overflow: ellipsis;
-
-  @media print {
-    display: none;
-  }
+  font: inherit;
 }
 
+.ProseMirror .is-editor-empty:first-child::before,
 .ProseMirror .is-empty::before {
   content: attr(data-placeholder);
   float: left;
-  color: var(--mantine-color-placeholder);
   pointer-events: none;
   height: 0;
   max-width: 100%;
@@ -38,4 +28,39 @@
   @media print {
     display: none;
   }
+}
+
+.ProseMirror {
+  --template-placeholder-display: none;
+}
+
+@media screen {
+  .ProseMirror:is([contenteditable="true"], .template-preview) {
+    --template-placeholder-display: inline;
+  }
+}
+
+.ProseMirror span.template-placeholder {
+  display: var(--template-placeholder-display);
+  cursor: text;
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
+
+  &::before {
+    content: attr(aria-label);
+  }
+}
+
+.ProseMirror[contenteditable="true"]
+  .template-placeholder.ProseMirror-selectednode,
+[data-editing-placeholder] .ProseMirror .selection {
+  background-color: transparent;
+  outline: 1px solid
+    light-dark(var(--mantine-color-placeholder), var(--mantine-color-dimmed));
+  outline-offset: 1px;
+  border-radius: var(--mantine-radius-sm);
+}
+
+[data-editing-placeholder] .ProseMirror *::selection {
+  background-color: transparent;
 }

@@ -130,7 +130,11 @@ export class TemplateRepo {
     const db = dbOrTx(this.db, trx);
     await db
       .updateTable('templates')
-      .set({ ...updatableTemplate, updatedAt: new Date() })
+      .set({
+        ...updatableTemplate,
+        // Each save needs a distinct revision at the API's millisecond precision.
+        updatedAt: sql<Date>`greatest(clock_timestamp(), updated_at + interval '1 millisecond')`,
+      })
       .where('id', '=', templateId)
       .where('workspaceId', '=', workspaceId)
       .execute();
