@@ -1,5 +1,6 @@
 import {
   InfiniteData,
+  infiniteQueryOptions,
   QueryKey,
   useInfiniteQuery,
   UseInfiniteQueryResult,
@@ -72,6 +73,23 @@ export function usePageQuery(
   }, [query.data]);
 
   return query;
+}
+
+// Fills both keys the page route reads, so a hovered link opens from cache.
+export async function prefetchPage(pageId: string) {
+  await queryClient.prefetchQuery({
+    queryKey: ["pages", pageId],
+    queryFn: () => getPageById({ pageId }),
+    staleTime: 5 * 60 * 1000,
+  });
+  const cached = queryClient.getQueryState<IPage>(["pages", pageId]);
+  const slugId = cached?.data?.slugId;
+  if (!slugId || slugId === pageId) return;
+  const mirrored = queryClient.getQueryState(["pages", slugId]);
+  if (mirrored?.data && mirrored.dataUpdatedAt >= cached.dataUpdatedAt) return;
+  queryClient.setQueryData(["pages", slugId], cached.data, {
+    updatedAt: cached.dataUpdatedAt,
+  });
 }
 
 export function useCreatePageMutation() {
@@ -307,8 +325,8 @@ export async function fetchAllAncestorChildren(params: SidebarPagesParams) {
   return buildTree(allItems);
 }
 
-export function useRecentChangesQuery(spaceId?: string) {
-  return useInfiniteQuery({
+const recentChangesQuery = (spaceId?: string) =>
+  infiniteQueryOptions({
     queryKey: ["recent-changes", spaceId],
     queryFn: ({ pageParam }) =>
       getRecentChanges({ spaceId, cursor: pageParam, limit: 15 }),
@@ -317,11 +335,19 @@ export function useRecentChangesQuery(spaceId?: string) {
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     refetchOnMount: true,
   });
+
+export function useRecentChangesQuery(spaceId?: string) {
+  return useInfiniteQuery(recentChangesQuery(spaceId));
 }
 
-export function useCreatedByQuery(params?: { userId?: string; spaceId?: string }) {
-  const { userId, spaceId } = params ?? {};
-  return useInfiniteQuery({
+export function prefetchRecentChanges(spaceId?: string) {
+  void queryClient.prefetchInfiniteQuery(recentChangesQuery(spaceId));
+}
+
+type CreatedByParams = { userId?: string; spaceId?: string };
+
+const createdByQuery = ({ userId, spaceId }: CreatedByParams = {}) =>
+  infiniteQueryOptions({
     queryKey: ["pages-created-by-user", { userId, spaceId }],
     queryFn: ({ pageParam }) => getCreatedByPages({ userId, spaceId, cursor: pageParam, limit: 15 }),
     initialPageParam: undefined as string | undefined,
@@ -329,6 +355,13 @@ export function useCreatedByQuery(params?: { userId?: string; spaceId?: string }
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     refetchOnMount: true,
   });
+
+export function useCreatedByQuery(params?: CreatedByParams) {
+  return useInfiniteQuery(createdByQuery(params));
+}
+
+export function prefetchCreatedBy(params?: CreatedByParams) {
+  void queryClient.prefetchInfiniteQuery(createdByQuery(params));
 }
 
 export function useDeletedPagesQuery(
