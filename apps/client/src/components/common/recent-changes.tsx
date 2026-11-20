@@ -14,6 +14,7 @@ import PageListSkeleton from "@/components/ui/page-list-skeleton.tsx";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils.ts";
 import { formattedDate } from "@/lib/time.ts";
 import { useRecentChangesQuery } from "@/features/page/queries/page-query.ts";
+import { usePagePrefetch } from "@/features/page/hooks/use-page-prefetch";
 import { PageListIcon } from "@/components/common/page-list-icon";
 import { IconFiles } from "@tabler/icons-react";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
@@ -31,6 +32,8 @@ export default function RecentChanges({ spaceId }: Props) {
   const { t } = useTranslation();
   const currentUser = useAtomValue(userAtom);
   const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } = useRecentChangesQuery(spaceId);
+  const { prefetch: prefetchPage, cancel: cancelPagePrefetch } =
+    usePagePrefetch();
   const pages = data?.pages.flatMap((p) => p.items) ?? [];
 
   if (isLoading) {
@@ -53,6 +56,8 @@ export default function RecentChanges({ spaceId }: Props) {
                     className={rowClasses.link}
                     component={Link}
                     to={buildPageUrl(page?.space.slug, page.slugId, page.title)}
+                    onMouseEnter={() => prefetchPage(page.id)}
+                    onMouseLeave={cancelPagePrefetch}
                   >
                     <Group wrap="nowrap">
                       <PageListIcon icon={page.icon} isBase={page.isBase} />

@@ -3,7 +3,7 @@ import type { Editor } from "@tiptap/react";
 import { ColorSelector } from "@/features/editor/components/bubble-menu/color-selector";
 
 interface Props {
-  editor: Editor;
+  editor: Editor | null;
 }
 
 export const ColorGroup: FC<Props> = ({ editor }) => {

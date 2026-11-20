@@ -1,164 +1,143 @@
-import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import * as Y from "yjs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePageYdoc } from "./use-page-ydoc";
 
-const { FakeIndexeddbPersistence, persistences } = vi.hoisted(() => {
-  const persistences: any[] = [];
-
-  // Same surface as the real class: `db` is set once the open promise resolves,
-  // `whenSynced` resolves once the stored updates were applied.
-  class FakeIndexeddbPersistence {
-    db: object | null = null;
-    synced = false;
-    whenSynced: Promise<unknown>;
-    _db: Promise<object>;
-    destroy = vi.fn(() => Promise.resolve());
-    private resolveDb!: (db: object) => void;
-    private rejectDb!: (error: Error) => void;
-    private resolveSynced!: (self: unknown) => void;
-
+const { caches } = vi.hoisted(() => ({ caches: [] as any[] }));
+vi.mock("./page-draft-cache", () => ({
+  PageDraftCache: class {
+    ydoc = new Y.Doc();
+    opened = false;
+    close = vi.fn();
+    useBackupStorage = vi.fn();
+    resumeDrafts = vi.fn(async () => {});
+    resolve!: (cached: boolean) => void;
+    reject!: (error: Error) => void;
+    restore = vi.fn(
+      () =>
+        new Promise<boolean>((resolve, reject) => {
+          this.resolve = resolve;
+          this.reject = reject;
+        }),
+    );
+    discard = vi.fn(async () => {});
     constructor(
-      public name: string,
-      public doc: unknown,
+      public pageId: string,
+      public userId: string,
     ) {
-      this._db = new Promise((resolve, reject) => {
-        this.resolveDb = resolve;
-        this.rejectDb = reject;
-      });
-      this.whenSynced = new Promise((resolve) => {
-        this.resolveSynced = resolve;
-      });
-      this._db.then(
-        (db) => {
-          this.db = db;
-        },
-        () => {},
-      );
-      persistences.push(this);
+      caches.push(this);
     }
-
-    open() {
-      this.resolveDb({});
-    }
-
-    load() {
-      this.synced = true;
-      this.resolveSynced(this);
-    }
-
-    fail(error: Error) {
-      this.rejectDb(error);
-    }
-  }
-
-  return { FakeIndexeddbPersistence, persistences };
-});
-
-vi.mock("y-indexeddb", () => ({
-  IndexeddbPersistence: FakeIndexeddbPersistence,
+  },
 }));
 
+const report = vi.fn();
+const mount = () => renderHook(() => usePageYdoc("page", "user", report));
 beforeEach(() => {
   vi.useFakeTimers();
-  persistences.length = 0;
+  caches.length = 0;
+  report.mockClear();
 });
-
 afterEach(() => {
+  cleanup();
   vi.useRealTimers();
 });
 
 describe("usePageYdoc", () => {
-  it("returns the document only after the local copy has loaded", async () => {
-    const { result } = renderHook(() => usePageYdoc("page-1"));
+  it.each([false, true])(
+    "publishes the restored document and its cached status (%s)",
+    async (cached) => {
+      const { result } = mount();
+      expect(result.current).toBeNull();
+      await act(async () => caches[0].resolve(cached));
+      expect(result.current?.ydoc).toBe(caches[0].ydoc);
+      expect(result.current?.hasCachedDocument).toBe(cached);
+    },
+  );
 
-    expect(result.current).toBeNull();
-    expect(persistences).toHaveLength(1);
-    expect(persistences[0].name).toBe("page.page-1");
-
-    await act(async () => persistences[0].open());
-    expect(result.current).toBeNull();
-
-    await act(async () => persistences[0].load());
-    expect(result.current).toBeInstanceOf(Y.Doc);
-    expect(result.current).toBe(persistences[0].doc);
-  });
-
-  it("returns the document when the database cannot be opened", async () => {
-    const { result } = renderHook(() => usePageYdoc("page-1"));
-
-    await act(async () => persistences[0].fail(new Error("blocked")));
-
-    expect(result.current).toBe(persistences[0].doc);
-  });
-
-  it("returns the document when the database never opens", () => {
-    const { result } = renderHook(() => usePageYdoc("page-1"));
-
-    act(() => {
-      vi.advanceTimersByTime(100);
+  it("recovers once from a rejection and requests server state before editing again", async () => {
+    const { result } = mount();
+    await act(async () => caches[0].resolve(true));
+    const first = result.current!;
+    await act(async () => {
+      expect(first.discardRejectedChanges()).toBe(true);
+      expect(first.discardRejectedChanges()).toBe(false);
     });
+    expect(caches[0].discard).toHaveBeenCalledTimes(1);
+    expect(caches[0].close).toHaveBeenCalledOnce();
     expect(result.current).toBeNull();
-
-    act(() => {
-      vi.advanceTimersByTime(60_000);
-    });
-    expect(result.current).toBe(persistences[0].doc);
+    expect(caches[1].restore).toHaveBeenCalledWith(true);
+    await act(async () => caches[1].resolve(false));
+    expect(result.current?.hasCachedDocument).toBe(false);
+    expect(result.current?.ydoc).not.toBe(first.ydoc);
   });
 
-  it("keeps waiting for a database that opened but is still loading", async () => {
-    const { result } = renderHook(() => usePageYdoc("page-1"));
-
-    await act(async () => persistences[0].open());
-    act(() => {
-      vi.advanceTimersByTime(60_000);
-    });
-    expect(result.current).toBeNull();
-
-    await act(async () => persistences[0].load());
-    expect(result.current).toBe(persistences[0].doc);
-  });
-
-  it("never returns another page's document", async () => {
-    const returned: [string, Y.Doc | null][] = [];
-    const { rerender } = renderHook(
-      ({ pageId }) => {
-        const ydoc = usePageYdoc(pageId);
-        returned.push([pageId, ydoc]);
-        return ydoc;
-      },
-      { initialProps: { pageId: "page-1" } },
+  it("finishes a rollback after navigation without reopening the old page", async () => {
+    let finish!: () => void;
+    const { result, unmount } = mount();
+    caches[0].discard.mockImplementation(
+      () =>
+        new Promise<void>((r) => {
+          finish = r;
+        }),
     );
-    await act(async () => {
-      persistences[0].open();
-      persistences[0].load();
+    await act(async () => caches[0].resolve(true));
+    act(() => {
+      result.current!.discardRejectedChanges();
     });
-    const firstDoc = persistences[0].doc;
-    expect(returned.at(-1)).toEqual(["page-1", firstDoc]);
-
-    rerender({ pageId: "page-2" });
-    await act(async () => {
-      persistences[1].open();
-      persistences[1].load();
-    });
-
-    expect(persistences[1].name).toBe("page.page-2");
-    expect(persistences[1].doc).not.toBe(firstDoc);
-    const forSecondPage = returned
-      .filter(([pageId]) => pageId === "page-2")
-      .map(([, ydoc]) => ydoc);
-    expect(forSecondPage).not.toContain(firstDoc);
-    expect(forSecondPage.at(-1)).toBe(persistences[1].doc);
+    unmount();
+    expect(caches[0].close).not.toHaveBeenCalled();
+    await act(async () => finish());
+    expect(caches[0].close).toHaveBeenCalledOnce();
+    expect(caches).toHaveLength(1);
   });
 
-  it("closes the local copy when the page is left", async () => {
-    const { result, unmount } = renderHook(() => usePageYdoc("page-1"));
-    await act(async () => persistences[0].open());
-
-    unmount();
-    await act(async () => persistences[0].load());
-
-    expect(persistences[0].destroy).toHaveBeenCalledTimes(1);
+  it("waits for an open database and falls back when storage fails", async () => {
+    const { result } = mount();
+    caches[0].opened = true;
+    act(() => vi.advanceTimersByTime(5000));
     expect(result.current).toBeNull();
+    await act(async () => caches[0].reject(new Error("storage failed")));
+    expect(result.current?.hasCachedDocument).toBe(false);
+    expect(result.current?.cache).toBe(caches[1]);
+    expect(caches[1].useBackupStorage).toHaveBeenCalledOnce();
+    expect(report).toHaveBeenCalledOnce();
+  });
+
+  it("uses server state when the database never opens and ignores a late restore", async () => {
+    const { result } = mount();
+    act(() => vi.advanceTimersByTime(5000));
+    const server = result.current!;
+    expect(server.ydoc).not.toBe(caches[0].ydoc);
+    await act(async () => caches[0].resolve(true));
+    expect(result.current).toBe(server);
+  });
+
+  it("uses the server when a transaction stalls after the database opens", async () => {
+    const { result } = mount();
+    caches[0].opened = true;
+    act(() => vi.advanceTimersByTime(10_000));
+    const live = result.current!;
+    live.ydoc.getText("text").insert(0, "live changes");
+    await act(async () => caches[0].resolve(true));
+    expect(result.current).toBe(live);
+    expect(live.ydoc.getText("text").toString()).toBe("live changes");
+    expect(report).toHaveBeenCalledOnce();
+  });
+
+  it("never exposes a previous page or account's editor", async () => {
+    const { result, rerender } = renderHook(
+      ({ page, user }) => usePageYdoc(page, user, report),
+      { initialProps: { page: "a", user: "one" } },
+    );
+    await act(async () => caches[0].resolve(true));
+    rerender({ page: "a", user: "two" });
+    expect(result.current).toBeNull();
+    rerender({ page: "b", user: "two" });
+    await act(async () => {
+      caches[1].resolve(true);
+      caches[2].resolve(true);
+    });
+    expect(result.current?.ydoc).toBe(caches[2].ydoc);
+    expect(caches[0].close).toHaveBeenCalledOnce();
   });
 });

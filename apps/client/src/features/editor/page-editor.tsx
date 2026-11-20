@@ -8,9 +8,13 @@ import React, {
   useState,
 } from "react";
 import {
+  MessageType,
   WebSocketStatus,
   onStatelessParameters,
 } from "@hocuspocus/provider";
+import type { Doc as YDoc } from "yjs";
+import type { PageDraftCache } from "./hooks/page-draft-cache";
+import { notifications } from "@mantine/notifications";
 import {
   HocuspocusProviderWebsocketComponent,
   HocuspocusRoom,
@@ -31,10 +35,10 @@ import {
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
 import { useAtom, useSetAtom } from "jotai";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import useCurrentUser from "@/features/user/hooks/use-current-user";
 import {
   lightboxRequestAtom,
-  pageEditorAtom,
+  pageEditorBindingAtom,
   yjsConnectionStatusAtom,
   yjsSyncedAtom,
 } from "@/features/editor/atoms/editor-atoms";
@@ -75,14 +79,15 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams, useSearchParams } from "react-router-dom";
 import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
-import { PageEditMode } from "@/features/user/types/user.types.ts";
+import { PageEditMode, type IUser } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { usePageYdoc } from "./hooks/use-page-ydoc";
 import { useDestroyEditorBeforeChildren } from "./hooks/use-destroy-editor-before-children";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
-import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
+import { usePageEditMode, usePageSyncPermission } from "@/ee/page-verification/hooks/use-page-edit-mode";
+import { unlockedVerifiedPageIdAtom } from "@/ee/page-verification/atoms/page-edit-lock-atom";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
@@ -113,13 +118,36 @@ export default function PageEditor({
   canComment,
 }: PageEditorProps) {
   const { t } = useTranslation();
-  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
+  const { data: session } = useCurrentUser();
+  const user = session?.user;
+  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken(user);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const [socket] = useState(getCollabSocket);
   const hasCollabToken = !!collabQuery?.token;
-  const [showStatic, setShowStatic] = useState(true);
-  const localDoc = usePageYdoc(pageId);
+  const [syncedDocument, setSyncedDocument] = useState<YDoc | null>(null);
+  const [roomDeniedWrite, setRoomDeniedWrite] = useState(false);
+  const handledWriteRefusal = useRef(false);
+  const reconnecting = useRef(false);
+  const setUnlockedPage = useSetAtom(unlockedVerifiedPageIdAtom);
+  const onStorageError = useCallback(() => {
+    notifications.show({
+      id: "page-local-save-error",
+      color: "yellow",
+      autoClose: false,
+      message: t(
+        "Local saving is unavailable. Keep this tab open until your changes sync.",
+      ),
+    });
+  }, [t]);
+  const { editMode, isCheckingLock, isLocked } = usePageEditMode(pageId);
+  const verifiedReadOnly = isLocked && editMode === PageEditMode.Read;
+  const canReplayDrafts = editable && !roomDeniedWrite && !isCheckingLock && editMode === PageEditMode.Edit;
+  const localDoc = usePageYdoc(pageId, user?.id, onStorageError, canReplayDrafts, verifiedReadOnly);
+  const canMountEditor = Boolean(hasCollabToken && user && localDoc);
+  const showStatic =
+    !canMountEditor ||
+    !(localDoc.hasCachedDocument || syncedDocument === localDoc.ydoc);
 
   useEffect(() => {
     if (!hasCollabToken) return;
@@ -127,32 +155,33 @@ export default function PageEditor({
     return () => releaseCollabSocket();
   }, [hasCollabToken]);
 
+  const restrictPage = (access: "read" | "none") => {
+    setRoomDeniedWrite(true);
+    // A refetch can still read old permissions from the server cache.
+    for (const key of [slugId, pageId]) {
+      queryClient.setQueryData<IPage>(["pages", key], (page) =>
+        page?.permissions?.canEdit
+          ? { ...page, permissions: { ...page.permissions, canEdit: false } }
+          : page,
+      );
+      if (access !== "none") continue;
+      queryClient.getQueryCache()
+        .find({ queryKey: ["pages", key], exact: true })
+        ?.setState({
+          status: "error",
+          fetchStatus: "idle",
+          data: undefined,
+          error: Object.assign(new Error("Forbidden"), { status: 403 }),
+        });
+    }
+    if (access === "none") localDoc?.discardRejectedChanges(true);
+  };
+
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
       const message = JSON.parse(payload);
       if (message?.type === "page.permissions") {
-        // applied locally, a refetch can still read the old access from the server cache
-        for (const key of [slugId, pageId]) {
-          queryClient.setQueryData<IPage>(
-            ["pages", key],
-            (page) =>
-              page && {
-                ...page,
-                permissions: { ...page.permissions, canEdit: false },
-              },
-          );
-        }
-        if (message.access === "none") {
-          queryClient
-            .getQueryCache()
-            .find({ queryKey: ["pages", slugId], exact: true })
-            ?.setState({
-              status: "error",
-              fetchStatus: "idle",
-              data: undefined,
-              error: Object.assign(new Error("Forbidden"), { status: 403 }),
-            });
-        }
+        restrictPage(message.access);
         return;
       }
       if (message?.type !== "page.updated" || !message.updatedAt) return;
@@ -177,6 +206,12 @@ export default function PageEditor({
     const isTokenExpired = now >= payload.exp;
     if (isTokenExpired) {
       refetchCollabToken();
+    } else {
+      setRoomDeniedWrite(true);
+      void queryClient.invalidateQueries({ queryKey: ["pages", slugId], exact: true }).then(() => {
+        const error = queryClient.getQueryState<IPage, { status?: number }>(["pages", slugId])?.error;
+        if (error?.status === 403 || error?.status === 404) localDoc?.discardRejectedChanges(true);
+      });
     }
   };
 
@@ -185,22 +220,69 @@ export default function PageEditor({
       {showStatic && (
         <StaticPageEditor content={content} ariaLabel={t("Page content")} />
       )}
-      {collabQuery?.token && localDoc && (
+      {canMountEditor && (
         <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
           <HocuspocusRoom
             name={`page.${pageId}`}
-            document={localDoc}
+            document={localDoc.ydoc}
             token={collabQuery.token}
             flushDelay={500}
+            onOpen={() => {
+              if (!reconnecting.current) return;
+              reconnecting.current = false;
+              setUnlockedPage((current) => current === pageId ? null : current);
+              void queryClient.invalidateQueries({ queryKey: ["entitlements"], exact: true });
+              void queryClient.invalidateQueries({ queryKey: ["page-verification-info", pageId], exact: true });
+            }}
             onStateless={handleStateless}
             onAuthenticationFailed={handleAuthenticationFailed}
+            onAuthenticated={({ scope }) => {
+              void localDoc.cache
+                ?.authenticated(scope === "read-write")
+                .catch(onStorageError);
+              if (scope === "readonly") {
+                restrictPage("read");
+              } else {
+                handledWriteRefusal.current = false;
+                if (roomDeniedWrite) void queryClient.invalidateQueries({ queryKey: ["pages", slugId], exact: true });
+                setRoomDeniedWrite(false);
+              }
+            }}
+            onSynced={({ state }) => {
+              if (state && syncedDocument !== localDoc.ydoc) {
+                localDoc.cache?.markSynced();
+                setSyncedDocument(localDoc.ydoc);
+              }
+            }}
+            onDisconnect={() => {
+              reconnecting.current = true;
+              localDoc.cache?.disconnected();
+            }}
+            onMessage={({ message }) => {
+              // Hocuspocus sends SyncStatus(0) when it rejects a Yjs update.
+              // The event has its own decoder, separate from the provider's.
+              message.readVarString();
+              const type = message.readVarUint();
+              if (type !== MessageType.SyncStatus || message.readVarUint() !== 0) {
+                localDoc.cache?.incoming(message, type);
+                return;
+              }
+              // Both the handshake and a buffered update can be refused. One
+              // server-only rejoin recovers the page until write access returns.
+              if (handledWriteRefusal.current) return;
+              if (!localDoc.discardRejectedChanges()) return;
+              handledWriteRefusal.current = true;
+              restrictPage("read");
+            }}
           >
             <CollabPageEditor
               pageId={pageId}
-              editable={editable}
+              user={user}
+              editable={editable && !roomDeniedWrite}
               canComment={canComment}
+              requiresConnection={!localDoc.cache?.opened}
+              cache={localDoc.cache}
               showStatic={showStatic}
-              onShown={() => setShowStatic(false)}
             />
           </HocuspocusRoom>
         </HocuspocusProviderWebsocketComponent>
@@ -210,16 +292,20 @@ export default function PageEditor({
 }
 
 type CollabPageEditorProps = Omit<PageEditorProps, "content"> & {
+  user: IUser;
   showStatic: boolean;
-  onShown: () => void;
+  requiresConnection: boolean;
+  cache?: PageDraftCache;
 };
 
 function CollabPageEditor({
   pageId,
   editable,
   canComment,
+  user,
   showStatic,
-  onShown,
+  requiresConnection,
+  cache,
 }: CollabPageEditorProps) {
   const { t } = useTranslation();
   const provider = useHocuspocusProvider();
@@ -230,8 +316,7 @@ function CollabPageEditor({
     isComponentMounted.current = true;
   }, []);
 
-  const [currentUser] = useAtom(currentUserAtom);
-  const [, setEditor] = useAtom(pageEditorAtom);
+  const setPageEditor = useSetAtom(pageEditorBindingAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
@@ -249,7 +334,16 @@ function CollabPageEditor({
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
   const slugId = extractPageSlugId(pageSlug);
-  const { editMode } = usePageEditMode(pageId);
+  const { editMode, isCheckingLock, retryingVerification } = usePageEditMode(pageId);
+  const canPublish = usePageSyncPermission(pageId);
+  useLayoutEffect(() => getCollabSocket().bindRoom(provider, canPublish, cache), [pageId, provider, cache]);
+  // Edits held back during a lock check go out as soon as it settles.
+  useEffect(() => {
+    getCollabSocket().resume(provider);
+  }, [provider, isCheckingLock, retryingVerification, editMode, isRemoteSynced]);
+  const canType =
+    !showStatic && editable && editMode === PageEditMode.Edit &&
+    !isCheckingLock && (!requiresConnection || isRemoteSynced);
   const canScroll = useCallback(
     () => Boolean(isComponentMounted.current && editorRef.current),
     [isComponentMounted],
@@ -257,7 +351,10 @@ function CollabPageEditor({
   const { handleScrollTo } = useEditorScroll({ canScroll });
 
   useHocuspocusEvent("synced", ({ state }) => setIsRemoteSynced(state));
-  useHocuspocusEvent("status", ({ status }) => setYjsConnectionStatus(status));
+  useHocuspocusEvent("status", ({ status }) => {
+    setYjsConnectionStatus(status);
+    if (status === WebSocketStatus.Disconnected) setIsRemoteSynced(false);
+  });
 
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
@@ -280,13 +377,10 @@ function CollabPageEditor({
     }
   }, [isIdle, documentState, provider, resetIdle]);
 
-  const extensions = useMemo(() => {
-    if (!currentUser?.user) {
-      return mainExtensions;
-    }
-
-    return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
-  }, [provider, currentUser?.user]);
+  const extensions = useMemo(
+    () => [...mainExtensions, ...collabExtensions(provider, user)],
+    [provider, user],
+  );
 
   const debouncedUpdateContent = useDebouncedCallback((doc: ProseMirrorNode) => {
     const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
@@ -303,7 +397,7 @@ function CollabPageEditor({
   const editor = useEditor(
     {
       extensions,
-      editable,
+      editable: canType,
       textDirection: "auto",
       immediatelyRender: true,
       shouldRerenderOnTransaction: false,
@@ -354,7 +448,7 @@ function CollabPageEditor({
             editorRef.current,
             event,
             { pageId },
-            currentUser?.user.id,
+            user.id,
           );
         },
         handleDrop: (_view, event, _slice, moved) => {
@@ -382,20 +476,18 @@ function CollabPageEditor({
       onCreate({ editor }) {
         if (editor) {
           // @ts-ignore
-          setEditor(editor);
-          // @ts-ignore
           editor.storage.pageId = pageId;
           handleScrollTo(editor);
           editorRef.current = editor;
         }
       },
       onUpdate({ editor }) {
-        if (editor.isEmpty) return;
+        if (editor.isEmpty || !provider.isAuthenticated) return;
         //update local page cache to reduce flickers
         debouncedUpdateContent(editor.state.doc);
       },
     },
-    [pageId, editable, extensions],
+    [pageId, extensions],
   );
 
   useEffect(() => {
@@ -410,19 +502,18 @@ function CollabPageEditor({
   useDestroyEditorBeforeChildren(editor);
 
   useLayoutEffect(() => {
-    if (editor && !editor.isDestroyed) {
-      // @ts-ignore
-      setEditor(editor);
-      // @ts-ignore
-      editor.storage.pageId = pageId;
-      editorRef.current = editor;
-      // a destroyed editor must not stay behind for the title and header of the next page
-      return () => {
-        // @ts-ignore
-        setEditor((current) => (current === editor ? null : current));
-      };
-    }
-  }, [editor, pageId, setEditor]);
+    if (!editor || editor.isDestroyed) return;
+    if (editor.isEditable !== canType) editor.setEditable(canType, false);
+    if (showStatic) return;
+
+    Object.assign(editor.storage, { pageId });
+    editorRef.current = editor;
+    const binding = { pageId, editor, editable: canType };
+    setPageEditor(binding);
+    return () => {
+      setPageEditor((current) => (current === binding ? null : current));
+    };
+  }, [editor, pageId, setPageEditor, showStatic, canType]);
 
   const editorIsEditable = useEditorState({
     editor,
@@ -485,12 +576,6 @@ function CollabPageEditor({
 
     return () => clearTimeout(timeout);
   }, [yjsConnectionStatus, isSynced]);
-  useEffect(() => {
-    if (!editor) return;
-    editor.setEditable(editable && editMode === PageEditMode.Edit);
-  }, [editMode, editor, editable]);
-
-  const hasConnectedOnceRef = useRef(false);
 
   useSearchNavigationParams({
     editor,
@@ -499,17 +584,6 @@ function CollabPageEditor({
     searchParams,
     showStatic,
   });
-
-  useEffect(() => {
-    if (
-      !hasConnectedOnceRef.current &&
-      yjsConnectionStatus === WebSocketStatus.Connected &&
-      isSynced
-    ) {
-      hasConnectedOnceRef.current = true;
-      onShown();
-    }
-  }, [yjsConnectionStatus, isSynced]);
 
   if (showStatic) {
     return null;
@@ -523,13 +597,13 @@ function CollabPageEditor({
         {editor && (
           <SearchAndReplaceDialog
             editor={editor}
-            editable={editable && editMode === PageEditMode.Edit}
+            editable={canType}
           />
         )}
         {editor && <SearchNavigationDialog editor={editor} />}
 
         <MicrosoftFullscreenModal />
-        {editor && editorIsEditable && (
+        {editor && canType && editorIsEditable && (
           <div>
             <EditorAiMenu editor={editor} />
             <EditorLinkMenu editor={editor} />
@@ -550,7 +624,7 @@ function CollabPageEditor({
             <MicrosoftFolderMenu editor={editor} />
           </div>
         )}
-        {editor && !editorIsEditable && (editable || canComment) && (
+        {editor && (!canType || !editorIsEditable) && (editable || canComment) && (
           <ReadonlyBubbleMenu editor={editor} />
         )}
         {editor && (

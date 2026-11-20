@@ -11,22 +11,48 @@ import { useTreeSocket } from "@/features/websocket/use-tree-socket.ts";
 import { useNotificationSocket } from "@/features/notification/hooks/use-notification-socket.ts";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { useEntitlements } from "@/ee/entitlement/use-entitlements";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { useSyncUserTimezone } from "@/features/user/hooks/use-sync-user-timezone";
 
-export function UserProvider({ children }: React.PropsWithChildren) {
-  const [, setCurrentUser] = useAtom(currentUserAtom);
+export function UserProvider({
+  children, pending,
+}: React.PropsWithChildren<{ pending: React.ReactNode }>) {
+  const [lastSession, setCurrentUser] = useAtom(currentUserAtom);
   const setEntitlements = useSetAtom(entitlementAtom);
-  const { data, isLoading, error, isError } = useCurrentUser();
+  const { data, isPending, error, isError, refetch } = useCurrentUser();
   const { data: entitlements } = useEntitlements();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [, setSocket] = useAtom(socketAtom);
   // fetch collab token on load
-  const { data: collab } = useCollabToken();
+  useCollabToken(data?.user ?? lastSession?.user);
 
   useEffect(() => {
-    if (isLoading || isError) {
+    if (!data?.user) return;
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== "currentUser" || event.storageArea !== localStorage) return;
+      if (!event.newValue) {
+        window.location.replace("/login");
+        return;
+      }
+      try {
+        const next = JSON.parse(event.newValue)?.user;
+        if (next?.id !== data.user.id || next?.workspaceId !== data.user.workspaceId) {
+          window.location.reload();
+        }
+      } catch {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [data?.user?.id, data?.user?.workspaceId]);
+
+  useEffect(() => {
+    if (isPending || isError) {
       return;
     }
 
@@ -46,7 +72,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
       console.log("ws disconnected");
       newSocket.disconnect();
     };
-  }, [isError, isLoading]);
+  }, [isError, isPending]);
 
   useSyncUserTimezone(data?.user);
   useQuerySubscription();
@@ -60,7 +86,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
         data.user.locale === "en" ? "en-US" : data.user.locale,
       );
     }
-  }, [data, isLoading]);
+  }, [data, isPending]);
 
   useEffect(() => {
     if (entitlements) {
@@ -68,14 +94,24 @@ export function UserProvider({ children }: React.PropsWithChildren) {
     }
   }, [entitlements]);
 
-  if (isLoading) return <></>;
+  if (isPending) return pending;
 
   if (isError && error?.["response"]?.status === 404) {
     return <Error404 />;
   }
 
   if (error) {
-    return <></>;
+    return (
+      <EmptyState
+        icon={IconAlertTriangle}
+        title={t("Something went wrong")}
+        action={
+          <Button variant="default" onClick={() => refetch()}>
+            {t("Try again")}
+          </Button>
+        }
+      />
+    );
   }
 
   return <>{children}</>;

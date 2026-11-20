@@ -1,6 +1,13 @@
 import { useAtom } from "jotai";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Text } from "@mantine/core";
 import {
@@ -15,6 +22,7 @@ import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts
 import {
   buildTree,
   buildTreeWithChildren,
+  findPageInTree,
   mergeRootTrees,
   spaceRoots,
   updateSpaceRoots,
@@ -25,7 +33,7 @@ import { treeModel } from "@/features/page/tree/model/tree-model";
 import { getPageBreadcrumbs } from "@/features/page/services/page-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { extractPageSlugId } from "@/lib";
-import { DocTree } from "./doc-tree";
+import { DocTree, type RenderRowProps } from "./doc-tree";
 import { SpaceTreeRow } from "./space-tree-row";
 
 interface SpaceTreeProps {
@@ -35,6 +43,7 @@ interface SpaceTreeProps {
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { t } = useTranslation();
+  const location = useLocation();
   const { pageSlug } = useParams();
   const [data, setData] = useAtom(treeDataAtom);
   const { handleMove } = useTreeMutation(spaceId);
@@ -45,12 +54,59 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     isFetching,
   } = useGetRootSidebarPagesQuery({ spaceId });
   const [openTreeNodes, setOpenTreeNodes] = useAtom(openTreeNodesAtom);
+  const [pressedId, setPressedId] = useState<string>();
+  const [pendingPage, setPendingPage] = useState<{
+    id: string;
+    pathname: string;
+  }>();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const spaceIdRef = useRef(spaceId);
   spaceIdRef.current = spaceId;
-  const { data: currentPage } = usePageQuery({
-    pageId: extractPageSlugId(pageSlug),
-  });
+  const pageId = extractPageSlugId(pageSlug);
+  const { data: currentPage } = usePageQuery({ pageId });
+
+  useEffect(() => {
+    if (!pressedId) return;
+    const events = new AbortController();
+    const options = { capture: true, signal: events.signal };
+    const clear = () => setPressedId(undefined);
+    const release = (event: PointerEvent) => {
+      const target =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>("[data-row-id], button, [data-page-action]")
+          : null;
+      if (
+        target?.dataset.rowId !== pressedId ||
+        event.metaKey || event.ctrlKey || event.altKey || event.shiftKey
+      ) clear();
+    };
+    window.addEventListener("pointerup", release, options);
+    window.addEventListener("pointercancel", clear, options);
+    window.addEventListener("dragstart", clear, options);
+    window.addEventListener("click", clear, { signal: events.signal });
+    window.addEventListener("blur", clear, { signal: events.signal });
+    return () => events.abort();
+  }, [pressedId]);
+
+  const handlePageClick = useCallback((id: string, pathname: string) => {
+    setPendingPage({ id, pathname });
+    setPressedId(undefined);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!pendingPage) return;
+    // The browser URL changes on click. Keep the highlight until the router
+    // catches up, or history moves away (Back can cancel an uncommitted route).
+    const reconcile = () => {
+      if (
+        location.pathname === pendingPage.pathname ||
+        window.location.pathname !== pendingPage.pathname
+      ) setPendingPage(undefined);
+    };
+    reconcile();
+    window.addEventListener("popstate", reconcile);
+    return () => window.removeEventListener("popstate", reconcile);
+  }, [location, pendingPage]);
 
   useEffect(() => {
     setIsDataLoaded(false);
@@ -184,15 +240,24 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     () => spaceRoots(data, spaceId),
     [data, spaceId],
   );
+  const selectedId = useMemo(
+    () => currentPage?.id ?? findPageInTree(filteredData, pageId)?.id,
+    [currentPage?.id, filteredData, pageId],
+  );
 
   // Stable callbacks for DocTree. Without these, every parent render recreates
   // the props and tears down every row's draggable/dropTarget subscription,
   // defeating memo(DocTreeRow).
   const renderRow = useCallback(
-    (rowProps: Parameters<typeof SpaceTreeRow>[0]) => (
-      <SpaceTreeRow {...rowProps} readOnly={readOnly} />
+    (rowProps: RenderRowProps<SpaceTreeNode>) => (
+      <SpaceTreeRow
+        {...rowProps}
+        readOnly={readOnly}
+        onPagePress={setPressedId}
+        onPageClick={handlePageClick}
+      />
     ),
-    [readOnly],
+    [readOnly, handlePageClick],
   );
   const disableDragDrop = useCallback(
     (n: SpaceTreeNode) => n.canEdit === false,
@@ -214,7 +279,8 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         <DocTree<SpaceTreeNode>
           data={filteredData}
           openIds={openIds}
-          selectedId={currentPage?.id}
+          selectedId={selectedId}
+          pendingSelectionId={pressedId ?? pendingPage?.id}
           renderRow={renderRow}
           onMove={handleMove}
           onToggle={handleToggle}

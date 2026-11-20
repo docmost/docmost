@@ -8,6 +8,11 @@ import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { homeTabAtom } from "@/features/home/atoms/home-tab-atom";
+import {
+  prefetchCreatedBy,
+  prefetchRecentChanges,
+} from "@/features/page/queries/page-query";
+import { prefetchFavorites } from "@/features/favorite/queries/favorite-query";
 
 export default function SpaceHomeTabs() {
   const { t } = useTranslation();
@@ -24,17 +29,29 @@ export default function SpaceHomeTabs() {
       }}
     >
       <Tabs.List style={{ flexWrap: "nowrap", overflowX: "auto" }}>
-        <Tabs.Tab value="recent" leftSection={<IconClockHour3 size={18} />}>
+        <Tabs.Tab
+          value="recent"
+          leftSection={<IconClockHour3 size={18} />}
+          onMouseEnter={() => space?.id && prefetchRecentChanges(space.id)}
+        >
           <Text size="sm" fw={500}>
             {t("Recently updated")}
           </Text>
         </Tabs.Tab>
-        <Tabs.Tab value="favorites" leftSection={<IconStar size={18} />}>
+        <Tabs.Tab
+          value="favorites"
+          leftSection={<IconStar size={18} />}
+          onMouseEnter={() => space?.id && prefetchFavorites("page", space.id)}
+        >
           <Text size="sm" fw={500}>
             {t("Favorites")}
           </Text>
         </Tabs.Tab>
-        <Tabs.Tab value="created" leftSection={<IconUser size={18} />}>
+        <Tabs.Tab
+          value="created"
+          leftSection={<IconUser size={18} />}
+          onMouseEnter={() => space?.id && prefetchCreatedBy({ spaceId: space.id })}
+        >
           <Text size="sm" fw={500}>
             {t("Created by me")}
           </Text>

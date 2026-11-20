@@ -6,6 +6,11 @@ import CreatedByMe from "./created-by-me";
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { homeTabAtom } from "@/features/home/atoms/home-tab-atom";
+import {
+  prefetchCreatedBy,
+  prefetchRecentChanges,
+} from "@/features/page/queries/page-query";
+import { prefetchFavorites } from "@/features/favorite/queries/favorite-query";
 
 export default function HomeTabs() {
   const { t } = useTranslation();
@@ -20,17 +25,29 @@ export default function HomeTabs() {
       }}
     >
       <Tabs.List style={{ flexWrap: "nowrap", overflowX: "auto" }}>
-        <Tabs.Tab value="recent" leftSection={<IconClockHour3 size={18} />}>
+        <Tabs.Tab
+          value="recent"
+          leftSection={<IconClockHour3 size={18} />}
+          onMouseEnter={() => prefetchRecentChanges()}
+        >
           <Text size="sm" fw={500}>
             {t("Recently updated")}
           </Text>
         </Tabs.Tab>
-        <Tabs.Tab value="favorites" leftSection={<IconStar size={18} />}>
+        <Tabs.Tab
+          value="favorites"
+          leftSection={<IconStar size={18} />}
+          onMouseEnter={() => prefetchFavorites("page")}
+        >
           <Text size="sm" fw={500}>
             {t("Favorites")}
           </Text>
         </Tabs.Tab>
-        <Tabs.Tab value="created" leftSection={<IconUser size={18} />}>
+        <Tabs.Tab
+          value="created"
+          leftSection={<IconUser size={18} />}
+          onMouseEnter={() => prefetchCreatedBy()}
+        >
           <Text size="sm" fw={500}>
             {t("Created by me")}
           </Text>

@@ -8,6 +8,7 @@ import { IPagination } from "@/lib/types";
 import {
   invalidateOnCreatePage,
   invalidateOnDeletePage,
+  refreshPageTrashQueries,
   updateCacheOnMovePage,
   invalidateOnUpdatePage,
 } from "../page/queries/page-query";
@@ -93,6 +94,7 @@ export const useQuerySubscription = () => {
         }
         case "addTreeNode":
           invalidateOnCreatePage(data.payload.data);
+          if (data.payload.restored) refreshPageTrashQueries(data.spaceId);
           break;
         case "moveTreeNode":
           updateCacheOnMovePage(
@@ -104,7 +106,7 @@ export const useQuerySubscription = () => {
           );
           break;
         case "deleteTreeNode":
-          invalidateOnDeletePage(data.payload.node.id);
+          invalidateOnDeletePage(data.payload.node.id, data.spaceId);
           break;
         case "updateOne": {
           entity = data.entity[0];

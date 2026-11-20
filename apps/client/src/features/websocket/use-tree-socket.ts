@@ -4,7 +4,6 @@ import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { WebSocketEvent } from "@/features/websocket/types";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { useQueryClient } from "@tanstack/react-query";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { updateSpaceRoots } from "@/features/page/tree/utils/utils.ts";
 import localEmitter from "@/lib/local-emitter.ts";
@@ -12,7 +11,6 @@ import localEmitter from "@/lib/local-emitter.ts";
 export const useTreeSocket = () => {
   const [socket] = useAtom(socketAtom);
   const [, setTreeData] = useAtom(treeDataAtom);
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     const updateNodeName = (event) => {
@@ -129,9 +127,6 @@ export const useTreeSocket = () => {
         case "deleteTreeNode":
           setTreeData((prev) => {
             if (!treeModel.find(prev, event.payload.node.id)) return prev;
-            queryClient.invalidateQueries({
-              queryKey: ["pages", event.payload.node.slugId].filter(Boolean),
-            });
             let next = treeModel.remove(prev, event.payload.node.id);
             // Mirror the emitter's hasChildren bookkeeping so both clients
             // converge to the same chevron state when the last child is deleted.

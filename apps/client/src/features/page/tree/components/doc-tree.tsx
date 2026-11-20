@@ -51,6 +51,9 @@ export type DocTreeProps<T extends object> = {
   data: TreeNode<T>[];
   openIds: ReadonlySet<string>;
   selectedId?: string;
+  // Highlight the destination through the route commit. Only a committed
+  // selection should scroll the tree or change the keyboard tab stop.
+  pendingSelectionId?: string;
 
   renderRow: (props: RenderRowProps<T>) => ReactNode;
   indentPerLevel?: number;
@@ -132,6 +135,7 @@ function DocTreeInner<T extends object>(
     data,
     openIds,
     selectedId,
+    pendingSelectionId,
     renderRow,
     indentPerLevel = 16,
     rowHeight = 32,
@@ -551,7 +555,7 @@ function DocTreeInner<T extends object>(
                 level={row.level}
                 isLastSibling={row.isLastSibling}
                 openIds={openIds}
-                selectedId={selectedId}
+                selectedId={pendingSelectionId ?? selectedId}
                 activeId={effectiveActiveId}
                 renderRow={renderRow}
                 indentPerLevel={indentPerLevel}

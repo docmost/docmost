@@ -42,12 +42,13 @@ import { ResolvedCover } from "@/features/page-cover/page-cover.types.ts";
 type PageCoverProps = {
   page: IPage;
   editable: boolean;
+  belowToolbar: boolean;
 };
 
-export function PageCover({ page, editable }: PageCoverProps) {
-  const cover = resolveCover(page.coverPhoto);
+export function PageCover(props: PageCoverProps) {
+  const cover = resolveCover(props.page.coverPhoto);
   if (!cover) return null;
-  return <PageCoverBand page={page} cover={cover} editable={editable} />;
+  return <PageCoverBand {...props} cover={cover} />;
 }
 
 type PageCoverBandProps = PageCoverProps & { cover: ResolvedCover };
@@ -61,7 +62,12 @@ const pillButtonProps = {
 
 type DragState = { startY: number; startPosition: number; overflow: number };
 
-function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
+function PageCoverBand({
+  page,
+  cover,
+  editable,
+  belowToolbar,
+}: PageCoverBandProps) {
   const { t } = useTranslation();
   const hintId = useId();
   const instructionsId = useId();
@@ -70,7 +76,6 @@ function PageCoverBand({ page, cover, editable }: PageCoverBandProps) {
   const fullPageWidth = user?.settings?.preferences?.fullPageWidth;
   const editMode = useAtomValue(currentPageEditModeAtom);
   const canEdit = editable && editMode === PageEditMode.Edit;
-  const belowToolbar = canEdit && user?.settings?.preferences?.editorToolbar;
   const { updateCover } = usePageCover(page);
   const [focusRequest, setFocusRequest] = useAtom(coverFocusRequestAtom);
 

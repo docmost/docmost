@@ -8,8 +8,8 @@ import type { ToolbarState } from "../use-toolbar-state";
 import classes from "../fixed-toolbar.module.css";
 
 interface Props {
-  editor: Editor;
-  state: ToolbarState;
+  editor: Editor | null;
+  state: ToolbarState | null;
 }
 
 export const ListsGroup: FC<Props> = ({ editor, state }) => {
@@ -23,9 +23,9 @@ export const ListsGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("Bullet List")}
-          aria-pressed={state.isBulletList}
-          className={clsx({ [classes.active]: state.isBulletList })}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          aria-pressed={state?.isBulletList}
+          className={clsx({ [classes.active]: state?.isBulletList })}
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
         >
           <IconList size={16} />
         </ActionIcon>
@@ -36,9 +36,9 @@ export const ListsGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("Numbered List")}
-          aria-pressed={state.isOrderedList}
-          className={clsx({ [classes.active]: state.isOrderedList })}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          aria-pressed={state?.isOrderedList}
+          className={clsx({ [classes.active]: state?.isOrderedList })}
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
         >
           <IconListNumbers size={16} />
         </ActionIcon>
@@ -49,9 +49,9 @@ export const ListsGroup: FC<Props> = ({ editor, state }) => {
           color="dark"
           size="md"
           aria-label={t("To-do List")}
-          aria-pressed={state.isTaskList}
-          className={clsx({ [classes.active]: state.isTaskList })}
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
+          aria-pressed={state?.isTaskList}
+          className={clsx({ [classes.active]: state?.isTaskList })}
+          onClick={() => editor?.chain().focus().toggleTaskList().run()}
         >
           <IconCheckbox size={16} />
         </ActionIcon>

@@ -1,4 +1,6 @@
 .editor {
+    display: flex;
+    flex-direction: column;
     height: 100%;
     min-height: calc(100dvh - var(--app-shell-header-height, 45px) - 96px);
     padding: 8px 0;
@@ -23,6 +25,68 @@
     }
 }
 
+.loadingContent {
+    padding-inline: 3rem;
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        padding-inline: 1rem;
+    }
+}
+
+.loadingTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+    margin: 0 0 0.75em;
+}
+
+.loadingTitlePlaceholder {
+    height: 3rem;
+    margin-bottom: 1.875rem;
+    display: flex;
+    align-items: center;
+}
+
+.loadingLines {
+    display: grid;
+    gap: 12px;
+    padding-top: 0.5rem;
+}
+
+.loadingLines,
+.loadingTitlePlaceholder {
+    @media (prefers-reduced-motion: no-preference) {
+        animation: revealLoadingLines 250ms ease-in-out 500ms backwards;
+    }
+}
+
+.toolbarSpacer {
+    flex-shrink: 0;
+    height: var(--page-header-height, 45px);
+}
+
+.documentBody {
+    display: flow-root;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+    .documentReveal {
+        animation: revealDocument 140ms ease-out;
+    }
+}
+
+@keyframes revealDocument {
+    from { opacity: 0.65; }
+    to { opacity: 1; }
+}
+
+@keyframes revealLoadingLines {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .addCover {
     opacity: 0;
     transition: opacity 120ms ease;
@@ -41,6 +105,8 @@
 }
 
 .byline {
+    min-height: var(--ai-size-md, 1.75rem);
+    margin-block: -0.5em var(--mantine-spacing-md);
     padding-left: 3rem;
 
     @media (max-width: $mantine-breakpoint-sm) {
