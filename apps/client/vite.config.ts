@@ -62,6 +62,10 @@ export default defineConfig(({ mode }) => {
         "@": "/src",
       },
     },
+    // the dep scanner skips worker entries, so their deps would trigger a full reload on first use
+    optimizeDeps: {
+      include: ["papaparse"],
+    },
     server: {
       proxy: {
         "/api": {
