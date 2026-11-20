@@ -24,7 +24,7 @@ export function useCollabToken(): UseQueryResult<ICollabToken, Error> {
     refetchOnMount: true,
     //@ts-ignore
     retry: (failureCount, error) => {
-      if (isAxiosError(error) && error.response.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         return false;
       }
       return 10;
