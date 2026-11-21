@@ -29,6 +29,7 @@ export class PageHistoryRepo {
     'spaceId',
     'workspaceId',
     'createdAt',
+    'version',
   ];
 
   async findById(
@@ -116,16 +117,32 @@ export class PageHistoryRepo {
       .where('pageId', '=', pageId)
       .limit(1)
       .orderBy('createdAt', 'desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
   withLastUpdatedBy(eb: ExpressionBuilder<DB, 'pageHistory'>) {
-    return jsonObjectFrom(
-      eb
-        .selectFrom('users')
-        .select(['users.id', 'users.name', 'users.avatarUrl'])
-        .whereRef('users.id', '=', 'pageHistory.lastUpdatedById'),
-    ).as('lastUpdatedBy');
+    return eb
+      .case()
+      .when(
+        eb.and([
+          eb('pageHistory.version', 'is not', null),
+          eb('pageHistory.lastUpdatedById', 'is', null),
+        ]),
+      )
+      .then(
+        sql`json_build_object('id', null, 'name', ${'Unknown User'}::text, 'avatar_url', null)`,
+      )
+      .else(
+        jsonObjectFrom(
+          eb
+            .selectFrom('users')
+            .select(['users.id', 'users.name', 'users.avatarUrl'])
+            .whereRef('users.id', '=', 'pageHistory.lastUpdatedById'),
+        ),
+      )
+      .end()
+      .as('lastUpdatedBy');
   }
 
   withContributors(eb: ExpressionBuilder<DB, 'pageHistory'>) {
