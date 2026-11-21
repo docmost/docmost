@@ -378,7 +378,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
         <Stack>
           <Text size="sm" c="dimmed">
             {t(
-              "Pages, comments, page labels, users, groups, spaces and permissions will be imported.",
+              "The selected spaces are imported with their pages, attachments, comments, labels, users, groups, permissions, and custom templates. Global custom templates are imported into the workspace.",
             )}
           </Text>
 

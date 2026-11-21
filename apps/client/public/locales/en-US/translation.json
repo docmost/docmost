@@ -257,6 +257,8 @@
   "Successfully restored": "Successfully restored",
   "System settings": "System settings",
   "Templates": "Templates",
+  "Connect to Confluence Cloud or Data Center to import spaces, pages, templates, attachments, comments, users, groups and permissions directly via the API.": "Connect to Confluence Cloud or Data Center to import spaces, pages, templates, attachments, comments, users, groups and permissions directly via the API.",
+  "The selected spaces are imported with their pages, attachments, comments, labels, users, groups, permissions, and custom templates. Global custom templates are imported into the workspace.": "The selected spaces are imported with their pages, attachments, comments, labels, users, groups, permissions, and custom templates. Global custom templates are imported into the workspace.",
   "Theme": "Theme",
   "To change your email, you have to enter your password and new email.": "To change your email, you have to enter your password and new email.",
   "Toggle full page width": "Toggle full page width",

@@ -49,6 +49,8 @@ export type ImportStatusResponse = {
   importedSpaces?: number;
   totalPages?: number;
   importedPages?: number;
+  totalTemplates?: number;
+  importedTemplates?: number;
   totalUsers?: number;
   importedUsers?: number;
   totalGroups?: number;
@@ -70,6 +72,8 @@ export type ConfluenceImportHistoryItem = {
   importedSpaces: number;
   totalPages: number;
   importedPages: number;
+  totalTemplates: number;
+  importedTemplates: number;
   totalUsers: number;
   importedUsers: number;
   totalGroups: number;

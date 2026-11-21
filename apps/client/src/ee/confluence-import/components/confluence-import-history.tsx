@@ -146,6 +146,11 @@ function ImportStatsModal({
           total: item.totalPages,
         },
         {
+          label: t("Templates"),
+          imported: item.importedTemplates,
+          total: item.totalTemplates,
+        },
+        {
           label: t("Users"),
           imported: item.importedUsers,
           total: item.totalUsers,

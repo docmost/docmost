@@ -18,6 +18,8 @@ export interface ConfluenceApiImports {
   importedSpaces: Generated<number>;
   totalPages: Generated<number>;
   importedPages: Generated<number>;
+  totalTemplates: Generated<number>;
+  importedTemplates: Generated<number>;
   totalUsers: Generated<number>;
   importedUsers: Generated<number>;
   totalAttachments: Generated<number>;

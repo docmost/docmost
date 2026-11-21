@@ -43,7 +43,7 @@ export default function ConfluenceImportPage() {
               <Text fw={600}>{t("Confluence API import")}</Text>
               <Text size="sm" c="dimmed" maw={560}>
                 {t(
-                  "Connect to Confluence Cloud or Data Center to import spaces, pages, attachments, comments, users, groups and permissions directly via the API.",
+                  "Connect to Confluence Cloud or Data Center to import spaces, pages, templates, attachments, comments, users, groups and permissions directly via the API.",
                 )}
               </Text>
             </Stack>
