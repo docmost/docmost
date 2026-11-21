@@ -8,6 +8,19 @@ export const TableCell = TiptapTableCell.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+
+      colwidth: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('colwidth') || null,
+        renderHTML: (attributes) => {
+          if (!attributes.colwidth) return {};
+          if (typeof attributes.colwidth === 'string') {
+            return { colwidth: attributes.colwidth };
+          }
+          return { colwidth: (attributes.colwidth as number[]).join(',') };
+        },
+      },
+
       backgroundColor: {
         default: null,
         parseHTML: (element) =>

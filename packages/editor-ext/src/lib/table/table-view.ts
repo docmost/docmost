@@ -2,6 +2,15 @@ import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type { NodeView, ViewMutationRecord } from '@tiptap/pm/view';
 import { getColStyleDeclaration } from './utils/col-style';
 
+function parseColwidth(colwidth: unknown): number[] | null {
+  if (!colwidth) return null;
+  if (typeof colwidth === 'string') {
+    return colwidth.split(',').map(Number);
+  }
+  if (Array.isArray(colwidth)) return colwidth;
+  return null;
+}
+
 export function updateColumns(
   node: ProseMirrorNode,
   colgroup: HTMLElement,
@@ -18,12 +27,13 @@ export function updateColumns(
   if (row !== null) {
     for (let i = 0, col = 0; i < row.childCount; i += 1) {
       const { colspan, colwidth } = row.child(i).attrs;
+      const colwidthArr = parseColwidth(colwidth);
 
       for (let j = 0; j < colspan; j += 1, col += 1) {
         const hasWidth =
           overrideCol === col
             ? overrideValue
-            : ((colwidth && colwidth[j]) as number | undefined);
+            : ((colwidthArr?.[j]) as number | undefined);
         const cssWidth = hasWidth ? `${hasWidth}px` : '';
 
         totalWidth += hasWidth || cellMinWidth;
