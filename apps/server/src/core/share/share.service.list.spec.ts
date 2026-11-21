@@ -61,6 +61,7 @@ function makeService() {
     {} as any,
     {} as any,
     {} as any,
+    {} as any,
   );
 }
 

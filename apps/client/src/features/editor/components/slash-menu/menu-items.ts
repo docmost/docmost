@@ -37,6 +37,7 @@ import {
   IconMoodSmile,
   IconRotate2,
   IconSuperscript,
+  IconBrandHtml5,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -72,6 +73,7 @@ import { notifications } from "@mantine/notifications";
 import { isIntegrationInstalled } from "@/features/integration/utils/installed-integrations";
 import { requestMicrosoftPicker } from "@/features/microsoft/atoms/microsoft-atoms";
 import { isCloud } from "@/lib/config";
+import { canEditHtmlBlocksNow } from "@/ee/html-block/utils/html-block-access";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -698,6 +700,22 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .setEmbed({ provider: "iframe" })
           .run();
       },
+    },
+    {
+      title: "HTML",
+      description: "Add custom HTML, CSS and JavaScript",
+      searchTerms: [
+        "html",
+        "css",
+        "javascript",
+        "script",
+        "widget",
+        "code embed",
+      ],
+      icon: IconBrandHtml5,
+      disable: () => !canEditHtmlBlocksNow(),
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).insertHtmlBlock().run(),
     },
     {
       title: "Airtable",

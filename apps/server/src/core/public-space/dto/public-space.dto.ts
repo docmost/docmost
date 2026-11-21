@@ -34,6 +34,11 @@ export class PublicSpaceTransclusionLookupDto extends LookupDto {
   spaceSlug!: string;
 }
 
+export class PublicSpaceHtmlBlockDto extends PublicSpaceSlugDto {
+  @IsUUID()
+  htmlBlockId: string;
+}
+
 export class PublicSpaceAppearanceDto {
   @IsOptional()
   @Matches(APPEARANCE_HEX_REGEX)

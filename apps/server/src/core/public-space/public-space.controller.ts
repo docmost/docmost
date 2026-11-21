@@ -17,6 +17,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { PublicSpaceService } from './public-space.service';
 import {
   PublicSpaceForSpaceDto,
+  PublicSpaceHtmlBlockDto,
   PublicSpacePageDto,
   PublicSpaceSlugDto,
   PublicSpaceTransclusionLookupDto,
@@ -154,6 +155,20 @@ export class PublicSpaceController {
     return this.publicSpaceService.lookupTransclusionForPublicSpace(
       dto.spaceSlug,
       dto.references,
+      workspace,
+    );
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/html-block/info')
+  async getHtmlBlock(
+    @Body() dto: PublicSpaceHtmlBlockDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.publicSpaceService.getHtmlBlockForPublicSpace(
+      dto.spaceSlug,
+      dto.htmlBlockId,
       workspace,
     );
   }

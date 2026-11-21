@@ -30,6 +30,7 @@ import { generateSlugId } from '../../../common/helpers';
 import { getPageTitle } from '../../../common/helpers';
 import { dbOrTx, executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
 import { v7 as uuid7 } from 'uuid';
 import {
   createYdocFromJson,
@@ -38,6 +39,10 @@ import {
   replaceAttachmentIds,
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
+import {
+  getHtmlBlockIds,
+  replaceHtmlBlockIds,
+} from '../../../common/helpers/prosemirror/html-block.utils';
 import {
   htmlToJson,
   jsonToNode,
@@ -105,6 +110,7 @@ export class PageService {
     private readonly shareService: ShareService,
     private readonly unsplashService: UnsplashService,
     private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
+    private readonly htmlBlockRepo: HtmlBlockRepo,
   ) {}
 
   async findById(
@@ -867,6 +873,22 @@ export class PageService {
         .map((attachment) => attachment.id),
     );
 
+    const referencedHtmlBlockIds = new Set(
+      pages.flatMap((page) =>
+        getHtmlBlockIds(getProsemirrorContent(page.content)),
+      ),
+    );
+    // only blocks owned by a copied page are copied; the rest keep their ids
+    const ownedHtmlBlocks = (
+      await this.htmlBlockRepo.findByIds(
+        Array.from(referencedHtmlBlockIds),
+        rootPage.workspaceId,
+      )
+    ).filter((block) => pageMap.has(block.pageId));
+    const copiedHtmlBlockIds = new Map(
+      ownedHtmlBlocks.map((block) => [block.id, uuid7()]),
+    );
+
     const insertablePages: InsertablePage[] = await Promise.all(
       pages.map(async (page) => {
         const pageContent = getProsemirrorContent(page.content);
@@ -943,9 +965,9 @@ export class PageService {
           }
         });
 
-        const prosemirrorJson = replaceAttachmentIds(
-          prosemirrorDoc.toJSON(),
-          copiedAttachmentIds,
+        const prosemirrorJson = replaceHtmlBlockIds(
+          replaceAttachmentIds(prosemirrorDoc.toJSON(), copiedAttachmentIds),
+          copiedHtmlBlockIds,
         );
 
         // Add "Copy of " prefix to the root page title only for duplicates in same space
@@ -985,6 +1007,16 @@ export class PageService {
 
     const copiedRestrictions = await executeTx(this.db, async (trx) => {
       await trx.insertInto('pages').values(insertablePages).execute();
+      await this.htmlBlockRepo.insertMany(
+        ownedHtmlBlocks.map((block) => ({
+          id: copiedHtmlBlockIds.get(block.id),
+          workspaceId: block.workspaceId,
+          pageId: pageMap.get(block.pageId).newPageId,
+          content: block.content,
+          creatorId: authUser.id,
+        })),
+        trx,
+      );
       await this.labelRepo.copyLabelsToPages(
         new Map([...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId])),
         trx,

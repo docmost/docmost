@@ -34,6 +34,8 @@ export interface IWorkspace {
   trashRetentionDays?: number;
   restrictApiToAdmins?: boolean;
   allowMemberTemplates?: boolean;
+  htmlBlocks?: boolean;
+  allowMemberHtmlBlocks?: boolean;
   allowPersonalSpaces?: boolean;
   defaultPageEditMode?: string;
   defaultLocale?: string;
@@ -46,6 +48,7 @@ export interface IWorkspaceSettings {
   export?: IWorkspaceExportSettings;
   api?: IWorkspaceApiSettings;
   templates?: IWorkspaceTemplateSettings;
+  htmlBlocks?: IWorkspaceHtmlBlockSettings;
   spaces?: IWorkspaceSpaceSettings;
   publicSpaces?: IWorkspacePublicSpacesSettings;
   defaultPageEditMode?: string;
@@ -76,6 +79,11 @@ export interface IWorkspaceExportSettings {
 
 export interface IWorkspaceTemplateSettings {
   allowMemberTemplates?: boolean;
+}
+
+export interface IWorkspaceHtmlBlockSettings {
+  enabled?: boolean;
+  allowMembers?: boolean;
 }
 
 export interface IWorkspaceSpaceSettings {

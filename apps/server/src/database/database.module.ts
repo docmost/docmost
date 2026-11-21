@@ -36,6 +36,7 @@ import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
 import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { TemplateRepo } from '@docmost/db/repos/template/template.repo';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
 import { PageListener } from '@docmost/db/listeners/page.listener';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import * as postgres from 'postgres';
@@ -104,6 +105,7 @@ import { DatabaseModuleOptions } from './database.types';
     WatcherRepo,
     LabelRepo,
     TemplateRepo,
+    HtmlBlockRepo,
     PageListener,
   ],
   exports: [
@@ -130,6 +132,7 @@ import { DatabaseModuleOptions } from './database.types';
     WatcherRepo,
     LabelRepo,
     TemplateRepo,
+    HtmlBlockRepo,
   ],
 })
 export class DatabaseModule implements OnApplicationBootstrap {

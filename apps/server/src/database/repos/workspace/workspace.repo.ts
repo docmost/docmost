@@ -309,6 +309,26 @@ export class WorkspaceRepo {
       .executeTakeFirst();
   }
 
+  async updateHtmlBlockSettings(
+    workspaceId: string,
+    prefKey: 'enabled' | 'allowMembers',
+    prefValue: boolean,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('workspaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('htmlBlocks', COALESCE(settings->'htmlBlocks', '{}'::jsonb)
+                || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', workspaceId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
+  }
+
   async updateSpaceSettings(
     workspaceId: string,
     prefKey: string,

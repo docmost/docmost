@@ -80,6 +80,7 @@ import {
   Tab,
   TabLabel,
   TabPanel,
+  HtmlBlock,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -107,6 +108,7 @@ import CodeBlockView from "@/features/editor/components/code-block/code-block-vi
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view-lazy.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
+import { HtmlBlockView } from "@/ee/html-block/components/html-block-view";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import IntegrationCardView from "@/features/editor/components/integration-link/integration-card-view.tsx";
@@ -407,6 +409,9 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
+  }),
+  HtmlBlock.configure({
+    view: HtmlBlockView,
   }),
   TiptapPdf.configure({
     view: PdfView,

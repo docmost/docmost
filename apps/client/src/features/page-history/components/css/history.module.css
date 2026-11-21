@@ -69,6 +69,22 @@
     border-radius: rem(4px);
   }
 
+  & :global(.history-diff-html-block) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: rem(6px);
+    padding: var(--mantine-spacing-xs);
+    border: rem(1px) solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+    color: var(--mantine-color-dimmed);
+    font-size: var(--mantine-font-size-sm);
+
+    & svg {
+      flex-shrink: 0;
+    }
+  }
+
   /* a removed item must not renumber the items that are still there */
   & :global(ol > li.history-diff-block-deleted) {
     counter-increment: list-item 0;

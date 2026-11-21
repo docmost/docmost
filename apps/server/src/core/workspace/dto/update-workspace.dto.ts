@@ -76,6 +76,14 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
 
   @IsOptional()
   @IsBoolean()
+  htmlBlocks: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowMemberHtmlBlocks: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   allowPersonalSpaces: boolean;
 
   @IsOptional()

@@ -29,6 +29,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
 import slugify from '@sindresorhus/slugify';
@@ -41,6 +42,10 @@ import {
   getProsemirrorContent,
   updateUserMentionLabels,
 } from '../../common/helpers/prosemirror/utils';
+import {
+  getHtmlBlockIds,
+  replaceHtmlBlocksWithCode,
+} from '../../common/helpers/prosemirror/html-block.utils';
 import { htmlToMarkdown } from '@docmost/editor-ext';
 import { validate as isValidUUID } from 'uuid';
 
@@ -59,6 +64,7 @@ export class ExportService {
     private readonly domainService: DomainService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly userRepo: UserRepo,
+    private readonly htmlBlockRepo: HtmlBlockRepo,
   ) {}
 
   async exportPage(format: string, page: Page) {
@@ -159,6 +165,10 @@ export class ExportService {
         ignorePermissions,
       );
       content = await this.applyCurrentUserNames(content, pages[0].workspaceId);
+      content = replaceHtmlBlocksWithCode(
+        content,
+        await this.getHtmlBlockContents([pages[0]]),
+      );
       const pageContent = await this.exportPage(format, {
         ...pages[0],
         content,
@@ -285,6 +295,9 @@ export class ExportService {
     const allowedAttachments = includeAttachments
       ? await this.resolveAccessibleAttachments(tree, userId, ignorePermissions)
       : new Map<string, AllowedAttachment>();
+    const htmlBlockContents = await this.getHtmlBlockContents(
+      Object.values(tree).flat(),
+    );
 
     const stack: { folder: JSZip; parentPageId: string | null }[] = [
       { folder: zip, parentPageId: null },
@@ -307,6 +320,10 @@ export class ExportService {
         prosemirrorJson = await this.applyCurrentUserNames(
           prosemirrorJson,
           page.workspaceId,
+        );
+        prosemirrorJson = replaceHtmlBlocksWithCode(
+          prosemirrorJson,
+          htmlBlockContents,
         );
 
         const currentPagePath = slugIdToPath[page.slugId];
@@ -439,6 +456,27 @@ export class ExportService {
     }
 
     return new Map(visible.map((a) => [a.id, a]));
+  }
+
+  private async getHtmlBlockContents(
+    pages: Page[],
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(pages.flatMap((page) => getHtmlBlockIds(page.content))),
+    ];
+    if (ids.length === 0) return new Map();
+
+    // only blocks owned by an exported page are included
+    const pageIds = new Set(pages.map((page) => page.id));
+    const blocks = await this.htmlBlockRepo.findByIds(
+      ids,
+      pages[0].workspaceId,
+    );
+    return new Map(
+      blocks
+        .filter((block) => pageIds.has(block.pageId))
+        .map((block) => [block.id, block.content]),
+    );
   }
 
   private applyCurrentUserNames(prosemirrorJson: any, workspaceId: string) {

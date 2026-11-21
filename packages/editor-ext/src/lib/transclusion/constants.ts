@@ -33,6 +33,7 @@ export const TRANSCLUSION_SOURCE_ALLOWED_NODE_TYPES = [
   'subpages',
   'columns',
   'youtube',
+  'htmlBlock',
 ] as const;
 
 export type TransclusionSourceAllowedNodeType =

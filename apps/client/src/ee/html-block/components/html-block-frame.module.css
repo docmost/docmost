@@ -1,0 +1,13 @@
+.root {
+  width: 100%;
+}
+
+.fill {
+  height: 100%;
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  border: 0;
+}

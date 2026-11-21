@@ -76,6 +76,19 @@ function makeService(overrides: any = {}) {
     ...overrides.environmentService,
   };
 
+  const htmlBlockRepo = {
+    findById: jest.fn().mockResolvedValue({
+      id: 'html-block-1',
+      workspaceId: WORKSPACE_ID,
+      pageId: 'page1',
+      templateId: null,
+      content: '<p>Opening hours</p>',
+      creatorId: 'user-1',
+      createdAt: new Date('2026-11-21T10:00:00.000Z'),
+    }),
+    ...overrides.htmlBlockRepo,
+  };
+
   const service = new PublicSpaceService(
     publicSpaceRepo as any,
     spaceRepo as any,
@@ -85,6 +98,7 @@ function makeService(overrides: any = {}) {
     transclusionService as any,
     licenseCheckService as any,
     environmentService as any,
+    htmlBlockRepo as any,
   );
   return {
     service,
@@ -96,6 +110,7 @@ function makeService(overrides: any = {}) {
     transclusionService,
     licenseCheckService,
     environmentService,
+    htmlBlockRepo,
   };
 }
 
@@ -404,6 +419,100 @@ describe('PublicSpaceService', () => {
         shareService.sanitizeTransclusionItemsForPublic,
       ).toHaveBeenCalledWith(rawItems, WORKSPACE_ID);
       expect(result.items).toBe(sanitizedItems);
+    });
+  });
+
+  describe('getHtmlBlockForPublicSpace', () => {
+    const htmlBlocksOn = { ...optInSettings, htmlBlocks: { enabled: true } };
+
+    it('returns content for a page in the public space', async () => {
+      const { service, htmlBlockRepo } = makeService();
+
+      await expect(
+        service.getHtmlBlockForPublicSpace(
+          'handbook',
+          'html-block-1',
+          makeWorkspace(htmlBlocksOn),
+        ),
+      ).resolves.toEqual({
+        id: 'html-block-1',
+        pageId: 'page1',
+        templateId: null,
+        content: '<p>Opening hours</p>',
+        createdAt: new Date('2026-11-21T10:00:00.000Z'),
+      });
+      expect(htmlBlockRepo.findById).toHaveBeenCalledWith(
+        'html-block-1',
+        WORKSPACE_ID,
+      );
+    });
+
+    it('refuses when disabled', async () => {
+      const { service, htmlBlockRepo } = makeService();
+
+      const result = service.getHtmlBlockForPublicSpace(
+        'handbook',
+        'html-block-1',
+        makeWorkspace(optInSettings),
+      );
+
+      await expect(result).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(result).rejects.toThrow(
+        'HTML blocks are disabled in this workspace',
+      );
+      expect(htmlBlockRepo.findById).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'the space is not public',
+        { spaceRepo: { findBySlug: jest.fn().mockResolvedValue(undefined) } },
+      ],
+      [
+        'the page is in another space',
+        {
+          pageRepo: {
+            findById: jest.fn().mockResolvedValue({
+              id: 'page1',
+              spaceId: 'other-space',
+              deletedAt: null,
+            }),
+          },
+        },
+      ],
+      [
+        'the row belongs to a template',
+        {
+          htmlBlockRepo: {
+            findById: jest.fn().mockResolvedValue({
+              id: 'html-block-1',
+              workspaceId: WORKSPACE_ID,
+              pageId: null,
+              templateId: 'template-1',
+              content: '<p>Opening hours</p>',
+            }),
+          },
+        },
+      ],
+      [
+        'the page has a restricted ancestor',
+        {
+          pagePermissionRepo: {
+            hasRestrictedAncestor: jest.fn().mockResolvedValue(true),
+          },
+        },
+      ],
+    ])('not found when %s', async (_case, overrides) => {
+      const { service } = makeService(overrides);
+
+      const result = service.getHtmlBlockForPublicSpace(
+        'handbook',
+        'html-block-1',
+        makeWorkspace(htmlBlocksOn),
+      );
+
+      await expect(result).rejects.toBeInstanceOf(NotFoundException);
+      await expect(result).rejects.toThrow('HTML block not found');
     });
   });
 

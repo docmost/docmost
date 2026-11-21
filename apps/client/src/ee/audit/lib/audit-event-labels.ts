@@ -108,6 +108,9 @@ export const auditEventLabels: Record<string, string> = {
   "template.updated": "Updated template",
   "template.deleted": "Deleted template",
 
+  "html_block.created": "Created an HTML block",
+  "html_block.updated": "Updated an HTML block",
+
   "announcement.created": "Created announcement",
   "announcement.updated": "Updated announcement",
   "announcement.archived": "Archived announcement",
@@ -280,6 +283,13 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "template.created", label: "Created template" },
       { value: "template.updated", label: "Updated template" },
       { value: "template.deleted", label: "Deleted template" },
+    ],
+  },
+  {
+    group: "HTML block",
+    items: [
+      { value: "html_block.created", label: "Created an HTML block" },
+      { value: "html_block.updated", label: "Updated an HTML block" },
     ],
   },
   {

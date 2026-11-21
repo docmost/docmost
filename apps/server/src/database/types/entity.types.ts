@@ -10,6 +10,7 @@ import {
   BaseViews,
   Comments,
   Groups,
+  HtmlBlocks,
   Integrations as _Integrations,
   IntegrationConnections as _IntegrationConnections,
   Labels,
@@ -166,6 +167,10 @@ export type UpdatablePublicSpace = Updateable<Omit<PublicSpaces, 'id'>>;
 export type Favorite = Selectable<Favorites>;
 export type InsertableFavorite = Insertable<Favorites>;
 export type UpdatableFavorite = Updateable<Omit<Favorites, 'id'>>;
+
+// Html Block
+export type HtmlBlock = Selectable<HtmlBlocks>;
+export type InsertableHtmlBlock = Insertable<HtmlBlocks>;
 
 // Page Transclusion
 export type PageTransclusion = Selectable<PageTransclusions>;

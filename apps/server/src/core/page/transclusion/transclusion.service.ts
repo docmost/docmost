@@ -14,12 +14,17 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import {
   collectReferencesFromPmJson,
   collectTransclusionsFromPmJson,
 } from './utils/transclusion-prosemirror.util';
 import { rewriteAttachmentsForUnsync } from './utils/transclusion-unsync.util';
+import {
+  getHtmlBlockIds,
+  replaceHtmlBlockIds,
+} from '../../../common/helpers/prosemirror/html-block.utils';
 import { TransclusionLookup } from './transclusion.types';
 import { Page, User } from '@docmost/db/types/entity.types';
 import { PageAccessService } from '../page-access/page-access.service';
@@ -47,6 +52,7 @@ export class TransclusionService {
     private readonly attachmentRepo: AttachmentRepo,
     private readonly storageService: StorageService,
     private readonly pageAccessService: PageAccessService,
+    private readonly htmlBlockRepo: HtmlBlockRepo,
   ) {}
 
   async syncPageTransclusions(
@@ -507,12 +513,31 @@ export class TransclusionService {
       }
     }
 
+    const htmlBlocks = (
+      await this.htmlBlockRepo.findByIds(
+        getHtmlBlockIds(content),
+        referencePage.workspaceId,
+      )
+    ).filter((block) => block.pageId === sourcePageId);
+    const htmlBlockIdMap = new Map(
+      htmlBlocks.map((block) => [block.id, uuid7()]),
+    );
+    await this.htmlBlockRepo.insertMany(
+      htmlBlocks.map((block) => ({
+        id: htmlBlockIdMap.get(block.id),
+        workspaceId: block.workspaceId,
+        pageId: referencePageId,
+        content: block.content,
+        creatorId: user.id,
+      })),
+    );
+
     await this.pageTransclusionReferencesRepo.deleteOne(
       referencePageId,
       sourcePageId,
       transclusionId,
     );
 
-    return { content };
+    return { content: replaceHtmlBlockIds(content, htmlBlockIdMap) };
   }
 }

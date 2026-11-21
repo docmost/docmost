@@ -22,6 +22,7 @@ import {
   UpdateShareDto,
 } from './dto/share.dto';
 import { ShareTransclusionLookupDto } from './dto/share-transclusion-lookup.dto';
+import { ShareHtmlBlockDto } from './dto/share-html-block.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { PageAccessService } from '../page/page-access/page-access.service';
@@ -124,6 +125,20 @@ export class ShareController {
       dto.shareId,
       dto.references,
       workspace.id,
+    );
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/html-block/info')
+  async getHtmlBlock(
+    @Body() dto: ShareHtmlBlockDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.shareService.getHtmlBlockForShare(
+      dto.shareId,
+      dto.htmlBlockId,
+      workspace,
     );
   }
 

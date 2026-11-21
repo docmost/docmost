@@ -377,6 +377,8 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.mcpEnabled !== 'undefined' ||
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
       typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
+      typeof updateWorkspaceDto.htmlBlocks !== 'undefined' ||
+      typeof updateWorkspaceDto.allowMemberHtmlBlocks !== 'undefined' ||
       typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
       typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
       typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
@@ -470,6 +472,18 @@ export class WorkspaceService {
             'This feature requires a valid license',
           );
         }
+      }
+
+      if (
+        (updateWorkspaceDto.htmlBlocks === true ||
+          updateWorkspaceDto.allowMemberHtmlBlocks === true) &&
+        !this.licenseCheckService.hasFeature(
+          ws.licenseKey,
+          Feature.HTML_BLOCKS,
+          ws.plan,
+        )
+      ) {
+        throw new ForbiddenException('This feature requires a valid license');
       }
 
       if (
@@ -642,6 +656,34 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.htmlBlocks !== 'undefined') {
+        const prev = settingsBefore?.htmlBlocks?.enabled ?? false;
+        if (prev !== updateWorkspaceDto.htmlBlocks) {
+          before.htmlBlocks = prev;
+          after.htmlBlocks = updateWorkspaceDto.htmlBlocks;
+        }
+        await this.workspaceRepo.updateHtmlBlockSettings(
+          workspaceId,
+          'enabled',
+          updateWorkspaceDto.htmlBlocks,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.allowMemberHtmlBlocks !== 'undefined') {
+        const prev = settingsBefore?.htmlBlocks?.allowMembers ?? false;
+        if (prev !== updateWorkspaceDto.allowMemberHtmlBlocks) {
+          before.allowMemberHtmlBlocks = prev;
+          after.allowMemberHtmlBlocks = updateWorkspaceDto.allowMemberHtmlBlocks;
+        }
+        await this.workspaceRepo.updateHtmlBlockSettings(
+          workspaceId,
+          'allowMembers',
+          updateWorkspaceDto.allowMemberHtmlBlocks,
+          trx,
+        );
+      }
+
       if (typeof updateWorkspaceDto.aiChat !== 'undefined') {
         const prev = settingsBefore?.ai?.chat ?? false;
         if (prev !== updateWorkspaceDto.aiChat) {
@@ -748,6 +790,8 @@ export class WorkspaceService {
       delete updateWorkspaceDto.publicSpacesDirectory;
       delete updateWorkspaceDto.mcpEnabled;
       delete updateWorkspaceDto.allowMemberTemplates;
+      delete updateWorkspaceDto.htmlBlocks;
+      delete updateWorkspaceDto.allowMemberHtmlBlocks;
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
       delete updateWorkspaceDto.defaultPageEditMode;

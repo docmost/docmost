@@ -3,6 +3,7 @@ import type { Editor } from "@tiptap/react";
 import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconAppWindow,
+  IconBrandHtml5,
   IconCalendar,
   IconCalendarMonth,
   IconCaretRightFilled,
@@ -42,6 +43,7 @@ import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 import { isBetaBaseForms } from "@/lib/config.ts";
+import { useHtmlBlockAccess } from "@/ee/html-block/hooks/use-html-block-access";
 
 interface Props {
   editor: Editor | null;
@@ -52,6 +54,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
   const { t } = useTranslation();
   const hasBases = useHasFeature(Feature.BASES);
   const upgradeLabel = useUpgradeLabel();
+  const { canEdit: canEditHtmlBlocks } = useHtmlBlockAccess();
 
   const setEmbed = (provider: string) =>
     editor.chain().focus().setEmbed({ provider }).run();
@@ -228,6 +231,14 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
         >
           Iframe
         </Menu.Item>
+        {canEditHtmlBlocks && (
+          <Menu.Item
+            leftSection={<IconBrandHtml5 size={16} />}
+            onClick={() => editor.chain().focus().insertHtmlBlock().run()}
+          >
+            {t("HTML")}
+          </Menu.Item>
+        )}
         <Menu.Item
           leftSection={<YoutubeIcon size={16} />}
           onClick={() => setEmbed("youtube")}

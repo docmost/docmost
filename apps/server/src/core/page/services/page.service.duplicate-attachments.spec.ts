@@ -8,6 +8,12 @@ const FILE_ID = '019a1f00-0000-7000-8000-0000000000aa';
 const IMAGE_ID = '019a1f00-0000-7000-8000-0000000000bb';
 const OUTSIDE_PAGE_ID = '019a1f00-0000-7000-8000-000000000004';
 const OUTSIDE_ID = '019a1f00-0000-7000-8000-0000000000cc';
+const CHILD_PAGE_ID = '019a1f00-0000-7000-8000-000000000007';
+const TEMPLATE_ID = '019a1f00-0000-7000-8000-000000000008';
+const HTML_BLOCK_ID = '019a1f00-0000-7000-8000-0000000000dd';
+const OUTSIDE_HTML_BLOCK_ID = '019a1f00-0000-7000-8000-0000000000ee';
+const TEMPLATE_HTML_BLOCK_ID = '019a1f00-0000-7000-8000-0000000000ff';
+const MISSING_HTML_BLOCK_ID = '019a1f00-0000-7000-8000-000000000100';
 
 const user = { id: USER_ID, workspaceId: WORKSPACE_ID } as any;
 
@@ -49,6 +55,24 @@ function makeAttachmentRow(
     workspaceId: WORKSPACE_ID,
     pageId,
     spaceId: SPACE_ID,
+  };
+}
+
+function htmlBlockNode(htmlBlockId: string) {
+  return { type: 'htmlBlock', attrs: { htmlBlockId, height: null } };
+}
+
+function makeHtmlBlockRow(
+  id: string,
+  owner: { pageId: string | null; templateId: string | null },
+) {
+  return {
+    id,
+    workspaceId: WORKSPACE_ID,
+    ...owner,
+    content: `<p>source of ${id}</p>`,
+    creatorId: '019a1f00-0000-7000-8000-000000000006',
+    createdAt: new Date('2026-11-20T10:00:00.000Z'),
   };
 }
 
@@ -107,6 +131,12 @@ function makeService(pageContent: any = content, extraRows: any[] = []) {
   };
   const storageService = { copy: jest.fn(async () => undefined) };
   const eventEmitter = { emit: jest.fn() };
+  const htmlBlockRepo = {
+    findByIds: jest.fn(
+      async (ids: string[], workspaceId: string): Promise<any[]> => [],
+    ),
+    insertMany: jest.fn(async (rows: any[], trx?: unknown) => undefined),
+  };
 
   const service = new PageService(
     pageRepo as any,
@@ -127,12 +157,13 @@ function makeService(pageContent: any = content, extraRows: any[] = []) {
     {} as any,
     {} as any,
     {} as any,
+    htmlBlockRepo as any,
   );
   jest
     .spyOn(service as any, 'filterAccessibleTreePages')
     .mockResolvedValue([page]);
 
-  return { service, page, inserted, storageService };
+  return { service, page, inserted, storageService, htmlBlockRepo, trx };
 }
 
 describe('PageService.duplicatePage attachments', () => {
@@ -229,5 +260,88 @@ describe('PageService.duplicatePage attachments', () => {
     expect(image.attrs.src).toBe(`/api/files/${OUTSIDE_ID}/shared.png`);
     expect(storageService.copy).not.toHaveBeenCalled();
     expect(attachmentInserts).toHaveLength(0);
+  });
+});
+
+describe('PageService.duplicatePage html blocks', () => {
+  it('copies only the html blocks owned by the copied pages, once per block', async () => {
+    const { service, page, inserted, htmlBlockRepo, trx } = makeService({
+      type: 'doc',
+      content: [
+        htmlBlockNode(HTML_BLOCK_ID),
+        htmlBlockNode(HTML_BLOCK_ID),
+        htmlBlockNode(OUTSIDE_HTML_BLOCK_ID),
+        htmlBlockNode(TEMPLATE_HTML_BLOCK_ID),
+        htmlBlockNode(MISSING_HTML_BLOCK_ID),
+      ],
+    });
+    htmlBlockRepo.findByIds.mockResolvedValue([
+      makeHtmlBlockRow(HTML_BLOCK_ID, { pageId: PAGE_ID, templateId: null }),
+      makeHtmlBlockRow(OUTSIDE_HTML_BLOCK_ID, {
+        pageId: OUTSIDE_PAGE_ID,
+        templateId: null,
+      }),
+      makeHtmlBlockRow(TEMPLATE_HTML_BLOCK_ID, {
+        pageId: null,
+        templateId: TEMPLATE_ID,
+      }),
+    ]);
+
+    await service.duplicatePage(page, undefined, user);
+
+    const [copy] = inserted[0];
+    const [owned, ownedAgain, outside, templateOwned, missing] =
+      copy.content.content.map((node: any) => node.attrs.htmlBlockId);
+    expect(owned).not.toBe(HTML_BLOCK_ID);
+    expect(ownedAgain).toBe(owned);
+    expect([outside, templateOwned, missing]).toEqual([
+      OUTSIDE_HTML_BLOCK_ID,
+      TEMPLATE_HTML_BLOCK_ID,
+      MISSING_HTML_BLOCK_ID,
+    ]);
+
+    expect(htmlBlockRepo.insertMany).toHaveBeenCalledTimes(1);
+    const [rows, usedTrx] = htmlBlockRepo.insertMany.mock.calls[0];
+    expect(usedTrx).toBe(trx);
+    expect(rows).toEqual([
+      {
+        id: owned,
+        workspaceId: WORKSPACE_ID,
+        pageId: copy.id,
+        content: `<p>source of ${HTML_BLOCK_ID}</p>`,
+        creatorId: USER_ID,
+      },
+    ]);
+  });
+
+  it('copies a block the root shares with its child once, owned by the root copy', async () => {
+    const { service, page, inserted, htmlBlockRepo } = makeService({
+      type: 'doc',
+      content: [htmlBlockNode(HTML_BLOCK_ID)],
+    });
+    const child = {
+      ...page,
+      id: CHILD_PAGE_ID,
+      slugId: 'childSlug01',
+      title: 'Appendix',
+      parentPageId: PAGE_ID,
+      content: { type: 'doc', content: [htmlBlockNode(HTML_BLOCK_ID)] },
+    };
+    (service as any).filterAccessibleTreePages.mockResolvedValue([page, child]);
+    htmlBlockRepo.findByIds.mockResolvedValue([
+      makeHtmlBlockRow(HTML_BLOCK_ID, { pageId: PAGE_ID, templateId: null }),
+    ]);
+
+    await service.duplicatePage(page, undefined, user);
+
+    const [rootCopy, childCopy] = inserted[0];
+    const copiedId = rootCopy.content.content[0].attrs.htmlBlockId;
+    expect(copiedId).not.toBe(HTML_BLOCK_ID);
+    expect(childCopy.content.content[0].attrs.htmlBlockId).toBe(copiedId);
+    expect(htmlBlockRepo.insertMany).toHaveBeenCalledTimes(1);
+    const [rows] = htmlBlockRepo.insertMany.mock.calls[0];
+    expect(rows).toEqual([
+      expect.objectContaining({ id: copiedId, pageId: rootCopy.id }),
+    ]);
   });
 });

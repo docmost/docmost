@@ -7,6 +7,7 @@ import { PublicSpaceRepo } from '@docmost/db/repos/public-space/public-space.rep
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
 import { ShareService } from '../share/share.service';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
@@ -32,6 +33,7 @@ export class PublicSpaceService {
     private readonly transclusionService: TransclusionService,
     private readonly licenseCheckService: LicenseCheckService,
     private readonly environmentService: EnvironmentService,
+    private readonly htmlBlockRepo: HtmlBlockRepo,
   ) {}
 
   hasFeature(workspace: Workspace, feature: FeatureKey): boolean {
@@ -238,6 +240,49 @@ export class PublicSpaceService {
         items,
         workspace.id,
       ),
+    };
+  }
+
+  /** Same page rule as lookupTransclusionForPublicSpace; template-owned rows are never public. */
+  async getHtmlBlockForPublicSpace(
+    spaceSlug: string,
+    htmlBlockId: string,
+    workspace: Workspace,
+  ) {
+    let space: Space;
+    try {
+      ({ space } = await this.getPublicSpace(spaceSlug, workspace));
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new NotFoundException('HTML block not found');
+      }
+      throw err;
+    }
+
+    if ((workspace.settings as any)?.htmlBlocks?.enabled !== true) {
+      throw new ForbiddenException('HTML blocks are disabled in this workspace');
+    }
+
+    const block = await this.htmlBlockRepo.findById(htmlBlockId, workspace.id);
+    if (!block?.pageId) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    const page = await this.pageRepo.findById(block.pageId);
+    if (!page || page.deletedAt || page.spaceId !== space.id) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    if (await this.pagePermissionRepo.hasRestrictedAncestor(page.id)) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    return {
+      id: block.id,
+      pageId: block.pageId,
+      templateId: null,
+      content: block.content,
+      createdAt: block.createdAt,
     };
   }
 

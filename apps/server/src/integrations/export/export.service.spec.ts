@@ -25,6 +25,8 @@ const SOURCE_PAGE_ID = '019a4f3e-0000-7000-8000-000000000004';
 const MENTIONED_PAGE_ID = '019a4f3e-0000-7000-8000-000000000005';
 const AUDIO_FILE_ID = '019a4f3e-0000-7000-8000-000000000006';
 const PDF_FILE_ID = '019a4f3e-0000-7000-8000-000000000007';
+const OWNED_BLOCK_ID = '019a4f3e-0000-7000-8000-000000000008';
+const FOREIGN_BLOCK_ID = '019a4f3e-0000-7000-8000-000000000009';
 const BASE_URL = 'https://docs.example.com';
 
 function pageMention(entityId: string, label: string) {
@@ -45,7 +47,11 @@ function docWith(...mentions: object[]) {
 }
 
 // answers every pages select with the mentioned page, everything else with no rows
-function buildService(opts: { accessiblePageIds: string[]; content?: object }) {
+function buildService(opts: {
+  accessiblePageIds: string[];
+  content?: object;
+  htmlBlocks?: object[];
+}) {
   const queries: CompiledQuery[] = [];
   const driver = new DummyDriver();
   driver.acquireConnection = async () =>
@@ -118,6 +124,7 @@ function buildService(opts: { accessiblePageIds: string[]; content?: object }) {
     domainService as any,
     spaceMemberRepo,
     { findActiveNamesByIds: async () => [] } as any,
+    { findByIds: async () => opts.htmlBlocks ?? [] } as any,
   );
   return { service, queries, pagePermissionRepo };
 }
@@ -216,6 +223,46 @@ describe('ExportService unknown nodes', () => {
     const html = await exportSinglePage(service);
 
     expect(html).toMatch(/>Before<\/p><p[^>]*>After<\/p>/);
+  });
+});
+
+describe('ExportService html blocks', () => {
+  it('exports the source of a block the page owns as html code and drops a block owned elsewhere', async () => {
+    const htmlBlock = (htmlBlockId: string) => ({
+      type: 'htmlBlock',
+      attrs: { htmlBlockId, height: null },
+    });
+    const { service } = buildService({
+      accessiblePageIds: [],
+      content: {
+        type: 'doc',
+        content: [htmlBlock(OWNED_BLOCK_ID), htmlBlock(FOREIGN_BLOCK_ID)],
+      },
+      htmlBlocks: [
+        {
+          id: OWNED_BLOCK_ID,
+          workspaceId: WORKSPACE_ID,
+          pageId: SOURCE_PAGE_ID,
+          templateId: null,
+          content: '<b>owned source</b>',
+        },
+        {
+          id: FOREIGN_BLOCK_ID,
+          workspaceId: WORKSPACE_ID,
+          pageId: MENTIONED_PAGE_ID,
+          templateId: null,
+          content: '<i>foreign source</i>',
+        },
+      ],
+    });
+
+    const html = await exportSinglePage(service);
+
+    expect(html).toContain(
+      '<code class="language-html">&lt;b&gt;owned source&lt;/b&gt;</code>',
+    );
+    expect(html).not.toContain('foreign source');
+    expect(html).not.toContain(FOREIGN_BLOCK_ID);
   });
 });
 

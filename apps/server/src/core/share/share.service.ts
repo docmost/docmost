@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -22,7 +23,8 @@ import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { updateAttachmentAttr, updateAttachmentUrl } from './share.util';
-import { Page } from '@docmost/db/types/entity.types';
+import { Page, Workspace } from '@docmost/db/types/entity.types';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
 import { getCoverAttachmentId } from '../page/page-cover.utils';
 import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
@@ -41,6 +43,7 @@ export class ShareService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly tokenService: TokenService,
     private readonly transclusionService: TransclusionService,
+    private readonly htmlBlockRepo: HtmlBlockRepo,
   ) {}
 
   async getShares(userId: string, pagination: PaginationOptions) {
@@ -397,6 +400,55 @@ export class ShareService {
 
     return {
       items: await this.sanitizeTransclusionItemsForPublic(items, workspaceId),
+    };
+  }
+
+  /** Same share-graph rule as lookupTransclusionForShare; template-owned rows are never public. */
+  async getHtmlBlockForShare(
+    shareId: string,
+    htmlBlockId: string,
+    workspace: Workspace,
+  ) {
+    const share = await this.shareRepo.findById(shareId);
+    if (!share || share.workspaceId !== workspace.id) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    if ((workspace.settings as any)?.htmlBlocks?.enabled !== true) {
+      throw new ForbiddenException('HTML blocks are disabled in this workspace');
+    }
+
+    if (!(await this.isSharingAllowed(workspace.id, share.spaceId))) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    const block = await this.htmlBlockRepo.findById(htmlBlockId, workspace.id);
+    if (!block?.pageId) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    const pageShare = await this.getShareForPage(block.pageId, workspace.id);
+    if (!pageShare) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    if (
+      pageShare.spaceId !== share.spaceId &&
+      !(await this.isSharingAllowed(workspace.id, pageShare.spaceId))
+    ) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    if (await this.pagePermissionRepo.hasRestrictedAncestor(block.pageId)) {
+      throw new NotFoundException('HTML block not found');
+    }
+
+    return {
+      id: block.id,
+      pageId: block.pageId,
+      templateId: null,
+      content: block.content,
+      createdAt: block.createdAt,
     };
   }
 

@@ -15,6 +15,8 @@ import {
   getAttachmentInfo,
   uploadFile,
 } from "@/features/page/services/page-service.ts";
+import { copyPastedHtmlBlocks } from "@/ee/html-block/utils/copy-pasted-html-blocks";
+import { canEditHtmlBlocksNow } from "@/ee/html-block/utils/html-block-access";
 
 const ATTACHMENT_NODE_TYPES = [
   "image",
@@ -30,6 +32,8 @@ const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 
 // copied cards and mentions paste back as nodes
 const INTEGRATION_NODE_HTML_RE = /data-type="integration(Card|Mention)"/;
+
+const HTML_BLOCK_NODE_HTML_RE = /data-type="htmlBlock"/;
 
 // Reads the cache the page editor prefetches; a cold cache pastes an ordinary link.
 function matchInstalledIntegrationLink(url: string) {
@@ -183,23 +187,46 @@ export const handlePaste = (
     }, 0);
   }
 
+  if (
+    htmlData &&
+    HTML_BLOCK_NODE_HTML_RE.test(htmlData) &&
+    canEditHtmlBlocksNow()
+  ) {
+    const docBeforePaste = editor.state.doc;
+    setTimeout(() => {
+      const range = findPastedRange(docBeforePaste, editor.state.doc);
+      if (range) {
+        copyPastedHtmlBlocks(editor, range.from, range.to, uploadTarget).catch(
+          () => {},
+        );
+      }
+    }, 0);
+  }
+
   return false;
 };
+
+function findPastedRange(
+  docBeforePaste: ProseMirrorNode,
+  doc: ProseMirrorNode,
+): { from: number; to: number } | null {
+  const from = docBeforePaste.content.findDiffStart(doc.content);
+  if (from === null) return null;
+  const diffEnd = docBeforePaste.content.findDiffEnd(doc.content);
+  const to = Math.max(
+    diffEnd?.b ?? from,
+    from + doc.content.size - docBeforePaste.content.size,
+  );
+  return to > from ? { from, to } : null;
+}
 
 async function reuploadPastedAttachments(
   editor: Editor,
   uploadTarget: UploadTarget,
   docBeforePaste: ProseMirrorNode,
 ) {
-  const doc = editor.state.doc;
-  const pasteFrom = docBeforePaste.content.findDiffStart(doc.content);
-  if (pasteFrom === null) return;
-  const diffEnd = docBeforePaste.content.findDiffEnd(doc.content);
-  const pasteEnd = Math.max(
-    diffEnd?.b ?? pasteFrom,
-    pasteFrom + doc.content.size - docBeforePaste.content.size,
-  );
-  if (pasteEnd <= pasteFrom) return;
+  const range = findPastedRange(docBeforePaste, editor.state.doc);
+  if (!range) return;
 
   type PastedNode = {
     pos: number;
@@ -213,7 +240,7 @@ async function reuploadPastedAttachments(
   const pastedNodes: PastedNode[] = [];
   const seenAttachmentIds = new Set<string>();
 
-  editor.state.doc.nodesBetween(pasteFrom, pasteEnd, (node, pos) => {
+  editor.state.doc.nodesBetween(range.from, range.to, (node, pos) => {
     if (!ATTACHMENT_NODE_TYPES.includes(node.type.name)) return;
     const attachmentId = node.attrs.attachmentId;
     if (!attachmentId) return;

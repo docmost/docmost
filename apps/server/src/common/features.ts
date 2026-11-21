@@ -18,6 +18,7 @@ export const Feature = {
   SHARING_CONTROLS: 'sharing:controls',
   VIEWER_COMMENTS: 'comment:viewer',
   TEMPLATES: 'templates',
+  HTML_BLOCKS: 'html-blocks',
   PDF_EXPORT: 'export:pdf',
   PERSONAL_SPACES: 'spaces:personal',
   DOCX_EXPORT: 'export:docx',

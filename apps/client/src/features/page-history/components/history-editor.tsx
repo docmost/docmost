@@ -11,6 +11,7 @@ import {
   splitChangeRange,
 } from "@/features/page-history/utils/split-change-range";
 import { deletedBlockDOM } from "@/features/page-history/utils/deleted-block";
+import { deletedHtmlBlockDOM } from "@/features/page-history/utils/deleted-html-block";
 import { blockAnchor } from "@/features/page-history/utils/block-anchor";
 import { createHistoryTokenEncoder } from "@/features/page-history/utils/history-token-encoder";
 import { inlineFragment } from "@/features/page-history/utils/inline-fragment";
@@ -99,6 +100,7 @@ export function HistoryEditor({
           "table",
           "details",
           "callout",
+          "htmlBlock",
         ]);
 
         const decorations: Decoration[] = [];
@@ -221,8 +223,12 @@ export function HistoryEditor({
                         "data-diff-index",
                         String(currentIndex),
                       );
-                      const serializer = DOMSerializer.fromSchema(schema);
-                      const dom = serializer.serializeNode(deletedNode);
+                      const dom =
+                        deletedNode.type.name === "htmlBlock"
+                          ? deletedHtmlBlockDOM(t("HTML block"))
+                          : DOMSerializer.fromSchema(schema).serializeNode(
+                              deletedNode,
+                            );
                       wrapper.appendChild(dom);
                       return wrapper;
                     },

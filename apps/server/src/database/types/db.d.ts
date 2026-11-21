@@ -315,6 +315,16 @@ export interface GroupUsers {
   userId: string;
 }
 
+export interface HtmlBlocks {
+  content: string;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  id: Generated<string>;
+  pageId: string | null;
+  templateId: string | null;
+  workspaceId: string;
+}
+
 export interface PageTransclusionReferences {
   createdAt: Generated<Timestamp>;
   transclusionId: string;
@@ -832,6 +842,7 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  htmlBlocks: HtmlBlocks;
   integrationConnections: IntegrationConnections;
   integrations: Integrations;
   labels: Labels;

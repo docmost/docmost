@@ -23,6 +23,7 @@ import LightboxView, {
   getLightboxClickRequest,
 } from "@/features/editor/components/common/lightbox-view";
 import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
+import { HtmlBlockScopeProvider } from "@/ee/html-block/html-block-scope";
 
 interface PageEditorProps {
   title: string;
@@ -48,6 +49,8 @@ interface PageEditorProps {
   trailingSpace?: boolean;
   /** Opens media in the lightbox on click outside public views too. */
   withLightbox?: boolean;
+  /** HTML block contents by id, rendered without fetching (PDF export). */
+  htmlBlocks?: Record<string, string>;
 }
 
 export default function ReadonlyPageEditor({
@@ -60,6 +63,7 @@ export default function ReadonlyPageEditor({
   byline,
   trailingSpace = true,
   withLightbox = false,
+  htmlBlocks,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
@@ -118,63 +122,69 @@ export default function ReadonlyPageEditor({
 
   return (
     <TransclusionLookupProvider shareId={shareId} spaceSlug={spaceSlug}>
-      <div className="page-title">
+      <HtmlBlockScopeProvider
+        shareId={shareId}
+        spaceSlug={spaceSlug}
+        preloaded={htmlBlocks}
+      >
+        <div className="page-title">
+          <EditorProvider
+            editable={false}
+            immediatelyRender={true}
+            textDirection="auto"
+            extensions={titleExtensions}
+            content={title}
+          ></EditorProvider>
+        </div>
+
+        {byline}
+
         <EditorProvider
           editable={false}
           immediatelyRender={true}
           textDirection="auto"
-          extensions={titleExtensions}
-          content={title}
-        ></EditorProvider>
-      </div>
+          extensions={extensions}
+          content={content}
+          editorProps={
+            lightboxEnabled
+              ? {
+                  handleClickOn: (_view, _pos, node) => {
+                    const request = getLightboxClickRequest(node);
+                    if (!request) return false;
 
-      {byline}
-
-      <EditorProvider
-        editable={false}
-        immediatelyRender={true}
-        textDirection="auto"
-        extensions={extensions}
-        content={content}
-        editorProps={
-          lightboxEnabled
-            ? {
-                handleClickOn: (_view, _pos, node) => {
-                  const request = getLightboxClickRequest(node);
-                  if (!request) return false;
-
-                  setLightboxRequest(request);
-                  return true;
-                },
-              }
-            : {}
-        }
-        onCreate={({ editor }) => {
-          if (editor) {
-            if (pageId) {
-              // @ts-ignore
-              editor.storage.pageId = pageId;
-            }
-            // @ts-ignore
-            setReadOnlyEditor(editor);
-            setContentEditor(editor);
-
-            handleScrollTo(editor);
-            editorCreated.current = true;
+                    setLightboxRequest(request);
+                    return true;
+                  },
+                }
+              : {}
           }
-        }}
-      ></EditorProvider>
-      {lightboxEnabled && contentEditor && (
-        <LightboxView
-          editor={contentEditor}
-          open={!!lightboxRequest}
-          src={lightboxRequest?.src ?? ""}
-          type={lightboxRequest?.type ?? "image"}
-          onClose={() => setLightboxRequest(null)}
-        />
-      )}
-      <MicrosoftFullscreenModal />
-      {trailingSpace && <div style={{ paddingBottom: "20vh" }}></div>}
+          onCreate={({ editor }) => {
+            if (editor) {
+              if (pageId) {
+                // @ts-ignore
+                editor.storage.pageId = pageId;
+              }
+              // @ts-ignore
+              setReadOnlyEditor(editor);
+              setContentEditor(editor);
+
+              handleScrollTo(editor);
+              editorCreated.current = true;
+            }
+          }}
+        ></EditorProvider>
+        {lightboxEnabled && contentEditor && (
+          <LightboxView
+            editor={contentEditor}
+            open={!!lightboxRequest}
+            src={lightboxRequest?.src ?? ""}
+            type={lightboxRequest?.type ?? "image"}
+            onClose={() => setLightboxRequest(null)}
+          />
+        )}
+        <MicrosoftFullscreenModal />
+        {trailingSpace && <div style={{ paddingBottom: "20vh" }}></div>}
+      </HtmlBlockScopeProvider>
     </TransclusionLookupProvider>
   );
 }

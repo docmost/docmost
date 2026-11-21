@@ -8,12 +8,17 @@ type PdfRenderData = {
   pageId: string;
   title: string;
   content: any;
+  htmlBlocks: Record<string, string>;
 };
 
 export default function PdfRenderPage() {
   const { pageId } = useParams<{ pageId: string }>();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  // HTML block scripts can read this page's URL, so the token leaves the address bar before any block renders
+  const [token] = useState(() => {
+    window.history.replaceState(null, "", window.location.pathname);
+    return searchParams.get("token");
+  });
 
   const [data, setData] = useState<PdfRenderData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,7 @@ export default function PdfRenderPage() {
         title={data.title}
         content={data.content}
         pageId={data.pageId}
+        htmlBlocks={data.htmlBlocks}
         printMode
       />
     </Container>

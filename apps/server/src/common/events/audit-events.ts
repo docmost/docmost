@@ -129,6 +129,10 @@ export const AuditEvent = {
   TEMPLATE_UPDATED: 'template.updated',
   TEMPLATE_DELETED: 'template.deleted',
 
+  // HTML block
+  HTML_BLOCK_CREATED: 'html_block.created',
+  HTML_BLOCK_UPDATED: 'html_block.updated',
+
   // Announcement
   ANNOUNCEMENT_CREATED: 'announcement.created',
   ANNOUNCEMENT_UPDATED: 'announcement.updated',
@@ -171,6 +175,7 @@ export const AuditResource = {
   LICENSE: 'license',
   SIEM_DESTINATION: 'siem_destination',
   TEMPLATE: 'template',
+  HTML_BLOCK: 'html_block',
   ANNOUNCEMENT: 'announcement',
 } as const;
 

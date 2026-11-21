@@ -1,0 +1,125 @@
+:global(.ProseMirror .node-htmlBlock.ProseMirror-selectednode) {
+  outline: none;
+}
+
+.frame {
+  position: relative;
+}
+
+.controls {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.controls::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.frame:hover .controls,
+.frame[data-menu-open="true"] .controls,
+.frame[data-selected="true"] .controls,
+.controls:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.content {
+  position: relative;
+}
+
+:global(.ProseMirror[contenteditable="true"])
+  .frame:hover
+  .content:not(:global(.ProseMirror-selectednode)) {
+  outline: 1px solid var(--mantine-color-default-border);
+}
+
+.emptyCard {
+  cursor: pointer;
+}
+
+.placeholderIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+}
+
+.resizeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  cursor: ns-resize;
+}
+
+.resizeHandle {
+  position: absolute;
+  bottom: -4px;
+  left: 20px;
+  right: 20px;
+  height: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.resizeBar {
+  width: 50px;
+  height: 3px;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+  background-color: light-dark(
+    var(--mantine-color-blue-4),
+    var(--mantine-color-blue-5)
+  );
+}
+
+.resizeHandle:hover .resizeBar,
+.resizeHandle[data-resizing] .resizeBar {
+  background-color: light-dark(
+    var(--mantine-color-blue-6),
+    var(--mantine-color-blue-4)
+  );
+}
+
+.content:hover .resizeHandle,
+.content:global(.ProseMirror-selectednode) .resizeHandle,
+.resizeHandle[data-resizing] {
+  opacity: 1;
+}
+
+/* read mode is switched without an editor event, so the root attribute is the reliable signal */
+:global(.ProseMirror[contenteditable="false"]) .controls,
+:global(.ProseMirror[contenteditable="false"]) .resizeHandle,
+:global(.ProseMirror[contenteditable="false"]) .emptyCard {
+  display: none !important;
+}
+
+@media print {
+  .controls,
+  .resizeHandle {
+    display: none !important;
+  }
+}

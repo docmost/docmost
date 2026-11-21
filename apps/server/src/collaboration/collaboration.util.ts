@@ -60,6 +60,7 @@ import {
   TabPanel,
   MicrosoftFile,
   MicrosoftFolder,
+  HtmlBlock,
 } from '@docmost/editor-ext';
 import {
   extensions as coreExtensions,
@@ -144,6 +145,7 @@ export const tiptapExtensions = [
   TransclusionSource,
   TransclusionReference,
   BaseEmbed,
+  HtmlBlock,
   Footnotes,
   Footnote,
   FootnoteReference,
