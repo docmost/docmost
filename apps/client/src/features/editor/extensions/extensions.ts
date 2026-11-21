@@ -54,6 +54,7 @@ import {
   TableReadonlySort,
   Subpages,
   Heading,
+  SectionAnchor,
   Highlight,
   Color,
   Indent,
@@ -211,8 +212,9 @@ export const mainExtensions = [
   }),
   SharedStorage,
   Heading.configure({ translate: (label) => i18n.t(label) }),
+  SectionAnchor,
   UniqueID.configure({
-    types: ["heading", "paragraph", "transclusionSource"],
+    types: ["heading", "paragraph", "transclusionSource", "sectionAnchor"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({

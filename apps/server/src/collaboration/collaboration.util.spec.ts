@@ -15,6 +15,27 @@ import { PageService } from '../core/page/services/page.service';
 
 const ID_TYPES = ['heading', 'paragraph'];
 
+it('keeps an invisible section anchor between the same words through HTML and collaboration', () => {
+  const doc = htmlToJson(
+    '<p>Before<span data-type="section-anchor" data-id="checkpoint"></span>after</p>',
+  );
+  const inline = [
+    { type: 'text', text: 'Before' },
+    { type: 'sectionAnchor', attrs: { id: 'checkpoint' } },
+    { type: 'text', text: 'after' },
+  ];
+  expect(doc.content[0].content).toMatchObject(inline);
+  const ydoc = TiptapTransformer.toYdoc(doc, 'default', tiptapExtensions);
+  try {
+    const html = jsonToHtml(TiptapTransformer.fromYdoc(ydoc, 'default'));
+    expect(html).toMatch(/\sid="checkpoint"/);
+    expect(html).toContain('aria-hidden="true"');
+    expect(htmlToJson(html).content[0].content).toMatchObject(inline);
+  } finally {
+    ydoc.destroy();
+  }
+});
+
 function collectNodes(node: JSONContent, found: JSONContent[] = []) {
   found.push(node);
   node.content?.forEach((child) => collectNodes(child, found));

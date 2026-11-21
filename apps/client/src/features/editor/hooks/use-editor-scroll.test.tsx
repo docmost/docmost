@@ -57,3 +57,17 @@ it("finds a named anchor that appears after the editor mounts", () => {
   vi.advanceTimersByTime(1000);
   expect(scrollIntoView).toHaveBeenCalledOnce();
 });
+
+it("opens a heading by its alternate section anchor", () => {
+  const heading = document.createElement("h2");
+  heading.scrollIntoView = scrollIntoView;
+  const alias = document.createElement("span");
+  alias.dataset.type = "section-anchor";
+  alias.dataset.id = "rollback";
+  alias.scrollIntoView = vi.fn();
+  heading.append(alias, "Restore service");
+  root.append(heading);
+
+  mount();
+  expect(scrollIntoView).toHaveBeenCalledOnce();
+});

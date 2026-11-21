@@ -34,6 +34,7 @@ import {
   buildSharedPageUrl,
 } from "@/features/page/page.utils.ts";
 import { extractPageSlugId } from "@/lib";
+import { scrollToPageAnchor } from "@/features/editor/utils/scroll-to-page-anchor";
 import {
   matchIntegrationLink,
   sanitizeUrl,
@@ -319,10 +320,7 @@ export default function LinkView(props: MarkViewProps) {
 
     if (href.startsWith("#")) {
       const anchor = href.slice(1);
-      const element =
-        document.querySelector(`[id="${anchor}"]`) ||
-        document.querySelector(`[data-id="${anchor}"]`);
-      element?.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollToPageAnchor(document, anchor);
       navigate(`${location.pathname}#${anchor}`, { replace: true });
       return;
     }
@@ -344,11 +342,7 @@ export default function LinkView(props: MarkViewProps) {
       if (anchor) {
         const currentPageSlugId = extractPageSlugId(pageSlug);
         if (!slugId || currentPageSlugId === slugId) {
-          const element =
-            document.querySelector(`[id="${anchor}"]`) ||
-            document.querySelector(`[data-id="${anchor}"]`);
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (scrollToPageAnchor(document, anchor)) {
             navigate(`${location.pathname}#${anchor}`, { replace: true });
             return;
           }

@@ -27,6 +27,7 @@ export * from "./lib/text-color";
 export * from "./lib/indent";
 export * from "./lib/list-item";
 export * from "./lib/heading/heading";
+export * from "./lib/section-anchor";
 export * from "./lib/unique-id";
 export * from "./lib/shared-storage";
 export * from "./lib/recreate-transform";
