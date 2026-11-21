@@ -27,9 +27,11 @@ import { uploadImageAction } from "@/features/editor/components/image/upload-ima
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
 import classes from "../common/toolbar-menu.module.css";
+import { useImageLinkNavigation } from "./use-image-link-navigation";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
+  const handleImageLink = useImageLinkNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const setLightboxRequest = useSetAtom(lightboxRequestAtom);
 
@@ -221,6 +223,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             <ActionIcon
               component="a"
               href={editorState.href}
+              onClick={handleImageLink}
               size="lg"
               aria-label={t("Open link")}
               variant="subtle"

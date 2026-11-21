@@ -18,6 +18,7 @@ import LightboxView, {
 } from "@/features/editor/components/common/lightbox-view";
 import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
 import { publicImageLink } from "./components/image/public-image-link";
+import { useImageLinkNavigation } from "./components/image/use-image-link-navigation";
 
 interface PageEditorProps {
   title: string;
@@ -59,6 +60,7 @@ export default function ReadonlyPageEditor({
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [contentEditor, setContentEditor] = useState<Editor | null>(null);
+  const handleImageLink = useImageLinkNavigation();
   const lightboxEnabled = withLightbox || Boolean(shareId || spaceSlug);
   useEditorScroll(contentEditor);
 
@@ -123,6 +125,7 @@ export default function ReadonlyPageEditor({
         textDirection="auto"
         extensions={extensions}
         content={content}
+        editorContainerProps={{ onClick: handleImageLink }}
         editorProps={
           lightboxEnabled
             ? {
