@@ -44,14 +44,28 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function renderImport() {
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MantineProvider env="test">
-        <ConfluenceImportModal opened onClose={vi.fn()} />
-      </MantineProvider>
-    </QueryClientProvider>,
+function renderImport(edition: ConfluenceEdition = "server") {
+  const client = new QueryClient();
+  const onClose = vi.fn();
+  const { rerender } = render(
+    <ConfluenceImportModal opened onClose={onClose} />,
+    {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <MantineProvider env="test">{children}</MantineProvider>
+        </QueryClientProvider>
+      ),
+    },
   );
+  enterCredentials(edition);
+  return (opened: boolean) =>
+    rerender(<ConfluenceImportModal opened={opened} onClose={onClose} />);
+}
+
+function enterCredentials(edition: ConfluenceEdition) {
+  if (edition === "cloud") {
+    fireEvent.click(screen.getByRole("radio", { name: "Cloud" }));
+  }
   fireEvent.change(screen.getByLabelText(/^Site URL/), {
     target: { value: "https://confluence.example.com" },
   });
@@ -59,9 +73,12 @@ function renderImport() {
     target: { value: "admin@example.com" },
   });
   fireEvent.change(
-    screen.getByLabelText(/^Personal Access Token/, {
-      selector: "input[type=password]",
-    }),
+    screen.getByLabelText(
+      edition === "cloud" ? /^API token/ : /^Personal Access Token/,
+      {
+        selector: "input[type=password]",
+      },
+    ),
     { target: { value: "token" } },
   );
 }
@@ -92,6 +109,12 @@ async function startImport() {
 
 function fullEnumerationOption() {
   return screen.getByRole<HTMLInputElement>("checkbox", { name: optionName });
+}
+
+function blueprintsOption() {
+  return screen.getByRole<HTMLInputElement>("checkbox", {
+    name: "Import Confluence blueprints",
+  });
 }
 
 it("sends the full enumeration option when selected for Data Center", async () => {
@@ -134,4 +157,28 @@ it("drops a previous Data Center opt-in when switching to Cloud", async () => {
   const payload = await startImport();
   expect(payload).toHaveProperty("authType", "cloud_token");
   expect(payload).not.toHaveProperty("fullEnumeration");
+});
+
+it.each(["cloud", "server"] as const)(
+  "sends selected blueprints with a %s import",
+  async (edition) => {
+    renderImport(edition);
+    await selectSpaces(edition);
+    expect(blueprintsOption().checked).toBe(false);
+    fireEvent.click(blueprintsOption());
+    expect(await startImport()).toHaveProperty("includeBlueprints", true);
+  },
+);
+
+it("submits a new import with blueprints off after reopening the wizard", async () => {
+  const setOpened = renderImport();
+  await selectSpaces("server");
+  fireEvent.click(blueprintsOption());
+  setOpened(false);
+  setOpened(true);
+
+  enterCredentials("server");
+  await selectSpaces("server");
+  expect(blueprintsOption().checked).toBe(false);
+  expect(await startImport()).toHaveProperty("includeBlueprints", false);
 });

@@ -32,6 +32,7 @@ export async function startConfluenceImport(
   data: ConfluenceCredentials & {
     spaceKeys?: string[];
     fullEnumeration?: boolean;
+    includeBlueprints?: boolean;
   },
 ): Promise<StartImportResponse> {
   const req = await api.post<StartImportResponse>(

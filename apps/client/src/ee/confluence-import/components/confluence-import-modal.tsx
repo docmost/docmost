@@ -62,6 +62,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
   const [importAll, setImportAll] = useState(true);
   const [detectedEdition, setDetectedEdition] = useState<ConfluenceEdition>();
   const [fullEnumeration, setFullEnumeration] = useState(false);
+  const [includeBlueprints, setIncludeBlueprints] = useState(false);
 
   const form = useForm<CredentialsFormValues>({
     initialValues: {
@@ -154,6 +155,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       setImportAll(true);
       setDetectedEdition(test.edition);
       setFullEnumeration(false);
+      setIncludeBlueprints(false);
       setActive(1);
     } catch (err: any) {
       setError(
@@ -193,6 +195,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       const result = await startConfluenceImport({
         ...credentials,
         spaceKeys,
+        includeBlueprints,
         ...(isDataCenter && fullEnumeration && { fullEnumeration: true }),
       });
       if (!result.success || !result.fileTaskId) {
@@ -417,6 +420,15 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
               )}
             </Stack>
           </ScrollArea>
+
+          <Checkbox
+            label={t("Import Confluence blueprints")}
+            description={t(
+              "Add the full catalog to the Confluence Blueprints space and customized versions to their original spaces.",
+            )}
+            checked={includeBlueprints}
+            onChange={(e) => setIncludeBlueprints(e.currentTarget.checked)}
+          />
 
           {isDataCenter && (
             <Checkbox
