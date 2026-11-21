@@ -1,7 +1,8 @@
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { StarterKit } from "@tiptap/starter-kit";
-import { Mention, LinkExtension } from "@docmost/editor-ext";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Mention, LinkExtension, Color, CommentImage } from "@docmost/editor-ext";
 import classes from "./comment.module.css";
 import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
@@ -11,6 +12,8 @@ import EmojiCommand from "@/features/editor/extensions/emoji-command";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion";
 import MentionView from "@/features/editor/components/mention/mention-view";
 import { platformModifierKey } from "@/lib";
+import { TableKit } from "@tiptap/extension-table";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -49,6 +52,9 @@ const CommentEditor = forwardRef(
           placeholder: placeholder || t("Reply..."),
         }),
         LinkExtension,
+        TextStyle,
+        Color,
+        CommentImage,
         EmojiCommand,
         Mention.configure({
           suggestion: {
@@ -65,6 +71,11 @@ const CommentEditor = forwardRef(
             this.editor.isInitialized = true;
             return ReactNodeViewRenderer(MentionView);
           },
+        }),
+        TableKit,
+        TaskList,
+        TaskItem.configure({
+          nested: true,
         }),
       ],
       editorProps: {
@@ -117,7 +128,12 @@ const CommentEditor = forwardRef(
     // websocket on another browser). Skip for editable editors to avoid
     // resetting the cursor position on every keystroke.
     useEffect(() => {
-      if (!editable && commentEditor && !commentEditor.isDestroyed && defaultContent) {
+      if (
+        !editable &&
+        commentEditor &&
+        !commentEditor.isDestroyed &&
+        defaultContent
+      ) {
         commentEditor.commands.setContent(defaultContent);
       }
     }, [defaultContent, editable, commentEditor]);

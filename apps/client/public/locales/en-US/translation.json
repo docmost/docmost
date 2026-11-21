@@ -98,6 +98,7 @@
   "Failed to restore page": "Failed to restore page",
   "Failed to fetch recent pages": "Failed to fetch recent pages",
   "Failed to import pages": "Failed to import pages",
+  "Failed to load comments. An error occurred.": "Failed to load comments. An error occurred.",
   "Failed to load page. An error occurred.": "Failed to load page. An error occurred.",
   "Failed to load presentation. An error occurred.": "Failed to load presentation. An error occurred.",
   "Failed to update data": "Failed to update data",

@@ -30,7 +30,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
-import { load } from 'cheerio';
+import { loadImportHtml } from '../utils/import-dates';
 import { normalizeImportHtml } from '../utils/import-formatter';
 
 @Injectable()
@@ -152,7 +152,7 @@ export class ImportService {
 
   async processHTML(htmlInput: string): Promise<any> {
     try {
-      const $ = load(htmlInput);
+      const $ = loadImportHtml(htmlInput);
       normalizeImportHtml($, $.root());
       return htmlToJson($.html() || '');
     } catch (err) {
@@ -258,9 +258,11 @@ export class ImportService {
     const content = prosemirrorState.content ?? [];
     const firstNode = content[0];
 
+    // Page titles are plain text. Keep headings with editable dates in the body.
     const isTitleHeading =
       firstNode?.type === 'heading' &&
-      (opts?.anyHeadingLevel || firstNode.attrs?.level === 1);
+      (opts?.anyHeadingLevel || firstNode.attrs?.level === 1) &&
+      !firstNode.content?.some((node) => node.type === 'date');
 
     if (isTitleHeading) {
       const headingText = (firstNode.content ?? [])

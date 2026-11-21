@@ -1,5 +1,6 @@
 export * from "./lib/trailing-node";
 export * from "./lib/comment/comment";
+export * from "./lib/comment/comment-image";
 export * from "./lib/utils";
 export * from "./lib/math";
 export * from "./lib/details";
@@ -23,6 +24,7 @@ export * from "./lib/embed-provider";
 export * from "./lib/subpages";
 export * from "./lib/transclusion";
 export * from "./lib/highlight";
+export * from "./lib/text-color";
 export * from "./lib/indent";
 export * from "./lib/list-item";
 export * from "./lib/heading/heading";
