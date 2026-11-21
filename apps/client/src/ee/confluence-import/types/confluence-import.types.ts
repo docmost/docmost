@@ -42,6 +42,7 @@ export type ImportStatusResponse = {
   fileTaskId?: string;
   status?: ConfluenceImportStatus;
   errorMessage?: string | null;
+  warnings?: string[];
   currentPhase?: string | null;
   totalSpaces?: number;
   importedSpaces?: number;
