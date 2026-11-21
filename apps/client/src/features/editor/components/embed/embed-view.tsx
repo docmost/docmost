@@ -61,6 +61,7 @@ export default function EmbedView(props: NodeViewProps) {
     align,
     width: nodeWidth,
     height: nodeHeight,
+    widthPercent,
   } = node.attrs;
   const clipboard = useClipboard();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,7 +85,7 @@ export default function EmbedView(props: NodeViewProps) {
   const handleResize = useCallback(
     (newWidth: number, newHeight: number) => {
       if (editor.isDestroyed) return;
-      updateAttributes({ width: newWidth, height: newHeight });
+      updateAttributes({ width: newWidth, height: newHeight, widthPercent: null });
     },
     [editor, updateAttributes],
   );
@@ -122,9 +123,18 @@ export default function EmbedView(props: NodeViewProps) {
     <NodeViewWrapper data-drag-handle className={classes.embedNodeView}>
       {embed ? (
         <div className={classes.embedContainer} data-align={align}>
-          <div
-            className={classes.frame}
-            data-menu-open={menuOpen || editingLink ? "true" : "false"}
+          <ResizableWrapper
+            initialWidth={nodeWidth || 800}
+            initialHeight={nodeHeight || 600}
+            widthPercent={widthPercent}
+            fitToContainer
+            onResize={handleResize}
+            isEditable={isEditable}
+            selected={selected}
+            className={clsx(classes.embedWrapper, {
+              "ProseMirror-selectednode": selected,
+              [classes.menuOpen]: menuOpen || editingLink,
+            })}
           >
             <Popover
               opened={editingLink}
@@ -241,31 +251,16 @@ export default function EmbedView(props: NodeViewProps) {
               </Popover.Dropdown>
             </Popover>
 
-            <ResizableWrapper
-              initialWidth={nodeWidth || 800}
-              initialHeight={nodeHeight || 600}
-              minWidth={200}
-              maxWidth={1200}
-              minHeight={200}
-              maxHeight={1200}
-              onResize={handleResize}
-              isEditable={isEditable}
-              selected={selected}
-              className={clsx(classes.embedWrapper, {
-                "ProseMirror-selectednode": selected,
-              })}
-            >
-              <iframe
-                className={classes.embedIframe}
-                src={sanitizeUrl(embed.embedUrl)}
-                allow="encrypted-media; clipboard-read; clipboard-write; picture-in-picture;"
-                loading="lazy"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
-                allowFullScreen
-                frameBorder="0"
-              />
-            </ResizableWrapper>
-          </div>
+            <iframe
+              className={classes.embedIframe}
+              src={sanitizeUrl(embed.embedUrl)}
+              allow="encrypted-media; clipboard-read; clipboard-write; picture-in-picture;"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+              allowFullScreen
+              frameBorder="0"
+            />
+          </ResizableWrapper>
         </div>
       ) : (
         <Popover
