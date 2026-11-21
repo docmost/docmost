@@ -31,6 +31,8 @@ interface ResizableWrapperProps {
   children: ReactNode;
   initialWidth?: number;
   initialHeight?: number;
+  fitToContainer?: boolean;
+  widthPercent?: number;
   minWidth?: number;
   maxWidth?: number;
   minHeight?: number;
@@ -47,12 +49,36 @@ type DragState = {
   startY: number;
   startWidth: number;
   startHeight: number;
+  maxWidth: number;
+  moved: boolean;
 };
+
+function sizeStyle(
+  width: number,
+  height: number,
+  fitToContainer: boolean,
+  widthPercent?: number,
+): React.CSSProperties {
+  if (!fitToContainer) return { width: `${width}px`, height: `${height}px` };
+  return {
+    width: widthPercent ? `${widthPercent}%` : `${width}px`,
+    maxWidth: "100%",
+    height: "auto",
+    aspectRatio: `${width} / ${height}`,
+  };
+}
+
+function dragSize(start: number, delta: number, min: number, max: number) {
+  // Keep the first drag smooth when the displayed size is outside the limits.
+  return Math.min(Math.max(start, max), Math.max(Math.min(start, min), start + delta));
+}
 
 export const ResizableWrapper: React.FC<ResizableWrapperProps> = ({
   children,
   initialWidth = 640,
   initialHeight = 480,
+  fitToContainer = false,
+  widthPercent,
   minWidth = 200,
   maxWidth = 1200,
   minHeight = 200,
@@ -67,68 +93,66 @@ export const ResizableWrapper: React.FC<ResizableWrapperProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const dragRef = useRef<DragState | null>(null);
-  const widthRef = useRef(initialWidth);
-  const heightRef = useRef(initialHeight);
   const onResizeRef = useRef(onResize);
   onResizeRef.current = onResize;
-  const constraintsRef = useRef({ minWidth, maxWidth, minHeight, maxHeight });
-  constraintsRef.current = { minWidth, maxWidth, minHeight, maxHeight };
-
-  useEffect(() => {
-    if (!dragRef.current && wrapperRef.current) {
-      widthRef.current = initialWidth;
-      heightRef.current = initialHeight;
-      wrapperRef.current.style.width = `${initialWidth}px`;
-      wrapperRef.current.style.height = `${initialHeight}px`;
-    }
-  }, [initialWidth, initialHeight]);
+  const constraintsRef = useRef({ minWidth, minHeight, maxHeight, fitToContainer });
+  constraintsRef.current = { minWidth, minHeight, maxHeight, fitToContainer };
 
   const handleMouseMove = useRef((e: MouseEvent) => {
     const drag = dragRef.current;
     if (!drag || !wrapperRef.current) return;
 
     const sign = HANDLE_SIGN[drag.handle];
-    const { minWidth, maxWidth, minHeight, maxHeight } = constraintsRef.current;
-
-    const deltaY = e.clientY - drag.startY;
-    const newHeight = Math.min(Math.max(drag.startHeight + deltaY * sign.y, minHeight), maxHeight);
-    heightRef.current = newHeight;
-    wrapperRef.current.style.height = `${newHeight}px`;
-
-    if (sign.x !== 0) {
-      const deltaX = e.clientX - drag.startX;
-      const newWidth = Math.min(Math.max(drag.startWidth + deltaX * sign.x, minWidth), maxWidth);
-      widthRef.current = newWidth;
-      wrapperRef.current.style.width = `${newWidth}px`;
-    }
+    const { minWidth, minHeight, maxHeight, fitToContainer } = constraintsRef.current;
+    const deltaX = (e.clientX - drag.startX) * sign.x;
+    const deltaY = (e.clientY - drag.startY) * sign.y;
+    const width = sign.x === 0
+      ? drag.startWidth
+      : dragSize(drag.startWidth, deltaX, minWidth, drag.maxWidth);
+    const height = dragSize(drag.startHeight, deltaY, minHeight, maxHeight);
+    if (!drag.moved && width === drag.startWidth && height === drag.startHeight) return;
+    drag.moved = true;
+    Object.assign(wrapperRef.current.style, sizeStyle(width, height, fitToContainer));
   }).current;
 
   const handleMouseUp = useRef(() => {
+    const resized = dragRef.current?.moved;
     dragRef.current = null;
     setIsResizing(false);
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", handleMouseUp);
-    onResizeRef.current?.(widthRef.current, heightRef.current);
+    if (resized && wrapperRef.current) {
+      const { width, height } = wrapperRef.current.getBoundingClientRect();
+      onResizeRef.current?.(Math.round(width), Math.round(height));
+    }
   }).current;
 
   const handleResizeStart = useCallback((e: React.MouseEvent, handle: Handle) => {
     e.preventDefault();
     e.stopPropagation();
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const { width, height } = wrapper.getBoundingClientRect();
+    const containerWidth = fitToContainer && wrapper.parentElement
+      ? wrapper.parentElement.getBoundingClientRect().width
+      : maxWidth;
     dragRef.current = {
       handle,
       startX: e.clientX,
       startY: e.clientY,
-      startWidth: widthRef.current,
-      startHeight: heightRef.current,
+      startWidth: width,
+      startHeight: height,
+      maxWidth: Math.min(maxWidth, containerWidth),
+      moved: false,
     };
     setIsResizing(true);
     document.body.style.cursor = HANDLE_CURSOR[handle];
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-  }, [handleMouseMove, handleMouseUp]);
+  }, [handleMouseMove, handleMouseUp, fitToContainer, maxWidth]);
 
   useEffect(() => {
     return () => {
@@ -145,7 +169,7 @@ export const ResizableWrapper: React.FC<ResizableWrapperProps> = ({
       className={clsx(classes.wrapper, className, {
         [classes.resizing]: isResizing,
       })}
-      style={{ width: widthRef.current, height: heightRef.current }}
+      style={sizeStyle(initialWidth, initialHeight, fitToContainer, widthPercent)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
