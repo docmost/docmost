@@ -31,14 +31,13 @@ import {
 import {
   ConfluenceAuthType,
   ConfluenceCredentials,
+  ConfluenceEdition,
   ConfluenceSpaceSummary,
 } from "@/ee/confluence-import/types/confluence-import.types";
 import { confluenceImportsQueryKey } from "@/ee/confluence-import/queries/confluence-import-queries";
 
-type ConfluenceEditionChoice = "cloud" | "server";
-
 type CredentialsFormValues = {
-  edition: ConfluenceEditionChoice;
+  edition: ConfluenceEdition;
   authType: ConfluenceAuthType;
   siteUrl: string;
   email: string;
@@ -61,6 +60,8 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
   const [spaces, setSpaces] = useState<ConfluenceSpaceSummary[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [importAll, setImportAll] = useState(true);
+  const [detectedEdition, setDetectedEdition] = useState<ConfluenceEdition>();
+  const [fullEnumeration, setFullEnumeration] = useState(false);
 
   const form = useForm<CredentialsFormValues>({
     initialValues: {
@@ -124,7 +125,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
     };
   }, [form.values]);
 
-  const handleEditionChange = (edition: ConfluenceEditionChoice) => {
+  const handleEditionChange = (edition: ConfluenceEdition) => {
     form.setFieldValue("edition", edition);
     if (edition === "cloud") {
       form.setFieldValue("authType", "cloud_token");
@@ -151,6 +152,8 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       setSpaces(list.spaces);
       setSelectedKeys(list.spaces.map((s) => s.key));
       setImportAll(true);
+      setDetectedEdition(test.edition);
+      setFullEnumeration(false);
       setActive(1);
     } catch (err: any) {
       setError(
@@ -174,6 +177,9 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
     setSelectedKeys(checked ? spaces.map((s) => s.key) : []);
   };
 
+  const isDataCenter =
+    form.values.edition === "server" && detectedEdition === "server";
+
   const handleStartImport = async () => {
     const spaceKeys = importAll ? [] : selectedKeys;
     if (!importAll && spaceKeys.length === 0) {
@@ -187,6 +193,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       const result = await startConfluenceImport({
         ...credentials,
         spaceKeys,
+        ...(isDataCenter && fullEnumeration && { fullEnumeration: true }),
       });
       if (!result.success || !result.fileTaskId) {
         setError(result.error || t("Failed to start import"));
@@ -222,7 +229,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
   const editionSegment = (
     <SegmentedControl
       value={form.values.edition}
-      onChange={(val) => handleEditionChange(val as ConfluenceEditionChoice)}
+      onChange={(val) => handleEditionChange(val as ConfluenceEdition)}
       data={[
         { value: "server", label: t("Data Center / Server") },
         { value: "cloud", label: t("Cloud") },
@@ -410,6 +417,17 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
               )}
             </Stack>
           </ScrollArea>
+
+          {isDataCenter && (
+            <Checkbox
+              label={t("Check every page for attachments and comments")}
+              description={t(
+                "By default, Docmost skips extra requests when Confluence reports an empty list.",
+              )}
+              checked={fullEnumeration}
+              onChange={(e) => setFullEnumeration(e.currentTarget.checked)}
+            />
+          )}
 
           {error && (
             <Alert color="red" icon={<IconAlertCircle size={18} />}>

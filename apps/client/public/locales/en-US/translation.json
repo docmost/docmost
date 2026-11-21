@@ -141,6 +141,8 @@
   "Home": "Home",
   "Import pages": "Import pages",
   "Import pages & space settings": "Import pages & space settings",
+  "Check every page for attachments and comments": "Check every page for attachments and comments",
+  "By default, Docmost skips extra requests when Confluence reports an empty list.": "By default, Docmost skips extra requests when Confluence reports an empty list.",
   "Importing pages": "Importing pages",
   "invalid invitation link": "Invalid invitation link",
   "Invitation signup": "Invitation signup",

@@ -29,7 +29,10 @@ export async function listConfluenceSpaces(
 }
 
 export async function startConfluenceImport(
-  data: ConfluenceCredentials & { spaceKeys?: string[] },
+  data: ConfluenceCredentials & {
+    spaceKeys?: string[];
+    fullEnumeration?: boolean;
+  },
 ): Promise<StartImportResponse> {
   const req = await api.post<StartImportResponse>(
     "/confluence-import/start",

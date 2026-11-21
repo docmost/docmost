@@ -1,4 +1,5 @@
 export type ConfluenceAuthType = "cloud_token" | "pat" | "basic";
+export type ConfluenceEdition = "cloud" | "server";
 
 export type ConfluenceCredentials = {
   siteUrl: string;
@@ -19,7 +20,7 @@ export type ConfluenceSpaceSummary = {
 
 export type TestConnectionResponse = {
   success: boolean;
-  edition?: string;
+  edition?: ConfluenceEdition;
   spaceCount?: number;
   error?: string;
 };
