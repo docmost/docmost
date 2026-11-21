@@ -1,64 +1,29 @@
-import { Editor } from "@tiptap/react";
-import { useCallback, useEffect, useState } from "react";
-import { showTabAtElement } from "@/features/editor/utils";
+import type { Editor } from "@tiptap/react";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { showTabAtElement } from "@/features/editor/utils/show-tab-at-element";
 
-function waitForState(checkFn: () => boolean): Promise<void> {
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      if (checkFn()) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 800);
-  });
-}
-
-export const useEditorScroll = ({
-  canScroll,
-  initialScrollTo,
-}: {
-  canScroll: () => boolean;
-  initialScrollTo?: string;
-}) => {
-  const [scrollTo, setScrollTo] = useState<string>(initialScrollTo || "");
+export function useEditorScroll(editor: Editor | null, visible = true) {
+  const { hash } = useLocation();
 
   useEffect(() => {
-    if (!initialScrollTo) {
-      setScrollTo(window.location.hash ? window.location.hash.slice(1) : "");
+    if (!editor || !visible || hash.length < 2) return;
+    const id = CSS.escape(hash.slice(1));
+    let timer: ReturnType<typeof setTimeout>;
+
+    // A collaborative page can receive its content after the editor mounts.
+    function scrollToAnchor(attempt: number) {
+      if (editor.isDestroyed) return;
+      const target = editor.view.dom.querySelector(`[id="${id}"], [data-id="${id}"]`);
+      if (target?.isConnected) {
+        showTabAtElement(target);
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (attempt < 50) {
+        timer = setTimeout(() => scrollToAnchor(attempt + 1), 200);
+      }
     }
-  }, [initialScrollTo]);
 
-  const handleScrollTo = useCallback(async (editor: Editor, _scrollTo: string | null = null, tryCount: number = 0) => {
-    await waitForState(() => canScroll());
-    return new Promise((resolve) => {
-      const MAX_TRY_COUNT = 10;
-      if (tryCount >= MAX_TRY_COUNT) {
-        resolve(false);
-        return;
-      }
-
-      const targetId = _scrollTo || scrollTo;
-      if (!targetId) {
-        resolve(false);
-        return;
-      }
-
-      if (editor.isDestroyed) {
-        resolve(false);
-        return;
-      }
-      const dom = editor.view.dom.querySelector(`[id="${targetId}"], [data-id="${targetId}"]`);
-      if (dom) {
-        showTabAtElement(dom);
-        dom.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        resolve(true);
-      } else {
-        setTimeout(async () => {
-          resolve(await handleScrollTo(editor, targetId, tryCount + 1));
-        }, 200);
-      }
-    });
-  }, [scrollTo, canScroll]);
-
-  return { scrollTo, handleScrollTo };
-};
+    scrollToAnchor(0);
+    return () => clearTimeout(timer);
+  }, [editor, visible, hash]);
+}

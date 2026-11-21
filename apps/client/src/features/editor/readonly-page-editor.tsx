@@ -1,11 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Editor, EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
@@ -64,22 +58,8 @@ export default function ReadonlyPageEditor({
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [contentEditor, setContentEditor] = useState<Editor | null>(null);
-  const isComponentMounted = useRef(false);
-  const editorCreated = useRef(false);
   const lightboxEnabled = withLightbox || Boolean(shareId || spaceSlug);
-
-  const canScroll = useCallback(
-    () => isComponentMounted.current && editorCreated.current,
-    [isComponentMounted, editorCreated],
-  );
-  const initialScrollTo = window.location.hash
-    ? window.location.hash.slice(1)
-    : "";
-  const { handleScrollTo } = useEditorScroll({ canScroll, initialScrollTo });
-
-  useEffect(() => {
-    isComponentMounted.current = true;
-  }, []);
+  useEditorScroll(contentEditor);
 
   useEffect(() => {
     if (!lightboxEnabled) return;
@@ -158,9 +138,6 @@ export default function ReadonlyPageEditor({
             // @ts-ignore
             setReadOnlyEditor(editor);
             setContentEditor(editor);
-
-            handleScrollTo(editor);
-            editorCreated.current = true;
           }
         }}
       ></EditorProvider>
