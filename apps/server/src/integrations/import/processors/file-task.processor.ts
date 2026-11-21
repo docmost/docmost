@@ -28,9 +28,13 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
         case QueueJob.IMPORT_TASK:
           await this.fileTaskService.processZIpImport(job.data.fileTaskId);
           break;
-        case QueueJob.CONFLUENCE_API_IMPORT:
-          await this.processConfluenceApiImport(job.data.fileTaskId);
+        case QueueJob.CONFLUENCE_API_IMPORT: {
+          // Drain imports queued before the dedicated queue was introduced.
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const importWorker = require('../../../ee/confluence-api-import/confluence-import-worker');
+          await importWorker.runConfluenceImport(job.data);
           break;
+        }
         case QueueJob.PDF_EXPORT_TASK:
           await this.processExportTask(job.data.fileTaskId);
           break;
@@ -50,19 +54,6 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
     return this.moduleRef.get(PdfExportModule.PdfExportService, {
       strict: false,
     });
-  }
-
-  private getConfluenceApiImportService() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('./../../../ee/confluence-api-import/confluence-api-import.service');
-    return this.moduleRef.get(mod.ConfluenceApiImportService, {
-      strict: false,
-    });
-  }
-
-  private async processConfluenceApiImport(fileTaskId: string): Promise<void> {
-    const service = this.getConfluenceApiImportService();
-    await service.processImport(fileTaskId);
   }
 
   private async processExportTask(fileTaskId: string): Promise<void> {
