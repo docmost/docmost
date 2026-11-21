@@ -1,4 +1,4 @@
-import { Group, Text, SegmentedControl } from "@mantine/core";
+import { SegmentedControl, Text } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useState, useEffect } from "react";
@@ -7,23 +7,30 @@ import { updateWorkspace } from "@/features/workspace/services/workspace-service
 import { notifications } from "@mantine/notifications";
 import { getApiErrorMessage } from "@/lib/api-error.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
+import {
+  ResponsiveSettingsContent,
+  ResponsiveSettingsControl,
+  ResponsiveSettingsRow,
+} from "@/components/ui/responsive-settings-row";
 
 export default function WorkspaceDefaultPageEditMode() {
   const { t } = useTranslation();
 
   return (
-    <Group justify="space-between" wrap="nowrap" gap="xl">
-      <div>
+    <ResponsiveSettingsRow>
+      <ResponsiveSettingsContent>
         <Text size="md">{t("Default page edit mode")}</Text>
         <Text size="sm" c="dimmed">
           {t(
             "Choose the page edit mode new members start with. Existing members are not affected.",
           )}
         </Text>
-      </div>
+      </ResponsiveSettingsContent>
 
-      <DefaultPageEditModeControl />
-    </Group>
+      <ResponsiveSettingsControl>
+        <DefaultPageEditModeControl />
+      </ResponsiveSettingsControl>
+    </ResponsiveSettingsRow>
   );
 }
 
