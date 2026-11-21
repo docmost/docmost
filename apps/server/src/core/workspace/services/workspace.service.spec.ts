@@ -21,6 +21,7 @@ function buildService() {
     findById: jest.fn().mockResolvedValue({
       id: userId,
       role: UserRole.MEMBER,
+      email: 'imported@example.com',
       deactivatedAt: null,
       deletedAt: null,
     }),
@@ -53,12 +54,34 @@ function buildService() {
     { log: jest.fn() } as any,
     userSessionRepo as any,
     integrationConnectionRepo as any,
+    { disconnectUser: jest.fn() } as any,
+    { recheckAccess: jest.fn() } as any,
   );
 
-  return { service, trx, integrationConnectionRepo };
+  return { service, trx, integrationConnectionRepo, userRepo };
 }
 
 describe('WorkspaceService user offboarding', () => {
+  it.each([true, false])(
+    'preserves the mailbox only for imported deletions (preserveEmail=%s)',
+    async (preserveEmail) => {
+      const { service, userRepo, trx } = buildService();
+      await service.deleteUser(authUser, userId, workspaceId, {
+        preserveEmail,
+      });
+      expect(userRepo.updateUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: preserveEmail
+            ? 'imported@example.com'
+            : expect.stringMatching(/@deleted\.docmost\.com$/),
+          deletedAt: expect.any(Date),
+        }),
+        userId,
+        workspaceId,
+        trx,
+      );
+    },
+  );
   it('deletes personal integration connections on deactivation', async () => {
     const { service, trx, integrationConnectionRepo } = buildService();
 

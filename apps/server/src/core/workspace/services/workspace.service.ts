@@ -1054,6 +1054,7 @@ export class WorkspaceService {
     authUser: User,
     userId: string,
     workspaceId: string,
+    options?: { preserveEmail?: boolean },
   ): Promise<void> {
     const user = await executeTx(this.db, async (trx) => {
       const workspace = await this.workspaceRepo.findById(workspaceId, {
@@ -1086,7 +1087,11 @@ export class WorkspaceService {
       await this.userRepo.updateUser(
         {
           name: 'Deleted user',
-          email: v4() + '@deleted.docmost.com',
+          // Keep the identity reserved when the source directory reports a
+          // deletion. A subsequent SSO sign-in must still find the deleted row.
+          email: options?.preserveEmail
+            ? user.email
+            : v4() + '@deleted.docmost.com',
           avatarUrl: null,
           timezone: null,
           settings: null,

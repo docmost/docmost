@@ -43,6 +43,7 @@ export enum QueueJob {
 
   IMPORT_TASK = 'import-task',
   CONFLUENCE_API_IMPORT = 'confluence-api-import-task',
+  APPLY_IMPORTED_USER_STATUS = 'apply-imported-user-status',
   EXPORT_TASK = 'export-task',
 
   SEARCH_INDEX_PAGE = 'search-index-page',
