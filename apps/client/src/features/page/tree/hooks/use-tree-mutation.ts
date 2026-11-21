@@ -154,6 +154,7 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         spaceId: createdPage.spaceId,
         parentPageId: createdPage.parentPageId,
         hasChildren: false,
+        canEdit: true, // the creator can always edit their own page
         children: [],
       };
 
@@ -258,7 +259,16 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
         console.error("Failed to delete page:", error);
       }
     },
-    [removePageMutation, setData, store, pageSlug, navigate, spaceSlug, emit, spaceId],
+    [
+      removePageMutation,
+      setData,
+      store,
+      pageSlug,
+      navigate,
+      spaceSlug,
+      emit,
+      spaceId,
+    ],
   );
 
   return { handleMove, handleCreate, handleRename, handleDelete };
