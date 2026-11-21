@@ -63,6 +63,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
   const [detectedEdition, setDetectedEdition] = useState<ConfluenceEdition>();
   const [fullEnumeration, setFullEnumeration] = useState(false);
   const [includeBlueprints, setIncludeBlueprints] = useState(false);
+  const [includeBlogPosts, setIncludeBlogPosts] = useState(false);
 
   const form = useForm<CredentialsFormValues>({
     initialValues: {
@@ -156,6 +157,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       setDetectedEdition(test.edition);
       setFullEnumeration(false);
       setIncludeBlueprints(false);
+      setIncludeBlogPosts(false);
       setActive(1);
     } catch (err: any) {
       setError(
@@ -196,6 +198,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
         ...credentials,
         spaceKeys,
         includeBlueprints,
+        ...(includeBlogPosts && { includeBlogPosts: true }),
         ...(isDataCenter && fullEnumeration && { fullEnumeration: true }),
       });
       if (!result.success || !result.fileTaskId) {
@@ -420,6 +423,12 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
               )}
             </Stack>
           </ScrollArea>
+
+          <Checkbox
+            label={t("Import blog posts as pages")}
+            checked={includeBlogPosts}
+            onChange={(e) => setIncludeBlogPosts(e.currentTarget.checked)}
+          />
 
           <Checkbox
             label={t("Import Confluence blueprints")}

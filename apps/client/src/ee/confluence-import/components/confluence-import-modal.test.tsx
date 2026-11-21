@@ -182,3 +182,12 @@ it("submits a new import with blueprints off after reopening the wizard", async 
   expect(blueprintsOption().checked).toBe(false);
   expect(await startImport()).toHaveProperty("includeBlueprints", false);
 });
+
+it.each(["server", "cloud"] as const)("opts into blog posts as pages on %s", async (edition) => {
+  renderImport(edition);
+  await selectSpaces(edition);
+  const blogs = screen.getByRole<HTMLInputElement>("checkbox", { name: "Import blog posts as pages" });
+  expect(blogs.checked).toBe(false);
+  fireEvent.click(blogs);
+  expect(await startImport()).toHaveProperty("includeBlogPosts", true);
+});
